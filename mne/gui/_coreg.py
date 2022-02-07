@@ -174,7 +174,8 @@ class CoregistrationUI(HasTraits):
         self._to_cf_t = None
         self._omit_hsp_distance = 0.0
         self._fiducials_file = None
-        self._is_trans_saved = False
+        self._trans_saved = False
+        self._fids_saved = False
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
             ('lpa', 'nasion', 'rpa'))
@@ -235,7 +236,7 @@ class CoregistrationUI(HasTraits):
         win = self._renderer._window
 
         def closeEventCallback(event):
-            if not self._is_trans_saved:
+            if not self._trans_saved:
                 from PyQt5.QtWidgets import QMessageBox
                 ret = QMessageBox.warning(
                     win,
@@ -248,10 +249,11 @@ class CoregistrationUI(HasTraits):
                 if ret == QMessageBox.Save:
                     self._forward_widget_command(
                         "save_trans", "set_value", None)
-                    self._forward_widget_command(
-                        "save_mri_fids", "set_value", None)
                 else:
                     assert ret == QMessageBox.Cancel
+            if not self._fids_saved:
+                self._forward_widget_command(
+                    "save_mri_fids", "set_value", None)
             # close the window
             win.signal_close.emit()
             event.accept()
@@ -970,6 +972,8 @@ class CoregistrationUI(HasTraits):
         self._update_plot()
         self._update_parameters()
         self._update_distance_estimation()
+        self._trans_saved = False
+        self._fids_saved = False
 
     def _forward_widget_command(self, names, command, value,
                                 input_value=True, output_value=False):
@@ -1261,12 +1265,13 @@ class CoregistrationUI(HasTraits):
         )
         self._set_fiducials_file(fname)
         self._display_message(f"Saving {fname}... Done!")
+        self._fids_saved = True
 
     def _save_trans(self, fname):
         write_trans(fname, self.coreg.trans, overwrite=True)
         self._display_message(
             f"{fname} transform file is saved.")
-        self._is_trans_saved = True
+        self._trans_saved = True
 
     def _load_trans(self, fname):
         mri_head_t = _ensure_trans(read_trans(fname, return_all=True),
