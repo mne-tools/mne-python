@@ -832,8 +832,7 @@ def reset_warnings(gallery_conf, fname):
                 "default value of type 'dict' in an Any trait will",  # traits
                 'rcParams is deprecated',  # PyVista rcParams -> global_theme
                 'to mean no clipping',
-                'Please use * from the `scipy.*` namespace, '
-                'the `scipy.*` namespace is deprecated',  # Dipy
+                'the `scipy.ndimage.measurements` namespace',  # Dipy
                 '`np.MachAr` is deprecated',  # Numba
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
