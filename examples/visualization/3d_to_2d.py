@@ -69,7 +69,7 @@ montage.apply_trans(trans)
 fig = plot_alignment(raw.info, trans=trans, subject='sample_ecog',
                      subjects_dir=subjects_dir, surfaces=dict(pial=0.9))
 set_3d_view(figure=fig, azimuth=20, elevation=80)
-xy, im = snapshot_brain_montage(fig, raw.info)
+xy, im = snapshot_brain_montage(fig, montage)
 
 # Convert from a dictionary to array to plot
 xy_pts = np.vstack([xy[ch] for ch in raw.ch_names])

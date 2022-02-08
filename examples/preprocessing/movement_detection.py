@@ -1,4 +1,6 @@
 """
+.. _ex-movement-detect:
+
 ======================================================
 Annotate movement artifacts and reestimate dev_head_t
 ======================================================
@@ -78,5 +80,6 @@ raw.plot(n_channels=100, duration=20)
 # and plot it:
 new_dev_head_t = compute_average_dev_head_t(raw, head_pos)
 raw.info['dev_head_t'] = new_dev_head_t
-mne.viz.plot_alignment(raw.info, show_axes=True, subject=subject,
-                       trans=trans_fname, subjects_dir=subjects_dir)
+fig = mne.viz.plot_alignment(raw.info, show_axes=True, subject=subject,
+                             trans=trans_fname, subjects_dir=subjects_dir)
+mne.viz.set_3d_view(fig, azimuth=90, elevation=60)

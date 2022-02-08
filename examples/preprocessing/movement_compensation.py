@@ -1,5 +1,5 @@
 """
-.. _example-movement-comp:
+.. _ex-movement-comp:
 
 ==============================================
 Maxwell filter data with movement compensation
