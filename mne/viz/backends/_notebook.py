@@ -10,6 +10,7 @@ from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, BoundedFloatText, HBox,
                         IntSlider, IntText, Text, VBox, IntProgress, Play,
                         Checkbox, RadioButtons, HTML, Accordion, jsdlink)
+from ipyevents import Event
 
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
@@ -509,6 +510,8 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         self._menu_bar = None
         self._tool_bar = None
         self._status_bar = None
+        self._event_manager = Event()
+        self._canvas_height = None
         kwargs["notebook"] = True
         super().__init__(*args, **kwargs)
 
@@ -526,6 +529,23 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         )
         display(self._tool_bar)
 
+    def _dom_event_callback(self, event):
+        if "boundingRectHeight" in event and self._canvas_height is None:
+            self._canvas_height = event["boundingRectHeight"]
+
+    def _configure_event_manager(self, source):
+        allowed_events = [
+            "mouseenter",
+            "mouseleave",
+            "mousedown",
+            "mouseup",
+            "mousemove",
+        ]
+        self._event_manager.watched_events = allowed_events
+        self._event_manager.source = source
+        self._event_manager.on_dom_event(
+            self._dom_event_callback)
+
     def show(self):
         # menu bar
         if self._menu_bar is not None:
@@ -540,6 +560,8 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
             jupyter_backend="ipyvtklink", return_viewer=True)
         viewer.layout.width = None  # unlock the fixed layout
         viewer.layout.object_fit = 'contain'  # respect the aspect ratio
+        viewer.layout.object_position = 'top'
+        self._configure_event_manager(viewer)
         rendering_row = list()
         if self._docks is not None and "left" in self._docks:
             rendering_row.append(self._docks["left"][0])
