@@ -204,7 +204,7 @@ Python development are:
   commands in the terminal::
 
       $ conda activate mne
-      $ conda install spyder-kernels -c conda-forge
+      $ conda install spyder-kernels=HERE_EXACT_VERSION -c conda-forge
 
   If the Spyder graphic backend is not set to ``inline`` but to e.g. ``Qt5``,
   ``pyqt`` must be installed in the ``mne`` environment.
