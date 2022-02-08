@@ -2950,7 +2950,7 @@ class Brain(object):
             surface of the given hemisphere is visible (at least when in split
             or single-hemi mode).
         ``'rostral'``
-            From in front.
+            From the front.
         ``'caudal'``
             From the rear.
         ``'dorsal'``
