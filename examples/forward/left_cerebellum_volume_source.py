@@ -6,7 +6,6 @@ Generate a left cerebellum volume source space
 Generate a volume source space of the left cerebellum and plot its vertices
 relative to the left cortical surface source space and the FreeSurfer
 segmentation file.
-
 """
 
 # Author: Alan Leggitt <alan.leggitt@ucsf.edu>
