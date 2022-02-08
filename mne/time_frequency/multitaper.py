@@ -401,6 +401,9 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         last two if ``output='complex'``) will be the same as input.
     freqs : array
         The frequency points in Hz of the PSD.
+    weights : ndarray
+        The weights used for averaging across tapers. Only returned if
+        ``output='complex'``.
 
     See Also
     --------
