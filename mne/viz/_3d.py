@@ -755,7 +755,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     if src is not None:
         atlas_ids, colors = read_freesurfer_lut()
-        for si, ss in enumerate(src):
+        for ss in src:
             src_rr = ss['rr'][ss['inuse'].astype(bool)]
             src_nn = ss['nn'][ss['inuse'].astype(bool)]
 
