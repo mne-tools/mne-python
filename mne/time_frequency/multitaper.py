@@ -458,7 +458,6 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
                             for x in np.array_split(x_mt, n_splits))
                 psd[start:stop] = np.concatenate(out)
         else:
-            print('data shape:', dshape, 'x_mt shape:', x_mt.shape)
             psd[start:stop] = x_mt[:, :, freq_mask]
 
     if normalization == 'full':
