@@ -214,14 +214,14 @@ del CT_orig
 #       :menuselection:`Tools --> Transform Volume`
 #     - Use the rotation and translation slide bars to align the CT
 #       to the MR (be sure to have the CT selected in the upper left menu)
-#     - Save the modified volume using the ``Save Volume As...`` button
-#       (you can just save ``Save Reg...`` instead but saving the volume
-#       saves the lta file automatically as well)
+#     - Save the linear transform array (lta) file using the ``Save Reg...``
+#       button
 #
 #     Since we really require as much precision as possible for the
-#     alignment, we should rerun the algorithm. This time, we just want to
-#     skip to the most exact rigid alignment, without smoothing, since the
-#     manual alignment is already very close.
+#     alignment, we should rerun the algorithm starting with the manual
+#     alignment. This time, we just want to skip to the most exact rigid
+#     alignment, without smoothing, since the manual alignment is already
+#     very close.
 #
 #     .. code-block:: python
 #
