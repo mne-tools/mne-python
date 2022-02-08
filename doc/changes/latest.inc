@@ -187,7 +187,7 @@ Bugs
 
 - :func:`mne.find_events` now uses ``first_samp`` and not ``0`` for initial event when using ``initial_value`` (:gh:`10289`, by `Alex Gramfort`_)
 
-- Fix plotting bug in :ref:`electrode-pos-2d` and make view look more natural in :ref:`movement-detect` (:gh:`10313`, by `Alex Rockhill`_)
+- Fix plotting bug in :ref:`ex-electrode-pos-2d` and make view look more natural in :ref:`ex-movement-detect` (:gh:`10313`, by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~
