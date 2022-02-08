@@ -323,6 +323,17 @@ general neuroimaging concepts. If you think a term is missing, please consider
         See :class:`~io.RawArray` for the class definition and :ref:`tut-raw-class`
         for a narrative overview.
 
+    RAS
+        Right-Anterior-Superior, denoting the standard way to define coordinate
+        frames in MNE-Python:
+
+        R
+            +X is right, -X is left
+        A
+            +Y is anterior (front), -Y is posterior (rear)
+        S
+            +Z is superior (top), -Z is inferior (bottom)
+
     ROI
     region of interest
         A spatial region where an experimental effect is expected to manifest.
