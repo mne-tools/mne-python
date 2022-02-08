@@ -215,6 +215,8 @@ del CT_orig
 #     - Use the rotation and translation slide bars to align the CT
 #       to the MR (be sure to have the CT selected in the upper left menu)
 #     - Save the modified volume using the ``Save Volume As...`` button
+#       (you can just save ``Save Reg...`` instead but saving the volume
+#       saves the lta file automatically as well)
 #
 #     Since we really require as much precision as possible for the
 #     alignment, we should rerun the algorithm. This time, we just want to
