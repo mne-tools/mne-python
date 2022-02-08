@@ -364,7 +364,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
 @verbose
 def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
                          adaptive=False, low_bias=True, normalization='length',
-                         n_jobs=1, verbose=None):
+                         output='power', n_jobs=1, verbose=None):
     """Compute power spectral density (PSD) using a multi-taper method.
 
     Parameters
@@ -420,38 +420,53 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 
     dpss, eigvals, adaptive = _compute_mt_params(
         n_times, sfreq, bandwidth, low_bias, adaptive)
+    n_tapers = len(dpss)
+    weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
 
     # decide which frequencies to keep
     freqs = rfftfreq(n_times, 1. / sfreq)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freq_mask]
+    n_freqs = len(freqs)
 
-    psd = np.zeros((x.shape[0], freq_mask.sum()))
+    if output == 'complex':
+        psd = np.zeros((x.shape[0], n_tapers, n_freqs))
+    else:
+        psd = np.zeros((x.shape[0], n_freqs))
+
     # Let's go in up to 50 MB chunks of signals to save memory
     n_jobs = check_n_jobs(n_jobs)
     n_chunk = max(50000000 // (len(freq_mask) * len(eigvals) * 16), n_jobs)
     offsets = np.concatenate((np.arange(0, x.shape[0], n_chunk), [x.shape[0]]))
     for start, stop in zip(offsets[:-1], offsets[1:]):
         x_mt = _mt_spectra(x[start:stop], dpss, sfreq)[0]
-        if not adaptive:
-            weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
-            psd[start:stop] = _psd_from_mt(x_mt[:, :, freq_mask], weights)
+        if output == 'power':
+            if not adaptive:
+                psd[start:stop] = _psd_from_mt(x_mt[:, :, freq_mask], weights)
+            else:
+                n_splits = min(stop - start, n_jobs)
+                parallel, my_psd_from_mt_adaptive, n_jobs = \
+                    parallel_func(_psd_from_mt_adaptive, n_splits)
+                out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
+                            for x in np.array_split(x_mt, n_splits))
+                psd[start:stop] = np.concatenate(out)
         else:
-            n_splits = min(stop - start, n_jobs)
-            parallel, my_psd_from_mt_adaptive, n_jobs = \
-                parallel_func(_psd_from_mt_adaptive, n_splits)
-            out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
-                           for x in np.array_split(x_mt, n_splits))
-            psd[start:stop] = np.concatenate(out)
+            print('data shape:', dshape, 'x_mt shape:', x_mt.shape)
+            psd[start:stop] = x_mt[:, :, freq_mask]
 
     if normalization == 'full':
         psd /= sfreq
 
     # Combining/reshaping to original data shape
-    psd.shape = dshape + (-1,)
+    last_dims = (n_freqs,) if output == 'power' else (n_tapers, n_freqs)
+    psd.shape = dshape + last_dims
     if ndim_in == 1:
         psd = psd[0]
-    return psd, freqs
+
+    if output == 'complex':
+        return psd, freqs, weights
+    else:
+        return psd, freqs
 
 
 @verbose
