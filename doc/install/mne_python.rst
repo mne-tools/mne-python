@@ -188,7 +188,8 @@ Python development are:
   ``spyder`` (or on Windows or macOS, launched from the Anaconda Navigator GUI).
   It can also be installed with `dedicated installers <https://www.spyder-ide.org/#section-download>`_.
   To avoid dependency conflicts with Spyder, you should install ``mne`` in a
-  separate environment. Set Spyder to use the ``mne`` environment automatically
+  separate environment, like explained in the earlier sections. Then you would
+  have to  set Spyder to use the ``mne`` environment as its default interpreter
   by opening Spyder and navigating to
   :samp:`Tools > Preferences > Python Interpreter > Use the following interpreter`.
   There, paste the output of the following terminal commands::
