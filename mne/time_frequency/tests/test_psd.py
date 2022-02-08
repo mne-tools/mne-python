@@ -7,7 +7,9 @@ import pytest
 from mne import pick_types, Epochs, read_events
 from mne.io import RawArray, read_raw_fif
 from mne.utils import catch_logging
-from mne.time_frequency import psd_welch, psd_multitaper, psd_array_welch
+from mne.time_frequency import (psd_welch, psd_array_welch, psd_multitaper,
+                                psd_array_multitaper)
+from mne.time_frequency.multitaper import _psd_from_mt
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -111,6 +113,15 @@ def test_psd():
         psd_welch(raw, proj=False, **kws_psd)
     with pytest.raises(ValueError, match='No frequencies found'):
         psd_array_welch(np.zeros((1, 1000)), 1000., fmin=10, fmax=1)
+
+    # -- psd_array_multitaper --
+    psd_complex, freq, weights = psd_array_multitaper(
+        raw._data[:4, :500], raw.info['sfreq'], output='complex')
+    psd, freq = psd_array_multitaper(
+        raw._data[:4, :500], raw.info['sfreq'], output='power')
+    assert psd_complex.ndim == 3  # channels x tapers x freqs
+    psd_from_complex = _psd_from_mt(psd_complex, weights)
+    assert_allclose(psd_from_complex, psd)
 
     # -- Epochs/Evoked --
     events = read_events(event_fname)
