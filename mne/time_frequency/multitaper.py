@@ -437,7 +437,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     n_freqs = len(freqs)
 
     if output == 'complex':
-        psd = np.zeros((x.shape[0], n_tapers, n_freqs))
+        psd = np.zeros((x.shape[0], n_tapers, n_freqs), dtype='complex')
     else:
         psd = np.zeros((x.shape[0], n_freqs))
 
@@ -455,7 +455,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
                 parallel, my_psd_from_mt_adaptive, n_jobs = \
                     parallel_func(_psd_from_mt_adaptive, n_splits)
                 out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
-                            for x in np.array_split(x_mt, n_splits))
+                               for x in np.array_split(x_mt, n_splits))
                 psd[start:stop] = np.concatenate(out)
         else:
             psd[start:stop] = x_mt[:, :, freq_mask]
