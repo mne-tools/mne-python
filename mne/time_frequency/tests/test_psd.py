@@ -120,7 +120,6 @@ def test_psd():
     psd, freq = psd_array_multitaper(
         raw._data[:4, :500], raw.info['sfreq'], output='power')
     assert psd_complex.ndim == 3  # channels x tapers x freqs
-    print(weights.shape)
     psd_from_complex = _psd_from_mt(psd_complex, weights)
     assert_allclose(psd_from_complex, psd)
 
