@@ -389,8 +389,8 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     output : str
         The format of the returned ``psds`` array. Can be either ``'complex'``
         or ``'power'``. If ``'power'``, the power spectral density is returned.
-         If ``output='complex'``, the complex fourier coefficients are returned
-         per taper.
+        If ``output='complex'``, the complex fourier coefficients are returned
+        per taper.
     %(n_jobs)s
     %(verbose)s
 
