@@ -247,12 +247,15 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
     # no-head version
     renderer.backend._close_all()
     # trans required
-    with pytest.raises(ValueError, match='transformation matrix is required'):
+    with pytest.raises(ValueError, match='transformation matrix.*in head'):
         plot_alignment(info, trans=None, src=src_fname)
-    with pytest.raises(ValueError, match='transformation matrix is required'):
+    with pytest.raises(ValueError, match='transformation matrix.*in head'):
         plot_alignment(info, trans=None, mri_fiducials=True)
-    with pytest.raises(ValueError, match='transformation matrix is required'):
+    with pytest.raises(ValueError, match='transformation matrix.*in head'):
         plot_alignment(info, trans=None, surfaces=['brain'])
+    assert mixed_src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+    with pytest.raises(ValueError, match='head-coordinate source space in mr'):
+        plot_alignment(trans=None, src=mixed_src, coord_frame='mri')
     # all coord frames
     plot_alignment(info)  # works: surfaces='auto' default
     for coord_frame in ('meg', 'head', 'mri'):
@@ -289,7 +292,7 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
                    eeg='projected', meg='helmet', bem=sphere, dig=True,
                    surfaces=['brain', 'inner_skull', 'outer_skull',
                              'outer_skin'])
-    plot_alignment(info, subject='sample', meg='helmet',
+    plot_alignment(info, trans_fname, subject='sample', meg='helmet',
                    subjects_dir=subjects_dir, eeg='projected', bem=sphere,
                    surfaces=['head', 'brain'], src=sample_src)
     # no trans okay, no mri surfaces
@@ -414,7 +417,7 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
                    trans=trans_fname, fwd=fwd,
                    surfaces='white', coord_frame='head')
     fwd['coord_frame'] = FIFF.FIFFV_COORD_MRI  # check required to get to MRI
-    with pytest.raises(ValueError, match='transformation matrix is required'):
+    with pytest.raises(ValueError, match='transformation matrix.*in head coo'):
         plot_alignment(info, trans=None, fwd=fwd)
     # surfaces as dict
     plot_alignment(subject='sample', coord_frame='head',

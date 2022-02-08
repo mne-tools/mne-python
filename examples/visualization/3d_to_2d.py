@@ -1,14 +1,13 @@
 """
 .. _ex-electrode-pos-2d:
 
-====================================================
-How to convert 3D electrode positions to a 2D image.
-====================================================
+===================================================
+How to convert 3D electrode positions to a 2D image
+===================================================
 
 Sometimes we want to convert a 3D representation of electrodes into a 2D
-image. For example, if we are using electrocorticography it is common to
-create scatterplots on top of a brain, with each point representing an
-electrode.
+image. For example, if we are using electrocorticography it is common to create
+scatterplots on top of a brain, with each point representing an electrode.
 
 In this example, we'll show two ways of doing this in MNE-Python. First,
 if we have the 3D locations of each electrode then we can use PyVista to

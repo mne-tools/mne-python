@@ -13,7 +13,6 @@ This example uses the continuous head position indicators (cHPI) times series
 to annotate periods of head movement, then the device to head transformation
 matrix is estimated from the artifact-free segments. The new head position will
 be more representative of the actual head position during the recording.
-
 """
 # Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>

@@ -584,29 +584,35 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                        eeg=(len(eeg) > 0), ecog=ecog, seeg=seeg, dbs=dbs,
                        fnirs=(len(fnirs) > 0))
     if trans is None:
-        needs_trans = None
-        if coord_frame == 'mri':
-            needs_trans = 'in mri coordinates'
-        if fwd is not None and _frame_to_str[fwd['coord_frame']] == 'mri':
-            needs_trans = 'forward solution'
-        if src is not None and _frame_to_str[src[0]['coord_frame']] == 'mri':
-            needs_trans = 'source space'
-        if len(surfaces) > 0:
-            needs_trans = ', '.join(surfaces) + ' surfaces'
-        if mri_fiducials is not False:
-            needs_trans = 'mri fiducials'
+        # Some stuff is natively in head coords, others in MRI coords
+        msg = ('A head<->mri transformation matrix (trans) is required '
+               f'to plot %s in {coord_frame} coordinates, '
+               '`trans=None` is not allowed')
+        if fwd is not None:
+            fwd_frame = _frame_to_str[fwd['coord_frame']]
+            if fwd_frame != coord_frame:
+                raise ValueError(
+                    msg % f'a {fwd_frame}-coordinate forward solution')
+        if src is not None:
+            src_frame = _frame_to_str[src[0]['coord_frame']]
+            if src_frame != coord_frame:
+                raise ValueError(
+                    msg % f'a {src_frame}-coordinate source space')
+        if mri_fiducials is not False and coord_frame != 'mri':
+            raise ValueError(msg % 'mri fiducials')
         # only enforce needing `trans` if there are channels in "head"/"device"
-        if picks.size == 0 and coord_frame == 'mri':  # not leaving "mri"
-            needs_trans = None
+        if picks.size and coord_frame == 'mri':
+            raise ValueError(msg % 'sensors')
         # if only plotting sphere model no trans needed
-        if bem is not None and bem['is_sphere']:
-            needs_trans = None
-        if needs_trans is not None:
-            raise ValueError(
-                'A head->mri transformation matrix is required '
-                f'to plot {needs_trans}, `trans=None` is not allowed')
-        else:
-            trans = Transform('head', 'mri')  # not used so just use identity
+        if bem is not None:
+            if not bem['is_sphere']:
+                if coord_frame != 'mri':
+                    raise ValueError(msg % 'a BEM')
+            elif surfaces not in (['brain'], []):  # can only plot these
+                raise ValueError(msg % (', '.join(surfaces) + ' surfaces'))
+        elif len(surfaces) > 0 and coord_frame != 'mri':
+            raise ValueError(msg % (', '.join(surfaces) + ' surfaces'))
+        trans = Transform('head', 'mri')  # not used so just use identity
     # get transforms
     head_mri_t = _get_trans(trans, 'head', 'mri')[0]
     to_cf_t = _get_transforms_to_coord_frame(

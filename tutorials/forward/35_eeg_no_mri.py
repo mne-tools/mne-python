@@ -1,12 +1,3 @@
-# -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Joan Massich <mailsik@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
-#
-# License: BSD-3-Clause
-
-# %%
-
 """
 .. _tut-eeg-fsaverage-source-modeling:
 
@@ -24,6 +15,12 @@ Adult template MRI (fsaverage)
 ------------------------------
 First we show how ``fsaverage`` can be used as a surrogate subject.
 """
+
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Joan Massich <mailsik@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD-3-Clause
 
 import os.path as op
 import numpy as np
