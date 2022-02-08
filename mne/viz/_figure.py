@@ -302,7 +302,7 @@ class BrowserBase(ABC):
             data = np.concatenate(self.mne.inst.get_data(item=item), axis=-1)
             times = np.arange(self.mne.boundary_times[ix_start],
                               self.mne.boundary_times[ix_stop],
-                              1 / self.mne.info['sfreq'])
+                              1 / self.mne.info['sfreq'])[:data.shape[1]]
             return data, times
 
     def _apply_filter(self, data, start, stop, picks):
