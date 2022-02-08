@@ -188,9 +188,9 @@ Python development are:
   ``spyder`` (or on Windows or macOS, launched from the Anaconda Navigator GUI).
   It can also be installed with `dedicated installers <https://www.spyder-ide.org/#section-download>`_.
   To avoid dependency conflicts with Spyder, you should install ``mne`` in a
-  separate environment, like explained in the earlier sections. Then you would
-  have to  set Spyder to use the ``mne`` environment as its default interpreter
-  by opening Spyder and navigating to
+  separate environment, like explained in the earlier sections. Then, set
+  Spyder to use the ``mne`` environment as its default interpreter by opening
+  Spyder and navigating to
   :samp:`Tools > Preferences > Python Interpreter > Use the following interpreter`.
   There, paste the output of the following terminal commands::
 
@@ -206,6 +206,9 @@ Python development are:
 
       $ conda activate mne
       $ conda install spyder-kernels=HERE_EXACT_VERSION -c conda-forge
+
+  Refer to the `spyder documentation <https://docs.spyder-ide.org/current/troubleshooting/common-illnesses.html#spyder-kernels-not-installed-incompatible>`_
+  for more information about ``spyder-kernels`` and the version matching.
 
   If the Spyder graphic backend is not set to ``inline`` but to e.g. ``Qt5``,
   ``pyqt`` must be installed in the ``mne`` environment.
