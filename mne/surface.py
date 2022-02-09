@@ -38,7 +38,7 @@ from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
 
 @verbose
 def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None,
-                  on_defects='raise',  verbose=None):
+                  on_defects='raise', verbose=None):
     """Load the subject head surface.
 
     Parameters

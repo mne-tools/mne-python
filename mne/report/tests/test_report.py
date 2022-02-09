@@ -709,7 +709,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     )
     epochs_with_metadata = Epochs(
         raw=raw, events=metadata_events, event_id=metadata_event_id,
-        baseline=None,  metadata=metadata
+        baseline=None, metadata=metadata
     )
     evokeds = read_evokeds(evoked_fname)
     evoked = evokeds[0].pick('eeg')
@@ -751,7 +751,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         match='requested to calculate PSD on a duration'
     ):
         r.add_epochs(
-            epochs=epochs_with_metadata, title='my epochs 2',  psd=100000000,
+            epochs=epochs_with_metadata, title='my epochs 2', psd=100000000,
             projs=False
         )
 
