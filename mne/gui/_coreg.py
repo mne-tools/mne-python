@@ -726,15 +726,7 @@ class CoregistrationUI(HasTraits):
 
     def _on_button_release(self, vtk_picker, event):
         if self._mouse_no_mvt > 0:
-            if self._renderer._kind == "notebook":
-                w, h = self._renderer._window_get_size()
-                event = self._renderer.figure.display.logged_events[-1]
-                x = event["offsetX"]
-                offset_y = round(event["clientY"] - event["boundingRectTop"])
-                scale_y = h / self._renderer._canvas_height
-                y = h - round(offset_y * scale_y)
-            else:
-                x, y = vtk_picker.GetEventPosition()
+            x, y = vtk_picker.GetEventPosition()
             # XXX: internal plotter/renderer should not be exposed
             plotter = self._renderer.figure.plotter
             picked_renderer = self._renderer.figure.plotter.renderer
