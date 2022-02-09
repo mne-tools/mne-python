@@ -746,10 +746,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     keys, but this depends on the backend matplotlib is configured to use
     (e.g., mpl.use(``TkAgg``) should work). Full screen mode can be toggled
     with f11 key. The amount of epochs and channels per view can be adjusted
-    with home/end and page down/page up keys. These can also be set through
-    options dialog by pressing ``o`` key. ``h`` key plots a histogram of
+    with home/end and page down/page up keys. ``h`` key plots a histogram of
     peak-to-peak values along with the used rejection thresholds. Butterfly
-    plot can be toggled with ``b`` key. Right mouse click adds a vertical line
+    plot can be toggled with ``b`` key. Left mouse click adds a vertical line
     to the plot. Click 'help' button at bottom left corner of the plotter to
     view all the options.
 
