@@ -228,35 +228,9 @@ class CoregistrationUI(HasTraits):
         self._renderer = _get_renderer(
             size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
         self._renderer.enable_depth_peeling()
+        self._renderer._window_close_connect(self._close_callback)
         self._renderer.set_interaction(interaction)
         self._renderer._status_bar_initialize()
-
-        # connect callback to close event
-        def closeEventCallback():
-            from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
-            if not self._trans_saved:
-                from PyQt5.QtWidgets import QMessageBox
-                if MNE_3D_BACKEND_TESTING:
-                    ret = QMessageBox.Cancel
-                else:
-                    ret = QMessageBox.warning(
-                        self._renderer._window,
-                        "CoregistrationUI",
-                        "The Head<>MRI transform has not been saved. "
-                        "Do you want to save it?",
-                        QMessageBox.Save | QMessageBox.Cancel,
-                        QMessageBox.Save
-                    )
-                if ret == QMessageBox.Save:
-                    self._forward_widget_command(
-                        "save_trans", "set_value", None)
-                else:
-                    assert ret == QMessageBox.Cancel
-            if not self._fids_saved:
-                self._forward_widget_command(
-                    "save_mri_fids", "set_value", None)
-            self._clean()
-        self._renderer._window_close_connect(closeEventCallback)
 
         # coregistration model setup
         self._immediate_redraw = (self._renderer._kind != 'qt')
@@ -1722,3 +1696,28 @@ class CoregistrationUI(HasTraits):
     def close(self):
         """Close interface and cleanup data structure."""
         self._renderer.close()
+
+    def _close_callback(self):
+        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+        if not self._trans_saved:
+            from PyQt5.QtWidgets import QMessageBox
+            if MNE_3D_BACKEND_TESTING:
+                ret = QMessageBox.Cancel
+            else:
+                ret = QMessageBox.warning(
+                    self._renderer._window,
+                    "CoregistrationUI",
+                    "The Head<>MRI transform has not been saved. "
+                    "Do you want to save it?",
+                    QMessageBox.Save | QMessageBox.Cancel,
+                    QMessageBox.Save
+                )
+            if ret == QMessageBox.Save:
+                self._forward_widget_command(
+                    "save_trans", "set_value", None)
+            else:
+                assert ret == QMessageBox.Cancel
+        if not self._fids_saved:
+            self._forward_widget_command(
+                "save_mri_fids", "set_value", None)
+        self._clean()
