@@ -9,7 +9,7 @@ from contextlib import contextmanager, nullcontext
 from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, BoundedFloatText, HBox,
                         IntSlider, IntText, Text, VBox, IntProgress, Play,
-                        Checkbox, RadioButtons, HTML, jsdlink)
+                        Checkbox, RadioButtons, HTML, Accordion, jsdlink)
 
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
@@ -27,9 +27,13 @@ class _IpyLayout(_AbstractLayout):
         widget.layout.margin = "2px 0px 2px 0px"
         if not isinstance(widget, Play):
             widget.layout.min_width = "0px"
-        children = list(layout.children)
+        if isinstance(layout, Accordion):
+            box = layout.children[0]
+        else:
+            box = layout
+        children = list(box.children)
         children.append(widget)
-        layout.children = tuple(children)
+        box.children = tuple(children)
         # Fix columns
         if self._layout_max_width is not None and isinstance(widget, HBox):
             children = widget.children
@@ -165,9 +169,19 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidgetList(widget)
 
-    def _dock_add_group_box(self, name, *, layout=None):
+    def _dock_add_group_box(self, name, *, collapse=None, layout=None):
         layout = self._dock_layout if layout is None else layout
-        hlayout = VBox()
+        if collapse is None:
+            hlayout = VBox([HTML("<strong>" + name + "</strong>")])
+        else:
+            assert isinstance(collapse, bool)
+            vbox = VBox()
+            hlayout = Accordion([vbox])
+            hlayout.set_title(0, name)
+            if collapse:
+                hlayout.selected_index = None
+            else:
+                hlayout.selected_index = 0
         self._layout_add_widget(layout, hlayout)
         return hlayout
 
@@ -502,7 +516,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         if self.figure.display is not None:
             self.figure.display.update_canvas()
 
-    def _create_default_tool_bar(self):
+    def _display_default_tool_bar(self):
         self._tool_bar_load_icons()
         self._tool_bar_initialize()
         self._tool_bar_add_file_button(
@@ -510,6 +524,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
             desc="Take a screenshot",
             func=self.screenshot,
         )
+        display(self._tool_bar)
 
     def show(self):
         # menu bar
@@ -519,7 +534,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         if self._tool_bar is not None:
             display(self._tool_bar)
         else:
-            self._create_default_tool_bar()
+            self._display_default_tool_bar()
         # viewer
         viewer = self.plotter.show(
             jupyter_backend="ipyvtklink", return_viewer=True)
