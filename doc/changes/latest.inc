@@ -28,6 +28,8 @@ Enhancements
 
 - Fix some unused variables in time_frequency_erds.py example (:gh:`10076` by :newcontrib:`Jan Zerfowski`)
 
+- :func:`mne.time_frequency.psd_array_multitaper` can now return complex results per-taper when specifying ``output='complex'`` (:gh:`10307` by `Mikołaj Magnuski`_)
+
 - :func:`mne.time_frequency.tfr_array_multitaper` can now return results for ``output='phase'`` instead of an error (:gh:`10281` by `Mikołaj Magnuski`_)
 
 - Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
@@ -179,9 +181,13 @@ Bugs
 
 - Fix bug with :func:`mne.io.read_raw_nirx` being unable to read measurement dates recorded on systems with German (de_DE), French (fr_FR), and Italian (it_IT) locales (:gh:`10277` by `Eric Larson`_)
 
+- Fix bug with :func:`mne.viz.plot_alignment` where head-coordinate source spaces (e.g., from a forward solution) were not properly plotted (:gh:`10309` by `Eric Larson`_)
+
 - :func:`mne.read_trans` now correctly expands ``~`` in the provided path to the user's home directory (:gh:`10265`, by `Richard Höchenberger`_)
 
 - :func:`mne.find_events` now uses ``first_samp`` and not ``0`` for initial event when using ``initial_value`` (:gh:`10289`, by `Alex Gramfort`_)
+
+- Fix plotting bug in :ref:`ex-electrode-pos-2d` and make view look more natural in :ref:`ex-movement-detect` (:gh:`10313`, by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~

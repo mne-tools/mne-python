@@ -18,8 +18,8 @@ This example shows how to use:
 Note that our sample sEEG electrodes are already assumed to be in MNI
 space. If you want to map positions from your subject MRI space to MNI
 fsaverage space, you must apply the FreeSurfer's talairach.xfm transform
-for your dataset. You can take a look at :ref:`tut-freesurfer-mne` for
-more information.
+for your dataset. You can take a look at :ref:`tut-freesurfer-mne` for more
+information.
 
 For an example that involves ECoG data, channel locations in a
 subject-specific MRI, or projection into a surface, see

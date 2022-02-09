@@ -1796,6 +1796,8 @@ docdict["view"] = """
 view : str | None
     The name of the view to show (e.g. "lateral"). Other arguments
     take precedence and modify the camera starting from the ``view``.
+    See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for valid
+    string shortcut options.
 """
 docdict["roll"] = """
 roll : float | None
@@ -1964,13 +1966,9 @@ brain_kwargs : dict | None
 """
 docdict['views'] = """
 views : str | list
-    View to use. Can be any of::
-
-        ['lateral', 'medial', 'rostral', 'caudal', 'dorsal', 'ventral',
-         'frontal', 'parietal', 'axial', 'sagittal', 'coronal']
-
-    Three letter abbreviations (e.g., ``'lat'``) are also supported.
-    Using multiple views (list) is not supported for mpl backend.
+    View to use. Using multiple views (list) is not supported for mpl
+    backend. See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for
+    valid string options.
 """
 
 # Coregistration
