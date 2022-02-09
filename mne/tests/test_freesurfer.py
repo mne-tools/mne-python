@@ -9,7 +9,7 @@ from mne import (vertex_to_mni, head_to_mni,
                  read_talxfm, read_freesurfer_lut,
                  get_volume_labels_from_aseg)
 from mne.datasets import testing
-from mne._freesurfer import _get_mgz_header, _check_subject_dir
+from mne._freesurfer import _get_mgz_header, _check_subject_dir, read_lta
 from mne.transforms import apply_trans, _get_trans
 from mne.utils import requires_nibabel
 
@@ -94,6 +94,44 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
     coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir)
     # less than 0.1 mm error
     assert_allclose(coords, coords_2, atol=0.1)
+
+
+def test_read_lta(tmp_path):
+    """Test reading a Freesurfer linear transform array file."""
+    with open(op.join(tmp_path, 'test.lta'), 'w') as fid:
+        fid.write("""type      = 0 # LINEAR_VOX_TO_VOX
+                     nxforms   = 1
+                     mean      = 0.0000 0.0000 0.0000
+                     sigma     = 1.0000
+                     1 4 4
+                     0.99221027 -0.05494503  0.11180324 -3.84350586
+                     0.05233596  0.99828744 0.02614108 -9.77523804
+                     -0.11304809 -0.02008611 0.99338663 15.25457001
+                     0 0 0 1
+                     src volume info
+                     valid = 1  # volume info valid
+                     filename = tmp.mgz
+                     volume = 256 256 256
+                     voxelsize = 1 1 1
+                     xras   = -1 0 0
+                     yras   = 0 0 -1
+                     zras   = 0 1 0
+                     cras   = -1.19374 -3.31686 3.25835
+                     dst volume info
+                     valid = 1  # volume info valid
+                     filename = tmp.mgz
+                     volume = 256 256 256
+                     voxelsize = 1 1 1
+                     xras   = -1 0 0
+                     yras   = 0 0 -1
+                     zras   = 0 1 0
+                     cras   = -1.19374 -3.31686 3.25835)""")
+    assert_array_equal(
+        read_lta(op.join(tmp_path, 'test.lta')),
+        np.array([[0.99221027, -0.05494503, 0.11180324, -3.84350586],
+                  [0.05233596, 0.99828744, 0.02614108, -9.77523804],
+                  [-0.11304809, -0.02008611, 0.99338663, 15.25457001],
+                  [0., 0., 0., 1.]]))
 
 
 @testing.requires_testing_data

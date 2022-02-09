@@ -8,7 +8,8 @@ Compute source power spectral density (PSD) of VectorView and OPM data
 Here we compute the resting state from raw for data recorded using
 a Neuromag VectorView system and a custom OPM system.
 The pipeline is meant to mostly follow the Brainstorm :footcite:`TadelEtAl2011`
-`OMEGA resting tutorial pipeline <bst_omega_>`_.
+`OMEGA resting tutorial pipeline
+<https://neuroimage.usc.edu/brainstorm/Tutorials/RestingOmega>`__.
 The steps we use are:
 
 1. Filtering: downsample heavily.
@@ -16,8 +17,6 @@ The steps we use are:
 3. Source localization: dSPM, depth weighting, cortically constrained.
 4. Frequency: power spectral density (Welch), 4 sec window, 50% overlap.
 5. Standardize: normalize by relative power for each source.
-
-.. _bst_omega: https://neuroimage.usc.edu/brainstorm/Tutorials/RestingOmega
 
 Preprocessing
 -------------

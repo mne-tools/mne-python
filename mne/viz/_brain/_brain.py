@@ -253,17 +253,17 @@ class Brain(object):
     cortex : str, list, dict
         Specifies how the cortical surface is rendered. Options:
 
-            1. The name of one of the preset cortex styles:
-               ``'classic'`` (default), ``'high_contrast'``,
-               ``'low_contrast'``, or ``'bone'``.
-            2. A single color-like argument to render the cortex as a single
-               color, e.g. ``'red'`` or ``(0.1, 0.4, 1.)``.
-            3. A list of two color-like used to render binarized curvature
-               values for gyral (first) and sulcal (second). regions, e.g.,
-               ``['red', 'blue']`` or ``[(1, 0, 0), (0, 0, 1)]``.
-            4. A dict containing keys ``'vmin', 'vmax', 'colormap'`` with
-               values used to render the binarized curvature (where 0 is gyral,
-               1 is sulcal).
+        1. The name of one of the preset cortex styles:
+            ``'classic'`` (default), ``'high_contrast'``,
+            ``'low_contrast'``, or ``'bone'``.
+        2. A single color-like argument to render the cortex as a single
+            color, e.g. ``'red'`` or ``(0.1, 0.4, 1.)``.
+        3. A list of two color-like used to render binarized curvature
+            values for gyral (first) and sulcal (second). regions, e.g.,
+            ``['red', 'blue']`` or ``[(1, 0, 0), (0, 0, 1)]``.
+        4. A dict containing keys ``'vmin', 'vmax', 'colormap'`` with
+            values used to render the binarized curvature (where 0 is gyral,
+            1 is sulcal).
 
         .. versionchanged:: 0.24
            Add support for non-string arguments.
@@ -285,8 +285,7 @@ class Brain(object):
         If not None, this directory will be used as the subjects directory
         instead of the value set using the SUBJECTS_DIR environment
         variable.
-    views : list | str
-        The views to use.
+    %(views)s
     offset : bool | str
         If True, shifts the right- or left-most x coordinate of the left and
         right surfaces, respectively, to be at zero. This is useful for viewing
@@ -338,79 +337,75 @@ class Brain(object):
     .. table::
        :widths: auto
 
-       +---------------------------+--------------+---------------+
-       | 3D function:              | surfer.Brain | mne.viz.Brain |
-       +===========================+==============+===============+
-       | add_annotation            | ✓            | ✓             |
-       +---------------------------+--------------+---------------+
-       | add_data                  | ✓            | ✓             |
-       +---------------------------+--------------+---------------+
-       | add_foci                  | ✓            | ✓             |
-       +---------------------------+--------------+---------------+
-       | add_head                  |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | add_label                 | ✓            | ✓             |
-       +---------------------------+--------------+---------------+
-       | add_sensors               |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | add_skull                 |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | add_text                  | ✓            | ✓             |
-       +---------------------------+--------------+---------------+
-       | add_volume_labels         |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | close                     | ✓            | ✓             |
-       +---------------------------+--------------+---------------+
-       | data                      | ✓            | ✓             |
-       +---------------------------+--------------+---------------+
-       | foci                      | ✓            |               |
-       +---------------------------+--------------+---------------+
-       | labels                    | ✓            | ✓             |
-       +---------------------------+--------------+---------------+
-       | remove_data               |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | remove_foci               | ✓            |               |
-       +---------------------------+--------------+---------------+
-       | remove_head               |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | remove_labels             | ✓            | ✓             |
-       +---------------------------+--------------+---------------+
-       | remove_annotations        | -            | ✓             |
-       +---------------------------+--------------+---------------+
-       | remove_sensors            |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | remove_skull              |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | remove_text               |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | remove_volume_labels      |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | scale_data_colormap       | ✓            |               |
-       +---------------------------+--------------+---------------+
-       | save_image                | ✓            | ✓             |
-       +---------------------------+--------------+---------------+
-       | save_movie                | ✓            | ✓             |
-       +---------------------------+--------------+---------------+
-       | screenshot                | ✓            | ✓             |
-       +---------------------------+--------------+---------------+
-       | show_view                 | ✓            | ✓             |
-       +---------------------------+--------------+---------------+
-       | TimeViewer                | ✓            | ✓             |
-       +---------------------------+--------------+---------------+
-       | enable_depth_peeling      |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | get_picked_points         |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | add_data(volume)          |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | view_layout               |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | flatmaps                  |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | vertex picking            |              | ✓             |
-       +---------------------------+--------------+---------------+
-       | label picking             |              | ✓             |
-       +---------------------------+--------------+---------------+
+       +-------------------------------------+--------------+---------------+
+       | 3D function:                        | surfer.Brain | mne.viz.Brain |
+       +=====================================+==============+===============+
+       | :meth:`add_annotation`              | ✓            | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`add_data`                    | ✓            | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`add_foci`                    | ✓            | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`add_head`                    |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`add_label`                   | ✓            | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`add_sensors`                 |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`add_skull`                   |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`add_text`                    | ✓            | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`add_volume_labels`           |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`close`                       | ✓            | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | data                                | ✓            | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | foci                                | ✓            |               |
+       +-------------------------------------+--------------+---------------+
+       | labels                              | ✓            | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`remove_data`                 |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`remove_head`                 |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`remove_labels`               | ✓            | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`remove_annotations`          | -            | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`remove_sensors`              |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`remove_skull`                |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`remove_text`                 |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`remove_volume_labels`        |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`save_image`                  | ✓            | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`save_movie`                  | ✓            | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`screenshot`                  | ✓            | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`show_view`                   | ✓            | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | TimeViewer                          | ✓            | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`enable_depth_peeling`        |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`get_picked_points`           |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`add_data(volume) <add_data>` |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | view_layout                         |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | flatmaps                            |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | vertex picking                      |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | label picking                       |              | ✓             |
+       +-------------------------------------+--------------+---------------+
     """
 
     def __init__(self, subject_id, hemi='both', surf='pial', title=None,
@@ -2939,6 +2934,44 @@ class Brain(object):
         %(azimuth)s
         %(elevation)s
         %(focalpoint)s
+
+        Notes
+        -----
+        The builtin string views are the following perspectives, based on the
+        :term:`RAS` convention. If not otherwise noted, the view will have the
+        top of the brain (superior, +Z) in 3D space shown upward in the 2D
+        perspective:
+
+        ``'lateral'``
+            From the left or right side such that the lateral (outside)
+            surface of the given hemisphere is visible.
+        ``'medial'``
+            From the left or right side such that the medial (inside)
+            surface of the given hemisphere is visible (at least when in split
+            or single-hemi mode).
+        ``'rostral'``
+            From the front.
+        ``'caudal'``
+            From the rear.
+        ``'dorsal'``
+            From above, with the front of the brain pointing up.
+        ``'ventral'``
+            From below, with the front of the brain pointing up.
+        ``'frontal'``
+            From the front and slightly lateral, with the brain slightly
+            tilted forward (yielding a view from slightly above).
+        ``'parietal'``
+            From the rear and slightly lateral, with the brain slightly tilted
+            backward (yielding a view from slightly above).
+        ``'axial'``
+            From above with the brain pointing up (same as ``'dorsal'``).
+        ``'sagittal'``
+            From the right side.
+        ``'coronal'``
+            From the rear.
+
+        Three letter abbreviations (e.g., ``'lat'``) of all of the above are
+        also supported.
         """
         _validate_type(row, ('int-like', None), 'row')
         _validate_type(col, ('int-like', None), 'col')

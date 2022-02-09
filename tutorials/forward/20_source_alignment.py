@@ -169,9 +169,8 @@ print('Distance from %s digitized points to head surface: %0.1f mm'
 #      head).
 #
 #      .. note:: We typically align the MRI coordinate frame to the head
-#                coordinate frame through a
-#                `rotation and translation matrix <wiki_xform_>`_,
-#                that we refer to in MNE as ``trans``.
+#                coordinate frame through a `rotation and translation matrix
+#                <wiki_xform_>`_, that we refer to in MNE as ``trans``.
 #
 # A bad example
 # ^^^^^^^^^^^^^

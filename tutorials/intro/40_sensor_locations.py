@@ -16,6 +16,7 @@ As usual we'll start by importing the modules we need and loading some
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+
 # the following import is required for matplotlib < 3.2:
 from mpl_toolkits.mplot3d import Axes3D  # noqa
 import mne
