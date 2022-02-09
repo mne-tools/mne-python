@@ -67,6 +67,8 @@ class BrowserBase(ABC):
             raise TypeError('Expected an instance of Raw, Epochs, or ICA, '
                             f'got {type(inst)}.')
 
+        logger.info(f'Opening {self.mne.instance_type}-browser...')
+
         self.mne.ica_type = None
         if self.mne.instance_type == 'ica':
             if isinstance(self.mne.ica_inst, BaseRaw):
@@ -387,6 +389,7 @@ class BrowserBase(ABC):
 
     def _close(self, event):
         """Handle close events (via keypress or window [x])."""
+        logger.info(f'Closing {self.mne.instance_type}-browser...')
         # write out bad epochs (after converting epoch numbers to indices)
         if self.mne.instance_type == 'epochs':
             bad_ixs = np.in1d(self.mne.inst.selection,
