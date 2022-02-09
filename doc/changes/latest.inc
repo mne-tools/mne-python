@@ -104,6 +104,8 @@ Enhancements
 
 - The new convenience function :func:`mne.event.match_event_names` allows for straightforward checking if a specific event name or a group of events is present in a collection of event names (:gh:`10233` by `Richard Höchenberger`_)
 
+- :meth:`Epochs.plot` is now supported by the pyqtgraph-backend (:gh:`10297` by `Martin Schulz`_)
+
 Bugs
 ~~~~
 
