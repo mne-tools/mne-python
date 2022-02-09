@@ -135,6 +135,8 @@ known_config_types = (
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
 known_config_wildcards = (
     'MNE_STIM_CHANNEL',
+    'MNE_DATASETS_FNIRS',
+    'MNE_NIRS',
 )
 
 
@@ -279,7 +281,7 @@ def set_config(key, value, home_dir=None, set_env=True):
         value = str(value)
 
     if key not in known_config_types and not \
-            any(k in key for k in known_config_wildcards):
+            any(key.startswith(k) for k in known_config_wildcards):
         warn('Setting non-standard config type: "%s"' % key)
 
     # Read all previous values
