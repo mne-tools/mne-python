@@ -100,6 +100,8 @@ Enhancements
 
 - The new convenience function :func:`mne.event.match_event_names` allows for straightforward checking if a specific event name or a group of events is present in a collection of event names (:gh:`10233` by `Richard Höchenberger`_)
 
+- The ``map_surface`` parameter of :meth:`mne.viz.Brain.add_foci` now works and allows you to add foci to a rendering of a brain that are positioned at the vertex of the mesh closest to the given coordinates (:gh:`10299` by `Marijn van Vliet`_)
+
 Bugs
 ~~~~
 
