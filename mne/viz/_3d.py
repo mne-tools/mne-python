@@ -3306,7 +3306,7 @@ def set_3d_options(antialias=None, depth_peeling=None):
         environment variable, e.g., ``MNE_3D_OPTION_ANTIALIAS=false``.
     depth_peeling : bool | None
         If not None, set the default setting for accurate transparency.
-        False is useful when renderers have problems (such as crashes
+        False is useful when renderers have problems (for instance
         while X forwarding on remote servers). This option can also be
         controlled using an environment variable, e.g.,
         ``MNE_3D_OPTION_DEPTH_PEELING=false``.
