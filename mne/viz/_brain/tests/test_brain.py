@@ -1013,7 +1013,7 @@ def _create_testing_brain(hemi, surf='inflated', src='surface',
     return brain_data
 
 
-def test_foci_mapping(tmp_path):
+def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt):
     """Test mapping foci to the surface."""
     tiny_brain, _ = tiny(tmp_path)
     foci_coords = tiny_brain.geo['lh'].coords[:2] + 0.01
