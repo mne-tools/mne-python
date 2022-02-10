@@ -3691,7 +3691,7 @@ class Brain(object):
 
     def enable_depth_peeling(self):
         """Enable depth peeling."""
-        self._renderer.enable_depth_peeling()
+        self._renderer._enable_depth_peeling()
 
     def get_picked_points(self):
         """Return the vertices of the picked points.
