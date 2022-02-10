@@ -3291,10 +3291,10 @@ def plot_brain_colorbar(ax, clim, colormap='auto', transparent=True,
 
 
 _3d_options = dict()
-_3d_default = dict(antialias='true')
+_3d_default = dict(antialias='true', depth_peeling='true')
 
 
-def set_3d_options(antialias=None):
+def set_3d_options(antialias=None, depth_peeling=None):
     """Set 3D rendering options.
 
     Parameters
@@ -3304,6 +3304,12 @@ def set_3d_options(antialias=None):
         False is useful when renderers have problems (such as software
         MESA renderers). This option can also be controlled using an
         environment variable, e.g., ``MNE_3D_OPTION_ANTIALIAS=false``.
+    depth_peeling : bool | None
+        If not None, set the default setting for accurate transparency.
+        False is useful when renderers have problems (such as crashes
+        while X forwarding on remote servers). This option can also be
+        controlled using an environment variable, e.g.,
+        ``MNE_3D_OPTION_DEPTH_PEELING=false``.
 
     Notes
     -----
@@ -3311,6 +3317,8 @@ def set_3d_options(antialias=None):
     """
     if antialias is not None:
         _3d_options['antialias'] = str(bool(antialias)).lower()
+    if depth_peeling is not None:
+        _3d_options['depth_peeling'] = str(bool(depth_peeling)).lower()
 
 
 def _get_3d_option(key):
