@@ -363,6 +363,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         # this only gets shown in zen mode
         self.mne.zen_xlabel = ax_main.set_xlabel(xlabel)
         self.mne.zen_xlabel.set_visible(not self.mne.scrollbars_visible)
+        # make sure background color of the axis is set
+        ax_main.set_facecolor(kwargs['bgcolor'])
 
         # SCROLLBARS
         ax_hscroll = div.append_axes(position='bottom',
