@@ -15,7 +15,6 @@ from collections import OrderedDict
 from copy import deepcopy
 import os.path as op
 import re
-from git import HEAD
 
 import numpy as np
 
