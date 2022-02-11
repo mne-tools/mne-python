@@ -15,6 +15,8 @@ import os.path as op
 import warnings
 from collections.abc import Iterable
 from functools import partial
+from dataclasses import dataclass
+from typing import Optional
 
 import numpy as np
 
@@ -3283,8 +3285,14 @@ def plot_brain_colorbar(ax, clim, colormap='auto', transparent=True,
     return cbar
 
 
-_3d_options = dict()
-_3d_default = dict(antialias='true', depth_peeling='true')
+@dataclass()
+class _3d_Options:
+    antialias: Optional[str]
+    depth_peeling: Optional[str]
+
+
+_3d_options = _3d_Options(antialias=None, depth_peeling=None)
+_3d_default = _3d_Options(antialias='true', depth_peeling='true')
 
 
 def set_3d_options(antialias=None, depth_peeling=None):
@@ -3310,16 +3318,17 @@ def set_3d_options(antialias=None, depth_peeling=None):
     .. versionadded:: 0.21.0
     """
     if antialias is not None:
-        _3d_options['antialias'] = str(bool(antialias)).lower()
+        _3d_options.antialias = str(bool(antialias)).lower()
     if depth_peeling is not None:
-        _3d_options['depth_peeling'] = str(bool(depth_peeling)).lower()
+        _3d_options.depth_peeling = str(bool(depth_peeling)).lower()
 
 
 def _get_3d_option(key):
-    try:
-        opt = _3d_options[key]
-    except KeyError:
-        opt = get_config(f'MNE_3D_OPTION_{key.upper()}', _3d_default[key])
+    _validate_type(key, 'str', 'key')
+    opt = getattr(_3d_options, key)
+    if opt is None:
+        default_value = getattr(_3d_default, key)
+        opt = get_config(f'MNE_3D_OPTION_{key.upper()}', default_value)
     opt = opt.lower()
     _check_option(f'3D option {key}', opt, ('true', 'false'))
     return opt == 'true'
