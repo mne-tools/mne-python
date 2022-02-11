@@ -27,8 +27,7 @@ from .callback import (ShowView, TimeCallBack, SmartCallBack,
                        UpdateLUT, UpdateColorbarScale)
 
 from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
-                     _generate_default_filename, _save_ndarray_img, safe_event,
-                     deprecated)
+                     _generate_default_filename, _save_ndarray_img, safe_event)
 from .._3d import (_process_clim, _handle_time, _check_views,
                    _handle_sensor_types, _plot_sensors)
 from ...defaults import _handle_default, DEFAULTS
@@ -43,7 +42,7 @@ from ...source_space import SourceSpaces
 from ...transforms import (apply_trans, invert_transform, _get_trans,
                            _get_transforms_to_coord_frame)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
-                      use_log_level, Bunch, _ReuseCycle, warn,
+                      use_log_level, Bunch, _ReuseCycle, warn, deprecated,
                       get_subjects_dir, _check_fname, _to_rgb)
 
 
