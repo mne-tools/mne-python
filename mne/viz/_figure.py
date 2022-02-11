@@ -610,7 +610,7 @@ def _get_browser(**kwargs):
 
     # Initialize browser backend
     backend_name = get_browser_backend()
-    # Check mne-qt-browser compatibilty
+    # Check mne-qt-browser compatibility
     if backend_name == 'qt':
         import mne_qt_browser
         from .. import BaseEpochs
