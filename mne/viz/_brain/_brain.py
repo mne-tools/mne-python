@@ -27,7 +27,8 @@ from .callback import (ShowView, TimeCallBack, SmartCallBack,
                        UpdateLUT, UpdateColorbarScale)
 
 from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
-                     _generate_default_filename, _save_ndarray_img, safe_event)
+                     _generate_default_filename, _save_ndarray_img, safe_event,
+                     deprecated)
 from .._3d import (_process_clim, _handle_time, _check_views,
                    _handle_sensor_types, _plot_sensors)
 from ...defaults import _handle_default, DEFAULTS
@@ -391,8 +392,6 @@ class Brain(object):
        | :meth:`show_view`                   | ✓            | ✓             |
        +-------------------------------------+--------------+---------------+
        | TimeViewer                          | ✓            | ✓             |
-       +-------------------------------------+--------------+---------------+
-       | :meth:`enable_depth_peeling`        |              | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`get_picked_points`           |              | ✓             |
        +-------------------------------------+--------------+---------------+
@@ -3689,6 +3688,8 @@ class Brain(object):
             show[keep_idx] = 1
             label *= show
 
+    @deprecated('enable_depth_peeling is deprecated and will be '
+                'removed in 1.1')
     def enable_depth_peeling(self):
         """Enable depth peeling."""
         self._renderer._enable_depth_peeling()
