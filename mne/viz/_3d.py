@@ -12,7 +12,6 @@
 
 from itertools import cycle
 import os.path as op
-import sys
 import warnings
 from collections.abc import Iterable
 from functools import partial
@@ -2035,12 +2034,6 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         use_kwargs.update(hemi='vol')
         brain.add_data(**use_kwargs)
     del kwargs
-
-    need_peeling = (brain_alpha < 1.0 and
-                    sys.platform != 'darwin' and
-                    vec)
-    if need_peeling:
-        brain.enable_depth_peeling()
 
     if time_viewer:
         brain.setup_time_viewer(time_viewer=time_viewer,
