@@ -330,7 +330,7 @@ class BrowserBase(ABC):
         """Update self.mne.data after user interaction."""
         # apply projectors
         if self.mne.projector is not None:
-            # thread is the loading-thread only available in pyqtgraph-backend
+            # thread is the loading-thread only available in Qt-backend
             if thread:
                 thread.processText.emit('Applying Projectors...')
             data = self.mne.projector @ data
@@ -616,6 +616,8 @@ def _get_browser(**kwargs):
 
 def _check_browser_backend_name(backend_name):
     _validate_type(backend_name, str, 'backend_name')
+    backend_name = backend_name.lower()
+    backend_name = 'qt' if backend_name == 'pyqtgraph' else backend_name
     _check_option('backend_name', backend_name, VALID_BROWSE_BACKENDS)
     return backend_name
 
@@ -631,7 +633,9 @@ def set_browser_backend(backend_name, verbose=None):
     ----------
     backend_name : str
         The 2D browser backend to select. See Notes for the capabilities
-        of each backend (``'matplotlib'``, ``'pyqtgraph'``).
+        of each backend (``'matplotlib'``, ``'qt'``). The ``'qt'`` browser
+        requires `mne-qt-browser
+        <https://github.com/mne-tools/mne-qt-browser>`__.
     %(verbose)s
 
     Returns
@@ -647,32 +651,32 @@ def set_browser_backend(backend_name, verbose=None):
     .. table::
        :widths: auto
 
-       +--------------------------------------+------------+-----------+
-       | **2D browser function:**             | matplotlib | pyqtgraph |
-       +======================================+============+===========+
-       | :func:`plot_raw`                     | ✓          | ✓         |
-       +--------------------------------------+------------+-----------+
-       | :func:`plot_epochs`                  | ✓          |           |
-       +--------------------------------------+------------+-----------+
-       | :func:`plot_ica_sources`             | ✓          |           |
-       +--------------------------------------+------------+-----------+
-       +--------------------------------------+------------+-----------+
-       | **Feature:**                                                  |
-       +--------------------------------------+------------+-----------+
-       | Show Events                          | ✓          | ✓         |
-       +--------------------------------------+------------+-----------+
-       | Add/Edit/Remove Annotations          | ✓          | ✓         |
-       +--------------------------------------+------------+-----------+
-       | Toggle Projections                   | ✓          | ✓         |
-       +--------------------------------------+------------+-----------+
-       | Butterfly Mode                       | ✓          | ✓         |
-       +--------------------------------------+------------+-----------+
-       | Selection Mode                       | ✓          | ✓         |
-       +--------------------------------------+------------+-----------+
-       | Smooth Scrolling                     |            | ✓         |
-       +--------------------------------------+------------+-----------+
-       | Overview-Bar (with Z-Score-Mode)     |            | ✓         |
-       +--------------------------------------+------------+-----------+
+       +--------------------------------------+------------+----+
+       | **2D browser function:**             | matplotlib | qt |
+       +======================================+============+====+
+       | :func:`plot_raw`                     | ✓          | ✓  |
+       +--------------------------------------+------------+----+
+       | :func:`plot_epochs`                  | ✓          |    |
+       +--------------------------------------+------------+----+
+       | :func:`plot_ica_sources`             | ✓          |    |
+       +--------------------------------------+------------+----+
+       +--------------------------------------+------------+----+
+       | **Feature:**                                           |
+       +--------------------------------------+------------+----+
+       | Show Events                          | ✓          | ✓  |
+       +--------------------------------------+------------+----+
+       | Add/Edit/Remove Annotations          | ✓          | ✓  |
+       +--------------------------------------+------------+----+
+       | Toggle Projections                   | ✓          | ✓  |
+       +--------------------------------------+------------+----+
+       | Butterfly Mode                       | ✓          | ✓  |
+       +--------------------------------------+------------+----+
+       | Selection Mode                       | ✓          | ✓  |
+       +--------------------------------------+------------+----+
+       | Smooth Scrolling                     |            | ✓  |
+       +--------------------------------------+------------+----+
+       | Overview-Bar (with Z-Score-Mode)     |            | ✓  |
+       +--------------------------------------+------------+----+
 
     .. versionadded:: 0.24
     """
@@ -740,7 +744,7 @@ def use_browser_backend(backend_name):
 
     Parameters
     ----------
-    backend_name : {'matplotlib', 'pyqtgraph'}
+    backend_name : {'matplotlib', 'qt'}
         The 2D browser backend to use in the context.
     """
     old_backend = set_browser_backend(backend_name)
