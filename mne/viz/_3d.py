@@ -3303,7 +3303,7 @@ def set_3d_options(antialias=None, depth_peeling=None):
     antialias : bool | None
         If bool, whether to enable or disable full-screen anti-aliasing.
         False is useful when renderers have problems (such as software
-        MESA renderers). If None, use the default  setting. This option
+        MESA renderers). If None, use the default setting. This option
         can also be controlled using an environment variable, e.g.,
         ``MNE_3D_OPTION_ANTIALIAS=false``.
     depth_peeling : bool | None
