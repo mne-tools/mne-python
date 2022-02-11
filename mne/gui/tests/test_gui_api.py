@@ -184,7 +184,8 @@ def test_gui_api(renderer_notebook, nbexec):
 
     renderer._dock_initialize(name='', area='right')
     renderer._dock_named_layout(name='')
-    renderer._dock_add_group_box(name='')
+    for collapse in (None, True, False):
+        renderer._dock_add_group_box(name='', collapse=collapse)
     renderer._dock_add_stretch()
     renderer._dock_add_layout()
     renderer._dock_finalize()

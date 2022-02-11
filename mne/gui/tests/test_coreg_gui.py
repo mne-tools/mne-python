@@ -220,3 +220,17 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     coreg.close()
     # Coregistration instance should survive
     assert isinstance(coreg.coreg, Coregistration)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_coreg_gui_notebook(renderer_notebook, nbexec):
+    """Test the coregistration UI in a notebook."""
+    import os
+    import mne
+    from mne.datasets import testing
+    from mne.gui import coregistration
+    mne.viz.set_3d_backend('notebook')  # set the 3d backend
+    data_path = testing.data_path()
+    subjects_dir = os.path.join(data_path, 'subjects')
+    coregistration(subject='sample', subjects_dir=subjects_dir)

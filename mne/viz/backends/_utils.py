@@ -17,7 +17,7 @@ import numpy as np
 
 VALID_BROWSE_BACKENDS = (
     'matplotlib',
-    'pyqtgraph'
+    'qt',
 )
 
 VALID_3D_BACKENDS = (

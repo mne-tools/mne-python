@@ -28,6 +28,10 @@ Enhancements
 
 - Fix some unused variables in time_frequency_erds.py example (:gh:`10076` by :newcontrib:`Jan Zerfowski`)
 
+- :func:`mne.time_frequency.psd_array_multitaper` can now return complex results per-taper when specifying ``output='complex'`` (:gh:`10307` by `Mikołaj Magnuski`_)
+
+- :func:`mne.time_frequency.tfr_array_multitaper` can now return results for ``output='phase'`` instead of an error (:gh:`10281` by `Mikołaj Magnuski`_)
+
 - Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
 
 - Improve docstring of :class:`mne.Info` and add attributes that were not covered (:gh:`9922` by `Mathieu Scheltienne`_)
@@ -105,6 +109,8 @@ Bugs
 
 - Teach :func:`mne.io.read_raw_bti` to use its ``eog_ch`` parameter (:gh:`10093` by :newcontrib:`Adina Wagner`)
 
+- :func:`mne.time_frequency.tfr_array_multitaper` now returns results per taper when ``output='complex'`` (:gh:`10281` by `Mikołaj Magnuski`_)
+
 - Fix default of :func:`mne.io.Raw.plot` to be ``use_opengl=None``, which will act like False unless ``MNE_BROWSER_USE_OPENGL=true`` is set in the user configuration (:gh:`9957` by `Eric Larson`_)
 
 - Fix bug with :class:`mne.Report` where figures were saved with ``bbox_inches='tight'``, which led to inconsistent sizes in sliders (:gh:`9966` by `Eric Larson`_)
@@ -177,7 +183,13 @@ Bugs
 
 - Fix bug with projector normalization checks that were too sensitive, and improve warning (:gh:`10292` by `Eric Larson`_)
 
+- Fix bug with :func:`mne.viz.plot_alignment` where head-coordinate source spaces (e.g., from a forward solution) were not properly plotted (:gh:`10309` by `Eric Larson`_)
+
 - :func:`mne.read_trans` now correctly expands ``~`` in the provided path to the user's home directory (:gh:`10265`, by `Richard Höchenberger`_)
+
+- :func:`mne.find_events` now uses ``first_samp`` and not ``0`` for initial event when using ``initial_value`` (:gh:`10289`, by `Alex Gramfort`_)
+
+- Fix plotting bug in :ref:`ex-electrode-pos-2d` and make view look more natural in :ref:`ex-movement-detect` (:gh:`10313`, by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~
@@ -188,6 +200,8 @@ API changes
 - ``mne.preprocessing.annotate_flat`` has been deprecated in favor of :func`mne.preprocessing.annotate_amplitude`, that covers both minimum and maximum peak-to-peak variation. (:gh:`10143` by `Mathieu Scheltienne`_)
 
 - The ``verbose`` attribute of classes (e.g., :class:`mne.io.Raw`, `mne.Epochs`, etc.) has been deprecated. Explicitly pass ``verbose`` to methods as necessary instead. (:gh:`10267` by `Eric Larson`_)
+
+- In :func:`mne.viz.set_browser_backend`, the `mne-qt-browser <https://github.com/mne-tools/mne-qt-browser>`__-based backend is now called ``'qt'`` rather than ``'pyqtgraph'`` for simplicity (:gh:`10323` by `Eric Larson`_)
 
 Dependencies
 ~~~~~~~~~~~~

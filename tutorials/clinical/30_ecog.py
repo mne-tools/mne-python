@@ -19,9 +19,9 @@ This example shows how to use:
 For a complementary example that involves sEEG data, channel locations in MNI
 space, or projection into a volume, see :ref:`tut-working-with-seeg`.
 
-Please note that this tutorial requires 3D plotting dependencies
-(see :ref:`quick-start`) as well as ``mne-bids`` which can be installed
-using ``pip``.
+Please note that this tutorial requires 3D plotting dependencies (see
+:ref:`quick-start`) as well as ``mne-bids`` which can be installed using
+``pip``.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>

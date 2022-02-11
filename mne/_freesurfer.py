@@ -464,6 +464,28 @@ def _ensure_image_in_surface_RAS(image, subject, subjects_dir):
 
 
 @verbose
+def read_lta(fname, verbose=None):
+    """Read a Freesurfer linear transform array file.
+
+    Parameters
+    ----------
+    fname : str | None
+        The transform filename.
+    %(verbose)s
+
+    Returns
+    -------
+    affine : ndarray
+        The affine transformation described by the lta file.
+    """
+    _validate_type(fname, ('path-like', None), 'fname')
+    _check_fname(fname, 'read', must_exist=True)
+    with open(fname, 'r') as fid:
+        affine = np.loadtxt(fid.readlines()[5:9])
+    return affine
+
+
+@verbose
 def read_talxfm(subject, subjects_dir=None, verbose=None):
     """Compute MRI-to-MNI transform from FreeSurfer talairach.xfm file.
 

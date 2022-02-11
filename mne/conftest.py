@@ -409,19 +409,19 @@ def _check_pyqtgraph():
 def pg_backend(garbage_collect):
     """Use for pyqtgraph-specific test-functions."""
     _check_pyqtgraph()
-    with use_browser_backend('pyqtgraph') as backend:
+    with use_browser_backend('qt') as backend:
         yield backend
         backend._close_all()
 
 
 @pytest.fixture(params=[
     'matplotlib',
-    pytest.param('pyqtgraph', marks=pytest.mark.pgtest),
+    pytest.param('qt', marks=pytest.mark.pgtest),
 ])
 def browser_backend(request, garbage_collect):
     """Parametrizes the name of the browser backend."""
     backend_name = request.param
-    if backend_name == 'pyqtgraph':
+    if backend_name == 'qt':
         _check_pyqtgraph()
     with use_browser_backend(backend_name) as backend:
         yield backend

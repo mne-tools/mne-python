@@ -9,7 +9,7 @@ from contextlib import contextmanager, nullcontext
 from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, BoundedFloatText, HBox,
                         IntSlider, IntText, Text, VBox, IntProgress, Play,
-                        Checkbox, RadioButtons, jsdlink)
+                        Checkbox, RadioButtons, HTML, Accordion, jsdlink)
 
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
@@ -27,28 +27,33 @@ class _IpyLayout(_AbstractLayout):
         widget.layout.margin = "2px 0px 2px 0px"
         if not isinstance(widget, Play):
             widget.layout.min_width = "0px"
-        children = list(layout.children)
+        if isinstance(layout, Accordion):
+            box = layout.children[0]
+        else:
+            box = layout
+        children = list(box.children)
         children.append(widget)
-        layout.children = tuple(children)
+        box.children = tuple(children)
         # Fix columns
         if self._layout_max_width is not None and isinstance(widget, HBox):
             children = widget.children
-            width = int(self._layout_max_width / len(children))
-            for child in children:
-                child.layout.width = f"{width}px"
+            if len(children) > 0:
+                width = int(self._layout_max_width / len(children))
+                for child in children:
+                    child.layout.width = f"{width}px"
 
 
 class _IpyDock(_AbstractDock, _IpyLayout):
     def _dock_initialize(self, window=None, name="Controls",
                          area="left", max_width=None):
+        if self._docks is None:
+            self._docks = dict()
+        current_dock = VBox()
         self._dock_width = 300
-        # XXX: this can be improved
-        if hasattr(self, "_dock") and hasattr(self, "_dock_layout"):
-            self._dock2 = self._dock
-            self._dock_layout2 = self._dock_layout
-        self._dock = self._dock_layout = VBox()
+        self._dock = self._dock_layout = current_dock
         self._dock.layout.width = f"{self._dock_width}px"
         self._layout_initialize(self._dock_width)
+        self._docks[area] = (self._dock, self._dock_layout)
 
     def _dock_finalize(self):
         pass
@@ -69,7 +74,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self, value, *, align=False, layout=None, selectable=False
     ):
         layout = self._dock_layout if layout is None else layout
-        widget = Text(value=value, disabled=True)
+        widget = HTML(value=value, disabled=True)
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
@@ -164,9 +169,19 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidgetList(widget)
 
-    def _dock_add_group_box(self, name, *, layout=None):
+    def _dock_add_group_box(self, name, *, collapse=None, layout=None):
         layout = self._dock_layout if layout is None else layout
-        hlayout = VBox()
+        if collapse is None:
+            hlayout = VBox([HTML("<strong>" + name + "</strong>")])
+        else:
+            assert isinstance(collapse, bool)
+            vbox = VBox()
+            hlayout = Accordion([vbox])
+            hlayout.set_title(0, name)
+            if collapse:
+                hlayout.selected_index = None
+            else:
+                hlayout.selected_index = 0
         self._layout_add_widget(layout, hlayout)
         return hlayout
 
@@ -490,7 +505,8 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
     _kind = 'notebook'
 
     def __init__(self, *args, **kwargs):
-        self._dock = None
+        self._docks = None
+        self._menu_bar = None
         self._tool_bar = None
         self._status_bar = None
         kwargs["notebook"] = True
@@ -500,7 +516,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         if self.figure.display is not None:
             self.figure.display.update_canvas()
 
-    def _create_default_tool_bar(self):
+    def _display_default_tool_bar(self):
         self._tool_bar_load_icons()
         self._tool_bar_initialize()
         self._tool_bar_add_file_button(
@@ -508,28 +524,28 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
             desc="Take a screenshot",
             func=self.screenshot,
         )
+        display(self._tool_bar)
 
     def show(self):
         # menu bar
-        if hasattr(self, "_menu_bar") and self._menu_bar is not None:
+        if self._menu_bar is not None:
             display(self._menu_bar)
-        # default tool bar
-        if self._tool_bar is None:
-            self._create_default_tool_bar()
-        display(self._tool_bar)
+        # tool bar
+        if self._tool_bar is not None:
+            display(self._tool_bar)
+        else:
+            self._display_default_tool_bar()
         # viewer
         viewer = self.plotter.show(
             jupyter_backend="ipyvtklink", return_viewer=True)
         viewer.layout.width = None  # unlock the fixed layout
-        # main widget
-        if self._dock is None:
-            main_widget = viewer
-        # XXX: this can be improved
-        elif hasattr(self, "_dock2"):
-            main_widget = HBox([self._dock2, viewer, self._dock])
-        else:
-            main_widget = HBox([self._dock, viewer])
-        display(main_widget)
+        rendering_row = list()
+        if self._docks is not None and "left" in self._docks:
+            rendering_row.append(self._docks["left"][0])
+        rendering_row.append(viewer)
+        if self._docks is not None and "right" in self._docks:
+            rendering_row.append(self._docks["right"][0])
+        display(HBox(rendering_row))
         self.figure.display = viewer
         # status bar
         if self._status_bar is not None:
