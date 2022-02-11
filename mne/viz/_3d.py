@@ -3293,16 +3293,17 @@ def set_3d_options(antialias=None, depth_peeling=None):
     Parameters
     ----------
     antialias : bool | None
-        If not None, set the default full-screen anti-aliasing setting.
+        If bool, whether to enable or disable full-screen anti-aliasing.
         False is useful when renderers have problems (such as software
-        MESA renderers). This option can also be controlled using an
-        environment variable, e.g., ``MNE_3D_OPTION_ANTIALIAS=false``.
+        MESA renderers). If None, use the default  setting. This option
+        can also be controlled using an environment variable, e.g.,
+        ``MNE_3D_OPTION_ANTIALIAS=false``.
     depth_peeling : bool | None
-        If not None, set the default setting for accurate transparency.
+        If bool, whether to enable or disable accurate transparency.
         False is useful when renderers have problems (for instance
-        while X forwarding on remote servers). This option can also be
-        controlled using an environment variable, e.g.,
-        ``MNE_3D_OPTION_DEPTH_PEELING=false``.
+        while X forwarding on remote servers). If None, use the default
+        setting. This option can also be controlled using an environment
+        variable, e.g., ``MNE_3D_OPTION_DEPTH_PEELING=false``.
 
     Notes
     -----
