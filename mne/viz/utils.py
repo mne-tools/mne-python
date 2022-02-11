@@ -128,7 +128,7 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
     block : bool
         If to block execution on showing.
     fig : instance of Figure | None
-        Needs to be passed for pyqtgraph backend,
+        Needs to be passed for Qt backend,
          optional for matplotlib.
     **kwargs : dict
         Extra arguments for :func:`matplotlib.pyplot.show`.
