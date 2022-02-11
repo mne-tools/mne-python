@@ -199,7 +199,7 @@ API changes
 
 - The ``verbose`` attribute of classes (e.g., :class:`mne.io.Raw`, `mne.Epochs`, etc.) has been deprecated. Explicitly pass ``verbose`` to methods as necessary instead. (:gh:`10267` by `Eric Larson`_)
 
-- In :func:`mne.viz.set_browse_backend`, the :mod:`mne-qt-browser`-based backend is now called ``'qt'`` rather than ``'pyqtgraph'`` for simplicity (:gh:`10323` by `Eric Larson`_)
+- In :func:`mne.viz.set_browser_backend`, the `mne-qt-browser <https://github.com/mne-tools/mne-qt-browser>`__-based backend is now called ``'qt'`` rather than ``'pyqtgraph'`` for simplicity (:gh:`10323` by `Eric Larson`_)
 
 Dependencies
 ~~~~~~~~~~~~
