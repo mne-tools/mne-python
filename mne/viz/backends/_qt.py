@@ -205,7 +205,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, group_layout)
         return _QtWidgetList(group)
 
-    def _dock_add_group_box(self, name, *, layout=None):
+    def _dock_add_group_box(self, name, *, collapse=None, layout=None):
         layout = self._dock_layout if layout is None else layout
         hlayout = QVBoxLayout()
         widget = QGroupBox(name)
