@@ -174,7 +174,7 @@ def test_set_montage_artinis_basic():
     assert_array_almost_equal(raw.info['chs'][0]['loc'][:3],
                               [0.054243, 0.081884, 0.054544])
     assert_array_almost_equal(raw.info['chs'][8]['loc'][:3],
-                              [-0.03013 , 0.105097, 0.055894])
+                              [-0.03013, 0.105097, 0.055894])
     assert_array_almost_equal(raw.info['chs'][12]['loc'][:3],
                               [-0.055681, 0.086566, 0.055858])
     assert_array_almost_equal(raw_od.info['chs'][12]['loc'][:3],
