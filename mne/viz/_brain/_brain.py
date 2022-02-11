@@ -3690,7 +3690,8 @@ class Brain(object):
     @deprecated('enable_depth_peeling is deprecated and will be '
                 'removed in 1.1')
     def enable_depth_peeling(self):
-        """Enable depth peeling."""
+        """Enable depth peeling.
+        """
         self._renderer._enable_depth_peeling()
 
     def get_picked_points(self):
