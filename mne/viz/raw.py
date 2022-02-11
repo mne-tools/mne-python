@@ -345,6 +345,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   scrollbars_visible=show_scrollbars,
                   scalebars_visible=show_scalebars,
                   window_title=title,
+                  bgcolor=bgcolor,
                   # pyqtgraph-specific
                   precompute=precompute,
                   use_opengl=use_opengl)
