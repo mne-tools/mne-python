@@ -355,7 +355,7 @@ else:
     report_scraper = mne.report._ReportScraper()
     scrapers += (report_scraper,)
     del backend
-if mne.viz.get_browser_backend() == 'pyqtgraph':
+if mne.viz.get_browser_backend() == 'qt':
     scrapers += (mne.viz._scraper._PyQtGraphScraper(),)
 
 compress_images = ('images', 'thumbnails')
