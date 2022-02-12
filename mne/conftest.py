@@ -125,6 +125,7 @@ def pytest_configure(config):
     ignore:.*Found the following unknown channel type.*:RuntimeWarning
     ignore:.*np\.MachAr.*:DeprecationWarning
     ignore:.*Passing unrecognized arguments to super.*:DeprecationWarning
+    ignore:.*numpy.ndarray size changed.*:
     # present in nilearn v 0.8.1, fixed in nilearn main
     ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
     ignore:.*pandas\.Int64Index is deprecated.*:FutureWarning
@@ -588,7 +589,7 @@ def _all_src_types_inv_evoked(_evoked_cov_sphere, _all_src_types_fwd):
     invs = dict()
     for kind, fwd in _all_src_types_fwd.items():
         assert fwd['src'].kind == kind
-        with pytest.warns(RuntimeWarning, match='has magnitude'):
+        with pytest.warns(RuntimeWarning, match='has been reduced'):
             invs[kind] = mne.minimum_norm.make_inverse_operator(
                 evoked.info, fwd, cov)
     return invs, evoked

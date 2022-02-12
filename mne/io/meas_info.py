@@ -732,7 +732,7 @@ class Info(dict, MontageMixin):
             self['chs'] = _dict_unpack(self['chs'], _CH_CAST)
         for pi, proj in enumerate(self.get('projs', [])):
             if not isinstance(proj, Projection):
-                self['projs'][pi] = Projection(proj)
+                self['projs'][pi] = Projection(**proj)
         # Old files could have meas_date as tuple instead of datetime
         try:
             meas_date = self['meas_date']
@@ -974,6 +974,12 @@ class Info(dict, MontageMixin):
             for key in ('sfreq', 'highpass', 'lowpass'):
                 if self.get(key) is not None:
                     self[key] = float(self[key])
+
+        for pi, proj in enumerate(self.get('projs', [])):
+            _validate_type(proj, Projection, f'info["projs"][{pi}]')
+            for key in ('kind', 'active', 'desc', 'data', 'explained_var'):
+                if key not in proj:
+                    raise RuntimeError(f'Projection incomplete, missing {key}')
 
         # Ensure info['chs'] has immutable entries (copies much faster)
         for ci, ch in enumerate(self['chs']):
