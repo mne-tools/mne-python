@@ -58,7 +58,8 @@ new_names = dict(
     for ch_name in raw.ch_names)
 raw.rename_channels(new_names)
 
-# Read and set the EEG electrode locations:
+# Read and set the EEG electrode locations, which are already in fsaverage's
+# space (MNI space) for standard_1020:
 montage = mne.channels.make_standard_montage('standard_1005')
 raw.set_montage(montage)
 raw.set_eeg_reference(projection=True)  # needed for inverse modeling

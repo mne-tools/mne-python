@@ -187,6 +187,8 @@ Bugs
 
 - :func:`mne.find_events` now uses ``first_samp`` and not ``0`` for initial event when using ``initial_value`` (:gh:`10289`, by `Alex Gramfort`_)
 
+- Fix bug with :func:`mne.channels.make_standard_montage` for ``'standard*'``, ``'mgh*'``, and ``'artinis*'`` montages where the points were incorrectly scaled and fiducials incorrectly set away from the correct values for use with the ``fsaverage`` subject (:gh:`10324` by `Eric Larson`_)
+
 - Fix plotting bug in :ref:`ex-electrode-pos-2d` and make view look more natural in :ref:`ex-movement-detect` (:gh:`10313`, by `Alex Rockhill`_)
 
 API changes
