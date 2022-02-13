@@ -2239,7 +2239,6 @@ def _init_browser(**kwargs):
 
     # Initialize parts of the plot
     is_ica = fig.mne.instance_type == 'ica'
-    is_epochs = fig.mne.instance_type == 'epochs'
 
     if not is_ica:
         # make channel selection dialog,
