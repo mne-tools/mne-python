@@ -625,12 +625,13 @@ def _get_browser(**kwargs):
                         f' of mne-qt-browser is too low for {inst_str}.'
                         f'Update with "pip install --upgrade mne-qt-browser".'
                         f'Defaults to matplotlib.')
-        with use_browser_backend('matplotlib'):
-            # Initialize Browser
-            browser = backend._init_browser(**kwargs)
-    else:
-        # Initialize Browser
-        browser = backend._init_browser(**kwargs)
+            with use_browser_backend('matplotlib'):
+                # Initialize Browser
+                browser = backend._init_browser(**kwargs)
+                return browser
+
+    # Initialize Browser
+    browser = backend._init_browser(**kwargs)
 
     return browser
 
