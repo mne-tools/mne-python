@@ -623,7 +623,7 @@ def _get_browser(**kwargs):
             logger.info(f'You set the browser-backend to "qt" but your'
                         f' current version {mne_qt_browser.__version__}'
                         f' of mne-qt-browser is too low for {inst_str}.'
-                        f'Update with "pip install --upgrade mne-qt-browser".'
+                        f'Update with pip or conda.'
                         f'Defaults to matplotlib.')
             with use_browser_backend('matplotlib'):
                 # Initialize Browser
