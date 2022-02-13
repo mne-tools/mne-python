@@ -272,6 +272,7 @@ def test_plot_raw_selection(raw, browser_backend):
     assert len(fig.mne.traces) == len(sel_dict['Misc'])  # 1
     # switch to butterfly mode
     fig._fake_keypress('b', fig=sel_fig)
+
     # ToDo: For Qt-backend the framework around RawTraceItem makes
     #  it difficult to show the same channel multiple times which is why
     #  it is currently not implemented.

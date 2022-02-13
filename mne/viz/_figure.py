@@ -67,6 +67,8 @@ class BrowserBase(ABC):
             raise TypeError('Expected an instance of Raw, Epochs, or ICA, '
                             f'got {type(inst)}.')
 
+        logger.info(f'Opening {self.mne.instance_type}-browser...')
+
         self.mne.ica_type = None
         if self.mne.instance_type == 'ica':
             if isinstance(self.mne.ica_inst, BaseRaw):
@@ -135,10 +137,6 @@ class BrowserBase(ABC):
         """Get the unique labels in the raw object and added in the UI."""
         return sorted(set(self.mne.inst.annotations.description) |
                       set(self.mne.new_annotation_labels))
-
-    def _toggle_draggable_annotations(self):
-        """Enable/disable draggable annotation edges."""
-        self.mne.draggable_annotations = not self.mne.draggable_annotations
 
     def _setup_annotation_colors(self):
         """Set up colors for annotations; init some annotation vars."""
@@ -298,12 +296,13 @@ class BrowserBase(ABC):
             # subtract one sample from tstart before searchsorted, to make sure
             # we land on the left side of the boundary time (avoid precision
             # errors)
-            ix = np.searchsorted(self.mne.boundary_times,
-                                 self.mne.t_start - self.mne.sampling_period)
-            item = slice(ix, ix + self.mne.n_epochs)
+            ix_start = np.searchsorted(self.mne.boundary_times,
+                                       self.mne.t_start -
+                                       self.mne.sampling_period)
+            ix_stop = ix_start + self.mne.n_epochs
+            item = slice(ix_start, ix_stop)
             data = np.concatenate(self.mne.inst.get_data(item=item), axis=-1)
-            times = np.arange(len(self.mne.inst) * len(self.mne.inst.times)
-                              )[start:stop] / self.mne.info['sfreq']
+            times = np.arange(start, stop) / self.mne.info['sfreq']
             return data, times
 
     def _apply_filter(self, data, start, stop, picks):
@@ -390,17 +389,22 @@ class BrowserBase(ABC):
 
     def _close(self, event):
         """Handle close events (via keypress or window [x])."""
+        logger.info(f'Closing {self.mne.instance_type}-browser...')
         # write out bad epochs (after converting epoch numbers to indices)
         if self.mne.instance_type == 'epochs':
             bad_ixs = np.in1d(self.mne.inst.selection,
                               self.mne.bad_epochs).nonzero()[0]
             self.mne.inst.drop(bad_ixs)
+            logger.info('The following epochs were marked as bad '
+                        'and are dropped:\n'
+                        f'{self.mne.bad_epochs}')
         # write bad channels back to instance (don't do this for proj;
         # proj checkboxes are for viz only and shouldn't modify the instance)
         if self.mne.instance_type in ('raw', 'epochs'):
             self.mne.inst.info['bads'] = self.mne.info['bads']
             logger.info(
-                f"Channels marked as bad: {self.mne.info['bads'] or 'none'}")
+                f"Channels marked as bad:\n"
+                f"{self.mne.info['bads'] or 'none'}")
         # ICA excludes
         elif self.mne.instance_type == 'ica':
             self.mne.ica.exclude = [self.mne.ica._ica_names.index(ch)
@@ -500,15 +504,6 @@ class BrowserBase(ABC):
 
         return fig
 
-    def _toggle_epoch_histogram(self):
-        """Show or hide peak-to-peak histogram of channel amplitudes."""
-        if self.mne.instance_type == 'epochs':
-            if self.mne.fig_histogram is None:
-                self._create_epoch_histogram()
-            else:
-                from matplotlib.pyplot import close
-                close(self.mne.fig_histogram)
-
     def _create_epoch_histogram(self):
         """Create peak-to-peak histogram of channel amplitudes."""
         epochs = self.mne.inst
@@ -542,10 +537,13 @@ class BrowserBase(ABC):
                 ax.plot((reject, reject), (0, ax.get_ylim()[1]), color='r')
         # finalize
         fig.suptitle(title, y=0.99)
-        kwargs = dict(bottom=fig._inch_to_rel(0.5, horiz=False),
-                      top=1 - fig._inch_to_rel(0.5, horiz=False),
-                      left=fig._inch_to_rel(0.75),
-                      right=1 - fig._inch_to_rel(0.25))
+        if hasattr(fig, '_inch_to_rel'):
+            kwargs = dict(bottom=fig._inch_to_rel(0.5, horiz=False),
+                          top=1 - fig._inch_to_rel(0.5, horiz=False),
+                          left=fig._inch_to_rel(0.75),
+                          right=1 - fig._inch_to_rel(0.25))
+        else:
+            kwargs = dict()
         fig.subplots_adjust(hspace=0.7, **kwargs)
         self.mne.fig_histogram = fig
 
@@ -658,7 +656,7 @@ def set_browser_backend(backend_name, verbose=None):
        +======================================+============+====+
        | :func:`plot_raw`                     | ✓          | ✓  |
        +--------------------------------------+------------+----+
-       | :func:`plot_epochs`                  | ✓          |    |
+       | :func:`plot_epochs`                  | ✓          | ✓  |
        +--------------------------------------+------------+----+
        | :func:`plot_ica_sources`             | ✓          |    |
        +--------------------------------------+------------+----+
