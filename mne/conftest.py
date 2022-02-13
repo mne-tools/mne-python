@@ -406,9 +406,9 @@ def _check_pyqtgraph(request):
         is_epochs = request.function.__module__ == 'mne.viz.tests.test_epochs'
         is_ica = request.function.__module__ == 'mne.viz.tests.test_ica'
         if v_to_low and is_epochs:
-            pytest.skip('No Epochs tests for mne-qt-browser <= 0.2.0')
+            pytest.skip('No Epochs tests for mne-qt-browser < 0.2.0')
         elif v_to_low and is_ica:
-            pytest.skip('No ICA tests for mne-qt-browser <= 0.2.0')
+            pytest.skip('No ICA tests for mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip('Requires mne_qt_browser')
 
