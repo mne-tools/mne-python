@@ -84,6 +84,6 @@ Other general purpose packages, written in MATLAB, provide similar functionality
 
 # Acknowledgements
 
-We acknowledge Liberty Hamilton for her work [@HamiltonEtAl2017] which was especially helpful to use as a comparison and to build off conceptually in the development of this project.
+We acknowledge Liberty Hamilton for her work [@HamiltonEtAl2017] which was especially helpful to use as a comparison and to build off conceptually in the development of this project. This work is supported by NIH-R01NS104585 (EL,AG; PI: M. Hamalainen).
 
 # References
