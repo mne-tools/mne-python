@@ -2222,6 +2222,7 @@ def _patched_canvas(fig):
 
 def _init_browser(**kwargs):
     """Instantiate a new MNE browse-style figure."""
+    from mne.io import BaseRaw
     fig = _figure(toolbar=False, FigureClass=MNEBrowseFigure, **kwargs)
 
     # initialize zen mode
@@ -2235,5 +2236,23 @@ def _init_browser(**kwargs):
     if not fig.mne.scrollbars_visible:
         fig.mne.scrollbars_visible = True
         fig._toggle_scrollbars()
+
+    # Initialize parts of the plot
+    is_ica = fig.mne.instance_type == 'ica'
+    is_epochs = fig.mne.instance_type == 'epochs'
+
+    if not is_ica:
+        # make channel selection dialog,
+        # if requested (doesn't work well in init)
+        if fig.mne.group_by in ('selection', 'position'):
+            fig._create_selection_fig()
+
+    # update data, and plot
+    fig._update_trace_offsets()
+    fig._redraw(update_data=True, annotations=False)
+
+    if isinstance(fig.mne.inst, BaseRaw):
+        fig._setup_annotation_colors()
+        fig._draw_annotations()
 
     return fig

@@ -1105,19 +1105,6 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                       xlabel='Epoch number')
 
     fig = _get_browser(**params)
-
-    fig._update_picks()
-
-    # update data, and plot
-    fig._update_trace_offsets()
-    fig._update_data()
-    fig._draw_traces()
-
-    # plot annotations (if any)
-    if is_raw:
-        fig._setup_annotation_colors()
-        fig._update_annotation_segments()
-        fig._draw_annotations()
-
     _show_browser(show, block=block, fig=fig)
+
     return fig

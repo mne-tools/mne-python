@@ -352,20 +352,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     fig = _get_browser(**params)
 
-    fig._update_picks()
-
-    # make channel selection dialog, if requested (doesn't work well in init)
-    if group_by in ('selection', 'position'):
-        fig._create_selection_fig()
-
-    # update projector and data, and plot
-    fig._update_projector()
-    fig._update_trace_offsets()
-    fig._setup_annotation_colors()
-
-    # Draw Plot
-    fig._redraw(update_data=True, annotations=True)
-
     # start with projectors dialog open, if requested
     if show_options:
         fig._toggle_proj_fig()
