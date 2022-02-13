@@ -67,7 +67,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     %(show_scrollbars)s
     %(time_format)s
     %(precompute)s
-    $(use_opengl)s
+    %(use_opengl)s
 
     Returns
     -------
