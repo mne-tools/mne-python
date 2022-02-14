@@ -626,7 +626,7 @@ class _AbstractPlayback(ABC):
 class _AbstractDialog(ABC):
     @abstractmethod
     def _dialog_warning(self, title, text, info_text, callback, *,
-                        window=None):
+                        modal=True, window=None):
         pass
 
 

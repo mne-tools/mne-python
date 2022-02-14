@@ -1733,7 +1733,7 @@ class CoregistrationUI(HasTraits):
                 info_text="Do you want to save it?",
                 callback=callback,
                 # modal=True means that the dialog blocks the application
-                # until one of the buttons is clicked
+                # when show() is called, until one of the buttons is clicked
                 modal=not MNE_3D_BACKEND_TESTING,
             )
             self._widgets["close_dialog"].show()
