@@ -439,35 +439,35 @@ def browser_backend(request, garbage_collect):
 
 
 @pytest.fixture(params=["pyvistaqt"])
-def renderer(request, garbage_collect):
+def renderer(request, options_3d, garbage_collect):
     """Yield the 3D backends."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
 @pytest.fixture(params=["pyvistaqt"])
-def renderer_pyvistaqt(request, garbage_collect):
+def renderer_pyvistaqt(request, options_3d, garbage_collect):
     """Yield the PyVista backend."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
 @pytest.fixture(params=["notebook"])
-def renderer_notebook(request):
+def renderer_notebook(request, options_3d):
     """Yield the 3D notebook renderer."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
 @pytest.fixture(scope="module", params=["pyvistaqt"])
-def renderer_interactive_pyvistaqt(request):
+def renderer_interactive_pyvistaqt(request, options_3d):
     """Yield the interactive PyVista backend."""
     with _use_backend(request.param, interactive=True) as renderer:
         yield renderer
 
 
 @pytest.fixture(scope="module", params=["pyvistaqt"])
-def renderer_interactive(request):
+def renderer_interactive(request, options_3d):
     """Yield the interactive 3D backends."""
     with _use_backend(request.param, interactive=True) as renderer:
         yield renderer
@@ -650,6 +650,13 @@ def download_is_error(monkeypatch):
     """Prevent downloading by raising an error when it's attempted."""
     import pooch
     monkeypatch.setattr(pooch, 'retrieve', _fail)
+
+
+@pytest.fixture(scope='function')
+def options_3d(monkeypatch):
+    """Disable advanced 3d rendering."""
+    monkeypatch.setenv('MNE_3D_OPTION_ANTIALIAS', 'false')
+    monkeypatch.setenv('MNE_3D_OPTION_DEPTH_PEELING', 'false')
 
 
 @pytest.fixture()
