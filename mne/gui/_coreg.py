@@ -227,7 +227,6 @@ class CoregistrationUI(HasTraits):
         # setup the window
         self._renderer = _get_renderer(
             size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
-        self._renderer.enable_depth_peeling()
         self._renderer._window_close_connect(self._close_callback)
         self._renderer.set_interaction(interaction)
         self._renderer._status_bar_initialize()

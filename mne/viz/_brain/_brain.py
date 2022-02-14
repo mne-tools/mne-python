@@ -42,7 +42,7 @@ from ...source_space import SourceSpaces
 from ...transforms import (apply_trans, invert_transform, _get_trans,
                            _get_transforms_to_coord_frame)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
-                      use_log_level, Bunch, _ReuseCycle, warn,
+                      use_log_level, Bunch, _ReuseCycle, warn, deprecated,
                       get_subjects_dir, _check_fname, _to_rgb)
 
 
@@ -391,8 +391,6 @@ class Brain(object):
        | :meth:`show_view`                   | ✓            | ✓             |
        +-------------------------------------+--------------+---------------+
        | TimeViewer                          | ✓            | ✓             |
-       +-------------------------------------+--------------+---------------+
-       | :meth:`enable_depth_peeling`        |              | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`get_picked_points`           |              | ✓             |
        +-------------------------------------+--------------+---------------+
@@ -3689,9 +3687,12 @@ class Brain(object):
             show[keep_idx] = 1
             label *= show
 
+    @deprecated('enable_depth_peeling is deprecated and will be '
+                'removed in 1.1')
     def enable_depth_peeling(self):
-        """Enable depth peeling."""
-        self._renderer.enable_depth_peeling()
+        """Enable depth peeling.
+        """
+        self._renderer._enable_depth_peeling()
 
     def get_picked_points(self):
         """Return the vertices of the picked points.

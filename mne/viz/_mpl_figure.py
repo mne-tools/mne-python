@@ -363,6 +363,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         # this only gets shown in zen mode
         self.mne.zen_xlabel = ax_main.set_xlabel(xlabel)
         self.mne.zen_xlabel.set_visible(not self.mne.scrollbars_visible)
+        # make sure background color of the axis is set
+        if 'bgcolor' in kwargs:
+            ax_main.set_facecolor(kwargs['bgcolor'])
 
         # SCROLLBARS
         ax_hscroll = div.append_axes(position='bottom',
@@ -1441,6 +1444,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             self._update_projector()
             self._redraw()
 
+    def _toggle_epoch_histogram(self):
+        """Show or hide peak-to-peak histogram of channel amplitudes."""
+        if self.mne.instance_type == 'epochs':
+            if self.mne.fig_histogram is None:
+                self._create_epoch_histogram()
+            else:
+                from matplotlib.pyplot import close
+                close(self.mne.fig_histogram)
+
     def _toggle_bad_channel(self, idx):
         """Mark/unmark bad channels; `idx` is index of *visible* channels."""
         color, pick, marked_bad = super()._toggle_bad_channel(idx)
@@ -1781,7 +1793,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             # override custom color on bad epochs
             for _ix in visible_bad_epoch_ix:
                 _cols = np.array([self.mne.epoch_color_bad,
-                                  self.mne.ch_color_bad])[bad_bool.astype(int)]
+                                  self.mne.ch_color_bad],
+                                 dtype=object)[bad_bool.astype(int)]
                 custom_colors[:, _ix] = to_rgba_array(_cols)
 
         # update traces
@@ -1985,7 +1998,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _get_ticklabels(self, orientation):
         if orientation == 'x':
-            labels = self.mne.ax_main.get_xticklabels()
+            labels = self.mne.ax_main.get_xticklabels(minor=self.mne.is_epochs)
         elif orientation == 'y':
             labels = self.mne.ax_main.get_yticklabels()
         label_texts = [lb.get_text() for lb in labels]

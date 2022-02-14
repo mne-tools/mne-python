@@ -35,7 +35,8 @@ from mne.io.constants import FIFF
 from mne.io._digitization import (_format_dig_points,
                                   _get_fid_coords, _get_dig_eeg,
                                   _count_points_by_type)
-from mne.transforms import _ensure_trans, apply_trans, invert_transform
+from mne.transforms import (_ensure_trans, apply_trans, invert_transform,
+                            _get_trans)
 from mne.viz._3d import _fiducial_coords
 
 from mne.io.kit import read_mrk
@@ -1051,6 +1052,7 @@ def test_set_montage_mgh(rename):
     orig_pos = np.array([raw.info['chs'][pick]['loc'][:3]
                          for pick in eeg_picks])
     atol = 1e-6
+    mon = None
     if rename == 'raw':
         raw.rename_channels(lambda x: x.replace('EEG ', 'EEG'))
         raw.set_montage('mgh60')  # test loading with string argument
@@ -1075,15 +1077,29 @@ def test_set_montage_mgh(rename):
         mon.rename_channels(renamer)
         raw.set_montage(mon)
 
+    if mon is not None:
+        # first two are 'Fz' and 'F2', take them from standard_1020.elc --
+        # they should not be changed on load!
+        want_pos = [[0.3122, 58.5120, 66.4620], [29.5142, 57.6019, 59.5400]]
+        got_pos = [mon.get_positions()['ch_pos'][f'EEG {x:03d}'] * 1000
+                   for x in range(1, 3)]
+        assert_allclose(want_pos, got_pos)
+        assert mon.dig[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI
+        trans = compute_native_head_t(mon)
+        trans_2 = _get_trans('fsaverage', 'mri', 'head')[0]
+        assert trans['to'] == trans_2['to']
+        assert trans['from'] == trans_2['from']
+        assert_allclose(trans['trans'], trans_2['trans'], atol=1e-6)
+
     new_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
                         if ch['ch_name'].startswith('EEG')])
     assert ((orig_pos != new_pos).all())
 
     r0 = _fit_sphere(new_pos)[1]
-    assert_allclose(r0, [0.000775, 0.006881, 0.047398], atol=1e-3)
+    assert_allclose(r0, [-0.001021, 0.014554, 0.041404], atol=1e-4)
     # spot check
-    assert_allclose(new_pos[:2], [[0.000273, 0.084920, 0.105838],
-                                  [0.028822, 0.083529, 0.099164]], atol=atol)
+    assert_allclose(new_pos[:2], [[-0.001229, 0.093274, 0.102639],
+                                  [0.027968, 0.09187, 0.09578]], atol=atol)
 
 
 # XXX: this does not check ch_names + it cannot work because of write_dig

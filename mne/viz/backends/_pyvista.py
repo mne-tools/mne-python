@@ -151,8 +151,10 @@ class _PyVistaRenderer(_AbstractRenderer):
                          smooth_shading=smooth_shading)
         self.font_family = "arial"
         self.tube_n_sides = 20
-        antialias = _get_3d_option('antialias')
-        self.antialias = antialias and not MNE_3D_BACKEND_TESTING
+        self.antialias = _get_3d_option('antialias') and \
+            not MNE_3D_BACKEND_TESTING
+        self.depth_peeling = _get_3d_option('depth_peeling') and \
+            not MNE_3D_BACKEND_TESTING
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
             # Restore only active plotter
@@ -176,10 +178,13 @@ class _PyVistaRenderer(_AbstractRenderer):
                 self.tube_n_sides = 3
                 # smooth_shading=True fails on MacOS CIs
                 self.figure.smooth_shading = False
+            # pyvista theme may enable depth peeling by default so
+            # we disable it initially to better control the value afterwards
             with _disabled_depth_peeling():
                 self.plotter = self.figure.build()
             self._hide_axes()
-            self._enable_aa()
+            self._enable_antialias()
+            self._enable_depth_peeling()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
         if not hasattr(self.plotter, "iren"):
@@ -640,12 +645,14 @@ class _PyVistaRenderer(_AbstractRenderer):
 
         return _Projection(xy=xy, pts=pts, plotter=self.plotter)
 
-    def enable_depth_peeling(self):
+    def _enable_depth_peeling(self):
+        if not self.depth_peeling:
+            return
         if not self.figure.store['off_screen']:
             for renderer in self._all_renderers:
                 renderer.enable_depth_peeling()
 
-    def _enable_aa(self):
+    def _enable_antialias(self):
         """Enable it everywhere except Azure."""
         if not self.antialias:
             return

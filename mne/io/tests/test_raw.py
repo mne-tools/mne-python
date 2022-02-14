@@ -139,7 +139,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             other_raw.info, meg=meg, eeg=eeg, fnirs=fnirs)
         col_names = [other_raw.ch_names[pick] for pick in picks]
         proj = np.ones((1, len(picks)))
-        proj /= proj.shape[1]
+        proj /= np.sqrt(proj.shape[1])
         proj = Projection(
             data=dict(data=proj, nrow=1, row_names=None,
                       col_names=col_names, ncol=len(picks)),
@@ -234,6 +234,10 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             this_proj = other_raw.info['projs'][0]['data']
             assert this_proj['col_names'] == col_names
             assert this_proj['data'].shape == proj['data']['data'].shape
+            assert_allclose(
+                np.linalg.norm(proj['data']['data']), 1., atol=1e-6)
+            assert_allclose(
+                np.linalg.norm(this_proj['data']), 1., atol=1e-6)
             assert_allclose(this_proj['data'], proj['data']['data'])
             proj = other_raw.apply_proj().get_data()
             assert_allclose(proj[picks], data_load_apply_get, atol=1e-10)

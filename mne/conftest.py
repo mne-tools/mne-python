@@ -125,6 +125,7 @@ def pytest_configure(config):
     ignore:.*Found the following unknown channel type.*:RuntimeWarning
     ignore:.*np\.MachAr.*:DeprecationWarning
     ignore:.*Passing unrecognized arguments to super.*:DeprecationWarning
+    ignore:.*numpy.ndarray size changed.*:
     # present in nilearn v 0.8.1, fixed in nilearn main
     ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
     ignore:.*pandas\.Int64Index is deprecated.*:FutureWarning
@@ -389,7 +390,8 @@ def mpl_backend(garbage_collect):
         backend._close_all()
 
 
-def _check_pyqtgraph():
+def _check_pyqtgraph(request):
+    # Check PyQt5
     try:
         import PyQt5  # noqa: F401
     except ModuleNotFoundError:
@@ -397,31 +399,40 @@ def _check_pyqtgraph():
     if not _compare_version(_check_pyqt5_version(), '>=', '5.12'):
         pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
                     f'but pyqtgraph needs >= 5.12!')
+    # Check mne-qt-browser
     try:
         import mne_qt_browser  # noqa: F401
+        # Check if version is high enough for epochs
+        v_to_low = _compare_version(mne_qt_browser.__version__, '<', '0.2.0')
+        is_epochs = request.function.__module__ == 'mne.viz.tests.test_epochs'
+        is_ica = request.function.__module__ == 'mne.viz.tests.test_ica'
+        if v_to_low and is_epochs:
+            pytest.skip('No Epochs tests for mne-qt-browser < 0.2.0')
+        elif v_to_low and is_ica:
+            pytest.skip('No ICA tests for mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip('Requires mne_qt_browser')
 
 
 @pytest.mark.pgtest
 @pytest.fixture
-def pg_backend(garbage_collect):
+def pg_backend(request, garbage_collect):
     """Use for pyqtgraph-specific test-functions."""
-    _check_pyqtgraph()
-    with use_browser_backend('pyqtgraph') as backend:
+    _check_pyqtgraph(request)
+    with use_browser_backend('qt') as backend:
         yield backend
         backend._close_all()
 
 
 @pytest.fixture(params=[
     'matplotlib',
-    pytest.param('pyqtgraph', marks=pytest.mark.pgtest),
+    pytest.param('qt', marks=pytest.mark.pgtest),
 ])
 def browser_backend(request, garbage_collect):
     """Parametrizes the name of the browser backend."""
     backend_name = request.param
-    if backend_name == 'pyqtgraph':
-        _check_pyqtgraph()
+    if backend_name == 'qt':
+        _check_pyqtgraph(request)
     with use_browser_backend(backend_name) as backend:
         yield backend
         backend._close_all()
@@ -588,7 +599,7 @@ def _all_src_types_inv_evoked(_evoked_cov_sphere, _all_src_types_fwd):
     invs = dict()
     for kind, fwd in _all_src_types_fwd.items():
         assert fwd['src'].kind == kind
-        with pytest.warns(RuntimeWarning, match='has magnitude'):
+        with pytest.warns(RuntimeWarning, match='has been reduced'):
             invs[kind] = mne.minimum_norm.make_inverse_operator(
                 evoked.info, fwd, cov)
     return invs, evoked

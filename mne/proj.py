@@ -6,6 +6,7 @@ import numpy as np
 
 from .epochs import Epochs
 from .utils import check_fname, logger, verbose, _check_option, _check_fname
+from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.pick import pick_types, pick_types_forward
 from .io.proj import (Projection, _has_eeg_average_ref_proj, _read_proj,
@@ -134,8 +135,9 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
                              data=u[np.newaxis, :], nrow=1, ncol=u.size)
             this_desc = "%s-%s-PCA-%02d" % (desc, desc_prefix, k + 1)
             logger.info("Adding projection: %s" % this_desc)
-            proj = Projection(active=False, data=proj_data,
-                              desc=this_desc, kind=1, explained_var=var)
+            proj = Projection(
+                active=False, data=proj_data, desc=this_desc,
+                kind=FIFF.FIFFV_PROJ_ITEM_FIELD, explained_var=var)
             projs.append(proj)
 
     return projs
