@@ -1717,20 +1717,32 @@ class CoregistrationUI(HasTraits):
         self._renderer.close()
 
     def _close_callback(self):
+        # prepare the dialog text
+        text = "The "
         if not self._trans_saved:
+            text += "Head<>MRI transform"
+        if not self._fids_saved:
+            if text:
+                text += " and "
+            text += "fiducials"
+
+        if not self._trans_saved or not self._fids_saved:
             from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+            text += " has/have not been saved."
 
             def callback(button_name):
                 if button_name == "Save":
                     self._forward_widget_command(
                         "save_trans", "set_value", None)
+                    self._forward_widget_command(
+                        "save_mri_fids", "set_value", None)
                 else:
                     assert button_name == "Cancel"
 
             self._widgets["close_dialog"] = self._renderer._dialog_warning(
                 title="CoregistrationUI",
-                text="The Head<>MRI transform has not been saved.",
-                info_text="Do you want to save it?",
+                text=text,
+                info_text="Do you want to save?",
                 callback=callback,
                 # modal=True means that the dialog blocks the application
                 # when show() is called, until one of the buttons is clicked
@@ -1738,7 +1750,4 @@ class CoregistrationUI(HasTraits):
             )
             self._widgets["close_dialog"].show()
 
-        if not self._fids_saved:
-            self._forward_widget_command(
-                "save_mri_fids", "set_value", None)
         self._clean()
