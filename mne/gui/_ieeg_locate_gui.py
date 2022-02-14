@@ -563,6 +563,10 @@ class IntracranialElectrodeLocator(QMainWindow):
         """Draw lines that connect the points in a group."""
         if not only_2D and group in self._lines:
             self._renderer.plotter.remove_actor(self._lines[group])
+        if group in self._lines_2D:
+            for line in self._lines_2D[group]:
+                line.remove()
+            self._lines_2D.pop(group)
         pos = np.array([
             self._chs[ch] for i, ch in enumerate(self._ch_names)
             if self._groups[ch] == group and i in self._seeg_idx and
@@ -582,18 +586,18 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._lines[group] = self._renderer.tube(
                 [pos[target_idx]], [pos[insert_idx] + elec_v * _BOLT_SCALAR],
                 radius=self._radius * _TUBE_SCALAR, color=_CMAP(group)[:3])[0]
-        if self._toggle_show_mip_button.text() == 'Hide Max Intensity Proj':
-            target_vox = apply_trans(self._ras_vox_t, pos[target_idx])
-            insert_vox = apply_trans(self._ras_vox_t,
-                                     pos[insert_idx] + elec_v * _BOLT_SCALAR)
-            lines_2D = list()
-            for axis in range(3):
-                x, y = [i for i in range(3) if i != axis]
-                lines_2D.append(self._figs[axis].axes[0].plot(
-                    [target_vox[x], insert_vox[x]],
-                    [target_vox[y], insert_vox[y]],
-                    color=_CMAP(group), linewidth=0.25, zorder=7))
-            self._lines_2D[group] = lines_2D
+        # add 2D lines on each slice plot
+        target_vox = apply_trans(self._ras_vox_t, pos[target_idx])
+        insert_vox = apply_trans(self._ras_vox_t,
+                                 pos[insert_idx] + elec_v * _BOLT_SCALAR)
+        lines_2D = list()
+        for axis in range(3):
+            x, y = [i for i in range(3) if i != axis]
+            lines_2D.append(self._figs[axis].axes[0].plot(
+                [target_vox[x], insert_vox[x]],
+                [target_vox[y], insert_vox[y]],
+                color=_CMAP(group), linewidth=0.25, zorder=7))
+        self._lines_2D[group] = lines_2D
 
     def _set_ch_names(self):
         """Add the channel names to the selector."""
@@ -929,9 +933,6 @@ class IntracranialElectrodeLocator(QMainWindow):
                         self._make_ch_image(axis, proj=True), aspect='auto',
                         extent=self._img_ranges[axis], zorder=6,
                         cmap=_CMAP, alpha=1, vmin=0, vmax=_N_COLORS))
-                # add lines
-                for group in set(self._groups.values()):
-                    self._update_lines(group, only_2D=True)
         else:
             for img in self._images['mip'] + self._images['mip_chs']:
                 img.remove()
