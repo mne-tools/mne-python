@@ -1718,7 +1718,7 @@ class CoregistrationUI(HasTraits):
 
     def _close_callback(self):
         # prepare the dialog text
-        text = "The "
+        text = ""
         if not self._trans_saved:
             text += "Head<>MRI transform"
         if not self._fids_saved:
