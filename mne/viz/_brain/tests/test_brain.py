@@ -706,8 +706,6 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path,
     else:
         hemi = 'vol'
     brain.add_foci([[0, 0, 0]], hemi=hemi)
-    if not np.array_equal(brain._data[hemi]['foci'], [[0, 0, 0]]):
-        breakpoint()
     assert_array_equal(brain._data[hemi]['foci'], [[0, 0, 0]])
 
     # test points picked by default
