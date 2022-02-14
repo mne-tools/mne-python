@@ -1732,10 +1732,12 @@ class CoregistrationUI(HasTraits):
 
             def callback(button_name):
                 if button_name == "Save":
-                    self._forward_widget_command(
-                        "save_trans", "set_value", None)
-                    self._forward_widget_command(
-                        "save_mri_fids", "set_value", None)
+                    if not self._trans_saved:
+                        self._forward_widget_command(
+                            "save_trans", "set_value", None)
+                    if not self._fids_saved:
+                        self._forward_widget_command(
+                            "save_mri_fids", "set_value", None)
                 else:
                     assert button_name == "Cancel"
 
