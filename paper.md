@@ -86,6 +86,6 @@ Other general purpose packages, written in MATLAB, provide similar functionality
 
 We acknowledge Liberty Hamilton for her work [@HamiltonEtAl2017] which was especially helpful to use as a comparison and to build off conceptually in the development of this project.
 
-This work is supported by the Renée James Seed grant to Accelerate Scientific Research from University of Oregon (APR, NCS; PI: N. Swann), NIH-1RF1MH117155-01 (AMR, PI: A. Raslan), NIH-R01NS104585 (EL, AG; PI: M. Hämäläinen).
+This work is supported by the Renée James Seed grant to Accelerate Scientific Research from University of Oregon (APR, NCS; PI: N. Swann), NIH-1RF1MH117155-01 (AMR, PI: A. Raslan) and NIH-R01NS104585 (EL, AG; PI: M. Hämäläinen).
 
 # References
