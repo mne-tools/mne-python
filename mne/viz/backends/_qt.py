@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QSizePolicy, QScrollArea, QStyle, QProgressBar,
                              QStyleOptionSlider, QLayout, QCheckBox,
                              QButtonGroup, QRadioButton, QLineEdit,
-                             QFileDialog, QPushButton)
+                             QFileDialog, QPushButton, QMessageBox)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
@@ -27,9 +27,27 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
-                        _AbstractWidgetList, _AbstractAction)
+                        _AbstractWidgetList, _AbstractAction, _AbstractDialog)
 from ._utils import _init_qt_resources, _qt_disable_paint
 from ..utils import logger, _check_option
+
+
+class _QtDialog(_AbstractDialog):
+    def _dialog_warning(self, title, text, info_text, callback, *,
+                        modal=True, window=None):
+        window = self._window if window is None else window
+        widget = QMessageBox(window)
+        widget.setWindowTitle(title)
+        widget.setText(text)
+        widget.setInformativeText(info_text)
+        widget.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
+        widget.setDefaultButton(QMessageBox.Save)
+
+        def func(button):
+            callback(button.text())
+
+        widget.buttonClicked.connect(func)
+        return _QtDialogWidget(widget, modal)
 
 
 class _QtLayout(_AbstractLayout):
@@ -709,13 +727,25 @@ class _QtWidget(_AbstractWidget):
         self._widget.setToolTip(tooltip)
 
 
+class _QtDialogWidget(_QtWidget):
+    def __init__(self, widget, modal):
+        super().__init__(widget)
+        self._modal = modal
+
+    def show(self):
+        if self._modal:
+            self._widget.exec()
+        else:
+            self._widget.show()
+
+
 class _QtAction(_AbstractAction):
     def trigger(self):
         self._action.trigger()
 
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
-                _QtStatusBar, _QtWindow, _QtPlayback):
+                _QtStatusBar, _QtWindow, _QtPlayback, _QtDialog):
     _kind = 'qt'
 
     def __init__(self, *args, **kwargs):

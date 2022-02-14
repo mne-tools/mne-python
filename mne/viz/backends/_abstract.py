@@ -628,6 +628,13 @@ class _AbstractPlayback(ABC):
         pass
 
 
+class _AbstractDialog(ABC):
+    @abstractmethod
+    def _dialog_warning(self, title, text, info_text, callback, *,
+                        window=None):
+        pass
+
+
 class _AbstractLayout(ABC):
     @abstractmethod
     def _layout_initialize(self, max_width):

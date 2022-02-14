@@ -1718,25 +1718,27 @@ class CoregistrationUI(HasTraits):
         self._renderer.close()
 
     def _close_callback(self):
-        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
         if not self._trans_saved:
-            from PyQt5.QtWidgets import QMessageBox
-            if MNE_3D_BACKEND_TESTING:
-                ret = QMessageBox.Cancel
-            else:
-                ret = QMessageBox.warning(
-                    self._renderer._window,
-                    "CoregistrationUI",
-                    "The Head<>MRI transform has not been saved. "
-                    "Do you want to save it?",
-                    QMessageBox.Save | QMessageBox.Cancel,
-                    QMessageBox.Save
-                )
-            if ret == QMessageBox.Save:
-                self._forward_widget_command(
-                    "save_trans", "set_value", None)
-            else:
-                assert ret == QMessageBox.Cancel
+            from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+
+            def callback(button_name):
+                if button_name == "Save":
+                    self._forward_widget_command(
+                        "save_trans", "set_value", None)
+                else:
+                    assert button_name == "Cancel"
+
+            self._widgets["close_dialog"] = self._renderer._dialog_warning(
+                title="CoregistrationUI",
+                text="The Head<>MRI transform has not been saved.",
+                info_text="Do you want to save it?",
+                callback=callback,
+                # modal=True means that the dialog blocks the application
+                # until one of the buttons is clicked
+                modal=not MNE_3D_BACKEND_TESTING,
+            )
+            self._widgets["close_dialog"].show()
+
         if not self._fids_saved:
             self._forward_widget_command(
                 "save_mri_fids", "set_value", None)
