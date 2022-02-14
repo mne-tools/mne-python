@@ -1717,17 +1717,16 @@ class CoregistrationUI(HasTraits):
         self._renderer.close()
 
     def _close_callback(self):
-        # prepare the dialog text
-        text = ""
-        if not self._trans_saved:
-            text += "Head<>MRI transform"
-        if not self._fids_saved:
-            if text:
-                text += " and "
-            text += "fiducials"
-
         if not self._trans_saved or not self._fids_saved:
             from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+            # prepare the dialog's text
+            text = ""
+            if not self._trans_saved:
+                text += "Head<>MRI transform"
+            if not self._fids_saved:
+                if text:
+                    text += " and "
+                text += "fiducials"
             text += " has/have not been saved."
 
             def callback(button_name):
