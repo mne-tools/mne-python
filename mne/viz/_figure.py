@@ -605,8 +605,28 @@ def _get_browser(**kwargs):
     figsize = kwargs.setdefault('figsize', _get_figsize_from_config())
     if figsize is None or np.any(np.array(figsize) < 8):
         kwargs['figsize'] = (8, 8)
+
     # Initialize browser backend
-    _init_browser_backend()
+    backend_name = get_browser_backend()
+    # Check mne-qt-browser compatibility
+    if backend_name == 'qt':
+        import mne_qt_browser
+        from .. import BaseEpochs
+        from ..fixes import _compare_version
+        is_ica = kwargs.get('ica', False)
+        is_epochs = isinstance(kwargs.get('inst', False), BaseEpochs)
+        not_compat = _compare_version(mne_qt_browser.__version__, '<', '0.2.0')
+        inst_str = 'ICA' if is_ica else 'Epochs'
+        if not_compat and (is_ica or is_epochs):
+            logger.info(f'You set the browser-backend to "qt" but your'
+                        f' current version {mne_qt_browser.__version__}'
+                        f' of mne-qt-browser is too low for {inst_str}.'
+                        f'Update with pip or conda.'
+                        f'Defaults to matplotlib.')
+            with use_browser_backend('matplotlib'):
+                # Initialize Browser
+                browser = backend._init_browser(**kwargs)
+                return browser
 
     # Initialize Browser
     browser = backend._init_browser(**kwargs)
