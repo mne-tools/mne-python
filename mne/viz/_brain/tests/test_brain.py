@@ -701,8 +701,14 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path,
     assert brain._scalar_bar.GetNumberOfLabels() == 3
 
     # add foci should work for volumes
-    brain.add_foci([[0, 0, 0]], hemi='lh' if src == 'surface' else 'vol')
-    assert_array_equal(brain._data['lh']['foci'], [[0, 0, 0]])
+    if src == 'surface':
+        hemi = 'lh'
+    else:
+        hemi = 'vol'
+    brain.add_foci([[0, 0, 0]], hemi=hemi)
+    if not np.array_equal(brain._data[hemi]['foci'], [[0, 0, 0]]):
+        breakpoint()
+    assert_array_equal(brain._data[hemi]['foci'], [[0, 0, 0]])
 
     # test points picked by default
     picked_points = brain.get_picked_points()

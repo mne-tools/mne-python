@@ -2617,17 +2617,17 @@ class Brain(object):
         if self._units == 'm':
             scale_factor = scale_factor / 1000.
 
-        # List of foci that will be stored in the Brain._data dictionary
-        data_foci = list(self._data[hemi].get('foci', list()))
-
         for _, _, v in self._iter_views(hemi):
             self._renderer.sphere(center=coords, color=color,
                                   scale=(10. * scale_factor),
                                   opacity=alpha, resolution=resolution)
             self._renderer.set_camera(**views_dicts[hemi][v])
-            data_foci.append(coords)
 
-        self._data[hemi]['foci'] = np.vstack(data_foci)
+        # Store the foci in the Brain._data dictionary
+        data_foci = coords
+        if 'foci' in self._data[hemi]:
+            data_foci = np.vstack((self._data[hemi]['foci'], data_foci))
+        self._data[hemi]['foci'] = data_foci
 
     @verbose
     def add_sensors(self, info, trans, meg=None, eeg='original', fnirs=True,
