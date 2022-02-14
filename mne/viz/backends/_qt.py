@@ -39,6 +39,7 @@ class _QtDialog(_AbstractDialog):
         widget = QMessageBox(window)
         widget.setWindowTitle(title)
         widget.setText(text)
+        widget.setIcon(QMessageBox.Warning)
         widget.setInformativeText(info_text)
         widget.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
         widget.setDefaultButton(QMessageBox.Save)
