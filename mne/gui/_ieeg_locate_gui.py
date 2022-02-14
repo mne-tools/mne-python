@@ -561,12 +561,16 @@ class IntracranialElectrodeLocator(QMainWindow):
 
     def _update_lines(self, group, only_2D=False):
         """Draw lines that connect the points in a group."""
-        if not only_2D and group in self._lines:
-            self._renderer.plotter.remove_actor(self._lines[group])
-        if group in self._lines_2D:
+        if group in self._lines_2D:  # remove existing 2D lines first
             for line in self._lines_2D[group]:
                 line.remove()
             self._lines_2D.pop(group)
+        if only_2D:  # if not in projection, don't add 2D lines
+            if self._toggle_show_mip_button.text() == \
+                    'Show Max Intensity Proj':
+                return
+        elif group in self._lines:  # if updating 3D, remove first
+            self._renderer.plotter.remove_actor(self._lines[group])
         pos = np.array([
             self._chs[ch] for i, ch in enumerate(self._ch_names)
             if self._groups[ch] == group and i in self._seeg_idx and
@@ -586,18 +590,19 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._lines[group] = self._renderer.tube(
                 [pos[target_idx]], [pos[insert_idx] + elec_v * _BOLT_SCALAR],
                 radius=self._radius * _TUBE_SCALAR, color=_CMAP(group)[:3])[0]
-        # add 2D lines on each slice plot
-        target_vox = apply_trans(self._ras_vox_t, pos[target_idx])
-        insert_vox = apply_trans(self._ras_vox_t,
-                                 pos[insert_idx] + elec_v * _BOLT_SCALAR)
-        lines_2D = list()
-        for axis in range(3):
-            x, y = [i for i in range(3) if i != axis]
-            lines_2D.append(self._figs[axis].axes[0].plot(
-                [target_vox[x], insert_vox[x]],
-                [target_vox[y], insert_vox[y]],
-                color=_CMAP(group), linewidth=0.25, zorder=7))
-        self._lines_2D[group] = lines_2D
+        if self._toggle_show_mip_button.text() == 'Hide Max Intensity Proj':
+            # add 2D lines on each slice plot if in max intensity projection
+            target_vox = apply_trans(self._ras_vox_t, pos[target_idx])
+            insert_vox = apply_trans(self._ras_vox_t,
+                                     pos[insert_idx] + elec_v * _BOLT_SCALAR)
+            lines_2D = list()
+            for axis in range(3):
+                x, y = [i for i in range(3) if i != axis]
+                lines_2D.append(self._figs[axis].axes[0].plot(
+                    [target_vox[x], insert_vox[x]],
+                    [target_vox[y], insert_vox[y]],
+                    color=_CMAP(group), linewidth=0.25, zorder=7)[0])
+            self._lines_2D[group] = lines_2D
 
     def _set_ch_names(self):
         """Add the channel names to the selector."""
@@ -758,9 +763,9 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._chs[name][:] = apply_trans(  # to surface RAS
                 self._vox_ras_t, np.array(list(neighbors)).mean(axis=0))
         self._color_list_item()
+        self._update_lines(self._groups[name])
         self._update_ch_images(draw=True)
         self._plot_3d_ch(name, render=True)
-        self._update_lines(self._groups[name])
         self._save_ch_coords()
         self._next_ch()
         self._ch_list.setFocus()
@@ -772,9 +777,9 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._chs[name] *= np.nan
         self._color_list_item()
         self._save_ch_coords()
+        self._update_lines(self._groups[name])
         self._update_ch_images(draw=True)
         self._plot_3d_ch(name, render=True)
-        self._update_lines(self._groups[name])
         self._next_ch()
         self._ch_list.setFocus()
 
@@ -933,12 +938,16 @@ class IntracranialElectrodeLocator(QMainWindow):
                         self._make_ch_image(axis, proj=True), aspect='auto',
                         extent=self._img_ranges[axis], zorder=6,
                         cmap=_CMAP, alpha=1, vmin=0, vmax=_N_COLORS))
+            for group in set(self._groups.values()):
+                self._update_lines(group, only_2D=True)
         else:
             for img in self._images['mip'] + self._images['mip_chs']:
                 img.remove()
             self._images.pop('mip')
             self._images.pop('mip_chs')
             self._toggle_show_mip_button.setText('Show Max Intensity Proj')
+            for group in set(self._groups.values()):  # remove lines
+                self._update_lines(group, only_2D=True)
         self._draw()
 
     def _toggle_show_max(self):
