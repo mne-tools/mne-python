@@ -12,10 +12,11 @@
 
 from itertools import cycle
 import os.path as op
-import sys
 import warnings
 from collections.abc import Iterable
 from functools import partial
+from dataclasses import dataclass
+from typing import Optional
 
 import numpy as np
 
@@ -584,29 +585,35 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                        eeg=(len(eeg) > 0), ecog=ecog, seeg=seeg, dbs=dbs,
                        fnirs=(len(fnirs) > 0))
     if trans is None:
-        needs_trans = None
-        if coord_frame == 'mri':
-            needs_trans = 'in mri coordinates'
-        if fwd is not None and _frame_to_str[fwd['coord_frame']] == 'mri':
-            needs_trans = 'forward solution'
-        if src is not None and _frame_to_str[src[0]['coord_frame']] == 'mri':
-            needs_trans = 'source space'
-        if len(surfaces) > 0:
-            needs_trans = ', '.join(surfaces) + ' surfaces'
-        if mri_fiducials is not False:
-            needs_trans = 'mri fiducials'
+        # Some stuff is natively in head coords, others in MRI coords
+        msg = ('A head<->mri transformation matrix (trans) is required '
+               f'to plot %s in {coord_frame} coordinates, '
+               '`trans=None` is not allowed')
+        if fwd is not None:
+            fwd_frame = _frame_to_str[fwd['coord_frame']]
+            if fwd_frame != coord_frame:
+                raise ValueError(
+                    msg % f'a {fwd_frame}-coordinate forward solution')
+        if src is not None:
+            src_frame = _frame_to_str[src[0]['coord_frame']]
+            if src_frame != coord_frame:
+                raise ValueError(
+                    msg % f'a {src_frame}-coordinate source space')
+        if mri_fiducials is not False and coord_frame != 'mri':
+            raise ValueError(msg % 'mri fiducials')
         # only enforce needing `trans` if there are channels in "head"/"device"
-        if picks.size == 0 and coord_frame == 'mri':  # not leaving "mri"
-            needs_trans = None
+        if picks.size and coord_frame == 'mri':
+            raise ValueError(msg % 'sensors')
         # if only plotting sphere model no trans needed
-        if bem is not None and bem['is_sphere']:
-            needs_trans = None
-        if needs_trans is not None:
-            raise ValueError(
-                'A head->mri transformation matrix is required '
-                f'to plot {needs_trans}, `trans=None` is not allowed')
-        else:
-            trans = Transform('head', 'mri')  # not used so just use identity
+        if bem is not None:
+            if not bem['is_sphere']:
+                if coord_frame != 'mri':
+                    raise ValueError(msg % 'a BEM')
+            elif surfaces not in (['brain'], []):  # can only plot these
+                raise ValueError(msg % (', '.join(surfaces) + ' surfaces'))
+        elif len(surfaces) > 0 and coord_frame != 'mri':
+            raise ValueError(msg % (', '.join(surfaces) + ' surfaces'))
+        trans = Transform('head', 'mri')  # not used so just use identity
     # get transforms
     head_mri_t = _get_trans(trans, 'head', 'mri')[0]
     to_cf_t = _get_transforms_to_coord_frame(
@@ -1811,6 +1818,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         and using the PyVista backend, ``views='flat'`` is also supported to
         plot cortex as a flatmap.
 
+        Using multiple views (list) is not supported by the matplotlib backend.
+
         .. versionchanged:: 0.21.0
            Support for flatmaps.
     colorbar : bool
@@ -2027,12 +2036,6 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
         use_kwargs.update(hemi='vol')
         brain.add_data(**use_kwargs)
     del kwargs
-
-    need_peeling = (brain_alpha < 1.0 and
-                    sys.platform != 'darwin' and
-                    vec)
-    if need_peeling:
-        brain.enable_depth_peeling()
 
     if time_viewer:
         brain.setup_time_viewer(time_viewer=time_viewer,
@@ -3282,34 +3285,50 @@ def plot_brain_colorbar(ax, clim, colormap='auto', transparent=True,
     return cbar
 
 
-_3d_options = dict()
-_3d_default = dict(antialias='true')
+@dataclass()
+class _3d_Options:
+    antialias: Optional[str]
+    depth_peeling: Optional[str]
 
 
-def set_3d_options(antialias=None):
+_3d_options = _3d_Options(antialias=None, depth_peeling=None)
+_3d_default = _3d_Options(antialias='true', depth_peeling='true')
+
+
+def set_3d_options(antialias=None, depth_peeling=None):
     """Set 3D rendering options.
 
     Parameters
     ----------
     antialias : bool | None
-        If not None, set the default full-screen anti-aliasing setting.
+        If bool, whether to enable or disable full-screen anti-aliasing.
         False is useful when renderers have problems (such as software
-        MESA renderers). This option can also be controlled using an
-        environment variable, e.g., ``MNE_3D_OPTION_ANTIALIAS=false``.
+        MESA renderers). If None, use the default setting. This option
+        can also be controlled using an environment variable, e.g.,
+        ``MNE_3D_OPTION_ANTIALIAS=false``.
+    depth_peeling : bool | None
+        If bool, whether to enable or disable accurate transparency.
+        False is useful when renderers have problems (for instance
+        while X forwarding on remote servers). If None, use the default
+        setting. This option can also be controlled using an environment
+        variable, e.g., ``MNE_3D_OPTION_DEPTH_PEELING=false``.
 
     Notes
     -----
     .. versionadded:: 0.21.0
     """
     if antialias is not None:
-        _3d_options['antialias'] = str(bool(antialias)).lower()
+        _3d_options.antialias = str(bool(antialias)).lower()
+    if depth_peeling is not None:
+        _3d_options.depth_peeling = str(bool(depth_peeling)).lower()
 
 
 def _get_3d_option(key):
-    try:
-        opt = _3d_options[key]
-    except KeyError:
-        opt = get_config(f'MNE_3D_OPTION_{key.upper()}', _3d_default[key])
+    _validate_type(key, 'str', 'key')
+    opt = getattr(_3d_options, key)
+    if opt is None:
+        default_value = getattr(_3d_default, key)
+        opt = get_config(f'MNE_3D_OPTION_{key.upper()}', default_value)
     opt = opt.lower()
     _check_option(f'3D option {key}', opt, ('true', 'false'))
     return opt == 'true'

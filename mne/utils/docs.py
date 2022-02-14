@@ -1575,7 +1575,7 @@ time_format : 'float' | 'clock'
     .. versionadded:: 0.24
 """
 
-# Visualization with pyqtgraph
+# Visualization with Qt
 docdict['precompute'] = """
 precompute : bool | str
     Whether to load all data (not just the visible portion) into RAM and
@@ -1583,7 +1583,7 @@ precompute : bool | str
     processor thread, instead of window-by-window during scrolling. The default
     ``'auto'`` compares available RAM space to the expected size of the
     precomputed data, and precomputes only if enough RAM is available. ``True``
-    and ``'auto'`` only work if using the PyQtGraph backend.
+    and ``'auto'`` only work if using the Qt backend.
 
     .. versionadded:: 0.24
 """
@@ -1592,7 +1592,7 @@ docdict['use_opengl'] = """
 use_opengl : bool | None
     Whether to use OpenGL when rendering the plot (requires ``pyopengl``).
     May increase performance, but effect is dependent on system CPU and
-    graphics hardware. Only works if using the PyQtGraph backend. Default is
+    graphics hardware. Only works if using the Qt backend. Default is
     None, which will use False unless the user configuration variable
     ``MNE_BROWSER_USE_OPENGL`` is set to ``'true'``,
     see :func:`mne.set_config`.
@@ -1796,6 +1796,8 @@ docdict["view"] = """
 view : str | None
     The name of the view to show (e.g. "lateral"). Other arguments
     take precedence and modify the camera starting from the ``view``.
+    See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for valid
+    string shortcut options.
 """
 docdict["roll"] = """
 roll : float | None
@@ -1964,13 +1966,9 @@ brain_kwargs : dict | None
 """
 docdict['views'] = """
 views : str | list
-    View to use. Can be any of::
-
-        ['lateral', 'medial', 'rostral', 'caudal', 'dorsal', 'ventral',
-         'frontal', 'parietal', 'axial', 'sagittal', 'coronal']
-
-    Three letter abbreviations (e.g., ``'lat'``) are also supported.
-    Using multiple views (list) is not supported for mpl backend.
+    View to use. Using multiple views (list) is not supported for mpl
+    backend. See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for
+    valid string options.
 """
 
 # Coregistration

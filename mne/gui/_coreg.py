@@ -225,7 +225,6 @@ class CoregistrationUI(HasTraits):
         # setup the window
         self._renderer = _get_renderer(
             size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
-        self._renderer.enable_depth_peeling()
         self._renderer._window_close_connect(self._clean)
         self._renderer.set_interaction(interaction)
         self._renderer._status_bar_initialize()
@@ -1290,10 +1289,17 @@ class CoregistrationUI(HasTraits):
         )
 
     def _configure_dock(self):
+        if self._renderer._kind == 'notebook':
+            collapse = True  # collapsible and collapsed
+        else:
+            collapse = None  # not collapsible
         self._renderer._dock_initialize(
             name="Input", area="left", max_width="350px"
         )
-        mri_subject_layout = self._renderer._dock_add_group_box("MRI Subject")
+        mri_subject_layout = self._renderer._dock_add_group_box(
+            name="MRI Subject",
+            collapse=collapse,
+        )
         self._widgets["subjects_dir"] = self._renderer._dock_add_file_button(
             name="subjects_dir",
             desc="Load",
@@ -1316,7 +1322,8 @@ class CoregistrationUI(HasTraits):
         )
 
         mri_fiducials_layout = self._renderer._dock_add_group_box(
-            "MRI Fiducials"
+            name="MRI Fiducials",
+            collapse=collapse,
         )
         # Add MRI fiducials I/O widgets
         self._widgets['mri_fiducials_label'] = self._renderer._dock_add_label(
@@ -1387,8 +1394,10 @@ class CoregistrationUI(HasTraits):
         self._renderer._layout_add_widget(
             mri_fiducials_layout, fiducial_coords_layout)
 
-        dig_source_layout = \
-            self._renderer._dock_add_group_box("Info source with digitization")
+        dig_source_layout = self._renderer._dock_add_group_box(
+            name="Info source with digitization",
+            collapse=collapse,
+        )
         self._widgets["info_file"] = self._renderer._dock_add_file_button(
             name="info_file",
             desc="Load",
@@ -1431,8 +1440,10 @@ class CoregistrationUI(HasTraits):
         )
         self._renderer._layout_add_widget(dig_source_layout, omit_hsp_layout)
 
-        view_options_layout = \
-            self._renderer._dock_add_group_box("View Options")
+        view_options_layout = self._renderer._dock_add_group_box(
+            name="View Options",
+            collapse=collapse,
+        )
         self._widgets["helmet"] = self._renderer._dock_add_check_box(
             name="Show MEG helmet",
             value=self._helmet,
@@ -1461,8 +1472,10 @@ class CoregistrationUI(HasTraits):
         self._renderer._dock_initialize(
             name="Parameters", area="right", max_width="350px"
         )
-        mri_scaling_layout = \
-            self._renderer._dock_add_group_box(name="MRI Scaling")
+        mri_scaling_layout = self._renderer._dock_add_group_box(
+            name="MRI Scaling",
+            collapse=collapse,
+        )
         self._widgets["scaling_mode"] = self._renderer._dock_add_combo_box(
             name="Scaling Mode",
             value=self._defaults["scale_mode"],
@@ -1529,7 +1542,9 @@ class CoregistrationUI(HasTraits):
         self._renderer._layout_add_widget(
             mri_scaling_layout, subject_to_layout)
         param_layout = self._renderer._dock_add_group_box(
-            "Translation (t) and Rotation (r)")
+            name="Translation (t) and Rotation (r)",
+            collapse=collapse,
+        )
         for coord in coords:
             coord_layout = self._renderer._dock_add_layout(vertical=False)
             for mode, mode_name in (("t", "Translation"), ("r", "Rotation")):
@@ -1571,7 +1586,9 @@ class CoregistrationUI(HasTraits):
         )
         self._renderer._layout_add_widget(param_layout, fit_layout)
         trans_layout = self._renderer._dock_add_group_box(
-            "HEAD <> MRI Transform")
+            name="HEAD <> MRI Transform",
+            collapse=collapse,
+        )
         save_trans_layout = self._renderer._dock_add_layout(vertical=False)
         self._widgets["save_trans"] = self._renderer._dock_add_file_button(
             name="save_trans",
@@ -1602,8 +1619,10 @@ class CoregistrationUI(HasTraits):
         )
         self._renderer._layout_add_widget(trans_layout, save_trans_layout)
 
-        fitting_options_layout = \
-            self._renderer._dock_add_group_box("Fitting Options")
+        fitting_options_layout = self._renderer._dock_add_group_box(
+            name="Fitting Options",
+            collapse=collapse,
+        )
         self._widgets["fit_label"] = self._renderer._dock_add_label(
             value="",
             layout=fitting_options_layout,

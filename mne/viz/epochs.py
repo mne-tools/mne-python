@@ -24,7 +24,8 @@ from ..io.meas_info import create_info, _validate_type
 
 from ..io.pick import (_get_channel_types, _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _VALID_CHANNEL_TYPES)
-from .utils import (tight_layout, _setup_vmin_vmax, plt_show, _check_cov,
+from .utils import (_show_browser, tight_layout, _setup_vmin_vmax, plt_show,
+                    _check_cov,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _handle_decim, _set_title_multiple_electrodes,
                     _make_combine_callable, _set_window_title,
@@ -648,7 +649,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 order=None, show=True, block=False, decim='auto',
                 noise_cov=None, butterfly=False, show_scrollbars=True,
                 show_scalebars=True, epoch_colors=None, event_id=None,
-                group_by='type'):
+                group_by='type', precompute='auto', use_opengl=None):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -730,6 +731,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
         .. versionadded:: 0.20
     %(browse_group_by)s
+    %(precompute)s
+    %(use_opengl)s
 
     Returns
     -------
@@ -743,10 +746,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     keys, but this depends on the backend matplotlib is configured to use
     (e.g., mpl.use(``TkAgg``) should work). Full screen mode can be toggled
     with f11 key. The amount of epochs and channels per view can be adjusted
-    with home/end and page down/page up keys. These can also be set through
-    options dialog by pressing ``o`` key. ``h`` key plots a histogram of
+    with home/end and page down/page up keys. ``h`` key plots a histogram of
     peak-to-peak values along with the used rejection thresholds. Butterfly
-    plot can be toggled with ``b`` key. Right mouse click adds a vertical line
+    plot can be toggled with ``b`` key. Left mouse click adds a vertical line
     to the plot. Click 'help' button at bottom left corner of the plotter to
     view all the options.
 
@@ -898,7 +900,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   scrollbars_visible=show_scrollbars,
                   scalebars_visible=show_scalebars,
                   window_title=title,
-                  xlabel='Epoch number')
+                  xlabel='Epoch number',
+                  # pyqtgraph-specific
+                  precompute=precompute,
+                  use_opengl=use_opengl)
 
     fig = _get_browser(**params)
 
@@ -913,7 +918,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     fig._update_data()
     fig._draw_traces()
 
-    plt_show(show, block=block)
+    _show_browser(show, block=block, fig=fig)
 
     return fig
 

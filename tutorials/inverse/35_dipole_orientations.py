@@ -109,7 +109,7 @@ mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1)
 # Restricting the dipole orientations in this manner leads to the following
 # source estimate for the sample data:
 
-# Compute the source estimate for the 'left - auditory' condition in the sample
+# Compute the source estimate for the left auditory condition in the sample
 # dataset.
 inv = make_inverse_operator(left_auditory.info, fwd, noise_cov, fixed=True)
 stc = apply_inverse(left_auditory, inv, pick_ori=None)

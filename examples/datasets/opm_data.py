@@ -6,8 +6,8 @@ Optically pumped magnetometer (OPM) data
 
 In this dataset, electrical median nerve stimulation was delivered to the
 left wrist of the subject. Somatosensory evoked fields were measured using
-nine QuSpin SERF OPMs placed over the right-hand side somatomotor area.
-Here we demonstrate how to localize these custom OPM data in MNE.
+nine QuSpin SERF OPMs placed over the right-hand side somatomotor area. Here
+we demonstrate how to localize these custom OPM data in MNE.
 """
 
 # %%

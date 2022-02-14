@@ -127,7 +127,7 @@ stages:
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
     - script: pytest -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
-      displayName: 'Run ultraslow and PyQtGraph mne-qt-browser tests'
+      displayName: 'Run ultraslow and mne-qt-browser tests'
     - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
       condition: succeededOrFailed()
