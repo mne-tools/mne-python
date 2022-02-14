@@ -1052,14 +1052,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         freqs : float | array of float | None
             Specific frequencies to filter out from data, e.g.,
-            np.arange(60, 241, 60) in the US or np.arange(50, 251, 50) in
-            Europe. None can only be used with the mode 'spectrum_fit',
-            where an F test is used to find sinusoidal components.
+            ``np.arange(60, 241, 60)`` in the US or ``np.arange(50, 251, 50)``
+            in Europe. ``None`` can only be used with the mode
+            ``'spectrum_fit'``, where an F test is used to find sinusoidal
+            components.
         %(picks_all_data)s
         %(filter_length_notch)s
         notch_widths : float | array of float | None
             Width of each stop band (centred at each freq in freqs) in Hz.
-            If None, freqs / 200 is used.
+            If None, ``freqs / 200`` is used.
         trans_bandwidth : float
             Width of the transition band in Hz.
             Only used for ``method='fir'``.
@@ -1071,8 +1072,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Only used in 'spectrum_fit' mode.
         p_value : float
             P-value to use in F-test thresholding to determine significant
-            sinusoidal components to remove when method='spectrum_fit' and
-            freqs=None. Note that this will be Bonferroni corrected for the
+            sinusoidal components to remove when ``method='spectrum_fit'`` and
+            ``freqs=None``. Note that this will be Bonferroni corrected for the
             number of frequencies, so large p-values may be justified.
         %(phase)s
         %(fir_window)s
