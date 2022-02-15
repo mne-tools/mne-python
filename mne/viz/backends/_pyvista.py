@@ -81,17 +81,6 @@ class PyVistaFigure(Figure3D):
         self._nrows, self._ncols = self.store['shape']
         self._azimuth = self._elevation = None
 
-    @property
-    def plotter(self):
-        """The native 3D plotting widget.
-
-        Returns
-        -------
-        plotter : instance of pyvista.Plotter
-            The plotter. Useful for interacting with the native 3D library.
-        """
-        return self._plotter
-
     def _build(self):
         if self.notebook:
             plotter_class = Plotter

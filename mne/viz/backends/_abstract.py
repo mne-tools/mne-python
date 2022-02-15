@@ -908,7 +908,6 @@ class Figure3D(ABC):
         pass
 
     @property
-    @abstractmethod
     def plotter(self):
         """The native 3D plotting widget.
 
@@ -917,4 +916,4 @@ class Figure3D(ABC):
         plotter : instance of pyvista.Plotter
             The plotter. Useful for interacting with the native 3D library.
         """
-        pass
+        return self._plotter
