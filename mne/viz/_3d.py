@@ -318,7 +318,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     time_label : str | None
         How to print info about the time instant visualized.
     %(n_jobs)s
-    fig : instance of PyVista renderer | None
+    fig : instance of Figure3D | None
         If None (default), a new figure will be created, otherwise it will
         plot into the given figure.
 
@@ -335,7 +335,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
     Returns
     -------
-    fig : instance of PyVista renderer
+    fig : instance of Figure3D
         The figure.
     """
     # Update the backend
@@ -497,7 +497,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
         .. versionadded:: 0.16
     %(dbs)s
-    fig : PyVista renderer | None
+    fig : Figure3D | None
         PyVista scene in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
 
@@ -511,7 +511,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     Returns
     -------
-    fig : instance of PyVista renderer
+    fig : instance of Figure3D
         The figure.
 
     See Also
@@ -1806,7 +1806,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         .. versionchanged:: 0.20.0
            "auto" mode added.
     %(subjects_dir)s
-    figure : instance of PyVista renderer | instance of matplotlib.figure.Figure | list | int | None
+    figure : instance of Figure3D | instance of matplotlib.figure.Figure | list | int | None
         If None, a new figure will be created. If multiple views or a
         split view is requested, this must be a list of the appropriate
         length. If int is provided it will be used to identify the PyVista
@@ -2589,7 +2589,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-    figure : instance of PyVista renderer | list | int | None
+    figure : instance of Figure3D | list | int | None
         If None, a new figure will be created. If multiple views or a
         split view is requested, this must be a list of the appropriate
         length. If int is provided it will be used to identify the PyVista
@@ -2712,8 +2712,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     Returns
     -------
-    surface : instance of PyVista surface
-        The triangular mesh surface.
+    surface : instance of Figure3D
+        The 3D figure containing the triangular mesh surface.
     """
     import matplotlib.pyplot as plt
     # Update the backend
@@ -2779,11 +2779,10 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     unique_vertnos = np.unique(np.concatenate(vertnos).ravel())
 
     renderer = _get_renderer(bgcolor=bgcolor, size=(600, 600), name=fig_name)
-    surface = renderer.mesh(x=points[:, 0], y=points[:, 1],
-                            z=points[:, 2], triangles=use_faces,
-                            color=brain_color, opacity=opacity,
-                            backface_culling=True, shading=True,
-                            normals=normals, **kwargs)
+    renderer.mesh(
+        x=points[:, 0], y=points[:, 1], z=points[:, 2], triangles=use_faces,
+        color=brain_color, opacity=opacity, backface_culling=True,
+        shading=True, normals=normals, **kwargs)
 
     # Show time courses
     fig = plt.figure(fig_number)
@@ -2838,7 +2837,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     plt_show(show)
 
     renderer.show()
-    return surface
+    return renderer.scene()
 
 
 @verbose
@@ -2918,8 +2917,8 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
         ``show_all=True``.
 
         .. versionadded:: 0.19.0
-    fig : PyVista renderer | None
-        3D Scene in which to plot the alignment.
+    fig : instance of Figure3D | None
+        3D figure in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
 
         .. versionadded:: 0.19.0
@@ -2930,7 +2929,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
 
     Returns
     -------
-    fig : instance of PyVista renderer or matplotlib.figure.Figure
+    fig : instance of Figure3D or matplotlib.figure.Figure
         The PyVista figure or matplotlib Figure.
 
     Notes
@@ -2979,7 +2978,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
 
     Parameters
     ----------
-    fig : instance of PyVista renderer
+    fig : instance of Figure3D
         The figure on which you've plotted electrodes using
         :func:`mne.viz.plot_alignment`.
     montage : instance of DigMontage or Info | dict

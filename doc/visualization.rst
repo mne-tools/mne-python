@@ -15,6 +15,7 @@ Visualization
 
    Brain
    ClickableImage
+   Figure3D
    add_background_image
    centers_to_edges
    compare_fiff

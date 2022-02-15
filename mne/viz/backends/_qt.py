@@ -541,7 +541,7 @@ class _QtWindow(_AbstractWindow):
         self._window.signal_close.connect(self._window_clean)
 
     def _window_clean(self):
-        self.figure.plotter = None
+        self.figure._plotter = None
         self._interactor = None
 
     def _window_close_connect(self, func):

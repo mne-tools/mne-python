@@ -43,7 +43,8 @@ from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      _path_like, use_log_level, _check_fname, _VerboseDep,
                      _check_ch_locs, _import_h5io_funcs)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
-                   plot_compare_evokeds, set_3d_view, get_3d_backend)
+                   plot_compare_evokeds, set_3d_view, get_3d_backend,
+                   Figure3D)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from ..viz.utils import _ndarray_to_fig, tight_layout
 from ..forward import read_forward_solution, Forward
@@ -332,6 +333,7 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
     # fig can be ndarray, mpl Figure, PyVista Figure
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
+    _validate_type(fig, (np.ndarray, Figure, Figure3D), 'fig')
     if isinstance(fig, np.ndarray):
         # In this case, we are creating the fig, so we might as well
         # auto-close in all cases
@@ -1932,10 +1934,10 @@ class Report(_VerboseDep):
 
         Parameters
         ----------
-        fig : matplotlib.figure.Figure | PyVista renderer | array | array-like of matplotlib.figure.Figure | array-like of PyVista renderer | array-like of array
+        fig : matplotlib.figure.Figure | Figure3D | array | array-like of matplotlib.figure.Figure | array-like of Figure3D | array-like of array
             One or more figures to add to the report. All figures must be an
             instance of :class:`matplotlib.figure.Figure`,
-            PyVista renderer, or :class:`numpy.ndarray`. If
+            :class:`mne.viz.Figure3D`, or :class:`numpy.ndarray`. If
             multiple figures are passed, they will be added as "slides"
             that can be navigated using buttons and a slider element.
         title : str
