@@ -715,7 +715,7 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
         set, these correspond to the vertices in the label. Otherwise, all
         vertex numbers are returned.
     source_nn : array, shape (3 * n_vertices, 3)
-        The direction in carthesian coordicates of the direction of the source
+        The direction in cartesian coordicates of the direction of the source
         dipoles.
     """  # noqa: E501
     eigen_leads = inv['eigen_leads']['data']

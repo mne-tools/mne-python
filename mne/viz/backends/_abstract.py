@@ -898,7 +898,7 @@ class Figure3D(ABC):
     """
 
     # Here we use _init rather than __init__ so that users are less tempted to
-    # instatiate the class directly. It also helps us
+    # instantiate the class directly. It also helps us
     # document the class more easily, as we don't have to say what all the
     # params are in public docs.
 

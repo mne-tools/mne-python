@@ -35,3 +35,5 @@ sherif
 master
 nin
 trough
+recuse
+ro
