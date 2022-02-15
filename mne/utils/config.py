@@ -69,6 +69,7 @@ def set_memmap_min_size(memmap_min_size):
 known_config_types = (
     'MNE_3D_OPTION_ANTIALIAS',
     'MNE_3D_OPTION_DEPTH_PEELING',
+    'MNE_3D_OPTION_SMOOTH_SHADING',
     'MNE_BROWSE_RAW_SIZE',
     'MNE_BROWSER_BACKEND',
     'MNE_BROWSER_USE_OPENGL',
