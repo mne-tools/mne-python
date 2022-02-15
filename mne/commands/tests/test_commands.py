@@ -23,7 +23,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_info
 from mne.utils import (requires_mne, requires_vtk, requires_freesurfer,
-                       requires_nibabel, ArgvSetter, modified_env,
+                       requires_nibabel, ArgvSetter,
                        _stamp_to_dt, _record_warnings)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -131,7 +131,7 @@ def test_kit2fiff():
 @pytest.mark.slowtest  # slow on Travis OSX
 @requires_vtk
 @testing.requires_testing_data
-def test_make_scalp_surfaces(tmp_path):
+def test_make_scalp_surfaces(tmp_path, monkeypatch):
     """Test mne make_scalp_surfaces."""
     check_usage(mne_make_scalp_surfaces)
     has = 'SUBJECTS_DIR' in os.environ
@@ -146,18 +146,19 @@ def test_make_scalp_surfaces(tmp_path):
     shutil.copy(op.join(surf_path, 'lh.seghead'), surf_path_new)
 
     cmd = ('-s', 'sample', '--subjects-dir', tempdir)
-    with modified_env(**{'_MNE_TESTING_SCALP': 'true'}):
-        dense_fname = op.join(subj_dir, 'sample-head-dense.fif')
-        medium_fname = op.join(subj_dir, 'sample-head-medium.fif')
-        with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
-            with modified_env(FREESURFER_HOME=None):
-                pytest.raises(RuntimeError, mne_make_scalp_surfaces.run)
-            with modified_env(FREESURFER_HOME=tempdir):
-                mne_make_scalp_surfaces.run()
-                assert op.isfile(dense_fname)
-                assert op.isfile(medium_fname)
-                with pytest.raises(IOError, match='overwrite'):
-                    mne_make_scalp_surfaces.run()
+    monkeypatch.setenv('_MNE_TESTING_SCALP', 'true')
+    dense_fname = op.join(subj_dir, 'sample-head-dense.fif')
+    medium_fname = op.join(subj_dir, 'sample-head-medium.fif')
+    with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
+        monkeypatch.delenv('FREESURFER_HOME', None)
+        with pytest.raises(RuntimeError, match='The FreeSurfer environ'):
+            mne_make_scalp_surfaces.run()
+        monkeypatch.setenv('FREESURFER_HOME', tempdir)
+        mne_make_scalp_surfaces.run()
+        assert op.isfile(dense_fname)
+        assert op.isfile(medium_fname)
+        with pytest.raises(IOError, match='overwrite'):
+            mne_make_scalp_surfaces.run()
     # actually check the outputs
     head_py = read_bem_surfaces(dense_fname)
     assert_equal(len(head_py), 1)

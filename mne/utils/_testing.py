@@ -449,6 +449,9 @@ def modified_env(**d):
     **kwargs : dict
         The key/value pairs of environment variables to replace.
     """
+    warn('modified_env is deprecated and will be removed in 1.1. In tests, '
+         'use monkeypatch from pytest instead. In subprocess calls, pass '
+         'modified environments directly.', DeprecationWarning)
     orig_env = dict()
     for key, val in d.items():
         orig_env[key] = os.getenv(key)

@@ -653,6 +653,9 @@ def download_is_error(monkeypatch):
     monkeypatch.setattr(pooch, 'retrieve', _fail)
 
 
+# We can't use monkeypatch because its scope (function-level) conflicts with
+# the requests fixture (module-level), so we live with a module-scoped version
+# that uses mock
 @pytest.fixture(scope='module')
 def options_3d():
     """Disable advanced 3d rendering."""
