@@ -106,6 +106,8 @@ Enhancements
 
 - :meth:`Epochs.plot` is now supported by the pyqtgraph-backend (:gh:`10297` by `Martin Schulz`_)
 
+- The ``map_surface`` parameter of :meth:`mne.viz.Brain.add_foci` now works and allows you to add foci to a rendering of a brain that are positioned at the vertex of the mesh closest to the given coordinates (:gh:`10299` by `Marijn van Vliet`_)
+
 Bugs
 ~~~~
 
