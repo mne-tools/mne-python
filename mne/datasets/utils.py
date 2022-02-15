@@ -20,7 +20,7 @@ import numpy as np
 
 from .config import _hcp_mmp_license_text, MNE_DATASETS
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
-from ..utils import (get_config, set_config, logger, warn,
+from ..utils import (get_config, set_config, logger, _validate_type, warn,
                      verbose, get_subjects_dir, _pl, _safe_input)
 from ..utils.docs import docdict, _docformat
 
@@ -51,7 +51,7 @@ _data_path_doc = """Get path to local copy of {name} dataset.
 
     Returns
     -------
-    path : str
+    path : instance of Path
         Path to {name} dataset directory.
 """
 _data_path_doc_accept = _data_path_doc.split('%(verbose)s')
@@ -89,9 +89,8 @@ def _dataset_version(path, name):
 def _get_path(path, key, name):
     """Get a dataset path."""
     # 1. Input
+    _validate_type(path, ('path-like', None), path)
     if path is not None:
-        if not isinstance(path, str):
-            raise ValueError('path must be a string or None')
         return path
     # 2. get_config(key) — unless key is None or "" (special get_config values)
     # 3. get_config('MNE_DATA')
@@ -102,7 +101,7 @@ def _get_path(path, key, name):
                    f"not exist. Either create this directory manually and try "
                    f"again, or set MNE_DATA to an existing directory.")
             raise FileNotFoundError(msg)
-        return path
+        return _mne_path(path)
     # 4. ~/mne_data (but use a fake home during testing so we don't
     #    unnecessarily create ~/mne_data)
     logger.info('Using default location ~/mne_data for %s...' % name)
@@ -118,7 +117,7 @@ def _get_path(path, key, name):
                           "argument to data_path() where user has "
                           "write permissions, for ex:data_path"
                           "('/home/xyz/me2/')" % (path))
-    return path
+    return _mne_path(path)
 
 
 def _do_path_update(path, update_path, key, name):

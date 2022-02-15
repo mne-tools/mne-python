@@ -48,7 +48,7 @@ def test_datasets_basic(tmp_path, monkeypatch):
     # force it to look for the default
     monkeypatch.setenv('_MNE_FAKE_HOME_DIR', tempdir)
     monkeypatch.delenv('SUBJECTS_DIR', raising=False)
-    assert (datasets.utils._get_path(None, 'foo', 'bar') ==
+    assert (str(datasets.utils._get_path(None, 'foo', 'bar')) ==
             op.join(tempdir, 'mne_data'))
     assert get_subjects_dir(None) is None
     _set_montage_coreg_path()
