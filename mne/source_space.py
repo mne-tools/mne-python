@@ -140,7 +140,7 @@ class SourceSpaces(list):
 
         Returns
         -------
-        fig : instance of PyVista renderer
+        fig : instance of Figure3D
             The figure.
         """
         from .viz import plot_alignment

@@ -689,7 +689,7 @@ The documented structures are:
     | FIFFV_PROJ_ITEM_NONE          | 0     | The nature of this projection item is unknown            |
     +-------------------------------+-------+----------------------------------------------------------+
     | FIFFV_PROJ_ITEM_FIELD         | 1     | This is projection item is a generic field pattern or    |
-    |                               |       | field patters.                                           |
+    |                               |       | field patterns.                                          |
     +-------------------------------+-------+----------------------------------------------------------+
     | FIFFV_PROJ_ITEM_DIP_FIX       | 2     | This projection item is the field of one dipole          |
     +-------------------------------+-------+----------------------------------------------------------+

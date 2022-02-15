@@ -127,10 +127,14 @@ def pytest_configure(config):
     ignore:.*np\.MachAr.*:DeprecationWarning
     ignore:.*Passing unrecognized arguments to super.*:DeprecationWarning
     ignore:.*numpy.ndarray size changed.*:
+    ignore:.*There is no current event loop.*:DeprecationWarning
     # present in nilearn v 0.8.1, fixed in nilearn main
     ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
     ignore:.*pandas\.Int64Index is deprecated.*:FutureWarning
     always::ResourceWarning
+    # Jupyter notebook stuff
+    ignore:.*unclosed context <zmq\.asyncio\.*:ResourceWarning
+    ignore:.*unclosed event loop <.*:ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()

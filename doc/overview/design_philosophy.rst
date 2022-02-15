@@ -28,7 +28,8 @@ NumPy arrays, making it easy to apply custom algorithms or pass your data into
 one of `scikit-learn's <scikit-learn_>`_ machine learning pipelines.
 MNE-Python's 2-D plotting functions also return `matplotlib`_
 :class:`~matplotlib.figure.Figure` objects, and the 3D plotting functions
-return PyVista renderer instances,
+return :class:`mne.viz.Figure3D` classes with a ``.plotter`` attribute
+pointing to :class:`pyvista.Plotter` instances,
 so you can customize your MNE-Python plots using any
 of matplotlib or PyVista's plotting commands. The intent is that MNE-Python
 will get most neuroscientists 90% of the way to their desired analysis goal,

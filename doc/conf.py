@@ -223,6 +223,7 @@ numpydoc_xref_aliases = {
     'Beamformer': 'mne.beamformer.Beamformer',
     'Transform': 'mne.transforms.Transform',
     'Coregistration': 'mne.coreg.Coregistration',
+    'Figure3D': 'mne.viz.Figure3D',
     # dipy
     'dipy.align.AffineMap': 'dipy.align.imaffine.AffineMap',
     'dipy.align.DiffeomorphicMap': 'dipy.align.imwarp.DiffeomorphicMap',
@@ -255,8 +256,8 @@ numpydoc_xref_ignore = {
     # unlinkable
     'CoregistrationUI',
     'IntracranialElectrodeLocator',
-    # We need to fix these: "PyVista renderer" and "PyVista surface"
-    'PyVista', 'renderer', 'surface',
+    # TODO: fix the Renderer return type of create_3d_figure(scene=False)
+    'Renderer',
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
@@ -498,24 +499,6 @@ nitpick_ignore = [
     ("py:class", "_FuncT"),  # type hint used in @verbose decorator
     ("py:class", "mne.utils._logging._FuncT"),
 ]
-for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
-            'MixedSourceEstimate', 'MixedVectorSourceEstimate', 'Report',
-            'SourceEstimate', 'SourceMorph', 'VectorSourceEstimate',
-            'VolSourceEstimate', 'VolVectorSourceEstimate',
-            'channels.DigMontage', 'channels.Layout', 'coreg.Coregistration',
-            'decoding.CSP', 'decoding.EMS', 'decoding.FilterEstimator',
-            'decoding.GeneralizingEstimator', 'decoding.LinearModel',
-            'decoding.PSDEstimator', 'decoding.ReceptiveField', 'decoding.SSD',
-            'decoding.SPoC', 'decoding.Scaler', 'decoding.SlidingEstimator',
-            'decoding.TemporalFilter', 'decoding.TimeDelayingRidge',
-            'decoding.TimeFrequency', 'decoding.UnsupervisedSpatialFilter',
-            'decoding.Vectorizer',
-            'preprocessing.ICA', 'preprocessing.Xdawn',
-            'simulation.SourceSimulator',
-            'time_frequency.CrossSpectralDensity',
-            'utils.deprecated', 'use_log_level',
-            'viz.ClickableImage'):
-    nitpick_ignore.append(('py:obj', f'mne.{key}.__hash__'))
 suppress_warnings = ['image.nonlocal_uri']  # we intentionally link outside
 
 

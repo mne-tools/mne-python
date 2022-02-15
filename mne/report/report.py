@@ -43,7 +43,8 @@ from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      _path_like, use_log_level, _check_fname, _VerboseDep,
                      _check_ch_locs, _import_h5io_funcs)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
-                   plot_compare_evokeds, set_3d_view, get_3d_backend)
+                   plot_compare_evokeds, set_3d_view, get_3d_backend,
+                   Figure3D)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from ..viz.utils import _ndarray_to_fig, tight_layout
 from ..forward import read_forward_solution, Forward
@@ -327,16 +328,21 @@ def _constrain_fig_resolution(fig, *, max_width, max_res):
     fig.set_dpi(dpi)
 
 
-def _fig_to_img(fig, *, image_format='png', auto_close=True):
+def _fig_to_img(fig, *, image_format='png', own_figure=True):
     """Plot figure and create a binary image."""
     # fig can be ndarray, mpl Figure, PyVista Figure
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
+    _validate_type(fig, (np.ndarray, Figure, Figure3D), 'fig')
     if isinstance(fig, np.ndarray):
+        # In this case, we are creating the fig, so we might as well
+        # auto-close in all cases
         fig = _ndarray_to_fig(fig)
-        _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-        )
+        if own_figure:
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
+        own_figure = True  # close the figure we just created
     elif not isinstance(fig, Figure):
         from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
         backend._check_3d_figure(figure=fig)
@@ -345,12 +351,14 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
-        if auto_close:
+        if own_figure:
             backend._close_3d_figure(figure=fig)
         fig = _ndarray_to_fig(img)
-        _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-        )
+        if own_figure:
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
+        own_figure = True  # close the fig we just created
 
     output = BytesIO()
     logger.debug(
@@ -366,7 +374,7 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
         )
         fig.savefig(output, format=image_format, dpi=fig.get_dpi())
 
-    if auto_close:
+    if own_figure:
         plt.close(fig)
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else
@@ -1926,10 +1934,10 @@ class Report(_VerboseDep):
 
         Parameters
         ----------
-        fig : matplotlib.figure.Figure | PyVista renderer | array | array-like of matplotlib.figure.Figure | array-like of PyVista renderer | array-like of array
+        fig : matplotlib.figure.Figure | Figure3D | array | array-like of matplotlib.figure.Figure | array-like of Figure3D | array-like of array
             One or more figures to add to the report. All figures must be an
             instance of :class:`matplotlib.figure.Figure`,
-            PyVista renderer, or :class:`numpy.ndarray`. If
+            :class:`mne.viz.Figure3D`, or :class:`numpy.ndarray`. If
             multiple figures are passed, they will be added as "slides"
             that can be navigated using buttons and a slider element.
         title : str
@@ -1976,7 +1984,8 @@ class Report(_VerboseDep):
 
         assert figs
         if len(figs) == 1:
-            img = _fig_to_img(fig=figs[0], image_format=image_format)
+            img = _fig_to_img(fig=figs[0], image_format=image_format,
+                              own_figure=False)
             dom_id = self._get_dom_id()
             html = _html_image_element(
                 img=img, div_klass='custom-image', img_klass='custom-image',
@@ -1986,7 +1995,8 @@ class Report(_VerboseDep):
         else:
             html, dom_id = self._render_slider(
                 figs=figs, imgs=None, title=title, captions=captions,
-                start_idx=0, image_format=image_format, tags=tags
+                start_idx=0, image_format=image_format, tags=tags,
+                own_figure=False
             )
 
         self._add_or_replace(
@@ -2123,7 +2133,7 @@ class Report(_VerboseDep):
         )
 
     def _render_slider(self, *, figs, imgs, title, captions, start_idx,
-                       image_format, tags, klass=''):
+                       image_format, tags, klass='', own_figure=True):
         if figs is not None and imgs is not None:
             raise ValueError('Must only provide either figs or imgs')
 
@@ -2137,10 +2147,10 @@ class Report(_VerboseDep):
                 f'Number of captions ({len(captions)}) must be equal to the '
                 f'number of images ({len(imgs)})'
             )
-        elif figs:
-            imgs = [_fig_to_img(fig=fig, image_format=image_format)
+        elif figs:  # figs can be None if imgs is provided
+            imgs = [_fig_to_img(fig=fig, image_format=image_format,
+                                own_figure=own_figure)
                     for fig in figs]
-
         dom_id = self._get_dom_id()
         html = _html_slider_element(
             id=dom_id,

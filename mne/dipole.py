@@ -243,8 +243,8 @@ class Dipole(_VerboseDep):
             The scale of the dipoles if ``mode`` is 'arrow' or 'sphere'.
         color : tuple
             The color of the dipoles if ``mode`` is 'arrow' or 'sphere'.
-        fig : PyVista renderer | None
-            PyVista Scene in which to plot the alignment.
+        fig : instance of Figure3D | None
+            PyVista figure in which to plot the alignment.
             If ``None``, creates a new 600x600 pixel figure with black
             background.
 
@@ -256,7 +256,7 @@ class Dipole(_VerboseDep):
 
         Returns
         -------
-        fig : instance of PyVista renderer or matplotlib.figure.Figure
+        fig : instance of Figure3D or matplotlib.figure.Figure
             The PyVista figure or matplotlib Figure.
 
         Notes

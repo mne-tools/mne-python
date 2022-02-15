@@ -299,6 +299,40 @@ def test_gui_api(renderer_notebook, nbexec):
     assert widget.get_tooltip() == 'bar'
     # --- END: tooltips ---
 
+    # --- BEGIN: dialog ---
+    # dialogs are not supported yet on notebook
+    if renderer._kind == 'qt':
+        # warning
+        buttons = ["Save", "Cancel"]
+        widget = renderer._dialog_warning(
+            title='',
+            text='',
+            info_text='',
+            callback=mock,
+            buttons=buttons,
+            modal=False,
+        )
+        widget.show()
+        for button in buttons:
+            with _check_widget_trigger(None, mock, '', '', get_value=False):
+                widget.trigger(button=button)
+            assert mock.call_args.args == (button,)
+
+        # buttons list empty means OK button (default)
+        button = 'OK'
+        widget = renderer._dialog_warning(
+            title='',
+            text='',
+            info_text='',
+            callback=mock,
+            modal=False,
+        )
+        widget.show()
+        with _check_widget_trigger(None, mock, '', '', get_value=False):
+            widget.trigger(button=button)
+        assert mock.call_args.args == (button,)
+    # --- END: dialog ---
+
     renderer.show()
     renderer.close()
 
