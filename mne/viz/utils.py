@@ -2018,16 +2018,16 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
         dy = np.median(np.diff(yvals)) / 2. if len(yvals) > 1 else 0.5
         extent = [times[0] - dt, times[-1] + dt,
                   yvals[0] - dy, yvals[-1] + dy]
-        im_args = dict(interpolation='nearest', origin='lower',
-                       extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
-
+        im_args = dict(interpolation='nearest', origin='lower', extent=extent,
+                       aspect='auto')
         if draw_mask:
-            ax.imshow(data, alpha=mask_alpha, cmap=mask_cmap, **im_args)
-            im = ax.imshow(
-                np.ma.masked_where(~mask, data), cmap=cmap, **im_args)
+            ax.imshow(data, alpha=mask_alpha, cmap=mask_cmap, norm=cnorm,
+                      **im_args)
+            im = ax.imshow(np.ma.masked_where(~mask, data), cmap=cmap,
+                           norm=cnorm, **im_args)
         else:
-            ax.imshow(data, cmap=cmap, **im_args)  # see #6481
-            im = ax.imshow(data, cmap=cmap, **im_args)
+            ax.imshow(data, cmap=cmap, norm=cnorm, **im_args)  # see #6481
+            im = ax.imshow(data, cmap=cmap, norm=cnorm, **im_args)
 
         if draw_contour and np.unique(mask).size == 2:
             big_mask = np.kron(mask, np.ones((10, 10)))
