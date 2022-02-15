@@ -391,6 +391,13 @@ def mpl_backend(garbage_collect):
         backend._close_all()
 
 
+# Skip functions or modules for mne-qt-browser < 0.2.0
+pre_2_0_skip_modules = ['mne.viz.tests.test_epochs',
+                        'mne.viz.tests.test_ica']
+pre_2_0_skip_funcs = ['test_plot_raw_white',
+                      'test_plot_raw_selection']
+
+
 def _check_pyqtgraph(request):
     # Check PyQt5
     try:
@@ -403,14 +410,16 @@ def _check_pyqtgraph(request):
     # Check mne-qt-browser
     try:
         import mne_qt_browser  # noqa: F401
-        # Check if version is high enough for epochs
-        v_to_low = _compare_version(mne_qt_browser.__version__, '<', '0.2.0')
-        is_epochs = request.function.__module__ == 'mne.viz.tests.test_epochs'
-        is_ica = request.function.__module__ == 'mne.viz.tests.test_ica'
-        if v_to_low and is_epochs:
-            pytest.skip('No Epochs tests for mne-qt-browser < 0.2.0')
-        elif v_to_low and is_ica:
-            pytest.skip('No ICA tests for mne-qt-browser < 0.2.0')
+        # Check mne-qt-browser version
+        lower_2_0 = _compare_version(mne_qt_browser.__version__, '<', '0.2.0')
+        m_name = request.function.__module__
+        f_name = request.function.__name__
+        if lower_2_0 and m_name in pre_2_0_skip_modules:
+            pytest.skip(f'Test-Module "{m_name}" was skipped for'
+                        f' mne-qt-browser < 0.2.0')
+        elif lower_2_0 and f_name in pre_2_0_skip_funcs:
+            pytest.skip(f'Test "{f_name}" was skipped for '
+                        f'mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip('Requires mne_qt_browser')
 
