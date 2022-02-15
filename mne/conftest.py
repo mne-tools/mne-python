@@ -652,7 +652,7 @@ def download_is_error(monkeypatch):
     monkeypatch.setattr(pooch, 'retrieve', _fail)
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='module')
 def options_3d(monkeypatch):
     """Disable advanced 3d rendering."""
     monkeypatch.setenv("MNE_3D_OPTION_ANTIALIAS", "false")
