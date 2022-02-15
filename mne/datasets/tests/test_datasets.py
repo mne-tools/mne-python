@@ -273,7 +273,7 @@ def test_mne_path():
     path = _mne_path("")
     assert str(path) == '.'
     with pytest.deprecated_call(match=r'pathlib\.Path object'):
-        assert path + 'me' == './me'
+        assert path + 'me' == f'.{op.sep}me'
     assert str(path / 'me') == 'me'
     assert str('me' / path) == 'me'
     with pytest.raises(TypeError, match='can only concatenate str'):
