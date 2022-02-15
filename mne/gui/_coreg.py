@@ -1745,6 +1745,7 @@ class CoregistrationUI(HasTraits):
                 text=text,
                 info_text="Do you want to save?",
                 callback=callback,
+                buttons=["Save", "Cancel"],
                 # modal=True means that the dialog blocks the application
                 # when show() is called, until one of the buttons is clicked
                 modal=not MNE_3D_BACKEND_TESTING,
