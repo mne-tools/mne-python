@@ -700,8 +700,10 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path,
     assert hasattr(brain, "_spheres")
     assert brain._scalar_bar.GetNumberOfLabels() == 3
 
-    # add foci should work for volumes
-    brain.add_foci([[0, 0, 0]], hemi='lh' if src == 'surface' else 'vol')
+    # add foci should work for 'lh', 'rh' and 'vol'
+    for current_hemi in hemi_str:
+        brain.add_foci([[0, 0, 0]], hemi=current_hemi)
+        assert_array_equal(brain._data[current_hemi]['foci'], [[0, 0, 0]])
 
     # test points picked by default
     picked_points = brain.get_picked_points()
@@ -1010,3 +1012,12 @@ def _create_testing_brain(hemi, surf='inflated', src='surface',
         clim=clim, src=sample_src,
         **kwargs)
     return brain_data
+
+
+def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt):
+    """Test mapping foci to the surface."""
+    tiny_brain, _ = tiny(tmp_path)
+    foci_coords = tiny_brain.geo['lh'].coords[:2] + 0.01
+    tiny_brain.add_foci(foci_coords, map_surface='white')
+    assert_array_equal(tiny_brain._data['lh']['foci'],
+                       tiny_brain.geo['lh'].coords[:2])

@@ -23,7 +23,7 @@ from mne import (read_source_spaces, write_source_spaces,
                  read_trans)
 from mne.fixes import _get_img_fdata
 from mne.utils import (requires_nibabel, run_subprocess, _record_warnings,
-                       modified_env, requires_mne, check_version)
+                       requires_mne, check_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_estimate import _get_src_type
 from mne.source_space import (get_volume_labels_from_src,
@@ -489,23 +489,24 @@ def test_setup_source_space(tmp_path):
 @pytest.mark.slowtest
 @pytest.mark.timeout(60)
 @pytest.mark.parametrize('spacing', [2, 7])
-def test_setup_source_space_spacing(tmp_path, spacing):
+def test_setup_source_space_spacing(tmp_path, spacing, monkeypatch):
     """Test setting up surface source spaces using a given spacing."""
     copytree(op.join(subjects_dir, 'sample'), tmp_path / 'sample')
     args = [] if spacing == 7 else ['--spacing', str(spacing)]
-    with modified_env(SUBJECTS_DIR=str(tmp_path), SUBJECT='sample'):
-        run_subprocess(['mne_setup_source_space'] + args)
+    monkeypatch.setenv('SUBJECTS_DIR', str(tmp_path))
+    monkeypatch.setenv('SUBJECT', 'sample')
+    run_subprocess(['mne_setup_source_space'] + args)
     src = read_source_spaces(
         tmp_path / 'sample' / 'bem' / ('sample-%d-src.fif' % spacing)
     )
-    src_new = setup_source_space('sample', spacing=spacing, add_dist=False,
-                                 subjects_dir=subjects_dir)
+    # No need to pass subjects_dir here because we've setenv'ed it
+    src_new = setup_source_space('sample', spacing=spacing, add_dist=False)
     _compare_source_spaces(src, src_new, mode='approx', nearest=True)
     # Degenerate conditions
     with pytest.raises(TypeError, match='spacing must be.*got.*float.*'):
-        setup_source_space('sample', 7., subjects_dir=subjects_dir)
+        setup_source_space('sample', 7.)
     with pytest.raises(ValueError, match='spacing must be >= 2, got 1'):
-        setup_source_space('sample', 1, subjects_dir=subjects_dir)
+        setup_source_space('sample', 1)
 
 
 @testing.requires_testing_data

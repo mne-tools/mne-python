@@ -748,10 +748,10 @@ phase : str
     Phase of the filter, only used if ``method='fir'``.
     Symmetric linear-phase FIR filters are constructed, and if ``phase='zero'``
     (default), the delay of this filter is compensated for, making it
-    non-causal. If ``phase=='zero-double'``,
+    non-causal. If ``phase='zero-double'``,
     then this filter is applied twice, once forward, and once backward
-    (also making it non-causal). If 'minimum', then a minimum-phase filter will
-    be constricted and applied, which is causal but has weaker stop-band
+    (also making it non-causal). If ``'minimum'``, then a minimum-phase filter
+    will be constricted and applied, which is causal but has weaker stop-band
     suppression.
 
     .. versionadded:: 0.13

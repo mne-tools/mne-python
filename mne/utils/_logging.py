@@ -292,16 +292,25 @@ class catch_logging(object):
     stdout when complete.
     """
 
+    def __init__(self, verbose=None):
+        self.verbose = verbose
+
     def __enter__(self):  # noqa: D105
+        if self.verbose is not None:
+            self._ctx = use_log_level(self.verbose)
+        else:
+            self._ctx = contextlib.nullcontext()
         self._data = ClosingStringIO()
         self._lh = logging.StreamHandler(self._data)
         self._lh.setFormatter(logging.Formatter('%(message)s'))
         self._lh._mne_file_like = True  # monkey patch for warn() use
         _remove_close_handlers(logger)
         logger.addHandler(self._lh)
+        self._ctx.__enter__()
         return self._data
 
     def __exit__(self, *args):  # noqa: D105
+        self._ctx.__exit__(*args)
         logger.removeHandler(self._lh)
         set_log_file(None)
 

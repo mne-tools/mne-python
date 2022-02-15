@@ -106,6 +106,8 @@ Enhancements
 
 - :meth:`Epochs.plot` is now supported by the pyqtgraph-backend (:gh:`10297` by `Martin Schulz`_)
 
+- The ``map_surface`` parameter of :meth:`mne.viz.Brain.add_foci` now works and allows you to add foci to a rendering of a brain that are positioned at the vertex of the mesh closest to the given coordinates (:gh:`10299` by `Marijn van Vliet`_)
+
 Bugs
 ~~~~
 
@@ -193,7 +195,11 @@ Bugs
 
 - Fix bug with :func:`mne.channels.make_standard_montage` for ``'standard*'``, ``'mgh*'``, and ``'artinis*'`` montages where the points were incorrectly scaled and fiducials incorrectly set away from the correct values for use with the ``fsaverage`` subject (:gh:`10324` by `Eric Larson`_)
 
+- Fix bug with :meth:`mne.Report.add_figure` where figures generated externally were closed and possibly resized during render (:gh:`10342` by `Eric Larson`_)
+
 - Fix plotting bug in :ref:`ex-electrode-pos-2d` and make view look more natural in :ref:`ex-movement-detect` (:gh:`10313`, by `Alex Rockhill`_)
+
+- Fix a bug in :func:`mne.gui.locate_ieeg` where 2D lines on slice plots failed to update and were shown when not in maximum projection mode (:gh:`10335`, by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~

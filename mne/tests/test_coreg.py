@@ -19,8 +19,8 @@ from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
                        coregister_fiducials, get_mni_fiducials, Coregistration)
 from mne.io import read_fiducials, read_info
 from mne.io.constants import FIFF
-from mne.utils import (requires_nibabel, modified_env, check_version,
-                       catch_logging, _record_warnings)
+from mne.utils import (requires_nibabel, check_version, catch_logging,
+                       _record_warnings)
 from mne.source_space import write_source_spaces
 from mne.channels import DigMontage
 
@@ -33,10 +33,10 @@ trans_fname = op.join(data_path, 'MEG', 'sample',
 
 
 @pytest.fixture
-def few_surfaces():
+def few_surfaces(monkeypatch):
     """Set the _MNE_FEW_SURFACES env var."""
-    with modified_env(_MNE_FEW_SURFACES='true'):
-        yield
+    monkeypatch.setenv('_MNE_FEW_SURFACES', 'true')
+    yield
 
 
 def test_coregister_fiducials():
