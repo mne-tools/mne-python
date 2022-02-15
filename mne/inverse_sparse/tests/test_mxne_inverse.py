@@ -393,8 +393,9 @@ def test_mxne_inverse_sure():
         info['projs'] = []
     noise_cov = mne.make_ad_hoc_cov(info)
     label_names = ['Aud-lh', 'Aud-rh']
-    labels = [mne.read_label(data_path + '/MEG/sample/labels/%s.label' % ln)
-              for ln in label_names]
+    labels = [
+        mne.read_label(data_path / 'MEG' / 'sample' / 'labels' / f'{ln}.label')
+        for ln in label_names]
     fname_fwd = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
     forward = mne.read_forward_solution(fname_fwd)

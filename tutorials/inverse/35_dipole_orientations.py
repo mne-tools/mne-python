@@ -6,7 +6,7 @@ The role of dipole orientations in distributed source localization
 ==================================================================
 
 When performing source localization in a distributed manner
-(MNE/dSPM/sLORETA/eLORETA),
+(i.e., using MNE/dSPM/sLORETA/eLORETA),
 the source space is defined as a grid of dipoles that spans a large portion of
 the cortex. These dipoles have both a position and an orientation. In this
 tutorial, we will look at the various options available to restrict the

@@ -22,8 +22,8 @@ from mne.utils import requires_sklearn
 data_path = testing.data_path(download=False)
 stc_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-lh.stc')
-raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw-eve.fif'
+raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_trunc_raw.fif'
+event_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_trunc_raw-eve.fif'
 
 
 @testing.requires_testing_data
