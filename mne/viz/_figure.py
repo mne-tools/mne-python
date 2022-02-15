@@ -129,6 +129,11 @@ class BrowserBase(ABC):
             self.mne.midpoints = np.convolve(self.mne.boundary_times,
                                              np.ones(2), mode='valid') / 2
 
+        # initialize picks and projectors
+        self._update_picks()
+        if not self.mne.instance_type == 'ica':
+            self._update_projector()
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # ANNOTATIONS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

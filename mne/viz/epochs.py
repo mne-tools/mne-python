@@ -906,18 +906,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   use_opengl=use_opengl)
 
     fig = _get_browser(**params)
-
-    fig._update_picks()
-
-    # make channel selection dialog, if requested (doesn't work well in init)
-    if group_by in ('selection', 'position'):
-        fig._create_selection_fig()
-
-    fig._update_projector()
-    fig._update_trace_offsets()
-    fig._update_data()
-    fig._draw_traces()
-
     _show_browser(show, block=block, fig=fig)
 
     return fig

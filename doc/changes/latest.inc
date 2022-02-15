@@ -108,6 +108,8 @@ Enhancements
 
 - The ``map_surface`` parameter of :meth:`mne.viz.Brain.add_foci` now works and allows you to add foci to a rendering of a brain that are positioned at the vertex of the mesh closest to the given coordinates (:gh:`10299` by `Marijn van Vliet`_)
 
+- :meth:`mne.preprocessing.ICA.plot_sources()` is now also supported by the ``qt`` backend (:gh:`10330` by `Martin Schulz`_)
+
 Bugs
 ~~~~
 
