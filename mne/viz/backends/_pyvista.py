@@ -145,7 +145,6 @@ class _PyVistaRenderer(_AbstractRenderer):
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1),
                  notebook=None, smooth_shading=True):
-        from .renderer import MNE_3D_BACKEND_TESTING
         from .._3d import _get_3d_option
         _require_version('pyvista', 'use 3D rendering', '0.32')
         figure = PyVistaFigure()
@@ -157,6 +156,8 @@ class _PyVistaRenderer(_AbstractRenderer):
         self.tube_n_sides = 20
         self.antialias = _get_3d_option('antialias')
         self.depth_peeling = _get_3d_option('depth_peeling')
+        # smooth_shading=True fails on MacOS CIs
+        self.smooth_shading = _get_3d_option('smooth_shading')
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
             # Restore only active plotter
@@ -176,10 +177,6 @@ class _PyVistaRenderer(_AbstractRenderer):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            if MNE_3D_BACKEND_TESTING:
-                self.tube_n_sides = 3
-                # smooth_shading=True fails on MacOS CIs
-                self.figure.smooth_shading = False
             # pyvista theme may enable depth peeling by default so
             # we disable it initially to better control the value afterwards
             with _disabled_depth_peeling():
@@ -306,7 +303,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
                 rng=[vmin, vmax], show_scalar_bar=False,
-                smooth_shading=self.figure.smooth_shading,
+                smooth_shading=self.smooth_shading,
                 interpolate_before_map=interpolate_before_map,
                 style=representation, line_width=line_width, **kwargs,
             )
@@ -374,7 +371,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 rng=[vmin, vmax],
                 cmap=colormap,
                 opacity=opacity,
-                smooth_shading=self.figure.smooth_shading
+                smooth_shading=self.smooth_shading
             )
             return actor, contour
 
@@ -430,7 +427,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 self.plotter,
                 mesh=glyph, color=color, opacity=opacity,
                 backface_culling=backface_culling,
-                smooth_shading=self.figure.smooth_shading
+                smooth_shading=self.smooth_shading
             )
             return actor, glyph
 
@@ -458,7 +455,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                     color=color,
                     show_scalar_bar=False,
                     cmap=cmap,
-                    smooth_shading=self.figure.smooth_shading,
+                    smooth_shading=self.smooth_shading,
                 )
         return actor, tube
 

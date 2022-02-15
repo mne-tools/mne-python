@@ -667,6 +667,7 @@ def options_3d():
         os.environ, {
             "MNE_3D_OPTION_ANTIALIAS": "false",
             "MNE_3D_OPTION_DEPTH_PEELING": "false",
+            "MNE_3D_OPTION_SMOOTH_SHADING": "false",
         }
     ):
         yield

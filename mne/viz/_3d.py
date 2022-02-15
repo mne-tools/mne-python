@@ -3288,13 +3288,22 @@ def plot_brain_colorbar(ax, clim, colormap='auto', transparent=True,
 class _3d_Options:
     antialias: Optional[str]
     depth_peeling: Optional[str]
+    smooth_shading: Optional[str]
 
 
-_3d_options = _3d_Options(antialias=None, depth_peeling=None)
-_3d_default = _3d_Options(antialias='true', depth_peeling='true')
+_3d_options = _3d_Options(
+    antialias=None,
+    depth_peeling=None,
+    smooth_shading=None,
+)
+_3d_default = _3d_Options(
+    antialias='true',
+    depth_peeling='true',
+    smooth_shading='true',
+)
 
 
-def set_3d_options(antialias=None, depth_peeling=None):
+def set_3d_options(antialias=None, depth_peeling=None, smooth_shading=None):
     """Set 3D rendering options.
 
     Parameters
@@ -3311,6 +3320,12 @@ def set_3d_options(antialias=None, depth_peeling=None):
         while X forwarding on remote servers). If None, use the default
         setting. This option can also be controlled using an environment
         variable, e.g., ``MNE_3D_OPTION_DEPTH_PEELING=false``.
+    smooth_shading : bool | None
+        If bool, whether to enable or disable smooth color transitions
+        between polygons. False is useful on certain configurations
+        where this type of shading is not supported or for performance
+        reasons. This option can also be controlled using an environment
+        variable, e.g., ``MNE_3D_OPTION_SMOOTH_SHADING=false``.
 
     Notes
     -----
@@ -3320,6 +3335,8 @@ def set_3d_options(antialias=None, depth_peeling=None):
         _3d_options.antialias = str(bool(antialias)).lower()
     if depth_peeling is not None:
         _3d_options.depth_peeling = str(bool(depth_peeling)).lower()
+    if smooth_shading is not None:
+        _3d_options.smooth_shading = str(bool(smooth_shading)).lower()
 
 
 def _get_3d_option(key):
