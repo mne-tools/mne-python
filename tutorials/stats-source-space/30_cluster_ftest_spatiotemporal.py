@@ -30,8 +30,9 @@ print(__doc__)
 # Set parameters
 # --------------
 data_path = sample.data_path()
-stc_fname = data_path + '/MEG/sample/sample_audvis-meg-lh.stc'
-subjects_dir = data_path + '/subjects'
+meg_path = data_path / 'MEG' / 'sample'
+stc_fname = meg_path / 'sample_audvis-meg-lh.stc'
+subjects_dir = data_path / 'subjects'
 src_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 
 # Load stc to in common cortical space (fsaverage)

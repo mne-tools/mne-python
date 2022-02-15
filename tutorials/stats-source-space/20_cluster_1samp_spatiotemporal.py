@@ -34,9 +34,10 @@ print(__doc__)
 # Set parameters
 # --------------
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-subjects_dir = data_path + '/subjects'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
+subjects_dir = data_path / 'subjects'
 src_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 
 tmin = -0.2
@@ -68,7 +69,7 @@ equalize_epoch_counts([epochs1, epochs2])
 # Transform to source space
 # -------------------------
 
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+fname_inv = meg_path / 'sample_audvis-meg-oct-6-meg-inv.fif'
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE, sLORETA, or eLORETA)

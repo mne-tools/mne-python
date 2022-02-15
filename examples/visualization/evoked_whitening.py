@@ -35,8 +35,9 @@ print(__doc__)
 # Set parameters
 
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
 
 raw = io.read_raw_fif(raw_fname, preload=True)
 raw.filter(1, 40, n_jobs=1, fir_design='firwin')

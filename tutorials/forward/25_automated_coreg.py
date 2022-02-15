@@ -28,7 +28,7 @@ data_path = mne.datasets.sample.data_path()
 subjects_dir = data_path / 'subjects'
 subject = 'sample'
 
-fname_raw = data_path / 'MEG' / subject / (subject + '_audvis_raw.fif')
+fname_raw = data_path / 'MEG' / subject / f'{subject}_audvis_raw.fif'
 info = read_info(fname_raw)
 plot_kwargs = dict(subject=subject, subjects_dir=subjects_dir,
                    surfaces="head-dense", dig=True, eeg=[],

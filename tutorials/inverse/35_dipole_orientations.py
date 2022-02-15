@@ -26,15 +26,16 @@ from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 
 data_path = sample.data_path()
-evokeds = mne.read_evokeds(data_path + '/MEG/sample/sample_audvis-ave.fif')
+meg_path = data_path / 'MEG' / 'sample'
+evokeds = mne.read_evokeds(meg_path / 'sample_audvis-ave.fif')
 left_auditory = evokeds[0].apply_baseline()
 fwd = mne.read_forward_solution(
-    data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif')
+    meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif')
 mne.convert_forward_solution(fwd, surf_ori=True, copy=False)
-noise_cov = mne.read_cov(data_path + '/MEG/sample/sample_audvis-cov.fif')
+noise_cov = mne.read_cov(meg_path / 'sample_audvis-cov.fif')
 subject = 'sample'
-subjects_dir = data_path + '/subjects'
-trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
+subjects_dir = data_path / 'subjects'
+trans_fname = meg_path / 'sample_audvis_raw-trans.fif'
 
 # %%
 # The source space

@@ -43,8 +43,9 @@ from mne.beamformer import make_lcmv, apply_lcmv
 # activity on the trials with left auditory stimulation.
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+subjects_dir = data_path / 'subjects'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
 
 # Read the raw data
 raw = mne.io.read_raw_fif(raw_fname)
@@ -122,7 +123,7 @@ del epochs
 
 # Read forward model
 
-fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
+fwd_fname = meg_path / 'sample_audvis-meg-vol-7-fwd.fif'
 forward = mne.read_forward_solution(fwd_fname)
 
 # %%

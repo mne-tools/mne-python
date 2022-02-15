@@ -37,16 +37,17 @@ from mne.decoding import (cross_val_multiscore, LinearModel, SlidingEstimator,
 print(__doc__)
 
 data_path = mne.datasets.sample.data_path()
-fname_fwd = data_path + 'MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
-fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
-subjects_dir = data_path + '/subjects'
+meg_path = data_path / 'MEG' / 'sample'
+fname_fwd = meg_path / 'sample_audvis-meg-oct-6-fwd.fif'
+fname_evoked = meg_path / 'sample_audvis-ave.fif'
+subjects_dir = data_path / 'subjects'
 
 # %%
 # Set parameters
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
+fname_cov = meg_path / 'sample_audvis-cov.fif'
+fname_inv = meg_path / 'sample_audvis-meg-oct-6-meg-inv.fif'
 
 tmin, tmax = -0.2, 0.8
 event_id = dict(aud_r=2, vis_r=4)  # load contra-lateral conditions

@@ -1,7 +1,6 @@
 from functools import partial
 import os
 from os import path as op
-from pathlib import Path
 import re
 import shutil
 import zipfile

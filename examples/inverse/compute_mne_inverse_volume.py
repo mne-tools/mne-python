@@ -24,8 +24,9 @@ from mne.minimum_norm import apply_inverse, read_inverse_operator
 print(__doc__)
 
 data_path = sample.data_path()
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-vol-7-meg-inv.fif'
-fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
+meg_path = data_path / 'MEG' / 'sample'
+fname_inv = meg_path / 'sample_audvis-meg-vol-7-meg-inv.fif'
+fname_evoked = meg_path / 'sample_audvis-ave.fif'
 
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
@@ -47,7 +48,7 @@ img = stc.as_volume(src,
 # Save it as a nifti file
 # nib.save(img, 'mne_%s_inverse.nii.gz' % method)
 
-t1_fname = data_path + '/subjects/sample/mri/T1.mgz'
+t1_fname = data_path / 'subjects' / 'sample' / 'mri' / 'T1.mgz'
 
 # %%
 # Plot with nilearn:
