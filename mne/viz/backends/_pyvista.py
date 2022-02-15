@@ -19,7 +19,7 @@ import warnings
 import numpy as np
 import vtk
 
-from ._abstract import _AbstractRenderer
+from ._abstract import _AbstractRenderer, Figure3D
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
                      ALLOWED_QUIVER_MODES, _init_mne_qtapp)
 from ...fixes import _get_args, _point_data, _cell_data, _compare_version
@@ -43,18 +43,20 @@ VTK9 = _compare_version(getattr(vtk, 'VTK_VERSION', '9.0'), '>=', '9.0')
 _FIGURES = dict()
 
 
-class _Figure(object):
-    def __init__(self,
-                 plotter=None,
-                 show=False,
-                 title='PyVista Scene',
-                 size=(600, 600),
-                 shape=(1, 1),
-                 background_color='black',
-                 smooth_shading=True,
-                 off_screen=False,
-                 notebook=False):
-        self.plotter = plotter
+class PyVistaFigure(Figure3D):
+    """PyVista-based 3D Figure.
+
+    This class is not meant to be instantiated directly, use
+    :func:`mne.viz.create_3d_figure` instead.
+    """
+
+    def __init__(self):
+        pass
+
+    def _init(self, plotter=None, show=False, title='PyVista Scene',
+              size=(600, 600), shape=(1, 1), background_color='black',
+              smooth_shading=True, off_screen=False, notebook=False):
+        self._plotter = plotter
         self.display = None
         self.background_color = background_color
         self.smooth_shading = smooth_shading
@@ -79,7 +81,18 @@ class _Figure(object):
         self._nrows, self._ncols = self.store['shape']
         self._azimuth = self._elevation = None
 
-    def build(self):
+    @property
+    def plotter(self):
+        """The native 3D plotting widget.
+
+        Returns
+        -------
+        plotter : instance of pyvista.Plotter
+            The plotter. Useful for interacting with the native 3D library.
+        """
+        return self._plotter
+
+    def _build(self):
         if self.notebook:
             plotter_class = Plotter
         else:
@@ -92,14 +105,14 @@ class _Figure(object):
                 self.store['app'] = app
             plotter = plotter_class(**self.store)
             plotter.background_color = self.background_color
-            self.plotter = plotter
+            self._plotter = plotter
         if self.plotter.iren is not None:
             self.plotter.iren.initialize()
         _process_events(self.plotter)
         _process_events(self.plotter)
         return self.plotter
 
-    def is_active(self):
+    def _is_active(self):
         if self.plotter is None:
             return False
         return hasattr(self.plotter, 'ren_win')
@@ -146,9 +159,11 @@ class _PyVistaRenderer(_AbstractRenderer):
         from .renderer import MNE_3D_BACKEND_TESTING
         from .._3d import _get_3d_option
         _require_version('pyvista', 'use 3D rendering', '0.32')
-        figure = _Figure(show=show, title=name, size=size, shape=shape,
-                         background_color=bgcolor, notebook=notebook,
-                         smooth_shading=smooth_shading)
+        figure = PyVistaFigure()
+        figure._init(
+            show=show, title=name, size=size, shape=shape,
+            background_color=bgcolor, notebook=notebook,
+            smooth_shading=smooth_shading)
         self.font_family = "arial"
         self.tube_n_sides = 20
         self.antialias = _get_3d_option('antialias') and \
@@ -158,7 +173,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
             # Restore only active plotter
-            if saved_fig is not None and saved_fig.is_active():
+            if saved_fig is not None and saved_fig._is_active():
                 self.figure = saved_fig
             else:
                 self.figure = figure
@@ -181,7 +196,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             # pyvista theme may enable depth peeling by default so
             # we disable it initially to better control the value afterwards
             with _disabled_depth_peeling():
-                self.plotter = self.figure.build()
+                self.plotter = self.figure._build()
             self._hide_axes()
             self._enable_antialias()
             self._enable_depth_peeling()
@@ -664,7 +679,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         # using this for Azure at some point, too.
         if os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true':
             return
-        if self.figure.is_active():
+        if self.figure._is_active():
             if sys.platform != 'darwin':
                 for renderer in self._all_renderers:
                     renderer.enable_anti_aliasing()
@@ -1026,8 +1041,8 @@ def _set_3d_title(figure, title, size=16):
 
 
 def _check_3d_figure(figure):
-    if not isinstance(figure, _Figure):
-        raise TypeError('figure must be an instance of _Figure.')
+    if not isinstance(figure, PyVistaFigure):
+        raise TypeError('figure must be an instance of PyVistaFigure.')
 
 
 def _close_3d_figure(figure):

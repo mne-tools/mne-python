@@ -12,7 +12,7 @@ import pytest
 import numpy as np
 
 from mne.utils import run_subprocess
-from mne.viz import set_3d_backend, get_3d_backend
+from mne.viz import set_3d_backend, get_3d_backend, Figure3D
 from mne.viz.backends.renderer import _get_renderer
 from mne.viz.backends.tests._utils import skips_if_not_pyvistaqt
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
@@ -40,6 +40,7 @@ def test_backend_environment_setup(backend, monkeypatch):
 def test_3d_functions(renderer):
     """Test figure management functions."""
     fig = renderer.create_3d_figure((300, 300))
+    assert isinstance(fig, Figure3D)
     wrap_renderer = renderer.backend._Renderer(fig=fig)
     wrap_renderer.sphere(np.array([0., 0., 0.]), 'w', 1.)
     renderer.backend._check_3d_figure(fig)
