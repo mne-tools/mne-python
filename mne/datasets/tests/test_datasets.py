@@ -1,6 +1,7 @@
 from functools import partial
 import os
 from os import path as op
+from pathlib import Path
 import re
 import shutil
 import zipfile
@@ -36,7 +37,7 @@ def test_datasets_basic(tmp_path, monkeypatch):
             dataset = getattr(datasets.brainstorm, dname)
         else:
             dataset = getattr(datasets, dname)
-        if dataset.data_path(download=False) != '':
+        if str(dataset.data_path(download=False)) != '.':
             assert isinstance(dataset.get_version(), str)
             assert datasets.has_dataset(dname)
         else:
@@ -44,6 +45,12 @@ def test_datasets_basic(tmp_path, monkeypatch):
             assert not datasets.has_dataset(dname)
         print('%s: %s' % (dname, datasets.has_dataset(dname)))
     tempdir = str(tmp_path)
+    # Explicitly test one that isn't preset (given the config)
+    monkeypatch.setenv('MNE_DATASETS_SAMPLE_PATH', tempdir)
+    dataset = datasets.sample
+    assert str(dataset.data_path(download=False)) == '.'
+    assert dataset.get_version() != ''
+    assert dataset.get_version() is None
     # don't let it read from the config file to get the directory,
     # force it to look for the default
     monkeypatch.setenv('_MNE_FAKE_HOME_DIR', tempdir)
