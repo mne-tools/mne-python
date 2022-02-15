@@ -42,7 +42,7 @@ cov = mne.read_cov(cov_fname)
 info = mne.io.read_info(ave_fname)
 
 label_names = ['Aud-lh', 'Aud-rh']
-labels = [mne.read_label(meg_path / 'labels/%s.label' % ln)
+labels = [mne.read_label(meg_path / 'labels' / f'{ln}.label')
           for ln in label_names]
 
 # %%

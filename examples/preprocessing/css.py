@@ -31,7 +31,7 @@ fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
 ave_fname = meg_path / 'sample_audvis-no-filter-ave.fif'
 cov_fname = meg_path / 'sample_audvis-cov.fif'
 trans_fname = meg_path / 'sample_audvis_raw-trans.fif'
-bem_fname = subjects_dir + '/sample' + '/bem' + '/sample-5120-bem-sol.fif'
+bem_fname = subjects_dir / 'sample' / 'bem' / '/sample-5120-bem-sol.fif'
 
 raw = mne.io.read_raw_fif(meg_path / 'sample_audvis_raw.fif')
 fwd = mne.read_forward_solution(fwd_fname)

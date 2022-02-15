@@ -27,7 +27,7 @@ fname_inv = meg_path / 'sample_audvis-meg-oct-6-meg-inv.fif'
 fname_raw = meg_path / 'sample_audvis_raw.fif'
 fname_event = meg_path / 'sample_audvis_raw-eve.fif'
 label_name = 'Aud-lh'
-fname_label = meg_path / 'labels' f'{label_name}.label'
+fname_label = meg_path / 'labels' / f'{label_name}.label'
 subjects_dir = data_path / 'subjects'
 
 event_id, tmin, tmax = 1, -0.2, 0.5

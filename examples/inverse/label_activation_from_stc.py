@@ -39,9 +39,9 @@ stc_bh = stc.in_label(aud_lh + aud_rh)
 
 # calculate center of mass and transform to mni coordinates
 vtx, _, t_lh = stc_lh.center_of_mass('sample', subjects_dir=subjects_dir)
-mni_lh = mne.vertex_to_mni(vtx, 0, 'sample')[0]
+mni_lh = mne.vertex_to_mni(vtx, 0, 'sample', subjects_dir=subjects_dir)[0]
 vtx, _, t_rh = stc_rh.center_of_mass('sample', subjects_dir=subjects_dir)
-mni_rh = mne.vertex_to_mni(vtx, 1, 'sample')[0]
+mni_rh = mne.vertex_to_mni(vtx, 1, 'sample', subjects_dir=subjects_dir)[0]
 
 # plot the activation
 plt.figure()

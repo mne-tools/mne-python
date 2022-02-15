@@ -271,7 +271,7 @@ del stc_vec
 # the morph, we will crop the ``stc``:
 
 fetch_fsaverage(subjects_dir)  # ensure fsaverage src exists
-fname_fs_src = subjects_dir + '/fsaverage/bem/fsaverage-vol-5-src.fif'
+fname_fs_src = subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-vol-5-src.fif'
 
 src_fs = mne.read_source_spaces(fname_fs_src)
 morph = mne.compute_source_morph(

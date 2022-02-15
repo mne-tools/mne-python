@@ -52,5 +52,5 @@ t1_fname = data_path / 'subjects' / 'sample' / 'mri' / 'T1.mgz'
 
 # %%
 # Plot with nilearn:
-plot_stat_map(index_img(img, 61), t1_fname, threshold=8.,
+plot_stat_map(index_img(img, 61), str(t1_fname), threshold=8.,
               title='%s (t=%.1f s.)' % (method, stc.times[61]))

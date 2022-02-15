@@ -28,7 +28,7 @@ print(__doc__)
 data_path = sample.data_path()
 label = 'Aud-lh'
 meg_path = data_path / 'MEG' / 'sample'
-label_fname = meg_path / 'labels/%s.label' % label
+label_fname = meg_path / 'labels' / f'{label}.label'
 fname_inv = meg_path / 'sample_audvis-meg-oct-6-meg-inv.fif'
 fname_evoked = meg_path / 'sample_audvis-ave.fif'
 

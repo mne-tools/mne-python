@@ -15,8 +15,6 @@ permutation test across space and time.
 
 # %%
 
-import os.path as op
-
 import numpy as np
 from numpy.random import randn
 from scipy import stats as stats
@@ -38,7 +36,7 @@ meg_path = data_path / 'MEG' / 'sample'
 raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
 event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
 subjects_dir = data_path / 'subjects'
-src_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
+src_fname = subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-ico-5-src.fif'
 
 tmin = -0.2
 tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
@@ -183,7 +181,7 @@ stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
 
 #    Let's actually plot the first "time point" in the SourceEstimate, which
 #    shows all the clusters, weighted by duration.
-subjects_dir = op.join(data_path, 'subjects')
+
 # blue blobs are for condition A < condition B, red for A > B
 brain = stc_all_cluster_vis.plot(
     hemi='both', views='lateral', subjects_dir=subjects_dir,

@@ -31,7 +31,7 @@ from mne.viz import plot_arrowmap
 print(__doc__)
 
 path = sample.data_path()
-fname = path + '/MEG/sample/sample_audvis-ave.fif'
+fname = path / 'MEG' / 'sample' / 'sample_audvis-ave.fif'
 
 # load evoked data
 condition = 'Left Auditory'
