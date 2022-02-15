@@ -14,6 +14,7 @@ import shutil
 import sys
 import warnings
 import pytest
+from unittest import mock
 
 import numpy as np
 
@@ -653,11 +654,15 @@ def download_is_error(monkeypatch):
 
 
 @pytest.fixture(scope='module')
-def options_3d(monkeypatch):
+def options_3d():
     """Disable advanced 3d rendering."""
-    monkeypatch.setenv("MNE_3D_OPTION_ANTIALIAS", "false")
-    monkeypatch.setenv("MNE_3D_OPTION_DEPTH_PEELING", "false")
-    yield
+    with mock.patch.dict(
+        os.environ, {
+            "MNE_3D_OPTION_ANTIALIAS": "false",
+            "MNE_3D_OPTION_DEPTH_PEELING": "false",
+        }
+    ):
+        yield
 
 
 @pytest.fixture()
