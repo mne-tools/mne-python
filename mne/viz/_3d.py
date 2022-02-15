@@ -2779,11 +2779,10 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     unique_vertnos = np.unique(np.concatenate(vertnos).ravel())
 
     renderer = _get_renderer(bgcolor=bgcolor, size=(600, 600), name=fig_name)
-    surface = renderer.mesh(x=points[:, 0], y=points[:, 1],
-                            z=points[:, 2], triangles=use_faces,
-                            color=brain_color, opacity=opacity,
-                            backface_culling=True, shading=True,
-                            normals=normals, **kwargs)
+    renderer.mesh(
+        x=points[:, 0], y=points[:, 1], z=points[:, 2], triangles=use_faces,
+        color=brain_color, opacity=opacity, backface_culling=True,
+        shading=True, normals=normals, **kwargs)
 
     # Show time courses
     fig = plt.figure(fig_number)
