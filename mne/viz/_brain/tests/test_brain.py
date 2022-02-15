@@ -700,13 +700,10 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path,
     assert hasattr(brain, "_spheres")
     assert brain._scalar_bar.GetNumberOfLabels() == 3
 
-    # add foci should work for volumes
-    if src == 'surface':
-        hemi = 'lh'
-    else:
-        hemi = 'vol'
-    brain.add_foci([[0, 0, 0]], hemi=hemi)
-    assert_array_equal(brain._data[hemi]['foci'], [[0, 0, 0]])
+    # add foci should work for 'lh', 'rh' and 'vol'
+    for current_hemi in hemi_str:
+        brain.add_foci([[0, 0, 0]], hemi=current_hemi)
+        assert_array_equal(brain._data[current_hemi]['foci'], [[0, 0, 0]])
 
     # test points picked by default
     picked_points = brain.get_picked_points()
