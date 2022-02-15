@@ -291,6 +291,7 @@ class catch_logging(object):
     This will remove all other logging handlers, and return the handler to
     stdout when complete.
     """
+
     def __init__(self, verbose=None):
         self.verbose = verbose
 
