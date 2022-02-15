@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+# Authors: Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD-3-Clause
+
 import os.path as op
 
 import numpy as np
@@ -6,10 +11,10 @@ import pytest
 
 from mne.parallel import parallel_func
 from mne.utils import (ProgressBar, array_split_idx, use_log_level,
-                       modified_env, catch_logging)
+                       catch_logging)
 
 
-def test_progressbar():
+def test_progressbar(monkeypatch):
     """Test progressbar class."""
     a = np.arange(10)
     pbar = ProgressBar(a)
@@ -28,20 +33,21 @@ def test_progressbar():
         iter_func(pbar)
 
     # Make sure different progress bars can be used
-    with catch_logging() as log, modified_env(MNE_TQDM='tqdm'), \
-            use_log_level('debug'), ProgressBar(np.arange(3)) as pbar:
+    monkeypatch.setenv('MNE_TQDM', 'tqdm')
+    with catch_logging('debug') as log, ProgressBar(np.arange(3)) as pbar:
         for p in pbar:
             pass
     log = log.getvalue()
     assert 'Using ProgressBar with tqdm\n' in log
-    with modified_env(MNE_TQDM='broken'), pytest.raises(ValueError):
+    monkeypatch.setenv('MNE_TQDM', 'broken')
+    with pytest.raises(ValueError, match='Invalid value for the'):
         ProgressBar(np.arange(3))
-    with modified_env(MNE_TQDM='tqdm.broken'):
-        with pytest.raises(ValueError, match='Unknown tqdm'):
-            ProgressBar(np.arange(3))
+    monkeypatch.setenv('MNE_TQDM', 'tqdm.broken')
+    with pytest.raises(ValueError, match='Unknown tqdm'):
+        ProgressBar(np.arange(3))
     # off
-    with catch_logging() as log, modified_env(MNE_TQDM='off'), \
-            use_log_level('debug'), ProgressBar(np.arange(3)) as pbar:
+    monkeypatch.setenv('MNE_TQDM', 'off')
+    with catch_logging('debug') as log, ProgressBar(np.arange(3)) as pbar:
         for p in pbar:
             pass
     log = log.getvalue()

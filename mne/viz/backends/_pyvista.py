@@ -155,10 +155,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             smooth_shading=smooth_shading)
         self.font_family = "arial"
         self.tube_n_sides = 20
-        self.antialias = _get_3d_option('antialias') and \
-            not MNE_3D_BACKEND_TESTING
-        self.depth_peeling = _get_3d_option('depth_peeling') and \
-            not MNE_3D_BACKEND_TESTING
+        self.antialias = _get_3d_option('antialias')
+        self.depth_peeling = _get_3d_option('depth_peeling')
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
             # Restore only active plotter
