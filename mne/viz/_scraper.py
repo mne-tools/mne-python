@@ -19,7 +19,11 @@ class _PyQtGraphScraper:
         img_fnames = list()
         inst = None
         for gui in list(mne_qt_browser._browser_instances):
-            if getattr(gui, '_scraped', False):
+            try:
+                scraped = getattr(gui, '_scraped', False)
+            except Exception:  # super __init__ not called, perhaps stale?
+                scraped = True
+            if scraped:
                 continue
             gui._scraped = True  # monkey-patch but it's easy enough
             img_fnames.append(next(block_vars['image_path_iterator']))
