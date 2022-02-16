@@ -1582,7 +1582,7 @@ precompute : bool | str
     apply preprocessing (e.g., projectors) to the full data array in a separate
     processor thread, instead of window-by-window during scrolling. The default
     None uses the ``MNE_BROWSER_PRECOMPUTE`` variable, which defaults to
-    `'auto'``. ``'auto'`` compares available RAM space to the expected size of
+    ``'auto'``. ``'auto'`` compares available RAM space to the expected size of
     the precomputed data, and precomputes only if enough RAM is available.
     This is only used with the Qt backend.
 

@@ -183,7 +183,7 @@ def verbose_debug():
 
 @pytest.fixture(scope='session')
 def default_to_matplotlib_backend():
-    """Default to using the matplotlib backend in tests."""
+    """Use the matplotlib backend by default in tests."""
     # TODO: Relevant tests should be adapted/parameterized over backends
     # so that we don't have to do this.
     set_browser_backend('matplotlib')
