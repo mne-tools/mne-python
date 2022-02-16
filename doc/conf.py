@@ -13,6 +13,7 @@ import sys
 import time
 import warnings
 from datetime import datetime, timezone
+import faulthandler
 
 import numpy as np
 import matplotlib
@@ -28,6 +29,7 @@ from mne.utils import (linkcode_resolve, # noqa, analysis:ignore
 from mne.viz import Brain  # noqa
 
 matplotlib.use('agg')
+faulthandler.enable()
 
 # -- Path setup --------------------------------------------------------------
 
