@@ -29,7 +29,7 @@ from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
                        _check_pyqt5_version)
 
 # data from sample dataset
-from mne.viz._figure import use_browser_backend, set_browser_backend
+from mne.viz._figure import use_browser_backend
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -178,14 +178,6 @@ def verbose_debug():
     """Run a test with debug verbosity."""
     with mne.utils.use_log_level('debug'):
         yield
-
-
-@pytest.fixture(scope='session')
-def default_to_matplotlib_backend():
-    """Use the matplotlib backend by default in tests."""
-    # TODO: Relevant tests should be adapted/parameterized over backends
-    # so that we don't have to do this.
-    set_browser_backend('matplotlib')
 
 
 @pytest.fixture(scope='session')
