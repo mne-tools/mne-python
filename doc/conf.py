@@ -21,6 +21,7 @@ from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 
 import mne
+from mne.fixes import _compare_version
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (linkcode_resolve, # noqa, analysis:ignore
                        _assert_no_instances, sizeof_fmt, run_subprocess)
@@ -355,8 +356,13 @@ else:
     report_scraper = mne.report._ReportScraper()
     scrapers += (report_scraper,)
     del backend
-if mne.viz.get_browser_backend() == 'qt':
-    scrapers += (mne.viz._scraper._PyQtGraphScraper(),)
+try:
+    import mne_qt_browser
+    _min_ver = _compare_version(mne_qt_browser.__version__, '>=', '0.2')
+    if mne.viz.get_browser_backend() == 'qt' and _min_ver:
+        scrapers += (mne.viz._scraper._PyQtGraphScraper(),)
+except ImportError:
+    pass
 
 compress_images = ('images', 'thumbnails')
 # let's make things easier on Windows users
