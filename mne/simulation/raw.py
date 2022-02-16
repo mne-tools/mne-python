@@ -37,19 +37,16 @@ from .source import SourceSimulator
 
 def _check_cov(info, cov):
     """Check that the user provided a valid covariance matrix for the noise."""
+    _validate_type(cov, (Covariance, None, dict, str, 'path-like'), 'cov')
     if isinstance(cov, Covariance) or cov is None:
         pass
     elif isinstance(cov, dict):
         cov = make_ad_hoc_cov(info, cov, verbose=False)
-    elif isinstance(cov, str):
+    else:
         if cov == 'simple':
             cov = make_ad_hoc_cov(info, None, verbose=False)
         else:
             cov = read_cov(cov, verbose=False)
-    else:
-        raise TypeError('Covariance matrix type not recognized. Valid input '
-                        'types are: instance of Covariance, dict, str, None. '
-                        ', got %s' % (cov,))
     return cov
 
 

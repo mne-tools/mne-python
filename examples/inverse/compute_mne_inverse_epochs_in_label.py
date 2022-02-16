@@ -23,11 +23,12 @@ from mne.minimum_norm import apply_inverse
 print(__doc__)
 
 data_path = sample.data_path()
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
-fname_raw = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-fname_event = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+meg_path = data_path / 'MEG' / 'sample'
+fname_inv = meg_path / 'sample_audvis-meg-oct-6-meg-inv.fif'
+fname_raw = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+fname_event = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
 label_name = 'Aud-lh'
-fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
+fname_label = meg_path / 'labels' / f'{label_name}.label'
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 

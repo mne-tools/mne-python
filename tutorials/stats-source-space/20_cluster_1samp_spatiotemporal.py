@@ -15,8 +15,6 @@ permutation test across space and time.
 
 # %%
 
-import os.path as op
-
 import numpy as np
 from numpy.random import randn
 from scipy import stats as stats
@@ -34,10 +32,11 @@ print(__doc__)
 # Set parameters
 # --------------
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-subjects_dir = data_path + '/subjects'
-src_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
+subjects_dir = data_path / 'subjects'
+src_fname = subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-ico-5-src.fif'
 
 tmin = -0.2
 tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
@@ -68,7 +67,7 @@ equalize_epoch_counts([epochs1, epochs2])
 # Transform to source space
 # -------------------------
 
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+fname_inv = meg_path / 'sample_audvis-meg-oct-6-meg-inv.fif'
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE, sLORETA, or eLORETA)
@@ -182,7 +181,7 @@ stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
 
 #    Let's actually plot the first "time point" in the SourceEstimate, which
 #    shows all the clusters, weighted by duration.
-subjects_dir = op.join(data_path, 'subjects')
+
 # blue blobs are for condition A < condition B, red for A > B
 brain = stc_all_cluster_vis.plot(
     hemi='both', views='lateral', subjects_dir=subjects_dir,

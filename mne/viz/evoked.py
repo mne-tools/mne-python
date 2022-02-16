@@ -1052,7 +1052,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
     ----------
     evoked : instance of mne.Evoked
         The evoked response.
-    noise_cov : list | instance of Covariance | str
+    noise_cov : list | instance of Covariance | path-like
         The noise covariance. Can be a string to load a covariance from disk.
     show : bool
         Show figure if True.
@@ -1100,14 +1100,16 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
            covariance estimation and spatial whitening of MEG and EEG
            signals, vol. 108, 328-342, NeuroImage.
     """
-    from ..cov import whiten_evoked, read_cov  # recursive import
+    from ..cov import whiten_evoked, Covariance, _ensure_cov
     import matplotlib.pyplot as plt
     time_unit, times = _check_time_unit(time_unit, evoked.times)
 
-    if isinstance(noise_cov, str):
-        noise_cov = read_cov(noise_cov)
+    _validate_type(noise_cov, (list, tuple, Covariance, 'path-like'))
     if not isinstance(noise_cov, (list, tuple)):
         noise_cov = [noise_cov]
+    for ci, c in enumerate(noise_cov):
+        noise_cov[ci] = _ensure_cov(
+            noise_cov[ci], f'noise_cov[{ci}]', verbose=False)
 
     evoked = evoked.copy()  # handle ref meg
     passive_idx = [idx for idx, proj in enumerate(evoked.info['projs'])

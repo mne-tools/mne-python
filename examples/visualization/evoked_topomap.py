@@ -29,7 +29,7 @@ from mne import read_evokeds
 print(__doc__)
 
 path = sample.data_path()
-fname = path + '/MEG/sample/sample_audvis-ave.fif'
+fname = path / 'MEG' / 'sample' / 'sample_audvis-ave.fif'
 
 # load evoked corresponding to a specific condition
 # from the fif file and subtract baseline

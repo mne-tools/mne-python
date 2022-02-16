@@ -19,9 +19,10 @@ from mne.viz import plot_alignment, set_3d_view
 print(__doc__)
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = data_path + '/subjects'
-trans = mne.read_trans(data_path + '/MEG/sample/sample_audvis_raw-trans.fif')
-raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
+subjects_dir = data_path / 'subjects'
+meg_path = data_path / 'MEG' / 'sample'
+trans = mne.read_trans(meg_path / 'sample_audvis_raw-trans.fif')
+raw = mne.io.read_raw_fif(meg_path / 'sample_audvis_raw.fif')
 
 # Plot electrode locations on scalp
 fig = plot_alignment(raw.info, trans, subject='sample', dig=False,
