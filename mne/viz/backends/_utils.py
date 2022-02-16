@@ -16,8 +16,8 @@ from decorator import decorator
 import numpy as np
 
 VALID_BROWSE_BACKENDS = (
-    'matplotlib',
     'qt',
+    'matplotlib',
 )
 
 VALID_3D_BACKENDS = (

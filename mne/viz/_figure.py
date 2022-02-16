@@ -658,7 +658,7 @@ def set_browser_backend(backend_name, verbose=None):
     ----------
     backend_name : str
         The 2D browser backend to select. See Notes for the capabilities
-        of each backend (``'matplotlib'``, ``'qt'``). The ``'qt'`` browser
+        of each backend ( ``'qt'``, ``'matplotlib'``). The ``'qt'`` browser
         requires `mne-qt-browser
         <https://github.com/mne-tools/mne-qt-browser>`__.
     %(verbose)s
@@ -769,7 +769,7 @@ def use_browser_backend(backend_name):
 
     Parameters
     ----------
-    backend_name : {'matplotlib', 'qt'}
+    backend_name : {'qt', 'matplotlib'}
         The 2D browser backend to use in the context.
     """
     old_backend = set_browser_backend(backend_name)
