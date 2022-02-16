@@ -304,8 +304,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     _validate_type(precompute, (bool, str, None), 'precompute')
     if precompute is None:
         precompute = get_config('MNE_BROWSER_PRECOMPUTE', 'auto').lower()
-        _check_option('precompute config variable MNE_BROWSER_PRECOMPUTE',
-                      precompute, ('true', 'false', 'auto'))
+        _check_option('MNE_BROWSER_PRECOMPUTE',
+                      precompute, ('true', 'false', 'auto'),
+                      extra='when precompute=None is used')
         precompute = dict(true=True, false=False, auto='auto')[precompute]
     params = dict(inst=raw,
                   info=info,
