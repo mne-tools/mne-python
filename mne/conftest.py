@@ -66,8 +66,7 @@ def pytest_configure(config):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
-    for fixture in ('matplotlib_config', 'close_all', 'check_verbose',
-                    'default_to_matplotlib_backend'):
+    for fixture in ('matplotlib_config', 'close_all', 'check_verbose'):
         config.addinivalue_line('usefixtures', fixture)
 
     # Warnings
