@@ -14,12 +14,12 @@ import numpy as np
 from ..annotations import _annotations_starts_stops
 from ..filter import create_filter
 from ..io.pick import pick_types, _pick_data_channels, pick_info, pick_channels
-from ..utils import verbose, _validate_type, _check_option, get_config
+from ..utils import verbose, _validate_type, _check_option
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (plt_show, _compute_scalings, _handle_decim, _check_cov,
-                    _shorten_path_from_middle,
+                    _shorten_path_from_middle, _handle_precompute,
                     _get_channel_plotting_order, _make_event_color_dict,
                     _show_browser)
 
@@ -301,13 +301,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # gather parameters and initialize figure
     _validate_type(use_opengl, (bool, None), 'use_opengl')
-    _validate_type(precompute, (bool, str, None), 'precompute')
-    if precompute is None:
-        precompute = get_config('MNE_BROWSER_PRECOMPUTE', 'auto').lower()
-        _check_option('MNE_BROWSER_PRECOMPUTE',
-                      precompute, ('true', 'false', 'auto'),
-                      extra='when precompute=None is used')
-        precompute = dict(true=True, false=False, auto='auto')[precompute]
+    precompute = _handle_precompute(precompute)
     params = dict(inst=raw,
                   info=info,
                   # channels and channel order

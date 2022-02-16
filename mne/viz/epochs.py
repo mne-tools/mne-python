@@ -25,7 +25,7 @@ from ..io.meas_info import create_info, _validate_type
 from ..io.pick import (_get_channel_types, _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _VALID_CHANNEL_TYPES)
 from .utils import (_show_browser, tight_layout, _setup_vmin_vmax, plt_show,
-                    _check_cov,
+                    _check_cov, _handle_precompute,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _handle_decim, _set_title_multiple_electrodes,
                     _make_combine_callable, _set_window_title,
@@ -851,6 +851,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     elif not isinstance(title, str):
         raise TypeError(f'title must be None or a string, got a {type(title)}')
 
+    precompute = _handle_precompute(precompute)
     params = dict(inst=epochs,
                   info=info,
                   n_epochs=n_epochs,

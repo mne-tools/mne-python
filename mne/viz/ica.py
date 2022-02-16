@@ -13,7 +13,8 @@ import warnings
 import numpy as np
 
 from .utils import (_show_browser, tight_layout, _make_event_color_dict,
-                    plt_show, _convert_psds, _compute_scalings)
+                    plt_show, _convert_psds, _compute_scalings,
+                    _handle_precompute)
 from .topomap import _plot_ica_topomap
 from .epochs import plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
@@ -1050,6 +1051,7 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
     # misc
     bad_color = 'lightgray'
     title = 'ICA components' if title is None else title
+    precompute = _handle_precompute(precompute)
 
     params = dict(inst=inst_array,
                   ica=ica,

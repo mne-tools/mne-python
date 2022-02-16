@@ -129,15 +129,18 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
         If to block execution on showing.
     fig : instance of Figure | None
         Needs to be passed for Qt backend,
-         optional for matplotlib.
+        optional for matplotlib.
     **kwargs : dict
         Extra arguments for :func:`matplotlib.pyplot.show`.
     """
     from ._figure import get_browser_backend
+    from matplotlib.figure import Figure
     backend = get_browser_backend()
     if backend == 'matplotlib':
+        assert isinstance(fig, Figure)
         plt_show(show, block=block, **kwargs)
     else:
+        assert not isinstance(fig, Figure)
         from PyQt5.QtWidgets import QApplication
         from .backends._utils import _qt_app_exec
         if show:
@@ -2385,3 +2388,14 @@ def _prop_kw(kind, val):
     from matplotlib.widgets import SpanSelector
     pre = '' if 'props' in _get_args(SpanSelector) else kind
     return {pre + 'props': val}
+
+
+def _handle_precompute(precompute):
+    _validate_type(precompute, (bool, str, None), 'precompute')
+    if precompute is None:
+        precompute = get_config('MNE_BROWSER_PRECOMPUTE', 'auto').lower()
+        _check_option('MNE_BROWSER_PRECOMPUTE',
+                      precompute, ('true', 'false', 'auto'),
+                      extra='when precompute=None is used')
+        precompute = dict(true=True, false=False, auto='auto')[precompute]
+    return precompute
