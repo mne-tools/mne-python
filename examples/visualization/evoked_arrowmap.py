@@ -66,8 +66,8 @@ plot_arrowmap(evoked_grad.data[:, max_time_idx], info_from=evoked_grad.info,
 # Plot gradiometer data as an arrowmap along with the topoplot at the time
 # of the maximum sensor space activity:
 path = bst_raw.data_path()
-raw_fname = path + ('/MEG/bst_raw/'
-                    'subj001_somatosensory_20111109_01_AUX-f.ds')
+raw_fname = (path / 'MEG' / 'bst_raw' /
+             'subj001_somatosensory_20111109_01_AUX-f.ds')
 raw_ctf = mne.io.read_raw_ctf(raw_fname)
 raw_ctf_info = mne.pick_info(
     raw_ctf.info, mne.pick_types(raw_ctf.info, meg=True, ref_meg=False))
