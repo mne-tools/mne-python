@@ -106,7 +106,7 @@ for event in event_ids:
         if ch != 0:
             ax.set_ylabel("")
             ax.set_yticklabels("")
-    fig.colorbar(axes[0].images[-1], cax=axes[-1])
+    fig.colorbar(axes[0].images[-1], cax=axes[-1]).ax.set_yscale("linear")
     fig.suptitle(f"ERDS ({event})")
     plt.show()
 
