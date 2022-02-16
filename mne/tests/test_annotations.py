@@ -1415,3 +1415,186 @@ def test_annotation_duration_setting():
         a.set_durations({"aaa": 2.2})
     with pytest.raises(TypeError, match=" got <class 'set'> instead"):
         a.set_durations({"aaa", 2.2})
+
+
+def test_cropping_raw_with_annotations():
+    """Test cropping Raw with annotations at the crop boundary."""
+    # generate a sample dataset from noise
+    n_channels = 2
+    sampling_freq = 500
+    length_seconds = 60
+
+    info = mne.create_info(n_channels, sfreq=sampling_freq,
+                           ch_types=['eeg', 'eeg'])
+    data = np.random.randn(n_channels, sampling_freq * length_seconds)
+    simulated_raw = mne.io.RawArray(data, info)
+
+    # insert annotations at 0, 10, 20, and 30 seconds
+    annotations = mne.Annotations(onset=[0, 10, 20, 30],
+                                  duration=[0, 0, 0, 0],
+                                  description=['test'] * 4)
+    simulated_raw.set_annotations(annotations)
+
+    # crop a copy of the data, setting 'include_tmax' to False,
+    # up to but not including 20 seconds
+    simulated_cropped = simulated_raw.copy().crop(tmin=0, tmax=20,
+                                                  include_tmax=False)
+    # issue #9383
+    # final timestamp is 19.998, which is correct (data is at 500 Hz,
+    # we wanted up to but not including 20 seconds)
+    print('Final time is {}'.format(simulated_cropped.times[-1]))
+    # but the annotation that occurs at the 20 second point is retained
+    # print(simulated_cropped.annotations[-1])
+    # include_tmax set when cropping raw should be passed down
+    # into the set_annotations method
+    assert_equal(len(simulated_cropped.annotations), 2)
+
+
+def test_cropping_annotations_with_orig_time():
+    """Test Raw cropping with anntations and orig_time"""
+    n_channels = 1
+    sampling_freq = 100
+    length_seconds = 60
+
+    info = mne.create_info(n_channels, sfreq=sampling_freq,
+                           ch_types=['eeg'])
+    data = np.random.randn(n_channels, sampling_freq * length_seconds)
+    raw = mne.io.RawArray(data, info)
+    annotations = mne.Annotations(onset=[0, 10, 20, 30],
+                                  duration=[0, 0, 0, 0],
+                                  description=['test'] * 4,
+                                  orig_time="2022-01-01 10:02:00")
+    raw.set_annotations(annotations)
+    cropped = raw.copy().crop(tmin=0, tmax=20, include_tmax=False)
+    assert_equal(len(cropped.annotations), 2)
+
+
+def test_setting_annotations_outside_scope():
+    """Test Raw with anntations set outside the time scope"""
+    n_channels = 1
+    sampling_freq = 100
+    length_seconds = 20
+
+    info = mne.create_info(n_channels, sfreq=sampling_freq,
+                           ch_types=['eeg'])
+    data = np.random.randn(n_channels, sampling_freq * length_seconds)
+    raw = mne.io.RawArray(data, info)
+    raw.set_meas_date(_ORIG_TIME)
+    annotations = mne.Annotations(onset=[0, 10, 20],
+                                  duration=[0, 0, 0],
+                                  description=['test'] * 3)
+    print(raw)
+    # the onset 20 exceeds the last time stamp of the raw, which is 19.998
+    with pytest.raises(RuntimeWarning)as e:
+        raw.set_annotations(annotations)
+        print(e)
+
+
+def test_setting_annotations_on_boundaries_zero_duration():
+    """Test Raw with anntations set on the boundaries"""
+    n_channels = 1
+    sampling_freq = 100
+    length_seconds = 20
+
+    info = mne.create_info(n_channels, sfreq=sampling_freq,
+                           ch_types=['eeg'])
+    data = np.random.randn(n_channels, sampling_freq * length_seconds)
+    raw = mne.io.RawArray(data, info)
+    raw.set_meas_date(_ORIG_TIME)
+    annotations = mne.Annotations(onset=[0, 19.990],
+                                  duration=[1, 0],
+                                  description=['test'] * 2)
+    print(raw)
+    raw.set_annotations(annotations)
+    assert_equal(len(raw.annotations), 2)
+
+
+def test_setting_annotations_on_boundaries_nonzero_duration():
+    """Test Raw with anntations set on the boundaries"""
+    n_channels = 1
+    sampling_freq = 100
+    length_seconds = 20
+
+    info = mne.create_info(n_channels, sfreq=sampling_freq,
+                           ch_types=['eeg'])
+    data = np.random.randn(n_channels, sampling_freq * length_seconds)
+    raw = mne.io.RawArray(data, info)
+    raw.set_meas_date(_ORIG_TIME)
+    annotations = mne.Annotations(onset=[0, 19.990],
+                                  duration=[1, 1],
+                                  description=['test'] * 2)
+    print(raw)
+    with pytest.raises(RuntimeWarning) as e:
+        raw.set_annotations(annotations)
+        assert "expanding outside the data range" in str(e)
+
+
+def test_cropping_annotations_include_tmax():
+    """Test Raw cropping anntations including tmax"""
+    n_channels = 1
+    sampling_freq = 100
+    length_seconds = 30
+
+    info = mne.create_info(n_channels, sfreq=sampling_freq,
+                           ch_types=['eeg'])
+    data = np.random.randn(n_channels, sampling_freq * length_seconds)
+    raw = mne.io.RawArray(data, info)
+    annotations = mne.Annotations(onset=[0, 10, 20],
+                                  duration=[0, 10, 1],
+                                  description=['test'] * 3)
+    raw.set_annotations(annotations)
+    cropped = raw.copy().crop(tmin=0, tmax=20, include_tmax=True)
+    assert_equal(len(cropped.annotations), 3)
+
+
+def test_cropping_annotations_not_include_tmax():
+    """Test Raw cropping anntations including tmax"""
+    n_channels = 1
+    sampling_freq = 100
+    length_seconds = 20
+    info = mne.create_info(n_channels, sfreq=sampling_freq,
+                           ch_types=['eeg'])
+    data = np.random.randn(n_channels, sampling_freq * length_seconds)
+    raw = mne.io.RawArray(data, info)
+    annotations = mne.Annotations(onset=[0, 10, 19.990],
+                                  duration=[0, 2, 0],
+                                  description=['test'] * 3)
+    raw.set_annotations(annotations)
+    cropped = raw.copy().crop(tmin=0, tmax=19.99, include_tmax=False)
+    assert_equal(len(cropped.annotations), 2)
+
+
+def test_cropping_annotations_exceeds_data_range():
+    """Test Raw cropping anntations exceed """
+    n_channels = 1
+    sampling_freq = 100
+    length_seconds = 20
+    info = mne.create_info(n_channels, sfreq=sampling_freq,
+                           ch_types=['eeg'])
+    data = np.random.randn(n_channels, sampling_freq * length_seconds)
+    raw = mne.io.RawArray(data, info)
+    annotations = mne.Annotations(onset=[0, 10, 19.990],
+                                  duration=[0, 2, 0],
+                                  description=['test'] * 3)
+    raw.set_annotations(annotations)
+    with pytest.raises(ValueError) as e:
+        _ = raw.copy().crop(tmin=0, tmax=20, include_tmax=False)
+        assert "must be less than or equal to" in str(e)
+
+
+def test_cropping_annotations_on_boundaries():
+    """Test Raw cropping anntations on boundaries"""
+    n_channels = 1
+    sampling_freq = 100
+    length_seconds = 20
+
+    info = mne.create_info(n_channels, sfreq=sampling_freq,
+                           ch_types=['eeg'])
+    data = np.random.randn(n_channels, sampling_freq * length_seconds)
+    raw = mne.io.RawArray(data, info)
+    annotations = mne.Annotations(onset=[0, 10, 19.990],
+                                  duration=[0, 0, 0],
+                                  description=['test'] * 3)
+    raw.set_annotations(annotations)
+    cropped = raw.copy().crop(tmin=0, tmax=19.99)
+    assert_equal(len(cropped.annotations), 3)

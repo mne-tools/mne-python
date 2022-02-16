@@ -686,17 +686,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                    ' which case the annotation onsets would be'
                                    ' taken in reference to the first sample of'
                                    ' the raw object.')
-
-            delta = 1. / self.info['sfreq']
             new_annotations = annotations.copy()
             new_annotations._prune_ch_names(self.info, on_missing)
             if annotations.orig_time is None:
-                new_annotations.crop(0, self.times[-1] + delta,
+                new_annotations.crop(0, self.times[-1],
                                      emit_warning=emit_warning)
                 new_annotations.onset += self._first_time
             else:
                 tmin = meas_date + timedelta(0, self._first_time)
-                tmax = tmin + timedelta(seconds=self.times[-1] + delta)
+                tmax = tmin + timedelta(seconds=self.times[-1])
                 new_annotations.crop(tmin=tmin, tmax=tmax,
                                      emit_warning=emit_warning)
                 new_annotations.onset -= (
