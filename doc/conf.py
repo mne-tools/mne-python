@@ -825,6 +825,7 @@ def reset_warnings(gallery_conf, fname):
                 'to mean no clipping',
                 r'the `scipy\.ndimage.*` namespace is deprecated',  # Dipy
                 '`np.MachAr` is deprecated',  # Numba
+                'distutils Version classes are deprecated',  # pydata-sphinx-th
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
