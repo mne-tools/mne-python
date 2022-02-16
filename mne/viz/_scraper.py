@@ -20,7 +20,7 @@ class _PyQtGraphScraper:
         inst = None
         for gui in list(mne_qt_browser._browser_instances):
             if getattr(gui, '_scraped', False):
-                return
+                continue
             gui._scraped = True  # monkey-patch but it's easy enough
             img_fnames.append(next(block_vars['image_path_iterator']))
             if getattr(gui, 'load_thread', None) is not None:
