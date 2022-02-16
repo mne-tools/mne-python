@@ -1581,11 +1581,14 @@ precompute : bool | str
     Whether to load all data (not just the visible portion) into RAM and
     apply preprocessing (e.g., projectors) to the full data array in a separate
     processor thread, instead of window-by-window during scrolling. The default
-    ``'auto'`` compares available RAM space to the expected size of the
-    precomputed data, and precomputes only if enough RAM is available. ``True``
-    and ``'auto'`` only work if using the Qt backend.
+    None uses the ``MNE_BROWSER_PRECOMPUTE`` variable, which defaults to
+    `'auto'``. ``'auto'`` compares available RAM space to the expected size of
+    the precomputed data, and precomputes only if enough RAM is available.
+    This is only used with the Qt backend.
 
     .. versionadded:: 0.24
+    .. versionchanged:: 1.0
+       Support for the MNE_BROWSER_PRECOMPUTE config variable.
 """
 
 docdict['use_opengl'] = """

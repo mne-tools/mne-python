@@ -649,7 +649,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 order=None, show=True, block=False, decim='auto',
                 noise_cov=None, butterfly=False, show_scrollbars=True,
                 show_scalebars=True, epoch_colors=None, event_id=None,
-                group_by='type', precompute='auto', use_opengl=None):
+                group_by='type', precompute=None, use_opengl=None):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
