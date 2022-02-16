@@ -401,7 +401,7 @@ def test_plot_ica_scores():
 
 
 @requires_sklearn
-def test_plot_instance_components():
+def test_plot_instance_components(browser_backend):
     """Test plotting of components as instances of raw and epochs."""
     raw = _get_raw()
     picks = _get_picks(raw)
@@ -414,21 +414,21 @@ def test_plot_instance_components():
             '=', 'd', 'd', 'pageup', 'pagedown', 'z', 'z', 's', 's', 'f11',
             'b')
     for key in keys:
-        fig.canvas.key_press_event(key)
-    ax = fig.mne.ax_main
-    line = ax.lines[0]
-    _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]],
-                'data')
-    _fake_click(fig, ax, [-0.1, 0.9])  # click on y-label
-    fig.canvas.key_press_event('escape')
-    plt.close('all')
+        fig._fake_keypress(key)
+    x = fig.mne.traces[0].get_xdata()[0]
+    y = fig.mne.traces[0].get_ydata()[0]
+    fig._fake_click((x, y), xform='data')
+    fig._click_ch_name(ch_index=0, button=1)
+    fig._fake_keypress('escape')
+    browser_backend._close_all()
+
     epochs = _get_epochs()
     fig = ica.plot_sources(epochs, title='Components')
     for key in keys:
-        fig.canvas.key_press_event(key)
+        fig._fake_keypress(key)
     # Test a click
-    ax = fig.get_axes()[0]
-    line = ax.lines[0]
-    _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], 'data')
-    _fake_click(fig, ax, [-0.1, 0.9])  # click on y-label
-    fig.canvas.key_press_event('escape')
+    x = fig.mne.traces[0].get_xdata()[0]
+    y = fig.mne.traces[0].get_ydata()[0]
+    fig._fake_click((x, y), xform='data')
+    fig._click_ch_name(ch_index=0, button=1)
+    fig._fake_keypress('escape')
