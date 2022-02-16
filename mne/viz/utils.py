@@ -134,13 +134,10 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
         Extra arguments for :func:`matplotlib.pyplot.show`.
     """
     from ._figure import get_browser_backend
-    from matplotlib.figure import Figure
     backend = get_browser_backend()
     if backend == 'matplotlib':
-        assert isinstance(fig, Figure)
         plt_show(show, block=block, **kwargs)
     else:
-        assert not isinstance(fig, Figure)
         from PyQt5.QtWidgets import QApplication
         from .backends._utils import _qt_app_exec
         if show:

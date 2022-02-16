@@ -29,7 +29,7 @@ from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
                        _check_pyqt5_version)
 
 # data from sample dataset
-from mne.viz._figure import use_browser_backend
+from mne.viz._figure import use_browser_backend, set_browser_backend
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -66,7 +66,8 @@ def pytest_configure(config):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
-    for fixture in ('matplotlib_config', 'close_all', 'check_verbose'):
+    for fixture in ('matplotlib_config', 'close_all', 'check_verbose',
+                    'default_to_matplotlib_backend'):
         config.addinivalue_line('usefixtures', fixture)
 
     # Warnings
@@ -181,6 +182,14 @@ def verbose_debug():
 
 
 @pytest.fixture(scope='session')
+def default_to_matplotlib_backend():
+    """Default to using the matplotlib backend in tests."""
+    # TODO: Relevant tests should be adapted/parameterized over backends
+    # so that we don't have to do this.
+    set_browser_backend('matplotlib')
+
+
+@pytest.fixture(scope='session')
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
@@ -208,7 +217,7 @@ def matplotlib_config():
     orig = cbook.CallbackRegistry
 
     class CallbackRegistryReraise(orig):
-        def __init__(self, exception_handler=None):
+        def __init__(self, exception_handler=None, signals=None):
             super(CallbackRegistryReraise, self).__init__(exception_handler)
 
     cbook.CallbackRegistry = CallbackRegistryReraise
