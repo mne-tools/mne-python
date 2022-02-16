@@ -430,7 +430,8 @@ def test_ica_reset(method):
 @pytest.mark.parametrize('n_components', (2, 0.6))
 @pytest.mark.parametrize('noise_cov', (False, True))
 @pytest.mark.parametrize('n_pca_components', [20])
-def test_ica_core(method, n_components, noise_cov, n_pca_components):
+def test_ica_core(method, n_components, noise_cov, n_pca_components,
+                  browser_backend):
     """Test ICA on raw and epochs."""
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(0, stop).load_data()
@@ -499,13 +500,11 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components):
     print(raw_sources)
 
     # test for gh-6271 (scaling of ICA traces)
-    fig = raw_sources.plot()
-    assert len(fig.mne.ax_main.lines) in (4, 8)
-    for line in fig.mne.ax_main.lines:
+    fig = raw_sources.plot(clipping=None)
+    assert len(fig.mne.traces) in (2, 6)
+    for line in fig.mne.traces:
         y = line.get_ydata()
-        if len(y) > 2:  # actual data, not markers
-            assert np.ptp(y) < 15
-    plt.close('all')
+        assert np.ptp(y) < 15
 
     sources = raw_sources[:, :][0]
     assert (sources.shape[0] == ica.n_components_)
