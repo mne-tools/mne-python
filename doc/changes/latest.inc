@@ -113,6 +113,8 @@ Enhancements
 Bugs
 ~~~~
 
+- Add Shift_JIST mu in :func:`mne.io.read_raw_edf` (:gh:`10356` by :newcontrib:`Michiru Kaneda`)
+
 - Teach :func:`mne.io.read_raw_bti` to use its ``eog_ch`` parameter (:gh:`10093` by :newcontrib:`Adina Wagner`)
 
 - :func:`mne.time_frequency.tfr_array_multitaper` now returns results per taper when ``output='complex'`` (:gh:`10281` by `Mikołaj Magnuski`_)
