@@ -1508,7 +1508,8 @@ class Report(_VerboseDep):
 
     def _render_ica_artifact_sources(self, *, ica, inst, artifact_type,
                                      image_format, tags):
-        fig = ica.plot_sources(inst=inst, show=False)
+        with use_browser_backend('matplotlib'):
+            fig = ica.plot_sources(inst=inst, show=False)
         _constrain_fig_resolution(
             fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
         )
