@@ -1439,7 +1439,7 @@ def test_annot_noop(meas_date, first_samp):
     assert_allclose(second_annot.onset[0], want)
 
 
-@pytest.mark.parametrize('setting', ('before',))  # TODO 'after'))
+@pytest.mark.parametrize('setting', ('before', 'after'))
 @pytest.mark.parametrize('meas_date', ('first', 'second', 'both', None))
 @pytest.mark.parametrize('first_samp_2', (0, 320))
 @pytest.mark.parametrize('first_samp_1', (160, 0))
