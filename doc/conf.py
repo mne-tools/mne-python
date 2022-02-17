@@ -811,6 +811,8 @@ def reset_warnings(gallery_conf, fname):
         'ignore', '.*"is not" with a literal.*', module='nilearn')
     warnings.filterwarnings(  # scikit-learn FastICA whiten=True deprecation
         'ignore', r'.*From version 1\.3 whiten.*')
+    warnings.filterwarnings(  # seaborn -> pandas
+        'ignore', '.*iteritems is deprecated and will be.*')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
@@ -830,6 +832,7 @@ def reset_warnings(gallery_conf, fname):
                 r'the `scipy\.ndimage.*` namespace is deprecated',  # Dipy
                 '`np.MachAr` is deprecated',  # Numba
                 'distutils Version classes are deprecated',  # pydata-sphinx-th
+                'The module matplotlib.tight_layout is deprecated',  # nilearn
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)

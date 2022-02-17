@@ -48,7 +48,7 @@ stc = apply_inverse_raw(raw, inverse_operator, lambda2, method, label,
                         start, stop, pick_ori=None)
 
 # Save result in stc files
-stc.save('mne_%s_raw_inverse_%s' % (method, label_name))
+stc.save('mne_%s_raw_inverse_%s' % (method, label_name), overwrite=True)
 
 # %%
 # View activation time-series

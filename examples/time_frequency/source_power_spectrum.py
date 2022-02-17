@@ -49,7 +49,7 @@ stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                          pick_ori="normal", n_fft=n_fft, label=label,
                          dB=True)
 
-stc.save('psd_dSPM')
+stc.save('psd_dSPM', overwrite=True)
 
 # %%
 # View PSD of sources in label
