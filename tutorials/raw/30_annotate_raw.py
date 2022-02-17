@@ -131,6 +131,7 @@ fig = raw.plot(start=2, duration=6)
 # first enter "annotation mode" by pressing :kbd:`a` while the plot window is
 # focused; this will bring up the annotation controls window:
 
+fig = raw.plot(start=2, duration=6)
 fig.fake_keypress('a')
 
 # %%
