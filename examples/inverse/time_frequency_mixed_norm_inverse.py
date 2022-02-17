@@ -36,10 +36,11 @@ from mne.viz import (plot_sparse_source_estimates,
 print(__doc__)
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
-fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-ave_fname = data_path + '/MEG/sample/sample_audvis-no-filter-ave.fif'
-cov_fname = data_path + '/MEG/sample/sample_audvis-shrunk-cov.fif'
+subjects_dir = data_path / 'subjects'
+meg_path = data_path / 'MEG' / 'sample'
+fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+ave_fname = meg_path / 'sample_audvis-no-filter-ave.fif'
+cov_fname = meg_path / 'sample_audvis-shrunk-cov.fif'
 
 # Read noise covariance matrix
 cov = mne.read_cov(cov_fname)

@@ -41,9 +41,10 @@ print(__doc__)
 # resolution matrices for different methods.
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
-fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-fixed-inv.fif'
+subjects_dir = data_path / 'subjects'
+meg_path = data_path / 'MEG' / 'sample'
+fname_fwd = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+fname_inv = meg_path / 'sample_audvis-meg-oct-6-meg-fixed-inv.fif'
 forward = mne.read_forward_solution(fname_fwd)
 # Convert forward solution to fixed source orientations
 mne.convert_forward_solution(
@@ -149,7 +150,7 @@ plot_connectivity_circle(leakage_mne, label_names, n_lines=200,
 # versus for saved figures. Thus when saving you must specify ``facecolor``,
 # else your labels, title, etc will not be visible::
 #
-#     >>> fname_fig = data_path + '/MEG/sample/plot_label_leakage.png'
+#     >>> fname_fig = meg_path / 'plot_label_leakage.png'
 #     >>> fig.savefig(fname_fig, facecolor='black')
 #
 # Plot PSFs for individual labels

@@ -142,7 +142,8 @@ def test_docstring_parameters():
                 method = getattr(cls, method_name)
                 incorrect += check_parameters_match(method, cls=cls)
             if hasattr(cls, '__call__') and \
-                    'of type object' not in str(cls.__call__):
+                    'of type object' not in str(cls.__call__) and \
+                    'of ABCMeta object' not in str(cls.__call__):
                 incorrect += check_parameters_match(cls.__call__, cls)
         functions = inspect.getmembers(module, inspect.isfunction)
         for fname, func in functions:

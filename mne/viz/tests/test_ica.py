@@ -14,8 +14,7 @@ from mne import (read_events, Epochs, read_cov, pick_types, Annotations,
                  make_fixed_length_events)
 from mne.io import read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
-from mne.utils import (requires_sklearn, _click_ch_name, catch_logging,
-                       _record_warnings)
+from mne.utils import (requires_sklearn, catch_logging, _record_warnings)
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
 from mne.viz.utils import _fake_click
 
@@ -210,7 +209,7 @@ def test_plot_ica_properties():
 
 
 @requires_sklearn
-def test_plot_ica_sources(raw_orig, mpl_backend):
+def test_plot_ica_sources(raw_orig, browser_backend):
     """Test plotting of ICA panel."""
     raw = raw_orig.copy().crop(0, 1)
     picks = _get_picks(raw)
@@ -222,23 +221,22 @@ def test_plot_ica_sources(raw_orig, mpl_backend):
     ica.fit(raw, picks=ica_picks)
     ica.exclude = [1]
     fig = ica.plot_sources(raw)
-    assert mpl_backend._get_n_figs() == 1
+    assert browser_backend._get_n_figs() == 1
     # change which component is in ICA.exclude (click data trace to remove
     # current one; click name to add other one)
     fig._redraw()
-    # ToDo: This will be different methods in pyqtgraph
     x = fig.mne.traces[1].get_xdata()[5]
     y = fig.mne.traces[1].get_ydata()[5]
     fig._fake_click((x, y), xform='data')  # exclude = []
-    _click_ch_name(fig, ch_index=0, button=1)                # exclude = [0]
+    fig._click_ch_name(ch_index=0, button=1)  # exclude = [0]
     fig._fake_keypress(fig.mne.close_key)
     fig._close_event()
-    assert mpl_backend._get_n_figs() == 0
+    assert browser_backend._get_n_figs() == 0
     assert_array_equal(ica.exclude, [0])
     # test when picks does not include ica.exclude.
-    fig = ica.plot_sources(raw, picks=[1])
-    assert len(plt.get_fignums()) == 1
-    mpl_backend._close_all()
+    ica.plot_sources(raw, picks=[1])
+    assert browser_backend._get_n_figs() == 1
+    browser_backend._close_all()
 
     # dtype can change int->np.int64 after load, test it explicitly
     ica.n_components_ = np.int64(ica.n_components_)
@@ -246,24 +244,27 @@ def test_plot_ica_sources(raw_orig, mpl_backend):
     # test clicks on y-label (need >2 secs for plot_properties() to work)
     long_raw = raw_orig.crop(0, 5)
     fig = ica.plot_sources(long_raw)
-    assert len(plt.get_fignums()) == 1
+    assert browser_backend._get_n_figs() == 1
     fig._redraw()
-    _click_ch_name(fig, ch_index=0, button=3)
+    fig._click_ch_name(ch_index=0, button=3)
     assert len(fig.mne.child_figs) == 1
-    assert len(plt.get_fignums()) == 2
+    assert browser_backend._get_n_figs() == 2
     # close child fig directly (workaround for mpl issue #18609)
     fig._fake_keypress('escape', fig=fig.mne.child_figs[0])
-    assert len(plt.get_fignums()) == 1
+    assert browser_backend._get_n_figs() == 1
     fig._fake_keypress(fig.mne.close_key)
-    assert len(plt.get_fignums()) == 0
+    assert browser_backend._get_n_figs() == 0
     del long_raw
 
     # test with annotations
     orig_annot = raw.annotations
     raw.set_annotations(Annotations([0.2], [0.1], 'Test'))
     fig = ica.plot_sources(raw)
-    assert len(fig.mne.ax_main.collections) == 1
-    assert len(fig.mne.ax_hscroll.collections) == 1
+    if browser_backend.name == 'matplotlib':
+        assert len(fig.mne.ax_main.collections) == 1
+        assert len(fig.mne.ax_hscroll.collections) == 1
+    else:
+        assert len(fig.mne.regions) == 1
     raw.set_annotations(orig_annot)
 
     # test error handling

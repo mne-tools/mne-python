@@ -33,9 +33,8 @@ def data_path(path=None, force_update=False, update_path=True,
 
     Returns
     -------
-    path : list of str
-        Local path to the given data file. This path is contained inside a list
-        of length one, for compatibility.
+    path : instance of Path
+        Local path to the given data file.
 
     Notes
     -----

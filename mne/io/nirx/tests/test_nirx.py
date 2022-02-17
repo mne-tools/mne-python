@@ -262,9 +262,9 @@ def test_nirx_missing_warn():
 def test_nirx_missing_evt(tmp_path):
     """Test reading NIRX files when missing data."""
     shutil.copytree(fname_nirx_15_2_short, str(tmp_path) + "/data/")
-    os.rename(str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.evt",
-              str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.xxx")
-    fname = str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.hdr"
+    os.rename(tmp_path / "data" / "NIRS-2019-08-23_001.evt",
+              tmp_path / "data" / "NIRS-2019-08-23_001.xxx")
+    fname = tmp_path / "data" / "NIRS-2019-08-23_001.hdr"
     raw = read_raw_nirx(fname, preload=True)
     assert raw.annotations.onset.shape == (0, )
 
@@ -273,9 +273,9 @@ def test_nirx_missing_evt(tmp_path):
 def test_nirx_dat_warn(tmp_path):
     """Test reading NIRX files when missing data."""
     shutil.copytree(fname_nirx_15_2_short, str(tmp_path) + "/data/")
-    os.rename(str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.dat",
-              str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.tmp")
-    fname = str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.hdr"
+    os.rename(tmp_path / "data" / "NIRS-2019-08-23_001.dat",
+              tmp_path / "data" / "NIRS-2019-08-23_001.tmp")
+    fname = tmp_path / "data" / "NIRS-2019-08-23_001.hdr"
     with pytest.raises(RuntimeWarning, match='A single dat'):
         read_raw_nirx(fname, preload=True)
 

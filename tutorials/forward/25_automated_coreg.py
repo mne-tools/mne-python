@@ -17,7 +17,6 @@ automated MEG-MRI coregistration via scripting.
 #
 # License: BSD-3-Clause
 
-import os.path as op
 import numpy as np
 
 import mne
@@ -26,10 +25,10 @@ from mne.io import read_info
 
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(data_path, 'subjects')
+subjects_dir = data_path / 'subjects'
 subject = 'sample'
 
-fname_raw = op.join(data_path, 'MEG', subject, subject + '_audvis_raw.fif')
+fname_raw = data_path / 'MEG' / subject / f'{subject}_audvis_raw.fif'
 info = read_info(fname_raw)
 plot_kwargs = dict(subject=subject, subjects_dir=subjects_dir,
                    surfaces="head-dense", dig=True, eeg=[],

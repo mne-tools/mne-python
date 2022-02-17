@@ -127,10 +127,14 @@ def pytest_configure(config):
     ignore:.*np\.MachAr.*:DeprecationWarning
     ignore:.*Passing unrecognized arguments to super.*:DeprecationWarning
     ignore:.*numpy.ndarray size changed.*:
+    ignore:.*There is no current event loop.*:DeprecationWarning
     # present in nilearn v 0.8.1, fixed in nilearn main
     ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
     ignore:.*pandas\.Int64Index is deprecated.*:FutureWarning
     always::ResourceWarning
+    # Jupyter notebook stuff
+    ignore:.*unclosed context <zmq\.asyncio\.*:ResourceWarning
+    ignore:.*unclosed event loop <.*:ResourceWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
@@ -391,6 +395,13 @@ def mpl_backend(garbage_collect):
         backend._close_all()
 
 
+# Skip functions or modules for mne-qt-browser < 0.2.0
+pre_2_0_skip_modules = ['mne.viz.tests.test_epochs',
+                        'mne.viz.tests.test_ica']
+pre_2_0_skip_funcs = ['test_plot_raw_white',
+                      'test_plot_raw_selection']
+
+
 def _check_pyqtgraph(request):
     # Check PyQt5
     try:
@@ -403,14 +414,16 @@ def _check_pyqtgraph(request):
     # Check mne-qt-browser
     try:
         import mne_qt_browser  # noqa: F401
-        # Check if version is high enough for epochs
-        v_to_low = _compare_version(mne_qt_browser.__version__, '<', '0.2.0')
-        is_epochs = request.function.__module__ == 'mne.viz.tests.test_epochs'
-        is_ica = request.function.__module__ == 'mne.viz.tests.test_ica'
-        if v_to_low and is_epochs:
-            pytest.skip('No Epochs tests for mne-qt-browser < 0.2.0')
-        elif v_to_low and is_ica:
-            pytest.skip('No ICA tests for mne-qt-browser < 0.2.0')
+        # Check mne-qt-browser version
+        lower_2_0 = _compare_version(mne_qt_browser.__version__, '<', '0.2.0')
+        m_name = request.function.__module__
+        f_name = request.function.__name__
+        if lower_2_0 and m_name in pre_2_0_skip_modules:
+            pytest.skip(f'Test-Module "{m_name}" was skipped for'
+                        f' mne-qt-browser < 0.2.0')
+        elif lower_2_0 and f_name in pre_2_0_skip_funcs:
+            pytest.skip(f'Test "{f_name}" was skipped for '
+                        f'mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip('Requires mne_qt_browser')
 
@@ -663,6 +676,7 @@ def options_3d():
         os.environ, {
             "MNE_3D_OPTION_ANTIALIAS": "false",
             "MNE_3D_OPTION_DEPTH_PEELING": "false",
+            "MNE_3D_OPTION_SMOOTH_SHADING": "false",
         }
     ):
         yield

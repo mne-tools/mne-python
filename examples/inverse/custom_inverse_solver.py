@@ -28,10 +28,11 @@ from mne.viz import plot_sparse_source_estimates
 
 
 data_path = sample.data_path()
-fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-ave_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
-cov_fname = data_path + '/MEG/sample/sample_audvis-shrunk-cov.fif'
-subjects_dir = data_path + '/subjects'
+meg_path = data_path / 'MEG' / 'sample'
+fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+ave_fname = meg_path / 'sample_audvis-ave.fif'
+cov_fname = meg_path / 'sample_audvis-shrunk-cov.fif'
+subjects_dir = data_path / 'subjects'
 condition = 'Left Auditory'
 
 # Read noise covariance matrix

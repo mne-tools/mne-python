@@ -21,10 +21,10 @@ def test_notebook_alignment(renderer_notebook, brain_gc, nbexec):
     """Test plot alignment in a notebook."""
     import mne
     data_path = mne.datasets.testing.data_path()
-    raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
-    subjects_dir = data_path + '/subjects'
+    raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_trunc_raw.fif'
+    subjects_dir = data_path / 'subjects'
     subject = 'sample'
-    trans = data_path + '/MEG/sample/sample_audvis_trunc-trans.fif'
+    trans = data_path / 'MEG' / 'sample' / 'sample_audvis_trunc-trans.fif'
     info = mne.io.read_info(raw_fname)
     mne.viz.set_3d_backend('notebook')
     fig = mne.viz.plot_alignment(

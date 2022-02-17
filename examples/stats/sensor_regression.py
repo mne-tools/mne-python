@@ -36,7 +36,7 @@ from mne.viz import plot_compare_evokeds
 from mne.datasets import kiloword
 
 # Load the data
-path = kiloword.data_path() + '/kword_metadata-epo.fif'
+path = kiloword.data_path() / 'kword_metadata-epo.fif'
 epochs = mne.read_epochs(path)
 print(epochs.metadata.head())
 

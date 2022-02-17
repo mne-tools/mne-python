@@ -2618,8 +2618,9 @@ class Brain(object):
 
         # Store the foci in the Brain._data dictionary
         data_foci = coords
-        if 'foci' in self._data[hemi]:
+        if 'foci' in self._data.get(hemi, []):
             data_foci = np.vstack((self._data[hemi]['foci'], data_foci))
+        self._data[hemi] = self._data.get(hemi, dict())  # no data added yet
         self._data[hemi]['foci'] = data_foci
 
     @verbose

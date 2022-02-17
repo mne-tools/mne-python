@@ -30,7 +30,7 @@ from mne.io.constants import FIFF
 from mne.minimum_norm import apply_inverse
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
-                     plot_alignment,
+                     plot_alignment, Figure3D,
                      plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
@@ -139,9 +139,10 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     stc_data[1, 4] = 2.
     vertices = [vertices[inds], np.empty(0, dtype=np.int64)]
     stc = SourceEstimate(stc_data, vertices, 1, 1)
-    plot_sparse_source_estimates(
+    out = plot_sparse_source_estimates(
         sample_src, stc, bgcolor=(1, 1, 1), opacity=0.5,
         high_resolution=False)
+    assert isinstance(out, Figure3D)
 
 
 @testing.requires_testing_data
@@ -161,6 +162,7 @@ def test_plot_evoked_field(renderer):
 
 def _assert_n_actors(fig, renderer, n_actors):
     __tracebackhide__ = True
+    assert isinstance(fig, Figure3D)
     assert len(fig.plotter.renderer.actors) == n_actors
 
 
@@ -191,6 +193,7 @@ def test_plot_alignment_meg(renderer, system):
     fig = plot_alignment(
         this_info, read_trans(trans_fname), subject='sample',
         subjects_dir=subjects_dir, meg=meg, eeg=False)
+    assert isinstance(fig, Figure3D)
     # count the number of objects: should be n_meg_ch + 1 (helmet) + 1 (head)
     use_info = pick_info(this_info, pick_types(
         this_info, meg=True, eeg=False, ref_meg='ref' in meg, exclude=()))
@@ -239,10 +242,12 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
     # mixed source space
     mixed_src = mixed_fwd_cov_evoked[0]['src']
     assert mixed_src.kind == 'mixed'
-    plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
-                   coord_frame='head', trans=Path(trans_fname),
-                   subject='sample', mri_fiducials=fiducials_path,
-                   subjects_dir=subjects_dir, src=mixed_src)
+    fig = plot_alignment(
+        info, meg=['helmet', 'sensors'], dig=True,
+        coord_frame='head', trans=Path(trans_fname),
+        subject='sample', mri_fiducials=fiducials_path,
+        subjects_dir=subjects_dir, src=mixed_src)
+    assert isinstance(fig, Figure3D)
     renderer.backend._close_all()
     # no-head version
     renderer.backend._close_all()
@@ -631,9 +636,10 @@ def test_plot_dipole_orientations(renderer):
     trans = read_trans(trans_fname)
     for coord_frame, mode in zip(['head', 'mri'],
                                  ['arrow', 'sphere']):
-        dipoles.plot_locations(trans=trans, subject='sample',
-                               subjects_dir=subjects_dir,
-                               mode=mode, coord_frame=coord_frame)
+        fig = dipoles.plot_locations(
+            trans=trans, subject='sample', subjects_dir=subjects_dir,
+            mode=mode, coord_frame=coord_frame)
+        assert isinstance(fig, Figure3D)
     renderer.backend._close_all()
 
 

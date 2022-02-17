@@ -49,7 +49,8 @@ def test_datasets(monkeypatch, tmp_path):
         fid.write('9999.9999')
     monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmp_path))
     monkeypatch.setenv('MNE_DATASETS_TESTING_PATH', str(tmp_path))
-    assert testing.data_path(download=False, verbose='debug') == str(fake_path)
+    got_path = str(testing.data_path(download=False, verbose='debug'))
+    assert got_path == str(fake_path)
 
 
 def test_url_to_local_path():

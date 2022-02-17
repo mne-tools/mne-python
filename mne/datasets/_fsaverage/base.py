@@ -5,7 +5,6 @@
 import os
 import os.path as op
 
-
 from ..utils import _manifest_check_download, _get_path
 from ...utils import verbose, get_subjects_dir, set_config
 

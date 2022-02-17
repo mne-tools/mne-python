@@ -108,6 +108,8 @@ Enhancements
 
 - The ``map_surface`` parameter of :meth:`mne.viz.Brain.add_foci` now works and allows you to add foci to a rendering of a brain that are positioned at the vertex of the mesh closest to the given coordinates (:gh:`10299` by `Marijn van Vliet`_)
 
+- :meth:`mne.preprocessing.ICA.plot_sources()` is now also supported by the ``qt`` backend (:gh:`10330` by `Martin Schulz`_)
+
 Bugs
 ~~~~
 
@@ -197,6 +199,8 @@ Bugs
 
 - Fix bug with :meth:`mne.Report.add_figure` where figures generated externally were closed and possibly resized during render (:gh:`10342` by `Eric Larson`_)
 
+- Fix bug with :func:`mne.viz.plot_sparse_source_estimates` where the return value was incorrect (:gh:`10347` by `Eric Larson`_)
+
 - Fix plotting bug in :ref:`ex-electrode-pos-2d` and make view look more natural in :ref:`ex-movement-detect` (:gh:`10313`, by `Alex Rockhill`_)
 
 - Fix a bug in :func:`mne.gui.locate_ieeg` where 2D lines on slice plots failed to update and were shown when not in maximum projection mode (:gh:`10335`, by `Alex Rockhill`_)
@@ -204,6 +208,8 @@ Bugs
 API changes
 ~~~~~~~~~~~
 - ``mne.Info.pick_channels`` has been deprecated. Use ``inst.pick_channels`` to pick channels from :class:`~mne.io.Raw`, :class:`~mne.Epochs`, and :class:`~mne.Evoked`. Use :func:`mne.pick_info` to pick channels from :class:`mne.Info` (:gh:`10039` by `Mathieu Scheltienne`_)
+
+- All :func:`data_path <mne.datasets.sample.data_path>` functions now return :class:`python:pathlib.Path` objects rather than strings. Support for string concatenation with plus (``+``) is thus deprecated and will be removed in 1.2, use the forward-slash ``/`` operator instead (:gh:`10348` by `Eric Larson`_)
 
 - Argument ``event_list`` has been deprecated in favor of ``events`` in :func:`mne.write_events` (:gh:`10056` by `Mathieu Scheltienne`_)
 

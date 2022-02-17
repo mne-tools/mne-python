@@ -46,11 +46,11 @@ bem_dir = op.join(subjects_dir, subject, 'bem')
 bem_fname = op.join(subjects_dir, subject, 'bem',
                     subject + '-5120-5120-5120-bem-sol.fif')
 src_fname = op.join(bem_dir, '%s-oct6-src.fif' % subject)
-vv_fname = data_path + '/MEG/SQUID/SQUID_resting_state.fif'
-vv_erm_fname = data_path + '/MEG/SQUID/SQUID_empty_room.fif'
-vv_trans_fname = data_path + '/MEG/SQUID/SQUID-trans.fif'
-opm_fname = data_path + '/MEG/OPM/OPM_resting_state_raw.fif'
-opm_erm_fname = data_path + '/MEG/OPM/OPM_empty_room_raw.fif'
+vv_fname = data_path / 'MEG' / 'SQUID' / 'SQUID_resting_state.fif'
+vv_erm_fname = data_path / 'MEG' / 'SQUID' / 'SQUID_empty_room.fif'
+vv_trans_fname = data_path / 'MEG' / 'SQUID' / 'SQUID-trans.fif'
+opm_fname = data_path / 'MEG' / 'OPM' / 'OPM_resting_state_raw.fif'
+opm_erm_fname = data_path / 'MEG' / 'OPM' / 'OPM_empty_room_raw.fif'
 opm_trans = mne.transforms.Transform('head', 'mri')  # use identity transform
 opm_coil_def_fname = op.join(data_path, 'MEG', 'OPM', 'coil_def.dat')
 

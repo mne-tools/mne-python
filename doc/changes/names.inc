@@ -14,7 +14,7 @@
 
 .. _Simon Kornblith: http://simonster.com
 
-.. _Teon Brooks: https://teonbrooks.github.io
+.. _Teon Brooks: https://teonbrooks.com
 
 .. _Mainak Jas: https://jasmainak.github.io
 

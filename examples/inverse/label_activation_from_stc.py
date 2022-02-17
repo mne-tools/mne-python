@@ -15,8 +15,6 @@ formed through merging two labels.
 
 # %%
 
-import os
-
 import mne
 from mne.datasets import sample
 import matplotlib.pyplot as plt
@@ -24,15 +22,15 @@ import matplotlib.pyplot as plt
 print(__doc__)
 
 data_path = sample.data_path()
-os.environ['SUBJECTS_DIR'] = data_path + '/subjects'
-meg_path = data_path + '/MEG/sample'
+subjects_dir = data_path / 'subjects'
+meg_path = data_path / 'MEG' / 'sample'
 
 # load the stc
-stc = mne.read_source_estimate(meg_path + '/sample_audvis-meg')
+stc = mne.read_source_estimate(meg_path / 'sample_audvis-meg')
 
 # load the labels
-aud_lh = mne.read_label(meg_path + '/labels/Aud-lh.label')
-aud_rh = mne.read_label(meg_path + '/labels/Aud-rh.label')
+aud_lh = mne.read_label(meg_path / 'labels' / 'Aud-lh.label')
+aud_rh = mne.read_label(meg_path / 'labels' / 'Aud-rh.label')
 
 # extract the time course for different labels from the stc
 stc_lh = stc.in_label(aud_lh)
@@ -40,10 +38,10 @@ stc_rh = stc.in_label(aud_rh)
 stc_bh = stc.in_label(aud_lh + aud_rh)
 
 # calculate center of mass and transform to mni coordinates
-vtx, _, t_lh = stc_lh.center_of_mass('sample')
-mni_lh = mne.vertex_to_mni(vtx, 0, 'sample')[0]
-vtx, _, t_rh = stc_rh.center_of_mass('sample')
-mni_rh = mne.vertex_to_mni(vtx, 1, 'sample')[0]
+vtx, _, t_lh = stc_lh.center_of_mass('sample', subjects_dir=subjects_dir)
+mni_lh = mne.vertex_to_mni(vtx, 0, 'sample', subjects_dir=subjects_dir)[0]
+vtx, _, t_rh = stc_rh.center_of_mass('sample', subjects_dir=subjects_dir)
+mni_rh = mne.vertex_to_mni(vtx, 1, 'sample', subjects_dir=subjects_dir)[0]
 
 # plot the activation
 plt.figure()

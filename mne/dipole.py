@@ -13,7 +13,7 @@ import re
 
 import numpy as np
 
-from .cov import read_cov, compute_whitener
+from .cov import compute_whitener, _ensure_cov
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .io.proj import make_projector, _needs_eeg_average_ref_proj
@@ -243,8 +243,8 @@ class Dipole(_VerboseDep):
             The scale of the dipoles if ``mode`` is 'arrow' or 'sphere'.
         color : tuple
             The color of the dipoles if ``mode`` is 'arrow' or 'sphere'.
-        fig : PyVista renderer | None
-            PyVista Scene in which to plot the alignment.
+        fig : instance of Figure3D | None
+            PyVista figure in which to plot the alignment.
             If ``None``, creates a new 600x600 pixel figure with black
             background.
 
@@ -256,7 +256,7 @@ class Dipole(_VerboseDep):
 
         Returns
         -------
-        fig : instance of PyVista renderer or matplotlib.figure.Figure
+        fig : instance of Figure3D or matplotlib.figure.Figure
             The PyVista figure or matplotlib Figure.
 
         Notes
@@ -1376,9 +1376,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
                         % (1000 * guess_exclude,))
         logger.info(f'Using {accuracy} MEG coil definitions.')
         fit_n_jobs = n_jobs
-    if isinstance(cov, str):
-        logger.info('Noise covariance  : %s' % (cov,))
-        cov = read_cov(cov, verbose=False)
+    cov = _ensure_cov(cov)
     logger.info('')
 
     _print_coord_trans(mri_head_t)

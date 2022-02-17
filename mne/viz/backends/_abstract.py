@@ -894,3 +894,33 @@ class _AbstractWindow(ABC):
     @abstractmethod
     def _window_set_theme(self, theme):
         pass
+
+
+class Figure3D(ABC):
+    """Class that refers to a 3D figure.
+
+    .. note::
+        This class is not meant to be instantiated directly, use
+        :func:`mne.viz.create_3d_figure` instead.
+    """
+
+    # Here we use _init rather than __init__ so that users are less tempted to
+    # instantiate the class directly. It also helps us
+    # document the class more easily, as we don't have to say what all the
+    # params are in public docs.
+
+    @abstractclassmethod
+    def _init(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
+              name=None, show=False, shape=(1, 1)):
+        pass
+
+    @property
+    def plotter(self):
+        """The native 3D plotting widget.
+
+        Returns
+        -------
+        plotter : instance of pyvista.Plotter
+            The plotter. Useful for interacting with the native 3D library.
+        """
+        return self._plotter
