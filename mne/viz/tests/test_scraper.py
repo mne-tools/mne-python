@@ -8,6 +8,7 @@ import os.path as op
 
 def test_pg_scraper(raw, pg_backend, tmp_path):
     """Test sphinx-gallery scraping of the browser."""
+    # make sure there is only one to scrape from old tests
     fig = raw.plot()
     (tmp_path / '_images').mkdir()
     image_path = str(tmp_path / '_images' / 'temp.png')

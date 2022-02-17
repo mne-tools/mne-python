@@ -436,6 +436,9 @@ def pg_backend(request, garbage_collect):
     with use_browser_backend('qt') as backend:
         yield backend
         backend._close_all()
+        # This shouldn't be necessary, but let's make sure nothing is stale
+        import mne_qt_browser
+        mne_qt_browser._browser_instances.clear()
 
 
 @pytest.fixture(params=[
