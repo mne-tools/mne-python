@@ -26,7 +26,6 @@ jobs:
       MKL_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
       PYTHON_VERSION: '3.9'
-      MNE_BROWSER_PRECOMPUTE: 'false'
     steps:
       - uses: actions/checkout@v2
       - run: ./tools/setup_xvfb.sh

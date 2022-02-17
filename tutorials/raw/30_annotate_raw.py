@@ -131,7 +131,7 @@ fig = raw.plot(start=2, duration=6)
 # first enter "annotation mode" by pressing :kbd:`a` while the plot window is
 # focused; this will bring up the annotation controls window:
 
-fig._fake_keypress('a')
+fig.fake_keypress('a')
 
 # %%
 # The colored rings are clickable, and determine which existing label will be

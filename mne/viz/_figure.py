@@ -558,6 +558,19 @@ class BrowserBase(ABC):
         # This method is a fix for mpl issue #18609, which still seems to
         # be a problem with matplotlib==3.4.
         pass
+
+    def fake_keypress(self, key, fig=None):  # noqa: D400
+        """Pass a fake keypress to the figure.
+
+        Parameters
+        ----------
+        key : str
+            The key to fake (e.g., ``'a'``).
+        fig : instance of Figure
+            The figure to pass the keypress to.
+        """
+        return self._fake_keypress(key, fig=fig)
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # TEST METHODS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
