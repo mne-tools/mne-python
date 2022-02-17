@@ -24,7 +24,7 @@ from ..io.meas_info import create_info, _validate_type
 
 from ..io.pick import (_get_channel_types, _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _VALID_CHANNEL_TYPES)
-from .utils import (_show_browser, tight_layout, _setup_vmin_vmax, plt_show,
+from .utils import (tight_layout, _setup_vmin_vmax, plt_show,
                     _check_cov, _handle_precompute,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _handle_decim, _set_title_multiple_electrodes,

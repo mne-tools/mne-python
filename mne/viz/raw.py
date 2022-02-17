@@ -20,8 +20,7 @@ from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (plt_show, _compute_scalings, _handle_decim, _check_cov,
                     _shorten_path_from_middle, _handle_precompute,
-                    _get_channel_plotting_order, _make_event_color_dict,
-                    _show_browser)
+                    _get_channel_plotting_order, _make_event_color_dict)
 
 _RAW_CLIP_DEF = 1.5
 
