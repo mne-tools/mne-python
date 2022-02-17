@@ -113,7 +113,7 @@ Enhancements
 Bugs
 ~~~~
 
-- Add Shift_JIST mu in :func:`mne.io.edf.read_raw_edf` (:gh:`10356` by :newcontrib:`Michiru Kaneda`)
+- Add Shift_JIST mu in :func:`mne.io.read_raw_edf` (:gh:`10356` by :newcontrib:`Michiru Kaneda`)
 
 - Teach :func:`mne.io.read_raw_bti` to use its ``eog_ch`` parameter (:gh:`10093` by :newcontrib:`Adina Wagner`)
 
