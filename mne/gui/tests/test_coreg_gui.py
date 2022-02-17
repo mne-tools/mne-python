@@ -213,12 +213,15 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._head_resolution == \
         (config.get('MNE_COREG_HEAD_HIGH_RES', 'true') == 'true')
 
+    assert coreg._trans_modified
     tmp_trans = tmp_path / 'tmp-trans.fif'
     coreg._save_trans(tmp_trans)
+    assert not coreg._trans_modified
     assert op.isfile(tmp_trans)
 
     # test _close_callback()
     coreg._set_automatic_cleanup(False)
+    assert coreg._fids_modified
     coreg.close()
     coreg._widgets['close_dialog'].trigger('Cancel')  # do not save
     coreg._clean()  # finally, cleanup internal structures
