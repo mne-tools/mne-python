@@ -73,6 +73,7 @@ known_config_types = (
     'MNE_BROWSE_RAW_SIZE',
     'MNE_BROWSER_BACKEND',
     'MNE_BROWSER_USE_OPENGL',
+    'MNE_BROWSER_PRECOMPUTE',
     'MNE_CACHE_DIR',
     'MNE_COREG_ADVANCED_RENDERING',
     'MNE_COREG_COPY_ANNOT',
@@ -515,7 +516,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     """  # noqa: E501
     _validate_type(dependencies, str)
     _check_option('dependencies', dependencies, ('user', 'developer'))
-    ljust = 21 if dependencies == 'developer' else 16
+    ljust = 21 if dependencies == 'developer' else 18
     platform_str = platform.platform()
     if platform.system() == 'Darwin' and sys.version_info[:2] < (3, 8):
         # platform.platform() in Python < 3.8 doesn't call

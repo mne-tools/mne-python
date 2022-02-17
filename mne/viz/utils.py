@@ -13,17 +13,19 @@
 # License: Simplified BSD
 from collections import defaultdict
 from contextlib import contextmanager
-from functools import partial
-import difflib
-import webbrowser
-import tempfile
-import math
-import sys
-import traceback
-import numpy as np
-import warnings
 from datetime import datetime
+import difflib
+from functools import partial
+import math
+import os
+import sys
+import tempfile
+import traceback
+import warnings
+import webbrowser
+
 from decorator import decorator
+import numpy as np
 
 from ..defaults import _handle_default
 from ..fixes import _get_args
@@ -129,12 +131,15 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
         If to block execution on showing.
     fig : instance of Figure | None
         Needs to be passed for Qt backend,
-         optional for matplotlib.
+        optional for matplotlib.
     **kwargs : dict
         Extra arguments for :func:`matplotlib.pyplot.show`.
     """
     from ._figure import get_browser_backend
+    _validate_type(block, bool, 'block')
     backend = get_browser_backend()
+    if os.getenv('_MNE_BROWSER_NO_BLOCK', 'false').lower() == 'true':
+        block = False
     if backend == 'matplotlib':
         plt_show(show, block=block, **kwargs)
     else:
@@ -1399,7 +1404,7 @@ class DraggableColorbar(object):
         self.cbar.ax.figure.canvas.draw()
 
 
-class SelectFromCollection(object):
+class SelectFromCollection:
     """Select channels from a matplotlib collection using ``LassoSelector``.
 
     Selected channels are saved in the ``selection`` attribute. This tool
@@ -1422,7 +1427,8 @@ class SelectFromCollection(object):
     Notes
     -----
     This tool selects collection objects based on their *origins*
-    (i.e., ``offsets``). Emits mpl event 'lasso_event' when selection is ready.
+    (i.e., ``offsets``). Calls all callbacks in self.callbacks when selection
+    is ready.
     """
 
     def __init__(self, ax, collection, ch_names, alpha_other=0.5,
@@ -1455,6 +1461,7 @@ class SelectFromCollection(object):
         line_kw = _prop_kw('line', dict(color='red', linewidth=0.5))
         self.lasso = LassoSelector(ax, onselect=self.on_select, **line_kw)
         self.selection = list()
+        self.callbacks = list()
 
     def on_select(self, verts):
         """Select a subset from the collection."""
@@ -1471,7 +1478,7 @@ class SelectFromCollection(object):
 
         self.selection[:] = np.array(self.ch_names)[inds].tolist()
         self.style_sensors(inds)
-        self.canvas.callbacks.process('lasso_event')
+        self.notify()
 
     def select_one(self, ind):
         """Select or deselect one sensor."""
@@ -1483,7 +1490,12 @@ class SelectFromCollection(object):
             self.selection.append(ch_name)
         inds = np.in1d(self.ch_names, self.selection).nonzero()[0]
         self.style_sensors(inds)
-        self.canvas.callbacks.process('lasso_event')
+        self.notify()
+
+    def notify(self):
+        """Notify listeners that a selection has been made."""
+        for callback in self.callbacks:
+            callback()
 
     def select_many(self, inds):
         """Select many sensors using indices (for predefined selections)."""
@@ -2381,3 +2393,14 @@ def _prop_kw(kind, val):
     from matplotlib.widgets import SpanSelector
     pre = '' if 'props' in _get_args(SpanSelector) else kind
     return {pre + 'props': val}
+
+
+def _handle_precompute(precompute):
+    _validate_type(precompute, (bool, str, None), 'precompute')
+    if precompute is None:
+        precompute = get_config('MNE_BROWSER_PRECOMPUTE', 'auto').lower()
+        _check_option('MNE_BROWSER_PRECOMPUTE',
+                      precompute, ('true', 'false', 'auto'),
+                      extra='when precompute=None is used')
+        precompute = dict(true=True, false=False, auto='auto')[precompute]
+    return precompute

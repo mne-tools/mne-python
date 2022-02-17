@@ -1295,7 +1295,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         instructions_ax.set_axis_off()
         # add event listeners
         radio_ax.buttons.on_clicked(fig._radiopress)
-        fig.canvas.mpl_connect('lasso_event', fig._set_custom_selection)
+        fig.lasso.callbacks.append(fig._set_custom_selection)
 
     def _change_selection_vscroll(self, event):
         """Handle clicks on vertical scrollbar when using selections."""
@@ -2245,6 +2245,10 @@ def _init_browser(**kwargs):
         # if requested (doesn't work well in init)
         if fig.mne.group_by in ('selection', 'position'):
             fig._create_selection_fig()
+
+    # start with projectors dialog open, if requested
+    if getattr(fig.mne, 'show_options', False):
+        fig._toggle_proj_fig()
 
     # update data, and plot
     fig._update_trace_offsets()

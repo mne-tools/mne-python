@@ -20,7 +20,7 @@ from ..defaults import _handle_default
 from ..utils import logger, _validate_type, _check_option
 from ..io.pick import _DATA_CH_TYPES_SPLIT
 from .backends._utils import VALID_BROWSE_BACKENDS
-from .utils import _get_color_list, _setup_plot_projector
+from .utils import _get_color_list, _setup_plot_projector, _show_browser
 
 MNE_BROWSER_BACKEND = None
 backend = None
@@ -558,6 +558,19 @@ class BrowserBase(ABC):
         # This method is a fix for mpl issue #18609, which still seems to
         # be a problem with matplotlib==3.4.
         pass
+
+    def fake_keypress(self, key, fig=None):  # noqa: D400
+        """Pass a fake keypress to the figure.
+
+        Parameters
+        ----------
+        key : str
+            The key to fake (e.g., ``'a'``).
+        fig : instance of Figure
+            The figure to pass the keypress to.
+        """
+        return self._fake_keypress(key, fig=fig)
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # TEST METHODS
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -604,7 +617,7 @@ def _load_backend(backend_name):
     return backend
 
 
-def _get_browser(**kwargs):
+def _get_browser(show, block, **kwargs):
     """Instantiate a new MNE browse-style figure."""
     from .utils import _get_figsize_from_config
     figsize = kwargs.setdefault('figsize', _get_figsize_from_config())
@@ -630,13 +643,15 @@ def _get_browser(**kwargs):
                         f'Defaults to matplotlib.')
             with use_browser_backend('matplotlib'):
                 # Initialize Browser
-                browser = backend._init_browser(**kwargs)
-                return browser
+                fig = backend._init_browser(**kwargs)
+                _show_browser(show=show, block=block, fig=fig)
+                return fig
 
     # Initialize Browser
-    browser = backend._init_browser(**kwargs)
+    fig = backend._init_browser(**kwargs)
+    _show_browser(show=show, block=block, fig=fig)
 
-    return browser
+    return fig
 
 
 def _check_browser_backend_name(backend_name):
@@ -658,7 +673,7 @@ def set_browser_backend(backend_name, verbose=None):
     ----------
     backend_name : str
         The 2D browser backend to select. See Notes for the capabilities
-        of each backend (``'matplotlib'``, ``'qt'``). The ``'qt'`` browser
+        of each backend (``'qt'``, ``'matplotlib'``). The ``'qt'`` browser
         requires `mne-qt-browser
         <https://github.com/mne-tools/mne-qt-browser>`__.
     %(verbose)s
@@ -683,7 +698,7 @@ def set_browser_backend(backend_name, verbose=None):
        +--------------------------------------+------------+----+
        | :func:`plot_epochs`                  | ✓          | ✓  |
        +--------------------------------------+------------+----+
-       | :func:`plot_ica_sources`             | ✓          |    |
+       | :func:`plot_ica_sources`             | ✓          | ✓  |
        +--------------------------------------+------------+----+
        +--------------------------------------+------------+----+
        | **Feature:**                                           |
@@ -769,7 +784,7 @@ def use_browser_backend(backend_name):
 
     Parameters
     ----------
-    backend_name : {'matplotlib', 'qt'}
+    backend_name : {'qt', 'matplotlib'}
         The 2D browser backend to use in the context.
     """
     old_backend = set_browser_backend(backend_name)

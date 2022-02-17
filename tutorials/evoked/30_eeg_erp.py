@@ -116,7 +116,8 @@ fig = raw.plot_sensors('3d')
 # by plotting with and without the projector applied:
 
 for proj in (False, True):
-    fig = raw.plot(n_channels=5, proj=proj, scalings=dict(eeg=50e-6))
+    with mne.viz.use_browser_backend('matplotlib'):
+        fig = raw.plot(n_channels=5, proj=proj, scalings=dict(eeg=50e-6))
     fig.subplots_adjust(top=0.9)  # make room for title
     ref = 'Average' if proj else 'No'
     fig.suptitle(f'{ref} reference', size='xx-large', weight='bold')

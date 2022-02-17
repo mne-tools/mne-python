@@ -58,7 +58,7 @@ stcs = source_band_induced_power(epochs, inverse_operator, bands, n_cycles=2,
                                  use_fft=False, n_jobs=1)
 
 for b, stc in stcs.items():
-    stc.save('induced_power_%s' % b)
+    stc.save('induced_power_%s' % b, overwrite=True)
 
 # %%
 # plot mean power

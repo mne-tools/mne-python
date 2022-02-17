@@ -49,7 +49,7 @@ events = mne.read_events(events_file)
 # existing annotation labels can be selected for use.
 
 fig = raw.plot()
-fig.canvas.key_press_event('a')
+fig.fake_keypress('a')
 
 # %%
 # .. sidebar:: Annotating good spans

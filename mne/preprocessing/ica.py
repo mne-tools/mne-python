@@ -1951,7 +1951,7 @@ class ICA(ContainsMixin, _VerboseDep):
     def plot_sources(self, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True,
-                     time_format='float', precompute='auto',
+                     time_format='float', precompute=None,
                      use_opengl=None):
         return plot_ica_sources(self, inst=inst, picks=picks,
                                 start=start, stop=stop, title=title, show=show,
