@@ -1878,14 +1878,10 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
 
 def _check_cov(noise_cov, info):
     """Check the noise_cov for whitening and issue an SSS warning."""
-    from ..cov import read_cov, Covariance
+    from ..cov import _ensure_cov
     if noise_cov is None:
         return None
-    if isinstance(noise_cov, str):
-        noise_cov = read_cov(noise_cov)
-    if not isinstance(noise_cov, Covariance):
-        raise TypeError('noise_cov must be a str or Covariance, got %s'
-                        % (type(noise_cov),))
+    noise_cov = _ensure_cov(noise_cov, name='noise_cov', verbose=False)
     if _check_sss(info)[2]:  # has_sss
         warn('Data have been processed with SSS, which changes the relative '
              'scaling of magnetometers and gradiometers when viewing data '

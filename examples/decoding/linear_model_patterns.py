@@ -38,12 +38,12 @@ from mne.decoding import LinearModel
 print(__doc__)
 
 data_path = sample.data_path()
-sample_path = data_path + '/MEG/sample'
+sample_path = data_path / 'MEG' / 'sample'
 
 # %%
 # Set parameters
-raw_fname = sample_path + '/sample_audvis_filt-0-40_raw.fif'
-event_fname = sample_path + '/sample_audvis_filt-0-40_raw-eve.fif'
+raw_fname = sample_path / 'sample_audvis_filt-0-40_raw.fif'
+event_fname = sample_path / 'sample_audvis_filt-0-40_raw-eve.fif'
 tmin, tmax = -0.1, 0.4
 event_id = dict(aud_l=1, vis_l=3)
 

@@ -22,9 +22,10 @@ print(__doc__)
 
 data_path = sample.data_path()
 
-subjects_dir = data_path + '/subjects'
-fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-ecg_fname = data_path + '/MEG/sample/sample_audvis_ecg-proj.fif'
+subjects_dir = data_path / 'subjects'
+meg_path = data_path / 'MEG' / 'sample'
+fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+ecg_fname = meg_path / 'sample_audvis_ecg-proj.fif'
 
 fwd = read_forward_solution(fname)
 

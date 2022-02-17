@@ -67,7 +67,8 @@ from scipy.stats import ttest_rel
 
 # Load raw data
 data_path = mne.datasets.ssvep.data_path()
-bids_fname = data_path + '/sub-02/ses-01/eeg/sub-02_ses-01_task-ssvep_eeg.vhdr'
+bids_fname = (data_path / 'sub-02' / 'ses-01' / 'eeg' /
+              'sub-02_ses-01_task-ssvep_eeg.vhdr')
 
 raw = mne.io.read_raw_brainvision(bids_fname, preload=True, verbose=False)
 raw.info['line_freq'] = 50.

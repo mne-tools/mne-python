@@ -23,14 +23,15 @@ from mne.minimum_norm import make_inverse_operator, apply_inverse
 print(__doc__)
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
+subjects_dir = data_path / 'subjects'
 
 # Read data (just MEG here for speed, though we could use MEG+EEG)
-fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
+meg_path = data_path / 'MEG' / 'sample'
+fname_evoked = meg_path / 'sample_audvis-ave.fif'
 evoked = mne.read_evokeds(fname_evoked, condition='Right Auditory',
                           baseline=(None, 0))
-fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
-fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
+fname_fwd = meg_path / 'sample_audvis-meg-oct-6-fwd.fif'
+fname_cov = meg_path / 'sample_audvis-cov.fif'
 fwd = mne.read_forward_solution(fname_fwd)
 cov = mne.read_cov(fname_cov)
 # crop for speed in these examples

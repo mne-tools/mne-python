@@ -36,8 +36,9 @@ print(__doc__)
 # %%
 # Set parameters
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_raw.fif'
+event_fname = meg_path / 'sample_audvis_raw-eve.fif'
 tmin, tmax = -0.2, 0.5
 
 # Setup for reading the raw data

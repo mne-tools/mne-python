@@ -27,7 +27,7 @@ parcellation from :footcite:`KhanEtAl2018`.
 import mne
 Brain = mne.viz.get_brain_class()
 
-subjects_dir = mne.datasets.sample.data_path() + '/subjects'
+subjects_dir = mne.datasets.sample.data_path() / 'subjects'
 mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=subjects_dir,
                                         verbose=True)
 

@@ -423,3 +423,5 @@
 .. _Adina Wagner: https://github.com/adswa
 
 .. _Senwen Deng: https://snwn.de
+
+.. _Michiru Kaneda: https://github.com/rcmdnk
