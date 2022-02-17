@@ -176,6 +176,7 @@ class CoregistrationUI(HasTraits):
         self._fiducials_file = None
         self._trans_saved = False
         self._fids_saved = False
+        self._auto_cleanup = True
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
             ('lpa', 'nasion', 'rpa'))
@@ -1703,6 +1704,10 @@ class CoregistrationUI(HasTraits):
             'status_message', 'hide', value=None, input_value=False
         )
 
+    def _set_automatic_cleanup(self, state):
+        """Enable/Disable automatic cleanup (for testing purposes only)."""
+        self._auto_cleanup = state
+
     def _clean(self):
         self._renderer = None
         self._widgets.clear()
@@ -1752,4 +1757,5 @@ class CoregistrationUI(HasTraits):
             )
             self._widgets["close_dialog"].show()
 
-        self._clean()
+        if self._auto_cleanup:
+            self._clean()

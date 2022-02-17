@@ -217,7 +217,12 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     coreg._save_trans(tmp_trans)
     assert op.isfile(tmp_trans)
 
+    # test _close_callback()
+    coreg._set_automatic_cleanup(False)
     coreg.close()
+    coreg._widgets['close_dialog'].trigger('Cancel')  # do not save
+    coreg._clean()  # finally, cleanup internal structures
+
     # Coregistration instance should survive
     assert isinstance(coreg.coreg, Coregistration)
 
