@@ -13,17 +13,19 @@
 # License: Simplified BSD
 from collections import defaultdict
 from contextlib import contextmanager
-from functools import partial
-import difflib
-import webbrowser
-import tempfile
-import math
-import sys
-import traceback
-import numpy as np
-import warnings
 from datetime import datetime
+import difflib
+from functools import partial
+import math
+import os
+import sys
+import tempfile
+import traceback
+import warnings
+import webbrowser
+
 from decorator import decorator
+import numpy as np
 
 from ..defaults import _handle_default
 from ..fixes import _get_args
@@ -134,7 +136,10 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
         Extra arguments for :func:`matplotlib.pyplot.show`.
     """
     from ._figure import get_browser_backend
+    _validate_type(block, bool, 'block')
     backend = get_browser_backend()
+    if os.getenv('_MNE_BROWSER_NO_BLOCK', 'false').lower() == 'true':
+        block = False
     if backend == 'matplotlib':
         plt_show(show, block=block, **kwargs)
     else:

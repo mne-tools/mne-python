@@ -30,6 +30,7 @@ from mne.viz import Brain  # noqa
 
 matplotlib.use('agg')
 faulthandler.enable()
+os.environ['_MNE_BROWSER_NO_BLOCK'] = 'true'
 
 # -- Path setup --------------------------------------------------------------
 

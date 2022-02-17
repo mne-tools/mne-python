@@ -66,7 +66,8 @@ def pytest_configure(config):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
-    for fixture in ('matplotlib_config', 'close_all', 'check_verbose'):
+    for fixture in ('matplotlib_config', 'close_all', 'check_verbose',
+                    'qt_config'):
         config.addinivalue_line('usefixtures', fixture)
 
     # Warnings
@@ -180,6 +181,12 @@ def verbose_debug():
     """Run a test with debug verbosity."""
     with mne.utils.use_log_level('debug'):
         yield
+
+
+@pytest.fixture(scope='session')
+def qt_config():
+    """Configure the Qt backend for viz tests."""
+    os.environ['_MNE_BROWSER_NO_BLOCK'] = 'true'
 
 
 @pytest.fixture(scope='session')
