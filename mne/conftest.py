@@ -135,6 +135,8 @@ def pytest_configure(config):
     # Jupyter notebook stuff
     ignore:.*unclosed context <zmq\.asyncio\.*:ResourceWarning
     ignore:.*unclosed event loop <.*:ResourceWarning
+    # TODO: This is indicative of a problem
+    ignore:.*Matplotlib is currently using agg.*:
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
@@ -434,6 +436,7 @@ def pg_backend(request, garbage_collect):
     """Use for pyqtgraph-specific test-functions."""
     _check_pyqtgraph(request)
     with use_browser_backend('qt') as backend:
+        backend._close_all()
         yield backend
         backend._close_all()
         # This shouldn't be necessary, but let's make sure nothing is stale
@@ -451,8 +454,13 @@ def browser_backend(request, garbage_collect):
     if backend_name == 'qt':
         _check_pyqtgraph(request)
     with use_browser_backend(backend_name) as backend:
+        backend._close_all()
         yield backend
         backend._close_all()
+        if backend_name == 'qt':
+            # This shouldn't be necessary, but let's make sure nothing is stale
+            import mne_qt_browser
+            mne_qt_browser._browser_instances.clear()
 
 
 @pytest.fixture(params=["pyvistaqt"])
