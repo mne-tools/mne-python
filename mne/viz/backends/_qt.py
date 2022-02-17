@@ -59,7 +59,9 @@ class _QtDialog(_AbstractDialog):
         widget.setDefaultButton(default_button)
 
         def func(button):
-            callback(button.text())
+            # On MacOS, the text of the button may by prefixed by '&'
+            button_name = button.text().replace('&', '')
+            callback(button_name)
 
         widget.buttonClicked.connect(func)
         return _QtDialogWidget(widget, modal)
