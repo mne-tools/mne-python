@@ -1404,7 +1404,7 @@ class DraggableColorbar(object):
         self.cbar.ax.figure.canvas.draw()
 
 
-class SelectFromCollection(object):
+class SelectFromCollection:
     """Select channels from a matplotlib collection using ``LassoSelector``.
 
     Selected channels are saved in the ``selection`` attribute. This tool
@@ -1427,7 +1427,8 @@ class SelectFromCollection(object):
     Notes
     -----
     This tool selects collection objects based on their *origins*
-    (i.e., ``offsets``). Emits mpl event 'lasso_event' when selection is ready.
+    (i.e., ``offsets``). Calls all callbacks in self.callbacks when selection
+    is ready.
     """
 
     def __init__(self, ax, collection, ch_names, alpha_other=0.5,
@@ -1460,6 +1461,7 @@ class SelectFromCollection(object):
         line_kw = _prop_kw('line', dict(color='red', linewidth=0.5))
         self.lasso = LassoSelector(ax, onselect=self.on_select, **line_kw)
         self.selection = list()
+        self.callbacks = list()
 
     def on_select(self, verts):
         """Select a subset from the collection."""
@@ -1476,7 +1478,7 @@ class SelectFromCollection(object):
 
         self.selection[:] = np.array(self.ch_names)[inds].tolist()
         self.style_sensors(inds)
-        self.canvas.callbacks.process('lasso_event')
+        self.notify()
 
     def select_one(self, ind):
         """Select or deselect one sensor."""
@@ -1488,7 +1490,12 @@ class SelectFromCollection(object):
             self.selection.append(ch_name)
         inds = np.in1d(self.ch_names, self.selection).nonzero()[0]
         self.style_sensors(inds)
-        self.canvas.callbacks.process('lasso_event')
+        self.notify()
+
+    def notify(self):
+        """Notify listeners that a selection has been made."""
+        for callback in self.callbacks:
+            callback()
 
     def select_many(self, inds):
         """Select many sensors using indices (for predefined selections)."""

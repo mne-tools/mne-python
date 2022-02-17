@@ -18,6 +18,7 @@ class _PyQtGraphScraper:
             return ''
         img_fnames = list()
         inst = None
+        n_plot = 0
         for gui in list(mne_qt_browser._browser_instances):
             try:
                 scraped = getattr(gui, '_scraped', False)
@@ -26,6 +27,7 @@ class _PyQtGraphScraper:
             if scraped:
                 continue
             gui._scraped = True  # monkey-patch but it's easy enough
+            n_plot += 1
             img_fnames.append(next(block_vars['image_path_iterator']))
             if getattr(gui, 'load_thread', None) is not None:
                 if gui.load_thread.isRunning():
@@ -37,6 +39,14 @@ class _PyQtGraphScraper:
                 inst.processEvents()
             pixmap = gui.grab()
             pixmap.save(img_fnames[-1])
+            # child figures
+            for fig in gui.mne.child_figs:
+                # For now we only support Selection
+                if not hasattr(fig, 'channel_fig'):
+                    continue
+                fig = fig.channel_fig
+                img_fnames.append(next(block_vars['image_path_iterator']))
+                fig.savefig(img_fnames[-1])
             gui.close()
         if not len(img_fnames):
             return ''
@@ -44,4 +54,4 @@ class _PyQtGraphScraper:
             inst.processEvents()
         return figure_rst(
             img_fnames, gallery_conf['src_dir'],
-            f'Raw plot{_pl(len(img_fnames))}')
+            f'Raw plot{_pl(n_plot)}')

@@ -414,7 +414,8 @@ raw.add_proj(ecg_projs)
 
 mags_ecg = raw.copy().crop(tmax=2).pick_types(meg='mag')
 for data, title in zip([mags, mags_ecg], ['Without', 'With']):
-    fig = data.plot(butterfly=True, proj=True)
+    with mne.viz.use_browser_backend('matplotlib'):
+        fig = data.plot(butterfly=True, proj=True)
     fig.subplots_adjust(top=0.9)
     fig.suptitle('{} ECG projector'.format(title), size='xx-large',
                  weight='bold')
