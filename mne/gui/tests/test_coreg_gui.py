@@ -168,12 +168,14 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert not coreg._lock_fids
 
     # picking
+    assert not coreg._fids_modified
     vtk_picker = TstVTKPicker(coreg._surfaces['head'], 0, (0, 0))
     coreg._on_mouse_move(vtk_picker, None)
     coreg._on_button_press(vtk_picker, None)
     coreg._on_pick(vtk_picker, None)
     coreg._on_button_release(vtk_picker, None)
     coreg._on_pick(vtk_picker, None)  # also pick when locked
+    assert coreg._fids_modified
 
     # lock fiducials
     coreg._set_lock_fids(True)
@@ -221,7 +223,6 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
 
     # test _close_callback()
     coreg._set_automatic_cleanup(False)
-    assert coreg._fids_modified
     coreg.close()
     coreg._widgets['close_dialog'].trigger('Cancel')  # do not save
     coreg._clean()  # finally, cleanup internal structures
