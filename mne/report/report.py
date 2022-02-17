@@ -44,7 +44,7 @@ from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      _check_ch_locs, _import_h5io_funcs)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend,
-                   Figure3D)
+                   Figure3D, use_browser_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from ..viz.utils import _ndarray_to_fig, tight_layout
 from ..forward import read_forward_solution, Forward
@@ -2669,10 +2669,11 @@ class Report(_VerboseDep):
             raw.set_annotations(None)
 
             # Create the figure once and re-use it for performance reasons
-            fig = raw.plot(
-                butterfly=True, show_scrollbars=False, start=t_starts[0],
-                duration=durations[0], scalings=scalings, show=False
-            )
+            with use_browser_backend('matplotlib'):
+                fig = raw.plot(
+                    butterfly=True, show_scrollbars=False, start=t_starts[0],
+                    duration=durations[0], scalings=scalings, show=False
+                )
             _constrain_fig_resolution(
                 fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
             )
