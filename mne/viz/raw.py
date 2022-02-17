@@ -351,13 +351,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   precompute=precompute,
                   use_opengl=use_opengl)
 
-    fig = _get_browser(**params)
-
-    # start with projectors dialog open, if requested
-    if show_options:
-        fig._toggle_proj_fig()
-
-    _show_browser(show, block=block, fig=fig)
+    fig = _get_browser(show=show, block=block, **params)
 
     return fig
 

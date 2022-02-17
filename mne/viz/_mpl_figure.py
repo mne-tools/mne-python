@@ -2246,6 +2246,10 @@ def _init_browser(**kwargs):
         if fig.mne.group_by in ('selection', 'position'):
             fig._create_selection_fig()
 
+    # start with projectors dialog open, if requested
+    if getattr(fig.mne, 'show_options', False):
+        fig._toggle_proj_fig()
+
     # update data, and plot
     fig._update_trace_offsets()
     fig._redraw(update_data=True, annotations=False)

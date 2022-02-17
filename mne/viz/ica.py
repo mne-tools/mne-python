@@ -1106,7 +1106,6 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                       epoch_colors=None,
                       xlabel='Epoch number')
 
-    fig = _get_browser(**params)
-    _show_browser(show, block=block, fig=fig)
+    fig = _get_browser(show=show, block=block, **params)
 
     return fig

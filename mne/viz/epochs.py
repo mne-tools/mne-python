@@ -906,8 +906,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   precompute=precompute,
                   use_opengl=use_opengl)
 
-    fig = _get_browser(**params)
-    _show_browser(show, block=block, fig=fig)
+    fig = _get_browser(show=show, block=block, **params)
 
     return fig
 

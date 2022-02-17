@@ -20,7 +20,7 @@ from ..defaults import _handle_default
 from ..utils import logger, _validate_type, _check_option
 from ..io.pick import _DATA_CH_TYPES_SPLIT
 from .backends._utils import VALID_BROWSE_BACKENDS
-from .utils import _get_color_list, _setup_plot_projector
+from .utils import _get_color_list, _setup_plot_projector, _show_browser
 
 MNE_BROWSER_BACKEND = None
 backend = None
@@ -604,7 +604,7 @@ def _load_backend(backend_name):
     return backend
 
 
-def _get_browser(**kwargs):
+def _get_browser(show, block, **kwargs):
     """Instantiate a new MNE browse-style figure."""
     from .utils import _get_figsize_from_config
     figsize = kwargs.setdefault('figsize', _get_figsize_from_config())
@@ -630,13 +630,15 @@ def _get_browser(**kwargs):
                         f'Defaults to matplotlib.')
             with use_browser_backend('matplotlib'):
                 # Initialize Browser
-                browser = backend._init_browser(**kwargs)
-                return browser
+                fig = backend._init_browser(**kwargs)
+                _show_browser(show=show, block=block, fig=fig)
+                return fig
 
     # Initialize Browser
-    browser = backend._init_browser(**kwargs)
+    fig = backend._init_browser(**kwargs)
+    _show_browser(show=show, block=block, fig=fig)
 
-    return browser
+    return fig
 
 
 def _check_browser_backend_name(backend_name):
