@@ -59,10 +59,6 @@ snirf_nirsport2_20219 = op.join(
     testing_path, 'SNIRF', 'NIRx', 'NIRSport2', '2021.9',
     '2021-10-01_002.snirf')
 
-# NIRStar (with Italian locale)
-nirstar_it = op.join(
-    testing_path, 'NIRx', 'nirstar', '2020-01-24_SHAM_CTRL_0050')
-
 
 @requires_h5py
 @requires_testing_data
@@ -482,7 +478,12 @@ def test_locale_encoding(tmp_path):
             fid.write(line)
     read_raw_nirx(fname, verbose='debug')
     # Italian
-    raw = read_raw_nirx(nirstar_it, verbose='debug')
+    hdr[2] = b'Date="ven 24 gen 2020"\r\n'
+    hdr[3] = b'Time="10:57:41.454"\r\n'
+    with open(hdr_fname, 'wb') as fid:
+        for line in hdr:
+            fid.write(line)
+    raw = read_raw_nirx(fname, verbose='debug')
     want_dt = dt.datetime(
         2020, 1, 24, 10, 57, 41, 454000, tzinfo=dt.timezone.utc)
     assert raw.info['meas_date'] == want_dt
@@ -593,7 +594,6 @@ def test_nirx_15_0():
     [fname_nirx_15_2, 0],
     [fname_nirx_15_2, 0],
     [nirsport2_2021_9, 0],
-    [nirstar_it, 0],
 ))
 def test_nirx_standard(fname, boundary_decimal):
     """Test standard operations."""
