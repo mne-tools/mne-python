@@ -1012,7 +1012,7 @@ class ICA(ContainsMixin, _VerboseDep):
             data = raw._data
             del raw._data
 
-        out = raw.copy()  # copy and reappend
+        out = raw.copy()
         if raw.preload:
             raw._data = data
 
@@ -1025,6 +1025,7 @@ class ICA(ContainsMixin, _VerboseDep):
         out._filenames = [None]
         out.preload = True
         out._first_samps[:] = [out.first_samp + start]
+        out._cropped_samp = out._first_samps[0]
         out._last_samps[:] = [out.first_samp + data_.shape[1] - 1]
         out._projector = None
         self._export_info(out.info, raw, add_channels)
