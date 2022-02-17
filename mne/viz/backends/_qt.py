@@ -59,7 +59,7 @@ class _QtDialog(_AbstractDialog):
         widget.setDefaultButton(default_button)
 
         def func(button):
-            # On MacOS, the text of the button may by prefixed by '&'
+            # On MacOS, the text of the button may be prefixed by '&'
             button_name = button.text().replace('&', '')
             callback(button_name)
 
