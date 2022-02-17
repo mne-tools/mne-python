@@ -174,8 +174,8 @@ class CoregistrationUI(HasTraits):
         self._to_cf_t = None
         self._omit_hsp_distance = 0.0
         self._fiducials_file = None
-        self._trans_saved = False
-        self._fids_saved = False
+        self._trans_modified = False
+        self._fids_modified = False
         self._auto_cleanup = True
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
@@ -293,6 +293,8 @@ class CoregistrationUI(HasTraits):
             self._set_lock_fids(True)  # hack to make the dig disappear
             self._update_fiducials_label()
             self._update_fiducials()
+        # initialization does not count as modification by the user
+        self._fids_modified = False
 
         self._set_lock_fids(fid_accurate)
 
@@ -435,6 +437,7 @@ class CoregistrationUI(HasTraits):
         self._scale_mode = mode
 
     def _set_fiducial(self, value, coord):
+        self._fids_modified = True
         fid = self._current_fiducial
         fid_idx = _map_fid_name_to_idx(name=fid)
 
@@ -445,6 +448,7 @@ class CoregistrationUI(HasTraits):
         self._update_plot("mri_fids")
 
     def _set_parameter(self, value, mode_name, coord):
+        self._trans_modified = True
         if self._params_locked:
             return
         if mode_name == "scale" and self._scale_mode == "uniform":
@@ -943,8 +947,6 @@ class CoregistrationUI(HasTraits):
         self._update_plot()
         self._update_parameters()
         self._update_distance_estimation()
-        self._trans_saved = False
-        self._fids_saved = False
 
     def _forward_widget_command(self, names, command, value,
                                 input_value=True, output_value=False):
@@ -1236,13 +1238,13 @@ class CoregistrationUI(HasTraits):
         )
         self._set_fiducials_file(fname)
         self._display_message(f"Saving {fname}... Done!")
-        self._fids_saved = True
+        self._fids_modified = False
 
     def _save_trans(self, fname):
         write_trans(fname, self.coreg.trans, overwrite=True)
         self._display_message(
             f"{fname} transform file is saved.")
-        self._trans_saved = True
+        self._trans_modified = False
 
     def _load_trans(self, fname):
         mri_head_t = _ensure_trans(read_trans(fname, return_all=True),
@@ -1722,13 +1724,13 @@ class CoregistrationUI(HasTraits):
         self._renderer.close()
 
     def _close_callback(self):
-        if not self._trans_saved or not self._fids_saved:
+        if self._trans_modified or self._fids_modified:
             from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
             # prepare the dialog's text
             text = ""
-            if not self._trans_saved:
+            if self._trans_modified:
                 text += "Head<>MRI transform"
-            if not self._fids_saved:
+            if self._fids_modified:
                 if text:
                     text += " and "
                 text += "fiducials"
@@ -1736,10 +1738,10 @@ class CoregistrationUI(HasTraits):
 
             def callback(button_name):
                 if button_name == "Save":
-                    if not self._trans_saved:
+                    if self._trans_modified:
                         self._forward_widget_command(
                             "save_trans", "set_value", None)
-                    if not self._fids_saved:
+                    if self._fids_modified:
                         self._forward_widget_command(
                             "save_mri_fids", "set_value", None)
                 else:
