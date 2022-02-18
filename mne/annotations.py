@@ -516,9 +516,10 @@ class Annotations(object):
         else:
             offset = self.orig_time
         if tmin is None:
-            tmin = timedelta(self.onset.min()) + offset
+            tmin = timedelta(seconds=self.onset.min()) + offset
         if tmax is None:
-            tmax = timedelta((self.onset + self.duration).max()) + offset
+            tmax = timedelta(
+                seconds=(self.onset + self.duration).max()) + offset
         for key, val in [('tmin', tmin), ('tmax', tmax)]:
             _validate_type(val, ('numeric', _datetime), key,
                            'numeric, datetime, or None')
