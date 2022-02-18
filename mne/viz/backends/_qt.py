@@ -545,10 +545,17 @@ class _QtWindow(_AbstractWindow):
 
         # patch closeEvent
         def closeEvent(event):
+            accept_close_event = True
             for callback in self._window_close_callbacks:
-                callback()
-            self._window.signal_close.emit()
-            event.accept()
+                ret = callback()
+                # check if one of the callbacks ignores the close event
+                if isinstance(ret, bool) and not ret:
+                    accept_close_event = False
+            if accept_close_event:
+                self._window.signal_close.emit()
+                event.accept()
+            else:
+                event.ignore()
         self._window.closeEvent = closeEvent
 
     def _window_clean(self):

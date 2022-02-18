@@ -224,7 +224,7 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     # test _close_callback()
     coreg._set_automatic_cleanup(False)
     coreg.close()
-    coreg._widgets['close_dialog'].trigger('Cancel')  # do not save
+    coreg._widgets['close_dialog'].trigger('Discard')  # do not save
     coreg._clean()  # finally, cleanup internal structures
 
     # Coregistration instance should survive

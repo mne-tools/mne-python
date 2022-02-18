@@ -176,6 +176,7 @@ class CoregistrationUI(HasTraits):
         self._fiducials_file = None
         self._trans_modified = False
         self._fids_modified = False
+        self._accept_close_event = True
         self._auto_cleanup = True
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
@@ -1737,6 +1738,7 @@ class CoregistrationUI(HasTraits):
             text += " has/have not been saved."
 
             def callback(button_name):
+                self._accept_close_event = True
                 if button_name == "Save":
                     if self._trans_modified:
                         self._forward_widget_command(
@@ -1744,20 +1746,23 @@ class CoregistrationUI(HasTraits):
                     if self._fids_modified:
                         self._forward_widget_command(
                             "save_mri_fids", "set_value", None)
+                elif button_name == "Cancel":
+                    self._accept_close_event = False
                 else:
-                    assert button_name == "Cancel"
+                    assert button_name == "Discard"
 
             self._widgets["close_dialog"] = self._renderer._dialog_warning(
                 title="CoregistrationUI",
                 text=text,
                 info_text="Do you want to save?",
                 callback=callback,
-                buttons=["Save", "Cancel"],
+                buttons=["Save", "Discard", "Cancel"],
                 # modal=True means that the dialog blocks the application
                 # when show() is called, until one of the buttons is clicked
                 modal=not MNE_3D_BACKEND_TESTING,
             )
             self._widgets["close_dialog"].show()
 
-        if self._auto_cleanup:
+        if self._accept_close_event and self._auto_cleanup:
             self._clean()
+        return self._accept_close_event
