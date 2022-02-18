@@ -1509,11 +1509,7 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     with info._unlock():
         info['projs'] = []
     # store sensor data in Raw object using the info
-    raw = RawArray(data, info)
-    raw.preload = True
-
-    raw._first_samps = np.array([int(np.round(times[0] * sfreq))])
-    raw._last_samps = np.array([raw.first_samp + raw._data.shape[1] - 1])
+    raw = RawArray(data, info, first_samp=int(np.round(times[0] * sfreq)))
     raw._projector = None
     return raw
 

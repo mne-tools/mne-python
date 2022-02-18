@@ -282,6 +282,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._projector = None
         self._dtype_ = dtype
         self.set_annotations(None)
+        self._cropped_samp = first_samps[0]
         # If we have True or a string, actually do the preloading
         if load_from_disk:
             self._preload_data(preload)
@@ -581,7 +582,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         See :term:`first_samp`.
         """
-        return self._first_samps[0]
+        return self._cropped_samp
 
     @property
     def first_time(self):
@@ -1251,7 +1252,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                         resamp = resample(data_chunk, **kwargs)
                     new_data[ci, this_sl] = resamp
 
-        self._first_samps = (self._first_samps * ratio).astype(int)
+        self._cropped_samp = int(np.round(self._cropped_samp * ratio))
+        self._first_samps = np.round(self._first_samps * ratio).astype(int)
         self._last_samps = (np.array(self._first_samps) + n_news - 1)
         self._raw_lengths[ri] = list(n_news)
         assert np.array_equal(n_news, self._last_samps - self._first_samps + 1)
@@ -1287,8 +1289,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             )
             return self, events
 
-    @fill_doc
-    def crop(self, tmin=0.0, tmax=None, include_tmax=True):
+    @verbose
+    def crop(self, tmin=0.0, tmax=None, include_tmax=True, *, verbose=None):
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
@@ -1305,6 +1307,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(raw_tmin)s
         %(raw_tmax)s
         %(include_tmax)s
+        %(verbose)s
 
         Returns
         -------
@@ -1333,6 +1336,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         keepers = np.logical_and(np.less(smin, cumul_lens[1:]),
                                  np.greater_equal(smax, cumul_lens[:-1]))
         keepers = np.where(keepers)[0]
+        # if we drop file(s) from the beginning, we need to keep track of
+        # how many samples we dropped relative to that one
+        self._cropped_samp += smin
         self._first_samps = np.atleast_1d(self._first_samps[keepers])
         # Adjust first_samp of first used file!
         self._first_samps[0] += smin - cumul_lens[keepers[0]]
@@ -1347,10 +1353,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             # slice and copy to avoid the reference to large array
             self._data = self._data[:, smin:smax + 1].copy()
 
-        if self.annotations.orig_time is None:
-            self.annotations.onset -= tmin
+        annotations = self.annotations
+        if annotations.orig_time is None:
+            annotations.onset -= tmin
         # now call setter to filter out annotations outside of interval
-        self.set_annotations(self.annotations, False)
+        self.set_annotations(annotations, False)
 
         return self
 
@@ -1733,7 +1740,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             annotations = _combine_annotations(
                 annotations, r.annotations, n_samples,
                 self.first_samp, r.first_samp,
-                self.info['sfreq'], self.info['meas_date'])
+                self.info['sfreq'])
             edge_samps.append(sum(self._last_samps) -
                               sum(self._first_samps) + (ri + 1))
             self._first_samps = np.r_[self._first_samps, r._first_samps]
@@ -1742,6 +1749,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
         assert annotations.orig_time == self.info['meas_date']
+        # The above _combine_annotations gets everything synchronized to
+        # first_samp. set_annotations (with no absolute time reference) assumes
+        # that the annotations being set are relative to first_samp, and will
+        # add it back on. So here we have to remove it:
+        if annotations.orig_time is None:
+            annotations.onset -= self.first_samp / self.info['sfreq']
         self.set_annotations(annotations)
         for edge_samp in edge_samps:
             onset = _sync_onset(self, (edge_samp) / self.info['sfreq'], True)

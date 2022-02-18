@@ -525,27 +525,30 @@ class Annotations(object):
         if tmin > tmax:
             raise ValueError('tmax should be greater than or equal to tmin '
                              '(%s < %s).' % (tmax, tmin))
-        logger.debug('Cropping annotations %s - %s' % (tmin, tmax))
+        logger.debug('Cropping annotations to: %s - %s' % (tmin, tmax))
         absolute_tmin = _handle_meas_date(tmin)
         absolute_tmax = _handle_meas_date(tmax)
         del tmin, tmax
 
         onsets, durations, descriptions, ch_names = [], [], [], []
         out_of_bounds, clip_left_elem, clip_right_elem = [], [], []
-        for onset, duration, description, ch in zip(
-                self.onset, self.duration, self.description, self.ch_names):
+        for idx, (onset, duration, description, ch) in enumerate(zip(
+                self.onset, self.duration, self.description, self.ch_names)):
             # if duration is NaN behave like a zero
             if np.isnan(duration):
                 duration = 0.
             # convert to absolute times
-            absolute_onset = timedelta(0, onset) + offset
-            absolute_offset = absolute_onset + timedelta(0, duration)
+            absolute_onset = timedelta(seconds=onset) + offset
+            absolute_offset = absolute_onset + timedelta(seconds=duration)
             out_of_bounds.append(
                 absolute_onset > absolute_tmax or
                 absolute_offset < absolute_tmin)
             if out_of_bounds[-1]:
                 clip_left_elem.append(False)
                 clip_right_elem.append(False)
+                logger.debug(
+                    f'  [{idx}] Dropping '
+                    f'({absolute_onset} - {absolute_offset}: {description})')
             else:
                 # clip the left side
                 clip_left_elem.append(absolute_onset < absolute_tmin)
@@ -561,8 +564,13 @@ class Annotations(object):
                     durations.append(duration)
                 onsets.append(
                     (absolute_onset - offset).total_seconds())
+                logger.debug(
+                    f'  [{idx}] Keeping  '
+                    f'({absolute_onset} - {absolute_offset} -> '
+                    f'{onset} - {onset + duration})')
                 descriptions.append(description)
                 ch_names.append(ch)
+        logger.debug(f'Cropping complete (kept {len(onsets)})')
         self.onset = np.array(onsets, float)
         self.duration = np.array(durations, float)
         assert (self.duration >= 0).all()
@@ -861,7 +869,7 @@ class EpochAnnotationsMixin:
 
 
 def _combine_annotations(one, two, one_n_samples, one_first_samp,
-                         two_first_samp, sfreq, meas_date):
+                         two_first_samp, sfreq):
     """Combine a tuple of annotations."""
     assert one is not None
     assert two is not None
