@@ -294,8 +294,6 @@ class CoregistrationUI(HasTraits):
             self._set_lock_fids(True)  # hack to make the dig disappear
             self._update_fiducials_label()
             self._update_fiducials()
-        # initialization does not count as modification by the user
-        self._fids_modified = False
 
         self._set_lock_fids(fid_accurate)
 
@@ -315,6 +313,9 @@ class CoregistrationUI(HasTraits):
             self._renderer.plotter.add_callback(
                 self._redraw, self._refresh_rate_ms)
         self._renderer.plotter.show_axes()
+        # initialization does not count as modification by the user
+        self._trans_modified = False
+        self._fids_modified = False
         if block and self._renderer._kind != 'notebook':
             _qt_app_exec(self._renderer.figure.store["app"])
 
@@ -1724,6 +1725,20 @@ class CoregistrationUI(HasTraits):
         """Close interface and cleanup data structure."""
         self._renderer.close()
 
+    def _close_dialog_callback(self, button_name):
+        self._accept_close_event = True
+        if button_name == "Save":
+            if self._trans_modified:
+                self._forward_widget_command(
+                    "save_trans", "set_value", None)
+            if self._fids_modified:
+                self._forward_widget_command(
+                    "save_mri_fids", "set_value", None)
+        elif button_name == "Cancel":
+            self._accept_close_event = False
+        else:
+            assert button_name == "Discard"
+
     def _close_callback(self):
         if self._trans_modified or self._fids_modified:
             from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
@@ -1736,26 +1751,11 @@ class CoregistrationUI(HasTraits):
                     text += " and "
                 text += "fiducials"
             text += " has/have not been saved."
-
-            def callback(button_name):
-                self._accept_close_event = True
-                if button_name == "Save":
-                    if self._trans_modified:
-                        self._forward_widget_command(
-                            "save_trans", "set_value", None)
-                    if self._fids_modified:
-                        self._forward_widget_command(
-                            "save_mri_fids", "set_value", None)
-                elif button_name == "Cancel":
-                    self._accept_close_event = False
-                else:
-                    assert button_name == "Discard"
-
             self._widgets["close_dialog"] = self._renderer._dialog_warning(
                 title="CoregistrationUI",
                 text=text,
                 info_text="Do you want to save?",
-                callback=callback,
+                callback=self._close_dialog_callback,
                 buttons=["Save", "Discard", "Cancel"],
                 # modal=True means that the dialog blocks the application
                 # when show() is called, until one of the buttons is clicked
