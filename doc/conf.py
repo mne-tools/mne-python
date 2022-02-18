@@ -327,7 +327,7 @@ class Resetter(object):
         # to just test PyQtGraphBrowser
         skips = os.getenv('MNE_SKIP_INSTANCE_ASSERTIONS', '').lower()
         prefix = ''
-        if skips not in ('true', '1'):
+        if skips not in ('true', '1', 'all'):
             prefix = 'Clean '
             skips = skips.split(',')
             if 'brain' not in skips:
@@ -342,7 +342,7 @@ class Resetter(object):
             if '_renderer' not in skips:
                 _assert_no_instances(_Renderer, when)
             if PyQtGraphBrowser is not None and \
-                    'PyQtGraphBrowser' not in skips:
+                    'pyqtgraphbrowser' not in skips:
                 _assert_no_instances(PyQtGraphBrowser, when)
         # This will overwrite some Sphinx printing but it's useful
         # for memory timestamps

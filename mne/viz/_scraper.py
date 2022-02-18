@@ -49,7 +49,6 @@ class _PyQtGraphScraper:
                 fig.savefig(img_fnames[-1])
             gui.close()
             del gui, pixmap
-        assert len(mne_qt_browser._browser_instances) == 0
         if not len(img_fnames):
             return ''
         for _ in range(2):
