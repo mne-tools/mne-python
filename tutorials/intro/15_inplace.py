@@ -12,8 +12,8 @@ computations. However, it can lead to unexpected results if you're not aware
 that it's happening. This tutorial provides a few examples of in-place
 processing, and how and when to avoid it.
 
-As usual we'll start by importing the modules we need and
-loading some :ref:`example data <sample-dataset>`:
+As usual we'll start by importing the modules we need and loading some
+:ref:`example data <sample-dataset>`:
 """
 
 # %%
