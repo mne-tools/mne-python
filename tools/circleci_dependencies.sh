@@ -24,7 +24,7 @@ else  # standard doc build
 	python -m pip uninstall -y pydata-sphinx-theme
 	python -m pip install --upgrade --progress-bar off --only-binary "numpy,scipy,matplotlib,pandas,statsmodels" -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
 	python -m pip install --upgrade --progress-bar off https://github.com/larsoner/mne-qt-browser/zipball/disconnect
-	python -m pip install --progress-bar off https://github.com/sphinx-gallery/sphinx-gallery/zipball/master https://github.com/pyvista/pyvista/zipball/main https://github.com/pyvista/pyvistaqt/zipball/main
+	python -m pip install --progress-bar off https://github.com/larsoner/sphinx-gallery/zipball/del https://github.com/pyvista/pyvista/zipball/main https://github.com/pyvista/pyvistaqt/zipball/main
 	# deal with comparisons and escapes (https://app.circleci.com/pipelines/github/mne-tools/mne-python/9686/workflows/3fd32b47-3254-4812-8b9a-8bab0d646d18/jobs/32934)
 	python -m pip install --upgrade quantities
 fi
