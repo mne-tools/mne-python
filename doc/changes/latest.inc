@@ -113,7 +113,7 @@ Enhancements
 Bugs
 ~~~~
 
-- Fix datetime conversion for tmin/tmax=None cases in :func:`mne.Annotations.crop`. Allow the use of float and None simultaneously for :func:`mne.Annotations.crop`. (:gh:`10361` by `Michiru Kaneda`_)
+- Fix datetime conversion for tmin/tmax=None cases in :meth:`mne.Annotations.crop`. Allow the use of float and None simultaneously for :meth:`mne.Annotations.crop`. (:gh:`10361` by `Michiru Kaneda`_)
 
 - Add Shift_JIST mu in :func:`mne.io.read_raw_edf` (:gh:`10356` by :newcontrib:`Michiru Kaneda`)
 
