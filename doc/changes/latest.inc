@@ -151,6 +151,8 @@ Bugs
 
 - Fix annotation cropping and I/O roundtrip when there is no measurement date available (:gh:`10040` by `Mathieu Scheltienne`_ and `Alex Gramfort`_).
 
+- Fix bug where :meth:`raw.crop() <mne.io.Raw.crop>` from the beginning of the instance could break annotations and ``raw.first_samp`` (:gh:`10358` by `Eric Larson`_)
+
 - :func:`~mne.sys_info` output now contains the installed version of ``pooch``, too; this output had been accidentally removed previously (:gh:`10047` by `Richard Höchenberger`_)
 
 - Fix automatic channel type detection from channel labels in :func:`mne.io.read_raw_edf` and :func:`mne.io.read_raw_bdf` (and disable this functionality from :func:`mne.io.read_raw_gdf`) (:gh:`10058` by `Clemens Brunner`_)
