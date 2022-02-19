@@ -175,7 +175,7 @@ class CoregistrationUI(HasTraits):
         self._omit_hsp_distance = 0.0
         self._fiducials_file = None
         self._trans_modified = False
-        self._fids_modified = False
+        self._mri_fids_modified = False
         self._accept_close_event = True
         self._auto_cleanup = True
         self._fid_colors = tuple(
@@ -315,7 +315,7 @@ class CoregistrationUI(HasTraits):
         self._renderer.plotter.show_axes()
         # initialization does not count as modification by the user
         self._trans_modified = False
-        self._fids_modified = False
+        self._mri_fids_modified = False
         if block and self._renderer._kind != 'notebook':
             _qt_app_exec(self._renderer.figure.store["app"])
 
@@ -439,7 +439,7 @@ class CoregistrationUI(HasTraits):
         self._scale_mode = mode
 
     def _set_fiducial(self, value, coord):
-        self._fids_modified = True
+        self._mri_fids_modified = True
         fid = self._current_fiducial
         fid_idx = _map_fid_name_to_idx(name=fid)
 
@@ -1240,7 +1240,7 @@ class CoregistrationUI(HasTraits):
         )
         self._set_fiducials_file(fname)
         self._display_message(f"Saving {fname}... Done!")
-        self._fids_modified = False
+        self._mri_fids_modified = False
 
     def _save_trans(self, fname):
         write_trans(fname, self.coreg.trans, overwrite=True)
@@ -1734,7 +1734,7 @@ class CoregistrationUI(HasTraits):
                 # cancel means _save_trans is not called
                 if self._trans_modified:
                     self._accept_close_event = False
-            if self._fids_modified:
+            if self._mri_fids_modified:
                 self._forward_widget_command(
                     "save_mri_fids", "set_value", None)
         elif button_name == "Cancel":
@@ -1743,14 +1743,14 @@ class CoregistrationUI(HasTraits):
             assert button_name == "Discard"
 
     def _close_callback(self):
-        if self._trans_modified or self._fids_modified:
+        if self._trans_modified or self._mri_fids_modified:
             from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
             # prepare the dialog's text
             text = "The following is/are not saved:"
             text += "<ul>"
             if self._trans_modified:
                 text += "<li>Head<>MRI transform</li>"
-            if self._fids_modified:
+            if self._mri_fids_modified:
                 text += "<li>fiducials</li>"
             text += "</ul>"
             self._widgets["close_dialog"] = self._renderer._dialog_warning(
