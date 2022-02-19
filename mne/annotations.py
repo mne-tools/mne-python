@@ -523,13 +523,14 @@ class Annotations(object):
         for key, val in [('tmin', tmin), ('tmax', tmax)]:
             _validate_type(val, ('numeric', _datetime), key,
                            'numeric, datetime, or None')
-        if tmin > tmax:
-            raise ValueError('tmax should be greater than or equal to tmin '
-                             '(%s < %s).' % (tmax, tmin))
-        logger.debug('Cropping annotations to: %s - %s' % (tmin, tmax))
         absolute_tmin = _handle_meas_date(tmin)
         absolute_tmax = _handle_meas_date(tmax)
         del tmin, tmax
+        if absolute_tmin > absolute_tmax:
+            raise ValueError('tmax should be greater than or equal to tmin '
+                             '(%s < %s).' % (absolute_tmin, absolute_tmax))
+        logger.debug('Cropping annotations %s - %s' % (absolute_tmin,
+                                                       absolute_tmax))
 
         onsets, durations, descriptions, ch_names = [], [], [], []
         out_of_bounds, clip_left_elem, clip_right_elem = [], [], []
