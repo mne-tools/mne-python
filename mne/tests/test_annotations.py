@@ -1173,7 +1173,7 @@ def test_crop_with_none(windows_like_datetime):
                         duration=[1], orig_time=orig_time_stamp)
     annot.crop(tmin=None, tmax=None)
     assert len(annot) == 5
-    annot.crop(tmin=(7.5+orig_time_stamp), tmax=None)
+    annot.crop(tmin=(7.5 + orig_time_stamp), tmax=None)
     assert len(annot) == 3
 
 
