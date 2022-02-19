@@ -14,7 +14,6 @@ tutorials address each of these topics in greater detail.
 
 We begin by importing the necessary Python modules:
 """
-
 # %%
 
 import os
