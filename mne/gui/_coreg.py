@@ -176,6 +176,7 @@ class CoregistrationUI(HasTraits):
         self._fiducials_file = None
         self._trans_modified = False
         self._mri_fids_modified = False
+        self._mri_scale_modified = False
         self._accept_close_event = True
         self._auto_cleanup = True
         self._fid_colors = tuple(
@@ -316,6 +317,7 @@ class CoregistrationUI(HasTraits):
         # initialization does not count as modification by the user
         self._trans_modified = False
         self._mri_fids_modified = False
+        self._mri_scale_modified = False
         if block and self._renderer._kind != 'notebook':
             _qt_app_exec(self._renderer.figure.store["app"])
 
@@ -450,7 +452,10 @@ class CoregistrationUI(HasTraits):
         self._update_plot("mri_fids")
 
     def _set_parameter(self, value, mode_name, coord):
-        self._trans_modified = True
+        if mode_name == "scale":
+            self._mri_scale_modified = True
+        else:
+            self._trans_modified = True
         if self._params_locked:
             return
         if mode_name == "scale" and self._scale_mode == "uniform":
@@ -1231,6 +1236,7 @@ class CoregistrationUI(HasTraits):
                 self._display_message(f"Computing {bem_name} solution..."
                                       " Done!")
         self._display_message(f"Saving {self._subject_to}... Done!")
+        self._mri_scale_modified = False
 
     def _save_mri_fiducials(self, fname):
         self._display_message(f"Saving {fname}...")
@@ -1726,6 +1732,7 @@ class CoregistrationUI(HasTraits):
         self._renderer.close()
 
     def _close_dialog_callback(self, button_name):
+        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
         self._accept_close_event = True
         if button_name == "Save":
             if self._trans_modified:
@@ -1737,21 +1744,39 @@ class CoregistrationUI(HasTraits):
             if self._mri_fids_modified:
                 self._forward_widget_command(
                     "save_mri_fids", "set_value", None)
+            if self._mri_scale_modified:
+                if self._subject_to:
+                    self._save_subject()
+                else:
+                    dialog = self._renderer._dialog_warning(
+                        title="CoregistrationUI",
+                        text="The name of the output subject used to "
+                             "save the scaled anatomy is not set.",
+                        info_text="Please set a subject name",
+                        callback=lambda x: None,
+                        buttons=["Ok"],
+                        modal=not MNE_3D_BACKEND_TESTING,
+                    )
+                    dialog.show()
+                    self._accept_close_event = False
         elif button_name == "Cancel":
             self._accept_close_event = False
         else:
             assert button_name == "Discard"
 
     def _close_callback(self):
-        if self._trans_modified or self._mri_fids_modified:
+        if self._trans_modified or self._mri_fids_modified or \
+                self._mri_scale_modified:
             from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
             # prepare the dialog's text
             text = "The following is/are not saved:"
             text += "<ul>"
             if self._trans_modified:
-                text += "<li>Head<>MRI transform</li>"
+                text += "<li>Head&lt;&gt;MRI transform</li>"
             if self._mri_fids_modified:
-                text += "<li>fiducials</li>"
+                text += "<li>MRI fiducials</li>"
+            if self._mri_scale_modified:
+                text += "<li>scaled subject MRI</li>"
             text += "</ul>"
             self._widgets["close_dialog"] = self._renderer._dialog_warning(
                 title="CoregistrationUI",

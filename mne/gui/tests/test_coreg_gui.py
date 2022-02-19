@@ -146,6 +146,7 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._fiducials_file == fid_fname
 
     # fitting (with scaling)
+    assert not coreg._mri_scale_modified
     coreg._reset()
     coreg._reset_fitting_parameters()
     coreg._set_scale_mode("uniform")
@@ -161,6 +162,7 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
                     atol=1e-3)
     coreg._set_scale_mode("None")
     coreg._set_icp_fid_match("matched")
+    assert coreg._mri_scale_modified
 
     # unlock fiducials
     assert coreg._lock_fids
@@ -168,14 +170,14 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert not coreg._lock_fids
 
     # picking
-    assert not coreg._fids_modified
+    assert not coreg._mri_fids_modified
     vtk_picker = TstVTKPicker(coreg._surfaces['head'], 0, (0, 0))
     coreg._on_mouse_move(vtk_picker, None)
     coreg._on_button_press(vtk_picker, None)
     coreg._on_pick(vtk_picker, None)
     coreg._on_button_release(vtk_picker, None)
     coreg._on_pick(vtk_picker, None)  # also pick when locked
-    assert coreg._fids_modified
+    assert coreg._mri_fids_modified
 
     # lock fiducials
     coreg._set_lock_fids(True)
