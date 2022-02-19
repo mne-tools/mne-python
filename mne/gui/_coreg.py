@@ -1746,14 +1746,13 @@ class CoregistrationUI(HasTraits):
         if self._trans_modified or self._fids_modified:
             from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
             # prepare the dialog's text
-            text = ""
+            text = "The following is/are not saved:"
+            text += "<ul>"
             if self._trans_modified:
-                text += "Head<>MRI transform"
+                text += "<li>Head<>MRI transform</li>"
             if self._fids_modified:
-                if text:
-                    text += " and "
-                text += "fiducials"
-            text += " has/have not been saved."
+                text += "<li>fiducials</li>"
+            text += "</ul>"
             self._widgets["close_dialog"] = self._renderer._dialog_warning(
                 title="CoregistrationUI",
                 text=text,
