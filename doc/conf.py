@@ -830,6 +830,10 @@ def reset_warnings(gallery_conf, fname):
         'ignore', r'.*From version 1\.3 whiten.*')
     warnings.filterwarnings(  # seaborn -> pandas
         'ignore', '.*iteritems is deprecated and will be.*')
+    warnings.filterwarnings(  # PyOpenGL for macOS
+        'ignore', '.*PyOpenGL was not found.*')
+    warnings.filterwarnings(  # macOS Epochs
+        'ignore', '.*Plotting epochs on MacOS.*')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
