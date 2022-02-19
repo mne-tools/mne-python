@@ -1166,6 +1166,17 @@ def test_crop_when_negative_orig_time(windows_like_datetime):
     assert crop_annot.orig_time == orig_dt  # orig_time does not change
 
 
+def test_crop_with_none(windows_like_datetime):
+    """Test cropping with None in arguments."""
+    orig_time_stamp = 100
+    annot = Annotations(description='foo', onset=np.arange(5, 10, 1),
+                        duration=[1], orig_time=orig_time_stamp)
+    annot.crop(tmin=None, tmax=None)
+    assert len(annot) == 5
+    annot.crop(tmin=(7.5+orig_time_stamp), tmax=None)
+    assert len(annot) == 3
+
+
 def test_allow_nan_durations():
     """Deal with "n/a" strings in BIDS events with nan durations."""
     raw = RawArray(data=np.empty([2, 10], dtype=np.float64),
