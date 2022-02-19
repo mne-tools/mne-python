@@ -1731,6 +1731,9 @@ class CoregistrationUI(HasTraits):
             if self._trans_modified:
                 self._forward_widget_command(
                     "save_trans", "set_value", None)
+                # cancel means _save_trans is not called
+                if self._trans_modified:
+                    self._accept_close_event = False
             if self._fids_modified:
                 self._forward_widget_command(
                     "save_mri_fids", "set_value", None)
