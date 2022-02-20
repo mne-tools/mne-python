@@ -1008,13 +1008,23 @@ class ICA(ContainsMixin, _VerboseDep):
         start, stop = _check_start_stop(raw, start, stop)
         data_ = self._transform_raw(raw, start=start, stop=stop)
         assert data_.shape[1] == stop - start
-        if raw.preload:  # get data and temporarily delete
-            data = raw._data
-            del raw._data
 
-        out = raw.copy()  # copy and reappend
+        preloaded = raw.preload
         if raw.preload:
-            raw._data = data
+            # get data and temporarily delete
+            data = raw._data
+            raw.preload = False
+            del raw._data
+        # copy and crop here so that things like annotations are adjusted
+        try:
+            out = raw.copy().crop(
+                start / raw.info['sfreq'],
+                (stop - 1) / raw.info['sfreq'])
+        finally:
+            # put the data back (always)
+            if preloaded:
+                raw.preload = True
+                raw._data = data
 
         # populate copied raw.
         if add_channels is not None and len(add_channels):
@@ -1022,10 +1032,10 @@ class ICA(ContainsMixin, _VerboseDep):
             data_ = np.concatenate([
                 data_, raw.get_data(picks, start=start, stop=stop)])
         out._data = data_
+        out._first_samps = [out.first_samp]
+        out._last_samps = [out.last_samp]
         out._filenames = [None]
         out.preload = True
-        out._first_samps[:] = [out.first_samp + start]
-        out._last_samps[:] = [out.first_samp + data_.shape[1] - 1]
         out._projector = None
         self._export_info(out.info, raw, add_channels)
 
@@ -1951,7 +1961,7 @@ class ICA(ContainsMixin, _VerboseDep):
     def plot_sources(self, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True,
-                     time_format='float', precompute='auto',
+                     time_format='float', precompute=None,
                      use_opengl=None):
         return plot_ica_sources(self, inst=inst, picks=picks,
                                 start=start, stop=stop, title=title, show=show,

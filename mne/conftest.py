@@ -66,7 +66,8 @@ def pytest_configure(config):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
-    for fixture in ('matplotlib_config', 'close_all', 'check_verbose'):
+    for fixture in ('matplotlib_config', 'close_all', 'check_verbose',
+                    'qt_config'):
         config.addinivalue_line('usefixtures', fixture)
 
     # Warnings
@@ -135,6 +136,8 @@ def pytest_configure(config):
     # Jupyter notebook stuff
     ignore:.*unclosed context <zmq\.asyncio\.*:ResourceWarning
     ignore:.*unclosed event loop <.*:ResourceWarning
+    # TODO: This is indicative of a problem
+    ignore:.*Matplotlib is currently using agg.*:
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
@@ -181,6 +184,12 @@ def verbose_debug():
 
 
 @pytest.fixture(scope='session')
+def qt_config():
+    """Configure the Qt backend for viz tests."""
+    os.environ['_MNE_BROWSER_NO_BLOCK'] = 'true'
+
+
+@pytest.fixture(scope='session')
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
@@ -208,7 +217,7 @@ def matplotlib_config():
     orig = cbook.CallbackRegistry
 
     class CallbackRegistryReraise(orig):
-        def __init__(self, exception_handler=None):
+        def __init__(self, exception_handler=None, signals=None):
             super(CallbackRegistryReraise, self).__init__(exception_handler)
 
     cbook.CallbackRegistry = CallbackRegistryReraise
@@ -434,8 +443,12 @@ def pg_backend(request, garbage_collect):
     """Use for pyqtgraph-specific test-functions."""
     _check_pyqtgraph(request)
     with use_browser_backend('qt') as backend:
+        backend._close_all()
         yield backend
         backend._close_all()
+        # This shouldn't be necessary, but let's make sure nothing is stale
+        import mne_qt_browser
+        mne_qt_browser._browser_instances.clear()
 
 
 @pytest.fixture(params=[
@@ -448,8 +461,13 @@ def browser_backend(request, garbage_collect):
     if backend_name == 'qt':
         _check_pyqtgraph(request)
     with use_browser_backend(backend_name) as backend:
+        backend._close_all()
         yield backend
         backend._close_all()
+        if backend_name == 'qt':
+            # This shouldn't be necessary, but let's make sure nothing is stale
+            import mne_qt_browser
+            mne_qt_browser._browser_instances.clear()
 
 
 @pytest.fixture(params=["pyvistaqt"])

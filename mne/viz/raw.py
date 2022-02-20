@@ -19,9 +19,8 @@ from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (plt_show, _compute_scalings, _handle_decim, _check_cov,
-                    _shorten_path_from_middle,
-                    _get_channel_plotting_order, _make_event_color_dict,
-                    _show_browser)
+                    _shorten_path_from_middle, _handle_precompute,
+                    _get_channel_plotting_order, _make_event_color_dict)
 
 _RAW_CLIP_DEF = 1.5
 
@@ -36,7 +35,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              proj=True, group_by='type', butterfly=False, decim='auto',
              noise_cov=None, event_id=None, show_scrollbars=True,
              show_scalebars=True, time_format='float',
-             precompute='auto', use_opengl=None, verbose=None):
+             precompute=None, use_opengl=None, verbose=None):
     """Plot raw data.
 
     Parameters
@@ -301,6 +300,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # gather parameters and initialize figure
     _validate_type(use_opengl, (bool, None), 'use_opengl')
+    precompute = _handle_precompute(precompute)
     params = dict(inst=raw,
                   info=info,
                   # channels and channel order
@@ -350,13 +350,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   precompute=precompute,
                   use_opengl=use_opengl)
 
-    fig = _get_browser(**params)
-
-    # start with projectors dialog open, if requested
-    if show_options:
-        fig._toggle_proj_fig()
-
-    _show_browser(show, block=block, fig=fig)
+    fig = _get_browser(show=show, block=block, **params)
 
     return fig
 

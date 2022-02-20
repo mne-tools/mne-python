@@ -14,8 +14,6 @@ permutation test across space and time.
 
 # %%
 
-import os.path as op
-
 import numpy as np
 from scipy import stats as stats
 
@@ -30,9 +28,10 @@ print(__doc__)
 # Set parameters
 # --------------
 data_path = sample.data_path()
-stc_fname = data_path + '/MEG/sample/sample_audvis-meg-lh.stc'
-subjects_dir = data_path + '/subjects'
-src_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
+meg_path = data_path / 'MEG' / 'sample'
+stc_fname = meg_path / 'sample_audvis-meg-lh.stc'
+subjects_dir = data_path / 'subjects'
+src_fname = subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-ico-5-src.fif'
 
 # Load stc to in common cortical space (fsaverage)
 stc = mne.read_source_estimate(stc_fname)
@@ -109,7 +108,7 @@ stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
 
 #    Let's actually plot the first "time point" in the SourceEstimate, which
 #    shows all the clusters, weighted by duration
-subjects_dir = op.join(data_path, 'subjects')
+
 # blue blobs are for condition A != condition B
 brain = stc_all_cluster_vis.plot('fsaverage', hemi='both',
                                  views='lateral', subjects_dir=subjects_dir,

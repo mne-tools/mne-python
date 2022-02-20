@@ -244,6 +244,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             assert_allclose(proj, direct, atol=1e-10, err_msg=t_kw['err_msg'])
     else:
         raw = reader(**kwargs)
+    n_samp = len(raw.times)
     assert_named_constants(raw.info)
     # smoke test for gh #9743
     ids = [id(ch['loc']) for ch in raw.info['chs']]
@@ -402,7 +403,59 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
                 os.chdir(orig_dir)
             raw_chdir.load_data()
 
+    # make sure that cropping works (with first_samp shift)
+    if n_samp >= 50:  # we crop to this number of samples below
+        for t_prop in (0., 0.5):
+            _test_raw_crop(reader, t_prop, kwargs)
+            if test_preloading:
+                use_kwargs = kwargs.copy()
+                use_kwargs['preload'] = True
+                _test_raw_crop(reader, t_prop, use_kwargs)
+
     return raw
+
+
+def _test_raw_crop(reader, t_prop, kwargs):
+    raw_1 = reader(**kwargs)
+    n_samp = 50  # crop to this number of samples (per instance)
+    crop_t = n_samp / raw_1.info['sfreq']
+    t_start = t_prop * crop_t  # also crop to some fraction into the first inst
+    extra = f' t_start={t_start}, preload={kwargs.get("preload", False)}'
+    stop = (n_samp - 1) / raw_1.info['sfreq']
+    raw_1.crop(0, stop)
+    assert len(raw_1.times) == 50
+    first_time = raw_1.first_time
+    atol = 0.5 / raw_1.info['sfreq']
+    assert_allclose(raw_1.times[-1], stop, atol=atol)
+    raw_2, raw_3 = raw_1.copy(), raw_1.copy()
+    t_tot = raw_1.times[-1] * 3 + 2. / raw_1.info['sfreq']
+    raw_concat = concatenate_raws([raw_1, raw_2, raw_3])
+    assert len(raw_concat._filenames) == 3
+    assert_allclose(raw_concat.times[-1], t_tot)
+    assert_allclose(raw_concat.first_time, first_time)
+    # keep all instances, but crop to t_start at the beginning
+    raw_concat.crop(t_start, None)
+    assert len(raw_concat._filenames) == 3
+    assert_allclose(raw_concat.times[-1], t_tot - t_start, atol=atol)
+    assert_allclose(
+        raw_concat.first_time, first_time + t_start, atol=atol,
+        err_msg=f'Base concat, {extra}')
+    # drop the first instance
+    raw_concat.crop(crop_t, None)
+    assert len(raw_concat._filenames) == 2
+    assert_allclose(
+        raw_concat.times[-1], t_tot - t_start - crop_t, atol=atol)
+    assert_allclose(
+        raw_concat.first_time, first_time + t_start + crop_t,
+        atol=atol, err_msg=f'Dropping one, {extra}')
+    # drop the second instance, leaving just one
+    raw_concat.crop(crop_t, None)
+    assert len(raw_concat._filenames) == 1
+    assert_allclose(
+        raw_concat.times[-1], t_tot - t_start - 2 * crop_t, atol=atol)
+    assert_allclose(
+        raw_concat.first_time, first_time + t_start + 2 * crop_t,
+        atol=atol, err_msg=f'Dropping two, {extra}')
 
 
 def _test_concat(reader, *args):

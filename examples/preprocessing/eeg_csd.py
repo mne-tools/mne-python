@@ -30,7 +30,8 @@ data_path = sample.data_path()
 
 # %%
 # Load sample subject data
-raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
+meg_path = data_path / 'MEG' / 'sample'
+raw = mne.io.read_raw_fif(meg_path / 'sample_audvis_raw.fif')
 raw = raw.pick_types(meg=False, eeg=True, eog=True, ecg=True, stim=True,
                      exclude=raw.info['bads']).load_data()
 events = mne.find_events(raw)

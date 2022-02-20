@@ -168,7 +168,8 @@ print(raw.info['projs'])
 #    only computed for the magnetometers.)
 
 for title, proj in zip(['Original', 'Average'], [False, True]):
-    fig = raw.plot(proj=proj, n_channels=len(raw))
+    with mne.viz.use_browser_backend('matplotlib'):
+        fig = raw.plot(proj=proj, n_channels=len(raw))
     # make room for title
     fig.subplots_adjust(top=0.9)
     fig.suptitle('{} reference'.format(title), size='xx-large', weight='bold')
@@ -190,7 +191,8 @@ forward = mne.make_forward_solution(raw.info, trans=None, src=src, bem=sphere)
 raw_rest = raw.copy().set_eeg_reference('REST', forward=forward)
 
 for title, _raw in zip(['Original', 'REST (∞)'], [raw, raw_rest]):
-    fig = _raw.plot(n_channels=len(raw), scalings=dict(eeg=5e-5))
+    with mne.viz.use_browser_backend('matplotlib'):
+        fig = _raw.plot(n_channels=len(raw), scalings=dict(eeg=5e-5))
     # make room for title
     fig.subplots_adjust(top=0.9)
     fig.suptitle('{} reference'.format(title), size='xx-large', weight='bold')

@@ -13,6 +13,7 @@ import sys
 import time
 import warnings
 from datetime import datetime, timezone
+import faulthandler
 
 import numpy as np
 import matplotlib
@@ -21,12 +22,15 @@ from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 
 import mne
+from mne.fixes import _compare_version
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (linkcode_resolve, # noqa, analysis:ignore
                        _assert_no_instances, sizeof_fmt, run_subprocess)
 from mne.viz import Brain  # noqa
 
 matplotlib.use('agg')
+faulthandler.enable()
+os.environ['_MNE_BROWSER_NO_BLOCK'] = 'true'
 
 # -- Path setup --------------------------------------------------------------
 
@@ -170,6 +174,7 @@ numpydoc_xref_aliases = {
     'iterator': ':term:`iterator <python:iterator>`',
     'path-like': ':term:`path-like`',
     'array-like': ':term:`array-like`',
+    'Path': ':class:`python:pathlib.Path`',
     # Matplotlib
     'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',
     'color': ':doc:`color <matplotlib:api/colors_api>`',
@@ -355,6 +360,13 @@ else:
     report_scraper = mne.report._ReportScraper()
     scrapers += (report_scraper,)
     del backend
+try:
+    import mne_qt_browser
+    _min_ver = _compare_version(mne_qt_browser.__version__, '>=', '0.2')
+    if mne.viz.get_browser_backend() == 'qt' and _min_ver:
+        scrapers += (mne.viz._scraper._PyQtGraphScraper(),)
+except ImportError:
+    pass
 
 compress_images = ('images', 'thumbnails')
 # let's make things easier on Windows users
@@ -799,6 +811,8 @@ def reset_warnings(gallery_conf, fname):
         'ignore', '.*"is not" with a literal.*', module='nilearn')
     warnings.filterwarnings(  # scikit-learn FastICA whiten=True deprecation
         'ignore', r'.*From version 1\.3 whiten.*')
+    warnings.filterwarnings(  # seaborn -> pandas
+        'ignore', '.*iteritems is deprecated and will be.*')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
@@ -817,6 +831,8 @@ def reset_warnings(gallery_conf, fname):
                 'to mean no clipping',
                 r'the `scipy\.ndimage.*` namespace is deprecated',  # Dipy
                 '`np.MachAr` is deprecated',  # Numba
+                'distutils Version classes are deprecated',  # pydata-sphinx-th
+                'The module matplotlib.tight_layout is deprecated',  # nilearn
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
@@ -1145,5 +1161,6 @@ def setup(app):
     sphinx_logger = sphinx.util.logging.getLogger('mne')
     sphinx_logger.info(
         f'Building documentation for MNE {release} ({mne.__file__})')
+    sphinx_logger.info(f'Building with scrapers={scrapers}')
     app.connect('build-finished', make_redirects)
     app.connect('build-finished', make_version)

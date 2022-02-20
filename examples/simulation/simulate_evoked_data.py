@@ -26,15 +26,15 @@ print(__doc__)
 # %%
 # Load real data as templates:
 data_path = sample.data_path()
-
-raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
-proj = mne.read_proj(data_path + '/MEG/sample/sample_audvis_ecg-proj.fif')
+meg_path = data_path / 'MEG' / 'sample'
+raw = mne.io.read_raw_fif(meg_path / 'sample_audvis_raw.fif')
+proj = mne.read_proj(meg_path / 'sample_audvis_ecg-proj.fif')
 raw.add_proj(proj)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels
 
-fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-ave_fname = data_path + '/MEG/sample/sample_audvis-no-filter-ave.fif'
-cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
+fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+ave_fname = meg_path / 'sample_audvis-no-filter-ave.fif'
+cov_fname = meg_path / 'sample_audvis-cov.fif'
 
 fwd = mne.read_forward_solution(fwd_fname)
 fwd = mne.pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
@@ -42,7 +42,7 @@ cov = mne.read_cov(cov_fname)
 info = mne.io.read_info(ave_fname)
 
 label_names = ['Aud-lh', 'Aud-rh']
-labels = [mne.read_label(data_path + '/MEG/sample/labels/%s.label' % ln)
+labels = [mne.read_label(meg_path / 'labels' / f'{ln}.label')
           for ln in label_names]
 
 # %%

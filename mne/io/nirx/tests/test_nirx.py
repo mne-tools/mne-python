@@ -59,10 +59,6 @@ snirf_nirsport2_20219 = op.join(
     testing_path, 'SNIRF', 'NIRx', 'NIRSport2', '2021.9',
     '2021-10-01_002.snirf')
 
-# NIRStar (with Italian locale)
-nirstar_it = op.join(
-    testing_path, 'NIRx', 'nirstar', '2020-01-24_SHAM_CTRL_0050')
-
 
 @requires_h5py
 @requires_testing_data
@@ -262,9 +258,9 @@ def test_nirx_missing_warn():
 def test_nirx_missing_evt(tmp_path):
     """Test reading NIRX files when missing data."""
     shutil.copytree(fname_nirx_15_2_short, str(tmp_path) + "/data/")
-    os.rename(str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.evt",
-              str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.xxx")
-    fname = str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.hdr"
+    os.rename(tmp_path / "data" / "NIRS-2019-08-23_001.evt",
+              tmp_path / "data" / "NIRS-2019-08-23_001.xxx")
+    fname = tmp_path / "data" / "NIRS-2019-08-23_001.hdr"
     raw = read_raw_nirx(fname, preload=True)
     assert raw.annotations.onset.shape == (0, )
 
@@ -273,9 +269,9 @@ def test_nirx_missing_evt(tmp_path):
 def test_nirx_dat_warn(tmp_path):
     """Test reading NIRX files when missing data."""
     shutil.copytree(fname_nirx_15_2_short, str(tmp_path) + "/data/")
-    os.rename(str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.dat",
-              str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.tmp")
-    fname = str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.hdr"
+    os.rename(tmp_path / "data" / "NIRS-2019-08-23_001.dat",
+              tmp_path / "data" / "NIRS-2019-08-23_001.tmp")
+    fname = tmp_path / "data" / "NIRS-2019-08-23_001.hdr"
     with pytest.raises(RuntimeWarning, match='A single dat'):
         read_raw_nirx(fname, preload=True)
 
@@ -482,7 +478,12 @@ def test_locale_encoding(tmp_path):
             fid.write(line)
     read_raw_nirx(fname, verbose='debug')
     # Italian
-    raw = read_raw_nirx(nirstar_it, verbose='debug')
+    hdr[2] = b'Date="ven 24 gen 2020"\r\n'
+    hdr[3] = b'Time="10:57:41.454"\r\n'
+    with open(hdr_fname, 'wb') as fid:
+        for line in hdr:
+            fid.write(line)
+    raw = read_raw_nirx(fname, verbose='debug')
     want_dt = dt.datetime(
         2020, 1, 24, 10, 57, 41, 454000, tzinfo=dt.timezone.utc)
     assert raw.info['meas_date'] == want_dt
@@ -593,7 +594,6 @@ def test_nirx_15_0():
     [fname_nirx_15_2, 0],
     [fname_nirx_15_2, 0],
     [nirsport2_2021_9, 0],
-    [nirstar_it, 0],
 ))
 def test_nirx_standard(fname, boundary_decimal):
     """Test standard operations."""

@@ -12,8 +12,9 @@ import warnings
 
 import numpy as np
 
-from .utils import (_show_browser, tight_layout, _make_event_color_dict,
-                    plt_show, _convert_psds, _compute_scalings)
+from .utils import (tight_layout, _make_event_color_dict,
+                    plt_show, _convert_psds, _compute_scalings,
+                    _handle_precompute)
 from .topomap import _plot_ica_topomap
 from .epochs import plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
@@ -29,7 +30,7 @@ from ..utils import _reject_data_segments, verbose
 def plot_ica_sources(ica, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True,
-                     time_format='float', precompute='auto',
+                     time_format='float', precompute=None,
                      use_opengl=None):
     """Plot estimated latent sources given the unmixing matrix.
 
@@ -1050,6 +1051,7 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
     # misc
     bad_color = 'lightgray'
     title = 'ICA components' if title is None else title
+    precompute = _handle_precompute(precompute)
 
     params = dict(inst=inst_array,
                   ica=ica,
@@ -1104,7 +1106,6 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                       epoch_colors=None,
                       xlabel='Epoch number')
 
-    fig = _get_browser(**params)
-    _show_browser(show, block=block, fig=fig)
+    fig = _get_browser(show=show, block=block, **params)
 
     return fig

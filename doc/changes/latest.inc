@@ -113,6 +113,10 @@ Enhancements
 Bugs
 ~~~~
 
+- Fix datetime conversion for tmin/tmax=None cases in :meth:`mne.Annotations.crop`. Allow the use of float and None simultaneously for :meth:`mne.Annotations.crop`. (:gh:`10361` by `Michiru Kaneda`_)
+
+- Add Shift_JIST mu in :func:`mne.io.read_raw_edf` (:gh:`10356` by :newcontrib:`Michiru Kaneda`)
+
 - Teach :func:`mne.io.read_raw_bti` to use its ``eog_ch`` parameter (:gh:`10093` by :newcontrib:`Adina Wagner`)
 
 - :func:`mne.time_frequency.tfr_array_multitaper` now returns results per taper when ``output='complex'`` (:gh:`10281` by `Mikołaj Magnuski`_)
@@ -146,6 +150,8 @@ Bugs
 - Fix bug in :func:`mne.get_montage_volume_labels` that set the maximum number of voxels to be included too low causing unwanted capping of the included voxel labels (:gh:`10021` by `Alex Rockhill`_)
 
 - Fix annotation cropping and I/O roundtrip when there is no measurement date available (:gh:`10040` by `Mathieu Scheltienne`_ and `Alex Gramfort`_).
+
+- Fix bug where :meth:`raw.crop() <mne.io.Raw.crop>` from the beginning of the instance could break annotations and ``raw.first_samp`` (:gh:`10358` by `Eric Larson`_)
 
 - :func:`~mne.sys_info` output now contains the installed version of ``pooch``, too; this output had been accidentally removed previously (:gh:`10047` by `Richard Höchenberger`_)
 
@@ -207,7 +213,11 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
+- The default browser for :meth:`raw.plot() <mne.io.Raw.plot>`, :meth:`epochs.plot() <mne.Epochs.plot>`, and :meth:`ica.plot_sources() <mne.preprocessing.ICA.plot_sources>` has been changed to the ``'qt'`` backend on systems where `mne_qt_browser <https://github.com/mne-tools/mne-qt-browser>`__ is installed. To change back to matplotlib within a session, you can use :func:`mne.viz.set_browser_backend('matplotlib') <mne.viz.set_browser_backend>`. To set it permanently on your system, you can use :func:`mne.set_config('MNE_BROWSER_BACKEND', 'matplotlib') <mne.set_config>` (:gh:`9960` by `Martin Schulz`_ and `Eric Larson`_)
+
 - ``mne.Info.pick_channels`` has been deprecated. Use ``inst.pick_channels`` to pick channels from :class:`~mne.io.Raw`, :class:`~mne.Epochs`, and :class:`~mne.Evoked`. Use :func:`mne.pick_info` to pick channels from :class:`mne.Info` (:gh:`10039` by `Mathieu Scheltienne`_)
+
+- All :func:`data_path <mne.datasets.sample.data_path>` functions now return :class:`python:pathlib.Path` objects rather than strings. Support for string concatenation with plus (``+``) is thus deprecated and will be removed in 1.2, use the forward-slash ``/`` operator instead (:gh:`10348` by `Eric Larson`_)
 
 - Argument ``event_list`` has been deprecated in favor of ``events`` in :func:`mne.write_events` (:gh:`10056` by `Mathieu Scheltienne`_)
 

@@ -534,7 +534,8 @@ corrmap(icas, template=(0, eog_inds[0]))
 # to also double-check the ICA sources for each subject:
 
 for index, (ica, raw) in enumerate(zip(icas, raws)):
-    fig = ica.plot_sources(raw, show_scrollbars=False)
+    with mne.viz.use_browser_backend('matplotlib'):
+        fig = ica.plot_sources(raw, show_scrollbars=False)
     fig.subplots_adjust(top=0.9)  # make space for title
     fig.suptitle('Subject {}'.format(index))
 

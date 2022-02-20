@@ -22,11 +22,12 @@ from mne.minimum_norm import get_cross_talk
 print(__doc__)
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects/'
-fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
-fname_evo = data_path + '/MEG/sample/sample_audvis-ave.fif'
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+subjects_dir = data_path / 'subjects'
+meg_path = data_path / 'MEG' / 'sample'
+fname_fwd = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+fname_cov = meg_path / 'sample_audvis-cov.fif'
+fname_evo = meg_path / 'sample_audvis-ave.fif'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
 
 # Read raw data
 raw = mne.io.read_raw_fif(raw_fname)

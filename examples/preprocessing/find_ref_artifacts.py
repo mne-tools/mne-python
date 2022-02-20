@@ -45,7 +45,7 @@ data_path = refmeg_noise.data_path()
 # %%
 # Read raw data, cropping to 5 minutes to save memory
 
-raw_fname = data_path + '/sample_reference_MEG_noise-raw.fif'
+raw_fname = data_path / 'sample_reference_MEG_noise-raw.fif'
 raw = io.read_raw_fif(raw_fname).crop(300, 600).load_data()
 
 # %%

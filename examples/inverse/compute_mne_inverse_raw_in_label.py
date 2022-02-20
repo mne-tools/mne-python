@@ -25,10 +25,11 @@ from mne.minimum_norm import apply_inverse_raw, read_inverse_operator
 print(__doc__)
 
 data_path = sample.data_path()
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
-fname_raw = data_path + '/MEG/sample/sample_audvis_raw.fif'
+fname_inv = (
+    data_path / 'MEG' / 'sample' / 'sample_audvis-meg-oct-6-meg-inv.fif')
+fname_raw = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
 label_name = 'Aud-lh'
-fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
+fname_label = data_path / 'MEG' / 'sample' / 'labels' / f'{label_name}.label'
 
 snr = 1.0  # use smaller SNR for raw data
 lambda2 = 1.0 / snr ** 2
@@ -47,7 +48,7 @@ stc = apply_inverse_raw(raw, inverse_operator, lambda2, method, label,
                         start, stop, pick_ori=None)
 
 # Save result in stc files
-stc.save('mne_%s_raw_inverse_%s' % (method, label_name))
+stc.save('mne_%s_raw_inverse_%s' % (method, label_name), overwrite=True)
 
 # %%
 # View activation time-series
