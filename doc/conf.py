@@ -320,6 +320,13 @@ class Resetter(object):
         # turn it off here (otherwise the build can be very slow)
         plt.ioff()
         plt.rcParams['animation.embed_limit'] = 30.
+        # neo holds on to an exception, which in turn holds a stack frame,
+        # which will keep alive the global vars during SG execution
+        try:
+            import neo
+            neo.io.stimfitio.STFIO_ERR = None
+        except Exception:
+            pass
         gc.collect()
         when = f'mne/conf.py:Resetter.__call__:{when}:{fname}'
         # Support stuff like
