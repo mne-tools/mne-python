@@ -295,7 +295,7 @@ class Resetter(object):
     def __repr__(self):
         return f'<{self.__class__.__name__}>'
 
-    def __call__(self, gallery_conf, fname):
+    def __call__(self, gallery_conf, fname, when):
         import matplotlib.pyplot as plt
         try:
             from pyvista import Plotter  # noqa
@@ -309,6 +309,10 @@ class Resetter(object):
             from vtk import vtkPolyData  # noqa
         except ImportError:
             vtkPolyData = None  # noqa
+        try:
+            from mne_qt_browser._pg_figure import PyQtGraphBrowser
+        except ImportError:
+            PyQtGraphBrowser = None
         from mne.viz.backends.renderer import backend
         _Renderer = backend._Renderer if backend is not None else None
         reset_warnings(gallery_conf, fname)
@@ -316,25 +320,44 @@ class Resetter(object):
         # turn it off here (otherwise the build can be very slow)
         plt.ioff()
         plt.rcParams['animation.embed_limit'] = 30.
+        # neo holds on to an exception, which in turn holds a stack frame,
+        # which will keep alive the global vars during SG execution
+        try:
+            import neo
+            neo.io.stimfitio.STFIO_ERR = None
+        except Exception:
+            pass
         gc.collect()
-        when = 'mne/conf.py:Resetter.__call__'
-        if os.getenv('MNE_SKIP_INSTANCE_ASSERTIONS', 'false') not in \
-                ('true', '1'):
-            _assert_no_instances(Brain, when)  # calls gc.collect()
-            if Plotter is not None:
+        when = f'mne/conf.py:Resetter.__call__:{when}:{fname}'
+        # Support stuff like
+        # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html_dev-memory  # noqa: E501
+        # to just test PyQtGraphBrowser
+        skips = os.getenv('MNE_SKIP_INSTANCE_ASSERTIONS', '').lower()
+        prefix = ''
+        if skips not in ('true', '1', 'all'):
+            prefix = 'Clean '
+            skips = skips.split(',')
+            if 'brain' not in skips:
+                _assert_no_instances(Brain, when)  # calls gc.collect()
+            if Plotter is not None and 'plotter' not in skips:
                 _assert_no_instances(Plotter, when)
-            if BackgroundPlotter is not None:
+            if BackgroundPlotter is not None and \
+                    'backgroundplotter' not in skips:
                 _assert_no_instances(BackgroundPlotter, when)
-            if vtkPolyData is not None:
+            if vtkPolyData is not None and 'vtkpolydata' not in skips:
                 _assert_no_instances(vtkPolyData, when)
-            _assert_no_instances(_Renderer, when)
+            if '_renderer' not in skips:
+                _assert_no_instances(_Renderer, when)
+            if PyQtGraphBrowser is not None and \
+                    'pyqtgraphbrowser' not in skips:
+                _assert_no_instances(PyQtGraphBrowser, when)
         # This will overwrite some Sphinx printing but it's useful
         # for memory timestamps
         if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
             import psutil
             process = psutil.Process(os.getpid())
             mem = sizeof_fmt(process.memory_info().rss)
-            print(f'{time.time() - self.t0:6.1f} s : {mem}'.ljust(22))
+            print(f'{prefix}{time.time() - self.t0:6.1f} s : {mem}'.ljust(22))
 
 
 examples_dirs = ['../tutorials', '../examples']
@@ -418,6 +441,7 @@ sphinx_gallery_conf = {
     'min_reported_time': 1.,
     'abort_on_example_error': False,
     'reset_modules': ('matplotlib', Resetter()),  # called w/each script
+    'reset_modules_order': 'both',
     'image_scrapers': scrapers,
     'show_memory': not sys.platform.startswith('win'),
     'line_numbers': False,  # messes with style
@@ -813,6 +837,10 @@ def reset_warnings(gallery_conf, fname):
         'ignore', r'.*From version 1\.3 whiten.*')
     warnings.filterwarnings(  # seaborn -> pandas
         'ignore', '.*iteritems is deprecated and will be.*')
+    warnings.filterwarnings(  # PyOpenGL for macOS
+        'ignore', '.*PyOpenGL was not found.*')
+    warnings.filterwarnings(  # macOS Epochs
+        'ignore', '.*Plotting epochs on MacOS.*')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage

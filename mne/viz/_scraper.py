@@ -48,6 +48,7 @@ class _PyQtGraphScraper:
                 img_fnames.append(next(block_vars['image_path_iterator']))
                 fig.savefig(img_fnames[-1])
             gui.close()
+            del gui, pixmap
         if not len(img_fnames):
             return ''
         for _ in range(2):
