@@ -271,6 +271,7 @@ class CoregistrationUI(HasTraits):
 
         # configure UI
         self._reset_fitting_parameters()
+        self._configure_status_bar()
         self._configure_dock()
         self._configure_picking()
 
@@ -302,8 +303,6 @@ class CoregistrationUI(HasTraits):
         # must be done last
         if show:
             self._renderer.show()
-        # this must be setup once the window is shown
-        self._configure_status_bar()
         # update the view once shown
         views = {True: dict(azimuth=90, elevation=90),  # front
                  False: dict(azimuth=180, elevation=90)}  # left

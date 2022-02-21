@@ -485,20 +485,19 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
     def _status_bar_initialize(self, window=None):
         window = self._window if window is None else window
         self._status_bar = window.statusBar()
-        self._status_bar_layout = self._status_bar.layout()
 
     def _status_bar_add_label(self, value, *, stretch=0):
         widget = QLabel(value)
-        self._layout_add_widget(self._status_bar_layout, widget, stretch)
+        self._layout_add_widget(self._status_bar.layout(), widget, stretch)
         return _QtWidget(widget)
 
     def _status_bar_add_progress_bar(self, stretch=0):
         widget = QProgressBar()
-        self._layout_add_widget(self._status_bar_layout, widget, stretch)
+        self._layout_add_widget(self._status_bar.layout(), widget, stretch)
         return _QtWidget(widget)
 
     def _status_bar_update(self):
-        self._status_bar_layout.update()
+        self._status_bar.layout().update()
 
 
 class _QtPlayback(_AbstractPlayback):
