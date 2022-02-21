@@ -1803,6 +1803,11 @@ allow_duplicates : bool
 """
 
 # Brain plotting
+docdict["fwd"] = """
+fwd : instance of Forward
+    The forward solution. If present, the orientations of the dipoles
+    present in the forward solution are displayed.
+"""
 docdict["view"] = """
 view : str | None
     The name of the view to show (e.g. "lateral"). Other arguments

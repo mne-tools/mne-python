@@ -349,6 +349,8 @@ class Brain(object):
        +-------------------------------------+--------------+---------------+
        | :meth:`add_foci`                    | ✓            | ✓             |
        +-------------------------------------+--------------+---------------+
+       | :meth:`add_forward`                 |              | ✓             |
+       +-------------------------------------+--------------+---------------+
        | :meth:`add_head`                    |              | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`add_label`                   | ✓            | ✓             |
@@ -372,6 +374,8 @@ class Brain(object):
        | :meth:`remove_data`                 |              | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`remove_dipole`               |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`remove_forward`              |              | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`remove_head`                 |              | ✓             |
        +-------------------------------------+--------------+---------------+
@@ -2387,7 +2391,52 @@ class Brain(object):
         self._renderer._update()
 
     @fill_doc
-    def add_dipole(self, dipole, trans, color=None, alpha=1, scale=None):
+    def add_forward(self, fwd, trans, alpha=1, scale=None):
+        """Add a quiver to render positions of dipoles.
+
+        Parameters
+        ----------
+        %(fwd)s
+        %(trans_not_none)s
+        %(alpha)s Default 1.
+        scale : None | float
+            The size of the arrow representing the dipoles in
+            :class:`mne.viz.Brain` units. Default 1.5mm.
+
+        Notes
+        -----
+        .. versionadded:: 1.0
+        """
+        head_mri_t = _get_trans(trans, 'head', 'mri', allow_none=False)[0]
+        del trans
+        if scale is None:
+            scale = 1.5 if self._units == 'mm' else 1.5e-3
+        error_msg = ('Unexpected forward model coordinate frame '
+                     '{}, must be "head" or "mri"')
+        if fwd['coord_frame'] in _frame_to_str:
+            fwd_frame = _frame_to_str[fwd['coord_frame']]
+            if fwd_frame == 'mri':
+                fwd_trans = Transform('mri', 'mri')
+            elif fwd_frame == 'head':
+                fwd_trans = head_mri_t
+            else:
+                raise RuntimeError(error_msg.format(fwd_frame))
+        else:
+            raise RuntimeError(error_msg.format(fwd['coord_frame']))
+        for actor in _plot_forward(
+                self._renderer, fwd, fwd_trans,
+                fwd_scale=1e3 if self._units == 'mm' else 1,
+                scale=scale, alpha=alpha):
+            self._add_actor('forward', actor)
+
+        self._renderer._update()
+
+    def remove_forward(self):
+        """Remove forward sources from the rendered scene."""
+        self._remove('forward', render=True)
+
+    @fill_doc
+    def add_dipole(self, dipole, trans, colors='red', alpha=1, scale=None):
         """Add a quiver to render positions of dipoles.
 
         Parameters
@@ -2396,11 +2445,10 @@ class Brain(object):
             Dipole object containing position, orientation and amplitude of
             one or more dipoles or in the forward solution.
         %(trans_not_none)s
-        color : color | list
-            A list of anything matplotlib accepts: string, RGB, hex, etc.
-            Can also be a list of colors to color dipoles.
-        %(alpha)s
-            Default 1.
+        colors : list | matplotlib-style color | None
+            A single color or list of anything matplotlib accepts:
+            string, RGB, hex, etc. Default red.
+        %(alpha)s Default 1.
         scale : None | float
             The size of the arrow representing the dipole in
             :class:`mne.viz.Brain` units. Default 5mm.
@@ -2409,46 +2457,26 @@ class Brain(object):
         -----
         .. versionadded:: 1.0
         """
-        from ...forward import Forward
         head_mri_t = _get_trans(trans, 'head', 'mri', allow_none=False)[0]
         del trans
-        if isinstance(dipole, Forward):
-            n_dipoles = dipole['source_rr'].shape[0]
-        else:
-            n_dipoles = len(dipole)
-            if color is None:
-                color = _to_rgb('red')
-        if isinstance(color, (list, tuple)) and len(color) != n_dipoles:
-            raise ValueError(f'The number of colors ({len(color)}) '
+        n_dipoles = len(dipole)
+        if isinstance(colors, (list, tuple)) and len(colors) != n_dipoles:
+            raise ValueError(f'The number of colors ({len(colors)}) '
                              f'and dipoles ({n_dipoles}) must match')
+        if not isinstance(colors, (list, tuple)):
+            colors = [colors] * n_dipoles  # make into list
+        colors = [_to_rgb(color, name=f'colors[{ci}]')
+                  for ci, color in enumerate(colors)]
         if scale is None:
             scale = 5 if self._units == 'mm' else 5e-3
-        if isinstance(dipole, Forward):
-            error_msg = ('Unexpected forward model coordinate frame '
-                         '{}, must be "head" or "mri"')
-            if dipole['coord_frame'] in _frame_to_str:
-                fwd_frame = _frame_to_str[dipole['coord_frame']]
-                if fwd_frame == 'mri':
-                    fwd_trans = Transform('mri', 'mri')
-                elif fwd_frame == 'head':
-                    fwd_trans = head_mri_t
-                else:
-                    raise RuntimeError(error_msg.format(fwd_frame))
-            else:
-                raise RuntimeError(error_msg.format(dipole['coord_frame']))
-            for actor in _plot_forward(
-                    self._renderer, dipole, fwd_trans,
-                    fwd_scale=1e3 if self._units == 'mm' else 1,
-                    color=color, scale=scale, alpha=alpha):
-                self._add_actor('dipole', actor)
-        else:
-            pos = apply_trans(head_mri_t, dipole.pos)
-            pos *= 1e3 if self._units == 'mm' else 1
-            for _ in self._iter_views('vol'):
+        pos = apply_trans(head_mri_t, dipole.pos)
+        pos *= 1e3 if self._units == 'mm' else 1
+        for _ in self._iter_views('vol'):
+            for this_pos, this_ori, color in zip(pos, dipole.ori, colors):
                 actor, _ = self._renderer.quiver3d(
-                    *pos.T, *dipole.ori.T, color=color, opacity=alpha,
+                    *this_pos, *this_ori, color=color, opacity=alpha,
                     mode='arrow', scale=scale, scale_mode='scalar',
-                    scalars=np.ones(n_dipoles))
+                    scalars=[1])
                 self._add_actor('dipole', actor)
 
         self._renderer._update()

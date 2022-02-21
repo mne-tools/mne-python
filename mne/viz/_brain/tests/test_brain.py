@@ -346,23 +346,23 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     # add dipole
     dip = Dipole(times=[0], pos=[[-0.06439933, 0.00733009, 0.06280205]],
                  amplitude=[3e-8], ori=[[0, 1, 0]], gof=50)
-    brain.add_dipole(dip, fname_trans, color='red', scale=5, alpha=0.5)
+    brain.add_dipole(dip, fname_trans, colors='blue', scale=5, alpha=0.5)
     brain.remove_dipole()
 
     with pytest.raises(ValueError, match='The number of colors'):
-        brain.add_dipole(dip, fname_trans, color=['red', 'blue'])
+        brain.add_dipole(dip, fname_trans, colors=['red', 'blue'])
 
     fwd = read_forward_solution(fname_fwd)
-    brain.add_dipole(fwd, fname_trans)
-    brain.remove_dipole()
+    brain.add_forward(fwd, fname_trans, alpha=0.5, scale=10)
+    brain.remove_forward()
 
     # fake incorrect coordinate frame
     fwd['coord_frame'] = 99
     with pytest.raises(RuntimeError, match='must be "head" or "mri"'):
-        brain.add_dipole(fwd, fname_trans)
+        brain.add_forward(fwd, fname_trans)
     fwd['coord_frame'] = 2003
     with pytest.raises(RuntimeError, match='must be "head" or "mri"'):
-        brain.add_dipole(fwd, fname_trans)
+        brain.add_forward(fwd, fname_trans)
 
     # add text
     brain.add_text(x=0, y=0, text='foo')

@@ -460,9 +460,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
            Defaults to ``'auto'``.
     %(meg)s
     %(eeg)s
-    fwd : instance of Forward
-        The forward solution. If present, the orientations of the dipoles
-        present in the forward solution are displayed.
+    %(fwd)s
     dig : bool | 'fiducials'
         If True, plot the digitization points; 'fiducials' to plot fiducial
         points only.
@@ -788,7 +786,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                     backface_culling=True)
 
     if fwd is not None:
-        _plot_forward(renderer, fwd, to_cf_t[fwd_frame])
+        _plot_forward(renderer, fwd,
+                      to_cf_t[_frame_to_str[fwd['coord_frame']]])
 
     renderer.set_camera(azimuth=90, elevation=90,
                         distance=0.6, focalpoint=(0., 0., 0.))
@@ -1107,8 +1106,8 @@ def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
     return actor
 
 
-def _plot_forward(renderer, fwd, fwd_trans, fwd_scale=1, color=None,
-                  scale=1.5e-3, alpha=1):
+def _plot_forward(renderer, fwd, fwd_trans, fwd_scale=1, scale=1.5e-3,
+                  alpha=1):
     from ..forward import Forward
     _validate_type(fwd, [Forward])
     n_dipoles = fwd['source_rr'].shape[0]
@@ -1120,13 +1119,11 @@ def _plot_forward(renderer, fwd, fwd_trans, fwd_scale=1, color=None,
     # update coordinate frame
     fwd_rr = apply_trans(fwd_trans, fwd_rr) * fwd_scale
     fwd_nn = apply_trans(fwd_trans, fwd_nn, move=False)
-    if color is None:
-        red = (1.0, 0.0, 0.0)
-        green = (0.0, 1.0, 0.0)
-        blue = (0.0, 0.0, 1.0)
-        color = (red, green, blue)
+    red = (1.0, 0.0, 0.0)
+    green = (0.0, 1.0, 0.0)
+    blue = (0.0, 0.0, 1.0)
     actors = list()
-    for ori, color in zip(range(fwd_nn.shape[1]), color):
+    for ori, color in zip(range(fwd_nn.shape[1]), (red, green, blue)):
         actor, _ = renderer.quiver3d(
             *fwd_rr.T, *fwd_nn[:, ori].T,
             color=color, mode='arrow', scale_mode='scalar',
