@@ -191,8 +191,8 @@ del forward
 # :func:`~mne.beamformer.apply_lcmv_epochs`, and
 # :func:`~mne.beamformer.apply_lcmv_cov`.
 
-stc = apply_lcmv(evoked, filters, max_ori_out='signed')
-stc_vec = apply_lcmv(evoked, filters_vec, max_ori_out='signed')
+stc = apply_lcmv(evoked, filters)
+stc_vec = apply_lcmv(evoked, filters_vec)
 del filters, filters_vec
 
 # %%
