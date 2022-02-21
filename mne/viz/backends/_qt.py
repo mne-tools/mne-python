@@ -63,7 +63,7 @@ class _QtDialog(_AbstractDialog):
             button_name = button.text().replace('&', '')
             # handle MacOS Discard button
             button_name = "Discard" \
-                if button_name == "Don't save" else button_name
+                if button_name == "Don't Save" else button_name
             callback(button_name)
 
         widget.buttonClicked.connect(func)

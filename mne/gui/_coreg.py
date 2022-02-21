@@ -1761,10 +1761,8 @@ class CoregistrationUI(HasTraits):
                     self._accept_close_event = False
         elif button_name == "Cancel":
             self._accept_close_event = False
-        # This  should pass, but in case Windows has a different name for this
-        # than Linux and macOS, let's just skip it...
-        # else:
-        #     assert button_name in ("Discard", "Don't Save"), button_name
+        else:
+            assert button_name == "Discard"
 
     def _close_callback(self):
         if self._trans_modified or self._mri_fids_modified or \
