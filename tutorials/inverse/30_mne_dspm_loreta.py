@@ -1,8 +1,8 @@
 """
 .. _tut-inverse-methods:
 
-Source localization with MNE/dSPM/sLORETA/eLORETA
-=================================================
+Source localization with MNE, dSPM, sLORETA, and eLORETA
+========================================================
 
 The aim of this tutorial is to teach you how to compute and apply a linear
 minimum-norm inverse method on evoked/raw/epochs data.
