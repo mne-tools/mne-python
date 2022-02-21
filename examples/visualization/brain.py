@@ -104,17 +104,22 @@ brain.show_view(distance=500)  # move back to show sensors
 # -------------------
 #
 # Dipole modeling as in :ref:`tut-dipole-orientations` can be plotted on the
-# brain as well. And, we can add taking a static image of the brain using
-# ``screenshot``, which will allow us to add a colorbar. This is useful
-# for figures in publications.
+# brain as well.
 
 brain = mne.viz.Brain('sample', subjects_dir=subjects_dir, **brain_kwargs)
 dip = mne.read_dipole(op.join(sample_dir, 'sample_audvis_set1.dip'))
 cmap = plt.get_cmap('YlOrRd')
 colors = [cmap(gof / dip.gof.max()) for gof in dip.gof]
 brain.add_dipole(dip, trans, colors=colors, scales=list(dip.amplitude * 1e8))
-brain.show_view(azimuth=-20, elevation=60, distance=500)
-img = brain.screenshot()
+brain.show_view(azimuth=-20, elevation=60, distance=300)
+img = brain.screenshot()  # for next section
+
+# %%
+# Create a screenshot for exporting the brain image
+# -------------------------------------------------
+# Also, we can a static image of the brain using ``screenshot`` (above),
+# which will allow us to add a colorbar. This is useful for figures in
+# publications.
 
 fig, ax = plt.subplots()
 ax.imshow(img)
