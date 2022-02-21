@@ -232,7 +232,6 @@ class CoregistrationUI(HasTraits):
             size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
         self._renderer._window_close_connect(self._close_callback)
         self._renderer.set_interaction(interaction)
-        self._renderer._status_bar_initialize()
 
         # coregistration model setup
         self._immediate_redraw = (self._renderer._kind != 'qt')
@@ -272,7 +271,6 @@ class CoregistrationUI(HasTraits):
 
         # configure UI
         self._reset_fitting_parameters()
-        self._configure_status_bar()
         self._configure_dock()
         self._configure_picking()
 
@@ -304,6 +302,8 @@ class CoregistrationUI(HasTraits):
         # must be done last
         if show:
             self._renderer.show()
+        # this must be setup once the window is shown
+        self._configure_status_bar()
         # update the view once shown
         views = {True: dict(azimuth=90, elevation=90),  # front
                  False: dict(azimuth=180, elevation=90)}  # left
@@ -1707,6 +1707,7 @@ class CoregistrationUI(HasTraits):
         self._renderer._dock_add_stretch()
 
     def _configure_status_bar(self):
+        self._renderer._status_bar_initialize()
         self._widgets['status_message'] = self._renderer._status_bar_add_label(
             "", stretch=1
         )
