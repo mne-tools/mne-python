@@ -19,7 +19,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 from mne import (read_source_estimate, read_evokeds, read_cov,
                  read_forward_solution, pick_types_forward,
                  SourceEstimate, MixedSourceEstimate, write_surface,
-                 VolSourceEstimate, vertex_to_mni)
+                 VolSourceEstimate, vertex_to_mni, Dipole)
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces,
                               setup_volume_source_space)
@@ -342,6 +342,12 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     info['chs'][0]['coord_frame'] = 99
     with pytest.raises(RuntimeError, match='must be "meg", "head" or "mri"'):
         brain.add_sensors(info, trans=fname_trans)
+
+    # add dipole
+    dip = Dipole(times=[0], pos=[[-0.06439933, 0.00733009, 0.06280205]],
+                 amplitude=[3e-8], ori=[[0, 1, 0]], gof=50)
+    brain.add_dipole(dip, fname_trans, color='red', scale=5, alpha=0.5)
+    brain.remove_dipole()
 
     # add text
     brain.add_text(x=0, y=0, text='foo')

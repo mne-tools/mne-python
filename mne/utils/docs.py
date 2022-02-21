@@ -1201,6 +1201,14 @@ tol_kind : str
     .. versionadded:: 0.21.0
 """
 
+# Dipole
+docdict['dipole'] = """
+dipole : instance of Dipole
+    Dipole object containing position, orientation and amplitude of
+    one or more dipoles. Multiple simultaneous dipoles may be defined by
+    assigning them identical times.
+"""
+
 # Inverses
 docdict['depth'] = """
 depth : None | float | dict
@@ -1823,6 +1831,14 @@ docdict["focalpoint"] = """
 focalpoint : tuple, shape (3,) | None
     The focal point of the camera rendering the view: (x, y, z) in
     plot units (either m or mm).
+"""
+docdict["matplotlib_color"] = """
+color : color
+    A list of anything matplotlib accepts: string, RGB, hex, etc.
+"""
+docdict["alpha"] = """
+alpha : float in [0, 1]
+    Alpha level to control opacity.
 """
 docdict["clim"] = """
 clim : str | dict

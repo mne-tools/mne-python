@@ -656,10 +656,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
 
     Parameters
     ----------
-    dipole : instance of Dipole
-        Dipole object containing position, orientation and amplitude of
-        one or more dipoles. Multiple simultaneous dipoles may be defined by
-        assigning them identical times.
+    %(dipole)s
     bem : str | dict
         The BEM filename (str) or a loaded sphere model (dict).
     info : instance of Info

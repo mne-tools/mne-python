@@ -344,6 +344,8 @@ class Brain(object):
        +-------------------------------------+--------------+---------------+
        | :meth:`add_data`                    | ✓            | ✓             |
        +-------------------------------------+--------------+---------------+
+       | :meth:`add_dipole`                  |              | ✓             |
+       +-------------------------------------+--------------+---------------+
        | :meth:`add_foci`                    | ✓            | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`add_head`                    |              | ✓             |
@@ -367,6 +369,8 @@ class Brain(object):
        | labels                              | ✓            | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`remove_data`                 |              | ✓             |
+       +-------------------------------------+--------------+---------------+
+       | :meth:`remove_dipole`               |              | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`remove_head`                 |              | ✓             |
        +-------------------------------------+--------------+---------------+
@@ -2382,6 +2386,45 @@ class Brain(object):
         self._renderer._update()
 
     @fill_doc
+    def add_dipole(self, dipole, trans, color='gray', alpha=1, scale=None):
+        """Add a quiver to render positions of dipoles.
+
+        Parameters
+        ----------
+        %(dipole)s
+        %(trans_not_none)s
+        %(matplotlib_color)s
+        %(alpha)s Default 1.
+        scale : None | float
+            The size of the arrow representing the dipole in
+            :class:`mne.viz.Brain` units. Default 3mm.
+
+        Notes
+        -----
+        .. versionadded:: 0.24
+        """
+        head_mri_t = _get_trans(trans, 'head', 'mri', allow_none=False)[0]
+        del trans
+        pos = apply_trans(head_mri_t, dipole.pos)
+        pos *= 1e3 if self._units == 'mm' else 1
+        color = _to_rgb(color)
+        if scale is None:
+            scale = 3 if self._units == 'mm' else 1e-3
+
+        for _ in self._iter_views('vol'):
+            actor, _ = self._renderer.quiver3d(
+                *pos.T, *dipole.ori.T, color=color, mode='arrow', scale=scale,
+                opacity=alpha, scale_mode='scalar',
+                scalars=[scale] * len(dipole))
+            self._add_actor('dipole', actor)
+
+        self._renderer._update()
+
+    def remove_dipole(self):
+        """Remove dipole objects from the rendered scene."""
+        self._remove('dipole', render=True)
+
+    @fill_doc
     def add_head(self, dense=True, color='gray', alpha=0.5):
         """Add a mesh to render the outer head surface.
 
@@ -2390,10 +2433,8 @@ class Brain(object):
         dense : bool
             Whether to plot the dense head (``seghead``) or the less dense head
             (``head``).
-        color : color
-            A list of anything matplotlib accepts: string, RGB, hex, etc.
-        alpha : float in [0, 1]
-            Alpha level to control opacity.
+        %(matplotlib_color)s
+        %(alpha)s
 
         Notes
         -----
@@ -2426,10 +2467,8 @@ class Brain(object):
         ----------
         outer : bool
             Adds the outer skull if ``True``, otherwise adds the inner skull.
-        color : color
-            A list of anything matplotlib accepts: string, RGB, hex, etc.
-        alpha : float in [0, 1]
-            Alpha level to control opacity.
+        %(matplotlib_color)s
+        %(alpha)s
 
         Notes
         -----
@@ -2467,9 +2506,8 @@ class Brain(object):
             :func:`mne.get_montage_volume_labels`
             for one way to determine regions of interest. Regions can also be
             chosen from the :term:`FreeSurfer LUT`.
-        colors : list | matplotlib-style color | None
-            A list of anything matplotlib accepts: string, RGB, hex, etc.
-            (default :term:`FreeSurfer LUT` colors).
+        %(matplotlib_color)s (default :term:`FreeSurfer LUT` colors).
+        %(alpha)s
         alpha : float in [0, 1]
             Alpha level to control opacity.
         %(smooth)s
@@ -2574,10 +2612,8 @@ class Brain(object):
             vertex in the mesh.
         scale_factor : float
             Controls the size of the foci spheres (relative to 1cm).
-        color : matplotlib color code
-            HTML name, RBG tuple, or hex code.
-        alpha : float in [0, 1]
-            Opacity of focus gylphs.
+        %(matplotlib_color)s
+        %(alpha)s
         name : str
             Internal name to use.
         hemi : str | None
@@ -2815,9 +2851,7 @@ class Brain(object):
             Show only label borders. If int, specify the number of steps
             (away from the true border) along the cortical mesh to include
             as part of the border definition.
-        alpha : float
-            Opacity of the head surface. Must be between 0 and 1 (inclusive).
-            Default is 0.5.
+        %(alpha)s Default is 0.5.
         hemi : str | None
             If None, it is assumed to belong to the hemipshere being
             shown. If two hemispheres are being shown, data must exist
@@ -3106,8 +3140,7 @@ class Brain(object):
         Parameters
         ----------
         %(fmin_fmid_fmax)s
-        alpha : float | None
-            Alpha to use in the update.
+        %(alpha)s
         """
         args = f'{fmin}, {fmid}, {fmax}, {alpha}'
         if self._lut_locked is not None:
