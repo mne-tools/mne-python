@@ -295,7 +295,7 @@ class Dipole(_VerboseDep):
     @verbose
     def to_mri(self, subject, trans, subjects_dir=None,
                verbose=None):
-        """Convert dipole location from head to MNI coordinates.
+        """Convert dipole location from head to MRI surface RAS coordinates.
 
         Parameters
         ----------
