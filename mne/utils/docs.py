@@ -1302,6 +1302,11 @@ weight_norm : str | None
            which arguably does not make sense for a rotation-invariant
            solution.
 """
+docdict['max_ori_out_deprecated'] = """
+max_ori_out : None
+    This argument is deprecated and will be removed in 1.1, as signed
+    values are always returned. Do not pass it as an argument.
+"""
 docdict['bf_pick_ori'] = """
 pick_ori : None | str
     For forward solutions with fixed orientation, None (default) must be

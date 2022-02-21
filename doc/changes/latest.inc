@@ -223,6 +223,8 @@ API changes
 
 - ``mne.preprocessing.annotate_flat`` has been deprecated in favor of :func`mne.preprocessing.annotate_amplitude`, that covers both minimum and maximum peak-to-peak variation. (:gh:`10143` by `Mathieu Scheltienne`_)
 
+- The ``max_ori_out`` parameter of :func:`mne.beamformer.apply_lcmv` and related functions is being removed as only signed estimates are supported. ``abs(stc)`` can be used to obtain unsigned estimates (:gh:`10366` by `Eric Larson`_)
+
 - The ``verbose`` attribute of classes (e.g., :class:`mne.io.Raw`, `mne.Epochs`, etc.) has been deprecated. Explicitly pass ``verbose`` to methods as necessary instead. (:gh:`10267` by `Eric Larson`_)
 
 - In :func:`mne.viz.set_browser_backend`, the `mne-qt-browser <https://github.com/mne-tools/mne-qt-browser>`__-based backend is now called ``'qt'`` rather than ``'pyqtgraph'`` for simplicity (:gh:`10323` by `Eric Larson`_)

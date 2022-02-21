@@ -13,8 +13,8 @@ from ..io.pick import pick_channels_cov, pick_info
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
 from ..source_estimate import _make_stc, _get_src_type
-from ..utils import logger, verbose, _check_channels_spatial_filter
-from ..utils import _check_one_ch_type, _check_info_inv
+from ..utils import (logger, verbose, _check_channels_spatial_filter,
+                     _check_one_ch_type, _check_info_inv, warn)
 from ._compute_beamformer import (
     _prepare_beamformer_input, _compute_power,
     _compute_beamformer, _check_src_type, Beamformer, _proj_whiten_data)
@@ -200,12 +200,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     return filters
 
 
-def _apply_lcmv(data, filters, info, tmin, max_ori_out):
+def _apply_lcmv(data, filters, info, tmin):
     """Apply LCMV spatial filter to data for source reconstruction."""
-    if max_ori_out != 'signed':
-        raise ValueError('max_ori_out must be "signed", got %s'
-                         % (max_ori_out,))
-
     if isinstance(data, np.ndarray) and data.ndim == 2:
         data = [data]
         return_single = True
@@ -239,8 +235,6 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
                 sol = (W, M)
             else:
                 sol = np.dot(W, M)
-            if filters['pick_ori'] == 'max-power' and max_ori_out == 'abs':
-                sol = np.abs(sol)
 
         tstep = 1.0 / info['sfreq']
 
@@ -255,8 +249,14 @@ def _apply_lcmv(data, filters, info, tmin, max_ori_out):
     logger.info('[done]')
 
 
+def _deprecate_max_ori_out(max_ori_out):
+    if max_ori_out is not None:
+        warn('max_ori_out will be removed in 1.0, do not pass it as an '
+             'argument', DeprecationWarning)
+
+
 @verbose
-def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
+def apply_lcmv(evoked, filters, *, max_ori_out=None, verbose=None):
     """Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights.
 
     Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights
@@ -269,8 +269,7 @@ def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
     filters : instance of Beamformer
         LCMV spatial filter (beamformer weights).
         Filter weights returned from :func:`make_lcmv`.
-    max_ori_out : 'signed'
-        Specify in case of pick_ori='max-power'.
+    %(max_ori_out_deprecated)s
     %(verbose)s
 
     Returns
@@ -287,6 +286,7 @@ def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
     .. versionadded:: 0.18
     """
     _check_reference(evoked)
+    _deprecate_max_ori_out(max_ori_out)
 
     info = evoked.info
     data = evoked.data
@@ -296,13 +296,13 @@ def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
     data = data[sel]
 
     stc = _apply_lcmv(data=data, filters=filters, info=info,
-                      tmin=tmin, max_ori_out=max_ori_out)
+                      tmin=tmin)
 
     return next(stc)
 
 
 @verbose
-def apply_lcmv_epochs(epochs, filters, max_ori_out='signed',
+def apply_lcmv_epochs(epochs, filters, *, max_ori_out=None,
                       return_generator=False, verbose=None):
     """Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights.
 
@@ -316,8 +316,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='signed',
     filters : instance of Beamformer
         LCMV spatial filter (beamformer weights)
         Filter weights returned from :func:`make_lcmv`.
-    max_ori_out : 'signed'
-        Specify in case of pick_ori='max-power'.
+    %(max_ori_out_deprecated)s
     return_generator : bool
          Return a generator object instead of a list. This allows iterating
          over the stcs without having to keep them all in memory.
@@ -333,6 +332,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='signed',
     make_lcmv, apply_lcmv_raw, apply_lcmv, apply_lcmv_cov
     """
     _check_reference(epochs)
+    _deprecate_max_ori_out(max_ori_out)
 
     info = epochs.info
     tmin = epochs.times[0]
@@ -340,7 +340,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='signed',
     sel = _check_channels_spatial_filter(epochs.ch_names, filters)
     data = epochs.get_data()[:, sel, :]
     stcs = _apply_lcmv(data=data, filters=filters, info=info,
-                       tmin=tmin, max_ori_out=max_ori_out)
+                       tmin=tmin)
 
     if not return_generator:
         stcs = [s for s in stcs]
@@ -349,7 +349,7 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='signed',
 
 
 @verbose
-def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
+def apply_lcmv_raw(raw, filters, start=None, stop=None, *, max_ori_out=None,
                    verbose=None):
     """Apply Linearly Constrained Minimum Variance (LCMV) beamformer weights.
 
@@ -367,8 +367,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
         Index of first time sample (index not time is seconds).
     stop : int
         Index of first time sample not to include (index not time is seconds).
-    max_ori_out : 'signed'
-        Specify in case of pick_ori='max-power'.
+    %(max_ori_out_deprecated)s
     %(verbose)s
 
     Returns
@@ -381,6 +380,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
     make_lcmv, apply_lcmv_epochs, apply_lcmv, apply_lcmv_cov
     """
     _check_reference(raw)
+    _deprecate_max_ori_out(max_ori_out)
 
     info = raw.info
 
@@ -388,8 +388,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
     data, times = raw[sel, start:stop]
     tmin = times[0]
 
-    stc = _apply_lcmv(data=data, filters=filters, info=info,
-                      tmin=tmin, max_ori_out=max_ori_out)
+    stc = _apply_lcmv(data=data, filters=filters, info=info, tmin=tmin)
 
     return next(stc)
 
