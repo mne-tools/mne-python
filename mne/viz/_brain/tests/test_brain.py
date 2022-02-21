@@ -346,11 +346,14 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     # add dipole
     dip = Dipole(times=[0], pos=[[-0.06439933, 0.00733009, 0.06280205]],
                  amplitude=[3e-8], ori=[[0, 1, 0]], gof=50)
-    brain.add_dipole(dip, fname_trans, colors='blue', scale=5, alpha=0.5)
+    brain.add_dipole(dip, fname_trans, colors='blue', scales=5, alpha=0.5)
     brain.remove_dipole()
 
     with pytest.raises(ValueError, match='The number of colors'):
         brain.add_dipole(dip, fname_trans, colors=['red', 'blue'])
+
+    with pytest.raises(ValueError, match='The number of scales'):
+        brain.add_dipole(dip, fname_trans, scales=[1, 2])
 
     fwd = read_forward_solution(fname_fwd)
     brain.add_forward(fwd, fname_trans, alpha=0.5, scale=10)

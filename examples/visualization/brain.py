@@ -21,6 +21,7 @@ In this example, we'll show how to use :class:`mne.viz.Brain`.
 
 import os.path as op
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 import mne
 from mne.datasets import sample
@@ -99,15 +100,26 @@ brain.add_sensors(evoked.info, trans)
 brain.show_view(distance=500)  # move back to show sensors
 
 # %%
-# Create a screenshot for exporting the brain image
-# -------------------------------------------------
+# Add current dipoles
+# -------------------
 #
-# For publication you may wish to take a static image of the brain,
-# for this use ``screenshot``.
+# Dipole modeling as in :ref:`tut-dipole-orientations` can be plotted on the
+# brain as well. And, we can add taking a static image of the brain using
+# ``screenshot``, which will allow us to add a colorbar. This is useful
+# for figures in publications.
 
 brain = mne.viz.Brain('sample', subjects_dir=subjects_dir, **brain_kwargs)
+dip = mne.read_dipole(op.join(sample_dir, 'sample_audvis_set1.dip'))
+cmap = plt.get_cmap('YlOrRd')
+colors = [cmap(gof / dip.gof.max()) for gof in dip.gof]
+brain.add_dipole(dip, trans, colors=colors, scales=list(dip.amplitude * 1e8))
+brain.show_view(azimuth=-20, elevation=60, distance=500)
 img = brain.screenshot()
+
 fig, ax = plt.subplots()
 ax.imshow(img)
 ax.axis('off')
-fig.suptitle('Brain')
+cax = fig.add_axes([0.9, 0.1, 0.05, 0.8])
+fig.colorbar(mpl.cm.ScalarMappable(
+    norm=mpl.colors.Normalize(vmin=0, vmax=dip.gof.max()), cmap=cmap), cax=cax)
+fig.suptitle('Dipole Fits Scaled by Amplitude and Colored by GOF')

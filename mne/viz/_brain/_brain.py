@@ -2067,7 +2067,7 @@ class Brain(object):
 
         # 3) add the other actors
         if colorbar is True:
-            # botto left by default
+            # bottom left by default
             colorbar = (self._subplot_shape[0] - 1, 0)
         for ri, ci, v in self._iter_views(hemi):
             # Add the time label to the bottommost view
@@ -2436,7 +2436,7 @@ class Brain(object):
         self._remove('forward', render=True)
 
     @fill_doc
-    def add_dipole(self, dipole, trans, colors='red', alpha=1, scale=None):
+    def add_dipole(self, dipole, trans, colors='red', alpha=1, scales=None):
         """Add a quiver to render positions of dipoles.
 
         Parameters
@@ -2449,7 +2449,7 @@ class Brain(object):
             A single color or list of anything matplotlib accepts:
             string, RGB, hex, etc. Default red.
         %(alpha)s Default 1.
-        scale : None | float
+        scales : list | float | None
             The size of the arrow representing the dipole in
             :class:`mne.viz.Brain` units. Default 5mm.
 
@@ -2460,19 +2460,25 @@ class Brain(object):
         head_mri_t = _get_trans(trans, 'head', 'mri', allow_none=False)[0]
         del trans
         n_dipoles = len(dipole)
-        if isinstance(colors, (list, tuple)) and len(colors) != n_dipoles:
-            raise ValueError(f'The number of colors ({len(colors)}) '
-                             f'and dipoles ({n_dipoles}) must match')
         if not isinstance(colors, (list, tuple)):
             colors = [colors] * n_dipoles  # make into list
+        if len(colors) != n_dipoles:
+            raise ValueError(f'The number of colors ({len(colors)}) '
+                             f'and dipoles ({n_dipoles}) must match')
         colors = [_to_rgb(color, name=f'colors[{ci}]')
                   for ci, color in enumerate(colors)]
-        if scale is None:
-            scale = 5 if self._units == 'mm' else 5e-3
+        if scales is None:
+            scales = 5 if self._units == 'mm' else 5e-3
+        if not isinstance(scales, (list, tuple)):
+            scales = [scales] * n_dipoles  # make into list
+        if len(scales) != n_dipoles:
+            raise ValueError(f'The number of scales ({len(scales)}) '
+                             f'and dipoles ({n_dipoles}) must match')
         pos = apply_trans(head_mri_t, dipole.pos)
         pos *= 1e3 if self._units == 'mm' else 1
         for _ in self._iter_views('vol'):
-            for this_pos, this_ori, color in zip(pos, dipole.ori, colors):
+            for this_pos, this_ori, color, scale in zip(
+                    pos, dipole.ori, colors, scales):
                 actor, _ = self._renderer.quiver3d(
                     *this_pos, *this_ori, color=color, opacity=alpha,
                     mode='arrow', scale=scale, scale_mode='scalar',
