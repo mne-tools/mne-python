@@ -146,6 +146,7 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._fiducials_file == fid_fname
 
     # fitting (with scaling)
+    assert not coreg._mri_scale_modified
     coreg._reset()
     coreg._reset_fitting_parameters()
     coreg._set_scale_mode("uniform")
@@ -161,6 +162,7 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
                     atol=1e-3)
     coreg._set_scale_mode("None")
     coreg._set_icp_fid_match("matched")
+    assert coreg._mri_scale_modified
 
     # unlock fiducials
     assert coreg._lock_fids
@@ -168,12 +170,14 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert not coreg._lock_fids
 
     # picking
+    assert not coreg._mri_fids_modified
     vtk_picker = TstVTKPicker(coreg._surfaces['head'], 0, (0, 0))
     coreg._on_mouse_move(vtk_picker, None)
     coreg._on_button_press(vtk_picker, None)
     coreg._on_pick(vtk_picker, None)
     coreg._on_button_release(vtk_picker, None)
     coreg._on_pick(vtk_picker, None)  # also pick when locked
+    assert coreg._mri_fids_modified
 
     # lock fiducials
     coreg._set_lock_fids(True)
@@ -213,11 +217,18 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._head_resolution == \
         (config.get('MNE_COREG_HEAD_HIGH_RES', 'true') == 'true')
 
+    assert coreg._trans_modified
     tmp_trans = tmp_path / 'tmp-trans.fif'
     coreg._save_trans(tmp_trans)
+    assert not coreg._trans_modified
     assert op.isfile(tmp_trans)
 
+    # test _close_callback()
+    coreg._set_automatic_cleanup(False)
     coreg.close()
+    coreg._widgets['close_dialog'].trigger('Discard')  # do not save
+    coreg._clean()  # finally, cleanup internal structures
+
     # Coregistration instance should survive
     assert isinstance(coreg.coreg, Coregistration)
 

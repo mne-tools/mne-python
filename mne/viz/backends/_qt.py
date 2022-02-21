@@ -59,7 +59,12 @@ class _QtDialog(_AbstractDialog):
         widget.setDefaultButton(default_button)
 
         def func(button):
-            callback(button.text())
+            # the text of the button may be prefixed by '&'
+            button_name = button.text().replace('&', '')
+            # handle MacOS Discard button
+            button_name = "Discard" \
+                if button_name == "Don't Save" else button_name
+            callback(button_name)
 
         widget.buttonClicked.connect(func)
         return _QtDialogWidget(widget, modal)
@@ -539,13 +544,29 @@ class _QtWindow(_AbstractWindow):
         self._window = self.figure.plotter.app_window
         self._window.setLocale(QLocale(QLocale.Language.English))
         self._window.signal_close.connect(self._window_clean)
+        self._window_close_callbacks = list()
+
+        # patch closeEvent
+        def closeEvent(event):
+            accept_close_event = True
+            for callback in self._window_close_callbacks:
+                ret = callback()
+                # check if one of the callbacks ignores the close event
+                if isinstance(ret, bool) and not ret:
+                    accept_close_event = False
+            if accept_close_event:
+                self._window.signal_close.emit()
+                event.accept()
+            else:
+                event.ignore()
+        self._window.closeEvent = closeEvent
 
     def _window_clean(self):
         self.figure._plotter = None
         self._interactor = None
 
     def _window_close_connect(self, func):
-        self._window.signal_close.connect(func)
+        self._window_close_callbacks.append(func)
 
     def _window_get_dpi(self):
         return self._window.windowHandle().screen().logicalDotsPerInch()
