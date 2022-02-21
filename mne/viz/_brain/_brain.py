@@ -29,7 +29,7 @@ from .callback import (ShowView, TimeCallBack, SmartCallBack,
 from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
                      _generate_default_filename, _save_ndarray_img, safe_event)
 from .._3d import (_process_clim, _handle_time, _check_views,
-                   _handle_sensor_types, _plot_sensors)
+                   _handle_sensor_types, _plot_sensors, _plot_forward)
 from ...defaults import _handle_default, DEFAULTS
 from ...fixes import _point_data, _cell_data
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
@@ -39,8 +39,9 @@ from ...io.meas_info import Info
 from ...surface import (mesh_edges, _mesh_borders, _marching_cubes,
                         get_meg_helmet_surf)
 from ...source_space import SourceSpaces
-from ...transforms import (apply_trans, invert_transform, _get_trans,
-                           _get_transforms_to_coord_frame)
+from ...transforms import (Transform, apply_trans, invert_transform,
+                           _get_trans, _get_transforms_to_coord_frame,
+                           _frame_to_str)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn, deprecated,
                       get_subjects_dir, _check_fname, _to_rgb)
@@ -2386,37 +2387,69 @@ class Brain(object):
         self._renderer._update()
 
     @fill_doc
-    def add_dipole(self, dipole, trans, color='gray', alpha=1, scale=None):
+    def add_dipole(self, dipole, trans, color=None, alpha=1, scale=None):
         """Add a quiver to render positions of dipoles.
 
         Parameters
         ----------
-        %(dipole)s
+        dipole : instance of Dipole | instance of Forward
+            Dipole object containing position, orientation and amplitude of
+            one or more dipoles or in the forward solution.
         %(trans_not_none)s
-        %(matplotlib_color)s
-        %(alpha)s Default 1.
+        color : color | list
+            A list of anything matplotlib accepts: string, RGB, hex, etc.
+            Can also be a list of colors to color dipoles.
+        %(alpha)s
+            Default 1.
         scale : None | float
             The size of the arrow representing the dipole in
-            :class:`mne.viz.Brain` units. Default 3mm.
+            :class:`mne.viz.Brain` units. Default 5mm.
 
         Notes
         -----
-        .. versionadded:: 0.24
+        .. versionadded:: 1.0
         """
+        from ...forward import Forward
         head_mri_t = _get_trans(trans, 'head', 'mri', allow_none=False)[0]
         del trans
-        pos = apply_trans(head_mri_t, dipole.pos)
-        pos *= 1e3 if self._units == 'mm' else 1
-        color = _to_rgb(color)
+        if isinstance(dipole, Forward):
+            n_dipoles = dipole['source_rr'].shape[0]
+        else:
+            n_dipoles = len(dipole)
+            if color is None:
+                color = _to_rgb('red')
+        if isinstance(color, (list, tuple)) and len(color) != n_dipoles:
+            raise ValueError(f'The number of colors ({len(color)}) '
+                             f'and dipoles ({n_dipoles}) must match')
         if scale is None:
-            scale = 3 if self._units == 'mm' else 1e-3
-
-        for _ in self._iter_views('vol'):
-            actor, _ = self._renderer.quiver3d(
-                *pos.T, *dipole.ori.T, color=color, mode='arrow', scale=scale,
-                opacity=alpha, scale_mode='scalar',
-                scalars=[scale] * len(dipole))
-            self._add_actor('dipole', actor)
+            scale = 5 if self._units == 'mm' else 5e-3
+        if isinstance(dipole, Forward):
+            error_msg = ('Unexpected forward model coordinate frame '
+                         '{}, must be "head" or "mri"')
+            if dipole['coord_frame'] in _frame_to_str:
+                fwd_frame = _frame_to_str[dipole['coord_frame']]
+                if fwd_frame == 'mri':
+                    fwd_trans = Transform('mri', 'mri')
+                elif fwd_frame == 'head':
+                    fwd_trans = head_mri_t
+                else:
+                    raise RuntimeError(error_msg.format(fwd_frame))
+            else:
+                raise RuntimeError(error_msg.format(dipole['coord_frame']))
+            for actor in _plot_forward(
+                    self._renderer, dipole, fwd_trans,
+                    fwd_scale=1e3 if self._units == 'mm' else 1,
+                    color=color, scale=scale, alpha=alpha):
+                self._add_actor('dipole', actor)
+        else:
+            pos = apply_trans(head_mri_t, dipole.pos)
+            pos *= 1e3 if self._units == 'mm' else 1
+            for _ in self._iter_views('vol'):
+                actor, _ = self._renderer.quiver3d(
+                    *pos.T, *dipole.ori.T, color=color, opacity=alpha,
+                    mode='arrow', scale=scale, scale_mode='scalar',
+                    scalars=np.ones(n_dipoles))
+                self._add_actor('dipole', actor)
 
         self._renderer._update()
 
@@ -2433,7 +2466,7 @@ class Brain(object):
         dense : bool
             Whether to plot the dense head (``seghead``) or the less dense head
             (``head``).
-        %(matplotlib_color)s
+        %(color_matplotlib)s
         %(alpha)s
 
         Notes
@@ -2467,7 +2500,7 @@ class Brain(object):
         ----------
         outer : bool
             Adds the outer skull if ``True``, otherwise adds the inner skull.
-        %(matplotlib_color)s
+        %(color_matplotlib)s
         %(alpha)s
 
         Notes
@@ -2506,10 +2539,10 @@ class Brain(object):
             :func:`mne.get_montage_volume_labels`
             for one way to determine regions of interest. Regions can also be
             chosen from the :term:`FreeSurfer LUT`.
-        %(matplotlib_color)s (default :term:`FreeSurfer LUT` colors).
+        colors : list | matplotlib-style color | None
+            A list of anything matplotlib accepts: string, RGB, hex, etc.
+            (default :term:`FreeSurfer LUT` colors).
         %(alpha)s
-        alpha : float in [0, 1]
-            Alpha level to control opacity.
         %(smooth)s
         fill_hole_size : int | None
             The size of holes to remove in the mesh in voxels. Default is None,
@@ -2588,6 +2621,7 @@ class Brain(object):
         self._remove('volume_labels', render=True)
         self._renderer.plotter.remove_legend()
 
+    @fill_doc
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
                  scale_factor=1, color="white", alpha=1, name=None,
                  hemi=None, resolution=50):
@@ -2612,8 +2646,8 @@ class Brain(object):
             vertex in the mesh.
         scale_factor : float
             Controls the size of the foci spheres (relative to 1cm).
-        %(matplotlib_color)s
-        %(alpha)s
+        %(color_matplotlib)s
+        %(alpha)s Default is 1.
         name : str
             Internal name to use.
         hemi : str | None
@@ -2834,6 +2868,7 @@ class Brain(object):
             for idx, label in enumerate(labels):
                 self._vertex_to_label_id[hemi][label.vertices] = idx
 
+    @fill_doc
     def add_annotation(self, annot, borders=True, alpha=1, hemi=None,
                        remove_existing=True, color=None):
         """Add an annotation file.
@@ -2851,7 +2886,7 @@ class Brain(object):
             Show only label borders. If int, specify the number of steps
             (away from the true border) along the cortical mesh to include
             as part of the border definition.
-        %(alpha)s Default is 0.5.
+        %(alpha)s Default is 1.
         hemi : str | None
             If None, it is assumed to belong to the hemipshere being
             shown. If two hemispheres are being shown, data must exist

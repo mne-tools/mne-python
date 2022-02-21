@@ -1832,7 +1832,7 @@ focalpoint : tuple, shape (3,) | None
     The focal point of the camera rendering the view: (x, y, z) in
     plot units (either m or mm).
 """
-docdict["matplotlib_color"] = """
+docdict["color_matplotlib"] = """
 color : color
     A list of anything matplotlib accepts: string, RGB, hex, etc.
 """
