@@ -45,7 +45,6 @@ trans_fname = meg_path / 'sample_audvis_raw-trans.fif'
 # intervals on the cortex, determined by the ``spacing`` parameter. The source
 # space does not define the orientation for these dipoles.
 
-
 lh = fwd['src'][0]  # Visualize the left hemisphere
 verts = lh['rr']  # The vertices of the source space
 tris = lh['tris']  # Groups of three vertices that form triangles

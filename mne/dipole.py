@@ -558,8 +558,7 @@ def read_dipole(fname, verbose=None):
 
     Returns
     -------
-    dipole : instance of Dipole or DipoleFixed
-        The dipole.
+    %(dipole)s
 
     See Also
     --------

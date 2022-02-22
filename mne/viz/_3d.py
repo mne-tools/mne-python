@@ -460,9 +460,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
            Defaults to ``'auto'``.
     %(meg)s
     %(eeg)s
-    fwd : instance of Forward
-        The forward solution. If present, the orientations of the dipoles
-        present in the forward solution are displayed.
+    %(fwd)s
     dig : bool | 'fiducials'
         If True, plot the digitization points; 'fiducials' to plot fiducial
         points only.
@@ -788,7 +786,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                     backface_culling=True)
 
     if fwd is not None:
-        _plot_forward(renderer, fwd, to_cf_t)
+        _plot_forward(renderer, fwd,
+                      to_cf_t[_frame_to_str[fwd['coord_frame']]])
 
     renderer.set_camera(azimuth=90, elevation=90,
                         distance=0.6, focalpoint=(0., 0., 0.))
@@ -1107,18 +1106,18 @@ def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
     return actor
 
 
-def _plot_forward(renderer, fwd, to_cf_t):
+def _plot_forward(renderer, fwd, fwd_trans, fwd_scale=1, scale=1.5e-3,
+                  alpha=1):
     from ..forward import Forward
-    if fwd is not None:
-        _validate_type(fwd, [Forward])
-        fwd_rr = fwd['source_rr']
-        if fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
-            fwd_nn = fwd['source_nn'].reshape(-1, 1, 3)
-        else:
-            fwd_nn = fwd['source_nn'].reshape(-1, 3, 3)
+    _validate_type(fwd, [Forward])
+    n_dipoles = fwd['source_rr'].shape[0]
+    fwd_rr = fwd['source_rr']
+    if fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
+        fwd_nn = fwd['source_nn'].reshape(-1, 1, 3)
+    else:
+        fwd_nn = fwd['source_nn'].reshape(-1, 3, 3)
     # update coordinate frame
-    fwd_trans = to_cf_t[_frame_to_str[fwd['coord_frame']]]
-    fwd_rr = apply_trans(fwd_trans, fwd_rr)
+    fwd_rr = apply_trans(fwd_trans, fwd_rr) * fwd_scale
     fwd_nn = apply_trans(fwd_trans, fwd_nn, move=False)
     red = (1.0, 0.0, 0.0)
     green = (0.0, 1.0, 0.0)
@@ -1126,13 +1125,9 @@ def _plot_forward(renderer, fwd, to_cf_t):
     actors = list()
     for ori, color in zip(range(fwd_nn.shape[1]), (red, green, blue)):
         actor, _ = renderer.quiver3d(
-            fwd_rr[:, 0],
-            fwd_rr[:, 1],
-            fwd_rr[:, 2],
-            fwd_nn[:, ori, 0],
-            fwd_nn[:, ori, 1],
-            fwd_nn[:, ori, 2],
-            color=color, mode='arrow', scale=1.5e-3)
+            *fwd_rr.T, *fwd_nn[:, ori].T,
+            color=color, mode='arrow', scale_mode='scalar',
+            scalars=np.ones(n_dipoles), scale=scale, opacity=alpha)
         actors.append(actor)
     return actors
 
