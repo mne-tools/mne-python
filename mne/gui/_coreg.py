@@ -32,6 +32,18 @@ from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
 from ..channels import read_dig_fif
 
 
+class _DialogResult():
+    def __init__(self):
+        self._result = None
+
+    def __call__(self, result):
+        self._result = result
+
+    @property
+    def result(self):
+        return self._result
+
+
 class _WorkerData():
     def __init__(self, name, params=None):
         self._name = name
@@ -1179,6 +1191,22 @@ class CoregistrationUI(HasTraits):
                 value=value, mode_name=mode_name, coord=coord)))
 
     def _save_subject(self):
+        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+        # check if subject already exists
+        dialog_result = _DialogResult()
+        dialog = self._renderer._dialog_warning(
+            title="CoregistrationUI",
+            text="The name of the output subject used to "
+                 "save the scaled anatomy already exists.",
+            info_text="Do you want to overwrite?",
+            callback=dialog_result,
+            buttons=["Yes", "Discard", "Cancel"],
+            modal=not MNE_3D_BACKEND_TESTING,
+        )
+        dialog.show()
+        print(dialog_result.result)
+        return
+
         self._display_message(f"Saving {self._subject_to}...")
 
         # check that fiducials are saved
