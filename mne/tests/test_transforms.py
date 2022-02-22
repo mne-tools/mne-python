@@ -530,14 +530,17 @@ def test_volume_registration():
                             moving_affine=T1.affine,
                             static_affine=T1.affine,
                             between_affine=np.linalg.inv(affine))
-    for pipeline in ('rigids', ('translation', 'sdr')):
+    for pipeline, cval in zip(('rigids', ('translation', 'sdr')), (0., '1%')):
         reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
             T1_resampled, T1, pipeline=pipeline, zooms=10, niter=[5])
         assert_allclose(affine, reg_affine, atol=0.01)
         T1_aligned = mne.transforms.apply_volume_registration(
-            T1_resampled, T1, reg_affine, sdr_morph)
+            T1_resampled, T1, reg_affine, sdr_morph, cval=cval)
         r2 = _compute_r2(_get_img_fdata(T1_aligned), _get_img_fdata(T1))
         assert 99.9 < r2
+    with pytest.raises(ValueError, match='cval'):
+        mne.transforms.apply_volume_registration(
+            T1_resampled, T1, reg_affine, sdr_morph, cval='bad')
 
     # check that all orders of the pipeline work
     for pipeline_len in range(1, 5):

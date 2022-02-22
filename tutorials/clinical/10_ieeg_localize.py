@@ -196,7 +196,10 @@ reg_affine = np.array([
     [0.04374389, 0.99439665, -0.09623816, -97.58320673],
     [-0.11233068, 0.10061512, 0.98856381, -84.45551601],
     [0., 0., 0., 1.]])
-CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, reg_affine)
+# use a cval='1%' here to make the values outside the domain of the CT
+# the same as the background level during interpolation
+CT_aligned = mne.transforms.apply_volume_registration(
+    CT_orig, T1, reg_affine, cval='1%')
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 del CT_orig
 
@@ -359,7 +362,7 @@ reg_affine = np.array([
     [0., 0., 0., 1.]])
 # align CT
 CT_aligned_ecog = mne.transforms.apply_volume_registration(
-    CT_orig_ecog, T1_ecog, reg_affine)
+    CT_orig_ecog, T1_ecog, reg_affine, cval='1%')
 
 raw_ecog = mne.io.read_raw(op.join(misc_path, 'ecog', 'sample_ecog_ieeg.fif'))
 # use estimated `trans` which was used when the locations were found previously
