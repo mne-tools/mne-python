@@ -1464,6 +1464,11 @@ docdict['subject'] = """
 subject : str
     The FreeSurfer subject name.
 """
+docdict['subject_optional'] = """
+subject : str
+    The FreeSurfer subject name. While not necessary, it is safer to set the
+    subject parameter to avoid analysis errors.
+"""
 docdict['subject_none'] = """
 subject : str | None
     The FreeSurfer subject name.
@@ -1956,6 +1961,19 @@ volume_options : float | dict | None
 
     A float input (default 1.) or None will be used for the ``'resolution'``
     entry.
+"""
+docdict['vertices_volume'] = """
+vertices : list of array of int
+    The indices of the dipoles in the source space. Should be a single
+    array of shape (n_dipoles,) unless there are subvolumes.
+"""
+docdict['tmin'] = """
+tmin : scalar
+    Time point of the first sample in data.
+"""
+docdict['tstep'] = """
+tstep : scalar
+    Time step between successive samples in data.
 """
 docdict['view_layout'] = """
 view_layout : str
