@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from functools import partial
 import os
 import os.path as op
+import platform
 from pathlib import Path
 import time
 import queue
@@ -727,7 +728,9 @@ class CoregistrationUI(HasTraits):
                 draw_map[key]()
             self._redraws_pending.clear()
             self._renderer._update()
-            self._renderer._process_events()  # necessary for MacOS?
+            # necessary for MacOS
+            if platform.system() == 'Darwin':
+                self._renderer._process_events()
 
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
