@@ -1,22 +1,23 @@
 """
 .. _tut-report:
 
-Getting started with :class:`mne.Report`
-========================================
+Getting started with mne.Report
+===============================
 
-`mne.Report` is a way to create interactive HTML summaries of your data. These
-reports can show many different visualizations for one or multiple
+:class:`mne.Report` is a way to create interactive HTML summaries of your data.
+These reports can show many different visualizations for one or multiple
 participants. A common use case is creating diagnostic summaries to check data
 quality at different stages in the processing pipeline. The report can show
 things like plots of data before and after each preprocessing step, epoch
 rejection statistics, MRI slices with overlaid BEM shells, all the way up to
 plots of estimated cortical activity.
 
-Compared to a Jupyter notebook, `mne.Report` is easier to deploy (the HTML
-pages it generates are self-contained and do not require a running Python
+Compared to a Jupyter notebook, :class:`mne.Report` is easier to deploy (the
+HTML pages it generates are self-contained and do not require a running Python
 environment) but less flexible (you can't change code and re-run something
 directly within the browser). This tutorial covers the basics of building a
-`~mne.Report`. As usual, we'll start by importing the modules and data we need:
+:class:`~mne.Report`. As usual, we'll start by importing the modules and data
+we need:
 """
 
 # %%
