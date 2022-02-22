@@ -545,6 +545,7 @@ class _QtWindow(_AbstractWindow):
         self._window.signal_close.connect(self._window_clean)
         self._window_close_callbacks = list()
 
+        """
         # patch closeEvent
         def closeEvent(event):
             accept_close_event = True
@@ -559,15 +560,24 @@ class _QtWindow(_AbstractWindow):
             else:
                 event.ignore()
         self._window.closeEvent = closeEvent
+        """
 
     def _window_clean(self):
         self.figure._plotter = None
         self._interactor = None
         self._window.signal_close.disconnect(self._window_clean)
-        self._window_close_callbacks.clear()
 
     def _window_close_connect(self, func):
         self._window_close_callbacks.append(func)
+
+    def _window_close_disconnect(self, func):
+        try:
+            idx = self._window_close_callbacks.index(func)
+        except ValueError:
+            pass
+        else:
+            self._window_close_callbacks.pop(idx)
+
 
     def _window_get_dpi(self):
         return self._window.windowHandle().screen().logicalDotsPerInch()

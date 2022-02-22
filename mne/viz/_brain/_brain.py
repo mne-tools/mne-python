@@ -736,6 +736,8 @@ class Brain(object):
             self._layered_meshes[hemi]._clean()
         self._clear_callbacks()
         self._clear_widgets()
+        self._renderer._window_close_disconnect(self._clean)
+
         if getattr(self, 'mpl_canvas', None) is not None:
             self.mpl_canvas.clear()
         if getattr(self, 'act_data_smooth', None) is not None:

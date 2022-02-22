@@ -848,6 +848,10 @@ class _AbstractWindow(ABC):
         pass
 
     @abstractmethod
+    def _window_close_disconnect(self, func):
+        pass
+
+    @abstractmethod
     def _window_get_dpi(self):
         pass
 

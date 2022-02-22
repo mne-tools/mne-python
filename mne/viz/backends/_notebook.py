@@ -391,6 +391,9 @@ class _IpyWindow(_AbstractWindow):
     def _window_close_connect(self, func):
         pass
 
+    def _window_close_disconnect(self, func):
+        pass
+
     def _window_get_dpi(self):
         return 96
 

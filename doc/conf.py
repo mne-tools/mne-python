@@ -6,14 +6,14 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+from datetime import datetime, timezone
+import faulthandler
 import gc
 import os
 import subprocess
 import sys
 import time
 import warnings
-from datetime import datetime, timezone
-import faulthandler
 
 import numpy as np
 import matplotlib
