@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from functools import partial
 import os
 import os.path as op
+import platform
 from pathlib import Path
 import time
 import queue
@@ -232,7 +233,6 @@ class CoregistrationUI(HasTraits):
             size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
         self._renderer._window_close_connect(self._close_callback)
         self._renderer.set_interaction(interaction)
-        self._renderer._status_bar_initialize()
 
         # coregistration model setup
         self._immediate_redraw = (self._renderer._kind != 'qt')
@@ -728,7 +728,9 @@ class CoregistrationUI(HasTraits):
                 draw_map[key]()
             self._redraws_pending.clear()
             self._renderer._update()
-            self._renderer._process_events()  # necessary for MacOS?
+            # necessary for MacOS
+            if platform.system() == 'Darwin':
+                self._renderer._process_events()
 
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
@@ -1707,6 +1709,7 @@ class CoregistrationUI(HasTraits):
         self._renderer._dock_add_stretch()
 
     def _configure_status_bar(self):
+        self._renderer._status_bar_initialize()
         self._widgets['status_message'] = self._renderer._status_bar_add_label(
             "", stretch=1
         )
