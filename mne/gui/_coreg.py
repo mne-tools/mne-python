@@ -1722,6 +1722,7 @@ class CoregistrationUI(HasTraits):
         self._auto_cleanup = state
 
     def _clean(self):
+        self._renderer._window_close_disconnect(self._close_callback)
         self._renderer = None
         self._widgets.clear()
         self._actors.clear()

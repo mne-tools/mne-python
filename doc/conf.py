@@ -732,6 +732,7 @@ html_context = {
              size=xxl),
     ],
     # \u00AD is an optional hyphen (not rendered unless needed)
+    # If these are changed, the Makefile should be updated, too
     'carousel': [
         dict(title='Source Estimation',
              text='Distributed, sparse, mixed-norm, beam\u00ADformers, dipole fitting, and more.',  # noqa E501

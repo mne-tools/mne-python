@@ -1292,7 +1292,7 @@ class Brain(object):
         self._renderer._tool_bar_add_file_button(
             name="screenshot",
             desc="Take a screenshot",
-            func=self.save_image,
+            func=lambda filename: self.save_image(filename),
         )
         self._renderer._tool_bar_add_file_button(
             name="movie",
