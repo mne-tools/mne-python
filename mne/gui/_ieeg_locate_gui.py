@@ -366,7 +366,7 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._figs[axis].canvas.mpl_connect(
                 'scroll_event', self._on_scroll)
             self._figs[axis].canvas.mpl_connect(
-                'button_release_event', partial(self._on_click, axis))
+                'button_release_event', partial(self._on_click, axis=axis))
         # add head and brain in mm (convert from m)
         if self._head is None:
             logger.info('Using marching cubes on CT for the '
@@ -620,7 +620,7 @@ class IntracranialElectrodeLocator(QMainWindow):
                                      pos[insert_idx] + elec_v * _BOLT_SCALAR)
             lines_2D = list()
             for axis in range(3):
-                x, y = self._xy_axis[axis]
+                x, y = self._xy_idx[axis]
                 lines_2D.append(self._figs[axis].axes[0].plot(
                     [target_vox[x], insert_vox[x]],
                     [target_vox[y], insert_vox[y]],
@@ -735,6 +735,8 @@ class IntracranialElectrodeLocator(QMainWindow):
     def _set_ras(self, ras, update_plots=True):
         ras = np.asarray(ras, dtype=float)
         assert ras.shape == (3,)
+        msg = ', '.join(f'{x:0.2f}' for x in ras)
+        logger.debug(f'Trying RAS:  ({msg}) mm')
         # clip to valid
         vox = apply_trans(self._ras_vox_t, ras)
         vox = np.array([
@@ -743,6 +745,8 @@ class IntracranialElectrodeLocator(QMainWindow):
         # transform back, make write-only
         self._ras_safe = apply_trans(self._vox_ras_t, vox)
         self._ras_safe.flags['WRITEABLE'] = False
+        msg = ', '.join(f'{x:0.2f}' for x in self._ras_safe)
+        logger.debug(f'Setting RAS: ({msg}) mm')
         if update_plots:
             self._move_cursors_to_pos()
 
@@ -914,13 +918,6 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._renderer._update()
         self._ch_list.setFocus()  # remove focus from 3d plotter
 
-    def _get_click_pos(self, axis, x, y):
-        """Get which axis was clicked and where."""
-        fx, fy = self._figs[axis].transFigure.inverted().transform((x, y))
-        xmin, xmax = self._figs[axis].axes[0].get_xlim()
-        ymin, ymax = self._figs[axis].axes[0].get_ylim()
-        return (fx * (xmax - xmin) + xmin, fy * (ymax - ymin) + ymin)
-
     def _move_cursors_to_pos(self):
         """Move the cursors to a position."""
         for axis in range(3):
@@ -1060,16 +1057,18 @@ class IntracranialElectrodeLocator(QMainWindow):
                 ras[1] += 2 * (event.key() == QtCore.Qt.Key_PageUp) - 1
             self._set_ras(ras)
 
-    def _on_click(self, axis, event):
+    def _on_click(self, event, axis):
         """Move to view on MRI and CT on click."""
-        # Transform coordinates to figure coordinates
-        pos = self._get_click_pos(axis, event.x, event.y)
-        logger.info(f'Clicked axis {axis} at pos {pos}')
-
-        if axis is not None and pos is not None:
+        logger.info('clicked')
+        if event.inaxes is self._figs[axis].axes[0]:
+            # Data coordinates are voxel coordinates
+            pos = (event.xdata, event.ydata)
+            logger.info(f'Clicked {"XYZ"[axis]} ({axis}) axis at pos {pos}')
             xyz = self._vox
             xyz[list(self._xy_idx[axis])] = pos
-            self._set_ras(apply_trans(self._vox_ras_t, xyz))
+            logger.debug(f'Using voxel  {list(xyz)}')
+            ras = apply_trans(self._vox_ras_t, xyz)
+            self._set_ras(ras)
 
     def _update_moved(self):
         """Update when cursor position changes."""
