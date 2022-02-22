@@ -1059,7 +1059,6 @@ class IntracranialElectrodeLocator(QMainWindow):
 
     def _on_click(self, event, axis):
         """Move to view on MRI and CT on click."""
-        logger.info('clicked')
         if event.inaxes is self._figs[axis].axes[0]:
             # Data coordinates are voxel coordinates
             pos = (event.xdata, event.ydata)
