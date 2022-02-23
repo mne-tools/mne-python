@@ -11,6 +11,7 @@ import os
 import os.path as op
 import platform
 import shutil
+import subprocess
 import sys
 import tempfile
 import re
@@ -465,6 +466,24 @@ def _get_numpy_libs():
     return libs
 
 
+_gpu_cmd = """\
+from pyvista import GPUInfo; \
+gi = GPUInfo(); \
+print(gi.version); \
+print(gi.renderer)"""
+
+
+def _get_gpu_info():
+    # Once https://github.com/pyvista/pyvista/pull/2250 is merged and PyVista
+    # does a release, we can triage based on version > 0.33.2
+    proc = subprocess.run(
+        [sys.executable, '-c', _gpu_cmd], check=False, capture_output=True)
+    out = proc.stdout.decode().strip().replace('\r', '').split('\n')
+    if proc.returncode or len(out) != 2:
+        return None, None
+    return out
+
+
 def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     """Print the system information for debugging.
 
@@ -579,11 +598,11 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                 except ImportError:
                     pass
                 else:
-                    try:
-                        gi = GPUInfo()
-                        extra += f' {{OpenGL {gi.version} via {gi.renderer}}}'
-                    except Exception:  # cannot parse
+                    version, renderer = _get_gpu_info()
+                    if version is None:
                         extra += ' {{OpenGL could not be initialized}}'
+                    else:
+                        extra += f' {{OpenGL {version} via {renderer}}}'
             if mod_name == 'vtk':
                 version = mod.vtkVersion()
                 # 9.0 dev has VersionFull but 9.0 doesn't
