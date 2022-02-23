@@ -730,7 +730,7 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._update_moved()  # resets RAS label
             return
         if text_kind == 'vox':
-            vox = vals.round().astype(int)
+            vox = vals
             ras = apply_trans(self._vox_ras_t, vox)
         else:
             assert text_kind == 'ras'
