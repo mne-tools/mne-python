@@ -10,7 +10,7 @@ from contextlib import contextmanager
 import pyvista
 from pyvistaqt.plotting import FileDialog
 
-from PyQt5.QtCore import Qt, pyqtSignal, QLocale
+from PyQt5.QtCore import Qt, pyqtSignal, QLocale, QObject
 from PyQt5.QtGui import QIcon, QImage, QPixmap, QCursor
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
@@ -753,21 +753,33 @@ class _QtWidget(_AbstractWidget):
         self._widget.setToolTip(tooltip)
 
 
+class _QtDialogCommunicator(QObject):
+    signal_show = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+
 class _QtDialogWidget(_QtWidget):
     def __init__(self, widget, modal):
         super().__init__(widget)
         self._modal = modal
+        self._communicator = _QtDialogCommunicator()
+        self._communicator.signal_show.connect(self.show)
 
     def trigger(self, button):
         for current_button in self._widget.buttons():
             if current_button.text() == button:
                 current_button.click()
 
-    def show(self):
-        if self._modal:
-            self._widget.exec()
+    def show(self, thread=False):
+        if thread:
+            self._communicator.signal_show.emit()
         else:
-            self._widget.show()
+            if self._modal:
+                self._widget.exec()
+            else:
+                self._widget.show()
 
 
 class _QtAction(_AbstractAction):

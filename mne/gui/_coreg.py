@@ -33,18 +33,6 @@ from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
 from ..channels import read_dig_fif
 
 
-class _DialogResult():
-    def __init__(self):
-        self._result = None
-
-    def __call__(self, result):
-        self._result = result
-
-    @property
-    def result(self):
-        return self._result
-
-
 class _WorkerData():
     def __init__(self, name, params=None):
         self._name = name
@@ -284,6 +272,7 @@ class CoregistrationUI(HasTraits):
 
         # configure UI
         self._reset_fitting_parameters()
+        self._configure_dialogs()
         self._configure_status_bar()
         self._configure_dock()
         self._configure_picking()
@@ -698,6 +687,18 @@ class CoregistrationUI(HasTraits):
             else:
                 func()
             queue.task_done()
+
+    def _configure_dialogs(self):
+        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+        self._widgets["overwrite_subject"] = self._renderer._dialog_warning(
+            title="CoregistrationUI",
+            text="The name of the output subject used to "
+                 "save the scaled anatomy already exists.",
+            info_text="Do you want to overwrite?",
+            callback=self._overwrite_subject_callback,
+            buttons=["Yes", "No", "Discard"],
+            modal=not MNE_3D_BACKEND_TESTING,
+        )
 
     def _configure_worker(self):
         work_plan = {
@@ -1192,23 +1193,25 @@ class CoregistrationUI(HasTraits):
             self._parameter_queue.put(_WorkerData("set_parameter", dict(
                 value=value, mode_name=mode_name, coord=coord)))
 
-    def _save_subject(self):
-        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
-        # check if subject already exists
-        dialog_result = _DialogResult()
-        dialog = self._renderer._dialog_warning(
-            title="CoregistrationUI",
-            text="The name of the output subject used to "
-                 "save the scaled anatomy already exists.",
-            info_text="Do you want to overwrite?",
-            callback=dialog_result,
-            buttons=["Yes", "Discard", "Cancel"],
-            modal=not MNE_3D_BACKEND_TESTING,
-        )
-        dialog.show()
-        print(dialog_result.result)
-        return
+    def _overwrite_subject_callback(self, button_name):
+        if button_name == "Yes":
+            self._save_subject_callback(overwrite=True)
+        elif button_name == "No":
+            self._save_subject_callback(overwrite=False)
+        else:
+            assert button_name == "Discard"
 
+    def _save_subject(self):
+        # check if subject already exists
+        subject_dirname = os.path.join('{subjects_dir}', '{subject}')
+        dest = subject_dirname.format(subject=self._subject_to,
+                                      subjects_dir=self._subjects_dir)
+        if os.path.exists(dest):
+            self._forward_widget_command("overwrite_subject", "show", True)
+        else:
+            self._save_subject_callback()
+
+    def _save_subject_callback(self, overwrite=False):
         self._display_message(f"Saving {self._subject_to}...")
 
         # check that fiducials are saved
@@ -1240,7 +1243,7 @@ class CoregistrationUI(HasTraits):
             self._display_message(f"Scaling {self._subject_to}...")
             scale_mri(
                 subject_from=self._subject, subject_to=self._subject_to,
-                scale=self.coreg._scale, overwrite=True,
+                scale=self.coreg._scale, overwrite=overwrite,
                 subjects_dir=self._subjects_dir,
                 skip_fiducials=self._skip_fiducials, labels=self._scale_labels,
                 annot=self._copy_annots, on_defects='ignore'
