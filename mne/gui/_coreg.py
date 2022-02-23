@@ -696,7 +696,7 @@ class CoregistrationUI(HasTraits):
                  "save the scaled anatomy already exists.",
             info_text="Do you want to overwrite?",
             callback=self._overwrite_subject_callback,
-            buttons=["Yes", "No", "Discard"],
+            buttons=["Yes", "No", "Cancel"],
             modal=not MNE_3D_BACKEND_TESTING,
         )
 
@@ -1199,7 +1199,7 @@ class CoregistrationUI(HasTraits):
         elif button_name == "No":
             self._save_subject_callback(overwrite=False)
         else:
-            assert button_name == "Discard"
+            assert button_name == "Cancel"
 
     def _save_subject(self):
         # check if subject already exists
