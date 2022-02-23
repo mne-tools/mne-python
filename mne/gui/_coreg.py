@@ -1718,6 +1718,8 @@ class CoregistrationUI(HasTraits):
         )
 
     def _clean(self):
+        if not self._accept_close_event:
+            return
         self._renderer = None
         self._widgets.clear()
         self._actors.clear()
