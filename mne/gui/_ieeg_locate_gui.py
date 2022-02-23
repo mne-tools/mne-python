@@ -343,18 +343,14 @@ class IntracranialElectrodeLocator(QMainWindow):
                 self._make_ch_image(axis), aspect='auto',
                 extent=self._ch_extents[axis], zorder=3,
                 cmap=_CMAP, alpha=self._ch_alpha, vmin=0, vmax=_N_COLORS))
-            v_x_value = xyz[plot_x_idx]
-            v_y_max_value = self._voxel_sizes[plot_y_idx] - 0.5
-            assert np.isclose(v_y_max_value, img_extent[3])
+            v_x = (xyz[plot_x_idx],) * 2
+            v_y = img_extent[2:4]
             self._images['cursor_v'].append(ax.plot(
-                (v_x_value,) * 2, (-0.5, v_y_max_value),
-                color=[0, 1, 0], linewidth=1, alpha=0.5, zorder=8)[0])
-            h_y_value = xyz[plot_y_idx]
-            h_x_max_value = self._voxel_sizes[plot_x_idx] - 0.5
-            assert np.isclose(h_x_max_value, img_extent[1])
+                v_x, v_y, color='lime', linewidth=0.5, alpha=0.5, zorder=8)[0])
+            h_y = (xyz[plot_y_idx],) * 2
+            h_x = img_extent[0:2]
             self._images['cursor_h'].append(ax.plot(
-                (-0.5, h_x_max_value), (h_y_value,) * 2,
-                color=[0, 1, 0], linewidth=1, alpha=0.5, zorder=8)[0])
+                h_x, h_y, color='lime', linewidth=0.5, alpha=0.5, zorder=8)[0])
             # label axes
             self._figs[axis].text(0.5, 0.05, _IMG_LABELS[axis][0],
                                   **text_kwargs)
@@ -545,6 +541,15 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._intensity_label = QLabel('')  # update later
         hbox.addWidget(self._intensity_label)
 
+        VOX_label = QLabel('VOX =')
+        self._VOX_textbox = QPlainTextEdit('')  # update later
+        self._VOX_textbox.setMaximumHeight(25)
+        self._VOX_textbox.setMaximumWidth(125)
+        self._VOX_textbox.focusOutEvent = self._update_VOX
+        self._VOX_textbox.textChanged.connect(self._check_update_VOX)
+        hbox.addWidget(VOX_label)
+        hbox.addWidget(self._VOX_textbox)
+
         RAS_label = QLabel('RAS =')
         self._RAS_textbox = QPlainTextEdit('')  # update later
         self._RAS_textbox.setMaximumHeight(25)
@@ -700,31 +705,43 @@ class IntracranialElectrodeLocator(QMainWindow):
     @pyqtSlot()
     def _update_RAS(self, event):
         """Interpret user input to the RAS textbox."""
-        text = self._RAS_textbox.toPlainText().replace('\n', '')
-        ras = text.split(',')
-        if len(ras) != 3:
-            ras = text.split(' ')  # spaces also okay as in freesurfer
-        ras = [var.lstrip().rstrip() for var in ras]
+        text = self._RAS_textbox.toPlainText()
+        ras = self._convert_text(text, 'ras')
+        if ras is not None:
+            self._set_ras(ras)
 
-        if len(ras) != 3:
+    @pyqtSlot()
+    def _update_VOX(self, event):
+        """Interpret user input to the RAS textbox."""
+        text = self._VOX_textbox.toPlainText()
+        ras = self._convert_text(text, 'vox')
+        if ras is not None:
+            self._set_ras(ras)
+
+    def _convert_text(self, text, text_kind):
+        text = text.replace('\n', '')
+        vals = text.split(',')
+        if len(vals) != 3:
+            vals = text.split(' ')  # spaces also okay as in freesurfer
+        vals = [var.lstrip().rstrip() for var in vals]
+        try:
+            vals = np.array([float(var) for var in vals]).reshape(3)
+        except Exception:
             self._update_moved()  # resets RAS label
             return
-        all_float = all([all([dig.isdigit() or dig in ('-', '.')
-                              for dig in var]) for var in ras])
-        if not all_float:
-            self._update_moved()  # resets RAS label
-            return
-
-        ras = np.array([float(var) for var in ras])
-        xyz = apply_trans(self._ras_vox_t, ras)
-        wrong_size = any([var < 0 or var > n - 1 for var, n in
-                          zip(xyz, self._voxel_sizes)])
+        if text_kind == 'vox':
+            vox = vals.round().astype(int)
+            ras = apply_trans(self._vox_ras_t, vox)
+        else:
+            assert text_kind == 'ras'
+            ras = vals
+            vox = apply_trans(self._ras_vox_t, ras)
+        wrong_size = any(var < 0 or var > n - 1 for var, n in
+                         zip(vox, self._voxel_sizes))
         if wrong_size:
             self._update_moved()  # resets RAS label
             return
-
-        # valid RAS position, update and move
-        self._set_ras(ras)
+        return ras
 
     @property
     def _ras(self):
@@ -761,6 +778,13 @@ class IntracranialElectrodeLocator(QMainWindow):
         """Check whether the RAS textbox is done being edited."""
         if '\n' in self._RAS_textbox.toPlainText():
             self._update_RAS(event=None)
+            self._ch_list.setFocus()  # remove focus from text edit
+
+    @pyqtSlot()
+    def _check_update_VOX(self):
+        """Check whether the VOX textbox is done being edited."""
+        if '\n' in self._VOX_textbox.toPlainText():
+            self._update_VOX(event=None)
             self._ch_list.setFocus()  # remove focus from text edit
 
     def _color_list_item(self, name=None):
@@ -1072,6 +1096,8 @@ class IntracranialElectrodeLocator(QMainWindow):
         """Update when cursor position changes."""
         self._RAS_textbox.setPlainText('{:.2f}, {:.2f}, {:.2f}'.format(
             *self._ras))
+        self._VOX_textbox.setPlainText('{:3d}, {:3d}, {:3d}'.format(
+            *self._current_slice))
         self._intensity_label.setText('intensity = {:.2f}'.format(
             self._ct_data[tuple(self._current_slice)]))
 
