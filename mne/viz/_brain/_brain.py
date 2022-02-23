@@ -2441,7 +2441,7 @@ class Brain(object):
 
         Parameters
         ----------
-        dipole : instance of Dipole | instance of Forward
+        dipole : instance of Dipole
             Dipole object containing position, orientation and amplitude of
             one or more dipoles or in the forward solution.
         %(trans_not_none)s
