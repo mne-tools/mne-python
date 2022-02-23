@@ -286,7 +286,7 @@ class IntracranialElectrodeLocator(QMainWindow):
             # to bottom-left corner centered (all coords positive).
             if np.isnan(ras).any():
                 continue
-            xyz = apply_trans(self._ras_vox_t, ras)
+            xyz = apply_trans(self._ras_vox_t, ras) + 0.5
             # check if closest to that voxel
             dist = np.linalg.norm(xyz - self._current_slice)
             if proj or dist < self._radius:
