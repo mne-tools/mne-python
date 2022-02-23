@@ -189,7 +189,7 @@ del CT_resampled
 #    reg_affine, _ = mne.transforms.compute_volume_registration(
 #         CT_orig, T1, pipeline='rigids', zooms=dict(translation=5)))
 #
-# And instead we just hard-code the resulting 4x4 matrix:
+# Instead we just hard-code the resulting 4x4 matrix:
 
 reg_affine = np.array([
     [0.99270756, -0.03243313, 0.11610254, -133.094156],

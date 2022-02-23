@@ -543,29 +543,45 @@ class _QtWindow(_AbstractWindow):
         self._window = self.figure.plotter.app_window
         self._window.setLocale(QLocale(QLocale.Language.English))
         self._window.signal_close.connect(self._window_clean)
-        self._window_close_callbacks = list()
+        self._window_before_close_callbacks = list()
+        self._window_after_close_callbacks = list()
 
         # patch closeEvent
         def closeEvent(event):
+            # functions to call before closing
             accept_close_event = True
-            for callback in self._window_close_callbacks:
+            for callback in self._window_before_close_callbacks:
                 ret = callback()
                 # check if one of the callbacks ignores the close event
                 if isinstance(ret, bool) and not ret:
                     accept_close_event = False
+
             if accept_close_event:
                 self._window.signal_close.emit()
                 event.accept()
             else:
                 event.ignore()
+
+            # functions to call after closing
+            for callback in self._window_after_close_callbacks:
+                callback()
         self._window.closeEvent = closeEvent
 
     def _window_clean(self):
         self.figure._plotter = None
         self._interactor = None
 
-    def _window_close_connect(self, func):
-        self._window_close_callbacks.append(func)
+    def _window_close_connect(self, func, *, after=True):
+        if after:
+            self._window_after_close_callbacks.append(func)
+        else:
+            self._window_before_close_callbacks.append(func)
+
+    def _window_close_disconnect(self, after=True):
+        if after:
+            self._window_after_close_callbacks.clear()
+        else:
+            self._window_before_close_callbacks.clear()
 
     def _window_get_dpi(self):
         return self._window.windowHandle().screen().logicalDotsPerInch()

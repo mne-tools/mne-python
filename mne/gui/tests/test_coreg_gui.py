@@ -223,8 +223,9 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert not coreg._trans_modified
     assert op.isfile(tmp_trans)
 
+    # first, disable auto cleanup
+    coreg._renderer._window_close_disconnect(after=True)
     # test _close_callback()
-    coreg._set_automatic_cleanup(False)
     coreg.close()
     coreg._widgets['close_dialog'].trigger('Discard')  # do not save
     coreg._clean()  # finally, cleanup internal structures
