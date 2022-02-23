@@ -579,8 +579,11 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                 except ImportError:
                     pass
                 else:
-                    gi = GPUInfo()
-                    extra += f' {{OpenGL {gi.version} via {gi.renderer}}}'
+                    try:
+                        gi = GPUInfo()
+                        extra += f' {{OpenGL {gi.version} via {gi.renderer}}}'
+                    except Exception:  # cannot parse
+                        extra += ' {{OpenGL could not be initialized}}'
             if mod_name == 'vtk':
                 version = mod.vtkVersion()
                 # 9.0 dev has VersionFull but 9.0 doesn't
