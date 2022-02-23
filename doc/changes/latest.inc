@@ -34,6 +34,10 @@ Enhancements
 
 - Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
 
+- Show boundaries in :func:`mne.gui.locate_ieeg` (:gh:`10379` by `Eric Larson`_)
+
+- Add argument ``cval`` to :func:`mne.transforms.apply_volume_registration` to set interpolation values outside the image domain (:gh:`10379` by `Eric Larson`_)
+
 - Improve docstring of :class:`mne.Info` and add attributes that were not covered (:gh:`9922` by `Mathieu Scheltienne`_)
 
 - Add an alternate, manual procedure for aligning a CT to an MR procedure to :ref:`tut-ieeg-localize` (:gh:`9978` by `Alex Rockhill`_)
