@@ -745,7 +745,7 @@ class Brain(object):
         for renderer in self._renderer._all_renderers:
             renderer.RemoveAllLights()
         # app_window cannot be set to None because it is used in __del__
-        for key in ('lighting', 'interactor'):
+        for key in ('lighting', 'interactor', '_RenderWindow'):
             setattr(self.plotter, key, None)
         # Qt LeaveEvent requires _Iren so we use _FakeIren instead of None
         # to resolve the ref to vtkGenericRenderWindowInteractor
