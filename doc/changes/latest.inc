@@ -112,7 +112,7 @@ Enhancements
 
 - Added :meth:`mne.viz.Brain.add_dipole` and :meth:`mne.viz.Brain.add_forward` to plot dipoles on a brain (:gh:`10373` by `Alex Rockhill`_)
 
-- Made anterior/posterior slice scrolling in :func:`mne.gui.locate_ieeg` possible for users without page up and page down buttons by allowing angle bracket buttons to be used (:gh:`10384` by `Alex Rockill`_)
+- Made anterior/posterior slice scrolling in :func:`mne.gui.locate_ieeg` possible for users without page up and page down buttons by allowing angle bracket buttons to be used (:gh:`10384` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
