@@ -221,13 +221,19 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._ras_vox_t = np.linalg.inv(self._vox_ras_t)
 
         self._voxel_sizes = np.array(self._mri_data.shape)
-        self._img_ranges = [
-            [-0.5, self._voxel_sizes[1] - 0.5,
-             -0.5, self._voxel_sizes[2] - 0.5],
-            [-0.5, self._voxel_sizes[0] - 0.5,
-             -0.5, self._voxel_sizes[2] - 0.5],
-            [-0.5, self._voxel_sizes[0] - 0.5,
-             -0.5, self._voxel_sizes[1] - 0.5]]
+        # We need our extents to land the centers of each pixel on the voxel
+        # number. This code assumes 1mm isotropic...
+        img_delta = 0.5
+        self._img_extents = list(
+            [-img_delta, self._voxel_sizes[idx[0]] - img_delta,
+             -img_delta, self._voxel_sizes[idx[1]] - img_delta]
+            for idx in self._xy_idx)
+        ch_deltas = list(img_delta * (self._voxel_sizes[ii] / _CH_PLOT_SIZE)
+                         for ii in range(3))
+        self._ch_extents = list(
+            [-ch_delta, self._voxel_sizes[idx[0]] - ch_delta,
+             -ch_delta, self._voxel_sizes[idx[1]] - ch_delta]
+            for idx, ch_delta in zip(self._xy_idx, ch_deltas))
 
         # ready ct
         self._ct_data, vox_ras_t = _load_image(ct, 'CT', verbose=self._verbose)
@@ -267,18 +273,18 @@ class IntracranialElectrodeLocator(QMainWindow):
         """Make a plot to display the channel locations."""
         # Make channel data higher resolution so it looks better.
         ch_image = np.zeros((_CH_PLOT_SIZE, _CH_PLOT_SIZE)) * np.nan
-        vx, vy, vz = self._voxel_sizes
+        vxyz = self._voxel_sizes
 
         def color_ch_radius(ch_image, xf, yf, group, radius):
             # Take the fraction across each dimension of the RAS
             # coordinates converted to xyz and put a circle in that
             # position in this larger resolution image
             ex, ey = np.round(np.array([xf, yf]) * _CH_PLOT_SIZE).astype(int)
-            for i in range(-radius, radius + 1):
-                for j in range(-radius, radius + 1):
-                    if (i**2 + j**2)**0.5 < radius:
-                        # negative y because y axis is inverted
-                        ch_image[-(ey + i), ex + j] = group
+            ii = np.arange(-radius, radius + 1)
+            ii_sq = ii * ii
+            idx = np.where(ii_sq + ii_sq[:, np.newaxis] < radius * radius)
+            # negative y because y axis is inverted
+            ch_image[-(ey + ii[idx[1]]), ex + ii[idx[0]]] = group
             return ch_image
 
         for name, ras in self._chs.items():
@@ -286,23 +292,15 @@ class IntracranialElectrodeLocator(QMainWindow):
             # to bottom-left corner centered (all coords positive).
             if np.isnan(ras).any():
                 continue
-            xyz = apply_trans(self._ras_vox_t, ras) + 0.5
+            xyz = apply_trans(self._ras_vox_t, ras)
             # check if closest to that voxel
             dist = np.linalg.norm(xyz - self._current_slice)
             if proj or dist < self._radius:
-                x, y, z = xyz
                 group = self._groups[name]
                 r = self._radius if proj else \
                     self._radius - np.round(abs(dist)).astype(int)
-                if axis == 0:
-                    ch_image = color_ch_radius(
-                        ch_image, y / vy, z / vz, group, r)
-                elif axis == 1:
-                    ch_image = color_ch_radius(
-                        ch_image, x / vx, z / vx, group, r)
-                elif axis == 2:
-                    ch_image = color_ch_radius(
-                        ch_image, x / vx, y / vy, group, r)
+                xf, yf = (xyz / vxyz)[list(self._xy_idx[axis])]
+                ch_image = color_ch_radius(ch_image, xf, yf, group, r)
         return ch_image
 
     @verbose
@@ -335,25 +333,25 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._images['ct'].append(ax.imshow(
                 ct_data, cmap='gray', aspect='auto', zorder=1,
                 vmin=ct_min, vmax=ct_max))
-            extent = self._img_ranges[axis]  # x0, x1, y0, y1
-            w, h = np.diff(np.array(extent).reshape(2, 2), axis=1)[:, 0]
+            img_extent = self._img_extents[axis]  # x0, x1, y0, y1
+            w, h = np.diff(np.array(img_extent).reshape(2, 2), axis=1)[:, 0]
             self._images['ct_bounds'].append(Rectangle(
-                extent[::2], w, h, edgecolor='w', facecolor='none',
+                img_extent[::2], w, h, edgecolor='w', facecolor='none',
                 alpha=0.25, lw=0.5, zorder=1.5))
             ax.add_patch(self._images['ct_bounds'][-1])
             self._images['chs'].append(ax.imshow(
                 self._make_ch_image(axis), aspect='auto',
-                extent=extent, zorder=3,
+                extent=self._ch_extents[axis], zorder=3,
                 cmap=_CMAP, alpha=self._ch_alpha, vmin=0, vmax=_N_COLORS))
             v_x_value = xyz[plot_x_idx]
             v_y_max_value = self._voxel_sizes[plot_y_idx] - 0.5
-            assert np.isclose(v_y_max_value, extent[3])
+            assert np.isclose(v_y_max_value, img_extent[3])
             self._images['cursor_v'].append(ax.plot(
                 (v_x_value,) * 2, (-0.5, v_y_max_value),
                 color=[0, 1, 0], linewidth=1, alpha=0.5, zorder=8)[0])
             h_y_value = xyz[plot_y_idx]
             h_x_max_value = self._voxel_sizes[plot_x_idx] - 0.5
-            assert np.isclose(h_x_max_value, extent[1])
+            assert np.isclose(h_x_max_value, img_extent[1])
             self._images['cursor_h'].append(ax.plot(
                 (-0.5, h_x_max_value), (h_y_value,) * 2,
                 color=[0, 1, 0], linewidth=1, alpha=0.5, zorder=8)[0])
@@ -362,7 +360,7 @@ class IntracranialElectrodeLocator(QMainWindow):
                                   **text_kwargs)
             self._figs[axis].text(0.05, 0.5, _IMG_LABELS[axis][1],
                                   **text_kwargs)
-            self._figs[axis].axes[0].axis(extent)
+            self._figs[axis].axes[0].axis(img_extent)
             self._figs[axis].canvas.mpl_connect(
                 'scroll_event', self._on_scroll)
             self._figs[axis].canvas.mpl_connect(
@@ -970,7 +968,7 @@ class IntracranialElectrodeLocator(QMainWindow):
                 self._images['mip_chs'].append(
                     self._figs[axis].axes[0].imshow(
                         self._make_ch_image(axis, proj=True), aspect='auto',
-                        extent=self._img_ranges[axis], zorder=6,
+                        extent=self._ch_extents[axis], zorder=6,
                         cmap=_CMAP, alpha=1, vmin=0, vmax=_N_COLORS))
             for group in set(self._groups.values()):
                 self._update_lines(group, only_2D=True)
