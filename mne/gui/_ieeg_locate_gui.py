@@ -902,7 +902,7 @@ class IntracranialElectrodeLocator(QMainWindow):
             "'b': toggle viewing of brain in T1\n"
             "'+'/'-': zoom\nleft/right arrow: left/right\n"
             "up/down arrow: superior/inferior\n"
-            "page up/page down arrow: anterior/posterior")
+            "left angle bracket/right angle bracket: anterior/posterior")
 
     def _update_ct_maxima(self):
         """Compute the maximum voxels based on the current radius."""
@@ -1012,14 +1012,15 @@ class IntracranialElectrodeLocator(QMainWindow):
         # Changing slices
         if event.key() in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down,
                            QtCore.Qt.Key_Left, QtCore.Qt.Key_Right,
+                           QtCore.Qt.Key_Comma, QtCore.Qt.Key_Period,
                            QtCore.Qt.Key_PageUp, QtCore.Qt.Key_PageDown):
             if event.key() in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down):
                 self._ras[2] += 2 * (event.key() == QtCore.Qt.Key_Up) - 1
             elif event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right):
                 self._ras[0] += 2 * (event.key() == QtCore.Qt.Key_Right) - 1
-            elif event.key() in (QtCore.Qt.Key_PageUp,
-                                 QtCore.Qt.Key_PageDown):
-                self._ras[1] += 2 * (event.key() == QtCore.Qt.Key_PageUp) - 1
+            else:
+                self._ras[1] += 2 * (event.key() == QtCore.Qt.Key_PageUp or
+                                     event.key() == QtCore.Qt.Key_Period) - 1
             self._move_cursors_to_pos()
 
     def _on_click(self, axis, event):
