@@ -600,7 +600,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                 else:
                     version, renderer = _get_gpu_info()
                     if version is None:
-                        extra += ' {{OpenGL could not be initialized}}'
+                        extra += ' {OpenGL could not be initialized}'
                     else:
                         extra += f' {{OpenGL {version} via {renderer}}}'
             if mod_name == 'vtk':
