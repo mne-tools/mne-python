@@ -326,6 +326,14 @@ def _file_like(obj):
     return all(callable(getattr(obj, name, None)) for name in ('read', 'seek'))
 
 
+def _fullname(obj):
+    klass = obj.__class__
+    module = klass.__module__
+    if module == 'builtins':
+        return klass.__qualname__
+    return module + '.' + klass.__qualname__
+
+
 def _assert_no_instances(cls, when=''):
     __tracebackhide__ = True
     n = 0
@@ -350,14 +358,15 @@ def _assert_no_instances(cls, when=''):
                     if isinstance(r, (list, dict)):
                         rep = f'len={len(r)}'
                         r_ = gc.get_referrers(r)
-                        types = (x.__class__.__name__ for x in r_)
+                        types = (_fullname(x) for x in r_)
                         types = "/".join(sorted(set(
                             x for x in types if x is not None)))
                         rep += f', {len(r_)} referrers: {types}'
                         del r_
                     else:
                         rep = repr(r)[:100].replace('\n', ' ')
-                    ref.append(f'{r.__class__.__name__}: {rep}')
+                    name = _fullname(r)
+                    ref.append(f'{name}: {rep}')
                     count += 1
                 del r
             del rr

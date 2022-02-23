@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from functools import partial
 import os
 import os.path as op
+import platform
 from pathlib import Path
 import time
 import queue
@@ -178,7 +179,6 @@ class CoregistrationUI(HasTraits):
         self._mri_fids_modified = False
         self._mri_scale_modified = False
         self._accept_close_event = True
-        self._auto_cleanup = True
         self._fid_colors = tuple(
             DEFAULTS['coreg'][f'{key}_color'] for key in
             ('lpa', 'nasion', 'rpa'))
@@ -230,9 +230,9 @@ class CoregistrationUI(HasTraits):
         # setup the window
         self._renderer = _get_renderer(
             size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
-        self._renderer._window_close_connect(self._close_callback)
+        self._renderer._window_close_connect(self._clean)
+        self._renderer._window_close_connect(self._close_callback, after=False)
         self._renderer.set_interaction(interaction)
-        self._renderer._status_bar_initialize()
 
         # coregistration model setup
         self._immediate_redraw = (self._renderer._kind != 'qt')
@@ -728,7 +728,9 @@ class CoregistrationUI(HasTraits):
                 draw_map[key]()
             self._redraws_pending.clear()
             self._renderer._update()
-            self._renderer._process_events()  # necessary for MacOS?
+            # necessary for MacOS
+            if platform.system() == 'Darwin':
+                self._renderer._process_events()
 
     def _on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
@@ -1707,6 +1709,7 @@ class CoregistrationUI(HasTraits):
         self._renderer._dock_add_stretch()
 
     def _configure_status_bar(self):
+        self._renderer._status_bar_initialize()
         self._widgets['status_message'] = self._renderer._status_bar_add_label(
             "", stretch=1
         )
@@ -1714,11 +1717,9 @@ class CoregistrationUI(HasTraits):
             'status_message', 'hide', value=None, input_value=False
         )
 
-    def _set_automatic_cleanup(self, state):
-        """Enable/Disable automatic cleanup (for testing purposes only)."""
-        self._auto_cleanup = state
-
     def _clean(self):
+        if not self._accept_close_event:
+            return
         self._renderer = None
         self._widgets.clear()
         self._actors.clear()
@@ -1789,7 +1790,4 @@ class CoregistrationUI(HasTraits):
                 modal=not MNE_3D_BACKEND_TESTING,
             )
             self._widgets["close_dialog"].show()
-
-        if self._accept_close_event and self._auto_cleanup:
-            self._clean()
         return self._accept_close_event

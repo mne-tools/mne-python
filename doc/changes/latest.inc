@@ -114,7 +114,7 @@ Enhancements
 
 - :meth:`mne.preprocessing.ICA.plot_sources()` is now also supported by the ``qt`` backend (:gh:`10330` by `Martin Schulz`_)
 
-- Added :meth:`mne.viz.Brain.add_dipole` and :meth:`mne.viz.Brain.add_forward` to plot dipoles on a brain (:gh:`10373` by `Alex Rockhill`_)
+- Added :meth:`mne.viz.Brain.add_dipole` and :meth:`mne.viz.Brain.add_forward` to plot dipoles on a brain as well as :meth:`mne.viz.Brain.remove_dipole` and :meth:`mne.viz.Brain.remove_forward` (:gh:`10373` by `Alex Rockhill`_)
 
 Bugs
 ~~~~

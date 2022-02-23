@@ -19,7 +19,7 @@ else
 	echo "NumPy/SciPy/pandas etc."
 	# TODO: Currently missing dipy for 3.10 https://github.com/dipy/dipy/issues/2489
 	# TODO: Revert this and Azure once https://github.com/numpy/numpy/pull/21054 is merged and a new wheel is out
-	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" "numpy<1.23.dev0+730" scipy pandas "scikit-learn>=0.24.2" statsmodels
+	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy scipy pandas scikit-learn statsmodels
 	echo "H5py, pillow, matplotlib"
 	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py pillow matplotlib
 	# We don't install Numba here because it forces an old NumPy version

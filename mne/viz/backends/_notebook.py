@@ -337,17 +337,17 @@ class _IpyMenuBar(_AbstractMenuBar):
 
 class _IpyStatusBar(_AbstractStatusBar, _IpyLayout):
     def _status_bar_initialize(self, window=None):
-        self._status_bar = self._status_bar_layout = HBox()
+        self._status_bar = HBox()
         self._layout_initialize(None)
 
     def _status_bar_add_label(self, value, *, stretch=0):
         widget = Text(value=value, disabled=True)
-        self._layout_add_widget(self._status_bar_layout, widget)
+        self._layout_add_widget(self._status_bar, widget)
         return _IpyWidget(widget)
 
     def _status_bar_add_progress_bar(self, stretch=0):
         widget = IntProgress()
-        self._layout_add_widget(self._status_bar_layout, widget)
+        self._layout_add_widget(self._status_bar, widget)
         return _IpyWidget(widget)
 
     def _status_bar_update(self):
@@ -388,7 +388,10 @@ class _IpyBrainMplCanvas(_AbstractBrainMplCanvas, _IpyMplInterface):
 
 
 class _IpyWindow(_AbstractWindow):
-    def _window_close_connect(self, func):
+    def _window_close_connect(self, func, *, after=True):
+        pass
+
+    def _window_close_disconnect(self, after=True):
         pass
 
     def _window_get_dpi(self):

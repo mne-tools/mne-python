@@ -745,7 +745,7 @@ class Brain(object):
         for renderer in self._renderer._all_renderers:
             renderer.RemoveAllLights()
         # app_window cannot be set to None because it is used in __del__
-        for key in ('lighting', 'interactor'):
+        for key in ('lighting', 'interactor', '_RenderWindow'):
             setattr(self.plotter, key, None)
         # Qt LeaveEvent requires _Iren so we use _FakeIren instead of None
         # to resolve the ref to vtkGenericRenderWindowInteractor
@@ -2441,7 +2441,7 @@ class Brain(object):
 
         Parameters
         ----------
-        dipole : instance of Dipole | instance of Forward
+        dipole : instance of Dipole
             Dipole object containing position, orientation and amplitude of
             one or more dipoles or in the forward solution.
         %(trans_not_none)s
