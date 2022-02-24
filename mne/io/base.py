@@ -837,7 +837,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @verbose
     def get_data(self, picks=None, start=0, stop=None,
                  reject_by_annotation=None, return_times=False, units=None,
-                 *, tmin=None, tmax=None, verbose=None):
+                 *, tmin=None, tmax=None, include_tmax=True, verbose=None):
         """Get data in the given range.
 
         Parameters
@@ -865,6 +865,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             ignored if the ``stop`` parameter is defined.
 
             .. versionadded:: 0.24.0
+        %(include_tmax)s
+
+            .. versionadded:: 1.0
         %(verbose)s
 
         Returns
@@ -877,6 +880,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Notes
         -----
+        %(notes_tmax_included_by_default)s
+
         .. versionadded:: 0.14.0
         """
         # validate types
@@ -1307,12 +1312,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(raw_tmin)s
         %(raw_tmax)s
         %(include_tmax)s
+
+            .. versionadded:: 0.19
         %(verbose)s
 
         Returns
         -------
         raw : instance of Raw
             The cropped raw object, modified in-place.
+
+        Notes
+        -----
+        %(notes_tmax_included_by_default)s
         """
         max_time = (self.n_times - 1) / self.info['sfreq']
         if tmax is None:

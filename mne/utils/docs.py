@@ -167,17 +167,15 @@ then the second row, etc.
 .. versionadded:: 0.24
 """
 
-# Cropping
+# tmin / tmax
 docdict['include_tmax'] = """
 include_tmax : bool
-    If True (default), include tmax. If False, exclude tmax (similar to how
-    Python indexing typically works).
-
-    .. versionadded:: 0.19
+    If True (default), include ``tmax``. If False, exclude ``tmax`` (similar to
+    how Python indexing typically works).
 """
 docdict['notes_tmax_included_by_default'] = """
 Unlike Python slices, MNE time intervals by default include **both**
-their end points; ``crop(tmin, tmax)`` returns the interval
+their end points; ``inst.method(tmin, tmax)`` returns the interval
 ``tmin <= t <= tmax``. Pass ``include_tmax=False`` to specify the half-open
 interval ``tmin <= t < tmax`` instead.
 """

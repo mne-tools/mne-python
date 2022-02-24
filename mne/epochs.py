@@ -1546,7 +1546,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     @fill_doc
     def get_data(self, picks=None, item=None, units=None, tmin=None,
-                 tmax=None):
+                 tmax=None, include_tmax=True):
         """Get all epochs as a 3D array.
 
         Parameters
@@ -1571,11 +1571,18 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             End time of data to get in seconds.
 
             .. versionadded:: 0.24.0
+        %(include_tmax)s
+
+            .. versionadded:: 1.0
 
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
+
+        Notes
+        -----
+        %(notes_tmax_included_by_default)s
         """
         return self._get_data(picks=picks, item=item, units=units, tmin=tmin,
                               tmax=tmax)
