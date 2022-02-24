@@ -1,4 +1,8 @@
+# -*- coding: utf-8 -*-
 """
+
+.. _tut-power-cluster-perm:
+
 =========================================================================
 Non-parametric between conditions cluster statistic on single trial power
 =========================================================================
