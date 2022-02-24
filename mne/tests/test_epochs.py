@@ -252,13 +252,22 @@ def test_get_data():
                   epochs._data.shape[-1] -
                   np.nonzero(epochs.times == 0)[0])
 
-    assert epochs.get_data(tmin=0, tmax=0).size == 0
+    assert epochs.get_data(tmin=0, tmax=0).shape[-1] == 1
+    with pytest.raises(ValueError, match="No samples remain"):
+        epochs.get_data(tmin=0, tmax=0, include_tmax=False)
 
     with pytest.raises(TypeError, match='tmin .* float, None'):
         epochs.get_data(tmin=[1], tmax=1)
 
     with pytest.raises(TypeError, match='tmax .* float, None'):
         epochs.get_data(tmin=1, tmax=np.ones(5))
+
+    # Test include_tmax
+    d1 = epochs.get_data(tmin=None, tmax=epochs.times[-1], include_tmax=True)
+    d2 = epochs.get_data(tmin=None, tmax=None, include_tmax=True)
+    d3 = epochs.get_data(tmin=None, tmax=epochs.times[-1], include_tmax=False)
+    assert d1.shape == d2.shape
+    assert d1.shape[-1] - 1 == d3.shape[-1]
 
 
 def test_hierarchical():

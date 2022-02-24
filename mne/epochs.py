@@ -1381,7 +1381,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     @verbose
     def _get_data(self, out=True, picks=None, item=None, *, units=None,
-                  tmin=None, tmax=None, include_tmax, verbose=None):
+                  tmin=None, tmax=None, include_tmax=True, verbose=None):
         """Load all data, dropping bad epochs along the way.
 
         Parameters
@@ -1401,6 +1401,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(verbose)s
         """
         start, stop = self._handle_tmin_tmax(tmin, tmax, include_tmax)
+        stop += 1  # because stop is used in slices
 
         if item is None:
             item = slice(None)
