@@ -33,6 +33,64 @@ def _reflow_param_docstring(docstring, has_first_line=True, width=75):
 
 docdict = dict()
 
+
+# %%%%
+# A
+# raw/epochs/evoked apply_function method
+# apply_function method summary
+applyfun_summary = """\
+The function ``fun`` is applied to the channels defined in ``picks``.
+The {} object's data is modified in-place. If the function returns a different
+data type (e.g. :py:obj:`numpy.complex128`) it must be specified
+using the ``dtype`` parameter, which causes the data type of **all** the data
+to change (even if the function is only applied to channels in ``picks``).{}
+
+.. note:: If ``n_jobs`` > 1, more memory is required as
+          ``len(picks) * n_times`` additional time points need to
+          be temporarily stored in memory.
+.. note:: If the data type changes (``dtype != None``), more memory is
+          required since the original and the converted data needs
+          to be stored in memory.
+"""
+applyfun_preload = (' The object has to have the data loaded e.g. with '
+                    '``preload=True`` or ``self.load_data()``.')
+docdict['applyfun_summary_raw'] = \
+    applyfun_summary.format('raw', applyfun_preload)
+docdict['applyfun_summary_epochs'] = \
+    applyfun_summary.format('epochs', applyfun_preload)
+docdict['applyfun_summary_evoked'] = \
+    applyfun_summary.format('evoked', '')
+
+# apply_function params: fun
+applyfun_fun = """
+fun : callable
+    A function to be applied to the channels. The first argument of
+    fun has to be a timeseries (:class:`numpy.ndarray`). The function must
+    operate on an array of shape ``(n_times,)`` {}.
+    The function must return an :class:`~numpy.ndarray` shaped like its input.
+"""
+docdict['applyfun_fun'] = applyfun_fun.format(
+    ' if ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise')
+docdict['applyfun_fun_evoked'] = applyfun_fun.format(
+    ' because it will apply channel-wise')
+docdict['applyfun_dtype'] = """
+dtype : numpy.dtype
+    Data type to use after applying the function. If None
+    (default) the data type is not modified.
+"""
+chwise = """
+channel_wise : bool
+    Whether to apply the function to each channel {}individually. If ``False``,
+    the function will be applied to all {}channels at once. Default ``True``.
+"""
+docdict['applyfun_chwise'] = chwise.format('', '')
+docdict['applyfun_chwise_epo'] = chwise.format('in each epoch ', 'epochs and ')
+docdict['kwarg_fun'] = """
+**kwargs : dict
+    Additional keyword arguments to pass to ``fun``.
+"""
+
+
 # Verbose
 docdict['verbose'] = """
 verbose : bool | str | int | None
@@ -243,58 +301,6 @@ group_by : str
     modes are ignored when ``order`` is not ``None``. Defaults to ``'type'``.
 """
 
-# raw/epochs/evoked apply_function method
-# apply_function method summary
-applyfun_summary = """\
-The function ``fun`` is applied to the channels defined in ``picks``.
-The {} object's data is modified in-place. If the function returns a different
-data type (e.g. :py:obj:`numpy.complex128`) it must be specified
-using the ``dtype`` parameter, which causes the data type of **all** the data
-to change (even if the function is only applied to channels in ``picks``).{}
-
-.. note:: If ``n_jobs`` > 1, more memory is required as
-          ``len(picks) * n_times`` additional time points need to
-          be temporarily stored in memory.
-.. note:: If the data type changes (``dtype != None``), more memory is
-          required since the original and the converted data needs
-          to be stored in memory.
-"""
-applyfun_preload = (' The object has to have the data loaded e.g. with '
-                    '``preload=True`` or ``self.load_data()``.')
-docdict['applyfun_summary_raw'] = \
-    applyfun_summary.format('raw', applyfun_preload)
-docdict['applyfun_summary_epochs'] = \
-    applyfun_summary.format('epochs', applyfun_preload)
-docdict['applyfun_summary_evoked'] = \
-    applyfun_summary.format('evoked', '')
-# apply_function params: fun
-applyfun_fun = """
-fun : callable
-    A function to be applied to the channels. The first argument of
-    fun has to be a timeseries (:class:`numpy.ndarray`). The function must
-    operate on an array of shape ``(n_times,)`` {}.
-    The function must return an :class:`~numpy.ndarray` shaped like its input.
-"""
-docdict['applyfun_fun'] = applyfun_fun.format(
-    ' if ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise')
-docdict['applyfun_fun_evoked'] = applyfun_fun.format(
-    ' because it will apply channel-wise')
-docdict['applyfun_dtype'] = """
-dtype : numpy.dtype
-    Data type to use after applying the function. If None
-    (default) the data type is not modified.
-"""
-chwise = """
-channel_wise : bool
-    Whether to apply the function to each channel {}individually. If ``False``,
-    the function will be applied to all {}channels at once. Default ``True``.
-"""
-docdict['applyfun_chwise'] = chwise.format('', '')
-docdict['applyfun_chwise_epo'] = chwise.format('in each epoch ', 'epochs and ')
-docdict['kwarg_fun'] = """
-**kwargs : dict
-    Additional keyword arguments to pass to ``fun``.
-"""
 
 # Epochs
 docdict['proj_epochs'] = """
