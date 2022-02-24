@@ -187,7 +187,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         picks = _picks_to_idx(self.info, picks, "all", exclude=())
 
-        start, stop = self._handle_tmin_tmax(tmin, tmax)
+        start, stop = self._handle_tmin_tmax(tmin, tmax, include_tmax)
 
         data = self.data[picks, start:stop]
 
