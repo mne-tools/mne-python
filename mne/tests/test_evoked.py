@@ -49,7 +49,9 @@ def test_get_data():
                   evoked.data.shape[1] -
                   np.nonzero(evoked.times == 0)[0])
 
-    assert evoked.get_data(tmin=0, tmax=0).size == 0
+    assert evoked.get_data(tmin=0, tmax=0, include_tmax=True).size == 1
+    with pytest.raises(ValueError, match="No samples remain"):
+        evoked.get_data(tmin=0, tmax=0, include_tmax=False)
 
     with pytest.raises(TypeError, match='tmin .* float, None'):
         evoked.get_data(tmin=[1], tmax=1)
@@ -67,6 +69,12 @@ def test_get_data():
     # Convert to µV
     d3 = evoked.get_data(picks="eeg", units="µV")
     assert_array_equal(d1 * 1e6, d3)
+
+    # Check include_tmax
+    d1 = evoked.get_data(tmin=None, tmax=evoked.times[-1], include_tmax=True)
+    assert d1.shape == evoked.data.shape
+    d2 = evoked.get_data(tmin=None, tmax=evoked.times[-1], include_tmax=False)
+    assert d2.shape[1] == evoked.data.shape[1] - 1
 
 
 def test_decim():

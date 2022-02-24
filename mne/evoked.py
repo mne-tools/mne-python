@@ -189,7 +189,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         start, stop = self._handle_tmin_tmax(tmin, tmax, include_tmax)
 
-        data = self.data[picks, start:stop]
+        data = self.data[picks, start:stop+1]
 
         if units is not None:
             ch_factors = _get_ch_factors(self, units, picks)
