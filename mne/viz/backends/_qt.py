@@ -47,8 +47,6 @@ class _QtDialog(_AbstractDialog):
 
         button_ids = list()
         for button in buttons:
-            # handle the special case of 'Ok' becoming 'OK'
-            button = "Ok" if button.upper() == "OK" else button
             # button is one of QMessageBox.StandardButtons
             button_id = getattr(QMessageBox, button)
             button_ids.append(button_id)
@@ -59,12 +57,16 @@ class _QtDialog(_AbstractDialog):
         widget.setDefaultButton(default_button)
 
         def func(button):
-            # the text of the button may be prefixed by '&'
-            button_name = button.text().replace('&', '')
-            # handle MacOS Discard button
-            button_name = "Discard" \
-                if button_name == "Don't Save" else button_name
-            callback(button_name)
+            button_id = widget.standardButton(button)
+            supported_button_names = [
+                "Ok", "Open", "Save", "Cancel", "Close", "Discard", "Apply",
+                "Reset", "RestoreDefaults", "Help", "SaveAll", "Yes",
+                "YesToAll", "No", "NoToAll", "Abort", "Retry", "Ignore"
+            ]
+            for button_name in supported_button_names:
+                if button_id == getattr(QMessageBox, button_name):
+                    callback(button_name)
+                    break
 
         widget.buttonClicked.connect(func)
         return _QtDialogWidget(widget, modal)
@@ -543,29 +545,45 @@ class _QtWindow(_AbstractWindow):
         self._window = self.figure.plotter.app_window
         self._window.setLocale(QLocale(QLocale.Language.English))
         self._window.signal_close.connect(self._window_clean)
-        self._window_close_callbacks = list()
+        self._window_before_close_callbacks = list()
+        self._window_after_close_callbacks = list()
 
         # patch closeEvent
         def closeEvent(event):
+            # functions to call before closing
             accept_close_event = True
-            for callback in self._window_close_callbacks:
+            for callback in self._window_before_close_callbacks:
                 ret = callback()
                 # check if one of the callbacks ignores the close event
                 if isinstance(ret, bool) and not ret:
                     accept_close_event = False
+
             if accept_close_event:
                 self._window.signal_close.emit()
                 event.accept()
             else:
                 event.ignore()
+
+            # functions to call after closing
+            for callback in self._window_after_close_callbacks:
+                callback()
         self._window.closeEvent = closeEvent
 
     def _window_clean(self):
         self.figure._plotter = None
         self._interactor = None
 
-    def _window_close_connect(self, func):
-        self._window_close_callbacks.append(func)
+    def _window_close_connect(self, func, *, after=True):
+        if after:
+            self._window_after_close_callbacks.append(func)
+        else:
+            self._window_before_close_callbacks.append(func)
+
+    def _window_close_disconnect(self, after=True):
+        if after:
+            self._window_after_close_callbacks.clear()
+        else:
+            self._window_before_close_callbacks.clear()
 
     def _window_get_dpi(self):
         return self._window.windowHandle().screen().logicalDotsPerInch()
@@ -768,8 +786,9 @@ class _QtDialogWidget(_QtWidget):
         self._communicator.signal_show.connect(self.show)
 
     def trigger(self, button):
+        button_id = getattr(QMessageBox, button)
         for current_button in self._widget.buttons():
-            if current_button.text() == button:
+            if self._widget.standardButton(current_button) == button_id:
                 current_button.click()
 
     def show(self, thread=False):

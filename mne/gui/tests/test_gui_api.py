@@ -319,7 +319,7 @@ def test_gui_api(renderer_notebook, nbexec):
             assert mock.call_args.args == (button,)
 
         # buttons list empty means OK button (default)
-        button = 'OK'
+        button = 'Ok'
         widget = renderer._dialog_warning(
             title='',
             text='',
@@ -334,7 +334,15 @@ def test_gui_api(renderer_notebook, nbexec):
     # --- END: dialog ---
 
     renderer.show()
+
+    renderer._window_close_connect(lambda: mock('first'), after=False)
+    renderer._window_close_connect(lambda: mock('last'))
+    old_call_count = mock.call_count
     renderer.close()
+    if renderer._kind == 'qt':
+        assert mock.call_count == old_call_count + 2
+        assert mock.call_args_list[-1].args == ('last',)
+        assert mock.call_args_list[-2].args == ('first',)
 
 
 def test_gui_api_qt(renderer_interactive_pyvistaqt):

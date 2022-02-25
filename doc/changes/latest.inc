@@ -34,6 +34,10 @@ Enhancements
 
 - Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
 
+- Show boundaries in :func:`mne.gui.locate_ieeg` (:gh:`10379` by `Eric Larson`_)
+
+- Add argument ``cval`` to :func:`mne.transforms.apply_volume_registration` to set interpolation values outside the image domain (:gh:`10379` by `Eric Larson`_)
+
 - Improve docstring of :class:`mne.Info` and add attributes that were not covered (:gh:`9922` by `Mathieu Scheltienne`_)
 
 - Add an alternate, manual procedure for aligning a CT to an MR procedure to :ref:`tut-ieeg-localize` (:gh:`9978` by `Alex Rockhill`_)
@@ -111,6 +115,8 @@ Enhancements
 - :meth:`mne.preprocessing.ICA.plot_sources()` is now also supported by the ``qt`` backend (:gh:`10330` by `Martin Schulz`_)
 
 - Added :meth:`mne.viz.Brain.add_dipole` and :meth:`mne.viz.Brain.add_forward` to plot dipoles on a brain as well as :meth:`mne.viz.Brain.remove_dipole` and :meth:`mne.viz.Brain.remove_forward` (:gh:`10373` by `Alex Rockhill`_)
+
+- Made anterior/posterior slice scrolling in :func:`mne.gui.locate_ieeg` possible for users without page up and page down buttons by allowing angle bracket buttons to be used (:gh:`10384` by `Alex Rockhill`_)
 
 Bugs
 ~~~~

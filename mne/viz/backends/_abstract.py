@@ -844,7 +844,11 @@ class _AbstractWindow(ABC):
         self._interactor_fraction = None
 
     @abstractmethod
-    def _window_close_connect(self, func):
+    def _window_close_connect(self, func, *, after=True):
+        pass
+
+    @abstractmethod
+    def _window_close_disconnect(self, after=True):
         pass
 
     @abstractmethod

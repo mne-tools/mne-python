@@ -6,14 +6,14 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+from datetime import datetime, timezone
+import faulthandler
 import gc
 import os
 import subprocess
 import sys
 import time
 import warnings
-from datetime import datetime, timezone
-import faulthandler
 
 import numpy as np
 import matplotlib
@@ -732,6 +732,7 @@ html_context = {
              size=xxl),
     ],
     # \u00AD is an optional hyphen (not rendered unless needed)
+    # If these are changed, the Makefile should be updated, too
     'carousel': [
         dict(title='Source Estimation',
              text='Distributed, sparse, mixed-norm, beam\u00ADformers, dipole fitting, and more.',  # noqa E501
