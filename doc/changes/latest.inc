@@ -219,7 +219,7 @@ Bugs
 
 - Fix a bug in :func:`mne.gui.locate_ieeg` where 2D lines on slice plots failed to update and were shown when not in maximum projection mode (:gh:`10335`, by `Alex Rockhill`_)
 
-- Fix baseline removal using `remove_dc=True` in :meth:`raw.plot() <mne.io.Raw.plot>` for data containing `np.nan` (:gh:`10392` by `Clemens Brunner`_)
+- Fix baseline removal using ``remove_dc=True`` in :meth:`raw.plot() <mne.io.Raw.plot>` for data containing ``np.nan`` (:gh:`10392` by `Clemens Brunner`_)
 
 API changes
 ~~~~~~~~~~~
