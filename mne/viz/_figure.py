@@ -345,7 +345,7 @@ class BrowserBase(ABC):
         if self.mne.remove_dc:
             if thread:
                 thread.processText.emit('Removing DC...')
-            data -= data.mean(axis=1, keepdims=True)
+            data -= np.nanmean(data, axis=1, keepdims=True)
         # apply filter
         if self.mne.filter_coefs is not None:
             if thread:
