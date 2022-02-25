@@ -1214,13 +1214,6 @@ class CoregistrationUI(HasTraits):
     def _save_subject_callback(self, overwrite=False):
         self._display_message(f"Saving {self._subject_to}...")
 
-        # check that fiducials are saved
-        if not self._skip_fiducials and self._scale_mode != "None" and \
-                not _find_fiducials_files(self._subject, self._subjects_dir):
-            default_fid_fname = fid_fname.format(
-                subjects_dir=self._subjects_dir, subject=self._subject)
-            self._save_mri_fiducials(default_fid_fname)
-
         # prepare bem
         bem_names = []
         if self._prepare_bem and self._scale_mode != "None":
