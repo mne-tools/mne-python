@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-.. _tut-cluster-spatiotemporal:
+.. _tut-cluster-spatiotemporal-source:
 
 =========================================================================
 2 samples permutation test on source data with spatio-temporal clustering

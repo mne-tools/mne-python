@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-.. _tut-cluster-spatiotemporal:
+.. _tut-cluster-spatiotemporal-sensor:
 
 =====================================================
 Spatiotemporal permutation F-test on full sensor data
