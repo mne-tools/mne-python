@@ -47,8 +47,6 @@ class _QtDialog(_AbstractDialog):
 
         button_ids = list()
         for button in buttons:
-            # handle the special case of 'Ok' becoming 'OK'
-            button = "Ok" if button.upper() == "OK" else button
             # button is one of QMessageBox.StandardButtons
             button_id = getattr(QMessageBox, button)
             button_ids.append(button_id)
@@ -59,12 +57,16 @@ class _QtDialog(_AbstractDialog):
         widget.setDefaultButton(default_button)
 
         def func(button):
-            # the text of the button may be prefixed by '&'
-            button_name = button.text().replace('&', '')
-            # handle MacOS Discard button
-            button_name = "Discard" \
-                if button_name == "Don't Save" else button_name
-            callback(button_name)
+            button_id = widget.standardButton(button)
+            supported_button_names = [
+                "Ok", "Open", "Save", "Cancel", "Close", "Discard", "Apply",
+                "Reset", "RestoreDefaults", "Help", "SaveAll", "Yes",
+                "YesToAll", "No", "NoToAll", "Abort", "Retry", "Ignore"
+            ]
+            for button_name in supported_button_names:
+                if button_id == getattr(QMessageBox, button_name):
+                    callback(button_name)
+                    break
 
         widget.buttonClicked.connect(func)
         return _QtDialogWidget(widget, modal)
@@ -775,8 +777,9 @@ class _QtDialogWidget(_QtWidget):
         self._modal = modal
 
     def trigger(self, button):
+        button_id = getattr(QMessageBox, button)
         for current_button in self._widget.buttons():
-            if current_button.text() == button:
+            if self._widget.standardButton(current_button) == button_id:
                 current_button.click()
 
     def show(self):

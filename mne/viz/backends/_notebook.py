@@ -21,7 +21,7 @@ from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title 
 
 class _IpyDialog(_AbstractDialog):
     def _dialog_warning(self, title, text, info_text, callback, *,
-                        modal=True, window=None):
+                        buttons=[], modal=True, window=None):
         pass
 
 
