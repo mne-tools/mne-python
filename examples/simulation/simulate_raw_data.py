@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-sim-raw:
+
 ===========================
 Generate simulated raw data
 ===========================

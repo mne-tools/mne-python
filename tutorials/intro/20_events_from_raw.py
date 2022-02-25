@@ -2,6 +2,7 @@
 """
 .. _tut-events-vs-annotations:
 
+============================
 Parsing events from raw data
 ============================
 

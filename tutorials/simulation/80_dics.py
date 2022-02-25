@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-dics
+
+======================
 DICS for power mapping
 ======================
 

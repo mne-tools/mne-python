@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-source-space-tfr:
+
 ===================================================
 Compute induced power in the source space with dSPM
 ===================================================

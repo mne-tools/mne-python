@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-reject-data-spans:
 
+===================================
 Rejecting bad data spans and breaks
 ===================================
 

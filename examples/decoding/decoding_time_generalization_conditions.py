@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-linear-sensor-decoding:
+
 =========================================================================
 Decoding sensor space data with generalization across time and conditions
 =========================================================================

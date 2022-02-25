@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-virtual-evoked:
+
 =======================
 Remap MEG channel types
 =======================

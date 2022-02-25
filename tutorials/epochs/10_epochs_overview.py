@@ -2,6 +2,7 @@
 """
 .. _tut-epochs-class:
 
+=============================================
 The Epochs data structure: discontinuous data
 =============================================
 

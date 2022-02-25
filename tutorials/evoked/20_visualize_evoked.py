@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-visualize-evoked:
 
+=======================
 Visualizing Evoked data
 =======================
 

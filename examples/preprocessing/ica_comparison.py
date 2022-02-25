@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-ica-comp:
+
 ===========================================
 Compare the different ICA algorithms in MNE
 ===========================================

@@ -1,4 +1,8 @@
+# -*- coding: utf-8 -*-
 """
+.. _tut-whitened
+
+======================
 Plotting whitened data
 ======================
 

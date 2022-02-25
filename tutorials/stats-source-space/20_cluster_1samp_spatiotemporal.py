@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _tut-cluster-one-sample-spatiotemporal:
+
 =================================================================
 Permutation t-test on source data with spatio-temporal clustering
 =================================================================

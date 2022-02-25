@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-source-leakage:
+
 ============================================================
 Visualize source leakage among labels using a circular graph
 ============================================================

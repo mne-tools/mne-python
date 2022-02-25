@@ -2,6 +2,7 @@
 """
 .. _tut-eeg-mri-coords:
 
+===========================================================
 EEG source localization given electrode locations on an MRI
 ===========================================================
 
