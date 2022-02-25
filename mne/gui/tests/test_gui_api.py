@@ -319,7 +319,7 @@ def test_gui_api(renderer_notebook, nbexec):
             assert mock.call_args.args == (button,)
 
         # buttons list empty means OK button (default)
-        button = 'OK'
+        button = 'Ok'
         widget = renderer._dialog_warning(
             title='',
             text='',
