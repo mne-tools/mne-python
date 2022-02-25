@@ -670,7 +670,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             # MESA (could use GPUInfo / _get_gpu_info here, but it takes
             # > 700 ms to make a new window + report capabilities!)
             # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
-            gpu_info = self.renderer.ReportCapabilities()
+            gpu_info = self.plotter.ren_win.ReportCapabilities()
             gpu_info = re.findall("OpenGL renderer string:(.+)\n", gpu_info)
             bad_system |= 'mesa' in ' '.join(gpu_info).lower().split()
             if not bad_system:
