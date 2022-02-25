@@ -1210,6 +1210,9 @@ class CoregistrationUI(HasTraits):
 
     def _save_subject_callback(self, overwrite=False):
         self._display_message(f"Saving {self._subject_to}...")
+        default_cursor = self._renderer._window_get_cursor()
+        self._renderer._window_set_cursor(
+            self._renderer._window_new_cursor("WaitCursor"))
 
         # prepare bem
         bem_names = []
@@ -1259,6 +1262,7 @@ class CoregistrationUI(HasTraits):
                 self._display_message(f"Computing {bem_name} solution..."
                                       " Done!")
         self._display_message(f"Saving {self._subject_to}... Done!")
+        self._renderer._window_set_cursor(default_cursor)
         self._mri_scale_modified = False
 
     def _save_mri_fiducials(self, fname):
