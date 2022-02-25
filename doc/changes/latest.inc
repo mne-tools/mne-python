@@ -118,6 +118,8 @@ Enhancements
 
 - Made anterior/posterior slice scrolling in :func:`mne.gui.locate_ieeg` possible for users without page up and page down buttons by allowing angle bracket buttons to be used (:gh:`10384` by `Alex Rockhill`_)
 
+- Add use_orig_time option to :meth:`mne.Annotations.crop`. (:gh:`10396` by `Michiru Kaneda`_)
+
 Bugs
 ~~~~
 
