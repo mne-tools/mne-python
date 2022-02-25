@@ -219,6 +219,8 @@ Bugs
 
 - Fix a bug in :func:`mne.gui.locate_ieeg` where 2D lines on slice plots failed to update and were shown when not in maximum projection mode (:gh:`10335`, by `Alex Rockhill`_)
 
+- Fix baseline removal using ``remove_dc=True`` in :meth:`raw.plot() <mne.io.Raw.plot>` for data containing ``np.nan`` (:gh:`10392` by `Clemens Brunner`_)
+
 API changes
 ~~~~~~~~~~~
 - The default browser for :meth:`raw.plot() <mne.io.Raw.plot>`, :meth:`epochs.plot() <mne.Epochs.plot>`, and :meth:`ica.plot_sources() <mne.preprocessing.ICA.plot_sources>` has been changed to the ``'qt'`` backend on systems where `mne_qt_browser <https://github.com/mne-tools/mne-qt-browser>`__ is installed. To change back to matplotlib within a session, you can use :func:`mne.viz.set_browser_backend('matplotlib') <mne.viz.set_browser_backend>`. To set it permanently on your system, you can use :func:`mne.set_config('MNE_BROWSER_BACKEND', 'matplotlib') <mne.set_config>` (:gh:`9960` by `Martin Schulz`_ and `Eric Larson`_)
