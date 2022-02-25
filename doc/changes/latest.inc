@@ -217,6 +217,8 @@ Bugs
 
 - Fix plotting bug in :ref:`ex-electrode-pos-2d` and make view look more natural in :ref:`ex-movement-detect` (:gh:`10313`, by `Alex Rockhill`_)
 
+- Fix bug with blank 3D rendering with MESA software rendering (:gh:`10400` by `Eric Larson`_)
+
 - Fix a bug in :func:`mne.gui.locate_ieeg` where 2D lines on slice plots failed to update and were shown when not in maximum projection mode (:gh:`10335`, by `Alex Rockhill`_)
 
 - Fix baseline removal using ``remove_dc=True`` in :meth:`raw.plot() <mne.io.Raw.plot>` for data containing ``np.nan`` (:gh:`10392` by `Clemens Brunner`_)

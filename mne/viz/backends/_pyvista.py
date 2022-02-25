@@ -13,6 +13,7 @@ Actual implementation of _Renderer and _Projection classes.
 
 from contextlib import contextmanager
 import os
+import re
 import sys
 import warnings
 
@@ -661,10 +662,18 @@ class _PyVistaRenderer(_AbstractRenderer):
         # before the window has actually been made "active"...?
         # For Mayavi we have an "on activated" event or so, we should look into
         # using this for Azure at some point, too.
-        if os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true':
-            return
         if self.figure._is_active():
-            if sys.platform != 'darwin':
+            # macOS, Azure
+            bad_system = (
+                sys.platform == 'darwin' or
+                os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true')
+            # MESA (could use GPUInfo / _get_gpu_info here, but it takes
+            # > 700 ms to make a new window + report capabilities!)
+            # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
+            gpu_info = self.renderer.ReportCapabilities()
+            gpu_info = re.findall("OpenGL renderer string:(.+)\n", gpu_info)
+            bad_system |= 'mesa' in ' '.join(gpu_info).lower().split()
+            if not bad_system:
                 for renderer in self._all_renderers:
                     renderer.enable_anti_aliasing()
             for plotter in self._all_plotters:
