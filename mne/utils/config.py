@@ -582,12 +582,15 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                     gi = GPUInfo()
                     extra += f' {{OpenGL {gi.version} via {gi.renderer}}}'
             if mod_name == 'vtk':
-                version = mod.vtkVersion()
+                vtk_version = mod.vtkVersion()
                 # 9.0 dev has VersionFull but 9.0 doesn't
                 for attr in ('GetVTKVersionFull', 'GetVTKVersion'):
-                    if hasattr(version, attr):
-                        version = getattr(version, attr)()
-                        break
+                    if hasattr(vtk_version, attr):
+                        version = getattr(vtk_version, attr)()
+                        if version != '':
+                            break
+                else:
+                    version = 'unknown'
             elif mod_name == 'PyQt5':
                 version = _check_pyqt5_version()
             else:
