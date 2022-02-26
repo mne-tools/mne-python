@@ -1228,9 +1228,12 @@ def spatio_temporal_cluster_1samp_test(
 
     Parameters
     ----------
-    X : array, shape (n_observations, n_times, n_vertices)
+    X : array, shape (n_observations, p[, q], n_vertices)
         The data to be clustered. The first dimension should correspond to the
         difference between paired samples (observations) in two conditions.
+        The second, and optionally third, dimensions correspond to the
+        time or time-frequency data. And, the last dimension should be spatial;
+        it is the dimension the adjacency parameter will be applied to.
     %(clust_thresh_t)s
     %(clust_nperm_all)s
     %(clust_tail)s
@@ -1263,6 +1266,10 @@ def spatio_temporal_cluster_1samp_test(
     ----------
     .. footbibliography::
     """
+    out_reshape = (-1,)
+    if X.ndim > 3:
+        out_reshape = X.shape[1:-1]
+        X = X.reshape(X.shape[0], np.prod(X.shape[1:-1]), X.shape[-1])
     n_samples, n_times, n_vertices = X.shape
     # convert spatial_exclude before passing on if necessary
     if spatial_exclude is not None:
@@ -1270,12 +1277,14 @@ def spatio_temporal_cluster_1samp_test(
                                        spatial_exclude, True)
     else:
         exclude = None
-    return permutation_cluster_1samp_test(
+    t_obs, clusters, cluster_pv, H0 = permutation_cluster_1samp_test(
         X, threshold=threshold, stat_fun=stat_fun, tail=tail,
         n_permutations=n_permutations, adjacency=adjacency,
         n_jobs=n_jobs, seed=seed, max_step=max_step, exclude=exclude,
         step_down_p=step_down_p, t_power=t_power, out_type=out_type,
         check_disjoint=check_disjoint, buffer_size=buffer_size)
+    t_obs = np.squeeze(t_obs.reshape((*out_reshape, X.shape[-1])))
+    return t_obs, clusters, cluster_pv, H0
 
 
 @verbose
@@ -1294,12 +1303,14 @@ def spatio_temporal_cluster_test(
 
     Parameters
     ----------
-    X : list of array, shape (n_observations, n_times, n_vertices)
+    X : list of array, shape (n_observations, p[, q], n_vertices)
         The data to be clustered. Each array in ``X`` should contain the
         observations for one group. The first dimension of each array is the
-        number of observations from that group (and may vary between groups);
-        the remaining dimensions (times and vertices) should match across all
-        groups.
+        number of observations from that group (and may vary between groups).
+        The second, and optionally third, dimensions correspond to the
+        time or time-frequency data. And, the last dimension should be spatial;
+        it is the dimension the adjacency parameter will be applied to. All
+        dimensions except the first should match across all groups.
     %(clust_thresh_f)s
     %(clust_nperm_int)s
     %(clust_tail)s
@@ -1332,6 +1343,11 @@ def spatio_temporal_cluster_test(
     ----------
     .. footbibliography::
     """
+    out_reshape = (-1,)
+    if X[0].ndim > 3:
+        out_reshape = X[0].shape[2:-1]
+        X = [x.reshape(x.shape[0], np.prod(x.shape[1:-1]), x.shape[-1])
+             for x in X]
     n_samples, n_times, n_vertices = X[0].shape
     # convert spatial_exclude before passing on if necessary
     if spatial_exclude is not None:
@@ -1339,12 +1355,14 @@ def spatio_temporal_cluster_test(
                                        spatial_exclude, True)
     else:
         exclude = None
-    return permutation_cluster_test(
+    F_obs, clusters, cluster_pv, H0 = permutation_cluster_test(
         X, threshold=threshold, stat_fun=stat_fun, tail=tail,
         n_permutations=n_permutations, adjacency=adjacency,
         n_jobs=n_jobs, seed=seed, max_step=max_step, exclude=exclude,
         step_down_p=step_down_p, t_power=t_power, out_type=out_type,
         check_disjoint=check_disjoint, buffer_size=buffer_size)
+    F_obs = np.squeeze(F_obs.reshape((*out_reshape, X[0].shape[-1])))
+    return F_obs, clusters, cluster_pv, H0
 
 
 def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):

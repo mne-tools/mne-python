@@ -156,14 +156,12 @@ fig, axes = plt.subplots(3, 1, figsize=(6, 6))
 # let's visualize our effects by computing f-images
 for effect, sig, effect_label, ax in zip(fvals, pvals, effect_labels, axes):
     # show naive F-values in gray
-    ax.imshow(effect.reshape(8, 211), cmap=plt.cm.gray,
-              extent=[times[0], times[-1], freqs[0], freqs[-1]],
-              aspect='auto', origin='lower')
+    ax.imshow(effect, cmap='gray', aspect='auto', origin='lower',
+              extent=[times[0], times[-1], freqs[0], freqs[-1]])
     # create mask for significant time-frequency locations
     effect[sig >= 0.05] = np.nan
-    c = ax.imshow(effect.reshape(8, 211), cmap='RdBu_r',
-                  extent=[times[0], times[-1], freqs[0], freqs[-1]],
-                  aspect='auto', origin='lower')
+    c = ax.imshow(effect, cmap='hot', aspect='auto', origin='lower',
+                  extent=[times[0], times[-1], freqs[0], freqs[-1]])
     fig.colorbar(c, ax=ax)
     ax.set_xlabel('Time (ms)')
     ax.set_ylabel('Frequency (Hz)')
@@ -184,7 +182,7 @@ effects = 'A:B'
 # A stat_fun must deal with a variable number of input arguments.
 # Inside the clustering function each condition will be passed as flattened
 # array, necessitated by the clustering procedure. The ANOVA however expects an
-# input array of dimensions: subjects X conditions X observations (optional).
+# input array of dimensions: subjects x conditions x observations (optional).
 # The following function catches the list input and swaps the first and
 # the second dimension and finally calls the ANOVA function.
 
@@ -211,14 +209,17 @@ good_clusters = np.where(cluster_p_values < .05)[0]
 F_obs_plot = F_obs.copy()
 F_obs_plot[~clusters[np.squeeze(good_clusters)]] = np.nan
 
-fig, ax = plt.subplots(figsize=(4, 4))
-for f_image, cmap in zip([F_obs, F_obs_plot], [plt.cm.gray, 'RdBu_r']):
-    ax.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
-              extent=[times[0], times[-1], freqs[0], freqs[-1]])
+fig, ax = plt.subplots(figsize=(6, 4))
+for f_image, cmap in zip([F_obs, F_obs_plot], ['gray', 'hot']):
+    c = ax.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
+                  extent=[times[0], times[-1], freqs[0], freqs[-1]])
+
+fig.colorbar(c, ax=ax)
 ax.set_xlabel('Time (ms)')
 ax.set_ylabel('Frequency (Hz)')
 ax.set_title(f'Time-locked response for "modality by location" ({ch_name})\n'
              'cluster-level corrected (p <= 0.05)')
+fig.tight_layout()
 
 # %%
 # Now using FDR:
@@ -227,18 +228,23 @@ mask, _ = fdr_correction(pvals[2])
 F_obs_plot2 = F_obs.copy()
 F_obs_plot2[~mask.reshape(F_obs_plot.shape)] = np.nan
 
-fig, ax = plt.subplots(figsize=(4, 4))
-for f_image, cmap in zip([F_obs, F_obs_plot2], [plt.cm.gray, 'RdBu_r']):
-    if np.isnan(f_image).all():
-        continue  # nothing to show
-    ax.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
-              extent=[times[0], times[-1], freqs[0], freqs[-1]])
+fig, ax = plt.subplots(figsize=(6, 4))
+for f_image, cmap in zip([F_obs, F_obs_plot2], ['gray', 'hot']):
+    c = ax.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
+                  extent=[times[0], times[-1], freqs[0], freqs[-1]])
 
+fig.colorbar(c, ax=ax)
 ax.set_xlabel('Time (ms)')
 ax.set_ylabel('Frequency (Hz)')
 ax.set_title(f'Time-locked response for "modality by location" ({ch_name})\n'
              'FDR corrected (p <= 0.05)')
+fig.tight_layout()
 
 # %%
-# Both cluster level and FDR correction help get rid of
-# potential spots we saw in the naive f-images.
+# Both cluster-level and FDR correction help get rid of potential
+# false-positives that we saw in the naive f-images. The cluster permutation
+# correction is biased toward time-frequencies with contiguous areas of high
+# or low power, which is likely appropriate given the highly correlated nature
+# of this data. This is the most likely explanation for why one cluster was
+# preserved by the cluster permutation correction, but no time-frequencies
+# were signficant using the FDR correction.
