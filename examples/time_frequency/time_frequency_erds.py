@@ -176,8 +176,7 @@ g = sns.FacetGrid(df_mean, col='condition', col_order=['hands', 'feet'],
 g = (g.map(sns.violinplot, 'channel', 'value', 'band', n_boot=10,
            palette='deep', order=['C3', 'Cz', 'C4'],
            hue_order=freq_bands_of_interest,
-           linewidth=0.5)
-      .add_legend(ncol=4, loc='lower center'))
+           linewidth=0.5).add_legend(ncol=4, loc='lower center'))
 
 g.map(plt.axhline, **axline_kw)
 g.set_axis_labels("", "ERDS (%)")

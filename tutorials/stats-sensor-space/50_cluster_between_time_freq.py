@@ -100,7 +100,7 @@ epochs_power_2 = tfr_epochs_2.data[:, 0, :, :]  # only 1 channel as 3D matrix
 # Compute statistic
 # -----------------
 threshold = 6.0
-T_obs, clusters, cluster_p_values, H0 = \
+F_obs, clusters, cluster_p_values, H0 = \
     permutation_cluster_test([epochs_power_1, epochs_power_2], out_type='mask',
                              n_permutations=100, threshold=threshold, tail=0)
 
@@ -113,27 +113,27 @@ times = 1e3 * epochs_condition_1.times  # change unit to ms
 fig, (ax, ax2) = plt.subplots(2, 1, figsize=(6, 4))
 fig.subplots_adjust(0.12, 0.08, 0.96, 0.94, 0.2, 0.43)
 
-# Compute the difference in evoked to determine which was greater
-# since we used a two-tailed t-test
+# Compute the difference in evoked to determine which was greater since
+# we used a 1-way ANOVA which tested for a difference in population means
 evoked_power_1 = epochs_power_1.mean(axis=0)
 evoked_power_2 = epochs_power_2.mean(axis=0)
 evoked_power_contrast = evoked_power_1 - evoked_power_2
 signs = np.sign(evoked_power_contrast)
 
 # Create new stats image with only significant clusters
-T_obs_plot = np.nan * np.ones_like(T_obs)
+F_obs_plot = np.nan * np.ones_like(F_obs)
 for c, p_val in zip(clusters, cluster_p_values):
     if p_val <= 0.05:
-        T_obs_plot[c] = T_obs[c] * signs[c]
+        F_obs_plot[c] = F_obs[c] * signs[c]
 
-ax.imshow(T_obs,
+ax.imshow(F_obs,
           extent=[times[0], times[-1], freqs[0], freqs[-1]],
           aspect='auto', origin='lower', cmap='gray')
-max_T = np.nanmax(abs(T_obs_plot))
-ax.imshow(T_obs_plot,
+max_F = np.nanmax(abs(F_obs_plot))
+ax.imshow(F_obs_plot,
           extent=[times[0], times[-1], freqs[0], freqs[-1]],
           aspect='auto', origin='lower', cmap='RdBu_r',
-          vmin=-max_T, vmax=max_T)
+          vmin=-max_F, vmax=max_F)
 
 ax.set_xlabel('Time (ms)')
 ax.set_ylabel('Frequency (Hz)')

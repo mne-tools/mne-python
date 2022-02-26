@@ -109,7 +109,7 @@ cluster_stats = spatio_temporal_cluster_test(X, n_permutations=1000,
                                              n_jobs=1, buffer_size=None,
                                              adjacency=adjacency)
 
-T_obs, clusters, p_values, _ = cluster_stats
+F_obs, clusters, p_values, _ = cluster_stats
 good_cluster_inds = np.where(p_values < p_accept)[0]
 
 # %%
@@ -135,7 +135,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     time_inds = np.unique(time_inds)
 
     # get topography for F stat
-    f_map = T_obs[time_inds, ...].mean(axis=0)
+    f_map = F_obs[time_inds, ...].mean(axis=0)
 
     # get signals at the sensors contributing to the cluster
     sig_times = epochs.times[time_inds]

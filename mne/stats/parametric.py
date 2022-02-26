@@ -145,7 +145,7 @@ def f_oneway(*args):
     1. The samples are independent
     2. Each sample is from a normally distributed population
     3. The population standard deviations of the groups are all equal.  This
-       property is known as homocedasticity.
+       property is known as homoscedasticity.
 
     If these assumptions are not true for a given set of data, it may still be
     possible to use the Kruskal-Wallis H-test (:func:`scipy.stats.kruskal`)
@@ -378,16 +378,16 @@ def f_mway_rm(data, factor_levels, effects='all',
     """
     from scipy.stats import f
 
+    out_reshape = (-1,)
     if data.ndim == 2:  # general purpose support, e.g. behavioural data
         data = data[:, :, np.newaxis]
-    elif data.ndim > 3:  # let's allow for some magic here.
+    elif data.ndim > 3:  # let's allow for some magic here
+        out_reshape = data.shape[2:]
         data = data.reshape(
             data.shape[0], data.shape[1], np.prod(data.shape[2:]))
-
     effect_picks, _ = _map_effects(len(factor_levels), effects)
     n_obs = data.shape[2]
     n_replications = data.shape[0]
-
     # put last axis in front to 'iterate' over mass univariate instances.
     data = np.rollaxis(data, 2)
     fvalues, pvalues = [], []
@@ -406,14 +406,12 @@ def f_mway_rm(data, factor_levels, effects='all',
             v = (np.array([np.trace(vv) for vv in v]) ** 2 /
                  (df1 * np.sum(np.sum(v * v, axis=2), axis=1)))
             eps = v
-
         df1, df2 = np.zeros(n_obs) + df1, np.zeros(n_obs) + df2
         if correction:
             # numerical imprecision can cause eps=0.99999999999999989
             # even with a single category, so never let our degrees of
             # freedom drop below 1.
             df1, df2 = [np.maximum(d[None, :] * eps, 1.) for d in (df1, df2)]
-
         if return_pvals:
             pvals = f(df1, df2).sf(fvals)
         else:
@@ -421,7 +419,8 @@ def f_mway_rm(data, factor_levels, effects='all',
         pvalues.append(pvals)
 
     # handle single effect returns
-    return [np.squeeze(np.asarray(vv)) for vv in (fvalues, pvalues)]
+    return [np.squeeze(np.asarray([v.reshape(out_reshape) for v in vv]))
+            for vv in (fvalues, pvalues)]
 
 
 def _parametric_ci(arr, ci=.95):

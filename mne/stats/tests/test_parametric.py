@@ -90,6 +90,12 @@ def test_f_twoway_rm():
         assert (fvals_ >= 0).all()
         assert fvals_.size == n_effects
 
+    # check time-frequency input
+    n_subj, n_freqs, n_times, n_levels = (5, 10, 101, 4)
+    data = rng.random_sample([n_subj, n_levels, n_freqs, n_times])
+    fvals, pvals = f_mway_rm(data, _effects[n_levels])
+    assert fvals.shape[1:] == pvals.shape[1:] == (n_freqs, n_times)
+
     data = rng.random_sample([n_subj, n_levels, 1])
     pytest.raises(ValueError, f_mway_rm, data, _effects[n_levels],
                   effects='C', correction=correction)
