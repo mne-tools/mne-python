@@ -1253,7 +1253,7 @@ def spatio_temporal_cluster_1samp_test(
 
     Returns
     -------
-    t_obs : array, shape (n_times, n_vertices)
+    t_obs : array, shape (p[, q], n_vertices)
         T-statistic observed for all variables.
     clusters : list
         List type defined by out_type above.
@@ -1333,7 +1333,7 @@ def spatio_temporal_cluster_test(
 
     Returns
     -------
-    F_obs : array, shape (n_times, n_vertices)
+    F_obs : array, shape (p[, q], n_vertices)
         Statistic (F by default) observed for all variables.
     clusters : list
         List type defined by out_type above.
