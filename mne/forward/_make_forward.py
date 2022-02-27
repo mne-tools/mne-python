@@ -22,7 +22,7 @@ from ..io.constants import FIFF, FWD
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
                           Transform, invert_transform)
-from ..utils import logger, verbose, warn, _pl
+from ..utils import logger, verbose, warn, _pl, _validate_type
 from ..parallel import check_n_jobs
 from ..source_space import (_ensure_src, _filter_source_spaces,
                             _make_discrete_source_space, _complete_vol_src)
@@ -233,12 +233,11 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False,
     if allow_none and bem is None:
         return None
     logger.info('')
-    if isinstance(bem, str):
+    _validate_type(bem, ('path-like', ConductorModel), bem)
+    if not isinstance(bem, ConductorModel):
         logger.info('Setting up the BEM model using %s...\n' % bem_extra)
         bem = read_bem_solution(bem)
     else:
-        if not isinstance(bem, ConductorModel):
-            raise TypeError('bem must be a string or ConductorModel')
         bem = bem.copy()
     if bem['is_sphere']:
         logger.info('Using the sphere model.\n')
@@ -657,10 +656,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
 
     Parameters
     ----------
-    dipole : instance of Dipole
-        Dipole object containing position, orientation and amplitude of
-        one or more dipoles. Multiple simultaneous dipoles may be defined by
-        assigning them identical times.
+    %(dipole)s
     bem : str | dict
         The BEM filename (str) or a loaded sphere model (dict).
     info : instance of Info

@@ -69,8 +69,9 @@ raw.plot(duration=60, proj=False, n_channels=len(raw.ch_names),
 
 for cutoff in (0.1, 0.2):
     raw_highpass = raw.copy().filter(l_freq=cutoff, h_freq=None)
-    fig = raw_highpass.plot(duration=60, proj=False,
-                            n_channels=len(raw.ch_names), remove_dc=False)
+    with mne.viz.use_browser_backend('matplotlib'):
+        fig = raw_highpass.plot(duration=60, proj=False,
+                                n_channels=len(raw.ch_names), remove_dc=False)
     fig.subplots_adjust(top=0.9)
     fig.suptitle('High-pass filtered at {} Hz'.format(cutoff), size='xx-large',
                  weight='bold')

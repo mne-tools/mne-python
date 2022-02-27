@@ -29,7 +29,7 @@ print(__doc__)
 # %%
 # Load EEGLAB example data (a small EEG dataset)
 data_path = mne.datasets.testing.data_path()
-fname = data_path + "/EEGLAB/test_raw.set"
+fname = data_path / 'EEGLAB' / 'test_raw.set'
 
 event_id = {"rt": 1, "square": 2}  # must be specified for str events
 raw = mne.io.read_raw_eeglab(fname)

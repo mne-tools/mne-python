@@ -228,7 +228,7 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
 
     filters = make_lcmv(evoked.info, fwd, data_cov, reg=reg,
                         noise_cov=noise_cov)
-    stc = apply_lcmv(evoked, filters, max_ori_out='signed')
+    stc = apply_lcmv(evoked, filters)
     stc.crop(0.02, None)
 
     stc_pow = np.sum(np.abs(stc.data), axis=1)
@@ -244,7 +244,7 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
         filters = make_lcmv(evoked.info, forward_surf_ori, data_cov,
                             reg=reg, noise_cov=noise_cov,
                             pick_ori='normal', weight_norm=None)
-        stc_normal = apply_lcmv(evoked, filters, max_ori_out='signed')
+        stc_normal = apply_lcmv(evoked, filters)
         stc_normal.crop(0.02, None)
 
         stc_pow = np.sum(np.abs(stc_normal.data), axis=1)
@@ -265,7 +265,7 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     # Test picking source orientation maximizing output source power
     filters = make_lcmv(evoked.info, fwd, data_cov, reg=reg,
                         noise_cov=noise_cov, pick_ori='max-power')
-    stc_max_power = apply_lcmv(evoked, filters, max_ori_out='signed')
+    stc_max_power = apply_lcmv(evoked, filters)
     stc_max_power.crop(0.02, None)
     stc_pow = np.sum(np.abs(stc_max_power.data), axis=1)
     idx = np.argmax(stc_pow)
@@ -347,8 +347,9 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     evoked_ch.pick_channels(evoked_ch.ch_names[1:])
     filters = make_lcmv(evoked.info, forward_vol, data_cov, reg=0.01,
                         noise_cov=noise_cov)
-    pytest.raises(ValueError, apply_lcmv, evoked_ch, filters,
-                  max_ori_out='signed')
+    with pytest.deprecated_call(match='max_ori_out'):
+        with pytest.raises(ValueError, match='was computed with'):
+            apply_lcmv(evoked_ch, filters, max_ori_out='deprecated')
 
     # Test if discrepancies in channel selection of data and fwd model are
     # handled correctly in apply_lcmv
@@ -359,18 +360,18 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     # this channel from the data
     # also test here that no warnings are thrown - implemented to check whether
     # src should not be None warning occurs
-    stc = apply_lcmv(evoked, filters, max_ori_out='signed')
+    stc = apply_lcmv(evoked, filters)
 
     # the result should be equal to applying this filter to a dataset without
     # this channel:
-    stc_ch = apply_lcmv(evoked_ch, filters, max_ori_out='signed')
+    stc_ch = apply_lcmv(evoked_ch, filters)
     assert_array_almost_equal(stc.data, stc_ch.data)
 
     # Test if non-matching SSP projection is detected in application of filter
     if proj:
         raw_proj = raw.copy().del_proj()
         with pytest.raises(ValueError, match='do not match the projections'):
-            apply_lcmv_raw(raw_proj, filters, max_ori_out='signed')
+            apply_lcmv_raw(raw_proj, filters)
 
     # Test apply_lcmv_raw
     use_raw = raw.copy().crop(0, 1)
@@ -385,15 +386,14 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     del filters['src_type']  # emulate 0.16 behaviour to cause warning
     with pytest.warns(RuntimeWarning, match='spatial filter does not contain '
                       'src_type'):
-        apply_lcmv(evoked, filters, max_ori_out='signed')
+        apply_lcmv(evoked, filters)
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
     filters = make_lcmv(epochs.info, forward_fixed, data_cov, reg=0.01,
                         noise_cov=noise_cov)
-    stcs = apply_lcmv_epochs(epochs, filters, max_ori_out='signed')
-    stcs_ = apply_lcmv_epochs(epochs, filters, return_generator=True,
-                              max_ori_out='signed')
+    stcs = apply_lcmv_epochs(epochs, filters)
+    stcs_ = apply_lcmv_epochs(epochs, filters, return_generator=True)
     assert_array_equal(stcs[0].data, next(stcs_).data)
 
     epochs.drop_bad()
@@ -408,14 +408,14 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     # compare it to the solution using evoked with fixed orientation
     filters = make_lcmv(evoked.info, forward_fixed, data_cov, reg=0.01,
                         noise_cov=noise_cov)
-    stc_fixed = apply_lcmv(evoked, filters, max_ori_out='signed')
+    stc_fixed = apply_lcmv(evoked, filters)
     assert_array_almost_equal(stc_avg, stc_fixed.data)
 
     # use a label so we have few source vertices and delayed computation is
     # not used
     filters = make_lcmv(epochs.info, forward_fixed, data_cov, reg=0.01,
                         noise_cov=noise_cov, label=label)
-    stcs_label = apply_lcmv_epochs(epochs, filters, max_ori_out='signed')
+    stcs_label = apply_lcmv_epochs(epochs, filters)
 
     assert_array_almost_equal(stcs_label[0].data, stcs[0].in_label(label).data)
 
@@ -470,7 +470,7 @@ def test_make_lcmv_sphere(pick_ori, weight_norm):
     filters = make_lcmv(evoked.info, fwd_sphere, data_cov, reg=0.1,
                         noise_cov=noise_cov, weight_norm=weight_norm,
                         pick_ori=pick_ori, reduce_rank=True)
-    stc_sphere = apply_lcmv(evoked, filters, max_ori_out='signed')
+    stc_sphere = apply_lcmv(evoked, filters)
     if isinstance(stc_sphere, VolVectorSourceEstimate):
         stc_sphere = stc_sphere.magnitude()
     else:

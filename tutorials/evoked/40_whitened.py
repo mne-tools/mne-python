@@ -25,7 +25,7 @@ from mne.datasets import sample
 #           you can press they "w" key to turn whitening on and off.
 
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
 events = mne.find_events(raw, stim_channel='STI 014')

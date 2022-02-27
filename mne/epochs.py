@@ -1162,7 +1162,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
              title=None, events=None, event_color=None,
              order=None, show=True, block=False, decim='auto', noise_cov=None,
              butterfly=False, show_scrollbars=True, show_scalebars=True,
-             epoch_colors=None, event_id=None, group_by='type'):
+             epoch_colors=None, event_id=None, group_by='type',
+             precompute=None, use_opengl=None):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, events=events, event_color=event_color,
@@ -1171,7 +1172,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                            show_scrollbars=show_scrollbars,
                            show_scalebars=show_scalebars,
                            epoch_colors=epoch_colors, event_id=event_id,
-                           group_by=group_by)
+                           group_by=group_by, precompute=precompute,
+                           use_opengl=use_opengl)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None,

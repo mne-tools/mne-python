@@ -14,6 +14,7 @@ import shutil
 import sys
 import warnings
 import pytest
+from unittest import mock
 
 import numpy as np
 
@@ -65,7 +66,8 @@ def pytest_configure(config):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
-    for fixture in ('matplotlib_config', 'close_all', 'check_verbose'):
+    for fixture in ('matplotlib_config', 'close_all', 'check_verbose',
+                    'qt_config'):
         config.addinivalue_line('usefixtures', fixture)
 
     # Warnings
@@ -125,10 +127,17 @@ def pytest_configure(config):
     ignore:.*Found the following unknown channel type.*:RuntimeWarning
     ignore:.*np\.MachAr.*:DeprecationWarning
     ignore:.*Passing unrecognized arguments to super.*:DeprecationWarning
+    ignore:.*numpy.ndarray size changed.*:
+    ignore:.*There is no current event loop.*:DeprecationWarning
     # present in nilearn v 0.8.1, fixed in nilearn main
     ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
     ignore:.*pandas\.Int64Index is deprecated.*:FutureWarning
     always::ResourceWarning
+    # Jupyter notebook stuff
+    ignore:.*unclosed context <zmq\.asyncio\.*:ResourceWarning
+    ignore:.*unclosed event loop <.*:ResourceWarning
+    # TODO: This is indicative of a problem
+    ignore:.*Matplotlib is currently using agg.*:
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
@@ -175,6 +184,12 @@ def verbose_debug():
 
 
 @pytest.fixture(scope='session')
+def qt_config():
+    """Configure the Qt backend for viz tests."""
+    os.environ['_MNE_BROWSER_NO_BLOCK'] = 'true'
+
+
+@pytest.fixture(scope='session')
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
@@ -202,7 +217,7 @@ def matplotlib_config():
     orig = cbook.CallbackRegistry
 
     class CallbackRegistryReraise(orig):
-        def __init__(self, exception_handler=None):
+        def __init__(self, exception_handler=None, signals=None):
             super(CallbackRegistryReraise, self).__init__(exception_handler)
 
     cbook.CallbackRegistry = CallbackRegistryReraise
@@ -389,7 +404,15 @@ def mpl_backend(garbage_collect):
         backend._close_all()
 
 
-def _check_pyqtgraph():
+# Skip functions or modules for mne-qt-browser < 0.2.0
+pre_2_0_skip_modules = ['mne.viz.tests.test_epochs',
+                        'mne.viz.tests.test_ica']
+pre_2_0_skip_funcs = ['test_plot_raw_white',
+                      'test_plot_raw_selection']
+
+
+def _check_pyqtgraph(request):
+    # Check PyQt5
     try:
         import PyQt5  # noqa: F401
     except ModuleNotFoundError:
@@ -397,66 +420,86 @@ def _check_pyqtgraph():
     if not _compare_version(_check_pyqt5_version(), '>=', '5.12'):
         pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
                     f'but pyqtgraph needs >= 5.12!')
+    # Check mne-qt-browser
     try:
         import mne_qt_browser  # noqa: F401
+        # Check mne-qt-browser version
+        lower_2_0 = _compare_version(mne_qt_browser.__version__, '<', '0.2.0')
+        m_name = request.function.__module__
+        f_name = request.function.__name__
+        if lower_2_0 and m_name in pre_2_0_skip_modules:
+            pytest.skip(f'Test-Module "{m_name}" was skipped for'
+                        f' mne-qt-browser < 0.2.0')
+        elif lower_2_0 and f_name in pre_2_0_skip_funcs:
+            pytest.skip(f'Test "{f_name}" was skipped for '
+                        f'mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip('Requires mne_qt_browser')
 
 
 @pytest.mark.pgtest
 @pytest.fixture
-def pg_backend(garbage_collect):
+def pg_backend(request, garbage_collect):
     """Use for pyqtgraph-specific test-functions."""
-    _check_pyqtgraph()
-    with use_browser_backend('pyqtgraph') as backend:
+    _check_pyqtgraph(request)
+    with use_browser_backend('qt') as backend:
+        backend._close_all()
         yield backend
         backend._close_all()
+        # This shouldn't be necessary, but let's make sure nothing is stale
+        import mne_qt_browser
+        mne_qt_browser._browser_instances.clear()
 
 
 @pytest.fixture(params=[
     'matplotlib',
-    pytest.param('pyqtgraph', marks=pytest.mark.pgtest),
+    pytest.param('qt', marks=pytest.mark.pgtest),
 ])
 def browser_backend(request, garbage_collect):
     """Parametrizes the name of the browser backend."""
     backend_name = request.param
-    if backend_name == 'pyqtgraph':
-        _check_pyqtgraph()
+    if backend_name == 'qt':
+        _check_pyqtgraph(request)
     with use_browser_backend(backend_name) as backend:
+        backend._close_all()
         yield backend
         backend._close_all()
+        if backend_name == 'qt':
+            # This shouldn't be necessary, but let's make sure nothing is stale
+            import mne_qt_browser
+            mne_qt_browser._browser_instances.clear()
 
 
 @pytest.fixture(params=["pyvistaqt"])
-def renderer(request, garbage_collect):
+def renderer(request, options_3d, garbage_collect):
     """Yield the 3D backends."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
 @pytest.fixture(params=["pyvistaqt"])
-def renderer_pyvistaqt(request, garbage_collect):
+def renderer_pyvistaqt(request, options_3d, garbage_collect):
     """Yield the PyVista backend."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
 @pytest.fixture(params=["notebook"])
-def renderer_notebook(request):
+def renderer_notebook(request, options_3d):
     """Yield the 3D notebook renderer."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
 @pytest.fixture(scope="module", params=["pyvistaqt"])
-def renderer_interactive_pyvistaqt(request):
+def renderer_interactive_pyvistaqt(request, options_3d):
     """Yield the interactive PyVista backend."""
     with _use_backend(request.param, interactive=True) as renderer:
         yield renderer
 
 
 @pytest.fixture(scope="module", params=["pyvistaqt"])
-def renderer_interactive(request):
+def renderer_interactive(request, options_3d):
     """Yield the interactive 3D backends."""
     with _use_backend(request.param, interactive=True) as renderer:
         yield renderer
@@ -588,7 +631,7 @@ def _all_src_types_inv_evoked(_evoked_cov_sphere, _all_src_types_fwd):
     invs = dict()
     for kind, fwd in _all_src_types_fwd.items():
         assert fwd['src'].kind == kind
-        with pytest.warns(RuntimeWarning, match='has magnitude'):
+        with pytest.warns(RuntimeWarning, match='has been reduced'):
             invs[kind] = mne.minimum_norm.make_inverse_operator(
                 evoked.info, fwd, cov)
     return invs, evoked
@@ -639,6 +682,22 @@ def download_is_error(monkeypatch):
     """Prevent downloading by raising an error when it's attempted."""
     import pooch
     monkeypatch.setattr(pooch, 'retrieve', _fail)
+
+
+# We can't use monkeypatch because its scope (function-level) conflicts with
+# the requests fixture (module-level), so we live with a module-scoped version
+# that uses mock
+@pytest.fixture(scope='module')
+def options_3d():
+    """Disable advanced 3d rendering."""
+    with mock.patch.dict(
+        os.environ, {
+            "MNE_3D_OPTION_ANTIALIAS": "false",
+            "MNE_3D_OPTION_DEPTH_PEELING": "false",
+            "MNE_3D_OPTION_SMOOTH_SHADING": "false",
+        }
+    ):
+        yield
 
 
 @pytest.fixture()

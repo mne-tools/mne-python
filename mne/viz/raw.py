@@ -19,9 +19,8 @@ from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (plt_show, _compute_scalings, _handle_decim, _check_cov,
-                    _shorten_path_from_middle,
-                    _get_channel_plotting_order, _make_event_color_dict,
-                    _show_browser)
+                    _shorten_path_from_middle, _handle_precompute,
+                    _get_channel_plotting_order, _make_event_color_dict)
 
 _RAW_CLIP_DEF = 1.5
 
@@ -36,7 +35,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              proj=True, group_by='type', butterfly=False, decim='auto',
              noise_cov=None, event_id=None, show_scrollbars=True,
              show_scalebars=True, time_format='float',
-             precompute='auto', use_opengl=None, verbose=None):
+             precompute=None, use_opengl=None, verbose=None):
     """Plot raw data.
 
     Parameters
@@ -89,7 +88,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Whether to halt program execution until the figure is closed.
         Useful for setting bad channels on the fly by clicking on a line.
         May not work on all systems / platforms.
-        (Only pyqtgraph) If you run from a script, this needs to
+        (Only Qt) If you run from a script, this needs to
         be ``True`` or a Qt-eventloop needs to be started somewhere
         else in the script (e.g. if you want to implement the browser
         inside another Qt-Application).
@@ -193,9 +192,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     By default, the channel means are removed when ``remove_dc`` is set to
     ``True``. This flag can be toggled by pressing 'd'.
 
-    .. note:: For the pyqtgraph backend to run in IPython with ``block=False``
+    .. note:: For the Qt backend to run in IPython with ``block=False``
               you must run the magic command ``%%gui qt5`` first.
-    .. note:: To report issues with the pyqtgraph-backend, please use the
+    .. note:: To report issues with the qt-backend, please use the
               `issues <https://github.com/mne-tools/mne-qt-browser/issues>`_
               of ``mne-qt-browser``.
     """
@@ -301,6 +300,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # gather parameters and initialize figure
     _validate_type(use_opengl, (bool, None), 'use_opengl')
+    precompute = _handle_precompute(precompute)
     params = dict(inst=raw,
                   info=info,
                   # channels and channel order
@@ -345,31 +345,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   scrollbars_visible=show_scrollbars,
                   scalebars_visible=show_scalebars,
                   window_title=title,
-                  # pyqtgraph-specific
+                  bgcolor=bgcolor,
+                  # Qt-specific
                   precompute=precompute,
                   use_opengl=use_opengl)
 
-    fig = _get_browser(**params)
-
-    fig._update_picks()
-
-    # make channel selection dialog, if requested (doesn't work well in init)
-    if group_by in ('selection', 'position'):
-        fig._create_selection_fig()
-
-    # update projector and data, and plot
-    fig._update_projector()
-    fig._update_trace_offsets()
-    fig._setup_annotation_colors()
-
-    # Draw Plot
-    fig._redraw(update_data=True, annotations=True)
-
-    # start with projectors dialog open, if requested
-    if show_options:
-        fig._toggle_proj_fig()
-
-    _show_browser(show, block=block, fig=fig)
+    fig = _get_browser(show=show, block=block, **params)
 
     return fig
 

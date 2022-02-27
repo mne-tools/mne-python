@@ -1296,13 +1296,9 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
         vertices of right hemisphere.
-    tmin : scalar
-        Time point of the first sample in data.
-    tstep : scalar
-        Time step between successive samples in data.
-    subject : str | None
-        The subject name. While not necessary, it is safer to set the
-        subject parameter to avoid analysis errors.
+    %(tmin)s
+    %(tstep)s
+    %(subject_optional)s
     %(verbose)s
 
     Attributes
@@ -1552,13 +1548,9 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
         vertices of right hemisphere.
-    tmin : scalar
-        Time point of the first sample in data.
-    tstep : scalar
-        Time step between successive samples in data.
-    subject : str | None
-        The subject name. While not necessary, it is safer to set the
-        subject parameter to avoid analysis errors.
+    %(tmin)s
+    %(tstep)s
+    %(subject_optional)s
     %(verbose)s
 
     Attributes
@@ -2147,15 +2139,10 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
         space data corresponds to ``np.dot(kernel, sens_data)``.
-    vertices : array of shape (n_dipoles,)
-        The indices of the dipoles in the source space.
-    tmin : scalar
-        Time point of the first sample in data.
-    tstep : scalar
-        Time step between successive samples in data.
-    subject : str | None
-        The subject name. While not necessary, it is safer to set the
-        subject parameter to avoid analysis errors.
+    %(vertices_volume)s
+    %(tmin)s
+    %(tstep)s
+    %(subject_optional)s
     %(verbose)s
 
     Attributes
@@ -2164,8 +2151,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertices : array of shape (n_dipoles,)
-        The indices of the dipoles in the source space.
+    %(vertices_volume)s
     data : array of shape (n_dipoles, n_times)
         The data in source space.
     shape : tuple
@@ -2237,15 +2223,10 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate,
     data : array of shape (n_dipoles, 3, n_times)
         The data in source space. Each dipole contains three vectors that
         denote the dipole strength in X, Y and Z directions over time.
-    vertices : array of shape (n_dipoles,)
-        The indices of the dipoles in the source space.
-    tmin : scalar
-        Time point of the first sample in data.
-    tstep : scalar
-        Time step between successive samples in data.
-    subject : str | None
-        The subject name. While not necessary, it is safer to set the
-        subject parameter to avoid analysis errors.
+    %(vertices_volume)s
+    %(tmin)s
+    %(tstep)s
+    %(subject_optional)s
     %(verbose)s
 
     Attributes
@@ -2254,8 +2235,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate,
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertices : array of shape (n_dipoles,)
-        The indices of the dipoles in the source space.
+    %(vertices_volume)s
     data : array of shape (n_dipoles, n_times)
         The data in source space.
     shape : tuple
@@ -2321,13 +2301,9 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
         vertices of right hemisphere.
-    tmin : float
-        Time point of the first sample in data.
-    tstep : float
-        Time step between successive samples in data.
-    subject : str | None
-        The subject name. While not necessary, it is safer to set the
-        subject parameter to avoid analysis errors.
+    %(tmin)s
+    %(tstep)s
+    %(subject_optional)s
     %(verbose)s
 
     Attributes
@@ -2423,13 +2399,9 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
     vertices : list of array
         Vertex numbers corresponding to the data. The list contains arrays
         with one array per source space.
-    tmin : scalar
-        Time point of the first sample in data.
-    tstep : scalar
-        Time step between successive samples in data.
-    subject : str | None
-        The subject name. While not necessary, it is safer to set the
-        subject parameter to avoid analysis errors.
+    %(tmin)s
+    %(tstep)s
+    %(subject_optional)s
     %(verbose)s
 
     Attributes
@@ -2471,13 +2443,9 @@ class MixedVectorSourceEstimate(_BaseVectorSourceEstimate,
         denote the dipole strength in X, Y and Z directions over time.
     vertices : list of array, shape (n_src,)
         Vertex numbers corresponding to the data.
-    tmin : scalar
-        Time point of the first sample in data.
-    tstep : scalar
-        Time step between successive samples in data.
-    subject : str | None
-        The subject name. While not necessary, it is safer to set the
-        subject parameter to avoid analysis errors.
+    %(tmin)s
+    %(tstep)s
+    %(subject_optional)s
     %(verbose)s
 
     Attributes

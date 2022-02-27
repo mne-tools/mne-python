@@ -1,8 +1,8 @@
 """
 .. _tut-autogenerate-metadata:
 
-Auto-generating ``Epochs`` metadata
-===================================
+Auto-generating Epochs metadata
+===============================
 
 This tutorial shows how to auto-generate metadata for `~mne.Epochs`, based on
 events via `mne.epochs.make_metadata`.

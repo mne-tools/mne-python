@@ -13,13 +13,14 @@ Actual implementation of _Renderer and _Projection classes.
 
 from contextlib import contextmanager
 import os
+import re
 import sys
 import warnings
 
 import numpy as np
 import vtk
 
-from ._abstract import _AbstractRenderer
+from ._abstract import _AbstractRenderer, Figure3D
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
                      ALLOWED_QUIVER_MODES, _init_mne_qtapp)
 from ...fixes import _get_args, _point_data, _cell_data, _compare_version
@@ -43,18 +44,20 @@ VTK9 = _compare_version(getattr(vtk, 'VTK_VERSION', '9.0'), '>=', '9.0')
 _FIGURES = dict()
 
 
-class _Figure(object):
-    def __init__(self,
-                 plotter=None,
-                 show=False,
-                 title='PyVista Scene',
-                 size=(600, 600),
-                 shape=(1, 1),
-                 background_color='black',
-                 smooth_shading=True,
-                 off_screen=False,
-                 notebook=False):
-        self.plotter = plotter
+class PyVistaFigure(Figure3D):
+    """PyVista-based 3D Figure.
+
+    This class is not meant to be instantiated directly, use
+    :func:`mne.viz.create_3d_figure` instead.
+    """
+
+    def __init__(self):
+        pass
+
+    def _init(self, plotter=None, show=False, title='PyVista Scene',
+              size=(600, 600), shape=(1, 1), background_color='black',
+              smooth_shading=True, off_screen=False, notebook=False):
+        self._plotter = plotter
         self.display = None
         self.background_color = background_color
         self.smooth_shading = smooth_shading
@@ -79,7 +82,7 @@ class _Figure(object):
         self._nrows, self._ncols = self.store['shape']
         self._azimuth = self._elevation = None
 
-    def build(self):
+    def _build(self):
         if self.notebook:
             plotter_class = Plotter
         else:
@@ -92,14 +95,14 @@ class _Figure(object):
                 self.store['app'] = app
             plotter = plotter_class(**self.store)
             plotter.background_color = self.background_color
-            self.plotter = plotter
+            self._plotter = plotter
         if self.plotter.iren is not None:
             self.plotter.iren.initialize()
         _process_events(self.plotter)
         _process_events(self.plotter)
         return self.plotter
 
-    def is_active(self):
+    def _is_active(self):
         if self.plotter is None:
             return False
         return hasattr(self.plotter, 'ren_win')
@@ -143,20 +146,23 @@ class _PyVistaRenderer(_AbstractRenderer):
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1),
                  notebook=None, smooth_shading=True):
-        from .renderer import MNE_3D_BACKEND_TESTING
         from .._3d import _get_3d_option
         _require_version('pyvista', 'use 3D rendering', '0.32')
-        figure = _Figure(show=show, title=name, size=size, shape=shape,
-                         background_color=bgcolor, notebook=notebook,
-                         smooth_shading=smooth_shading)
+        figure = PyVistaFigure()
+        figure._init(
+            show=show, title=name, size=size, shape=shape,
+            background_color=bgcolor, notebook=notebook,
+            smooth_shading=smooth_shading)
         self.font_family = "arial"
         self.tube_n_sides = 20
-        antialias = _get_3d_option('antialias')
-        self.antialias = antialias and not MNE_3D_BACKEND_TESTING
+        self.antialias = _get_3d_option('antialias')
+        self.depth_peeling = _get_3d_option('depth_peeling')
+        # smooth_shading=True fails on MacOS CIs
+        self.smooth_shading = _get_3d_option('smooth_shading')
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
             # Restore only active plotter
-            if saved_fig is not None and saved_fig.is_active():
+            if saved_fig is not None and saved_fig._is_active():
                 self.figure = saved_fig
             else:
                 self.figure = figure
@@ -172,14 +178,13 @@ class _PyVistaRenderer(_AbstractRenderer):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            if MNE_3D_BACKEND_TESTING:
-                self.tube_n_sides = 3
-                # smooth_shading=True fails on MacOS CIs
-                self.figure.smooth_shading = False
+            # pyvista theme may enable depth peeling by default so
+            # we disable it initially to better control the value afterwards
             with _disabled_depth_peeling():
-                self.plotter = self.figure.build()
+                self.plotter = self.figure._build()
             self._hide_axes()
-            self._enable_aa()
+            self._enable_antialias()
+            self._enable_depth_peeling()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
         if not hasattr(self.plotter, "iren"):
@@ -299,7 +304,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
                 rng=[vmin, vmax], show_scalar_bar=False,
-                smooth_shading=self.figure.smooth_shading,
+                smooth_shading=self.smooth_shading,
                 interpolate_before_map=interpolate_before_map,
                 style=representation, line_width=line_width, **kwargs,
             )
@@ -367,7 +372,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 rng=[vmin, vmax],
                 cmap=colormap,
                 opacity=opacity,
-                smooth_shading=self.figure.smooth_shading
+                smooth_shading=self.smooth_shading
             )
             return actor, contour
 
@@ -423,7 +428,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 self.plotter,
                 mesh=glyph, color=color, opacity=opacity,
                 backface_culling=backface_culling,
-                smooth_shading=self.figure.smooth_shading
+                smooth_shading=self.smooth_shading
             )
             return actor, glyph
 
@@ -451,7 +456,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                     color=color,
                     show_scalar_bar=False,
                     cmap=cmap,
-                    smooth_shading=self.figure.smooth_shading,
+                    smooth_shading=self.smooth_shading,
                 )
         return actor, tube
 
@@ -640,12 +645,14 @@ class _PyVistaRenderer(_AbstractRenderer):
 
         return _Projection(xy=xy, pts=pts, plotter=self.plotter)
 
-    def enable_depth_peeling(self):
+    def _enable_depth_peeling(self):
+        if not self.depth_peeling:
+            return
         if not self.figure.store['off_screen']:
             for renderer in self._all_renderers:
                 renderer.enable_depth_peeling()
 
-    def _enable_aa(self):
+    def _enable_antialias(self):
         """Enable it everywhere except Azure."""
         if not self.antialias:
             return
@@ -655,10 +662,18 @@ class _PyVistaRenderer(_AbstractRenderer):
         # before the window has actually been made "active"...?
         # For Mayavi we have an "on activated" event or so, we should look into
         # using this for Azure at some point, too.
-        if os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true':
-            return
-        if self.figure.is_active():
-            if sys.platform != 'darwin':
+        if self.figure._is_active():
+            # macOS, Azure
+            bad_system = (
+                sys.platform == 'darwin' or
+                os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true')
+            # MESA (could use GPUInfo / _get_gpu_info here, but it takes
+            # > 700 ms to make a new window + report capabilities!)
+            # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
+            gpu_info = self.plotter.ren_win.ReportCapabilities()
+            gpu_info = re.findall("OpenGL renderer string:(.+)\n", gpu_info)
+            bad_system |= 'mesa' in ' '.join(gpu_info).lower().split()
+            if not bad_system:
                 for renderer in self._all_renderers:
                     renderer.enable_anti_aliasing()
             for plotter in self._all_plotters:
@@ -1019,8 +1034,8 @@ def _set_3d_title(figure, title, size=16):
 
 
 def _check_3d_figure(figure):
-    if not isinstance(figure, _Figure):
-        raise TypeError('figure must be an instance of _Figure.')
+    if not isinstance(figure, PyVistaFigure):
+        raise TypeError('figure must be an instance of PyVistaFigure.')
 
 
 def _close_3d_figure(figure):

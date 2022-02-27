@@ -8,10 +8,9 @@
 import os.path as op
 import numpy as np
 from functools import partial
-from scipy.ndimage import maximum_filter
 import platform
 
-from matplotlib.colors import LinearSegmentedColormap
+from scipy.ndimage import maximum_filter
 
 from PyQt5 import QtCore, QtGui, Qt
 from PyQt5.QtCore import pyqtSlot
@@ -20,9 +19,12 @@ from PyQt5.QtWidgets import (QMainWindow, QGridLayout,
                              QMessageBox, QWidget,
                              QListView, QSlider, QPushButton,
                              QComboBox, QPlainTextEdit)
-from matplotlib.backends.backend_qt5agg import FigureCanvas
-from matplotlib.figure import Figure
+
 from matplotlib import patheffects
+from matplotlib.backends.backend_qt5agg import FigureCanvas
+from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.figure import Figure
+from matplotlib.patches import Rectangle
 
 from .._freesurfer import _import_nibabel
 from ..viz.backends.renderer import _get_renderer
@@ -104,6 +106,12 @@ def _make_slice_plot(width=4, height=4, dpi=300):
 class IntracranialElectrodeLocator(QMainWindow):
     """Locate electrode contacts using a coregistered MRI and CT."""
 
+    _xy_idx = (
+        (1, 2),
+        (0, 2),
+        (0, 1),
+    )
+
     def __init__(self, info, trans, aligned_ct, subject=None,
                  subjects_dir=None, groups=None, verbose=None):
         """GUI for locating intracranial electrodes.
@@ -142,11 +150,10 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._ch_names = list(self._chs.keys())
         # set current position
         if np.isnan(self._chs[self._ch_names[self._ch_index]]).any():
-            self._ras = np.array([0., 0., 0.])
+            ras = [0., 0., 0.]
         else:
-            self._ras = self._chs[self._ch_names[self._ch_index]].copy()
-        self._current_slice = apply_trans(
-            self._ras_vox_t, self._ras).round().astype(int)
+            ras = self._chs[self._ch_names[self._ch_index]]
+        self._set_ras(ras, update_plots=False)
         self._group_channels(groups)
 
         # GUI design
@@ -214,9 +221,19 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._ras_vox_t = np.linalg.inv(self._vox_ras_t)
 
         self._voxel_sizes = np.array(self._mri_data.shape)
-        self._img_ranges = [[0, self._voxel_sizes[1], 0, self._voxel_sizes[2]],
-                            [0, self._voxel_sizes[0], 0, self._voxel_sizes[2]],
-                            [0, self._voxel_sizes[0], 0, self._voxel_sizes[1]]]
+        # We need our extents to land the centers of each pixel on the voxel
+        # number. This code assumes 1mm isotropic...
+        img_delta = 0.5
+        self._img_extents = list(
+            [-img_delta, self._voxel_sizes[idx[0]] - img_delta,
+             -img_delta, self._voxel_sizes[idx[1]] - img_delta]
+            for idx in self._xy_idx)
+        ch_deltas = list(img_delta * (self._voxel_sizes[ii] / _CH_PLOT_SIZE)
+                         for ii in range(3))
+        self._ch_extents = list(
+            [-ch_delta, self._voxel_sizes[idx[0]] - ch_delta,
+             -ch_delta, self._voxel_sizes[idx[1]] - ch_delta]
+            for idx, ch_delta in zip(self._xy_idx, ch_deltas))
 
         # ready ct
         self._ct_data, vox_ras_t = _load_image(ct, 'CT', verbose=self._verbose)
@@ -256,18 +273,18 @@ class IntracranialElectrodeLocator(QMainWindow):
         """Make a plot to display the channel locations."""
         # Make channel data higher resolution so it looks better.
         ch_image = np.zeros((_CH_PLOT_SIZE, _CH_PLOT_SIZE)) * np.nan
-        vx, vy, vz = self._voxel_sizes
+        vxyz = self._voxel_sizes
 
         def color_ch_radius(ch_image, xf, yf, group, radius):
             # Take the fraction across each dimension of the RAS
             # coordinates converted to xyz and put a circle in that
             # position in this larger resolution image
             ex, ey = np.round(np.array([xf, yf]) * _CH_PLOT_SIZE).astype(int)
-            for i in range(-radius, radius + 1):
-                for j in range(-radius, radius + 1):
-                    if (i**2 + j**2)**0.5 < radius:
-                        # negative y because y axis is inverted
-                        ch_image[-(ey + i), ex + j] = group
+            ii = np.arange(-radius, radius + 1)
+            ii_sq = ii * ii
+            idx = np.where(ii_sq + ii_sq[:, np.newaxis] < radius * radius)
+            # negative y because y axis is inverted
+            ch_image[-(ey + ii[idx[1]]), ex + ii[idx[0]]] = group
             return ch_image
 
         for name, ras in self._chs.items():
@@ -279,19 +296,11 @@ class IntracranialElectrodeLocator(QMainWindow):
             # check if closest to that voxel
             dist = np.linalg.norm(xyz - self._current_slice)
             if proj or dist < self._radius:
-                x, y, z = xyz
                 group = self._groups[name]
                 r = self._radius if proj else \
                     self._radius - np.round(abs(dist)).astype(int)
-                if axis == 0:
-                    ch_image = color_ch_radius(
-                        ch_image, y / vy, z / vz, group, r)
-                elif axis == 1:
-                    ch_image = color_ch_radius(
-                        ch_image, x / vx, z / vx, group, r)
-                elif axis == 2:
-                    ch_image = color_ch_radius(
-                        ch_image, x / vx, y / vy, group, r)
+                xf, yf = (xyz / vxyz)[list(self._xy_idx[axis])]
+                ch_image = color_ch_radius(ch_image, xf, yf, group, r)
         return ch_image
 
     @verbose
@@ -307,8 +316,8 @@ class IntracranialElectrodeLocator(QMainWindow):
     def _plot_images(self):
         """Use the MRI and CT to make plots."""
         # Plot sagittal (0), coronal (1) or axial (2) view
-        self._images = dict(ct=list(), chs=list(),
-                            cursor=list(), cursor2=list())
+        self._images = dict(ct=list(), chs=list(), ct_bounds=list(),
+                            cursor_v=list(), cursor_h=list())
         ct_min, ct_max = np.nanmin(self._ct_data), np.nanmax(self._ct_data)
         text_kwargs = dict(fontsize='medium', weight='bold', color='#66CCEE',
                            family='monospace', ha='center', va='center',
@@ -316,34 +325,42 @@ class IntracranialElectrodeLocator(QMainWindow):
                                linewidth=4, foreground="k", alpha=0.75)])
         xyz = apply_trans(self._ras_vox_t, self._ras)
         for axis in range(3):
+            plot_x_idx, plot_y_idx = self._xy_idx[axis]
+            fig = self._figs[axis]
+            ax = fig.axes[0]
             ct_data = np.take(self._ct_data, self._current_slice[axis],
                               axis=axis).T
-            self._images['ct'].append(self._figs[axis].axes[0].imshow(
+            self._images['ct'].append(ax.imshow(
                 ct_data, cmap='gray', aspect='auto', zorder=1,
                 vmin=ct_min, vmax=ct_max))
-            self._images['chs'].append(
-                self._figs[axis].axes[0].imshow(
-                    self._make_ch_image(axis), aspect='auto',
-                    extent=self._img_ranges[axis], zorder=3,
-                    cmap=_CMAP, alpha=self._ch_alpha, vmin=0, vmax=_N_COLORS))
-            self._images['cursor'].append(
-                self._figs[axis].axes[0].plot(
-                    (xyz[axis], xyz[axis]), (0, self._voxel_sizes[axis]),
-                    color=[0, 1, 0], linewidth=1, alpha=0.5, zorder=8)[0])
-            self._images['cursor2'].append(
-                self._figs[axis].axes[0].plot(
-                    (0, self._voxel_sizes[axis]), (xyz[axis], xyz[axis]),
-                    color=[0, 1, 0], linewidth=1, alpha=0.5, zorder=8)[0])
+            img_extent = self._img_extents[axis]  # x0, x1, y0, y1
+            w, h = np.diff(np.array(img_extent).reshape(2, 2), axis=1)[:, 0]
+            self._images['ct_bounds'].append(Rectangle(
+                img_extent[::2], w, h, edgecolor='w', facecolor='none',
+                alpha=0.25, lw=0.5, zorder=1.5))
+            ax.add_patch(self._images['ct_bounds'][-1])
+            self._images['chs'].append(ax.imshow(
+                self._make_ch_image(axis), aspect='auto',
+                extent=self._ch_extents[axis], zorder=3,
+                cmap=_CMAP, alpha=self._ch_alpha, vmin=0, vmax=_N_COLORS))
+            v_x = (xyz[plot_x_idx],) * 2
+            v_y = img_extent[2:4]
+            self._images['cursor_v'].append(ax.plot(
+                v_x, v_y, color='lime', linewidth=0.5, alpha=0.5, zorder=8)[0])
+            h_y = (xyz[plot_y_idx],) * 2
+            h_x = img_extent[0:2]
+            self._images['cursor_h'].append(ax.plot(
+                h_x, h_y, color='lime', linewidth=0.5, alpha=0.5, zorder=8)[0])
             # label axes
             self._figs[axis].text(0.5, 0.05, _IMG_LABELS[axis][0],
                                   **text_kwargs)
             self._figs[axis].text(0.05, 0.5, _IMG_LABELS[axis][1],
                                   **text_kwargs)
-            self._figs[axis].axes[0].axis(self._img_ranges[axis])
+            self._figs[axis].axes[0].axis(img_extent)
             self._figs[axis].canvas.mpl_connect(
                 'scroll_event', self._on_scroll)
             self._figs[axis].canvas.mpl_connect(
-                'button_release_event', partial(self._on_click, axis))
+                'button_release_event', partial(self._on_click, axis=axis))
         # add head and brain in mm (convert from m)
         if self._head is None:
             logger.info('Using marching cubes on CT for the '
@@ -524,6 +541,15 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._intensity_label = QLabel('')  # update later
         hbox.addWidget(self._intensity_label)
 
+        VOX_label = QLabel('VOX =')
+        self._VOX_textbox = QPlainTextEdit('')  # update later
+        self._VOX_textbox.setMaximumHeight(25)
+        self._VOX_textbox.setMaximumWidth(125)
+        self._VOX_textbox.focusOutEvent = self._update_VOX
+        self._VOX_textbox.textChanged.connect(self._check_update_VOX)
+        hbox.addWidget(VOX_label)
+        hbox.addWidget(self._VOX_textbox)
+
         RAS_label = QLabel('RAS =')
         self._RAS_textbox = QPlainTextEdit('')  # update later
         self._RAS_textbox.setMaximumHeight(25)
@@ -561,7 +587,15 @@ class IntracranialElectrodeLocator(QMainWindow):
 
     def _update_lines(self, group, only_2D=False):
         """Draw lines that connect the points in a group."""
-        if not only_2D and group in self._lines:
+        if group in self._lines_2D:  # remove existing 2D lines first
+            for line in self._lines_2D[group]:
+                line.remove()
+            self._lines_2D.pop(group)
+        if only_2D:  # if not in projection, don't add 2D lines
+            if self._toggle_show_mip_button.text() == \
+                    'Show Max Intensity Proj':
+                return
+        elif group in self._lines:  # if updating 3D, remove first
             self._renderer.plotter.remove_actor(self._lines[group])
         pos = np.array([
             self._chs[ch] for i, ch in enumerate(self._ch_names)
@@ -583,16 +617,17 @@ class IntracranialElectrodeLocator(QMainWindow):
                 [pos[target_idx]], [pos[insert_idx] + elec_v * _BOLT_SCALAR],
                 radius=self._radius * _TUBE_SCALAR, color=_CMAP(group)[:3])[0]
         if self._toggle_show_mip_button.text() == 'Hide Max Intensity Proj':
+            # add 2D lines on each slice plot if in max intensity projection
             target_vox = apply_trans(self._ras_vox_t, pos[target_idx])
             insert_vox = apply_trans(self._ras_vox_t,
                                      pos[insert_idx] + elec_v * _BOLT_SCALAR)
             lines_2D = list()
             for axis in range(3):
-                x, y = [i for i in range(3) if i != axis]
+                x, y = self._xy_idx[axis]
                 lines_2D.append(self._figs[axis].axes[0].plot(
                     [target_vox[x], insert_vox[x]],
                     [target_vox[y], insert_vox[y]],
-                    color=_CMAP(group), linewidth=0.25, zorder=7))
+                    color=_CMAP(group), linewidth=0.25, zorder=7)[0])
             self._lines_2D[group] = lines_2D
 
     def _set_ch_names(self):
@@ -631,8 +666,8 @@ class IntracranialElectrodeLocator(QMainWindow):
         """Zoom in on the image."""
         delta = _ZOOM_STEP_SIZE * sign
         for axis, fig in enumerate(self._figs):
-            xmid = self._images['cursor'][axis].get_xdata()[0]
-            ymid = self._images['cursor2'][axis].get_ydata()[0]
+            xmid = self._images['cursor_v'][axis].get_xdata()[0]
+            ymid = self._images['cursor_h'][axis].get_ydata()[0]
             xmin, xmax = fig.axes[0].get_xlim()
             ymin, ymax = fig.axes[0].get_ylim()
             xwidth = (xmax - xmin) / 2 - delta
@@ -641,8 +676,6 @@ class IntracranialElectrodeLocator(QMainWindow):
                 return
             fig.axes[0].set_xlim(xmid - xwidth, xmid + xwidth)
             fig.axes[0].set_ylim(ymid - ywidth, ymid + ywidth)
-            self._images['cursor'][axis].set_ydata([ymin, ymax])
-            self._images['cursor2'][axis].set_xdata([xmin, xmax])
             if draw:
                 self._figs[axis].canvas.draw()
 
@@ -654,8 +687,7 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._group_selector.setCurrentIndex(self._groups[name])
         self._update_group()
         if not np.isnan(self._chs[name]).any():
-            self._ras[:] = self._chs[name]
-            self._move_cursors_to_pos()
+            self._set_ras(self._chs[name])
             self._update_camera(render=True)
             self._draw()
 
@@ -673,38 +705,86 @@ class IntracranialElectrodeLocator(QMainWindow):
     @pyqtSlot()
     def _update_RAS(self, event):
         """Interpret user input to the RAS textbox."""
-        text = self._RAS_textbox.toPlainText().replace('\n', '')
-        ras = text.split(',')
-        if len(ras) != 3:
-            ras = text.split(' ')  # spaces also okay as in freesurfer
-        ras = [var.lstrip().rstrip() for var in ras]
+        text = self._RAS_textbox.toPlainText()
+        ras = self._convert_text(text, 'ras')
+        if ras is not None:
+            self._set_ras(ras)
 
-        if len(ras) != 3:
+    @pyqtSlot()
+    def _update_VOX(self, event):
+        """Interpret user input to the RAS textbox."""
+        text = self._VOX_textbox.toPlainText()
+        ras = self._convert_text(text, 'vox')
+        if ras is not None:
+            self._set_ras(ras)
+
+    def _convert_text(self, text, text_kind):
+        text = text.replace('\n', '')
+        vals = text.split(',')
+        if len(vals) != 3:
+            vals = text.split(' ')  # spaces also okay as in freesurfer
+        vals = [var.lstrip().rstrip() for var in vals]
+        try:
+            vals = np.array([float(var) for var in vals]).reshape(3)
+        except Exception:
             self._update_moved()  # resets RAS label
             return
-        all_float = all([all([dig.isdigit() or dig in ('-', '.')
-                              for dig in var]) for var in ras])
-        if not all_float:
-            self._update_moved()  # resets RAS label
-            return
-
-        ras = np.array([float(var) for var in ras])
-        xyz = apply_trans(self._ras_vox_t, ras)
-        wrong_size = any([var < 0 or var > n for var, n in
-                          zip(xyz, self._voxel_sizes)])
+        if text_kind == 'vox':
+            vox = vals
+            ras = apply_trans(self._vox_ras_t, vox)
+        else:
+            assert text_kind == 'ras'
+            ras = vals
+            vox = apply_trans(self._ras_vox_t, ras)
+        wrong_size = any(var < 0 or var > n - 1 for var, n in
+                         zip(vox, self._voxel_sizes))
         if wrong_size:
             self._update_moved()  # resets RAS label
             return
+        return ras
 
-        # valid RAS position, update and move
-        self._ras = ras
-        self._move_cursors_to_pos()
+    @property
+    def _ras(self):
+        return self._ras_safe
+
+    def _set_ras(self, ras, update_plots=True):
+        ras = np.asarray(ras, dtype=float)
+        assert ras.shape == (3,)
+        msg = ', '.join(f'{x:0.2f}' for x in ras)
+        logger.debug(f'Trying RAS:  ({msg}) mm')
+        # clip to valid
+        vox = apply_trans(self._ras_vox_t, ras)
+        vox = np.array([
+            np.clip(d, 0, self._voxel_sizes[ii] - 1)
+            for ii, d in enumerate(vox)])
+        # transform back, make write-only
+        self._ras_safe = apply_trans(self._vox_ras_t, vox)
+        self._ras_safe.flags['WRITEABLE'] = False
+        msg = ', '.join(f'{x:0.2f}' for x in self._ras_safe)
+        logger.debug(f'Setting RAS: ({msg}) mm')
+        if update_plots:
+            self._move_cursors_to_pos()
+
+    @property
+    def _vox(self):
+        return apply_trans(self._ras_vox_t, self._ras)
+
+    @property
+    def _current_slice(self):
+        return self._vox.round().astype(int)
 
     @pyqtSlot()
     def _check_update_RAS(self):
         """Check whether the RAS textbox is done being edited."""
         if '\n' in self._RAS_textbox.toPlainText():
             self._update_RAS(event=None)
+            self._ch_list.setFocus()  # remove focus from text edit
+
+    @pyqtSlot()
+    def _check_update_VOX(self):
+        """Check whether the VOX textbox is done being edited."""
+        if '\n' in self._VOX_textbox.toPlainText():
+            self._update_VOX(event=None)
             self._ch_list.setFocus()  # remove focus from text edit
 
     def _color_list_item(self, name=None):
@@ -744,19 +824,18 @@ class IntracranialElectrodeLocator(QMainWindow):
         if self._snap_button.text() == 'Off':
             self._chs[name][:] = self._ras
         else:
-            coord = apply_trans(self._ras_vox_t, self._ras.copy())
             shape = np.mean(self._mri_data.shape)  # Freesurfer shape (256)
             voxels_max = int(
                 4 / 3 * np.pi * (shape * self._radius / _CH_PLOT_SIZE)**3)
             neighbors = _voxel_neighbors(
-                coord, self._ct_data, thresh=0.5,
+                self._vox, self._ct_data, thresh=0.5,
                 voxels_max=voxels_max, use_relative=True)
             self._chs[name][:] = apply_trans(  # to surface RAS
                 self._vox_ras_t, np.array(list(neighbors)).mean(axis=0))
         self._color_list_item()
+        self._update_lines(self._groups[name])
         self._update_ch_images(draw=True)
         self._plot_3d_ch(name, render=True)
-        self._update_lines(self._groups[name])
         self._save_ch_coords()
         self._next_ch()
         self._ch_list.setFocus()
@@ -768,9 +847,9 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._chs[name] *= np.nan
         self._color_list_item()
         self._save_ch_coords()
+        self._update_lines(self._groups[name])
         self._update_ch_images(draw=True)
         self._plot_3d_ch(name, render=True)
-        self._update_lines(self._groups[name])
         self._next_ch()
         self._ch_list.setFocus()
 
@@ -861,28 +940,15 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._renderer._update()
         self._ch_list.setFocus()  # remove focus from 3d plotter
 
-    def _get_click_pos(self, axis, x, y):
-        """Get which axis was clicked and where."""
-        fx, fy = self._figs[axis].transFigure.inverted().transform((x, y))
-        xmin, xmax = self._figs[axis].axes[0].get_xlim()
-        ymin, ymax = self._figs[axis].axes[0].get_ylim()
-        return (fx * (xmax - xmin) + xmin, fy * (ymax - ymin) + ymin)
-
     def _move_cursors_to_pos(self):
         """Move the cursors to a position."""
-        x, y, z = apply_trans(self._ras_vox_t, self._ras)
-        self._current_slice = np.array([x, y, z]).round().astype(int)
-        self._move_cursor_to(0, x=y, y=z)
-        self._move_cursor_to(1, x=x, y=z)
-        self._move_cursor_to(2, x=x, y=y)
+        for axis in range(3):
+            x, y = self._vox[list(self._xy_idx[axis])]
+            self._images['cursor_v'][axis].set_xdata([x, x])
+            self._images['cursor_h'][axis].set_ydata([y, y])
         self._zoom(0)  # doesn't actually zoom just resets view to center
         self._update_images(draw=True)
         self._update_moved()
-
-    def _move_cursor_to(self, axis, x, y):
-        """Move the cursors to a position for a given subplot."""
-        self._images['cursor2'][axis].set_ydata([y, y])
-        self._images['cursor'][axis].set_xdata([x, x])
 
     def _show_help(self):
         """Show the help menu."""
@@ -893,7 +959,7 @@ class IntracranialElectrodeLocator(QMainWindow):
             "'b': toggle viewing of brain in T1\n"
             "'+'/'-': zoom\nleft/right arrow: left/right\n"
             "up/down arrow: superior/inferior\n"
-            "page up/page down arrow: anterior/posterior")
+            "left angle bracket/right angle bracket: anterior/posterior")
 
     def _update_ct_maxima(self):
         """Compute the maximum voxels based on the current radius."""
@@ -917,27 +983,27 @@ class IntracranialElectrodeLocator(QMainWindow):
                         ct_mip_data, cmap='gray', aspect='auto',
                         vmin=ct_min, vmax=ct_max, zorder=5))
                 # add circles for each channel
-                xy_idx = [i for i in range(3) if i != axis]
                 xs, ys, colors = list(), list(), list()
                 for name, ras in self._chs.items():
-                    xyz = apply_trans(self._ras_vox_t, ras)
-                    xs.append(xyz[xy_idx[0]])
-                    ys.append(xyz[xy_idx[1]])
+                    xyz = self._vox
+                    xs.append(xyz[self._xy_idx[axis][0]])
+                    ys.append(xyz[self._xy_idx[axis][1]])
                     colors.append(_CMAP(self._groups[name]))
                 self._images['mip_chs'].append(
                     self._figs[axis].axes[0].imshow(
                         self._make_ch_image(axis, proj=True), aspect='auto',
-                        extent=self._img_ranges[axis], zorder=6,
+                        extent=self._ch_extents[axis], zorder=6,
                         cmap=_CMAP, alpha=1, vmin=0, vmax=_N_COLORS))
-                # add lines
-                for group in set(self._groups.values()):
-                    self._update_lines(group, only_2D=True)
+            for group in set(self._groups.values()):
+                self._update_lines(group, only_2D=True)
         else:
             for img in self._images['mip'] + self._images['mip_chs']:
                 img.remove()
             self._images.pop('mip')
             self._images.pop('mip_chs')
             self._toggle_show_mip_button.setText('Show Max Intensity Proj')
+            for group in set(self._groups.values()):  # remove lines
+                self._update_lines(group, only_2D=True)
         self._draw()
 
     def _toggle_show_max(self):
@@ -1002,37 +1068,36 @@ class IntracranialElectrodeLocator(QMainWindow):
         # Changing slices
         if event.key() in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down,
                            QtCore.Qt.Key_Left, QtCore.Qt.Key_Right,
+                           QtCore.Qt.Key_Comma, QtCore.Qt.Key_Period,
                            QtCore.Qt.Key_PageUp, QtCore.Qt.Key_PageDown):
+            ras = np.array(self._ras)
             if event.key() in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down):
-                self._ras[2] += 2 * (event.key() == QtCore.Qt.Key_Up) - 1
+                ras[2] += 2 * (event.key() == QtCore.Qt.Key_Up) - 1
             elif event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right):
-                self._ras[0] += 2 * (event.key() == QtCore.Qt.Key_Right) - 1
-            elif event.key() in (QtCore.Qt.Key_PageUp,
-                                 QtCore.Qt.Key_PageDown):
-                self._ras[1] += 2 * (event.key() == QtCore.Qt.Key_PageUp) - 1
-            self._move_cursors_to_pos()
+                ras[0] += 2 * (event.key() == QtCore.Qt.Key_Right) - 1
+            else:
+                ras[1] += 2 * (event.key() == QtCore.Qt.Key_PageUp or
+                               event.key() == QtCore.Qt.Key_Period) - 1
+            self._set_ras(ras)
 
-    def _on_click(self, axis, event):
+    def _on_click(self, event, axis):
         """Move to view on MRI and CT on click."""
-        # Transform coordinates to figure coordinates
-        pos = self._get_click_pos(axis, event.x, event.y)
-        logger.info(f'Clicked axis {axis} at pos {pos}')
-
-        if axis is not None and pos is not None:
-            xyz = apply_trans(self._ras_vox_t, self._ras)
-            if axis == 0:
-                xyz[[1, 2]] = pos
-            elif axis == 1:
-                xyz[[0, 2]] = pos
-            elif axis == 2:
-                xyz[[0, 1]] = pos
-            self._ras = apply_trans(self._vox_ras_t, xyz)
-            self._move_cursors_to_pos()
+        if event.inaxes is self._figs[axis].axes[0]:
+            # Data coordinates are voxel coordinates
+            pos = (event.xdata, event.ydata)
+            logger.info(f'Clicked {"XYZ"[axis]} ({axis}) axis at pos {pos}')
+            xyz = self._vox
+            xyz[list(self._xy_idx[axis])] = pos
+            logger.debug(f'Using voxel  {list(xyz)}')
+            ras = apply_trans(self._vox_ras_t, xyz)
+            self._set_ras(ras)
 
     def _update_moved(self):
         """Update when cursor position changes."""
         self._RAS_textbox.setPlainText('{:.2f}, {:.2f}, {:.2f}'.format(
             *self._ras))
+        self._VOX_textbox.setPlainText('{:3d}, {:3d}, {:3d}'.format(
+            *self._current_slice))
         self._intensity_label.setText('intensity = {:.2f}'.format(
             self._ct_data[tuple(self._current_slice)]))
 

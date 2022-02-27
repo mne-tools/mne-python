@@ -57,6 +57,7 @@ doc/auto_tutorials/
 doc/modules/generated/
 doc/sphinxext/cachedir
 tutorials/intro/report.h5
+tutorials/intro/report_partial.hdf5
 tutorials/misc/report.h5
 tutorials/io/fnirs.csv
 pip-log.txt

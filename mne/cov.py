@@ -2076,3 +2076,12 @@ def _write_cov(fid, cov):
 
     #   Done!
     end_block(fid, FIFF.FIFFB_MNE_COV)
+
+
+@verbose
+def _ensure_cov(cov, name='cov', *, verbose=None):
+    _validate_type(cov, ('path-like', Covariance), name)
+    logger.info('Noise covariance  : %s' % (cov,))
+    if not isinstance(cov, Covariance):
+        cov = read_cov(cov, verbose=False)
+    return cov

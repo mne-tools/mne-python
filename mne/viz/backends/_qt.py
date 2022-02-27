@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QSizePolicy, QScrollArea, QStyle, QProgressBar,
                              QStyleOptionSlider, QLayout, QCheckBox,
                              QButtonGroup, QRadioButton, QLineEdit,
-                             QFileDialog, QPushButton)
+                             QFileDialog, QPushButton, QMessageBox)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
@@ -27,9 +27,49 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
-                        _AbstractWidgetList, _AbstractAction)
+                        _AbstractWidgetList, _AbstractAction, _AbstractDialog)
 from ._utils import _init_qt_resources, _qt_disable_paint
 from ..utils import logger, _check_option
+
+
+class _QtDialog(_AbstractDialog):
+    def _dialog_warning(self, title, text, info_text, callback, *,
+                        buttons=[], modal=True, window=None):
+        window = self._window if window is None else window
+        widget = QMessageBox(window)
+        widget.setWindowTitle(title)
+        widget.setText(text)
+        widget.setIcon(QMessageBox.Warning)
+        widget.setInformativeText(info_text)
+
+        if not buttons:
+            buttons = ["Ok"]
+
+        button_ids = list()
+        for button in buttons:
+            # button is one of QMessageBox.StandardButtons
+            button_id = getattr(QMessageBox, button)
+            button_ids.append(button_id)
+        standard_buttons = default_button = button_ids[0]
+        for button_id in button_ids[1:]:
+            standard_buttons |= button_id
+        widget.setStandardButtons(standard_buttons)
+        widget.setDefaultButton(default_button)
+
+        def func(button):
+            button_id = widget.standardButton(button)
+            supported_button_names = [
+                "Ok", "Open", "Save", "Cancel", "Close", "Discard", "Apply",
+                "Reset", "RestoreDefaults", "Help", "SaveAll", "Yes",
+                "YesToAll", "No", "NoToAll", "Abort", "Retry", "Ignore"
+            ]
+            for button_name in supported_button_names:
+                if button_id == getattr(QMessageBox, button_name):
+                    callback(button_name)
+                    break
+
+        widget.buttonClicked.connect(func)
+        return _QtDialogWidget(widget, modal)
 
 
 class _QtLayout(_AbstractLayout):
@@ -205,7 +245,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, group_layout)
         return _QtWidgetList(group)
 
-    def _dock_add_group_box(self, name, *, layout=None):
+    def _dock_add_group_box(self, name, *, collapse=None, layout=None):
         layout = self._dock_layout if layout is None else layout
         hlayout = QVBoxLayout()
         widget = QGroupBox(name)
@@ -447,20 +487,19 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
     def _status_bar_initialize(self, window=None):
         window = self._window if window is None else window
         self._status_bar = window.statusBar()
-        self._status_bar_layout = self._status_bar.layout()
 
     def _status_bar_add_label(self, value, *, stretch=0):
         widget = QLabel(value)
-        self._layout_add_widget(self._status_bar_layout, widget, stretch)
+        self._layout_add_widget(self._status_bar.layout(), widget, stretch)
         return _QtWidget(widget)
 
     def _status_bar_add_progress_bar(self, stretch=0):
         widget = QProgressBar()
-        self._layout_add_widget(self._status_bar_layout, widget, stretch)
+        self._layout_add_widget(self._status_bar.layout(), widget, stretch)
         return _QtWidget(widget)
 
     def _status_bar_update(self):
-        self._status_bar_layout.update()
+        self._status_bar.layout().update()
 
 
 class _QtPlayback(_AbstractPlayback):
@@ -506,13 +545,45 @@ class _QtWindow(_AbstractWindow):
         self._window = self.figure.plotter.app_window
         self._window.setLocale(QLocale(QLocale.Language.English))
         self._window.signal_close.connect(self._window_clean)
+        self._window_before_close_callbacks = list()
+        self._window_after_close_callbacks = list()
+
+        # patch closeEvent
+        def closeEvent(event):
+            # functions to call before closing
+            accept_close_event = True
+            for callback in self._window_before_close_callbacks:
+                ret = callback()
+                # check if one of the callbacks ignores the close event
+                if isinstance(ret, bool) and not ret:
+                    accept_close_event = False
+
+            if accept_close_event:
+                self._window.signal_close.emit()
+                event.accept()
+            else:
+                event.ignore()
+
+            # functions to call after closing
+            for callback in self._window_after_close_callbacks:
+                callback()
+        self._window.closeEvent = closeEvent
 
     def _window_clean(self):
-        self.figure.plotter = None
+        self.figure._plotter = None
         self._interactor = None
 
-    def _window_close_connect(self, func):
-        self._window.signal_close.connect(func)
+    def _window_close_connect(self, func, *, after=True):
+        if after:
+            self._window_after_close_callbacks.append(func)
+        else:
+            self._window_before_close_callbacks.append(func)
+
+    def _window_close_disconnect(self, after=True):
+        if after:
+            self._window_after_close_callbacks.clear()
+        else:
+            self._window_before_close_callbacks.clear()
 
     def _window_get_dpi(self):
         return self._window.windowHandle().screen().logicalDotsPerInch()
@@ -700,13 +771,31 @@ class _QtWidget(_AbstractWidget):
         self._widget.setToolTip(tooltip)
 
 
+class _QtDialogWidget(_QtWidget):
+    def __init__(self, widget, modal):
+        super().__init__(widget)
+        self._modal = modal
+
+    def trigger(self, button):
+        button_id = getattr(QMessageBox, button)
+        for current_button in self._widget.buttons():
+            if self._widget.standardButton(current_button) == button_id:
+                current_button.click()
+
+    def show(self):
+        if self._modal:
+            self._widget.exec()
+        else:
+            self._widget.show()
+
+
 class _QtAction(_AbstractAction):
     def trigger(self):
         self._action.trigger()
 
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
-                _QtStatusBar, _QtWindow, _QtPlayback):
+                _QtStatusBar, _QtWindow, _QtPlayback, _QtDialog):
     _kind = 'qt'
 
     def __init__(self, *args, **kwargs):

@@ -26,8 +26,9 @@ print(__doc__)
 # %%
 # Set parameters
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_raw.fif'
+fname_inv = meg_path / 'sample_audvis-meg-oct-6-meg-inv.fif'
 tmin, tmax, event_id = -0.2, 0.5, 1
 
 # Setup for reading the raw data
@@ -57,7 +58,7 @@ stcs = source_band_induced_power(epochs, inverse_operator, bands, n_cycles=2,
                                  use_fft=False, n_jobs=1)
 
 for b, stc in stcs.items():
-    stc.save('induced_power_%s' % b)
+    stc.save('induced_power_%s' % b, overwrite=True)
 
 # %%
 # plot mean power

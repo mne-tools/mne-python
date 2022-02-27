@@ -155,7 +155,8 @@ mags = mne.pick_types(raw.info, meg='mag')
 for title, projs in [('system', system_projs),
                      ('subject-specific', empty_room_projs[3:])]:
     raw.add_proj(projs, remove_existing=True)
-    fig = raw.plot(proj=True, order=mags, duration=1, n_channels=2)
+    with mne.viz.use_browser_backend('matplotlib'):
+        fig = raw.plot(proj=True, order=mags, duration=1, n_channels=2)
     fig.subplots_adjust(top=0.9)  # make room for title
     fig.suptitle('{} projectors'.format(title), size='xx-large', weight='bold')
 
@@ -296,7 +297,8 @@ mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 raw.del_proj()
 for title, proj in [('Without', empty_room_projs), ('With', ecg_projs)]:
     raw.add_proj(proj, remove_existing=False)
-    fig = raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
+    with mne.viz.use_browser_backend('matplotlib'):
+        fig = raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
     fig.subplots_adjust(top=0.9)  # make room for title
     fig.suptitle('{} ECG projectors'.format(title), size='xx-large',
                  weight='bold')
@@ -380,7 +382,8 @@ mne.viz.plot_projs_topomap(eog_projs, info=raw.info)
 for title in ('Without', 'With'):
     if title == 'With':
         raw.add_proj(eog_projs)
-    fig = raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
+    with mne.viz.use_browser_backend('matplotlib'):
+        fig = raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
     fig.subplots_adjust(top=0.9)  # make room for title
     fig.suptitle('{} EOG projectors'.format(title), size='xx-large',
                  weight='bold')

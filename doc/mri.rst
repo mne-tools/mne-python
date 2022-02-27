@@ -25,6 +25,7 @@ Step by step instructions for using :func:`gui.coregistration`:
    head_to_mni
    head_to_mri
    read_freesurfer_lut
+   read_lta
    read_talxfm
    scale_mri
    scale_bem

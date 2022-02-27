@@ -1744,7 +1744,8 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
 
 @verbose
 def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
-                              interpolation='linear', verbose=None):
+                              interpolation='linear', cval=0.,
+                              verbose=None):
     """Apply volume registration.
 
     Uses registration parameters computed by
@@ -1759,6 +1760,10 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     interpolation : str
         Interpolation to be used during the interpolation.
         Can be "linear" (default) or "nearest".
+    cval : float | str
+        The constant value to assume exists outside the bounds of the
+        ``moving`` image domain. Can be a string percentage like ``'1%%'``
+        to use the given percentile of image data as the constant value.
     %(verbose)s
 
     Returns
@@ -1780,8 +1785,19 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     _validate_type(reg_affine, np.ndarray, 'reg_affine')
     _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
     _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
+    _validate_type(cval, ('numeric', str), 'cval')
+    perc = None
+    if isinstance(cval, str):
+        if not cval.endswith('%'):
+            raise ValueError(f'cval must end with % if str, got {cval}')
+        perc = float(cval[:-1])
     logger.info('Applying affine registration ...')
-    moving, moving_affine = np.asarray(moving.dataobj), moving.affine
+    moving_affine = moving.affine
+    moving = np.asarray(moving.dataobj, dtype=float)
+    if perc is not None:
+        cval = np.percentile(moving, perc)
+        logger.info(f'Using a lower bound at the {perc} percentile: {cval}')
+    moving -= cval
     static, static_affine = np.asarray(static.dataobj), static.affine
     affine_map = AffineMap(reg_affine,
                            static.shape, static_affine,
@@ -1793,6 +1809,7 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
             reg_data, interpolation=interpolation,
             image_world2grid=np.linalg.inv(static_affine),
             out_shape=static.shape, out_grid2world=static_affine)
+    reg_data += cval
     reg_img = SpatialImage(reg_data, static_affine)
     logger.info('[done]')
     return reg_img

@@ -5,8 +5,8 @@
 EEG source localization given electrode locations on an MRI
 ===========================================================
 
-This tutorial explains how to compute the forward operator from EEG data
-when the electrodes are in MRI voxel coordinates.
+This tutorial explains how to compute the forward operator from EEG data when
+the electrodes are in MRI voxel coordinates.
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>

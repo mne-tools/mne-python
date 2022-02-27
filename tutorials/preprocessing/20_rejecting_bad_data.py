@@ -49,25 +49,18 @@ events = mne.read_events(events_file)
 # existing annotation labels can be selected for use.
 
 fig = raw.plot()
-fig.canvas.key_press_event('a')
+fig.fake_keypress('a')  # Simulates user pressing 'a' on the keyboard.
 
 # %%
-# .. sidebar:: Annotating good spans
-#
-#     The default "BAD\_" prefix for new labels can be removed simply by
-#     pressing the backspace key four times before typing your custom
-#     annotation label.
-#
-# You can see that default annotation label is "BAD\_"; this can be edited
-# prior to pressing the "Add label" button to customize the label. The intent
-# is that users can annotate with as many or as few labels as makes sense for
-# their research needs, but that annotations marking spans that should be
-# excluded from the analysis pipeline should all begin with "BAD" or "bad"
-# (e.g., "bad_cough", "bad-eyes-closed", "bad door slamming", etc). When this
-# practice is followed, many processing steps in MNE-Python will automatically
-# exclude the "bad"-labelled spans of data; this behavior is controlled by a
-# parameter ``reject_by_annotation`` that can be found in many MNE-Python
-# functions or class constructors, including:
+# You can see that you need to add a description first to start with
+# marking spans (Push the button "Add Description" and enter the description).
+# You can use any description you like, but annotations marking spans that
+# should be excluded from the analysis pipeline should all begin with "BAD" or
+# "bad" (e.g., "bad_cough", "bad-eyes-closed", "bad door slamming", etc). When
+# this practice is followed, many processing steps in MNE-Python will
+# automatically exclude the "bad"-labelled spans of data; this behavior is
+# controlled by a parameter ``reject_by_annotation`` that can be found in many
+# MNE-Python functions or class constructors, including:
 #
 # - creation of epoched data from continuous data (:class:`mne.Epochs`)
 # - many methods of the independent components analysis class

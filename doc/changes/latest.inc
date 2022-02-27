@@ -28,9 +28,15 @@ Enhancements
 
 - Fix some unused variables in time_frequency_erds.py example (:gh:`10076` by :newcontrib:`Jan Zerfowski`)
 
+- :func:`mne.time_frequency.psd_array_multitaper` can now return complex results per-taper when specifying ``output='complex'`` (:gh:`10307` by `Mikołaj Magnuski`_)
+
 - :func:`mne.time_frequency.tfr_array_multitaper` can now return results for ``output='phase'`` instead of an error (:gh:`10281` by `Mikołaj Magnuski`_)
 
 - Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
+
+- Show boundaries in :func:`mne.gui.locate_ieeg` (:gh:`10379` by `Eric Larson`_)
+
+- Add argument ``cval`` to :func:`mne.transforms.apply_volume_registration` to set interpolation values outside the image domain (:gh:`10379` by `Eric Larson`_)
 
 - Improve docstring of :class:`mne.Info` and add attributes that were not covered (:gh:`9922` by `Mathieu Scheltienne`_)
 
@@ -102,8 +108,22 @@ Enhancements
 
 - The new convenience function :func:`mne.event.match_event_names` allows for straightforward checking if a specific event name or a group of events is present in a collection of event names (:gh:`10233` by `Richard Höchenberger`_)
 
+- :meth:`Epochs.plot` is now supported by the pyqtgraph-backend (:gh:`10297` by `Martin Schulz`_)
+
+- The ``map_surface`` parameter of :meth:`mne.viz.Brain.add_foci` now works and allows you to add foci to a rendering of a brain that are positioned at the vertex of the mesh closest to the given coordinates (:gh:`10299` by `Marijn van Vliet`_)
+
+- :meth:`mne.preprocessing.ICA.plot_sources()` is now also supported by the ``qt`` backend (:gh:`10330` by `Martin Schulz`_)
+
+- Added :meth:`mne.viz.Brain.add_dipole` and :meth:`mne.viz.Brain.add_forward` to plot dipoles on a brain as well as :meth:`mne.viz.Brain.remove_dipole` and :meth:`mne.viz.Brain.remove_forward` (:gh:`10373` by `Alex Rockhill`_)
+
+- Made anterior/posterior slice scrolling in :func:`mne.gui.locate_ieeg` possible for users without page up and page down buttons by allowing angle bracket buttons to be used (:gh:`10384` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
+
+- Fix datetime conversion for tmin/tmax=None cases in :meth:`mne.Annotations.crop`. Allow the use of float and None simultaneously for :meth:`mne.Annotations.crop`. (:gh:`10361` by `Michiru Kaneda`_)
+
+- Add Shift_JIST mu in :func:`mne.io.read_raw_edf` (:gh:`10356` by :newcontrib:`Michiru Kaneda`)
 
 - Teach :func:`mne.io.read_raw_bti` to use its ``eog_ch`` parameter (:gh:`10093` by :newcontrib:`Adina Wagner`)
 
@@ -138,6 +158,8 @@ Bugs
 - Fix bug in :func:`mne.get_montage_volume_labels` that set the maximum number of voxels to be included too low causing unwanted capping of the included voxel labels (:gh:`10021` by `Alex Rockhill`_)
 
 - Fix annotation cropping and I/O roundtrip when there is no measurement date available (:gh:`10040` by `Mathieu Scheltienne`_ and `Alex Gramfort`_).
+
+- Fix bug where :meth:`raw.crop() <mne.io.Raw.crop>` from the beginning of the instance could break annotations and ``raw.first_samp`` (:gh:`10358` by `Eric Larson`_)
 
 - :func:`~mne.sys_info` output now contains the installed version of ``pooch``, too; this output had been accidentally removed previously (:gh:`10047` by `Richard Höchenberger`_)
 
@@ -179,19 +201,47 @@ Bugs
 
 - Fix bug with :func:`mne.io.read_raw_nirx` being unable to read measurement dates recorded on systems with German (de_DE), French (fr_FR), and Italian (it_IT) locales (:gh:`10277` by `Eric Larson`_)
 
+- Fix bug with projector normalization checks that were too sensitive, and improve warning (:gh:`10292` by `Eric Larson`_)
+
+- Fix bug with :func:`mne.viz.plot_alignment` where head-coordinate source spaces (e.g., from a forward solution) were not properly plotted (:gh:`10309` by `Eric Larson`_)
+
 - :func:`mne.read_trans` now correctly expands ``~`` in the provided path to the user's home directory (:gh:`10265`, by `Richard Höchenberger`_)
 
 - :func:`mne.find_events` now uses ``first_samp`` and not ``0`` for initial event when using ``initial_value`` (:gh:`10289`, by `Alex Gramfort`_)
 
+- Fix bug with :func:`mne.channels.make_standard_montage` for ``'standard*'``, ``'mgh*'``, and ``'artinis*'`` montages where the points were incorrectly scaled and fiducials incorrectly set away from the correct values for use with the ``fsaverage`` subject (:gh:`10324` by `Eric Larson`_)
+
+- Fix bug with :meth:`mne.Report.add_figure` where figures generated externally were closed and possibly resized during render (:gh:`10342` by `Eric Larson`_)
+
+- Fix bug with :func:`mne.viz.plot_sparse_source_estimates` where the return value was incorrect (:gh:`10347` by `Eric Larson`_)
+
+- Fix plotting bug in :ref:`ex-electrode-pos-2d` and make view look more natural in :ref:`ex-movement-detect` (:gh:`10313`, by `Alex Rockhill`_)
+
+- Fix bug with blank 3D rendering with MESA software rendering (:gh:`10400` by `Eric Larson`_)
+
+- Fix a bug in :func:`mne.gui.locate_ieeg` where 2D lines on slice plots failed to update and were shown when not in maximum projection mode (:gh:`10335`, by `Alex Rockhill`_)
+
+- Fix misleading color scale in :ref:`tut-power-cluster-perm` for the plotting of cluster T-statistics (:gh:`10393` by `Alex Rockhill`_)
+
+- Fix baseline removal using ``remove_dc=True`` in :meth:`raw.plot() <mne.io.Raw.plot>` for data containing ``np.nan`` (:gh:`10392` by `Clemens Brunner`_)
+
 API changes
 ~~~~~~~~~~~
+- The default browser for :meth:`raw.plot() <mne.io.Raw.plot>`, :meth:`epochs.plot() <mne.Epochs.plot>`, and :meth:`ica.plot_sources() <mne.preprocessing.ICA.plot_sources>` has been changed to the ``'qt'`` backend on systems where `mne_qt_browser <https://github.com/mne-tools/mne-qt-browser>`__ is installed. To change back to matplotlib within a session, you can use :func:`mne.viz.set_browser_backend('matplotlib') <mne.viz.set_browser_backend>`. To set it permanently on your system, you can use :func:`mne.set_config('MNE_BROWSER_BACKEND', 'matplotlib') <mne.set_config>` (:gh:`9960` by `Martin Schulz`_ and `Eric Larson`_)
+
 - ``mne.Info.pick_channels`` has been deprecated. Use ``inst.pick_channels`` to pick channels from :class:`~mne.io.Raw`, :class:`~mne.Epochs`, and :class:`~mne.Evoked`. Use :func:`mne.pick_info` to pick channels from :class:`mne.Info` (:gh:`10039` by `Mathieu Scheltienne`_)
+
+- All :func:`data_path <mne.datasets.sample.data_path>` functions now return :class:`python:pathlib.Path` objects rather than strings. Support for string concatenation with plus (``+``) is thus deprecated and will be removed in 1.2, use the forward-slash ``/`` operator instead (:gh:`10348` by `Eric Larson`_)
 
 - Argument ``event_list`` has been deprecated in favor of ``events`` in :func:`mne.write_events` (:gh:`10056` by `Mathieu Scheltienne`_)
 
 - ``mne.preprocessing.annotate_flat`` has been deprecated in favor of :func`mne.preprocessing.annotate_amplitude`, that covers both minimum and maximum peak-to-peak variation. (:gh:`10143` by `Mathieu Scheltienne`_)
 
+- The ``max_ori_out`` parameter of :func:`mne.beamformer.apply_lcmv` and related functions is being removed as only signed estimates are supported. ``abs(stc)`` can be used to obtain unsigned estimates (:gh:`10366` by `Eric Larson`_)
+
 - The ``verbose`` attribute of classes (e.g., :class:`mne.io.Raw`, `mne.Epochs`, etc.) has been deprecated. Explicitly pass ``verbose`` to methods as necessary instead. (:gh:`10267` by `Eric Larson`_)
+
+- In :func:`mne.viz.set_browser_backend`, the `mne-qt-browser <https://github.com/mne-tools/mne-qt-browser>`__-based backend is now called ``'qt'`` rather than ``'pyqtgraph'`` for simplicity (:gh:`10323` by `Eric Larson`_)
 
 Dependencies
 ~~~~~~~~~~~~

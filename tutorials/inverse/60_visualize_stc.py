@@ -24,11 +24,11 @@ from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne import read_evokeds
 
 data_path = sample.data_path()
-sample_dir = op.join(data_path, 'MEG', 'sample')
-subjects_dir = op.join(data_path, 'subjects')
+meg_path = data_path / 'MEG' / 'sample'
+subjects_dir = data_path / 'subjects'
 
-fname_evoked = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
-fname_stc = op.join(sample_dir, 'sample_audvis-meg')
+fname_evoked = meg_path / 'sample_audvis-ave.fif'
+fname_stc = meg_path / 'sample_audvis-meg'
 fetch_hcp_mmp_parcellation(subjects_dir)
 
 # %%
@@ -98,7 +98,7 @@ evoked.decimate(10, verbose='error')
 
 # %%
 # Then, we can load the precomputed inverse operator from a file.
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-vol-7-meg-inv.fif'
+fname_inv = meg_path / 'sample_audvis-meg-vol-7-meg-inv.fif'
 inv = read_inverse_operator(fname_inv)
 src = inv['src']
 mri_head_t = inv['mri_head_t']
@@ -163,7 +163,6 @@ brain = mne.viz.Brain('sample', hemi='both', surf='pial', alpha=0.5,
                       cortex='low_contrast', subjects_dir=subjects_dir)
 brain.add_volume_labels(aseg='aparc+aseg', labels=labels)
 brain.show_view(azimuth=250, elevation=40, distance=400)
-brain.enable_depth_peeling()
 
 # %%
 # And we can project these label time courses back to their original
@@ -191,9 +190,9 @@ brain = stc.plot(subject='sample', subjects_dir=subjects_dir,
 # For computing a dipole fit, we need to load the noise covariance, the BEM
 # solution, and the coregistration transformation files. Note that for the
 # other methods, these were already used to generate the inverse operator.
-fname_cov = op.join(sample_dir, 'sample_audvis-cov.fif')
-fname_bem = op.join(subjects_dir, 'sample', 'bem', 'sample-5120-bem-sol.fif')
-fname_trans = op.join(sample_dir, 'sample_audvis_raw-trans.fif')
+fname_cov = meg_path / 'sample_audvis-cov.fif'
+fname_bem = subjects_dir / 'sample' / 'bem' / 'sample-5120-bem-sol.fif'
+fname_trans = meg_path / 'sample_audvis_raw-trans.fif'
 
 ##############################################################################
 # Dipoles are fit independently for each time point, so let us crop our time

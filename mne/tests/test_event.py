@@ -216,7 +216,7 @@ def test_find_events():
     assert_array_equal(events11, events22)
 
     # Reset some data for ease of comparison
-    raw._first_samps[0] = 0
+    raw._cropped_samp = 0
     with raw.info._unlock():
         raw.info['sfreq'] = 1000
 

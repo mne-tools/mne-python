@@ -446,11 +446,6 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
-    def enable_depth_peeling(self):
-        """Enable depth peeling."""
-        pass
-
-    @abstractclassmethod
     def remove_mesh(self, mesh_data):
         """Remove the given mesh from the scene.
 
@@ -571,7 +566,7 @@ class _AbstractDock(ABC):
         pass
 
     @abstractmethod
-    def _dock_add_group_box(self, name, *, layout=None):
+    def _dock_add_group_box(self, name, *, collapse=None, layout=None):
         pass
 
     @abstractmethod
@@ -625,6 +620,13 @@ class _AbstractPlayback(ABC):
     @abstractmethod
     def _playback_initialize(self, func, timeout, value, rng,
                              time_widget, play_widget):
+        pass
+
+
+class _AbstractDialog(ABC):
+    @abstractmethod
+    def _dialog_warning(self, title, text, info_text, callback, *,
+                        buttons=[], modal=True, window=None):
         pass
 
 
@@ -842,7 +844,11 @@ class _AbstractWindow(ABC):
         self._interactor_fraction = None
 
     @abstractmethod
-    def _window_close_connect(self, func):
+    def _window_close_connect(self, func, *, after=True):
+        pass
+
+    @abstractmethod
+    def _window_close_disconnect(self, after=True):
         pass
 
     @abstractmethod
@@ -892,3 +898,33 @@ class _AbstractWindow(ABC):
     @abstractmethod
     def _window_set_theme(self, theme):
         pass
+
+
+class Figure3D(ABC):
+    """Class that refers to a 3D figure.
+
+    .. note::
+        This class is not meant to be instantiated directly, use
+        :func:`mne.viz.create_3d_figure` instead.
+    """
+
+    # Here we use _init rather than __init__ so that users are less tempted to
+    # instantiate the class directly. It also helps us
+    # document the class more easily, as we don't have to say what all the
+    # params are in public docs.
+
+    @abstractclassmethod
+    def _init(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
+              name=None, show=False, shape=(1, 1)):
+        pass
+
+    @property
+    def plotter(self):
+        """The native 3D plotting widget.
+
+        Returns
+        -------
+        plotter : instance of pyvista.Plotter
+            The plotter. Useful for interacting with the native 3D library.
+        """
+        return self._plotter

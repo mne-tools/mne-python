@@ -1,7 +1,11 @@
-# Tagging a commit with:
-# - [circle front] will build the front page and perform test-doc
-# - [circle full] will build everything
-# - [circle linkcheck] will run our linkcheck
+# By default, for PRs CircleCI will build only examples that have changed.
+# For main commits, builds are skipped entirely, as we only do full builds
+# scheduled for one time daily.
+#
+# Tagging a commit with the following overrides these behaviors:
+# - [circle front] will run the front page examples and perform test-doc
+# - [circle full] will run all examples and perform test-doc
+# - [circle linkcheck] will run our linkcheck job
 # - [circle deploy] on a main or maint/* commit will try to immediately build
 #   and deploy docs rather than waiting for the nightly build
 
@@ -103,9 +107,10 @@ jobs:
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
               echo "export MNE_FULL_DATE=true" >> $BASH_ENV
-              echo "export MNE_3D_OPTION_ANTIALIAS=false" >> $BASH_ENV
               source tools/get_minimal_commands.sh
               echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
+              echo "export MNE_BROWSER_BACKEND=qt" >> $BASH_ENV
+              echo "export MNE_BROWSER_PRECOMPUTE=false" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
               echo "source ~/python_env/bin/activate" >> $BASH_ENV
               mkdir -p ~/.local/bin

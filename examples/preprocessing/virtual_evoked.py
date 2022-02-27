@@ -25,7 +25,8 @@ print(__doc__)
 
 # read the evoked
 data_path = sample.data_path()
-fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
+meg_path = data_path / 'MEG' / 'sample'
+fname = meg_path / 'sample_audvis-ave.fif'
 evoked = mne.read_evokeds(fname, condition='Left Auditory', baseline=(None, 0))
 
 # %%

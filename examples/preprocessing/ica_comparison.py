@@ -29,7 +29,8 @@ print(__doc__)
 # - 1-30 Hz band-pass filter
 
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
 
 raw = mne.io.read_raw_fif(raw_fname).crop(0, 60).pick('meg').load_data()
 

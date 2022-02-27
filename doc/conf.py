@@ -6,13 +6,14 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+from datetime import datetime, timezone
+import faulthandler
 import gc
 import os
 import subprocess
 import sys
 import time
 import warnings
-from datetime import datetime, timezone
 
 import numpy as np
 import matplotlib
@@ -21,12 +22,15 @@ from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from numpydoc import docscrape
 
 import mne
+from mne.fixes import _compare_version
 from mne.tests.test_docstring_parameters import error_ignores
 from mne.utils import (linkcode_resolve, # noqa, analysis:ignore
                        _assert_no_instances, sizeof_fmt, run_subprocess)
 from mne.viz import Brain  # noqa
 
 matplotlib.use('agg')
+faulthandler.enable()
+os.environ['_MNE_BROWSER_NO_BLOCK'] = 'true'
 
 # -- Path setup --------------------------------------------------------------
 
@@ -170,6 +174,7 @@ numpydoc_xref_aliases = {
     'iterator': ':term:`iterator <python:iterator>`',
     'path-like': ':term:`path-like`',
     'array-like': ':term:`array-like`',
+    'Path': ':class:`python:pathlib.Path`',
     # Matplotlib
     'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',
     'color': ':doc:`color <matplotlib:api/colors_api>`',
@@ -222,6 +227,7 @@ numpydoc_xref_aliases = {
     'Beamformer': 'mne.beamformer.Beamformer',
     'Transform': 'mne.transforms.Transform',
     'Coregistration': 'mne.coreg.Coregistration',
+    'Figure3D': 'mne.viz.Figure3D',
     # dipy
     'dipy.align.AffineMap': 'dipy.align.imaffine.AffineMap',
     'dipy.align.DiffeomorphicMap': 'dipy.align.imwarp.DiffeomorphicMap',
@@ -254,8 +260,8 @@ numpydoc_xref_ignore = {
     # unlinkable
     'CoregistrationUI',
     'IntracranialElectrodeLocator',
-    # We need to fix these: "PyVista renderer" and "PyVista surface"
-    'PyVista', 'renderer', 'surface',
+    # TODO: fix the Renderer return type of create_3d_figure(scene=False)
+    'Renderer',
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
@@ -289,7 +295,7 @@ class Resetter(object):
     def __repr__(self):
         return f'<{self.__class__.__name__}>'
 
-    def __call__(self, gallery_conf, fname):
+    def __call__(self, gallery_conf, fname, when):
         import matplotlib.pyplot as plt
         try:
             from pyvista import Plotter  # noqa
@@ -303,6 +309,10 @@ class Resetter(object):
             from vtk import vtkPolyData  # noqa
         except ImportError:
             vtkPolyData = None  # noqa
+        try:
+            from mne_qt_browser._pg_figure import PyQtGraphBrowser
+        except ImportError:
+            PyQtGraphBrowser = None
         from mne.viz.backends.renderer import backend
         _Renderer = backend._Renderer if backend is not None else None
         reset_warnings(gallery_conf, fname)
@@ -310,25 +320,44 @@ class Resetter(object):
         # turn it off here (otherwise the build can be very slow)
         plt.ioff()
         plt.rcParams['animation.embed_limit'] = 30.
+        # neo holds on to an exception, which in turn holds a stack frame,
+        # which will keep alive the global vars during SG execution
+        try:
+            import neo
+            neo.io.stimfitio.STFIO_ERR = None
+        except Exception:
+            pass
         gc.collect()
-        when = 'mne/conf.py:Resetter.__call__'
-        if os.getenv('MNE_SKIP_INSTANCE_ASSERTIONS', 'false') not in \
-                ('true', '1'):
-            _assert_no_instances(Brain, when)  # calls gc.collect()
-            if Plotter is not None:
+        when = f'mne/conf.py:Resetter.__call__:{when}:{fname}'
+        # Support stuff like
+        # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html_dev-memory  # noqa: E501
+        # to just test PyQtGraphBrowser
+        skips = os.getenv('MNE_SKIP_INSTANCE_ASSERTIONS', '').lower()
+        prefix = ''
+        if skips not in ('true', '1', 'all'):
+            prefix = 'Clean '
+            skips = skips.split(',')
+            if 'brain' not in skips:
+                _assert_no_instances(Brain, when)  # calls gc.collect()
+            if Plotter is not None and 'plotter' not in skips:
                 _assert_no_instances(Plotter, when)
-            if BackgroundPlotter is not None:
+            if BackgroundPlotter is not None and \
+                    'backgroundplotter' not in skips:
                 _assert_no_instances(BackgroundPlotter, when)
-            if vtkPolyData is not None:
+            if vtkPolyData is not None and 'vtkpolydata' not in skips:
                 _assert_no_instances(vtkPolyData, when)
-            _assert_no_instances(_Renderer, when)
+            if '_renderer' not in skips:
+                _assert_no_instances(_Renderer, when)
+            if PyQtGraphBrowser is not None and \
+                    'pyqtgraphbrowser' not in skips:
+                _assert_no_instances(PyQtGraphBrowser, when)
         # This will overwrite some Sphinx printing but it's useful
         # for memory timestamps
         if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
             import psutil
             process = psutil.Process(os.getpid())
             mem = sizeof_fmt(process.memory_info().rss)
-            print(f'{time.time() - self.t0:6.1f} s : {mem}'.ljust(22))
+            print(f'{prefix}{time.time() - self.t0:6.1f} s : {mem}'.ljust(22))
 
 
 examples_dirs = ['../tutorials', '../examples']
@@ -354,6 +383,13 @@ else:
     report_scraper = mne.report._ReportScraper()
     scrapers += (report_scraper,)
     del backend
+try:
+    import mne_qt_browser
+    _min_ver = _compare_version(mne_qt_browser.__version__, '>=', '0.2')
+    if mne.viz.get_browser_backend() == 'qt' and _min_ver:
+        scrapers += (mne.viz._scraper._PyQtGraphScraper(),)
+except ImportError:
+    pass
 
 compress_images = ('images', 'thumbnails')
 # let's make things easier on Windows users
@@ -405,6 +441,7 @@ sphinx_gallery_conf = {
     'min_reported_time': 1.,
     'abort_on_example_error': False,
     'reset_modules': ('matplotlib', Resetter()),  # called w/each script
+    'reset_modules_order': 'both',
     'image_scrapers': scrapers,
     'show_memory': not sys.platform.startswith('win'),
     'line_numbers': False,  # messes with style
@@ -497,24 +534,6 @@ nitpick_ignore = [
     ("py:class", "_FuncT"),  # type hint used in @verbose decorator
     ("py:class", "mne.utils._logging._FuncT"),
 ]
-for key in ('AcqParserFIF', 'BiHemiLabel', 'Dipole', 'DipoleFixed', 'Label',
-            'MixedSourceEstimate', 'MixedVectorSourceEstimate', 'Report',
-            'SourceEstimate', 'SourceMorph', 'VectorSourceEstimate',
-            'VolSourceEstimate', 'VolVectorSourceEstimate',
-            'channels.DigMontage', 'channels.Layout', 'coreg.Coregistration',
-            'decoding.CSP', 'decoding.EMS', 'decoding.FilterEstimator',
-            'decoding.GeneralizingEstimator', 'decoding.LinearModel',
-            'decoding.PSDEstimator', 'decoding.ReceptiveField', 'decoding.SSD',
-            'decoding.SPoC', 'decoding.Scaler', 'decoding.SlidingEstimator',
-            'decoding.TemporalFilter', 'decoding.TimeDelayingRidge',
-            'decoding.TimeFrequency', 'decoding.UnsupervisedSpatialFilter',
-            'decoding.Vectorizer',
-            'preprocessing.ICA', 'preprocessing.Xdawn',
-            'simulation.SourceSimulator',
-            'time_frequency.CrossSpectralDensity',
-            'utils.deprecated', 'use_log_level',
-            'viz.ClickableImage'):
-    nitpick_ignore.append(('py:obj', f'mne.{key}.__hash__'))
 suppress_warnings = ['image.nonlocal_uri']  # we intentionally link outside
 
 
@@ -713,6 +732,7 @@ html_context = {
              size=xxl),
     ],
     # \u00AD is an optional hyphen (not rendered unless needed)
+    # If these are changed, the Makefile should be updated, too
     'carousel': [
         dict(title='Source Estimation',
              text='Distributed, sparse, mixed-norm, beam\u00ADformers, dipole fitting, and more.',  # noqa E501
@@ -816,6 +836,12 @@ def reset_warnings(gallery_conf, fname):
         'ignore', '.*"is not" with a literal.*', module='nilearn')
     warnings.filterwarnings(  # scikit-learn FastICA whiten=True deprecation
         'ignore', r'.*From version 1\.3 whiten.*')
+    warnings.filterwarnings(  # seaborn -> pandas
+        'ignore', '.*iteritems is deprecated and will be.*')
+    warnings.filterwarnings(  # PyOpenGL for macOS
+        'ignore', '.*PyOpenGL was not found.*')
+    warnings.filterwarnings(  # macOS Epochs
+        'ignore', '.*Plotting epochs on MacOS.*')
     for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
                 'Using or importing the ABCs from',  # internal modules on 3.7
                 r"it will be an error for 'np\.bool_'",  # ndimage
@@ -832,7 +858,10 @@ def reset_warnings(gallery_conf, fname):
                 "default value of type 'dict' in an Any trait will",  # traits
                 'rcParams is deprecated',  # PyVista rcParams -> global_theme
                 'to mean no clipping',
+                r'the `scipy\.ndimage.*` namespace is deprecated',  # Dipy
                 '`np.MachAr` is deprecated',  # Numba
+                'distutils Version classes are deprecated',  # pydata-sphinx-th
+                'The module matplotlib.tight_layout is deprecated',  # nilearn
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
@@ -1161,5 +1190,6 @@ def setup(app):
     sphinx_logger = sphinx.util.logging.getLogger('mne')
     sphinx_logger.info(
         f'Building documentation for MNE {release} ({mne.__file__})')
+    sphinx_logger.info(f'Building with scrapers={scrapers}')
     app.connect('build-finished', make_redirects)
     app.connect('build-finished', make_version)

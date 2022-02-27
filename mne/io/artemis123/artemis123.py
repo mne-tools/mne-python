@@ -194,7 +194,7 @@ def _get_artemis123_info(fname, pos_fname=None):
             t['unit'] = FIFF.FIFF_UNIT_T
             t['unit_mul'] = FIFF.FIFF_UNITM_F
 
-        # 3 axis referance magnetometers
+        # 3 axis reference magnetometers
         elif (chan['name'] in ref_mag_names):
             t['coil_type'] = FIFF.FIFFV_COIL_ARTEMIS123_REF_MAG
             t['kind'] = FIFF.FIFFV_REF_MEG_CH

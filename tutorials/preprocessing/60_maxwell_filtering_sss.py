@@ -310,7 +310,7 @@ mne.viz.plot_head_positions(head_pos, mode='traces')
 # :func:`~mne.preprocessing.maxwell_filter`. Not only would this account for
 # movement within a given recording session, but also would effectively
 # normalize head position across different measurement sessions and subjects.
-# See :ref:`here <example-movement-comp>` for an extended example of applying
+# See :ref:`here <ex-movement-comp>` for an extended example of applying
 # movement compensation during Maxwell filtering / SSS. Another option is to
 # apply movement compensation when averaging epochs into an
 # :class:`~mne.Evoked` instance, using the :func:`mne.epochs.average_movements`

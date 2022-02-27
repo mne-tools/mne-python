@@ -18,8 +18,8 @@ This example shows how to use:
 Note that our sample sEEG electrodes are already assumed to be in MNI
 space. If you want to map positions from your subject MRI space to MNI
 fsaverage space, you must apply the FreeSurfer's talairach.xfm transform
-for your dataset. You can take a look at :ref:`tut-freesurfer-mne` for
-more information.
+for your dataset. You can take a look at :ref:`tut-freesurfer-mne` for more
+information.
 
 For an example that involves ECoG data, channel locations in a
 subject-specific MRI, or projection into a surface, see
@@ -147,7 +147,6 @@ brain = mne.viz.Brain('fsaverage', alpha=0.1, cortex='low_contrast',
                       subjects_dir=subjects_dir, units='m', figure=fig)
 brain.add_volume_labels(aseg='aparc+aseg', labels=labels)
 brain.show_view(azimuth=120, elevation=90, distance=0.25)
-brain.enable_depth_peeling()
 
 # %%
 # Next, we'll get the epoch data and plot its amplitude over time.

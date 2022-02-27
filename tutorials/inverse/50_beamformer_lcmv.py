@@ -43,8 +43,9 @@ from mne.beamformer import make_lcmv, apply_lcmv
 # activity on the trials with left auditory stimulation.
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+subjects_dir = data_path / 'subjects'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
 
 # Read the raw data
 raw = mne.io.read_raw_fif(raw_fname)
@@ -122,7 +123,7 @@ del epochs
 
 # Read forward model
 
-fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
+fwd_fname = meg_path / 'sample_audvis-meg-vol-7-fwd.fif'
 forward = mne.read_forward_solution(fwd_fname)
 
 # %%
@@ -190,8 +191,8 @@ del forward
 # :func:`~mne.beamformer.apply_lcmv_epochs`, and
 # :func:`~mne.beamformer.apply_lcmv_cov`.
 
-stc = apply_lcmv(evoked, filters, max_ori_out='signed')
-stc_vec = apply_lcmv(evoked, filters_vec, max_ori_out='signed')
+stc = apply_lcmv(evoked, filters)
+stc_vec = apply_lcmv(evoked, filters_vec)
 del filters, filters_vec
 
 # %%
@@ -270,7 +271,7 @@ del stc_vec
 # the morph, we will crop the ``stc``:
 
 fetch_fsaverage(subjects_dir)  # ensure fsaverage src exists
-fname_fs_src = subjects_dir + '/fsaverage/bem/fsaverage-vol-5-src.fif'
+fname_fs_src = subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-vol-5-src.fif'
 
 src_fs = mne.read_source_spaces(fname_fs_src)
 morph = mne.compute_source_morph(

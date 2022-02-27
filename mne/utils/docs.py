@@ -748,10 +748,10 @@ phase : str
     Phase of the filter, only used if ``method='fir'``.
     Symmetric linear-phase FIR filters are constructed, and if ``phase='zero'``
     (default), the delay of this filter is compensated for, making it
-    non-causal. If ``phase=='zero-double'``,
+    non-causal. If ``phase='zero-double'``,
     then this filter is applied twice, once forward, and once backward
-    (also making it non-causal). If 'minimum', then a minimum-phase filter will
-    be constricted and applied, which is causal but has weaker stop-band
+    (also making it non-causal). If ``'minimum'``, then a minimum-phase filter
+    will be constricted and applied, which is causal but has weaker stop-band
     suppression.
 
     .. versionadded:: 0.13
@@ -1201,6 +1201,14 @@ tol_kind : str
     .. versionadded:: 0.21.0
 """
 
+# Dipole
+docdict['dipole'] = """
+dipole : instance of Dipole
+    Dipole object containing position, orientation and amplitude of
+    one or more dipoles. Multiple simultaneous dipoles may be defined by
+    assigning them identical times.
+"""
+
 # Inverses
 docdict['depth'] = """
 depth : None | float | dict
@@ -1301,6 +1309,11 @@ weight_norm : str | None
         3. Does not satisfy the second requirement that ``w @ G.T = θI``,
            which arguably does not make sense for a rotation-invariant
            solution.
+"""
+docdict['max_ori_out_deprecated'] = """
+max_ori_out : None
+    This argument is deprecated and will be removed in 1.1, as signed
+    values are always returned. Do not pass it as an argument.
 """
 docdict['bf_pick_ori'] = """
 pick_ori : None | str
@@ -1459,6 +1472,11 @@ docdict['subject'] = """
 subject : str
     The FreeSurfer subject name.
 """
+docdict['subject_optional'] = """
+subject : str
+    The FreeSurfer subject name. While not necessary, it is safer to set the
+    subject parameter to avoid analysis errors.
+"""
 docdict['subject_none'] = """
 subject : str | None
     The FreeSurfer subject name.
@@ -1575,24 +1593,27 @@ time_format : 'float' | 'clock'
     .. versionadded:: 0.24
 """
 
-# Visualization with pyqtgraph
+# Visualization with Qt
 docdict['precompute'] = """
 precompute : bool | str
     Whether to load all data (not just the visible portion) into RAM and
     apply preprocessing (e.g., projectors) to the full data array in a separate
     processor thread, instead of window-by-window during scrolling. The default
-    ``'auto'`` compares available RAM space to the expected size of the
-    precomputed data, and precomputes only if enough RAM is available. ``True``
-    and ``'auto'`` only work if using the PyQtGraph backend.
+    None uses the ``MNE_BROWSER_PRECOMPUTE`` variable, which defaults to
+    ``'auto'``. ``'auto'`` compares available RAM space to the expected size of
+    the precomputed data, and precomputes only if enough RAM is available.
+    This is only used with the Qt backend.
 
     .. versionadded:: 0.24
+    .. versionchanged:: 1.0
+       Support for the MNE_BROWSER_PRECOMPUTE config variable.
 """
 
 docdict['use_opengl'] = """
 use_opengl : bool | None
     Whether to use OpenGL when rendering the plot (requires ``pyopengl``).
     May increase performance, but effect is dependent on system CPU and
-    graphics hardware. Only works if using the PyQtGraph backend. Default is
+    graphics hardware. Only works if using the Qt backend. Default is
     None, which will use False unless the user configuration variable
     ``MNE_BROWSER_USE_OPENGL`` is set to ``'true'``,
     see :func:`mne.set_config`.
@@ -1792,10 +1813,17 @@ allow_duplicates : bool
 """
 
 # Brain plotting
+docdict["fwd"] = """
+fwd : instance of Forward
+    The forward solution. If present, the orientations of the dipoles
+    present in the forward solution are displayed.
+"""
 docdict["view"] = """
 view : str | None
     The name of the view to show (e.g. "lateral"). Other arguments
     take precedence and modify the camera starting from the ``view``.
+    See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for valid
+    string shortcut options.
 """
 docdict["roll"] = """
 roll : float | None
@@ -1818,6 +1846,14 @@ docdict["focalpoint"] = """
 focalpoint : tuple, shape (3,) | None
     The focal point of the camera rendering the view: (x, y, z) in
     plot units (either m or mm).
+"""
+docdict["color_matplotlib"] = """
+color : color
+    A list of anything matplotlib accepts: string, RGB, hex, etc.
+"""
+docdict["alpha"] = """
+alpha : float in [0, 1]
+    Alpha level to control opacity.
 """
 docdict["clim"] = """
 clim : str | dict
@@ -1947,6 +1983,19 @@ volume_options : float | dict | None
     A float input (default 1.) or None will be used for the ``'resolution'``
     entry.
 """
+docdict['vertices_volume'] = """
+vertices : list of array of int
+    The indices of the dipoles in the source space. Should be a single
+    array of shape (n_dipoles,) unless there are subvolumes.
+"""
+docdict['tmin'] = """
+tmin : scalar
+    Time point of the first sample in data.
+"""
+docdict['tstep'] = """
+tstep : scalar
+    Time step between successive samples in data.
+"""
 docdict['view_layout'] = """
 view_layout : str
     Can be "vertical" (default) or "horizontal". When using "horizontal" mode,
@@ -1964,13 +2013,9 @@ brain_kwargs : dict | None
 """
 docdict['views'] = """
 views : str | list
-    View to use. Can be any of::
-
-        ['lateral', 'medial', 'rostral', 'caudal', 'dorsal', 'ventral',
-         'frontal', 'parietal', 'axial', 'sagittal', 'coronal']
-
-    Three letter abbreviations (e.g., ``'lat'``) are also supported.
-    Using multiple views (list) is not supported for mpl backend.
+    View to use. Using multiple views (list) is not supported for mpl
+    backend. See :meth:`Brain.show_view <mne.viz.Brain.show_view>` for
+    valid string options.
 """
 
 # Coregistration

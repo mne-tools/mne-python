@@ -28,7 +28,7 @@ A second option is to install MNE-Python into its own virtual environment
 
     $ conda create --name=new_environment_name python=3
     $ conda activate new_environment_name
-    $ pip install mne matplotlib
+    $ pip install mne
 
 This approach is a good choice if you want to keep a separate virtual
 environment for each project. This helps with reproducibility, since each
@@ -186,9 +186,11 @@ Python development are:
   use Python. It is included by default in the ``base`` environment when you
   install Anaconda, and can be started from a terminal with the command
   ``spyder`` (or on Windows or macOS, launched from the Anaconda Navigator GUI).
-  If you use Spyder, you should *not* install it into the ``mne`` environment;
-  instead, launch Spyder from the ``base`` environment and set it to use the
-  ``mne`` environment automatically, by opening Spyder and navigating to
+  It can also be installed with `dedicated installers <https://www.spyder-ide.org/#section-download>`_.
+  To avoid dependency conflicts with Spyder, you should install ``mne`` in a
+  separate environment, like explained in the earlier sections. Then, set
+  Spyder to use the ``mne`` environment as its default interpreter by opening
+  Spyder and navigating to
   :samp:`Tools > Preferences > Python Interpreter > Use the following interpreter`.
   There, paste the output of the following terminal commands::
 
@@ -197,6 +199,20 @@ Python development are:
 
   It should be something like ``C:\Users\user\anaconda3\envs\mne\python.exe``
   (Windows) or ``/Users/user/opt/anaconda3/envs/mne/bin/python`` (macOS).
+
+  If the Spyder console can not start because ``spyder-kernels`` is missing,
+  install the required version in the ``mne`` environment with the following
+  commands in the terminal::
+
+      $ conda activate mne
+      $ conda install spyder-kernels=HERE_EXACT_VERSION -c conda-forge
+
+  Refer to the `spyder documentation <https://docs.spyder-ide.org/current/troubleshooting/common-illnesses.html#spyder-kernels-not-installed-incompatible>`_
+  for more information about ``spyder-kernels`` and the version matching.
+
+  If the Spyder graphic backend is not set to ``inline`` but to e.g. ``Qt5``,
+  ``pyqt`` must be installed in the ``mne`` environment.
+
 - `Visual Studio Code`_ (often shortened to "VS Code" or "vscode") is a
   development-focused text editor that supports many programming languages in
   addition to Python, includes an integrated terminal console, and has a rich

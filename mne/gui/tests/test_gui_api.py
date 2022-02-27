@@ -184,7 +184,8 @@ def test_gui_api(renderer_notebook, nbexec):
 
     renderer._dock_initialize(name='', area='right')
     renderer._dock_named_layout(name='')
-    renderer._dock_add_group_box(name='')
+    for collapse in (None, True, False):
+        renderer._dock_add_group_box(name='', collapse=collapse)
     renderer._dock_add_stretch()
     renderer._dock_add_layout()
     renderer._dock_finalize()
@@ -298,8 +299,50 @@ def test_gui_api(renderer_notebook, nbexec):
     assert widget.get_tooltip() == 'bar'
     # --- END: tooltips ---
 
+    # --- BEGIN: dialog ---
+    # dialogs are not supported yet on notebook
+    if renderer._kind == 'qt':
+        # warning
+        buttons = ["Save", "Cancel"]
+        widget = renderer._dialog_warning(
+            title='',
+            text='',
+            info_text='',
+            callback=mock,
+            buttons=buttons,
+            modal=False,
+        )
+        widget.show()
+        for button in buttons:
+            with _check_widget_trigger(None, mock, '', '', get_value=False):
+                widget.trigger(button=button)
+            assert mock.call_args.args == (button,)
+
+        # buttons list empty means OK button (default)
+        button = 'Ok'
+        widget = renderer._dialog_warning(
+            title='',
+            text='',
+            info_text='',
+            callback=mock,
+            modal=False,
+        )
+        widget.show()
+        with _check_widget_trigger(None, mock, '', '', get_value=False):
+            widget.trigger(button=button)
+        assert mock.call_args.args == (button,)
+    # --- END: dialog ---
+
     renderer.show()
+
+    renderer._window_close_connect(lambda: mock('first'), after=False)
+    renderer._window_close_connect(lambda: mock('last'))
+    old_call_count = mock.call_count
     renderer.close()
+    if renderer._kind == 'qt':
+        assert mock.call_count == old_call_count + 2
+        assert mock.call_args_list[-1].args == ('last',)
+        assert mock.call_args_list[-2].args == ('first',)
 
 
 def test_gui_api_qt(renderer_interactive_pyvistaqt):

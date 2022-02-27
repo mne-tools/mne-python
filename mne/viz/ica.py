@@ -13,7 +13,8 @@ import warnings
 import numpy as np
 
 from .utils import (tight_layout, _make_event_color_dict,
-                    plt_show, _convert_psds, _compute_scalings)
+                    plt_show, _convert_psds, _compute_scalings,
+                    _handle_precompute)
 from .topomap import _plot_ica_topomap
 from .epochs import plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
@@ -29,7 +30,8 @@ from ..utils import _reject_data_segments, verbose
 def plot_ica_sources(ica, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True,
-                     time_format='float'):
+                     time_format='float', precompute=None,
+                     use_opengl=None):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -65,6 +67,8 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
         If True, show time axis relative to the ``raw.first_samp``.
     %(show_scrollbars)s
     %(time_format)s
+    %(precompute)s
+    %(use_opengl)s
 
     Returns
     -------
@@ -91,7 +95,8 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
                             show=show, title=title, block=block,
                             show_first_samp=show_first_samp,
                             show_scrollbars=show_scrollbars,
-                            time_format=time_format)
+                            time_format=time_format, precompute=precompute,
+                            use_opengl=use_opengl)
     elif isinstance(inst, Evoked):
         if start is not None or stop is not None:
             inst = inst.copy().crop(start, stop)
@@ -951,7 +956,8 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 
 def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
-                  show_scrollbars, show_first_samp, time_format):
+                  show_scrollbars, show_first_samp, time_format,
+                  precompute, use_opengl):
     """Plot the ICA components as a RawArray or EpochsArray."""
     from ._figure import _get_browser
     from .. import EpochsArray, BaseEpochs
@@ -1045,6 +1051,7 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
     # misc
     bad_color = 'lightgray'
     title = 'ICA components' if title is None else title
+    precompute = _handle_precompute(precompute)
 
     params = dict(inst=inst_array,
                   ica=ica,
@@ -1086,7 +1093,9 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                   clipping=None,
                   scrollbars_visible=show_scrollbars,
                   scalebars_visible=False,
-                  window_title=title)
+                  window_title=title,
+                  precompute=precompute,
+                  use_opengl=use_opengl)
     if is_epo:
         params.update(n_epochs=n_epochs,
                       boundary_times=boundary_times,
@@ -1097,20 +1106,6 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                       epoch_colors=None,
                       xlabel='Epoch number')
 
-    fig = _get_browser(**params)
+    fig = _get_browser(show=show, block=block, **params)
 
-    fig._update_picks()
-
-    # update data, and plot
-    fig._update_trace_offsets()
-    fig._update_data()
-    fig._draw_traces()
-
-    # plot annotations (if any)
-    if is_raw:
-        fig._setup_annotation_colors()
-        fig._update_annotation_segments()
-        fig._draw_annotations()
-
-    plt_show(show, block=block)
     return fig

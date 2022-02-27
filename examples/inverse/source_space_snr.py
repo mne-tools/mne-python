@@ -25,14 +25,15 @@ import matplotlib.pyplot as plt
 print(__doc__)
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
+subjects_dir = data_path / 'subjects'
 
 # Read data
-fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
+meg_path = data_path / 'MEG' / 'sample'
+fname_evoked = meg_path / 'sample_audvis-ave.fif'
 evoked = mne.read_evokeds(fname_evoked, condition='Left Auditory',
                           baseline=(None, 0))
-fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
+fname_fwd = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+fname_cov = meg_path / 'sample_audvis-cov.fif'
 fwd = mne.read_forward_solution(fname_fwd)
 cov = mne.read_cov(fname_cov)
 

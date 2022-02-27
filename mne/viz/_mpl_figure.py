@@ -363,6 +363,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         # this only gets shown in zen mode
         self.mne.zen_xlabel = ax_main.set_xlabel(xlabel)
         self.mne.zen_xlabel.set_visible(not self.mne.scrollbars_visible)
+        # make sure background color of the axis is set
+        if 'bgcolor' in kwargs:
+            ax_main.set_facecolor(kwargs['bgcolor'])
 
         # SCROLLBARS
         ax_hscroll = div.append_axes(position='bottom',
@@ -1292,7 +1295,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         instructions_ax.set_axis_off()
         # add event listeners
         radio_ax.buttons.on_clicked(fig._radiopress)
-        fig.canvas.mpl_connect('lasso_event', fig._set_custom_selection)
+        fig.lasso.callbacks.append(fig._set_custom_selection)
 
     def _change_selection_vscroll(self, event):
         """Handle clicks on vertical scrollbar when using selections."""
@@ -1440,6 +1443,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             self.mne.projs_on = new_state
             self._update_projector()
             self._redraw()
+
+    def _toggle_epoch_histogram(self):
+        """Show or hide peak-to-peak histogram of channel amplitudes."""
+        if self.mne.instance_type == 'epochs':
+            if self.mne.fig_histogram is None:
+                self._create_epoch_histogram()
+            else:
+                from matplotlib.pyplot import close
+                close(self.mne.fig_histogram)
 
     def _toggle_bad_channel(self, idx):
         """Mark/unmark bad channels; `idx` is index of *visible* channels."""
@@ -1781,7 +1793,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             # override custom color on bad epochs
             for _ix in visible_bad_epoch_ix:
                 _cols = np.array([self.mne.epoch_color_bad,
-                                  self.mne.ch_color_bad])[bad_bool.astype(int)]
+                                  self.mne.ch_color_bad],
+                                 dtype=object)[bad_bool.astype(int)]
                 custom_colors[:, _ix] = to_rgba_array(_cols)
 
         # update traces
@@ -1985,7 +1998,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _get_ticklabels(self, orientation):
         if orientation == 'x':
-            labels = self.mne.ax_main.get_xticklabels()
+            labels = self.mne.ax_main.get_xticklabels(minor=self.mne.is_epochs)
         elif orientation == 'y':
             labels = self.mne.ax_main.get_yticklabels()
         label_texts = [lb.get_text() for lb in labels]
@@ -2209,6 +2222,7 @@ def _patched_canvas(fig):
 
 def _init_browser(**kwargs):
     """Instantiate a new MNE browse-style figure."""
+    from mne.io import BaseRaw
     fig = _figure(toolbar=False, FigureClass=MNEBrowseFigure, **kwargs)
 
     # initialize zen mode
@@ -2222,5 +2236,26 @@ def _init_browser(**kwargs):
     if not fig.mne.scrollbars_visible:
         fig.mne.scrollbars_visible = True
         fig._toggle_scrollbars()
+
+    # Initialize parts of the plot
+    is_ica = fig.mne.instance_type == 'ica'
+
+    if not is_ica:
+        # make channel selection dialog,
+        # if requested (doesn't work well in init)
+        if fig.mne.group_by in ('selection', 'position'):
+            fig._create_selection_fig()
+
+    # start with projectors dialog open, if requested
+    if getattr(fig.mne, 'show_options', False):
+        fig._toggle_proj_fig()
+
+    # update data, and plot
+    fig._update_trace_offsets()
+    fig._redraw(update_data=True, annotations=False)
+
+    if isinstance(fig.mne.inst, BaseRaw):
+        fig._setup_annotation_colors()
+        fig._draw_annotations()
 
     return fig

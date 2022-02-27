@@ -19,7 +19,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 from mne import (read_source_estimate, read_evokeds, read_cov,
                  read_forward_solution, pick_types_forward,
                  SourceEstimate, MixedSourceEstimate, write_surface,
-                 VolSourceEstimate, vertex_to_mni)
+                 VolSourceEstimate, vertex_to_mni, Dipole)
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces,
                               setup_volume_source_space)
@@ -342,6 +342,30 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     info['chs'][0]['coord_frame'] = 99
     with pytest.raises(RuntimeError, match='must be "meg", "head" or "mri"'):
         brain.add_sensors(info, trans=fname_trans)
+
+    # add dipole
+    dip = Dipole(times=[0], pos=[[-0.06439933, 0.00733009, 0.06280205]],
+                 amplitude=[3e-8], ori=[[0, 1, 0]], gof=50)
+    brain.add_dipole(dip, fname_trans, colors='blue', scales=5, alpha=0.5)
+    brain.remove_dipole()
+
+    with pytest.raises(ValueError, match='The number of colors'):
+        brain.add_dipole(dip, fname_trans, colors=['red', 'blue'])
+
+    with pytest.raises(ValueError, match='The number of scales'):
+        brain.add_dipole(dip, fname_trans, scales=[1, 2])
+
+    fwd = read_forward_solution(fname_fwd)
+    brain.add_forward(fwd, fname_trans, alpha=0.5, scale=10)
+    brain.remove_forward()
+
+    # fake incorrect coordinate frame
+    fwd['coord_frame'] = 99
+    with pytest.raises(RuntimeError, match='must be "head" or "mri"'):
+        brain.add_forward(fwd, fname_trans)
+    fwd['coord_frame'] = 2003
+    with pytest.raises(RuntimeError, match='must be "head" or "mri"'):
+        brain.add_forward(fwd, fname_trans)
 
     # add text
     brain.add_text(x=0, y=0, text='foo')
@@ -700,8 +724,10 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path,
     assert hasattr(brain, "_spheres")
     assert brain._scalar_bar.GetNumberOfLabels() == 3
 
-    # add foci should work for volumes
-    brain.add_foci([[0, 0, 0]], hemi='lh' if src == 'surface' else 'vol')
+    # add foci should work for 'lh', 'rh' and 'vol'
+    for current_hemi in hemi_str:
+        brain.add_foci([[0, 0, 0]], hemi=current_hemi)
+        assert_array_equal(brain._data[current_hemi]['foci'], [[0, 0, 0]])
 
     # test points picked by default
     picked_points = brain.get_picked_points()
@@ -1010,3 +1036,12 @@ def _create_testing_brain(hemi, surf='inflated', src='surface',
         clim=clim, src=sample_src,
         **kwargs)
     return brain_data
+
+
+def test_foci_mapping(tmp_path, renderer_interactive_pyvistaqt):
+    """Test mapping foci to the surface."""
+    tiny_brain, _ = tiny(tmp_path)
+    foci_coords = tiny_brain.geo['lh'].coords[:2] + 0.01
+    tiny_brain.add_foci(foci_coords, map_surface='white')
+    assert_array_equal(tiny_brain._data['lh']['foci'],
+                       tiny_brain.geo['lh'].coords[:2])

@@ -338,7 +338,7 @@ mne.viz.plot_evoked_topo(epochs['Left'].average(picks='hbo'), color='b',
 mne.viz.plot_evoked_topo(epochs['Right'].average(picks='hbo'), color='r',
                          axes=axes, legend=False)
 
-# Tidy the legend.
+# Tidy the legend:
 leg_lines = [line for line in axes.lines if line.get_c() == 'b'][:1]
 leg_lines.append([line for line in axes.lines if line.get_c() == 'r'][0])
 fig.legend(leg_lines, ['Left', 'Right'], loc='lower right')

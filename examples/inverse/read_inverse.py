@@ -19,12 +19,10 @@ from mne.viz import set_3d_view
 print(__doc__)
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
-
-fname_trans = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
-
-inv_fname = data_path
-inv_fname += '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+subjects_dir = data_path / 'subjects'
+meg_path = data_path / 'MEG' / 'sample'
+fname_trans = meg_path / 'sample_audvis_raw-trans.fif'
+inv_fname = meg_path / 'sample_audvis-meg-oct-6-meg-inv.fif'
 
 inv = read_inverse_operator(inv_fname)
 
@@ -43,7 +41,7 @@ print("Number of vertices on the right hemisphere: %d" % len(src[1]['rr']))
 print("Number of triangles on right hemisphere: %d" % len(src[1]['use_tris']))
 
 # %%
-# Show result on 3D source space
+# Show the 3D source space
 
 fig = mne.viz.plot_alignment(subject='sample', subjects_dir=subjects_dir,
                              trans=fname_trans, surfaces='white', src=src)

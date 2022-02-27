@@ -14,7 +14,7 @@
 
 .. _Simon Kornblith: http://simonster.com
 
-.. _Teon Brooks: https://teonbrooks.github.io
+.. _Teon Brooks: https://teonbrooks.com
 
 .. _Mainak Jas: https://jasmainak.github.io
 
@@ -423,3 +423,5 @@
 .. _Adina Wagner: https://github.com/adswa
 
 .. _Senwen Deng: https://snwn.de
+
+.. _Michiru Kaneda: https://github.com/rcmdnk

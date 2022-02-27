@@ -61,7 +61,7 @@ else
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*hcp_mmp_parcellation.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
-                python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=mne.datasets.sample.data_path() + '/subjects', accept=True))";
+                python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=mne.datasets.sample.data_path() / 'subjects', accept=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*misc.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.misc.data_path(update_path=True))";
