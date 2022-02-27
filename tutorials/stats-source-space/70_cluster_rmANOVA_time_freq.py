@@ -248,4 +248,4 @@ fig.tight_layout()
 # or low power, which is likely appropriate given the highly correlated nature
 # of this data. This is the most likely explanation for why one cluster was
 # preserved by the cluster permutation correction, but no time-frequencies
-# were signficant using the FDR correction.
+# were significant using the FDR correction.
