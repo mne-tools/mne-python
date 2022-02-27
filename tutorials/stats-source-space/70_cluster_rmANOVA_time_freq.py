@@ -24,6 +24,7 @@ comparisons using False Discovery Rate correction.
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
 
@@ -160,7 +161,7 @@ for effect, sig, effect_label, ax in zip(fvals, pvals, effect_labels, axes):
               extent=[times[0], times[-1], freqs[0], freqs[-1]])
     # create mask for significant time-frequency locations
     effect[sig >= 0.05] = np.nan
-    c = ax.imshow(effect, cmap='hot', aspect='auto', origin='lower',
+    c = ax.imshow(effect, cmap='autumn', aspect='auto', origin='lower',
                   extent=[times[0], times[-1], freqs[0], freqs[-1]])
     fig.colorbar(c, ax=ax)
     ax.set_xlabel('Time (ms)')
@@ -210,7 +211,7 @@ F_obs_plot = F_obs.copy()
 F_obs_plot[~clusters[np.squeeze(good_clusters)]] = np.nan
 
 fig, ax = plt.subplots(figsize=(6, 4))
-for f_image, cmap in zip([F_obs, F_obs_plot], ['gray', 'hot']):
+for f_image, cmap in zip([F_obs, F_obs_plot], ['gray', 'autumn']):
     c = ax.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
                   extent=[times[0], times[-1], freqs[0], freqs[-1]])
 
@@ -229,7 +230,7 @@ F_obs_plot2 = F_obs.copy()
 F_obs_plot2[~mask.reshape(F_obs_plot.shape)] = np.nan
 
 fig, ax = plt.subplots(figsize=(6, 4))
-for f_image, cmap in zip([F_obs, F_obs_plot2], ['gray', 'hot']):
+for f_image, cmap in zip([F_obs, F_obs_plot2], ['gray', 'autumn']):
     c = ax.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
                   extent=[times[0], times[-1], freqs[0], freqs[-1]])
 

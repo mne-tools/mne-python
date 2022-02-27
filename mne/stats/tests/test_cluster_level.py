@@ -645,6 +645,7 @@ def test_permutation_test_H0(numba_conditional):
         assert_equal(len(h0), min(n_permutations, 64))
         assert isinstance(clust[0], tuple)  # sets of indices
     for tail, thresh in zip((-1, 0, 1), (-0.1, 0.1, 0.1)):
+        print(data.shape, '\n' * 10)
         t, clust, p, h0 = spatio_temporal_cluster_1samp_test(
             data, threshold=thresh, seed=rng, tail=tail, out_type='mask')
         assert isinstance(clust[0], np.ndarray)  # bool mask

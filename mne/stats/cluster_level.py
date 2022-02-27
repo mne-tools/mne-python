@@ -1266,7 +1266,7 @@ def spatio_temporal_cluster_1samp_test(
     ----------
     .. footbibliography::
     """
-    out_reshape = (-1,)
+    out_reshape = (X.shape[1],)  # 1D data shape
     if X.ndim > 3:
         out_reshape = X.shape[1:-1]
         X = X.reshape(X.shape[0], np.prod(X.shape[1:-1]), X.shape[-1])
@@ -1284,6 +1284,9 @@ def spatio_temporal_cluster_1samp_test(
         step_down_p=step_down_p, t_power=t_power, out_type=out_type,
         check_disjoint=check_disjoint, buffer_size=buffer_size)
     t_obs = np.squeeze(t_obs.reshape((*out_reshape, X.shape[-1])))
+    clusters = [c.reshape((*out_reshape, X.shape[-1])) if out_type == 'mask'
+                else (*np.unravel_index(c[0], out_reshape), c[1])
+                for c in clusters]
     return t_obs, clusters, cluster_pv, H0
 
 
@@ -1343,9 +1346,9 @@ def spatio_temporal_cluster_test(
     ----------
     .. footbibliography::
     """
-    out_reshape = (-1,)
+    out_reshape = (X[0].shape[1],)  # 1D data shape
     if X[0].ndim > 3:
-        out_reshape = X[0].shape[2:-1]
+        out_reshape = X[0].shape[1:-1]
         X = [x.reshape(x.shape[0], np.prod(x.shape[1:-1]), x.shape[-1])
              for x in X]
     n_samples, n_times, n_vertices = X[0].shape
@@ -1362,6 +1365,9 @@ def spatio_temporal_cluster_test(
         step_down_p=step_down_p, t_power=t_power, out_type=out_type,
         check_disjoint=check_disjoint, buffer_size=buffer_size)
     F_obs = np.squeeze(F_obs.reshape((*out_reshape, X[0].shape[-1])))
+    clusters = [c.reshape((*out_reshape, X.shape[-1])) if out_type == 'mask'
+                else (*np.unravel_index(c[0], out_reshape), c[1])
+                for c in clusters]
     return F_obs, clusters, cluster_pv, H0
 
 
