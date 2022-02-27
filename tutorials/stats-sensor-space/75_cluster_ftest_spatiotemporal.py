@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import mne
-from mne.stats import spatio_temporal_cluster_test
+from mne.stats import spatio_temporal_cluster_test, combine_adjacency
 from mne.datasets import sample
 from mne.channels import find_ch_adjacency
 from mne.viz import plot_compare_evokeds
@@ -209,14 +209,19 @@ for condition in [epochs[k] for k in ('Aud/L', 'Vis/L')]:
 # transpose again to (epochs, frequencies, times, vertices)
 X = [np.transpose(x, (0, 2, 3, 1)) for x in epochs_power]
 
-# set cluster threshold
+# define add time-frequency adjacency to the sensor adjacency
+# here the integer inputs are converted into a lattice and
+# combined with the sensor adjacency matrix
+tfr_adjacency = combine_adjacency(
+    len(freqs), len(this_tfr.times), adjacency)
+
+# set parameters
 threshold = 6.0  # default threshold for time-frequency
 
 # run statistic
-cluster_stats = spatio_temporal_cluster_test(X, n_permutations=1000,
-                                             threshold=threshold, tail=1,
-                                             n_jobs=1, buffer_size=None,
-                                             adjacency=adjacency)
+cluster_stats = spatio_temporal_cluster_test(
+    X, n_permutations=1000, threshold=threshold, tail=1, n_jobs=1,
+    buffer_size=None, adjacency=tfr_adjacency)
 
 F_obs, clusters, p_values, _ = cluster_stats
 good_cluster_inds = np.where(p_values < p_accept)[0]
@@ -226,10 +231,11 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     freq_inds, time_inds, space_inds = clusters[clu_idx]
     ch_inds = np.unique(space_inds)
     time_inds = np.unique(time_inds)
-    freq_inds = np.atleast_2d(np.unique(freq_inds))
+    freq_inds = np.unique(freq_inds)
 
     # get topography for F stat
-    f_map = F_obs[freq_inds, time_inds, ...].mean(axis=(0, 1))
+    f_map = F_obs[freq_inds].mean(axis=0)
+    f_map = f_map[time_inds].mean(axis=0)
 
     # get signals at the sensors contributing to the cluster
     sig_times = epochs.times[time_inds]
@@ -264,7 +270,8 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
         title += " (max over channels)"
     F_obs_plot = F_obs[..., ch_inds].max(axis=-1)
     F_obs_plot_sig = np.zeros(F_obs_plot.shape) * np.nan
-    F_obs_plot_sig[freq_inds, time_inds] = F_obs_plot[freq_inds, time_inds]
+    F_obs_plot_sig[freq_inds][:, time_inds] = \
+        F_obs_plot[freq_inds][:, time_inds]
 
     for f_image, cmap in zip([F_obs_plot, F_obs_plot_sig], ['gray', 'autumn']):
         c = ax_spec.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
