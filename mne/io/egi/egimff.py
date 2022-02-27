@@ -5,7 +5,6 @@ import datetime
 import math
 import os.path as op
 import re
-import time
 from xml.dom.minidom import parse
 
 import numpy as np
@@ -213,20 +212,31 @@ def _read_header(input_fname):
         version = np.fromfile(fid, np.int32, 1)[0]
     # Proposed change
     # the  line of code just below parses the string  in
-    # mff_hdr['date'] as a datetime object localised in UTC
+    # mff_hdr['date'] as a datetime object
+    #the datetime object gets localized in UTC at line ~458
     # You can delete this comment after reviewing.
+    
+    '''
+    the datetime.strptime .f directive (milleseconds) 
+    will only accept up to 6 digits. if there are more than
+    six millesecond digits in the provided timestamp string
+    (i.e. because of trailing zeros, as in test_egi_pns.mff)
+    then slice both the first 26 elements and the last 6
+    elements of the timestamp string to to truncate the 
+    milleseconds to 6 digits and extract the timezone, 
+    and then piece these together and assign back to mff_hdr['date']
+    ''' 
+    if len(mff_hdr['date']) > 32 :
+        dt, tz = [mff_hdr['date'][:26], mff_hdr['date'][-6:]]
+        mff_hdr['date'] = dt+tz
+    
     time_n = (datetime.datetime.strptime(
-              mff_hdr['date'], '%Y-%m-%dT%H:%M:%S.%f%z')
-              .astimezone(datetime.timezone.utc))
+              mff_hdr['date'], '%Y-%m-%dT%H:%M:%S.%f%z'))
+    
     info = dict(
         version=version,
-        year=int(time_n.strftime('%Y')),
-        month=int(time_n.strftime('%m')),
-        day=int(time_n.strftime('%d')),
-        hour=int(time_n.strftime('%H')),
-        minute=int(time_n.strftime('%M')),
-        second=int(time_n.strftime('%S')),
-        millisecond=int(time_n.strftime('%f')),
+        meas_dt_local=time_n,
+        utc_offset=time_n.strftime('%z'),
         gain=0,
         bits=0,
         value_range=0)
@@ -450,17 +460,11 @@ class RawMff(BaseRaw):
             self.event_id = None
             egi_info['new_trigger'] = None
             event_codes = []
-        import calendar
+    
+        meas_dt_utc = egi_info['meas_dt_local'].astimezone(datetime.timezone.utc)
         info = _empty_info(egi_info['sfreq'])
-        # assigning tzinfo below isnt strictly necessary,
-        # but for the sake of being explicitly clear about the timezone:
-        my_time = datetime.datetime(
-            egi_info['year'], egi_info['month'], egi_info['day'],
-            egi_info['hour'], egi_info['minute'], egi_info['second'],
-            tzinfo=datetime.timezone.utc)
-        # timetuple() would also  return the same value as utctimetuple()
-        my_timestamp = calendar.timegm(my_time.utctimetuple())
-        info['meas_date'] = _ensure_meas_date_none_or_dt((my_timestamp, 0))
+        info['meas_date'] = _ensure_meas_date_none_or_dt(meas_dt_utc)
+        info['utc_offset'] = egi_info['utc_offset']
         info['device_info'] = dict(type=egi_info['device'])
 
         # First: EEG
