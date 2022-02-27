@@ -229,9 +229,9 @@ Bugs
 
 - Fix baseline removal using ``remove_dc=True`` in :meth:`raw.plot() <mne.io.Raw.plot>` for data containing ``np.nan`` (:gh:`10392` by `Clemens Brunner`_)
 
-- Fix misleading color scale in :ref:`tut-timefreq-twoway-anova` for plotting F-stats (:gh:`10401` by `Alex Rockhill_`)
+- Fix misleading color scale in :ref:`tut-timefreq-twoway-anova` for plotting F-stats (:gh:`10401` by `Alex Rockhill`_)
 
-- Fix misleading ``T_obs`` return name for :func:`mne.stats.spatiotemporal_cluster_test` when the default returns an F-statistic (:gh:`10401` by `Alex Rockhill`_)
+- Fix misleading ``T_obs`` return name for :func:`mne.stats.spatio_temporal_cluster_test` when the default returns an F-statistic (:gh:`10401` by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~
