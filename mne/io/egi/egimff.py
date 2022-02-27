@@ -213,26 +213,26 @@ def _read_header(input_fname):
     # Proposed change
     # the  line of code just below parses the string  in
     # mff_hdr['date'] as a datetime object
-    #the datetime object gets localized in UTC at line ~458
+    # the datetime object gets localized in UTC at line ~458
     # You can delete this comment after reviewing.
-    
+
     '''
-    the datetime.strptime .f directive (milleseconds) 
+    the datetime.strptime .f directive (milleseconds)
     will only accept up to 6 digits. if there are more than
     six millesecond digits in the provided timestamp string
     (i.e. because of trailing zeros, as in test_egi_pns.mff)
     then slice both the first 26 elements and the last 6
-    elements of the timestamp string to to truncate the 
-    milleseconds to 6 digits and extract the timezone, 
+    elements of the timestamp string to to truncate the
+    milleseconds to 6 digits and extract the timezone,
     and then piece these together and assign back to mff_hdr['date']
-    ''' 
-    if len(mff_hdr['date']) > 32 :
+    '''
+    if len(mff_hdr['date']) > 32:
         dt, tz = [mff_hdr['date'][:26], mff_hdr['date'][-6:]]
-        mff_hdr['date'] = dt+tz
-    
+        mff_hdr['date'] = dt + tz
+
     time_n = (datetime.datetime.strptime(
               mff_hdr['date'], '%Y-%m-%dT%H:%M:%S.%f%z'))
-    
+
     info = dict(
         version=version,
         meas_dt_local=time_n,
@@ -460,8 +460,9 @@ class RawMff(BaseRaw):
             self.event_id = None
             egi_info['new_trigger'] = None
             event_codes = []
-    
-        meas_dt_utc = egi_info['meas_dt_local'].astimezone(datetime.timezone.utc)
+
+        meas_dt_utc = (egi_info['meas_dt_local']
+                       .astimezone(datetime.timezone.utc))
         info = _empty_info(egi_info['sfreq'])
         info['meas_date'] = _ensure_meas_date_none_or_dt(meas_dt_utc)
         info['utc_offset'] = egi_info['utc_offset']
