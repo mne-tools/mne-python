@@ -24,6 +24,8 @@ Current (1.0.dev0)
 Enhancements
 ~~~~~~~~~~~~
 
+- Add ``use_orig_time`` option to :meth:`mne.Annotations.crop`. (:gh:`10396` by :newcontrib:`Michiru Kaneda`)
+
 - Speed up :func:`mne.preprocessing.annotate_muscle_zscore`, :func:`mne.preprocessing.annotate_movement`, and :func:`mne.preprocessing.annotate_nan` through better annotation creation (:gh:`10089` by :newcontrib:`Senwen Deng`)
 
 - Fix some unused variables in time_frequency_erds.py example (:gh:`10076` by :newcontrib:`Jan Zerfowski`)
@@ -118,12 +120,10 @@ Enhancements
 
 - Made anterior/posterior slice scrolling in :func:`mne.gui.locate_ieeg` possible for users without page up and page down buttons by allowing angle bracket buttons to be used (:gh:`10384` by `Alex Rockhill`_)
 
-- Add use_orig_time option to :meth:`mne.Annotations.crop`. (:gh:`10396` by `Michiru Kaneda`_)
-
 Bugs
 ~~~~
 
-- Fix datetime conversion for tmin/tmax=None cases in :meth:`mne.Annotations.crop`. Allow the use of float and None simultaneously for :meth:`mne.Annotations.crop`. (:gh:`10361` by `Michiru Kaneda`_)
+- Fix datetime conversion for tmin/tmax=None cases in :meth:`mne.Annotations.crop`. Allow the use of float and None simultaneously for :meth:`mne.Annotations.crop`. (:gh:`10361` by :newcontrib:`Michiru Kaneda`)
 
 - Add Shift_JIST mu in :func:`mne.io.read_raw_edf` (:gh:`10356` by :newcontrib:`Michiru Kaneda`)
 
