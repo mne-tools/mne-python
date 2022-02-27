@@ -121,7 +121,7 @@ Enhancements
 Bugs
 ~~~~
 
-- Fix bug in :func:`mne.io.read_raw_egi`  where the `meas_date` in a `rawMFF` object was incorrectly assigned. The method now converts the `meas_date` to UTC and provides a UTC offset key, i.e. `raw.info['utc_offset']`. (:gh:`10304` by:newcontrib:`Scott Huberty`)
+- Fix bug in :func:`mne.io.read_raw_egi`  where the ``meas_date`` in a ``rawMFF`` object was incorrectly assigned. The function now converts the ``meas_date`` to UTC and provides a UTC offset key, i.e. ``raw.info['utc_offset']``. (:gh:`10304` by:newcontrib:`Scott Huberty`)
 
 - Fix datetime conversion for tmin/tmax=None cases in :meth:`mne.Annotations.crop`. Allow the use of float and None simultaneously for :meth:`mne.Annotations.crop`. (:gh:`10361` by `Michiru Kaneda`_)
 
