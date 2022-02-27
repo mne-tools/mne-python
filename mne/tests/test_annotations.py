@@ -1177,6 +1177,15 @@ def test_crop_with_none(windows_like_datetime):
     assert len(annot) == 3
 
 
+def test_crop_wo_orig_time(windows_like_datetime):
+    """Test cropping without orig_time."""
+    orig_time_stamp = 100
+    annot = Annotations(description='foo', onset=np.arange(5, 10, 1),
+                        duration=[1], orig_time=orig_time_stamp)
+    annot.crop(tmin=(7.5), tmax=None, use_orig_time=False)
+    assert len(annot) == 3
+
+
 def test_allow_nan_durations():
     """Deal with "n/a" strings in BIDS events with nan durations."""
     raw = RawArray(data=np.empty([2, 10], dtype=np.float64),
