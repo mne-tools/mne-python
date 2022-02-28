@@ -27,6 +27,7 @@ the possible interpretation of "significant" clusters.
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from scipy import stats
 
 import mne
 from mne.stats import spatio_temporal_cluster_test, combine_adjacency
@@ -209,20 +210,51 @@ for condition in [epochs[k] for k in ('Aud/L', 'Vis/L')]:
 # transpose again to (epochs, frequencies, times, vertices)
 X = [np.transpose(x, (0, 2, 3, 1)) for x in epochs_power]
 
-# define add time-frequency adjacency to the sensor adjacency
-# here the integer inputs are converted into a lattice and
-# combined with the sensor adjacency matrix
+# %%
+# Let's extend our adjacency definition to include the time-frequency
+# dimensions. Here, the integer inputs are converted into a lattice and
+# combined with the sensor adjacency matrix so that data at similar
+# times and with similar frequencies and at close sensor locations are
+# clustered together.
 tfr_adjacency = combine_adjacency(
     len(freqs), len(this_tfr.times), adjacency)
 
-# set parameters
-threshold = 6.0  # default threshold for time-frequency
+# %%
+# Now we can run the cluster permutation test, but first we have to set a
+# threshold. This example decimates in time and uses few frequencies so we need
+# to increase the threshold from the default value in order to have
+# differentiated clusters (i.e. so that our algorithm doesn't just find one
+# large cluster). For a more principled method of setting this parameter,
+# threshold-free cluster enhancement may be used or the p-value may be set with
+#
+# .. code-block::
+#
+#     n_comparisons = len(X)  # L auditory vs L visual stimulus
+#     n_conditions = X[0].shape[0]  # 55 epochs per comparison
+#     threshold = stats.distributions.f.ppf(
+#         1 - p_accept, n_comparisons - 1, n_conditions - 1)
+#
+# See :ref:`disc-stats` for a discussion.
+
+tfr_threshold = 15.0
 
 # run statistic
 cluster_stats = spatio_temporal_cluster_test(
-    X, n_permutations=1000, threshold=threshold, tail=1, n_jobs=1,
+    X, n_permutations=1000, threshold=tfr_threshold, tail=1, n_jobs=1,
     buffer_size=None, adjacency=tfr_adjacency)
 
+# %%
+# Finally, we can plot our results. It is difficult to visualize clusters in
+# time-frequency-sensor space; plotting time-frequency spectrograms and
+# plotting topomaps display time-frequency and sensor space respectively
+# but they are difficult to combine. We will plot topomaps with the clustered
+# sensors colored in white adjacent to spectrograms in order to provide a
+# visualization of the results. This is a dimensionally limited view, however.
+# Each sensor has its own signficiant time-frequencies, but, in order to
+# display a single spectrogram, all the time-frequencies that are significant
+# for any sensor in the cluster are plotted as significant. This is a
+# difficulty inherent to visualizing high-dimensional data and should be taken
+# into consideration when interpretting results.
 F_obs, clusters, p_values, _ = cluster_stats
 good_cluster_inds = np.where(p_values < p_accept)[0]
 
@@ -270,8 +302,8 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
         title += " (max over channels)"
     F_obs_plot = F_obs[..., ch_inds].max(axis=-1)
     F_obs_plot_sig = np.zeros(F_obs_plot.shape) * np.nan
-    F_obs_plot_sig[freq_inds][:, time_inds] = \
-        F_obs_plot[freq_inds][:, time_inds]
+    F_obs_plot_sig[tuple(np.meshgrid(freq_inds, time_inds))] = \
+        F_obs_plot[tuple(np.meshgrid(freq_inds, time_inds))]
 
     for f_image, cmap in zip([F_obs_plot, F_obs_plot_sig], ['gray', 'autumn']):
         c = ax_spec.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
