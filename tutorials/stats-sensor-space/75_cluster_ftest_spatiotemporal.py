@@ -27,7 +27,6 @@ the possible interpretation of "significant" clusters.
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from scipy import stats
 
 import mne
 from mne.stats import spatio_temporal_cluster_test, combine_adjacency
@@ -227,8 +226,9 @@ tfr_adjacency = combine_adjacency(
 # large cluster). For a more principled method of setting this parameter,
 # threshold-free cluster enhancement may be used or the p-value may be set with
 #
-# .. code-block::
+# .. code-block:: python
 #
+#     from scipy import stats
 #     n_comparisons = len(X)  # L auditory vs L visual stimulus
 #     n_conditions = X[0].shape[0]  # 55 epochs per comparison
 #     threshold = stats.distributions.f.ppf(
