@@ -250,11 +250,11 @@ cluster_stats = spatio_temporal_cluster_test(
 # but they are difficult to combine. We will plot topomaps with the clustered
 # sensors colored in white adjacent to spectrograms in order to provide a
 # visualization of the results. This is a dimensionally limited view, however.
-# Each sensor has its own signficiant time-frequencies, but, in order to
+# Each sensor has its own significant time-frequencies, but, in order to
 # display a single spectrogram, all the time-frequencies that are significant
 # for any sensor in the cluster are plotted as significant. This is a
 # difficulty inherent to visualizing high-dimensional data and should be taken
-# into consideration when interpretting results.
+# into consideration when interpreting results.
 F_obs, clusters, p_values, _ = cluster_stats
 good_cluster_inds = np.where(p_values < p_accept)[0]
 
