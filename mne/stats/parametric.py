@@ -385,9 +385,11 @@ def f_mway_rm(data, factor_levels, effects='all',
         out_reshape = data.shape[2:]
         data = data.reshape(
             data.shape[0], data.shape[1], np.prod(data.shape[2:]))
+
     effect_picks, _ = _map_effects(len(factor_levels), effects)
     n_obs = data.shape[2]
     n_replications = data.shape[0]
+
     # put last axis in front to 'iterate' over mass univariate instances.
     data = np.rollaxis(data, 2)
     fvalues, pvalues = [], []
@@ -406,8 +408,8 @@ def f_mway_rm(data, factor_levels, effects='all',
             v = (np.array([np.trace(vv) for vv in v]) ** 2 /
                  (df1 * np.sum(np.sum(v * v, axis=2), axis=1)))
             eps = v
-        df1, df2 = np.zeros(n_obs) + df1, np.zeros(n_obs) + df2
 
+        df1, df2 = np.zeros(n_obs) + df1, np.zeros(n_obs) + df2
         if correction:
             # numerical imprecision can cause eps=0.99999999999999989
             # even with a single category, so never let our degrees of

@@ -361,6 +361,7 @@ def test_cluster_permutation_with_adjacency(numba_conditional):
         out_adjacency_5 = spatio_temporal_func(
             X1d_3, n_permutations=50, adjacency=adjacency,
             max_step=1, threshold=1.67)
+
         # clusters could be in a different order
         sums_4 = [np.sum(out_adjacency_4[0][a])
                   for a in out_adjacency_4[1]]
