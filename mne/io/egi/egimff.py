@@ -210,12 +210,6 @@ def _read_header(input_fname):
     mff_hdr = _read_mff_header(input_fname)
     with open(input_fname + '/signal1.bin', 'rb') as fid:
         version = np.fromfile(fid, np.int32, 1)[0]
-    # Proposed change
-    # the  line of code just below parses the string  in
-    # mff_hdr['date'] as a datetime object
-    # the datetime object gets localized in UTC at line ~458
-    # You can delete this comment after reviewing.
-
     '''
     the datetime.strptime .f directive (milleseconds)
     will only accept up to 6 digits. if there are more than
