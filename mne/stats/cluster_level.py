@@ -1266,28 +1266,18 @@ def spatio_temporal_cluster_1samp_test(
     ----------
     .. footbibliography::
     """
-    out_reshape = (X.shape[1],)  # 1D data shape
-    if X.ndim > 3:
-        out_reshape = X.shape[1:-1]
-        X = X.reshape(X.shape[0], np.prod(X.shape[1:-1]), X.shape[-1])
-    n_samples, n_times, n_vertices = X.shape
     # convert spatial_exclude before passing on if necessary
     if spatial_exclude is not None:
-        exclude = _st_mask_from_s_inds(n_times, n_vertices,
-                                       spatial_exclude, True)
+        exclude = _st_mask_from_s_inds(
+            np.prod(X.shape[1:-1]), X.shape[-1], spatial_exclude, True)
     else:
         exclude = None
-    t_obs, clusters, cluster_pv, H0 = permutation_cluster_1samp_test(
+    return permutation_cluster_1samp_test(
         X, threshold=threshold, stat_fun=stat_fun, tail=tail,
         n_permutations=n_permutations, adjacency=adjacency,
         n_jobs=n_jobs, seed=seed, max_step=max_step, exclude=exclude,
         step_down_p=step_down_p, t_power=t_power, out_type=out_type,
         check_disjoint=check_disjoint, buffer_size=buffer_size)
-    t_obs = np.squeeze(t_obs.reshape((*out_reshape, X.shape[-1])))
-    clusters = [c.reshape((*out_reshape, X.shape[-1])) if out_type == 'mask'
-                else (*np.unravel_index(c[0], out_reshape), c[1])
-                for c in clusters]
-    return t_obs, clusters, cluster_pv, H0
 
 
 @verbose
@@ -1346,29 +1336,18 @@ def spatio_temporal_cluster_test(
     ----------
     .. footbibliography::
     """
-    out_reshape = (X[0].shape[1],)  # 1D data shape
-    if X[0].ndim > 3:
-        out_reshape = X[0].shape[1:-1]
-        X = [x.reshape(x.shape[0], np.prod(x.shape[1:-1]), x.shape[-1])
-             for x in X]
-    n_samples, n_times, n_vertices = X[0].shape
     # convert spatial_exclude before passing on if necessary
     if spatial_exclude is not None:
-        exclude = _st_mask_from_s_inds(n_times, n_vertices,
-                                       spatial_exclude, True)
+        exclude = _st_mask_from_s_inds(
+            np.prod(X[0].shape[1:-1]), X[0].shape[-1], spatial_exclude, True)
     else:
         exclude = None
-    F_obs, clusters, cluster_pv, H0 = permutation_cluster_test(
+    return permutation_cluster_test(
         X, threshold=threshold, stat_fun=stat_fun, tail=tail,
         n_permutations=n_permutations, adjacency=adjacency,
         n_jobs=n_jobs, seed=seed, max_step=max_step, exclude=exclude,
         step_down_p=step_down_p, t_power=t_power, out_type=out_type,
         check_disjoint=check_disjoint, buffer_size=buffer_size)
-    F_obs = np.squeeze(F_obs.reshape((*out_reshape, X[0].shape[-1])))
-    clusters = [c.reshape((*out_reshape, X.shape[-1])) if out_type == 'mask'
-                else (*np.unravel_index(c[0], out_reshape), c[1])
-                for c in clusters]
-    return F_obs, clusters, cluster_pv, H0
 
 
 def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
