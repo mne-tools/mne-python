@@ -216,7 +216,7 @@ def _read_header(input_fname):
     six millesecond digits in the provided timestamp string
     (i.e. because of trailing zeros, as in test_egi_pns.mff)
     then slice both the first 26 elements and the last 6
-    elements of the timestamp string to to truncate the
+    elements of the timestamp string to truncate the
     milleseconds to 6 digits and extract the timezone,
     and then piece these together and assign back to mff_hdr['date']
     '''
