@@ -2,6 +2,7 @@
 """
 .. _tut-set-eeg-ref:
 
+=========================
 Setting the EEG reference
 =========================
 

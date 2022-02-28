@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-shift-evoked:
+
 ==================================
 Shifting time-scale in evoked data
 ==================================

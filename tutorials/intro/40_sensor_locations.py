@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-sensor-locations:
 
+=============================
 Working with sensor locations
 =============================
 

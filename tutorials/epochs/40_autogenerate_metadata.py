@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-autogenerate-metadata:
 
+===============================
 Auto-generating Epochs metadata
 ===============================
 

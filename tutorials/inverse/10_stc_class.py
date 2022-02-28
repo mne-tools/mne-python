@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-source-estimate-class:
 
+=================================
 The SourceEstimate data structure
 =================================
 

@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 """
-.. _tut-dec-st-source:
+.. _ex-dec-st-source:
 
 ==========================
 Decoding source space data

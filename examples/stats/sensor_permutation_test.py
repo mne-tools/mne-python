@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-perm-test:
+
 =================================
 Permutation T-test on sensor data
 =================================

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-electrode-pos-2d:
 

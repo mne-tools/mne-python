@@ -1,4 +1,8 @@
+# -*- coding: utf-8 -*-
 """
+.. _tut-point-spread:
+
+======================================
 Corrupt known signal with point spread
 ======================================
 

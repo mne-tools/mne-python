@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-read-inverse:
+
 ===========================
 Reading an inverse operator
 ===========================

@@ -2,6 +2,7 @@
 """
 .. _tut-artifact-overview:
 
+==============================
 Overview of artifact detection
 ==============================
 

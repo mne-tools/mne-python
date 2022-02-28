@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-strf:
+
 =====================================================================
 Spectro-temporal receptive field (STRF) estimation on continuous data
 =====================================================================

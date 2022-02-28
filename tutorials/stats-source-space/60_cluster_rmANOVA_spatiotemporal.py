@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _tut-cluster-rm-anova-spatiotemporal:
+
 ======================================================================
 Repeated measures ANOVA on source data with spatio-temporal clustering
 ======================================================================

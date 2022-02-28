@@ -24,6 +24,8 @@ Current (1.0.dev0)
 Enhancements
 ~~~~~~~~~~~~
 
+- Add ``use_orig_time`` option to :meth:`mne.Annotations.crop`. (:gh:`10396` by :newcontrib:`Michiru Kaneda`)
+
 - Speed up :func:`mne.preprocessing.annotate_muscle_zscore`, :func:`mne.preprocessing.annotate_movement`, and :func:`mne.preprocessing.annotate_nan` through better annotation creation (:gh:`10089` by :newcontrib:`Senwen Deng`)
 
 - Fix some unused variables in time_frequency_erds.py example (:gh:`10076` by :newcontrib:`Jan Zerfowski`)
@@ -121,9 +123,9 @@ Enhancements
 Bugs
 ~~~~
 
-- Fix bug in :func:`mne.io.read_raw_egi`  where the ``meas_date`` in a ``rawMFF`` object was incorrectly assigned. The function now converts the ``meas_date`` to UTC and provides a UTC offset key, i.e. ``raw.info['utc_offset']``. (:gh:`10304` by:newcontrib:`Scott Huberty`)
+- Fix bug in :func:`mne.io.read_raw_egi` where the ``meas_date`` in a ``rawMFF`` object was incorrectly assigned. The function now converts the ``meas_date`` to UTC and provides a UTC offset key, i.e. ``raw.info['utc_offset']``. (:gh:`10304` by:newcontrib:`Scott Huberty`)
 
-- Fix datetime conversion for tmin/tmax=None cases in :meth:`mne.Annotations.crop`. Allow the use of float and None simultaneously for :meth:`mne.Annotations.crop`. (:gh:`10361` by `Michiru Kaneda`_)
+- Fix datetime conversion for tmin/tmax=None cases in :meth:`mne.Annotations.crop`. Allow the use of float and None simultaneously for :meth:`mne.Annotations.crop`. (:gh:`10361` by :newcontrib:`Michiru Kaneda`)
 
 - Add Shift_JIST mu in :func:`mne.io.read_raw_edf` (:gh:`10356` by :newcontrib:`Michiru Kaneda`)
 
@@ -223,7 +225,7 @@ Bugs
 
 - Fix a bug in :func:`mne.gui.locate_ieeg` where 2D lines on slice plots failed to update and were shown when not in maximum projection mode (:gh:`10335`, by `Alex Rockhill`_)
 
-- Fix misleading color scale in :ref:`tut-power-cluster-perm` for the plotting of cluster T-statistics (:gh:`10393` by `Alex Rockhill`_)
+- Fix misleading color scale in :ref:`tut-cluster-tfr` for the plotting of cluster T-statistics (:gh:`10393` by `Alex Rockhill`_)
 
 - Fix baseline removal using ``remove_dc=True`` in :meth:`raw.plot() <mne.io.Raw.plot>` for data containing ``np.nan`` (:gh:`10392` by `Clemens Brunner`_)
 
