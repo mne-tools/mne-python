@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-inverse-methods:
 
+========================================================
 Source localization with MNE, dSPM, sLORETA, and eLORETA
 ========================================================
 

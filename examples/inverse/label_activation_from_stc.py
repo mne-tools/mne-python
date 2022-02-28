@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-label-time-course:
+
 ==================================================
 Extracting time course from source_estimate object
 ==================================================

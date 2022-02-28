@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-label-psd:
+
 ======================================================
 Compute source power spectral density (PSD) in a label
 ======================================================

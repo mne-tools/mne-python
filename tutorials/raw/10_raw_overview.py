@@ -2,6 +2,7 @@
 """
 .. _tut-raw-class:
 
+=======================================
 The Raw data structure: continuous data
 =======================================
 

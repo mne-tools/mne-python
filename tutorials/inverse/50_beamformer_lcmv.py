@@ -1,4 +1,8 @@
+# -*- coding: utf-8 -*-
 """
+.. _tut-lcmv-beamformer:
+
+==============================================
 Source reconstruction using an LCMV beamformer
 ==============================================
 

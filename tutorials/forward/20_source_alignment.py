@@ -2,6 +2,7 @@
 """
 .. _tut-source-alignment:
 
+======================================
 Source alignment and coordinate frames
 ======================================
 

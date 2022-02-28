@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-forward:
 
+==================================
 Head model and forward computation
 ==================================
 

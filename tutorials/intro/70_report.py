@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-report:
 
+===============================
 Getting started with mne.Report
 ===============================
 

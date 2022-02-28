@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-label-time-series:
+
 ====================================================
 Extracting the time series of activations in a label
 ====================================================

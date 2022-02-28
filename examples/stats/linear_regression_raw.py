@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-linear-regression-raw:
+
 ========================================
 Regression on continuous data (rER[P/F])
 ========================================

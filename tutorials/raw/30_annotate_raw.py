@@ -2,6 +2,7 @@
 """
 .. _tut-annotate-raw:
 
+==========================
 Annotating continuous data
 ==========================
 

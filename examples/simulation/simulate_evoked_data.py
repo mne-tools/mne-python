@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-sim-evoked:
+
 ==============================
 Generate simulated evoked data
 ==============================
