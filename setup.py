@@ -3,10 +3,13 @@
 # Copyright (C) 2011-2020 Alexandre Gramfort
 # <alexandre.gramfort@inria.fr>
 
+import codecs
 import os
 import os.path as op
+from pathlib import Path
 
 from setuptools import setup
+from setuptools.command.build_py import build_py
 
 
 def parse_requirements_file(fname):
@@ -31,6 +34,23 @@ with open(op.join('mne', '_version.py'), 'r') as fid:
             break
 if version is None:
     raise RuntimeError('Could not determine version')
+
+
+class _FillDocsPyCommand(build_py):
+    def run(self):
+        # Currently a noop, but shows where we can rewrite (somehow)
+        super().run()
+        target_dir = Path(self.build_lib)
+        assert target_dir.is_dir()
+        for root, dirs, files in os.walk(target_dir, topdown=False):
+            for fname in files:
+                if fname.endswith('.py'):
+                    fname = op.join(root, fname)
+                    with codecs.open(fname, 'r', 'utf8') as fid:
+                        contents = fid.readlines()
+                    with codecs.open(fname, 'w', 'utf8') as fid:
+                        for line in contents:
+                            fid.write(line)
 
 
 DISTNAME = 'mne'
@@ -137,4 +157,8 @@ if __name__ == "__main__":
           ]},
           entry_points={'console_scripts': [
               'mne = mne.commands.utils:main',
-          ]})
+          ]},
+          cmdclass={
+              'build_py': _FillDocsPyCommand,
+          },
+          )
