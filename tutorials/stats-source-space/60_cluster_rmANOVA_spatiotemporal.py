@@ -219,7 +219,7 @@ f_thresh = f_threshold_mway_rm(n_subjects, factor_levels, effects, pthresh)
 n_permutations = 50  # ... run way fewer permutations (reduces sensitivity)
 
 print('Clustering.')
-T_obs, clusters, cluster_p_values, H0 = clu = \
+F_obs, clusters, cluster_p_values, H0 = clu = \
     spatio_temporal_cluster_test(X, adjacency=adjacency, n_jobs=1,
                                  threshold=f_thresh, stat_fun=stat_fun,
                                  n_permutations=n_permutations,
