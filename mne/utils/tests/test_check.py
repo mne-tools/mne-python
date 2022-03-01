@@ -16,7 +16,7 @@ from mne import read_vectorview_selection
 from mne.datasets import testing
 from mne.io.pick import pick_channels_cov, _picks_to_idx
 from mne.utils import (check_random_state, _check_fname, check_fname, _suggest,
-                       _check_subject, _check_info_inv, _check_option,
+                       _check_subject, _check_info_inv, _check_option, Bunch,
                        check_version, _path_like, _validate_type, _on_missing,
                        requires_nibabel, _safe_input, _check_ch_locs)
 
@@ -248,3 +248,55 @@ def test_check_ch_locs():
     # tests for other (and "all") channels should still pass
     assert _check_ch_locs(info=info)
     assert _check_ch_locs(info=info, ch_type='mag')
+
+
+# Check a bunch of version schemes as of 2022/03/01
+# We don't have to get this 100% generalized, but it would be nice if all
+# of these worked.
+@pytest.mark.parametrize('version, want, have_unstripped', [
+    # test some dev cases
+    ('1.23.0.dev0+782.g1168868df6', '1.23', False),  # NumPy
+    ('1.9.0.dev0+1485.b06254e', '1.9', False),  # SciPy
+    ('3.6.0.dev1651+g30d6161406', '3.6', False),  # matplotlib
+    ('1.1.dev0', '1.1', False),  # sklearn
+    ('0.56.0dev0+39.gef1ba4c10', '0.56', False),  # numba
+    ('9.1.0.rc1', '9.1', False),  # VTK
+    ('0.3dev0', '0.3', False),  # mne-connectivity
+    ('0.2.2.dev0', '0.2.2', False),  # mne-qt-browser
+    ('3.2.2+150.g1e93bd5d', '3.2.2', True),  # nibabel
+    # test some stable cases
+    ('1.2.3', '1.2.3', True),
+    ('1.2', '1.2', True),
+    ('1', '1', True),
+])
+def test_strip_dev(version, want, have_unstripped, monkeypatch):
+    """Test that stripping dev works."""
+    monkeypatch.setattr(
+        mne.utils.check, 'import_module',
+        lambda x: Bunch(__version__=version))
+    got_have_unstripped, same_version = check_version(
+        version, want, strip=False, return_version=True)
+    assert same_version == version
+    assert got_have_unstripped is have_unstripped
+    have, simpler_version = check_version(
+        'foo', want, return_version=True)  # strip=True is the default
+    assert have, (simpler_version, version)
+
+    def looks_stable(version):
+        try:
+            [int(x) for x in version.split('.')]
+        except ValueError:
+            return False
+        else:
+            return True
+
+    if looks_stable(version):
+        assert 'dev' not in version
+        assert 'rc' not in version
+        assert simpler_version == version
+    else:
+        assert simpler_version != version
+    assert 'dev' not in simpler_version
+    assert 'rc' not in simpler_version
+    assert not simpler_version.endswith('.')
+    assert looks_stable(simpler_version)
