@@ -988,7 +988,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(picks_all_data_noref)s
         %(dtype_applyfun)s
         %(n_jobs)s
-        %(channel_wise_applyfun_ch)s
+        %(channel_wise_applyfun)s
 
             .. versionadded:: 0.18
         %(verbose)s

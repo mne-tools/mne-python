@@ -290,7 +290,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
         .. versionchanged:: 0.20
             The positional argument ``layout`` was deprecated and replaced
             by ``info``.
-    %(cmap_proj_topomap_kwargs)s
+    %(proj_topomap_kwargs)s
     %(sphere_topomap_auto)s
     %(extrapolate_topomap)s
 

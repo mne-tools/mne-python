@@ -30,6 +30,13 @@ def _reflow_param_docstring(docstring, has_first_line=True, width=75):
 
 ##############################################################################
 # Define our standard documentation entries
+#
+# To reduce redundancy accross functions, please standardize the format to
+# ``argument_optional_keywords``. For example ``tmin_raw`` for an entry that
+# is specific to ``raw`` and since ``tmin`` is used other places, needs to
+# be disambiguated. This way the entries will be easy to find since they
+# are alphabetized (you can look up by the name of the argument). This way
+# the same ``docdict`` entries are easier to reuse.
 
 docdict = dict()
 
@@ -75,61 +82,25 @@ adjacency : scipy.sparse.spmatrix | None | False
     {partwo}.{memory}
 """
 
-docdict['adjacency_clust_1'] = """
-adjacency : scipy.sparse.spmatrix | None | False
-    Defines adjacency between locations in the data, where "locations" can
-    be spatial vertices, frequency bins, etc. If ``False``, assumes no
-    adjacency (each location is treated as independent and unconnected).
-    If ``None``, a regular lattice adjacency is assumed, connecting
-    each  location to its neighbor(s) along the last dimension
-    of  ``X`` (or the last two dimensions if ``X`` is 2D).
-    If ``adjacency`` is a matrix, it is assumed to be symmetric (only the
-    upper triangular half is used) and must be square with dimension equal to
-    ``X.shape[-1]`` (for 3D data) or ``X.shape[-1] * X.shape[-2]``
-    (for 4D data). The function `mne.stats.combine_adjacency` may be useful for 4D data.
-"""
-
-docdict['adjacency_clust_n'] = """
-adjacency : scipy.sparse.spmatrix | None | False
-    Defines adjacency between locations in the data, where "locations" can
-    be spatial vertices, frequency bins, etc. If ``False``, assumes no
-    adjacency (each location is treated as independent and unconnected).
-    If ``None``, a regular lattice adjacency is assumed, connecting
-    each  location to its neighbor(s) along the last dimension
-    of each group  ``X[k]`` (or the last two dimensions if ``X[k]`` is 2D).
-    If ``adjacency`` is a matrix, it is assumed to be symmetric (only the
-    upper triangular half is used) and must be square with dimension equal to
-    ``X[k].shape[-1]`` (for 3D data) or ``X[k].shape[-1] * X[k].shape[-2]``
-    (for 4D data). The function `mne.stats.combine_adjacency` may be useful for 4D data.
-"""
-
-docdict['adjacency_clust_st1'] = """
-adjacency : scipy.sparse.spmatrix | None | False
-    Defines adjacency between locations in the data, where "locations" can
-    be spatial vertices, frequency bins, etc. If ``False``, assumes no
-    adjacency (each location is treated as independent and unconnected).
-    If ``None``, a regular lattice adjacency is assumed, connecting
-    each spatial location to its neighbor(s) along the last dimension
-    of  ``X``.
-    If ``adjacency`` is a matrix, it is assumed to be symmetric (only the
-    upper triangular half is used) and must be square with dimension equal to
-    ``X.shape[-1]`` (n_vertices) or ``X.shape[-1] * X.shape[-2]``
-    (n_times * n_vertices). If spatial adjacency is uniform in time, it is recommended to use a square matrix with dimension ``X.shape[-1]`` (n_vertices) to save memory and computation, and to use ``max_step`` to define the extent of temporal adjacency to consider when clustering.
-"""
-
-docdict['adjacency_clust_stn'] = """
-adjacency : scipy.sparse.spmatrix | None | False
-    Defines adjacency between locations in the data, where "locations" can
-    be spatial vertices, frequency bins, etc. If ``False``, assumes no
-    adjacency (each location is treated as independent and unconnected).
-    If ``None``, a regular lattice adjacency is assumed, connecting
-    each spatial location to its neighbor(s) along the last dimension
-    of each group  ``X[k]``.
-    If ``adjacency`` is a matrix, it is assumed to be symmetric (only the
-    upper triangular half is used) and must be square with dimension equal to
-    ``X[k].shape[-1]`` (n_vertices) or ``X[k].shape[-1] * X[k].shape[-2]``
-    (n_times * n_vertices). If spatial adjacency is uniform in time, it is recommended to use a square matrix with dimension ``X[k].shape[-1]`` (n_vertices) to save memory and computation, and to use ``max_step`` to define the extent of temporal adjacency to consider when clustering.
-"""
+mem = (' If spatial adjacency is uniform in time, it is recommended to use '
+       'a square matrix with dimension ``{x}.shape[-1]`` (n_vertices) to save '
+       'memory and computation, and to use ``max_step`` to define the extent '
+       'of temporal adjacency to consider when clustering.')
+comb = ' The function `mne.stats.combine_adjacency` may be useful for 4D data.'
+st = dict(sp='spatial', lastdim='', parone='(n_vertices)',
+          partwo='(n_times * n_vertices)', memory=mem)
+tf = dict(sp='', lastdim=' (or the last two dimensions if ``{x}`` is 2D)',
+          parone='(for 3D data)', partwo='(for 4D data)', memory=comb)
+nogroups = dict(eachgrp='', x='X')
+groups = dict(eachgrp='each group ', x='X[k]')
+docdict['adjacency_clust_1'] = \
+    docdict['adjacency_clust'].format(**tf).format(**nogroups)
+docdict['adjacency_clust_n'] = \
+    docdict['adjacency_clust'].format(**tf).format(**groups)
+docdict['adjacency_clust_st1'] = \
+    docdict['adjacency_clust'].format(**st).format(**nogroups)
+docdict['adjacency_clust_stn'] = \
+    docdict['adjacency_clust'].format(**st).format(**groups)
 
 docdict['adjust_dig_chpi'] = """
 adjust_dig : bool
@@ -186,11 +157,14 @@ the above fields.
 Operates in place.
 """
 
-docdict['applyfun_summary_epochs'] = """The function ``fun`` is applied to the channels defined in ``picks``.
-The epochs object's data is modified in-place. If the function returns a different
+# raw/epochs/evoked apply_function method
+# apply_function method summary
+applyfun_summary = """\
+The function ``fun`` is applied to the channels defined in ``picks``.
+The {} object's data is modified in-place. If the function returns a different
 data type (e.g. :py:obj:`numpy.complex128`) it must be specified
 using the ``dtype`` parameter, which causes the data type of **all** the data
-to change (even if the function is only applied to channels in ``picks``). The object has to have the data loaded e.g. with ``preload=True`` or ``self.load_data()``.
+to change (even if the function is only applied to channels in ``picks``).{}
 
 .. note:: If ``n_jobs`` > 1, more memory is required as
           ``len(picks) * n_times`` additional time points need to
@@ -199,34 +173,14 @@ to change (even if the function is only applied to channels in ``picks``). The o
           required since the original and the converted data needs
           to be stored in memory.
 """
-
-docdict['applyfun_summary_evoked'] = """The function ``fun`` is applied to the channels defined in ``picks``.
-The evoked object's data is modified in-place. If the function returns a different
-data type (e.g. :py:obj:`numpy.complex128`) it must be specified
-using the ``dtype`` parameter, which causes the data type of **all** the data
-to change (even if the function is only applied to channels in ``picks``).
-
-.. note:: If ``n_jobs`` > 1, more memory is required as
-          ``len(picks) * n_times`` additional time points need to
-          be temporarily stored in memory.
-.. note:: If the data type changes (``dtype != None``), more memory is
-          required since the original and the converted data needs
-          to be stored in memory.
-"""
-
-docdict['applyfun_summary_raw'] = """The function ``fun`` is applied to the channels defined in ``picks``.
-The raw object's data is modified in-place. If the function returns a different
-data type (e.g. :py:obj:`numpy.complex128`) it must be specified
-using the ``dtype`` parameter, which causes the data type of **all** the data
-to change (even if the function is only applied to channels in ``picks``). The object has to have the data loaded e.g. with ``preload=True`` or ``self.load_data()``.
-
-.. note:: If ``n_jobs`` > 1, more memory is required as
-          ``len(picks) * n_times`` additional time points need to
-          be temporarily stored in memory.
-.. note:: If the data type changes (``dtype != None``), more memory is
-          required since the original and the converted data needs
-          to be stored in memory.
-"""
+applyfun_preload = (' The object has to have the data loaded e.g. with '
+                    '``preload=True`` or ``self.load_data()``.')
+docdict['applyfun_summary_epochs'] = \
+    applyfun_summary.format('epochs', applyfun_preload)
+docdict['applyfun_summary_evoked'] = \
+    applyfun_summary.format('evoked', '')
+docdict['applyfun_summary_raw'] = \
+    applyfun_summary.format('raw', applyfun_preload)
 
 docdict['area_alpha_plot_psd'] = """
 area_alpha : float
@@ -334,7 +288,7 @@ base_estimator : object
     The base estimator to iteratively fit on a subset of the dataset.
 """
 
-docdict['baseline_epochs'] = """
+_baseline_rescale_base = """
 baseline : None | tuple of length 2
     The time interval to consider as "baseline" when applying baseline
     correction. If ``None``, do not apply baseline correction.
@@ -346,7 +300,9 @@ baseline : None | tuple of length 2
 
     .. note:: The baseline ``(a, b)`` includes both endpoints, i.e. all
                 timepoints ``t`` such that ``a <= t <= b``.
+"""
 
+docdict['baseline_epochs'] = f"""{_baseline_rescale_base}
     Correction is applied **to each epoch and channel individually** in the
     following way:
 
@@ -355,19 +311,7 @@ baseline : None | tuple of length 2
 
 """
 
-docdict['baseline_evoked'] = """
-baseline : None | tuple of length 2
-    The time interval to consider as "baseline" when applying baseline
-    correction. If ``None``, do not apply baseline correction.
-    If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
-    (in seconds), including the endpoints.
-    If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
-    is ``None``, it is set to the **end** of the interval.
-    If ``(None, None)``, the entire time interval is used.
-
-    .. note:: The baseline ``(a, b)`` includes both endpoints, i.e. all
-                timepoints ``t`` such that ``a <= t <= b``.
-
+docdict['baseline_evoked'] = f"""{_baseline_rescale_base}
     Correction is applied **to each channel individually** in the following
     way:
 
@@ -376,19 +320,7 @@ baseline : None | tuple of length 2
 
 """
 
-docdict['baseline_report'] = """
-baseline : None | tuple of length 2
-    The time interval to consider as "baseline" when applying baseline
-    correction. If ``None``, do not apply baseline correction.
-    If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
-    (in seconds), including the endpoints.
-    If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
-    is ``None``, it is set to the **end** of the interval.
-    If ``(None, None)``, the entire time interval is used.
-
-    .. note:: The baseline ``(a, b)`` includes both endpoints, i.e. all
-                timepoints ``t`` such that ``a <= t <= b``.
-
+docdict['baseline_report'] = f"""{_baseline_rescale_base}
     Correction is applied in the following way **to each channel:**
 
     1. Calculate the mean signal of the baseline period.
@@ -397,33 +329,7 @@ baseline : None | tuple of length 2
     For `~mne.Epochs`, this algorithm is run **on each epoch individually.**
 """
 
-docdict['baseline_rescale'] = """
-baseline : None | tuple of length 2
-    The time interval to consider as "baseline" when applying baseline
-    correction. If ``None``, do not apply baseline correction.
-    If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
-    (in seconds), including the endpoints.
-    If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
-    is ``None``, it is set to the **end** of the interval.
-    If ``(None, None)``, the entire time interval is used.
-
-    .. note:: The baseline ``(a, b)`` includes both endpoints, i.e. all
-                timepoints ``t`` such that ``a <= t <= b``.
-"""
-
-docdict['baseline_stc'] = """
-baseline : None | tuple of length 2
-    The time interval to consider as "baseline" when applying baseline
-    correction. If ``None``, do not apply baseline correction.
-    If a tuple ``(a, b)``, the interval is between ``a`` and ``b``
-    (in seconds), including the endpoints.
-    If ``a`` is ``None``, the **beginning** of the data is used; and if ``b``
-    is ``None``, it is set to the **end** of the interval.
-    If ``(None, None)``, the entire time interval is used.
-
-    .. note:: The baseline ``(a, b)`` includes both endpoints, i.e. all
-                timepoints ``t`` such that ``a <= t <= b``.
-
+docdict['baseline_stc'] = f"""{_baseline_rescale_base}
     Correction is applied **to each source individually** in the following
     way:
 
@@ -562,17 +468,15 @@ ch_type : str
     .. versionadded:: 0.21
 """
 
-docdict['channel_wise_applyfun_ch'] = """
+chwise = """
 channel_wise : bool
-    Whether to apply the function to each channel individually. If ``False``,
-    the function will be applied to all channels at once. Default ``True``.
+    Whether to apply the function to each channel {}individually. If ``False``,
+    the function will be applied to all {}channels at once. Default ``True``.
 """
+docdict['channel_wise_applyfun'] = chwise.format('', '')
+docdict['channel_wise_applyfun_epo'] = chwise.format(
+    'in each epoch ', 'epochs and ')
 
-docdict['channel_wise_applyfun_ch_epo'] = """
-channel_wise : bool
-    Whether to apply the function to each channel in each epoch individually. If ``False``,
-    the function will be applied to all epochs and channels at once. Default ``True``.
-"""
 
 docdict['check_disjoint_clust'] = """
 check_disjoint : bool
@@ -624,66 +528,6 @@ clim : str | dict
 
     Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
     ``pos_lims``, as the surface plot must show the magnitude.
-"""
-
-docdict['cmap_proj_topomap_kwargs'] = """
-cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-    Colormap to use. If tuple, the first value indicates the colormap to
-    use and the second value is a boolean defining interactivity. In
-    interactive mode (only works if ``colorbar=True``) the colors are
-    adjustable by clicking and dragging the colorbar with left and right
-    mouse button. Left mouse button moves the scale up and down and right
-    mouse button adjusts the range. Hitting space bar resets the range. Up
-    and down arrows can be used to change the colormap. If None (default),
-    'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
-    If 'interactive', translates to (None, True).
-sensors : bool | str
-    Add markers for sensor locations to the plot. Accepts matplotlib plot
-    format string (e.g., 'r+' for red plusses). If True, a circle will be
-    used (via .add_artist). Defaults to True.
-colorbar : bool
-    Plot a colorbar.
-res : int
-    The resolution of the topomap image (n pixels along each side).
-size : scalar
-    Side length of the topomaps in inches (only applies when plotting
-    multiple topomaps at a time).
-show : bool
-    Show figure if True.
-
-outlines : 'head' | 'skirt' | dict | None
-    The outlines to be drawn. If 'head', the default head scheme will be
-    drawn. If 'skirt' the head scheme will be drawn, but sensors are
-    allowed to be plotted outside of the head circle. If dict, each key
-    refers to a tuple of x and y positions, the values in 'mask_pos' will
-    serve as image mask.
-    Alternatively, a matplotlib patch object can be passed for advanced
-    masking options, either directly or as a function that returns patches
-    (required for multi-axis plots). If None, nothing will be drawn.
-    Defaults to 'head'.
-
-contours : int | array of float
-    The number of contour lines to draw. If 0, no contours will be drawn.
-    When an integer, matplotlib ticker locator is used to find suitable
-    values for the contour thresholds (may sometimes be inaccurate, use
-    array for accuracy). If an array, the values represent the levels for
-    the contours. Defaults to 6.
-image_interp : str
-    The image interpolation to be used. All matplotlib options are
-    accepted.
-axes : instance of Axes | list | None
-    The axes to plot to. If list, the list must be a list of Axes of
-    the same length as the number of projectors. If instance of Axes,
-    there must be only one projector. Defaults to None.
-vlim : tuple of length 2 | 'joint'
-    Colormap limits to use. If :class:`tuple`, specifies the lower and
-    upper bounds of the colormap (in that order); providing ``None`` for
-    either of these will set the corresponding boundary at the min/max of
-    the data (separately for each projector). The keyword value ``'joint'``
-    will compute the colormap limits jointly across all provided
-    projectors of the same channel type, using the min/max of the projector
-    data. If vlim is ``'joint'``, ``info`` must not be ``None``. Defaults
-    to ``(None, None)``.
 """
 
 docdict['cmap_psd_topo'] = """
@@ -1154,33 +998,22 @@ docdict['export_warning'] = """.. warning::
     the info will be preserved in the external format. See Notes for details.
 """
 
-docdict['export_warning_note'] = """Export to external format may not preserve all the information from the
+export_warning_note_base = """
+Export to external format may not preserve all the information from the
 instance. To save in native MNE format (``.fif``) without information loss,
 use :meth:`mne.{0}.save` instead.
 Export does not apply projector(s). Unapplied projector(s) will be lost.
 Consider applying projector(s) before exporting with
 :meth:`mne.{0}.apply_proj`."""
 
-docdict['export_warning_note_epochs'] = """Export to external format may not preserve all the information from the
-instance. To save in native MNE format (``.fif``) without information loss,
-use :meth:`mne.Epochs.save` instead.
-Export does not apply projector(s). Unapplied projector(s) will be lost.
-Consider applying projector(s) before exporting with
-:meth:`mne.Epochs.apply_proj`."""
+docdict['export_warning_note_epochs'] = \
+    export_warning_note_base.format('Epochs')
 
-docdict['export_warning_note_evoked'] = """Export to external format may not preserve all the information from the
-instance. To save in native MNE format (``.fif``) without information loss,
-use :meth:`mne.Evoked.save` instead.
-Export does not apply projector(s). Unapplied projector(s) will be lost.
-Consider applying projector(s) before exporting with
-:meth:`mne.Evoked.apply_proj`."""
+docdict['export_warning_note_evoked'] = \
+    export_warning_note_base.format('Evoked')
 
-docdict['export_warning_note_raw'] = """Export to external format may not preserve all the information from the
-instance. To save in native MNE format (``.fif``) without information loss,
-use :meth:`mne.io.Raw.save` instead.
-Export does not apply projector(s). Unapplied projector(s) will be lost.
-Consider applying projector(s) before exporting with
-:meth:`mne.io.Raw.apply_proj`."""
+docdict['export_warning_note_raw'] = \
+    export_warning_note_base.format('io.Raw')
 
 docdict['ext_order_chpi'] = """
 ext_order : int
@@ -1393,21 +1226,17 @@ forward : instance of Forward | None
     .. versionadded:: 0.21
 """
 
-docdict['fun_apply_evoked'] = """
+applyfun_fun_base = """
 fun : callable
     A function to be applied to the channels. The first argument of
     fun has to be a timeseries (:class:`numpy.ndarray`). The function must
-    operate on an array of shape ``(n_times,)``  because it will apply channel-wise.
+    operate on an array of shape ``(n_times,)`` {}.
     The function must return an :class:`~numpy.ndarray` shaped like its input.
 """
-
-docdict['fun_applyfun'] = """
-fun : callable
-    A function to be applied to the channels. The first argument of
-    fun has to be a timeseries (:class:`numpy.ndarray`). The function must
-    operate on an array of shape ``(n_times,)``  if ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise.
-    The function must return an :class:`~numpy.ndarray` shaped like its input.
-"""
+docdict['fun_applyfun'] = applyfun_fun_base .format(
+    ' if ``channel_wise=True`` and ``(len(picks), n_times)`` otherwise')
+docdict['fun_applyfun_evoked'] = applyfun_fun_base .format(
+    ' because it will apply channel-wise')
 
 docdict['fwd'] = """
 fwd : instance of Forward
@@ -1470,7 +1299,8 @@ head_pos : array | None
     parameters as returned by e.g. ``read_head_pos``.
 """
 
-docdict['hitachi_notes'] = """Hitachi does not encode their channel positions, so you will need to
+docdict['hitachi_notes'] = """
+Hitachi does not encode their channel positions, so you will need to
 create a suitable mapping using :func:`mne.channels.make_standard_montage`
 or :func:`mne.channels.make_dig_montage` like (for a 3x5/ETG-7000 example):
 
@@ -1574,7 +1404,7 @@ include_tmax : bool
     .. versionadded:: 0.19
 """
 
-docdict['index_df'] = """
+_index_df_base = """
 index : {} | None
     Kind of index to use for the DataFrame. If ``None``, a sequential
     integer index (:class:`pandas.RangeIndex`) will be used. If ``'time'``, a
@@ -1583,46 +1413,35 @@ index : {} | None
     (depending on the value of ``time_format``). {}
 """
 
-docdict['index_df_epo'] = """
-index : str | list of str | None
-    Kind of index to use for the DataFrame. If ``None``, a sequential
-    integer index (:class:`pandas.RangeIndex`) will be used. If ``'time'``, a
-    :class:`pandas.Float64Index`, :class:`pandas.Int64Index`, or
-    :class:`pandas.TimedeltaIndex` will be used
-    (depending on the value of ``time_format``). If a list of two or more string values, a :class:`pandas.MultiIndex` will be created. 
-"""
+docdict['index_df'] = _index_df_base
 
-docdict['index_df_evk'] = """
-index : 'time' | None
-    Kind of index to use for the DataFrame. If ``None``, a sequential
-    integer index (:class:`pandas.RangeIndex`) will be used. If ``'time'``, a
-    :class:`pandas.Float64Index`, :class:`pandas.Int64Index`, or
-    :class:`pandas.TimedeltaIndex` will be used
-    (depending on the value of ``time_format``). 
-"""
+datetime = ':class:`pandas.DatetimeIndex`, '
+multiindex = ('If a list of two or more string values, a '
+              ':class:`pandas.MultiIndex` will be created. ')
+raw = ("'time'", datetime, '')
+epo = ('str | list of str', '', multiindex)
+evk = ("'time'", '', '')
 
-docdict['index_df_raw'] = """
-index : 'time' | None
-    Kind of index to use for the DataFrame. If ``None``, a sequential
-    integer index (:class:`pandas.RangeIndex`) will be used. If ``'time'``, a
-    :class:`pandas.Float64Index`, :class:`pandas.Int64Index`, :class:`pandas.DatetimeIndex`, or
-    :class:`pandas.TimedeltaIndex` will be used
-    (depending on the value of ``time_format``). 
-"""
+docdict['index_df_epo'] = _index_df_base.format(*epo)
+docdict['index_df_evk'] = _index_df_base.format(*evk)
+docdict['index_df_raw'] = _index_df_base.format(*raw)
 
-docdict['info'] = """
+_info_base = ('The :class:`mne.Info` object with information about the '
+              'sensors and methods of measurement.')
+
+docdict['info'] = f"""
 info : mne.Info | None
-    The :class:`mne.Info` object with information about the sensors and methods of measurement.
+    {_info_base}
 """
 
-docdict['info_not_none'] = """
+docdict['info_not_none'] = f"""
 info : mne.Info
-    The :class:`mne.Info` object with information about the sensors and methods of measurement.
+    {_info_base}
 """
 
-docdict['info_str'] = """
+docdict['info_str'] = f"""
 info : mne.Info | str
-    The :class:`mne.Info` object with information about the sensors and methods of measurement. If ``str``, then it should be a filepath to a file with
+    {_info_base} If ``str``, then it should be a filepath to a file with
     measurement information (e.g. :class:`mne.io.Raw`).
 """
 
@@ -1728,7 +1547,7 @@ l_trans_bandwidth : float | str
 docdict['label_tc_el_returns'] = """
 label_tc : array | list (or generator) of array, shape (n_labels[, n_orient], n_times)
     Extracted time course for each label and source estimate.
-"""
+"""  # noqa: E501
 
 docdict['labels_eltc'] = """
 labels : Label | BiHemiLabel | list | tuple | str
@@ -1753,33 +1572,22 @@ line_alpha : float | None
     ``average=True`` and 0.1 when ``average=False``.
 """
 
-docdict['long_format_df'] = """
+_long_format_df_base = """
 long_format : bool
     If True, the DataFrame is returned in long format where each row is one
     observation of the signal at a unique combination of time point{}.
     {}Defaults to ``False``.
 """
 
-docdict['long_format_df_epo'] = """
-long_format : bool
-    If True, the DataFrame is returned in long format where each row is one
-    observation of the signal at a unique combination of time point, channel, epoch number, and condition.
-    For convenience, a ``ch_type`` column is added to facilitate subsetting the resulting DataFrame. Defaults to ``False``.
-"""
+ch_type = ('For convenience, a ``ch_type`` column is added to facilitate '
+           'subsetting the resulting DataFrame. ')
+raw = (' and channel', ch_type)
+epo = (', channel, epoch number, and condition', ch_type)
+stc = (' and vertex', '')
 
-docdict['long_format_df_raw'] = """
-long_format : bool
-    If True, the DataFrame is returned in long format where each row is one
-    observation of the signal at a unique combination of time point and channel.
-    For convenience, a ``ch_type`` column is added to facilitate subsetting the resulting DataFrame. Defaults to ``False``.
-"""
-
-docdict['long_format_df_stc'] = """
-long_format : bool
-    If True, the DataFrame is returned in long format where each row is one
-    observation of the signal at a unique combination of time point and vertex.
-    Defaults to ``False``.
-"""
+docdict['long_format_df_epo'] = _long_format_df_base.format(*epo)
+docdict['long_format_df_raw'] = _long_format_df_base.format(*raw)
+docdict['long_format_df_stc'] = _long_format_df_base.format(*stc)
 
 docdict['loose'] = """
 loose : float | 'auto' | dict
@@ -2523,6 +2331,66 @@ proj : bool | 'interactive' | 'reconstruct'
 
     .. versionchanged:: 0.21
        Support for 'reconstruct' was added.
+"""
+
+docdict['proj_topomap_kwargs'] = """
+cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+    Colormap to use. If tuple, the first value indicates the colormap to
+    use and the second value is a boolean defining interactivity. In
+    interactive mode (only works if ``colorbar=True``) the colors are
+    adjustable by clicking and dragging the colorbar with left and right
+    mouse button. Left mouse button moves the scale up and down and right
+    mouse button adjusts the range. Hitting space bar resets the range. Up
+    and down arrows can be used to change the colormap. If None (default),
+    'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
+    If 'interactive', translates to (None, True).
+sensors : bool | str
+    Add markers for sensor locations to the plot. Accepts matplotlib plot
+    format string (e.g., 'r+' for red plusses). If True, a circle will be
+    used (via .add_artist). Defaults to True.
+colorbar : bool
+    Plot a colorbar.
+res : int
+    The resolution of the topomap image (n pixels along each side).
+size : scalar
+    Side length of the topomaps in inches (only applies when plotting
+    multiple topomaps at a time).
+show : bool
+    Show figure if True.
+
+outlines : 'head' | 'skirt' | dict | None
+    The outlines to be drawn. If 'head', the default head scheme will be
+    drawn. If 'skirt' the head scheme will be drawn, but sensors are
+    allowed to be plotted outside of the head circle. If dict, each key
+    refers to a tuple of x and y positions, the values in 'mask_pos' will
+    serve as image mask.
+    Alternatively, a matplotlib patch object can be passed for advanced
+    masking options, either directly or as a function that returns patches
+    (required for multi-axis plots). If None, nothing will be drawn.
+    Defaults to 'head'.
+
+contours : int | array of float
+    The number of contour lines to draw. If 0, no contours will be drawn.
+    When an integer, matplotlib ticker locator is used to find suitable
+    values for the contour thresholds (may sometimes be inaccurate, use
+    array for accuracy). If an array, the values represent the levels for
+    the contours. Defaults to 6.
+image_interp : str
+    The image interpolation to be used. All matplotlib options are
+    accepted.
+axes : instance of Axes | list | None
+    The axes to plot to. If list, the list must be a list of Axes of
+    the same length as the number of projectors. If instance of Axes,
+    there must be only one projector. Defaults to None.
+vlim : tuple of length 2 | 'joint'
+    Colormap limits to use. If :class:`tuple`, specifies the lower and
+    upper bounds of the colormap (in that order); providing ``None`` for
+    either of these will set the corresponding boundary at the min/max of
+    the data (separately for each projector). The keyword value ``'joint'``
+    will compute the colormap limits jointly across all provided
+    projectors of the same channel type, using the min/max of the projector
+    data. If vlim is ``'joint'``, ``info`` must not be ``None``. Defaults
+    to ``(None, None)``.
 """
 
 docdict['projection_set_eeg_reference'] = """
