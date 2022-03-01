@@ -1,8 +1,10 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-read-neo:
 
+===============================================
 How to use data in neural ensemble (NEO) format
-================================================
+===============================================
 
 This example shows how to create an MNE-Python `~mne.io.Raw` object from data
 in the `neural ensemble <https://neo.readthedocs.io>`__ format. For general

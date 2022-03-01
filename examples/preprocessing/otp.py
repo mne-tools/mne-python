@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-otp:
+
 ===========================================================
 Plot sensor denoising using oversampled temporal projection
 ===========================================================

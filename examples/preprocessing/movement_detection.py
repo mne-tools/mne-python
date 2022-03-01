@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-movement-detect:
 
-======================================================
+=====================================================
 Annotate movement artifacts and reestimate dev_head_t
-======================================================
+=====================================================
 
 Periods, where the participant moved considerably, are contaminated by low
 amplitude artifacts. When averaging the magnetic fields, the more spread the

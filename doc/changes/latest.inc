@@ -24,6 +24,8 @@ Current (1.0.dev0)
 Enhancements
 ~~~~~~~~~~~~
 
+- Add ``use_orig_time`` option to :meth:`mne.Annotations.crop`. (:gh:`10396` by :newcontrib:`Michiru Kaneda`)
+
 - Speed up :func:`mne.preprocessing.annotate_muscle_zscore`, :func:`mne.preprocessing.annotate_movement`, and :func:`mne.preprocessing.annotate_nan` through better annotation creation (:gh:`10089` by :newcontrib:`Senwen Deng`)
 
 - Fix some unused variables in time_frequency_erds.py example (:gh:`10076` by :newcontrib:`Jan Zerfowski`)
@@ -118,10 +120,12 @@ Enhancements
 
 - Made anterior/posterior slice scrolling in :func:`mne.gui.locate_ieeg` possible for users without page up and page down buttons by allowing angle bracket buttons to be used (:gh:`10384` by `Alex Rockhill`_)
 
+- Add support for passing time-frequency data to :func:`mne.stats.spatio_temporal_cluster_test` and :func:`mne.stats.spatio_temporal_cluster_1samp_test` and added an example to :ref:`tut-cluster-spatiotemporal-sensor` (:gh:`10384` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 
-- Fix datetime conversion for tmin/tmax=None cases in :meth:`mne.Annotations.crop`. Allow the use of float and None simultaneously for :meth:`mne.Annotations.crop`. (:gh:`10361` by `Michiru Kaneda`_)
+- Fix datetime conversion for tmin/tmax=None cases in :meth:`mne.Annotations.crop`. Allow the use of float and None simultaneously for :meth:`mne.Annotations.crop`. (:gh:`10361` by :newcontrib:`Michiru Kaneda`)
 
 - Add Shift_JIST mu in :func:`mne.io.read_raw_edf` (:gh:`10356` by :newcontrib:`Michiru Kaneda`)
 
@@ -217,7 +221,17 @@ Bugs
 
 - Fix plotting bug in :ref:`ex-electrode-pos-2d` and make view look more natural in :ref:`ex-movement-detect` (:gh:`10313`, by `Alex Rockhill`_)
 
+- Fix bug with blank 3D rendering with MESA software rendering (:gh:`10400` by `Eric Larson`_)
+
 - Fix a bug in :func:`mne.gui.locate_ieeg` where 2D lines on slice plots failed to update and were shown when not in maximum projection mode (:gh:`10335`, by `Alex Rockhill`_)
+
+- Fix misleading color scale in :ref:`tut-cluster-tfr` for the plotting of cluster F-statistics (:gh:`10393` by `Alex Rockhill`_)
+
+- Fix baseline removal using ``remove_dc=True`` in :meth:`raw.plot() <mne.io.Raw.plot>` for data containing ``np.nan`` (:gh:`10392` by `Clemens Brunner`_)
+
+- Fix misleading color scale in :ref:`tut-timefreq-twoway-anova` for plotting F-stats (:gh:`10401` by `Alex Rockhill`_)
+
+- Fix misleading ``T_obs`` return name for :func:`mne.stats.spatio_temporal_cluster_test` when the default returns an F-statistic (:gh:`10401` by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~

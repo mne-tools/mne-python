@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-ica-pca-decoding:
+
 ==================================================================
 Analysis of evoked response using ICA and PCA reduction techniques
 ==================================================================

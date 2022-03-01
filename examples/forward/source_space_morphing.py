@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-source-space-morphing:
+
 =========================
 Use source space morphing
 =========================

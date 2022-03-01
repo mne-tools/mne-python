@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-ssd-spatial-filters:
+
 ===========================================================
 Compute Spectro-Spatial Decomposition (SSD) spatial filters
 ===========================================================

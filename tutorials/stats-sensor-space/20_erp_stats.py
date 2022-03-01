@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
 """
-===========================================================================
+.. _tut-erp-stats:
+
+===========================================================
 Visualising statistical significance thresholds on EEG data
-===========================================================================
+===========================================================
 
 MNE-Python provides a range of tools for statistical hypothesis testing
 and the visualisation of the results. Here, we show a few options for

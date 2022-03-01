@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-mixed-source-space-inverse:
+
 =====================================================================
 Compute MNE inverse solution on evoked data with a mixed source space
 =====================================================================

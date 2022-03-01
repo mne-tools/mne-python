@@ -145,7 +145,7 @@ def f_oneway(*args):
     1. The samples are independent
     2. Each sample is from a normally distributed population
     3. The population standard deviations of the groups are all equal.  This
-       property is known as homocedasticity.
+       property is known as homoscedasticity.
 
     If these assumptions are not true for a given set of data, it may still be
     possible to use the Kruskal-Wallis H-test (:func:`scipy.stats.kruskal`)
@@ -378,9 +378,11 @@ def f_mway_rm(data, factor_levels, effects='all',
     """
     from scipy.stats import f
 
+    out_reshape = (-1,)
     if data.ndim == 2:  # general purpose support, e.g. behavioural data
         data = data[:, :, np.newaxis]
-    elif data.ndim > 3:  # let's allow for some magic here.
+    elif data.ndim > 3:  # let's allow for some magic here
+        out_reshape = data.shape[2:]
         data = data.reshape(
             data.shape[0], data.shape[1], np.prod(data.shape[2:]))
 
@@ -421,7 +423,8 @@ def f_mway_rm(data, factor_levels, effects='all',
         pvalues.append(pvals)
 
     # handle single effect returns
-    return [np.squeeze(np.asarray(vv)) for vv in (fvalues, pvalues)]
+    return [np.squeeze(np.asarray([v.reshape(out_reshape) for v in vv]))
+            for vv in (fvalues, pvalues)]
 
 
 def _parametric_ci(arr, ci=.95):

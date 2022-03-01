@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-ecd-dipole:
+
 ============================================================
 Source localization with equivalent current dipole (ECD) fit
 ============================================================

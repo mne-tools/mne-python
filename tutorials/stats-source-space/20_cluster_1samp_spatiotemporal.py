@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _tut-cluster-one-sample-spatiotemporal:
+
 =================================================================
 Permutation t-test on source data with spatio-temporal clustering
 =================================================================
@@ -103,7 +106,7 @@ tstep = condition1.tstep * 1000  # convert to milliseconds
 #     which is large.
 n_vertices_sample, n_times = condition1.data.shape
 n_subjects = 6
-print('Simulating data for %d subjects.' % n_subjects)
+print(f'Simulating data for {n_subjects} subjects.')
 
 #    Let's make sure our results replicate, so set the seed.
 np.random.seed(0)

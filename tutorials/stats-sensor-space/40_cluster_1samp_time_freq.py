@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _tut-cluster-one-samp-tfr:
+
 ===============================================================
 Non-parametric 1 sample cluster statistic on single trial power
 ===============================================================
