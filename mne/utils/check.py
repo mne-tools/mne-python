@@ -65,8 +65,8 @@ def check_fname(fname, filetype, endings, endings_err=()):
              % (fname, filetype, print_endings))
 
 
-def check_version(library, min_version='0.0', *, return_version=False,
-                  strip=True):
+def check_version(library, min_version='0.0', *, strip=True,
+                  return_version=False):
     r"""Check minimum library version required.
 
     Parameters
