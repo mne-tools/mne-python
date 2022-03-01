@@ -25,7 +25,7 @@ jobs:
       PYTHONUNBUFFERED: '1'
       CONDA_ENV: 'environment.yml'
       CI_OS_NAME: 'osx'
-      MNE_BROWSER_USE_OPENGL: 'false'
+      MNE_BROWSE_USE_OPENGL: 'false'  # This is incorrect!
     steps:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
