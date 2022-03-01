@@ -166,7 +166,7 @@ class Label(_VerboseDep):
         Kept as information but not used by the object itself.
     filename : str
         Kept as information but not used by the object itself.
-    %(label_subject)s
+    %(subject_label)s
     color : None | matplotlib color
         Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
     %(verbose)s
@@ -503,7 +503,7 @@ class Label(_VerboseDep):
 
         Parameters
         ----------
-        %(label_subject)s
+        %(subject_label)s
         smooth : int
             Number of iterations for the smoothing of the surface data.
             Cannot be None here since not all vertices are used. For a
@@ -635,7 +635,7 @@ class Label(_VerboseDep):
             or 'contiguous' to split the label into connected components.
             If a number or 'contiguous' is specified, names of the new labels
             will be the input label's name with div1, div2 etc. appended.
-        %(label_subject)s
+        %(subject_label)s
         %(subjects_dir)s
         freesurfer : bool
             By default (``False``) ``split_label`` uses an algorithm that is
@@ -735,7 +735,7 @@ class Label(_VerboseDep):
 
         Parameters
         ----------
-        %(label_subject)s
+        %(subject_label)s
         restrict_vertices : bool | array of int | instance of SourceSpaces
             If True, returned vertex will be one from the label. Otherwise,
             it could be any vertex from surf. If an array of int, the
@@ -789,7 +789,7 @@ class Label(_VerboseDep):
 
         Parameters
         ----------
-        %(label_subject)s
+        %(subject_label)s
         %(subjects_dir)s
         %(surface)s
         %(verbose)s
@@ -834,7 +834,7 @@ class Label(_VerboseDep):
 
         Parameters
         ----------
-        %(label_subject)s
+        %(subject_label)s
         %(subjects_dir)s
         %(surface)s
         %(verbose)s
@@ -984,7 +984,7 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
     ----------
     filename : str
         Path to label file.
-    %(label_subject)s
+    %(subject_label)s
         It is good practice to set this attribute to avoid combining
         incompatible labels and SourceEstimates (e.g., ones from other
         subjects). Note that due to file specification limitations, the
@@ -1129,7 +1129,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     ----------
     label_to_split : Label | str
         Label which is to be split (Label object or path to a label file).
-    %(label_subject)s
+    %(subject_label)s
     %(subjects_dir)s
 
     Returns
@@ -1213,7 +1213,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
         posterior to anterior), or the number of new labels to create (default
         is 2). If a number is specified, names of the new labels will be the
         input label's name with div1, div2 etc. appended.
-    %(label_subject)s
+    %(subject_label)s
     %(subjects_dir)s
     freesurfer : bool
         By default (``False``) ``split_label`` uses an algorithm that is
@@ -2279,7 +2279,7 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, src=None,
 
     Parameters
     ----------
-    %(eltc_labels)s
+    %(labels_eltc)s
     values : ndarray, shape (n_labels, ...)
         The values in each label. Can be 1D or 2D.
     tmin : float
@@ -2287,7 +2287,7 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, src=None,
     tstep : float
         The tstep to use for the STC.
     %(subject)s
-    %(eltc_src)s
+    %(src_eltc)s
         Can be omitted if using a surface source space, in which case
         the label vertices will determine the output STC vertices.
         Required if using a volumetric source space.

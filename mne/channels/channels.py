@@ -327,10 +327,10 @@ class SetChannelsMixin(MontageMixin):
 
         Parameters
         ----------
-        %(set_eeg_reference_ref_channels)s
-        %(set_eeg_reference_projection)s
-        %(set_eeg_reference_ch_type)s
-        %(set_eeg_reference_forward)s
+        %(ref_channels_set_eeg_reference)s
+        %(projection_set_eeg_reference)s
+        %(ch_type_set_eeg_reference)s
+        %(forward_set_eeg_reference)s
         %(verbose)s
 
         Returns
@@ -485,7 +485,7 @@ class SetChannelsMixin(MontageMixin):
 
         Parameters
         ----------
-        %(rename_channels_mapping_duplicates)s
+        %(mapping_rename_channels_duplicates)s
         %(verbose)s
 
         Returns
@@ -572,7 +572,7 @@ class SetChannelsMixin(MontageMixin):
             .. versionadded:: 0.13.0
         show : bool
             Show figure if True. Defaults to True.
-        %(topomap_sphere_auto)s
+        %(sphere_topomap_auto)s
         %(verbose)s
 
         Returns
@@ -606,7 +606,8 @@ class SetChannelsMixin(MontageMixin):
 
         Parameters
         ----------
-        %(anonymize_info_parameters)s
+        %(daysback_anonymize_info)s
+        %(keep_his_anonymize_info)s
         %(verbose)s
 
         Returns
@@ -1207,7 +1208,7 @@ def rename_channels(info, mapping, allow_duplicates=False, verbose=None):
     Parameters
     ----------
     %(info_not_none)s Note: modified in place.
-    %(rename_channels_mapping_duplicates)s
+    %(mapping_rename_channels_duplicates)s
     %(verbose)s
     """
     _validate_type(info, Info, 'info')

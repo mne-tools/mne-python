@@ -2555,7 +2555,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         to True.
     show : bool
         Show figures if True.
-    %(topomap_outlines)s
+    %(outlines_topomap)s
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True, a circle will be
@@ -2569,7 +2569,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     cmap : None | matplotlib colormap
         Colormap for the plot. If ``None``, defaults to 'Reds_r' for norm data,
         otherwise to 'RdBu_r'.
-    %(topomap_sphere_auto)s
+    %(sphere_topomap_auto)s
     %(verbose)s
 
     Returns

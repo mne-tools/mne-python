@@ -290,12 +290,12 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
         .. versionchanged:: 0.20
             The positional argument ``layout`` was deprecated and replaced
             by ``info``.
-    %(proj_topomap_kwargs)s
-    %(topomap_sphere_auto)s
-    %(topomap_extrapolate)s
+    %(cmap_proj_topomap_kwargs)s
+    %(sphere_topomap_auto)s
+    %(extrapolate_topomap)s
 
         .. versionadded:: 0.20
-    %(topomap_border)s
+    %(border_topomap)s
 
     Returns
     -------
@@ -727,11 +727,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         The axes to plot to. If None, the current axes will be used.
     names : list | None
         List of channel names. If None, channel names are not plotted.
-    %(topomap_show_names)s
+    %(show_names_topomap)s
         If ``True``, a list of names must be provided (see ``names`` keyword).
-    %(topomap_mask)s
-    %(topomap_mask_params)s
-    %(topomap_outlines)s
+    %(mask_topomap)s
+    %(mask_params_topomap)s
+    %(outlines_topomap)s
     contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
         If an array, the values represent the levels for the contours. The
@@ -746,12 +746,12 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         Handle for a function that is called when the user selects a set of
         channels by rectangle selection (matplotlib ``RectangleSelector``). If
         None interactive selection is disabled. Defaults to None.
-    %(topomap_extrapolate)s
+    %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
-    %(topomap_sphere)s
-    %(topomap_border)s
-    %(topomap_ch_type)s
+    %(sphere_topomap)s
+    %(border_topomap)s
+    %(ch_type_topomap)s
     cnorm : matplotlib.colors.Normalize | None
         Colormap normalization, default None means linear normalization. If not
         None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
@@ -1120,7 +1120,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         Title to use.
     show : bool
         Show figure if True.
-    %(topomap_outlines)s
+    %(outlines_topomap)s
     contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
         When an integer, matplotlib ticker locator is used to find suitable
@@ -1155,7 +1155,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         If None, no rejection is applied. The default is 'auto',
         which applies the rejection parameters used when fitting
         the ICA object.
-    %(topomap_sphere_auto)s
+    %(sphere_topomap_auto)s
     %(verbose)s
 
     Returns
@@ -1372,14 +1372,14 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         topomaps at a time).
     cbar_fmt : str
         String format for colorbar values.
-    %(topomap_show_names)s
+    %(show_names_topomap)s
     title : str | None
         Plot title. If None (default), no title is displayed.
     axes : instance of Axes | None
         The axes to plot to. If None the axes is defined automatically.
     show : bool
         Show figure if True.
-    %(topomap_outlines)s
+    %(outlines_topomap)s
     contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
         When an integer, matplotlib ticker locator is used to find suitable
@@ -1387,7 +1387,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         array for accuracy). If an array, the values represent the levels for
         the contours. If colorbar=True, the ticks in colorbar correspond to the
         contour levels. Defaults to 6.
-    %(topomap_sphere_auto)s
+    %(sphere_topomap_auto)s
 
     Returns
     -------
@@ -1501,16 +1501,16 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         automatically by checking for local maxima in global field power. If
         "interactive", the time can be set interactively at run-time by using a
         slider.
-    %(evoked_topomap_ch_type)s
+    %(ch_type_evoked_topomap)s
     %(topomap_vmin_vmax)s
-    %(topomap_cmap)s
-    %(topomap_sensors)s
-    %(topomap_colorbar)s
-    %(topomap_scalings)s
-    %(topomap_units)s
-    %(topomap_res)s
-    %(topomap_size)s
-    %(topomap_cbar_fmt)s
+    %(cmap_topomap)s
+    %(sensors_topomap)s
+    %(colorbar_topomap)s
+    %(scalings_topomap)s
+    %(units_topomap)s
+    %(res_topomap)s
+    %(size_topomap)s
+    %(cbar_fmt_topomap)s
     time_unit : str
         The units for the time axis, can be "ms" or "s" (default).
 
@@ -1519,22 +1519,22 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         String format for topomap values. Defaults (None) to "%%01d ms" if
         ``time_unit='ms'``, "%%0.3f s" if ``time_unit='s'``, and
         "%%g" otherwise. Can be an empty string to omit the time label.
-    %(plot_proj)s
+    %(proj_plot)s
     %(show)s
-    %(topomap_show_names)s
+    %(show_names_topomap)s
     %(title_None)s
-    %(evoked_topomap_mask)s
-    %(topomap_mask_params)s
-    %(topomap_outlines)s
-    %(topomap_contours)s
-    %(topomap_image_interp)s
-    %(topomap_average)s
-    %(topomap_axes)s
-    %(topomap_extrapolate)s
+    %(mask_evoked_topomap)s
+    %(mask_params_topomap)s
+    %(outlines_topomap)s
+    %(contours_topomap)s
+    %(image_interp_topomap)s
+    %(average_topomap)s
+    %(axes_topomap)s
+    %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
-    %(topomap_sphere_auto)s
-    %(topomap_border)s
+    %(sphere_topomap_auto)s
+    %(border_topomap)s
     nrows : int | 'auto'
         The number of rows of topographies to plot. Defaults to 1. If 'auto',
         obtains the number of rows depending on the amount of times to plot
@@ -1849,7 +1849,7 @@ def plot_epochs_psd_topomap(epochs, bands=None,
     ----------
     epochs : instance of Epochs
         The epochs object.
-    %(psd_topo_bands)s
+    %(bands_psd_topo)s
     tmin : float | None
         Start time to consider.
     tmax : float | None
@@ -1871,18 +1871,18 @@ def plot_epochs_psd_topomap(epochs, bands=None,
         pairs and the mean for each pair is plotted. If None, then first
         available channel type from order given above is used. Defaults to
         None.
-    %(psd_topo_cmap)s
-    %(psd_topo_agg_fun)s
-    %(psd_topo_dB)s
+    %(cmap_psd_topo)s
+    %(agg_fun_psd_topo)s
+    %(dB_psd_topo)s
     %(n_jobs)s
-    %(psd_topo_normalize)s
-    %(psd_topo_cbar_fmt)s
-    %(topomap_outlines)s
-    %(psd_topo_axes)s
+    %(normalize_psd_topo)s
+    %(cbar_fmt_psd_topo)s
+    %(outlines_topomap)s
+    %(axes_psd_topo)s
     show : bool
         Show figure if True.
-    %(topomap_sphere_auto)s
-    %(psd_topo_vlim_joint)s
+    %(sphere_topomap_auto)s
+    %(vlim_psd_topo_joint)s
     %(verbose)s
 
     Returns
@@ -1934,22 +1934,22 @@ def plot_psds_topomap(
         Frequencies used to compute psds.
     pos : numpy.ndarray of float, shape (n_sensors, 2)
         The positions of the sensors.
-    %(psd_topo_agg_fun)s
-    %(psd_topo_bands)s
-    %(psd_topo_cmap)s
-    %(psd_topo_dB)s
-    %(psd_topo_normalize)s
-    %(psd_topo_cbar_fmt)s
-    %(topomap_outlines)s
-    %(psd_topo_axes)s
+    %(agg_fun_psd_topo)s
+    %(bands_psd_topo)s
+    %(cmap_psd_topo)s
+    %(dB_psd_topo)s
+    %(normalize_psd_topo)s
+    %(cbar_fmt_psd_topo)s
+    %(outlines_topomap)s
+    %(axes_psd_topo)s
     show : bool
         Show figure if True.
-    %(topomap_sphere)s
-    %(psd_topo_vlim_joint)s
+    %(sphere_topomap)s
+    %(vlim_psd_topo_joint)s
     unit : str | None
         Measurement unit to be displayed with the colorbar. If ``None``, no
         unit is displayed (only "power" or "dB" as appropriate).
-    %(topomap_ch_type)s
+    %(ch_type_topomap)s
 
     Returns
     -------
@@ -2512,11 +2512,11 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
         The axes to plot to. If None, a new figure will be created.
     names : list | None
         List of channel names. If None, channel names are not plotted.
-    %(topomap_show_names)s
+    %(show_names_topomap)s
         If ``True``, a list of names must be provided (see ``names`` keyword).
-    %(topomap_mask)s
-    %(topomap_mask_params)s
-    %(topomap_outlines)s
+    %(mask_topomap)s
+    %(mask_params_topomap)s
+    %(outlines_topomap)s
     contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
         If an array, the values represent the levels for the contours. The
@@ -2531,10 +2531,10 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
         Handle for a function that is called when the user selects a set of
         channels by rectangle selection (matplotlib ``RectangleSelector``). If
         None interactive selection is disabled. Defaults to None.
-    %(topomap_extrapolate)s
+    %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
-    %(topomap_sphere_auto)s
+    %(sphere_topomap_auto)s
 
     Returns
     -------

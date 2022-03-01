@@ -312,9 +312,9 @@ class CSP(TransformerMixin, BaseEstimator):
             only significant sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
-        %(patterns_topomap_mask)s
-        %(topomap_mask_params)s
-        %(topomap_outlines)s
+        %(mask_patterns_topomap)s
+        %(mask_params_topomap)s
+        %(outlines_topomap)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
@@ -329,7 +329,7 @@ class CSP(TransformerMixin, BaseEstimator):
             (seconds). For example, 0.01 would translate into window that
             starts 5 ms before and ends 5 ms after a given time point.
             Defaults to None, which means no averaging.
-        %(topomap_sphere_auto)s
+        %(sphere_topomap_auto)s
 
         Returns
         -------
@@ -442,7 +442,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
                 dict(marker='o', markerfacecolor='w', markeredgecolor='k',
                      linewidth=0, markersize=4)
-        %(topomap_outlines)s
+        %(outlines_topomap)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find

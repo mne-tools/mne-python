@@ -204,7 +204,7 @@ class DigMontage(object):
 
         Parameters
         ----------
-        %(rename_channels_mapping_duplicates)s
+        %(mapping_rename_channels_duplicates)s
 
         Returns
         -------

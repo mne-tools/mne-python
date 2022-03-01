@@ -3146,7 +3146,7 @@ class Brain(object):
         ----------
         mode : str
             Either 'rgb' or 'rgba' for values to return.
-        %(brain_screenshot_time_viewer)s
+        %(time_viewer_brain_screenshot)s
 
         Returns
         -------
@@ -3308,7 +3308,7 @@ class Brain(object):
 
         Parameters
         ----------
-        %(brain_time_interpolation)s
+        %(interpolation_brain_time)s
         """
         self._time_interpolation = _check_option(
             'interpolation',
@@ -3627,7 +3627,7 @@ class Brain(object):
             Last time point to include (default: all data).
         framerate : float
             Framerate of the movie (frames per second, default 24).
-        %(brain_time_interpolation)s
+        %(interpolation_brain_time)s
             If None, it uses the current ``brain.interpolation``,
             which defaults to ``'nearest'``. Defaults to None.
         codec : str | None
@@ -3638,7 +3638,7 @@ class Brain(object):
             A function to call on each iteration. Useful for status message
             updates. It will be passed keyword arguments ``frame`` and
             ``n_frames``.
-        %(brain_screenshot_time_viewer)s
+        %(time_viewer_brain_screenshot)s
         **kwargs : dict
             Specify additional options for :mod:`imageio`.
         """

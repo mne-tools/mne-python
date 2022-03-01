@@ -250,7 +250,7 @@ class Dipole(_VerboseDep):
 
             .. versionadded:: 0.14.0
         %(verbose)s
-        %(dipole_locs_fig_title)s
+        %(title_dipole_locs_fig)s
 
             .. versionadded:: 0.21.0
 

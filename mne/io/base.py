@@ -984,15 +984,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(applyfun_fun)s
+        %(fun_applyfun)s
         %(picks_all_data_noref)s
-        %(applyfun_dtype)s
+        %(dtype_applyfun)s
         %(n_jobs)s
-        %(applyfun_chwise)s
+        %(channel_wise_applyfun_ch)s
 
             .. versionadded:: 0.18
         %(verbose)s
-        %(kwarg_fun)s
+        %(kwargs_fun)s
 
         Returns
         -------
@@ -1304,8 +1304,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(raw_tmin)s
-        %(raw_tmax)s
+        %(tmin_raw)s
+        %(tmax_raw)s
         %(include_tmax)s
         %(verbose)s
 
@@ -1380,8 +1380,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             or ``_ieeg.fif`` (common intracranial EEG data). You may also
             append an additional ``.gz`` suffix to enable gzip compression.
         %(picks_all)s
-        %(raw_tmin)s
-        %(raw_tmax)s
+        %(tmin_raw)s
+        %(tmax_raw)s
         buffer_size_sec : float | None
             Size of data chunks in seconds. If None (default), the buffer
             size of the original file is used.
@@ -1502,10 +1502,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(export_params_fname)s
-        %(export_params_fmt)s
-        %(export_params_physical_range)s
-        %(export_params_add_ch_type)s
+        %(fname_export_params)s
+        %(fmt_export_params)s
+        %(physical_range_export_params)s
+        %(add_ch_type_export_params)s
         %(overwrite)s
 
             .. versionadded:: 0.24.1
@@ -1870,10 +1870,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         %(picks_all)s
-        %(df_index_raw)s
+        %(index_df_raw)s
             Defaults to ``None``.
-        %(df_scalings)s
-        %(df_copy)s
+        %(scalings_df)s
+        %(copy_df)s
         start : int | None
             Starting sample index for creating the DataFrame from a temporal
             span of the Raw object. ``None`` (the default) uses the first
@@ -1881,8 +1881,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         stop : int | None
             Ending sample index for creating the DataFrame from a temporal span
             of the Raw object. ``None`` (the default) uses the last sample.
-        %(df_longform_raw)s
-        %(df_time_format_raw)s
+        %(long_format_df_raw)s
+        %(time_format_df_raw)s
 
             .. versionadded:: 0.20
         %(verbose)s
@@ -2536,7 +2536,7 @@ def concatenate_raws(raws, preload=None, events_list=None, *,
     %(preload_concatenate)s
     events_list : None | list
         The events to concatenate. Defaults to ``None``.
-    %(on_info_mismatch)s
+    %(on_mismatch_info)s
     %(verbose)s
 
     Returns

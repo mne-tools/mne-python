@@ -266,29 +266,29 @@ class Covariance(dict, _VerboseDep):
         Parameters
         ----------
         %(info_not_none)s
-        %(topomap_ch_type)s
+        %(ch_type_topomap)s
         %(topomap_vmin_vmax)s
-        %(topomap_cmap)s
-        %(topomap_sensors)s
-        %(topomap_colorbar)s
-        %(topomap_scalings)s
-        %(topomap_units)s
-        %(topomap_res)s
-        %(topomap_size)s
-        %(topomap_cbar_fmt)s
-        %(plot_proj)s
+        %(cmap_topomap)s
+        %(sensors_topomap)s
+        %(colorbar_topomap)s
+        %(scalings_topomap)s
+        %(units_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cbar_fmt_topomap)s
+        %(proj_plot)s
         %(show)s
-        %(topomap_show_names)s
+        %(show_names_topomap)s
         %(title_None)s
-        %(topomap_mask)s
-        %(topomap_mask_params)s
-        %(topomap_outlines)s
-        %(topomap_contours)s
-        %(topomap_image_interp)s
-        %(topomap_axes)s
-        %(topomap_extrapolate)s
-        %(topomap_sphere_auto)s
-        %(topomap_border)s
+        %(mask_topomap)s
+        %(mask_params_topomap)s
+        %(outlines_topomap)s
+        %(contours_topomap)s
+        %(image_interp_topomap)s
+        %(axes_topomap)s
+        %(extrapolate_topomap)s
+        %(sphere_topomap_auto)s
+        %(border_topomap)s
         noise_cov : instance of Covariance | None
             If not None, whiten the instance with ``noise_cov`` before
             plotting.

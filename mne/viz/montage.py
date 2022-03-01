@@ -23,7 +23,7 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
         Whether to plot the montage as '3d' or 'topomap' (default).
     show : bool
         Show figure if True.
-    %(topomap_sphere_auto)s
+    %(sphere_topomap_auto)s
     %(verbose)s
 
     Returns

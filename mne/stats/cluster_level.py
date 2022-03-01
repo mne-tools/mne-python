@@ -1085,23 +1085,23 @@ def permutation_cluster_test(
         dimension represented in the ``adjacency`` parameter
         (e.g., spectral data should be provided as
         ``(observations, frequencies, channels/vertices)``).
-    %(clust_thresh_f)s
-    %(clust_nperm_int)s
-    %(clust_tail)s
-    %(clust_stat_f)s
-    %(clust_adj_n)s
+    %(threshold_clust_f)s
+    %(n_permutations_clust_int)s
+    %(tail_clust)s
+    %(stat_fun_clust_f)s
+    %(adjacency_clust_n)s
     %(n_jobs)s
     %(seed)s
-    %(clust_maxstep)s
+    %(max_step_clust)s
     exclude : bool array or None
         Mask to apply to the data to exclude certain points from clustering
         (e.g., medial wall vertices). Should be the same shape as X. If None,
         no points are excluded.
-    %(clust_stepdown)s
-    %(clust_power_f)s
-    %(clust_out)s
-    %(clust_disjoint)s
-    %(clust_buffer)s
+    %(step_down_p_clust)s
+    %(f_power_clust)s
+    %(out_type_clust)s
+    %(check_disjoint_clust)s
+    %(buffer_size_clust)s
     %(verbose)s
 
     Returns
@@ -1145,23 +1145,23 @@ def permutation_cluster_1samp_test(
         time-frequency image) associated with the kth observation. For
         spatiotemporal data, see also
         :func:`mne.stats.spatio_temporal_cluster_1samp_test`.
-    %(clust_thresh_t)s
-    %(clust_nperm_all)s
-    %(clust_tail)s
-    %(clust_stat_t)s
-    %(clust_adj_1)s
+    %(threshold_clust_t)s
+    %(n_permutations_clust_all)s
+    %(tail_clust)s
+    %(stat_fun_clust_t)s
+    %(adjacency_clust_1)s
     %(n_jobs)s
     %(seed)s
-    %(clust_maxstep)s
+    %(max_step_clust)s
     exclude : bool array or None
         Mask to apply to the data to exclude certain points from clustering
         (e.g., medial wall vertices). Should be the same shape as X. If None,
         no points are excluded.
-    %(clust_stepdown)s
-    %(clust_power_t)s
-    %(clust_out)s
-    %(clust_disjoint)s
-    %(clust_buffer)s
+    %(step_down_p_clust)s
+    %(t_power_clust)s
+    %(out_type_clust)s
+    %(check_disjoint_clust)s
+    %(buffer_size_clust)s
     %(verbose)s
 
     Returns
@@ -1234,21 +1234,21 @@ def spatio_temporal_cluster_1samp_test(
         The second, and optionally third, dimensions correspond to the
         time or time-frequency data. And, the last dimension should be spatial;
         it is the dimension the adjacency parameter will be applied to.
-    %(clust_thresh_t)s
-    %(clust_nperm_all)s
-    %(clust_tail)s
-    %(clust_stat_t)s
-    %(clust_adj_st1)s
+    %(threshold_clust_t)s
+    %(n_permutations_clust_all)s
+    %(tail_clust)s
+    %(stat_fun_clust_t)s
+    %(adjacency_clust_st1)s
     %(n_jobs)s
     %(seed)s
-    %(clust_maxstep)s
+    %(max_step_clust)s
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
-    %(clust_stepdown)s
-    %(clust_power_t)s
-    %(clust_out)s
-    %(clust_disjoint)s
-    %(clust_buffer)s
+    %(step_down_p_clust)s
+    %(t_power_clust)s
+    %(out_type_clust)s
+    %(check_disjoint_clust)s
+    %(buffer_size_clust)s
     %(verbose)s
 
     Returns
@@ -1304,21 +1304,21 @@ def spatio_temporal_cluster_test(
         time or time-frequency data. And, the last dimension should be spatial;
         it is the dimension the adjacency parameter will be applied to. All
         dimensions except the first should match across all groups.
-    %(clust_thresh_f)s
-    %(clust_nperm_int)s
-    %(clust_tail)s
-    %(clust_stat_f)s
-    %(clust_adj_stn)s
+    %(threshold_clust_f)s
+    %(n_permutations_clust_int)s
+    %(tail_clust)s
+    %(stat_fun_clust_f)s
+    %(adjacency_clust_stn)s
     %(n_jobs)s
     %(seed)s
-    %(clust_maxstep)s
+    %(max_step_clust)s
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
-    %(clust_stepdown)s
-    %(clust_power_f)s
-    %(clust_out)s
-    %(clust_disjoint)s
-    %(clust_buffer)s
+    %(step_down_p_clust)s
+    %(f_power_clust)s
+    %(out_type_clust)s
+    %(check_disjoint_clust)s
+    %(buffer_size_clust)s
     %(verbose)s
 
     Returns

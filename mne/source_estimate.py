@@ -530,7 +530,7 @@ class _BaseSourceEstimate(TimeMixin, _VerboseDep):
 
         Parameters
         ----------
-        %(get_peak_parameters)s
+        %(tmin_get_peak_parameters)s
 
         Returns
         -------
@@ -560,15 +560,15 @@ class _BaseSourceEstimate(TimeMixin, _VerboseDep):
 
         Parameters
         ----------
-        %(eltc_labels)s
-        %(eltc_src)s
-        %(eltc_mode)s
-        %(eltc_allow_empty)s
+        %(labels_eltc)s
+        %(src_eltc)s
+        %(mode_eltc)s
+        %(allow_empty_eltc)s
         %(verbose)s
 
         Returns
         -------
-        %(eltc_returns)s
+        %(label_tc_el_returns)s
 
         See Also
         --------
@@ -1212,11 +1212,11 @@ class _BaseSourceEstimate(TimeMixin, _VerboseDep):
 
         Parameters
         ----------
-        %(df_index_evk)s
+        %(index_df_evk)s
             Defaults to ``None``.
-        %(df_scalings)s
-        %(df_longform_stc)s
-        %(df_time_format)s
+        %(scalings_df)s
+        %(long_format_df_stc)s
+        %(time_format_df)s
 
             .. versionadded:: 0.20
         %(verbose)s
@@ -1495,7 +1495,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         hemi : {'lh', 'rh', None}
             The hemi to be considered. If None, the entire source space is
             considered.
-        %(get_peak_parameters)s
+        %(tmin_get_peak_parameters)s
 
         Returns
         -------
@@ -1975,16 +1975,16 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        %(eltc_labels)s
-        %(eltc_src)s
-        %(eltc_mode)s
-        %(eltc_allow_empty)s
-        %(eltc_mri_resolution)s
+        %(labels_eltc)s
+        %(src_eltc)s
+        %(mode_eltc)s
+        %(allow_empty_eltc)s
+        %(mri_resolution_eltc)s
         %(verbose)s
 
         Returns
         -------
-        %(eltc_returns)s
+        %(label_tc_el_returns)s
 
         See Also
         --------
@@ -3156,18 +3156,18 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
     ----------
     stcs : SourceEstimate | list (or generator) of SourceEstimate
         The source estimates from which to extract the time course.
-    %(eltc_labels)s
-    %(eltc_src)s
-    %(eltc_mode)s
-    %(eltc_allow_empty)s
+    %(labels_eltc)s
+    %(src_eltc)s
+    %(mode_eltc)s
+    %(allow_empty_eltc)s
     return_generator : bool
         If True, a generator instead of a list is returned.
-    %(eltc_mri_resolution)s
+    %(mri_resolution_eltc)s
     %(verbose)s
 
     Returns
     -------
-    %(eltc_returns)s
+    %(label_tc_el_returns)s
 
     Notes
     -----

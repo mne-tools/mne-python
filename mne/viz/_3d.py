@@ -500,7 +500,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         If ``None``, creates a new 600x600 pixel figure with black background.
 
         .. versionadded:: 0.16
-    %(scene_interaction)s
+    %(interaction_scene)s
 
         .. versionadded:: 0.16
         .. versionchanged:: 1.0
@@ -2918,7 +2918,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
 
         .. versionadded:: 0.19.0
     %(verbose)s
-    %(dipole_locs_fig_title)s
+    %(title_dipole_locs_fig)s
 
         .. versionadded:: 0.21.0
 

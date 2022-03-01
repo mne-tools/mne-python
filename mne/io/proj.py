@@ -80,9 +80,9 @@ class Projection(dict):
         Parameters
         ----------
         %(info_not_none)s Used to determine the layout.
-        %(proj_topomap_kwargs)s
-        %(topomap_sphere_auto)s
-        %(topomap_border)s
+        %(cmap_proj_topomap_kwargs)s
+        %(sphere_topomap_auto)s
+        %(border_topomap)s
 
         Returns
         -------
@@ -301,12 +301,12 @@ class ProjMixin(object):
             ted in pairs and the RMS for each pair is plotted. If None
             (default), it will return all channel types present. If a list of
             ch_types is provided, it will return multiple figures.
-        %(proj_topomap_kwargs)s
-        %(topomap_sphere_auto)s
-        %(topomap_extrapolate)s
+        %(cmap_proj_topomap_kwargs)s
+        %(sphere_topomap_auto)s
+        %(extrapolate_topomap)s
 
             .. versionadded:: 0.20
-        %(topomap_border)s
+        %(border_topomap)s
 
         Returns
         -------

@@ -22,12 +22,12 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
 
     Parameters
     ----------
-    %(export_params_fname)s
+    %(fname_export_params)s
     raw : instance of Raw
         The raw instance to export.
-    %(export_params_fmt)s
-    %(export_params_physical_range)s
-    %(export_params_add_ch_type)s
+    %(fmt_export_params)s
+    %(physical_range_export_params)s
+    %(add_ch_type_export_params)s
     %(overwrite)s
 
         .. versionadded:: 0.24.1
@@ -74,10 +74,10 @@ def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    %(export_params_fname)s
+    %(fname_export_params)s
     epochs : instance of Epochs
         The epochs to export.
-    %(export_params_fmt)s
+    %(fmt_export_params)s
     %(overwrite)s
 
         .. versionadded:: 0.24.1
@@ -128,7 +128,7 @@ def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False,
 
     Parameters
     ----------
-    %(export_params_fname)s
+    %(fname_export_params)s
     evoked : Evoked instance, or list of Evoked instances
         The evoked dataset, or list of evoked datasets, to export to one file.
         Note that the measurement info from the first evoked instance is used,
