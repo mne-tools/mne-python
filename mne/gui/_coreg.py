@@ -83,7 +83,7 @@ class CoregistrationUI(HasTraits):
         Display the window as soon as it is ready. Defaults to True.
     block : bool
         If True, start the Qt application event loop. Default to False.
-    %(scene_interaction)s
+    %(interaction_scene)s
         Defaults to ``'terrain'``.
 
         .. versionadded:: 1.0

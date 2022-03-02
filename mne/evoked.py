@@ -200,12 +200,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(applyfun_fun_evoked)s
+        %(fun_applyfun_evoked)s
         %(picks_all_data_noref)s
-        %(applyfun_dtype)s
+        %(dtype_applyfun)s
         %(n_jobs)s
         %(verbose)s
-        %(kwarg_fun)s
+        %(kwargs_fun)s
 
         Returns
         -------
@@ -394,7 +394,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         %(decim)s
-        %(decim_offset)s
+        %(offset_decim)s
         %(verbose)s
 
         Returns
@@ -560,8 +560,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             or "s" (will become the default in 0.17).
 
             .. versionadded:: 0.16
-        %(topomap_sphere_auto)s
-        %(topomap_extrapolate)s
+        %(sphere_topomap_auto)s
+        %(extrapolate_topomap)s
 
             .. versionadded:: 0.22
         %(verbose)s
@@ -789,12 +789,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         %(picks_all)s
-        %(df_index_evk)s
+        %(index_df_evk)s
             Defaults to ``None``.
-        %(df_scalings)s
-        %(df_copy)s
-        %(df_longform_raw)s
-        %(df_time_format)s
+        %(scalings_df)s
+        %(copy_df)s
+        %(long_format_df_raw)s
+        %(time_format_df)s
 
             .. versionadded:: 0.20
         %(verbose)s
@@ -1384,7 +1384,7 @@ def write_evokeds(fname, evoked, *, on_mismatch='raise', overwrite=False,
         The evoked dataset, or list of evoked datasets, to save in one file.
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
-    %(on_info_mismatch)s
+    %(on_mismatch_info)s
     %(overwrite)s
 
         .. versionadded:: 1.0

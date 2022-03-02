@@ -34,7 +34,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         High cut-off frequency to apply to the EOG channel in Hz.
     filter_length : str | int | None
         Number of taps to use for filtering.
-    %(eog_ch_name)s
+    %(ch_name_eog)s
     tstart : float
         Start detection after tstart seconds.
     reject_by_annotation : bool
@@ -173,7 +173,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
     ----------
     raw : instance of Raw
         The raw data.
-    %(eog_ch_name)s
+    %(ch_name_eog)s
     event_id : int
         The index to assign to found events.
     %(picks_all)s

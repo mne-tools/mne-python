@@ -906,7 +906,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         .. versionadded:: 0.13.0
     show : bool
         Show figure if True. Defaults to True.
-    %(topomap_sphere_auto)s
+    %(sphere_topomap_auto)s
     pointsize : float | None
         The size of the points. If None (default), will bet set to 75 if
         ``kind='3d'``, or 25 otherwise.

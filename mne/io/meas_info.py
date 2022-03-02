@@ -2493,7 +2493,8 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     Parameters
     ----------
     %(info_not_none)s
-    %(anonymize_info_parameters)s
+    %(daysback_anonymize_info)s
+    %(keep_his_anonymize_info)s
     %(verbose)s
 
     Returns

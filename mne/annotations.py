@@ -115,7 +115,7 @@ class Annotations(object):
         same time. If it is a string, it should conform to the ISO8601 format.
         More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
         the ISO8601 format where the delimiter between date and time is ' '.
-    %(annot_ch_names)s
+    %(ch_names_annot)s
 
         .. versionadded:: 0.23
 
@@ -338,7 +338,7 @@ class Annotations(object):
         description : str | array-like
             Description for the annotation. To reject epochs, use description
             starting with keyword 'bad'.
-        %(annot_ch_names)s
+        %(ch_names_annot)s
 
             .. versionadded:: 0.23
 

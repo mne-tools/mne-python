@@ -725,7 +725,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         Make sure the wavelet has a mean of zero.
 
         .. versionadded:: 0.13.0
-    %(tfr_average)s
+    %(average_tfr)s
     output : str
         Can be "power" (default) or "complex". If "complex", then
         average must be False.
@@ -870,7 +870,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         .. note:: Decimation may create aliasing artifacts.
     %(n_jobs)s
     %(picks_good_data)s
-    %(tfr_average)s
+    %(average_tfr)s
     %(verbose)s
 
     Returns
@@ -1047,13 +1047,13 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         Parameters
         ----------
         %(picks_all)s
-        %(df_index_epo)s
+        %(index_df_epo)s
             Valid string values are ``'time'``, ``'freq'``, ``'epoch'``, and
             ``'condition'`` for ``EpochsTFR`` and ``'time'`` and ``'freq'``
             for ``AverageTFR``.
             Defaults to ``None``.
-        %(df_longform_epo)s
-        %(df_time_format)s
+        %(long_format_df_epo)s
+        %(time_format_df)s
 
             .. versionadded:: 0.23
         %(verbose)s
@@ -2010,7 +2010,7 @@ class AverageTFR(_BaseTFR):
             The axes to plot to. If None the axes is defined automatically.
         show : bool
             Call pyplot.show() at the end.
-        %(topomap_outlines)s
+        %(outlines_topomap)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
@@ -2018,7 +2018,7 @@ class AverageTFR(_BaseTFR):
             inaccurate, use array for accuracy). If an array, the values
             represent the levels for the contours. If colorbar=True, the ticks
             in colorbar correspond to the contour levels. Defaults to 6.
-        %(topomap_sphere_auto)s
+        %(sphere_topomap_auto)s
 
         Returns
         -------

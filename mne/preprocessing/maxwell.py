@@ -61,11 +61,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                      ``raw.info['bads']`` prior to processing in order to
                      prevent artifact spreading. Manual inspection and use
                      of :func:`~find_bad_channels_maxwell` is recommended.
-    %(maxwell_origin)s
-    %(maxwell_int)s
-    %(maxwell_ext)s
-    %(maxwell_cal)s
-    %(maxwell_cross)s
+    %(origin_maxwell)s
+    %(int_order_maxwell)s
+    %(ext_order_maxwell)s
+    %(calibration_maxwell_cal)s
+    %(cross_talk_maxwell)s
     st_duration : float | None
         If not None, apply spatiotemporal SSS with specified buffer duration
         (in seconds). MaxFilter™'s default is 10.0 seconds in v2.2.
@@ -79,22 +79,22 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     st_correlation : float
         Correlation limit between inner and outer subspaces used to reject
         ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
-    %(maxwell_coord)s
-    %(maxwell_dest)s
-    %(maxwell_reg)s
-    %(maxwell_ref)s
-    %(maxwell_cond)s
-    %(maxwell_pos)s
+    %(coord_frame_maxwell)s
+    %(destination_maxwell_dest)s
+    %(regularize_maxwell_reg)s
+    %(ignore_ref_maxwell)s
+    %(bad_condition_maxwell_cond)s
+    %(head_pos_maxwell)s
 
         .. versionadded:: 0.12
-    %(maxwell_st_fixed_only)s
-    %(maxwell_mag)s
+    %(st_fixed_maxwell_only)s
+    %(mag_scale_maxwell)s
 
         .. versionadded:: 0.13
-    %(maxwell_skip)s
+    %(skip_by_annotation_maxwell)s
 
         .. versionadded:: 0.17
-    %(maxwell_extended)s
+    %(extended_proj_maxwell)s
     %(verbose)s
 
     Returns
@@ -1968,24 +1968,24 @@ def find_bad_channels_maxwell(
                      developers.
 
         .. versionadded:: 0.21
-    %(maxwell_origin)s
-    %(maxwell_int)s
-    %(maxwell_ext)s
-    %(maxwell_cal)s
-    %(maxwell_cross)s
-    %(maxwell_coord)s
-    %(maxwell_reg)s
-    %(maxwell_ref)s
-    %(maxwell_cond)s
-    %(maxwell_pos)s
-    %(maxwell_mag)s
-    %(maxwell_skip)s
+    %(origin_maxwell)s
+    %(int_order_maxwell)s
+    %(ext_order_maxwell)s
+    %(calibration_maxwell_cal)s
+    %(cross_talk_maxwell)s
+    %(coord_frame_maxwell)s
+    %(regularize_maxwell_reg)s
+    %(ignore_ref_maxwell)s
+    %(bad_condition_maxwell_cond)s
+    %(head_pos_maxwell)s
+    %(mag_scale_maxwell)s
+    %(skip_by_annotation_maxwell)s
     h_freq : float | None
         The cutoff frequency (in Hz) of the low-pass filter that will be
         applied before processing the data. This defaults to ``40.``, which
         should provide similar results to MaxFilter. If you do not wish to
         apply a filter, set this to ``None``.
-    %(maxwell_extended)s
+    %(extended_proj_maxwell)s
     %(verbose)s
 
     Returns
@@ -2294,16 +2294,16 @@ def compute_maxwell_basis(info, origin='auto', int_order=8, ext_order=3,
     Parameters
     ----------
     %(info_not_none)s
-    %(maxwell_origin)s
-    %(maxwell_int)s
-    %(maxwell_ext)s
-    %(maxwell_cal)s
-    %(maxwell_coord)s
-    %(maxwell_reg)s
-    %(maxwell_ref)s
-    %(maxwell_cond)s
-    %(maxwell_mag)s
-    %(maxwell_extended)s
+    %(origin_maxwell)s
+    %(int_order_maxwell)s
+    %(ext_order_maxwell)s
+    %(calibration_maxwell_cal)s
+    %(coord_frame_maxwell)s
+    %(regularize_maxwell_reg)s
+    %(ignore_ref_maxwell)s
+    %(bad_condition_maxwell_cond)s
+    %(mag_scale_maxwell)s
+    %(extended_proj_maxwell)s
     %(verbose)s
 
     Returns

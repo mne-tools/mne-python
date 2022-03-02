@@ -304,7 +304,7 @@ def get_chpi_info(info, on_missing='raise', verbose=None):
     Parameters
     ----------
     %(info_not_none)s
-    %(chpi_on_missing)s
+    %(on_missing_chpi)s
     %(verbose)s
 
     Returns
@@ -805,7 +805,7 @@ def compute_head_pos(info, chpi_locs, dist_limit=0.005, gof_limit=0.98,
         Minimum distance (m) to accept for coil position fitting.
     gof_limit : float
         Minimum goodness of fit to accept for each coil.
-    %(chpi_adjust_dig)s
+    %(adjust_dig_chpi)s
     %(verbose)s
 
     Returns
@@ -964,10 +964,10 @@ def compute_chpi_snr(raw, t_step_min=0.01, t_window='auto', ext_order=1,
         Raw data with cHPI information.
     t_step_min : float
         Minimum time step to use.
-    %(chpi_t_window)s
-    %(chpi_ext_order)s
-    %(raw_tmin)s
-    %(raw_tmax)s
+    %(t_window_chpi_t)s
+    %(ext_order_chpi)s
+    %(tmin_raw)s
+    %(tmax_raw)s
     %(verbose)s
 
     Returns
@@ -1001,10 +1001,10 @@ def compute_chpi_amplitudes(raw, t_step_min=0.01, t_window='auto',
         Raw data with cHPI information.
     t_step_min : float
         Minimum time step to use.
-    %(chpi_t_window)s
-    %(chpi_ext_order)s
-    %(raw_tmin)s
-    %(raw_tmax)s
+    %(t_window_chpi_t)s
+    %(ext_order_chpi)s
+    %(tmin_raw)s
+    %(tmax_raw)s
     %(verbose)s
 
     Returns
@@ -1129,7 +1129,7 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
     too_close : str
         How to handle HPI positions too close to the sensors,
         can be 'raise' (default), 'warning', or 'info'.
-    %(chpi_adjust_dig)s
+    %(adjust_dig_chpi)s
     %(verbose)s
 
     Returns
@@ -1275,8 +1275,8 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window='auto',
         If True, also filter line noise.
     t_step : float
         Time step to use for estimation, default is 0.01 (10 ms).
-    %(chpi_t_window)s
-    %(chpi_ext_order)s
+    %(t_window_chpi_t)s
+    %(ext_order_chpi)s
     allow_line_only : bool
         If True, allow filtering line noise only. The default is False,
         which only allows the function to run when cHPI information is present.

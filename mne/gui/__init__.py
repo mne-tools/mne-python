@@ -81,7 +81,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         different color.
 
         .. versionadded:: 0.16
-    %(scene_interaction_None)s
+    %(interaction_scene_none)s
         Defaults to ``'terrain'``.
 
         .. versionadded:: 0.16
