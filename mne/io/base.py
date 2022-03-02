@@ -1065,8 +1065,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         trans_bandwidth : float
             Width of the transition band in Hz.
             Only used for ``method='fir'``.
-        %(n_jobs-fir)s
-        %(method-fir)s
+        %(n_jobs_fir)s
+        %(method_fir)s
         %(iir_params)s
         mt_bandwidth : float | None
             The bandwidth of the multitaper windowing function in Hz.
@@ -1079,7 +1079,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(phase)s
         %(fir_window)s
         %(fir_design)s
-        %(pad-fir)s
+        %(pad_fir)s
             The default is ``'reflect_limited'``.
 
             .. versionadded:: 0.15
@@ -1152,14 +1152,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         sfreq : float
             New sample rate to use.
         %(npad)s
-        %(window-resample)s
+        %(window_resample)s
         stim_picks : list of int | None
             Stim channels. These channels are simply subsampled or
             supersampled (without applying any filtering). This reduces
             resampling artifacts in stim channels, but may lead to missing
             triggers. If None, stim channels are automatically chosen using
             :func:`mne.pick_types`.
-        %(n_jobs-cuda)s
+        %(n_jobs_cuda)s
         events : 2D array, shape (n_events, 3) | None
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data. NB: The input events are not

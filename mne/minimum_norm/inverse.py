@@ -1292,7 +1292,7 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
         Use minimum norm, dSPM (default), sLORETA, or eLORETA.
-    %(pick_ori-novec)s
+    %(pick_ori_novec)s
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     label : Label | None

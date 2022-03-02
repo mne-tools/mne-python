@@ -402,7 +402,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     %(line_alpha_plot_psd)s
     %(spatial_colors_plot_psd)s
     %(sphere_topomap_auto)s
-    %(window-psd)s
+    %(window_psd)s
 
         .. versionadded:: 0.22.0
     exclude : list of str | 'bads'

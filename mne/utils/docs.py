@@ -202,7 +202,7 @@ aseg : str
     Freesurfer subject directory.
 """
 
-docdict['average-psd'] = """
+docdict['average_psd'] = """
 average : str | None
     How to average the segments. If ``mean`` (default), calculate the
     arithmetic mean. If ``median``, calculate the median, corrected for
@@ -1748,7 +1748,7 @@ metadata : instance of pandas.DataFrame | None
     .. versionadded:: 0.16
 """
 
-docdict['method-fir'] = """
+docdict['method_fir'] = """
 method : str
     'fir' will use overlap-add FIR filtering, 'iir' will use IIR
     forward-backward filtering (via filtfilt).
@@ -1815,13 +1815,13 @@ n_jobs : int
     to the number of CPU cores. Requires the ``joblib`` package.
 """
 
-docdict['n_jobs-cuda'] = """
+docdict['n_jobs_cuda'] = """
 n_jobs : int | str
     Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
     is installed properly.
 """
 
-docdict['n_jobs-fir'] = """
+docdict['n_jobs_fir'] = """
 n_jobs : int | str
     Number of jobs to run in parallel. Can be 'cuda' if ``cupy``
     is installed properly and method='fir'.
@@ -1946,8 +1946,9 @@ on_header_missing : str
     .. versionadded:: 0.22
 """
 
-_on_missing_base = """Can be ``'raise'`` (default) to raise an error,
-    ``'warn'`` to emit a warning, or ``'ignore'`` to ignore when"""
+_on_missing_base = """\
+Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
+    warning, or ``'ignore'`` to ignore when"""
 
 
 docdict['on_mismatch_info'] = f"""
@@ -2070,7 +2071,7 @@ overwrite : bool
 # %%
 # P
 
-docdict['pad'] = """
+_pad_base = """
 pad : str
     The type of padding to use. Supports all :func:`numpy.pad` ``mode``
     options. Can also be ``"reflect_limited"``, which pads with a
@@ -2078,12 +2079,9 @@ pad : str
     of the vector, followed by zeros.
 """
 
-docdict['pad-fir'] = """
-pad : str
-    The type of padding to use. Supports all :func:`numpy.pad` ``mode``
-    options. Can also be ``"reflect_limited"``, which pads with a
-    reflected version of each vector mirrored on the first and last values
-    of the vector, followed by zeros. Only used for ``method='fir'``."""
+docdict['pad'] = _pad_base
+
+docdict['pad_fir'] = _pad_base + """ Only used for ``method='fir'``."""
 
 docdict['pca_vars_pctf'] = """
 pca_vars : array, shape (n_comp,) | list of array
@@ -2136,7 +2134,7 @@ pick_ori : None | "normal" | "vector"
         object.
 """
 
-docdict['pick_ori-novec'] = """
+docdict['pick_ori_novec'] = """
 pick_ori : None | "normal"
 """ + _pick_ori_novec
 
@@ -3318,12 +3316,12 @@ weight_norm : str | None
            solution.
 """
 
-docdict['window-psd'] = """
+docdict['window_psd'] = """
 window : str | float | tuple
     Windowing function to use. See :func:`scipy.signal.get_window`.
 """
 
-docdict['window-resample'] = """
+docdict['window_resample'] = """
 window : str | tuple
     Frequency-domain window to use in resampling.
     See :func:`scipy.signal.resample`.
