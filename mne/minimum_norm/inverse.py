@@ -1510,7 +1510,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         Use fixed source orientations normal to the cortical mantle. If True,
         the loose parameter must be "auto" or 0. If 'auto', the loose value
         is used.
-    %(rank_None)s
+    %(rank_none)s
     %(use_cps)s
     %(verbose)s
 

@@ -285,7 +285,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
     ----------
     inst : instance of Raw, Epochs, or Covariance
         Raw measurements to compute the rank from or the covariance.
-    %(rank_None)s
+    %(rank_none)s
     scalings : dict | None (default None)
         Defaults to ``dict(mag=1e15, grad=1e13, eeg=1e6)``.
         These defaults will scale different channel types

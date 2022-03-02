@@ -1502,7 +1502,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         "interactive", the time can be set interactively at run-time by using a
         slider.
     %(ch_type_evoked_topomap)s
-    %(topomap_vmin_vmax)s
+    %(vmin_vmax_topomap)s
     %(cmap_topomap)s
     %(sensors_topomap)s
     %(colorbar_topomap)s
@@ -1522,7 +1522,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     %(proj_plot)s
     %(show)s
     %(show_names_topomap)s
-    %(title_None)s
+    %(title_none)s
     %(mask_evoked_topomap)s
     %(mask_params_topomap)s
     %(outlines_topomap)s

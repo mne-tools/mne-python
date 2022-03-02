@@ -267,7 +267,7 @@ class Covariance(dict, _VerboseDep):
         ----------
         %(info_not_none)s
         %(ch_type_topomap)s
-        %(topomap_vmin_vmax)s
+        %(vmin_vmax_topomap)s
         %(cmap_topomap)s
         %(sensors_topomap)s
         %(colorbar_topomap)s
@@ -279,7 +279,7 @@ class Covariance(dict, _VerboseDep):
         %(proj_plot)s
         %(show)s
         %(show_names_topomap)s
-        %(title_None)s
+        %(title_none)s
         %(mask_topomap)s
         %(mask_params_topomap)s
         %(outlines_topomap)s
@@ -514,7 +514,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     %(reject_by_annotation_epochs)s
 
         .. versionadded:: 0.14
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
 
@@ -766,7 +766,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         unstable results in covariance calculation, e.g. when data
         have been processed with Maxwell filtering but not transformed
         to the same head position.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
 
@@ -1428,7 +1428,7 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
     ch_names : list | None
         The channel names to be considered. Can be None to use
         ``info['ch_names']``.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
            Support for 'info' mode.
@@ -1593,7 +1593,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         Regularization factor for EEG-CSD signals.
     dbs : float (default 0.1)
         Regularization factor for DBS signals.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
 
@@ -1768,7 +1768,7 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
     %(info)s Can be None if ``noise_cov`` has already been
         prepared with :func:`prepare_noise_cov`.
     %(picks_good_data_noref)s
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
            Support for 'info' mode.
@@ -1880,7 +1880,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
     %(picks_good_data)s
     diag : bool (default False)
         If True, whiten using only the diagonal of the covariance.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
            Support for 'info' mode.

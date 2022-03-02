@@ -62,7 +62,7 @@ class CSP(TransformerMixin, BaseEstimator):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
     component_order : 'mutual_info' | 'alternate' (default 'mutual_info')
@@ -706,7 +706,7 @@ class SPoC(CSP):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
 

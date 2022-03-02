@@ -1227,7 +1227,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         for each time instant.
 
         .. versionadded:: 0.12
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.20
     accuracy : str

@@ -1056,7 +1056,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
         The noise covariance. Can be a string to load a covariance from disk.
     show : bool
         Show figure if True.
-    %(rank_None)s
+    %(rank_none)s
     time_unit : str
         The units for the time axis, can be "ms" or "s" (default).
 

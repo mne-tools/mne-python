@@ -62,7 +62,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     label : Label | None
         Restricts the solution to a given label.
     %(pick_ori_bf)s
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
     %(weight_norm)s

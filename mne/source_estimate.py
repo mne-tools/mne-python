@@ -530,7 +530,7 @@ class _BaseSourceEstimate(TimeMixin, _VerboseDep):
 
         Parameters
         ----------
-        %(tmin_get_peak_parameters)s
+        %(get_peak_parameters)s
 
         Returns
         -------
@@ -1495,7 +1495,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         hemi : {'lh', 'rh', None}
             The hemi to be considered. If None, the entire source space is
             considered.
-        %(tmin_get_peak_parameters)s
+        %(get_peak_parameters)s
 
         Returns
         -------

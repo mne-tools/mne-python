@@ -804,7 +804,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
        will be translated into ``start=0.`` and ``stop=3.``, respectively. For
        `~mne.Evoked`, ``None`` refers to the beginning and end of the evoked
        signal.
-    %(title_None)s
+    %(title_none)s
     %(show)s
     %(n_pca_components_apply)s
 
