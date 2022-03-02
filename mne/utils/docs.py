@@ -202,20 +202,20 @@ aseg : str
     Freesurfer subject directory.
 """
 
-docdict['average_psd'] = """
-average : str | None
-    How to average the segments. If ``mean`` (default), calculate the
-    arithmetic mean. If ``median``, calculate the median, corrected for
-    its bias relative to the mean. If ``None``, returns the unaggregated
-    segments.
-"""
-
 docdict['average_plot_psd'] = """
 average : bool
     If False, the PSDs of all channels is displayed. No averaging
     is done and parameters area_mode and area_alpha are ignored. When
     False, it is possible to paint an area (hold left mouse button and
     drag) to plot a topomap.
+"""
+
+docdict['average_psd'] = """
+average : str | None
+    How to average the segments. If ``mean`` (default), calculate the
+    arithmetic mean. If ``median``, calculate the median, corrected for
+    its bias relative to the mean. If ``None``, returns the unaggregated
+    segments.
 """
 
 docdict['average_tfr'] = """
@@ -2136,11 +2136,6 @@ pick_ori : None | "normal" | "vector"
         object.
 """
 
-docdict['pick_ori_novec'] = """
-pick_ori : None | "normal"
-""" + _pick_ori_novec
-
-
 docdict['pick_ori_bf'] = """
 pick_ori : None | str
     For forward solutions with fixed orientation, None (default) must be
@@ -2155,6 +2150,10 @@ pick_ori : None | str
     - ``'max-power'``
         Filters are computed for the orientation that maximizes power.
 """
+
+docdict['pick_ori_novec'] = """
+pick_ori : None | "normal"
+""" + _pick_ori_novec
 
 picks_header = 'picks : str | list | slice | None'
 picks_intro = ('Channels to include. Slices and lists of integers will be '
@@ -2438,8 +2437,8 @@ rank : None | 'info' | 'full' | dict
 """
 
 docdict['rank'] = _rank_base
-docdict['rank_none'] = _rank_base + "\n    The default is ``None``."
 docdict['rank_info'] = _rank_base + "\n    The default is ``'info'``."
+docdict['rank_none'] = _rank_base + "\n    The default is ``None``."
 
 docdict['raw_epochs'] = """
 raw : Raw object
@@ -3066,17 +3065,17 @@ time_viewer : bool
     ``time_viewer=True`` and ``separate_canvas=False``.
 """
 
-docdict['title_none'] = """
-title : str | None
-    The title of the generated figure. If ``None`` (default), no title is
-    displayed.
-"""
-
 docdict['title_dipole_locs_fig'] = """
 title : str | None
     The title of the figure if ``mode='orthoview'`` (ignored for all other
     modes). If ``None``, dipole number and its properties (amplitude,
     orientation etc.) will be shown. Defaults to ``None``.
+"""
+
+docdict['title_none'] = """
+title : str | None
+    The title of the generated figure. If ``None`` (default), no title is
+    displayed.
 """
 
 docdict['tmax_raw'] = """
