@@ -2081,7 +2081,9 @@ pad : str
 
 docdict['pad'] = _pad_base
 
-docdict['pad_fir'] = _pad_base + """ Only used for ``method='fir'``."""
+docdict['pad_fir'] = _pad_base + """
+    Only used for ``method='fir'``.
+"""
 
 docdict['pca_vars_pctf'] = """
 pca_vars : array, shape (n_comp,) | list of array
