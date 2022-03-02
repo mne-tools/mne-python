@@ -31,7 +31,7 @@ def _reflow_param_docstring(docstring, has_first_line=True, width=75):
 ##############################################################################
 # Define our standard documentation entries
 #
-# To reduce redundancy accross functions, please standardize the format to
+# To reduce redundancy across functions, please standardize the format to
 # ``argument_optional_keywords``. For example ``tmin_raw`` for an entry that
 # is specific to ``raw`` and since ``tmin`` is used other places, needs to
 # be disambiguated. This way the entries will be easy to find since they
@@ -328,6 +328,8 @@ docdict['baseline_report'] = f"""{_baseline_rescale_base}
 
     For `~mne.Epochs`, this algorithm is run **on each epoch individually.**
 """
+
+docdict['baseline_rescale'] = _baseline_rescale_base
 
 docdict['baseline_stc'] = f"""{_baseline_rescale_base}
     Correction is applied **to each source individually** in the following
@@ -993,12 +995,13 @@ For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
 """
 
-docdict['export_warning'] = """.. warning::
+docdict['export_warning'] = """\
+.. warning::
     Since we are exporting to external formats, there's no guarantee that all
     the info will be preserved in the external format. See Notes for details.
 """
 
-export_warning_note_base = """
+_export_warning_note_base = """\
 Export to external format may not preserve all the information from the
 instance. To save in native MNE format (``.fif``) without information loss,
 use :meth:`mne.{0}.save` instead.
@@ -1007,13 +1010,13 @@ Consider applying projector(s) before exporting with
 :meth:`mne.{0}.apply_proj`."""
 
 docdict['export_warning_note_epochs'] = \
-    export_warning_note_base.format('Epochs')
+    _export_warning_note_base.format('Epochs')
 
 docdict['export_warning_note_evoked'] = \
-    export_warning_note_base.format('Evoked')
+    _export_warning_note_base.format('Evoked')
 
 docdict['export_warning_note_raw'] = \
-    export_warning_note_base.format('io.Raw')
+    _export_warning_note_base.format('io.Raw')
 
 docdict['ext_order_chpi'] = """
 ext_order : int
@@ -1943,17 +1946,9 @@ on_header_missing : str
     .. versionadded:: 0.22
 """
 
-_on_missing_base = f"""
-Can be ``'raise'`` (default) to raise an error, ``'warn'`` to emit a
-    warning, or ``'ignore'`` to ignore when"""
+_on_missing_base = """Can be ``'raise'`` (default) to raise an error,
+    ``'warn'`` to emit a warning, or ``'ignore'`` to ignore when"""
 
-docdict['on_mismatch_info'] = f"""
-on_mismatch : 'raise' | 'warn' | 'ignore'
-    {_on_missing_base} the device-to-head transformation differs between
-    instances.
-
-    .. versionadded:: 0.24
-"""
 
 docdict['on_mismatch_info'] = f"""
 on_mismatch : 'raise' | 'warn' | 'ignore'
@@ -2191,7 +2186,7 @@ picks : int | list of int | slice | None
 docdict['picks_nostr'] = f"""picks : list | slice | None
     {picks_intro} None (default) will pick all channels. {reminder_nostr}"""
 
-docdict['plot_psd_picks_good_data'] = \
+docdict['picks_plot_psd_good_data'] = \
     f'{picks_base} good data channels. {reminder}'[:-2] + """
     Cannot be None if ``ax`` is supplied.If both ``picks`` and ``ax`` are None
     separate subplots will be created for each standard channel type
@@ -2901,9 +2896,9 @@ stat_fun : callable | None
     `mne.stats.{}`.
 """
 
-docdict['clust_stat_f'] = _stat_fun_clust_base.format('f_oneway')
+docdict['stat_fun_clust_f'] = _stat_fun_clust_base.format('f_oneway')
 
-docdict['clust_stat_t'] = _stat_fun_clust_base.format('ttest_1samp_no_p')
+docdict['stat_fun_clust_t'] = _stat_fun_clust_base.format('ttest_1samp_no_p')
 
 docdict['static'] = """
 static : instance of SpatialImage
