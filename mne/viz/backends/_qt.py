@@ -613,10 +613,10 @@ class _QtWindow(_AbstractWindow):
         dock_layout.addWidget(canvas)
 
     def _window_get_cursor(self):
-        return self._interactor.cursor()
+        return self._window.cursor()
 
     def _window_set_cursor(self, cursor):
-        self._interactor.setCursor(cursor)
+        self._window.setCursor(cursor)
 
     def _window_new_cursor(self, name):
         return QCursor(getattr(Qt, name))
