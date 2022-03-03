@@ -699,6 +699,16 @@ class CoregistrationUI(HasTraits):
             buttons=["Yes", "No"],
             modal=not MNE_3D_BACKEND_TESTING,
         )
+        self._widgets["overwrite_subject_exit"] = \
+            self._renderer._dialog_warning(
+            title="CoregistrationUI",
+            text="The name of the output subject used to "
+                 "save the scaled anatomy already exists.",
+            info_text="Do you want to overwrite?",
+            callback=self._overwrite_subject_callback,
+            buttons=["Yes", "No", "Cancel"],
+            modal=not MNE_3D_BACKEND_TESTING,
+        )
 
     def _configure_worker(self):
         work_plan = {
@@ -1196,6 +1206,8 @@ class CoregistrationUI(HasTraits):
     def _overwrite_subject_callback(self, button_name):
         if button_name == "Yes":
             self._save_subject_callback(overwrite=True)
+        elif button_name == "Cancel":
+            self._accept_close_event = False
         else:
             assert button_name == "No"
 
@@ -1207,9 +1219,10 @@ class CoregistrationUI(HasTraits):
                                       subjects_dir=self._subjects_dir)
         return os.path.exists(dest)
 
-    def _save_subject(self):
+    def _save_subject(self, exit_mode=False):
+        dialog = "overwrite_subject_exit" if exit_mode else "overwrite_subject"
         if self._check_subject_exists():
-            self._forward_widget_command("overwrite_subject", "show", True)
+            self._forward_widget_command(dialog, "show", True)
         else:
             self._save_subject_callback()
 
@@ -1777,7 +1790,7 @@ class CoregistrationUI(HasTraits):
                     "save_mri_fids", "set_value", None)
             if self._mri_scale_modified:
                 if self._subject_to:
-                    self._save_subject()
+                    self._save_subject(exit_mode=True)
                 else:
                     dialog = self._renderer._dialog_warning(
                         title="CoregistrationUI",
