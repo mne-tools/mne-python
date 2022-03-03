@@ -672,25 +672,18 @@ class CoregistrationUI(HasTraits):
 
     def _configure_dialogs(self):
         from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
-        self._widgets["overwrite_subject"] = self._renderer._dialog_warning(
-            title="CoregistrationUI",
-            text="The name of the output subject used to "
-                 "save the scaled anatomy already exists.",
-            info_text="Do you want to overwrite?",
-            callback=self._overwrite_subject_callback,
-            buttons=["Yes", "No"],
-            modal=not MNE_3D_BACKEND_TESTING,
-        )
-        self._widgets["overwrite_subject_exit"] = \
-            self._renderer._dialog_warning(
-            title="CoregistrationUI",
-            text="The name of the output subject used to "
-                 "save the scaled anatomy already exists.",
-            info_text="Do you want to overwrite?",
-            callback=self._overwrite_subject_callback,
-            buttons=["Yes", "No", "Cancel"],
-            modal=not MNE_3D_BACKEND_TESTING,
-        )
+        for name, buttons in zip(
+                ["overwrite_subject", "overwrite_subject_exit"],
+                [["Yes", "No"], ["Yes", "No", "Cancel"]]):
+            self._widgets[name] = self._renderer._dialog_warning(
+                title="CoregistrationUI",
+                text="The name of the output subject used to "
+                     "save the scaled anatomy already exists.",
+                info_text="Do you want to overwrite?",
+                callback=self._overwrite_subject_callback,
+                buttons=buttons,
+                modal=not MNE_3D_BACKEND_TESTING,
+            )
 
     def _configure_worker(self):
         work_plan = {
