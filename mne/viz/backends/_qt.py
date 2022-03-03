@@ -616,6 +616,7 @@ class _QtWindow(_AbstractWindow):
         return self._window.cursor()
 
     def _window_set_cursor(self, cursor):
+        self._interactor.setCursor(cursor)
         self._window.setCursor(cursor)
 
     def _window_new_cursor(self, name):
