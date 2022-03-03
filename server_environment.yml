@@ -3,7 +3,7 @@ channels:
 - conda-forge/label/vtk_dev
 - conda-forge
 dependencies:
-- python ==3.9
+- python ==3.8
 - pip
 - mesalib
 - ffmpeg
