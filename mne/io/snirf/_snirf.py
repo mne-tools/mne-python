@@ -252,9 +252,6 @@ class RawSNIRF(BaseRaw):
                     chnames.append(ch_name)
                     ch_types.append(dt_id)
 
-            # Translate between SNIRF processed names and MNE type names
-            # ch_types = [a.replace("dod", "fnirs_od") for a in ch_types]
-
             # Create mne structure
             info = create_info(chnames,
                                sampling_rate,
