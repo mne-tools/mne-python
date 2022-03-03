@@ -1,11 +1,13 @@
 name: base
 channels:
+- conda-forge/label/vtk_dev
 - conda-forge
 dependencies:
-- python=3.9
+- python=3.8
 - pip
 - mesalib
 - ffmpeg
+- vtk
 - scipy
 - numpy
 - matplotlib-base
@@ -15,13 +17,11 @@ dependencies:
 - nbclient
 - mffpy>=0.5.7
 - pooch
-- ipympl
-- ipywidgets
-- ipyvtklink
 - pip:
-  # vtk
-  - https://github.com/pyvista/pyvista-wheels/raw/main/vtk-osmesa-9.1.0-cp39-cp39-linux_x86_64.whl
   - pyvista>=0.32
   - mne
   - jupyter
+  - ipympl
+  - ipywidgets
+  - ipyvtklink
   - jupyter_client!=6.1.5
