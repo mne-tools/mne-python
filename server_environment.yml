@@ -2,11 +2,10 @@ name: base
 channels:
 - conda-forge
 dependencies:
-- python ==3.8
+- python=3.9
 - pip
 - mesalib
 - ffmpeg
-- traits
 - scipy
 - numpy
 - matplotlib-base
@@ -19,7 +18,7 @@ dependencies:
 - pooch
 - pip:
   # vtk
-  - https://github.com/pyvista/pyvista-wheels/blob/main/vtk-osmesa-9.1.0-cp38-cp38-linux_x86_64.whl
+  - https://github.com/pyvista/pyvista-wheels/blob/main/vtk-osmesa-9.1.0-cp39-cp39-linux_x86_64.whl
   - mne
   - jupyter
   - ipympl
