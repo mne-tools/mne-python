@@ -674,7 +674,7 @@ class CoregistrationUI(HasTraits):
         from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
         for name, buttons in zip(
                 ["overwrite_subject", "overwrite_subject_exit"],
-                [["Yes", "No"], ["Yes", "Close", "Cancel"]]):
+                [["Yes", "No"], ["Yes", "Discard", "Cancel"]]):
             self._widgets[name] = self._renderer._dialog_warning(
                 title="CoregistrationUI",
                 text="The name of the output subject used to "
@@ -1184,7 +1184,7 @@ class CoregistrationUI(HasTraits):
         elif button_name == "Cancel":
             self._accept_close_event = False
         else:
-            assert button_name == "No" or button_name == "Close"
+            assert button_name == "No" or button_name == "Discard"
 
     def _check_subject_exists(self):
         if not self._subject_to:
