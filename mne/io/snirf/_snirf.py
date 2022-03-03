@@ -230,14 +230,30 @@ class RawSNIRF(BaseRaw):
                     ch_types.append('fnirs_cw_amplitude')
 
                 elif snirf_data_type == 99999:
-                    hb_id = _correct_shape(
+                    dt_id = _correct_shape(
                         np.array(dat.get('nirs/data1/' + chan +
                                          '/dataTypeLabel')))[0].decode('UTF-8')
+
+                    # Convert between SNIRF processed names and MNE type names
+                    dt_id = dt_id.lower().replace("dod", "fnirs_od")
+
                     ch_name = sources[src_idx - 1] + '_' + \
-                        detectors[det_idx - 1] + ' ' + \
-                        hb_id.lower()
+                        detectors[det_idx - 1]
+
+                    if dt_id == "fnirs_od":
+                        wve_idx = int(_correct_shape(np.array(
+                            dat.get('nirs/data1/' + chan +
+                                    '/wavelengthIndex')))[0])
+                        suffix = ' ' + str(fnirs_wavelengths[wve_idx - 1])
+                    else:
+                        suffix = ' ' + dt_id.lower()
+                    ch_name = ch_name + suffix
+
                     chnames.append(ch_name)
-                    ch_types.append(hb_id.lower())
+                    ch_types.append(dt_id)
+
+            # Translate between SNIRF processed names and MNE type names
+            # ch_types = [a.replace("dod", "fnirs_od") for a in ch_types]
 
             # Create mne structure
             info = create_info(chnames,
@@ -309,7 +325,9 @@ class RawSNIRF(BaseRaw):
                 info['chs'][idx]['loc'][0:3] = midpoint
                 info['chs'][idx]['coord_frame'] = coord_frame
 
-                if snirf_data_type in [1]:
+                if (snirf_data_type in [1]) or \
+                    ((snirf_data_type == 99999) and
+                        (ch_types[idx] == "fnirs_od")):
                     wve_idx = int(_correct_shape(np.array(dat.get(
                         'nirs/data1/' + chan + '/wavelengthIndex')))[0])
                     info['chs'][idx]['loc'][9] = fnirs_wavelengths[wve_idx - 1]
