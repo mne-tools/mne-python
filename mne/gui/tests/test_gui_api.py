@@ -149,6 +149,7 @@ def test_gui_api(renderer_notebook, nbexec):
     )
     with _check_widget_trigger(widget, mock, 'foo', 'bar'):
         widget.set_value('bar')
+    widget.set_style(dict(border="2px solid #ff0000"))
 
     # file button
     renderer._dock_add_file_button(

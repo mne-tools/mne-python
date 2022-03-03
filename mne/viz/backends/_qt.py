@@ -770,6 +770,12 @@ class _QtWidget(_AbstractWidget):
         assert hasattr(self._widget, 'setToolTip')
         self._widget.setToolTip(tooltip)
 
+    def set_style(self, style):
+        stylesheet = ""
+        for key, val in style.items():
+            stylesheet = stylesheet + f"{key}:{val};"
+        self._widget.setStyleSheet(stylesheet)
+
 
 class _QtDialogCommunicator(QObject):
     signal_show = pyqtSignal()

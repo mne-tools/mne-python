@@ -702,6 +702,10 @@ class _AbstractWidget(ABC):
     def set_tooltip(self, tooltip: str):
         pass
 
+    @abstractmethod
+    def set_style(self, style):
+        pass
+
 
 class _AbstractAction(ABC):
     def __init__(self, action):

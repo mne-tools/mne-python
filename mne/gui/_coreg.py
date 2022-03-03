@@ -421,9 +421,16 @@ class CoregistrationUI(HasTraits):
         self._grow_hair = value
 
     def _set_subject_to(self, value):
+        style = dict()
         self._subject_to = value
         self._forward_widget_command(
             "save_subject", "set_enabled", len(value) > 0)
+        if self._check_subject_exists():
+            style["border"] = "2px solid #ff0000"
+        else:
+            style["border"] = "initial"
+        self._forward_widget_command(
+            "subject_to", "set_style", style)
 
     def _set_skip_fiducials(self, state):
         self._skip_fiducials = bool(state)
@@ -1001,7 +1008,7 @@ class CoregistrationUI(HasTraits):
         if isinstance(names, str):
             names = [names]
 
-        if not isinstance(value, (str, float, int, type(None))):
+        if not isinstance(value, (str, float, int, dict, type(None))):
             value = list(value)
             assert len(names) == len(value)
 
@@ -1198,12 +1205,16 @@ class CoregistrationUI(HasTraits):
         else:
             assert button_name == "No"
 
-    def _save_subject(self):
-        # check if subject already exists
+    def _check_subject_exists(self):
+        if not self._subject_to:
+            return False
         subject_dirname = os.path.join('{subjects_dir}', '{subject}')
         dest = subject_dirname.format(subject=self._subject_to,
                                       subjects_dir=self._subjects_dir)
-        if os.path.exists(dest):
+        return os.path.exists(dest)
+
+    def _save_subject(self):
+        if self._check_subject_exists():
             self._forward_widget_command("overwrite_subject", "show", True)
         else:
             self._save_subject_callback()
