@@ -110,9 +110,6 @@ class CoregistrationUI(HasTraits):
     _helmet = Bool()
     _grow_hair = Float()
     _subject_to = Unicode()
-    _scale_labels = Bool()
-    _copy_annots = Bool()
-    _prepare_bem = Bool()
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
 
@@ -198,9 +195,6 @@ class CoregistrationUI(HasTraits):
             lock_fids=True,
             grow_hair=0.0,
             subject_to="",
-            scale_labels=True,
-            copy_annots=True,
-            prepare_bem=True,
             scale_modes=["None", "uniform", "3-axis"],
             scale_mode="None",
             icp_fid_matches=('nearest', 'matched'),
@@ -259,9 +253,6 @@ class CoregistrationUI(HasTraits):
         self._set_head_resolution(self._defaults["head_resolution"])
         self._set_helmet(self._defaults["helmet"])
         self._set_grow_hair(self._defaults["grow_hair"])
-        self._set_scale_labels(self._defaults["scale_labels"])
-        self._set_copy_annots(self._defaults["copy_annots"])
-        self._set_prepare_bem(self._defaults["prepare_bem"])
         self._set_omit_hsp_distance(self._defaults["omit_hsp_distance"])
         self._set_icp_n_iterations(self._defaults["icp_n_iterations"])
         self._set_icp_fid_match(self._defaults["icp_fid_match"])
@@ -428,15 +419,6 @@ class CoregistrationUI(HasTraits):
             style["border"] = "initial"
         self._forward_widget_command(
             "subject_to", "set_style", style)
-
-    def _set_scale_labels(self, state):
-        self._scale_labels = bool(state)
-
-    def _set_copy_annots(self, state):
-        self._copy_annots = bool(state)
-
-    def _set_prepare_bem(self, state):
-        self._prepare_bem = bool(state)
 
     def _set_scale_mode(self, mode):
         self._scale_mode = mode
@@ -1234,7 +1216,7 @@ class CoregistrationUI(HasTraits):
 
         # prepare bem
         bem_names = []
-        if self._prepare_bem and self._scale_mode != "None":
+        if self._scale_mode != "None":
             can_prepare_bem = _mri_subject_has_bem(
                 self._subject, self._subjects_dir)
         else:
@@ -1255,9 +1237,8 @@ class CoregistrationUI(HasTraits):
             scale_mri(
                 subject_from=self._subject, subject_to=self._subject_to,
                 scale=self.coreg._scale, overwrite=overwrite,
-                subjects_dir=self._subjects_dir,
-                skip_fiducials=True, labels=self._scale_labels,
-                annot=self._copy_annots, on_defects='ignore'
+                subjects_dir=self._subjects_dir, skip_fiducials=True,
+                labels=True, annot=True, on_defects='ignore'
             )
         except Exception:
             logger.error(f"Error scaling {self._subject_to}")
