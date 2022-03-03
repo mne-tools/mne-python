@@ -3,7 +3,7 @@ channels:
 - conda-forge/label/vtk_dev
 - conda-forge
 dependencies:
-- python=3.8
+- python ==3.8
 - pip
 - mesalib
 - ffmpeg
@@ -11,6 +11,7 @@ dependencies:
 - scipy
 - numpy
 - matplotlib-base
+- pyvista>=0.32
 - nilearn
 - nibabel
 - nbformat
@@ -18,7 +19,6 @@ dependencies:
 - mffpy>=0.5.7
 - pooch
 - pip:
-  - pyvista>=0.32
   - mne
   - jupyter
   - ipympl
