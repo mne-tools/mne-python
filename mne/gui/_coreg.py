@@ -110,7 +110,6 @@ class CoregistrationUI(HasTraits):
     _helmet = Bool()
     _grow_hair = Float()
     _subject_to = Unicode()
-    _skip_fiducials = Bool()
     _scale_labels = Bool()
     _copy_annots = Bool()
     _prepare_bem = Bool()
@@ -199,7 +198,6 @@ class CoregistrationUI(HasTraits):
             lock_fids=True,
             grow_hair=0.0,
             subject_to="",
-            skip_fiducials=False,
             scale_labels=True,
             copy_annots=True,
             prepare_bem=True,
@@ -261,7 +259,6 @@ class CoregistrationUI(HasTraits):
         self._set_head_resolution(self._defaults["head_resolution"])
         self._set_helmet(self._defaults["helmet"])
         self._set_grow_hair(self._defaults["grow_hair"])
-        self._set_skip_fiducials(self._defaults["skip_fiducials"])
         self._set_scale_labels(self._defaults["scale_labels"])
         self._set_copy_annots(self._defaults["copy_annots"])
         self._set_prepare_bem(self._defaults["prepare_bem"])
@@ -431,9 +428,6 @@ class CoregistrationUI(HasTraits):
             style["border"] = "initial"
         self._forward_widget_command(
             "subject_to", "set_style", style)
-
-    def _set_skip_fiducials(self, state):
-        self._skip_fiducials = bool(state)
 
     def _set_scale_labels(self, state):
         self._scale_labels = bool(state)
@@ -1249,7 +1243,7 @@ class CoregistrationUI(HasTraits):
                 subject_from=self._subject, subject_to=self._subject_to,
                 scale=self.coreg._scale, overwrite=overwrite,
                 subjects_dir=self._subjects_dir,
-                skip_fiducials=self._skip_fiducials, labels=self._scale_labels,
+                skip_fiducials=True, labels=self._scale_labels,
                 annot=self._copy_annots, on_defects='ignore'
             )
         except Exception:
