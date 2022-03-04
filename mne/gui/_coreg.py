@@ -228,8 +228,10 @@ class CoregistrationUI(HasTraits):
         subject = _get_default(subject, self._get_subjects(subjects_dir)[0])
 
         # setup the window
+        splash = 'Initializing coregistration GUI...' if show else False
         self._renderer = _get_renderer(
-            size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
+            size=self._defaults["size"], bgcolor=self._defaults["bgcolor"],
+            splash=splash)
         self._renderer._window_close_connect(self._clean)
         self._renderer._window_close_connect(self._close_callback, after=False)
         self._renderer.set_interaction(interaction)

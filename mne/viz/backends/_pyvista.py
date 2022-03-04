@@ -56,12 +56,15 @@ class PyVistaFigure(Figure3D):
 
     def _init(self, plotter=None, show=False, title='PyVista Scene',
               size=(600, 600), shape=(1, 1), background_color='black',
-              smooth_shading=True, off_screen=False, notebook=False):
+              smooth_shading=True, off_screen=False, notebook=False,
+              splash=False):
         self._plotter = plotter
         self.display = None
         self.background_color = background_color
         self.smooth_shading = smooth_shading
         self.notebook = notebook
+        self.title = title
+        self.splash = splash
 
         self.store = dict()
         self.store['window_size'] = size
@@ -90,8 +93,15 @@ class PyVistaFigure(Figure3D):
 
         if self.plotter is None:
             if not self.notebook:
-                app = _init_mne_qtapp(enable_icon=hasattr(plotter_class,
-                                                          'set_icon'))
+                out = _init_mne_qtapp(
+                    enable_icon=hasattr(plotter_class, 'set_icon'),
+                    splash=self.splash)
+                # replace it with the Qt object
+                if self.splash:
+                    self.splash = out[1]
+                    app = out[0]
+                else:
+                    app = out
                 self.store['app'] = app
             plotter = plotter_class(**self.store)
             plotter.background_color = self.background_color
@@ -145,14 +155,14 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1),
-                 notebook=None, smooth_shading=True):
+                 notebook=None, smooth_shading=True, splash=False):
         from .._3d import _get_3d_option
         _require_version('pyvista', 'use 3D rendering', '0.32')
         figure = PyVistaFigure()
         figure._init(
             show=show, title=name, size=size, shape=shape,
             background_color=bgcolor, notebook=notebook,
-            smooth_shading=smooth_shading)
+            smooth_shading=smooth_shading, splash=splash)
         self.font_family = "arial"
         self.tube_n_sides = 20
         self.antialias = _get_3d_option('antialias')
