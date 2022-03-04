@@ -503,6 +503,10 @@ class _IpyWidget(_AbstractWidget):
         assert hasattr(self._widget, 'tooltip')
         self._widget.tooltip = tooltip
 
+    def set_style(self, style):
+        for key, val in style.items():
+            setattr(self._widget.layout, key, val)
+
 
 class _IpyAction(_AbstractAction):
     def trigger(self):

@@ -10,7 +10,7 @@ from contextlib import contextmanager
 import pyvista
 from pyvistaqt.plotting import FileDialog
 
-from PyQt5.QtCore import Qt, pyqtSignal, QLocale
+from PyQt5.QtCore import Qt, pyqtSignal, QLocale, QObject
 from PyQt5.QtGui import QIcon, QImage, QPixmap, QCursor
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
@@ -29,7 +29,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
 from ._utils import _init_qt_resources, _qt_disable_paint, _qt_raise_window
-from ..utils import logger, _check_option
+from ..utils import logger, _check_option, safe_event
 
 
 class _QtDialog(_AbstractDialog):
@@ -56,6 +56,7 @@ class _QtDialog(_AbstractDialog):
         widget.setStandardButtons(standard_buttons)
         widget.setDefaultButton(default_button)
 
+        @safe_event
         def func(button):
             button_id = widget.standardButton(button)
             supported_button_names = [
@@ -65,8 +66,12 @@ class _QtDialog(_AbstractDialog):
             ]
             for button_name in supported_button_names:
                 if button_id == getattr(QMessageBox, button_name):
-                    callback(button_name)
-                    break
+                    widget.setCursor(QCursor(Qt.WaitCursor))
+                    try:
+                        callback(button_name)
+                    finally:
+                        widget.unsetCursor()
+                        break
 
         widget.buttonClicked.connect(func)
         return _QtDialogWidget(widget, modal)
@@ -613,10 +618,11 @@ class _QtWindow(_AbstractWindow):
         dock_layout.addWidget(canvas)
 
     def _window_get_cursor(self):
-        return self._interactor.cursor()
+        return self._window.cursor()
 
     def _window_set_cursor(self, cursor):
         self._interactor.setCursor(cursor)
+        self._window.setCursor(cursor)
 
     def _window_new_cursor(self, name):
         return QCursor(getattr(Qt, name))
@@ -770,11 +776,26 @@ class _QtWidget(_AbstractWidget):
         assert hasattr(self._widget, 'setToolTip')
         self._widget.setToolTip(tooltip)
 
+    def set_style(self, style):
+        stylesheet = ""
+        for key, val in style.items():
+            stylesheet = stylesheet + f"{key}:{val};"
+        self._widget.setStyleSheet(stylesheet)
+
+
+class _QtDialogCommunicator(QObject):
+    signal_show = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
 
 class _QtDialogWidget(_QtWidget):
     def __init__(self, widget, modal):
         super().__init__(widget)
         self._modal = modal
+        self._communicator = _QtDialogCommunicator()
+        self._communicator.signal_show.connect(self.show)
 
     def trigger(self, button):
         button_id = getattr(QMessageBox, button)
@@ -782,11 +803,14 @@ class _QtDialogWidget(_QtWidget):
             if self._widget.standardButton(current_button) == button_id:
                 current_button.click()
 
-    def show(self):
-        if self._modal:
-            self._widget.exec()
+    def show(self, thread=False):
+        if thread:
+            self._communicator.signal_show.emit()
         else:
-            self._widget.show()
+            if self._modal:
+                self._widget.exec()
+            else:
+                self._widget.show()
 
 
 class _QtAction(_AbstractAction):
