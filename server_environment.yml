@@ -8,7 +8,6 @@ dependencies:
 - mesalib
 - ffmpeg
 - vtk
-- traits
 - scipy
 - numpy
 - matplotlib-base
