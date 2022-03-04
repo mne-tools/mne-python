@@ -123,7 +123,7 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     """
     from PyQt5.QtCore import Qt
     from PyQt5.QtGui import QIcon, QPixmap
-    from PyQt5.QtWidgets import QApplication, QSplashScreen, QLabel
+    from PyQt5.QtWidgets import QApplication, QSplashScreen
 
     app_name = 'MNE-Python'
     organization_name = 'MNE'
@@ -160,10 +160,11 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     out = app
     if splash:
         qsplash = QSplashScreen(
-            QPixmap(':/mne-icon.png'), Qt.WindowStaysOnTopHint)
+            QPixmap(':/mne-splash.png'), Qt.WindowStaysOnTopHint)
         if isinstance(splash, str):
+            alignment = Qt.AlignBottom | Qt.AlignHCenter
             qsplash.showMessage(
-                splash, alignment=Qt.AlignHCenter | Qt.AlignBottom, color=Qt.white)
+                splash, alignment=alignment, color=Qt.white)
         qsplash.show()
         app.processEvents()
         out = (out, qsplash)
