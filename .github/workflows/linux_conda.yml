@@ -45,6 +45,9 @@ jobs:
           path: ~/mne_data
         name: 'Cache testing data'
       - shell: bash -el {0}
+        run: ./tools/github_actions_download.sh
+        name: 'Download testing data'
+      - shell: bash -el {0}
         run: pytest --tb=short -m "not pgtest" --cov=mne --cov-report=xml --cov-report=html -vv mne/viz
         name: 'Run viz tests'
       - uses: codecov/codecov-action@v1
