@@ -21,8 +21,7 @@ from ..io.meas_info import _empty_info
 from ..io._read_raw import supported as raw_supported_types
 from ..bem import make_bem_solution, write_bem_solution
 from ..coreg import (Coregistration, _is_mri_subject, scale_mri, bem_fname,
-                     _mri_subject_has_bem, _find_fiducials_files, fid_fname,
-                     _map_fid_name_to_idx)
+                     _mri_subject_has_bem, fid_fname, _map_fid_name_to_idx)
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
                        _plot_hpi_coils, _plot_sensors, _plot_helmet)
@@ -111,10 +110,6 @@ class CoregistrationUI(HasTraits):
     _helmet = Bool()
     _grow_hair = Float()
     _subject_to = Unicode()
-    _skip_fiducials = Bool()
-    _scale_labels = Bool()
-    _copy_annots = Bool()
-    _prepare_bem = Bool()
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
 
@@ -200,10 +195,6 @@ class CoregistrationUI(HasTraits):
             lock_fids=True,
             grow_hair=0.0,
             subject_to="",
-            skip_fiducials=False,
-            scale_labels=True,
-            copy_annots=True,
-            prepare_bem=True,
             scale_modes=["None", "uniform", "3-axis"],
             scale_mode="None",
             icp_fid_matches=('nearest', 'matched'),
@@ -262,16 +253,13 @@ class CoregistrationUI(HasTraits):
         self._set_head_resolution(self._defaults["head_resolution"])
         self._set_helmet(self._defaults["helmet"])
         self._set_grow_hair(self._defaults["grow_hair"])
-        self._set_skip_fiducials(self._defaults["skip_fiducials"])
-        self._set_scale_labels(self._defaults["scale_labels"])
-        self._set_copy_annots(self._defaults["copy_annots"])
-        self._set_prepare_bem(self._defaults["prepare_bem"])
         self._set_omit_hsp_distance(self._defaults["omit_hsp_distance"])
         self._set_icp_n_iterations(self._defaults["icp_n_iterations"])
         self._set_icp_fid_match(self._defaults["icp_fid_match"])
 
         # configure UI
         self._reset_fitting_parameters()
+        self._configure_dialogs()
         self._configure_status_bar()
         self._configure_dock()
         self._configure_picking()
@@ -421,21 +409,16 @@ class CoregistrationUI(HasTraits):
         self._grow_hair = value
 
     def _set_subject_to(self, value):
+        style = dict()
         self._subject_to = value
         self._forward_widget_command(
             "save_subject", "set_enabled", len(value) > 0)
-
-    def _set_skip_fiducials(self, state):
-        self._skip_fiducials = bool(state)
-
-    def _set_scale_labels(self, state):
-        self._scale_labels = bool(state)
-
-    def _set_copy_annots(self, state):
-        self._copy_annots = bool(state)
-
-    def _set_prepare_bem(self, state):
-        self._prepare_bem = bool(state)
+        if self._check_subject_exists():
+            style["border"] = "2px solid #ff0000"
+        else:
+            style["border"] = "initial"
+        self._forward_widget_command(
+            "subject_to", "set_style", style)
 
     def _set_scale_mode(self, mode):
         self._scale_mode = mode
@@ -686,6 +669,21 @@ class CoregistrationUI(HasTraits):
             else:
                 func()
             queue.task_done()
+
+    def _configure_dialogs(self):
+        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+        for name, buttons in zip(
+                ["overwrite_subject", "overwrite_subject_exit"],
+                [["Yes", "No"], ["Yes", "Discard", "Cancel"]]):
+            self._widgets[name] = self._renderer._dialog_warning(
+                title="CoregistrationUI",
+                text="The name of the output subject used to "
+                     "save the scaled anatomy already exists.",
+                info_text="Do you want to overwrite?",
+                callback=self._overwrite_subject_callback,
+                buttons=buttons,
+                modal=not MNE_3D_BACKEND_TESTING,
+            )
 
     def _configure_worker(self):
         work_plan = {
@@ -989,7 +987,7 @@ class CoregistrationUI(HasTraits):
         if isinstance(names, str):
             names = [names]
 
-        if not isinstance(value, (str, float, int, type(None))):
+        if not isinstance(value, (str, float, int, dict, type(None))):
             value = list(value)
             assert len(names) == len(value)
 
@@ -1180,19 +1178,38 @@ class CoregistrationUI(HasTraits):
             self._parameter_queue.put(_WorkerData("set_parameter", dict(
                 value=value, mode_name=mode_name, coord=coord)))
 
-    def _save_subject(self):
-        self._display_message(f"Saving {self._subject_to}...")
+    def _overwrite_subject_callback(self, button_name):
+        if button_name == "Yes":
+            self._save_subject_callback(overwrite=True)
+        elif button_name == "Cancel":
+            self._accept_close_event = False
+        else:
+            assert button_name == "No" or button_name == "Discard"
 
-        # check that fiducials are saved
-        if not self._skip_fiducials and self._scale_mode != "None" and \
-                not _find_fiducials_files(self._subject, self._subjects_dir):
-            default_fid_fname = fid_fname.format(
-                subjects_dir=self._subjects_dir, subject=self._subject)
-            self._save_mri_fiducials(default_fid_fname)
+    def _check_subject_exists(self):
+        if not self._subject_to:
+            return False
+        subject_dirname = os.path.join('{subjects_dir}', '{subject}')
+        dest = subject_dirname.format(subject=self._subject_to,
+                                      subjects_dir=self._subjects_dir)
+        return os.path.exists(dest)
+
+    def _save_subject(self, exit_mode=False):
+        dialog = "overwrite_subject_exit" if exit_mode else "overwrite_subject"
+        if self._check_subject_exists():
+            self._forward_widget_command(dialog, "show", True)
+        else:
+            self._save_subject_callback()
+
+    def _save_subject_callback(self, overwrite=False):
+        self._display_message(f"Saving {self._subject_to}...")
+        default_cursor = self._renderer._window_get_cursor()
+        self._renderer._window_set_cursor(
+            self._renderer._window_new_cursor("WaitCursor"))
 
         # prepare bem
         bem_names = []
-        if self._prepare_bem and self._scale_mode != "None":
+        if self._scale_mode != "None":
             can_prepare_bem = _mri_subject_has_bem(
                 self._subject, self._subjects_dir)
         else:
@@ -1212,10 +1229,9 @@ class CoregistrationUI(HasTraits):
             self._display_message(f"Scaling {self._subject_to}...")
             scale_mri(
                 subject_from=self._subject, subject_to=self._subject_to,
-                scale=self.coreg._scale, overwrite=True,
-                subjects_dir=self._subjects_dir,
-                skip_fiducials=self._skip_fiducials, labels=self._scale_labels,
-                annot=self._copy_annots, on_defects='ignore'
+                scale=self.coreg._scale, overwrite=overwrite,
+                subjects_dir=self._subjects_dir, skip_fiducials=True,
+                labels=True, annot=True, on_defects='ignore'
             )
         except Exception:
             logger.error(f"Error scaling {self._subject_to}")
@@ -1238,6 +1254,7 @@ class CoregistrationUI(HasTraits):
                 self._display_message(f"Computing {bem_name} solution..."
                                       " Done!")
         self._display_message(f"Saving {self._subject_to}... Done!")
+        self._renderer._window_set_cursor(default_cursor)
         self._mri_scale_modified = False
 
     def _save_mri_fiducials(self, fname):
@@ -1747,7 +1764,7 @@ class CoregistrationUI(HasTraits):
                     "save_mri_fids", "set_value", None)
             if self._mri_scale_modified:
                 if self._subject_to:
-                    self._save_subject()
+                    self._save_subject(exit_mode=True)
                 else:
                     dialog = self._renderer._dialog_warning(
                         title="CoregistrationUI",
