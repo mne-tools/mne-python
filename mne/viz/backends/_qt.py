@@ -29,7 +29,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
 from ._utils import _init_qt_resources, _qt_disable_paint
-from ..utils import logger, _check_option
+from ..utils import logger, _check_option, safe_event
 
 
 class _QtDialog(_AbstractDialog):
@@ -56,6 +56,7 @@ class _QtDialog(_AbstractDialog):
         widget.setStandardButtons(standard_buttons)
         widget.setDefaultButton(default_button)
 
+        @safe_event
         def func(button):
             button_id = widget.standardButton(button)
             supported_button_names = [
@@ -65,8 +66,12 @@ class _QtDialog(_AbstractDialog):
             ]
             for button_name in supported_button_names:
                 if button_id == getattr(QMessageBox, button_name):
-                    callback(button_name)
-                    break
+                    widget.setCursor(QCursor(Qt.WaitCursor))
+                    try:
+                        callback(button_name)
+                    finally:
+                        widget.unsetCursor()
+                        break
 
         widget.buttonClicked.connect(func)
         return _QtDialogWidget(widget, modal)
