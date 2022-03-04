@@ -70,3 +70,44 @@ jobs:
       - uses: codecov/codecov-action@v1
         if: success()
         name: 'Upload coverage to CodeCov'
+
+  job:
+    timeout-minutes: 90
+    name: 'notebook'
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        shell: bash
+    env:
+      CONDA_ENV: 'server_environment.yml'
+      PYTHON_VERSION: '3.8'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: 'mne'
+          python-version: ${{ env.PYTHON_VERSION }}
+          environment-file: ${{ env.CONDA_ENV }}
+        name: 'Setup conda'
+      - shell: bash -el {0}
+        run: |
+          pip uninstall -yq mne
+          pip install --progress-bar off -ve .[test]
+        name: 'Install dependencies'
+      - shell: bash -el {0}
+        run: ./tools/github_actions_infos.sh
+        name: 'Show infos'
+      - shell: bash -el {0}
+        run: ./tools/get_testing_version.sh
+        name: 'Get testing version'
+      - uses: actions/cache@v2
+        with:
+          key: ${{ env.TESTING_VERSION }}
+          path: ~/mne_data
+        name: 'Cache testing data'
+      - shell: bash -el {0}
+        run: pytest --tb=short -m "not pgtest" --cov=mne --cov-report=xml --cov-report=html -vv mne/viz
+        name: 'Run viz tests'
+      - uses: codecov/codecov-action@v1
+        if: success()
+        name: 'Upload coverage to CodeCov'
