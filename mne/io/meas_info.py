@@ -37,7 +37,8 @@ from ..transforms import (invert_transform, Transform, _coord_frame_name,
                           _ensure_trans)
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
                      _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric, deprecated,
-                     _check_option, _on_missing, _check_on_missing, fill_doc)
+                     _check_option, _on_missing, _check_on_missing, fill_doc,
+                     _check_fname)
 from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig
@@ -1169,7 +1170,7 @@ def read_fiducials(fname, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename to read.
     %(verbose)s
 
@@ -1181,6 +1182,11 @@ def read_fiducials(fname, verbose=None):
         The coordinate frame of the points (one of
         ``mne.io.constants.FIFF.FIFFV_COORD_...``).
     """
+    fname = _check_fname(
+        fname=fname,
+        overwrite='read',
+        must_exist=True
+    )
     fid, tree, _ = fiff_open(fname)
     with fid:
         isotrak = dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)
