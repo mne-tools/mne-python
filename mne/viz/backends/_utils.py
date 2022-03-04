@@ -162,7 +162,7 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         qsplash = QSplashScreen(
             QPixmap(':/mne-splash.png'), Qt.WindowStaysOnTopHint)
         if isinstance(splash, str):
-            alignment = Qt.AlignBottom | Qt.AlignHCenter
+            alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
             qsplash.showMessage(
                 splash, alignment=alignment, color=Qt.white)
         qsplash.show()
