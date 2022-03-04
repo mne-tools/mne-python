@@ -11,10 +11,8 @@ on:
       - '*'
 
 jobs:
-  # Linux
-  job:
+  py3.9:
     timeout-minutes: 90
-    name: 'py3.9'
     runs-on: ubuntu-20.04
     defaults:
       run:
@@ -71,9 +69,8 @@ jobs:
         if: success()
         name: 'Upload coverage to CodeCov'
 
-  job:
+  notebook:
     timeout-minutes: 90
-    name: 'notebook'
     runs-on: ubuntu-20.04
     defaults:
       run:
