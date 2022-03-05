@@ -187,6 +187,35 @@ def _qt_app_exec(app):
             signal.signal(signal.SIGINT, old_signal)
 
 
+def _qt_get_stylesheet(theme='auto'):
+    from ..utils import logger
+    if theme == 'auto':
+        theme = _detect_theme()
+    if theme == 'dark':
+        try:
+            import qdarkstyle
+        except ModuleNotFoundError:
+            logger.info('For Dark-Mode "qdarkstyle" has to be installed! '
+                        'You can install it with `pip install qdarkstyle`')
+            stylesheet = None
+        else:
+            stylesheet = qdarkstyle.load_stylesheet()
+    elif theme != 'light':
+        with open(theme, 'r') as file:
+            stylesheet = file.read()
+    else:
+        stylesheet = None
+    return stylesheet
+
+
+def _detect_theme():
+    try:
+        import darkdetect
+        return darkdetect.theme().lower()
+    except Exception:
+        return 'light'
+
+
 def _qt_raise_window(widget):
     # Set raise_window like matplotlib if possible
     try:

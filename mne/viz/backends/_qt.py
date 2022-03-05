@@ -28,8 +28,9 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
-from ._utils import _init_qt_resources, _qt_disable_paint, _qt_raise_window
-from ..utils import logger, _check_option, safe_event
+from ._utils import (_init_qt_resources, _qt_disable_paint,
+                     _qt_get_stylesheet, _detect_theme, _qt_raise_window)
+from ..utils import _check_option, safe_event
 
 
 class _QtDialog(_AbstractDialog):
@@ -674,24 +675,7 @@ class _QtWindow(_AbstractWindow):
             self._process_events()
 
     def _window_set_theme(self, theme):
-        if theme == 'auto':
-            theme = _detect_theme()
-
-        if theme == 'dark':
-            try:
-                import qdarkstyle
-            except ModuleNotFoundError:
-                logger.info('For Dark-Mode "qdarkstyle" has to be installed! '
-                            'You can install it with `pip install qdarkstyle`')
-                stylesheet = None
-            else:
-                stylesheet = qdarkstyle.load_stylesheet()
-        elif theme != 'light':
-            with open(theme, 'r') as file:
-                stylesheet = file.read()
-        else:
-            stylesheet = None
-
+        stylesheet = _qt_get_stylesheet(theme)
         self._window.setStyleSheet(stylesheet)
 
 
@@ -876,14 +860,6 @@ def _create_dock_widget(window, name, area, *, max_width=None):
     style_sheet = 'QDockWidget { ' + '  \n'.join(styles) + '\n}'
     dock.setStyleSheet(style_sheet)
     return dock, dock_layout
-
-
-def _detect_theme():
-    try:
-        import darkdetect
-        return darkdetect.theme().lower()
-    except Exception:
-        return 'light'
 
 
 @contextmanager
