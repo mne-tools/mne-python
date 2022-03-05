@@ -28,7 +28,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
-from ._utils import _init_qt_resources, _qt_disable_paint
+from ._utils import _init_qt_resources, _qt_disable_paint, _qt_raise_window
 from ..utils import logger, _check_option, safe_event
 
 
@@ -835,7 +835,17 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
         for plotter in self._all_plotters:
             plotter.updateGeometry()
             plotter._render()
+        # Ideally we would just put a `splash.finish(plotter.window())` in the
+        # same place that we initialize this (_init_qt_app call). However,
+        # the window show event is triggered (closing the splash screen) well
+        # before the window actually appears for complex scenes like the coreg
+        # GUI. Therefore, we close after all these events have been processed
+        # here.
         self._process_events()
+        splash = getattr(self.figure, 'splash', False)
+        if splash:
+            splash.close()
+        _qt_raise_window(self.plotter.app_window)
 
 
 def _set_widget_tooltip(widget, tooltip):

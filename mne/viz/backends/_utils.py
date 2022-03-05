@@ -98,7 +98,7 @@ def _qt_disable_paint(widget):
         widget.paintEvent = paintEvent
 
 
-def _init_mne_qtapp(enable_icon=True, pg_app=False):
+def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     """Get QApplication-instance for MNE-Python.
 
     Parameter
@@ -109,14 +109,21 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False):
         If to create the QApplication with pyqtgraph. For an until know
         undiscovered reason the pyqtgraph-browser won't show without
         mkQApp from pyqtgraph.
+    splash : bool | str
+        If not False, display a splash screen. If str, set the message
+        to the given string.
 
     Returns
     -------
-    app: ``PyQt5.QtWidgets.QApplication``
+    app : ``PyQt5.QtWidgets.QApplication``
         Instance of QApplication.
+    splash : ``PyQt5.QtWidgets.QSplashScreen``
+        Instance of QSplashScreen. Only returned if splash is True or a
+        string.
     """
-    from PyQt5.QtWidgets import QApplication
-    from PyQt5.QtGui import QIcon
+    from PyQt5.QtCore import Qt
+    from PyQt5.QtGui import QIcon, QPixmap
+    from PyQt5.QtWidgets import QApplication, QSplashScreen
 
     app_name = 'MNE-Python'
     organization_name = 'MNE'
@@ -150,7 +157,19 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False):
         kind = 'bigsur-' if platform.mac_ver()[0] >= '10.16' else ''
         app.setWindowIcon(QIcon(f":/mne-{kind}icon.png"))
 
-    return app
+    out = app
+    if splash:
+        qsplash = QSplashScreen(
+            QPixmap(':/mne-splash.png'), Qt.WindowStaysOnTopHint)
+        if isinstance(splash, str):
+            alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
+            qsplash.showMessage(
+                splash, alignment=alignment, color=Qt.white)
+        qsplash.show()
+        app.processEvents()
+        out = (out, qsplash)
+
+    return out
 
 
 # https://stackoverflow.com/questions/5160577/ctrl-c-doesnt-work-with-pyqt
@@ -166,3 +185,15 @@ def _qt_app_exec(app):
         # reset the SIGINT exception handler
         if is_python_signal_handler:
             signal.signal(signal.SIGINT, old_signal)
+
+
+def _qt_raise_window(widget):
+    # Set raise_window like matplotlib if possible
+    try:
+        from matplotlib import rcParams
+        raise_window = rcParams['figure.raise_window']
+    except ImportError:
+        raise_window = True
+    if raise_window:
+        widget.activateWindow()
+        widget.raise_()

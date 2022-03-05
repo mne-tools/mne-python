@@ -2220,10 +2220,13 @@ def _patched_canvas(fig):
         fig.canvas = old_canvas
 
 
-def _init_browser(**kwargs):
+def _init_browser(splash=False, **kwargs):
     """Instantiate a new MNE browse-style figure."""
     from mne.io import BaseRaw
     fig = _figure(toolbar=False, FigureClass=MNEBrowseFigure, **kwargs)
+
+    # splash is ignored (maybe we could do it for mpl if we get_backend() and
+    # check if it's Qt... but seems overkill)
 
     # initialize zen mode
     # (can't do in __init__ due to get_position() calls)

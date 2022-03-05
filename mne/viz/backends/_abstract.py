@@ -16,7 +16,7 @@ class _AbstractRenderer(ABC):
 
     @abstractclassmethod
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name=None, show=False, shape=(1, 1)):
+                 name=None, show=False, shape=(1, 1), splash=False):
         """Set up the scene."""
         pass
 
@@ -919,7 +919,7 @@ class Figure3D(ABC):
 
     @abstractclassmethod
     def _init(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-              name=None, show=False, shape=(1, 1)):
+              name=None, show=False, shape=(1, 1), splash=False):
         pass
 
     @property
