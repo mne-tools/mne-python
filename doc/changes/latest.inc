@@ -211,7 +211,7 @@ Bugs
 
 - Fix bug with :func:`mne.viz.plot_alignment` where head-coordinate source spaces (e.g., from a forward solution) were not properly plotted (:gh:`10309` by `Eric Larson`_)
 
-- :func:`mne.read_trans` now correctly expands ``~`` in the provided path to the user's home directory (:gh:`10265`, by `Richard Höchenberger`_)
+- :func:`mne.read_trans` and :func:`mne.io.read_fiducials` now correctly expand ``~`` in the provided path (i.e., to the user's home directory) (:gh:`10265`, :gh:`10415`, by `Richard Höchenberger`_)
 
 - :func:`mne.find_events` now uses ``first_samp`` and not ``0`` for initial event when using ``initial_value`` (:gh:`10289`, by `Alex Gramfort`_)
 
