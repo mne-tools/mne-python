@@ -548,25 +548,26 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
             platform_str = f'macOS-{macos_ver}-{macos_architecture}'
         del macos_ver, macos_architecture
 
-    out = 'Platform:'.ljust(ljust) + platform_str + '\n'
-    out += 'Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n'
-    out += 'Executable:'.ljust(ljust) + sys.executable + '\n'
-    out += 'CPU:'.ljust(ljust) + ('%s: ' % platform.processor())
+    out = partial(print, end='', file=fid)
+    out('Platform:'.ljust(ljust) + platform_str + '\n')
+    out('Python:'.ljust(ljust) + str(sys.version).replace('\n', ' ') + '\n')
+    out('Executable:'.ljust(ljust) + sys.executable + '\n')
+    out('CPU:'.ljust(ljust) + f'{platform.processor()}: ')
     try:
         import multiprocessing
     except ImportError:
-        out += ('number of processors unavailable ' +
-                '(requires "multiprocessing" package)\n')
+        out('number of processors unavailable '
+            '(requires "multiprocessing" package)\n')
     else:
-        out += '%s cores\n' % multiprocessing.cpu_count()
-    out += 'Memory:'.ljust(ljust)
+        out(f'{multiprocessing.cpu_count()} cores\n')
+    out('Memory:'.ljust(ljust))
     try:
         import psutil
     except ImportError:
-        out += 'Unavailable (requires "psutil" package)'
+        out('Unavailable (requires "psutil" package)')
     else:
-        out += '%0.1f GB\n' % (psutil.virtual_memory().total / float(2 ** 30),)
-    out += '\n'
+        out(f'{psutil.virtual_memory().total / float(2 ** 30):0.1f} GB\n')
+    out('\n')
     libs = _get_numpy_libs()
     use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
@@ -579,25 +580,14 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
             'pytest', 'nbclient')
     for mod_name in use_mod_names:
         if mod_name == '':
-            out += '\n'
+            out('\n')
             continue
-        out += ('%s:' % mod_name).ljust(ljust)
+        out(f'{mod_name}:'.ljust(ljust))
         try:
             mod = __import__(mod_name)
         except Exception:
-            out += 'Not found\n'
+            out('Not found\n')
         else:
-            extra = ''
-            if mod_name == 'numpy':
-                extra += ' {%s}%s' % (libs, extra)
-            elif mod_name == 'matplotlib':
-                extra += ' {backend=%s}%s' % (mod.get_backend(), extra)
-            elif mod_name == 'pyvista':
-                version, renderer = _get_gpu_info()
-                if version is None:
-                    extra += ' {OpenGL could not be initialized}'
-                else:
-                    extra += f' {{OpenGL {version} via {renderer}}}'
             if mod_name == 'vtk':
                 vtk_version = mod.vtkVersion()
                 # 9.0 dev has VersionFull but 9.0 doesn't
@@ -605,14 +595,24 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                     if hasattr(vtk_version, attr):
                         version = getattr(vtk_version, attr)()
                         if version != '':
+                            out(version)
                             break
                 else:
-                    version = 'unknown'
+                    out('unknown')
             elif mod_name == 'PyQt5':
-                version = _check_pyqt5_version()
+                out(_check_pyqt5_version())
             else:
-                version = mod.__version__
+                out(mod.__version__)
+            if mod_name == 'numpy':
+                out(f' {{{libs}}}')
+            elif mod_name == 'matplotlib':
+                out(f' {{backend={mod.get_backend()}}}')
+            elif mod_name == 'pyvista':
+                version, renderer = _get_gpu_info()
+                if version is None:
+                    out(' {OpenGL could not be initialized}')
+                else:
+                    out(f' {{OpenGL {version} via {renderer}}}')
             if show_paths:
-                extra += f'\n{" " * ljust}•{op.dirname(mod.__file__)}'
-            out += '%s%s\n' % (version, extra)
-    print(out, end='', file=fid)
+                out(f'\n{" " * ljust}•{op.dirname(mod.__file__)}')
+            out('\n')
