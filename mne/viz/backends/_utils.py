@@ -7,6 +7,7 @@
 #
 # License: Simplified BSD
 import collections.abc
+from colorsys import rgb_to_hls
 from contextlib import contextmanager
 import platform
 import signal
@@ -187,33 +188,42 @@ def _qt_app_exec(app):
             signal.signal(signal.SIGINT, old_signal)
 
 
-def _qt_get_stylesheet(theme='auto'):
-    from ..utils import logger
+def _qt_get_stylesheet(theme):
+    from ..utils import logger, warn, _validate_type
+    _validate_type(theme, ('path-like',), 'theme')
+    theme = str(theme)
     if theme == 'auto':
-        theme = _detect_theme()
-    if theme == 'dark':
         try:
-            import qdarkstyle
-        except ModuleNotFoundError:
-            logger.info('For Dark-Mode "qdarkstyle" has to be installed! '
-                        'You can install it with `pip install qdarkstyle`')
-            stylesheet = None
+            import darkdetect
+            theme = darkdetect.theme().lower()
+        except Exception:
+            theme = 'light'
+    if theme in ('dark', 'light'):
+        if theme == 'light' and sys.platform != 'darwin':
+            stylesheet = ''
         else:
-            stylesheet = qdarkstyle.load_stylesheet()
-    elif theme != 'light':
-        with open(theme, 'r') as file:
-            stylesheet = file.read()
+            try:
+                import qdarkstyle
+            except ModuleNotFoundError:
+                logger.info('For Dark-Mode "qdarkstyle" has to be installed! '
+                            'You can install it with `pip install qdarkstyle`')
+                stylesheet = ''
+            else:
+                klass = getattr(getattr(qdarkstyle, theme).palette,
+                                f'{theme.capitalize()}Palette')
+                stylesheet = qdarkstyle.load_stylesheet(klass)
     else:
-        stylesheet = None
+        try:
+            file = open(theme, 'r')
+        except IOError:
+            warn('Requested theme file not found, will use light instead: '
+                 f'{repr(theme)}')
+            stylesheet = ''
+        else:
+            with file as fid:
+                stylesheet = fid.read()
+
     return stylesheet
-
-
-def _detect_theme():
-    try:
-        import darkdetect
-        return darkdetect.theme().lower()
-    except Exception:
-        return 'light'
 
 
 def _qt_raise_window(widget):
@@ -226,3 +236,10 @@ def _qt_raise_window(widget):
     if raise_window:
         widget.activateWindow()
         widget.raise_()
+
+
+def _qt_is_dark(widget):
+    # Ideally this would use CIELab, but this should be good enough
+    win = widget.window()
+    bgcolor = win.palette().color(win.backgroundRole()).getRgbF()[:3]
+    return rgb_to_hls(*bgcolor)[1] < 0.5

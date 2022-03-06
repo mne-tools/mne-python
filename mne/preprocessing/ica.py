@@ -1962,7 +1962,7 @@ class ICA(ContainsMixin, _VerboseDep):
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True,
                      time_format='float', precompute=None,
-                     use_opengl=None, *, theme='auto'):
+                     use_opengl=None, *, theme=None):
         return plot_ica_sources(self, inst=inst, picks=picks,
                                 start=start, stop=stop, title=title, show=show,
                                 block=block, show_first_samp=show_first_samp,

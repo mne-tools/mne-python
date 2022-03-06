@@ -298,7 +298,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         self.actions[name] = widget
         return _IpyWidget(widget)
 
-    def _tool_bar_set_theme(self, theme):
+    def _tool_bar_set_theme(self):
         pass
 
 

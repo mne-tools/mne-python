@@ -1163,7 +1163,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
              order=None, show=True, block=False, decim='auto', noise_cov=None,
              butterfly=False, show_scrollbars=True, show_scalebars=True,
              epoch_colors=None, event_id=None, group_by='type',
-             precompute=None, use_opengl=None, *, theme='auto'):
+             precompute=None, use_opengl=None, *, theme=None):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, events=events, event_color=event_color,
