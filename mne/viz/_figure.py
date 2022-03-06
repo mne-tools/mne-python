@@ -17,7 +17,6 @@ import numpy as np
 from .. import verbose, get_config, set_config
 from ..annotations import _sync_onset
 from ..defaults import _handle_default
-from ..fixes import _get_args
 from ..utils import logger, _validate_type, _check_option
 from ..io.pick import _DATA_CH_TYPES_SPLIT
 from .backends._utils import VALID_BROWSE_BACKENDS
@@ -624,6 +623,7 @@ def _get_browser(show, block, **kwargs):
     figsize = kwargs.setdefault('figsize', _get_figsize_from_config())
     if figsize is None or np.any(np.array(figsize) < 8):
         kwargs['figsize'] = (8, 8)
+    kwargs['splash'] = True if show else False
 
     # Initialize browser backend
     backend_name = get_browser_backend()
@@ -649,8 +649,6 @@ def _get_browser(show, block, **kwargs):
                 return fig
 
     # Initialize Browser
-    if 'splash' in _get_args(backend._init_browser):
-        kwargs['splash'] = True if show else False
     fig = backend._init_browser(**kwargs)
     _show_browser(show=show, block=block, fig=fig)
 

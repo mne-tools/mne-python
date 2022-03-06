@@ -120,6 +120,8 @@ Enhancements
 
 - Made anterior/posterior slice scrolling in :func:`mne.gui.locate_ieeg` possible for users without page up and page down buttons by allowing angle bracket buttons to be used (:gh:`10384` by `Alex Rockhill`_)
 
+- Add support for ``theme='auto'`` for automatic dark-mode support in :meth:`raw.plot() <mne.io.Raw.plot>` and related functions and methods when using the ``'qt'`` backend (:gh:`10417` by `Eric Larson`_)
+
 - Add support for passing time-frequency data to :func:`mne.stats.spatio_temporal_cluster_test` and :func:`mne.stats.spatio_temporal_cluster_1samp_test` and added an example to :ref:`tut-cluster-spatiotemporal-sensor` (:gh:`10384` by `Alex Rockhill`_)
 
 Bugs

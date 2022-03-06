@@ -35,7 +35,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              proj=True, group_by='type', butterfly=False, decim='auto',
              noise_cov=None, event_id=None, show_scrollbars=True,
              show_scalebars=True, time_format='float',
-             precompute=None, use_opengl=None, verbose=None):
+             precompute=None, use_opengl=None, *, theme='auto', verbose=None):
     """Plot raw data.
 
     Parameters
@@ -159,6 +159,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     %(time_format)s
     %(precompute)s
     %(use_opengl)s
+    %(theme_pg)s
+
+        .. versionadded:: 1.0
     %(verbose)s
 
     Returns
