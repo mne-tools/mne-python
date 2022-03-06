@@ -649,8 +649,6 @@ def _get_browser(show, block, **kwargs):
                 return fig
 
     # Initialize Browser
-    if 'splash' in _get_args(backend._init_browser):
-        kwargs['splash'] = True if show else False
     fig = backend._init_browser(**kwargs)
     _show_browser(show=show, block=block, fig=fig)
 

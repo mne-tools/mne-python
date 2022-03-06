@@ -3001,6 +3001,19 @@ tail : int
     the distribution.
 """
 
+docdict['theme'] = """
+theme : str | path-like
+    Can be "auto" (default), "light", or "dark" or a path-like to a
+    custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
+    :mod:`qdarkstyle` `darkdetect
+    <https://github.com/albertosottile/darkdetect>`__, respectively,
+    are required.
+"""
+
+docdict['theme_pg'] = """{theme}\
+    Only supported by the ``'qt'`` backend.
+""".format(theme=docdict['theme'])
+
 docdict['thresh'] = """
 thresh : None or float
     Not supported yet.

@@ -2220,7 +2220,7 @@ def _patched_canvas(fig):
         fig.canvas = old_canvas
 
 
-def _init_browser(splash=False, **kwargs):
+def _init_browser(**kwargs):
     """Instantiate a new MNE browse-style figure."""
     from mne.io import BaseRaw
     fig = _figure(toolbar=False, FigureClass=MNEBrowseFigure, **kwargs)

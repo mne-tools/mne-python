@@ -313,11 +313,7 @@ class Brain(object):
        and ``decimate`` (level of decimation between 0 and 1 or None) of the
        brain's silhouette to display. If True, the default values are used
        and if False, no silhouette will be displayed. Defaults to False.
-    theme : str | path-like
-        Can be "auto" (default), "light", or "dark" or a path-like to a
-        custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
-        :mod:`qdarkstyle` respectively and `darkdetect
-        <https://github.com/albertosottile/darkdetect>`__ is required.
+    %(theme)s
     show : bool
         Display the window as soon as it is ready. Defaults to True.
     block : bool
