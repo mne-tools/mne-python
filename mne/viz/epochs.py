@@ -736,7 +736,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     %(use_opengl)s
     %(theme_pg)s
 
-        .. verionadded:: 1.0
+        .. versionadded:: 1.0
 
     Returns
     -------

@@ -623,6 +623,7 @@ def _get_browser(show, block, **kwargs):
     figsize = kwargs.setdefault('figsize', _get_figsize_from_config())
     if figsize is None or np.any(np.array(figsize) < 8):
         kwargs['figsize'] = (8, 8)
+    kwargs['splash'] = True if show else False
 
     # Initialize browser backend
     backend_name = get_browser_backend()
