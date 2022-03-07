@@ -2850,15 +2850,14 @@ def _get_subsurf(source):
     """
     # NOTE: minimal documentation since private, should I elaborate?
     rr = source['rr']
-    tris = source['tris']
     use_tris = source['use_tris']
     vertno = source['vertno']
     ss = {}
-    
+
     # Initialize the subsurface stuff
     ss['rr'] = rr[vertno]
     ss['tri'] = _reindex_triangles(rr.shape[0], vertno, use_tris)
-    
+
     return ss
 
 
@@ -2866,13 +2865,13 @@ def _reindex_triangles(sz_orig, vertno, sub_tris):
     """Reindex the vertno with the subsampled surface"""
     # NOTE: this may be better as a function merged with above
     # NOTE: is there a better way to say "index 
-    redone = np.ones((sz_orig , 1)) * -1
+    redone = np.ones((sz_orig, 1)) * -1
     for i in range(len(vertno)):
         redone[vertno[i]] = i
-    
+
     new_tris = np.zeros(sub_tris.shape, dtype=np.int32)
     for i in range(new_tris.shape[0]):
         for jj in range(new_tris.shape[1]):
             new_tris[i][jj] = redone[sub_tris[i][jj]]
-    
+
     return new_tris
