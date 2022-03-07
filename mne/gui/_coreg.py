@@ -29,7 +29,7 @@ from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
                      warn, verbose, logger, _validate_type)
-from ..surface import _CheckInside
+from ..surface import _CheckInside, _DistanceQuery
 from ..channels import read_dig_fif
 
 
@@ -167,6 +167,7 @@ class CoregistrationUI(HasTraits):
         self._parameter_queue = queue.Queue()
         self._head_geo = None
         self._check_inside = None
+        self._nearest = None
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
         self._to_cf_t = None
@@ -901,13 +902,13 @@ class CoregistrationUI(HasTraits):
             self._renderer.set_camera(distance=None, **kwargs)
 
     def _update_projection_surface(self):
+        rr = self.coreg._get_processed_mri_points('low') * self.coreg._scale.T
         self._head_geo = dict(
-            rr=self.coreg._get_processed_mri_points('low') *
-            self.coreg._scale.T,
-            tris=self.coreg._bem_low_res["tris"],
+            rr=rr, tris=self.coreg._bem_low_res["tris"],
             nn=self.coreg._bem_low_res["nn"]
         )
         self._check_inside = _CheckInside(self._head_geo)
+        self._nearest = _DistanceQuery(rr)
 
     def _update_fiducials(self):
         fid = self._current_fiducial
@@ -1044,7 +1045,8 @@ class CoregistrationUI(HasTraits):
                 scale=DEFAULTS["coreg"]["extra_scale"],
                 orient_glyphs=self._orient_glyphs,
                 scale_by_distance=self._scale_by_distance,
-                surf=self._head_geo, check_inside=self._check_inside)
+                surf=self._head_geo, check_inside=self._check_inside,
+                nearest=self._nearest)
         else:
             hpi_actors = None
         self._update_actor("hpi_coils", hpi_actors)
@@ -1058,7 +1060,7 @@ class CoregistrationUI(HasTraits):
                 scale_by_distance=self._scale_by_distance,
                 mark_inside=self._mark_inside, surf=self._head_geo,
                 mask=self.coreg._extra_points_filter,
-                check_inside=self._check_inside)
+                check_inside=self._check_inside, nearest=self._nearest)
         else:
             hsp_actors = None
         self._update_actor("head_shape_points", hsp_actors)
@@ -1075,7 +1077,8 @@ class CoregistrationUI(HasTraits):
                     sensor_opacity=self._defaults["sensor_opacity"],
                     orient_glyphs=self._orient_glyphs,
                     scale_by_distance=self._scale_by_distance,
-                    surf=self._head_geo, check_inside=self._check_inside)
+                    surf=self._head_geo, check_inside=self._check_inside,
+                    nearest=self._nearest)
                 sens_actors = actors["eeg"]
                 sens_actors.extend(actors["fnirs"])
             else:
