@@ -2821,3 +2821,58 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None,
     depths = cdist(src_pos, sensor_pos)
 
     return depths
+
+
+def get_decimated_surfaces(src):
+    """Get the decimated surfaces from a source space.
+
+    Parameters
+    ----------
+    src: instance of SourceSpaces
+        The object which has decimated surfaces
+
+    Returns
+    -------
+    subsurfaces: list of dicts which contain 'rr' and 'tris' keys
+    """
+    # NOTE: is there a better way to do this? Maybe raise a TypeError?
+    assert isinstance(src, SourceSpaces)
+
+    subsurfaces = []
+    for surf in src:
+        subsurfaces.append(_get_subsurf(surf))
+
+    return subsurfaces
+
+
+def _get_subsurf(source):
+    """Get the subsurface from a set of vertices; use only one surface at a time!
+    """
+    # NOTE: minimal documentation since private, should I elaborate?
+    rr = source['rr']
+    tris = source['tris']
+    use_tris = source['use_tris']
+    vertno = source['vertno']
+    ss = {}
+    
+    # Initialize the subsurface stuff
+    ss['rr'] = rr[vertno]
+    ss['tri'] = _reindex_triangles(rr.shape[0], vertno, use_tris)
+    
+    return ss
+
+
+def _reindex_triangles(sz_orig, vertno, sub_tris):
+    """Reindex the vertno with the subsampled surface"""
+    # NOTE: this may be better as a function merged with above
+    # NOTE: is there a better way to say "index 
+    redone = np.ones((sz_orig , 1)) * -1
+    for i in range(len(vertno)):
+        redone[vertno[i]] = i
+    
+    new_tris = np.zeros(sub_tris.shape, dtype=np.int32)
+    for i in range(new_tris.shape[0]):
+        for jj in range(new_tris.shape[1]):
+            new_tris[i][jj] = redone[sub_tris[i][jj]]
+    
+    return new_tris
