@@ -3,7 +3,6 @@ from ...utils import verbose, logger, warn
 from ...io import RawArray
 from ... import create_info
 
-import numpy as np
 
 def read_raw_xdf(fname,
                  name_stream_eeg: str = None,
