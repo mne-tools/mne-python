@@ -21,15 +21,16 @@ def test_read():
     assert raw is not None
 
 
+    '''
+    import matplotlib
+    import pyxdf
+    from mne.io.xdf import read_raw_xdf
+    matplotlib.use("TkAgg")
 
+    raw = read_raw_xdf(fname=path_to_sample_xdf, name_stream_eeg='BrainAmpSeries-Dev_1',
+                       name_stream_markers='ServerStates')
 
-    # todo: read xdf with a specific data name type
-    #raw = read_raw_xdf(fname=path_to_sample_xdf)
-    #assert raw is not None
-
-    # todo: read xdf with a specific marker name type
-    #raw = read_raw_xdf(fname=path_to_sample_xdf)
-    #assert raw is not None
-
+    raw.plot(scalings='auto')
+    '''
 
 
