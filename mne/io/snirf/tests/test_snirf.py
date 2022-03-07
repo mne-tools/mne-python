@@ -46,6 +46,10 @@ kernel_hb = op.join(testing_path, 'SNIRF', 'Kernel', 'Flow50',
 
 h5py = pytest.importorskip('h5py')  # module-level
 
+# Fieldtrip
+ft_od = op.join(testing_path, 'SNIRF', 'FieldTrip',
+                    '220307_opticaldensity.snirf')
+
 
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*contains 2D location.*:')
@@ -284,6 +288,23 @@ def test_snirf_nirsport2_w_positions():
 
     mon = raw.get_montage()
     assert len(mon.dig) == 43
+
+
+@requires_testing_data
+def test_snirf_fieldtrip_od():
+    """Test reading FieldTrip SNIRF files with optical density data."""
+    raw = read_raw_snirf(ft_od, preload=True)
+
+    # Test data import
+    assert raw._data.shape == (72, 500)
+    assert raw.copy().pick('fnirs')._data.shape == (72, 500)
+    assert raw.copy().pick('fnirs_od')._data.shape == (72, 500)
+    with pytest.raises(ValueError, match='not be interpreted as channel'):
+        raw.copy().pick('hbo')
+    with pytest.raises(ValueError, match='not be interpreted as channel'):
+        raw.copy().pick('hbr')
+
+    assert_allclose(raw.info['sfreq'], 50)
 
 
 @requires_testing_data
