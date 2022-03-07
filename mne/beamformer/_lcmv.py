@@ -44,7 +44,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         gradiometers with magnetometers or EEG with MEG.
     label : instance of Label
         Restricts the LCMV solution to a given label.
-    %(bf_pick_ori)s
+    %(pick_ori_bf)s
 
         - ``'vector'``
             Keeps the currents for each direction separate
@@ -56,7 +56,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     %(depth)s
 
         .. versionadded:: 0.18
-    %(bf_inversion)s
+    %(inversion_bf)s
 
         .. versionadded:: 0.21
     %(verbose)s

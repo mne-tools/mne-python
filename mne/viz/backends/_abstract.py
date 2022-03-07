@@ -16,7 +16,7 @@ class _AbstractRenderer(ABC):
 
     @abstractclassmethod
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name=None, show=False, shape=(1, 1)):
+                 name=None, show=False, shape=(1, 1), splash=False):
         """Set up the scene."""
         pass
 
@@ -626,7 +626,7 @@ class _AbstractPlayback(ABC):
 class _AbstractDialog(ABC):
     @abstractmethod
     def _dialog_warning(self, title, text, info_text, callback, *,
-                        modal=True, window=None):
+                        buttons=[], modal=True, window=None):
         pass
 
 
@@ -700,6 +700,10 @@ class _AbstractWidget(ABC):
 
     @abstractmethod
     def set_tooltip(self, tooltip: str):
+        pass
+
+    @abstractmethod
+    def set_style(self, style):
         pass
 
 
@@ -844,7 +848,11 @@ class _AbstractWindow(ABC):
         self._interactor_fraction = None
 
     @abstractmethod
-    def _window_close_connect(self, func):
+    def _window_close_connect(self, func, *, after=True):
+        pass
+
+    @abstractmethod
+    def _window_close_disconnect(self, after=True):
         pass
 
     @abstractmethod
@@ -911,7 +919,7 @@ class Figure3D(ABC):
 
     @abstractclassmethod
     def _init(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-              name=None, show=False, shape=(1, 1)):
+              name=None, show=False, shape=(1, 1), splash=False):
         pass
 
     @property

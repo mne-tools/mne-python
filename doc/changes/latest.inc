@@ -24,6 +24,8 @@ Current (1.0.dev0)
 Enhancements
 ~~~~~~~~~~~~
 
+- Add ``use_orig_time`` option to :meth:`mne.Annotations.crop`. (:gh:`10396` by :newcontrib:`Michiru Kaneda`)
+
 - Speed up :func:`mne.preprocessing.annotate_muscle_zscore`, :func:`mne.preprocessing.annotate_movement`, and :func:`mne.preprocessing.annotate_nan` through better annotation creation (:gh:`10089` by :newcontrib:`Senwen Deng`)
 
 - Fix some unused variables in time_frequency_erds.py example (:gh:`10076` by :newcontrib:`Jan Zerfowski`)
@@ -33,6 +35,10 @@ Enhancements
 - :func:`mne.time_frequency.tfr_array_multitaper` can now return results for ``output='phase'`` instead of an error (:gh:`10281` by `Mikołaj Magnuski`_)
 
 - Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
+
+- Show boundaries in :func:`mne.gui.locate_ieeg` (:gh:`10379` by `Eric Larson`_)
+
+- Add argument ``cval`` to :func:`mne.transforms.apply_volume_registration` to set interpolation values outside the image domain (:gh:`10379` by `Eric Larson`_)
 
 - Improve docstring of :class:`mne.Info` and add attributes that were not covered (:gh:`9922` by `Mathieu Scheltienne`_)
 
@@ -110,12 +116,18 @@ Enhancements
 
 - :meth:`mne.preprocessing.ICA.plot_sources()` is now also supported by the ``qt`` backend (:gh:`10330` by `Martin Schulz`_)
 
-- Added :meth:`mne.viz.Brain.add_dipole` and :meth:`mne.viz.Brain.add_forward` to plot dipoles on a brain (:gh:`10373` by `Alex Rockhill`_)
+- Added :meth:`mne.viz.Brain.add_dipole` and :meth:`mne.viz.Brain.add_forward` to plot dipoles on a brain as well as :meth:`mne.viz.Brain.remove_dipole` and :meth:`mne.viz.Brain.remove_forward` (:gh:`10373` by `Alex Rockhill`_)
+
+- Made anterior/posterior slice scrolling in :func:`mne.gui.locate_ieeg` possible for users without page up and page down buttons by allowing angle bracket buttons to be used (:gh:`10384` by `Alex Rockhill`_)
+
+- Add support for ``theme='auto'`` for automatic dark-mode support in :meth:`raw.plot() <mne.io.Raw.plot>` and related functions and methods when using the ``'qt'`` backend (:gh:`10417` by `Eric Larson`_)
+
+- Add support for passing time-frequency data to :func:`mne.stats.spatio_temporal_cluster_test` and :func:`mne.stats.spatio_temporal_cluster_1samp_test` and added an example to :ref:`tut-cluster-spatiotemporal-sensor` (:gh:`10384` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
 
-- Fix datetime conversion for tmin/tmax=None cases in :meth:`mne.Annotations.crop`. Allow the use of float and None simultaneously for :meth:`mne.Annotations.crop`. (:gh:`10361` by `Michiru Kaneda`_)
+- Fix datetime conversion for tmin/tmax=None cases in :meth:`mne.Annotations.crop`. Allow the use of float and None simultaneously for :meth:`mne.Annotations.crop`. (:gh:`10361` by :newcontrib:`Michiru Kaneda`)
 
 - Add Shift_JIST mu in :func:`mne.io.read_raw_edf` (:gh:`10356` by :newcontrib:`Michiru Kaneda`)
 
@@ -156,6 +168,8 @@ Bugs
 - Fix bug where :meth:`raw.crop() <mne.io.Raw.crop>` from the beginning of the instance could break annotations and ``raw.first_samp`` (:gh:`10358` by `Eric Larson`_)
 
 - :func:`~mne.sys_info` output now contains the installed version of ``pooch``, too; this output had been accidentally removed previously (:gh:`10047` by `Richard Höchenberger`_)
+
+- Fix VTK version extraction in :func:`mne.sys_info` (:gh:`10399` by `Eric Larson`_)
 
 - Fix automatic channel type detection from channel labels in :func:`mne.io.read_raw_edf` and :func:`mne.io.read_raw_bdf` (and disable this functionality from :func:`mne.io.read_raw_gdf`) (:gh:`10058` by `Clemens Brunner`_)
 
@@ -199,7 +213,7 @@ Bugs
 
 - Fix bug with :func:`mne.viz.plot_alignment` where head-coordinate source spaces (e.g., from a forward solution) were not properly plotted (:gh:`10309` by `Eric Larson`_)
 
-- :func:`mne.read_trans` now correctly expands ``~`` in the provided path to the user's home directory (:gh:`10265`, by `Richard Höchenberger`_)
+- :func:`mne.read_trans` and :func:`mne.io.read_fiducials` now correctly expand ``~`` in the provided path (i.e., to the user's home directory) (:gh:`10265`, :gh:`10415`, by `Richard Höchenberger`_)
 
 - :func:`mne.find_events` now uses ``first_samp`` and not ``0`` for initial event when using ``initial_value`` (:gh:`10289`, by `Alex Gramfort`_)
 
@@ -211,7 +225,17 @@ Bugs
 
 - Fix plotting bug in :ref:`ex-electrode-pos-2d` and make view look more natural in :ref:`ex-movement-detect` (:gh:`10313`, by `Alex Rockhill`_)
 
+- Fix bug with blank 3D rendering with MESA software rendering (:gh:`10400` by `Eric Larson`_)
+
 - Fix a bug in :func:`mne.gui.locate_ieeg` where 2D lines on slice plots failed to update and were shown when not in maximum projection mode (:gh:`10335`, by `Alex Rockhill`_)
+
+- Fix misleading color scale in :ref:`tut-cluster-tfr` for the plotting of cluster F-statistics (:gh:`10393` by `Alex Rockhill`_)
+
+- Fix baseline removal using ``remove_dc=True`` in :meth:`raw.plot() <mne.io.Raw.plot>` for data containing ``np.nan`` (:gh:`10392` by `Clemens Brunner`_)
+
+- Fix misleading color scale in :ref:`tut-timefreq-twoway-anova` for plotting F-stats (:gh:`10401` by `Alex Rockhill`_)
+
+- Fix misleading ``T_obs`` return name for :func:`mne.stats.spatio_temporal_cluster_test` when the default returns an F-statistic (:gh:`10401` by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~

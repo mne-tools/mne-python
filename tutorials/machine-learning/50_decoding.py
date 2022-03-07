@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 r"""
+.. _tut-mvpa:
+
 ===============
 Decoding (MVPA)
 ===============
@@ -419,7 +422,7 @@ brain = stc.plot(hemi='split', views=('lat', 'med'), initial_time=0.1,
 #
 # .. topic:: Examples
 #
-#     * :ref:`tut-dec-st-source`
+#     * :ref:`ex-dec-st-source`
 #
 # Exercise
 # ========

@@ -313,11 +313,7 @@ class Brain(object):
        and ``decimate`` (level of decimation between 0 and 1 or None) of the
        brain's silhouette to display. If True, the default values are used
        and if False, no silhouette will be displayed. Defaults to False.
-    theme : str | path-like
-        Can be "auto" (default), "light", or "dark" or a path-like to a
-        custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
-        :mod:`qdarkstyle` respectively and `darkdetect
-        <https://github.com/albertosottile/darkdetect>`__ is required.
+    %(theme)s
     show : bool
         Display the window as soon as it is ready. Defaults to True.
     block : bool
@@ -745,7 +741,7 @@ class Brain(object):
         for renderer in self._renderer._all_renderers:
             renderer.RemoveAllLights()
         # app_window cannot be set to None because it is used in __del__
-        for key in ('lighting', 'interactor'):
+        for key in ('lighting', 'interactor', '_RenderWindow'):
             setattr(self.plotter, key, None)
         # Qt LeaveEvent requires _Iren so we use _FakeIren instead of None
         # to resolve the ref to vtkGenericRenderWindowInteractor
@@ -2441,7 +2437,7 @@ class Brain(object):
 
         Parameters
         ----------
-        dipole : instance of Dipole | instance of Forward
+        dipole : instance of Dipole
             Dipole object containing position, orientation and amplitude of
             one or more dipoles or in the forward solution.
         %(trans_not_none)s
@@ -3146,7 +3142,7 @@ class Brain(object):
         ----------
         mode : str
             Either 'rgb' or 'rgba' for values to return.
-        %(brain_screenshot_time_viewer)s
+        %(time_viewer_brain_screenshot)s
 
         Returns
         -------
@@ -3308,7 +3304,7 @@ class Brain(object):
 
         Parameters
         ----------
-        %(brain_time_interpolation)s
+        %(interpolation_brain_time)s
         """
         self._time_interpolation = _check_option(
             'interpolation',
@@ -3627,7 +3623,7 @@ class Brain(object):
             Last time point to include (default: all data).
         framerate : float
             Framerate of the movie (frames per second, default 24).
-        %(brain_time_interpolation)s
+        %(interpolation_brain_time)s
             If None, it uses the current ``brain.interpolation``,
             which defaults to ``'nearest'``. Defaults to None.
         codec : str | None
@@ -3638,7 +3634,7 @@ class Brain(object):
             A function to call on each iteration. Useful for status message
             updates. It will be passed keyword arguments ``frame`` and
             ``n_frames``.
-        %(brain_screenshot_time_viewer)s
+        %(time_viewer_brain_screenshot)s
         **kwargs : dict
             Specify additional options for :mod:`imageio`.
         """

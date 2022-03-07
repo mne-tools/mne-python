@@ -250,7 +250,7 @@ class Dipole(_VerboseDep):
 
             .. versionadded:: 0.14.0
         %(verbose)s
-        %(dipole_locs_fig_title)s
+        %(title_dipole_locs_fig)s
 
             .. versionadded:: 0.21.0
 
@@ -1227,7 +1227,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         for each time instant.
 
         .. versionadded:: 0.12
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.20
     accuracy : str

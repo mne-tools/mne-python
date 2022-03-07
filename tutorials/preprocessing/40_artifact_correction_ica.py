@@ -2,6 +2,7 @@
 """
 .. _tut-artifact-ica:
 
+============================
 Repairing artifacts with ICA
 ============================
 

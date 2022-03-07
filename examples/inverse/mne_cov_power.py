@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-cov-power:
+
 ===================================================================
 Compute source power estimate by projecting the covariance with MNE
 ===================================================================

@@ -204,7 +204,7 @@ class DigMontage(object):
 
         Parameters
         ----------
-        %(rename_channels_mapping_duplicates)s
+        %(mapping_rename_channels_duplicates)s
 
         Returns
         -------
@@ -404,8 +404,8 @@ class DigMontage(object):
         coordinate frame. Any coordinate frame can be transformed
         to ``head`` if the fiducials (i.e. LPA, RPA and Nasion) are
         defined. One can use this function to estimate those fiducials
-        and then use ``montage.get_native_head_t()`` to get the
-        head <-> MRI transform.
+        and then use ``mne.channels.compute_native_head_t(montage)``
+        to get the head <-> MRI transform.
         """
         # get coordframe and fiducial coordinates
         montage_bunch = _get_data_as_dict_from_dig(self.dig)

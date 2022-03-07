@@ -13,6 +13,7 @@ Actual implementation of _Renderer and _Projection classes.
 
 from contextlib import contextmanager
 import os
+import re
 import sys
 import warnings
 
@@ -55,12 +56,15 @@ class PyVistaFigure(Figure3D):
 
     def _init(self, plotter=None, show=False, title='PyVista Scene',
               size=(600, 600), shape=(1, 1), background_color='black',
-              smooth_shading=True, off_screen=False, notebook=False):
+              smooth_shading=True, off_screen=False, notebook=False,
+              splash=False):
         self._plotter = plotter
         self.display = None
         self.background_color = background_color
         self.smooth_shading = smooth_shading
         self.notebook = notebook
+        self.title = title
+        self.splash = splash
 
         self.store = dict()
         self.store['window_size'] = size
@@ -89,8 +93,15 @@ class PyVistaFigure(Figure3D):
 
         if self.plotter is None:
             if not self.notebook:
-                app = _init_mne_qtapp(enable_icon=hasattr(plotter_class,
-                                                          'set_icon'))
+                out = _init_mne_qtapp(
+                    enable_icon=hasattr(plotter_class, 'set_icon'),
+                    splash=self.splash)
+                # replace it with the Qt object
+                if self.splash:
+                    self.splash = out[1]
+                    app = out[0]
+                else:
+                    app = out
                 self.store['app'] = app
             plotter = plotter_class(**self.store)
             plotter.background_color = self.background_color
@@ -144,14 +155,14 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1),
-                 notebook=None, smooth_shading=True):
+                 notebook=None, smooth_shading=True, splash=False):
         from .._3d import _get_3d_option
         _require_version('pyvista', 'use 3D rendering', '0.32')
         figure = PyVistaFigure()
         figure._init(
             show=show, title=name, size=size, shape=shape,
             background_color=bgcolor, notebook=notebook,
-            smooth_shading=smooth_shading)
+            smooth_shading=smooth_shading, splash=splash)
         self.font_family = "arial"
         self.tube_n_sides = 20
         self.antialias = _get_3d_option('antialias')
@@ -661,10 +672,18 @@ class _PyVistaRenderer(_AbstractRenderer):
         # before the window has actually been made "active"...?
         # For Mayavi we have an "on activated" event or so, we should look into
         # using this for Azure at some point, too.
-        if os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true':
-            return
         if self.figure._is_active():
-            if sys.platform != 'darwin':
+            # macOS, Azure
+            bad_system = (
+                sys.platform == 'darwin' or
+                os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true')
+            # MESA (could use GPUInfo / _get_gpu_info here, but it takes
+            # > 700 ms to make a new window + report capabilities!)
+            # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
+            gpu_info = self.plotter.ren_win.ReportCapabilities()
+            gpu_info = re.findall("OpenGL renderer string:(.+)\n", gpu_info)
+            bad_system |= 'mesa' in ' '.join(gpu_info).lower().split()
+            if not bad_system:
                 for renderer in self._all_renderers:
                     renderer.enable_anti_aliasing()
             for plotter in self._all_plotters:

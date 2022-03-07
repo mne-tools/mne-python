@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-mixed-norm-inverse:
+
 ================================================================
 Compute sparse inverse solution with mixed norm: MxNE and irMxNE
 ================================================================

@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-cerebellum-source-space:
+
 ==============================================
 Generate a left cerebellum volume source space
 ==============================================

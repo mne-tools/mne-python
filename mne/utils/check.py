@@ -4,13 +4,14 @@
 #
 # License: BSD-3-Clause
 
-import importlib
 from builtins import input  # no-op here but facilitates testing
 from difflib import get_close_matches
+from importlib import import_module
 import operator
 import os
 import os.path as op
 from pathlib import Path
+import re
 import sys
 import warnings
 import numbers
@@ -64,7 +65,8 @@ def check_fname(fname, filetype, endings, endings_err=()):
              % (fname, filetype, print_endings))
 
 
-def check_version(library, min_version='0.0', *, return_version=False):
+def check_version(library, min_version='0.0', *, strip=True,
+                  return_version=False):
     r"""Check minimum library version required.
 
     Parameters
@@ -75,6 +77,15 @@ def check_version(library, min_version='0.0', *, return_version=False):
         The minimum version string. Anything that matches
         ``'(\d+ | [a-z]+ | \.)'``. Can also be empty to skip version
         check (just check for library presence).
+    strip : bool
+        If True (default), then PEP440 development markers like ``.devN``
+        will be stripped from the version. This makes it so that
+        ``check_version('mne', '1.1')`` will be ``True`` even when on version
+        ``'1.1.dev0'`` (prerelease/dev version). This option is provided for
+        backward compatibility with the behavior of ``LooseVersion``, and
+        diverges from how modern parsing in ``packaging.version.parse`` works.
+
+        .. versionadded:: 1.0
     return_version : bool
         If True (default False), also return the version (can be None if the
         library is missing).
@@ -91,16 +102,40 @@ def check_version(library, min_version='0.0', *, return_version=False):
     ok = True
     version = None
     try:
-        library = __import__(library)
+        library = import_module(library)
     except ImportError:
         ok = False
     else:
-        if min_version and min_version != '0.0':
+        check_version = min_version and min_version != '0.0'
+        get_version = check_version or return_version
+        if get_version:
             version = library.__version__
+            if strip:
+                version = _strip_dev(version)
+        if check_version:
             if _compare_version(version, '<', min_version):
                 ok = False
     out = (ok, version) if return_version else ok
     return out
+
+
+def _strip_dev(version):
+    # First capturing group () is what we want to keep, at the beginning:
+    #
+    # - at least one numeral, then
+    # - repeats of {dot, at least one numeral}
+    #
+    # The rest (consume to the end of the string) is the stuff we want to cut
+    # off:
+    #
+    # - A period (maybe), then
+    # - "dev", "rc", or "+", then
+    # - numerals, periods, dashes, and "a" through "g" (hex chars)
+    #
+    # Thanks https://www.regextester.com !
+    exp = r'^([0-9]+(?:\.[0-9]+)*)\.?(?:dev|rc|\+)[0-9+a-g\.\-]+$'
+    match = re.match(exp, version)
+    return match.groups()[0] if match is not None else version
 
 
 def _require_version(lib, what, version='0.0'):
@@ -297,7 +332,7 @@ def _soft_import(name, purpose, strict=True):
         Whether to raise an error if module import fails.
     """
     try:
-        mod = importlib.import_module(name)
+        mod = import_module(name)
         return mod
     except (ImportError, ModuleNotFoundError):
         if strict:
