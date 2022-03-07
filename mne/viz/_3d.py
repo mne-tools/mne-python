@@ -1035,7 +1035,7 @@ def _get_nearest(nearest, check_inside, project_to_trans, proj_rr):
 
 def _orient_glyphs(pts, surf, project_to_surface=False, mark_inside=False):
     rr = surf["rr"]
-    check_inside = _CheckInside(surf)
+    check_inside = _CheckInside(surf, verbose=False)
     nearest = _DistanceQuery(rr)
     project_to_trans = np.eye(4)
     inv_trans = np.linalg.inv(project_to_trans)

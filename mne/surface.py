@@ -14,6 +14,7 @@ from collections import OrderedDict
 from glob import glob
 from os import path as op
 from struct import pack
+import time
 import warnings
 
 import numpy as np
@@ -575,47 +576,74 @@ def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
 class _CheckInside(object):
     """Efficiently check if points are inside a surface."""
 
-    def __init__(self, surf):
+    @verbose
+    def __init__(self, surf, *, verbose=None):
+        logger.info(
+            f'Setting up interior check for {len(surf["rr"])} points...')
+        t0 = time.time()
         from scipy.spatial import Delaunay
         self.surf = surf
         self.inner_r = None
         self.cm = surf['rr'].mean(0)
-        if not _points_outside_surface(
-                self.cm[np.newaxis], surf)[0]:  # actually inside
-            # Immediately cull some points from the checks
-            self.inner_r = np.linalg.norm(surf['rr'] - self.cm, axis=-1).min()
         # We could use Delaunay or ConvexHull here, Delaunay is slightly slower
         # to construct but faster to evaluate
         # See https://stackoverflow.com/questions/16750618/whats-an-efficient-way-to-find-if-a-point-lies-in-the-convex-hull-of-a-point-cl  # noqa
         self.del_tri = Delaunay(surf['rr'])
+        if self.del_tri.find_simplex(self.cm) >= 0:
+            # Immediately cull some points from the checks
+            rr_ = surf['rr'] - self.cm
+            self.inner_r = np.linalg.norm(rr_, axis=-1).min()
+        logger.info(
+            f'Setup complete in {(time.time() - t0) * 1000:0.1f} ms')
 
     @verbose
     def __call__(self, rr, n_jobs=1, verbose=None):
-        inside = np.ones(len(rr), bool)  # innocent until proven guilty
-        idx = np.arange(len(rr))
-
+        n_orig = len(rr)
+        prec = max(int(np.ceil(np.log10(n_orig))), 1)
+        logger.info(f'Checking surface interior status for '
+                    f'{n_orig} point{_pl(n_orig, " ")}...')
+        t0 = time.time()
+        inside = np.ones(n_orig, bool)  # innocent until proven guilty
+        idx = np.arange(n_orig)
         # Limit to indices that can plausibly be outside the surf
+        # but are not definitely outside it
         if self.inner_r is not None:
             mask = np.linalg.norm(rr - self.cm, axis=-1) >= self.inner_r
             idx = idx[mask]
             rr = rr[mask]
-            logger.info('    Skipping interior check for %d sources that fit '
-                        'inside a sphere of radius %6.1f mm'
-                        % ((~mask).sum(), self.inner_r * 1000))
+            n = (~mask).sum()
+            n_pad = str(n).rjust(prec)
+            logger.info(
+                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} that fit '
+                f'inside a sphere of radius {1000 * self.inner_r:6.1f} mm')
 
         # Use qhull as our first pass (*much* faster than our check)
         del_outside = self.del_tri.find_simplex(rr) < 0
-        omit_outside = sum(del_outside)
+        n = sum(del_outside)
         inside[idx[del_outside]] = False
         idx = idx[~del_outside]
         rr = rr[~del_outside]
-        logger.info('    Skipping solid angle check for %d points using Qhull'
-                    % (omit_outside,))
+        n_pad = str(n).rjust(prec)
+        check_pad = str(len(del_outside)).rjust(prec)
+        logger.info(
+            f'    Found {n_pad}/{check_pad} point{_pl(n, " ")} outside using '
+            'surface Qhull')
 
         # use our more accurate check
         solid_outside = _points_outside_surface(rr, self.surf, n_jobs)
-        omit_outside += np.sum(solid_outside)
+        n = np.sum(solid_outside)
+        n_pad = str(n).rjust(prec)
+        check_pad = str(len(solid_outside)).rjust(prec)
+        logger.info(
+            f'    Found {n_pad}/{check_pad} point{_pl(n, " ")} outside using '
+            'solid angles')
         inside[idx[solid_outside]] = False
+        n = inside.sum()
+        n_pad = str(n).rjust(prec)
+        logger.info(
+            f'    Total {n}/{n_orig} point{_pl(n, " ")} inside the surface')
+        logger.info(
+            f'Interior check completed in {(time.time() - t0) * 1000:0.1f} ms')
         return inside
 
 
