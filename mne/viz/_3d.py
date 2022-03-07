@@ -1048,7 +1048,7 @@ def _orient_glyphs(pts, surf, project_to_surface=False, mark_inside=False,
     vec = pts - proj_pts  # point to the surface
     nn = proj_nn
     if mark_inside and not project_to_surface:
-        scalars = (~check_inside(proj_rr, verbose=False)).astype(int)
+        scalars = (~check_inside(proj_rr)).astype(int)
     else:
         scalars = np.ones(len(pts))
     dist = np.linalg.norm(vec, axis=-1, keepdims=True)
@@ -1090,10 +1090,11 @@ def _plot_glyphs(renderer, loc, color, scale, opacity=1, mode="cylinder",
                                backface_culling=backface_culling)
 
 
+@verbose
 def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
                             orient_glyphs=False, scale_by_distance=False,
                             mark_inside=False, surf=None, mask=None,
-                            check_inside=None, nearest=None):
+                            check_inside=None, nearest=None, verbose=False):
     defaults = DEFAULTS['coreg']
     ext_loc = np.array([
         d['r'] for d in (info['dig'] or [])

@@ -647,6 +647,7 @@ class CoregistrationUI(HasTraits):
     def _grow_hair_changed(self, change=None):
         self.coreg.set_grow_hair(self._grow_hair)
         self._update_plot("head")
+        self._update_plot("hsp")  # inside/outside could change
 
     @observe("_scale_mode")
     def _scale_mode_changed(self, change=None):
@@ -726,8 +727,13 @@ class CoregistrationUI(HasTraits):
             helmet=self._add_helmet,
         )
         with self._redraw_mutex:
-            logger.debug(f'Redrawing {self._redraws_pending}')
-            for key in self._redraws_pending:
+            # We need at least "head" before "hsp", because the grow_hair param
+            # for head sets the rr that are used for inside/outside hsp
+            redraws_ordered = sorted(
+                self._redraws_pending,
+                key=lambda key: list(draw_map).index(key))
+            logger.debug(f'Redrawing {redraws_ordered}')
+            for key in redraws_ordered:
                 draw_map[key]()
             self._redraws_pending.clear()
             self._renderer._update()
@@ -803,7 +809,7 @@ class CoregistrationUI(HasTraits):
 
     def _reset_omit_hsp_filter(self):
         self.coreg._extra_points_filter = None
-        self.coreg._update_params(force_update_omitted=True)
+        self.coreg._update_params(force_update=True)
         self._update_plot("hsp")
         self._update_distance_estimation()
         n_total = len(self.coreg._dig_dict['hsp'])
@@ -907,7 +913,8 @@ class CoregistrationUI(HasTraits):
             rr=rr, tris=self.coreg._bem_low_res["tris"],
             nn=self.coreg._bem_low_res["nn"]
         )
-        self._check_inside = _CheckInside(self._head_geo)
+        # TODO revert verbose here
+        self._check_inside = _CheckInside(self._head_geo, verbose=True)
         self._nearest = _DistanceQuery(rr)
 
     def _update_fiducials(self):
@@ -1060,7 +1067,9 @@ class CoregistrationUI(HasTraits):
                 scale_by_distance=self._scale_by_distance,
                 mark_inside=self._mark_inside, surf=self._head_geo,
                 mask=self.coreg._extra_points_filter,
-                check_inside=self._check_inside, nearest=self._nearest)
+                check_inside=self._check_inside, nearest=self._nearest,
+                # TODO revert verbose here
+                verbose=True)
         else:
             hsp_actors = None
         self._update_actor("head_shape_points", hsp_actors)
