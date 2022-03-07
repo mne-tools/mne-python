@@ -48,7 +48,7 @@ h5py = pytest.importorskip('h5py')  # module-level
 
 # Fieldtrip
 ft_od = op.join(testing_path, 'SNIRF', 'FieldTrip',
-                    '220307_opticaldensity.snirf')
+                '220307_opticaldensity.snirf')
 
 
 @requires_testing_data
