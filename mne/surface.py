@@ -650,7 +650,7 @@ class _CheckInside(object):
 
     def _call_old(self, rr, n_jobs):
         n_orig = len(rr)
-        prec = max(int(np.ceil(np.log10(n_orig))), 1)
+        prec = int(np.ceil(np.log10(max(n_orig, 10))))
         inside = np.ones(n_orig, bool)  # innocent until proven guilty
         idx = np.arange(n_orig)
         # Limit to indices that can plausibly be outside the surf

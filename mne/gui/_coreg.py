@@ -1095,7 +1095,12 @@ class CoregistrationUI(HasTraits):
 
     def _add_head_surface(self):
         bem = None
-        surface = "head-dense" if self._head_resolution else "head"
+        if self._head_resolution:
+            surface = 'head-dense'
+            key = 'high'
+        else:
+            surface = 'head'
+            key = 'low'
         try:
             head_actor, head_surf, _ = _plot_head_surface(
                 self._renderer, surface, self._subject,
@@ -1106,10 +1111,13 @@ class CoregistrationUI(HasTraits):
                 self._renderer, "head", self._subject, self._subjects_dir,
                 bem, self._coord_frame, self._to_cf_t,
                 alpha=self._head_opacity)
+            key = 'low'
         self._update_actor("head", head_actor)
         # mark head surface mesh to restrict picking
         head_surf._picking_target = True
-        head_surf.points = rr = head_surf.points * self.coreg._scale.T
+        # We need to use _get_processed_mri_points to incorporate grow_hair
+        rr = self.coreg._get_processed_mri_points(key) * self.coreg._scale.T
+        head_surf.points = rr
         head_surf.compute_normals()
         self._surfaces["head"] = head_surf
         tris = self._surfaces["head"].faces.reshape(-1, 4)[:, 1:]
