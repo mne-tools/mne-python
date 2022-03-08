@@ -573,37 +573,81 @@ def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
     return np.abs(np.sum(tot_angles, axis=0) / (2 * np.pi) - 1.0) > 1e-5
 
 
+def _surface_to_polydata(rr, tris=None):
+    import pyvista as pv
+    vertices = np.array(rr)
+    if tris is None:
+        return pv.PolyData(vertices)
+    else:
+        triangles = np.array(tris)
+        triangles = np.c_[np.full(len(triangles), 3), triangles]
+        return pv.PolyData(vertices, triangles)
+
+
 class _CheckInside(object):
     """Efficiently check if points are inside a surface."""
 
     @verbose
-    def __init__(self, surf, *, verbose=None):
+    def __init__(self, surf, *, mode='pyvista', verbose=None):
+        assert mode in ('pyvista', 'old')
+        self.mode = mode
         logger.info(
-            f'Setting up interior check for {len(surf["rr"])} points...')
+            f'Setting up {mode} interior check for '
+            f'{len(surf["rr"])} points...')
         t0 = time.time()
-        from scipy.spatial import Delaunay
         self.surf = surf
+        if self.mode == 'pyvista':
+            self._init_pyvista()
+        else:
+            self._init_old()
+        logger.info(
+            f'Setup complete in {(time.time() - t0) * 1000:0.1f} ms')
+
+    def _init_old(self):
+        from scipy.spatial import Delaunay
         self.inner_r = None
-        self.cm = surf['rr'].mean(0)
+        self.cm = self.surf['rr'].mean(0)
         # We could use Delaunay or ConvexHull here, Delaunay is slightly slower
         # to construct but faster to evaluate
         # See https://stackoverflow.com/questions/16750618/whats-an-efficient-way-to-find-if-a-point-lies-in-the-convex-hull-of-a-point-cl  # noqa
-        self.del_tri = Delaunay(surf['rr'])
+        self.del_tri = Delaunay(self.surf['rr'])
         if self.del_tri.find_simplex(self.cm) >= 0:
             # Immediately cull some points from the checks
-            dists = np.linalg.norm(surf['rr'] - self.cm, axis=-1)
+            dists = np.linalg.norm(self.surf['rr'] - self.cm, axis=-1)
             self.inner_r = dists.min()
             self.outer_r = dists.max()
-        logger.info(
-            f'Setup complete in {(time.time() - t0) * 1000:0.1f} ms')
+
+    def _init_pyvista(self):
+        self.pdata = _surface_to_polydata(
+            self.surf['rr'], self.surf['tris']).clean()
 
     @verbose
     def __call__(self, rr, n_jobs=1, verbose=None):
         n_orig = len(rr)
-        prec = max(int(np.ceil(np.log10(n_orig))), 1)
         logger.info(f'Checking surface interior status for '
                     f'{n_orig} point{_pl(n_orig, " ")}...')
         t0 = time.time()
+        if self.mode == 'pyvista':
+            inside = self._call_pyvista(rr)
+        else:
+            inside = self._call_old(rr, n_jobs)
+        n = inside.sum()
+        prec = max(int(np.ceil(np.log10(n_orig))), 1)
+        n_pad = str(n).rjust(prec)
+        logger.info(
+            f'    Total {n}/{n_orig} point{_pl(n, " ")} inside the surface')
+        logger.info(
+            f'Interior check completed in {(time.time() - t0) * 1000:0.1f} ms')
+        return inside
+
+    def _call_pyvista(self, rr):
+        pdata = _surface_to_polydata(rr)
+        out = pdata.select_enclosed_points(self.pdata, check_surface=False)
+        return out['SelectedPoints'].astype(bool)
+
+    def _call_old(self, rr, n_jobs):
+        n_orig = len(rr)
+        prec = max(int(np.ceil(np.log10(n_orig))), 1)
         inside = np.ones(n_orig, bool)  # innocent until proven guilty
         idx = np.arange(n_orig)
         # Limit to indices that can plausibly be outside the surf
@@ -650,12 +694,6 @@ class _CheckInside(object):
             f'    Found {n_pad}/{check_pad} point{_pl(n, " ")} outside using '
             'solid angles')
         inside[idx[solid_outside]] = False
-        n = inside.sum()
-        n_pad = str(n).rjust(prec)
-        logger.info(
-            f'    Total {n}/{n_orig} point{_pl(n, " ")} inside the surface')
-        logger.info(
-            f'Interior check completed in {(time.time() - t0) * 1000:0.1f} ms')
         return inside
 
 

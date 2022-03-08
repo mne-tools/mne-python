@@ -30,31 +30,8 @@ from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
                      warn, verbose, logger, _validate_type)
-from ..surface import _DistanceQuery
+from ..surface import _DistanceQuery, _CheckInside
 from ..channels import read_dig_fif
-
-
-def _surface_to_polydata(rr, tris=None):
-    import pyvista as pv
-    vertices = np.array(rr)
-    if tris is None:
-        return pv.PolyData(vertices)
-    else:
-        triangles = np.array(tris)
-        triangles = np.c_[np.full(len(triangles), 3), triangles]
-        return pv.PolyData(vertices, triangles)
-
-
-class _CheckInside():
-    def __init__(self, surf, verbose=None):
-        self.surf = surf
-        self.pdata = _surface_to_polydata(
-            self.surf['rr'], self.surf['tris']).clean()
-
-    def __call__(self, rr, n_jobs=1, verbose=None):
-        pdata = _surface_to_polydata(rr)
-        out = pdata.select_enclosed_points(self.pdata, check_surface=False)
-        return out['SelectedPoints']
 
 
 class _WorkerData():
