@@ -614,15 +614,17 @@ class _CheckInside(object):
             n = (in_mask).sum()
             n_pad = str(n).rjust(prec)
             logger.info(
-                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} that were '
-                f'inside  a sphere of radius {1000 * self.inner_r:6.1f} mm')
+                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} '
+                f'inside  an interior sphere of radius '
+                f'{1000 * self.inner_r:6.1f} mm')
             out_mask = dists > self.outer_r
             inside[out_mask] = False
             n = (out_mask).sum()
             n_pad = str(n).rjust(prec)
             logger.info(
-                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} that were '
-                f'outside a sphere of radius {1000 * self.outer_r:6.1f} mm')
+                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} '
+                f'outside an exterior sphere of radius '
+                f'{1000 * self.outer_r:6.1f} mm')
             mask = (~in_mask) & (~out_mask)  # not definitely inside or outside
             idx = idx[mask]
             rr = rr[mask]

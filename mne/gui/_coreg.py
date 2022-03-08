@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from functools import partial
+import inspect
 import os
 import os.path as op
 import platform
@@ -756,7 +757,8 @@ class CoregistrationUI(HasTraits):
                 self._redraws_pending,
                 key=lambda key: list(draw_map).index(key))
             logger.debug(f'Redrawing {redraws_ordered}')
-            for key in redraws_ordered:
+            for ki, key in enumerate(redraws_ordered):
+                logger.debug(f'{ki}. Drawing {repr(key)}')
                 draw_map[key]()
             self._redraws_pending.clear()
             self._renderer._update()
@@ -839,9 +841,16 @@ class CoregistrationUI(HasTraits):
         self._display_message(
             f"No head shape point is omitted, the total is {n_total}.")
 
-    def _update_plot(self, changes="all"):
+    @verbose
+    def _update_plot(self, changes="all", verbose=None):
         # Update list of things that need to be updated/plotted (and maybe
         # draw them immediately)
+        try:
+            fun_name = inspect.currentframe().f_back.f_back.f_code.co_name
+        except Exception:  # just in case one of these attrs is missing
+            fun_name = 'unknown'
+        logger.debug(
+            f'Updating plots based on {fun_name}: {repr(changes)}')
         if self._plot_locked:
             return
         if self._info is None:
@@ -1173,16 +1182,22 @@ class CoregistrationUI(HasTraits):
 
     def _fit_icp(self):
         with self._lock(scale_mode=True):
-            self._fits_icp()
+            self._fit_icp_real(update_head=False)
 
     def _fits_icp(self):
+        self._fit_icp_real(update_head=True)
+
+    def _fit_icp_real(self, *, update_head):
         with self._lock(params=True, fitting=True):
             self._current_icp_iterations = 0
+            updates = ['hsp', 'hpi', 'eeg', 'head_fids']
+            if update_head:
+                updates.insert(0, 'head')
 
             def callback(iteration, n_iterations):
                 self._display_message(
                     f"Fitting ICP - iteration {iteration + 1}")
-                self._update_plot(['head', 'hsp', 'hpi', 'eeg', 'head_fids'])
+                self._update_plot(updates)
                 self._current_icp_iterations += 1
                 self._update_distance_estimation()
                 self._update_parameters()
@@ -1590,13 +1605,14 @@ class CoregistrationUI(HasTraits):
         self._widgets["fits_fiducials"] = self._renderer._dock_add_button(
             name="Fit fiducials with scaling",
             callback=self._fits_fiducials,
-            tooltip="Find rotation and translation to fit all 3 fiducials",
+            tooltip="Find MRI scaling, rotation, and translation to fit all "
+                    "3 fiducials",
             layout=fit_scale_layout,
         )
         self._widgets["fits_icp"] = self._renderer._dock_add_button(
             name="Fit ICP with scaling",
             callback=self._fits_icp,
-            tooltip="Find MRI scaling, translation, and rotation to match the "
+            tooltip="Find MRI scaling, rotation, and translation to match the "
                     "head shape points",
             layout=fit_scale_layout,
         )
@@ -1657,7 +1673,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["fit_icp"] = self._renderer._dock_add_button(
             name="Fit ICP",
             callback=self._fit_icp,
-            tooltip="Find MRI scaling, translation, and rotation to match the "
+            tooltip="Find rotation and translation to match the "
                     "head shape points",
             layout=fit_layout,
         )
