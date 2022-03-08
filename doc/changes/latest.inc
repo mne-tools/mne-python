@@ -122,6 +122,8 @@ Enhancements
 
 - Add support for passing time-frequency data to :func:`mne.stats.spatio_temporal_cluster_test` and :func:`mne.stats.spatio_temporal_cluster_1samp_test` and added an example to :ref:`tut-cluster-spatiotemporal-sensor` (:gh:`10384` by `Alex Rockhill`_)
 
+- Add support for reading optical density fNIRS data to :func:`mne.io.read_raw_snirf` (:gh:`10408` by `Robert Luke`_)   
+
 Bugs
 ~~~~
 
