@@ -475,7 +475,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                  opacity=1.0, scale_mode='none', scalars=None, colormap=None,
                  backface_culling=False, line_width=2., name=None,
                  glyph_width=None, glyph_depth=None, glyph_radius=0.15,
-                 solid_transform=None):
+                 solid_transform=None, *, clim=None):
         _check_option('mode', mode, ALLOWED_QUIVER_MODES)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
@@ -561,7 +561,8 @@ class _PyVistaRenderer(_AbstractRenderer):
                 scalars=scalars,
                 colormap=colormap,
                 show_scalar_bar=False,
-                backface_culling=backface_culling
+                backface_culling=backface_culling,
+                clim=clim,
             )
         return actor, mesh
 

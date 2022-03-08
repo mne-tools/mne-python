@@ -1070,9 +1070,11 @@ def _plot_glyphs(renderer, loc, color, scale, opacity=1, mode="cylinder",
             color = np.append(color, 1)
             colormap = ListedColormap(np.array([(0, 0, 0, 1,), color]))
             color = None
+            clim = [0, 1]
         else:
             scalars = None
             colormap = None
+            clim = None
         mode = 'cylinder' if orient_glyphs else 'sphere'
         scale_mode = 'vector' if scale_by_distance else 'none'
         x, y, z = proj_pts.T if project_points else loc.T
@@ -1083,7 +1085,7 @@ def _plot_glyphs(renderer, loc, color, scale, opacity=1, mode="cylinder",
             glyph_center=(0., -defaults['eegp_height'], 0),
             resolution=16, glyph_resolution=16,
             glyph_radius=None, opacity=opacity, scale_mode=scale_mode,
-            scalars=scalars, colormap=colormap)
+            scalars=scalars, colormap=colormap, clim=clim)
     else:
         return renderer.sphere(center=loc, color=color, scale=scale,
                                opacity=opacity,

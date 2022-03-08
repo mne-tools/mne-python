@@ -591,8 +591,9 @@ class _CheckInside(object):
         self.del_tri = Delaunay(surf['rr'])
         if self.del_tri.find_simplex(self.cm) >= 0:
             # Immediately cull some points from the checks
-            rr_ = surf['rr'] - self.cm
-            self.inner_r = np.linalg.norm(rr_, axis=-1).min()
+            dists = np.linalg.norm(surf['rr'] - self.cm, axis=-1)
+            self.inner_r = dists.min()
+            self.outer_r = dists.max()
         logger.info(
             f'Setup complete in {(time.time() - t0) * 1000:0.1f} ms')
 
@@ -608,14 +609,23 @@ class _CheckInside(object):
         # Limit to indices that can plausibly be outside the surf
         # but are not definitely outside it
         if self.inner_r is not None:
-            mask = np.linalg.norm(rr - self.cm, axis=-1) >= self.inner_r
-            idx = idx[mask]
-            rr = rr[mask]
-            n = (~mask).sum()
+            dists = np.linalg.norm(rr - self.cm, axis=-1)
+            in_mask = dists < self.inner_r
+            n = (in_mask).sum()
             n_pad = str(n).rjust(prec)
             logger.info(
-                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} that fit '
-                f'inside a sphere of radius {1000 * self.inner_r:6.1f} mm')
+                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} that were '
+                f'inside  a sphere of radius {1000 * self.inner_r:6.1f} mm')
+            out_mask = dists > self.outer_r
+            inside[out_mask] = False
+            n = (out_mask).sum()
+            n_pad = str(n).rjust(prec)
+            logger.info(
+                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} that were '
+                f'outside a sphere of radius {1000 * self.outer_r:6.1f} mm')
+            mask = (~in_mask) & (~out_mask)  # not definitely inside or outside
+            idx = idx[mask]
+            rr = rr[mask]
 
         # Use qhull as our first pass (*much* faster than our check)
         del_outside = self.del_tri.find_simplex(rr) < 0
