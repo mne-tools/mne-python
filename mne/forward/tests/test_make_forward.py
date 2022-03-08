@@ -18,7 +18,8 @@ from mne import (read_forward_solution, write_forward_solution,
                  get_volume_labels_from_aseg)
 from mne.surface import _get_ico_surface
 from mne.transforms import Transform
-from mne.utils import requires_mne, requires_nibabel, run_subprocess
+from mne.utils import (requires_mne, requires_nibabel, run_subprocess,
+                       catch_logging)
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
 from mne.forward._compute_forward import _magnetic_dipole_field_vec
 from mne.forward import Forward, _do_forward_solution, use_coil_def
@@ -223,8 +224,11 @@ def test_make_forward_solution_kit(tmp_path):
 @testing.requires_testing_data
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python."""
-    fwd_py = make_forward_solution(fname_raw, fname_trans, fname_src,
-                                   fname_bem, mindist=5.)
+    with catch_logging() as log:
+        fwd_py = make_forward_solution(fname_raw, fname_trans, fname_src,
+                                       fname_bem, mindist=5., verbose=True)
+    log = log.getvalue()
+    assert 'Total 258/258 points inside the surface' in log
     assert (isinstance(fwd_py, Forward))
     fwd = read_forward_solution(fname_meeg)
     assert (isinstance(fwd, Forward))

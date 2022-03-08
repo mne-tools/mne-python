@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from functools import partial
+import inspect
 import os
 import os.path as op
 import platform
@@ -29,6 +30,7 @@ from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
                      warn, verbose, logger, _validate_type)
+from ..surface import _DistanceQuery, _CheckInside
 from ..channels import read_dig_fif
 
 
@@ -165,6 +167,8 @@ class CoregistrationUI(HasTraits):
         self._job_queue = queue.Queue()
         self._parameter_queue = queue.Queue()
         self._head_geo = None
+        self._check_inside = None
+        self._nearest = None
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
         self._to_cf_t = None
@@ -511,7 +515,6 @@ class CoregistrationUI(HasTraits):
         self.coreg._setup_bem()
         self.coreg._setup_fiducials(self._fiducials)
         self._reset()
-        self._update_projection_surface()
 
         default_fid_fname = fid_fname.format(
             subjects_dir=self._subjects_dir, subject=self._subject
@@ -628,7 +631,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_head_resolution")
     def _head_resolution_changed(self, change=None):
-        self._update_plot(["head"])
+        self._update_plot(["head", "hsp"])
 
     @observe("_head_opacity")
     def _head_opacity_changed(self, change=None):
@@ -644,6 +647,7 @@ class CoregistrationUI(HasTraits):
     def _grow_hair_changed(self, change=None):
         self.coreg.set_grow_hair(self._grow_hair)
         self._update_plot("head")
+        self._update_plot("hsp")  # inside/outside could change
 
     @observe("_scale_mode")
     def _scale_mode_changed(self, change=None):
@@ -723,8 +727,14 @@ class CoregistrationUI(HasTraits):
             helmet=self._add_helmet,
         )
         with self._redraw_mutex:
-            logger.debug(f'Redrawing {self._redraws_pending}')
-            for key in self._redraws_pending:
+            # We need at least "head" before "hsp", because the grow_hair param
+            # for head sets the rr that are used for inside/outside hsp
+            redraws_ordered = sorted(
+                self._redraws_pending,
+                key=lambda key: list(draw_map).index(key))
+            logger.debug(f'Redrawing {redraws_ordered}')
+            for ki, key in enumerate(redraws_ordered):
+                logger.debug(f'{ki}. Drawing {repr(key)}')
                 draw_map[key]()
             self._redraws_pending.clear()
             self._renderer._update()
@@ -800,16 +810,23 @@ class CoregistrationUI(HasTraits):
 
     def _reset_omit_hsp_filter(self):
         self.coreg._extra_points_filter = None
-        self.coreg._update_params(force_update_omitted=True)
+        self.coreg._update_params(force_update=True)
         self._update_plot("hsp")
         self._update_distance_estimation()
         n_total = len(self.coreg._dig_dict['hsp'])
         self._display_message(
             f"No head shape point is omitted, the total is {n_total}.")
 
-    def _update_plot(self, changes="all"):
+    @verbose
+    def _update_plot(self, changes="all", verbose=None):
         # Update list of things that need to be updated/plotted (and maybe
         # draw them immediately)
+        try:
+            fun_name = inspect.currentframe().f_back.f_back.f_code.co_name
+        except Exception:  # just in case one of these attrs is missing
+            fun_name = 'unknown'
+        logger.debug(
+            f'Updating plots based on {fun_name}: {repr(changes)}')
         if self._plot_locked:
             return
         if self._info is None:
@@ -897,14 +914,6 @@ class CoregistrationUI(HasTraits):
         kwargs = dict(zip(('azimuth', 'elevation'), kwargs[view[fid]]))
         if not self._lock_fids:
             self._renderer.set_camera(distance=None, **kwargs)
-
-    def _update_projection_surface(self):
-        self._head_geo = dict(
-            rr=self.coreg._get_processed_mri_points('low') *
-            self.coreg._scale.T,
-            tris=self.coreg._bem_low_res["tris"],
-            nn=self.coreg._bem_low_res["nn"]
-        )
 
     def _update_fiducials(self):
         fid = self._current_fiducial
@@ -1016,7 +1025,8 @@ class CoregistrationUI(HasTraits):
 
     def _update_actor(self, actor_name, actor):
         # XXX: internal plotter/renderer should not be exposed
-        self._renderer.plotter.remove_actor(self._actors.get(actor_name))
+        self._renderer.plotter.remove_actor(self._actors.get(actor_name),
+                                            render=False)
         self._actors[actor_name] = actor
 
     def _add_mri_fiducials(self):
@@ -1041,7 +1051,8 @@ class CoregistrationUI(HasTraits):
                 scale=DEFAULTS["coreg"]["extra_scale"],
                 orient_glyphs=self._orient_glyphs,
                 scale_by_distance=self._scale_by_distance,
-                surf=self._head_geo)
+                surf=self._head_geo, check_inside=self._check_inside,
+                nearest=self._nearest)
         else:
             hpi_actors = None
         self._update_actor("hpi_coils", hpi_actors)
@@ -1054,7 +1065,8 @@ class CoregistrationUI(HasTraits):
                 orient_glyphs=self._orient_glyphs,
                 scale_by_distance=self._scale_by_distance,
                 mark_inside=self._mark_inside, surf=self._head_geo,
-                mask=self.coreg._extra_points_filter)
+                mask=self.coreg._extra_points_filter,
+                check_inside=self._check_inside, nearest=self._nearest)
         else:
             hsp_actors = None
         self._update_actor("head_shape_points", hsp_actors)
@@ -1071,7 +1083,8 @@ class CoregistrationUI(HasTraits):
                     sensor_opacity=self._defaults["sensor_opacity"],
                     orient_glyphs=self._orient_glyphs,
                     scale_by_distance=self._scale_by_distance,
-                    surf=self._head_geo)
+                    surf=self._head_geo, check_inside=self._check_inside,
+                    nearest=self._nearest)
                 sens_actors = actors["eeg"]
                 sens_actors.extend(actors["fnirs"])
             else:
@@ -1082,7 +1095,12 @@ class CoregistrationUI(HasTraits):
 
     def _add_head_surface(self):
         bem = None
-        surface = "head-dense" if self._head_resolution else "head"
+        if self._head_resolution:
+            surface = 'head-dense'
+            key = 'high'
+        else:
+            surface = 'head'
+            key = 'low'
         try:
             head_actor, head_surf, _ = _plot_head_surface(
                 self._renderer, surface, self._subject,
@@ -1093,14 +1111,22 @@ class CoregistrationUI(HasTraits):
                 self._renderer, "head", self._subject, self._subjects_dir,
                 bem, self._coord_frame, self._to_cf_t,
                 alpha=self._head_opacity)
+            key = 'low'
         self._update_actor("head", head_actor)
         # mark head surface mesh to restrict picking
         head_surf._picking_target = True
-        res = "high" if self._head_resolution else "low"
-        head_surf.points = \
-            self.coreg._get_processed_mri_points(res) * self.coreg._scale.T
+        # We need to use _get_processed_mri_points to incorporate grow_hair
+        rr = self.coreg._get_processed_mri_points(key) * self.coreg._scale.T
+        head_surf.points = rr
+        head_surf.compute_normals()
         self._surfaces["head"] = head_surf
-        self._update_projection_surface()
+        tris = self._surfaces["head"].faces.reshape(-1, 4)[:, 1:]
+        assert tris.ndim == 2 and tris.shape[1] == 3, tris.shape
+        nn = self._surfaces["head"].point_normals
+        assert nn.shape == (len(rr), 3), nn.shape
+        self._head_geo = dict(rr=rr, tris=tris, nn=nn)
+        self._check_inside = _CheckInside(head_surf, mode='pyvista')
+        self._nearest = _DistanceQuery(rr)
 
     def _add_helmet(self):
         if self._helmet:
@@ -1134,16 +1160,22 @@ class CoregistrationUI(HasTraits):
 
     def _fit_icp(self):
         with self._lock(scale_mode=True):
-            self._fits_icp()
+            self._fit_icp_real(update_head=False)
 
     def _fits_icp(self):
+        self._fit_icp_real(update_head=True)
+
+    def _fit_icp_real(self, *, update_head):
         with self._lock(params=True, fitting=True):
             self._current_icp_iterations = 0
+            updates = ['hsp', 'hpi', 'eeg', 'head_fids']
+            if update_head:
+                updates.insert(0, 'head')
 
             def callback(iteration, n_iterations):
                 self._display_message(
                     f"Fitting ICP - iteration {iteration + 1}")
-                self._update_plot(['head', 'hsp', 'hpi', 'eeg', 'head_fids'])
+                self._update_plot(updates)
                 self._current_icp_iterations += 1
                 self._update_distance_estimation()
                 self._update_parameters()
@@ -1551,13 +1583,14 @@ class CoregistrationUI(HasTraits):
         self._widgets["fits_fiducials"] = self._renderer._dock_add_button(
             name="Fit fiducials with scaling",
             callback=self._fits_fiducials,
-            tooltip="Find rotation and translation to fit all 3 fiducials",
+            tooltip="Find MRI scaling, rotation, and translation to fit all "
+                    "3 fiducials",
             layout=fit_scale_layout,
         )
         self._widgets["fits_icp"] = self._renderer._dock_add_button(
             name="Fit ICP with scaling",
             callback=self._fits_icp,
-            tooltip="Find MRI scaling, translation, and rotation to match the "
+            tooltip="Find MRI scaling, rotation, and translation to match the "
                     "head shape points",
             layout=fit_scale_layout,
         )
@@ -1618,7 +1651,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["fit_icp"] = self._renderer._dock_add_button(
             name="Fit ICP",
             callback=self._fit_icp,
-            tooltip="Find MRI scaling, translation, and rotation to match the "
+            tooltip="Find rotation and translation to match the "
                     "head shape points",
             layout=fit_layout,
         )
