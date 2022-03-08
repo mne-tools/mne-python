@@ -591,17 +591,15 @@ class _CheckInside(object):
     def __init__(self, surf, *, mode='old', verbose=None):
         assert mode in ('pyvista', 'old')
         self.mode = mode
-        logger.info(
-            f'Setting up {mode} interior check for '
-            f'{len(surf["rr"])} points...')
         t0 = time.time()
         self.surf = surf
         if self.mode == 'pyvista':
             self._init_pyvista()
         else:
             self._init_old()
-        logger.info(
-            f'Setup complete in {(time.time() - t0) * 1000:0.1f} ms')
+        logger.debug(
+            f'Setting up {mode} interior check for {len(self.surf["rr"])} '
+            f'points took {(time.time() - t0) * 1000:0.1f} ms')
 
     def _init_old(self):
         from scipy.spatial import Delaunay
@@ -618,8 +616,15 @@ class _CheckInside(object):
             self.outer_r = dists.max()
 
     def _init_pyvista(self):
-        self.pdata = _surface_to_polydata(
-            self.surf['rr'], self.surf['tris']).clean()
+        if not isinstance(self.surf, dict):
+            self.pdata = self.surf
+            self.surf = dict(
+                rr=self.pdata.points,
+                tris=self.pdata.faces.reshape(-1, 4)[:, 1:],
+                nn=self.pdata.point_normals)
+        else:
+            self.pdata = _surface_to_polydata(
+                self.surf['rr'], self.surf['tris']).clean()
 
     @verbose
     def __call__(self, rr, n_jobs=1, verbose=None):

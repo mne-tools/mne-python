@@ -515,7 +515,6 @@ class CoregistrationUI(HasTraits):
         self.coreg._setup_bem()
         self.coreg._setup_fiducials(self._fiducials)
         self._reset()
-        self._update_projection_surface()
 
         default_fid_fname = fid_fname.format(
             subjects_dir=self._subjects_dir, subject=self._subject
@@ -632,7 +631,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_head_resolution")
     def _head_resolution_changed(self, change=None):
-        self._update_plot(["head"])
+        self._update_plot(["head", "hsp"])
 
     @observe("_head_opacity")
     def _head_opacity_changed(self, change=None):
@@ -916,15 +915,6 @@ class CoregistrationUI(HasTraits):
         if not self._lock_fids:
             self._renderer.set_camera(distance=None, **kwargs)
 
-    def _update_projection_surface(self):
-        rr = self.coreg._get_processed_mri_points('low') * self.coreg._scale.T
-        self._head_geo = dict(
-            rr=rr, tris=self.coreg._bem_low_res["tris"],
-            nn=self.coreg._bem_low_res["nn"]
-        )
-        self._check_inside = _CheckInside(self._head_geo, mode='pyvista')
-        self._nearest = _DistanceQuery(rr)
-
     def _update_fiducials(self):
         fid = self._current_fiducial
         if not fid:
@@ -1035,7 +1025,8 @@ class CoregistrationUI(HasTraits):
 
     def _update_actor(self, actor_name, actor):
         # XXX: internal plotter/renderer should not be exposed
-        self._renderer.plotter.remove_actor(self._actors.get(actor_name))
+        self._renderer.plotter.remove_actor(self._actors.get(actor_name),
+                                            render=False)
         self._actors[actor_name] = actor
 
     def _add_mri_fiducials(self):
@@ -1118,11 +1109,16 @@ class CoregistrationUI(HasTraits):
         self._update_actor("head", head_actor)
         # mark head surface mesh to restrict picking
         head_surf._picking_target = True
-        res = "high" if self._head_resolution else "low"
-        head_surf.points = \
-            self.coreg._get_processed_mri_points(res) * self.coreg._scale.T
+        head_surf.points = rr = head_surf.points * self.coreg._scale.T
+        head_surf.compute_normals()
         self._surfaces["head"] = head_surf
-        self._update_projection_surface()
+        tris = self._surfaces["head"].faces.reshape(-1, 4)[:, 1:]
+        assert tris.ndim == 2 and tris.shape[1] == 3, tris.shape
+        nn = self._surfaces["head"].point_normals
+        assert nn.shape == (len(rr), 3), nn.shape
+        self._head_geo = dict(rr=rr, tris=tris, nn=nn)
+        self._check_inside = _CheckInside(head_surf, mode='pyvista')
+        self._nearest = _DistanceQuery(rr)
 
     def _add_helmet(self):
         if self._helmet:
