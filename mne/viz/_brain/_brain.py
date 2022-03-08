@@ -1610,9 +1610,11 @@ class Brain(object):
             self.color_cycle.restore(color)
         for sphere in spheres:
             # remove all actors
-            self.plotter.remove_actor(sphere._actors, render=render)
+            self.plotter.remove_actor(sphere._actors, render=False)
             sphere._actors = None
             self._spheres.pop(self._spheres.index(sphere))
+        if render:
+            self._renderer._update()
         self.pick_table.pop(vertex_id)
 
     def clear_glyphs(self):
@@ -1833,7 +1835,7 @@ class Brain(object):
             logger.debug(
                 f'Removing {len(self._actors[item])} {item} actor(s)')
             for actor in self._actors[item]:
-                self._renderer.plotter.remove_actor(actor)
+                self._renderer.plotter.remove_actor(actor, render=False)
             self._actors.pop(item)  # remove actor list
             if render:
                 self._renderer._update()
@@ -2858,7 +2860,7 @@ class Brain(object):
         _validate_type(name, (str, None), 'name')
         if name is None:
             for actor in self._actors['text'].values():
-                self._renderer.plotter.remove_actor(actor)
+                self._renderer.plotter.remove_actor(actor, render=False)
             self._actors.pop('text')
         else:
             names = [None]
@@ -2866,7 +2868,7 @@ class Brain(object):
                 names += list(self._actors['text'].keys())
             _check_option('name', name, names)
             self._renderer.plotter.remove_actor(
-                self._actors['text'][name])
+                self._actors['text'][name], render=False)
             self._actors['text'].pop(name)
         self._renderer._update()
 
