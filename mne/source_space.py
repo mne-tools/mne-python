@@ -2823,13 +2823,14 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None,
     return depths
 
 
+
 def get_decimated_surfaces(src):
     """Get the decimated surfaces from a source space.
 
     Parameters
     ----------
     src: instance of SourceSpaces
-        The object which has decimated surfaces
+        The object which has decimated surfaces.
 
     Returns
     -------
