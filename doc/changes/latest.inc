@@ -126,7 +126,7 @@ Enhancements
 
 - Add support for reading optical density fNIRS data to :func:`mne.io.read_raw_snirf` (:gh:`10408` by `Robert Luke`_)   
 
-- Added :func:`mne.source_spaces.get_decimated_surfaces` to extract subsurfaces from a SourceSpaces instance or a .fif file (:gh: `10421` by `Joshua Teves`_)
+- Added :func:`mne.source_space.get_decimated_surfaces` to extract subsurfaces from a SourceSpaces instance or a .fif file (:gh: `10421` by `Joshua Teves`_)
 
 Bugs
 ~~~~
