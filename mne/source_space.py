@@ -2833,7 +2833,10 @@ def get_decimated_surfaces(src):
 
     Returns
     -------
-    subsurfaces: list of dicts which contain 'rr' and 'tris' keys
+    surfaces: list of dict
+        The decimated surfaces present in the source space. Each dict
+        which contains 'rr' and 'tris' keys for vertices positions and
+        triangle indices.
     """
     # NOTE: is there a better way to do this? Maybe raise a TypeError?
     assert isinstance(src, SourceSpaces)
