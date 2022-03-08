@@ -2838,20 +2838,22 @@ def get_decimated_surfaces(src):
         which contains 'rr' and 'tris' keys for vertices positions and
         triangle indices.
     """
-    # NOTE: is there a better way to do this? Maybe raise a TypeError?
-    assert isinstance(src, SourceSpaces)
+    if not isinstance(src, SourceSpaces):
+        raise ValueError(
+            "Parameter src should be type SourceSpaces, is type "
+            f"{type(src)}"
+        )
 
-    subsurfaces = []
+    surfaces = []
     for surf in src:
-        subsurfaces.append(_get_subsurf(surf))
+        surfaces.append(_get_subsurf(surf))
 
-    return subsurfaces
+    return surfaces
 
 
 def _get_subsurf(source):
     """Get the subsurface from a set of vertices; use only one surface at a time!
     """
-    # NOTE: minimal documentation since private, should I elaborate?
     rr = source['rr']
     use_tris = source['use_tris']
     vertno = source['vertno']
