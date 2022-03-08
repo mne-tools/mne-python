@@ -124,6 +124,8 @@ Enhancements
 
 - Add support for passing time-frequency data to :func:`mne.stats.spatio_temporal_cluster_test` and :func:`mne.stats.spatio_temporal_cluster_1samp_test` and added an example to :ref:`tut-cluster-spatiotemporal-sensor` (:gh:`10384` by `Alex Rockhill`_)
 
+- Added :func:`mne.source_spaces.get_decimated_surfaces` to extract subsurfaces from a SourceSpaces instance or a .fif file (:gh: `10421` by `Joshua Teves`_)
+
 Bugs
 ~~~~
 
