@@ -2823,61 +2823,38 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None,
     return depths
 
 
-
 def get_decimated_surfaces(src):
     """Get the decimated surfaces from a source space.
 
     Parameters
     ----------
-    src: instance of SourceSpaces
-        The object which has decimated surfaces.
+    src : instance of SourceSpaces | path-like
+        The source space with decimated surfaces.
 
     Returns
     -------
-    surfaces: list of dict
+    surfaces : list of dict
         The decimated surfaces present in the source space. Each dict
         which contains 'rr' and 'tris' keys for vertices positions and
         triangle indices.
-    """
-    if not isinstance(src, SourceSpaces):
-        raise ValueError(
-            "Parameter src should be type SourceSpaces, is type "
-            f"{type(src)}"
-        )
 
+    Notes
+    -----
+    .. versionadded:: 1.0
+    """
+    src = _ensure_src(src)
     surfaces = []
-    for surf in src:
-        surfaces.append(_get_subsurf(surf))
-
+    for s in src:
+        if s['type'] != 'surf':
+            continue
+        rr = s['rr']
+        use_tris = s['use_tris']
+        vertno = s['vertno']
+        ss = {}
+        ss['rr'] = rr[vertno]
+        reindex = np.full(len(rr), -1, int)
+        reindex[vertno] = np.arange(len(vertno))
+        ss['tris'] = reindex[use_tris]
+        assert (ss['tris'] >= 0).all()
+        surfaces.append(ss)
     return surfaces
-
-
-def _get_subsurf(source):
-    """Get the subsurface from a set of vertices; use only one surface at a time!
-    """
-    rr = source['rr']
-    use_tris = source['use_tris']
-    vertno = source['vertno']
-    ss = {}
-
-    # Initialize the subsurface stuff
-    ss['rr'] = rr[vertno]
-    ss['tri'] = _reindex_triangles(rr.shape[0], vertno, use_tris)
-
-    return ss
-
-
-def _reindex_triangles(sz_orig, vertno, sub_tris):
-    """Reindex the vertno with the subsampled surface"""
-    # NOTE: this may be better as a function merged with above
-    # NOTE: is there a better way to say "index"
-    redone = np.ones((sz_orig, 1)) * -1
-    for i in range(len(vertno)):
-        redone[vertno[i]] = i
-
-    new_tris = np.zeros(sub_tris.shape, dtype=np.int32)
-    for i in range(new_tris.shape[0]):
-        for jj in range(new_tris.shape[1]):
-            new_tris[i][jj] = redone[sub_tris[i][jj]]
-
-    return new_tris
