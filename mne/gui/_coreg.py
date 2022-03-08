@@ -922,8 +922,7 @@ class CoregistrationUI(HasTraits):
             rr=rr, tris=self.coreg._bem_low_res["tris"],
             nn=self.coreg._bem_low_res["nn"]
         )
-        # TODO revert verbose here
-        self._check_inside = _CheckInside(self._head_geo, verbose=True)
+        self._check_inside = _CheckInside(self._head_geo, mode='pyvista')
         self._nearest = _DistanceQuery(rr)
 
     def _update_fiducials(self):
@@ -1076,9 +1075,7 @@ class CoregistrationUI(HasTraits):
                 scale_by_distance=self._scale_by_distance,
                 mark_inside=self._mark_inside, surf=self._head_geo,
                 mask=self.coreg._extra_points_filter,
-                check_inside=self._check_inside, nearest=self._nearest,
-                # TODO revert verbose here
-                verbose=True)
+                check_inside=self._check_inside, nearest=self._nearest)
         else:
             hsp_actors = None
         self._update_actor("head_shape_points", hsp_actors)

@@ -588,7 +588,7 @@ class _CheckInside(object):
     """Efficiently check if points are inside a surface."""
 
     @verbose
-    def __init__(self, surf, *, mode='pyvista', verbose=None):
+    def __init__(self, surf, *, mode='old', verbose=None):
         assert mode in ('pyvista', 'old')
         self.mode = mode
         logger.info(
@@ -632,8 +632,6 @@ class _CheckInside(object):
         else:
             inside = self._call_old(rr, n_jobs)
         n = inside.sum()
-        prec = max(int(np.ceil(np.log10(n_orig))), 1)
-        n_pad = str(n).rjust(prec)
         logger.info(
             f'    Total {n}/{n_orig} point{_pl(n, " ")} inside the surface')
         logger.info(

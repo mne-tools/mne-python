@@ -1037,7 +1037,7 @@ def _get_nearest(nearest, check_inside, project_to_trans, proj_rr):
 def _orient_glyphs(pts, surf, project_to_surface=False, mark_inside=False,
                    check_inside=None, nearest=None):
     if check_inside is None:
-        check_inside = _CheckInside(surf)
+        check_inside = _CheckInside(surf, mode='pyvista')
     if nearest is None:
         nearest = _DistanceQuery(surf['rr'])
     project_to_trans = np.eye(4)
