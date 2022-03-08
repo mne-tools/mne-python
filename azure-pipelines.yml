@@ -168,9 +168,9 @@ stages:
         3.7 pip:
           TEST_MODE: 'pip'
           PYTHON_VERSION: '3.7'
-        3.9 pip pre:
+        3.10 pip pre:
           TEST_MODE: 'pip-pre'
-          PYTHON_VERSION: '3.9'
+          PYTHON_VERSION: '3.10'
     steps:
     - task: UsePythonVersion@0
       inputs:
