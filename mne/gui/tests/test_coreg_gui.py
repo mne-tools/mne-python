@@ -251,7 +251,7 @@ def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
     assert coreg._head_shape_points
     assert coreg._scale_mode == 'None'
     assert coreg._icp_fid_match == 'matched'
-    assert coreg._head_resolution == False
+    assert coreg._head_resolution is False
 
     assert coreg._trans_modified
     tmp_trans = tmp_path / 'tmp-trans.fif'
