@@ -136,6 +136,8 @@ def pytest_configure(config):
     # Jupyter notebook stuff
     ignore:.*unclosed context <zmq\.asyncio\.*:ResourceWarning
     ignore:.*unclosed event loop <.*:ResourceWarning
+    # https://github.com/dipy/dipy/pull/2558
+    ignore:.*starting_affine overwritten by centre_of_mass transform.*:
     # TODO: This is indicative of a problem
     ignore:.*Matplotlib is currently using agg.*:
     """  # noqa: E501
