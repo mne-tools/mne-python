@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-fnirs-processing:
 
+================================================================
 Preprocessing functional near-infrared spectroscopy (fNIRS) data
 ================================================================
 

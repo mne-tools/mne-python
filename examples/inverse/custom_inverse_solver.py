@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _ex-custom-inverse:
+
 ================================================
 Source localization with a custom inverse solver
 ================================================

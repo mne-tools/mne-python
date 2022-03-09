@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-sim-raw-sub:
+
 =======================================
 Simulate raw data using subject anatomy
 =======================================

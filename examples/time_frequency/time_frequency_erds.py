@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-tfr-erds:
+
 ===============================
 Compute and visualize ERDS maps
 ===============================

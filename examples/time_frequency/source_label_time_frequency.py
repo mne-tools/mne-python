@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-source-space-power-phase-locking:
+
 =========================================================
 Compute power and phase lock in label of the source space
 =========================================================

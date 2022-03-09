@@ -488,7 +488,8 @@ class Annotations(object):
         self.ch_names = self.ch_names[order]
 
     @verbose
-    def crop(self, tmin=None, tmax=None, emit_warning=False, verbose=None):
+    def crop(self, tmin=None, tmax=None, emit_warning=False,
+             use_orig_time=True, verbose=None):
         """Remove all annotation that are outside of [tmin, tmax].
 
         The method operates inplace.
@@ -502,6 +503,9 @@ class Annotations(object):
         emit_warning : bool
             Whether to emit warnings when limiting or omitting annotations.
             Defaults to False.
+        use_orig_time : bool
+            Whether to use orig_time as an offset.
+            Defaults to True.
         %(verbose)s
 
         Returns
@@ -511,7 +515,7 @@ class Annotations(object):
         """
         if len(self) == 0:
             return self  # no annotations, nothing to do
-        if self.orig_time is None:
+        if not use_orig_time or self.orig_time is None:
             offset = _handle_meas_date(0)
         else:
             offset = self.orig_time
