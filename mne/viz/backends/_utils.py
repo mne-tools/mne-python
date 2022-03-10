@@ -124,6 +124,17 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     from qtpy.QtCore import Qt
     from qtpy.QtGui import QIcon, QPixmap
     from qtpy.QtWidgets import QApplication, QSplashScreen
+    import importlib.resources as pkg_resources
+    from ... import icons
+    rsc_path = dict()
+    resources = dict(
+        mne_icon="mne-circle-black.png",
+        mne_bigsur_icon="mne-bigsur-white.png",
+        mne_splash="mne-splash.png",
+    )
+    for alias, rsc in resources.items():
+        with pkg_resources.path(icons, rsc) as P:
+            rsc_path[alias] = str(P)
 
     app_name = 'MNE-Python'
     organization_name = 'MNE'
@@ -154,13 +165,13 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     if enable_icon:
         # Set icon
         _init_qt_resources()
-        kind = 'bigsur-' if platform.mac_ver()[0] >= '10.16' else ''
-        app.setWindowIcon(QIcon(f":/mne-{kind}icon.png"))
+        kind = 'bigsur_' if platform.mac_ver()[0] >= '10.16' else ''
+        app.setWindowIcon(QIcon(rsc_path[f"mne_{kind}icon"]))
 
     out = app
     if splash:
         qsplash = QSplashScreen(
-            QPixmap(':/mne-splash.png'), Qt.WindowStaysOnTopHint)
+            QPixmap(rsc_path['mne_splash']), Qt.WindowStaysOnTopHint)
         if isinstance(splash, str):
             alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
             qsplash.showMessage(
