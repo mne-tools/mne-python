@@ -5,7 +5,6 @@ import datetime
 import math
 import os.path as op
 import re
-import time
 from xml.dom.minidom import parse
 
 import numpy as np
@@ -211,24 +210,27 @@ def _read_header(input_fname):
     mff_hdr = _read_mff_header(input_fname)
     with open(input_fname + '/signal1.bin', 'rb') as fid:
         version = np.fromfile(fid, np.int32, 1)[0]
-    # This should be equivalent to the following, but no need for external dep:
-    # import dateutil.parser
-    # time_n = dateutil.parser.parse(mff_hdr['date'])
-    dt = mff_hdr['date'][:26]
-    assert mff_hdr['date'][-6] in ('+', '-')
-    sn = -1 if mff_hdr['date'][-6] == '-' else 1  # +
-    tz = [sn * int(t) for t in (mff_hdr['date'][-5:-3], mff_hdr['date'][-2:])]
-    time_n = datetime.datetime.strptime(dt, '%Y-%m-%dT%H:%M:%S.%f')
-    time_n = time_n.replace(tzinfo=_FixedOffset(60 * tz[0] + tz[1]))
+    '''
+    the datetime.strptime .f directive (milleseconds)
+    will only accept up to 6 digits. if there are more than
+    six millesecond digits in the provided timestamp string
+    (i.e. because of trailing zeros, as in test_egi_pns.mff)
+    then slice both the first 26 elements and the last 6
+    elements of the timestamp string to truncate the
+    milleseconds to 6 digits and extract the timezone,
+    and then piece these together and assign back to mff_hdr['date']
+    '''
+    if len(mff_hdr['date']) > 32:
+        dt, tz = [mff_hdr['date'][:26], mff_hdr['date'][-6:]]
+        mff_hdr['date'] = dt + tz
+
+    time_n = (datetime.datetime.strptime(
+              mff_hdr['date'], '%Y-%m-%dT%H:%M:%S.%f%z'))
+
     info = dict(
         version=version,
-        year=int(time_n.strftime('%Y')),
-        month=int(time_n.strftime('%m')),
-        day=int(time_n.strftime('%d')),
-        hour=int(time_n.strftime('%H')),
-        minute=int(time_n.strftime('%M')),
-        second=int(time_n.strftime('%S')),
-        millisecond=int(time_n.strftime('%f')),
+        meas_dt_local=time_n,
+        utc_offset=time_n.strftime('%z'),
         gain=0,
         bits=0,
         value_range=0)
@@ -452,12 +454,12 @@ class RawMff(BaseRaw):
             self.event_id = None
             egi_info['new_trigger'] = None
             event_codes = []
+
+        meas_dt_utc = (egi_info['meas_dt_local']
+                       .astimezone(datetime.timezone.utc))
         info = _empty_info(egi_info['sfreq'])
-        my_time = datetime.datetime(
-            egi_info['year'], egi_info['month'], egi_info['day'],
-            egi_info['hour'], egi_info['minute'], egi_info['second'])
-        my_timestamp = time.mktime(my_time.timetuple())
-        info['meas_date'] = _ensure_meas_date_none_or_dt((my_timestamp, 0))
+        info['meas_date'] = _ensure_meas_date_none_or_dt(meas_dt_utc)
+        info['utc_offset'] = egi_info['utc_offset']
         info['device_info'] = dict(type=egi_info['device'])
 
         # First: EEG
