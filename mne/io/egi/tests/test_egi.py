@@ -436,30 +436,22 @@ def test_egi_coord_frame():
             assert_allclose(loc[1:], 0, atol=1e-7, err_msg='RPA')
     for d in info['dig'][3:]:
         assert d['kind'] == FIFF.FIFFV_POINT_EEG
-        
-        
-def test_measdate(): 
-    
-test =  {egi_mff_fname : {'timestamp': '2017-02-23T11:35:13.220824+01:00',
-                           'utc_offset' : '+0100'},
-        egi_mff_pns_fname : {'timestamp' : '2017-09-20T09:55:44.072000+01:00',
-                              'utc_offset' : '+0100'},
-        egi_eprime_pause_fname : {'timestamp' : '2018-07-30T10:46:09.621673-04:00',
-                                           'utc_offset' : '-0400'},
-        egi_pause_w1337_fname : {'timestamp' : '2019-10-14T10:54:27.395210-07:00',
-                                   'utc_offset' : '-0700'}}
-    
-    for fname in test.keys():
-    
-        raw = mne.io.read_raw_egi(f'{root}{fname}', verbose='warning');
-        fname_measdate = (datetime.strptime(test[fname]['timestamp'],'%Y-%m-%dT%H:%M:%S.%f%z')
-                                  .astimezone(timezone.utc))
-        hour_local = (int(datetime.strptime(test[fname]['timestamp'],'%Y-%m-%dT%H:%M:%S.%f%z')
-                                  .strftime('%H')))
-        hour_utc = int(raw.info['meas_date'].strftime('%H'))
-        local_utc_diff = hour_local - hour_utc
-        
-        assert raw.info['meas_date'] == fname_measdate, f'{fname} meas_date does not match mff timestamp'
-        assert raw.info['utc_offset'] == test[fname]['utc_offset'], f'{fname} utc_offset does not match mff timestamp'
-        assert local_utc_diff == int(test[fname]['utc_offset'][:-2]), f'{fname} was not converted to UTC correctly'
-    return
+
+
+@pytest.mark.parametrize('fname, timestamp, utc_offset', [
+    (egi_mff_fname, '2017-02-23T11:35:13.220824+01:00', '+0100'),
+    (egi_mff_pns_fname, '2017-09-20T09:55:44.072000+01:00', '+0100'),
+    (egi_eprime_pause_fname, '2018-07-30T10:46:09.621673-04:00', '-0400'),
+    (egi_pause_w1337_fname, '2019-10-14T10:54:27.395210-07:00', '-0700'),
+])
+def test_meas_date(fname, timestamp, utc_offset):
+    """Test meas date conversion."""
+    raw = read_raw_egi(fname, verbose='warning');
+    dt = datetime.strptime(timestamp,'%Y-%m-%dT%H:%M:%S.%f%z')
+    measdate = dt.astimezone(timezone.utc)
+    hour_local = int(dt.strftime('%H'))
+    hour_utc = int(raw.info['meas_date'].strftime('%H'))
+    local_utc_diff = hour_local - hour_utc
+    assert raw.info['meas_date'] == measdate
+    assert raw.info['utc_offset'] == utc_offset
+    assert local_utc_diff == int(utc_offset[:-2])
