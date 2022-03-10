@@ -130,7 +130,8 @@ def _read_21e_file(fname):
             else:
                 break
         else:
-            warn(f'Could not decode 21E file as one of {_encodings}; Default channel names are chosen.')
+            warn(f'Could not decode 21E file as one of {_encodings}; '
+                 f'Default channel names are chosen.')
 
     return _chan_labels
 
