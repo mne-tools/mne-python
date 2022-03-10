@@ -1775,7 +1775,7 @@ class Brain(object):
             return
         for widget in self.widgets.values():
             if widget is not None:
-                for key in ('triggered', 'valueChanged'):
+                for key in ('triggered', 'floatValueChanged'):
                     setattr(widget, key, None)
         self.widgets.clear()
 

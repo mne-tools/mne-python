@@ -183,7 +183,10 @@ class _QtDock(_AbstractDock, _QtLayout):
         widget.setMinimum(cast(rng[0]))
         widget.setMaximum(cast(rng[1]))
         widget.setValue(cast(value))
-        widget.valueChanged.connect(callback)
+        if double:
+            widget.floatValueChanged.connect(callback)
+        else:
+            widget.valueChanged.connect(callback)
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
@@ -329,7 +332,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 class QFloatSlider(QSlider):
     """Slider that handles float values."""
 
-    valueChanged = Signal(float)
+    floatValueChanged = Signal(float)
 
     def __init__(self, ori, parent=None):
         """Initialize the slider."""
@@ -344,7 +347,7 @@ class QFloatSlider(QSlider):
         super().valueChanged.connect(self._convert)
 
     def _convert(self, value):
-        self.valueChanged.emit(value / self._precision)
+        self.floatValueChanged.emit(value / self._precision)
 
     def minimum(self):
         """Get the minimum."""
