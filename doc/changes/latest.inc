@@ -130,6 +130,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with :func:`mne.io.read_raw_nihon` where latin-1 channels could not be read (:gh:`10429` by :newcontrib:`Matthias Eberlein`)
 
 - Fix bug in :func:`mne.io.read_raw_egi` where the ``meas_date`` in a ``rawMFF`` object was incorrectly assigned. The function now converts the ``meas_date`` to UTC and provides a UTC offset key, i.e. ``raw.info['utc_offset']``. (:gh:`10304` by :newcontrib:`Scott Huberty`)
 
