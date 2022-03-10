@@ -12,13 +12,13 @@ import platform
 
 from scipy.ndimage import maximum_filter
 
-from PyQt5 import QtCore, QtGui, Qt
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import (QMainWindow, QGridLayout,
-                             QVBoxLayout, QHBoxLayout, QLabel,
-                             QMessageBox, QWidget,
-                             QListView, QSlider, QPushButton,
-                             QComboBox, QPlainTextEdit)
+from qtpy import QtCore, QtGui, Qt
+from qtpy.QtCore import pyqtSlot
+from qtpy.QtWidgets import (QMainWindow, QGridLayout,
+                            QVBoxLayout, QHBoxLayout, QLabel,
+                            QMessageBox, QWidget,
+                            QListView, QSlider, QPushButton,
+                            QComboBox, QPlainTextEdit)
 
 from matplotlib import patheffects
 from matplotlib.backends.backend_qt5agg import FigureCanvas
