@@ -13,7 +13,7 @@ class _PyQtGraphScraper:
     def __call__(self, block, block_vars, gallery_conf):
         import mne_qt_browser
         from sphinx_gallery.scrapers import figure_rst
-        from PyQt5.QtWidgets import QApplication
+        from qtpy.QtWidgets import QApplication
         if gallery_conf['builder_name'] != 'html':
             return ''
         img_fnames = list()
