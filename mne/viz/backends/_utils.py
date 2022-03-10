@@ -164,7 +164,6 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
 
     if enable_icon:
         # Set icon
-        _init_qt_resources()
         kind = 'bigsur_' if platform.mac_ver()[0] >= '10.16' else ''
         app.setWindowIcon(QIcon(rsc_path[f"mne_{kind}icon"]))
 
