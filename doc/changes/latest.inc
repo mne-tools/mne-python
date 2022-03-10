@@ -130,6 +130,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug with :func:`mne.io.read_raw_nihon` where latin-1 channels could not be read (:gh:`10429` :newcontrib:`Matthias Eberlein`_)
 
 - Fix datetime conversion for tmin/tmax=None cases in :meth:`mne.Annotations.crop`. Allow the use of float and None simultaneously for :meth:`mne.Annotations.crop`. (:gh:`10361` by :newcontrib:`Michiru Kaneda`)
 
