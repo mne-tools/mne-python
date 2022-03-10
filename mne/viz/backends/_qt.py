@@ -13,12 +13,12 @@ from pyvistaqt.plotting import FileDialog
 from qtpy.QtCore import Qt, Signal, QLocale, QObject
 from qtpy.QtGui import QIcon, QImage, QPixmap, QCursor
 from qtpy.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
-                             QHBoxLayout, QLabel, QToolButton, QMenuBar,
-                             QSlider, QSpinBox, QVBoxLayout, QWidget,
-                             QSizePolicy, QScrollArea, QStyle, QProgressBar,
-                             QStyleOptionSlider, QLayout, QCheckBox,
-                             QButtonGroup, QRadioButton, QLineEdit,
-                             QFileDialog, QPushButton, QMessageBox)
+                            QHBoxLayout, QLabel, QToolButton, QMenuBar,
+                            QSlider, QSpinBox, QVBoxLayout, QWidget,
+                            QSizePolicy, QScrollArea, QStyle, QProgressBar,
+                            QStyleOptionSlider, QLayout, QCheckBox,
+                            QButtonGroup, QRadioButton, QLineEdit,
+                            QFileDialog, QPushButton, QMessageBox)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
