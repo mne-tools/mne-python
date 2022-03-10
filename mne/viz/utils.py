@@ -55,7 +55,7 @@ _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
 
 @decorator
 def safe_event(fun, *args, **kwargs):
-    """Protect against qtpy exiting on event-handling errors."""
+    """Protect against Qt exiting on event-handling errors."""
     try:
         return fun(*args, **kwargs)
     except Exception:
