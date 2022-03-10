@@ -12,11 +12,11 @@ import platform
 
 from scipy.ndimage import maximum_filter
 
-from qtpy import QtCore, QtGui, Qt
-from qtpy.QtCore import pyqtSlot
+from qtpy import QtCore, QtGui
+from qtpy.QtCore import Slot, Signal
 from qtpy.QtWidgets import (QMainWindow, QGridLayout,
                             QVBoxLayout, QHBoxLayout, QLabel,
-                            QMessageBox, QWidget,
+                            QMessageBox, QWidget, QAbstractItemView,
                             QListView, QSlider, QPushButton,
                             QComboBox, QPlainTextEdit)
 
@@ -82,7 +82,7 @@ def _load_image(img, name, verbose=True):
 class ComboBox(QComboBox):
     """Dropdown menu that emits a click when popped up."""
 
-    clicked = QtCore.pyqtSignal()
+    clicked = Signal()
 
     def showPopup(self):
         """Override show popup method to emit click."""
@@ -171,7 +171,7 @@ class IntracranialElectrodeLocator(QMainWindow):
 
         # Channel selector
         self._ch_list = QListView()
-        self._ch_list.setSelectionMode(Qt.QAbstractItemView.SingleSelection)
+        self._ch_list.setSelectionMode(QAbstractItemView.SingleSelection)
         max_ch_name_len = max([len(name) for name in self._chs])
         self._ch_list.setMinimumWidth(max_ch_name_len * _CH_MENU_WIDTH)
         self._ch_list.setMaximumWidth(max_ch_name_len * _CH_MENU_WIDTH)
@@ -698,13 +698,13 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._ch_index = index.row()
         self._update_ch_selection()
 
-    @pyqtSlot()
+    @Slot()
     def _next_ch(self):
         """Increment the current channel selection index."""
         self._ch_index = (self._ch_index + 1) % len(self._ch_names)
         self._update_ch_selection()
 
-    @pyqtSlot()
+    @Slot()
     def _update_RAS(self, event):
         """Interpret user input to the RAS textbox."""
         text = self._RAS_textbox.toPlainText()
@@ -712,7 +712,7 @@ class IntracranialElectrodeLocator(QMainWindow):
         if ras is not None:
             self._set_ras(ras)
 
-    @pyqtSlot()
+    @Slot()
     def _update_VOX(self, event):
         """Interpret user input to the RAS textbox."""
         text = self._VOX_textbox.toPlainText()
@@ -775,14 +775,14 @@ class IntracranialElectrodeLocator(QMainWindow):
     def _current_slice(self):
         return self._vox.round().astype(int)
 
-    @pyqtSlot()
+    @Slot()
     def _check_update_RAS(self):
         """Check whether the RAS textbox is done being edited."""
         if '\n' in self._RAS_textbox.toPlainText():
             self._update_RAS(event=None)
             self._ch_list.setFocus()  # remove focus from text edit
 
-    @pyqtSlot()
+    @Slot()
     def _check_update_VOX(self):
         """Check whether the VOX textbox is done being edited."""
         if '\n' in self._VOX_textbox.toPlainText():
@@ -809,7 +809,7 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._ch_list_model.index(self._ch_names.index(name), 0),
             brush, QtCore.Qt.ForegroundRole)
 
-    @pyqtSlot()
+    @Slot()
     def _toggle_snap(self):
         """Toggle snapping the contact location to the center of mass."""
         if self._snap_button.text() == 'Off':
@@ -819,7 +819,7 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._snap_button.setText('Off')
             self._snap_button.setStyleSheet("background-color: red")
 
-    @pyqtSlot()
+    @Slot()
     def _mark_ch(self):
         """Mark the current channel as being located at the crosshair."""
         name = self._ch_names[self._ch_index]
@@ -842,7 +842,7 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._next_ch()
         self._ch_list.setFocus()
 
-    @pyqtSlot()
+    @Slot()
     def _remove_ch(self):
         """Remove the location data for the current channel."""
         name = self._ch_names[self._ch_index]
