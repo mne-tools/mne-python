@@ -438,6 +438,7 @@ def test_egi_coord_frame():
         assert d['kind'] == FIFF.FIFFV_POINT_EEG
 
 
+@requires_testing_data
 @pytest.mark.parametrize('fname, timestamp, utc_offset', [
     (egi_mff_fname, '2017-02-23T11:35:13.220824+01:00', '+0100'),
     (egi_mff_pns_fname, '2017-09-20T09:55:44.072000+01:00', '+0100'),
