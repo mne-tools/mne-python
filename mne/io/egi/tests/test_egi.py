@@ -446,8 +446,8 @@ def test_egi_coord_frame():
 ])
 def test_meas_date(fname, timestamp, utc_offset):
     """Test meas date conversion."""
-    raw = read_raw_egi(fname, verbose='warning');
-    dt = datetime.strptime(timestamp,'%Y-%m-%dT%H:%M:%S.%f%z')
+    raw = read_raw_egi(fname, verbose='warning')
+    dt = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%f%z')
     measdate = dt.astimezone(timezone.utc)
     hour_local = int(dt.strftime('%H'))
     hour_utc = int(raw.info['meas_date'].strftime('%H'))
