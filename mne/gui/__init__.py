@@ -228,7 +228,7 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
         The graphical user interface (GUI) window.
     """
     from ._ieeg_locate_gui import IntracranialElectrodeLocator
-    from PyQt5.QtWidgets import QApplication
+    from qtpy.QtWidgets import QApplication
     # get application
     app = QApplication.instance()
     if app is None:
@@ -249,7 +249,7 @@ class _LocateScraper(object):
     def __call__(self, block, block_vars, gallery_conf):
         from ._ieeg_locate_gui import IntracranialElectrodeLocator
         from sphinx_gallery.scrapers import figure_rst
-        from PyQt5 import QtGui
+        from qtpy import QtGui
         for gui in block_vars['example_globals'].values():
             if (isinstance(gui, IntracranialElectrodeLocator) and
                     not getattr(gui, '_scraped', False) and
