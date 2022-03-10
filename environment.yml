@@ -37,6 +37,7 @@ dependencies:
 - nibabel
 - nilearn
 - python-picard
+- qtpy
 - pyqt!=5.15.3
 - mne
 - mffpy>=0.5.7

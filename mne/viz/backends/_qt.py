@@ -10,9 +10,9 @@ from contextlib import contextmanager
 import pyvista
 from pyvistaqt.plotting import FileDialog
 
-from PyQt5.QtCore import Qt, pyqtSignal, QLocale, QObject
-from PyQt5.QtGui import QIcon, QImage, QPixmap, QCursor
-from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
+from qtpy.QtCore import Qt, Signal, QLocale, QObject
+from qtpy.QtGui import QIcon, QImage, QPixmap, QCursor
+from qtpy.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
                              QSizePolicy, QScrollArea, QStyle, QProgressBar,
@@ -329,7 +329,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 class QFloatSlider(QSlider):
     """Slider that handles float values."""
 
-    valueChanged = pyqtSignal(float)
+    valueChanged = Signal(float)
 
     def __init__(self, ori, parent=None):
         """Initialize the slider."""
@@ -516,7 +516,7 @@ class _QtPlayback(_AbstractPlayback):
 
 class _QtMplInterface(_AbstractMplInterface):
     def _mpl_initialize(self):
-        from PyQt5 import QtWidgets
+        from qtpy import QtWidgets
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
         self.canvas = FigureCanvasQTAgg(self.fig)
         FigureCanvasQTAgg.setSizePolicy(
@@ -768,7 +768,7 @@ class _QtWidget(_AbstractWidget):
 
 
 class _QtDialogCommunicator(QObject):
-    signal_show = pyqtSignal()
+    signal_show = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)

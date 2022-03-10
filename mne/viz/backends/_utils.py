@@ -115,15 +115,15 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
 
     Returns
     -------
-    app : ``PyQt5.QtWidgets.QApplication``
+    app : ``qtpy.QtWidgets.QApplication``
         Instance of QApplication.
-    splash : ``PyQt5.QtWidgets.QSplashScreen``
+    splash : ``qtpy.QtWidgets.QSplashScreen``
         Instance of QSplashScreen. Only returned if splash is True or a
         string.
     """
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtGui import QIcon, QPixmap
-    from PyQt5.QtWidgets import QApplication, QSplashScreen
+    from qtpy.QtCore import Qt
+    from qtpy.QtGui import QIcon, QPixmap
+    from qtpy.QtWidgets import QApplication, QSplashScreen
 
     app_name = 'MNE-Python'
     organization_name = 'MNE'
