@@ -162,6 +162,8 @@
 
 .. _Okba Bekhelifi: https://github.com/okbalefthanded
 
+.. _Matthias Eberlein: https://github.com/MatthiasEb
+
 .. _Nicolas Barascud: https://github.com/nbara
 
 .. _Alejandro Weinstein: http://ocam.cl
