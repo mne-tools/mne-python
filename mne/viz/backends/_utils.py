@@ -82,10 +82,30 @@ def run_once(fun, *args, **kwargs):
         return fun(*args, **kwargs)
 
 
-@run_once
 def _init_qt_resources():
-    from ...icons import resources
-    resources.qInitResources()
+    import importlib.resources as pkg_resources
+    from ... import icons
+    resources = dict(
+        visibility_on="visibility_on-black-18dp.svg",
+        visibility_off="visibility_off-black-18dp.svg",
+        help="help-black-18dp.svg",
+        play="play-black-18dp.svg",
+        reset="reset-black-18dp.svg",
+        pause="pause-black-18dp.svg",
+        scale="scale-black-18dp.svg",
+        restore="restore-black-18dp.svg",
+        clear="clear-black-18dp.svg",
+        screenshot="screenshot-black-18dp.svg",
+        movie="movie-black-18dp.svg",
+        mne_icon="mne-circle-black.png",
+        mne_bigsur_icon="mne-bigsur-white.png",
+        mne_splash="mne-splash.png",
+    )
+    rsc_path = dict()
+    for alias, rsc in resources.items():
+        with pkg_resources.path(icons, rsc) as P:
+            rsc_path[alias] = str(P)
+    return rsc_path
 
 
 @contextmanager
@@ -124,18 +144,6 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     from qtpy.QtCore import Qt
     from qtpy.QtGui import QIcon, QPixmap
     from qtpy.QtWidgets import QApplication, QSplashScreen
-    import importlib.resources as pkg_resources
-    from ... import icons
-    rsc_path = dict()
-    resources = dict(
-        mne_icon="mne-circle-black.png",
-        mne_bigsur_icon="mne-bigsur-white.png",
-        mne_splash="mne-splash.png",
-    )
-    for alias, rsc in resources.items():
-        with pkg_resources.path(icons, rsc) as P:
-            rsc_path[alias] = str(P)
-
     app_name = 'MNE-Python'
     organization_name = 'MNE'
 
@@ -161,6 +169,9 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         app = QApplication.instance() or QApplication(sys.argv or [app_name])
         app.setApplicationName(app_name)
     app.setOrganizationName(organization_name)
+
+    if enable_icon or splash:
+        rsc_path = _init_qt_resources()
 
     if enable_icon:
         # Set icon

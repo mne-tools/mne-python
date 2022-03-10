@@ -28,8 +28,8 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
-from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _detect_theme,
-                     _qt_raise_window)
+from ._utils import (_init_qt_resources, _qt_disable_paint, _qt_get_stylesheet,
+                     _detect_theme, _qt_raise_window)
 from ..utils import _check_option, safe_event
 
 
@@ -401,25 +401,12 @@ class QFloatSlider(QSlider):
 
 class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_load_icons(self):
-        import importlib.resources as pkg_resources
-        from ... import icons
+        rsc_path = _init_qt_resources()
         self.icons = dict()
-        resources = dict(
-            visibility_on="visibility_on-black-18dp.svg",
-            visibility_off="visibility_off-black-18dp.svg",
-            help="help-black-18dp.svg",
-            play="play-black-18dp.svg",
-            reset="reset-black-18dp.svg",
-            pause="pause-black-18dp.svg",
-            scale="scale-black-18dp.svg",
-            restore="restore-black-18dp.svg",
-            clear="clear-black-18dp.svg",
-            screenshot="screenshot-black-18dp.svg",
-            movie="movie-black-18dp.svg",
-        )
-        for alias, rsc in resources.items():
-            with pkg_resources.path(icons, rsc) as P:
-                self.icons[alias] = QIcon(str(P))
+        keys = ['visibility_on', 'visibility_off', 'help', 'play', 'reset',
+                'pause', 'scale', 'restore', 'clear', 'screenshot', 'movie']
+        for key in keys:
+            self.icons[key] = QIcon(rsc_path[key])
 
     def _tool_bar_initialize(self, name="default", window=None):
         self.actions = dict()
