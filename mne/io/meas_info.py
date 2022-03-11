@@ -167,7 +167,7 @@ class MontageMixin(object):
         coord_frame = _frame_to_str.get(montage_bunch.coord_frame)
 
         # get the channel names and chs data structure
-        ch_names, chs = info['ch_names'], self.info['chs']
+        ch_names, chs = info['ch_names'], info['chs']
         picks = pick_types(info, meg=False, eeg=True, seeg=True,
                            ecog=True, dbs=True, fnirs=True, exclude=[])
 
