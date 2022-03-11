@@ -11,6 +11,7 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets.testing import data_path, requires_testing_data
 from mne.io.nihon.nihon import (_read_nihon_header, _read_nihon_metadata,
                                 _read_nihon_annotations)
+from mne.io.nihon import nihon
 
 
 @requires_testing_data
@@ -67,3 +68,20 @@ def test_nihon_eeg():
     picks = [ch for ch in raw.ch_names if ch.startswith('$')]
     ch_types = raw.get_channel_types(picks=picks)
     assert all(ch == 'misc' for ch in ch_types)
+
+
+@requires_testing_data
+def test_nihon_duplicate_channels(monkeypatch):
+    fname = Path(data_path()) / 'NihonKohden' / 'MB0400FU.EEG'
+
+    def return_channel_duplicates(fname):
+        ch_names = nihon._default_chan_labels
+        ch_names[1] = ch_names[0]
+        return ch_names
+
+    monkeypatch.setattr(nihon, '_read_21e_file', return_channel_duplicates)
+
+    assert len(nihon._read_21e_file(fname)) > len(set(nihon._read_21e_file(fname)))
+    msg = 'Channel names are not unique, found duplicates for: {\'FP1\'}. Applying running numbers for duplicates.'
+    with pytest.warns(RuntimeWarning, match=msg):
+        read_raw_nihon(fname)
