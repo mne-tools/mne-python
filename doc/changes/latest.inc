@@ -122,6 +122,8 @@ Enhancements
 
 - Add support for ``theme='auto'`` for automatic dark-mode support in :meth:`raw.plot() <mne.io.Raw.plot>` and related functions and methods when using the ``'qt'`` backend (:gh:`10417` by `Eric Larson`_)
 
+- Add support for ``MNE_3D_OPTION_THEME`` and ``MNE_BROWSER_THEME`` to use ``['light', 'dark', 'auto']`` or a custom  theme path in :class:`mne.viz.Brain` and :meth:`raw.plot() <mne.io.Raw.plot>` (and related functions and methods when using the ``'qt'`` backend(), respectively (:gh:`10418` by `Eric Larson`_)
+
 - Add support for passing time-frequency data to :func:`mne.stats.spatio_temporal_cluster_test` and :func:`mne.stats.spatio_temporal_cluster_1samp_test` and added an example to :ref:`tut-cluster-spatiotemporal-sensor` (:gh:`10384` by `Alex Rockhill`_)
 
 - Add support for reading optical density fNIRS data to :func:`mne.io.read_raw_snirf` (:gh:`10408` by `Robert Luke`_)   

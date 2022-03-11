@@ -14,13 +14,26 @@ def test_gui_api(renderer_notebook, nbexec):
     """Test GUI API."""
     import contextlib
     import mne
+    import warnings
     # nbexec does not expose renderer_notebook so I use a
     # temporary variable to synchronize the tests
     try:
         assert mne.MNE_PYVISTAQT_BACKEND_TEST
     except AttributeError:
         mne.viz.set_3d_backend('notebook')
+        backend = 'notebook'
+    else:
+        backend = 'qt'
     renderer = mne.viz.backends.renderer._get_renderer(size=(300, 300))
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        renderer._window_set_theme('/does/not/exist')
+    if backend == 'qt':
+        assert len(w) == 1
+        assert 'not found' in str(w[0].message), str(w[0].message)
+    else:
+        assert len(w) == 0
+    renderer._window_set_theme('dark')
 
     from unittest.mock import Mock
     mock = Mock()
@@ -248,8 +261,7 @@ def test_gui_api(renderer_notebook, nbexec):
     assert 'play' in renderer.actions
 
     # theme
-    renderer._tool_bar_set_theme(theme='auto')
-    renderer._tool_bar_set_theme(theme='dark')
+    renderer._tool_bar_set_theme()
     # --- END: tool bar ---
 
     # --- BEGIN: menu bar ---

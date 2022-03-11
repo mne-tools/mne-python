@@ -31,7 +31,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True,
                      time_format='float', precompute=None,
-                     use_opengl=None, *, theme='auto'):
+                     use_opengl=None, *, theme=None):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -960,7 +960,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                   show_scrollbars, show_first_samp, time_format,
-                  precompute, use_opengl, *, theme='auto'):
+                  precompute, use_opengl, *, theme=None):
     """Plot the ICA components as a RawArray or EpochsArray."""
     from ._figure import _get_browser
     from .. import EpochsArray, BaseEpochs
