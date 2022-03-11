@@ -451,6 +451,10 @@ sphinx_gallery_conf = {
     'matplotlib_animations': True,
     'compress_images': compress_images,
     'filename_pattern': '^((?!sgskip).)*$',
+    'exclude_implicit_doc': {
+        r'^mne\.io\.read_raw_fif$', r'^mne\.io\.Raw$',
+        r'^mne\.Epochs$',
+    },
 }
 # Files were renamed from plot_* with:
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
