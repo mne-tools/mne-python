@@ -81,7 +81,9 @@ def test_nihon_duplicate_channels(monkeypatch):
 
     monkeypatch.setattr(nihon, '_read_21e_file', return_channel_duplicates)
 
-    assert len(nihon._read_21e_file(fname)) > len(set(nihon._read_21e_file(fname)))
-    msg = 'Channel names are not unique, found duplicates for: {\'FP1\'}. Applying running numbers for duplicates.'
+    assert len(nihon._read_21e_file(fname)) > \
+           len(set(nihon._read_21e_file(fname)))
+    msg = 'Channel names are not unique, found duplicates for: ' \
+          '{\'FP1\'}. Applying running numbers for duplicates.'
     with pytest.warns(RuntimeWarning, match=msg):
         read_raw_nihon(fname)
