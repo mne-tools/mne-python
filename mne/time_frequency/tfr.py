@@ -27,11 +27,11 @@ from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      _check_pandas_index_arguments, _check_time_format,
                      _convert_times, _build_data_frame, warn,
                      _import_h5io_funcs)
-from ..channels.channels import ContainsMixin, UpdateChannelsMixin
+from ..channels.channels import UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
                        _get_channel_types)
-from ..io.meas_info import Info
+from ..io.meas_info import Info, ContainsMixin
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _connection_line, _prepare_joint_axes,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
