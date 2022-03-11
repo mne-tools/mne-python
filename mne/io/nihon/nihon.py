@@ -366,15 +366,14 @@ class RawNihon(BaseRaw):
         if 'meas_date' in metadata:
             with info._unlock():
                 info['meas_date'] = metadata['meas_date']
-        chs = {x: _map_ch_to_specs(x) for x in ch_names}
+        chs = {x: _map_ch_to_specs(x) for x in info['ch_names']}
 
-        orig_ch_names = header['ch_names']
         cal = np.array(
-            [chs[x]['cal'] for x in orig_ch_names], float)[:, np.newaxis]
+            [chs[x]['cal'] for x in info['ch_names']], float)[:, np.newaxis]
         offsets = np.array(
-            [chs[x]['offset'] for x in orig_ch_names], float)[:, np.newaxis]
+            [chs[x]['offset'] for x in info['ch_names']], float)[:, np.newaxis]
         gains = np.array(
-            [chs[x]['unit'] for x in orig_ch_names], float)[:, np.newaxis]
+            [chs[x]['unit'] for x in info['ch_names']], float)[:, np.newaxis]
 
         raw_extras = dict(
             cal=cal, offsets=offsets, gains=gains, header=header)
