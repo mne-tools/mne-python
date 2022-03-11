@@ -522,16 +522,3 @@ def test_combine_channels():
         combine_channels(raw, warn2)
         combine_channels(raw_ch_bad, warn3, drop_bad=True)
     assert len(record) == 3
-
-
-def test_get_montage():
-    """Test ContainsMixin.get_montage()."""
-    ch_names = make_standard_montage('standard_1020').ch_names
-    sfreq = 512
-    data = np.zeros((len(ch_names), sfreq * 2))
-    raw = RawArray(data, create_info(ch_names, sfreq, 'eeg'))
-    raw.set_montage('standard_1020')
-
-    assert len(raw.get_montage().ch_names) == len(ch_names)
-    raw.info['bads'] = [ch_names[0]]
-    assert len(raw.get_montage().ch_names) == len(ch_names)

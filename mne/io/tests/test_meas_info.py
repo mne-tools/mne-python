@@ -26,7 +26,7 @@ from mne.event import make_fixed_length_events
 from mne.datasets import testing
 from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
                     _loc_to_coil_trans, read_raw_fif, read_info, write_info,
-                    meas_info, Projection, BaseRaw, read_raw_ctf)
+                    meas_info, Projection, BaseRaw, read_raw_ctf, RawArray)
 from mne.io.constants import FIFF
 from mne.io.write import _generate_meas_id, DATE_NONE
 from mne.io.meas_info import (Info, create_info, _merge_info,
@@ -1066,3 +1066,16 @@ def test_info_pick_channels():
     info = create_info(2, 1000., 'eeg')
     with pytest.deprecated_call(match='use inst.pick_channels instead.'):
         info.pick_channels(['0'])
+
+
+def test_get_montage():
+    """Test ContainsMixin.get_montage()."""
+    ch_names = make_standard_montage('standard_1020').ch_names
+    sfreq = 512
+    data = np.zeros((len(ch_names), sfreq * 2))
+    raw = RawArray(data, create_info(ch_names, sfreq, 'eeg'))
+    raw.set_montage('standard_1020')
+
+    assert len(raw.get_montage().ch_names) == len(ch_names)
+    raw.info['bads'] = [ch_names[0]]
+    assert len(raw.get_montage().ch_names) == len(ch_names)

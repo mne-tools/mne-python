@@ -12,7 +12,7 @@ from copy import deepcopy
 import numpy as np
 
 from .baseline import rescale, _log_rescale, _check_baseline
-from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
+from .channels.channels import (UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
@@ -33,7 +33,7 @@ from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.tree import dir_tree_find
 from .io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
-from .io.meas_info import (read_meas_info, write_meas_info,
+from .io.meas_info import (ContainsMixin, read_meas_info, write_meas_info,
                            _read_extended_ch_info, _rename_list,
                            _ensure_infos_match)
 from .io.proj import ProjMixin
