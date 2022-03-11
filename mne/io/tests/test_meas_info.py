@@ -1079,3 +1079,11 @@ def test_get_montage():
     assert len(raw.get_montage().ch_names) == len(ch_names)
     raw.info['bads'] = [ch_names[0]]
     assert len(raw.get_montage().ch_names) == len(ch_names)
+
+    # test info
+    raw = RawArray(data, create_info(ch_names, sfreq, 'eeg'))
+    raw.set_montage('standard_1020')
+
+    assert len(raw.info.get_montage().ch_names) == len(ch_names)
+    raw.info['bads'] = [ch_names[0]]
+    assert len(raw.info.get_montage().ch_names) == len(ch_names)
