@@ -72,6 +72,7 @@ def test_nihon_eeg():
 
 @requires_testing_data
 def test_nihon_duplicate_channels(monkeypatch):
+    """Test deduplication of channel names."""
     fname = Path(data_path()) / 'NihonKohden' / 'MB0400FU.EEG'
 
     def return_channel_duplicates(fname):
