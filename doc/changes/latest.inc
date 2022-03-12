@@ -134,6 +134,8 @@ Bugs
 ~~~~
 - Fix bug with :func:`mne.io.read_raw_nihon` where latin-1 channels could not be read (:gh:`10429` by :newcontrib:`Matthias Eberlein`)
 
+- Fix bug with :func:`mne.io.read_raw_nihon` so that it handles duplicates in channel names (:gh:`10431` by :newcontrib:`Matthias Eberlein`)
+
 - Fix bug in :func:`mne.io.read_raw_egi` where the ``meas_date`` in a ``rawMFF`` object was incorrectly assigned. The function now converts the ``meas_date`` to UTC and provides a UTC offset key, i.e. ``raw.info['utc_offset']``. (:gh:`10304` by :newcontrib:`Scott Huberty`)
 
 - Fix datetime conversion for tmin/tmax=None cases in :meth:`mne.Annotations.crop`. Allow the use of float and None simultaneously for :meth:`mne.Annotations.crop`. (:gh:`10361` by :newcontrib:`Michiru Kaneda`)
