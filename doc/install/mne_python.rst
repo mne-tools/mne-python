@@ -145,7 +145,7 @@ MNE-Python and its dependencies. Typical output looks like this::
     dipy:          1.1.1
     pyvista:       0.25.2 {pyvistaqt=0.1.0}
     vtk:           9.0.0
-    PyQt5:         5.14.1
+    qtpy:          2.0.1 {PyQt5=5.14.1}
 
 
 .. collapse:: |hand-paper| If you get an error...
