@@ -530,7 +530,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         pandas:        1.0.5
         pyvista:       0.25.3 {pyvistaqt=0.1.1, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 7.0, 256 bits)}
         vtk:           9.0.1
-        PyQt5:         5.15.0
+        qtpy:          2.0.1
         pooch:         v1.5.1
     """  # noqa: E501
     _validate_type(dependencies, str)
