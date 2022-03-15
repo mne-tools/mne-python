@@ -792,7 +792,7 @@ def _check_qt_version(api='PyQt5'):
     except Exception:
         version = 'unknown'
     if sys.platform == 'darwin' and api in ('PyQt5', 'PySide2'):
-        if _compare_version(version, '>=', '5.10'):
+        if not _compare_version(version, '>=', '5.10'):
             warn(f'macOS users should use {api} >= 5.10 for GUIs, got %s. '
                  'Please upgrade e.g. with:\n\n'
                  f'    pip install "{api}>=5.10,<5.14"\n'
