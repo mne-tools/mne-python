@@ -195,4 +195,6 @@
 .. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _Stack Overflow: https://stackoverflow.com/
 
+.. _Hash Tool: https://www.microsoft.com/en-us/p/hash-tool/9nblggh4rrr2
+
 .. vim: ft=rst
