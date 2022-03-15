@@ -521,15 +521,15 @@ def _use_backend(backend_name, interactive):
 
 def _check_skip_backend(name):
     from mne.viz.backends.tests._utils import (has_pyvista,
-                                               has_pyqt5, has_imageio_ffmpeg,
+                                               has_qt, has_imageio_ffmpeg,
                                                has_pyvistaqt)
     if name in ('pyvistaqt', 'notebook'):
         if not has_pyvista():
             pytest.skip("Test skipped, requires pyvista.")
         if not has_imageio_ffmpeg():
             pytest.skip("Test skipped, requires imageio-ffmpeg")
-    if name == 'pyvistaqt' and not has_pyqt5():
-        pytest.skip("Test skipped, requires PyQt5.")
+    if name == 'pyvistaqt' and not has_qt():
+        pytest.skip("Test skipped, requires Qt.")
     if name == 'pyvistaqt' and not has_pyvistaqt():
         pytest.skip("Test skipped, requires pyvistaqt")
 
@@ -537,10 +537,10 @@ def _check_skip_backend(name):
 @pytest.fixture(scope='session')
 def pixel_ratio():
     """Get the pixel ratio."""
-    from mne.viz.backends.tests._utils import has_pyvista, has_pyqt5
-    if not has_pyvista() or not has_pyqt5():
+    from mne.viz.backends.tests._utils import has_pyvista, has_qt
+    if not has_pyvista() or not has_qt():
         return 1.
-    from PyQt5.QtWidgets import QApplication, QMainWindow
+    from qtpy.QtWidgets import QApplication, QMainWindow
     _ = QApplication.instance() or QApplication([])
     window = QMainWindow()
     ratio = float(window.devicePixelRatio())
