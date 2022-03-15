@@ -788,7 +788,7 @@ def _check_qt_version(api='PyQt5'):
             version = qt_mod.PYQT_VERSION_STR
         else:
             assert api in ('PySide2', 'PySide6')
-            qt_mod = importlib.import_module(f'{api}')
+            qt_mod = importlib.import_module(api)
             version = qt_mod.__version__
     except Exception:
         version = 'unknown'
