@@ -779,10 +779,17 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
              % (1e9 * max_cur))
 
 
-def _check_pyqt5_version():
+def _check_qt_version(api='PyQt5'):
     bad = True
+    import importlib
     try:
-        from PyQt5.Qt import PYQT_VERSION_STR as version
+        if api in ('PyQt5', 'PyQt6'):
+            qt_mod = importlib.import_module(f'{api}.Qt')
+            version = qt_mod.PYQT_VERSION_STR
+        else:
+            assert api in ('PySide2', 'PySide6')
+            qt_mod = importlib.import_module(f'{api}')
+            version = qt_mod.__version__
     except Exception:
         version = 'unknown'
     else:

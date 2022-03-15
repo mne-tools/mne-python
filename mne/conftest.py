@@ -26,7 +26,7 @@ from mne.fixes import has_numba, _compare_version
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.stats import cluster_level
 from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
-                       _check_pyqt5_version)
+                       _check_qt_version)
 
 # data from sample dataset
 from mne.viz._figure import use_browser_backend
@@ -419,8 +419,8 @@ def _check_pyqtgraph(request):
         import PyQt5  # noqa: F401
     except ModuleNotFoundError:
         pytest.skip('PyQt5 is not installed but needed for pyqtgraph!')
-    if not _compare_version(_check_pyqt5_version(), '>=', '5.12'):
-        pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
+    if not _compare_version(_check_qt_version(), '>=', '5.12'):
+        pytest.skip(f'PyQt5 has version {_check_qt_version()}'
                     f'but pyqtgraph needs >= 5.12!')
     # Check mne-qt-browser
     try:
