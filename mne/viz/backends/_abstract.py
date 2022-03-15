@@ -492,7 +492,7 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
-    def _tool_bar_set_theme(self, theme):
+    def _tool_bar_set_theme(self):
         pass
 
 

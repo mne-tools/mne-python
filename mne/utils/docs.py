@@ -3001,18 +3001,25 @@ tail : int
     the distribution.
 """
 
-docdict['theme'] = """
+_theme = """\
 theme : str | path-like
-    Can be "auto" (default), "light", or "dark" or a path-like to a
+    Can be "auto", "light", or "dark" or a path-like to a
     custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
     :mod:`qdarkstyle` and
     `darkdetect <https://github.com/albertosottile/darkdetect>`__,
-    respectively, are required.
+    respectively, are required.\
+    If None (default), the config option {config_option} will be used,
+    defaulting to "auto" if it's not found.\
 """
 
-docdict['theme_pg'] = """{theme}\
+docdict['theme_3d'] = """
+{theme}
+""".format(theme=_theme.format(config_option='MNE_3D_OPTION_THEME'))
+
+docdict['theme_pg'] = """
+{theme}
     Only supported by the ``'qt'`` backend.
-""".format(theme=docdict['theme'])
+""".format(theme=_theme.format(config_option='MNE_BROWSER_THEME'))
 
 docdict['thresh'] = """
 thresh : None or float

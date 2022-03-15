@@ -28,8 +28,8 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
-from ._utils import (_init_qt_resources, _qt_disable_paint, _qt_get_stylesheet,
-                     _detect_theme, _qt_raise_window)
+from ._utils import (_init_qt_resources, _qt_disable_paint,
+                     _qt_get_stylesheet, _qt_is_dark, _qt_raise_window)
 from ..utils import _check_option, safe_event
 
 
@@ -454,11 +454,8 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         self._tool_bar_add_button(
             name=name, desc=desc, func=func, icon_name=None, shortcut=shortcut)
 
-    def _tool_bar_set_theme(self, theme):
-        if theme == 'auto':
-            theme = _detect_theme()
-
-        if theme == 'dark':
+    def _tool_bar_set_theme(self):
+        if _qt_is_dark(self._tool_bar):
             for icon_key in self.icons:
                 icon = self.icons[icon_key]
                 image = icon.pixmap(80).toImage()

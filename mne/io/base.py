@@ -24,11 +24,10 @@ from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
 from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx,
                    channel_type)
-from .meas_info import write_meas_info, _ensure_infos_match
+from .meas_info import write_meas_info, _ensure_infos_match, ContainsMixin
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
-from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
-                                 SetChannelsMixin, InterpolationMixin,
-                                 _unit2human)
+from ..channels.channels import (UpdateChannelsMixin, SetChannelsMixin,
+                                 InterpolationMixin, _unit2human)
 from .compensator import set_current_comp, make_compensator
 from .write import (start_and_end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
@@ -1547,7 +1546,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, time_format='float',
-             precompute=None, use_opengl=None, *, theme='auto', verbose=None):
+             precompute=None, use_opengl=None, *, theme=None, verbose=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,

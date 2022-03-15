@@ -35,7 +35,7 @@ from ..io.write import (write_double_matrix, write_string,
 from ..io.tree import dir_tree_find
 from ..io.open import fiff_open
 from ..io.tag import read_tag
-from ..io.meas_info import write_meas_info, read_meas_info
+from ..io.meas_info import write_meas_info, read_meas_info, ContainsMixin
 from ..io.constants import FIFF
 from ..io.base import BaseRaw
 from ..io.eeglab.eeglab import _get_info, _check_load_mat
@@ -46,7 +46,7 @@ from ..viz import (plot_ica_components, plot_ica_scores,
 from ..viz.ica import plot_ica_properties
 from ..viz.topomap import _plot_corrmap
 
-from ..channels.channels import _contains_ch_type, ContainsMixin
+from ..channels.channels import _contains_ch_type
 from ..io.write import start_and_end_file, write_id
 from ..utils import (logger, check_fname, _check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,
@@ -1962,7 +1962,7 @@ class ICA(ContainsMixin, _VerboseDep):
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True,
                      time_format='float', precompute=None,
-                     use_opengl=None, *, theme='auto'):
+                     use_opengl=None, *, theme=None):
         return plot_ica_sources(self, inst=inst, picks=picks,
                                 start=start, stop=stop, title=title, show=show,
                                 block=block, show_first_samp=show_first_samp,

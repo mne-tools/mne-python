@@ -162,6 +162,8 @@
 
 .. _Okba Bekhelifi: https://github.com/okbalefthanded
 
+.. _Matthias Eberlein: https://github.com/MatthiasEb
+
 .. _Nicolas Barascud: https://github.com/nbara
 
 .. _Alejandro Weinstein: http://ocam.cl
@@ -425,3 +427,5 @@
 .. _Senwen Deng: https://snwn.de
 
 .. _Michiru Kaneda: https://github.com/rcmdnk
+
+.. _Scott Huberty:  https://orcid.org/0000-0003-2637-031X

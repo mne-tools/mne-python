@@ -7,6 +7,7 @@ from pathlib import Path
 import os.path as op
 import os
 import shutil
+from datetime import datetime, timezone
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -435,3 +436,23 @@ def test_egi_coord_frame():
             assert_allclose(loc[1:], 0, atol=1e-7, err_msg='RPA')
     for d in info['dig'][3:]:
         assert d['kind'] == FIFF.FIFFV_POINT_EEG
+
+
+@requires_testing_data
+@pytest.mark.parametrize('fname, timestamp, utc_offset', [
+    (egi_mff_fname, '2017-02-23T11:35:13.220824+01:00', '+0100'),
+    (egi_mff_pns_fname, '2017-09-20T09:55:44.072000+01:00', '+0100'),
+    (egi_eprime_pause_fname, '2018-07-30T10:46:09.621673-04:00', '-0400'),
+    (egi_pause_w1337_fname, '2019-10-14T10:54:27.395210-07:00', '-0700'),
+])
+def test_meas_date(fname, timestamp, utc_offset):
+    """Test meas date conversion."""
+    raw = read_raw_egi(fname, verbose='warning')
+    dt = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%f%z')
+    measdate = dt.astimezone(timezone.utc)
+    hour_local = int(dt.strftime('%H'))
+    hour_utc = int(raw.info['meas_date'].strftime('%H'))
+    local_utc_diff = hour_local - hour_utc
+    assert raw.info['meas_date'] == measdate
+    assert raw.info['utc_offset'] == utc_offset
+    assert local_utc_diff == int(utc_offset[:-2])
