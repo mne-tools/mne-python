@@ -316,8 +316,20 @@ class CoregistrationUI(HasTraits):
             _qt_app_exec(self._renderer.figure.store["app"])
 
     def _set_subjects_dir(self, subjects_dir):
-        self._subjects_dir = _check_fname(
-            subjects_dir, overwrite='read', must_exist=True, need_dir=True)
+        if subjects_dir is None or not subjects_dir:
+            return
+        valid = False
+        try:
+            subjects_dir = _check_fname(
+                subjects_dir, overwrite='read', must_exist=True, need_dir=True)
+            valid = True
+        except Exception:
+            style = dict(border="2px solid #ff0000")
+        else:
+            style = dict(border="initial")
+        self._forward_widget_command("subjects_dir_field", "set_style", style)
+        if valid:
+            self._subjects_dir = subjects_dir
 
     def _set_subject(self, subject):
         self._subject = subject
@@ -363,12 +375,17 @@ class CoregistrationUI(HasTraits):
             return
 
         # info file can be anything supported by read_raw
+        valid = False
         try:
             check_fname(fname, 'info', tuple(raw_supported_types.keys()),
                         endings_err=tuple(raw_supported_types.keys()))
-        except IOError as e:
-            warn(e)
-            self._widgets["info_file"].set_value(0, '')
+            valid = True
+        except IOError:
+            style = dict(border="2px solid #ff0000")
+        else:
+            style = dict(border="initial")
+        self._forward_widget_command("info_file_field", "set_style", style)
+        if not valid:
             return
 
         fname = _check_fname(fname, overwrite='read')  # convert to str
@@ -415,14 +432,13 @@ class CoregistrationUI(HasTraits):
         self._grow_hair = value
 
     def _set_subject_to(self, value):
-        style = dict()
         self._subject_to = value
         self._forward_widget_command(
             "save_subject", "set_enabled", len(value) > 0)
         if self._check_subject_exists():
-            style["border"] = "2px solid #ff0000"
+            style = dict(border="2px solid #ff0000")
         else:
-            style["border"] = "initial"
+            style = dict(border="initial")
         self._forward_widget_command(
             "subject_to", "set_style", style)
 
@@ -1370,16 +1386,29 @@ class CoregistrationUI(HasTraits):
             name="MRI Subject",
             collapse=collapse,
         )
+        subjects_dir_layout = self._renderer._dock_add_layout(
+            vertical=False
+        )
+        self._widgets["subjects_dir_field"] = self._renderer._dock_add_text(
+            name="subjects_dir_field",
+            value=self._subjects_dir,
+            placeholder="",
+            callback=self._set_subjects_dir,
+            layout=subjects_dir_layout,
+        )
         self._widgets["subjects_dir"] = self._renderer._dock_add_file_button(
             name="subjects_dir",
             desc="Load",
             func=self._set_subjects_dir,
-            value=self._subjects_dir,
             placeholder="Subjects Directory",
             is_directory=True,
             tooltip="Load the path to the directory containing the "
                     "FreeSurfer subjects",
+            layout=subjects_dir_layout,
+        )
+        self._renderer._layout_add_widget(
             layout=mri_subject_layout,
+            widget=subjects_dir_layout,
         )
         self._widgets["subject"] = self._renderer._dock_add_combo_box(
             name="Subject",
@@ -1468,15 +1497,28 @@ class CoregistrationUI(HasTraits):
             name="Info source with digitization",
             collapse=collapse,
         )
+        info_file_layout = self._renderer._dock_add_layout(
+            vertical=False
+        )
+        self._widgets["info_file_field"] = self._renderer._dock_add_text(
+            name="info_file_field",
+            value=self._info_file,
+            placeholder="",
+            callback=self._set_info_file,
+            layout=info_file_layout,
+        )
         self._widgets["info_file"] = self._renderer._dock_add_file_button(
             name="info_file",
             desc="Load",
             func=self._set_info_file,
-            value=self._info_file,
             placeholder="Path to info",
             tooltip="Load the FIFF file with digitization data for "
                     "coregistration",
+            layout=info_file_layout,
+        )
+        self._renderer._layout_add_widget(
             layout=dig_source_layout,
+            widget=info_file_layout,
         )
         self._widgets["grow_hair"] = self._renderer._dock_add_spin_box(
             name="Grow Hair (mm)",
@@ -1666,7 +1708,6 @@ class CoregistrationUI(HasTraits):
             desc="Save...",
             save=True,
             func=self._save_trans,
-            input_text_widget=False,
             tooltip="Save the transform file to disk",
             layout=save_trans_layout,
             filter='Head->MRI transformation (*-trans.fif *_trans.fif)',
@@ -1676,7 +1717,6 @@ class CoregistrationUI(HasTraits):
             name="load_trans",
             desc="Load...",
             func=self._load_trans,
-            input_text_widget=False,
             tooltip="Load the transform file from disk",
             layout=save_trans_layout,
             filter='Head->MRI transformation (*-trans.fif *_trans.fif)',
