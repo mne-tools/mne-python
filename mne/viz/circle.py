@@ -129,7 +129,7 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                               colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
                               fontsize_title=12, fontsize_names=8,
                               fontsize_colorbar=8, padding=6.,
-                              fig=None, subplot=111, interactive=True,
+                              ax=None, interactive=True,
                               node_linewidth=2., show=True):
     import matplotlib.pyplot as plt
     import matplotlib.path as m_path
@@ -187,14 +187,17 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     if isinstance(colormap, str):
         colormap = plt.get_cmap(colormap)
 
-    # Make figure background the same colors as axes
-    if fig is None:
-        fig = plt.figure(figsize=(8, 8), facecolor=facecolor)
-
     # Use a polar axes
-    if not isinstance(subplot, tuple):
-        subplot = (subplot,)
-    axes = plt.subplot(*subplot, polar=True)
+    if ax is None:
+        fig = plt.figure(figsize=(8, 8), facecolor=facecolor)
+        axes = fig.add_subplot(polar=True)
+    elif ax.name == 'polar':
+        axes = ax
+    else:
+        fig = ax.figure
+        pos = ax.get_position()
+        ax.remove()  # remove exiting to ensure polar
+        axes = fig.add_axes(pos.bounds, polar=True)
     axes.set_facecolor(facecolor)
 
     # No ticks, we'll put our own
