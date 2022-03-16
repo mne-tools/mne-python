@@ -40,6 +40,19 @@ class _WorkerData():
         self._params = params
 
 
+def _get_subjects(self, sdir):
+    # XXX: would be nice to move this function to util
+    is_dir = sdir and op.isdir(sdir)
+    if is_dir:
+        dir_content = os.listdir(sdir)
+        subjects = [s for s in dir_content if _is_mri_subject(s, sdir)]
+        if len(subjects) == 0:
+            subjects.append('')
+    else:
+        subjects = ['']
+    return sorted(subjects)
+
+
 @fill_doc
 class CoregistrationUI(HasTraits):
     """Class for coregistration assisted by graphical interface.
@@ -220,7 +233,7 @@ class CoregistrationUI(HasTraits):
         info = None
         subjects_dir = get_subjects_dir(
             subjects_dir=subjects_dir, raise_error=True)
-        subject = _get_default(subject, self._get_subjects(subjects_dir)[0])
+        subject = _get_default(subject, _get_subjects(subjects_dir)[0])
 
         # setup the window
         splash = 'Initializing coregistration GUI...' if show else False
@@ -517,7 +530,7 @@ class CoregistrationUI(HasTraits):
     def _subjects_dir_changed(self, change=None):
         # XXX: add coreg.set_subjects_dir
         self.coreg._subjects_dir = self._subjects_dir
-        subjects = self._get_subjects()
+        subjects = _get_subjects(self.subjects_dir)
 
         if self._subject not in subjects:  # Just pick the first available one
             self._subject = subjects[0]
@@ -1337,19 +1350,6 @@ class CoregistrationUI(HasTraits):
         self._display_message(
             f"{fname} transform file is loaded.")
 
-    def _get_subjects(self, sdir=None):
-        # XXX: would be nice to move this function to util
-        sdir = sdir if sdir is not None else self._subjects_dir
-        is_dir = sdir and op.isdir(sdir)
-        if is_dir:
-            dir_content = os.listdir(sdir)
-            subjects = [s for s in dir_content if _is_mri_subject(s, sdir)]
-            if len(subjects) == 0:
-                subjects.append('')
-        else:
-            subjects = ['']
-        return sorted(subjects)
-
     def _update_fiducials_label(self):
         if self._fiducials_file is None:
             text = (
@@ -1412,7 +1412,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["subject"] = self._renderer._dock_add_combo_box(
             name="Subject",
             value=self._subject,
-            rng=self._get_subjects(),
+            rng=_get_subjects(self._subjects_dir),
             callback=self._set_subject,
             compact=True,
             tooltip="Select the FreeSurfer subject name",
