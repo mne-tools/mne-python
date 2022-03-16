@@ -22,7 +22,8 @@ from ..io.meas_info import _empty_info
 from ..io._read_raw import supported as raw_supported_types
 from ..bem import make_bem_solution, write_bem_solution
 from ..coreg import (Coregistration, _is_mri_subject, scale_mri, bem_fname,
-                     _mri_subject_has_bem, fid_fname, _map_fid_name_to_idx)
+                     _mri_subject_has_bem, fid_fname, _map_fid_name_to_idx,
+                     _find_head_bem)
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
                        _plot_hpi_coils, _plot_sensors, _plot_helmet)
@@ -331,18 +332,21 @@ class CoregistrationUI(HasTraits):
     def _set_subjects_dir(self, subjects_dir):
         if subjects_dir is None or not subjects_dir:
             return
-        valid = False
         try:
             subjects_dir = _check_fname(
                 subjects_dir, overwrite='read', must_exist=True, need_dir=True)
-            valid = True
+            subjects = _get_subjects(subjects_dir)
+            low_res_path = _find_head_bem(
+                subjects[0], subjects_dir, high_res=False)
+            valid = low_res_path is not None
         except Exception:
-            style = dict(border="2px solid #ff0000")
-        else:
-            style = dict(border="initial")
-        self._forward_widget_command("subjects_dir_field", "set_style", style)
+            valid = False
         if valid:
+            style = dict(border="initial")
             self._subjects_dir = subjects_dir
+        else:
+            style = dict(border="2px solid #ff0000")
+        self._forward_widget_command("subjects_dir_field", "set_style", style)
 
     def _set_subject(self, subject):
         self._subject = subject
