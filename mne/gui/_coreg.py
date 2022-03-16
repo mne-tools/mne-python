@@ -40,7 +40,7 @@ class _WorkerData():
         self._params = params
 
 
-def _get_subjects(self, sdir):
+def _get_subjects(sdir):
     # XXX: would be nice to move this function to util
     is_dir = sdir and op.isdir(sdir)
     if is_dir:
@@ -530,7 +530,7 @@ class CoregistrationUI(HasTraits):
     def _subjects_dir_changed(self, change=None):
         # XXX: add coreg.set_subjects_dir
         self.coreg._subjects_dir = self._subjects_dir
-        subjects = _get_subjects(self.subjects_dir)
+        subjects = _get_subjects(self._subjects_dir)
 
         if self._subject not in subjects:  # Just pick the first available one
             self._subject = subjects[0]
