@@ -309,7 +309,7 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
             angle_deg += 180
             ha = 'right'
 
-        ax.text(angle_rad, 10.4, name, size=fontsize_names,
+        ax.text(angle_rad, 9.4 + node_height, name, size=fontsize_names,
                 rotation=angle_deg, rotation_mode='anchor',
                 horizontalalignment=ha, verticalalignment='center',
                 color=textcolor)
