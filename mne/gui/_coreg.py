@@ -1020,7 +1020,7 @@ class CoregistrationUI(HasTraits):
 
         for idx, name in enumerate(names):
             val = value[idx] if isinstance(value, list) else value
-            if name in self._widgets:
+            if name in self._widgets and self._widgets[name] is not None:
                 if input_value:
                     ret = getattr(self._widgets[name], command)(val)
                 else:
