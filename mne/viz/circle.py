@@ -121,10 +121,11 @@ def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
 
 def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                               node_angles=None, node_width=None,
-                              node_colors=None, facecolor='black',
-                              textcolor='white', node_edgecolor='black',
-                              linewidth=1.5, colormap='hot', vmin=None,
-                              vmax=None, colorbar=True, title=None,
+                              node_height=None, node_colors=None,
+                              facecolor='black', textcolor='white',
+                              node_edgecolor='black', linewidth=1.5,
+                              colormap='hot', vmin=None, vmax=None,
+                              colorbar=True, title=None,
                               colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
                               fontsize_title=12, fontsize_names=8,
                               fontsize_colorbar=8, padding=6.,
@@ -153,6 +154,9 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         node_width = np.min(np.abs(dist_mat))
     else:
         node_width = node_width * np.pi / 180
+
+    if node_height is None:
+        node_height = 1.0
 
     if node_colors is not None:
         if len(node_colors) < n_nodes:
@@ -286,7 +290,7 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         axes.add_patch(patch)
 
     # Draw ring with colored nodes
-    height = np.ones(n_nodes) * 1.0
+    height = np.ones(n_nodes) * node_height
     bars = axes.bar(node_angles, height, width=node_width, bottom=9,
                     edgecolor=node_edgecolor, lw=node_linewidth,
                     facecolor='.9', align='center')
