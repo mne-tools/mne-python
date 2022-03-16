@@ -134,6 +134,9 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     import matplotlib.pyplot as plt
     import matplotlib.path as m_path
     import matplotlib.patches as m_patches
+    from matplotlib.projections.polar import PolarAxes
+
+    _validate_type(ax, (None, PolarAxes))
 
     n_nodes = len(node_names)
 
@@ -193,10 +196,6 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         ax = fig.add_subplot(polar=True)
     else:
         fig = ax.figure
-        if ax.name != 'polar':
-            pos = ax.get_position()
-            ax.remove()  # remove exiting to ensure polar
-            ax = fig.add_axes(pos.bounds, polar=True)
     ax.set_facecolor(facecolor)
 
     # No ticks, we'll put our own
