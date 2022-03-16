@@ -271,8 +271,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_file_button(
         self, name, desc, func, *, filter=None, initial_directory=None,
-        save=False, is_directory=False, placeholder="Type a file name",
-        tooltip=None, layout=None
+        save=False, is_directory=False, tooltip=None, layout=None
     ):
         layout = self._dock_layout if layout is None else layout
 

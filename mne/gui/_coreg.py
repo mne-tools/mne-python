@@ -1392,7 +1392,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["subjects_dir_field"] = self._renderer._dock_add_text(
             name="subjects_dir_field",
             value=self._subjects_dir,
-            placeholder="",
+            placeholder="Subjects Directory",
             callback=self._set_subjects_dir,
             layout=subjects_dir_layout,
         )
@@ -1400,7 +1400,6 @@ class CoregistrationUI(HasTraits):
             name="subjects_dir",
             desc="Load",
             func=self._set_subjects_dir,
-            placeholder="Subjects Directory",
             is_directory=True,
             tooltip="Load the path to the directory containing the "
                     "FreeSurfer subjects",
@@ -1503,7 +1502,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["info_file_field"] = self._renderer._dock_add_text(
             name="info_file_field",
             value=self._info_file,
-            placeholder="",
+            placeholder="Path to info",
             callback=self._set_info_file,
             layout=info_file_layout,
         )
@@ -1511,7 +1510,6 @@ class CoregistrationUI(HasTraits):
             name="info_file",
             desc="Load",
             func=self._set_info_file,
-            placeholder="Path to info",
             tooltip="Load the FIFF file with digitization data for "
                     "coregistration",
             layout=info_file_layout,
