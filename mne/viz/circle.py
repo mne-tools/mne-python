@@ -89,14 +89,14 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
     return node_angles
 
 
-def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
+def _plot_connectivity_circle_onpick(event, fig=None, ax=None, indices=None,
                                      n_nodes=0, node_angles=None,
                                      ylim=[9, 10]):
     """Isolate connections around a single node when user left clicks a node.
 
     On right click, resets all connections.
     """
-    if event.inaxes != axes:
+    if event.inaxes != ax:
         return
 
     if event.button == 1:  # left click
@@ -121,18 +121,22 @@ def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
 
 def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                               node_angles=None, node_width=None,
-                              node_colors=None, facecolor='black',
-                              textcolor='white', node_edgecolor='black',
-                              linewidth=1.5, colormap='hot', vmin=None,
-                              vmax=None, colorbar=True, title=None,
+                              node_height=None, node_colors=None,
+                              facecolor='black', textcolor='white',
+                              node_edgecolor='black', linewidth=1.5,
+                              colormap='hot', vmin=None, vmax=None,
+                              colorbar=True, title=None,
                               colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
                               fontsize_title=12, fontsize_names=8,
                               fontsize_colorbar=8, padding=6.,
-                              fig=None, subplot=111, interactive=True,
+                              ax=None, interactive=True,
                               node_linewidth=2., show=True):
     import matplotlib.pyplot as plt
     import matplotlib.path as m_path
     import matplotlib.patches as m_patches
+    from matplotlib.projections.polar import PolarAxes
+
+    _validate_type(ax, (None, PolarAxes))
 
     n_nodes = len(node_names)
 
@@ -153,6 +157,9 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         node_width = np.min(np.abs(dist_mat))
     else:
         node_width = node_width * np.pi / 180
+
+    if node_height is None:
+        node_height = 1.0
 
     if node_colors is not None:
         if len(node_colors) < n_nodes:
@@ -183,25 +190,23 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     if isinstance(colormap, str):
         colormap = plt.get_cmap(colormap)
 
-    # Make figure background the same colors as axes
-    if fig is None:
-        fig = plt.figure(figsize=(8, 8), facecolor=facecolor)
-
     # Use a polar axes
-    if not isinstance(subplot, tuple):
-        subplot = (subplot,)
-    axes = plt.subplot(*subplot, polar=True)
-    axes.set_facecolor(facecolor)
+    if ax is None:
+        fig = plt.figure(figsize=(8, 8), facecolor=facecolor)
+        ax = fig.add_subplot(polar=True)
+    else:
+        fig = ax.figure
+    ax.set_facecolor(facecolor)
 
     # No ticks, we'll put our own
-    plt.xticks([])
-    plt.yticks([])
+    ax.set_xticks([])
+    ax.set_yticks([])
 
     # Set y axes limit, add additional space if requested
-    plt.ylim(0, 10 + padding)
+    ax.set_ylim(0, 10 + padding)
 
     # Remove the black axes border which may obscure the labels
-    axes.spines['polar'].set_visible(False)
+    ax.spines['polar'].set_visible(False)
 
     # Draw lines between connected nodes, only draw the strongest connections
     if n_lines is not None and len(con) > n_lines:
@@ -283,13 +288,13 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         # Actual line
         patch = m_patches.PathPatch(path, fill=False, edgecolor=color,
                                     linewidth=linewidth, alpha=1.)
-        axes.add_patch(patch)
+        ax.add_patch(patch)
 
     # Draw ring with colored nodes
-    height = np.ones(n_nodes) * 1.0
-    bars = axes.bar(node_angles, height, width=node_width, bottom=9,
-                    edgecolor=node_edgecolor, lw=node_linewidth,
-                    facecolor='.9', align='center')
+    height = np.ones(n_nodes) * node_height
+    bars = ax.bar(node_angles, height, width=node_width, bottom=9,
+                  edgecolor=node_edgecolor, lw=node_linewidth,
+                  facecolor='.9', align='center')
 
     for bar, color in zip(bars, node_colors):
         bar.set_facecolor(color)
@@ -304,20 +309,19 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
             angle_deg += 180
             ha = 'right'
 
-        axes.text(angle_rad, 10.4, name, size=fontsize_names,
-                  rotation=angle_deg, rotation_mode='anchor',
-                  horizontalalignment=ha, verticalalignment='center',
-                  color=textcolor)
+        ax.text(angle_rad, 9.4 + node_height, name, size=fontsize_names,
+                rotation=angle_deg, rotation_mode='anchor',
+                horizontalalignment=ha, verticalalignment='center',
+                color=textcolor)
 
     if title is not None:
-        plt.title(title, color=textcolor, fontsize=fontsize_title,
-                  axes=axes)
+        ax.set_title(title, color=textcolor, fontsize=fontsize_title)
 
     if colorbar:
         sm = plt.cm.ScalarMappable(cmap=colormap,
                                    norm=plt.Normalize(vmin, vmax))
         sm.set_array(np.linspace(vmin, vmax))
-        cb = plt.colorbar(sm, ax=axes, use_gridspec=False,
+        cb = plt.colorbar(sm, ax=ax, use_gridspec=False,
                           shrink=colorbar_size,
                           anchor=colorbar_pos)
         cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
@@ -327,13 +331,13 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     # Add callback for interaction
     if interactive:
         callback = partial(_plot_connectivity_circle_onpick, fig=fig,
-                           axes=axes, indices=indices, n_nodes=n_nodes,
+                           ax=ax, indices=indices, n_nodes=n_nodes,
                            node_angles=node_angles)
 
         fig.canvas.mpl_connect('button_press_event', callback)
 
     plt_show(show)
-    return fig, axes
+    return fig, ax
 
 
 def plot_channel_labels_circle(labels, colors=None, picks=None, **kwargs):
