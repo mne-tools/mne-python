@@ -392,28 +392,27 @@ class CoregistrationUI(HasTraits):
             return
 
         # info file can be anything supported by read_raw
-        valid = False
         try:
             check_fname(fname, 'info', tuple(raw_supported_types.keys()),
                         endings_err=tuple(raw_supported_types.keys()))
+            fname = _check_fname(fname, overwrite='read')  # convert to str
+
+            # ctf ds `files` are actually directories
+            if fname.endswith(('.ds',)):
+                info_file = _check_fname(
+                    fname, overwrite='read', must_exist=True, need_dir=True)
+            else:
+                info_file = _check_fname(
+                    fname, overwrite='read', must_exist=True, need_dir=False)
             valid = True
         except IOError:
-            style = dict(border="2px solid #ff0000")
-        else:
+            valid = False
+        if valid:
             style = dict(border="initial")
-        self._forward_widget_command("info_file_field", "set_style", style)
-        if not valid:
-            return
-
-        fname = _check_fname(fname, overwrite='read')  # convert to str
-
-        # ctf ds `files` are actually directories
-        if fname.endswith(('.ds',)):
-            self._info_file = _check_fname(
-                fname, overwrite='read', must_exist=True, need_dir=True)
+            self._info_file = info_file
         else:
-            self._info_file = _check_fname(
-                fname, overwrite='read', must_exist=True, need_dir=False)
+            style = dict(border="2px solid #ff0000")
+        self._forward_widget_command("info_file_field", "set_style", style)
 
     def _set_omit_hsp_distance(self, distance):
         self._omit_hsp_distance = distance
