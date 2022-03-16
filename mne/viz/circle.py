@@ -191,11 +191,12 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     if ax is None:
         fig = plt.figure(figsize=(8, 8), facecolor=facecolor)
         ax = fig.add_subplot(polar=True)
-    elif ax.name != 'polar':
+    else:
         fig = ax.figure
-        pos = ax.get_position()
-        ax.remove()  # remove exiting to ensure polar
-        ax = fig.add_axes(pos.bounds, polar=True)
+        if ax.name != 'polar':
+            pos = ax.get_position()
+            ax.remove()  # remove exiting to ensure polar
+            ax = fig.add_axes(pos.bounds, polar=True)
     ax.set_facecolor(facecolor)
 
     # No ticks, we'll put our own
