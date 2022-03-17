@@ -24,12 +24,15 @@ from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title 
 # modified from:
 # https://gist.github.com/elkhadiy/284900b3ea8a13ed7b777ab93a691719
 class _FilePicker:
-    def __init__(self, rows=20):
+    def __init__(self, rows=20, directory_only=False, ignore_dotfiles=True):
+        self._callback = None
+        self._directory_only = directory_only
+        self._ignore_dotfiles = ignore_dotfiles
         self._selected_dir = os.getcwd()
         self._item_layout = Layout(width='auto')
         self._nb_rows = rows
         self._file_selector = Select(
-            options=os.listdir(self._selected_dir),
+            options=self._get_selector_options(),
             rows=min(len(os.listdir(self._selected_dir)), self._nb_rows),
             layout=self._item_layout
         )
@@ -39,6 +42,10 @@ class _FilePicker:
         )
         self._select_button = Button(
             description='select',
+            layout=Layout(flex='auto 1 auto', width='auto')
+        )
+        self._cancel_button = Button(
+            description='cancel',
             layout=Layout(flex='auto 1 auto', width='auto')
         )
         self._parent_button = Button(
@@ -54,26 +61,65 @@ class _FilePicker:
         self._parent_button.on_click(self._parent_button_clicked)
         self._open_button.on_click(self._open_button_clicked)
         self._select_button.on_click(self._select_button_clicked)
+        self._cancel_button.on_click(self._cancel_button_clicked)
         self._file_selector.observe(self._update_path)
 
         self._widget = VBox([
             HBox([
                 self._parent_button, self._selection, self._open_button,
-                self._select_button,
+                self._select_button, self._cancel_button,
             ]),
             self._file_selector
         ])
         self._result = self._selection.value
-        self._callback = None
+
+    def _get_selector_options(self):
+        options = os.listdir(self._selected_dir)
+        if self._ignore_dotfiles:
+            tmp = list()
+            for el in options:
+                if el[0] != '.':
+                    tmp.append(el)
+            options = tmp
+        if self._directory_only:
+            tmp = list()
+            for el in options:
+                if os.path.isdir(os.path.join(self._selected_dir, el)):
+                    tmp.append(el)
+            options = tmp
+        return options
+
+    def _update_selector_options(self):
+        self._file_selector.options = self._get_selector_options()
+        self._file_selector.rows = min(
+            len(os.listdir(self._selected_dir)), self._nb_rows)
+        self._selection.value = os.path.join(
+            self._selected_dir, self._file_selector.value
+        )
+        self._result = self._selection.value
 
     def show(self):
+        self._update_selector_options()
         self._widget.layout.display = "block"
 
     def hide(self):
         self._widget.layout.display = "none"
 
+    def set_directory_only(self, state):
+        self._directory_only = state
+
+    def set_ignore_dotfiles(self, state):
+        self._ignore_dotfiles = state
+
     def connect(self, callback):
         self._callback = callback
+
+    def _open_button_clicked(self, button):
+        if os.path.isdir(self._selection.value):
+            self._selected_dir = self._selection.value
+            self._file_selector.options = self._get_selector_options()
+            self._file_selector.rows = min(
+                len(os.listdir(self._selected_dir)), self._nb_rows)
 
     def _select_button_clicked(self, button):
         if self._callback is not None:
@@ -82,22 +128,13 @@ class _FilePicker:
             self._callback = None  # reset the callback
         self.hide()
 
-    def _open_button_clicked(self, button):
-        if os.path.isdir(self._selection.value):
-            self._selected_dir = self._selection.value
-            self._file_selector.options = os.listdir(self._selected_dir)
-            self._file_selector.rows = min(
-                len(os.listdir(self._selected_dir)), self._nb_rows)
+    def _cancel_button_clicked(self, button):
+        self._callback = None  # reset the callback
+        self.hide()
 
     def _parent_button_clicked(self, button):
         self._selected_dir, _ = os.path.split(self._selected_dir)
-        self._file_selector.options = os.listdir(self._selected_dir)
-        self._file_selector.rows = min(
-            len(os.listdir(self._selected_dir)), self._nb_rows)
-        self._selection.value = os.path.join(
-            self._selected_dir, self._file_selector.value
-        )
-        self._result = self._selection.value
+        self._update_selector_options()
 
     def _update_path(self, change):
         self._selection.value = os.path.join(
@@ -294,6 +331,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         layout = self._dock_layout if layout is None else layout
 
         def callback():
+            self._file_picker.set_directory_only(is_directory)
             self._file_picker.connect(func)
             self._file_picker.show()
 
