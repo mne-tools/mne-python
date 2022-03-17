@@ -1,0 +1,79 @@
+<script type="text/javascript">
+  var platform = "Linux";
+
+  if (navigator.userAgent.indexOf("Win") !== -1) {
+    platform = "Windows";
+  }
+  if (navigator.userAgent.indexOf("Mac") !== -1) {
+    platform = "Mac";
+  }
+
+  $(document).ready(function () {
+    var cardToShow = document.querySelector(
+      `#downloadAccordion #collapse${platform}`
+    );
+    $(cardToShow).collapse('show');
+  });
+</script>
+
+<div class="accordion text-center mt-5 mb-5" id="downloadAccordion">
+  <div class="card">
+    <div class="card-header" id="mac">
+      <button class="btn btn-block collapsed" type="button" data-toggle="collapse" data-target="#collapseMac"
+        aria-expanded="false" aria-controls="collapseMac">
+        <h5 class="m-0 font-weight-bold">
+          <i class="fab fa-apple"></i>&ensp;MNE-Python for macOS
+        </h5>
+      </button>
+    </div>
+    <div id="collapseMac" class="collapse" aria-labelledby="mac" data-parent="#downloadAccordion">
+      <div class="card-body">
+        <a class="btn btn-primary fon-weight-bold shadow-sm mt-3 mb-3" role="button"
+          href="https://github.com/hoechenberger/mne-installers/releases/download/v1.0.0-pre8/MNE-Python-1.0.0_0-macOS.pkg">
+          <i class="fa fa-cloud-download-alt"></i>&ensp;Download for macOS
+        </a>
+        <p class="small"><strong>Supported platforms:</strong> macOS 10.15 (Catalina) and newer (Intel and Apple Silicon)</p>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header" id="linux">
+      <button class="btn btn-block collapsed" type="button" data-toggle="collapse" data-target="#collapseLinux"
+        aria-expanded="false" aria-controls="collapseLinux">
+        <h5 class="m-0 font-weight-bold">
+          <i class="fab fa-linux"></i>&ensp;MNE-Python for Linux
+        </h5>
+      </button>
+    </div>
+    <div id="collapseLinux" class="collapse" aria-labelledby="linux" data-parent="#downloadAccordion">
+      <div class="card-body">
+        <a class="btn btn-primary font-weight-bold shadow-sm mt-3 mb-3" role="button"
+          href="https://github.com/hoechenberger/mne-installers/releases/download/v1.0.0-pre8/MNE-Python-1.0.0_0-Linux.sh">
+          <i class="fa fa-cloud-download-alt"></i>&ensp;Download for Linux
+        </a>
+        <p class="small"><strong>Supported platforms:</strong> Ubuntu 18.04 (Bionic Beaver) and newer
+        </p>
+        <p>Run the installer in a terminal via <pre>sh ./MNE-Python-1.0.0_0-Linux.sh</pre></p>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header" id="windows">
+      <button class="btn btn-block collapsed" type="button" data-toggle="collapse" data-target="#collapseWindows"
+        aria-expanded="false" aria-controls="collapseWindows">
+        <h5 class="m-0 font-weight-bold">
+          <i class="fab fa-windows"></i>&ensp;MNE-Python for Windows
+        </h5>
+      </button>
+    </div>
+    <div id="collapseWindows" class="collapse" aria-labelledby="windows" data-parent="#downloadAccordion">
+      <div class="card-body">
+        <a class="btn btn-primary font-weight-bold shadow-sm mt-3 mb-3" role="button"
+          href="https://github.com/hoechenberger/mne-installers/releases/download/v1.0.0-pre8/MNE-Python-1.0.0_0-Windows.exe">
+          <i class="fa fa-cloud-download-alt"></i>&ensp;Download for Windows
+        </a>
+        <p class="small"><strong>Supported platform:</strong> Windows 10 and newer</p>
+      </div>
+    </div>
+  </div>
+</div>
