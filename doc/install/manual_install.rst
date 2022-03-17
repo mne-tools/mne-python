@@ -5,9 +5,6 @@
 Manual installation
 ===================
 
-Quickstart
-^^^^^^^^^^
-
 MNE-Python requires Python version |min_python_version| or higher. If you've
 never worked with Python before, skip ahead to the last paragraph of this page.
 For users already familiar with Python:
@@ -46,7 +43,7 @@ For users already familiar with Python:
   :doc:`FreeSurfer <freesurfer>`.
 
 Python IDEs
-^^^^^^^^^^^
+===========
 
 Most users find it convenient to write and run their code in an `Integrated
 Development Environment`_ (IDE). Some popular choices for scientific
