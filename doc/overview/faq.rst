@@ -15,8 +15,7 @@ General MNE-Python issues
 Help! I can't get Python and MNE-Python working!
 ------------------------------------------------
 
-Check out our installation instructions for :ref:`Python <install-python>` and
-:ref:`MNE-Python <standard_instructions>`.
+Check out our :ref:`installation instructions<installers>`.
 
 
 I still can't get it to work!

@@ -230,7 +230,8 @@ Troubleshooting 3D plots
 3D plotting trouble after upgrade on macOS
 ------------------------------------------
 
-When upgrading MNE-Python from version 0.19 or lower, some macOS users may end up with
+When upgrading MNE-Python from version 0.19 or lower, some macOS users may end
+up with
 conflicting versions of some of the 3D plotting dependencies. If you plot using
 the pyvista 3D backend and find that you can click-drag to rotate the brain,
 but cannot adjust any of the settings sliders, it is likely that your versions
