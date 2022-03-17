@@ -4,12 +4,14 @@
 #
 # License: Simplified BSD
 
+import os
 from contextlib import contextmanager, nullcontext
 
 from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, BoundedFloatText, HBox,
                         IntSlider, IntText, Text, VBox, IntProgress, Play,
-                        Checkbox, RadioButtons, HTML, Accordion, jsdlink)
+                        Checkbox, RadioButtons, HTML, Accordion, jsdlink,
+                        Layout, Select)
 
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
@@ -17,6 +19,91 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
 from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title  # noqa: F401,E501, analysis:ignore
+
+
+# modified from:
+# https://gist.github.com/elkhadiy/284900b3ea8a13ed7b777ab93a691719
+class _FilePicker:
+    def __init__(self, rows=20):
+        self._selected_dir = os.getcwd()
+        self._item_layout = Layout(width='auto')
+        self._nb_rows = rows
+        self._file_selector = Select(
+            options=os.listdir(self._selected_dir),
+            rows=min(len(os.listdir(self._selected_dir)), self._nb_rows),
+            layout=self._item_layout
+        )
+        self._open_button = Button(
+            description='open',
+            layout=Layout(flex='auto 1 auto', width='auto')
+        )
+        self._select_button = Button(
+            description='select',
+            layout=Layout(flex='auto 1 auto', width='auto')
+        )
+        self._parent_button = Button(
+            icon='chevron-up',
+            layout=Layout(flex='auto 1 auto', width='auto')
+        )
+        self._selection = HTML(
+            value=os.path.join(
+                self._selected_dir, self._file_selector.value),
+            disabled=True,
+            layout=Layout(flex='1 1 auto', width='auto')
+        )
+        self._parent_button.on_click(self._parent_button_clicked)
+        self._open_button.on_click(self._open_button_clicked)
+        self._select_button.on_click(self._select_button_clicked)
+        self._file_selector.observe(self._update_path)
+
+        self._widget = VBox([
+            HBox([
+                self._parent_button, self._selection, self._open_button,
+                self._select_button,
+            ]),
+            self._file_selector
+        ])
+        self._result = self._selection.value
+        self._callback = None
+
+    def show(self):
+        self._widget.layout.display = "block"
+
+    def hide(self):
+        self._widget.layout.display = "none"
+
+    def connect(self, callback):
+        self._callback = callback
+
+    def _select_button_clicked(self, button):
+        if self._callback is not None:
+            self._callback(self._result)
+            # the picker is shared so only one connection is allowed at a time
+            self._callback = None  # reset the callback
+        self.hide()
+
+    def _open_button_clicked(self, button):
+        if os.path.isdir(self._selection.value):
+            self._selected_dir = self._selection.value
+            self._file_selector.options = os.listdir(self._selected_dir)
+            self._file_selector.rows = min(
+                len(os.listdir(self._selected_dir)), self._nb_rows)
+
+    def _parent_button_clicked(self, button):
+        self._selected_dir, _ = os.path.split(self._selected_dir)
+        self._file_selector.options = os.listdir(self._selected_dir)
+        self._file_selector.rows = min(
+            len(os.listdir(self._selected_dir)), self._nb_rows)
+        self._selection.value = os.path.join(
+            self._selected_dir, self._file_selector.value
+        )
+        self._result = self._selection.value
+
+    def _update_path(self, change):
+        self._selection.value = os.path.join(
+            self._selected_dir, self._file_selector.value
+        )
+        self._result = self._selection.value
 
 
 class _IpyDialog(_AbstractDialog):
@@ -204,7 +291,19 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self, name, desc, func, *, filter=None, initial_directory=None,
         save=False, is_directory=False, tooltip=None, layout=None
     ):
-        pass
+        layout = self._dock_layout if layout is None else layout
+
+        def callback():
+            self._file_picker.connect(func)
+            self._file_picker.show()
+
+        widget = self._dock_add_button(
+            name=desc,
+            callback=callback,
+            tooltip=tooltip,
+            layout=layout,
+        )
+        return widget
 
 
 def _generate_callback(callback, to_float=False):
@@ -501,6 +600,7 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         self._menu_bar = None
         self._tool_bar = None
         self._status_bar = None
+        self._file_picker = _FilePicker(rows=10)
         kwargs["notebook"] = True
         super().__init__(*args, **kwargs)
 
@@ -542,6 +642,9 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         # status bar
         if self._status_bar is not None:
             display(self._status_bar)
+        # file picker
+        self._file_picker.hide()
+        display(self._file_picker._widget)
         return self.scene()
 
 
