@@ -28,7 +28,7 @@ subject-specific MRI, or projection into a surface, see
 how to visualize surface grid channels on the brain.
 
 Please note that this tutorial requires 3D plotting dependencies,
-see :ref:`quick-start`.
+see :ref:`manual-install`.
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>

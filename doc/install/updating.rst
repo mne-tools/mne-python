@@ -4,6 +4,14 @@ Updating MNE-Python
 If you want to update MNE-Python to a newer version, there are a few different
 options, depending on how you originally installed it.
 
+.. hint::
+   To update via the :ref:`MNE-Python installers<installers>`, simply
+   download and run the latest installer for your platform. MNE-Python will be
+   installed in parallel to your existing installation, which you may uninstall
+   or delete if you don't need it anymore.
+
+If you're not using the MNE-Python installers, keep reading.
+
 .. warning::
 
     Before performing package upgrade operations, check to make sure that the

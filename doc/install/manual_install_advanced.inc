@@ -72,7 +72,7 @@ the notebook 3d backend:
 
 
 The notebook 3d backend requires PyVista to be installed along with other packages,
-please follow :doc:`mne_python`.
+please follow :ref:`standard-instructions`.
 
 
 Using the development version
@@ -228,7 +228,7 @@ Troubleshooting 3D plots
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 3D plotting trouble after upgrade on macOS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------
 
 When upgrading MNE-Python from version 0.19 or lower, some macOS users may end up with
 conflicting versions of some of the 3D plotting dependencies. If you plot using

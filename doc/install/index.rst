@@ -6,10 +6,7 @@
     :hidden:
 
     installers
-    quickstart
-    pre_install
-    install_python
-    mne_python
+    manual_install
     updating
     freesurfer
-    advanced
+    mne_tools_suite
