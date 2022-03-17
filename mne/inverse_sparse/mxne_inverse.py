@@ -61,8 +61,9 @@ def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
 def _prepare_gain(forward, info, noise_cov, pca, depth, loose, rank,
                   weights=None, weights_min=None):
     depth = _check_depth(depth, 'depth_sparse')
+    fixed = is_fixed_orient(forward)
     forward, gain_info, gain, _, _, source_weighting, _, _, whitener = \
-        _prepare_forward(forward, info, noise_cov, 'auto', loose, rank, pca,
+        _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                          use_cps=True, **depth)
 
     if weights is None:

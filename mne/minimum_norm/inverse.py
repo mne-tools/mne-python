@@ -1406,7 +1406,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     # put the forward solution in correct orientation
     # (delaying for the case of fixed ori with depth weighting if
     # allow_fixed_depth is True)
-    if loose.get('surface', 1.) == 0. and len(loose) == 1:
+    if list(loose.values()) == [0.]:
         if not is_fixed_orient(forward):
             if allow_fixed_depth:
                 # can convert now
@@ -1442,7 +1442,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             rank=rank)
 
     # Deal with fixed orientation forward / inverse
-    if loose.get('surface', 1.) == 0. and len(loose) == 1:
+    if list(loose.values()) == [0.]:
         orient_prior = None
         if not is_fixed_orient(forward):
             if depth_prior is not None:
