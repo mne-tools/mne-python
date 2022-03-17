@@ -38,8 +38,8 @@ bundles to the ``Applications`` folder on macOS.
    usually be much faster.
 
 
-Using MNE-Python with VS Code
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+VS Code Setup
+^^^^^^^^^^^^^
 
 If you want to use MNE-Python with Visual Studio Code, you need to tell the
 VS Code Python extension where to find the respective Python executable. To do
