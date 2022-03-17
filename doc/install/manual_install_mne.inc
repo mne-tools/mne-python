@@ -3,7 +3,7 @@
 .. _standard-instructions:
 
 Installing MNE-Python
-=====================
+^^^^^^^^^^^^^^^^^^^^^
 
 .. highlight:: console
 
@@ -11,7 +11,7 @@ Once you have Python/Anaconda installed, you have a few choices for how to
 install MNE-Python.
 
 2D plotting and sensor-level analysis
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you only need 2D plotting capabilities with MNE-Python (i.e., most EEG/ERP
 or other sensor-level analyses), you can install all you need by running
@@ -36,7 +36,7 @@ project-specific environment will have a record of which versions of the
 various software packages are installed in it (accessible with ``conda list``).
 
 3D plotting and source analysis
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you need MNE-Python's 3D rendering capabilities (e.g., plotting estimated
 source activity on a cortical surface) it is best to install
@@ -103,7 +103,7 @@ your operating system.
     </script>
 
 Installing to a headless server
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. collapse:: |server| If you are installing on a headless server...
     :class: danger
@@ -116,7 +116,7 @@ Installing to a headless server
         $ conda create --name=mne --file=server_environment.yml
 
 Testing your installation
-^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To make sure MNE-Python installed itself and its dependencies correctly,
 type the following command in a terminal::
@@ -183,10 +183,3 @@ troubleshooting installation problems.
 .. _`pyvista`: https://docs.pyvista.org/
 .. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
 .. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb
-.. _`integrated development environment`: https://en.wikipedia.org/wiki/Integrated_development_environment
-.. _`spyder`: https://www.spyder-ide.org/
-.. _`visual studio code`: https://code.visualstudio.com/
-.. _`sublimetext`: https://www.sublimetext.com/
-.. _`terminus`: https://packagecontrol.io/packages/Terminus
-.. _`pycharm`: https://www.jetbrains.com/pycharm/
-.. _`atom`: https://atom.io/

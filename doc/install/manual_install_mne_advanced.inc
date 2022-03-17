@@ -3,10 +3,10 @@
 .. _advanced_setup:
 
 Advanced setup
-==============
+^^^^^^^^^^^^^^
 
 Using with IPython / Jupyter notebooks
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When using MNE-Python within IPython or a Jupyter notebook, we strongly
 recommend using the Qt matplotlib backend for fast and correct rendering. On
@@ -76,7 +76,7 @@ please follow :ref:`standard-instructions`.
 
 
 Using the development version
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 See :ref:`installing_main` for how to do a one-time update to the latest
 development version of MNE-Python. If you plan to contribute to MNE-Python, or
@@ -87,7 +87,7 @@ instructions for installing from a ``git clone`` in the :ref:`contributing`.
 .. _other-py-distros:
 
 Other Python distributions
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 While the `Anaconda`_ Python distribution provides many conveniences, other
 distributions of Python should also work with MNE-Python.  In particular,
@@ -128,7 +128,7 @@ installation choices.
 .. _CUDA:
 
 GPU acceleration with CUDA
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 MNE-Python can utilize `NVIDIA CUDA GPU processing`_ to speed up some
 operations (e.g. FIR filtering) by roughly an order of magnitude. To use CUDA,
@@ -159,7 +159,7 @@ and they should run faster than the CPU-based multithreading such as
 ``n_jobs=8``.
 
 Off-screen rendering with MESA
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 On remote Linux systems, it might be possible to use MESA software rendering
 (such as ``llvmpipe`` or ``swr``) for 3D visualization (with some tweaks).
@@ -225,7 +225,7 @@ and it should show the right version of MESA::
 .. _troubleshoot_3d:
 
 Troubleshooting 3D plots
-^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 3D plotting trouble after upgrade on macOS
 ------------------------------------------

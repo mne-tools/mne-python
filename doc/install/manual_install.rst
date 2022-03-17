@@ -2,8 +2,8 @@
 
 .. _manual-install:
 
-Manual installation
-===================
+Manual setup
+============
 
 MNE-Python requires Python version |min_python_version| or higher. If you've
 never worked with Python before, skip ahead to the last paragraph of this page.
@@ -114,10 +114,15 @@ if you don't already have it. The :ref:`advanced_setup` page has additional
 tips and tricks for special situations (servers, notebooks, CUDA, installing
 the development version, etc). The :ref:`contributing` has additional
 installation instructions for (future) contributors to MNE-Python (e.g, extra
-dependencies for running our tests and building our docs).
+dependencies for running our tests and building our documentation).
 
-.. include:: manual_install_python.inc
 
-.. include:: manual_install_mne.inc
+.. LINKS
 
-.. include:: manual_install_advanced.inc
+.. _`integrated development environment`: https://en.wikipedia.org/wiki/Integrated_development_environment
+.. _`spyder`: https://www.spyder-ide.org/
+.. _`visual studio code`: https://code.visualstudio.com/
+.. _`sublimetext`: https://www.sublimetext.com/
+.. _`terminus`: https://packagecontrol.io/packages/Terminus
+.. _`pycharm`: https://www.jetbrains.com/pycharm/
+.. _`atom`: https://atom.io/
