@@ -13,8 +13,8 @@ Got any questions? Let us know on the `MNE Forum`_!
    :align: center
    :alt: MNE-Python installer on macOS
 
-Downloads
-^^^^^^^^^
+Download the installers
+^^^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
     :file: installers_platform_selector.html
