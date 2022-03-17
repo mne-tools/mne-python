@@ -126,7 +126,7 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                               node_edgecolor='black', linewidth=1.5,
                               colormap='hot', vmin=None, vmax=None,
                               colorbar=True, title=None,
-                              colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
+                              colorbar_size=None, colorbar_pos=None,
                               fontsize_title=12, fontsize_names=8,
                               fontsize_colorbar=8, padding=6.,
                               ax=None, interactive=True,
@@ -321,9 +321,12 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         sm = plt.cm.ScalarMappable(cmap=colormap,
                                    norm=plt.Normalize(vmin, vmax))
         sm.set_array(np.linspace(vmin, vmax))
-        cb = plt.colorbar(sm, ax=ax, use_gridspec=False,
-                          shrink=colorbar_size,
-                          anchor=colorbar_pos)
+        colorbar_kwargs = dict()
+        if colorbar_size is not None:
+            colorbar_kwargs.update(shrink=colorbar_size)
+        if colorbar_pos is not None:
+            colorbar_kwargs.update(anchor=colorbar_pos)
+        cb = fig.colorbar(sm, ax=ax, **colorbar_kwargs)
         cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
         cb.ax.tick_params(labelsize=fontsize_colorbar)
         plt.setp(cb_yticks, color=textcolor)
