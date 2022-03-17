@@ -940,14 +940,17 @@ class CoregistrationUI(HasTraits):
     def _update_parameters(self):
         with self._lock(plot=True, params=True):
             # rotation
-            self._forward_widget_command(["rX", "rY", "rZ"], "set_value",
-                                         np.rad2deg(self.coreg._rotation))
+            deg = np.rad2deg(self.coreg._rotation)
+            logger.debug(f'  Rotation:    {deg}')
+            self._forward_widget_command(["rX", "rY", "rZ"], "set_value", deg)
             # translation
-            self._forward_widget_command(["tX", "tY", "tZ"], "set_value",
-                                         self.coreg._translation * 1e3)
+            mm = self.coreg._translation * 1e3
+            logger.debug(f'  Translation: {mm}')
+            self._forward_widget_command(["tX", "tY", "tZ"], "set_value", mm)
             # scale
-            self._forward_widget_command(["sX", "sY", "sZ"], "set_value",
-                                         self.coreg._scale * 1e2)
+            sc = self.coreg._scale * 1e2
+            logger.debug(f'  Scale:       {sc}')
+            self._forward_widget_command(["sX", "sY", "sZ"], "set_value", sc)
 
     def _reset(self, keep_trans=False):
         """Refresh the scene, and optionally reset transformation & scaling.
@@ -1566,7 +1569,7 @@ class CoregistrationUI(HasTraits):
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=name,
                 value=attr[coords.index(coord)] * 1e2,
-                rng=[1., 1e2],
+                rng=[1., 10000.],  # percent
                 callback=partial(
                     self._set_parameter,
                     mode_name="scale",
@@ -1742,7 +1745,7 @@ class CoregistrationUI(HasTraits):
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=fid,
                 value=getattr(self, f"_{fid_lower}_weight"),
-                rng=[1., 100.],
+                rng=[0., 100.],
                 callback=partial(self._set_point_weight, point=fid_lower),
                 compact=True,
                 double=True,

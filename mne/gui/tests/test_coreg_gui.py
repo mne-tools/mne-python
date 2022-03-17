@@ -147,7 +147,7 @@ def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
     with catch_logging() as log:
         coreg = coregistration(inst=raw_path, subject='sample',
                                head_high_res=False,  # for speed
-                               subjects_dir=subjects_dir, verbose=True)
+                               subjects_dir=subjects_dir, verbose='debug')
     log = log.getvalue()
     assert 'Total 16/78 points inside the surface' in log
     coreg._set_fiducials_file(fid_fname)
@@ -162,12 +162,16 @@ def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
     assert_allclose(coreg.coreg._scale,
                     np.array([97.46, 97.46, 97.46]) * 1e-2,
                     atol=1e-3)
+    shown_scale = [coreg._widgets[f's{x}'].get_value() for x in 'XYZ']
+    assert_allclose(shown_scale, coreg.coreg._scale * 100, atol=1e-2)
     coreg._set_icp_fid_match("nearest")
     coreg._set_scale_mode("3-axis")
     coreg._fits_icp()
     assert_allclose(coreg.coreg._scale,
                     np.array([104.43, 101.47, 125.78]) * 1e-2,
                     atol=1e-3)
+    shown_scale = [coreg._widgets[f's{x}'].get_value() for x in 'XYZ']
+    assert_allclose(shown_scale, coreg.coreg._scale * 100, atol=1e-2)
     coreg._set_scale_mode("None")
     coreg._set_icp_fid_match("matched")
     assert coreg._mri_scale_modified
@@ -226,7 +230,7 @@ def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
     log = log.getvalue()
     assert 'Total 6/78 points inside the surface' in log
     norm = np.linalg.norm(coreg._head_geo['rr'])  # what's used for inside
-    assert_allclose(norm, 5.947604, atol=1e-3)
+    assert_allclose(norm, 5.949288, atol=1e-3)
     coreg._set_grow_hair(20.0)
     with catch_logging() as log:
         coreg._redraw()
