@@ -88,13 +88,6 @@ Python development are:
   <https://marketplace.visualstudio.com/items?itemName=ms-python.python>`__ is
   enough to get most Python users up and running. VS Code is free and
   open-source.
-- `Atom`_ is a text editor similar to vscode, with a package ecosystem that
-  includes a `Python IDE package <https://atom.io/packages/ide-python>`__ as
-  well as `several <https://atom.io/packages/atom-terminal>`__
-  `packages <https://atom.io/packages/atom-terminal-panel>`__
-  `for <https://atom.io/packages/terminal-plus>`__
-  `integrated <https://atom.io/packages/platformio-ide-terminal>`__
-  `terminals <https://atom.io/packages/term3>`__. Atom is free and open-source.
 - `SublimeText`_ is a general-purpose text editor that is fast and lightweight,
   and also has a rich package ecosystem. There is a package called `Terminus`_
   that provides an integrated terminal console, and a (confusingly named)
@@ -125,4 +118,3 @@ dependencies for running our tests and building our documentation).
 .. _`sublimetext`: https://www.sublimetext.com/
 .. _`terminus`: https://packagecontrol.io/packages/Terminus
 .. _`pycharm`: https://www.jetbrains.com/pycharm/
-.. _`atom`: https://atom.io/
