@@ -28,6 +28,7 @@ class _FilePicker:
         self._callback = None
         self._directory_only = directory_only
         self._ignore_dotfiles = ignore_dotfiles
+        self._empty_selection = True
         self._selected_dir = os.getcwd()
         self._item_layout = Layout(width='auto')
         self._nb_rows = rows
@@ -87,6 +88,11 @@ class _FilePicker:
                 if os.path.isdir(os.path.join(self._selected_dir, el)):
                     tmp.append(el)
             options = tmp
+        if not options:
+            options = ['']
+            self._empty_selection = True
+        else:
+            self._empty_selection = False
         return options
 
     def _update_selector_options(self):
@@ -115,6 +121,8 @@ class _FilePicker:
         self._callback = callback
 
     def _open_button_clicked(self, button):
+        if self._empty_selection:
+            return
         if os.path.isdir(self._selection.value):
             self._selected_dir = self._selection.value
             self._file_selector.options = self._get_selector_options()
@@ -122,6 +130,8 @@ class _FilePicker:
                 len(os.listdir(self._selected_dir)), self._nb_rows)
 
     def _select_button_clicked(self, button):
+        if self._empty_selection:
+            return
         if self._callback is not None:
             self._callback(self._result)
             # the picker is shared so only one connection is allowed at a time
