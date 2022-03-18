@@ -12,7 +12,8 @@ Installing MNE-Python
 
     installers
     manual_install
-    manual_install_advanced
+    advanced
+    check_installation
     updating
     freesurfer
     mne_tools_suite
