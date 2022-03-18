@@ -38,22 +38,22 @@ class _FilePicker:
             layout=self._item_layout
         )
         self._open_button = Button(
-            description='open',
+            description='Open',
             layout=Layout(flex='auto 1 auto', width='auto')
         )
         self._select_button = Button(
-            description='select',
+            description='Select',
             layout=Layout(flex='auto 1 auto', width='auto')
         )
         self._cancel_button = Button(
-            description='cancel',
+            description='Cancel',
             layout=Layout(flex='auto 1 auto', width='auto')
         )
         self._parent_button = Button(
             icon='chevron-up',
             layout=Layout(flex='auto 1 auto', width='auto')
         )
-        self._selection = HTML(
+        self._selection = Text(
             value=os.path.join(
                 self._selected_dir, self._file_selector.value),
             disabled=True,
@@ -67,10 +67,12 @@ class _FilePicker:
 
         self._widget = VBox([
             HBox([
-                self._parent_button, self._selection, self._open_button,
-                self._select_button, self._cancel_button,
+                self._parent_button, self._selection,
             ]),
-            self._file_selector
+            self._file_selector,
+            HBox([
+                self._open_button, self._select_button, self._cancel_button,
+            ]),
         ])
         self._result = self._selection.value
 
