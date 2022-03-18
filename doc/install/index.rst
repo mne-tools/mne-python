@@ -1,4 +1,5 @@
 .. _install:
+.. _quick-start:
 
 Installing MNE-Python
 ======================
