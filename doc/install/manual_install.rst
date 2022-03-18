@@ -6,7 +6,7 @@ Manual setup
 ============
 
 .. hint::
-   If you're unfamiliar with Python, we recommend using our `installers`_
+   If you're unfamiliar with Python, we recommend using our :ref:`installers`
    instead.
 
 MNE-Python requires Python version |min_python_version| or higher. If you've

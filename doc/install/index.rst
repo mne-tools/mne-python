@@ -1,6 +1,10 @@
-.. _installers:
+.. _install:
 
-.. include:: installers.rst
+Installing MNE-Python
+======================
+
+.. raw:: html
+   :file: install_type_selector.html
 
 .. toctree::
     :hidden:
