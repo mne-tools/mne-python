@@ -42,7 +42,6 @@ see :ref:`quick-start`.
 import os.path as op
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import fetch_fsaverage
@@ -127,8 +126,7 @@ print(f'Electrodes in the dataset: {electrodes}')
 electrodes = ('LPM', 'LSMA')  # choose two for this example
 for elec in electrodes:
     picks = [ch_name for ch_name in epochs.ch_names if elec in ch_name]
-    fig = plt.figure(num=None, figsize=(8, 8), facecolor='black')
-    mne.viz.plot_channel_labels_circle(labels, colors, picks=picks, fig=fig)
+    fig, ax = mne.viz.plot_channel_labels_circle(labels, colors, picks=picks)
     fig.text(0.3, 0.9, 'Anatomical Labels', color='white')
 
 # %%

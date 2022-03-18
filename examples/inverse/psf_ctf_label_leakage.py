@@ -137,10 +137,11 @@ node_angles = circular_layout(label_names, node_order, start_pos=90,
                               group_boundaries=[0, len(label_names) / 2])
 # Plot the graph using node colors from the FreeSurfer parcellation. We only
 # show the 200 strongest connections.
-fig = plt.figure(num=None, figsize=(8, 8), facecolor='black')
+fig, ax = plt.subplots(
+    figsize=(8, 8), facecolor='black', subplot_kw=dict(projection='polar'))
 plot_connectivity_circle(leakage_mne, label_names, n_lines=200,
                          node_angles=node_angles, node_colors=label_colors,
-                         title='MNE Leakage', fig=fig)
+                         title='MNE Leakage', ax=ax)
 
 # %%
 # Most leakage occurs for neighbouring regions, but also for deeper regions
