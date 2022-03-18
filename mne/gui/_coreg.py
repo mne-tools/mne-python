@@ -472,7 +472,7 @@ class CoregistrationUI(HasTraits):
         self.coreg.fiducials.dig[fid_idx]['r'][coord_idx] = value / 1e3
         self._update_plot("mri_fids")
 
-    def _set_parameter(self, value, mode_name, coord):
+    def _set_parameter(self, value, mode_name, coord, plot_locked=False):
         if mode_name == "scale":
             self._mri_scale_modified = True
         else:
@@ -485,7 +485,8 @@ class CoregistrationUI(HasTraits):
                     ["sY", "sZ"], "set_value", value)
         with self._parameter_mutex:
             self. _set_parameter_safe(value, mode_name, coord)
-        self._update_plot("sensors")
+        if not plot_locked:
+            self._update_plot("sensors")
 
     def _set_parameter_safe(self, value, mode_name, coord):
         params = dict(
@@ -1242,10 +1243,11 @@ class CoregistrationUI(HasTraits):
     def _task_set_parameter(self, value, mode_name, coord):
         from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
         if MNE_3D_BACKEND_TESTING:
-            self._set_parameter(value, mode_name, coord)
+            self._set_parameter(value, mode_name, coord, self._plot_locked)
         else:
             self._parameter_queue.put(_WorkerData("set_parameter", dict(
-                value=value, mode_name=mode_name, coord=coord)))
+                value=value, mode_name=mode_name, coord=coord,
+                plot_locked=self._plot_locked)))
 
     def _overwrite_subject_callback(self, button_name):
         if button_name == "Yes":
@@ -1353,6 +1355,7 @@ class CoregistrationUI(HasTraits):
         )
         self._update_parameters()
         self._update_distance_estimation()
+        self._update_plot()
         self._display_message(
             f"{fname} transform file is loaded.")
 
