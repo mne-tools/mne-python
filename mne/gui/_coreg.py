@@ -1535,29 +1535,31 @@ class CoregistrationUI(HasTraits):
             tooltip="Compensate for hair on the digitizer head shape",
             layout=dig_source_layout,
         )
-        omit_hsp_layout = self._renderer._dock_add_layout(vertical=False)
+        omit_hsp_layout_1 = self._renderer._dock_add_layout(vertical=False)
+        omit_hsp_layout_2 = self._renderer._dock_add_layout(vertical=False)
         self._widgets["omit_distance"] = self._renderer._dock_add_spin_box(
             name="Omit Distance (mm)",
             value=self._omit_hsp_distance,
             rng=[0.0, 100.0],
             callback=self._set_omit_hsp_distance,
             tooltip="Set the head shape points exclusion distance",
-            layout=omit_hsp_layout,
+            layout=omit_hsp_layout_1,
         )
         self._widgets["omit"] = self._renderer._dock_add_button(
             name="Omit",
             callback=self._omit_hsp,
             tooltip="Exclude the head shape points that are far away from "
                     "the MRI head",
-            layout=omit_hsp_layout,
+            layout=omit_hsp_layout_2,
         )
         self._widgets["reset_omit"] = self._renderer._dock_add_button(
             name="Reset",
             callback=self._reset_omit_hsp_filter,
             tooltip="Reset all excluded head shape points",
-            layout=omit_hsp_layout,
+            layout=omit_hsp_layout_2,
         )
-        self._renderer._layout_add_widget(dig_source_layout, omit_hsp_layout)
+        self._renderer._layout_add_widget(dig_source_layout, omit_hsp_layout_1)
+        self._renderer._layout_add_widget(dig_source_layout, omit_hsp_layout_2)
 
         view_options_layout = self._renderer._dock_add_group_box(
             name="View Options",
