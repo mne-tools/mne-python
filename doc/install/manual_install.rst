@@ -5,6 +5,10 @@
 Manual setup
 ============
 
+.. hint::
+   If you're unfamiliar with Python, we recommend using our `installers`_
+   instead.
+
 MNE-Python requires Python version |min_python_version| or higher. If you've
 never worked with Python before, skip ahead to the last paragraph of this page.
 For users already familiar with Python:
