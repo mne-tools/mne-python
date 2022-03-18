@@ -28,8 +28,8 @@ MNE-Python Homepage
 .. toctree::
    :hidden:
 
-   Install<install/index>
-   Documentation<overview/index>
-   API Reference<python_reference>
-   Get help<overview/get_help>
-   Development<overview/development>
+   Install <install/index>
+   Documentation <overview/index>
+   API Reference <python_reference>
+   Get help <overview/get_help>
+   Development <overview/development>
