@@ -59,6 +59,10 @@ class _FilePicker:
             disabled=True,
             layout=Layout(flex='1 1 auto', width='auto')
         )
+        self._filename = Text(
+            value='',
+            layout=Layout(flex='1 1 auto', width='auto')
+        )
         self._parent_button.on_click(self._parent_button_clicked)
         self._open_button.on_click(self._open_button_clicked)
         self._select_button.on_click(self._select_button_clicked)
@@ -67,14 +71,14 @@ class _FilePicker:
 
         self._widget = VBox([
             HBox([
-                self._parent_button, self._selection,
+                self._parent_button, HTML(value='Look in:'), self._selection,
             ]),
             self._file_selector,
             HBox([
-                self._open_button, self._select_button, self._cancel_button,
+                HTML(value='File name'), self._filename, self._open_button,
+                self._select_button, self._cancel_button,
             ]),
         ])
-        self._result = self._selection.value
 
     def _get_selector_options(self):
         options = os.listdir(self._selected_dir)
@@ -104,7 +108,7 @@ class _FilePicker:
         self._selection.value = os.path.join(
             self._selected_dir, self._file_selector.value
         )
-        self._result = self._selection.value
+        self._filename.value = self._file_selector.value
 
     def show(self):
         self._update_selector_options()
@@ -134,8 +138,9 @@ class _FilePicker:
     def _select_button_clicked(self, button):
         if self._empty_selection:
             return
+        result = os.path.join(self._selected_dir, self._filename.value)
         if self._callback is not None:
-            self._callback(self._result)
+            self._callback(result)
             # the picker is shared so only one connection is allowed at a time
             self._callback = None  # reset the callback
         self.hide()
@@ -152,7 +157,7 @@ class _FilePicker:
         self._selection.value = os.path.join(
             self._selected_dir, self._file_selector.value
         )
-        self._result = self._selection.value
+        self._filename.value = self._file_selector.value
 
 
 class _IpyDialog(_AbstractDialog):
