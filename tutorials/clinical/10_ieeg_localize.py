@@ -20,7 +20,7 @@ MR-space (which is where the brain structures are best determined using the
 be warped to a template space such as ``fsaverage`` for group comparisons.
 Please note that this tutorial requires ``nibabel``, ``nilearn`` and ``dipy``
 which can be installed using ``pip`` as well as 3D plotting
-(see :ref:`quick-start`).
+(see :ref:`manual-install`).
 """
 
 # Authors: Alex Rockhill <aprockhill@mailbox.org>

@@ -71,7 +71,8 @@ What should I install?
 ^^^^^^^^^^^^^^^^^^^^^^
 
 If you intend only to perform ERP, ERF, or other sensor-level analyses,
-:doc:`MNE-Python <mne_python>` is all you need. If you prefer to work with
+:ref:`MNE-Python <standard-instructions>` is all you need. If you prefer to
+work with
 shell scripts and the Unix command line, or prefer MATLAB over Python, probably
 all you need is :doc:`MNE-C <mne_c>` — the MNE MATLAB toolbox is distributed
 with it — although note that the C tools and the MATLAB toolbox are less
