@@ -43,7 +43,7 @@ bundles to the ``Applications`` folder on macOS.
 VS Code Setup
 ^^^^^^^^^^^^^
 
-If you want to use MNE-Python with Visual Studio Code, you need to tell the
+If you want to use MNE-Python with `Visual Studio Code`_, you need to tell the
 VS Code Python extension where to find the respective Python executable. To do
 so, simply start the **MNE Prompt**. It will display several lines of
 information, including a line that will read something like:

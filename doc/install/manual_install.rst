@@ -113,13 +113,3 @@ Python development are:
   all-in-one installation (no extension packages needed). PyCharm comes in a
   free "community" edition and a paid "professional" edition, and is
   closed-source.
-
-
-.. LINKS
-
-.. _`integrated development environment`: https://en.wikipedia.org/wiki/Integrated_development_environment
-.. _`spyder`: https://www.spyder-ide.org/
-.. _`visual studio code`: https://code.visualstudio.com/
-.. _`sublimetext`: https://www.sublimetext.com/
-.. _`terminus`: https://packagecontrol.io/packages/Terminus
-.. _`pycharm`: https://www.jetbrains.com/pycharm/
