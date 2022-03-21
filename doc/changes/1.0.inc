@@ -16,10 +16,10 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
-.. _current:
+.. _changes_1_0_0:
 
-Current (1.0.dev0)
--------------------
+Version 1.0.0 (2022-03-21)
+--------------------------
 
 Enhancements
 ~~~~~~~~~~~~
@@ -29,6 +29,10 @@ Enhancements
 - Speed up :func:`mne.preprocessing.annotate_muscle_zscore`, :func:`mne.preprocessing.annotate_movement`, and :func:`mne.preprocessing.annotate_nan` through better annotation creation (:gh:`10089` by :newcontrib:`Senwen Deng`)
 
 - Fix some unused variables in time_frequency_erds.py example (:gh:`10076` by :newcontrib:`Jan Zerfowski`)
+
+- Document ``BAD_ACQ_SKIP`` annotation behavior (:gh:`10054` by :newcontrib:`Etienne de Montalivet`)
+
+- Add link to related ``MNE-ARI`` package (:gh:`10174` by :newcontrib:`John Veillette`)
 
 - :func:`mne.time_frequency.psd_array_multitaper` can now return complex results per-taper when specifying ``output='complex'`` (:gh:`10307` by `Mikołaj Magnuski`_)
 
@@ -126,7 +130,7 @@ Enhancements
 
 - Add support for passing time-frequency data to :func:`mne.stats.spatio_temporal_cluster_test` and :func:`mne.stats.spatio_temporal_cluster_1samp_test` and added an example to :ref:`tut-cluster-spatiotemporal-sensor` (:gh:`10384` by `Alex Rockhill`_)
 
-- Add support for reading optical density fNIRS data to :func:`mne.io.read_raw_snirf` (:gh:`10408` by `Robert Luke`_)   
+- Add support for reading optical density fNIRS data to :func:`mne.io.read_raw_snirf` (:gh:`10408` by `Robert Luke`_)
 
 - Added :func:`mne.source_space.get_decimated_surfaces` to extract subsurfaces from a SourceSpaces instance or a .fif file (:gh:`10421` by `Joshua Teves`_)
 
@@ -143,6 +147,10 @@ Bugs
 - Add Shift_JIST mu in :func:`mne.io.read_raw_edf` (:gh:`10356` by :newcontrib:`Michiru Kaneda`)
 
 - Teach :func:`mne.io.read_raw_bti` to use its ``eog_ch`` parameter (:gh:`10093` by :newcontrib:`Adina Wagner`)
+
+- Fix use of arguments in :func:`numpy.loadtxt` (:gh:`10189` by :newcontrib:`Federico Zamberlan`)
+
+- Fix documentation of options in :func:`mne.stc_near_sensors` (:gh:`` by :newcontrib:`Nikolai Chapochnikov`)
 
 - :func:`mne.time_frequency.tfr_array_multitaper` now returns results per taper when ``output='complex'`` (:gh:`10281` by `Mikołaj Magnuski`_)
 
@@ -278,3 +286,40 @@ new dependencies have been added:
 
 
 .. _Jinja2: https://jinja.palletsprojects.com/
+
+Authors
+~~~~~~~
+
+* Adam Li
+* Adina Wagner+
+* Alex Rockhill
+* Alexandre Gramfort
+* Britta Westner
+* Clemens Brunner
+* Daniel McCloy
+* Eduard Ort
+* Eric Larson
+* Etienne de Montalivet+
+* Federico Zamberlan+
+* Guillaume Favelier
+* Jan Sosulski
+* Jan Zerfowski+
+* Jeff Stout
+* John Veillette+
+* Joshua Teves
+* Julia Guiomar Niso Galán
+* Luke Bloy
+* Marijn van Vliet
+* Martin Schulz
+* Mathieu Scheltienne
+* Matthias Eberlein+
+* Michiru Kaneda+
+* Mikołaj Magnuski
+* Nikolai Chapochnikov+
+* Richard Höchenberger
+* Robert Luke
+* Scott Huberty+
+* Senwen Deng+
+* Stefan Appelhoff
+* Steve Matindi
+* Thomas Hartmann
