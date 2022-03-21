@@ -13,8 +13,7 @@ on:
 jobs:
   # PIP-pre + non-default stim channel + log level info
   job:
-    timeout-minutes: 90
-    name: 'py3.10'
+    name: 'linux pip 3.10'
     runs-on: ubuntu-20.04
     defaults:
       run:
