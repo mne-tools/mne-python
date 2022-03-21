@@ -906,7 +906,10 @@ fixed_icons = (
     'bug', 'comment', 'hand-sparkles', 'magic', 'pencil-alt', 'remove-format',
     'universal-access', 'discourse', 'python'
 )
-other_icons = ('hand-paper', 'question', 'rocket', 'server')
+other_icons = (
+    'hand-paper', 'question', 'rocket', 'server', 'code', 'desktop',
+    'terminal'
+)
 icons = dict()
 for icon in brand_icons + fixed_icons + other_icons:
     font = ('fab' if icon in brand_icons else 'fas',)  # brand or solid font
