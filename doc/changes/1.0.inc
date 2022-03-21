@@ -266,7 +266,7 @@ API changes
 
 - Argument ``event_list`` has been deprecated in favor of ``events`` in :func:`mne.write_events` (:gh:`10056` by `Mathieu Scheltienne`_)
 
-- ``mne.preprocessing.annotate_flat`` has been deprecated in favor of :func`mne.preprocessing.annotate_amplitude`, that covers both minimum and maximum peak-to-peak variation. (:gh:`10143` by `Mathieu Scheltienne`_)
+- ``mne.preprocessing.annotate_flat`` has been deprecated in favor of :func:`mne.preprocessing.annotate_amplitude`, that covers both minimum and maximum peak-to-peak variation. (:gh:`10143` by `Mathieu Scheltienne`_)
 
 - The ``max_ori_out`` parameter of :func:`mne.beamformer.apply_lcmv` and related functions is being removed as only signed estimates are supported. ``abs(stc)`` can be used to obtain unsigned estimates (:gh:`10366` by `Eric Larson`_)
 
