@@ -528,11 +528,11 @@ workflows:
     jobs:
       - build_docs:
           scheduled: "true"
-          name: build_docs_main
+          name: build_docs_stable
       - deploy:
-          name: deploy_main
+          name: deploy_stable
           requires:
-            - build_docs_main
+            - build_docs_stable
     triggers:
       - schedule:
           # "At 00:00" (once a day) should be enough "0 0 * * *",
