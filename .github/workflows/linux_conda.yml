@@ -12,9 +12,8 @@ on:
 
 jobs:
   py39:
-    timeout-minutes: 90
     runs-on: ubuntu-20.04
-    name: py3.9
+    name: 'linux conda 3.9'
     defaults:
       run:
         shell: bash

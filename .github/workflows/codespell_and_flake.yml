@@ -15,7 +15,7 @@ on:
 
 jobs:
   style:
-    timeout-minutes: 90
+    name: 'codespell and flake'
     runs-on: ubuntu-20.04
     env:
       CODESPELL_DIRS: 'mne/ doc/ tutorials/ examples/'

@@ -13,8 +13,7 @@ on:
 jobs:
   # Minimal (runs with and without testing data)
   job:
-    timeout-minutes: 90
-    name: 'py3.7'
+    name: 'minimal 3.7'
     runs-on: ubuntu-20.04
     defaults:
       run:
