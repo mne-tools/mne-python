@@ -1,11 +1,14 @@
 [
     {
-        "name": "1.0 (devel)",
+        "name": "1.1 (devel)",
         "version": "dev"
     },
     {
-        "name": "0.24 (stable)",
+        "name": "1.0 (stable)",
         "version": "stable"
+    },
+    {
+        "version": "0.24"
     },
     {
         "version": "0.23"

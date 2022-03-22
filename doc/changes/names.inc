@@ -429,3 +429,11 @@
 .. _Michiru Kaneda: https://github.com/rcmdnk
 
 .. _Scott Huberty:  https://orcid.org/0000-0003-2637-031X
+
+.. _Etienne de Montalivet: https://github.com/etiennedemontalivet
+
+.. _Federico Zamberlan: https://github.com/fzamberlan
+
+.. _John Veillette: https://psychology.uchicago.edu/directory/john-veillette
+
+.. _Nikolai Chapochnikov: https://github.com/chapochn

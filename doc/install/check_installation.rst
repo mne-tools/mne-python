@@ -13,7 +13,7 @@ a terminal::
 
 .. hint::
    If you installed MNE-Python using one of our installers, enter the above
-   command in the **MNE Prompt**.
+   command in the **Prompt**.
 
 This should display some system information along with the versions of
 MNE-Python and its dependencies. Typical output looks like this::

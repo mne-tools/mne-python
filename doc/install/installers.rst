@@ -24,13 +24,13 @@ bundles to the ``Applications`` folder on macOS.
 .. rst-class:: mt-4
 .. rst-class:: mb-5
 
-- |code| |ensp| Use **MNE Spyder** to start writing your own analysis scripts right away, or to run one of our examples from this website.
+- |code| |ensp| Use **Spyder** to start writing your own analysis scripts right away, or to run one of our examples from this website.
 
   .. rst-class:: mt-3
-- |desktop| |ensp| With **MNE System Info**, list the versions of all installed MNE-Python-related packages.
+- |desktop| |ensp| With **System Info**, list the versions of all installed MNE-Python-related packages.
 
   .. rst-class:: mt-3
-- |terminal| |ensp| The **MNE Prompt** drops you into a command line interface with a properly activated MNE-Python environment.
+- |terminal| |ensp| The **Prompt** drops you into a command line interface with a properly activated MNE-Python environment.
 
 
 .. note::
@@ -45,7 +45,7 @@ VS Code Setup
 
 If you want to use MNE-Python with `Visual Studio Code`_, you need to tell the
 VS Code Python extension where to find the respective Python executable. To do
-so, simply start the **MNE Prompt**. It will display several lines of
+so, simply start the **Prompt**. It will display several lines of
 information, including a line that will read something like:
 
 .. code-block::
