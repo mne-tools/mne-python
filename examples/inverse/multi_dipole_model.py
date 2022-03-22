@@ -25,6 +25,8 @@ how to perform guided ECD modeling using only MNE-Python functionality.
 ###############################################################################
 # Importing everything and setting up the data paths for the MNE-Sample
 # dataset.
+import warnings
+
 import mne
 from mne.datasets import sample
 from mne.channels import read_vectorview_selection
@@ -69,17 +71,22 @@ cov = mne.read_cov(cov_fname)
 bem = mne.read_bem_solution(bem_fname)
 
 # Fit two dipoles at t=80ms. The first dipole is fitted using only the sensors
-# on the right side of the helmet. The second dipole is fitted using only the
-# sensors on the left side of the helmet.
+# on the left side of the helmet. The second dipole is fitted using only the
+# sensors on the right side of the helmet.
 picks_left = read_vectorview_selection('Left', info=info)
 evoked_fit_left = evoked_left.copy().crop(0.08, 0.08)
 evoked_fit_left.pick_channels(picks_left)
-dip_left, _ = mne.fit_dipole(evoked_fit_left, cov, bem)
 
 picks_right = read_vectorview_selection('Right', info=info)
 evoked_fit_right = evoked_right.copy().crop(0.08, 0.08)
 evoked_fit_right.pick_channels(picks_right)
-dip_right, _ = mne.fit_dipole(evoked_fit_right, cov, bem)
+
+# Fitting the dipoles with a subset of sensors currently generates warnings
+# regarding the projections. We will ignore these for now.
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    dip_left, _ = mne.fit_dipole(evoked_fit_left, cov, bem)
+    dip_right, _ = mne.fit_dipole(evoked_fit_right, cov, bem)
 
 ###############################################################################
 # Now that we have the location and orientations of the dipoles, compute the
