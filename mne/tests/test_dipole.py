@@ -509,6 +509,7 @@ def test_bdip(fname_dip_, fname_bdip_, tmp_path):
         this_bdip0 = this_bdip[0]
         _check_dipole(this_bdip0, 1)
 
+
 @testing.requires_testing_data
 def test_concatenate_dipoles():
     dips1 = read_dipole(fname_dip)

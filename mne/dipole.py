@@ -1598,7 +1598,7 @@ def concatenate_dipoles(dipoles):
 
     Notes
     -----
-    .. versionadded:: 1.0
+    .. versionadded:: 1.1
     """
     times, pos, amplitude, ori, gof = [], [], [], [], []
     for dipole in dipoles:
