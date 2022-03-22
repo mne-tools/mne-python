@@ -1395,6 +1395,19 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     loose = _triage_loose(forward['src'], loose, fixed)
     del fixed
 
+    # We only support fixed orientations for surface and discrete source
+    # spaces. Not volume or mixed.
+    fixed_inverse = all(v == 0. for v in loose.values())
+    if fixed_inverse:
+        if len(loose) > 1:  # Mixed source space
+            raise ValueError('Computing inverse solutions for mixed source '
+                             'spaces with fixed orientations is not '
+                             'supported.')
+        if 'volume' in loose:
+            raise ValueError('Computing inverse solutions for volume source '
+                             'spaces with fixed orientations is not '
+                             'supported.')
+
     # Deal with "depth"
     if exp is not None:
         exp = float(exp)
@@ -1403,10 +1416,10 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                              f'equal to 0, got {exp}')
         exp = exp or None  # alias 0. -> None
 
-    # put the forward solution in correct orientation
+    # Put the forward solution in correct orientation.
     # (delaying for the case of fixed ori with depth weighting if
     # allow_fixed_depth is True)
-    if list(loose.values()) == [0.]:
+    if fixed_inverse:
         if not is_fixed_orient(forward):
             if allow_fixed_depth:
                 # can convert now
@@ -1442,7 +1455,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             rank=rank)
 
     # Deal with fixed orientation forward / inverse
-    if list(loose.values()) == [0.]:
+    if fixed_inverse:
         orient_prior = None
         if not is_fixed_orient(forward):
             if depth_prior is not None:
@@ -1454,8 +1467,8 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             convert_forward_solution(
                 forward, surf_ori=True, force_fixed=True,
                 use_cps=use_cps, copy=False)
-    else:
-        if loose.get('surface', 1.) < 1:
+    else:  # Free or loose orientation
+        if any(v < 1 for v in loose.values()):
             assert forward['surf_ori']
         # In theory we could have orient_prior=None for loose=1., but
         # the MNE-C code does not do this
