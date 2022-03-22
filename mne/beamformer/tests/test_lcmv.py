@@ -678,7 +678,7 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
         # no reg
         (0.00, 'vector', None, True, None, 23, 24, 0.96, 0.97),
         (0.00, 'vector', 'unit-noise-gain-invariant', True, None, 52, 54, 0.95, 0.96),  # noqa: E501
-        (0.00, 'vector', 'unit-noise-gain', True, None, 44, 48, 0.97, 0.98),
+        (0.00, 'vector', 'unit-noise-gain', True, None, 44, 48, 0.97, 0.99),
         (0.00, 'vector', 'nai', True, None, 44, 48, 0.97, 0.99),
         (0.00, 'max-power', None, True, None, 14, 15, 0, 0),
         (0.00, 'max-power', 'unit-noise-gain-invariant', True, None, 35, 37, 0, 0),  # noqa: E501
