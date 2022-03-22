@@ -512,6 +512,7 @@ def test_bdip(fname_dip_, fname_bdip_, tmp_path):
 
 @testing.requires_testing_data
 def test_concatenate_dipoles():
+    """Test concatenating dipoles."""
     dips1 = read_dipole(fname_dip)
     dips2 = concatenate_dipoles([dips1[:5], dips1[5:]])
     assert_array_equal(dips1.times, dips2.times)
