@@ -1583,8 +1583,23 @@ def get_phantom_dipoles(kind='vectorview'):
     return pos, ori
 
 
-def _concatenate_dipoles(dipoles):
-    """Concatenate a list of dipoles."""
+def concatenate_dipoles(dipoles):
+    """Concatenate a list of dipoles.
+
+    Parameters
+    ----------
+    dipoles : list of Dipole
+        The dipoles to concatenate.
+
+    Returns
+    -------
+    dip : Dipole
+        A single Dipole object containing all the dipoles.
+
+    Notes
+    -----
+    .. versionadded:: 1.0
+    """
     times, pos, amplitude, ori, gof = [], [], [], [], []
     for dipole in dipoles:
         times.append(dipole.times)
@@ -1592,7 +1607,6 @@ def _concatenate_dipoles(dipoles):
         amplitude.append(dipole.amplitude)
         ori.append(dipole.ori)
         gof.append(dipole.gof)
-
     return Dipole(np.concatenate(times), np.concatenate(pos),
                   np.concatenate(amplitude), np.concatenate(ori),
                   np.concatenate(gof), name=None)

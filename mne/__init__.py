@@ -93,7 +93,8 @@ from .transforms import (read_trans, write_trans,
                          transform_surface_to, Transform)
 from .proj import (read_proj, write_proj, compute_proj_epochs,
                    compute_proj_evoked, compute_proj_raw, sensitivity_map)
-from .dipole import read_dipole, Dipole, DipoleFixed, fit_dipole
+from .dipole import (read_dipole, Dipole, DipoleFixed, fit_dipole,
+                     concatenate_dipoles)
 from .channels import (equalize_channels, rename_channels, find_layout,
                        read_vectorview_selection)
 from .report import Report, open_report

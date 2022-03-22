@@ -3051,8 +3051,8 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     _check_option('coord_frame', coord_frame, ['head', 'mri'])
 
     if not isinstance(dipole, Dipole):
-        from ..dipole import _concatenate_dipoles
-        dipole = _concatenate_dipoles(dipole)
+        from ..dipole import concatenate_dipoles
+        dipole = concatenate_dipoles(dipole)
     if idx == 'gof':
         idx = np.argmax(dipole.gof)
     elif idx == 'amplitude':

@@ -17,7 +17,8 @@ from mne import (read_dipole, read_forward_solution,
                  transform_surface_to, make_sphere_model, pick_types,
                  pick_info, EvokedArray, read_source_spaces, make_ad_hoc_cov,
                  make_forward_solution, Dipole, DipoleFixed, Epochs,
-                 make_fixed_length_events, Evoked, head_to_mni)
+                 make_fixed_length_events, Evoked, head_to_mni,
+                 concatenate_dipoles)
 from mne.dipole import get_phantom_dipoles, _BDIP_ERROR_KEYS
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
@@ -507,3 +508,13 @@ def test_bdip(fname_dip_, fname_bdip_, tmp_path):
         # Test whether indexing works
         this_bdip0 = this_bdip[0]
         _check_dipole(this_bdip0, 1)
+
+@testing.requires_testing_data
+def test_concatenate_dipoles():
+    dips1 = read_dipole(fname_dip)
+    dips2 = concatenate_dipoles([dips1[:5], dips1[5:]])
+    assert_array_equal(dips1.times, dips2.times)
+    assert_array_equal(dips1.pos, dips2.pos)
+    assert_array_equal(dips1.amplitude, dips2.amplitude)
+    assert_array_equal(dips1.ori, dips2.ori)
+    assert_array_equal(dips1.gof, dips2.gof)
