@@ -196,7 +196,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         if self._docks is None:
             self._docks = dict()
         current_dock = VBox()
-        self._dock_width = 300
+        self._dock_width = 302
         self._dock = self._dock_layout = current_dock
         self._dock.layout.width = f"{self._dock_width}px"
         self._layout_initialize(self._dock_width)
@@ -268,10 +268,12 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         widget = Checkbox(
             value=value,
             description=name,
+            indent=False,
             disabled=False
         )
+        hbox = HBox([widget])  # fix stretching to the right
         widget.observe(_generate_callback(callback), names='value')
-        self._layout_add_widget(layout, widget)
+        self._layout_add_widget(layout, hbox)
         return _IpyWidget(widget)
 
     def _dock_add_spin_box(self, name, value, rng, callback, *,

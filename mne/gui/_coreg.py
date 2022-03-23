@@ -1731,13 +1731,13 @@ class CoregistrationUI(HasTraits):
             filter='Head->MRI transformation (*-trans.fif *_trans.fif)',
             initial_directory=str(Path(self._info_file).parent),
         )
+        self._renderer._layout_add_widget(trans_layout, save_trans_layout)
         self._widgets["reset_trans"] = self._renderer._dock_add_button(
-            name="Reset",
+            name="Reset Parameters",
             callback=self._reset,
             tooltip="Reset all the parameters affecting the coregistration",
-            layout=save_trans_layout,
+            layout=trans_layout,
         )
-        self._renderer._layout_add_widget(trans_layout, save_trans_layout)
 
         fitting_options_layout = self._renderer._dock_add_group_box(
             name="Fitting Options",
