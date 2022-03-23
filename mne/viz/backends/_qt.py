@@ -271,24 +271,9 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_file_button(
         self, name, desc, func, *, filter=None, initial_directory=None,
-        value=None, save=False,
-        is_directory=False, input_text_widget=True,
-        placeholder="Type a file name", tooltip=None, layout=None
+        save=False, is_directory=False, tooltip=None, layout=None
     ):
         layout = self._dock_layout if layout is None else layout
-        if input_text_widget:
-            hlayout = self._dock_add_layout(vertical=False)
-            text_widget = self._dock_add_text(
-                name=f"{name}_field",
-                value=value,
-                placeholder=placeholder,
-                layout=hlayout,
-            )
-
-            def sync_text_widget(s):
-                text_widget.set_value(s)
-        else:
-            hlayout = layout
 
         def callback():
             if is_directory:
@@ -309,21 +294,15 @@ class _QtDock(_AbstractDock, _QtLayout):
             # handle the cancel button
             if len(name) == 0:
                 return
-            if input_text_widget:
-                sync_text_widget(name)
             func(name)
 
         button_widget = self._dock_add_button(
             name=desc,
             callback=callback,
             tooltip=tooltip,
-            layout=hlayout,
+            layout=layout,
         )
-        if input_text_widget:
-            self._layout_add_widget(layout, hlayout)
-            return _QtWidgetList([text_widget, button_widget])
-        else:
-            return button_widget  # It's already a _QtWidget instance
+        return button_widget  # It's already a _QtWidget instance
 
 
 class QFloatSlider(QSlider):

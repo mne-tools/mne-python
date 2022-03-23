@@ -577,9 +577,7 @@ class _AbstractDock(ABC):
     @abstractmethod
     def _dock_add_file_button(
         self, name, desc, func, *, filter=None, initial_directory=None,
-        value=None, save=False, is_directory=False, input_text_widget=True,
-        placeholder="Type a file name", tooltip=None,
-        layout=None
+        save=False, is_directory=False, tooltip=None, layout=None
     ):
         pass
 

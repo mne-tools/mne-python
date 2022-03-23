@@ -182,7 +182,6 @@ def test_gui_api(renderer_notebook, nbexec):
         name='',
         desc='',
         func=mock,
-        input_text_widget=False,
     )
     widget = renderer._dock_add_file_button(
         name='',
@@ -190,10 +189,7 @@ def test_gui_api(renderer_notebook, nbexec):
         func=mock,
         save=True
     )
-    widget.set_value(0, 'foo')  # modify the text field (not interactive)
-    assert widget.get_value(0) == 'foo'
     # XXX: the internal file dialogs may hang without signals
-    # widget.set_value(1, 'bar')
     widget.set_enabled(False)
 
     renderer._dock_initialize(name='', area='right')
