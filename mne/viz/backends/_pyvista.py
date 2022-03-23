@@ -93,9 +93,12 @@ class PyVistaFigure(Figure3D):
 
         if self.plotter is None:
             if not self.notebook:
+                # XXX: disabled for now
+                # enable_icon=hasattr(plotter_class, 'set_icon')
+                # splash=self.splash
+                self.splash = splash = enable_icon = False
                 out = _init_mne_qtapp(
-                    enable_icon=hasattr(plotter_class, 'set_icon'),
-                    splash=self.splash)
+                    enable_icon=enable_icon, splash=splash)
                 # replace it with the Qt object
                 if self.splash:
                     self.splash = out[1]

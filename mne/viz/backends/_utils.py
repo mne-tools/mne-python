@@ -13,7 +13,7 @@ import platform
 import signal
 import sys
 
-from decorator import decorator
+from pathlib import Path
 import numpy as np
 
 VALID_BROWSE_BACKENDS = (
@@ -75,18 +75,11 @@ def _alpha_blend_background(ctable, background_color):
     return (use_table * alphas) + background_color * (1 - alphas)
 
 
-@decorator
-def run_once(fun, *args, **kwargs):
-    """Run the function only once."""
-    if not hasattr(fun, "_has_run"):
-        fun._has_run = True
-        return fun(*args, **kwargs)
-
-
-@run_once
 def _init_qt_resources():
-    from ...icons import resources
-    resources.qInitResources()
+    from PyQt5.QtGui import QIcon
+    QIcon.setThemeSearchPaths(
+        [str(Path(__file__).parent.parent.parent / "icons")])
+    QIcon.setThemeName("light")
 
 
 @contextmanager
