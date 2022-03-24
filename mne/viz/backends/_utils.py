@@ -185,10 +185,14 @@ def _qt_app_exec(app):
 
 
 def _qt_detect_theme():
+    from ..utils import logger
     try:
         import darkdetect
         theme = darkdetect.theme().lower()
-    except Exception:
+    except ModuleNotFoundError:
+        logger.info('For automatic theme detection, "darkdetect" has to'
+                    ' be installed! You can install it with '
+                    '`pip install darkdetect`')
         theme = 'light'
     return theme
 
@@ -206,7 +210,7 @@ def _qt_get_stylesheet(theme):
             try:
                 import qdarkstyle
             except ModuleNotFoundError:
-                logger.info('For Dark-Mode "qdarkstyle" has to be installed! '
+                logger.info('For Dark-Mode, "qdarkstyle" has to be installed! '
                             'You can install it with `pip install qdarkstyle`')
                 stylesheet = ''
             else:
