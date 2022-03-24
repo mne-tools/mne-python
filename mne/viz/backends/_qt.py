@@ -644,7 +644,6 @@ class _QtWindow(_AbstractWindow):
 
     def _window_set_theme(self, theme=None):
         theme = 'auto' if theme is None else theme
-        # detect default system theme
         default_theme = _qt_interface_style()
         if default_theme is None:
             theme = get_config('MNE_3D_OPTION_THEME', theme)
@@ -652,7 +651,6 @@ class _QtWindow(_AbstractWindow):
             self._window.setStyleSheet(stylesheet)
         else:
             theme = default_theme
-        # set icon theme
         QIcon.setThemeName(theme)
 
 
