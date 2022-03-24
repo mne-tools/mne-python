@@ -28,7 +28,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
-from ._utils import (_qt_disable_paint, _qt_get_stylesheet,
+from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
                      _qt_detect_theme, _qt_raise_window)
 from ..utils import _check_option, safe_event, get_config
 
@@ -643,13 +643,21 @@ class _QtWindow(_AbstractWindow):
             self._process_events()
 
     def _window_set_theme(self, theme=None):
+        custom_stylesheet = False
         if theme is None:
             default_theme = _qt_detect_theme()
         else:
             default_theme = theme
+            if theme not in ('light', 'dark'):
+                custom_stylesheet = True
         theme = get_config('MNE_3D_OPTION_THEME', default_theme)
         stylesheet = _qt_get_stylesheet(theme)
         self._window.setStyleSheet(stylesheet)
+        if custom_stylesheet:
+            if _qt_is_dark(self._window):
+                theme = 'dark'
+            else:
+                theme = 'light'
         QIcon.setThemeName(theme)
 
 

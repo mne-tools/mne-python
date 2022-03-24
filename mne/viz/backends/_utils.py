@@ -7,6 +7,7 @@
 #
 # License: Simplified BSD
 import collections.abc
+from colorsys import rgb_to_hls
 from contextlib import contextmanager
 import platform
 import signal
@@ -199,12 +200,14 @@ def _qt_detect_theme():
 
 def _qt_get_stylesheet(theme):
     from ..utils import logger, warn, _validate_type
+    if sys.platform == 'darwin':
+        return ''
     _validate_type(theme, ('path-like',), 'theme')
     theme = str(theme)
     if theme == 'auto':
         theme = _qt_detect_theme()
     if theme in ('dark', 'light'):
-        if theme == 'light' and sys.platform != 'darwin':
+        if theme == 'light':
             stylesheet = ''
         else:
             try:
@@ -241,3 +244,9 @@ def _qt_raise_window(widget):
     if raise_window:
         widget.activateWindow()
         widget.raise_()
+
+
+def _qt_is_dark(win):
+    # Ideally this would use CIELab, but this should be good enough
+    bgcolor = win.palette().color(win.backgroundRole()).getRgbF()[:3]
+    return rgb_to_hls(*bgcolor)[1] < 0.5
