@@ -255,9 +255,6 @@ def test_gui_api(renderer_notebook, nbexec):
         shortcut=None,
     )
     assert 'play' in renderer.actions
-
-    # theme
-    renderer._tool_bar_set_theme()
     # --- END: tool bar ---
 
     # --- BEGIN: menu bar ---

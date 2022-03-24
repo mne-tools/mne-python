@@ -11,7 +11,7 @@ import pyvista
 from pyvistaqt.plotting import FileDialog
 
 from PyQt5.QtCore import Qt, pyqtSignal, QLocale, QObject
-from PyQt5.QtGui import QIcon, QImage, QPixmap, QCursor
+from PyQt5.QtGui import QIcon, QCursor
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
@@ -28,8 +28,8 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
-from ._utils import (_init_qt_resources, _qt_disable_paint,
-                     _qt_get_stylesheet, _qt_is_dark, _qt_raise_window)
+from ._utils import (_qt_init_icons, _qt_disable_paint, _qt_get_stylesheet,
+                     _qt_interface_style, _qt_raise_window)
 from ..utils import _check_option, safe_event
 
 
@@ -380,7 +380,7 @@ class QFloatSlider(QSlider):
 
 class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_load_icons(self):
-        _init_qt_resources()
+        _qt_init_icons()
         self.icons = dict()
         self.icons["help"] = QIcon.fromTheme("help")
         self.icons["play"] = QIcon.fromTheme("play")
@@ -436,14 +436,6 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_add_play_button(self, name, desc, func, *, shortcut=None):
         self._tool_bar_add_button(
             name=name, desc=desc, func=func, icon_name=None, shortcut=shortcut)
-
-    def _tool_bar_set_theme(self):
-        if _qt_is_dark(self._tool_bar):
-            for icon_key in self.icons:
-                icon = self.icons[icon_key]
-                image = icon.pixmap(80).toImage()
-                image.invertPixels(mode=QImage.InvertRgb)
-                self.icons[icon_key] = QIcon(QPixmap.fromImage(image))
 
 
 class _QtMenuBar(_AbstractMenuBar):
@@ -651,8 +643,15 @@ class _QtWindow(_AbstractWindow):
             self._process_events()
 
     def _window_set_theme(self, theme):
-        stylesheet = _qt_get_stylesheet(theme)
-        self._window.setStyleSheet(stylesheet)
+        # detect default system theme
+        default_theme = _qt_interface_style()
+        if default_theme is None:
+            stylesheet = _qt_get_stylesheet(theme)
+            self._window.setStyleSheet(stylesheet)
+        else:
+            theme = default_theme
+        # set icon theme
+        _qt_init_icons(theme)
 
 
 class _QtWidgetList(_AbstractWidgetList):

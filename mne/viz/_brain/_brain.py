@@ -1287,7 +1287,6 @@ class Brain(object):
     def _configure_tool_bar(self):
         self._renderer._tool_bar_load_icons()
         self._renderer._tool_bar_initialize(name="Toolbar")
-        self._renderer._tool_bar_set_theme()
         self._renderer._tool_bar_add_file_button(
             name="screenshot",
             desc="Take a screenshot",

@@ -7,7 +7,6 @@
 #
 # License: Simplified BSD
 import collections.abc
-from colorsys import rgb_to_hls
 from contextlib import contextmanager
 import platform
 import signal
@@ -75,12 +74,16 @@ def _alpha_blend_background(ctable, background_color):
     return (use_table * alphas) + background_color * (1 - alphas)
 
 
-def _init_qt_resources():
+def _qt_init_icons(theme="auto"):
     from PyQt5.QtGui import QIcon
     QIcon.setThemeSearchPaths(
         [str(Path(__file__).parent.parent.parent / "icons")])
-    QIcon.setThemeName("light")
     QIcon.setFallbackThemeName("default")
+    if theme == "auto":
+        theme = _qt_interface_style()
+    if theme is None:
+        theme = "light"  # fallback
+    QIcon.setThemeName(theme)
 
 
 @contextmanager
@@ -146,9 +149,11 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         app.setApplicationName(app_name)
     app.setOrganizationName(organization_name)
 
+    if enable_icon or splash:
+        _qt_init_icons()
+
     if enable_icon:
         # Set icon
-        _init_qt_resources()
         kind = 'bigsur_' if platform.mac_ver()[0] >= '10.16' else ''
         app.setWindowIcon(QIcon.fromTheme(f"mne_{kind}icon"))
 
@@ -234,8 +239,15 @@ def _qt_raise_window(widget):
         widget.raise_()
 
 
-def _qt_is_dark(widget):
-    # Ideally this would use CIELab, but this should be good enough
-    win = widget.window()
-    bgcolor = win.palette().color(win.backgroundRole()).getRgbF()[:3]
-    return rgb_to_hls(*bgcolor)[1] < 0.5
+# modified from the interface_style function: https://github.com/cbrnr/mnelab
+def _qt_interface_style():
+    """Return current platform interface style (light or dark)."""
+    try:  # currently only works on macOS
+        from Foundation import NSUserDefaults as NSUD
+    except ImportError:
+        return None
+    style = NSUD.standardUserDefaults().stringForKey_("AppleInterfaceStyle")
+    if style == "Dark":
+        return "dark"
+    else:
+        return "light"
