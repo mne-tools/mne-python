@@ -195,6 +195,8 @@ def _qt_detect_theme():
                     ' be installed! You can install it with '
                     '`pip install darkdetect`')
         theme = 'light'
+    except Exception:
+        theme = 'light'
     return theme
 
 
