@@ -30,7 +30,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
 from ._utils import (_qt_disable_paint, _qt_get_stylesheet,
                      _qt_interface_style, _qt_raise_window)
-from ..utils import _check_option, safe_event
+from ..utils import _check_option, safe_event, get_config
 
 
 class _QtDialog(_AbstractDialog):
@@ -516,6 +516,7 @@ class _QtWindow(_AbstractWindow):
         super()._window_initialize()
         self._interactor = self.figure.plotter.interactor
         self._window = self.figure.plotter.app_window
+        self._window_set_theme()
         self._window.setLocale(QLocale(QLocale.Language.English))
         self._window.signal_close.connect(self._window_clean)
         self._window_before_close_callbacks = list()
@@ -641,10 +642,12 @@ class _QtWindow(_AbstractWindow):
             self._process_events()
             self._process_events()
 
-    def _window_set_theme(self, theme):
+    def _window_set_theme(self, theme=None):
+        theme = 'auto' if theme is None else theme
         # detect default system theme
         default_theme = _qt_interface_style()
         if default_theme is None:
+            theme = get_config('MNE_3D_OPTION_THEME', theme)
             stylesheet = _qt_get_stylesheet(theme)
             self._window.setStyleSheet(stylesheet)
         else:
