@@ -74,16 +74,11 @@ def _alpha_blend_background(ctable, background_color):
     return (use_table * alphas) + background_color * (1 - alphas)
 
 
-def _qt_init_icons(theme="auto"):
+def _qt_init_icons():
     from PyQt5.QtGui import QIcon
     QIcon.setThemeSearchPaths(
         [str(Path(__file__).parent.parent.parent / "icons")])
     QIcon.setFallbackThemeName("default")
-    if theme == "auto":
-        theme = _qt_interface_style()
-    if theme is None:
-        theme = "light"  # fallback
-    QIcon.setThemeName(theme)
 
 
 @contextmanager

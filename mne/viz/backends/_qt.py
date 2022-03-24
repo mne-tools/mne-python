@@ -28,7 +28,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
-from ._utils import (_qt_init_icons, _qt_disable_paint, _qt_get_stylesheet,
+from ._utils import (_qt_disable_paint, _qt_get_stylesheet,
                      _qt_interface_style, _qt_raise_window)
 from ..utils import _check_option, safe_event
 
@@ -380,7 +380,6 @@ class QFloatSlider(QSlider):
 
 class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_load_icons(self):
-        _qt_init_icons()
         self.icons = dict()
         self.icons["help"] = QIcon.fromTheme("help")
         self.icons["play"] = QIcon.fromTheme("play")
@@ -651,7 +650,7 @@ class _QtWindow(_AbstractWindow):
         else:
             theme = default_theme
         # set icon theme
-        _qt_init_icons(theme)
+        QIcon.setThemeName(theme)
 
 
 class _QtWidgetList(_AbstractWidgetList):
