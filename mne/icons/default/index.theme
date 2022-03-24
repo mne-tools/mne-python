@@ -4,6 +4,6 @@ Name=default
 Directories=actions
 
 [actions]
-Size=256
+Size=636
 Context=Actions
 Type=Fixed

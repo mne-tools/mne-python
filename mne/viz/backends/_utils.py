@@ -156,7 +156,7 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     if splash:
         icon = QIcon.fromTheme("mne_splash")
         qsplash = QSplashScreen(
-            icon.pixmap(icon.actualSize(QSize(256, 256))),
+            icon.pixmap(icon.actualSize(QSize(512, 512))),
             Qt.WindowStaysOnTopHint)
         if isinstance(splash, str):
             alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
