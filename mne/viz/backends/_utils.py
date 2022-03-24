@@ -184,16 +184,21 @@ def _qt_app_exec(app):
             signal.signal(signal.SIGINT, old_signal)
 
 
+def _qt_detect_theme():
+    try:
+        import darkdetect
+        theme = darkdetect.theme().lower()
+    except Exception:
+        theme = 'light'
+    return theme
+
+
 def _qt_get_stylesheet(theme):
     from ..utils import logger, warn, _validate_type
     _validate_type(theme, ('path-like',), 'theme')
     theme = str(theme)
     if theme == 'auto':
-        try:
-            import darkdetect
-            theme = darkdetect.theme().lower()
-        except Exception:
-            theme = 'light'
+        theme = _qt_detect_theme()
     if theme in ('dark', 'light'):
         if theme == 'light' and sys.platform != 'darwin':
             stylesheet = ''
@@ -232,17 +237,3 @@ def _qt_raise_window(widget):
     if raise_window:
         widget.activateWindow()
         widget.raise_()
-
-
-# modified from the interface_style function: https://github.com/cbrnr/mnelab
-def _qt_interface_style():
-    """Return current platform interface style (light or dark)."""
-    try:  # currently only works on macOS
-        from Foundation import NSUserDefaults as NSUD
-    except ImportError:
-        return None
-    style = NSUD.standardUserDefaults().stringForKey_("AppleInterfaceStyle")
-    if style == "Dark":
-        return "dark"
-    else:
-        return "light"

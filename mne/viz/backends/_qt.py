@@ -6,6 +6,7 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
+import platform
 
 import pyvista
 from pyvistaqt.plotting import FileDialog
@@ -29,7 +30,7 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
 from ._utils import (_qt_disable_paint, _qt_get_stylesheet,
-                     _qt_interface_style, _qt_raise_window)
+                     _qt_detect_theme, _qt_raise_window)
 from ..utils import _check_option, safe_event, get_config
 
 
@@ -644,14 +645,12 @@ class _QtWindow(_AbstractWindow):
 
     def _window_set_theme(self, theme=None):
         theme = 'auto' if theme is None else theme
-        default_theme = _qt_interface_style()
-        if default_theme is None:
-            theme = get_config('MNE_3D_OPTION_THEME', theme)
+        default_theme = _qt_detect_theme()
+        if platform.system() != 'Darwin':
+            theme = get_config('MNE_3D_OPTION_THEME', default_theme)
             stylesheet = _qt_get_stylesheet(theme)
             self._window.setStyleSheet(stylesheet)
-        else:
-            theme = default_theme
-        QIcon.setThemeName(theme)
+        QIcon.setThemeName(default_theme)
 
 
 class _QtWidgetList(_AbstractWidgetList):
