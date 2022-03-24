@@ -200,14 +200,12 @@ def _qt_detect_theme():
 
 def _qt_get_stylesheet(theme):
     from ..utils import logger, warn, _validate_type
-    if sys.platform == 'darwin':
-        return ''
     _validate_type(theme, ('path-like',), 'theme')
     theme = str(theme)
     if theme == 'auto':
         theme = _qt_detect_theme()
     if theme in ('dark', 'light'):
-        if theme == 'light':
+        if theme == 'light' or sys.platform == 'darwin':
             stylesheet = ''
         else:
             try:
