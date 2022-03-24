@@ -80,6 +80,7 @@ def _init_qt_resources():
     QIcon.setThemeSearchPaths(
         [str(Path(__file__).parent.parent.parent / "icons")])
     QIcon.setThemeName("light")
+    QIcon.setFallbackThemeName("default")
 
 
 @contextmanager
@@ -115,8 +116,8 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         Instance of QSplashScreen. Only returned if splash is True or a
         string.
     """
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtGui import QIcon, QPixmap
+    from PyQt5.QtCore import Qt, QSize
+    from PyQt5.QtGui import QIcon
     from PyQt5.QtWidgets import QApplication, QSplashScreen
 
     app_name = 'MNE-Python'
@@ -148,13 +149,15 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     if enable_icon:
         # Set icon
         _init_qt_resources()
-        kind = 'bigsur-' if platform.mac_ver()[0] >= '10.16' else ''
-        app.setWindowIcon(QIcon(f":/mne-{kind}icon.png"))
+        kind = 'bigsur_' if platform.mac_ver()[0] >= '10.16' else ''
+        app.setWindowIcon(QIcon.fromTheme(f"mne_{kind}icon"))
 
     out = app
     if splash:
+        icon = QIcon.fromTheme("mne_splash")
         qsplash = QSplashScreen(
-            QPixmap(':/mne-splash.png'), Qt.WindowStaysOnTopHint)
+            icon.pixmap(icon.actualSize(QSize(256, 256))),
+            Qt.WindowStaysOnTopHint)
         if isinstance(splash, str):
             alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
             qsplash.showMessage(
