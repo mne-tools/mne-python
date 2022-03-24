@@ -6,7 +6,6 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
-import platform
 
 import pyvista
 from pyvistaqt.plotting import FileDialog
@@ -644,13 +643,14 @@ class _QtWindow(_AbstractWindow):
             self._process_events()
 
     def _window_set_theme(self, theme=None):
-        theme = 'auto' if theme is None else theme
-        default_theme = _qt_detect_theme()
-        if platform.system() != 'Darwin':
-            theme = get_config('MNE_3D_OPTION_THEME', default_theme)
-            stylesheet = _qt_get_stylesheet(theme)
-            self._window.setStyleSheet(stylesheet)
-        QIcon.setThemeName(default_theme)
+        if theme is None:
+            default_theme = _qt_detect_theme()
+        else:
+            default_theme = theme
+        theme = get_config('MNE_3D_OPTION_THEME', default_theme)
+        stylesheet = _qt_get_stylesheet(theme)
+        self._window.setStyleSheet(stylesheet)
+        QIcon.setThemeName(theme)
 
 
 class _QtWidgetList(_AbstractWidgetList):
