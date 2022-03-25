@@ -43,7 +43,7 @@ class _AbstractRenderer(ABC):
     @abstractclassmethod
     def legend(self, labels, border=False, size=0.1, face='triangle',
                loc='upper left'):
-        """Add a legend.
+        """Add a legend to the scene.
 
         Parameters
         ----------
