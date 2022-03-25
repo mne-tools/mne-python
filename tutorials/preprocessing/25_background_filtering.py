@@ -57,7 +57,7 @@ filters have a transfer function that is given by:
 
     H(z) &= \frac{b_0 + b_1 z^{-1} + b_2 z^{-2} + \ldots + b_M z^{-M}}
                  {1 + a_1 z^{-1} + a_2 z^{-2} + \ldots + a_N z^{-M}} \\
-         &= \frac{\sum_{k=0}^Mb_kz^{-k}}{\sum_{k=1}^Na_kz^{-k}}
+         &= \frac{\sum_{k=0}^Mb_kz^{-k}}{1 + \sum_{k=1}^Na_kz^{-k}}
 
 In the time domain, the numerator coefficients :math:`b_k` and denominator
 coefficients :math:`a_k` can be used to obtain our output data
@@ -66,16 +66,16 @@ coefficients :math:`a_k` can be used to obtain our output data
 .. math::
    :label: summations
 
-    y(n) &= b_0 x(n) + b_1 x(n-1) + \ldots + b_M x(n-M)
-            - a_1 y(n-1) - a_2 y(n - 2) - \ldots - a_N y(n - N)\\
+    y(n) &= b_0 x(n) + \ldots + b_M x(n-M)
+            - a_1 y(n-1) - \ldots - a_N y(n - N)\\
          &= \sum_{k=0}^M b_k x(n-k) - \sum_{k=1}^N a_k y(n-k)
 
 In other words, the output at time :math:`n` is determined by a sum over
 
-    1. the numerator coefficients :math:`b_k`, which get multiplied by
-       the previous input values :math:`x(n-k)`, and
-    2. the denominator coefficients :math:`a_k`, which get multiplied by
-       the previous output values :math:`y(n-k)`.
+1. the numerator coefficients :math:`b_k`, which get multiplied by
+    the previous input values :math:`x(n-k)`, and
+2. the denominator coefficients :math:`a_k`, which get multiplied by
+    the previous output values :math:`y(n-k)`.
 
 Note that these summations correspond to (1) a weighted `moving average`_ and
 (2) an autoregression_.
