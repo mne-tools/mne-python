@@ -749,8 +749,7 @@ class CoregistrationUI(HasTraits):
 
     def _configure_legend(self):
         mri_fids_legend_actor = self._renderer.legend(
-            labels=[("LPA", "red"), ("Nasion", "green"), ("RPA", "blue")],
-            size=0.06)
+            labels=[("LPA", "red"), ("Nasion", "green"), ("RPA", "blue")])
         self._update_actor("mri_fids_legend", mri_fids_legend_actor)
 
     @verbose
