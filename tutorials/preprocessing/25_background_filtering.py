@@ -73,9 +73,9 @@ coefficients :math:`a_k` can be used to obtain our output data
 In other words, the output at time :math:`n` is determined by a sum over
 
 1. the numerator coefficients :math:`b_k`, which get multiplied by the previous
-input values :math:`x(n-k)`, and
+   input values :math:`x(n-k)`, and
 2. the denominator coefficients :math:`a_k`, which get multiplied by the
-previous output values :math:`y(n-k)`.
+   previous output values :math:`y(n-k)`.
 
 Note that these summations correspond to (1) a weighted `moving average`_ and
 (2) an autoregression_.
