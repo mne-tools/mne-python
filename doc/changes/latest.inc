@@ -24,7 +24,7 @@ Current (1.1.dev0)
 Enhancements
 ~~~~~~~~~~~~
 - Add :meth:`mne.io.Raw.crop_by_annotations` method to get chunks of Raw data
-  based on :class:`mne.Annotations`. (:gh:`XXX` by `Alex Gramfort`_)
+  based on :class:`mne.Annotations`. (:gh:`10460` by `Alex Gramfort`_)
 
 Bugs
 ~~~~
