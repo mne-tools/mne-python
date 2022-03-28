@@ -627,6 +627,8 @@ def _get_browser(show, block, **kwargs):
     if kwargs.get('theme', None) is None:
         kwargs['theme'] = get_config('MNE_BROWSER_THEME', 'auto')
 
+    print("BLOCK=", block)
+
     # Initialize browser backend
     backend_name = get_browser_backend()
     # Check mne-qt-browser compatibility
@@ -646,9 +648,23 @@ def _get_browser(show, block, **kwargs):
                         f'Defaults to matplotlib.')
             with use_browser_backend('matplotlib'):
                 # Initialize Browser
+                # out = _init_mne_qtapp(pg_app=True, **app_kwargs)
                 fig = backend._init_browser(**kwargs)
                 _show_browser(show=show, block=block, fig=fig)
                 return fig
+        else:
+            from .backends._utils import _init_mne_qtapp, _qt_app_exec
+            app = _init_mne_qtapp(pg_app=True)
+            print("APP=", app)
+            fig = backend._init_browser(**kwargs)
+            fig.mne.splash = None
+            fig.app = app
+            if show:
+                fig.show()
+            if block:
+                _qt_app_exec(app)
+            # _show_browser(show=show, block=block, fig=fig)
+            return fig
 
     # Initialize Browser
     fig = backend._init_browser(**kwargs)
