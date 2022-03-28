@@ -748,9 +748,9 @@ class CoregistrationUI(HasTraits):
         )
 
     def _configure_legend(self):
-        colors = [np.array(DEFAULTS['coreg'][f"{fid.lower()}_color"]) * 255.
-                  for fid in self._defaults['fiducials']]
-        colors = [color.astype(int) for color in colors]
+        colors = \
+            [np.array(DEFAULTS['coreg'][f"{fid.lower()}_color"]).astype(float)
+             for fid in self._defaults['fiducials']]
         labels = list(zip(self._defaults['fiducials'], colors))
         mri_fids_legend_actor = self._renderer.legend(labels=labels)
         self._update_actor("mri_fids_legend", mri_fids_legend_actor)
