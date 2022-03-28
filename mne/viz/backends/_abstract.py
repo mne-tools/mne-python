@@ -41,6 +41,35 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
+    def legend(self, labels, border=False, size=0.1, face='triangle',
+               loc='upper left'):
+        """Add a legend to the scene.
+
+        Parameters
+        ----------
+        labels : list of tuples
+            Each entry must contain two strings, (label, color),
+            where ``label`` is the name of the item to add, and
+            ``color`` is the color of the label to add.
+        border : bool
+            Controls if there will be a border around the legend.
+            The default is False.
+        size : float
+            The size of the entire figure window.
+        loc : str
+            The location of the legend.
+        face : str
+            Face shape of legend face.  One of the following:
+
+            * None: ``None``
+            * Line: ``"-"`` or ``"line"``
+            * Triangle: ``"^"`` or ``'triangle'``
+            * Circle: ``"o"`` or ``'circle'``
+            * Rectangle: ``"r"`` or ``'rectangle'``
+        """
+        pass
+
+    @abstractclassmethod
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
              vmin=None, vmax=None, interpolate_before_map=True,
