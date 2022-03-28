@@ -1059,4 +1059,4 @@ filter_length = fir_coefs.shape[0]
 # .. _matlab firls: https://www.mathworks.com/help/signal/ref/firls.html
 # .. _Butterworth filter: https://en.wikipedia.org/wiki/Butterworth_filter
 # .. _eeglab filtering faq: https://sccn.ucsd.edu/wiki/Firfilt_FAQ
-# .. _ftbp: https://www.fieldtriptoolbox.org/reference/preproc/ft_preproc_bandpassfilter
+# .. _ftbp: https://www.fieldtriptoolbox.org/reference/preproc/ft_preproc_bandpassfilter  # noqa
