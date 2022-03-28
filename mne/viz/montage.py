@@ -18,8 +18,8 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
     scale_factor : float
         Determines the size of the points.
     show_names : bool | list
-        Whether to display all channel names. If an array, only the channel
-        names in the array are shown. Defaults to True.
+        Whether to display all channel names. If a list, only the channel
+        names in the list are shown. Defaults to True.
     kind : str
         Whether to plot the montage as '3d' or 'topomap' (default).
     show : bool
