@@ -1027,8 +1027,8 @@ def _triage_loose(src, loose, fixed='auto'):
     for key, this_loose in loose.items():
         if (key != 'surface' and key != 'discrete') and this_loose != 1:
             raise ValueError(
-                'loose parameter has to be 1 or "auto" for non-surface '
-                f'source spaces, got loose["{key}"] = {this_loose}')
+                'loose parameter has to be 1 or "auto" for non-surface/'
+                f'discrete source spaces, got loose["{key}"] = {this_loose}')
         if not 0 <= this_loose <= 1:
             raise ValueError(
                 f'loose ({key}) must be between 0 and 1, got {this_loose}')

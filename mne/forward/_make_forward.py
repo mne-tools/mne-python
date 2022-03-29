@@ -686,7 +686,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     .. versionadded:: 0.12.0
     """
     if isinstance(dipole, list):
-        from ..dipole import _concatenate_dipoles  # To avoid cicular import
+        from ..dipole import _concatenate_dipoles  # To avoid circular import
         dipole = _concatenate_dipoles(dipole)
 
     # Make copies to avoid mangling original dipole
