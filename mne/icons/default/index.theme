@@ -1,9 +1,0 @@
-[Icon Theme]
-Name=default
-
-Directories=actions
-
-[actions]
-Size=636
-Context=Actions
-Type=Fixed

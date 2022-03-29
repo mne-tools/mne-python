@@ -77,9 +77,9 @@ def _alpha_blend_background(ctable, background_color):
 
 def _qt_init_icons():
     from PyQt5.QtGui import QIcon
-    QIcon.setThemeSearchPaths(
-        [str(Path(__file__).parent.parent.parent / "icons")])
-    QIcon.setFallbackThemeName("default")
+    icons_path = f"{Path(__file__).parent.parent.parent}/icons"
+    QIcon.setThemeSearchPaths([icons_path])
+    return icons_path
 
 
 @contextmanager
@@ -115,8 +115,8 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         Instance of QSplashScreen. Only returned if splash is True or a
         string.
     """
-    from PyQt5.QtCore import Qt, QSize
-    from PyQt5.QtGui import QIcon
+    from PyQt5.QtCore import Qt
+    from PyQt5.QtGui import QIcon, QPixmap
     from PyQt5.QtWidgets import QApplication, QSplashScreen
 
     app_name = 'MNE-Python'
@@ -146,19 +146,17 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
     app.setOrganizationName(organization_name)
 
     if enable_icon or splash:
-        _qt_init_icons()
+        icons_path = _qt_init_icons()
 
     if enable_icon:
         # Set icon
-        kind = 'bigsur_' if platform.mac_ver()[0] >= '10.16' else ''
-        app.setWindowIcon(QIcon.fromTheme(f"mne_{kind}icon"))
+        kind = 'bigsur_' if platform.mac_ver()[0] >= '10.16' else 'default_'
+        app.setWindowIcon(QIcon(f"{icons_path}/mne_{kind}icon.png"))
 
     out = app
     if splash:
-        icon = QIcon.fromTheme("mne_splash")
         qsplash = QSplashScreen(
-            icon.pixmap(icon.actualSize(QSize(512, 512))),
-            Qt.WindowStaysOnTopHint)
+            QPixmap(f"{icons_path}/mne_splash.png"), Qt.WindowStaysOnTopHint)
         if isinstance(splash, str):
             alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
             qsplash.showMessage(
