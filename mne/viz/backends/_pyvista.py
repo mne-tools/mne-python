@@ -279,6 +279,11 @@ class _PyVistaRenderer(_AbstractRenderer):
                 renderer.disable_parallel_projection()
             getattr(self.plotter, f'enable_{interaction}_style')()
 
+    def legend(self, labels, border=False, size=0.1, face='triangle',
+               loc='upper left'):
+        return self.plotter.add_legend(
+            labels, size=(size, size), face=face, loc=loc)
+
     def polydata(self, mesh, color=None, opacity=1.0, normals=None,
                  backface_culling=False, scalars=None, colormap=None,
                  vmin=None, vmax=None, interpolate_before_map=True,
