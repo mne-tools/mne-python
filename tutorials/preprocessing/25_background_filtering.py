@@ -81,7 +81,7 @@ Note that these summations correspond to (1) a weighted `moving average`_ and
 Filters are broken into two classes based on these coefficients: FIR_ (finite
 impulse response) and IIR_ (infinite impulse response) filters.
 FIR filters use a finite number of numerator
-coefficients :math:`b_k` (:math:`a_k=0 \forall k`), and thus each output
+coefficients :math:`b_k` (where :math:`a_k=0\qquad \forall k`), and thus each output
 value :math:`y(n)` depends only on the :math:`M` previous input values.
 IIR filters depend on the previous input and output values, and thus can have
 effectively infinitely long impulse responses.
@@ -91,7 +91,7 @@ FIR and IIR filters have different pros and cons:
 
 * A causal FIR filter can be linear-phase -- i.e., the same time delay across all frequencies -- whereas a causal IIR filter cannot. The phase and group delay characteristics are also usually better for FIR filters.
 * IIR filters can generally have a steeper cutoff than an FIR filter of equivalent order.
-* IIR filters are generally less numerically stable, in part due to accumulating error (due to its recursive calculations).
+* IIR filters are generally less numerically stable, in part due to accumulating error (due to recursive calculations).
 
 In MNE-Python we default to using FIR filtering. As noted in Widmann *et al.*
 (2015) :footcite:`WidmannEtAl2015`:
