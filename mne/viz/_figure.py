@@ -651,6 +651,10 @@ def _get_browser(show, block, **kwargs):
                 return fig
         else:
             from .backends._utils import _init_mne_qtapp, _qt_app_exec
+            from pyvistaqt.utils import _setup_ipython
+
+            _setup_ipython()
+
             app = _init_mne_qtapp()
             fig = backend._init_browser(**kwargs)
             fig.mne.splash = None  # XXX: disable for now
@@ -659,6 +663,17 @@ def _get_browser(show, block, **kwargs):
                 fig.show()
             if block:
                 _qt_app_exec(app)
+            else:
+                # thread to handle Qt events
+                def callback():
+                    app.processEvents()
+
+                from PyQt5.QtCore import QTimer
+                timer = QTimer(parent=None)
+                timer.timeout.connect(callback)
+                timer.start(1000)
+                fig.timer = timer
+
             return fig
 
     # Initialize Browser
