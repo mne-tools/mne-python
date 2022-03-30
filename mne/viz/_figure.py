@@ -657,7 +657,6 @@ def _get_browser(show, block, **kwargs):
 
             app = _init_mne_qtapp()
             fig = backend._init_browser(**kwargs)
-            fig.mne.splash = None  # XXX: disable for now
             fig.app = app  # save a ref to prevent cleaning from memory
             if show:
                 fig.show()
@@ -671,7 +670,7 @@ def _get_browser(show, block, **kwargs):
                 from PyQt5.QtCore import QTimer
                 timer = QTimer(parent=None)
                 timer.timeout.connect(callback)
-                timer.start(1000)
+                timer.start(1000 / 60)  # refresh rate
                 fig.timer = timer
 
             return fig
