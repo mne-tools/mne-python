@@ -620,6 +620,8 @@ def _load_backend(backend_name):
 def _get_browser(show, block, **kwargs):
     """Instantiate a new MNE browse-style figure."""
     from .utils import _get_figsize_from_config
+    from pyvistaqt.utils import _setup_ipython
+    _setup_ipython()  # does ipython magic if needed
     figsize = kwargs.setdefault('figsize', _get_figsize_from_config())
     if figsize is None or np.any(np.array(figsize) < 8):
         kwargs['figsize'] = (8, 8)
@@ -649,20 +651,6 @@ def _get_browser(show, block, **kwargs):
                 fig = backend._init_browser(**kwargs)
                 _show_browser(show=show, block=block, fig=fig)
                 return fig
-        else:
-            from .backends._utils import _init_mne_qtapp, _qt_app_exec
-            from pyvistaqt.utils import _setup_ipython
-            _setup_ipython()  # does ipython magic if needed
-
-            app = _init_mne_qtapp()
-            fig = backend._init_browser(**kwargs)
-            fig.app = app  # save a ref to prevent cleaning from memory
-            if show:
-                fig.show()
-            if block:
-                _qt_app_exec(app)
-
-            return fig
 
     # Initialize Browser
     fig = backend._init_browser(**kwargs)
