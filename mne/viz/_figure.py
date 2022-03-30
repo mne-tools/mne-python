@@ -652,7 +652,7 @@ def _get_browser(show, block, **kwargs):
         else:
             from .backends._utils import _init_mne_qtapp, _qt_app_exec
             from pyvistaqt.utils import _setup_ipython
-            _setup_ipython()
+            _setup_ipython()  # does ipython magic if needed
 
             app = _init_mne_qtapp()
             fig = backend._init_browser(**kwargs)
