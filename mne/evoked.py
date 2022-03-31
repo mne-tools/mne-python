@@ -172,7 +172,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             End time of data to get in seconds.
         %(include_tmax)s
 
-            .. versionadded:: 1.0
+            .. versionadded:: 1.1
 
         Returns
         -------
@@ -189,7 +189,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         start, stop = self._handle_tmin_tmax(tmin, tmax, include_tmax)
 
-        data = self.data[picks, start:stop+1]
+        data = self.data[picks, start:stop + 1]
 
         if units is not None:
             ch_factors = _get_ch_factors(self, units, picks)

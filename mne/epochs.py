@@ -1575,7 +1575,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             .. versionadded:: 0.24.0
         %(include_tmax)s
 
-            .. versionadded:: 1.0
+            .. versionadded:: 1.1
 
         Returns
         -------

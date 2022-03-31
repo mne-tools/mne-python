@@ -865,7 +865,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             .. versionadded:: 0.24.0
         %(include_tmax)s
 
-            .. versionadded:: 1.0
+            .. versionadded:: 1.1
         %(verbose)s
 
         Returns
