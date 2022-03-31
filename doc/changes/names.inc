@@ -162,6 +162,8 @@
 
 .. _Okba Bekhelifi: https://github.com/okbalefthanded
 
+.. _Matthias Eberlein: https://github.com/MatthiasEb
+
 .. _Nicolas Barascud: https://github.com/nbara
 
 .. _Alejandro Weinstein: http://ocam.cl
@@ -425,3 +427,13 @@
 .. _Senwen Deng: https://snwn.de
 
 .. _Michiru Kaneda: https://github.com/rcmdnk
+
+.. _Scott Huberty:  https://orcid.org/0000-0003-2637-031X
+
+.. _Etienne de Montalivet: https://github.com/etiennedemontalivet
+
+.. _Federico Zamberlan: https://github.com/fzamberlan
+
+.. _John Veillette: https://psychology.uchicago.edu/directory/john-veillette
+
+.. _Nikolai Chapochnikov: https://github.com/chapochn

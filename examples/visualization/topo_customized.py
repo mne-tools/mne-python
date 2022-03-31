@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-topo-custom:
+
 ========================================
 Plot custom topographies for MEG sensors
 ========================================

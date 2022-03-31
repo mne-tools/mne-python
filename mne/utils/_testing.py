@@ -76,11 +76,14 @@ def requires_dipy():
         from dipy.align.reslice import reslice  # noqa, analysis:ignore
         from dipy.align.imaffine import AffineMap  # noqa, analysis:ignore
         from dipy.align.imwarp import DiffeomorphicMap  # noqa, analysis:ignore
-    except Exception:
+    except Exception as exc:
         have = False
+        why = str(exc)
     else:
+        why = ''
         have = True
-    return pytest.mark.skipif(not have, reason='Requires dipy >= 0.10.1')
+    return pytest.mark.skipif(
+        not have, reason=f'Requires dipy >= 0.10.1, got: {why}')
 
 
 def requires_version(library, min_version='0.0'):

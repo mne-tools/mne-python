@@ -31,7 +31,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True,
                      time_format='float', precompute=None,
-                     use_opengl=None):
+                     use_opengl=None, *, theme=None):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -69,6 +69,9 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     %(time_format)s
     %(precompute)s
     %(use_opengl)s
+    %(theme_pg)s
+
+        .. versionadded:: 1.0
 
     Returns
     -------
@@ -96,7 +99,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
                             show_first_samp=show_first_samp,
                             show_scrollbars=show_scrollbars,
                             time_format=time_format, precompute=precompute,
-                            use_opengl=use_opengl)
+                            use_opengl=use_opengl, theme=theme)
     elif isinstance(inst, Evoked):
         if start is not None or stop is not None:
             inst = inst.copy().crop(start, stop)
@@ -804,7 +807,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
        will be translated into ``start=0.`` and ``stop=3.``, respectively. For
        `~mne.Evoked`, ``None`` refers to the beginning and end of the evoked
        signal.
-    %(title_None)s
+    %(title_none)s
     %(show)s
     %(n_pca_components_apply)s
 
@@ -957,7 +960,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                   show_scrollbars, show_first_samp, time_format,
-                  precompute, use_opengl):
+                  precompute, use_opengl, *, theme=None):
     """Plot the ICA components as a RawArray or EpochsArray."""
     from ._figure import _get_browser
     from .. import EpochsArray, BaseEpochs

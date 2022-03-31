@@ -15,8 +15,7 @@ from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 
 from mne.channels import (rename_channels, read_ch_adjacency, combine_channels,
                           find_ch_adjacency, make_1020_channel_selections,
-                          read_custom_montage, equalize_channels,
-                          make_standard_montage)
+                          read_custom_montage, equalize_channels)
 from mne.channels.channels import (_ch_neighbor_adjacency,
                                    _compute_ch_adjacency)
 from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
@@ -522,16 +521,3 @@ def test_combine_channels():
         combine_channels(raw, warn2)
         combine_channels(raw_ch_bad, warn3, drop_bad=True)
     assert len(record) == 3
-
-
-def test_get_montage():
-    """Test ContainsMixin.get_montage()."""
-    ch_names = make_standard_montage('standard_1020').ch_names
-    sfreq = 512
-    data = np.zeros((len(ch_names), sfreq * 2))
-    raw = RawArray(data, create_info(ch_names, sfreq, 'eeg'))
-    raw.set_montage('standard_1020')
-
-    assert len(raw.get_montage().ch_names) == len(ch_names)
-    raw.info['bads'] = [ch_names[0]]
-    assert len(raw.get_montage().ch_names) == len(ch_names)

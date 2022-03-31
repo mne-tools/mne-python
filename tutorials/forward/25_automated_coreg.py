@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _tut-auto-coreg:
+
 =============================================
 Using an automated approach to coregistration
 =============================================

@@ -1484,8 +1484,8 @@ class Coregistration(object):
         self.fiducials = dig_montage
 
     def _update_params(self, rot=None, tra=None, sca=None,
-                       force_update_omitted=False):
-        if force_update_omitted:
+                       force_update=False):
+        if force_update and tra is None:
             tra = self._translation
         rot_changed = False
         if rot is not None:
@@ -1578,7 +1578,7 @@ class Coregistration(object):
             The modified Coregistration object.
         """
         self._grow_hair = value
-        self._update_params(self._rotation, self._translation, self._scale)
+        self._update_params(force_update=True)
         return self
 
     def set_rotation(self, rot):
@@ -1933,11 +1933,11 @@ class Coregistration(object):
                 self._update_params(rot=est[:3], tra=est[3:6], sca=est[6:9])
             angle, move, scale = self._changes
             self._log_dig_mri_distance(f'  ICP {iteration + 1:2d} ')
+            if callback is not None:
+                callback(iteration, n_iterations)
             if angle <= self._icp_angle and move <= self._icp_distance and \
                     all(scale <= self._icp_scale):
                 break
-            if callback is not None:
-                callback(iteration, n_iterations)
         self._log_dig_mri_distance('End      ')
         return self
 
@@ -1976,7 +1976,7 @@ class Coregistration(object):
                     "distance >= %.3f m.", n_excluded, distance)
         # set the filter
         self._extra_points_filter = mask
-        self._update_params(force_update_omitted=True)
+        self._update_params(force_update=True)
         return self
 
     def compute_dig_mri_distances(self):

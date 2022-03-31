@@ -35,7 +35,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              proj=True, group_by='type', butterfly=False, decim='auto',
              noise_cov=None, event_id=None, show_scrollbars=True,
              show_scalebars=True, time_format='float',
-             precompute=None, use_opengl=None, verbose=None):
+             precompute=None, use_opengl=None, *, theme=None, verbose=None):
     """Plot raw data.
 
     Parameters
@@ -125,7 +125,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Individual projectors can be enabled/disabled interactively (see
         Notes). This argument only affects the plot; use ``raw.apply_proj()``
         to modify the data stored in the Raw object.
-    %(browse_group_by)s
+    %(group_by_browse)s
     butterfly : bool
         Whether to start in butterfly mode. Defaults to False.
     decim : int | 'auto'
@@ -159,6 +159,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     %(time_format)s
     %(precompute)s
     %(use_opengl)s
+    %(theme_pg)s
+
+        .. versionadded:: 1.0
     %(verbose)s
 
     Returns
@@ -387,22 +390,22 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
     %(reject_by_annotation_raw)s
-    %(plot_psd_picks_good_data)s
+    %(picks_plot_psd_good_data)s
     ax : instance of Axes | None
         Axes to plot into. If None, axes will be created.
-    %(plot_psd_color)s
-    %(plot_psd_xscale)s
-    %(plot_psd_area_mode)s
-    %(plot_psd_area_alpha)s
-    %(plot_psd_dB)s
-    %(plot_psd_estimate)s
+    %(color_plot_psd)s
+    %(xscale_plot_psd)s
+    %(area_mode_plot_psd)s
+    %(area_alpha_plot_psd)s
+    %(dB_plot_psd)s
+    %(estimate_plot_psd)s
     %(show)s
     %(n_jobs)s
-    %(plot_psd_average)s
-    %(plot_psd_line_alpha)s
-    %(plot_psd_spatial_colors)s
-    %(topomap_sphere_auto)s
-    %(window-psd)s
+    %(average_plot_psd)s
+    %(line_alpha_plot_psd)s
+    %(spatial_colors_plot_psd)s
+    %(sphere_topomap_auto)s
+    %(window_psd)s
 
         .. versionadded:: 0.22.0
     exclude : list of str | 'bads'

@@ -345,7 +345,7 @@ class BrowserBase(ABC):
         if self.mne.remove_dc:
             if thread:
                 thread.processText.emit('Removing DC...')
-            data -= data.mean(axis=1, keepdims=True)
+            data -= np.nanmean(data, axis=1, keepdims=True)
         # apply filter
         if self.mne.filter_coefs is not None:
             if thread:
@@ -623,6 +623,9 @@ def _get_browser(show, block, **kwargs):
     figsize = kwargs.setdefault('figsize', _get_figsize_from_config())
     if figsize is None or np.any(np.array(figsize) < 8):
         kwargs['figsize'] = (8, 8)
+    kwargs['splash'] = True if show else False
+    if kwargs.get('theme', None) is None:
+        kwargs['theme'] = get_config('MNE_BROWSER_THEME', 'auto')
 
     # Initialize browser backend
     backend_name = get_browser_backend()

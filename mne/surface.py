@@ -14,6 +14,7 @@ from collections import OrderedDict
 from glob import glob
 from os import path as op
 from struct import pack
+import time
 import warnings
 
 import numpy as np
@@ -572,49 +573,129 @@ def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
     return np.abs(np.sum(tot_angles, axis=0) / (2 * np.pi) - 1.0) > 1e-5
 
 
+def _surface_to_polydata(rr, tris=None):
+    import pyvista as pv
+    vertices = np.array(rr)
+    if tris is None:
+        return pv.PolyData(vertices)
+    else:
+        triangles = np.array(tris)
+        triangles = np.c_[np.full(len(triangles), 3), triangles]
+        return pv.PolyData(vertices, triangles)
+
+
 class _CheckInside(object):
     """Efficiently check if points are inside a surface."""
 
-    def __init__(self, surf):
-        from scipy.spatial import Delaunay
+    @verbose
+    def __init__(self, surf, *, mode='old', verbose=None):
+        assert mode in ('pyvista', 'old')
+        self.mode = mode
+        t0 = time.time()
         self.surf = surf
+        if self.mode == 'pyvista':
+            self._init_pyvista()
+        else:
+            self._init_old()
+        logger.debug(
+            f'Setting up {mode} interior check for {len(self.surf["rr"])} '
+            f'points took {(time.time() - t0) * 1000:0.1f} ms')
+
+    def _init_old(self):
+        from scipy.spatial import Delaunay
         self.inner_r = None
-        self.cm = surf['rr'].mean(0)
-        if not _points_outside_surface(
-                self.cm[np.newaxis], surf)[0]:  # actually inside
-            # Immediately cull some points from the checks
-            self.inner_r = np.linalg.norm(surf['rr'] - self.cm, axis=-1).min()
+        self.cm = self.surf['rr'].mean(0)
         # We could use Delaunay or ConvexHull here, Delaunay is slightly slower
         # to construct but faster to evaluate
         # See https://stackoverflow.com/questions/16750618/whats-an-efficient-way-to-find-if-a-point-lies-in-the-convex-hull-of-a-point-cl  # noqa
-        self.del_tri = Delaunay(surf['rr'])
+        self.del_tri = Delaunay(self.surf['rr'])
+        if self.del_tri.find_simplex(self.cm) >= 0:
+            # Immediately cull some points from the checks
+            dists = np.linalg.norm(self.surf['rr'] - self.cm, axis=-1)
+            self.inner_r = dists.min()
+            self.outer_r = dists.max()
+
+    def _init_pyvista(self):
+        if not isinstance(self.surf, dict):
+            self.pdata = self.surf
+            self.surf = dict(
+                rr=self.pdata.points,
+                tris=self.pdata.faces.reshape(-1, 4)[:, 1:],
+                nn=self.pdata.point_normals)
+        else:
+            self.pdata = _surface_to_polydata(
+                self.surf['rr'], self.surf['tris']).clean()
 
     @verbose
     def __call__(self, rr, n_jobs=1, verbose=None):
-        inside = np.ones(len(rr), bool)  # innocent until proven guilty
-        idx = np.arange(len(rr))
+        n_orig = len(rr)
+        logger.info(f'Checking surface interior status for '
+                    f'{n_orig} point{_pl(n_orig, " ")}...')
+        t0 = time.time()
+        if self.mode == 'pyvista':
+            inside = self._call_pyvista(rr)
+        else:
+            inside = self._call_old(rr, n_jobs)
+        n = inside.sum()
+        logger.info(
+            f'    Total {n}/{n_orig} point{_pl(n, " ")} inside the surface')
+        logger.info(
+            f'Interior check completed in {(time.time() - t0) * 1000:0.1f} ms')
+        return inside
 
+    def _call_pyvista(self, rr):
+        pdata = _surface_to_polydata(rr)
+        out = pdata.select_enclosed_points(self.pdata, check_surface=False)
+        return out['SelectedPoints'].astype(bool)
+
+    def _call_old(self, rr, n_jobs):
+        n_orig = len(rr)
+        prec = int(np.ceil(np.log10(max(n_orig, 10))))
+        inside = np.ones(n_orig, bool)  # innocent until proven guilty
+        idx = np.arange(n_orig)
         # Limit to indices that can plausibly be outside the surf
+        # but are not definitely outside it
         if self.inner_r is not None:
-            mask = np.linalg.norm(rr - self.cm, axis=-1) >= self.inner_r
+            dists = np.linalg.norm(rr - self.cm, axis=-1)
+            in_mask = dists < self.inner_r
+            n = (in_mask).sum()
+            n_pad = str(n).rjust(prec)
+            logger.info(
+                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} '
+                f'inside  an interior sphere of radius '
+                f'{1000 * self.inner_r:6.1f} mm')
+            out_mask = dists > self.outer_r
+            inside[out_mask] = False
+            n = (out_mask).sum()
+            n_pad = str(n).rjust(prec)
+            logger.info(
+                f'    Found {n_pad}/{n_orig} point{_pl(n, " ")} '
+                f'outside an exterior sphere of radius '
+                f'{1000 * self.outer_r:6.1f} mm')
+            mask = (~in_mask) & (~out_mask)  # not definitely inside or outside
             idx = idx[mask]
             rr = rr[mask]
-            logger.info('    Skipping interior check for %d sources that fit '
-                        'inside a sphere of radius %6.1f mm'
-                        % ((~mask).sum(), self.inner_r * 1000))
 
         # Use qhull as our first pass (*much* faster than our check)
         del_outside = self.del_tri.find_simplex(rr) < 0
-        omit_outside = sum(del_outside)
+        n = sum(del_outside)
         inside[idx[del_outside]] = False
         idx = idx[~del_outside]
         rr = rr[~del_outside]
-        logger.info('    Skipping solid angle check for %d points using Qhull'
-                    % (omit_outside,))
+        n_pad = str(n).rjust(prec)
+        check_pad = str(len(del_outside)).rjust(prec)
+        logger.info(
+            f'    Found {n_pad}/{check_pad} point{_pl(n, " ")} outside using '
+            'surface Qhull')
 
         # use our more accurate check
         solid_outside = _points_outside_surface(rr, self.surf, n_jobs)
-        omit_outside += np.sum(solid_outside)
+        n = np.sum(solid_outside)
+        n_pad = str(n).rjust(prec)
+        check_pad = str(len(solid_outside)).rjust(prec)
+        logger.info(
+            f'    Found {n_pad}/{check_pad} point{_pl(n, " ")} outside using '
+            'solid angles')
         inside[idx[solid_outside]] = False
         return inside
 

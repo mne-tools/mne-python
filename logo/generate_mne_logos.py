@@ -17,7 +17,7 @@ from matplotlib import rcParams
 from scipy.stats import multivariate_normal
 from matplotlib.path import Path
 from matplotlib.text import TextPath
-from matplotlib.patches import PathPatch, Ellipse
+from matplotlib.patches import PathPatch, Ellipse, FancyBboxPatch
 from matplotlib.colors import LinearSegmentedColormap
 
 # manually set values
@@ -71,8 +71,8 @@ mne_field_grad_cols = LinearSegmentedColormap('mne_grad', yrtbc)
 mne_field_line_cols = LinearSegmentedColormap('mne_line', redbl)
 
 # plot gradient and contour lines
-im = plt.imshow(Z, cmap=mne_field_grad_cols, aspect='equal')
-cs = plt.contour(Z, 9, cmap=mne_field_line_cols, linewidths=1)
+im = ax.imshow(Z, cmap=mne_field_grad_cols, aspect='equal', zorder=1)
+cs = ax.contour(Z, 9, cmap=mne_field_line_cols, linewidths=1, zorder=1)
 plot_dims = np.r_[np.diff(ax.get_xbound()), np.diff(ax.get_ybound())]
 
 # create MNE clipping mask
@@ -114,17 +114,32 @@ static_dir = op.join(op.dirname(__file__), '..', 'doc', '_static')
 assert op.isdir(static_dir)
 plt.savefig(op.join(static_dir, 'mne_logo.svg'), transparent=True)
 
-# modify to make an icone
+# modify to make the splash screen
 data_dir = op.join(op.dirname(__file__), '..', 'mne', 'icons')
-ax.patches.pop(-1)  # no tag line for our icon
-ax.collections[:] = []
+ax.patches[-1].set_facecolor('w')
+for coll in list(ax.collections):
+    coll.remove()
 bounds = np.array([
     [mne_path.vertices[:, ii].min(), mne_path.vertices[:, ii].max()]
     for ii in range(2)])
 bounds *= (plot_dims / dims)
 xy = np.mean(bounds, axis=1) - [100, 0]
 r = np.diff(bounds, axis=1).max() * 1.2
-ax.add_patch(Ellipse(xy, r, r, clip_on=False, zorder=-1, fc='k'))
+w, h = r, r * (2 / 3)
+box_xy = [xy[0] - w * 0.5, xy[1] - h * (2 / 5)]
+ax.set_ylim(box_xy[1] + h * 1.001, box_xy[1] - h * 0.001)
+patch = FancyBboxPatch(
+    box_xy, w, h, clip_on=False, zorder=-1, fc='k', ec='none', alpha=0.75,
+    boxstyle="round,rounding_size=200.0", mutation_aspect=1)
+ax.add_patch(patch)
+fig.set_size_inches((512 / dpi, 512 * (h / w) / dpi))
+plt.savefig(op.join(data_dir, 'mne-splash.png'), transparent=True)
+patch.remove()
+
+# modify to make an icon
+ax.patches.pop(-1)  # no tag line for our icon
+patch = Ellipse(xy, r, r, clip_on=False, zorder=-1, fc='k')
+ax.add_patch(patch)
 ax.set_ylim(xy[1] + r / 1.9, xy[1] - r / 1.9)
 fig.set_size_inches((256 / dpi, 256 / dpi))
 # Qt does not support clip paths in SVG rendering so we have to use PNG here

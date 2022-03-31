@@ -12,7 +12,7 @@ from copy import deepcopy
 import numpy as np
 
 from .baseline import rescale, _log_rescale, _check_baseline
-from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
+from .channels.channels import (UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
@@ -33,7 +33,7 @@ from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.tree import dir_tree_find
 from .io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
-from .io.meas_info import (read_meas_info, write_meas_info,
+from .io.meas_info import (ContainsMixin, read_meas_info, write_meas_info,
                            _read_extended_ch_info, _rename_list,
                            _ensure_infos_match)
 from .io.proj import ProjMixin
@@ -206,12 +206,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(applyfun_fun_evoked)s
+        %(fun_applyfun_evoked)s
         %(picks_all_data_noref)s
-        %(applyfun_dtype)s
+        %(dtype_applyfun)s
         %(n_jobs)s
         %(verbose)s
-        %(kwarg_fun)s
+        %(kwargs_fun)s
 
         Returns
         -------
@@ -400,7 +400,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         %(decim)s
-        %(decim_offset)s
+        %(offset_decim)s
         %(verbose)s
 
         Returns
@@ -566,8 +566,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             or "s" (will become the default in 0.17).
 
             .. versionadded:: 0.16
-        %(topomap_sphere_auto)s
-        %(topomap_extrapolate)s
+        %(sphere_topomap_auto)s
+        %(extrapolate_topomap)s
 
             .. versionadded:: 0.22
         %(verbose)s
@@ -795,12 +795,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         %(picks_all)s
-        %(df_index_evk)s
+        %(index_df_evk)s
             Defaults to ``None``.
-        %(df_scalings)s
-        %(df_copy)s
-        %(df_longform_raw)s
-        %(df_time_format)s
+        %(scalings_df)s
+        %(copy_df)s
+        %(long_format_df_raw)s
+        %(time_format_df)s
 
             .. versionadded:: 0.20
         %(verbose)s
@@ -1390,7 +1390,7 @@ def write_evokeds(fname, evoked, *, on_mismatch='raise', overwrite=False,
         The evoked dataset, or list of evoked datasets, to save in one file.
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
-    %(on_info_mismatch)s
+    %(on_mismatch_info)s
     %(overwrite)s
 
         .. versionadded:: 1.0

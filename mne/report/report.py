@@ -889,14 +889,14 @@ class Report(_VerboseDep):
 
             If ``True``, add PSD plots based on all ``epochs``. If ``False``,
             do not add PSD plots.
-        %(report_projs)s
+        %(projs_report)s
         %(topomap_kwargs)s
         drop_log_ignore : array-like of str
             The drop reasons to ignore when creating the drop log bar plot.
             All epochs for which a drop reason listed here appears in
             ``epochs.drop_log`` will be excluded from the drop log plot.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -958,13 +958,13 @@ class Report(_VerboseDep):
             A noise covariance matrix. If provided, will be used to whiten
             the ``evokeds``. If ``None``, will fall back to the ``cov_fname``
             provided upon report creation.
-        %(report_projs)s
+        %(projs_report)s
         n_time_points : int | None
             The number of equidistant time points to render. If ``None``,
             will render each `~mne.Evoked` at 21 time points, unless the data
             contains fewer time points, in which case all will be rendered.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
         %(topomap_kwargs)s
         %(n_jobs)s
 
@@ -1055,7 +1055,7 @@ class Report(_VerboseDep):
             Whether to add PSD plots. Overrides the ``raw_psd`` parameter
             passed when initializing the `~mne.Report`. If ``None``, use
             ``raw_psd`` from `~mne.Report` creation.
-        %(report_projs)s
+        %(projs_report)s
         butterfly : bool | int
             Whether to add butterfly plots of the data. Can be useful to
             spot problematic channels. If ``True``, 10 equally-spaced 1-second
@@ -1064,8 +1064,8 @@ class Report(_VerboseDep):
             amount of time if the data contains many sensors. You can disable
             butterfly plots altogether by passing ``False``.
         %(scalings)s
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
         %(topomap_kwargs)s
 
         Notes
@@ -1135,9 +1135,9 @@ class Report(_VerboseDep):
             The number of equidistant time points to render. If ``None``,
             will render ``stc`` at 51 time points, unless the data
             contains fewer time points, in which case all will be rendered.
-        %(report_tags)s
-        %(report_replace)s
-        %(report_stc_plot_kwargs)s
+        %(tags_report)s
+        %(replace_report)s
+        %(stc_plot_kwargs_report)s
 
         Notes
         -----
@@ -1181,8 +1181,8 @@ class Report(_VerboseDep):
             passed on report creation. If supplied, also pass ``subjects_dir``.
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1224,8 +1224,8 @@ class Report(_VerboseDep):
             The FreeSurfer ``SUBJECTS_DIR``.
         trans : path-like | instance of Transform | None
             The ``head -> MRI`` transformation for ``subject``.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1274,8 +1274,8 @@ class Report(_VerboseDep):
             The level of opacity to apply to the head surface. If a float, must
             be between 0 and 1 (inclusive), where 1 means fully opaque. If
             ``None``, will use the MNE-Python default value.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1313,8 +1313,8 @@ class Report(_VerboseDep):
             The `~mne.Info` corresponding to ``cov``.
         title : str
             The title corresponding to the `~mne.Covariance` object.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1363,8 +1363,8 @@ class Report(_VerboseDep):
         first_samp : int
             The first sample point in the recording. This corresponds to
             ``raw.first_samp`` on files created with Elekta/Neuromag systems.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1405,8 +1405,8 @@ class Report(_VerboseDep):
         title : str
             The title corresponding to the `~mne.Projection` object.
         %(topomap_kwargs)s
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1732,8 +1732,8 @@ class Report(_VerboseDep):
             If passed, will be used to visualize the scoring for each ICA
             component.
         %(n_jobs)s
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1883,8 +1883,8 @@ class Report(_VerboseDep):
         language : str
             The programming language of ``code``. This will be used for syntax
             highlighting. Can be ``'auto'`` to try to auto-detect the language.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1914,7 +1914,7 @@ class Report(_VerboseDep):
         ----------
         title : str
             The title to assign.
-        %(report_tags)s
+        %(tags_report)s
 
         Notes
         -----
@@ -1945,9 +1945,9 @@ class Report(_VerboseDep):
             The title corresponding to the figure(s).
         caption : str | array-like of str | None
             The caption(s) to add to the figure(s).
-        %(report_image_format)s
-        %(report_tags)s
-        %(report_replace)s
+        %(image_format_report)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -2021,8 +2021,8 @@ class Report(_VerboseDep):
             Title corresponding to the images.
         caption : str | None
             If not ``None``, the caption to add to the image.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -2062,8 +2062,8 @@ class Report(_VerboseDep):
             The HTML content to add.
         title : str
             The title corresponding to ``html``.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -2104,8 +2104,8 @@ class Report(_VerboseDep):
             Typically a factor of 2 more than the number of MRI voxels along
             each dimension (typically 512, default) is reasonable.
         %(n_jobs)s
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -2322,7 +2322,7 @@ class Report(_VerboseDep):
         on_error : str
             What to do if a file cannot be rendered. Can be 'ignore',
             'warn' (default), or 'raise'.
-        %(report_image_format)s
+        %(image_format_report)s
 
             .. versionadded:: 0.15
         render_bem : bool
@@ -2342,7 +2342,7 @@ class Report(_VerboseDep):
             data.
 
             .. versionadded:: 0.24.0
-        %(report_stc_plot_kwargs)s
+        %(stc_plot_kwargs_report)s
 
             .. versionadded:: 0.24.0
         %(topomap_kwargs)s

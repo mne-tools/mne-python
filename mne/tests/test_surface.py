@@ -261,6 +261,7 @@ def test_marching_cubes(dtype, value, smooth):
 
 
 @requires_nibabel()
+@testing.requires_testing_data
 def test_get_montage_volume_labels():
     """Test finding ROI labels near montage channel locations."""
     ch_coords = np.array([[-8.7040273, 17.99938754, 10.29604017],

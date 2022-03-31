@@ -14,9 +14,10 @@ from mne.datasets import testing
 from mne.io import read_info
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io.constants import FIFF
-from mne.utils import get_config
+from mne.utils import get_config, catch_logging
 from mne.channels import DigMontage
 from mne.coreg import Coregistration
+from mne.viz import _3d
 
 
 data_path = testing.data_path(download=False)
@@ -100,7 +101,8 @@ def test_coreg_gui_pyvista_file_support(inst_path, tmp_path,
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
+def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
+                                 monkeypatch):
     """Test that using CoregistrationUI matches mne coreg."""
     from mne.gui import coregistration
     from mne.gui._coreg import CoregistrationUI
@@ -140,8 +142,14 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     coreg._reset_fiducials()
     coreg.close()
 
-    coreg = coregistration(inst=raw_path, subject='sample',
-                           subjects_dir=subjects_dir)
+    # make it always log the distances
+    monkeypatch.setattr(_3d.logger, 'info', _3d.logger.warning)
+    with catch_logging() as log:
+        coreg = coregistration(inst=raw_path, subject='sample',
+                               head_high_res=False,  # for speed
+                               subjects_dir=subjects_dir, verbose='debug')
+    log = log.getvalue()
+    assert 'Total 16/78 points inside the surface' in log
     coreg._set_fiducials_file(fid_fname)
     assert coreg._fiducials_file == fid_fname
 
@@ -154,12 +162,16 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert_allclose(coreg.coreg._scale,
                     np.array([97.46, 97.46, 97.46]) * 1e-2,
                     atol=1e-3)
+    shown_scale = [coreg._widgets[f's{x}'].get_value() for x in 'XYZ']
+    assert_allclose(shown_scale, coreg.coreg._scale * 100, atol=1e-2)
     coreg._set_icp_fid_match("nearest")
     coreg._set_scale_mode("3-axis")
     coreg._fits_icp()
     assert_allclose(coreg.coreg._scale,
                     np.array([104.43, 101.47, 125.78]) * 1e-2,
                     atol=1e-3)
+    shown_scale = [coreg._widgets[f's{x}'].get_value() for x in 'XYZ']
+    assert_allclose(shown_scale, coreg.coreg._scale * 100, atol=1e-2)
     coreg._set_scale_mode("None")
     coreg._set_icp_fid_match("matched")
     assert coreg._mri_scale_modified
@@ -188,16 +200,45 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     coreg._set_point_weight(11., 'nasion')
     assert coreg._nasion_weight == 11.
     coreg._fit_fiducials()
-    coreg._fit_icp()
+    with catch_logging() as log:
+        coreg._redraw()  # actually emit the log
+    log = log.getvalue()
+    assert 'Total 6/78 points inside the surface' in log
+    with catch_logging() as log:
+        coreg._fit_icp()
+        coreg._redraw()
+    log = log.getvalue()
+    assert 'Total 38/78 points inside the surface' in log
     assert coreg.coreg._extra_points_filter is None
     coreg._omit_hsp()
+    with catch_logging() as log:
+        coreg._redraw()
+    log = log.getvalue()
+    assert 'Total 29/53 points inside the surface' in log
     assert coreg.coreg._extra_points_filter is not None
     coreg._reset_omit_hsp_filter()
+    with catch_logging() as log:
+        coreg._redraw()
+    log = log.getvalue()
+    assert 'Total 38/78 points inside the surface' in log
     assert coreg.coreg._extra_points_filter is None
 
     assert coreg._grow_hair == 0
-    coreg._set_grow_hair(0.1)
-    assert coreg._grow_hair == 0.1
+    coreg._fit_fiducials()  # go back to few inside to start
+    with catch_logging() as log:
+        coreg._redraw()
+    log = log.getvalue()
+    assert 'Total 6/78 points inside the surface' in log
+    norm = np.linalg.norm(coreg._head_geo['rr'])  # what's used for inside
+    assert_allclose(norm, 5.949288, atol=1e-3)
+    coreg._set_grow_hair(20.0)
+    with catch_logging() as log:
+        coreg._redraw()
+    assert coreg._grow_hair == 20.0
+    norm = np.linalg.norm(coreg._head_geo['rr'])
+    assert_allclose(norm, 6.555220, atol=1e-3)  # outward
+    log = log.getvalue()
+    assert 'Total 8/78 points inside the surface' in log  # more outside now
 
     # visualization
     assert not coreg._helmet
@@ -214,8 +255,7 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._head_shape_points
     assert coreg._scale_mode == 'None'
     assert coreg._icp_fid_match == 'matched'
-    assert coreg._head_resolution == \
-        (config.get('MNE_COREG_HEAD_HIGH_RES', 'true') == 'true')
+    assert coreg._head_resolution is False
 
     assert coreg._trans_modified
     tmp_trans = tmp_path / 'tmp-trans.fif'

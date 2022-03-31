@@ -16,7 +16,7 @@ class _AbstractRenderer(ABC):
 
     @abstractclassmethod
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name=None, show=False, shape=(1, 1)):
+                 name=None, show=False, shape=(1, 1), splash=False):
         """Set up the scene."""
         pass
 
@@ -38,6 +38,35 @@ class _AbstractRenderer(ABC):
     @abstractclassmethod
     def set_interaction(self, interaction):
         """Set interaction mode."""
+        pass
+
+    @abstractclassmethod
+    def legend(self, labels, border=False, size=0.1, face='triangle',
+               loc='upper left'):
+        """Add a legend to the scene.
+
+        Parameters
+        ----------
+        labels : list of tuples
+            Each entry must contain two strings, (label, color),
+            where ``label`` is the name of the item to add, and
+            ``color`` is the color of the label to add.
+        border : bool
+            Controls if there will be a border around the legend.
+            The default is False.
+        size : float
+            The size of the entire figure window.
+        loc : str
+            The location of the legend.
+        face : str
+            Face shape of legend face.  One of the following:
+
+            * None: ``None``
+            * Line: ``"-"`` or ``"line"``
+            * Triangle: ``"^"`` or ``'triangle'``
+            * Circle: ``"o"`` or ``'circle'``
+            * Rectangle: ``"r"`` or ``'rectangle'``
+        """
         pass
 
     @abstractclassmethod
@@ -492,7 +521,7 @@ class _AbstractToolBar(ABC):
         pass
 
     @abstractmethod
-    def _tool_bar_set_theme(self, theme):
+    def _tool_bar_set_theme(self):
         pass
 
 
@@ -577,9 +606,7 @@ class _AbstractDock(ABC):
     @abstractmethod
     def _dock_add_file_button(
         self, name, desc, func, *, filter=None, initial_directory=None,
-        value=None, save=False, is_directory=False, input_text_widget=True,
-        placeholder="Type a file name", tooltip=None,
-        layout=None
+        save=False, is_directory=False, tooltip=None, layout=None
     ):
         pass
 
@@ -626,7 +653,7 @@ class _AbstractPlayback(ABC):
 class _AbstractDialog(ABC):
     @abstractmethod
     def _dialog_warning(self, title, text, info_text, callback, *,
-                        modal=True, window=None):
+                        buttons=[], modal=True, window=None):
         pass
 
 
@@ -700,6 +727,10 @@ class _AbstractWidget(ABC):
 
     @abstractmethod
     def set_tooltip(self, tooltip: str):
+        pass
+
+    @abstractmethod
+    def set_style(self, style):
         pass
 
 
@@ -915,7 +946,7 @@ class Figure3D(ABC):
 
     @abstractclassmethod
     def _init(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-              name=None, show=False, shape=(1, 1)):
+              name=None, show=False, shape=(1, 1), splash=False):
         pass
 
     @property

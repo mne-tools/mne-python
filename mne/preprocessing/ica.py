@@ -35,7 +35,7 @@ from ..io.write import (write_double_matrix, write_string,
 from ..io.tree import dir_tree_find
 from ..io.open import fiff_open
 from ..io.tag import read_tag
-from ..io.meas_info import write_meas_info, read_meas_info
+from ..io.meas_info import write_meas_info, read_meas_info, ContainsMixin
 from ..io.constants import FIFF
 from ..io.base import BaseRaw
 from ..io.eeglab.eeglab import _get_info, _check_load_mat
@@ -46,7 +46,7 @@ from ..viz import (plot_ica_components, plot_ica_scores,
 from ..viz.ica import plot_ica_properties
 from ..viz.topomap import _plot_corrmap
 
-from ..channels.channels import _contains_ch_type, ContainsMixin
+from ..channels.channels import _contains_ch_type
 from ..io.write import start_and_end_file, write_id
 from ..utils import (logger, check_fname, _check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,
@@ -1962,13 +1962,14 @@ class ICA(ContainsMixin, _VerboseDep):
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True,
                      time_format='float', precompute=None,
-                     use_opengl=None):
+                     use_opengl=None, *, theme=None):
         return plot_ica_sources(self, inst=inst, picks=picks,
                                 start=start, stop=stop, title=title, show=show,
                                 block=block, show_first_samp=show_first_samp,
                                 show_scrollbars=show_scrollbars,
                                 time_format=time_format,
-                                precompute=precompute, use_opengl=use_opengl)
+                                precompute=precompute, use_opengl=use_opengl,
+                                theme=theme)
 
     @copy_function_doc_to_method_doc(plot_ica_scores)
     def plot_scores(self, scores, exclude=None, labels=None, axhline=None,
@@ -2555,7 +2556,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         to True.
     show : bool
         Show figures if True.
-    %(topomap_outlines)s
+    %(outlines_topomap)s
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True, a circle will be
@@ -2569,7 +2570,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     cmap : None | matplotlib colormap
         Colormap for the plot. If ``None``, defaults to 'Reds_r' for norm data,
         otherwise to 'RdBu_r'.
-    %(topomap_sphere_auto)s
+    %(sphere_topomap_auto)s
     %(verbose)s
 
     Returns

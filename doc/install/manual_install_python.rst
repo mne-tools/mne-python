@@ -1,9 +1,11 @@
+:orphan:
+
 .. include:: ../links.inc
 
 .. _install-python:
 
 Installing Python
-=================
+^^^^^^^^^^^^^^^^^
 
 MNE-Python requires Python and several Python packages. MNE-Python
 version |version| requires Python version |min_python_version| or higher. We

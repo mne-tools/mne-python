@@ -10,9 +10,9 @@ without a proper 6-month deprecation cycle.
 
 | Version | Supported                |
 | ------- | ------------------------ |
-| 0.25.x  | :heavy_check_mark: (dev) |
-| 0.24.x  | :heavy_check_mark:       |
-| < 0.24  | :x:                      |
+| 1.1.x   | :heavy_check_mark: (dev) |
+| 1.0.x   | :heavy_check_mark:       |
+| < 1.0   | :x:                      |
 
 ## Reporting a Vulnerability
 

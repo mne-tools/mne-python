@@ -24,11 +24,10 @@ from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
 from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx,
                    channel_type)
-from .meas_info import write_meas_info, _ensure_infos_match
+from .meas_info import write_meas_info, _ensure_infos_match, ContainsMixin
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
-from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
-                                 SetChannelsMixin, InterpolationMixin,
-                                 _unit2human)
+from ..channels.channels import (UpdateChannelsMixin, SetChannelsMixin,
+                                 InterpolationMixin, _unit2human)
 from .compensator import set_current_comp, make_compensator
 from .write import (start_and_end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
@@ -988,15 +987,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(applyfun_fun)s
+        %(fun_applyfun)s
         %(picks_all_data_noref)s
-        %(applyfun_dtype)s
+        %(dtype_applyfun)s
         %(n_jobs)s
-        %(applyfun_chwise)s
+        %(channel_wise_applyfun)s
 
             .. versionadded:: 0.18
         %(verbose)s
-        %(kwarg_fun)s
+        %(kwargs_fun)s
 
         Returns
         -------
@@ -1069,8 +1068,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         trans_bandwidth : float
             Width of the transition band in Hz.
             Only used for ``method='fir'``.
-        %(n_jobs-fir)s
-        %(method-fir)s
+        %(n_jobs_fir)s
+        %(method_fir)s
         %(iir_params)s
         mt_bandwidth : float | None
             The bandwidth of the multitaper windowing function in Hz.
@@ -1083,7 +1082,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(phase)s
         %(fir_window)s
         %(fir_design)s
-        %(pad-fir)s
+        %(pad_fir)s
             The default is ``'reflect_limited'``.
 
             .. versionadded:: 0.15
@@ -1156,14 +1155,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         sfreq : float
             New sample rate to use.
         %(npad)s
-        %(window-resample)s
+        %(window_resample)s
         stim_picks : list of int | None
             Stim channels. These channels are simply subsampled or
             supersampled (without applying any filtering). This reduces
             resampling artifacts in stim channels, but may lead to missing
             triggers. If None, stim channels are automatically chosen using
             :func:`mne.pick_types`.
-        %(n_jobs-cuda)s
+        %(n_jobs_cuda)s
         events : 2D array, shape (n_events, 3) | None
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data. NB: The input events are not
@@ -1308,8 +1307,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(raw_tmin)s
-        %(raw_tmax)s
+        %(tmin_raw)s
+        %(tmax_raw)s
         %(include_tmax)s
 
             .. versionadded:: 0.19
@@ -1390,8 +1389,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             or ``_ieeg.fif`` (common intracranial EEG data). You may also
             append an additional ``.gz`` suffix to enable gzip compression.
         %(picks_all)s
-        %(raw_tmin)s
-        %(raw_tmax)s
+        %(tmin_raw)s
+        %(tmax_raw)s
         buffer_size_sec : float | None
             Size of data chunks in seconds. If None (default), the buffer
             size of the original file is used.
@@ -1512,10 +1511,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(export_params_fname)s
-        %(export_params_fmt)s
-        %(export_params_physical_range)s
-        %(export_params_add_ch_type)s
+        %(fname_export_params)s
+        %(fmt_export_params)s
+        %(physical_range_export_params)s
+        %(add_ch_type_export_params)s
         %(overwrite)s
 
             .. versionadded:: 0.24.1
@@ -1557,7 +1556,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, time_format='float',
-             precompute=None, use_opengl=None, verbose=None):
+             precompute=None, use_opengl=None, *, theme=None, verbose=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
@@ -1566,7 +1565,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                         event_id=event_id, show_scrollbars=show_scrollbars,
                         show_scalebars=show_scalebars, time_format=time_format,
                         precompute=precompute, use_opengl=use_opengl,
-                        verbose=verbose)
+                        theme=theme, verbose=verbose)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
@@ -1880,10 +1879,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         %(picks_all)s
-        %(df_index_raw)s
+        %(index_df_raw)s
             Defaults to ``None``.
-        %(df_scalings)s
-        %(df_copy)s
+        %(scalings_df)s
+        %(copy_df)s
         start : int | None
             Starting sample index for creating the DataFrame from a temporal
             span of the Raw object. ``None`` (the default) uses the first
@@ -1891,8 +1890,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         stop : int | None
             Ending sample index for creating the DataFrame from a temporal span
             of the Raw object. ``None`` (the default) uses the last sample.
-        %(df_longform_raw)s
-        %(df_time_format_raw)s
+        %(long_format_df_raw)s
+        %(time_format_df_raw)s
 
             .. versionadded:: 0.20
         %(verbose)s
@@ -2546,7 +2545,7 @@ def concatenate_raws(raws, preload=None, events_list=None, *,
     %(preload_concatenate)s
     events_list : None | list
         The events to concatenate. Defaults to ``None``.
-    %(on_info_mismatch)s
+    %(on_mismatch_info)s
     %(verbose)s
 
     Returns

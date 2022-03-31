@@ -649,7 +649,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 order=None, show=True, block=False, decim='auto',
                 noise_cov=None, butterfly=False, show_scrollbars=True,
                 show_scalebars=True, epoch_colors=None, event_id=None,
-                group_by='type', precompute=None, use_opengl=None):
+                group_by='type', precompute=None, use_opengl=None, *,
+                theme=None):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -730,9 +731,12 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         ``epochs.event_id`` when there are overlapping keys.
 
         .. versionadded:: 0.20
-    %(browse_group_by)s
+    %(group_by_browse)s
     %(precompute)s
     %(use_opengl)s
+    %(theme_pg)s
+
+        .. versionadded:: 1.0
 
     Returns
     -------
@@ -945,21 +949,21 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     %(normalization)s
-    %(plot_psd_picks_good_data)s
+    %(picks_plot_psd_good_data)s
     ax : instance of Axes | None
         Axes to plot into. If None, axes will be created.
-    %(plot_psd_color)s
-    %(plot_psd_xscale)s
-    %(plot_psd_area_mode)s
-    %(plot_psd_area_alpha)s
-    %(plot_psd_dB)s
-    %(plot_psd_estimate)s
+    %(color_plot_psd)s
+    %(xscale_plot_psd)s
+    %(area_mode_plot_psd)s
+    %(area_alpha_plot_psd)s
+    %(dB_plot_psd)s
+    %(estimate_plot_psd)s
     %(show)s
     %(n_jobs)s
-    %(plot_psd_average)s
-    %(plot_psd_line_alpha)s
-    %(plot_psd_spatial_colors)s
-    %(topomap_sphere_auto)s
+    %(average_plot_psd)s
+    %(line_alpha_plot_psd)s
+    %(spatial_colors_plot_psd)s
+    %(sphere_topomap_auto)s
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the bad channels
         are excluded. Pass an empty list to plot all channels (including

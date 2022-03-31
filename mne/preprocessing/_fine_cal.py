@@ -37,12 +37,12 @@ def compute_fine_calibration(raw, n_imbalance=3, t_window=10., ext_order=2,
     t_window : float
         Time window to use for surface normal rotation in seconds.
         Default is 10.
-    %(maxwell_ext)s
+    %(ext_order_maxwell)s
         Default is 2, which is lower than the default (3) for
         :func:`mne.preprocessing.maxwell_filter` because it tends to yield
         more stable parameter estimates.
-    %(maxwell_origin)s
-    %(maxwell_cross)s
+    %(origin_maxwell)s
+    %(cross_talk_maxwell)s
     calibration : dict | None
         Dictionary with existing calibration. If provided, the magnetometer
         imbalances and adjusted normals will be used and only the gradiometer

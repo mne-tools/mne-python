@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-epochs-dataframe:
 
+=====================================
 Exporting Epochs to Pandas DataFrames
 =====================================
 

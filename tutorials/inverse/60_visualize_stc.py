@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-viz-stcs:
 
+====================================
 Visualize source time courses (stcs)
 ====================================
 

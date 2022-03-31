@@ -174,15 +174,18 @@
 
 .. python editors
 
-.. _atom: https://atom.io/
 .. _Spyder: https://www.spyder-ide.org/
+.. _`integrated development environment`: https://en.wikipedia.org/wiki/Integrated_development_environment
+.. _`spyder`: https://www.spyder-ide.org/
+.. _`visual studio code`: https://code.visualstudio.com/
+.. _`pycharm`: https://www.jetbrains.com/pycharm/
+
 .. _anaconda: https://www.anaconda.com/products/individual
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _miniforge: https://github.com/conda-forge/miniforge
 .. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
 .. _installation instructions for Miniconda: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 .. _Anaconda troubleshooting guide: http://conda.pydata.org/docs/troubleshooting.html
-.. _sublime text: http://www.sublimetext.com/
 
 .. installation links
 

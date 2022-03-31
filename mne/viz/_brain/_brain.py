@@ -44,7 +44,7 @@ from ...transforms import (Transform, apply_trans, invert_transform,
                            _frame_to_str)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn, deprecated,
-                      get_subjects_dir, _check_fname, _to_rgb)
+                      get_subjects_dir, _check_fname, _to_rgb, get_config)
 
 
 _ARROW_MOVE = 10  # degrees per press
@@ -313,11 +313,7 @@ class Brain(object):
        and ``decimate`` (level of decimation between 0 and 1 or None) of the
        brain's silhouette to display. If True, the default values are used
        and if False, no silhouette will be displayed. Defaults to False.
-    theme : str | path-like
-        Can be "auto" (default), "light", or "dark" or a path-like to a
-        custom stylesheet. For Dark-Mode and automatic Dark-Mode-Detection,
-        :mod:`qdarkstyle` respectively and `darkdetect
-        <https://github.com/albertosottile/darkdetect>`__ is required.
+    %(theme_3d)s
     show : bool
         Display the window as soon as it is ready. Defaults to True.
     block : bool
@@ -420,7 +416,7 @@ class Brain(object):
                  foreground=None, figure=None, subjects_dir=None,
                  views='auto', offset='auto', show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
-                 view_layout='vertical', silhouette=False, theme='auto',
+                 view_layout='vertical', silhouette=False, theme=None,
                  show=True, block=False):
         from ..backends.renderer import backend, _get_renderer
 
@@ -461,8 +457,6 @@ class Brain(object):
                              'sequence of ints.')
         size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
         subjects_dir = get_subjects_dir(subjects_dir)
-
-        self.theme = theme
 
         self.time_viewer = False
         self._block = block
@@ -517,12 +511,17 @@ class Brain(object):
             offset = (surf in ('inflated', 'flat'))
         offset = None if (not offset or hemi != 'both') else 0.0
         logger.debug(f'Hemi offset: {offset}')
+        _validate_type(theme, (str, None), 'theme')
+        if theme is None:
+            theme = get_config('MNE_3D_OPTION_THEME', 'auto')
 
         self._renderer = _get_renderer(name=self._title, size=size,
                                        bgcolor=self._bg_color,
                                        shape=shape,
                                        fig=figure)
         self._renderer._window_close_connect(self._clean)
+        # TODO: Eventually all 3D windows could use this if we move this call
+        # into _get_renderer / the Qt backend itself.
         self._renderer._window_set_theme(theme)
         self.plotter = self._renderer.plotter
 
@@ -1287,8 +1286,8 @@ class Brain(object):
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_load_icons()
-        self._renderer._tool_bar_set_theme(self.theme)
         self._renderer._tool_bar_initialize(name="Toolbar")
+        self._renderer._tool_bar_set_theme()
         self._renderer._tool_bar_add_file_button(
             name="screenshot",
             desc="Take a screenshot",
@@ -1614,9 +1613,11 @@ class Brain(object):
             self.color_cycle.restore(color)
         for sphere in spheres:
             # remove all actors
-            self.plotter.remove_actor(sphere._actors, render=render)
+            self.plotter.remove_actor(sphere._actors, render=False)
             sphere._actors = None
             self._spheres.pop(self._spheres.index(sphere))
+        if render:
+            self._renderer._update()
         self.pick_table.pop(vertex_id)
 
     def clear_glyphs(self):
@@ -1837,7 +1838,7 @@ class Brain(object):
             logger.debug(
                 f'Removing {len(self._actors[item])} {item} actor(s)')
             for actor in self._actors[item]:
-                self._renderer.plotter.remove_actor(actor)
+                self._renderer.plotter.remove_actor(actor, render=False)
             self._actors.pop(item)  # remove actor list
             if render:
                 self._renderer._update()
@@ -2862,7 +2863,7 @@ class Brain(object):
         _validate_type(name, (str, None), 'name')
         if name is None:
             for actor in self._actors['text'].values():
-                self._renderer.plotter.remove_actor(actor)
+                self._renderer.plotter.remove_actor(actor, render=False)
             self._actors.pop('text')
         else:
             names = [None]
@@ -2870,7 +2871,7 @@ class Brain(object):
                 names += list(self._actors['text'].keys())
             _check_option('name', name, names)
             self._renderer.plotter.remove_actor(
-                self._actors['text'][name])
+                self._actors['text'][name], render=False)
             self._actors['text'].pop(name)
         self._renderer._update()
 
@@ -3146,7 +3147,7 @@ class Brain(object):
         ----------
         mode : str
             Either 'rgb' or 'rgba' for values to return.
-        %(brain_screenshot_time_viewer)s
+        %(time_viewer_brain_screenshot)s
 
         Returns
         -------
@@ -3308,7 +3309,7 @@ class Brain(object):
 
         Parameters
         ----------
-        %(brain_time_interpolation)s
+        %(interpolation_brain_time)s
         """
         self._time_interpolation = _check_option(
             'interpolation',
@@ -3627,7 +3628,7 @@ class Brain(object):
             Last time point to include (default: all data).
         framerate : float
             Framerate of the movie (frames per second, default 24).
-        %(brain_time_interpolation)s
+        %(interpolation_brain_time)s
             If None, it uses the current ``brain.interpolation``,
             which defaults to ``'nearest'``. Defaults to None.
         codec : str | None
@@ -3638,7 +3639,7 @@ class Brain(object):
             A function to call on each iteration. Useful for status message
             updates. It will be passed keyword arguments ``frame`` and
             ``n_frames``.
-        %(brain_screenshot_time_viewer)s
+        %(time_viewer_brain_screenshot)s
         **kwargs : dict
             Specify additional options for :mod:`imageio`.
         """

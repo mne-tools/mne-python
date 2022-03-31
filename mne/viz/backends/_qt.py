@@ -10,7 +10,7 @@ from contextlib import contextmanager
 import pyvista
 from pyvistaqt.plotting import FileDialog
 
-from PyQt5.QtCore import Qt, pyqtSignal, QLocale
+from PyQt5.QtCore import Qt, pyqtSignal, QLocale, QObject
 from PyQt5.QtGui import QIcon, QImage, QPixmap, QCursor
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
@@ -28,8 +28,9 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
-from ._utils import _init_qt_resources, _qt_disable_paint
-from ..utils import logger, _check_option
+from ._utils import (_init_qt_resources, _qt_disable_paint,
+                     _qt_get_stylesheet, _qt_is_dark, _qt_raise_window)
+from ..utils import _check_option, safe_event
 
 
 class _QtDialog(_AbstractDialog):
@@ -47,8 +48,6 @@ class _QtDialog(_AbstractDialog):
 
         button_ids = list()
         for button in buttons:
-            # handle the special case of 'Ok' becoming 'OK'
-            button = "Ok" if button.upper() == "OK" else button
             # button is one of QMessageBox.StandardButtons
             button_id = getattr(QMessageBox, button)
             button_ids.append(button_id)
@@ -58,13 +57,22 @@ class _QtDialog(_AbstractDialog):
         widget.setStandardButtons(standard_buttons)
         widget.setDefaultButton(default_button)
 
+        @safe_event
         def func(button):
-            # the text of the button may be prefixed by '&'
-            button_name = button.text().replace('&', '')
-            # handle MacOS Discard button
-            button_name = "Discard" \
-                if button_name == "Don't Save" else button_name
-            callback(button_name)
+            button_id = widget.standardButton(button)
+            supported_button_names = [
+                "Ok", "Open", "Save", "Cancel", "Close", "Discard", "Apply",
+                "Reset", "RestoreDefaults", "Help", "SaveAll", "Yes",
+                "YesToAll", "No", "NoToAll", "Abort", "Retry", "Ignore"
+            ]
+            for button_name in supported_button_names:
+                if button_id == getattr(QMessageBox, button_name):
+                    widget.setCursor(QCursor(Qt.WaitCursor))
+                    try:
+                        callback(button_name)
+                    finally:
+                        widget.unsetCursor()
+                        break
 
         widget.buttonClicked.connect(func)
         return _QtDialogWidget(widget, modal)
@@ -263,24 +271,9 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_file_button(
         self, name, desc, func, *, filter=None, initial_directory=None,
-        value=None, save=False,
-        is_directory=False, input_text_widget=True,
-        placeholder="Type a file name", tooltip=None, layout=None
+        save=False, is_directory=False, tooltip=None, layout=None
     ):
         layout = self._dock_layout if layout is None else layout
-        if input_text_widget:
-            hlayout = self._dock_add_layout(vertical=False)
-            text_widget = self._dock_add_text(
-                name=f"{name}_field",
-                value=value,
-                placeholder=placeholder,
-                layout=hlayout,
-            )
-
-            def sync_text_widget(s):
-                text_widget.set_value(s)
-        else:
-            hlayout = layout
 
         def callback():
             if is_directory:
@@ -301,21 +294,15 @@ class _QtDock(_AbstractDock, _QtLayout):
             # handle the cancel button
             if len(name) == 0:
                 return
-            if input_text_widget:
-                sync_text_widget(name)
             func(name)
 
         button_widget = self._dock_add_button(
             name=desc,
             callback=callback,
             tooltip=tooltip,
-            layout=hlayout,
+            layout=layout,
         )
-        if input_text_widget:
-            self._layout_add_widget(layout, hlayout)
-            return _QtWidgetList([text_widget, button_widget])
-        else:
-            return button_widget  # It's already a _QtWidget instance
+        return button_widget  # It's already a _QtWidget instance
 
 
 class QFloatSlider(QSlider):
@@ -450,11 +437,8 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         self._tool_bar_add_button(
             name=name, desc=desc, func=func, icon_name=None, shortcut=shortcut)
 
-    def _tool_bar_set_theme(self, theme):
-        if theme == 'auto':
-            theme = _detect_theme()
-
-        if theme == 'dark':
+    def _tool_bar_set_theme(self):
+        if _qt_is_dark(self._tool_bar):
             for icon_key in self.icons:
                 icon = self.icons[icon_key]
                 image = icon.pixmap(80).toImage()
@@ -611,10 +595,11 @@ class _QtWindow(_AbstractWindow):
         dock_layout.addWidget(canvas)
 
     def _window_get_cursor(self):
-        return self._interactor.cursor()
+        return self._window.cursor()
 
     def _window_set_cursor(self, cursor):
         self._interactor.setCursor(cursor)
+        self._window.setCursor(cursor)
 
     def _window_new_cursor(self, name):
         return QCursor(getattr(Qt, name))
@@ -666,24 +651,7 @@ class _QtWindow(_AbstractWindow):
             self._process_events()
 
     def _window_set_theme(self, theme):
-        if theme == 'auto':
-            theme = _detect_theme()
-
-        if theme == 'dark':
-            try:
-                import qdarkstyle
-            except ModuleNotFoundError:
-                logger.info('For Dark-Mode "qdarkstyle" has to be installed! '
-                            'You can install it with `pip install qdarkstyle`')
-                stylesheet = None
-            else:
-                stylesheet = qdarkstyle.load_stylesheet()
-        elif theme != 'light':
-            with open(theme, 'r') as file:
-                stylesheet = file.read()
-        else:
-            stylesheet = None
-
+        stylesheet = _qt_get_stylesheet(theme)
         self._window.setStyleSheet(stylesheet)
 
 
@@ -768,22 +736,41 @@ class _QtWidget(_AbstractWidget):
         assert hasattr(self._widget, 'setToolTip')
         self._widget.setToolTip(tooltip)
 
+    def set_style(self, style):
+        stylesheet = ""
+        for key, val in style.items():
+            stylesheet = stylesheet + f"{key}:{val};"
+        self._widget.setStyleSheet(stylesheet)
+
+
+class _QtDialogCommunicator(QObject):
+    signal_show = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
 
 class _QtDialogWidget(_QtWidget):
     def __init__(self, widget, modal):
         super().__init__(widget)
         self._modal = modal
+        self._communicator = _QtDialogCommunicator()
+        self._communicator.signal_show.connect(self.show)
 
     def trigger(self, button):
+        button_id = getattr(QMessageBox, button)
         for current_button in self._widget.buttons():
-            if current_button.text() == button:
+            if self._widget.standardButton(current_button) == button_id:
                 current_button.click()
 
-    def show(self):
-        if self._modal:
-            self._widget.exec()
+    def show(self, thread=False):
+        if thread:
+            self._communicator.signal_show.emit()
         else:
-            self._widget.show()
+            if self._modal:
+                self._widget.exec()
+            else:
+                self._widget.show()
 
 
 class _QtAction(_AbstractAction):
@@ -808,7 +795,17 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
         for plotter in self._all_plotters:
             plotter.updateGeometry()
             plotter._render()
+        # Ideally we would just put a `splash.finish(plotter.window())` in the
+        # same place that we initialize this (_init_qt_app call). However,
+        # the window show event is triggered (closing the splash screen) well
+        # before the window actually appears for complex scenes like the coreg
+        # GUI. Therefore, we close after all these events have been processed
+        # here.
         self._process_events()
+        splash = getattr(self.figure, 'splash', False)
+        if splash:
+            splash.close()
+        _qt_raise_window(self.plotter.app_window)
 
 
 def _set_widget_tooltip(widget, tooltip):
@@ -839,14 +836,6 @@ def _create_dock_widget(window, name, area, *, max_width=None):
     style_sheet = 'QDockWidget { ' + '  \n'.join(styles) + '\n}'
     dock.setStyleSheet(style_sheet)
     return dock, dock_layout
-
-
-def _detect_theme():
-    try:
-        import darkdetect
-        return darkdetect.theme().lower()
-    except Exception:
-        return 'light'
 
 
 @contextmanager

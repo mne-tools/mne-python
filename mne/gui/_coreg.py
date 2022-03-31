@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from functools import partial
+import inspect
 import os
 import os.path as op
 import platform
@@ -21,8 +22,8 @@ from ..io.meas_info import _empty_info
 from ..io._read_raw import supported as raw_supported_types
 from ..bem import make_bem_solution, write_bem_solution
 from ..coreg import (Coregistration, _is_mri_subject, scale_mri, bem_fname,
-                     _mri_subject_has_bem, _find_fiducials_files, fid_fname,
-                     _map_fid_name_to_idx)
+                     _mri_subject_has_bem, fid_fname, _map_fid_name_to_idx,
+                     _find_head_bem)
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
                        _plot_hpi_coils, _plot_sensors, _plot_helmet)
@@ -30,6 +31,7 @@ from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
                      warn, verbose, logger, _validate_type)
+from ..surface import _DistanceQuery, _CheckInside
 from ..channels import read_dig_fif
 
 
@@ -37,6 +39,19 @@ class _WorkerData():
     def __init__(self, name, params=None):
         self._name = name
         self._params = params
+
+
+def _get_subjects(sdir):
+    # XXX: would be nice to move this function to util
+    is_dir = sdir and op.isdir(sdir)
+    if is_dir:
+        dir_content = os.listdir(sdir)
+        subjects = [s for s in dir_content if _is_mri_subject(s, sdir)]
+        if len(subjects) == 0:
+            subjects.append('')
+    else:
+        subjects = ['']
+    return sorted(subjects)
 
 
 @fill_doc
@@ -83,7 +98,7 @@ class CoregistrationUI(HasTraits):
         Display the window as soon as it is ready. Defaults to True.
     block : bool
         If True, start the Qt application event loop. Default to False.
-    %(scene_interaction)s
+    %(interaction_scene)s
         Defaults to ``'terrain'``.
 
         .. versionadded:: 1.0
@@ -111,10 +126,6 @@ class CoregistrationUI(HasTraits):
     _helmet = Bool()
     _grow_hair = Float()
     _subject_to = Unicode()
-    _skip_fiducials = Bool()
-    _scale_labels = Bool()
-    _copy_annots = Bool()
-    _prepare_bem = Bool()
     _scale_mode = Unicode()
     _icp_fid_match = Unicode()
 
@@ -170,6 +181,8 @@ class CoregistrationUI(HasTraits):
         self._job_queue = queue.Queue()
         self._parameter_queue = queue.Queue()
         self._head_geo = None
+        self._check_inside = None
+        self._nearest = None
         self._coord_frame = "mri"
         self._mouse_no_mvt = -1
         self._to_cf_t = None
@@ -200,10 +213,6 @@ class CoregistrationUI(HasTraits):
             lock_fids=True,
             grow_hair=0.0,
             subject_to="",
-            skip_fiducials=False,
-            scale_labels=True,
-            copy_annots=True,
-            prepare_bem=True,
             scale_modes=["None", "uniform", "3-axis"],
             scale_mode="None",
             icp_fid_matches=('nearest', 'matched'),
@@ -225,11 +234,13 @@ class CoregistrationUI(HasTraits):
         info = None
         subjects_dir = get_subjects_dir(
             subjects_dir=subjects_dir, raise_error=True)
-        subject = _get_default(subject, self._get_subjects(subjects_dir)[0])
+        subject = _get_default(subject, _get_subjects(subjects_dir)[0])
 
         # setup the window
+        splash = 'Initializing coregistration GUI...' if show else False
         self._renderer = _get_renderer(
-            size=self._defaults["size"], bgcolor=self._defaults["bgcolor"])
+            size=self._defaults["size"], bgcolor=self._defaults["bgcolor"],
+            splash=splash)
         self._renderer._window_close_connect(self._clean)
         self._renderer._window_close_connect(self._close_callback, after=False)
         self._renderer.set_interaction(interaction)
@@ -262,19 +273,17 @@ class CoregistrationUI(HasTraits):
         self._set_head_resolution(self._defaults["head_resolution"])
         self._set_helmet(self._defaults["helmet"])
         self._set_grow_hair(self._defaults["grow_hair"])
-        self._set_skip_fiducials(self._defaults["skip_fiducials"])
-        self._set_scale_labels(self._defaults["scale_labels"])
-        self._set_copy_annots(self._defaults["copy_annots"])
-        self._set_prepare_bem(self._defaults["prepare_bem"])
         self._set_omit_hsp_distance(self._defaults["omit_hsp_distance"])
         self._set_icp_n_iterations(self._defaults["icp_n_iterations"])
         self._set_icp_fid_match(self._defaults["icp_fid_match"])
 
         # configure UI
         self._reset_fitting_parameters()
+        self._configure_dialogs()
         self._configure_status_bar()
         self._configure_dock()
         self._configure_picking()
+        self._configure_legend()
 
         # once the docks are initialized
         self._set_current_fiducial(self._defaults["fiducial"])
@@ -322,8 +331,23 @@ class CoregistrationUI(HasTraits):
             _qt_app_exec(self._renderer.figure.store["app"])
 
     def _set_subjects_dir(self, subjects_dir):
-        self._subjects_dir = _check_fname(
-            subjects_dir, overwrite='read', must_exist=True, need_dir=True)
+        if subjects_dir is None or not subjects_dir:
+            return
+        try:
+            subjects_dir = _check_fname(
+                subjects_dir, overwrite='read', must_exist=True, need_dir=True)
+            subjects = _get_subjects(subjects_dir)
+            low_res_path = _find_head_bem(
+                subjects[0], subjects_dir, high_res=False)
+            valid = low_res_path is not None
+        except Exception:
+            valid = False
+        if valid:
+            style = dict(border="initial")
+            self._subjects_dir = subjects_dir
+        else:
+            style = dict(border="2px solid #ff0000")
+        self._forward_widget_command("subjects_dir_field", "set_style", style)
 
     def _set_subject(self, subject):
         self._subject = subject
@@ -372,20 +396,24 @@ class CoregistrationUI(HasTraits):
         try:
             check_fname(fname, 'info', tuple(raw_supported_types.keys()),
                         endings_err=tuple(raw_supported_types.keys()))
-        except IOError as e:
-            warn(e)
-            self._widgets["info_file"].set_value(0, '')
-            return
+            fname = _check_fname(fname, overwrite='read')  # convert to str
 
-        fname = _check_fname(fname, overwrite='read')  # convert to str
-
-        # ctf ds `files` are actually directories
-        if fname.endswith(('.ds',)):
-            self._info_file = _check_fname(
-                fname, overwrite='read', must_exist=True, need_dir=True)
+            # ctf ds `files` are actually directories
+            if fname.endswith(('.ds',)):
+                info_file = _check_fname(
+                    fname, overwrite='read', must_exist=True, need_dir=True)
+            else:
+                info_file = _check_fname(
+                    fname, overwrite='read', must_exist=True, need_dir=False)
+            valid = True
+        except IOError:
+            valid = False
+        if valid:
+            style = dict(border="initial")
+            self._info_file = info_file
         else:
-            self._info_file = _check_fname(
-                fname, overwrite='read', must_exist=True, need_dir=False)
+            style = dict(border="2px solid #ff0000")
+        self._forward_widget_command("info_file_field", "set_style", style)
 
     def _set_omit_hsp_distance(self, distance):
         self._omit_hsp_distance = distance
@@ -424,18 +452,12 @@ class CoregistrationUI(HasTraits):
         self._subject_to = value
         self._forward_widget_command(
             "save_subject", "set_enabled", len(value) > 0)
-
-    def _set_skip_fiducials(self, state):
-        self._skip_fiducials = bool(state)
-
-    def _set_scale_labels(self, state):
-        self._scale_labels = bool(state)
-
-    def _set_copy_annots(self, state):
-        self._copy_annots = bool(state)
-
-    def _set_prepare_bem(self, state):
-        self._prepare_bem = bool(state)
+        if self._check_subject_exists():
+            style = dict(border="2px solid #ff0000")
+        else:
+            style = dict(border="initial")
+        self._forward_widget_command(
+            "subject_to", "set_style", style)
 
     def _set_scale_mode(self, mode):
         self._scale_mode = mode
@@ -451,7 +473,7 @@ class CoregistrationUI(HasTraits):
         self.coreg.fiducials.dig[fid_idx]['r'][coord_idx] = value / 1e3
         self._update_plot("mri_fids")
 
-    def _set_parameter(self, value, mode_name, coord):
+    def _set_parameter(self, value, mode_name, coord, plot_locked=False):
         if mode_name == "scale":
             self._mri_scale_modified = True
         else:
@@ -464,7 +486,8 @@ class CoregistrationUI(HasTraits):
                     ["sY", "sZ"], "set_value", value)
         with self._parameter_mutex:
             self. _set_parameter_safe(value, mode_name, coord)
-        self._update_plot("sensors")
+        if not plot_locked:
+            self._update_plot("sensors")
 
     def _set_parameter_safe(self, value, mode_name, coord):
         params = dict(
@@ -512,7 +535,7 @@ class CoregistrationUI(HasTraits):
     def _subjects_dir_changed(self, change=None):
         # XXX: add coreg.set_subjects_dir
         self.coreg._subjects_dir = self._subjects_dir
-        subjects = self._get_subjects()
+        subjects = _get_subjects(self._subjects_dir)
 
         if self._subject not in subjects:  # Just pick the first available one
             self._subject = subjects[0]
@@ -526,7 +549,6 @@ class CoregistrationUI(HasTraits):
         self.coreg._setup_bem()
         self.coreg._setup_fiducials(self._fiducials)
         self._reset()
-        self._update_projection_surface()
 
         default_fid_fname = fid_fname.format(
             subjects_dir=self._subjects_dir, subject=self._subject
@@ -643,7 +665,7 @@ class CoregistrationUI(HasTraits):
 
     @observe("_head_resolution")
     def _head_resolution_changed(self, change=None):
-        self._update_plot(["head"])
+        self._update_plot(["head", "hsp"])
 
     @observe("_head_opacity")
     def _head_opacity_changed(self, change=None):
@@ -659,6 +681,7 @@ class CoregistrationUI(HasTraits):
     def _grow_hair_changed(self, change=None):
         self.coreg.set_grow_hair(self._grow_hair)
         self._update_plot("head")
+        self._update_plot("hsp")  # inside/outside could change
 
     @observe("_scale_mode")
     def _scale_mode_changed(self, change=None):
@@ -687,6 +710,21 @@ class CoregistrationUI(HasTraits):
                 func()
             queue.task_done()
 
+    def _configure_dialogs(self):
+        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+        for name, buttons in zip(
+                ["overwrite_subject", "overwrite_subject_exit"],
+                [["Yes", "No"], ["Yes", "Discard", "Cancel"]]):
+            self._widgets[name] = self._renderer._dialog_warning(
+                title="CoregistrationUI",
+                text="The name of the output subject used to "
+                     "save the scaled anatomy already exists.",
+                info_text="Do you want to overwrite?",
+                callback=self._overwrite_subject_callback,
+                buttons=buttons,
+                modal=not MNE_3D_BACKEND_TESTING,
+            )
+
     def _configure_worker(self):
         work_plan = {
             "_job_queue": dict(save_subject=self._save_subject),
@@ -709,6 +747,14 @@ class CoregistrationUI(HasTraits):
             self._on_pick
         )
 
+    def _configure_legend(self):
+        colors = \
+            [np.array(DEFAULTS['coreg'][f"{fid.lower()}_color"]).astype(float)
+             for fid in self._defaults['fiducials']]
+        labels = list(zip(self._defaults['fiducials'], colors))
+        mri_fids_legend_actor = self._renderer.legend(labels=labels)
+        self._update_actor("mri_fids_legend", mri_fids_legend_actor)
+
     @verbose
     def _redraw(self, verbose=None):
         if not self._redraws_pending:
@@ -723,8 +769,14 @@ class CoregistrationUI(HasTraits):
             helmet=self._add_helmet,
         )
         with self._redraw_mutex:
-            logger.debug(f'Redrawing {self._redraws_pending}')
-            for key in self._redraws_pending:
+            # We need at least "head" before "hsp", because the grow_hair param
+            # for head sets the rr that are used for inside/outside hsp
+            redraws_ordered = sorted(
+                self._redraws_pending,
+                key=lambda key: list(draw_map).index(key))
+            logger.debug(f'Redrawing {redraws_ordered}')
+            for ki, key in enumerate(redraws_ordered):
+                logger.debug(f'{ki}. Drawing {repr(key)}')
                 draw_map[key]()
             self._redraws_pending.clear()
             self._renderer._update()
@@ -800,16 +852,23 @@ class CoregistrationUI(HasTraits):
 
     def _reset_omit_hsp_filter(self):
         self.coreg._extra_points_filter = None
-        self.coreg._update_params(force_update_omitted=True)
+        self.coreg._update_params(force_update=True)
         self._update_plot("hsp")
         self._update_distance_estimation()
         n_total = len(self.coreg._dig_dict['hsp'])
         self._display_message(
             f"No head shape point is omitted, the total is {n_total}.")
 
-    def _update_plot(self, changes="all"):
+    @verbose
+    def _update_plot(self, changes="all", verbose=None):
         # Update list of things that need to be updated/plotted (and maybe
         # draw them immediately)
+        try:
+            fun_name = inspect.currentframe().f_back.f_back.f_code.co_name
+        except Exception:  # just in case one of these attrs is missing
+            fun_name = 'unknown'
+        logger.debug(
+            f'Updating plots based on {fun_name}: {repr(changes)}')
         if self._plot_locked:
             return
         if self._info is None:
@@ -898,14 +957,6 @@ class CoregistrationUI(HasTraits):
         if not self._lock_fids:
             self._renderer.set_camera(distance=None, **kwargs)
 
-    def _update_projection_surface(self):
-        self._head_geo = dict(
-            rr=self.coreg._get_processed_mri_points('low') *
-            self.coreg._scale.T,
-            tris=self.coreg._bem_low_res["tris"],
-            nn=self.coreg._bem_low_res["nn"]
-        )
-
     def _update_fiducials(self):
         fid = self._current_fiducial
         if not fid:
@@ -931,14 +982,17 @@ class CoregistrationUI(HasTraits):
     def _update_parameters(self):
         with self._lock(plot=True, params=True):
             # rotation
-            self._forward_widget_command(["rX", "rY", "rZ"], "set_value",
-                                         np.rad2deg(self.coreg._rotation))
+            deg = np.rad2deg(self.coreg._rotation)
+            logger.debug(f'  Rotation:    {deg}')
+            self._forward_widget_command(["rX", "rY", "rZ"], "set_value", deg)
             # translation
-            self._forward_widget_command(["tX", "tY", "tZ"], "set_value",
-                                         self.coreg._translation * 1e3)
+            mm = self.coreg._translation * 1e3
+            logger.debug(f'  Translation: {mm}')
+            self._forward_widget_command(["tX", "tY", "tZ"], "set_value", mm)
             # scale
-            self._forward_widget_command(["sX", "sY", "sZ"], "set_value",
-                                         self.coreg._scale * 1e2)
+            sc = self.coreg._scale * 1e2
+            logger.debug(f'  Scale:       {sc}')
+            self._forward_widget_command(["sX", "sY", "sZ"], "set_value", sc)
 
     def _reset(self, keep_trans=False):
         """Refresh the scene, and optionally reset transformation & scaling.
@@ -989,13 +1043,13 @@ class CoregistrationUI(HasTraits):
         if isinstance(names, str):
             names = [names]
 
-        if not isinstance(value, (str, float, int, type(None))):
+        if not isinstance(value, (str, float, int, dict, type(None))):
             value = list(value)
             assert len(names) == len(value)
 
         for idx, name in enumerate(names):
             val = value[idx] if isinstance(value, list) else value
-            if name in self._widgets:
+            if name in self._widgets and self._widgets[name] is not None:
                 if input_value:
                     ret = getattr(self._widgets[name], command)(val)
                 else:
@@ -1016,7 +1070,8 @@ class CoregistrationUI(HasTraits):
 
     def _update_actor(self, actor_name, actor):
         # XXX: internal plotter/renderer should not be exposed
-        self._renderer.plotter.remove_actor(self._actors.get(actor_name))
+        self._renderer.plotter.remove_actor(self._actors.get(actor_name),
+                                            render=False)
         self._actors[actor_name] = actor
 
     def _add_mri_fiducials(self):
@@ -1041,7 +1096,8 @@ class CoregistrationUI(HasTraits):
                 scale=DEFAULTS["coreg"]["extra_scale"],
                 orient_glyphs=self._orient_glyphs,
                 scale_by_distance=self._scale_by_distance,
-                surf=self._head_geo)
+                surf=self._head_geo, check_inside=self._check_inside,
+                nearest=self._nearest)
         else:
             hpi_actors = None
         self._update_actor("hpi_coils", hpi_actors)
@@ -1054,7 +1110,8 @@ class CoregistrationUI(HasTraits):
                 orient_glyphs=self._orient_glyphs,
                 scale_by_distance=self._scale_by_distance,
                 mark_inside=self._mark_inside, surf=self._head_geo,
-                mask=self.coreg._extra_points_filter)
+                mask=self.coreg._extra_points_filter,
+                check_inside=self._check_inside, nearest=self._nearest)
         else:
             hsp_actors = None
         self._update_actor("head_shape_points", hsp_actors)
@@ -1071,7 +1128,8 @@ class CoregistrationUI(HasTraits):
                     sensor_opacity=self._defaults["sensor_opacity"],
                     orient_glyphs=self._orient_glyphs,
                     scale_by_distance=self._scale_by_distance,
-                    surf=self._head_geo)
+                    surf=self._head_geo, check_inside=self._check_inside,
+                    nearest=self._nearest)
                 sens_actors = actors["eeg"]
                 sens_actors.extend(actors["fnirs"])
             else:
@@ -1082,7 +1140,12 @@ class CoregistrationUI(HasTraits):
 
     def _add_head_surface(self):
         bem = None
-        surface = "head-dense" if self._head_resolution else "head"
+        if self._head_resolution:
+            surface = 'head-dense'
+            key = 'high'
+        else:
+            surface = 'head'
+            key = 'low'
         try:
             head_actor, head_surf, _ = _plot_head_surface(
                 self._renderer, surface, self._subject,
@@ -1093,14 +1156,22 @@ class CoregistrationUI(HasTraits):
                 self._renderer, "head", self._subject, self._subjects_dir,
                 bem, self._coord_frame, self._to_cf_t,
                 alpha=self._head_opacity)
+            key = 'low'
         self._update_actor("head", head_actor)
         # mark head surface mesh to restrict picking
         head_surf._picking_target = True
-        res = "high" if self._head_resolution else "low"
-        head_surf.points = \
-            self.coreg._get_processed_mri_points(res) * self.coreg._scale.T
+        # We need to use _get_processed_mri_points to incorporate grow_hair
+        rr = self.coreg._get_processed_mri_points(key) * self.coreg._scale.T
+        head_surf.points = rr
+        head_surf.compute_normals()
         self._surfaces["head"] = head_surf
-        self._update_projection_surface()
+        tris = self._surfaces["head"].faces.reshape(-1, 4)[:, 1:]
+        assert tris.ndim == 2 and tris.shape[1] == 3, tris.shape
+        nn = self._surfaces["head"].point_normals
+        assert nn.shape == (len(rr), 3), nn.shape
+        self._head_geo = dict(rr=rr, tris=tris, nn=nn)
+        self._check_inside = _CheckInside(head_surf, mode='pyvista')
+        self._nearest = _DistanceQuery(rr)
 
     def _add_helmet(self):
         if self._helmet:
@@ -1134,16 +1205,22 @@ class CoregistrationUI(HasTraits):
 
     def _fit_icp(self):
         with self._lock(scale_mode=True):
-            self._fits_icp()
+            self._fit_icp_real(update_head=False)
 
     def _fits_icp(self):
+        self._fit_icp_real(update_head=True)
+
+    def _fit_icp_real(self, *, update_head):
         with self._lock(params=True, fitting=True):
             self._current_icp_iterations = 0
+            updates = ['hsp', 'hpi', 'eeg', 'head_fids']
+            if update_head:
+                updates.insert(0, 'head')
 
             def callback(iteration, n_iterations):
                 self._display_message(
                     f"Fitting ICP - iteration {iteration + 1}")
-                self._update_plot(['head', 'hsp', 'hpi', 'eeg', 'head_fids'])
+                self._update_plot(updates)
                 self._current_icp_iterations += 1
                 self._update_distance_estimation()
                 self._update_parameters()
@@ -1175,24 +1252,44 @@ class CoregistrationUI(HasTraits):
     def _task_set_parameter(self, value, mode_name, coord):
         from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
         if MNE_3D_BACKEND_TESTING:
-            self._set_parameter(value, mode_name, coord)
+            self._set_parameter(value, mode_name, coord, self._plot_locked)
         else:
             self._parameter_queue.put(_WorkerData("set_parameter", dict(
-                value=value, mode_name=mode_name, coord=coord)))
+                value=value, mode_name=mode_name, coord=coord,
+                plot_locked=self._plot_locked)))
 
-    def _save_subject(self):
+    def _overwrite_subject_callback(self, button_name):
+        if button_name == "Yes":
+            self._save_subject_callback(overwrite=True)
+        elif button_name == "Cancel":
+            self._accept_close_event = False
+        else:
+            assert button_name == "No" or button_name == "Discard"
+
+    def _check_subject_exists(self):
+        if not self._subject_to:
+            return False
+        subject_dirname = os.path.join('{subjects_dir}', '{subject}')
+        dest = subject_dirname.format(subject=self._subject_to,
+                                      subjects_dir=self._subjects_dir)
+        return os.path.exists(dest)
+
+    def _save_subject(self, exit_mode=False):
+        dialog = "overwrite_subject_exit" if exit_mode else "overwrite_subject"
+        if self._check_subject_exists():
+            self._forward_widget_command(dialog, "show", True)
+        else:
+            self._save_subject_callback()
+
+    def _save_subject_callback(self, overwrite=False):
         self._display_message(f"Saving {self._subject_to}...")
-
-        # check that fiducials are saved
-        if not self._skip_fiducials and self._scale_mode != "None" and \
-                not _find_fiducials_files(self._subject, self._subjects_dir):
-            default_fid_fname = fid_fname.format(
-                subjects_dir=self._subjects_dir, subject=self._subject)
-            self._save_mri_fiducials(default_fid_fname)
+        default_cursor = self._renderer._window_get_cursor()
+        self._renderer._window_set_cursor(
+            self._renderer._window_new_cursor("WaitCursor"))
 
         # prepare bem
         bem_names = []
-        if self._prepare_bem and self._scale_mode != "None":
+        if self._scale_mode != "None":
             can_prepare_bem = _mri_subject_has_bem(
                 self._subject, self._subjects_dir)
         else:
@@ -1212,10 +1309,9 @@ class CoregistrationUI(HasTraits):
             self._display_message(f"Scaling {self._subject_to}...")
             scale_mri(
                 subject_from=self._subject, subject_to=self._subject_to,
-                scale=self.coreg._scale, overwrite=True,
-                subjects_dir=self._subjects_dir,
-                skip_fiducials=self._skip_fiducials, labels=self._scale_labels,
-                annot=self._copy_annots, on_defects='ignore'
+                scale=self.coreg._scale, overwrite=overwrite,
+                subjects_dir=self._subjects_dir, skip_fiducials=True,
+                labels=True, annot=True, on_defects='ignore'
             )
         except Exception:
             logger.error(f"Error scaling {self._subject_to}")
@@ -1238,6 +1334,7 @@ class CoregistrationUI(HasTraits):
                 self._display_message(f"Computing {bem_name} solution..."
                                       " Done!")
         self._display_message(f"Saving {self._subject_to}... Done!")
+        self._renderer._window_set_cursor(default_cursor)
         self._mri_scale_modified = False
 
     def _save_mri_fiducials(self, fname):
@@ -1267,21 +1364,9 @@ class CoregistrationUI(HasTraits):
         )
         self._update_parameters()
         self._update_distance_estimation()
+        self._update_plot()
         self._display_message(
             f"{fname} transform file is loaded.")
-
-    def _get_subjects(self, sdir=None):
-        # XXX: would be nice to move this function to util
-        sdir = sdir if sdir is not None else self._subjects_dir
-        is_dir = sdir and op.isdir(sdir)
-        if is_dir:
-            dir_content = os.listdir(sdir)
-            subjects = [s for s in dir_content if _is_mri_subject(s, sdir)]
-            if len(subjects) == 0:
-                subjects.append('')
-        else:
-            subjects = ['']
-        return sorted(subjects)
 
     def _update_fiducials_label(self):
         if self._fiducials_file is None:
@@ -1319,21 +1404,33 @@ class CoregistrationUI(HasTraits):
             name="MRI Subject",
             collapse=collapse,
         )
+        subjects_dir_layout = self._renderer._dock_add_layout(
+            vertical=False
+        )
+        self._widgets["subjects_dir_field"] = self._renderer._dock_add_text(
+            name="subjects_dir_field",
+            value=self._subjects_dir,
+            placeholder="Subjects Directory",
+            callback=self._set_subjects_dir,
+            layout=subjects_dir_layout,
+        )
         self._widgets["subjects_dir"] = self._renderer._dock_add_file_button(
             name="subjects_dir",
             desc="Load",
             func=self._set_subjects_dir,
-            value=self._subjects_dir,
-            placeholder="Subjects Directory",
             is_directory=True,
             tooltip="Load the path to the directory containing the "
                     "FreeSurfer subjects",
+            layout=subjects_dir_layout,
+        )
+        self._renderer._layout_add_widget(
             layout=mri_subject_layout,
+            widget=subjects_dir_layout,
         )
         self._widgets["subject"] = self._renderer._dock_add_combo_box(
             name="Subject",
             value=self._subject,
-            rng=self._get_subjects(),
+            rng=_get_subjects(self._subjects_dir),
             callback=self._set_subject,
             compact=True,
             tooltip="Select the FreeSurfer subject name",
@@ -1417,15 +1514,27 @@ class CoregistrationUI(HasTraits):
             name="Info source with digitization",
             collapse=collapse,
         )
+        info_file_layout = self._renderer._dock_add_layout(
+            vertical=False
+        )
+        self._widgets["info_file_field"] = self._renderer._dock_add_text(
+            name="info_file_field",
+            value=self._info_file,
+            placeholder="Path to info",
+            callback=self._set_info_file,
+            layout=info_file_layout,
+        )
         self._widgets["info_file"] = self._renderer._dock_add_file_button(
             name="info_file",
             desc="Load",
             func=self._set_info_file,
-            value=self._info_file,
-            placeholder="Path to info",
             tooltip="Load the FIFF file with digitization data for "
                     "coregistration",
+            layout=info_file_layout,
+        )
+        self._renderer._layout_add_widget(
             layout=dig_source_layout,
+            widget=info_file_layout,
         )
         self._widgets["grow_hair"] = self._renderer._dock_add_spin_box(
             name="Grow Hair (mm)",
@@ -1435,29 +1544,31 @@ class CoregistrationUI(HasTraits):
             tooltip="Compensate for hair on the digitizer head shape",
             layout=dig_source_layout,
         )
-        omit_hsp_layout = self._renderer._dock_add_layout(vertical=False)
+        omit_hsp_layout_1 = self._renderer._dock_add_layout(vertical=False)
+        omit_hsp_layout_2 = self._renderer._dock_add_layout(vertical=False)
         self._widgets["omit_distance"] = self._renderer._dock_add_spin_box(
             name="Omit Distance (mm)",
             value=self._omit_hsp_distance,
             rng=[0.0, 100.0],
             callback=self._set_omit_hsp_distance,
             tooltip="Set the head shape points exclusion distance",
-            layout=omit_hsp_layout,
+            layout=omit_hsp_layout_1,
         )
         self._widgets["omit"] = self._renderer._dock_add_button(
             name="Omit",
             callback=self._omit_hsp,
             tooltip="Exclude the head shape points that are far away from "
                     "the MRI head",
-            layout=omit_hsp_layout,
+            layout=omit_hsp_layout_2,
         )
         self._widgets["reset_omit"] = self._renderer._dock_add_button(
             name="Reset",
             callback=self._reset_omit_hsp_filter,
             tooltip="Reset all excluded head shape points",
-            layout=omit_hsp_layout,
+            layout=omit_hsp_layout_2,
         )
-        self._renderer._layout_add_widget(dig_source_layout, omit_hsp_layout)
+        self._renderer._layout_add_widget(dig_source_layout, omit_hsp_layout_1)
+        self._renderer._layout_add_widget(dig_source_layout, omit_hsp_layout_2)
 
         view_options_layout = self._renderer._dock_add_group_box(
             name="View Options",
@@ -1515,7 +1626,7 @@ class CoregistrationUI(HasTraits):
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=name,
                 value=attr[coords.index(coord)] * 1e2,
-                rng=[1., 1e2],
+                rng=[1., 10000.],  # percent
                 callback=partial(
                     self._set_parameter,
                     mode_name="scale",
@@ -1532,13 +1643,14 @@ class CoregistrationUI(HasTraits):
         self._widgets["fits_fiducials"] = self._renderer._dock_add_button(
             name="Fit fiducials with scaling",
             callback=self._fits_fiducials,
-            tooltip="Find rotation and translation to fit all 3 fiducials",
+            tooltip="Find MRI scaling, rotation, and translation to fit all "
+                    "3 fiducials",
             layout=fit_scale_layout,
         )
         self._widgets["fits_icp"] = self._renderer._dock_add_button(
             name="Fit ICP with scaling",
             callback=self._fits_icp,
-            tooltip="Find MRI scaling, translation, and rotation to match the "
+            tooltip="Find MRI scaling, rotation, and translation to match the "
                     "head shape points",
             layout=fit_scale_layout,
         )
@@ -1599,7 +1711,7 @@ class CoregistrationUI(HasTraits):
         self._widgets["fit_icp"] = self._renderer._dock_add_button(
             name="Fit ICP",
             callback=self._fit_icp,
-            tooltip="Find MRI scaling, translation, and rotation to match the "
+            tooltip="Find rotation and translation to match the "
                     "head shape points",
             layout=fit_layout,
         )
@@ -1614,7 +1726,6 @@ class CoregistrationUI(HasTraits):
             desc="Save...",
             save=True,
             func=self._save_trans,
-            input_text_widget=False,
             tooltip="Save the transform file to disk",
             layout=save_trans_layout,
             filter='Head->MRI transformation (*-trans.fif *_trans.fif)',
@@ -1624,19 +1735,18 @@ class CoregistrationUI(HasTraits):
             name="load_trans",
             desc="Load...",
             func=self._load_trans,
-            input_text_widget=False,
             tooltip="Load the transform file from disk",
             layout=save_trans_layout,
             filter='Head->MRI transformation (*-trans.fif *_trans.fif)',
             initial_directory=str(Path(self._info_file).parent),
         )
+        self._renderer._layout_add_widget(trans_layout, save_trans_layout)
         self._widgets["reset_trans"] = self._renderer._dock_add_button(
-            name="Reset",
+            name="Reset Parameters",
             callback=self._reset,
             tooltip="Reset all the parameters affecting the coregistration",
-            layout=save_trans_layout,
+            layout=trans_layout,
         )
-        self._renderer._layout_add_widget(trans_layout, save_trans_layout)
 
         fitting_options_layout = self._renderer._dock_add_group_box(
             name="Fitting Options",
@@ -1690,7 +1800,7 @@ class CoregistrationUI(HasTraits):
             self._widgets[name] = self._renderer._dock_add_spin_box(
                 name=fid,
                 value=getattr(self, f"_{fid_lower}_weight"),
-                rng=[1., 100.],
+                rng=[0., 100.],
                 callback=partial(self._set_point_weight, point=fid_lower),
                 compact=True,
                 double=True,
@@ -1747,7 +1857,7 @@ class CoregistrationUI(HasTraits):
                     "save_mri_fids", "set_value", None)
             if self._mri_scale_modified:
                 if self._subject_to:
-                    self._save_subject()
+                    self._save_subject(exit_mode=True)
                 else:
                     dialog = self._renderer._dialog_warning(
                         title="CoregistrationUI",

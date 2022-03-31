@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-fix-meshes:
 
+===============================
 Editing BEM surfaces in Blender
 ===============================
 

@@ -2821,3 +2821,40 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None,
     depths = cdist(src_pos, sensor_pos)
 
     return depths
+
+
+def get_decimated_surfaces(src):
+    """Get the decimated surfaces from a source space.
+
+    Parameters
+    ----------
+    src : instance of SourceSpaces | path-like
+        The source space with decimated surfaces.
+
+    Returns
+    -------
+    surfaces : list of dict
+        The decimated surfaces present in the source space. Each dict
+        which contains 'rr' and 'tris' keys for vertices positions and
+        triangle indices.
+
+    Notes
+    -----
+    .. versionadded:: 1.0
+    """
+    src = _ensure_src(src)
+    surfaces = []
+    for s in src:
+        if s['type'] != 'surf':
+            continue
+        rr = s['rr']
+        use_tris = s['use_tris']
+        vertno = s['vertno']
+        ss = {}
+        ss['rr'] = rr[vertno]
+        reindex = np.full(len(rr), -1, int)
+        reindex[vertno] = np.arange(len(vertno))
+        ss['tris'] = reindex[use_tris]
+        assert (ss['tris'] >= 0).all()
+        surfaces.append(ss)
+    return surfaces

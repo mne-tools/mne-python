@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-fdr-evoked:
+
 =======================================
 FDR correction on T-test on sensor data
 =======================================

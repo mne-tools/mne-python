@@ -27,7 +27,7 @@ from mne.utils import (requires_nibabel, run_subprocess, _record_warnings,
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_estimate import _get_src_type
 from mne.source_space import (get_volume_labels_from_src,
-                              _compare_source_spaces,
+                              _compare_source_spaces, get_decimated_surfaces,
                               compute_distance_to_sensors)
 from mne.io.pick import _picks_to_idx
 from mne.io.constants import FIFF
@@ -884,6 +884,22 @@ def test_morphed_source_space_return():
     src = read_source_spaces(fname)  # wrong source space
     pytest.raises(RuntimeError, stc_morph.to_original_src,
                   src, subjects_dir=subjects_dir)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('src, n, nv', [
+    (fname_fs, 2, 10242), (fname_src, 2, 258), (fname_vol, 0, 0),
+])
+def test_get_decimated_surfaces(src, n, nv):
+    """Test get_decimated_surfaces."""
+    surfaces = get_decimated_surfaces(src)
+    assert len(surfaces) == n
+    if n == 0:
+        return
+    for s in surfaces:
+        assert set(s) == {'rr', 'tris'}
+        assert len(s['rr']) == nv
+        assert_array_equal(np.unique(s['tris']), np.arange(nv))
 
 
 # The following code was used to generate small-src.fif.gz.

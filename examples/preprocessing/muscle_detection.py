@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
 """
-===========================
+.. _ex-muscle-artifacts:
+
+=========================
 Annotate muscle artifacts
-===========================
+=========================
 
 Muscle contractions produce high frequency activity that can mask brain signal
 of interest. Muscle artifacts can be produced when clenching the jaw,

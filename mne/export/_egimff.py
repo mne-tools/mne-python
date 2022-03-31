@@ -24,7 +24,7 @@ def export_evokeds_mff(fname, evoked, history=None, *, overwrite=False,
 
     Parameters
     ----------
-    %(export_params_fname)s
+    %(fname_export_params)s
     evoked : list of Evoked instances
         List of evoked datasets to export to one file. Note that the
         measurement info from the first evoked instance is used, so be sure

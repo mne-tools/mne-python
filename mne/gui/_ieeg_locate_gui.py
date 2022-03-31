@@ -403,7 +403,8 @@ class IntracranialElectrodeLocator(QMainWindow):
     def _plot_3d_ch(self, name, render=False):
         """Plot a single 3D channel."""
         if name in self._3d_chs:
-            self._renderer.plotter.remove_actor(self._3d_chs.pop(name))
+            self._renderer.plotter.remove_actor(
+                self._3d_chs.pop(name), render=False)
         if not any(np.isnan(self._chs[name])):
             self._3d_chs[name] = self._renderer.sphere(
                 tuple(self._chs[name]), scale=1,
@@ -596,7 +597,8 @@ class IntracranialElectrodeLocator(QMainWindow):
                     'Show Max Intensity Proj':
                 return
         elif group in self._lines:  # if updating 3D, remove first
-            self._renderer.plotter.remove_actor(self._lines[group])
+            self._renderer.plotter.remove_actor(
+                self._lines[group], render=False)
         pos = np.array([
             self._chs[ch] for i, ch in enumerate(self._ch_names)
             if self._groups[ch] == group and i in self._seeg_idx and

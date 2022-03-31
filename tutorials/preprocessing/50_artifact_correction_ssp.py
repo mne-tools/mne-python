@@ -2,6 +2,7 @@
 """
 .. _tut-artifact-ssp:
 
+============================
 Repairing artifacts with SSP
 ============================
 

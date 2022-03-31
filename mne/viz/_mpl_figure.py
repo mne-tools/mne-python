@@ -2225,6 +2225,9 @@ def _init_browser(**kwargs):
     from mne.io import BaseRaw
     fig = _figure(toolbar=False, FigureClass=MNEBrowseFigure, **kwargs)
 
+    # splash is ignored (maybe we could do it for mpl if we get_backend() and
+    # check if it's Qt... but seems overkill)
+
     # initialize zen mode
     # (can't do in __init__ due to get_position() calls)
     fig.canvas.draw()

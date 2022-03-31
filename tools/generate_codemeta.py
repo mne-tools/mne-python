@@ -13,12 +13,13 @@ compound_surnames = (
     'De Santis',
     'Dupré la Tour',
     'de la Torre',
+    'de Montalivet',
     'van den Bosch',
     'Van den Bossche',
     'Van Der Donckt',
     'van der Meer',
     'van Harmelen',
-    'Visconti di Oleggio Castello'
+    'Visconti di Oleggio Castello',
 )
 
 

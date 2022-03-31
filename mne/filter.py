@@ -762,8 +762,8 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     %(filter_length)s
     %(l_trans_bandwidth)s
     %(h_trans_bandwidth)s
-    %(n_jobs-fir)s
-    %(method-fir)s
+    %(n_jobs_fir)s
+    %(method_fir)s
     %(iir_params)s
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
@@ -771,7 +771,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     %(phase)s
     %(fir_window)s
     %(fir_design)s
-    %(pad-fir)s
+    %(pad_fir)s
         The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15
@@ -852,7 +852,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
     %(filter_length)s
     %(l_trans_bandwidth)s
     %(h_trans_bandwidth)s
-    %(method-fir)s
+    %(method_fir)s
     %(iir_params)s
     %(phase)s
     %(fir_window)s
@@ -1097,7 +1097,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
     trans_bandwidth : float
         Width of the transition band in Hz.
         Only used for ``method='fir'``.
-    %(method-fir)s
+    %(method_fir)s
         'spectrum_fit' will use multi-taper estimation of sinusoidal
         components. If freqs=None and method='spectrum_fit', significant
         sinusoidal components are detected using an F test, and noted by
@@ -1114,14 +1114,14 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
     %(picks_nostr)s
         Only supported for 2D (n_channels, n_times) and 3D
         (n_epochs, n_channels, n_times) data.
-    %(n_jobs-fir)s
+    %(n_jobs_fir)s
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
     %(phase)s
     %(fir_window)s
     %(fir_design)s
-    %(pad-fir)s
+    %(pad_fir)s
         The default is ``'reflect_limited'``.
     %(verbose)s
 
@@ -1422,8 +1422,8 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     %(npad)s
     axis : int
         Axis along which to resample (default is the last axis).
-    %(window-resample)s
-    %(n_jobs-cuda)s
+    %(window_resample)s
+    %(n_jobs_cuda)s
     %(pad)s
         The default is ``'reflect_limited'``.
 
@@ -1940,8 +1940,8 @@ class FilterMixin(object):
         %(filter_length)s
         %(l_trans_bandwidth)s
         %(h_trans_bandwidth)s
-        %(n_jobs-fir)s
-        %(method-fir)s
+        %(n_jobs_fir)s
+        %(method_fir)s
         %(iir_params)s
         %(phase)s
         %(fir_window)s
@@ -1957,7 +1957,7 @@ class FilterMixin(object):
             To disable, provide an empty list. Only used if ``inst`` is raw.
 
             .. versionadded:: 0.16.
-        %(pad-fir)s
+        %(pad_fir)s
         %(verbose)s
 
         Returns
@@ -2050,8 +2050,8 @@ class FilterMixin(object):
         sfreq : float
             New sample rate to use.
         %(npad)s
-        %(window-resample)s
-        %(n_jobs-cuda)s
+        %(window_resample)s
+        %(n_jobs_cuda)s
         %(pad)s
             The default is ``'edge'``, which pads with the edge values of each
             vector.

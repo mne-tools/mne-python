@@ -500,7 +500,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         If ``None``, creates a new 600x600 pixel figure with black background.
 
         .. versionadded:: 0.16
-    %(scene_interaction)s
+    %(interaction_scene)s
 
         .. versionadded:: 0.16
         .. versionchanged:: 1.0
@@ -1007,7 +1007,7 @@ def _plot_mri_fiducials(renderer, mri_fiducials, subjects_dir, subject,
 
 def _plot_hpi_coils(renderer, info, to_cf_t, opacity=0.5, scale=None,
                     orient_glyphs=False, scale_by_distance=False,
-                    surf=None):
+                    surf=None, check_inside=None, nearest=None):
     defaults = DEFAULTS['coreg']
     scale = defaults['hpi_scale'] if scale is None else scale
     hpi_loc = np.array([
@@ -1019,7 +1019,8 @@ def _plot_hpi_coils(renderer, info, to_cf_t, opacity=0.5, scale=None,
                             color=defaults['hpi_color'], scale=scale,
                             opacity=opacity, orient_glyphs=orient_glyphs,
                             scale_by_distance=scale_by_distance, surf=surf,
-                            backface_culling=True)
+                            backface_culling=True, check_inside=check_inside,
+                            nearest=nearest)
     return actor
 
 
@@ -1033,10 +1034,12 @@ def _get_nearest(nearest, check_inside, project_to_trans, proj_rr):
     return proj_pts, proj_nn
 
 
-def _orient_glyphs(pts, surf, project_to_surface=False, mark_inside=False):
-    rr = surf["rr"]
-    check_inside = _CheckInside(surf)
-    nearest = _DistanceQuery(rr)
+def _orient_glyphs(pts, surf, project_to_surface=False, mark_inside=False,
+                   check_inside=None, nearest=None):
+    if check_inside is None:
+        check_inside = _CheckInside(surf, mode='pyvista')
+    if nearest is None:
+        nearest = _DistanceQuery(surf['rr'])
     project_to_trans = np.eye(4)
     inv_trans = np.linalg.inv(project_to_trans)
     proj_rr = apply_trans(inv_trans, pts)
@@ -1045,7 +1048,7 @@ def _orient_glyphs(pts, surf, project_to_surface=False, mark_inside=False):
     vec = pts - proj_pts  # point to the surface
     nn = proj_nn
     if mark_inside and not project_to_surface:
-        scalars = (~check_inside(proj_rr, verbose=False)).astype(int)
+        scalars = (~check_inside(proj_rr)).astype(int)
     else:
         scalars = np.ones(len(pts))
     dist = np.linalg.norm(vec, axis=-1, keepdims=True)
@@ -1056,19 +1059,22 @@ def _orient_glyphs(pts, surf, project_to_surface=False, mark_inside=False):
 def _plot_glyphs(renderer, loc, color, scale, opacity=1, mode="cylinder",
                  orient_glyphs=False, scale_by_distance=False,
                  project_points=False, mark_inside=False, surf=None,
-                 backface_culling=False):
+                 backface_culling=False, check_inside=None, nearest=None):
     if surf is not None and len(loc) > 0:
         defaults = DEFAULTS['coreg']
         scalars, vectors, proj_pts = _orient_glyphs(loc, surf, project_points,
-                                                    mark_inside)
+                                                    mark_inside, check_inside,
+                                                    nearest)
         if mark_inside:
             from matplotlib.colors import ListedColormap
             color = np.append(color, 1)
             colormap = ListedColormap(np.array([(0, 0, 0, 1,), color]))
             color = None
+            clim = [0, 1]
         else:
             scalars = None
             colormap = None
+            clim = None
         mode = 'cylinder' if orient_glyphs else 'sphere'
         scale_mode = 'vector' if scale_by_distance else 'none'
         x, y, z = proj_pts.T if project_points else loc.T
@@ -1079,16 +1085,18 @@ def _plot_glyphs(renderer, loc, color, scale, opacity=1, mode="cylinder",
             glyph_center=(0., -defaults['eegp_height'], 0),
             resolution=16, glyph_resolution=16,
             glyph_radius=None, opacity=opacity, scale_mode=scale_mode,
-            scalars=scalars, colormap=colormap)
+            scalars=scalars, colormap=colormap, clim=clim)
     else:
         return renderer.sphere(center=loc, color=color, scale=scale,
                                opacity=opacity,
                                backface_culling=backface_culling)
 
 
+@verbose
 def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
                             orient_glyphs=False, scale_by_distance=False,
-                            mark_inside=False, surf=None, mask=None):
+                            mark_inside=False, surf=None, mask=None,
+                            check_inside=None, nearest=None, verbose=False):
     defaults = DEFAULTS['coreg']
     ext_loc = np.array([
         d['r'] for d in (info['dig'] or [])
@@ -1102,7 +1110,8 @@ def _plot_head_shape_points(renderer, info, to_cf_t, opacity=0.25,
                             orient_glyphs=orient_glyphs,
                             scale_by_distance=scale_by_distance,
                             mark_inside=mark_inside, surf=surf,
-                            backface_culling=True)
+                            backface_culling=True, check_inside=check_inside,
+                            nearest=nearest)
     return actor
 
 
@@ -1135,7 +1144,8 @@ def _plot_forward(renderer, fwd, fwd_trans, fwd_scale=1, scale=1.5e-3,
 def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                   warn_meg, head_surf, units, sensor_opacity=0.8,
                   orient_glyphs=False, scale_by_distance=False,
-                  project_points=False, surf=None):
+                  project_points=False, surf=None, check_inside=None,
+                  nearest=None):
     """Render sensors in a 3D scene."""
     defaults = DEFAULTS['coreg']
     ch_pos, sources, detectors = _ch_pos_in_coord_frame(
@@ -1192,7 +1202,8 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                                     orient_glyphs=orient_glyphs,
                                     scale_by_distance=scale_by_distance,
                                     project_points=project_points,
-                                    surf=surf)
+                                    surf=surf, check_inside=check_inside,
+                                    nearest=nearest)
             if sensor_type in ('source', 'detector'):
                 sensor_type = 'fnirs'
             actors[sensor_type].append(actor)
@@ -2918,7 +2929,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
 
         .. versionadded:: 0.19.0
     %(verbose)s
-    %(dipole_locs_fig_title)s
+    %(title_dipole_locs_fig)s
 
         .. versionadded:: 0.21.0
 

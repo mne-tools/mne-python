@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-evoked-class:
 
+===============================================
 The Evoked data structure: evoked/averaged data
 ===============================================
 
