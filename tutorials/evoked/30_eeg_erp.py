@@ -2,9 +2,9 @@
 """
 .. _tut-erp:
 
-==================================================
-EEG processing and Event Related Potentials (ERPs)
-==================================================
+===============================
+Event Related Potentials (ERPs)
+===============================
 
 This tutorial shows how to perform standard ERP analyses in MNE-Python. Most of
 the material here is covered in other tutorials too, but for convenience the
@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import mne
+from mne.viz.utils import tight_layout
 
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
@@ -73,7 +74,11 @@ raw.info
 
 channel_renaming_dict = {name: name.replace(' 0', '').lower()
                          for name in raw.ch_names}
-raw.rename_channels(channel_renaming_dict)  # happens in-place
+_ = raw.rename_channels(channel_renaming_dict)  # happens in-place
+
+# The assignment to a temporary name ``_`` (the ``_ = `` part) is included here
+# to suppress automatic printing of the ``raw`` object. You do not have to do
+# this in your interactive analysis.
 
 # %%
 # Channel locations
@@ -141,7 +146,7 @@ for proj in (False, True):
 # data, see :ref:`tut-filter-resample`. Here, we'll apply a simple high-pass
 # filter for illustration:
 
-raw.filter(l_freq=0.1, h_freq=None)
+_ = raw.filter(l_freq=0.1, h_freq=None)
 
 # %%
 # Evoked responses: epoching and averaging
@@ -290,8 +295,8 @@ ax.fill_between(l_aud.times, gfp * 1e6, color='lime', alpha=0.2)
 ax.set(xlabel='Time (s)', ylabel='GFP (µV)', title='EEG')
 
 # %%
-# Analyzing regions of interest (averaging across channels)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Analyzing regions of interest
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Since our sample data contains responses to left and right auditory and
 # visual stimuli, we may want to compare left versus right regions of interest
@@ -541,6 +546,7 @@ for ix, ax in enumerate(axs):
     ax.plot(lat_roi * 1e3, amp_roi * 1e6, marker='*', color='C6')
     ax.axvspan(*(times[ix] * 1e3), facecolor=colors[ix], alpha=0.3)
     ax.set_xlim(-50, 150)  # Show zoomed in around peak
+tight_layout(fig)
 
 # %%
 # Mean Amplitude
