@@ -610,7 +610,7 @@ print(mean_amp_roi_df.groupby('hemisphere').mean())
 # on the data you will use to test your hypotheses.
 #
 # The example can be modified to extract the mean amplitude
-# from all channels and store the resulting output in a 
+# from all channels and store the resulting output in a
 # :class:`pandas.DataFrame`. This can be useful for statistical analyses
 # conducted in other programming languages.
 
