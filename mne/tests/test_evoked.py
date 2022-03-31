@@ -76,6 +76,27 @@ def test_get_data():
     d2 = evoked.get_data(tmin=None, tmax=evoked.times[-1], include_tmax=False)
     assert d2.shape[1] == evoked.data.shape[1] - 1
 
+    # test selection with and without include_tmax
+    data = np.tile(np.arange(20).reshape((2, 10)), (3, 1,  1))
+    info = create_info(2, 1, 'eeg')
+    epochs = EpochsArray(data, info)
+    evoked = epochs.average()
+    # select sample at t=1, 2
+    for tmin, tmax in zip((0.9, 1, 1, 0.9), (3, 3, 3.2, 3.2)):
+        data_ = evoked.get_data(tmin=tmin, tmax=tmax, include_tmax=False)
+        assert data_.shape[-1] == 2
+        data_ = data_ % 10
+        assert np.allclose(data_[:, 0], np.ones(data_[:, 0].shape))
+        assert np.allclose(data_[:, 1], np.ones(data_[:, 1].shape) * 2)
+    # select sample at t=1, 2, 3
+    for tmin, tmax in zip((0.9, 1, 1, 0.9), (3, 3, 3.2, 3.2)):
+        data_ = evoked.get_data(tmin=tmin, tmax=tmax, include_tmax=True)
+        assert data_.shape[-1] == 3
+        data_ = data_ % 10
+        assert np.allclose(data_[:, 0], np.ones(data_[:, 0].shape))
+        assert np.allclose(data_[:, 1], np.ones(data_[:, 1].shape) * 2)
+        assert np.allclose(data_[:, 2], np.ones(data_[:, 2].shape) * 3)
+
 
 def test_decim():
     """Test evoked decimation."""
