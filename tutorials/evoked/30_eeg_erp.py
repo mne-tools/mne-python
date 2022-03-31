@@ -546,7 +546,7 @@ for ix, ax in enumerate(axs):
     ax.plot(lat_roi * 1e3, amp_roi * 1e6, marker='*', color='C6')
     ax.axvspan(*(times[ix] * 1e3), facecolor=colors[ix], alpha=0.3)
     ax.set_xlim(-50, 150)  # Show zoomed in around peak
-tight_layout(fig)
+tight_layout(fig=fig)
 
 # %%
 # Mean Amplitude
