@@ -50,7 +50,7 @@ information, including a line that will read something like:
 
 .. code-block::
 
-   Using Python: /some/directory/mne-python_1.0.0_0/bin/python
+   Using Python: /some/directory/mne-python_1.0.0_1/bin/python
 
 This path is what you need to enter in VS Code when selecting the Python
 interpreter.
