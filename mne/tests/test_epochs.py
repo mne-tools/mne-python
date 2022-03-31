@@ -262,12 +262,32 @@ def test_get_data():
     with pytest.raises(TypeError, match='tmax .* float, None'):
         epochs.get_data(tmin=1, tmax=np.ones(5))
 
-    # Test include_tmax
+    # test include_tmax
     d1 = epochs.get_data(tmin=None, tmax=epochs.times[-1], include_tmax=True)
     d2 = epochs.get_data(tmin=None, tmax=None, include_tmax=True)
     d3 = epochs.get_data(tmin=None, tmax=epochs.times[-1], include_tmax=False)
     assert d1.shape == d2.shape
     assert d1.shape[-1] - 1 == d3.shape[-1]
+
+    # test selection with and without include_tmax
+    data = np.arange(60).reshape((3, 2, 10))
+    info = create_info(2, 1, 'eeg')
+    epochs = EpochsArray(data, info)
+    # select sample at t=1, 2
+    for tmin, tmax in zip((0.9, 1, 1, 0.9), (3, 3, 3.2, 3.2)):
+        data_ = epochs.get_data(tmin=tmin, tmax=tmax, include_tmax=False)
+        assert data_.shape[-1] == 2
+        data_ = data_ % 10
+        assert np.allclose(data_[:, :, 0], np.ones(data_[:, :, 0].shape))
+        assert np.allclose(data_[:, :, 1], np.ones(data_[:, :, 1].shape) * 2)
+    # select sample at t=1, 2, 3
+    for tmin, tmax in zip((0.9, 1, 1, 0.9), (3, 3, 3.2, 3.2)):
+        data_ = epochs.get_data(tmin=tmin, tmax=tmax, include_tmax=True)
+        assert data_.shape[-1] == 3
+        data_ = data_ % 10
+        assert np.allclose(data_[:, :, 0], np.ones(data_[:, :, 0].shape))
+        assert np.allclose(data_[:, :, 1], np.ones(data_[:, :, 1].shape) * 2)
+        assert np.allclose(data_[:, :, 2], np.ones(data_[:, :, 2].shape) * 3)
 
 
 def test_hierarchical():
