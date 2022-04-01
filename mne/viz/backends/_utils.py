@@ -244,7 +244,8 @@ def _qt_raise_window(widget):
         widget.raise_()
 
 
-def _qt_is_dark(win):
+def _qt_is_dark(widget):
     # Ideally this would use CIELab, but this should be good enough
+    win = widget.window()
     bgcolor = win.palette().color(win.backgroundRole()).getRgbF()[:3]
     return rgb_to_hls(*bgcolor)[1] < 0.5
