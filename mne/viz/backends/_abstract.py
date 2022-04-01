@@ -520,10 +520,6 @@ class _AbstractToolBar(ABC):
     def _tool_bar_add_play_button(self, name, desc, func, *, shortcut=None):
         pass
 
-    @abstractmethod
-    def _tool_bar_set_theme(self):
-        pass
-
 
 class _AbstractDock(ABC):
     @abstractmethod

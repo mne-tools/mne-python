@@ -11,7 +11,7 @@ import pyvista
 from pyvistaqt.plotting import FileDialog
 
 from PyQt5.QtCore import Qt, pyqtSignal, QLocale, QObject
-from PyQt5.QtGui import QIcon, QImage, QPixmap, QCursor
+from PyQt5.QtGui import QIcon, QCursor
 from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                              QHBoxLayout, QLabel, QToolButton, QMenuBar,
                              QSlider, QSpinBox, QVBoxLayout, QWidget,
@@ -28,9 +28,9 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
-from ._utils import (_init_qt_resources, _qt_disable_paint,
-                     _qt_get_stylesheet, _qt_is_dark, _qt_raise_window)
-from ..utils import _check_option, safe_event
+from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
+                     _qt_detect_theme, _qt_raise_window)
+from ..utils import _check_option, safe_event, get_config
 
 
 class _QtDialog(_AbstractDialog):
@@ -380,19 +380,18 @@ class QFloatSlider(QSlider):
 
 class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_load_icons(self):
-        _init_qt_resources()
         self.icons = dict()
-        self.icons["help"] = QIcon(":/help.svg")
-        self.icons["play"] = QIcon(":/play.svg")
-        self.icons["pause"] = QIcon(":/pause.svg")
-        self.icons["reset"] = QIcon(":/reset.svg")
-        self.icons["scale"] = QIcon(":/scale.svg")
-        self.icons["clear"] = QIcon(":/clear.svg")
-        self.icons["movie"] = QIcon(":/movie.svg")
-        self.icons["restore"] = QIcon(":/restore.svg")
-        self.icons["screenshot"] = QIcon(":/screenshot.svg")
-        self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
-        self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
+        self.icons["help"] = QIcon.fromTheme("help")
+        self.icons["play"] = QIcon.fromTheme("play")
+        self.icons["pause"] = QIcon.fromTheme("pause")
+        self.icons["reset"] = QIcon.fromTheme("reset")
+        self.icons["scale"] = QIcon.fromTheme("scale")
+        self.icons["clear"] = QIcon.fromTheme("clear")
+        self.icons["movie"] = QIcon.fromTheme("movie")
+        self.icons["restore"] = QIcon.fromTheme("restore")
+        self.icons["screenshot"] = QIcon.fromTheme("screenshot")
+        self.icons["visibility_on"] = QIcon.fromTheme("visibility_on")
+        self.icons["visibility_off"] = QIcon.fromTheme("visibility_off")
 
     def _tool_bar_initialize(self, name="default", window=None):
         self.actions = dict()
@@ -436,14 +435,6 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_add_play_button(self, name, desc, func, *, shortcut=None):
         self._tool_bar_add_button(
             name=name, desc=desc, func=func, icon_name=None, shortcut=shortcut)
-
-    def _tool_bar_set_theme(self):
-        if _qt_is_dark(self._tool_bar):
-            for icon_key in self.icons:
-                icon = self.icons[icon_key]
-                image = icon.pixmap(80).toImage()
-                image.invertPixels(mode=QImage.InvertRgb)
-                self.icons[icon_key] = QIcon(QPixmap.fromImage(image))
 
 
 class _QtMenuBar(_AbstractMenuBar):
@@ -525,6 +516,7 @@ class _QtWindow(_AbstractWindow):
         super()._window_initialize()
         self._interactor = self.figure.plotter.interactor
         self._window = self.figure.plotter.app_window
+        self._window_set_theme()
         self._window.setLocale(QLocale(QLocale.Language.English))
         self._window.signal_close.connect(self._window_clean)
         self._window_before_close_callbacks = list()
@@ -650,9 +642,18 @@ class _QtWindow(_AbstractWindow):
             self._process_events()
             self._process_events()
 
-    def _window_set_theme(self, theme):
+    def _window_set_theme(self, theme=None):
+        if theme is None:
+            default_theme = _qt_detect_theme()
+        else:
+            default_theme = theme
+        theme = get_config('MNE_3D_OPTION_THEME', default_theme)
         stylesheet = _qt_get_stylesheet(theme)
         self._window.setStyleSheet(stylesheet)
+        if _qt_is_dark(self._window):
+            QIcon.setThemeName('dark')
+        else:
+            QIcon.setThemeName('light')
 
 
 class _QtWidgetList(_AbstractWidgetList):

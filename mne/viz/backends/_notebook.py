@@ -433,9 +433,6 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         self.actions[name] = widget
         return _IpyWidget(widget)
 
-    def _tool_bar_set_theme(self):
-        pass
-
 
 class _IpyMenuBar(_AbstractMenuBar):
     def _menu_initialize(self, window=None):
