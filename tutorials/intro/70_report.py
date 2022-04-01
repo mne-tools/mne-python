@@ -469,6 +469,7 @@ report.save('report_custom_figures.html', overwrite=True)
 for fig in figs[:-1]:
     plt.close(fig)
 figs[-1].close()
+del figs
 
 # %%
 # Adding image files
