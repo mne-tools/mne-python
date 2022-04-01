@@ -137,7 +137,8 @@ class _QtDock(_AbstractDock, _QtLayout):
         return _QtWidget(widget)
 
     def _dock_add_button(
-        self, name, callback, *, style='pushbutton', tooltip=None, layout=None
+        self, name, callback, *, style='pushbutton', icon=None, tooltip=None,
+        layout=None
     ):
         _check_option(
             parameter='style',
@@ -153,6 +154,8 @@ class _QtDock(_AbstractDock, _QtLayout):
             widget.setStyleSheet(
                 'QPushButton:pressed {color: none;}'
             )
+        if icon is not None:
+            widget.setIcon(self._icons[icon])
 
         _set_widget_tooltip(widget, tooltip)
         widget.clicked.connect(callback)
@@ -271,7 +274,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_file_button(
         self, name, desc, func, *, filter=None, initial_directory=None,
-        save=False, is_directory=False, tooltip=None, layout=None
+        save=False, is_directory=False, icon=False, tooltip=None, layout=None
     ):
         layout = self._dock_layout if layout is None else layout
 
@@ -296,11 +299,16 @@ class _QtDock(_AbstractDock, _QtLayout):
                 return
             func(name)
 
+        if icon:
+            kwargs = dict(style='toolbutton', icon='folder')
+        else:
+            kwargs = dict()
         button_widget = self._dock_add_button(
             name=desc,
             callback=callback,
             tooltip=tooltip,
             layout=layout,
+            **kwargs
         )
         return button_widget  # It's already a _QtWidget instance
 
@@ -379,20 +387,6 @@ class QFloatSlider(QSlider):
 
 
 class _QtToolBar(_AbstractToolBar, _QtLayout):
-    def _tool_bar_load_icons(self):
-        self.icons = dict()
-        self.icons["help"] = QIcon.fromTheme("help")
-        self.icons["play"] = QIcon.fromTheme("play")
-        self.icons["pause"] = QIcon.fromTheme("pause")
-        self.icons["reset"] = QIcon.fromTheme("reset")
-        self.icons["scale"] = QIcon.fromTheme("scale")
-        self.icons["clear"] = QIcon.fromTheme("clear")
-        self.icons["movie"] = QIcon.fromTheme("movie")
-        self.icons["restore"] = QIcon.fromTheme("restore")
-        self.icons["screenshot"] = QIcon.fromTheme("screenshot")
-        self.icons["visibility_on"] = QIcon.fromTheme("visibility_on")
-        self.icons["visibility_off"] = QIcon.fromTheme("visibility_off")
-
     def _tool_bar_initialize(self, name="default", window=None):
         self.actions = dict()
         window = self._window if window is None else window
@@ -402,13 +396,13 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_add_button(self, name, desc, func, *, icon_name=None,
                              shortcut=None):
         icon_name = name if icon_name is None else icon_name
-        icon = self.icons[icon_name]
+        icon = self._icons[icon_name]
         self.actions[name] = self._tool_bar.addAction(icon, desc, func)
         if shortcut is not None:
             self.actions[name].setShortcut(shortcut)
 
     def _tool_bar_update_button_icon(self, name, icon_name):
-        self.actions[name].setIcon(self.icons[icon_name])
+        self.actions[name].setIcon(self._icons[icon_name])
 
     def _tool_bar_add_text(self, name, value, placeholder):
         pass
@@ -516,6 +510,7 @@ class _QtWindow(_AbstractWindow):
         super()._window_initialize()
         self._interactor = self.figure.plotter.interactor
         self._window = self.figure.plotter.app_window
+        self._window_load_icons()
         self._window_set_theme()
         self._window.setLocale(QLocale(QLocale.Language.English))
         self._window.signal_close.connect(self._window_clean)
@@ -542,6 +537,20 @@ class _QtWindow(_AbstractWindow):
             for callback in self._window_after_close_callbacks:
                 callback()
         self._window.closeEvent = closeEvent
+
+    def _window_load_icons(self):
+        self._icons["help"] = QIcon.fromTheme("help")
+        self._icons["play"] = QIcon.fromTheme("play")
+        self._icons["pause"] = QIcon.fromTheme("pause")
+        self._icons["reset"] = QIcon.fromTheme("reset")
+        self._icons["scale"] = QIcon.fromTheme("scale")
+        self._icons["clear"] = QIcon.fromTheme("clear")
+        self._icons["movie"] = QIcon.fromTheme("movie")
+        self._icons["restore"] = QIcon.fromTheme("restore")
+        self._icons["screenshot"] = QIcon.fromTheme("screenshot")
+        self._icons["visibility_on"] = QIcon.fromTheme("visibility_on")
+        self._icons["visibility_off"] = QIcon.fromTheme("visibility_off")
+        self._icons["folder"] = QIcon.fromTheme("folder")
 
     def _window_clean(self):
         self.figure._plotter = None

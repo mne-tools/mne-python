@@ -1419,6 +1419,7 @@ class CoregistrationUI(HasTraits):
             desc="Load",
             func=self._set_subjects_dir,
             is_directory=True,
+            icon=True,
             tooltip="Load the path to the directory containing the "
                     "FreeSurfer subjects",
             layout=subjects_dir_layout,
@@ -1528,6 +1529,7 @@ class CoregistrationUI(HasTraits):
             name="info_file",
             desc="Load",
             func=self._set_info_file,
+            icon=True,
             tooltip="Load the FIFF file with digitization data for "
                     "coregistration",
             layout=info_file_layout,
