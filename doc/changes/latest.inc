@@ -27,7 +27,7 @@ Enhancements
 
 Bugs
 ~~~~
-- None yet
+- Fix bug in :func: `mne.channels.channels.UpdateChannelsMixin.pick_types`, the kwarg `csd=True` was not passed further downstream (:gh:`10470` by `Matthias Dold`_)
 
 API changes
 ~~~~~~~~~~~
