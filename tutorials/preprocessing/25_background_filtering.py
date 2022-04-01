@@ -149,7 +149,9 @@ import mne
 
 sfreq = 1000.
 f_p = 40.
-flim = (1., sfreq / 2.)  # limits for plotting
+# limits for plotting
+flim = (1., sfreq / 2.)  # frequencies
+dlim = (-0.2, 0.2)  # delays
 
 # %%
 # Take for example an ideal low-pass filter, which would give a magnitude
@@ -182,7 +184,8 @@ n = int(round(0.1 * sfreq))
 n -= n % 2 - 1  # make it odd
 t = np.arange(-(n // 2), n // 2 + 1) / sfreq  # center our sinc
 h = np.sinc(2 * f_p * t) / (4 * np.pi)
-plot_filter(h, sfreq, freq, gain, 'Sinc (0.1 s)', flim=flim, compensate=True)
+kwargs = dict(flim=flim, dlim=dlim)
+plot_filter(h, sfreq, freq, gain, 'Sinc (0.1 s)', compensate=True, **kwargs)
 
 # %%
 # This is not so good! Making the filter 10 times longer (1 s) gets us a
@@ -195,7 +198,7 @@ n = int(round(1. * sfreq))
 n -= n % 2 - 1  # make it odd
 t = np.arange(-(n // 2), n // 2 + 1) / sfreq
 h = np.sinc(2 * f_p * t) / (4 * np.pi)
-plot_filter(h, sfreq, freq, gain, 'Sinc (1.0 s)', flim=flim, compensate=True)
+plot_filter(h, sfreq, freq, gain, 'Sinc (1.0 s)', compensate=True, **kwargs)
 
 # %%
 # Let's make the stop-band tighter still with a longer filter (10 s),
@@ -205,7 +208,7 @@ n = int(round(10. * sfreq))
 n -= n % 2 - 1  # make it odd
 t = np.arange(-(n // 2), n // 2 + 1) / sfreq
 h = np.sinc(2 * f_p * t) / (4 * np.pi)
-plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 s)', flim=flim, compensate=True)
+plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 s)', compensate=True, **kwargs)
 
 # %%
 # Now we have very sharp frequency suppression, but our filter rings for the
@@ -216,9 +219,11 @@ plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 s)', flim=flim, compensate=True)
 # based on desired response characteristics. These include:
 #
 # 1. The Remez_ algorithm (:func:`scipy.signal.remez`)
-# 2. Windowed FIR design (:func:`scipy.signal.firwin2`, :func:`scipy.signal.firwin`)  # noqa
+# 2. Windowed FIR design (:func:`scipy.signal.firwin2`,
+#    :func:`scipy.signal.firwin`)
 # 3. Least squares design (:func:`scipy.signal.firls`)
-# 4. Frequency-domain design (construct filter in Fourier domain and use an :func:`IFFT <numpy.fft.ifft>` to invert it)  # noqa
+# 4. Frequency-domain design (construct filter in Fourier domain and use an
+#    :func:`IFFT <numpy.fft.ifft>` to invert it)  # noqa
 #
 # .. note:: Remez and least squares designs have advantages when there are
 #           "do not care" regions in our frequency response. However, we want
@@ -252,17 +257,19 @@ plot_ideal_filter(freq, gain, ax, title=title, flim=flim)
 
 h = signal.firwin2(n, freq, gain, nyq=nyq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (1.0 s)',
-            flim=flim, compensate=True)
+            compensate=True, **kwargs)
 
 # %%
 # Since our lowpass is around 40 Hz with a 10 Hz transition, we can actually
 # use a shorter filter (5 cycles at 10 Hz = 0.5 s) and still get acceptable
 # stop-band attenuation:
 
+# sphinx_gallery_thumbnail_number = 7
+
 n = int(round(sfreq * 0.5)) + 1
 h = signal.firwin2(n, freq, gain, nyq=nyq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (0.5 s)',
-            flim=flim, compensate=True)
+            compensate=True, **kwargs)
 
 # %%
 # But if we shorten the filter too much (2 cycles of 10 Hz = 0.2 s),
@@ -271,7 +278,7 @@ plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (0.5 s)',
 n = int(round(sfreq * 0.2)) + 1
 h = signal.firwin2(n, freq, gain, nyq=nyq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (0.2 s)',
-            flim=flim, compensate=True)
+            compensate=True, **kwargs)
 
 # %%
 # If we want a filter that is only 0.1 seconds long, we should probably use
@@ -282,7 +289,7 @@ f_s = f_p + trans_bandwidth
 freq = [0, f_p, f_s, nyq]
 h = signal.firwin2(n, freq, gain, nyq=nyq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 50 Hz transition (0.2 s)',
-            flim=flim, compensate=True)
+            compensate=True, **kwargs)
 
 # %%
 # So far, we have only discussed *non-causal* filtering, which means that each
@@ -310,7 +317,16 @@ plot_filter(h, sfreq, freq, gain, 'Windowed 50 Hz transition (0.2 s)',
 # that the falloff is not as steep:
 
 h_min = signal.minimum_phase(h)
-plot_filter(h_min, sfreq, freq, gain, 'Minimum-phase', flim=flim)
+plot_filter(h_min, sfreq, freq, gain, 'Minimum-phase', **kwargs)
+
+# %%
+# Note that this minimum-phase filter has a *much* smaller delay compared to
+# an *uncompensated, causal* linear-phase filter, as shown below. This is why
+# in MNE-Python we currently only offer zero-phase, non-causal filters (i.e.,
+# delay-compensated filters) *or* minimum-phase causal filters. The linear
+# phase filter has a constant, large delay:
+
+plot_filter(h, sfreq, freq, gain, 'Linear phase (uncompensated)', **kwargs)
 
 # %%
 # .. _tut-effect-on-signals:
@@ -358,8 +374,8 @@ x_v16 = np.convolve(h, x)
 # this is the linear->zero phase, causal-to-non-causal conversion / shift
 x_v16 = x_v16[len(h) // 2:]
 
-plot_filter(h, sfreq, freq, gain, 'MNE-Python ≥0.16 default', flim=flim,
-            compensate=True)
+plot_filter(h, sfreq, freq, gain, 'MNE-Python ≥0.16 default',
+            compensate=True, **kwargs)
 
 # %%
 # Now let's filter it with a different design method ``fir_design="firwin2"``,
@@ -379,8 +395,8 @@ h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                              fir_design='firwin2', verbose=True)
 x_v14 = np.convolve(h, x)[len(h) // 2:]
 
-plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.14 default', flim=flim,
-            compensate=True)
+plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.14 default',
+            compensate=True, **kwargs)
 
 # %%
 # Let's also filter with the MNE-Python 0.13 default, which is a
@@ -401,8 +417,8 @@ h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
 x_v13 = np.convolve(np.convolve(h, x)[::-1], h)[::-1][len(h) - 1:-len(h) - 1]
 # the effective h is one that is applied to the time-reversed version of itself
 h_eff = np.convolve(h, h[::-1])
-plot_filter(h_eff, sfreq, freq, gain, 'MNE-Python ≤0.13 default', flim=flim,
-            compensate=True)
+plot_filter(h_eff, sfreq, freq, gain, 'MNE-Python ≤0.13 default',
+            compensate=True, **kwargs)
 
 # %%
 # Let's also filter it with the MNE-C default, which is a long-duration
@@ -415,7 +431,7 @@ transition_band = 5  # Hz (default in MNE-C)
 f_s = f_p + transition_band
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
-plot_filter(h, sfreq, freq, gain, 'MNE-C default', flim=flim, compensate=True)
+plot_filter(h, sfreq, freq, gain, 'MNE-C default', compensate=True, **kwargs)
 
 # %%
 # And now an example of a minimum-phase filter:
@@ -430,7 +446,7 @@ filter_dur = 6.6 / transition_band  # sec
 n = int(sfreq * filter_dur)
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
-plot_filter(h, sfreq, freq, gain, 'Minimum-phase filter', flim=flim)
+plot_filter(h, sfreq, freq, gain, 'Minimum-phase filter', **kwargs)
 
 
 # %%
@@ -512,8 +528,8 @@ plt.show()
 #           these phase issues can theoretically be mitigated.
 
 sos = signal.iirfilter(2, f_p / nyq, btype='low', ftype='butter', output='sos')
-plot_filter(dict(sos=sos), sfreq, freq, gain, 'Butterworth order=2', flim=flim,
-            compensate=True)
+plot_filter(dict(sos=sos), sfreq, freq, gain, 'Butterworth order=2',
+            compensate=True, **kwargs)
 x_shallow = signal.sosfiltfilt(sos, x)
 del sos
 
@@ -542,8 +558,8 @@ iir_params = dict(order=8, ftype='butter')
 filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                                 method='iir', iir_params=iir_params,
                                 verbose=True)
-plot_filter(filt, sfreq, freq, gain, 'Butterworth order=8', flim=flim,
-            compensate=True)
+plot_filter(filt, sfreq, freq, gain, 'Butterworth order=8',
+            compensate=True, **kwargs)
 x_steep = signal.sosfiltfilt(filt['sos'], x)
 
 # %%
@@ -558,8 +574,8 @@ iir_params.update(ftype='cheby1',
 filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                                 method='iir', iir_params=iir_params,
                                 verbose=True)
-plot_filter(filt, sfreq, freq, gain,
-            'Chebychev-1 order=8, ripple=1 dB', flim=flim, compensate=True)
+plot_filter(filt, sfreq, freq, gain, 'Chebychev-1 order=8, ripple=1 dB',
+            compensate=True, **kwargs)
 
 # %%
 # If we can live with even more ripple, we can get it slightly steeper,
@@ -570,9 +586,8 @@ iir_params['rp'] = 6.
 filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                                 method='iir', iir_params=iir_params,
                                 verbose=True)
-plot_filter(filt, sfreq, freq, gain,
-            'Chebychev-1 order=8, ripple=6 dB', flim=flim,
-            compensate=True)
+plot_filter(filt, sfreq, freq, gain, 'Chebychev-1 order=8, ripple=6 dB',
+            compensate=True, **kwargs)
 
 # %%
 # Applying IIR filters
