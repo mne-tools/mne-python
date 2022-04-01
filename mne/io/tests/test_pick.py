@@ -11,6 +11,8 @@ from mne import (pick_channels_regexp, pick_types, Epochs,
 from mne import __file__ as _root_init_fname
 from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
                     read_info)
+from mne.channels import make_standard_montage
+from mne.preprocessing import compute_current_source_density
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type, _picks_to_idx,
                          _contains_ch_type, pick_channels_cov,
@@ -597,6 +599,23 @@ def test_pick_types_meg():
 
     assert not list(pick_types(info2))  # empty
     assert list(pick_types(info2, eeg=True)) == [0, 1]
+
+
+def test_pick_types_csd():
+    """Test pick_types(csd=True)."""
+    # info with laplacian/CSD channels at indices 1, 2
+    names = ['F1', 'F2', 'C1', 'C2', 'A1', 'A2', 'misc1', 'CSD1']
+    info1 = create_info(names, 256, ["eeg", "eeg", "eeg", "eeg", "mag",
+                                     "mag", 'misc', 'csd'])
+    raw = RawArray(np.zeros((8, 512)), info1)
+    raw.set_montage(make_standard_montage('standard_1020'))
+    raw_csd = compute_current_source_density(raw)
+
+    assert list(pick_types(info1, csd=True)) == [7]
+
+    # pick from the raw object
+    assert raw_csd.copy().pick_types(csd=True).ch_names == [
+        'F1', 'F2', 'C1', 'C2', 'CSD1']
 
 
 @pytest.mark.parametrize('meg', [True, False, 'grad', 'mag'])
