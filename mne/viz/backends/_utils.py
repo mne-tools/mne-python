@@ -205,7 +205,7 @@ def _qt_get_stylesheet(theme):
     if theme == 'auto':
         theme = _qt_detect_theme()
     if theme in ('dark', 'light'):
-        if theme == 'light' or sys.platform == 'darwin':
+        if theme == 'light':
             stylesheet = ''
         else:
             try:
