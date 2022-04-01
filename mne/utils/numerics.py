@@ -8,12 +8,11 @@
 from contextlib import contextmanager
 import hashlib
 from io import BytesIO, StringIO
-from math import sqrt
+from math import sqrt, ceil, floor
 import numbers
 import operator
 import os
 import os.path as op
-from math import ceil
 import shutil
 import sys
 from datetime import datetime, timedelta, timezone
@@ -478,11 +477,16 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True,
     if sfreq is not None:
         # Push to a bit past the nearest sample boundary first
         sfreq = float(sfreq)
-        tmin = int(round(tmin * sfreq)) / sfreq - 0.5 / sfreq
-        tmax = int(round(tmax * sfreq)) / sfreq
-        tmax += (0.5 if include_tmax else -0.5) / sfreq
+        # tmin: first sample where tmin <= sample, minus half sample size
+        tmin = ceil(tmin * sfreq) / sfreq - 0.5 / sfreq
+        # tmax
+        if include_tmax:
+            tmax = floor(tmax * sfreq) + 1 / sfreq
+        else:
+            tmax = ceil(tmax * sfreq) / sfreq
+        tmax -= 0.5 / sfreq
     else:
-        assert include_tmax  # can only be used when sfreq is known
+        assert include_tmax  # can only be False when sfreq is known
     if raise_error and tmin > tmax:
         raise ValueError('tmin (%s) must be less than or equal to tmax (%s)'
                          % (orig_tmin, orig_tmax))

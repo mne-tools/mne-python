@@ -157,7 +157,7 @@ def test_time_mask():
     assert _time_mask(x, tmin=6, sfreq=1).sum() == 1
     assert _time_mask(x, tmin=5, sfreq=1).sum() == 1
     assert _time_mask(x, tmin=4.5001, sfreq=1).sum() == 1
-    assert _time_mask(x, tmin=4.4999, sfreq=1).sum() == 2
+    assert _time_mask(x, tmin=4.4999, sfreq=1).sum() == 1  # x[0] < tmin
     assert _time_mask(x, tmin=4, sfreq=1).sum() == 2
     # degenerate cases
     with pytest.raises(ValueError, match='No samples remain'):
