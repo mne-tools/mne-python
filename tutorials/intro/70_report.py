@@ -427,6 +427,7 @@ report.add_figure(
     image_format='PNG'
 )
 report.save('report_custom_figure.html', overwrite=True)
+plt.close(fig)
 
 # %%
 # The :meth:`mne.Report.add_figure` method can add multiple figures at once. In
@@ -458,9 +459,16 @@ for angle in rotation_angles:
     figs.append(fig)
     captions.append(f'Rotation angle: {round(angle, 1)}°')
 
+# can also be a MNEQtBrowser instance
+figs.append(raw.plot())
+captions.append('... plus a raw data plot')
+
 report = mne.Report(title='Multiple figures example')
 report.add_figure(fig=figs, title='Fun with figures! 🥳', caption=captions)
 report.save('report_custom_figures.html', overwrite=True)
+for fig in figs[:-1]:
+    plt.close(fig)
+figs[-1].close()
 
 # %%
 # Adding image files

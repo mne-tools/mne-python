@@ -260,8 +260,7 @@ numpydoc_xref_ignore = {
     # unlinkable
     'CoregistrationUI',
     'IntracranialElectrodeLocator',
-    # TODO: fix the Renderer return type of create_3d_figure(scene=False)
-    'Renderer',
+    'mne_qt_browser.figure.MNEQtBrowser',
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)

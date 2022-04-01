@@ -184,15 +184,19 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
 
     fig.canvas.draw()
     constrained = fig.get_constrained_layout()
+    kwargs = dict(pad=pad, h_pad=h_pad, w_pad=w_pad)
     if constrained:
         return  # no-op
     try:  # see https://github.com/matplotlib/matplotlib/issues/2654
         with warnings.catch_warnings(record=True) as ws:
-            fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
+            fig.tight_layout(**kwargs)
     except Exception:
         try:
             with warnings.catch_warnings(record=True) as ws:
-                fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
+                if hasattr(fig, 'set_layout_engine'):
+                    fig.set_layout_engine('tight', **kwargs)
+                else:
+                    fig.set_tight_layout(**kwargs)
         except Exception:
             warn('Matplotlib function "tight_layout" is not supported.'
                  ' Skipping subplot adjustment.')

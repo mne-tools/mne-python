@@ -19,10 +19,11 @@ import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
-from mne import Epochs, read_events, read_evokeds, read_cov, pick_channels_cov
+from mne import (Epochs, read_events, read_evokeds, read_cov,
+                 pick_channels_cov, create_info)
 from mne.report import report as report_mod
 from mne.report.report import CONTENT_ORDER
-from mne.io import read_raw_fif, read_info
+from mne.io import read_raw_fif, read_info, RawArray
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper, report
 from mne.utils import (requires_nibabel, Bunch, requires_version,
@@ -207,6 +208,23 @@ def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
 
     with pytest.raises(TypeError, match='It seems you passed a path'):
         report.add_figure(fig='foo', title='title')
+    with pytest.raises(TypeError, match='.*MNEQtBrowser.*Figure3D.*got.*'):
+        report.add_figure(fig=1., title='title')
+
+
+def test_render_mne_qt_browser(tmp_path, browser_backend):
+    """Test adding a mne_qt_browser (and matplotlib) raw plot."""
+    report = Report()
+    info = create_info(1, 1000., 'eeg')
+    data = np.zeros((1, 1000))
+    raw = RawArray(data, info)
+    fig = raw.plot()
+    name = fig.__class__.__name__
+    if browser_backend.name == 'matplotlib':
+        assert 'MNEBrowseFigure' in name
+    else:
+        assert 'MNEQtBrowser' in name or 'PyQtGraphBrowser' in name
+    report.add_figure(fig, title='raw')
 
 
 @testing.requires_testing_data
