@@ -82,7 +82,7 @@ def _mne_qt_browser_screenshot(browser, inst=None, return_type='pixmap'):
         img = img.convertToFormat(img.Format_RGBA8888)
         ptr = img.bits()
         ptr.setsize(img.height() * img.width() * 4)
-        data = np.frombuffer(ptr, dtype=np.uint8)
+        data = np.frombuffer(ptr, dtype=np.uint8).copy()
         data.shape = (img.height(), img.width(), 4)
         return data / 255.
     else:
