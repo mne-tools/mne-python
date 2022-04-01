@@ -481,7 +481,7 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True,
         tmin = ceil(tmin * sfreq) / sfreq - 0.5 / sfreq
         # tmax
         if include_tmax:
-            tmax = floor(tmax * sfreq) + 1 / sfreq
+            tmax = (floor(tmax * sfreq) + 1) / sfreq
         else:
             tmax = ceil(tmax * sfreq) / sfreq
         tmax -= 0.5 / sfreq

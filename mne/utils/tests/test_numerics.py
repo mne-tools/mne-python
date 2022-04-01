@@ -140,15 +140,55 @@ def test_create_slices():
 
 def test_time_mask():
     """Test safe time masking."""
-    N = 10
-    x = np.arange(N).astype(float)
-    assert _time_mask(x, 0, N - 1).sum() == N
-    assert _time_mask(x - 1e-10, 0, N - 1, sfreq=1000.).sum() == N
-    assert _time_mask(x - 1e-10, None, N - 1, sfreq=1000.).sum() == N
-    assert _time_mask(x - 1e-10, None, None, sfreq=1000.).sum() == N
-    assert _time_mask(x - 1e-10, -np.inf, None, sfreq=1000.).sum() == N
-    assert _time_mask(x - 1e-10, None, np.inf, sfreq=1000.).sum() == N
-    # non-uniformly spaced inputs
+    x = np.arange(10).astype(float)  # times from 0 to 9
+    assert _time_mask(x, 0, 9, sfreq=None, include_tmax=True).sum() == 10
+    with pytest.raises(AssertionError):
+        _time_mask(x, 0, 9, sfreq=None, include_tmax=False)
+    assert _time_mask(x, 0, 9, sfreq=1, include_tmax=True).sum() == 10
+    assert _time_mask(x, 0, 9, sfreq=1, include_tmax=False).sum() == 9
+    # test with tmin/tmax equal to None and np.inf (ignores include_tmax)
+    for tmin, tmax in zip((None, None, -np.inf), (None, np.inf, None)):
+        assert _time_mask(
+            x, tmin, tmax, sfreq=None, include_tmax=True).sum() == 10
+        assert _time_mask(
+            x, tmin, tmax, sfreq=None, include_tmax=False).sum() == 10
+        assert _time_mask(
+            x, tmin, tmax, sfreq=1, include_tmax=True).sum() == 10
+        assert _time_mask(
+            x, tmin, tmax, sfreq=1, include_tmax=False).sum() == 10
+    # test with tmin/tmax in between samples
+    for tmin in (0.0001, 0.2, 0.8, 0.999):
+        mask = _time_mask(x, tmin=tmin, tmax=3, sfreq=1, include_tmax=True)
+        assert mask[1:4].all()  # 1, 2, 3
+        assert not mask[0] and not mask[5:].all()
+        mask = _time_mask(x, tmin=tmin, tmax=3, sfreq=None)
+        assert mask[1:4].all()  # 1, 2, 3
+        assert not mask[0] and not mask[5:].all()
+        mask = _time_mask(x, tmin=tmin, tmax=3, sfreq=1, include_tmax=False)
+        assert mask[1:3].all()  # 1, 2
+        assert not mask[0] and not mask[4:].all()
+    for tmax in (3.0001, 3.2, 3.8, 3.999):
+        mask = _time_mask(x, tmin=1, tmax=tmax, sfreq=1, include_tmax=True)
+        assert mask[1:4].all()  # 1, 2, 3
+        assert not mask[0] and not mask[5:].all()
+        mask = _time_mask(x, tmin=1, tmax=tmax, sfreq=None)
+        assert mask[1:4].all()  # 1, 2, 3
+        assert not mask[0] and not mask[5:].all()
+        mask = _time_mask(x, tmin=1, tmax=tmax, sfreq=1, include_tmax=False)
+        assert mask[1:3].all()  # 1, 2
+        assert not mask[0] and not mask[4:].all()
+
+    mask = _time_mask(x, tmin=0.2, tmax=3.2, sfreq=1, include_tmax=True)
+    assert mask[1:4].all()  # 1, 2, 3
+    assert not mask[0] and not mask[5:].all()
+    mask = _time_mask(x, tmin=0.2, tmax=3.2, sfreq=None)
+    assert mask[1:4].all()  # 1, 2, 3
+    assert not mask[0] and not mask[5:].all()
+    mask = _time_mask(x, tmin=0.2, tmax=3.2, sfreq=1, include_tmax=False)
+    assert mask[1:3].all()  # 1, 2
+    assert not mask[0] and not mask[4:].all()
+
+    # test non-uniformly spaced inputs
     x = np.array([4, 10])
     assert _time_mask(x[:1], tmin=10, sfreq=1, raise_error=False).sum() == 0
     assert _time_mask(x[:1], tmin=11, tmax=12, sfreq=1,
@@ -159,11 +199,28 @@ def test_time_mask():
     assert _time_mask(x, tmin=4.5001, sfreq=1).sum() == 1
     assert _time_mask(x, tmin=4.4999, sfreq=1).sum() == 1  # x[0] < tmin
     assert _time_mask(x, tmin=4, sfreq=1).sum() == 2
-    # degenerate cases
+
+    # test negative times
+    x = np.arange(-2, 8)
+    mask = _time_mask(x, tmin=-1, tmax=2, sfreq=1, include_tmax=True)
+    assert mask[1:4].all()  # 1, 2, 3
+    assert not mask[0] and not mask[5:].all()
+    mask = _time_mask(x, tmin=-1, tmax=2, sfreq=None)
+    assert mask[1:4].all()  # 1, 2, 3
+    assert not mask[0] and not mask[5:].all()
+    mask = _time_mask(x, tmin=-1, tmax=2, sfreq=1, include_tmax=False)
+    assert mask[1:3].all()  # 1, 2
+    assert not mask[0] and not mask[4:].all()
+    # test with tmin/tmax in between samples
+    mask = _time_mask(x, tmin=-1.2, tmax=4.2, sfreq=1, include_tmax=False)
+    assert mask[1:3].all()  # 1, 2
+    assert not mask[0] and not mask[5:].all()
+
+    # test errors
     with pytest.raises(ValueError, match='No samples remain'):
-        _time_mask(x[:1], tmin=11, tmax=12)
+        _time_mask(np.arange(3), tmin=11, tmax=12)
     with pytest.raises(ValueError, match='must be less than or equal to tmax'):
-        _time_mask(x[:1], tmin=10, sfreq=1)
+        _time_mask(np.arange(3), tmin=10, sfreq=1)
 
 
 def test_freq_mask():
