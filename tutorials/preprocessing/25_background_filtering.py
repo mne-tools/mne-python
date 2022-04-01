@@ -72,8 +72,10 @@ coefficients :math:`a_k` can be used to obtain our output data
 
 In other words, the output at time :math:`n` is determined by a sum over
 
-1. the numerator coefficients :math:`b_k`, which get multiplied by the previous input values :math:`x(n-k)`, and
-2. the denominator coefficients :math:`a_k`, which get multiplied by the previous output values :math:`y(n-k)`.
+1. the numerator coefficients :math:`b_k`, which get multiplied by the previous
+   input values :math:`x(n-k)`, and
+2. the denominator coefficients :math:`a_k`, which get multiplied by the
+   previous output values :math:`y(n-k)`.
 
 Note that these summations correspond to (1) a weighted `moving average`_ and
 (2) an autoregression_.
@@ -81,17 +83,21 @@ Note that these summations correspond to (1) a weighted `moving average`_ and
 Filters are broken into two classes based on these coefficients: FIR_ (finite
 impulse response) and IIR_ (infinite impulse response) filters.
 FIR filters use a finite number of numerator
-coefficients :math:`b_k` (where :math:`a_k=0\qquad \forall k`), and thus each output
-value :math:`y(n)` depends only on the :math:`M` previous input values.
+coefficients :math:`b_k` (where :math:`a_k=0\qquad \forall k`), and thus each
+output value :math:`y(n)` depends only on the :math:`M` previous input values.
 IIR filters depend on the previous input and output values, and thus can have
 effectively infinitely long impulse responses.
 
 As outlined in Parks & Burrus (1987) :footcite:`ParksBurrus1987`,
 FIR and IIR filters have different pros and cons:
 
-* A causal FIR filter can be linear-phase -- i.e., the same time delay across all frequencies -- whereas a causal IIR filter cannot. The phase and group delay characteristics are also usually better for FIR filters.
-* IIR filters can generally have a steeper cutoff than an FIR filter of equivalent order.
-* IIR filters are generally less numerically stable, in part due to accumulating error (due to recursive calculations).
+* A causal FIR filter can be linear-phase -- i.e., the same time delay across
+  all frequencies -- whereas a causal IIR filter cannot. The phase and group
+  delay characteristics are also usually better for FIR filters.
+* IIR filters can generally have a steeper cutoff than an FIR filter of
+  equivalent order.
+* IIR filters are generally less numerically stable, in part due to
+  accumulating error (due to recursive calculations).
 
 In MNE-Python we default to using FIR filtering. As noted in Widmann *et al.*
 (2015) :footcite:`WidmannEtAl2015`:
@@ -124,7 +130,7 @@ FIR Filters
 
 First, we will focus on FIR filters, which are the default filters used by
 MNE-Python.
-"""  # noqa
+"""
 
 # %%
 # Designing FIR filters
@@ -223,7 +229,7 @@ plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 s)', compensate=True, **kwargs)
 #    :func:`scipy.signal.firwin`)
 # 3. Least squares design (:func:`scipy.signal.firls`)
 # 4. Frequency-domain design (construct filter in Fourier domain and use an
-#    :func:`IFFT <numpy.fft.ifft>` to invert it)  # noqa
+#    :func:`IFFT <numpy.fft.ifft>` to invert it)
 #
 # .. note:: Remez and least squares designs have advantages when there are
 #           "do not care" regions in our frequency response. However, we want
@@ -635,8 +641,11 @@ plt.show()
 # :footcite:`WidmannSchroger2012` that the problematic low-pass filters from
 # VanRullen (2011) :footcite:`VanRullen2011`:
 #
-# 1. Used a least-squares design (like :func:`scipy.signal.firls`) that included "do-not-care" transition regions, which can lead to uncontrolled behavior.  # noqa
-# 2. Had a filter length that was independent of the transition bandwidth, which can cause excessive ringing and signal distortion.  # noqa
+# 1. Used a least-squares design (like :func:`scipy.signal.firls`) that
+#    included "do-not-care" transition regions, which can lead to uncontrolled
+#    behavior.
+# 2. Had a filter length that was independent of the transition bandwidth,
+#    which can cause excessive ringing and signal distortion.
 #
 # .. _tut-filtering-hp-problems:
 #
@@ -803,8 +812,10 @@ baseline_plot(x)
 # perhaps even the application of baseline correction, depend on the
 # characteristics of the data being investigated, especially when it comes to:
 #
-# 1. The frequency content of the underlying evoked activity relative to the filtering parameters.  # noqa
-# 2. The validity of the assumption of no consistent evoked activity in the baseline period.  # noqa
+# 1. The frequency content of the underlying evoked activity relative to the
+#    filtering parameters.
+# 2. The validity of the assumption of no consistent evoked activity in the
+#    baseline period.
 #
 # We thus recommend carefully applying baseline correction and/or high-pass
 # values based on the characteristics of the data to be analyzed.
