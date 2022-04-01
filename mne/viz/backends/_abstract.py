@@ -488,10 +488,6 @@ class _AbstractRenderer(ABC):
 
 class _AbstractToolBar(ABC):
     @abstractmethod
-    def _tool_bar_load_icons(self):
-        pass
-
-    @abstractmethod
     def _tool_bar_initialize(self, name="default", window=None):
         pass
 
@@ -555,7 +551,8 @@ class _AbstractDock(ABC):
 
     @abstractmethod
     def _dock_add_button(
-        self, name, callback, *, style='pushbutton', tooltip=None, layout=None
+        self, name, callback, *, style='pushbutton', icon=None, tooltip=None,
+        layout=None
     ):
         pass
 
@@ -602,7 +599,7 @@ class _AbstractDock(ABC):
     @abstractmethod
     def _dock_add_file_button(
         self, name, desc, func, *, filter=None, initial_directory=None,
-        save=False, is_directory=False, tooltip=None, layout=None
+        save=False, is_directory=False, icon=False, tooltip=None, layout=None
     ):
         pass
 
@@ -863,12 +860,17 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
 
 class _AbstractWindow(ABC):
     def _window_initialize(self):
+        self._icons = dict()
         self._window = None
         self._interactor = None
         self._mplcanvas = None
         self._show_traces = None
         self._separate_canvas = None
         self._interactor_fraction = None
+
+    @abstractmethod
+    def _window_load_icons(self):
+        pass
 
     @abstractmethod
     def _window_close_connect(self, func, *, after=True):

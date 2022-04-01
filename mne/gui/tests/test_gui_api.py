@@ -208,7 +208,6 @@ def test_gui_api(renderer_notebook, nbexec):
         name="default",
         window=None,
     )
-    renderer._tool_bar_load_icons()
 
     # button
     assert 'reset' not in renderer.actions
