@@ -82,20 +82,17 @@ def test_get_data():
     epochs = EpochsArray(data, info)
     evoked = epochs.average()
     # select sample at t=1, 2
-    for tmin, tmax in zip((0.9, 1, 1, 0.9), (3, 3, 3.2, 3.2)):
+    for tmin, tmax in zip((0.9, 1, 0.9, 1), (2.5, 2.5, 3, 3)):
         data_ = evoked.get_data(tmin=tmin, tmax=tmax, include_tmax=False)
         assert data_.shape[-1] == 2
         data_ = data_ % 10
-        assert np.allclose(data_[:, 0], np.ones(data_[:, 0].shape))
-        assert np.allclose(data_[:, 1], np.ones(data_[:, 1].shape) * 2)
+        assert np.allclose(np.tile([1., 2.], (2, 1)), data_)
     # select sample at t=1, 2, 3
-    for tmin, tmax in zip((0.9, 1, 1, 0.9), (3, 3, 3.2, 3.2)):
+    for tmin, tmax in zip((0.9, 1, 0.9, 1), (3, 3, 3.5, 3.5)):
         data_ = evoked.get_data(tmin=tmin, tmax=tmax, include_tmax=True)
         assert data_.shape[-1] == 3
         data_ = data_ % 10
-        assert np.allclose(data_[:, 0], np.ones(data_[:, 0].shape))
-        assert np.allclose(data_[:, 1], np.ones(data_[:, 1].shape) * 2)
-        assert np.allclose(data_[:, 2], np.ones(data_[:, 2].shape) * 3)
+        assert np.allclose(np.tile([1., 2., 3.], (2, 1)), data_)
 
 
 def test_decim():
