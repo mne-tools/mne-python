@@ -26,7 +26,7 @@ from ._utils import (_get_colormap_from_array, _alpha_blend_background,
 from ...fixes import _get_args, _point_data, _cell_data, _compare_version
 from ...transforms import apply_trans
 from ...utils import (copy_base_doc_to_subclass_doc, _check_option,
-                      _require_version)
+                      _require_version, _validate_type)
 
 
 with warnings.catch_warnings():
@@ -1045,8 +1045,7 @@ def _set_3d_title(figure, title, size=16):
 
 
 def _check_3d_figure(figure):
-    if not isinstance(figure, PyVistaFigure):
-        raise TypeError('figure must be an instance of PyVistaFigure.')
+    _validate_type(figure, PyVistaFigure, 'figure')
 
 
 def _close_3d_figure(figure):

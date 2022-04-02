@@ -740,8 +740,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     Returns
     -------
-    fig : instance of matplotlib.figure.Figure
-        The figure.
+    %(browser)s
 
     Notes
     -----

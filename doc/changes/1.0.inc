@@ -16,6 +16,16 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
+.. _changes_1_0_1:
+
+Version 1.0.1 (unreleased)
+--------------------------
+
+Bugs
+~~~~
+
+- Fix bug where plots produced using the ``'qt'`` / ``mne_qt_browser`` backend could not be added using :meth:`mne.Report.add_figure` (:gh:`10485` by `Eric Larson`_)
+
 .. _changes_1_0_0:
 
 Version 1.0.0 (2022-03-21)
