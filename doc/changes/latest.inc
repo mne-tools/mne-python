@@ -27,7 +27,7 @@ Enhancements
 
 Bugs
 ~~~~
-- None yet
+- Fix bug where plots produced using the ``'qt'`` / ``mne_qt_browser`` backend could not be added using :meth:`mne.Report.add_figure` (:gh:`10485` by `Eric Larson`_)
 
 API changes
 ~~~~~~~~~~~
