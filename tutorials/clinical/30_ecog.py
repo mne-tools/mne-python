@@ -51,7 +51,6 @@ bids_root = mne.datasets.epilepsy_ecog.data_path()
 sample_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(sample_path, 'subjects')
 
-
 # %%
 # Load in data and perform basic preprocessing
 # --------------------------------------------

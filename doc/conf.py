@@ -260,8 +260,7 @@ numpydoc_xref_ignore = {
     # unlinkable
     'CoregistrationUI',
     'IntracranialElectrodeLocator',
-    # TODO: fix the Renderer return type of create_3d_figure(scene=False)
-    'Renderer',
+    'mne_qt_browser.figure.MNEQtBrowser',
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
@@ -350,6 +349,12 @@ class Resetter(object):
                 _assert_no_instances(_Renderer, when)
             if PyQtGraphBrowser is not None and \
                     'pyqtgraphbrowser' not in skips:
+                # Ensure any manual fig.close() events get properly handled
+                from mne_qt_browser._pg_figure import QApplication
+                inst = QApplication.instance()
+                if inst is not None:
+                    for _ in range(2):
+                        inst.processEvents()
                 _assert_no_instances(PyQtGraphBrowser, when)
         # This will overwrite some Sphinx printing but it's useful
         # for memory timestamps

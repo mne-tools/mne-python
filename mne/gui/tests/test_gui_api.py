@@ -208,7 +208,6 @@ def test_gui_api(renderer_notebook, nbexec):
         name="default",
         window=None,
     )
-    renderer._tool_bar_load_icons()
 
     # button
     assert 'reset' not in renderer.actions
@@ -255,9 +254,6 @@ def test_gui_api(renderer_notebook, nbexec):
         shortcut=None,
     )
     assert 'play' in renderer.actions
-
-    # theme
-    renderer._tool_bar_set_theme()
     # --- END: tool bar ---
 
     # --- BEGIN: menu bar ---

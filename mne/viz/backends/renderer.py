@@ -299,7 +299,7 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
 
     Returns
     -------
-    figure : instance of Figure3D or Renderer
+    figure : instance of Figure3D or ``Renderer``
         The requested empty figure or renderer, depending on ``scene``.
     """
     renderer = _get_renderer(

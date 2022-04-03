@@ -13,7 +13,7 @@ import platform
 import signal
 import sys
 
-from decorator import decorator
+from pathlib import Path
 import numpy as np
 
 VALID_BROWSE_BACKENDS = (
@@ -75,18 +75,11 @@ def _alpha_blend_background(ctable, background_color):
     return (use_table * alphas) + background_color * (1 - alphas)
 
 
-@decorator
-def run_once(fun, *args, **kwargs):
-    """Run the function only once."""
-    if not hasattr(fun, "_has_run"):
-        fun._has_run = True
-        return fun(*args, **kwargs)
-
-
-@run_once
-def _init_qt_resources():
-    from ...icons import resources
-    resources.qInitResources()
+def _qt_init_icons():
+    from PyQt5.QtGui import QIcon
+    icons_path = f"{Path(__file__).parent.parent.parent}/icons"
+    QIcon.setThemeSearchPaths([icons_path])
+    return icons_path
 
 
 @contextmanager
@@ -152,16 +145,18 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         app.setApplicationName(app_name)
     app.setOrganizationName(organization_name)
 
+    if enable_icon or splash:
+        icons_path = _qt_init_icons()
+
     if enable_icon:
         # Set icon
-        _init_qt_resources()
-        kind = 'bigsur-' if platform.mac_ver()[0] >= '10.16' else ''
-        app.setWindowIcon(QIcon(f":/mne-{kind}icon.png"))
+        kind = 'bigsur_' if platform.mac_ver()[0] >= '10.16' else 'default_'
+        app.setWindowIcon(QIcon(f"{icons_path}/mne_{kind}icon.png"))
 
     out = app
     if splash:
         qsplash = QSplashScreen(
-            QPixmap(':/mne-splash.png'), Qt.WindowStaysOnTopHint)
+            QPixmap(f"{icons_path}/mne_splash.png"), Qt.WindowStaysOnTopHint)
         if isinstance(splash, str):
             alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
             qsplash.showMessage(
@@ -188,24 +183,35 @@ def _qt_app_exec(app):
             signal.signal(signal.SIGINT, old_signal)
 
 
+def _qt_detect_theme():
+    from ..utils import logger
+    try:
+        import darkdetect
+        theme = darkdetect.theme().lower()
+    except ModuleNotFoundError:
+        logger.info('For automatic theme detection, "darkdetect" has to'
+                    ' be installed! You can install it with '
+                    '`pip install darkdetect`')
+        theme = 'light'
+    except Exception:
+        theme = 'light'
+    return theme
+
+
 def _qt_get_stylesheet(theme):
     from ..utils import logger, warn, _validate_type
     _validate_type(theme, ('path-like',), 'theme')
     theme = str(theme)
     if theme == 'auto':
-        try:
-            import darkdetect
-            theme = darkdetect.theme().lower()
-        except Exception:
-            theme = 'light'
+        theme = _qt_detect_theme()
     if theme in ('dark', 'light'):
-        if theme == 'light' and sys.platform != 'darwin':
+        if theme == 'light':
             stylesheet = ''
         else:
             try:
                 import qdarkstyle
             except ModuleNotFoundError:
-                logger.info('For Dark-Mode "qdarkstyle" has to be installed! '
+                logger.info('For Dark-Mode, "qdarkstyle" has to be installed! '
                             'You can install it with `pip install qdarkstyle`')
                 stylesheet = ''
             else:
