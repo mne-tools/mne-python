@@ -437,3 +437,5 @@
 .. _John Veillette: https://psychology.uchicago.edu/directory/john-veillette
 
 .. _Nikolai Chapochnikov: https://github.com/chapochn
+
+.. _Matthias Dold: https://matthiasdold.de

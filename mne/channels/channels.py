@@ -672,8 +672,8 @@ class UpdateChannelsMixin(object):
             self.info, meg=meg, eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
-            ecog=ecog, fnirs=fnirs, dbs=dbs, include=include, exclude=exclude,
-            selection=selection)
+            ecog=ecog, fnirs=fnirs, csd=csd, dbs=dbs, include=include,
+            exclude=exclude, selection=selection)
 
         self._pick_drop_channels(idx)
 

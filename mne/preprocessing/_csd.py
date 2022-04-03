@@ -15,7 +15,7 @@
 import numpy as np
 
 from .. import pick_types
-from ..utils import _validate_type, _ensure_int, _check_preload
+from ..utils import _validate_type, _ensure_int, _check_preload, verbose
 from ..io import BaseRaw
 from ..io.constants import FIFF
 from ..epochs import BaseEpochs
@@ -51,9 +51,10 @@ def _compute_csd(G_precomputed, H, radius):
     return X
 
 
+@verbose
 def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
                                    stiffness=4, n_legendre_terms=50,
-                                   copy=True):
+                                   copy=True, *, verbose=None):
     """Get the current source density (CSD) transformation.
 
     Transformation based on spherical spline surface Laplacian
@@ -75,6 +76,7 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
         Number of Legendre terms to evaluate.
     copy : bool
         Whether to overwrite instance data or create a copy.
+    %(verbose)s
 
     Returns
     -------
