@@ -608,9 +608,8 @@ def test_pick_types_csd():
     info1 = create_info(names, 256, ["eeg", "eeg", "eeg", "eeg", "mag",
                                      "mag", 'misc', 'csd'])
     raw = RawArray(np.zeros((8, 512)), info1)
-    raw.set_montage(make_standard_montage('standard_1020'),
-                    on_missing='ignore')
-    raw_csd = compute_current_source_density(raw)
+    raw.set_montage(make_standard_montage('standard_1020'), verbose='error')
+    raw_csd = compute_current_source_density(raw, verbose='error')
 
     assert_array_equal(pick_types(info1, csd=True), [7])
 
