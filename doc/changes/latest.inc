@@ -27,7 +27,7 @@ Enhancements
 
 Bugs
 ~~~~
-- Fix bug in :func:`mne.pick_types` and related methods where `csd=True` was not passed handled properly (:gh:`10470` by :newcontrib:`Matthias Dold`)
+- Fix bug in :func:`mne.pick_types` and related methods where ``csd=True`` was not passed handled properly (:gh:`10470` by :newcontrib:`Matthias Dold`)
 
 - Fix bug where plots produced using the ``'qt'`` / ``mne_qt_browser`` backend could not be added using :meth:`mne.Report.add_figure` (:gh:`10485` by `Eric Larson`_)
 
