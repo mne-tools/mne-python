@@ -26,6 +26,8 @@ Bugs
 
 - Fix bug where plots produced using the ``'qt'`` / ``mne_qt_browser`` backend could not be added using :meth:`mne.Report.add_figure` (:gh:`10485` by `Eric Larson`_)
 
+- Fix bug where ``theme`` was not handled properly in :meth:`mne.io.Raw.plot` (:gh:`10487` by `Mathieu Scheltienne`_)
+
 .. _changes_1_0_0:
 
 Version 1.0.0 (2022-03-21)
