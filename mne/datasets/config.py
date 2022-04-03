@@ -246,7 +246,7 @@ MNE_DATASETS['erp_core'] = dict(
 MNE_DATASETS['epilepsy_ecog'] = dict(
     archive_name='MNE-epilepsy-ecog-data.tar.gz',
     hash='md5:ffb139174afa0f71ec98adbbb1729dea',
-    url='https://osf.io/z4epq/download?revision=1',
+    url='https://osf.io/z4epq/download?version=1',
     folder_name='MNE-epilepsy-ecog-data',
     config_key='MNE_DATASETS_EPILEPSY_ECOG_PATH',
 )
