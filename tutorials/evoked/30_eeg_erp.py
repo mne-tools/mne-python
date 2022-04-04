@@ -61,9 +61,11 @@ raw.info
 # In practice it is quite common to have some channels labeled as EEG that are
 # actually EOG channels. `~mne.io.Raw` objects have a
 # `~mne.io.Raw.set_channel_types` method that can be used to change a channel
-# that is mislabeled as ``eeg`` to ``eog``. You can also rename channels
-# using the `~mne.io.Raw.rename_channels` method. Detailed examples of both of
-# these methods can be found in the tutorial :ref:`tut-raw-class`.
+# that is mislabeled as ``eeg`` to ``eog``.
+#
+# You can also rename channels using the `~mne.io.Raw.rename_channels` method.
+# Detailed examples of both of these methods can be found in the tutorial
+# :ref:`tut-raw-class`.
 #
 # In our data set, all channel types are already correct. Therefore, we'll only
 # remove a space and a leading zero in the channel names and convert to
@@ -74,10 +76,10 @@ channel_renaming_dict = {name: name.replace(' 0', '').lower()
 _ = raw.rename_channels(channel_renaming_dict)  # happens in-place
 
 #
-# .. note:: The assignment to a temporary name ``_`` (the ``_ = `` part) is
-#           included here to suppress automatic printing of the ``raw`` object.
-#           You do not have to do this in your interactive analysis.
-#
+# .. note::
+#     The assignment to a temporary name ``_`` (the ``_ = `` part) is included
+#     here to suppress automatic printing of the ``raw`` object. You do not
+#     have to do this in your interactive analysis.
 
 # %%
 # Channel locations
