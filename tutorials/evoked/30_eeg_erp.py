@@ -76,6 +76,7 @@ channel_renaming_dict = {name: name.replace(' 0', '').lower()
                          for name in raw.ch_names}
 _ = raw.rename_channels(channel_renaming_dict)  # happens in-place
 
+#
 # .. note:: The assignment to a temporary name ``_`` (the ``_ = `` part) is
 #           included here to suppress automatic printing of the ``raw`` object.
 #           You do not have to do this in your interactive analysis.
