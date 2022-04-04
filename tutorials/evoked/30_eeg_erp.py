@@ -632,8 +632,9 @@ mean_amp_all_df = pd.DataFrame({
 mean_amp_all_df['tmin'] = good_tmin
 mean_amp_all_df['tmax'] = good_tmax
 mean_amp_all_df['condition'] = 'Left/Visual'
-print(mean_amp_all_df.head())
-print(mean_amp_all_df.tail())
+with pd.option_context('display.max_columns', None):
+    print(mean_amp_all_df.head())
+    print(mean_amp_all_df.tail())
 
 
 # %%
