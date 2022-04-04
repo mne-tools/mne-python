@@ -181,7 +181,7 @@ event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 
 epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=-0.3, tmax=0.7,
                     preload=True)
-fig = epochs.plot(events=events, show_scrollbars=False)
+fig = epochs.plot(events=events)
 
 # %%
 # It is also possible to automatically drop epochs (either when first creating
@@ -436,7 +436,7 @@ epochs['auditory'].average()
 # The following example demonstrates how to find the first positive peak in the
 # ERP (i.e., the P100) for the left visual condition (i.e., the
 # ``l_vis`` :class:`~mne.Evoked` object). The time window used to search for
-# the peak ranges from .08 to .12 s. This time window was selected because it
+# the peak ranges from 0.08 to 0.12 s. This time window was selected because it
 # is when P100 typically occurs. Note that all ``'eeg'`` channels are submitted
 # to the :meth:`~mne.Evoked.get_peak` method.
 
@@ -453,7 +453,7 @@ def print_peak_measures(ch, tmin, tmax, lat, amp):
 
 
 # Get peak amplitude and latency from a good time window that contains the peak
-good_tmin, good_tmax = .08, .12
+good_tmin, good_tmax = 0.08, 0.12
 ch, lat, amp = l_vis.get_peak(ch_type='eeg', tmin=good_tmin, tmax=good_tmax,
                               mode='pos', return_amplitude=True)
 
@@ -514,11 +514,11 @@ print_peak_measures(ch_roi, good_tmin, good_tmax, lat_roi, amp_roi)
 # to find.
 #
 # The following example demonstrates why visual inspection is crucial. Below,
-# we use a known bad time window (.095 to .135 s) to search for a peak in
+# we use a known bad time window (0.095 to 0.135 s) to search for a peak in
 # channel ``eeg59``.
 
 # Get BAD peak measures
-bad_tmin, bad_tmax = .095, .135
+bad_tmin, bad_tmax = 0.095, 0.135
 ch_roi, bad_lat_roi, bad_amp_roi = l_vis_roi.get_peak(
     mode='pos', tmin=bad_tmin, tmax=bad_tmax, return_amplitude=True)
 
@@ -528,11 +528,11 @@ print_peak_measures(ch_roi, bad_tmin, bad_tmax, bad_lat_roi, bad_amp_roi)
 
 # %%
 # If all we had were the above values, it would be unclear if they are truly
-# identifying a peak in the ERP. In fact, the .095 to .135 s time window
+# identifying a peak in the ERP. In fact, the 0.095 to 0.135 s time window
 # actually does not contain the true peak, which is shown in the top panel
 # below. The bad time window (highlighted in orange) does not contain the true
-# peak (the pink star). In contrast, the time window defined initially (.08 to
-# .12 s; highlighted in blue) returns an actual peak instead of a just a
+# peak (the pink star). In contrast, the time window defined initially (0.08 to
+# 0.12 s; highlighted in blue) returns an actual peak instead of a just a
 # maximum or minimum in the searched time window. Visual inspection will always
 # help you to convince yourself that the returned values are actual peaks.
 
@@ -563,7 +563,7 @@ tight_layout(fig=fig)
 # When using mean amplitude measures, selecting the time window based on
 # the effect of interest (e.g., the difference between two conditions) can
 # inflate the likelihood of finding false positives in your
-# results:footcite:`LuckGaspelin2017`. There are other, and
+# results :footcite:`LuckGaspelin2017`. There are other, and
 # better, ways to identify a time window to use for extracting mean amplitude
 # measures. First, you can use an *a priori* time window based on prior
 # research.
@@ -583,8 +583,9 @@ tight_layout(fig=fig)
 # amplitude of the ERP for left visual field stimulation over right
 # (contralateral) and left (ipsilateral) channels. The channels used for this
 # analysis are ``eeg54`` and ``eeg57`` (left hemisphere), and ``eeg59`` and
-# ``eeg55`` (right hemisphere). The time window used is .08 (``good_tmin``)
-# to .12 s (``good_tmax``) as it corresponds to when the P100 typically occurs.
+# ``eeg55`` (right hemisphere). The time window used is 0.08 (``good_tmin``)
+# to 0.12 s (``good_tmax``) as it corresponds to when the P100 typically
+# occurs.
 # The P100 is sensitive to left and right visual field stimulation. The mean
 # amplitude is extracted from the above four channels and stored in a
 # :class:`pandas.DataFrame`.
