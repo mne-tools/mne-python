@@ -494,20 +494,16 @@ class _PyVistaRenderer(_AbstractRenderer):
             if not VTK9:
                 args = (np.arange(n_points) * 3,) + args
             grid = UnstructuredGrid(*args)
-            if scalars is not None:
-                _point_data(grid)['scalars'] = np.array(scalars)
-                scalars = 'scalars'
+            if scalars is None:
+                scalars = np.ones((n_points,))
+            _point_data(grid)['scalars'] = np.array(scalars)
+            scalars = None if scale_mode == 'scalar' else 'scalars'
             _point_data(grid)['vec'] = vectors
-            if scale_mode == 'scalar':
-                scale = scalars
-                scalars = None
-            elif scale_mode == 'vector':
-                scale = True
-            else:
-                scale = False
+            scale = True if scale_mode == 'vector' else scalars
             if mode == '2darrow':
                 return _arrow_glyph(grid, factor), grid
             elif mode == 'arrow':
+                print(scale, scalars)
                 alg = _glyph(
                     grid,
                     orient='vec',
