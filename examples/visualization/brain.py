@@ -13,8 +13,8 @@ In this example, we'll show how to use :class:`mne.viz.Brain`.
 # License: BSD-3-Clause
 
 # %%
-# Plot a brain
-# ------------
+# Load data
+# ---------
 #
 # In this example we use the ``sample`` data which is data from a subject
 # being presented auditory and visual stimuli to display the functionality
