@@ -1571,3 +1571,26 @@ def test_annot_concat_crop(meas_date, first_samp_1, first_samp_2, setting):
         assert sess.first_samp == want_first_samp
         assert sess.annotations.orig_time == meas_date_1
         assert list(sess.annotations.description) == descs
+
+
+@pytest.mark.parametrize('first_samp', (0, 10000))
+@pytest.mark.parametrize('meas_date', (None, 24 * 60 * 60))
+def test_annot_meas_date_first_samp_crop(meas_date, first_samp):
+    """Test yet another meas_date / first_samp issue."""
+    sfreq = 1000.
+    info = mne.create_info(1, sfreq, 'eeg')
+    raw = mne.io.RawArray(np.zeros((1, 3000)), info, first_samp=first_samp)
+    raw.set_meas_date(meas_date)
+    onset = np.array([0, 1.5])
+    if meas_date is not None:
+        onset += first_samp / sfreq
+    annot = mne.Annotations(
+        onset=onset,
+        duration=[1, 0.5],
+        description=["a", "b"],
+        orig_time=raw.info['meas_date'])
+    assert len(annot) == 2
+    raw.set_annotations(annot)
+    assert len(raw.annotations) == 2
+    raw.crop(0, 1.5, verbose='debug')
+    assert len(raw.annotations) == 2
