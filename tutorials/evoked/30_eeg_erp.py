@@ -2,9 +2,9 @@
 """
 .. _tut-erp:
 
-===============================
-Event Related Potentials (ERPs)
-===============================
+==============================================
+EEG analysis - Event-Related Potentials (ERPs)
+==============================================
 
 This tutorial shows how to perform standard ERP analyses in MNE-Python. Most of
 the material here is covered in other tutorials too, but for convenience the
@@ -76,9 +76,9 @@ channel_renaming_dict = {name: name.replace(' 0', '').lower()
                          for name in raw.ch_names}
 _ = raw.rename_channels(channel_renaming_dict)  # happens in-place
 
-# The assignment to a temporary name ``_`` (the ``_ = `` part) is included here
-# to suppress automatic printing of the ``raw`` object. You do not have to do
-# this in your interactive analysis.
+# .. note:: The assignment to a temporary name ``_`` (the ``_ = `` part) is
+#           included here to suppress automatic printing of the ``raw`` object.
+#           You do not have to do this in your interactive analysis.
 
 # %%
 # Channel locations
@@ -295,8 +295,8 @@ ax.fill_between(l_aud.times, gfp * 1e6, color='lime', alpha=0.2)
 ax.set(xlabel='Time (s)', ylabel='GFP (µV)', title='EEG')
 
 # %%
-# Analyzing regions of interest
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Averaging across channels with regions of interest (ROIs)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Since our sample data contains responses to left and right auditory and
 # visual stimuli, we may want to compare left versus right regions of interest
