@@ -77,7 +77,7 @@ _ = raw.rename_channels(channel_renaming_dict)  # happens in-place
 
 # %%
 # .. note::
-#     The assignment to a temporary name ``_`` (the ``_ = `` part) is included
+#     The assignment to a temporary name ``_`` (the ``_ =`` part) is included
 #     here to suppress automatic printing of the ``raw`` object. You do not
 #     have to do this in your interactive analysis.
 #
@@ -123,7 +123,7 @@ fig = raw.plot_sensors('3d')
 # raw data by plotting it with and without the projector applied:
 
 for proj in (False, True):
-    with mne.viz.set_browser_backend('matplotlib'):
+    with mne.viz.use_browser_backend('matplotlib'):
         fig = raw.plot(n_channels=5, proj=proj, scalings=dict(eeg=50e-6),
                        show_scrollbars=False)
     fig.subplots_adjust(top=0.9)  # make room for title
