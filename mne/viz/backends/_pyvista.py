@@ -497,17 +497,15 @@ class _PyVistaRenderer(_AbstractRenderer):
             if scalars is None:
                 scalars = np.ones((n_points,))
             _point_data(grid)['scalars'] = np.array(scalars)
-            scalars = None if scale_mode == 'scalar' else 'scalars'
             _point_data(grid)['vec'] = vectors
             scale = True if scale_mode == 'vector' else scalars
             if mode == '2darrow':
                 return _arrow_glyph(grid, factor), grid
             elif mode == 'arrow':
-                print(scale, scalars)
                 alg = _glyph(
                     grid,
                     orient='vec',
-                    scalars=scale,
+                    scalars='scalars',
                     factor=factor
                 )
                 mesh = pyvista.wrap(alg.GetOutput())
@@ -559,7 +557,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 mesh=mesh,
                 color=color,
                 opacity=opacity,
-                scalars=scalars,
+                scalars=None,
                 colormap=colormap,
                 show_scalar_bar=False,
                 backface_culling=backface_culling,
