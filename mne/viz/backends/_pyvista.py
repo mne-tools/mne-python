@@ -498,7 +498,6 @@ class _PyVistaRenderer(_AbstractRenderer):
                 scalars = np.ones((n_points,))
             _point_data(grid)['scalars'] = np.array(scalars)
             _point_data(grid)['vec'] = vectors
-            scale = True if scale_mode == 'vector' else scalars
             if mode == '2darrow':
                 return _arrow_glyph(grid, factor), grid
             elif mode == 'arrow':
@@ -550,8 +549,8 @@ class _PyVistaRenderer(_AbstractRenderer):
                     glyph = trp
                 glyph.Update()
                 geom = glyph.GetOutput()
-                mesh = grid.glyph(orient='vec', scale=scale, factor=factor,
-                                  geom=geom)
+                mesh = grid.glyph(orient='vec', scale=scale_mode == 'vector',
+                                  factor=factor, geom=geom)
             actor = _add_mesh(
                 self.plotter,
                 mesh=mesh,
