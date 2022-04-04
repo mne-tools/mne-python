@@ -26,6 +26,8 @@ import matplotlib.pyplot as plt
 import mne
 from mne.viz.utils import tight_layout
 
+mne.viz.set_browser_backend('matplotlib')  # nicer static plots for the docs
+
 root = mne.datasets.sample.data_path() / 'MEG' / 'sample'
 raw_file = root / 'sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw_fif(raw_file, preload=False)
@@ -124,8 +126,8 @@ fig = raw.plot_sensors('3d')
 # raw data by plotting it with and without the projector applied:
 
 for proj in (False, True):
-    with mne.viz.use_browser_backend('matplotlib'):
-        fig = raw.plot(n_channels=5, proj=proj, scalings=dict(eeg=50e-6))
+    fig = raw.plot(n_channels=5, proj=proj, scalings=dict(eeg=50e-6),
+                   show_scrollbars=False)
     fig.subplots_adjust(top=0.9)  # make room for title
     ref = 'Average' if proj else 'No'
     fig.suptitle(f'{ref} reference', size='xx-large', weight='bold')
@@ -181,7 +183,7 @@ event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 
 epochs = mne.Epochs(raw, events, event_id=event_dict, tmin=-0.3, tmax=0.7,
                     preload=True)
-fig = epochs.plot(events=events)
+fig = epochs.plot(events=events, show_scrollbars=False)
 
 # %%
 # It is also possible to automatically drop epochs (either when first creating
