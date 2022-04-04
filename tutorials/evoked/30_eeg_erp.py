@@ -79,6 +79,7 @@ _ = raw.rename_channels(channel_renaming_dict)  # happens in-place
 # .. note:: The assignment to a temporary name ``_`` (the ``_ = `` part) is
 #           included here to suppress automatic printing of the ``raw`` object.
 #           You do not have to do this in your interactive analysis.
+#
 
 # %%
 # Channel locations
@@ -295,8 +296,8 @@ ax.fill_between(l_aud.times, gfp * 1e6, color='lime', alpha=0.2)
 ax.set(xlabel='Time (s)', ylabel='GFP (µV)', title='EEG')
 
 # %%
-# Averaging across channels with regions of interest (ROIs)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Averaging across channels with regions of interest
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Since our sample data contains responses to left and right auditory and
 # visual stimuli, we may want to compare left versus right regions of interest
