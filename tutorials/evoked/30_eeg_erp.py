@@ -20,24 +20,21 @@ we'll crop the raw data from ~4.5 minutes down to 90 seconds.
 
 # %%
 
-import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import mne
 from mne.viz.utils import tight_layout
 
-sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_filt-0-40_raw.fif')
-raw = mne.io.read_raw_fif(sample_data_raw_file, preload=False)
+root = mne.datasets.sample.data_path() / 'MEG' / 'sample'
+raw_file = root / 'sample_audvis_filt-0-40_raw.fif'
+raw = mne.io.read_raw_fif(raw_file, preload=False)
 
-sample_data_events_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                       'sample_audvis_filt-0-40_raw-eve.fif')
-events = mne.read_events(sample_data_events_file)
+events_file = root / 'sample_audvis_filt-0-40_raw-eve.fif'
+events = mne.read_events(events_file)
 
-raw.crop(tmax=90)  # in seconds; happens in-place
-# discard events >90 seconds (not strictly necessary: avoids some warnings)
+raw.crop(tmax=90)  # in seconds (happens in-place)
+# discard events >90 seconds (not strictly necessary, but avoids some warnings)
 events = events[events[:, 0] <= raw.last_samp]
 
 # %%
