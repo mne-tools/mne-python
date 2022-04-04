@@ -146,7 +146,7 @@ for proj in (False, True):
 # data, see :ref:`tut-filter-resample`. Here, we'll apply a simple high-pass
 # filter for illustration:
 
-_ = raw.filter(l_freq=0.1, h_freq=None)
+raw.filter(l_freq=0.1, h_freq=None)
 
 # %%
 # Evoked responses: epoching and averaging
