@@ -33,6 +33,8 @@ Bugs
 
 - Fix bug where ``theme`` was not handled properly in :meth:`mne.io.Raw.plot` (:gh:`10487` by `Mathieu Scheltienne`_)
 
+- Fix behavior for the ``pyvista`` 3D renderer's ``quiver3D`` function so that default arguments plot a glpyh in ``arrow`` mode (:gh:`10493` by `Alex Rockhill`_)
+
 API changes
 ~~~~~~~~~~~
 - None yet
