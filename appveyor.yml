@@ -1,0 +1,43 @@
+environment:
+  TOXENV: py39  # Until VTK releases a 3.10 binary
+  matrix:
+    - QT_PIP: PyQt5
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    - QT_PIP: PyQt6
+      APPVEYOR_BUILD_WORKER_IMAGE: macOS
+    - QT_PIP: PySide2
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+    - QT_PIP: PySide6
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+for:
+  -
+    matrix:
+      only:
+        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    install:
+      - git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
+      - powershell gl-ci-helpers/appveyor/install_opengl.ps1
+  -
+    matrix:
+      only:
+        - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+    install:
+      - git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
+      - source ./gl-ci-helpers/travis/setup_headless_display.sh
+
+install:
+  - python -m pip install --upgrade pip setuptools wheel
+  - python -m pip install --upgrade requirements.txt -r requirements_testing.txt codecov
+  # python -m pip uninstall PyQt5 PyQt5-sip
+  # ps: python -m pip install --upgrade --pre $env:QT_PIP
+  - python setup.py develop
+  - mne sys_info
+  - python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+
+build: false
+
+test_script:
+  - pytest -m "not ultraslowtest" mne/gui mne/viz
+
+on_success:
+  - codecov
