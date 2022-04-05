@@ -192,7 +192,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     with pytest.raises(ValueError, match='interaction'):
         Brain(hemi=hemi, surf=surf, interaction='foo', **kwargs)
     with pytest.raises(FileNotFoundError, match=r'lh\.whatever'):
-        Brain(subject_id, 'lh', 'whatever')
+        Brain(subject_id, 'lh', 'whatever', **kwargs)
     with pytest.raises(ValueError, match='`surf` cannot be seghead'):
         Brain(hemi='lh', surf='seghead', **kwargs)
     with pytest.raises(ValueError, match='RGB argument'):
