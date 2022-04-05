@@ -150,7 +150,7 @@ stages:
     variables:
       DISPLAY: ':99'
       OPENBLAS_NUM_THREADS: '1'
-      TEST_OPTIONS: '-m \"not slowtest\" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/gui'
+      TEST_OPTIONS: '-m \"not\ slowtest\" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/gui'
     steps:
     - bash: ./tools/setup_xvfb.sh
       displayName: 'Install Ubuntu dependencies'
