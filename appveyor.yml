@@ -37,7 +37,7 @@ install:
 build: false
 
 test_script:
-  - "pytest -m "not ultraslowtest" mne/gui mne/viz"
+  - "pytest -m \"not ultraslowtest\" mne/gui mne/viz"
 
 on_success:
   - "codecov"
