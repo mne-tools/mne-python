@@ -24,7 +24,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import mne
-from mne.viz.utils import tight_layout
 
 root = mne.datasets.sample.data_path() / 'MEG' / 'sample'
 raw_file = root / 'sample_audvis_filt-0-40_raw.fif'
@@ -539,7 +538,7 @@ print_peak_measures(ch_roi, bad_tmin, bad_tmax, bad_lat_roi, bad_amp_roi)
 # maximum or minimum in the searched time window. Visual inspection will always
 # help you to convince yourself that the returned values are actual peaks.
 
-fig, axs = plt.subplots(nrows=2, ncols=1)
+fig, axs = plt.subplots(nrows=2, ncols=1, layout='tight')
 words = (('Bad', 'missing'), ('Good', 'finding'))
 times = (np.array([bad_tmin, bad_tmax]), np.array([good_tmin, good_tmax]))
 colors = ('C1', 'C0')
@@ -550,7 +549,6 @@ for ix, ax in enumerate(axs):
     ax.plot(lat_roi * 1e3, amp_roi * 1e6, marker='*', color='C6')
     ax.axvspan(*(times[ix] * 1e3), facecolor=colors[ix], alpha=0.3)
     ax.set_xlim(-50, 150)  # Show zoomed in around peak
-tight_layout(fig=fig)
 
 # %%
 # Mean Amplitude
