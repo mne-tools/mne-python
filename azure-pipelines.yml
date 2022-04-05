@@ -135,6 +135,17 @@ stages:
     variables:
       DISPLAY: ':99'
       OPENBLAS_NUM_THREADS: '1'
+    strategy:
+      maxParallel: 4
+      matrix:
+        PyQt5:
+          QT_PIP: 'PyQt5'
+        # PyQt6:
+        #   QT_PIP: 'PyQt6'
+        # PySide2:
+        #   QT_PIP: 'PySide2'
+        # PySide2:
+        #   QT_PIP: 'PySide6'
     steps:
     - bash: ./tools/setup_xvfb.sh
       displayName: 'Install Ubuntu dependencies'
@@ -152,8 +163,15 @@ stages:
         python -m pip install --pre --only-binary ":all:" vtk-9.1.0.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
         python -c "import vtk"
         python -m pip install --progress-bar off --upgrade -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+        python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
+        python -m pip install --progress-bar off --upgrade ${QT_PIP}
       displayName: 'Install dependencies with pip'
-    - script: mne sys_info -pd
+    - bash: |
+        set -e
+        mne sys_info -pd
+        echo
+        echo ${QT_PIP}:
+        mne sys_info -pd | grep ${QT_PIP}
       displayName: Print config
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
@@ -164,50 +182,8 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    # PyQt5
-    - bash: |
-        set -e
-        mne sys_info -pd
-        mne sys_info -pd | grep PyQt5
-      displayName: Print PyQt5 config
-    - script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne/viz mne/gui
-      displayName: 'Run PyQt5 tests'
-    ## PyQt6
-    #- bash: |
-    #    set -e
-    #    python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
-    #    python -m pip install pyqt6
-    #- bash: |
-    #    set -e
-    #    mne sys_info -pd
-    #    mne sys_info -pd | grep PyQt6
-    #  displayName: Print PyQt6 config
-    #- script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz mne/gui
-    #  displayName: 'Run PyQt6 tests'
-    ## Pyside2
-    #- bash: |
-    #    set -e
-    #    python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
-    #    python -m pip install PySide2
-    #- bash: |
-    #    set -e
-    #    mne sys_info -pd
-    #    mne sys_info -pd grep PySide2
-    #  displayName: Print PySide2 config
-    #- script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz mne/gui
-    #  displayName: 'Run Pyside2 tests'
-    ## Pyside6
-    #- bash: |
-    #    set -e
-    #    python -m pip uninstall -yq PySide2
-    #    python -m pip install PySide6
-    #- bash: |
-    #    set -e
-    #    mne sys_info -pd
-    #    mne sys_info -pd grep PySide6
-    #  displayName: Print PySide6 config
-    #- script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz mne/gui
-    #  displayName: 'Run Pyside2 tests'
+    - script: pytest -m "not slowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne/viz mne/gui
+      displayName: 'Run tests'
     # Coverage
     - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
