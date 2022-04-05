@@ -131,7 +131,7 @@ stages:
     # PyQt5
     - bash: |
         set -e
-        python -m pip uninstall mne-qt-browser
+        python -m pip uninstall -y mne-qt-browser
     - bash: mne sys_info -pd | tee /dev/stderr | grep PyQt6
       displayName: Print PyQt5 config
     - script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz mne/gui
