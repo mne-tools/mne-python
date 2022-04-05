@@ -213,7 +213,9 @@ stages:
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
     # PyQt5
-    - bash: mne sys_info -pd | tee /dev/stderr | grep PyQt5
+    - bash: set -e
+        mne sys_info -pd
+        mne sys_info -pd | grep PyQt5
       displayName: Print PyQt5 config
     - script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne/viz mne/gui
       displayName: 'Run PyQt5 tests'
@@ -222,7 +224,10 @@ stages:
     #    set -e
     #    python -m pip uninstall PyQt5 PyQt5-sip PyQt5-Qt5
     #    python -m pip install pyqt6
-    #- bash: mne sys_info -pd | tee /dev/stderr | grep PyQt6
+    #- bash: |
+    #    set -e
+    #    mne sys_info -pd
+    #    mne sys_info -pd | grep PyQt6
     #  displayName: Print PyQt6 config
     #- script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz mne/gui
     #  displayName: 'Run PyQt6 tests'
@@ -231,7 +236,10 @@ stages:
     #    set -e
     #    python -m pip uninstall PyQt6 PyQt6-sip PyQt6-Qt6
     #    python -m pip install PySide2
-    #- bash: mne sys_info -pd | tee /dev/stderr | grep PySide2
+    #- bash: |
+    #    set -e
+    #    mne sys_info -pd
+    #    mne sys_info -pd grep PySide2
     #  displayName: Print PySide2 config
     #- script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz mne/gui
     #  displayName: 'Run Pyside2 tests'
@@ -240,7 +248,10 @@ stages:
     #    set -e
     #    python -m pip uninstall PySide2
     #    python -m pip install PySide6
-    #- bash: mne sys_info -pd | tee /dev/stderr | grep PySide6
+    #- bash: |
+    #    set -e
+    #    mne sys_info -pd
+    #    mne sys_info -pd grep PySide6
     #  displayName: Print PySide6 config
     #- script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz mne/gui
     #  displayName: 'Run Pyside2 tests'
