@@ -186,7 +186,7 @@ stages:
         mne sys_info -pd
         mne sys_info -pd | grep PyQt5
       displayName: Print PyQt5 config
-    - script: pytest ${TEST_OPTIONS}
+    - bash: pytest ${TEST_OPTIONS}
       displayName: 'Run PyQt5 tests'
     - script: python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
       displayName: Remove PyQt5
@@ -197,7 +197,7 @@ stages:
     #    mne sys_info -pd
     #    mne sys_info -pd | grep PyQt6
     #  displayName: Print PyQt6 config
-    #- script: pytest ${TEST_OPTIONS}
+    #- bash: pytest ${TEST_OPTIONS}
     #  displayName: 'Run PyQt6 tests'
     #- script: python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt5-Qt6
     #  displayName: Remove PyQt6
@@ -208,7 +208,7 @@ stages:
     #    mne sys_info -pd
     #    mne sys_info -pd grep PySide2
     #  displayName: Print PySide2 config
-    #- script: pytest ${TEST_OPTIONS}
+    #- bash: pytest ${TEST_OPTIONS}
     #  displayName: 'Run Pyside2 tests'
     #- script: python -m pip uninstall -yq PySide2
     #  displayName: Remove PySide2
@@ -219,7 +219,7 @@ stages:
     #    mne sys_info -pd
     #    mne sys_info -pd grep PySide6
     #  displayName: Print PySide6 config
-    #- script: pytest ${TEST_OPTIONS}
+    #- bash: pytest ${TEST_OPTIONS}
     #  displayName: 'Run Pyside2 tests'
     #- script: python -m pip uninstall -yq PySide6
     #  displayName: Remove PySide6
