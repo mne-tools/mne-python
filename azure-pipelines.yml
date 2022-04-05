@@ -197,8 +197,9 @@ stages:
         python -m pip install --progress-bar off --upgrade pip setuptools wheel
         python -m pip install --progress-bar off --upgrade --only-binary=\"numpy,scipy,matplotlib\" numpy
         wget -q https://osf.io/hjyvx/download -O vtk-9.1.20211213.dev0-cp310-cp310-linux_x86_64.whl
-        pip install --pre --only-binary ":all:" vtk-9.1.20211213.dev0-cp310-cp310-linux_x86_64.whl
-        python -m pip install --progress-bar off --upgrade -r requirements.txt -r requirements_testing.txt
+        python -m pip install --pre --only-binary ":all:" vtk-9.1.20211213.dev0-cp310-cp310-linux_x86_64.whl
+        python -c "import vtk"
+        python -m pip install --progress-bar off --upgrade -r requirements.txt -r requirements_testing.txt codecov
       displayName: 'Install dependencies with pip'
     - script: mne sys_info -pd
       displayName: Print config
