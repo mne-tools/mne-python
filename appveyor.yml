@@ -15,14 +15,14 @@ for:
       only:
         - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
     install:
-      - git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
+      - git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
       - powershell gl-ci-helpers/appveyor/install_opengl.ps1
   -
     matrix:
       only:
         - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
     install:
-      - git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
+      - git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
       - source ./gl-ci-helpers/travis/setup_headless_display.sh
 
 install:
