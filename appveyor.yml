@@ -25,7 +25,9 @@ for:
       - git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
       - source ./gl-ci-helpers/travis/setup_headless_display.sh
 
-install:
+build: false
+
+build_script:
   - "python -m pip install --upgrade pip setuptools wheel"
   - "python -m pip install --upgrade -r requirements.txt -r requirements_testing.txt codecov"
   # python -m pip uninstall PyQt5 PyQt5-sip
@@ -33,8 +35,6 @@ install:
   - "python setup.py develop"
   - "mne sys_info"
   - "python -c \"import mne; mne.datasets.testing.data_path(verbose=True)\""
-
-build: false
 
 test_script:
   - "pytest -m \"not ultraslowtest\" mne/gui mne/viz"
