@@ -1,16 +1,24 @@
 platform:
   - x64
 environment:
-  TOXENV: py39  # Until VTK releases a 3.10 binary
   matrix:
+    # Stuck on 3.9 until VTK releases a 3.10 binary
     - QT_PIP: PyQt5
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+      PYTHON: "C:\\Python39-x64"
+      PYTHON_VERSION: "3.9.x"
+      PYTHON_ARCH: "64"
     - QT_PIP: PyQt6
       APPVEYOR_BUILD_WORKER_IMAGE: macOS
+      TOXENV: py39
     - QT_PIP: PySide2
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+      TOXENV: py39
+      DISPLAY: ":99"
     - QT_PIP: PySide6
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+      TOXENV: py39
+      DISPLAY: ":99"
 for:
   -
     matrix:
@@ -24,8 +32,7 @@ for:
       only:
         - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
     install:
-      - git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
-      - source ./gl-ci-helpers/travis/setup_headless_display.sh
+      - ./tools/setup_xvfb.sh
 
 build: false
 
