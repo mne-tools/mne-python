@@ -25,8 +25,9 @@ else
 	pip install $STD_ARGS --pre https://github.com/nilearn/nilearn/zipball/main
 	echo "VTK"
 	# Have to use our own version until VTK releases a 3.10 build
-	wget -q https://osf.io/hjyvx/download -O vtk-9.1.20211213.dev0-cp310-cp310-linux_x86_64.whl
-	pip install $STD_ARGS --pre --only-binary ":all:" vtk-9.1.20211213.dev0-cp310-cp310-linux_x86_64.whl
+	wget -q https://github.com/pyvista/pyvista-wheels/blob/main/vtk-9.1.0.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl?raw=true -O vtk-9.1.0.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+	pip install $STD_ARGS --pre --only-binary ":all:" vtk-9.1.0.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+	python -c "import vtk"
 	echo "PyVista"
 	pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
 	echo "pyvistaqt"
