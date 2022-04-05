@@ -2475,8 +2475,7 @@ class Brain(object):
                     pos, dipole.ori, colors, scales):
                 actor, _ = self._renderer.quiver3d(
                     *this_pos, *this_ori, color=color, opacity=alpha,
-                    mode='arrow', scale=scale, scale_mode='scalar',
-                    scalars=[1])
+                    mode='arrow', scale=scale)
                 self._add_actor('dipole', actor)
 
         self._renderer._update()
