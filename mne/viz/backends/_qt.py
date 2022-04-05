@@ -11,7 +11,7 @@ import pyvista
 from pyvistaqt.plotting import FileDialog
 
 from qtpy.QtCore import Qt, Signal, QLocale, QObject
-from qtpy.QtGui import QIcon, QImage, QPixmap, QCursor
+from qtpy.QtGui import QIcon, QCursor
 from qtpy.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                             QHBoxLayout, QLabel, QToolButton, QMenuBar,
                             QSlider, QSpinBox, QVBoxLayout, QWidget,
@@ -28,9 +28,9 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
-from ._utils import (_init_qt_resources, _qt_disable_paint,
-                     _qt_get_stylesheet, _qt_is_dark, _qt_raise_window)
-from ..utils import _check_option, safe_event
+from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
+                     _qt_detect_theme, _qt_raise_window)
+from ..utils import _check_option, safe_event, get_config
 
 
 class _QtDialog(_AbstractDialog):
@@ -137,7 +137,8 @@ class _QtDock(_AbstractDock, _QtLayout):
         return _QtWidget(widget)
 
     def _dock_add_button(
-        self, name, callback, *, style='pushbutton', tooltip=None, layout=None
+        self, name, callback, *, style='pushbutton', icon=None, tooltip=None,
+        layout=None
     ):
         _check_option(
             parameter='style',
@@ -153,6 +154,8 @@ class _QtDock(_AbstractDock, _QtLayout):
             widget.setStyleSheet(
                 'QPushButton:pressed {color: none;}'
             )
+        if icon is not None:
+            widget.setIcon(self._icons[icon])
 
         _set_widget_tooltip(widget, tooltip)
         widget.clicked.connect(callback)
@@ -274,24 +277,9 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_file_button(
         self, name, desc, func, *, filter=None, initial_directory=None,
-        value=None, save=False,
-        is_directory=False, input_text_widget=True,
-        placeholder="Type a file name", tooltip=None, layout=None
+        save=False, is_directory=False, icon=False, tooltip=None, layout=None
     ):
         layout = self._dock_layout if layout is None else layout
-        if input_text_widget:
-            hlayout = self._dock_add_layout(vertical=False)
-            text_widget = self._dock_add_text(
-                name=f"{name}_field",
-                value=value,
-                placeholder=placeholder,
-                layout=hlayout,
-            )
-
-            def sync_text_widget(s):
-                text_widget.set_value(s)
-        else:
-            hlayout = layout
 
         def callback():
             if is_directory:
@@ -312,21 +300,20 @@ class _QtDock(_AbstractDock, _QtLayout):
             # handle the cancel button
             if len(name) == 0:
                 return
-            if input_text_widget:
-                sync_text_widget(name)
             func(name)
 
+        if icon:
+            kwargs = dict(style='toolbutton', icon='folder')
+        else:
+            kwargs = dict()
         button_widget = self._dock_add_button(
             name=desc,
             callback=callback,
             tooltip=tooltip,
-            layout=hlayout,
+            layout=layout,
+            **kwargs
         )
-        if input_text_widget:
-            self._layout_add_widget(layout, hlayout)
-            return _QtWidgetList([text_widget, button_widget])
-        else:
-            return button_widget  # It's already a _QtWidget instance
+        return button_widget  # It's already a _QtWidget instance
 
 
 class QFloatSlider(QSlider):
@@ -403,14 +390,6 @@ class QFloatSlider(QSlider):
 
 
 class _QtToolBar(_AbstractToolBar, _QtLayout):
-    def _tool_bar_load_icons(self):
-        rsc_path = _init_qt_resources()
-        self.icons = dict()
-        keys = ['visibility_on', 'visibility_off', 'help', 'play', 'reset',
-                'pause', 'scale', 'restore', 'clear', 'screenshot', 'movie']
-        for key in keys:
-            self.icons[key] = QIcon(rsc_path[key])
-
     def _tool_bar_initialize(self, name="default", window=None):
         self.actions = dict()
         window = self._window if window is None else window
@@ -420,13 +399,13 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_add_button(self, name, desc, func, *, icon_name=None,
                              shortcut=None):
         icon_name = name if icon_name is None else icon_name
-        icon = self.icons[icon_name]
+        icon = self._icons[icon_name]
         self.actions[name] = self._tool_bar.addAction(icon, desc, func)
         if shortcut is not None:
             self.actions[name].setShortcut(shortcut)
 
     def _tool_bar_update_button_icon(self, name, icon_name):
-        self.actions[name].setIcon(self.icons[icon_name])
+        self.actions[name].setIcon(self._icons[icon_name])
 
     def _tool_bar_add_text(self, name, value, placeholder):
         pass
@@ -453,14 +432,6 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_add_play_button(self, name, desc, func, *, shortcut=None):
         self._tool_bar_add_button(
             name=name, desc=desc, func=func, icon_name=None, shortcut=shortcut)
-
-    def _tool_bar_set_theme(self):
-        if _qt_is_dark(self._tool_bar):
-            for icon_key in self.icons:
-                icon = self.icons[icon_key]
-                image = icon.pixmap(80).toImage()
-                image.invertPixels(mode=QImage.InvertRgb)
-                self.icons[icon_key] = QIcon(QPixmap.fromImage(image))
 
 
 class _QtMenuBar(_AbstractMenuBar):
@@ -542,6 +513,8 @@ class _QtWindow(_AbstractWindow):
         super()._window_initialize()
         self._interactor = self.figure.plotter.interactor
         self._window = self.figure.plotter.app_window
+        self._window_load_icons()
+        self._window_set_theme()
         self._window.setLocale(QLocale(QLocale.Language.English))
         self._window.signal_close.connect(self._window_clean)
         self._window_before_close_callbacks = list()
@@ -567,6 +540,20 @@ class _QtWindow(_AbstractWindow):
             for callback in self._window_after_close_callbacks:
                 callback()
         self._window.closeEvent = closeEvent
+
+    def _window_load_icons(self):
+        self._icons["help"] = QIcon.fromTheme("help")
+        self._icons["play"] = QIcon.fromTheme("play")
+        self._icons["pause"] = QIcon.fromTheme("pause")
+        self._icons["reset"] = QIcon.fromTheme("reset")
+        self._icons["scale"] = QIcon.fromTheme("scale")
+        self._icons["clear"] = QIcon.fromTheme("clear")
+        self._icons["movie"] = QIcon.fromTheme("movie")
+        self._icons["restore"] = QIcon.fromTheme("restore")
+        self._icons["screenshot"] = QIcon.fromTheme("screenshot")
+        self._icons["visibility_on"] = QIcon.fromTheme("visibility_on")
+        self._icons["visibility_off"] = QIcon.fromTheme("visibility_off")
+        self._icons["folder"] = QIcon.fromTheme("folder")
 
     def _window_clean(self):
         self.figure._plotter = None
@@ -667,9 +654,18 @@ class _QtWindow(_AbstractWindow):
             self._process_events()
             self._process_events()
 
-    def _window_set_theme(self, theme):
+    def _window_set_theme(self, theme=None):
+        if theme is None:
+            default_theme = _qt_detect_theme()
+        else:
+            default_theme = theme
+        theme = get_config('MNE_3D_OPTION_THEME', default_theme)
         stylesheet = _qt_get_stylesheet(theme)
         self._window.setStyleSheet(stylesheet)
+        if _qt_is_dark(self._window):
+            QIcon.setThemeName('dark')
+        else:
+            QIcon.setThemeName('light')
 
 
 class _QtWidgetList(_AbstractWidgetList):

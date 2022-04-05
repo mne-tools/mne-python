@@ -41,6 +41,35 @@ class _AbstractRenderer(ABC):
         pass
 
     @abstractclassmethod
+    def legend(self, labels, border=False, size=0.1, face='triangle',
+               loc='upper left'):
+        """Add a legend to the scene.
+
+        Parameters
+        ----------
+        labels : list of tuples
+            Each entry must contain two strings, (label, color),
+            where ``label`` is the name of the item to add, and
+            ``color`` is the color of the label to add.
+        border : bool
+            Controls if there will be a border around the legend.
+            The default is False.
+        size : float
+            The size of the entire figure window.
+        loc : str
+            The location of the legend.
+        face : str
+            Face shape of legend face.  One of the following:
+
+            * None: ``None``
+            * Line: ``"-"`` or ``"line"``
+            * Triangle: ``"^"`` or ``'triangle'``
+            * Circle: ``"o"`` or ``'circle'``
+            * Rectangle: ``"r"`` or ``'rectangle'``
+        """
+        pass
+
+    @abstractclassmethod
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
              vmin=None, vmax=None, interpolate_before_map=True,
@@ -459,10 +488,6 @@ class _AbstractRenderer(ABC):
 
 class _AbstractToolBar(ABC):
     @abstractmethod
-    def _tool_bar_load_icons(self):
-        pass
-
-    @abstractmethod
     def _tool_bar_initialize(self, name="default", window=None):
         pass
 
@@ -489,10 +514,6 @@ class _AbstractToolBar(ABC):
 
     @abstractmethod
     def _tool_bar_add_play_button(self, name, desc, func, *, shortcut=None):
-        pass
-
-    @abstractmethod
-    def _tool_bar_set_theme(self):
         pass
 
 
@@ -530,7 +551,8 @@ class _AbstractDock(ABC):
 
     @abstractmethod
     def _dock_add_button(
-        self, name, callback, *, style='pushbutton', tooltip=None, layout=None
+        self, name, callback, *, style='pushbutton', icon=None, tooltip=None,
+        layout=None
     ):
         pass
 
@@ -577,9 +599,7 @@ class _AbstractDock(ABC):
     @abstractmethod
     def _dock_add_file_button(
         self, name, desc, func, *, filter=None, initial_directory=None,
-        value=None, save=False, is_directory=False, input_text_widget=True,
-        placeholder="Type a file name", tooltip=None,
-        layout=None
+        save=False, is_directory=False, icon=False, tooltip=None, layout=None
     ):
         pass
 
@@ -840,12 +860,17 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
 
 class _AbstractWindow(ABC):
     def _window_initialize(self):
+        self._icons = dict()
         self._window = None
         self._interactor = None
         self._mplcanvas = None
         self._show_traces = None
         self._separate_canvas = None
         self._interactor_fraction = None
+
+    @abstractmethod
+    def _window_load_icons(self):
+        pass
 
     @abstractmethod
     def _window_close_connect(self, func, *, after=True):

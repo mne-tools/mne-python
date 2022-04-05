@@ -4,12 +4,14 @@
 #
 # License: Simplified BSD
 
+import os
 from contextlib import contextmanager, nullcontext
 
 from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, BoundedFloatText, HBox,
                         IntSlider, IntText, Text, VBox, IntProgress, Play,
-                        Checkbox, RadioButtons, HTML, Accordion, jsdlink)
+                        Checkbox, RadioButtons, HTML, Accordion, jsdlink,
+                        Layout, Select)
 
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
@@ -17,6 +19,145 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
 from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title  # noqa: F401,E501, analysis:ignore
+
+
+# modified from:
+# https://gist.github.com/elkhadiy/284900b3ea8a13ed7b777ab93a691719
+class _FilePicker:
+    def __init__(self, rows=20, directory_only=False, ignore_dotfiles=True):
+        self._callback = None
+        self._directory_only = directory_only
+        self._ignore_dotfiles = ignore_dotfiles
+        self._empty_selection = True
+        self._selected_dir = os.getcwd()
+        self._item_layout = Layout(width='auto')
+        self._nb_rows = rows
+        self._file_selector = Select(
+            options=self._get_selector_options(),
+            rows=min(len(os.listdir(self._selected_dir)), self._nb_rows),
+            layout=self._item_layout
+        )
+        self._open_button = Button(
+            description='Open',
+            layout=Layout(flex='auto 1 auto', width='auto')
+        )
+        self._select_button = Button(
+            description='Select',
+            layout=Layout(flex='auto 1 auto', width='auto')
+        )
+        self._cancel_button = Button(
+            description='Cancel',
+            layout=Layout(flex='auto 1 auto', width='auto')
+        )
+        self._parent_button = Button(
+            icon='chevron-up',
+            layout=Layout(flex='auto 1 auto', width='auto')
+        )
+        self._selection = Text(
+            value=os.path.join(
+                self._selected_dir, self._file_selector.value),
+            disabled=True,
+            layout=Layout(flex='1 1 auto', width='auto')
+        )
+        self._filename = Text(
+            value='',
+            layout=Layout(flex='1 1 auto', width='auto')
+        )
+        self._parent_button.on_click(self._parent_button_clicked)
+        self._open_button.on_click(self._open_button_clicked)
+        self._select_button.on_click(self._select_button_clicked)
+        self._cancel_button.on_click(self._cancel_button_clicked)
+        self._file_selector.observe(self._update_path)
+
+        self._widget = VBox([
+            HBox([
+                self._parent_button, HTML(value='Look in:'), self._selection,
+            ]),
+            self._file_selector,
+            HBox([
+                HTML(value='File name'), self._filename, self._open_button,
+                self._select_button, self._cancel_button,
+            ]),
+        ])
+
+    def _get_selector_options(self):
+        options = os.listdir(self._selected_dir)
+        if self._ignore_dotfiles:
+            tmp = list()
+            for el in options:
+                if el[0] != '.':
+                    tmp.append(el)
+            options = tmp
+        if self._directory_only:
+            tmp = list()
+            for el in options:
+                if os.path.isdir(os.path.join(self._selected_dir, el)):
+                    tmp.append(el)
+            options = tmp
+        if not options:
+            options = ['']
+            self._empty_selection = True
+        else:
+            self._empty_selection = False
+        return options
+
+    def _update_selector_options(self):
+        self._file_selector.options = self._get_selector_options()
+        self._file_selector.rows = min(
+            len(os.listdir(self._selected_dir)), self._nb_rows)
+        self._selection.value = os.path.join(
+            self._selected_dir, self._file_selector.value
+        )
+        self._filename.value = self._file_selector.value
+
+    def show(self):
+        self._update_selector_options()
+        self._widget.layout.display = "block"
+
+    def hide(self):
+        self._widget.layout.display = "none"
+
+    def set_directory_only(self, state):
+        self._directory_only = state
+
+    def set_ignore_dotfiles(self, state):
+        self._ignore_dotfiles = state
+
+    def connect(self, callback):
+        self._callback = callback
+
+    def _open_button_clicked(self, button):
+        if self._empty_selection:
+            return
+        if os.path.isdir(self._selection.value):
+            self._selected_dir = self._selection.value
+            self._file_selector.options = self._get_selector_options()
+            self._file_selector.rows = min(
+                len(os.listdir(self._selected_dir)), self._nb_rows)
+
+    def _select_button_clicked(self, button):
+        if self._empty_selection:
+            return
+        result = os.path.join(self._selected_dir, self._filename.value)
+        if self._callback is not None:
+            self._callback(result)
+            # the picker is shared so only one connection is allowed at a time
+            self._callback = None  # reset the callback
+        self.hide()
+
+    def _cancel_button_clicked(self, button):
+        self._callback = None  # reset the callback
+        self.hide()
+
+    def _parent_button_clicked(self, button):
+        self._selected_dir, _ = os.path.split(self._selected_dir)
+        self._update_selector_options()
+
+    def _update_path(self, change):
+        self._selection.value = os.path.join(
+            self._selected_dir, self._file_selector.value
+        )
+        self._filename.value = self._file_selector.value
 
 
 class _IpyDialog(_AbstractDialog):
@@ -55,7 +196,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         if self._docks is None:
             self._docks = dict()
         current_dock = VBox()
-        self._dock_width = 300
+        self._dock_width = 302
         self._dock = self._dock_layout = current_dock
         self._dock.layout.width = f"{self._dock_width}px"
         self._layout_initialize(self._dock_width)
@@ -84,14 +225,20 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_button(self, name, callback, *, style=None, tooltip=None,
-                         layout=None):
+    def _dock_add_button(
+        self, name, callback, *, style='pushbutton', icon=None, tooltip=None,
+        layout=None
+    ):
         layout = self._dock_layout if layout is None else layout
-        kwargs = dict(description=name)
+        kwargs = dict()
+        if style == 'pushbutton':
+            kwargs["description"] = name
         if tooltip is not None:
             kwargs["tooltip"] = tooltip
         widget = Button(**kwargs)
         widget.on_click(lambda x: callback())
+        if icon is not None:
+            widget.icon = icon
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
@@ -127,10 +274,12 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         widget = Checkbox(
             value=value,
             description=name,
+            indent=False,
             disabled=False
         )
+        hbox = HBox([widget])  # fix stretching to the right
         widget.observe(_generate_callback(callback), names='value')
-        self._layout_add_widget(layout, widget)
+        self._layout_add_widget(layout, hbox)
         return _IpyWidget(widget)
 
     def _dock_add_spin_box(self, name, value, rng, callback, *,
@@ -202,30 +351,27 @@ class _IpyDock(_AbstractDock, _IpyLayout):
 
     def _dock_add_file_button(
         self, name, desc, func, *, filter=None, initial_directory=None,
-        value=None, save=False, is_directory=False, input_text_widget=True,
-        placeholder="Type a file name", tooltip=None,
-        layout=None
+        save=False, is_directory=False, icon=False, tooltip=None, layout=None
     ):
         layout = self._dock_layout if layout is None else layout
 
         def callback():
-            fname = self.actions[f"{name}_field"].value
-            func(None if len(fname) == 0 else fname)
-        hlayout = self._dock_add_layout(vertical=False)
-        text_widget = self._dock_add_text(
-            name=f"{name}_field",
-            value=value,
-            placeholder=placeholder,
-            layout=hlayout,
-        )
-        button_widget = self._dock_add_button(
+            self._file_picker.set_directory_only(is_directory)
+            self._file_picker.connect(func)
+            self._file_picker.show()
+
+        if icon:
+            kwargs = dict(style='toolbutton', icon='folder')
+        else:
+            kwargs = dict()
+        widget = self._dock_add_button(
             name=desc,
             callback=callback,
             tooltip=tooltip,
-            layout=hlayout,
+            layout=layout,
+            **kwargs
         )
-        self._layout_add_widget(layout, hlayout)
-        return _IpyWidgetList([text_widget, button_widget])
+        return widget
 
 
 def _generate_callback(callback, to_float=False):
@@ -236,20 +382,6 @@ def _generate_callback(callback, to_float=False):
 
 
 class _IpyToolBar(_AbstractToolBar, _IpyLayout):
-    def _tool_bar_load_icons(self):
-        self.icons = dict()
-        self.icons["help"] = "question"
-        self.icons["play"] = None
-        self.icons["pause"] = None
-        self.icons["reset"] = "history"
-        self.icons["scale"] = "magic"
-        self.icons["clear"] = "trash"
-        self.icons["movie"] = "video-camera"
-        self.icons["restore"] = "replay"
-        self.icons["screenshot"] = "camera"
-        self.icons["visibility_on"] = "eye"
-        self.icons["visibility_off"] = "eye"
-
     def _tool_bar_initialize(self, name="default", window=None):
         self.actions = dict()
         self._tool_bar = self._tool_bar_layout = HBox()
@@ -258,7 +390,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
     def _tool_bar_add_button(self, name, desc, func, *, icon_name=None,
                              shortcut=None):
         icon_name = name if icon_name is None else icon_name
-        icon = self.icons[icon_name]
+        icon = self._icons[icon_name]
         if icon is None:
             return
         widget = Button(tooltip=desc, icon=icon)
@@ -267,7 +399,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         self.actions[name] = widget
 
     def _tool_bar_update_button_icon(self, name, icon_name):
-        self.actions[name].icon = self.icons[icon_name]
+        self.actions[name].icon = self._icons[icon_name]
 
     def _tool_bar_add_text(self, name, value, placeholder):
         widget = Text(value=value, placeholder=placeholder)
@@ -297,9 +429,6 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         self._layout_add_widget(self._tool_bar_layout, widget)
         self.actions[name] = widget
         return _IpyWidget(widget)
-
-    def _tool_bar_set_theme(self):
-        pass
 
 
 class _IpyMenuBar(_AbstractMenuBar):
@@ -388,6 +517,25 @@ class _IpyBrainMplCanvas(_AbstractBrainMplCanvas, _IpyMplInterface):
 
 
 class _IpyWindow(_AbstractWindow):
+    def _window_initialize(self):
+        super()._window_initialize()
+        self._window_load_icons()
+
+    def _window_load_icons(self):
+        # from: https://fontawesome.com/icons
+        self._icons["help"] = "question"
+        self._icons["play"] = None
+        self._icons["pause"] = None
+        self._icons["reset"] = "history"
+        self._icons["scale"] = "magic"
+        self._icons["clear"] = "trash"
+        self._icons["movie"] = "video-camera"
+        self._icons["restore"] = "replay"
+        self._icons["screenshot"] = "camera"
+        self._icons["visibility_on"] = "eye"
+        self._icons["visibility_off"] = "eye"
+        self._icons["folder"] = "folder"
+
     def _window_close_connect(self, func, *, after=True):
         pass
 
@@ -522,15 +670,16 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         self._menu_bar = None
         self._tool_bar = None
         self._status_bar = None
+        self._file_picker = _FilePicker(rows=10)
         kwargs["notebook"] = True
         super().__init__(*args, **kwargs)
+        self._window_initialize()
 
     def _update(self):
         if self.figure.display is not None:
             self.figure.display.update_canvas()
 
     def _display_default_tool_bar(self):
-        self._tool_bar_load_icons()
         self._tool_bar_initialize()
         self._tool_bar_add_file_button(
             name="screenshot",
@@ -563,6 +712,9 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         # status bar
         if self._status_bar is not None:
             display(self._status_bar)
+        # file picker
+        self._file_picker.hide()
+        display(self._file_picker._widget)
         return self.scene()
 
 

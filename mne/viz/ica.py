@@ -75,8 +75,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
 
     Returns
     -------
-    fig : instance of Figure
-        The figure.
+    %(browser)s
 
     Notes
     -----

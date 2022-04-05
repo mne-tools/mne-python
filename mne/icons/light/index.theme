@@ -1,0 +1,11 @@
+[Icon Theme]
+Name=light
+
+Directories=actions
+
+[actions]
+Size=32
+Context=Actions
+MinSize=16
+MaxSize=128
+Type=Scalable

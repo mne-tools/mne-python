@@ -91,7 +91,7 @@ Download the `server environment file`_ and use it to create the conda
 environment::
 
     curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
-    conda create --name=mne --file=server_environment.yml
+    conda env create -f server_environment.yml
 
 Using the development version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -273,4 +273,3 @@ line for ``pip uninstall -y vtk``.
 .. _`pyvista`: https://docs.pyvista.org/
 .. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
 .. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb
-

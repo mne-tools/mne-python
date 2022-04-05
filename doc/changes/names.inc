@@ -138,7 +138,7 @@
 
 .. _Erkka Heinila: https://github.com/Teekuningas
 
-.. _Andrea Brovelli: http://andrea-brovelli.net
+.. _Andrea Brovelli: https://andrea-brovelli.net
 
 .. _Richard Höchenberger: https://github.com/hoechenberger
 
@@ -437,3 +437,5 @@
 .. _John Veillette: https://psychology.uchicago.edu/directory/john-veillette
 
 .. _Nikolai Chapochnikov: https://github.com/chapochn
+
+.. _Matthias Dold: https://matthiasdold.de

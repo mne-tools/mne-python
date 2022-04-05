@@ -47,6 +47,7 @@ from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    Figure3D, use_browser_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from ..viz.utils import _ndarray_to_fig, tight_layout
+from ..viz._scraper import _mne_qt_browser_screenshot
 from ..forward import read_forward_solution, Forward
 from ..epochs import read_epochs, BaseEpochs
 from ..preprocessing.ica import read_ica
@@ -333,7 +334,6 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
     # fig can be ndarray, mpl Figure, PyVista Figure
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
-    _validate_type(fig, (np.ndarray, Figure, Figure3D), 'fig')
     if isinstance(fig, np.ndarray):
         # In this case, we are creating the fig, so we might as well
         # auto-close in all cases
@@ -343,16 +343,29 @@ def _fig_to_img(fig, *, image_format='png', own_figure=True):
                 fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
             )
         own_figure = True  # close the figure we just created
-    elif not isinstance(fig, Figure):
-        from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
-        backend._check_3d_figure(figure=fig)
-        if not MNE_3D_BACKEND_TESTING:
-            img = backend._take_3d_screenshot(figure=fig)
-        else:  # Testing mode
-            img = np.zeros((2, 2, 3))
-
-        if own_figure:
-            backend._close_3d_figure(figure=fig)
+    elif isinstance(fig, Figure):
+        pass  # nothing to do
+    else:
+        # Don't attempt a mne_qt_browser import here (it might pull in Qt
+        # libraries we don't want), so use a probably good enough class name
+        # check instead
+        if fig.__class__.__name__ in ('MNEQtBrowser', 'PyQtGraphBrowser'):
+            img = _mne_qt_browser_screenshot(fig, return_type='ndarray')
+            print(img.shape, img.max(), img.min(), img.mean())
+        elif isinstance(fig, Figure3D):
+            from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
+            backend._check_3d_figure(figure=fig)
+            if not MNE_3D_BACKEND_TESTING:
+                img = backend._take_3d_screenshot(figure=fig)
+            else:  # Testing mode
+                img = np.zeros((2, 2, 3))
+            if own_figure:
+                backend._close_3d_figure(figure=fig)
+        else:
+            raise TypeError(
+                'figure must be an instance of np.ndarray, matplotlib Figure, '
+                'mne_qt_browser.figure.MNEQtBrowser, or mne.viz.Figure3D, got '
+                f'{type(fig)}')
         fig = _ndarray_to_fig(img)
         if own_figure:
             _constrain_fig_resolution(

@@ -26,7 +26,7 @@ from ._utils import (_get_colormap_from_array, _alpha_blend_background,
 from ...fixes import _get_args, _point_data, _cell_data, _compare_version
 from ...transforms import apply_trans
 from ...utils import (copy_base_doc_to_subclass_doc, _check_option,
-                      _require_version)
+                      _require_version, _validate_type)
 
 
 with warnings.catch_warnings():
@@ -279,6 +279,11 @@ class _PyVistaRenderer(_AbstractRenderer):
                 renderer.disable_parallel_projection()
             getattr(self.plotter, f'enable_{interaction}_style')()
 
+    def legend(self, labels, border=False, size=0.1, face='triangle',
+               loc='upper left'):
+        return self.plotter.add_legend(
+            labels, size=(size, size), face=face, loc=loc)
+
     def polydata(self, mesh, color=None, opacity=1.0, normals=None,
                  backface_culling=False, scalars=None, colormap=None,
                  vmin=None, vmax=None, interpolate_before_map=True,
@@ -489,24 +494,17 @@ class _PyVistaRenderer(_AbstractRenderer):
             if not VTK9:
                 args = (np.arange(n_points) * 3,) + args
             grid = UnstructuredGrid(*args)
-            if scalars is not None:
-                _point_data(grid)['scalars'] = np.array(scalars)
-                scalars = 'scalars'
+            if scalars is None:
+                scalars = np.ones((n_points,))
+            _point_data(grid)['scalars'] = np.array(scalars)
             _point_data(grid)['vec'] = vectors
-            if scale_mode == 'scalar':
-                scale = scalars
-                scalars = None
-            elif scale_mode == 'vector':
-                scale = True
-            else:
-                scale = False
             if mode == '2darrow':
                 return _arrow_glyph(grid, factor), grid
             elif mode == 'arrow':
                 alg = _glyph(
                     grid,
                     orient='vec',
-                    scalars=scale,
+                    scalars='scalars',
                     factor=factor
                 )
                 mesh = pyvista.wrap(alg.GetOutput())
@@ -551,14 +549,14 @@ class _PyVistaRenderer(_AbstractRenderer):
                     glyph = trp
                 glyph.Update()
                 geom = glyph.GetOutput()
-                mesh = grid.glyph(orient='vec', scale=scale, factor=factor,
-                                  geom=geom)
+                mesh = grid.glyph(orient='vec', scale=scale_mode == 'vector',
+                                  factor=factor, geom=geom)
             actor = _add_mesh(
                 self.plotter,
                 mesh=mesh,
                 color=color,
                 opacity=opacity,
-                scalars=scalars,
+                scalars=None,
                 colormap=colormap,
                 show_scalar_bar=False,
                 backface_culling=backface_culling,
@@ -1045,8 +1043,7 @@ def _set_3d_title(figure, title, size=16):
 
 
 def _check_3d_figure(figure):
-    if not isinstance(figure, PyVistaFigure):
-        raise TypeError('figure must be an instance of PyVistaFigure.')
+    _validate_type(figure, PyVistaFigure, 'figure')
 
 
 def _close_3d_figure(figure):
