@@ -9,10 +9,6 @@ h5io
 packaging
 pymatreader
 qtpy
-pyqt5>=5.10,<5.14; platform_system == "Darwin"
-pyqt5>=5.10,!=5.15.2,!=5.15.3; platform_system == "Linux"
-pyqt5>=5.10,!=5.15.3; platform_system == "Windows"
-pyqt5-sip
 pyobjc-framework-Cocoa>=5.2.0; platform_system=="Darwin"
 sip
 scikit-learn
@@ -39,4 +35,3 @@ pyvistaqt>=0.4
 mffpy>=0.5.7
 ipywidgets
 ipyvtklink
-mne-qt-browser
