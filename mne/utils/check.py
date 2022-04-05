@@ -782,7 +782,7 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
 def _check_qt_version(api='PyQt5'):
     try:
         if api in ('PyQt5', 'PyQt6'):
-            qt_mod = import_module(f'{api}.Qt')
+            qt_mod = import_module(f'{api}.QtCore')
             version = qt_mod.PYQT_VERSION_STR
         else:
             assert api in ('PySide2', 'PySide6')
