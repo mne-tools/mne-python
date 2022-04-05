@@ -59,11 +59,11 @@ raw.info
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
 # In practice it is quite common to have some channels labeled as EEG that are
-# actually EOG channels. `~mne.io.Raw` objects have a
-# `~mne.io.Raw.set_channel_types` method that can be used to change a channel
-# that is mislabeled as ``eeg`` to ``eog``.
+# actually EOG channels. :class:`~mne.io.Raw` objects have a
+# :meth:`~mne.io.Raw.set_channel_types` method that can be used to change a
+# channel that is mislabeled as ``eeg`` to ``eog``.
 #
-# You can also rename channels using the `~mne.io.Raw.rename_channels` method.
+# You can also rename channels using :meth:`~mne.io.Raw.rename_channels`.
 # Detailed examples of both of these methods can be found in the tutorial
 # :ref:`tut-raw-class`.
 #
@@ -96,7 +96,7 @@ _ = raw.rename_channels(channel_renaming_dict)  # happens in-place
 #
 # This dataset has realistic digitized 3D sensor locations saved as part of the
 # ``.fif`` file, so we can view the sensor locations in 2D or 3D using the
-# `~mne.io.Raw.plot_sensors` method:
+# :meth:`~mne.io.Raw.plot_sensors` method:
 
 raw.plot_sensors(show_names=True)
 fig = raw.plot_sensors('3d')
@@ -112,7 +112,7 @@ fig = raw.plot_sensors('3d')
 # :ref:`reading-dig-montages` for discussion and :ref:`dig-formats` for a list
 # of supported formats). Once loaded, the digitized sensor locations can be
 # added to the data by passing the loaded montage object to
-# `~mne.io.Raw.set_montage`.
+# :meth:`~mne.io.Raw.set_montage`.
 #
 #
 # Setting the EEG reference
@@ -132,10 +132,10 @@ for proj in (False, True):
 
 # %%
 # The referencing scheme can be changed with the function
-# `mne.set_eeg_reference` (which by default operates on a *copy* of the data)
-# or the `raw.set_eeg_reference() <mne.io.Raw.set_eeg_reference>` method (which
-# always modifies the data in-place). The tutorial :ref:`tut-set-eeg-ref` shows
-# several examples.
+# :func:`mne.set_eeg_reference` (which by default operates on a *copy* of the
+# data) or the :meth:`raw.set_eeg_reference() <mne.io.Raw.set_eeg_reference>`
+# method (which always modifies the data *in-place*). The tutorial
+# :ref:`tut-set-eeg-ref` shows several examples.
 #
 #
 # Filtering
@@ -154,11 +154,11 @@ raw.filter(l_freq=0.1, h_freq=None)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # The general process for extracting evoked responses from continuous data is
-# to use the `~mne.Epochs` constructor, and then average the resulting epochs
-# to create an `~mne.Evoked` object. In MNE-Python, events are represented as
-# a :class:`NumPy array <numpy.ndarray>` containing event latencies (in
-# samples) and integer event codes. The event codes are stored in the last
-# column of the events array:
+# to use the :class:`~mne.Epochs` constructor, and then average the resulting
+# epochs to create an :class:`~mne.Evoked` object. In MNE-Python, events are
+# represented as a :class:`NumPy array <numpy.ndarray>` containing event
+# latencies (in samples) and integer event codes. The event codes are stored in
+# the last column of the events array:
 
 np.unique(events[:, -1])
 
@@ -186,9 +186,9 @@ fig = epochs.plot(events=events)
 # %%
 # It is also possible to automatically drop epochs (either when first creating
 # them or later on) by providing maximum peak-to-peak signal value thresholds
-# (passed to `~mne.Epochs` as the ``reject`` parameter; see
+# (passed to :class:`~mne.Epochs` as the ``reject`` parameter; see
 # :ref:`tut-reject-epochs-section` for details).  You can also do this after
-# the epochs are already created, using the `~mne.Epochs.drop_bad` method:
+# the epochs are already created using :meth:`~mne.Epochs.drop_bad`:
 
 reject_criteria = dict(eeg=100e-6, eog=200e-6)  # 100 µV, 200 µV
 epochs.drop_bad(reject=reject_criteria)
@@ -196,37 +196,38 @@ epochs.drop_bad(reject=reject_criteria)
 # %%
 # Next, we generate a barplot of which channels contributed most to epochs
 # getting rejected. If one channel is responsible for many epoch rejections,
-# it may be worthwhile to mark that channel as "bad" in the `~mne.io.Raw`
-# object and then re-run epoching (fewer channels with more good epochs may be
-# preferable to keeping all channels but losing many epochs). See
-# :ref:`tut-bad-channels` for more information.
+# it may be worthwhile to mark that channel as "bad" in the
+# :class:`~mne.io.Raw` object and then re-run epoching (fewer channels with
+# more good epochs may be preferable to keeping all channels but losing many
+# epochs). See :ref:`tut-bad-channels` for more information.
 
 epochs.plot_drop_log()
 
 # %%
 # Epochs can also be dropped automatically if the event around which the epoch
-# is created is too close to the start or end of the `~mne.io.Raw` object
-# (e.g., if the epoch would extend past the end of the recording; this is the
-# cause for the "TOO_SHORT" entry in the `~mne.Epochs.plot_drop_log` plot).
+# is created is too close to the start or end of the :class:`~mne.io.Raw`
+# object (e.g., if the epoch would extend past the end of the recording; this
+# is the cause for the "TOO_SHORT" entry in the
+# :meth:`~mne.Epochs.plot_drop_log` plot).
 #
-# Epochs may also be dropped automatically if the `~mne.io.Raw` object contains
-# :term:`annotations` that begin with either ``bad`` or ``edge`` ("edge"
-# annotations are automatically inserted when concatenating two or more
-# `~mne.io.Raw` objects). See :ref:`tut-reject-data-spans` for more information
-# on annotation-based epoch rejection.
+# Epochs may also be dropped automatically if the :class:`~mne.io.Raw` object
+# contains :term:`annotations` that begin with either ``bad`` or ``edge``
+# ("edge" annotations are automatically inserted when concatenating two or more
+# :class:`~mne.io.Raw` objects). See :ref:`tut-reject-data-spans` for more
+# information on annotation-based epoch rejection.
 #
 # Now that we've dropped all bad epochs, let's look at our evoked responses for
-# some conditions we care about. Here, the `~mne.Epochs.average` method will
-# create an `~mne.Evoked` object, which we can then plot. Notice that we select
-# which condition we want to average using square-bracket indexing (like for a
-# :class:`dictionary <dict>`). This returns a subset with only the desired
-# epochs, which we then average:
+# some conditions we care about. Here, the :meth:`~mne.Epochs.average` method
+# will create an :class:`~mne.Evoked` object, which we can then plot. Notice
+# that we select which condition we want to average using square-bracket
+# indexing (like for a :class:`dictionary <dict>`). This returns a subset with
+# only the desired epochs, which we then average:
 
 l_aud = epochs['auditory/left'].average()
 l_vis = epochs['visual/left'].average()
 
 # %%
-# These `~mne.Evoked` objects have their own interactive plotting method
+# These :class:`~mne.Evoked` objects have their own interactive plotting method
 # (though again, it won't be interactive on the documentation website).
 # Clicking and dragging a span of time will generate a topography of scalp
 # potentials for the selected time segment. Here, we also demonstrate built-in
@@ -237,20 +238,21 @@ fig2 = l_vis.plot(spatial_colors=True)
 
 # %%
 # Scalp topographies can also be obtained non-interactively with the
-# `~mne.Evoked.plot_topomap` method. Here, we display topomaps of the average
-# evoked potential in 50 ms time windows centered at -200 ms, 100 ms, and
-# 400 ms.
+# :meth:`~mne.Evoked.plot_topomap` method. Here, we display topomaps of the
+# average evoked potential in 50 ms time windows centered at -200 ms, 100 ms,
+# and 400 ms.
 
 l_aud.plot_topomap(times=[-0.2, 0.1, 0.4], average=0.05)
 
 # %%
 # Considerable customization of these plots is possible, see the docstring of
-# `~mne.Evoked.plot_topomap` for details.
+# :meth:`~mne.Evoked.plot_topomap` for details.
 #
-# There is also a built-in method for combining "butterfly" plots of the
-# signals with scalp topographies, called `~mne.Evoked.plot_joint`. Like in
-# `~mne.Evoked.plot_topomap`, you can specify times for the scalp topographies
-# or you can let the method choose times automatically as shown here:
+# There is also a built-in method for combining butterfly plots of the signals
+# with scalp topographies called :meth:`~mne.Evoked.plot_joint`. Like in
+# :meth:`~mne.Evoked.plot_topomap`, you can specify times for the scalp
+# topographies or you can let the method choose times automatically as shown
+# here:
 
 l_aud.plot_joint()
 
@@ -324,8 +326,8 @@ roi_evoked.plot()
 # ^^^^^^^^^^^^^^^^^^^^
 #
 # If we wanted to contrast auditory to visual stimuli, a useful function is
-# `mne.viz.plot_compare_evokeds`. By default, this function will combine all
-# channels in each evoked object using GFP (or RMS for MEG channels); here
+# :func:`mne.viz.plot_compare_evokeds`. By default, this function will combine
+# all channels in each evoked object using GFP (or RMS for MEG channels); here
 # instead we specify to combine by averaging, and restrict it to a subset of
 # channels by passing ``picks``:
 
@@ -335,19 +337,19 @@ mne.viz.plot_compare_evokeds(evokeds, picks=picks, combine='mean')
 
 # %%
 # We can also generate confidence intervals by treating each epoch as a
-# separate observation using the `~mne.Epochs.iter_evoked` method. A confidence
+# separate observation using :meth:`~mne.Epochs.iter_evoked`. A confidence
 # interval across subjects could also be obtained by passing a list of
-# `~mne.Evoked` objects (one per subject) to the
-# `~mne.viz.plot_compare_evokeds` function.
+# :class:`~mne.Evoked` objects (one per subject) to the
+# :func:`~mne.viz.plot_compare_evokeds` function.
 
 evokeds = dict(auditory=list(epochs['auditory/left'].iter_evoked()),
                visual=list(epochs['visual/left'].iter_evoked()))
 mne.viz.plot_compare_evokeds(evokeds, combine='mean', picks=picks)
 
 # %%
-# We can also compare conditions by subtracting one `~mne.Evoked` object from
-# another using the `mne.combine_evoked` function (this function also supports
-# pooling of epochs without subtraction).
+# We can also compare conditions by subtracting one :class:`~mne.Evoked` object
+# from another using the :func:`mne.combine_evoked` function (this function
+# also supports pooling of epochs without subtraction).
 
 aud_minus_vis = mne.combine_evoked([l_aud, l_vis], weights=[1, -1])
 aud_minus_vis.plot_joint()
@@ -366,8 +368,8 @@ aud_minus_vis.plot_joint()
 # ^^^^^^^^^^^^^^
 #
 # To compute grand averages across conditions (or subjects), you can pass a
-# list of `~mne.Evoked` objects to `mne.grand_average`. The result is another
-# `~mne.Evoked` object.
+# list of :class:`~mne.Evoked` objects to :func:`mne.grand_average`. The result
+# is another :class:`~mne.Evoked` object.
 
 grand_average = mne.grand_average([l_aud, l_vis])
 print(grand_average)
@@ -388,7 +390,8 @@ epochs['auditory'].average()
 # See :ref:`tut-section-subselect-epochs` for more details on that.
 #
 # The tutorials :ref:`tut-epochs-class` and :ref:`tut-evoked-class` have many
-# more details about working with the `~mne.Epochs` and `~mne.Evoked` classes.
+# more details about working with the :class:`~mne.Epochs` and
+# :class:`~mne.Evoked` classes.
 
 # %%
 # Amplitude and latency measures
