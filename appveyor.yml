@@ -1,3 +1,5 @@
+platform:
+  - x64
 environment:
   TOXENV: py39  # Until VTK releases a 3.10 binary
   matrix:
@@ -29,7 +31,7 @@ build: false
 
 build_script:
   - "python -m pip install --upgrade pip setuptools wheel"
-  - "python -m pip install --upgrade -r requirements.txt -r requirements_testing.txt codecov"
+  - "python -m pip install --upgrade --only-binary=\"numpy,scipy,matplotlib,pandas,numba,vtk,dipy\" -r requirements.txt -r requirements_testing.txt codecov"
   # python -m pip uninstall PyQt5 PyQt5-sip
   # ps: python -m pip install --upgrade --pre $env:QT_PIP
   - "python setup.py develop"
