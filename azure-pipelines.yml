@@ -128,6 +128,122 @@ stages:
       displayName: 'Get test data'
     - script: pytest -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
       displayName: 'Run ultraslow and mne-qt-browser tests'
+    # PyQt5
+    - bash: |
+        set -e
+        python -m pip uninstall mne-qt-browser
+    - bash: mne sys_info -pd | tee /dev/stderr | grep PyQt6
+      displayName: Print PyQt5 config
+    - script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz mne/gui
+      displayName: 'Run PyQt5 tests'
+    # PyQt6
+    - bash: |
+        set -e
+        python -m pip uninstall pyqt5 pyqt5-sip pyqt5-qt5
+        python -m pip install pyqt6
+    - bash: mne sys_info -pd | tee /dev/stderr | grep PyQt6
+      displayName: Print PyQt6 config
+    - script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz mne/gui
+      displayName: 'Run PyQt6 tests'
+    # Pyside2
+    - bash: |
+        set -e
+        python -m pip uninstall pyqt6 pyqt6-sip pyqt6-qt6
+        python -m pip install pyside2
+    - bash: mne sys_info -pd | tee /dev/stderr | grep PySide2
+      displayName: Print PySide2 config
+    - script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz mne/gui
+      displayName: 'Run Pyside2 tests'
+    # Can't test
+    # Coverage
+    - bash: |
+        set -e
+        python -m pip uninstall PyQt5 mne-qt-browser
+        python -m pip install PyQt6
+    - script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz mne/gui
+      displayName: 'Run PyQt6 tests'
+    - bash: bash <(curl -s https://codecov.io/bash)
+      displayName: 'Codecov'
+      condition: succeededOrFailed()
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: '**/junit-*.xml'
+        testRunTitle: 'Publish test results for $(Agent.JobName)'
+        failTaskOnFailedTests: true
+      condition: succeededOrFailed()
+    - task: PublishCodeCoverageResults@1
+      inputs:
+        codeCoverageTool: Cobertura
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+        reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+
+  - job: Qt
+    pool:
+      vmImage: 'ubuntu-20.04'
+    variables:
+      DISPLAY: ':99'
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+    - bash: ./tools/setup_xvfb.sh
+      displayName: 'Install Ubuntu dependencies'
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.10'
+        architecture: 'x64'
+        addToPath: true
+      displayName: 'Get Python'
+    - bash: |
+        set -e
+        python -m pip install --progress-bar off --upgrade pip setuptools wheel
+        python -m pip install --progress-bar off --upgrade --only-binary=\"numpy,scipy,matplotlib\" numpy
+        wget -q https://osf.io/hjyvx/download -O vtk-9.1.20211213.dev0-cp310-cp310-linux_x86_64.whl
+        pip install --pre --only-binary ":all:" vtk-9.1.20211213.dev0-cp310-cp310-linux_x86_64.whl
+        python -m pip install --progress-bar off --upgrade -r requirements.txt -r requirements_testing.txt
+      displayName: 'Install dependencies with pip'
+    - script: mne sys_info -pd
+      displayName: Print config
+    - bash: source tools/get_testing_version.sh
+      displayName: 'Get testing version'
+    - task: Cache@2
+      inputs:
+        key: $(testing_version)
+        path: /home/vsts/mne_data
+      displayName: 'Cache testing data'
+    - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+      displayName: 'Get test data'
+    # PyQt5
+    - bash: mne sys_info -pd | tee /dev/stderr | grep PyQt5
+      displayName: Print PyQt5 config
+    - script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne/viz mne/gui
+      displayName: 'Run PyQt5 tests'
+    ## PyQt6
+    #- bash: |
+    #    set -e
+    #    python -m pip uninstall PyQt5 PyQt5-sip PyQt5-Qt5
+    #    python -m pip install pyqt6
+    #- bash: mne sys_info -pd | tee /dev/stderr | grep PyQt6
+    #  displayName: Print PyQt6 config
+    #- script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz mne/gui
+    #  displayName: 'Run PyQt6 tests'
+    ## Pyside2
+    #- bash: |
+    #    set -e
+    #    python -m pip uninstall PyQt6 PyQt6-sip PyQt6-Qt6
+    #    python -m pip install PySide2
+    #- bash: mne sys_info -pd | tee /dev/stderr | grep PySide2
+    #  displayName: Print PySide2 config
+    #- script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz mne/gui
+    #  displayName: 'Run Pyside2 tests'
+    ## Pyside6
+    #- bash: |
+    #    set -e
+    #    python -m pip uninstall PySide2
+    #    python -m pip install PySide6
+    #- bash: mne sys_info -pd | tee /dev/stderr | grep PySide6
+    #  displayName: Print PySide6 config
+    #- script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz mne/gui
+    #  displayName: 'Run Pyside2 tests'
+    # Coverage
     - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
       condition: succeededOrFailed()
