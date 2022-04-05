@@ -489,24 +489,17 @@ class _PyVistaRenderer(_AbstractRenderer):
             if not VTK9:
                 args = (np.arange(n_points) * 3,) + args
             grid = UnstructuredGrid(*args)
-            if scalars is not None:
-                _point_data(grid)['scalars'] = np.array(scalars)
-                scalars = 'scalars'
+            if scalars is None:
+                scalars = np.ones((n_points,))
+            _point_data(grid)['scalars'] = np.array(scalars)
             _point_data(grid)['vec'] = vectors
-            if scale_mode == 'scalar':
-                scale = scalars
-                scalars = None
-            elif scale_mode == 'vector':
-                scale = True
-            else:
-                scale = False
             if mode == '2darrow':
                 return _arrow_glyph(grid, factor), grid
             elif mode == 'arrow':
                 alg = _glyph(
                     grid,
                     orient='vec',
-                    scalars=scale,
+                    scalars='scalars',
                     factor=factor
                 )
                 mesh = pyvista.wrap(alg.GetOutput())
@@ -551,14 +544,14 @@ class _PyVistaRenderer(_AbstractRenderer):
                     glyph = trp
                 glyph.Update()
                 geom = glyph.GetOutput()
-                mesh = grid.glyph(orient='vec', scale=scale, factor=factor,
-                                  geom=geom)
+                mesh = grid.glyph(orient='vec', scale=scale_mode == 'vector',
+                                  factor=factor, geom=geom)
             actor = _add_mesh(
                 self.plotter,
                 mesh=mesh,
                 color=color,
                 opacity=opacity,
-                scalars=scalars,
+                scalars=None,
                 colormap=colormap,
                 show_scalar_bar=False,
                 backface_culling=backface_culling,
