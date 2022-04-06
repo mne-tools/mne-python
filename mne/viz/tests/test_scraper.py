@@ -2,10 +2,13 @@
 #
 # License: Simplified BSD
 
-import mne
 import os.path as op
 
+import mne
+from mne.utils import requires_version
 
+
+@requires_version('sphinx_gallery')
 def test_pg_scraper(raw, pg_backend, tmp_path):
     """Test sphinx-gallery scraping of the browser."""
     # make sure there is only one to scrape from old tests
