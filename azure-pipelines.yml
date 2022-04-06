@@ -207,7 +207,7 @@ stages:
         set -e
         python -m pip install PySide2
         mne sys_info -pd
-        mne sys_info -pd grep "^qtpy: .*{PySide2=.*}$"
+        mne sys_info -pd | grep "^qtpy: .*{PySide2=.*}$"
         pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PySide2
       displayName: 'PySide2'
@@ -215,7 +215,7 @@ stages:
         set -e
         python -m pip install PySide6
         mne sys_info -pd
-        mne sys_info -pd grep "qtpy: .*{PySide6=.*}$"
+        mne sys_info -pd | grep "qtpy: .*{PySide6=.*}$"
         pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PySide6
       displayName: 'PySide6'
