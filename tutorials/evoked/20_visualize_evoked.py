@@ -270,7 +270,7 @@ evks['aud/left'].plot_field(maps, time=0.1)
 
 for ch_type in ('mag', 'grad', 'eeg'):
     evk = evks['aud/right'].copy().pick(ch_type)
-    _map = mne.make_field_map(evk, trans=trans_file, subject='sample',
+    _map = mne.make_field_map(evk, trans=str(trans_file), subject='sample',
                               subjects_dir=subjects_dir, meg_surf='head')
     fig = evk.plot_field(_map, time=0.1)
     mne.viz.set_3d_title(fig, ch_type, size=20)
