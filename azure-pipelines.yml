@@ -197,6 +197,7 @@ stages:
       displayName: Remove PyQt5
     # PyQt6
     - script: python -m pip install PyQt6
+      displayName: Install PyQt6
     - bash: |
         set -e
         mne sys_info -pd
@@ -208,6 +209,7 @@ stages:
       displayName: Remove PyQt6
     # Pyside2
     - script: python -m pip install PySide2
+      displayName: Install PySide2
     - bash: |
         set -e
         mne sys_info -pd
@@ -219,6 +221,7 @@ stages:
       displayName: Remove PySide2
     # Pyside6
     - script: python -m pip install PySide6
+      displayName: Install PySide6
     - bash: |
         set -e
         mne sys_info -pd
