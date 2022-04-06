@@ -189,7 +189,7 @@ stages:
     - bash: |
         set -e
         mne sys_info -pd
-        mne sys_info -pd | grep PyQt5
+        mne sys_info -pd | grep "^qtpy: .*{PyQt5=.*}$"
       displayName: 'PyQt5: Check config'
     - script: pytest -m "not slowtest" ${TEST_OPTIONS}
       displayName: 'PyQt5: Test'
@@ -201,7 +201,7 @@ stages:
     - bash: |
         set -e
         mne sys_info -pd
-        mne sys_info -pd | grep PyQt6
+        mne sys_info -pd | grep "^qtpy: .*{PyQt6=.*}$"
       displayName: 'PyQt6: Check config'
     - script: pytest -m "not slowtest" ${TEST_OPTIONS}
       displayName: 'PyQt6: Test'
@@ -213,7 +213,7 @@ stages:
     - bash: |
         set -e
         mne sys_info -pd
-        mne sys_info -pd grep PySide2
+        mne sys_info -pd grep "^qtpy: .*{PySide2=.*}$"
       displayName: 'PySide2: Check config'
     - script: pytest -m "not slowtest" ${TEST_OPTIONS}
       displayName: 'PySide2: Test'
@@ -225,7 +225,7 @@ stages:
     - bash: |
         set -e
         mne sys_info -pd
-        mne sys_info -pd grep PySide6
+        mne sys_info -pd grep "qtpy: .*{PySide6=.*}$"
       displayName: 'PySide6: Check config'
     - script: pytest -m "not slowtest" ${TEST_OPTIONS}
       displayName: 'PySide6: Test'
