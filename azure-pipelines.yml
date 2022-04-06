@@ -185,52 +185,37 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    # PyQt5
     - bash: |
         set -e
         mne sys_info -pd
         mne sys_info -pd | grep "^qtpy: .*{PyQt5=.*}$"
-      displayName: 'PyQt5: Check config'
-    - script: pytest -m "not slowtest" ${TEST_OPTIONS}
-      displayName: 'PyQt5: Test'
-    - script: python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
-      displayName: 'PyQt5: Remove'
-    # PyQt6
-    - script: python -m pip install PyQt6
-      displayName: 'PyQt6: Install'
+        pytest -m "not slowtest" ${TEST_OPTIONS}
+        python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
+      displayName: 'PyQt5'
     - bash: |
         set -e
+        python -m pip install PyQt6
         mne sys_info -pd
         mne sys_info -pd | grep "^qtpy: .*{PyQt6=.*}$"
-      displayName: 'PyQt6: Check config'
-    - script: pytest -m "not slowtest" ${TEST_OPTIONS}
-      displayName: 'PyQt6: Test'
-    - script: python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt5-Qt6
-      displayName: 'PyQt6: Remove'
-    # Pyside2
-    - script: python -m pip install PySide2
-      displayName: 'PySide2: Install'
+        pytest -m "not slowtest" ${TEST_OPTIONS}
+        python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
+      displayName: 'PyQt6'
     - bash: |
         set -e
+        python -m pip install PySide2
         mne sys_info -pd
         mne sys_info -pd grep "^qtpy: .*{PySide2=.*}$"
-      displayName: 'PySide2: Check config'
-    - script: pytest -m "not slowtest" ${TEST_OPTIONS}
-      displayName: 'PySide2: Test'
-    - script: python -m pip uninstall -yq PySide2
-      displayName: 'PySide2: Remove'
-    # Pyside6
-    - script: python -m pip install PySide6
-      displayName: Install PySide6
+        pytest -m "not slowtest" ${TEST_OPTIONS}
+        python -m pip uninstall -yq PySide2
+      displayName: 'PySide2'
     - bash: |
         set -e
+        python -m pip install PySide6
         mne sys_info -pd
         mne sys_info -pd grep "qtpy: .*{PySide6=.*}$"
-      displayName: 'PySide6: Check config'
-    - script: pytest -m "not slowtest" ${TEST_OPTIONS}
-      displayName: 'PySide6: Test'
-    - script: python -m pip uninstall -yq PySide6
-      displayName: 'PySide6: Remove'
+        pytest -m "not slowtest" ${TEST_OPTIONS}
+        python -m pip uninstall -yq PySide6
+      displayName: 'PySide6'
     # Coverage
     - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
