@@ -168,8 +168,13 @@ stages:
         python -m pip install --pre --only-binary ":all:" vtk-9.1.0.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
         python -c "import vtk"
         python -m pip install --progress-bar off --upgrade -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+        python -m pip install -e .
       displayName: 'Install dependencies with pip'
-    - script: mne sys_info -pd
+    - bash: |
+        set -e
+        which mne
+        mne sys_info -pd
+        mne sys_info -pd | grep "^mne: .*dev0.*$"
       displayName: Print config
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
