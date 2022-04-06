@@ -259,8 +259,8 @@ trans_file = root / 'sample_audvis_raw-trans.fif'
 # Once the maps are computed, you can plot them with `evoked.plot_field()
 # <mne.Evoked.plot_field>`:
 
-maps = mne.make_field_map(evks['aud/left'], trans=trans_file, subject='sample',
-                          subjects_dir=subjects_dir)
+maps = mne.make_field_map(evks['aud/left'], trans=str(trans_file),
+                          subject='sample', subjects_dir=subjects_dir)
 evks['aud/left'].plot_field(maps, time=0.1)
 
 # %%
