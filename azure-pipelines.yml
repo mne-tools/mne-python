@@ -167,8 +167,8 @@ stages:
         set -e
         python -m pip install --progress-bar off --upgrade pip setuptools wheel
         python -m pip install --progress-bar off --upgrade --only-binary=\"numpy,scipy,matplotlib\" numpy scipy matplotlib
-        wget -q https://github.com/pyvista/pyvista-wheels/blob/main/vtk-9.1.0.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl?raw=true -O vtk-9.1.0.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-        python -m pip install --pre --only-binary ":all:" vtk-9.1.0.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+        wget -q https://osf.io/ajder/download -O vtk-9.1.20220406.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+        python -m pip install --pre --only-binary ":all:" vtk-9.1.20220406.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
         python -c "import vtk"
         python -m pip install --progress-bar off --upgrade -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt codecov
         python -m pip install -e .
@@ -195,14 +195,14 @@ stages:
         pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
       displayName: 'PyQt5'
-    # - bash: |
-    #     set -e
-    #     python -m pip install PyQt6
-    #     mne sys_info -pd
-    #     mne sys_info -pd | grep "^qtpy: .*{PyQt6=.*}$"
-    #     pytest -m "not slowtest" ${TEST_OPTIONS}
-    #     python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
-    #   displayName: 'PyQt6'
+    - bash: |
+        set -e
+        python -m pip install PyQt6
+        mne sys_info -pd
+        mne sys_info -pd | grep "^qtpy: .*{PyQt6=.*}$"
+        pytest -m "not slowtest" ${TEST_OPTIONS}
+        python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
+      displayName: 'PyQt6'
     - bash: |
         set -e
         python -m pip install PySide2
