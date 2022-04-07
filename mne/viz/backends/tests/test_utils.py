@@ -70,11 +70,11 @@ def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
         # This should work, but it just picks up the parent in the errant case!
         bgcolor = widget.palette().color(widget.backgroundRole()).getRgbF()[:3]
         dark = rgb_to_hls(*bgcolor)[1] < 0.5
-        assert dark == want_dark, f'{widget} {dark=} but {want_dark=}'
+        assert dark == want_dark, f'{widget} dark={dark} want_dark={want_dark}'
         # ... so we use a more direct test
         colors = _pixmap_to_ndarray(widget.grab())[:, :, :3]
         dark = colors.mean() < 0.5
-        assert dark == want_dark, f'{widget} {dark=} but {want_dark=}'
+        assert dark == want_dark, f'{widget} dark={dark} want_dark={want_dark}'
 
     for widget in (fig.mne.toolbar, fig.statusBar()):
         assert_correct_darkness(widget, is_dark)
