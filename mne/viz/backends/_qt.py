@@ -6,6 +6,7 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
+from functools import partial
 
 import pyvista
 from pyvistaqt.plotting import FileDialog
@@ -158,7 +159,7 @@ class _QtDock(_AbstractDock, _QtLayout):
             widget.setIcon(self._icons[icon])
 
         _set_widget_tooltip(widget, tooltip)
-        widget.clicked.connect(callback)
+        widget.clicked.connect(partial(callback))
 
         layout = self._dock_layout if layout is None else layout
         self._layout_add_widget(layout, widget)
@@ -400,7 +401,8 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
                              shortcut=None):
         icon_name = name if icon_name is None else icon_name
         icon = self._icons[icon_name]
-        self.actions[name] = self._tool_bar.addAction(icon, desc, func)
+        self.actions[name] = self._tool_bar.addAction(
+            icon, desc, partial(func))
         if shortcut is not None:
             self.actions[name].setShortcut(shortcut)
 
@@ -450,7 +452,7 @@ class _QtMenuBar(_AbstractMenuBar):
     def _menu_add_button(self, menu_name, name, desc, func):
         menu = self._menus[menu_name]
         self._menu_actions[menu_name][name] = \
-            _QtAction(menu.addAction(desc, func))
+            _QtAction(menu.addAction(desc, partial(func)))
 
 
 class _QtStatusBar(_AbstractStatusBar, _QtLayout):
@@ -475,7 +477,7 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
 class _QtPlayback(_AbstractPlayback):
     def _playback_initialize(self, func, timeout, value, rng,
                              time_widget, play_widget):
-        self.figure.plotter.add_callback(func, timeout)
+        self.figure.plotter.add_callback(partial(func), timeout)
 
 
 class _QtMplInterface(_AbstractMplInterface):
