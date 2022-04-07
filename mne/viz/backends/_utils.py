@@ -203,21 +203,21 @@ def _qt_get_stylesheet(theme):
     from ..utils import logger, warn, _validate_type
     _validate_type(theme, ('path-like',), 'theme')
     theme = str(theme)
-    current_theme = None
+    system_theme = None
     if theme == 'auto':
-        theme = current_theme = _qt_detect_theme()
+        theme = system_theme = _qt_detect_theme()
     if theme in ('dark', 'light'):
-        # This conditional is wrong on macOS -- the system could be theming
-        # dark and the user passes theme='light' for example
-        if current_theme is None:
-            current_theme = _qt_detect_theme()
-        # Eventually we probably *also* want this to depend on the Qt version,
-        # assuming it's fixed in 5.13+ somewhere (we pin to 5.12 currently)
-        if sys.platform == 'darwin' and theme == current_theme == 'dark':
-            # Taken using "Digital Color Meter" on macOS 12.2.1 looking at
-            # Meld, and also adapting (MIT-licensed)
-            # https://github.com/ColinDuquesnoy/QDarkStyleSheet/blob/master/qdarkstyle/dark/style.qss  # noqa: E501
-            stylesheet = """\
+        if system_theme is None:
+            system_theme = _qt_detect_theme()
+        if sys.platform == 'darwin' and theme == system_theme:
+            # Eventually we probably *also* want this to depend on the Qt
+            # version, assuming it's fixed in 5.13+ somewhere (we pin to 5.12
+            # currently)
+            if theme == 'dark':
+                # Taken using "Digital Color Meter" on macOS 12.2.1 looking at
+                # Meld, and also adapting (MIT-licensed)
+                # https://github.com/ColinDuquesnoy/QDarkStyleSheet/blob/master/qdarkstyle/dark/style.qss  # noqa: E501
+                stylesheet = """\
 QStatusBar {
   border: 1px solid rgb(76, 76, 75);
   background: rgb(51, 51, 51);
@@ -230,15 +230,14 @@ QToolBar {
   border-bottom: 1px solid rgb(99, 99, 99);
 }
 """
-        elif theme == current_theme:  # reset
-            stylesheet = ''
+            else:
+                stylesheet = ''
         else:
             try:
                 import qdarkstyle
             except ModuleNotFoundError:
                 logger.info(
-                    f'To use {theme} mode on a system currently in '
-                    f'{current_theme} mode, "qdarkstyle" has to be installed! '
+                    f'To use {theme} mode, "qdarkstyle" has to be installed! '
                     'You can install it with `pip install qdarkstyle`')
                 stylesheet = ''
             else:
