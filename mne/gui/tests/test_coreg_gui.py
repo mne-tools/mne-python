@@ -2,7 +2,6 @@
 #
 # License: BSD-3-Clause
 
-import os
 import os.path as op
 
 import pytest
@@ -106,7 +105,7 @@ def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
     """Test that using CoregistrationUI matches mne coreg."""
     from mne.gui import coregistration
     from mne.gui._coreg import CoregistrationUI
-    config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
+    config = get_config()
     # the sample subject in testing has MRI fids
     assert op.isfile(op.join(
         subjects_dir, 'sample', 'bem', 'sample-fiducials.fif'))

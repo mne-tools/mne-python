@@ -96,7 +96,7 @@ def _annotation_helper(raw, browse_backend, events=False):
     # with QTest, there seems to happen a rounding of pixels to integers
     # internally. This deviatian also seems to change between runs
     # (maybe device-dependent?).
-    atol = 1e-10 if ismpl else 1e-2
+    atol = 1e-10 if ismpl else 2e-2
     assert_allclose(onset, want_onset, atol=atol)
     assert_allclose(raw.annotations.duration[n_anns], 4., atol=atol)
     # modify annotation from end (duration 4 → 1.5)
@@ -415,7 +415,22 @@ def test_plot_raw_child_figures(raw, browser_backend):
     fig._resize_by_factor(0.5)
 
 
-def test_plot_raw_keypresses(raw, browser_backend):
+def _monkeypatch_fig(fig, browser_backend):
+    if browser_backend.name == 'matplotlib':
+        fig.canvas.manager.full_screen_toggle = lambda: None
+    else:
+        # Monkeypatch the Qt methods
+        def _full():
+            fig.isFullScreen = lambda: True
+
+        def _norm():
+            fig.isFullScreen = lambda: False
+
+        fig.showFullScreen = _full
+        fig.showNormal = _norm
+
+
+def test_plot_raw_keypresses(raw, browser_backend, monkeypatch):
     """Test keypress interactivity of plot_raw()."""
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
@@ -425,11 +440,14 @@ def test_plot_raw_keypresses(raw, browser_backend):
     keys = ('pagedown', 'down', 'up', 'down', 'right', 'left', '-', '+', '=',
             'd', 'd', 'pageup', 'home', 'end', 'z', 'z', 's', 's', 'f11', 't',
             'b')
+    # Avoid annoying fullscreen issues by monkey-patching our handlers
+    _monkeypatch_fig(fig, browser_backend)
     # test for group_by='original'
     for key in 2 * keys + ('escape',):
         fig._fake_keypress(key)
     # test for group_by='selection'
     fig = plot_raw(raw, group_by='selection')
+    _monkeypatch_fig(fig, browser_backend)
     for key in 2 * keys + ('escape',):
         fig._fake_keypress(key)
 

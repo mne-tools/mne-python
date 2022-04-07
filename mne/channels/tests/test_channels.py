@@ -32,6 +32,8 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 eve_fname = op.join(base_dir, 'test-eve.fif')
 fname_kit_157 = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
 
+testing_path = testing.data_path(download=False)
+
 
 @pytest.mark.parametrize('preload', (True, False))
 @pytest.mark.parametrize('proj', (True, False))
@@ -277,9 +279,8 @@ def test_get_set_sensor_positions():
 @testing.requires_testing_data
 def test_1020_selection():
     """Test making a 10/20 selection dict."""
-    base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
-    raw_fname = op.join(base_dir, 'test_raw.set')
-    loc_fname = op.join(base_dir, 'test_chans.locs')
+    raw_fname = op.join(testing_path, 'EEGLAB', 'test_raw.set')
+    loc_fname = op.join(testing_path, 'EEGLAB', 'test_chans.locs')
     raw = read_raw_eeglab(raw_fname, preload=True)
     montage = read_custom_montage(loc_fname)
     raw = raw.rename_channels(dict(zip(raw.ch_names, montage.ch_names)))

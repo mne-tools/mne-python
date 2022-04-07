@@ -15,6 +15,10 @@ from mne.io import read_raw_nirx
 from mne.preprocessing.nirs import optical_density, beer_lambert_law
 
 
+fname_nirx = op.join(data_path(download=False),
+                     'NIRx', 'nirscout', 'nirx_15_2_recording_w_overlap')
+
+
 @pytest.fixture()
 def fnirs_evoked():
     """Create an fnirs evoked structure."""
@@ -33,9 +37,7 @@ def fnirs_evoked():
 @pytest.fixture(params=[_pytest_param()])
 def fnirs_epochs():
     """Create an fnirs epoch structure."""
-    fname = op.join(data_path(download=False),
-                    'NIRx', 'nirscout', 'nirx_15_2_recording_w_overlap')
-    raw_intensity = read_raw_nirx(fname, preload=False)
+    raw_intensity = read_raw_nirx(fname_nirx, preload=False)
     raw_od = optical_density(raw_intensity)
     raw_haemo = beer_lambert_law(raw_od, ppf=6.)
     evts, _ = events_from_annotations(raw_haemo, event_id={'1.0': 1})

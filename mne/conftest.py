@@ -26,7 +26,7 @@ from mne.fixes import has_numba, _compare_version
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.stats import cluster_level
 from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
-                       _check_qt_version)
+                       _check_qt_version, _TempDir)
 
 # data from sample dataset
 from mne.viz._figure import use_browser_backend
@@ -67,7 +67,7 @@ def pytest_configure(config):
 
     # Fixtures
     for fixture in ('matplotlib_config', 'close_all', 'check_verbose',
-                    'qt_config'):
+                    'qt_config', 'protect_config'):
         config.addinivalue_line('usefixtures', fixture)
 
     # Warnings
@@ -457,13 +457,14 @@ def pg_backend(request, garbage_collect):
     'matplotlib',
     pytest.param('qt', marks=pytest.mark.pgtest),
 ])
-def browser_backend(request, garbage_collect):
+def browser_backend(request, garbage_collect, monkeypatch):
     """Parametrizes the name of the browser backend."""
     backend_name = request.param
     if backend_name == 'qt':
         _check_pyqtgraph(request)
     with use_browser_backend(backend_name) as backend:
         backend._close_all()
+        monkeypatch.setenv('MNE_BROWSE_RAW_SIZE', '10,10')
         yield backend
         backend._close_all()
         if backend_name == 'qt':
@@ -699,6 +700,14 @@ def options_3d():
             "MNE_3D_OPTION_SMOOTH_SHADING": "false",
         }
     ):
+        yield
+
+
+@pytest.fixture(scope='session')
+def protect_config():
+    """Protect ~/.mne."""
+    temp = _TempDir()
+    with mock.patch.dict(os.environ, {"_MNE_FAKE_HOME_DIR": temp}):
         yield
 
 
