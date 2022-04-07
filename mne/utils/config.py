@@ -18,7 +18,7 @@ import re
 
 import numpy as np
 
-from .check import (_validate_type, _check_pyqt5_version, _check_option,
+from .check import (_validate_type, _check_qt_version, _check_option,
                     _check_fname)
 from .docs import fill_doc
 from ._logging import warn, logger
@@ -532,7 +532,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         pandas:        1.0.5
         pyvista:       0.25.3 {pyvistaqt=0.1.1, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 7.0, 256 bits)}
         vtk:           9.0.1
-        PyQt5:         5.15.0
+        qtpy:          2.0.1 {PyQt5=5.15.0}
         pooch:         v1.5.1
     """  # noqa: E501
     _validate_type(dependencies, str)
@@ -574,7 +574,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
                      'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
-                     'PyQt5', 'ipympl', 'pooch', '', 'mne_bids', 'mne_nirs',
+                     'qtpy', 'ipympl', 'pooch', '', 'mne_bids', 'mne_nirs',
                      'mne_features', 'mne_qt_browser', 'mne_connectivity')
     if dependencies == 'developer':
         use_mod_names += (
@@ -601,12 +601,20 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                             break
                 else:
                     out('unknown')
-            elif mod_name == 'PyQt5':
-                out(_check_pyqt5_version())
             else:
                 out(mod.__version__)
             if mod_name == 'numpy':
                 out(f' {{{libs}}}')
+            elif mod_name == 'qtpy':
+                qt_msg = ' {'
+                for api in ('PyQt5', 'PyQt6', 'PySide2', 'PySide6'):
+                    version = _check_qt_version(api)
+                    if version != 'unknown':
+                        if qt_msg[-1] != '{':
+                            qt_msg += ', '
+                        qt_msg += f'{api}={version}'
+                qt_msg += '}'
+                out(qt_msg)
             elif mod_name == 'matplotlib':
                 out(f' {{backend={mod.get_backend()}}}')
             elif mod_name == 'pyvista':

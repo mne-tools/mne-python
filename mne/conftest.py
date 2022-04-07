@@ -26,7 +26,7 @@ from mne.fixes import has_numba, _compare_version
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.stats import cluster_level
 from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
-                       _check_pyqt5_version)
+                       _check_qt_version)
 
 # data from sample dataset
 from mne.viz._figure import use_browser_backend
@@ -419,8 +419,8 @@ def _check_pyqtgraph(request):
         import PyQt5  # noqa: F401
     except ModuleNotFoundError:
         pytest.skip('PyQt5 is not installed but needed for pyqtgraph!')
-    if not _compare_version(_check_pyqt5_version(), '>=', '5.12'):
-        pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
+    if not _compare_version(_check_qt_version(), '>=', '5.12'):
+        pytest.skip(f'PyQt5 has version {_check_qt_version()}'
                     f'but pyqtgraph needs >= 5.12!')
     # Check mne-qt-browser
     try:
@@ -521,15 +521,15 @@ def _use_backend(backend_name, interactive):
 
 def _check_skip_backend(name):
     from mne.viz.backends.tests._utils import (has_pyvista,
-                                               has_pyqt5, has_imageio_ffmpeg,
+                                               has_qt, has_imageio_ffmpeg,
                                                has_pyvistaqt)
     if name in ('pyvistaqt', 'notebook'):
         if not has_pyvista():
             pytest.skip("Test skipped, requires pyvista.")
         if not has_imageio_ffmpeg():
             pytest.skip("Test skipped, requires imageio-ffmpeg")
-    if name == 'pyvistaqt' and not has_pyqt5():
-        pytest.skip("Test skipped, requires PyQt5.")
+    if name == 'pyvistaqt' and not has_qt():
+        pytest.skip("Test skipped, requires Qt.")
     if name == 'pyvistaqt' and not has_pyvistaqt():
         pytest.skip("Test skipped, requires pyvistaqt")
 
@@ -537,10 +537,10 @@ def _check_skip_backend(name):
 @pytest.fixture(scope='session')
 def pixel_ratio():
     """Get the pixel ratio."""
-    from mne.viz.backends.tests._utils import has_pyvista, has_pyqt5
-    if not has_pyvista() or not has_pyqt5():
+    from mne.viz.backends.tests._utils import has_pyvista, has_qt
+    if not has_pyvista() or not has_qt():
         return 1.
-    from PyQt5.QtWidgets import QApplication, QMainWindow
+    from qtpy.QtWidgets import QApplication, QMainWindow
     _ = QApplication.instance() or QApplication([])
     window = QMainWindow()
     ratio = float(window.devicePixelRatio())

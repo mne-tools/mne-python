@@ -31,13 +31,15 @@ def has_pyvistaqt():
         return False
 
 
-def has_pyqt5():
-    """Check if PyQt5 is installed."""
-    try:
-        import PyQt5  # noqa: F401
-        return True
-    except ImportError:
-        return False
+def has_qt():
+    """Check if Qt is installed."""
+    for api in ('PyQt5', 'PyQt6', 'PySide2', 'PySide6'):
+        try:
+            __import__(api)
+            return True
+        except ImportError:
+            pass
+    return False
 
 
 def has_imageio_ffmpeg():

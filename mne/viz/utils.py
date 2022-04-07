@@ -55,7 +55,7 @@ _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
 
 @decorator
 def safe_event(fun, *args, **kwargs):
-    """Protect against PyQt5 exiting on event-handling errors."""
+    """Protect against Qt exiting on event-handling errors."""
     try:
         return fun(*args, **kwargs)
     except Exception:
@@ -143,7 +143,7 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
     if backend == 'matplotlib':
         plt_show(show, block=block, **kwargs)
     else:
-        from PyQt5.QtWidgets import QApplication
+        from qtpy.QtWidgets import QApplication
         from .backends._utils import _qt_app_exec
         if show:
             fig.show()

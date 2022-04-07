@@ -152,7 +152,10 @@ stages:
       OPENBLAS_NUM_THREADS: '1'
       TEST_OPTIONS: "--tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/gui"
     steps:
-    - bash: ./tools/setup_xvfb.sh
+    - bash: |
+        set -e
+        ./tools/setup_xvfb.sh
+        sudo apt install libegl1
       displayName: 'Install Ubuntu dependencies'
     - task: UsePythonVersion@0
       inputs:
@@ -164,12 +167,17 @@ stages:
         set -e
         python -m pip install --progress-bar off --upgrade pip setuptools wheel
         python -m pip install --progress-bar off --upgrade --only-binary=\"numpy,scipy,matplotlib\" numpy scipy matplotlib
-        wget -q https://github.com/pyvista/pyvista-wheels/blob/main/vtk-9.1.0.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl?raw=true -O vtk-9.1.0.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-        python -m pip install --pre --only-binary ":all:" vtk-9.1.0.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+        wget -q https://osf.io/ajder/download -O vtk-9.1.20220406.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+        python -m pip install --pre --only-binary ":all:" vtk-9.1.20220406.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
         python -c "import vtk"
         python -m pip install --progress-bar off --upgrade -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt codecov
+        python -m pip install -e .
       displayName: 'Install dependencies with pip'
-    - script: mne sys_info -pd
+    - bash: |
+        set -e
+        which mne
+        mne sys_info -pd
+        mne sys_info -pd | grep "^mne: .*dev0.*$"
       displayName: Print config
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
@@ -180,49 +188,37 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    # PyQt5
     - bash: |
         set -e
         mne sys_info -pd
-        mne sys_info -pd | grep PyQt5
-      displayName: Print PyQt5 config
-    - script: pytest -m "not slowtest" ${TEST_OPTIONS}
-      displayName: 'Run PyQt5 tests'
-    - script: python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
-      displayName: Remove PyQt5
-    ## PyQt6
-    #- script: python -m pip install pyqt6
-    #- bash: |
-    #    set -e
-    #    mne sys_info -pd
-    #    mne sys_info -pd | grep PyQt6
-    #  displayName: Print PyQt6 config
-    #- script: pytest -m "not slowtest" ${TEST_OPTIONS}
-    #  displayName: 'Run PyQt6 tests'
-    #- script: python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt5-Qt6
-    #  displayName: Remove PyQt6
-    ## Pyside2
-    #- script: python -m pip install PySide2
-    #- bash: |
-    #    set -e
-    #    mne sys_info -pd
-    #    mne sys_info -pd grep PySide2
-    #  displayName: Print PySide2 config
-    #- script: pytest -m "not slowtest" ${TEST_OPTIONS}
-    #  displayName: 'Run Pyside2 tests'
-    #- script: python -m pip uninstall -yq PySide2
-    #  displayName: Remove PySide2
-    ## Pyside6
-    #- script: python -m pip install PySide6
-    #- bash: |
-    #    set -e
-    #    mne sys_info -pd
-    #    mne sys_info -pd grep PySide6
-    #  displayName: Print PySide6 config
-    #- script: pytest -m "not slowtest" ${TEST_OPTIONS}
-    #  displayName: 'Run Pyside2 tests'
-    #- script: python -m pip uninstall -yq PySide6
-    #  displayName: Remove PySide6
+        mne sys_info -pd | grep "^qtpy: .*{PyQt5=.*}$"
+        pytest -m "not slowtest" ${TEST_OPTIONS}
+        python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
+      displayName: 'PyQt5'
+    - bash: |
+        set -e
+        python -m pip install PyQt6
+        mne sys_info -pd
+        mne sys_info -pd | grep "^qtpy: .*{PyQt6=.*}$"
+        pytest -m "not slowtest" ${TEST_OPTIONS}
+        python -m pip uninstall -yq PyQt6 PyQt6-sip PyQt6-Qt6
+      displayName: 'PyQt6'
+    - bash: |
+        set -e
+        python -m pip install PySide2
+        mne sys_info -pd
+        mne sys_info -pd | grep "^qtpy: .*{PySide2=.*}$"
+        pytest -m "not slowtest" ${TEST_OPTIONS}
+        python -m pip uninstall -yq PySide2
+      displayName: 'PySide2'
+    - bash: |
+        set -e
+        python -m pip install PySide6
+        mne sys_info -pd
+        mne sys_info -pd | grep "qtpy: .*{PySide6=.*}$"
+        pytest -m "not slowtest" ${TEST_OPTIONS}
+        python -m pip uninstall -yq PySide6
+      displayName: 'PySide6'
     # Coverage
     - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'

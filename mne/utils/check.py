@@ -779,21 +779,23 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
              % (1e9 * max_cur))
 
 
-def _check_pyqt5_version():
-    bad = True
+def _check_qt_version(api='PyQt5'):
     try:
-        from PyQt5.Qt import PYQT_VERSION_STR as version
+        if api in ('PyQt5', 'PyQt6'):
+            qt_mod = import_module(f'{api}.QtCore')
+            version = qt_mod.PYQT_VERSION_STR
+        else:
+            assert api in ('PySide2', 'PySide6')
+            qt_mod = import_module(api)
+            version = qt_mod.__version__
     except Exception:
         version = 'unknown'
     else:
-        if _compare_version(version, '>=', '5.10'):
-            bad = False
-    bad &= sys.platform == 'darwin'
-    if bad:
-        warn('macOS users should use PyQt5 >= 5.10 for GUIs, got %s. '
-             'Please upgrade e.g. with:\n\n'
-             '    pip install "PyQt5>=5.10,<5.14"\n'
-             % (version,))
+        if sys.platform == 'darwin' and api in ('PyQt5', 'PySide2'):
+            if not _compare_version(version, '>=', '5.10'):
+                warn(f'macOS users should use {api} >= 5.10 for GUIs, '
+                     f'got {version}. Please upgrade e.g. with:\n\n'
+                     f'    pip install "{api}>=5.10,<5.14"\n')
 
     return version
 

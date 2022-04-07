@@ -6,19 +6,20 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
+from functools import partial
 
 import pyvista
 from pyvistaqt.plotting import FileDialog
 
-from PyQt5.QtCore import Qt, pyqtSignal, QLocale, QObject
-from PyQt5.QtGui import QIcon, QCursor
-from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
-                             QHBoxLayout, QLabel, QToolButton, QMenuBar,
-                             QSlider, QSpinBox, QVBoxLayout, QWidget,
-                             QSizePolicy, QScrollArea, QStyle, QProgressBar,
-                             QStyleOptionSlider, QLayout, QCheckBox,
-                             QButtonGroup, QRadioButton, QLineEdit,
-                             QFileDialog, QPushButton, QMessageBox)
+from qtpy.QtCore import Qt, Signal, QLocale, QObject
+from qtpy.QtGui import QIcon, QCursor
+from qtpy.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
+                            QHBoxLayout, QLabel, QToolButton, QMenuBar,
+                            QSlider, QSpinBox, QVBoxLayout, QWidget,
+                            QSizePolicy, QScrollArea, QStyle, QProgressBar,
+                            QStyleOptionSlider, QLayout, QCheckBox,
+                            QButtonGroup, QRadioButton, QLineEdit,
+                            QFileDialog, QPushButton, QMessageBox)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
@@ -158,7 +159,7 @@ class _QtDock(_AbstractDock, _QtLayout):
             widget.setIcon(self._icons[icon])
 
         _set_widget_tooltip(widget, tooltip)
-        widget.clicked.connect(callback)
+        widget.clicked.connect(partial(callback))
 
         layout = self._dock_layout if layout is None else layout
         self._layout_add_widget(layout, widget)
@@ -186,7 +187,10 @@ class _QtDock(_AbstractDock, _QtLayout):
         widget.setMinimum(cast(rng[0]))
         widget.setMaximum(cast(rng[1]))
         widget.setValue(cast(value))
-        widget.valueChanged.connect(callback)
+        if double:
+            widget.floatValueChanged.connect(callback)
+        else:
+            widget.valueChanged.connect(callback)
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
@@ -316,7 +320,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 class QFloatSlider(QSlider):
     """Slider that handles float values."""
 
-    valueChanged = pyqtSignal(float)
+    floatValueChanged = Signal(float)
 
     def __init__(self, ori, parent=None):
         """Initialize the slider."""
@@ -331,7 +335,7 @@ class QFloatSlider(QSlider):
         super().valueChanged.connect(self._convert)
 
     def _convert(self, value):
-        self.valueChanged.emit(value / self._precision)
+        self.floatValueChanged.emit(value / self._precision)
 
     def minimum(self):
         """Get the minimum."""
@@ -397,7 +401,8 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
                              shortcut=None):
         icon_name = name if icon_name is None else icon_name
         icon = self._icons[icon_name]
-        self.actions[name] = self._tool_bar.addAction(icon, desc, func)
+        self.actions[name] = self._tool_bar.addAction(
+            icon, desc, partial(func))
         if shortcut is not None:
             self.actions[name].setShortcut(shortcut)
 
@@ -447,7 +452,7 @@ class _QtMenuBar(_AbstractMenuBar):
     def _menu_add_button(self, menu_name, name, desc, func):
         menu = self._menus[menu_name]
         self._menu_actions[menu_name][name] = \
-            _QtAction(menu.addAction(desc, func))
+            _QtAction(menu.addAction(desc, partial(func)))
 
 
 class _QtStatusBar(_AbstractStatusBar, _QtLayout):
@@ -472,12 +477,12 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
 class _QtPlayback(_AbstractPlayback):
     def _playback_initialize(self, func, timeout, value, rng,
                              time_widget, play_widget):
-        self.figure.plotter.add_callback(func, timeout)
+        self.figure.plotter.add_callback(partial(func), timeout)
 
 
 class _QtMplInterface(_AbstractMplInterface):
     def _mpl_initialize(self):
-        from PyQt5 import QtWidgets
+        from qtpy import QtWidgets
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
         self.canvas = FigureCanvasQTAgg(self.fig)
         FigureCanvasQTAgg.setSizePolicy(
@@ -713,7 +718,7 @@ class _QtWidget(_AbstractWidget):
         elif hasattr(self._widget, "currentText"):
             return self._widget.currentText()
         elif hasattr(self._widget, "checkState"):
-            return bool(self._widget.checkState())
+            return self._widget.checkState() != Qt.Unchecked
         else:
             assert hasattr(self._widget, "text")
             return self._widget.text()
@@ -754,7 +759,7 @@ class _QtWidget(_AbstractWidget):
 
 
 class _QtDialogCommunicator(QObject):
-    signal_show = pyqtSignal()
+    signal_show = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
