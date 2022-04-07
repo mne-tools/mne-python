@@ -5,8 +5,15 @@
 #
 # License: Simplified BSD
 
+from colorsys import rgb_to_hls
+
+import numpy as np
 import pytest
-from mne.viz.backends._utils import _get_colormap_from_array, _check_color
+
+from mne import create_info
+from mne.io import RawArray
+from mne.viz.backends._utils import (_get_colormap_from_array, _check_color,
+                                     _qt_is_dark, _pixmap_to_ndarray)
 
 
 def test_get_colormap_from_array():
@@ -39,3 +46,35 @@ def test_check_color():
         _check_color(['foo', 'bar', 'foo'])
     with pytest.raises(TypeError, match='Expected type'):
         _check_color(None)
+
+
+@pytest.mark.parametrize('theme', ('auto', 'light', 'dark'))
+def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
+    """Test that theme colors propagate properly."""
+    darkdetect = pytest.importorskip('darkdetect')
+    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmp_path))
+    monkeypatch.delenv('MNE_BROWSER_THEME', raising=False)
+    raw = RawArray(np.zeros((1, 1000)), create_info(1, 1000., 'eeg'))
+    fig = raw.plot(theme=theme)
+    is_dark = _qt_is_dark(fig)
+    if theme == 'dark':
+        assert is_dark, theme
+    elif theme == 'light':
+        assert not is_dark, theme
+    else:
+        got_dark = darkdetect.theme().lower() == 'dark'
+        assert is_dark is got_dark
+
+    def assert_correct_darkness(widget, want_dark):
+        __tracebackhide__ = True  # noqa
+        # This should work, but it just picks up the parent in the errant case!
+        bgcolor = widget.palette().color(widget.backgroundRole()).getRgbF()[:3]
+        dark = rgb_to_hls(*bgcolor)[1] < 0.5
+        assert dark == want_dark, f'{widget} {dark=} but {want_dark=}'
+        # ... so we use a more direct test
+        colors = _pixmap_to_ndarray(widget.grab())[:, :, :3]
+        dark = colors.mean() < 0.5
+        assert dark == want_dark, f'{widget} {dark=} but {want_dark=}'
+
+    for widget in (fig.mne.toolbar, fig.statusBar()):
+        assert_correct_darkness(widget, is_dark)

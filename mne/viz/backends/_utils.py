@@ -276,3 +276,13 @@ def _qt_is_dark(widget):
     win = widget.window()
     bgcolor = win.palette().color(win.backgroundRole()).getRgbF()[:3]
     return rgb_to_hls(*bgcolor)[1] < 0.5
+
+
+def _pixmap_to_ndarray(pixmap):
+    img = pixmap.toImage()
+    img = img.convertToFormat(img.Format_RGBA8888)
+    ptr = img.bits()
+    ptr.setsize(img.height() * img.width() * 4)
+    data = np.frombuffer(ptr, dtype=np.uint8).copy()
+    data.shape = (img.height(), img.width(), 4)
+    return data / 255.
