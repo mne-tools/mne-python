@@ -217,16 +217,19 @@ def _qt_get_stylesheet(theme):
                 # Taken using "Digital Color Meter" on macOS 12.2.1 looking at
                 # Meld, and also adapting (MIT-licensed)
                 # https://github.com/ColinDuquesnoy/QDarkStyleSheet/blob/master/qdarkstyle/dark/style.qss  # noqa: E501
+                # Something around rgb(51, 51, 51) worked as the bgcolor here,
+                # but it's easy enough just to set it transparent and inherit
+                # the bgcolor of the window (which is the same)
                 stylesheet = """\
 QStatusBar {
   border: 1px solid rgb(76, 76, 75);
-  background: rgb(51, 51, 51);
+  background: transparent;
 }
 QStatusBar QLabel {
   background: transparent;
 }
 QToolBar {
-  background-color: rgb(53, 53, 53);
+  background-color: transparent;
   border-bottom: 1px solid rgb(99, 99, 99);
 }
 """
