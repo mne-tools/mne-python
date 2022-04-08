@@ -24,7 +24,7 @@ from mne.io.constants import FIFF
 from mne import (pick_types, pick_channels, EpochsArray, EvokedArray,
                  make_ad_hoc_cov, create_info, read_events, Epochs)
 from mne.datasets import testing
-from mne.utils import requires_version
+from mne.utils import requires_pandas, requires_version
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
@@ -520,3 +520,20 @@ def test_combine_channels():
         combine_channels(raw, warn2)
         combine_channels(raw_ch_bad, warn3, drop_bad=True)
     assert len(record) == 3
+
+
+@requires_pandas
+def test_combine_channels_metadata():
+    """Test if metadata is correctly retained in combined object."""
+    import pandas as pd
+
+    raw = read_raw_fif(raw_fname, preload=True)
+    epochs = Epochs(raw, read_events(eve_fname), preload=True)
+
+    metadata = pd.DataFrame({"A": np.arange(len(epochs)),
+                             "B": np.ones(len(epochs))})
+    epochs.metadata = metadata
+
+    good = dict(foo=[0, 1, 3, 4], bar=[5, 2])  # good grad and mag
+    combined_epochs = combine_channels(epochs, good)
+    pd.testing.assert_frame_equal(epochs.metadata, combined_epochs.metadata)
