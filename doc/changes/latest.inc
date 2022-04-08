@@ -35,6 +35,8 @@ Bugs
 
 - Fix behavior for the ``pyvista`` 3D renderer's ``quiver3D`` function so that default arguments plot a glyph in ``arrow`` mode (:gh:`10493` by `Alex Rockhill`_)
 
+- Retain epochs metadata when using :func:`mne.channels.combine_channels` (:gh:`10504` by `Clemens Brunner`_)
+
 API changes
 ~~~~~~~~~~~
 - None yet
