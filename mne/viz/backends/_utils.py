@@ -202,7 +202,8 @@ def _qt_detect_theme():
 
 
 def _qt_get_stylesheet(theme):
-    from ..utils import logger, warn, _validate_type
+    from ...fixes import _compare_version
+    from ...utils import logger, warn, _validate_type
     _validate_type(theme, ('path-like',), 'theme')
     theme = str(theme)
     system_theme = None
@@ -212,10 +213,12 @@ def _qt_get_stylesheet(theme):
         if system_theme is None:
             system_theme = _qt_detect_theme()
         if sys.platform == 'darwin' and theme == system_theme:
-            # Eventually we probably *also* want this to depend on the Qt
-            # version, assuming it's fixed in 5.13+ somewhere (we pin to 5.12
-            # currently)
-            if theme == 'dark':
+            from qtpy import QtCore
+            try:
+                qt_version = QtCore.__version__  # PySide
+            except AttributeError:
+                qt_version = QtCore.QT_VERSION_STR  # PyQt
+            if theme == 'dark' and _compare_version(qt_version, '<', '5.13'):
                 # Taken using "Digital Color Meter" on macOS 12.2.1 looking at
                 # Meld, and also adapting (MIT-licensed)
                 # https://github.com/ColinDuquesnoy/QDarkStyleSheet/blob/master/qdarkstyle/dark/style.qss  # noqa: E501
