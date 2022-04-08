@@ -347,7 +347,8 @@ def _assert_no_instances(cls, when=''):
             check = False
         if check:
             if cls.__name__ == 'Brain':
-                ref.append(f'Brain._cleaned = {obj._cleaned}')
+                ref.append(
+                    f'Brain._cleaned = {getattr(obj, "_cleaned", None)}')
             rr = gc.get_referrers(obj)
             count = 0
             for r in rr:
