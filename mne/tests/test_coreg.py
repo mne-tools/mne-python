@@ -73,7 +73,7 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
     # create fsaverage using the testing "fsaverage" instead of the FreeSurfer
     # one
     tempdir = str(tmp_path)
-    fake_home = testing.data_path()
+    fake_home = data_path
     create_default_subject(subjects_dir=tempdir, fs_home=fake_home,
                            verbose=True)
     assert _is_mri_subject('fsaverage', tempdir), "Creating fsaverage failed"
@@ -86,7 +86,7 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
 
     # copy MRI file from sample data (shouldn't matter that it's incorrect,
     # so here choose a small one)
-    path_from = op.join(testing.data_path(), 'subjects', 'sample', 'mri',
+    path_from = op.join(fake_home, 'subjects', 'sample', 'mri',
                         'T1.mgz')
     path_to = op.join(tempdir, 'fsaverage', 'mri', 'orig.mgz')
     copyfile(path_from, path_to)
@@ -171,7 +171,7 @@ def test_scale_mri_xfm(tmp_path, few_surfaces):
     """Test scale_mri transforms and MRI scaling."""
     # scale fsaverage
     tempdir = str(tmp_path)
-    fake_home = testing.data_path()
+    fake_home = data_path
     # add fsaverage
     create_default_subject(subjects_dir=tempdir, fs_home=fake_home,
                            verbose=True)

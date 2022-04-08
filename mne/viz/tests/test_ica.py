@@ -411,8 +411,7 @@ def test_plot_instance_components(browser_backend):
     ica.exclude = [0]
     fig = ica.plot_sources(raw, title='Components')
     keys = ('home', 'home', 'end', 'down', 'up', 'right', 'left', '-', '+',
-            '=', 'd', 'd', 'pageup', 'pagedown', 'z', 'z', 's', 's', 'f11',
-            'b')
+            '=', 'd', 'd', 'pageup', 'pagedown', 'z', 'z', 's', 's', 'b')
     for key in keys:
         fig._fake_keypress(key)
     x = fig.mne.traces[0].get_xdata()[0]
