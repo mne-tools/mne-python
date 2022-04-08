@@ -282,6 +282,7 @@ def test_coreg_gui_notebook(renderer_notebook, nbexec):
     from mne.datasets import testing
     from mne.gui import coregistration
     mne.viz.set_3d_backend('notebook')  # set the 3d backend
-    data_path = testing.data_path(download=False)
+    with mne.utils.modified_env(_MNE_FAKE_HOME_DIR=None):
+        data_path = testing.data_path(download=False)
     subjects_dir = os.path.join(data_path, 'subjects')
     coregistration(subject='sample', subjects_dir=subjects_dir)
