@@ -3820,7 +3820,7 @@ class Brain(object):
 
     def __hash__(self):
         """Hash the object."""
-        raise NotImplementedError
+        return id(self)
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):
