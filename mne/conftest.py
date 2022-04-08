@@ -703,11 +703,12 @@ def options_3d():
         yield
 
 
-@pytest.fixture()
-def protect_config(tmp_path, monkeypatch):
+@pytest.fixture(scope='session')
+def protect_config():
     """Protect ~/.mne."""
-    monkeypatch.setenv("_MNE_FAKE_HOME_DIR", str(tmp_path))
-    yield
+    temp = _TempDir()
+    with mock.patch.dict(os.environ, {"_MNE_FAKE_HOME_DIR": temp}):
+        yield
 
 
 @pytest.fixture()
