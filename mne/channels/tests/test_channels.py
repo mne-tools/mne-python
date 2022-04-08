@@ -307,8 +307,6 @@ def test_1020_selection():
 @testing.requires_testing_data
 def test_find_ch_adjacency():
     """Test computing the adjacency matrix."""
-    data_path = testing.data_path()
-
     raw = read_raw_fif(raw_fname, preload=True)
     sizes = {'mag': 828, 'grad': 1700, 'eeg': 384}
     nchans = {'mag': 102, 'grad': 204, 'eeg': 60}
@@ -327,13 +325,13 @@ def test_find_ch_adjacency():
     raw.pick_types(meg='mag')
     find_ch_adjacency(raw.info, None)
 
-    bti_fname = op.join(data_path, 'BTi', 'erm_HFH', 'c,rfDC')
-    bti_config_name = op.join(data_path, 'BTi', 'erm_HFH', 'config')
+    bti_fname = op.join(testing_path, 'BTi', 'erm_HFH', 'c,rfDC')
+    bti_config_name = op.join(testing_path, 'BTi', 'erm_HFH', 'config')
     raw = read_raw_bti(bti_fname, bti_config_name, None)
     _, ch_names = find_ch_adjacency(raw.info, 'mag')
     assert 'A1' in ch_names
 
-    ctf_fname = op.join(data_path, 'CTF', 'testdata_ctf_short.ds')
+    ctf_fname = op.join(testing_path, 'CTF', 'testdata_ctf_short.ds')
     raw = read_raw_ctf(ctf_fname)
     _, ch_names = find_ch_adjacency(raw.info, 'mag')
     assert 'MLC11' in ch_names
@@ -349,7 +347,7 @@ def test_find_ch_adjacency():
 @testing.requires_testing_data
 def test_neuromag122_adjacency():
     """Test computing the adjacency matrix of Neuromag122-Data."""
-    nm122_fname = op.join(testing.data_path(), 'misc',
+    nm122_fname = op.join(testing_path, 'misc',
                           'neuromag122_test_file-raw.fif')
     raw = read_raw_fif(nm122_fname, preload=True)
     conn, ch_names = find_ch_adjacency(raw.info, 'grad')

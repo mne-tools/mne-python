@@ -26,7 +26,7 @@ from mne.fixes import has_numba, _compare_version
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.stats import cluster_level
 from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
-                       _check_qt_version, _TempDir)
+                       _check_qt_version)
 
 # data from sample dataset
 from mne.viz._figure import use_browser_backend
