@@ -18,7 +18,7 @@
 
 .. _changes_1_0_1:
 
-Version 1.0.1 (unreleased)
+Version 1.0.1 (2022-04-08)
 --------------------------
 
 Bugs
