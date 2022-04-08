@@ -9,6 +9,7 @@
 import collections.abc
 from colorsys import rgb_to_hls
 from contextlib import contextmanager
+import functools
 import platform
 import signal
 import sys
@@ -75,6 +76,7 @@ def _alpha_blend_background(ctable, background_color):
     return (use_table * alphas) + background_color * (1 - alphas)
 
 
+@functools.lru_cache
 def _qt_init_icons():
     from qtpy.QtGui import QIcon
     icons_path = f"{Path(__file__).parent.parent.parent}/icons"
@@ -219,7 +221,9 @@ def _qt_get_stylesheet(theme):
                 # https://github.com/ColinDuquesnoy/QDarkStyleSheet/blob/master/qdarkstyle/dark/style.qss  # noqa: E501
                 # Something around rgb(51, 51, 51) worked as the bgcolor here,
                 # but it's easy enough just to set it transparent and inherit
-                # the bgcolor of the window (which is the same)
+                # the bgcolor of the window (which is the same). We also take
+                # the separator images from QDarkStyle (MIT).
+                icons_path = _qt_init_icons()
                 stylesheet = """\
 QStatusBar {
   border: 1px solid rgb(76, 76, 75);
@@ -232,7 +236,23 @@ QToolBar {
   background-color: transparent;
   border-bottom: 1px solid rgb(99, 99, 99);
 }
-"""
+QToolBar::separator:horizontal {
+  width: 16px;
+  image: url("%(icons_path)s/toolbar_separator_horizontal@2x.png");
+}
+QToolBar::separator:vertical {
+  height: 16px;
+  image: url("%(icons_path)s/toolbar_separator_vertical@2x.png");
+}
+QToolBar::handle:horizontal {
+  width: 16px;
+  image: url("%(icons_path)s/toolbar_move_horizontal@2x.png");
+}
+QToolBar::handle:vertical {
+  height: 16px;
+  image: url("%(icons_path)s/toolbar_move_vertical@2x.png");
+}
+""" % dict(icons_path=icons_path)
             else:
                 stylesheet = ''
         else:
