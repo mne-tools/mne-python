@@ -333,7 +333,6 @@ def test_eeglab_read_annotations():
 @testing.requires_testing_data
 def test_eeglab_event_from_annot():
     """Test all forms of obtaining annotations."""
-    base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
     raw_fname_mat = op.join(base_dir, 'test_raw.set')
     raw_fname = raw_fname_mat
     event_id = {'rt': 1, 'square': 2}

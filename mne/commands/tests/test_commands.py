@@ -29,7 +29,10 @@ from mne.utils import (requires_mne, requires_vtk, requires_freesurfer,
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
-subjects_dir = op.join(testing.data_path(download=False), 'subjects')
+testing_path = testing.data_path(download=False)
+subjects_dir = op.join(testing_path, 'subjects')
+bem_model_fname = op.join(testing_path, 'subjects',
+                          'sample', 'bem', 'sample-320-320-320-bem.fif')
 
 
 def check_usage(module, force_help=False):
@@ -128,7 +131,8 @@ def test_kit2fiff():
     check_usage(mne_kit2fiff, force_help=True)
 
 
-@pytest.mark.slowtest  # slow on Travis OSX
+@pytest.mark.slowtest
+@pytest.mark.ultraslowtest
 @requires_vtk
 @testing.requires_testing_data
 def test_make_scalp_surfaces(tmp_path, monkeypatch):
@@ -305,7 +309,6 @@ def test_setup_source_space(tmp_path):
     """Test mne setup_source_space."""
     check_usage(mne_setup_source_space, force_help=True)
     # Using the sample dataset
-    subjects_dir = op.join(testing.data_path(download=False), 'subjects')
     use_fname = op.join(tmp_path, "sources-src.fif")
     # Test  command
     with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
@@ -335,7 +338,6 @@ def test_setup_forward_model(tmp_path):
     """Test mne setup_forward_model."""
     check_usage(mne_setup_forward_model, force_help=True)
     # Using the sample dataset
-    subjects_dir = op.join(testing.data_path(download=False), 'subjects')
     use_fname = op.join(tmp_path, "model-bem.fif")
     # Test  command
     with ArgvSetter(('--model', use_fname, '-d', subjects_dir, '--homog',
@@ -353,8 +355,6 @@ def test_mne_prepare_bem_model(tmp_path):
     """Test mne setup_source_space."""
     check_usage(mne_prepare_bem_model, force_help=True)
     # Using the sample dataset
-    bem_model_fname = op.join(testing.data_path(download=False), 'subjects',
-                              'sample', 'bem', 'sample-320-320-320-bem.fif')
     bem_solution_fname = op.join(tmp_path, "bem_solution-bem-sol.fif")
     # Test  command
     with ArgvSetter(('--bem', bem_model_fname, '--sol', bem_solution_fname,

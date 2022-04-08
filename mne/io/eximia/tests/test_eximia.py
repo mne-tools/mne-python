@@ -10,17 +10,19 @@ from mne.io import read_raw_eximia
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets.testing import data_path, requires_testing_data
 
+testing_path = data_path(download=False)
+
 
 @requires_testing_data
 def test_eximia_nxe():
     """Test reading Eximia NXE files."""
-    fname = op.join(data_path(), 'eximia', 'test_eximia.nxe')
+    fname = op.join(testing_path, 'eximia', 'test_eximia.nxe')
     raw = read_raw_eximia(fname, preload=True)
     assert 'RawEximia' in repr(raw)
     _test_raw_reader(read_raw_eximia, fname=fname,
                      test_scaling=False,  # XXX probably a scaling problem
                      )
-    fname_mat = op.join(data_path(), 'eximia', 'test_eximia.mat')
+    fname_mat = op.join(testing_path, 'eximia', 'test_eximia.mat')
     mc = sio.loadmat(fname_mat)
     m_data = mc['data']
     m_header = mc['header']

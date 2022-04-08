@@ -25,7 +25,8 @@ from mne.datasets.testing import data_path, requires_testing_data
 base_dir = op.join(op.dirname(op.abspath(__file__)), 'data')
 egi_fname = op.join(base_dir, 'test_egi.raw')
 egi_txt_fname = op.join(base_dir, 'test_egi.txt')
-egi_path = op.join(data_path(download=False), 'EGI')
+testing_path = data_path(download=False)
+egi_path = op.join(testing_path, 'EGI')
 egi_mff_fname = op.join(egi_path, 'test_egi.mff')
 egi_mff_pns_fname = op.join(egi_path, 'test_egi_pns.mff')
 egi_pause_fname = op.join(egi_path, 'test_egi_multiepoch_paused.mff')
@@ -257,7 +258,7 @@ def test_io_egi_pns_mff(tmp_path):
         'Resp_Effort_Abdomen',
         'EMGLeg'
     ]
-    egi_fname_mat = op.join(data_path(), 'EGI', 'test_egi_pns.mat')
+    egi_fname_mat = op.join(testing_path, 'EGI', 'test_egi_pns.mat')
     mc = sio.loadmat(egi_fname_mat)
     for ch_name, ch_idx, mat_name in zip(pns_names, pns_chans, mat_names):
         print('Testing {}'.format(ch_name))
@@ -281,14 +282,14 @@ def test_io_egi_pns_mff(tmp_path):
 @pytest.mark.parametrize('preload', (True, False))
 def test_io_egi_pns_mff_bug(preload):
     """Test importing EGI MFF with PNS data (BUG)."""
-    egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi_pns_bug.mff')
+    egi_fname_mff = op.join(testing_path, 'EGI', 'test_egi_pns_bug.mff')
     with pytest.warns(RuntimeWarning, match='EGI PSG sample bug'):
         raw = read_raw_egi(egi_fname_mff, include=None, preload=preload,
                            verbose='warning')
     assert len(raw.annotations) == 1
     assert_allclose(raw.annotations.duration, [0.004])
     assert_allclose(raw.annotations.onset, [13.948])
-    egi_fname_mat = op.join(data_path(), 'EGI', 'test_egi_pns.mat')
+    egi_fname_mat = op.join(testing_path, 'EGI', 'test_egi_pns.mat')
     mc = sio.loadmat(egi_fname_mat)
     pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)
     pns_names = ['Resp. Temperature'[:15],
@@ -321,11 +322,10 @@ def test_io_egi_pns_mff_bug(preload):
 @requires_testing_data
 def test_io_egi_crop_no_preload():
     """Test crop non-preloaded EGI MFF data (BUG)."""
-    egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi.mff')
-    raw = read_raw_egi(egi_fname_mff, preload=False)
+    raw = read_raw_egi(egi_mff_fname, preload=False)
     raw.crop(17.5, 20.5)
     raw.load_data()
-    raw_preload = read_raw_egi(egi_fname_mff, preload=True)
+    raw_preload = read_raw_egi(egi_mff_fname, preload=True)
     raw_preload.crop(17.5, 20.5)
     raw_preload.load_data()
     assert_allclose(raw._data, raw_preload._data)

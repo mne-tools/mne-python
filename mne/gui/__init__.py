@@ -146,7 +146,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         if val is not None:
             warn(f'{key} is deprecated and will be removed in 1.1.',
                  DeprecationWarning)
-    config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
+    config = get_config()
     if guess_mri_subject is None:
         guess_mri_subject = config.get(
             'MNE_COREG_GUESS_MRI_SUBJECT', 'true') == 'true'

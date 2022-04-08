@@ -101,7 +101,7 @@ stages:
       displayName: 'Test minimal commands'
     - task: UsePythonVersion@0
       inputs:
-        versionSpec: '3.8'
+        versionSpec: '3.9'
         architecture: 'x64'
         addToPath: true
       displayName: 'Get Python'
@@ -111,7 +111,7 @@ stages:
     - bash: |
         set -e
         python -m pip install --progress-bar off --upgrade pip setuptools wheel codecov
-        python -m pip install --progress-bar off mne-qt-browser[opengl]
+        python -m pip install --progress-bar off mne-qt-browser[opengl] vtk scikit-learn pytest-error-for-skips python-picard
         python -m pip uninstall -yq mne
         python -m pip install --progress-bar off --upgrade -e .[test]
       displayName: 'Install dependencies with pip'
@@ -126,7 +126,7 @@ stages:
       displayName: 'Cache testing data'
     - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
       displayName: 'Get test data'
-    - script: pytest -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
+    - script: pytest --error-for-skips -m "ultraslowtest or pgtest" --tb=short --cov=mne --cov-report=xml --cov-report=html -vv mne
       displayName: 'Run ultraslow and mne-qt-browser tests'
     - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
