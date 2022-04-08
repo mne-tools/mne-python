@@ -131,7 +131,8 @@ def test_kit2fiff():
     check_usage(mne_kit2fiff, force_help=True)
 
 
-@pytest.mark.slowtest  # slow on Travis OSX
+@pytest.mark.slowtest
+@pytest.mark.ultraslowtest
 @requires_vtk
 @testing.requires_testing_data
 def test_make_scalp_surfaces(tmp_path, monkeypatch):
