@@ -76,7 +76,7 @@ def _alpha_blend_background(ctable, background_color):
     return (use_table * alphas) + background_color * (1 - alphas)
 
 
-@functools.lru_cache
+@functools.lru_cache(1)
 def _qt_init_icons():
     from qtpy.QtGui import QIcon
     icons_path = f"{Path(__file__).parent.parent.parent}/icons"
