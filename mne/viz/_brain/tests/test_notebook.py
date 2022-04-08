@@ -20,7 +20,7 @@ pytestmark = pytest.mark.skipif(
 def test_notebook_alignment(renderer_notebook, brain_gc, nbexec):
     """Test plot alignment in a notebook."""
     import mne
-    data_path = mne.datasets.testing.data_path()
+    data_path = mne.datasets.testing.data_path(download=False)
     raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_trunc_raw.fif'
     subjects_dir = data_path / 'subjects'
     subject = 'sample'
@@ -46,7 +46,7 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
     import matplotlib.pyplot as plt
     import mne
     from mne.datasets import testing
-    data_path = testing.data_path()
+    data_path = testing.data_path(download=False)
     sample_dir = os.path.join(data_path, 'MEG', 'sample')
     subjects_dir = os.path.join(data_path, 'subjects')
     fname_stc = os.path.join(sample_dir, 'sample_audvis_trunc-meg')
