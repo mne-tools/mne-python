@@ -4,6 +4,7 @@
 # License: Simplified BSD
 
 import os.path as op
+import sys
 
 import numpy as np
 from numpy.testing import assert_equal, assert_array_equal
@@ -209,7 +210,7 @@ def test_plot_ica_properties():
 
 
 @requires_sklearn
-def test_plot_ica_sources(raw_orig, browser_backend):
+def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     """Test plotting of ICA panel."""
     raw = raw_orig.copy().crop(0, 1)
     picks = _get_picks(raw)
@@ -220,19 +221,27 @@ def test_plot_ica_sources(raw_orig, browser_backend):
     ica = ICA(n_components=2)
     ica.fit(raw, picks=ica_picks)
     ica.exclude = [1]
+    if sys.platform == 'darwin':  # unknown transformation bug
+        monkeypatch.setenv('MNE_BROWSE_RAW_SIZE', '20,20')
     fig = ica.plot_sources(raw)
     assert browser_backend._get_n_figs() == 1
     # change which component is in ICA.exclude (click data trace to remove
     # current one; click name to add other one)
     fig._redraw()
+    assert_array_equal(ica.exclude, [1])
+    assert fig.mne.info['bads'] == [ica._ica_names[1]]
     x = fig.mne.traces[1].get_xdata()[5]
     y = fig.mne.traces[1].get_ydata()[5]
     fig._fake_click((x, y), xform='data')  # exclude = []
+    assert fig.mne.info['bads'] == []
+    assert_array_equal(ica.exclude, [1])  # unchanged
     fig._click_ch_name(ch_index=0, button=1)  # exclude = [0]
+    assert fig.mne.info['bads'] == [ica._ica_names[0]]
+    assert_array_equal(ica.exclude, [1])
     fig._fake_keypress(fig.mne.close_key)
     fig._close_event()
-    assert browser_backend._get_n_figs() == 0
     assert_array_equal(ica.exclude, [0])
+    assert browser_backend._get_n_figs() == 0
     # test when picks does not include ica.exclude.
     ica.plot_sources(raw, picks=[1])
     assert browser_backend._get_n_figs() == 1

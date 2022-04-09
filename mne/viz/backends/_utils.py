@@ -203,21 +203,25 @@ def _qt_detect_theme():
 
 def _qt_get_stylesheet(theme):
     from ...fixes import _compare_version
-    from ...utils import logger, warn, _validate_type
+    from ...utils import logger, warn, _validate_type, _check_qt_version
     _validate_type(theme, ('path-like',), 'theme')
     theme = str(theme)
+    orig_theme = theme
     system_theme = None
+    stylesheet = ''
+    extra_msg = ''
     if theme == 'auto':
         theme = system_theme = _qt_detect_theme()
     if theme in ('dark', 'light'):
         if system_theme is None:
             system_theme = _qt_detect_theme()
+        qt_version, api = _check_qt_version(return_api=True)
+        # On macOS, we shouldn't need to set anything when the requested theme
+        # matches that of the current OS state
+        if sys.platform == 'darwin':
+            extra_msg = f'when in {system_theme} mode on macOS'
+        # But before 5.13, we need to patch some mistakes
         if sys.platform == 'darwin' and theme == system_theme:
-            from qtpy import QtCore
-            try:
-                qt_version = QtCore.__version__  # PySide
-            except AttributeError:
-                qt_version = QtCore.QT_VERSION_STR  # PyQt
             if theme == 'dark' and _compare_version(qt_version, '<', '5.13'):
                 # Taken using "Digital Color Meter" on macOS 12.2.1 looking at
                 # Meld, and also adapting (MIT-licensed)
@@ -256,27 +260,31 @@ QToolBar::handle:vertical {
   image: url("%(icons_path)s/toolbar_move_vertical@2x.png");
 }
 """ % dict(icons_path=icons_path)
-            else:
-                stylesheet = ''
         else:
-            try:
-                import qdarkstyle
-            except ModuleNotFoundError:
-                logger.info(
-                    f'To use {theme} mode, "qdarkstyle" has to be installed! '
-                    'You can install it with `pip install qdarkstyle`')
-                stylesheet = ''
+            # Here we are on non-macOS, or on macOS but our sys theme does not
+            # match the requested theme
+            if api in ('PySide6', 'PyQt6'):
+                if orig_theme != 'auto':
+                    warn(f'Setting theme={repr(theme)} is not yet supported '
+                         f'for {api} in qdarkstyle, it will be ignored')
             else:
-                klass = getattr(getattr(qdarkstyle, theme).palette,
-                                f'{theme.capitalize()}Palette')
-                stylesheet = qdarkstyle.load_stylesheet(klass)
+                try:
+                    import qdarkstyle
+                except ModuleNotFoundError:
+                    logger.info(
+                        f'To use {theme} mode{extra_msg}, "qdarkstyle" has to '
+                        'be installed! You can install it with:\n'
+                        'pip install qdarkstyle\n')
+                else:
+                    klass = getattr(getattr(qdarkstyle, theme).palette,
+                                    f'{theme.capitalize()}Palette')
+                    stylesheet = qdarkstyle.load_stylesheet(klass)
     else:
         try:
             file = open(theme, 'r')
         except IOError:
             warn('Requested theme file not found, will use light instead: '
                  f'{repr(theme)}')
-            stylesheet = ''
         else:
             with file as fid:
                 stylesheet = fid.read()
@@ -307,7 +315,9 @@ def _pixmap_to_ndarray(pixmap):
     img = pixmap.toImage()
     img = img.convertToFormat(img.Format_RGBA8888)
     ptr = img.bits()
-    ptr.setsize(img.height() * img.width() * 4)
+    count = img.height() * img.width() * 4
+    if hasattr(ptr, 'setsize'):  # PyQt
+        ptr.setsize(count)
     data = np.frombuffer(ptr, dtype=np.uint8).copy()
     data.shape = (img.height(), img.width(), 4)
     return data / 255.

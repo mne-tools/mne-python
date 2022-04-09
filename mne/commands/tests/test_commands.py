@@ -137,6 +137,7 @@ def test_kit2fiff():
 @testing.requires_testing_data
 def test_make_scalp_surfaces(tmp_path, monkeypatch):
     """Test mne make_scalp_surfaces."""
+    pytest.importorskip('nibabel')
     check_usage(mne_make_scalp_surfaces)
     has = 'SUBJECTS_DIR' in os.environ
     # Copy necessary files to avoid FreeSurfer call

@@ -70,6 +70,11 @@ def pytest_configure(config):
                     'qt_config', 'protect_config'):
         config.addinivalue_line('usefixtures', fixture)
 
+    # pytest-qt uses PYTEST_QT_API, but let's make it respect qtpy's QT_API
+    # if present
+    if os.getenv('PYTEST_QT_API') is None and os.getenv('QT_API') is not None:
+        os.environ['PYTEST_QT_API'] = os.environ['QT_API']
+
     # Warnings
     # - Once SciPy updates not to have non-integer and non-tuple errors (1.2.0)
     #   we should remove them from here.
@@ -414,15 +419,11 @@ pre_2_0_skip_funcs = ['test_plot_raw_white',
 
 
 def _check_pyqtgraph(request):
-    # Check PyQt5
-    try:
-        import PyQt5  # noqa: F401
-    except ModuleNotFoundError:
-        pytest.skip('PyQt5 is not installed but needed for pyqtgraph!')
-    if not _compare_version(_check_qt_version(), '>=', '5.12'):
-        pytest.skip(f'PyQt5 has version {_check_qt_version()}'
+    # Check Qt
+    qt_version, api = _check_qt_version(return_api=True)
+    if (not qt_version) or _compare_version(qt_version, '<', '5.12'):
+        pytest.skip(f'Qt API {api} has version {qt_version} '
                     f'but pyqtgraph needs >= 5.12!')
-    # Check mne-qt-browser
     try:
         import mne_qt_browser  # noqa: F401
         # Check mne-qt-browser version
@@ -437,6 +438,11 @@ def _check_pyqtgraph(request):
                         f'mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip('Requires mne_qt_browser')
+    else:
+        ver = mne_qt_browser.__version__
+        req_pyqt5 = _compare_version(ver, '<=', '0.2.6')
+        if api != 'PyQt5' and req_pyqt5:
+            pytest.skip(f'mne_qt_browser {ver} requires PyQt5, API is {api}')
 
 
 @pytest.mark.pgtest
@@ -522,14 +528,14 @@ def _use_backend(backend_name, interactive):
 
 def _check_skip_backend(name):
     from mne.viz.backends.tests._utils import (has_pyvista,
-                                               has_qt, has_imageio_ffmpeg,
+                                               has_imageio_ffmpeg,
                                                has_pyvistaqt)
     if name in ('pyvistaqt', 'notebook'):
         if not has_pyvista():
             pytest.skip("Test skipped, requires pyvista.")
         if not has_imageio_ffmpeg():
             pytest.skip("Test skipped, requires imageio-ffmpeg")
-    if name == 'pyvistaqt' and not has_qt():
+    if name == 'pyvistaqt' and not _check_qt_version():
         pytest.skip("Test skipped, requires Qt.")
     if name == 'pyvistaqt' and not has_pyvistaqt():
         pytest.skip("Test skipped, requires pyvistaqt")
@@ -538,8 +544,8 @@ def _check_skip_backend(name):
 @pytest.fixture(scope='session')
 def pixel_ratio():
     """Get the pixel ratio."""
-    from mne.viz.backends.tests._utils import has_pyvista, has_qt
-    if not has_pyvista() or not has_qt():
+    from mne.viz.backends.tests._utils import has_pyvista
+    if not has_pyvista() or not _check_qt_version():
         return 1.
     from qtpy.QtWidgets import QApplication, QMainWindow
     _ = QApplication.instance() or QApplication([])
