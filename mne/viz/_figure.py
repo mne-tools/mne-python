@@ -6,7 +6,7 @@
 #
 # License: Simplified BSD
 import importlib
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
 from copy import deepcopy
@@ -35,7 +35,9 @@ class BrowserParams:
         vars(self).update(**kwargs)
 
 
-class BrowserBase(ABC):
+# Do not make this an ABC for PySide6 compat:
+# https://askpythonquestions.com/2022/01/07/pyside6-shiboken-and-abcmeta-bug
+class BrowserBase:
     """A base class containing for the 2D browser.
 
     This class contains all backend-independent attributes and methods.
