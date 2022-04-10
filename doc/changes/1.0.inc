@@ -16,6 +16,12 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
+.. changes_1_0_2:
+
+Version 1.0.2 (unreleased)
+--------------------------
+- Fix bug where ``theme`` was not handled properly in :meth:`mne.io.Raw.plot` (:gh:`10500` by `Eric Larson`_)
+
 .. _changes_1_0_1:
 
 Version 1.0.1 (2022-04-08)

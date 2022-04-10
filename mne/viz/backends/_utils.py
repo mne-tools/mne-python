@@ -9,6 +9,7 @@
 import collections.abc
 from colorsys import rgb_to_hls
 from contextlib import contextmanager
+import functools
 import platform
 import signal
 import sys
@@ -75,6 +76,7 @@ def _alpha_blend_background(ctable, background_color):
     return (use_table * alphas) + background_color * (1 - alphas)
 
 
+@functools.lru_cache(1)
 @decorator
 def run_once(fun, *args, **kwargs):
     """Run the function only once."""
@@ -191,24 +193,69 @@ def _qt_app_exec(app):
 
 
 def _qt_get_stylesheet(theme):
-    from ..utils import logger, warn, _validate_type
+    from ...fixes import _compare_version
+    from ...utils import logger, warn, _validate_type
     _validate_type(theme, ('path-like',), 'theme')
     theme = str(theme)
+    system_theme = None
     if theme == 'auto':
-        try:
-            import darkdetect
-            theme = darkdetect.theme().lower()
-        except Exception:
-            theme = 'light'
+        theme = system_theme = _qt_detect_theme()
     if theme in ('dark', 'light'):
-        if theme == 'light' and sys.platform != 'darwin':
-            stylesheet = ''
+        if system_theme is None:
+            system_theme = _qt_detect_theme()
+        if sys.platform == 'darwin' and theme == system_theme:
+            from qtpy import QtCore
+            try:
+                qt_version = QtCore.__version__  # PySide
+            except AttributeError:
+                qt_version = QtCore.QT_VERSION_STR  # PyQt
+            if theme == 'dark' and _compare_version(qt_version, '<', '5.13'):
+                # Taken using "Digital Color Meter" on macOS 12.2.1 looking at
+                # Meld, and also adapting (MIT-licensed)
+                # https://github.com/ColinDuquesnoy/QDarkStyleSheet/blob/master/qdarkstyle/dark/style.qss  # noqa: E501
+                # Something around rgb(51, 51, 51) worked as the bgcolor here,
+                # but it's easy enough just to set it transparent and inherit
+                # the bgcolor of the window (which is the same). We also take
+                # the separator images from QDarkStyle (MIT).
+                icons_path = _qt_init_icons()
+                stylesheet = """\
+QStatusBar {
+  border: 1px solid rgb(76, 76, 75);
+  background: transparent;
+}
+QStatusBar QLabel {
+  background: transparent;
+}
+QToolBar {
+  background-color: transparent;
+  border-bottom: 1px solid rgb(99, 99, 99);
+}
+QToolBar::separator:horizontal {
+  width: 16px;
+  image: url("%(icons_path)s/toolbar_separator_horizontal@2x.png");
+}
+QToolBar::separator:vertical {
+  height: 16px;
+  image: url("%(icons_path)s/toolbar_separator_vertical@2x.png");
+}
+QToolBar::handle:horizontal {
+  width: 16px;
+  image: url("%(icons_path)s/toolbar_move_horizontal@2x.png");
+}
+QToolBar::handle:vertical {
+  height: 16px;
+  image: url("%(icons_path)s/toolbar_move_vertical@2x.png");
+}
+""" % dict(icons_path=icons_path)
+            else:
+                stylesheet = ''
         else:
             try:
                 import qdarkstyle
             except ModuleNotFoundError:
-                logger.info('For Dark-Mode "qdarkstyle" has to be installed! '
-                            'You can install it with `pip install qdarkstyle`')
+                logger.info(
+                    f'To use {theme} mode, "qdarkstyle" has to be installed! '
+                    'You can install it with `pip install qdarkstyle`')
                 stylesheet = ''
             else:
                 klass = getattr(getattr(qdarkstyle, theme).palette,
@@ -245,3 +292,13 @@ def _qt_is_dark(widget):
     win = widget.window()
     bgcolor = win.palette().color(win.backgroundRole()).getRgbF()[:3]
     return rgb_to_hls(*bgcolor)[1] < 0.5
+
+
+def _pixmap_to_ndarray(pixmap):
+    img = pixmap.toImage()
+    img = img.convertToFormat(img.Format_RGBA8888)
+    ptr = img.bits()
+    ptr.setsize(img.height() * img.width() * 4)
+    data = np.frombuffer(ptr, dtype=np.uint8).copy()
+    data.shape = (img.height(), img.width(), 4)
+    return data / 255.
