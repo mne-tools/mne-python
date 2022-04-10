@@ -261,12 +261,11 @@ QToolBar::handle:vertical {
 }
 """ % dict(icons_path=icons_path)
         else:
-            # Here we are on non-macOS, or on macOS but our sys theme does not
-            # match the requested theme
+            # Here we are on non-macOS (or on macOS but our sys theme does not
+            # match the requested theme)
             if api in ('PySide6', 'PyQt6'):
-                if (theme == system_theme == 'light'):
-                    pass  # this should already be correct on all systems
-                if orig_theme != 'auto':
+                if orig_theme != 'auto' and not \
+                        (theme == system_theme == 'light'):
                     warn(f'Setting theme={repr(theme)} is not yet supported '
                          f'for {api} in qdarkstyle, it will be ignored')
             else:
