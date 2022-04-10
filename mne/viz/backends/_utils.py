@@ -192,6 +192,21 @@ def _qt_app_exec(app):
             signal.signal(signal.SIGINT, old_signal)
 
 
+def _qt_detect_theme():
+    from ..utils import logger
+    try:
+        import darkdetect
+        theme = darkdetect.theme().lower()
+    except ModuleNotFoundError:
+        logger.info('For automatic theme detection, "darkdetect" has to'
+                    ' be installed! You can install it with '
+                    '`pip install darkdetect`')
+        theme = 'light'
+    except Exception:
+        theme = 'light'
+    return theme
+
+
 def _qt_get_stylesheet(theme):
     from ...fixes import _compare_version
     from ...utils import logger, warn, _validate_type
