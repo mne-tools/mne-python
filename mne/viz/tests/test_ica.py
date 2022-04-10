@@ -240,8 +240,8 @@ def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     assert_array_equal(ica.exclude, [1])
     fig._fake_keypress(fig.mne.close_key)
     fig._close_event()
-    assert_array_equal(ica.exclude, [0])
     assert browser_backend._get_n_figs() == 0
+    assert_array_equal(ica.exclude, [0])
     # test when picks does not include ica.exclude.
     ica.plot_sources(raw, picks=[1])
     assert browser_backend._get_n_figs() == 1
