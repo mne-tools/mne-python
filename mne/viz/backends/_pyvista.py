@@ -816,7 +816,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         else:
             grid_mesh = None
 
-        mapper = vtk.vtkFixedPointRayCastMapper()
+        mapper = vtk.vtkFixedPointVolumeRayCastMapper()
         if resolution is None:  # native
             mapper.SetScalarModeToUseCellData()
             mapper.SetInputDataObject(grid)
@@ -835,7 +835,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         volume_pos.GetProperty().SetScalarOpacityUnitDistance(dist)
         if center is not None and blending == 'mip':
             # We need to create a minimum intensity projection for the neg half
-            mapper_neg = vtk.vtkFixedPointRayCastMapper()
+            mapper_neg = vtk.vtkFixedPointVolumeRayCastMapper()
             if resolution is None:  # native
                 mapper_neg.SetScalarModeToUseCellData()
                 mapper_neg.SetInputDataObject(grid)
