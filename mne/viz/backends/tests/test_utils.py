@@ -6,6 +6,7 @@
 # License: Simplified BSD
 
 from colorsys import rgb_to_hls
+from contextlib import nullcontext
 
 import numpy as np
 import pytest
@@ -55,7 +56,17 @@ def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
     monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmp_path))
     monkeypatch.delenv('MNE_BROWSER_THEME', raising=False)
     raw = RawArray(np.zeros((1, 1000)), create_info(1, 1000., 'eeg'))
-    fig = raw.plot(theme=theme)
+    _, api = _check_qt_version()
+    if api in ('PyQt6', 'PySide6'):
+        ctx = pytest.warns(RuntimeWarning, match='not yet supported')
+        return_early = True
+    else:
+        ctx = nullcontext()
+        return_early = False
+    with ctx():
+        fig = raw.plot(theme=theme)
+    if return_early:
+        return  # we could add a ton of conditionals below, but KISS
     is_dark = _qt_is_dark(fig)
     if theme == 'dark':
         assert is_dark, theme
