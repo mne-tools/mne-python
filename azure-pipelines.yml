@@ -254,9 +254,9 @@ stages:
           PLATFORM: 'x86-64'
           TEST_MODE: 'conda'
           PYTHON_VERSION: '3.9'
-        3.7 pip:
+        3.9 pip:
           TEST_MODE: 'pip'
-          PYTHON_VERSION: '3.7'
+          PYTHON_VERSION: '3.9'
         3.10 pip pre:
           TEST_MODE: 'pip-pre'
           PYTHON_VERSION: '3.10'
