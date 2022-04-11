@@ -90,8 +90,8 @@ jobs:
             command: |
               set -e
               ./tools/setup_xvfb.sh
-              sudo apt install -qq graphviz optipng python3.8-venv python3-venv libxft2 ffmpeg
-              python3.8 -m venv ~/python_env
+              sudo apt install -qq graphviz optipng python3.9-venv python3-venv libxft2 ffmpeg
+              python3.9 -m venv ~/python_env
               echo "set -e" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
@@ -143,7 +143,7 @@ jobs:
         - save_cache:
             key: user-install-bin-cache
             paths:
-              - ~/.local/lib/python3.8/site-packages
+              - ~/.local/lib/python3.9/site-packages
               - ~/.local/bin
 
         - run:
