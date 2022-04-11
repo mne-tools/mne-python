@@ -1,6 +1,6 @@
 #!/bin/bash -ef
 
-echo "Working around PyQt5 bugs"
+echo "Working around Qt bugs and installing doc build apt dependencies"
 # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
 # https://github.com/golemfactory/golem/issues/1019
 sudo apt update

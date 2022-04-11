@@ -440,8 +440,7 @@ def _check_pyqtgraph(request):
         pytest.skip('Requires mne_qt_browser')
     else:
         ver = mne_qt_browser.__version__
-        req_pyqt5 = _compare_version(ver, '<=', '0.2.6')
-        if api != 'PyQt5' and req_pyqt5:
+        if api != 'PyQt5' and _compare_version(ver, '<=', '0.2.6'):
             pytest.skip(f'mne_qt_browser {ver} requires PyQt5, API is {api}')
 
 
