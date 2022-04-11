@@ -1052,12 +1052,12 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
         The filename.
     sfreq : float | 'auto'
         The sampling frequency in the file. This parameter is necessary for
-        \*.vmrk/\*.amrk, and \*.cef files as Annotations are expressed in seconds and
-        \*.vmrk/\*.amrk/\*.cef files are in samples. For any other file format,
+        \*.v/amrk, and \*.cef files as Annotations are expressed in seconds and
+        \*.v/amrk/\*.cef files are in samples. For any other file format,
         ``sfreq`` is omitted. If set to 'auto' then the ``sfreq`` is taken
         from the respective info file of the same name with according file
-        extension (\*.vhdr for brainvision; \*.dap for Curry 7; \*.cdt.dpa for
-        Curry 8). So data.vmrk looks for sfreq in data.vhdr, data.cef looks in
+        extension (\*.v/ahdr for brainvision; \*.dap for Curry 7; \*.cdt.dpa for
+        Curry 8). So data.v/amrk looks for sfreq in data.v/ahdr, data.cef looks in
         data.dap and data.cdt.cef looks in data.cdt.dpa.
     uint16_codec : str | None
         This parameter is only used in EEGLAB (\*.set) and omitted otherwise.

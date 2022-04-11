@@ -294,9 +294,12 @@ def _read_annotations_brainvision(fname, sfreq='auto'):
     orig_time = _str_to_meas_date(date_str)
 
     if sfreq == 'auto':
-        vhdr_fname = op.splitext(fname)[0] + '.vhdr'
-        logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
-        _, _, _, info = _aux_vhdr_info(vhdr_fname)
+        hdr_fname = op.splitext(fname)[0] + '.vhdr'
+        # if vhdr file does not exist assume that the format is ahdr
+        if not op.exists(hdr_fname):
+            hdr_fname = op.splitext(fname)[0] + '.ahdr'
+        logger.info("Finding 'sfreq' from header file: %s" % hdr_fname)
+        _, _, _, info = _aux_vhdr_info(hdr_fname)
         sfreq = info['sfreq']
 
     onset = np.array(onset, dtype=float) / sfreq
@@ -312,7 +315,7 @@ def _check_bv_version(header, kind):
     _data_err = """\
     MNE-Python currently only supports %s versions 1.0 and 2.0, got unparsable\
      %r. Contact MNE-Python developers for support."""
-    # optional space, optional Core, Version/Header, optional comma, 1/2
+    # optional space, optional Core or V-Amp, optional Exchange, Version/Header, optional comma, 1/2
     _data_re = r'Brain ?Vision( Core| V-Amp)? Data( Exchange)? %s File,? Version %s\.0'
 
     assert kind in ('header', 'marker')
