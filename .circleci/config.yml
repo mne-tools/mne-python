@@ -102,6 +102,7 @@ jobs:
               echo "export MNE_SKIP_INSTANCE_ASSERTIONS=true" >> $BASH_ENV
               echo "export MNE_BROWSER_BACKEND=qt" >> $BASH_ENV
               echo "export MNE_BROWSER_PRECOMPUTE=false" >> $BASH_ENV
+              echo "export MESA_GL_VERSION_OVERRIDE=3.1"
               echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
               echo "export DISPLAY=:99" >> $BASH_ENV
               echo "source ~/python_env/bin/activate" >> $BASH_ENV
