@@ -151,7 +151,7 @@ jobs:
 
         - run:
             name: Check Qt
-            command: LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication, QWidget; app = QApplication([])"
+            command: LD_DEBUG=libs python -c "from PyQt5.QtWidgets import QApplication, QWidget; app = QApplication([])"
 
         # Load tiny cache so that ~/.mne does not need to be created below
         - restore_cache:
