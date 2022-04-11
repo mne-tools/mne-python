@@ -5,16 +5,24 @@
 import sys
 import pytest
 
+from mne.utils import _check_qt_version
+
 # This will skip all tests in this scope
 pytestmark = pytest.mark.skipif(
     sys.platform.startswith('win'), reason='nbexec does not work on Windows')
 
 
-def test_gui_api(renderer_notebook, nbexec):
+def test_gui_api(renderer_notebook, nbexec, n_warn=0):
     """Test GUI API."""
     import contextlib
     import mne
     import warnings
+    try:
+        # Function
+        n_warn  # noqa
+    except Exception:
+        # Notebook standalone mode
+        n_warn = 0
     # nbexec does not expose renderer_notebook so I use a
     # temporary variable to synchronize the tests
     try:
@@ -33,7 +41,9 @@ def test_gui_api(renderer_notebook, nbexec):
         assert 'not found' in str(w[0].message), str(w[0].message)
     else:
         assert len(w) == 0
-    renderer._window_set_theme('dark')
+    with mne.utils._record_warnings() as w:
+        renderer._window_set_theme('dark')
+    assert len(w) == n_warn
 
     from unittest.mock import Mock
     mock = Mock()
@@ -354,4 +364,6 @@ def test_gui_api_qt(renderer_interactive_pyvistaqt):
     """Test GUI API with the Qt backend."""
     import mne
     mne.MNE_PYVISTAQT_BACKEND_TEST = True
-    test_gui_api(None, None)
+    _, api = _check_qt_version(return_api=True)
+    n_warn = int(api in ('PySide6', 'PyQt6'))
+    test_gui_api(None, None, n_warn=n_warn)

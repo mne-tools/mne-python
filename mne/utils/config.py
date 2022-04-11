@@ -532,7 +532,8 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         pandas:        1.0.5
         pyvista:       0.25.3 {pyvistaqt=0.1.1, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 7.0, 256 bits)}
         vtk:           9.0.1
-        qtpy:          2.0.1 {PyQt5=5.15.0}
+        qtpy:          2.0.1 {PySide6=6.2.4}
+        pyqtgraph:     0.12.4
         pooch:         v1.5.1
     """  # noqa: E501
     _validate_type(dependencies, str)
@@ -574,8 +575,9 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
                      'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
-                     'qtpy', 'ipympl', 'pooch', '', 'mne_bids', 'mne_nirs',
-                     'mne_features', 'mne_qt_browser', 'mne_connectivity')
+                     'qtpy', 'ipympl', 'pyqtgraph', 'pooch', '', 'mne_bids',
+                     'mne_nirs', 'mne_features', 'mne_qt_browser',
+                     'mne_connectivity')
     if dependencies == 'developer':
         use_mod_names += (
             '', 'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',
@@ -606,15 +608,8 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
             if mod_name == 'numpy':
                 out(f' {{{libs}}}')
             elif mod_name == 'qtpy':
-                qt_msg = ' {'
-                for api in ('PyQt5', 'PyQt6', 'PySide2', 'PySide6'):
-                    version = _check_qt_version(api)
-                    if version != 'unknown':
-                        if qt_msg[-1] != '{':
-                            qt_msg += ', '
-                        qt_msg += f'{api}={version}'
-                qt_msg += '}'
-                out(qt_msg)
+                version, api = _check_qt_version(return_api=True)
+                out(f' {{{api}={version}}}')
             elif mod_name == 'matplotlib':
                 out(f' {{backend={mod.get_backend()}}}')
             elif mod_name == 'pyvista':
