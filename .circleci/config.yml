@@ -20,7 +20,7 @@ jobs:
       docker:
         # Use 18.04 rather than 20.04 because MESA 20.0.8 on 18.04 has working
         # transparency but 21.0.3 on 20.04 does not!
-        - image: cimg/base:stable-18.04
+        - image: cimg/base:stable-20.04
       steps:
         - restore_cache:
             keys:

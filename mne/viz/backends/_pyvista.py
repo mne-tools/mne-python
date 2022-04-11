@@ -657,7 +657,7 @@ class _PyVistaRenderer(_AbstractRenderer):
     def _enable_depth_peeling(self):
         if not self.depth_peeling:
             return
-        if not self.figure.store['off_screen']:
+        if not self.figure.store['off_screen'] and not _is_mesa(self.plotter):
             for renderer in self._all_renderers:
                 renderer.enable_depth_peeling()
 
