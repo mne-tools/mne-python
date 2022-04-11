@@ -129,7 +129,7 @@ jobs:
         # Load pip cache
         - restore_cache:
             keys:
-              - pip-cache
+              - pip-cache-1
         - restore_cache:
             keys:
               - user-install-bin-cache
@@ -141,7 +141,7 @@ jobs:
               ./tools/circleci_dependencies.sh
 
         - save_cache:
-            key: pip-cache
+            key: pip-cache-1
             paths:
               - ~/.cache/pip
         - save_cache:
