@@ -15,6 +15,7 @@ from mne import create_info
 from mne.io import RawArray
 from mne.viz.backends._utils import (_get_colormap_from_array, _check_color,
                                      _qt_is_dark, _pixmap_to_ndarray)
+from mne.utils import _check_qt_version
 
 
 def test_get_colormap_from_array():
@@ -56,7 +57,7 @@ def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
     monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmp_path))
     monkeypatch.delenv('MNE_BROWSER_THEME', raising=False)
     raw = RawArray(np.zeros((1, 1000)), create_info(1, 1000., 'eeg'))
-    _, api = _check_qt_version()
+    _, api = _check_qt_version(return_api=True)
     if api in ('PyQt6', 'PySide6'):
         ctx = pytest.warns(RuntimeWarning, match='not yet supported')
         return_early = True
