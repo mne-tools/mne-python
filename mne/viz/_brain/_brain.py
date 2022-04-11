@@ -43,7 +43,7 @@ from ...transforms import (Transform, apply_trans, invert_transform,
                            _get_trans, _get_transforms_to_coord_frame,
                            _frame_to_str)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
-                      use_log_level, Bunch, _ReuseCycle, warn, deprecated,
+                      use_log_level, Bunch, _ReuseCycle, warn,
                       get_subjects_dir, _check_fname, _to_rgb)
 
 
@@ -3800,13 +3800,6 @@ class Brain(object):
                     keep_idx = keep_idx[np.in1d(keep_idx, restrict_idx)]
             show[keep_idx] = 1
             label *= show
-
-    @deprecated('enable_depth_peeling is deprecated and will be '
-                'removed in 1.1')
-    def enable_depth_peeling(self):
-        """Enable depth peeling.
-        """
-        self._renderer._enable_depth_peeling()
 
     def get_picked_points(self):
         """Return the vertices of the picked points.

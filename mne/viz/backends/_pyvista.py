@@ -657,7 +657,7 @@ class _PyVistaRenderer(_AbstractRenderer):
     def _enable_depth_peeling(self):
         if not self.depth_peeling:
             return
-        if not self.figure.store['off_screen']:
+        if not self.figure.store['off_screen'] and not _is_mesa(self.plotter):
             for renderer in self._all_renderers:
                 renderer.enable_depth_peeling()
 
@@ -676,12 +676,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             bad_system = (
                 sys.platform == 'darwin' or
                 os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true')
-            # MESA (could use GPUInfo / _get_gpu_info here, but it takes
-            # > 700 ms to make a new window + report capabilities!)
-            # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
-            gpu_info = self.plotter.ren_win.ReportCapabilities()
-            gpu_info = re.findall("OpenGL renderer string:(.+)\n", gpu_info)
-            bad_system |= 'mesa' in ' '.join(gpu_info).lower().split()
+            bad_system |= _is_mesa(self.plotter)
             if not bad_system:
                 for renderer in self._all_renderers:
                     renderer.enable_anti_aliasing()
@@ -1151,3 +1146,12 @@ def _disabled_depth_peeling():
         yield
     finally:
         depth_peeling["enabled"] = depth_peeling_enabled
+
+
+def _is_mesa(plotter):
+    # MESA (could use GPUInfo / _get_gpu_info here, but it takes
+    # > 700 ms to make a new window + report capabilities!)
+    # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
+    gpu_info = plotter.ren_win.ReportCapabilities()
+    gpu_info = re.findall("OpenGL renderer string:(.+)\n", gpu_info)
+    return ' mesa ' in ' '.join(gpu_info).lower().split()
