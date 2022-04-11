@@ -2488,9 +2488,9 @@ reg_affine : ndarray of float, shape (4, 4)
 """
 
 docdict['regularize_maxwell_reg'] = """
-regularize : str | None
-    Basis regularization type, must be "in" or None.
-    "in" is the same algorithm as the "-regularize in" option in
+regularize : 'in' | None
+    Basis regularization type, must be ``'in'`` or ``None``.
+    ``'in'`` is the same algorithm as the ``-regularize in`` option in
     MaxFilter™.
 """
 
