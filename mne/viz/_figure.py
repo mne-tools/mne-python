@@ -626,6 +626,9 @@ def _get_browser(show, block, **kwargs):
     kwargs['splash'] = True if show else False
     if kwargs.get('theme', None) is None:
         kwargs['theme'] = get_config('MNE_BROWSER_THEME', 'auto')
+    if kwargs.get('overview_mode', None) is None:
+        kwargs['overview_mode'] = get_config(
+            'MNE_BROWSER_OVERVIEW_MODE', 'channels')
 
     # Initialize browser backend
     backend_name = get_browser_backend()

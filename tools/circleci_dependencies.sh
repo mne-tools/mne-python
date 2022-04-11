@@ -24,7 +24,8 @@ else  # standard doc build
 	python -m pip uninstall -y pydata-sphinx-theme
 	python -m pip install --upgrade --progress-bar off --only-binary "numpy,scipy,matplotlib,pandas,statsmodels" -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
 	python -m pip uninstall -yq sphinx-gallery mne-qt-browser
-	python -m pip install --upgrade --progress-bar off https://github.com/mne-tools/mne-qt-browser/zipball/main https://github.com/sphinx-gallery/sphinx-gallery/zipball/master https://github.com/pyvista/pyvista/zipball/main https://github.com/pyvista/pyvistaqt/zipball/main
+	# TODO: Revert to upstream/main once https://github.com/mne-tools/mne-qt-browser/pull/105 is merged
+	python -m pip install --upgrade --progress-bar off https://github.com/larsoner/mne-qt-browser/zipball/overview https://github.com/sphinx-gallery/sphinx-gallery/zipball/master https://github.com/pyvista/pyvista/zipball/main https://github.com/pyvista/pyvistaqt/zipball/main
 	# deal with comparisons and escapes (https://app.circleci.com/pipelines/github/mne-tools/mne-python/9686/workflows/3fd32b47-3254-4812-8b9a-8bab0d646d18/jobs/32934)
 	python -m pip install --upgrade quantities
 fi

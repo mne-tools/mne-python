@@ -2068,6 +2068,14 @@ outlines : 'head' | 'skirt' | dict | None
     Defaults to 'head'.
 """
 
+docdict['overview_mode'] = """
+overview_mode : str | None
+    Can be "channels", "empty", or "hidden" to set the overview bar mode
+    for the ``'qt'`` backend. If None (default), the config option
+    ``MNE_BROWSER_OVERVIEW_MODE`` will be used, defaulting to "channels"
+    if it's not found.
+"""
+
 docdict['overwrite'] = """
 overwrite : bool
     If True (default False), overwrite the destination file if it

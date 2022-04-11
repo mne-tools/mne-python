@@ -1962,14 +1962,14 @@ class ICA(ContainsMixin, _VerboseDep):
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True,
                      time_format='float', precompute=None,
-                     use_opengl=None, *, theme=None):
+                     use_opengl=None, *, theme=None, overview_mode=None):
         return plot_ica_sources(self, inst=inst, picks=picks,
                                 start=start, stop=stop, title=title, show=show,
                                 block=block, show_first_samp=show_first_samp,
                                 show_scrollbars=show_scrollbars,
                                 time_format=time_format,
                                 precompute=precompute, use_opengl=use_opengl,
-                                theme=theme)
+                                theme=theme, overview_mode=overview_mode)
 
     @copy_function_doc_to_method_doc(plot_ica_scores)
     def plot_scores(self, scores, exclude=None, labels=None, axhline=None,
