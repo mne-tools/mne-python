@@ -11,12 +11,6 @@
 
 version: 2.1
 
-_xvfb: &xvfb
-  name: Start Xvfb virtual framebuffer
-  command: |
-    echo "export DISPLAY=:99" >> $BASH_ENV
-    /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1280x1024x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix
-
 jobs:
     build_docs:
       parameters:
@@ -95,6 +89,7 @@ jobs:
             name: Set BASH_ENV
             command: |
               set -e
+              ./tools/setup_xvfb.sh
               sudo apt update -qq
               sudo apt install -qq libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3 \
                 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
@@ -112,6 +107,7 @@ jobs:
               echo "export MNE_BROWSER_BACKEND=qt" >> $BASH_ENV
               echo "export MNE_BROWSER_PRECOMPUTE=false" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
+              echo "export DISPLAY=:99" >> $BASH_ENV
               echo "source ~/python_env/bin/activate" >> $BASH_ENV
               mkdir -p ~/.local/bin
               ln -s ~/python_env/bin/python ~/.local/bin/python
@@ -123,9 +119,6 @@ jobs:
             name: check neuromag2ft
             command: |
               neuromag2ft --version
-
-        - run:
-            <<: *xvfb
 
         - run:
             name: Install fonts needed for diagrams
