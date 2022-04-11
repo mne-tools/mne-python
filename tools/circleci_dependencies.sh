@@ -11,6 +11,8 @@ else  # standard doc build
 	echo "Installing doc build dependencies"
 	python -m pip uninstall -y pydata-sphinx-theme
 	python -m pip install --upgrade --progress-bar off --only-binary "numpy,scipy,matplotlib,pandas,statsmodels" -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
+	python -m pip uninstall -yq PySide6
+	python -m pip install -yq PyQt5
 	python -m pip uninstall -yq sphinx-gallery mne-qt-browser
 	# TODO: Revert to upstream/main once https://github.com/mne-tools/mne-qt-browser/pull/105 is merged
 	python -m pip install --upgrade --progress-bar off https://github.com/mne-tools/mne-qt-browser/zipball/main https://github.com/sphinx-gallery/sphinx-gallery/zipball/master https://github.com/pyvista/pyvista/zipball/main https://github.com/pyvista/pyvistaqt/zipball/main
