@@ -90,6 +90,8 @@ jobs:
             command: |
               set -e
               ./tools/setup_xvfb.sh
+              sudo add-apt-repository -y ppa:deadsnakes/ppa
+              sudo apt update -qq
               sudo apt install -qq graphviz optipng python3.9-venv python3-venv libxft2 ffmpeg
               python3.9 -m venv ~/python_env
               echo "set -e" >> $BASH_ENV
