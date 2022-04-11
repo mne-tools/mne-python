@@ -1043,7 +1043,7 @@ def _write_annotations_txt(fname, annot):
 def read_annotations(fname, sfreq='auto', uint16_codec=None):
     r"""Read annotations from a file.
 
-    This function reads a .fif, .fif.gz, .vmrk, .edf, .txt, .csv .cnt, .cef,
+    This function reads a .fif, .fif.gz, .vmrk, .amrk .edf, .txt, .csv .cnt, .cef,
     or .set file and makes an :class:`mne.Annotations` object.
 
     Parameters
@@ -1052,8 +1052,8 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
         The filename.
     sfreq : float | 'auto'
         The sampling frequency in the file. This parameter is necessary for
-        \*.vmrk and \*.cef files as Annotations are expressed in seconds and
-        \*.vmrk/\*.cef files are in samples. For any other file format,
+        \*.vmrk/\*.amrk, and \*.cef files as Annotations are expressed in seconds and
+        \*.vmrk/\*.amrk/\*.cef files are in samples. For any other file format,
         ``sfreq`` is omitted. If set to 'auto' then the ``sfreq`` is taken
         from the respective info file of the same name with according file
         extension (\*.vhdr for brainvision; \*.dap for Curry 7; \*.cdt.dpa for
@@ -1102,7 +1102,7 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
                                   description=description, orig_time=orig_time,
                                   ch_names=ch_names)
 
-    elif name.endswith('vmrk'):
+    elif name.endswith(('vmrk', 'amrk')):
         annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
 
     elif name.endswith('csv'):

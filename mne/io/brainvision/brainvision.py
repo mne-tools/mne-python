@@ -69,6 +69,10 @@ class RawBrainVision(BaseRaw):
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = op.abspath(vhdr_fname)
+        ext = op.splitext(vhdr_fname)[-1]
+        ahdr_format = False
+        if ext == '.ahdr':
+            ahdr_format = True
         (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
          orig_units) = _get_vhdr_info(vhdr_fname, eog, misc, scale)
 
@@ -107,6 +111,10 @@ class RawBrainVision(BaseRaw):
         # Get annotations from vmrk file
         annots = read_annotations(mrk_fname, info['sfreq'])
         self.set_annotations(annots)
+
+        # Drop the fake ahdr channel if needed
+        if ahdr_format:
+            self.drop_channels(_AHDR_CHANNEL_NAME)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -305,7 +313,7 @@ def _check_bv_version(header, kind):
     MNE-Python currently only supports %s versions 1.0 and 2.0, got unparsable\
      %r. Contact MNE-Python developers for support."""
     # optional space, optional Core, Version/Header, optional comma, 1/2
-    _data_re = r'Brain ?Vision( Core)? Data Exchange %s File,? Version %s\.0'
+    _data_re = r'Brain ?Vision( Core| V-Amp)? Data( Exchange)? %s File,? Version %s\.0'
 
     assert kind in ('header', 'marker')
 
@@ -452,7 +460,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
     """
     scale = float(scale)
     ext = op.splitext(vhdr_fname)[-1]
-    if ext != '.vhdr':
+    ahdr_format = False
+    if ext == '.ahdr':
+        ahdr_format = True
+    elif ext != '.vhdr':
         raise IOError("The header file must be given to read the data, "
                       "not a file with extension '%s'." % ext)
 
@@ -502,6 +513,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
 
     # load channel labels
     nchan = cfg.getint(cinfostr, 'NumberOfChannels')
+    if ahdr_format:
+        nchan += 1 # add one fake channel for ahdr format
     n_samples = None
     if order == 'C':
         try:
@@ -552,6 +565,15 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         if unit not in ('V', 'mV', 'µV', 'uV', 'nV'):
             misc_chs[name] = (FIFF.FIFF_UNIT_CEL if unit == 'C'
                               else FIFF.FIFF_UNIT_NONE)
+    if ahdr_format:
+        ch_dict[chan] = _AHDR_CHANNEL_NAME
+        ch_names[-1] = _AHDR_CHANNEL_NAME
+        orig_units[_AHDR_CHANNEL_NAME] = 'V'
+        cals[-1] = float(1)
+        ranges[-1] = 1
+
+
+
     misc = list(misc_chs.keys()) if misc == 'auto' else misc
 
     # create montage: 'Coordinates' section in VHDR file corresponds to "BVEF"
@@ -657,6 +679,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         lp_s = '[s]' in header[lp_col]
 
         for i, ch in enumerate(ch_names, 1):
+            if ahdr_format and i == len(ch_names) and ch == _AHDR_CHANNEL_NAME:
+                break
             # double check alignment with channel by using the hw settings
             if idx == idx_amp:
                 line_amp = settings[idx + i]
@@ -867,6 +891,7 @@ _OTHER_ACCEPTED_MARKERS = {
     'New Segment/': 99999, 'SyncStatus/Sync On': 99998
 }
 _OTHER_OFFSET = 10001  # where to start "unknown" event_ids
+_AHDR_CHANNEL_NAME = "AHDR_CHANNEL"
 
 
 class _BVEventParser(_DefaultEventParser):
