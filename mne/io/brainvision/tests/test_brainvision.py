@@ -802,5 +802,5 @@ def test_ahdr_format():
     orig_raw = read_raw_brainvision(vhdr_path)
     raw = read_raw_brainvision(ahdr_path)
 
-    assert_equal(raw.info["nchan"], orig_raw.info["nchan"] -1)
+    assert_equal(raw.info["nchan"], orig_raw.info["nchan"] - 1)
     assert_array_almost_equal(raw.get_data(), orig_raw.get_data()[:-1, :])

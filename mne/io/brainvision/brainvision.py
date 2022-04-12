@@ -315,8 +315,10 @@ def _check_bv_version(header, kind):
     _data_err = """\
     MNE-Python currently only supports %s versions 1.0 and 2.0, got unparsable\
      %r. Contact MNE-Python developers for support."""
-    # optional space, optional Core or V-Amp, optional Exchange, Version/Header, optional comma, 1/2
-    _data_re = r'Brain ?Vision( Core| V-Amp)? Data( Exchange)? %s File,? Version %s\.0'
+    # optional space, optional Core or V-Amp, optional Exchange,
+    # Version/Header, optional comma, 1/2
+    _data_re = (r"Brain ?Vision( Core| V-Amp)? Data( Exchange)? "
+                r"%s File,? Version %s\.0")
 
     assert kind in ('header', 'marker')
 
@@ -517,7 +519,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
     # load channel labels
     nchan = cfg.getint(cinfostr, 'NumberOfChannels')
     if ahdr_format:
-        nchan += 1 # add one fake channel for ahdr format
+        # add one fake channel for ahdr format
+        nchan += 1
     n_samples = None
     if order == 'C':
         try:
@@ -557,7 +560,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         ch_dict[chan] = name
         ch_names[n] = name
         if resolution == "":
-            if not(unit):  # For truncated vhdrs (e.g. EEGLAB export)
+            if not (unit):  # For truncated vhdrs (e.g. EEGLAB export)
                 resolution = 0.000001
             else:
                 resolution = 1.  # for files with units specified, but not res
@@ -569,13 +572,11 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             misc_chs[name] = (FIFF.FIFF_UNIT_CEL if unit == 'C'
                               else FIFF.FIFF_UNIT_NONE)
     if ahdr_format:
-        ch_dict[chan] = _AHDR_CHANNEL_NAME
+        ch_dict[_AHDR_CHANNEL_NAME] = _AHDR_CHANNEL_NAME
         ch_names[-1] = _AHDR_CHANNEL_NAME
         orig_units[_AHDR_CHANNEL_NAME] = 'V'
         cals[-1] = float(1)
         ranges[-1] = 1
-
-
 
     misc = list(misc_chs.keys()) if misc == 'auto' else misc
 
