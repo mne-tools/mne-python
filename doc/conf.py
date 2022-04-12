@@ -33,6 +33,7 @@ faulthandler.enable()
 os.environ['_MNE_BROWSER_NO_BLOCK'] = 'true'
 os.environ['MNE_BROWSER_OVERVIEW_MODE'] = 'hidden'
 os.environ['MNE_BROWSER_THEME'] = 'light'
+os.environ['MNE_3D_OPTION_THEME'] = 'light'
 
 # -- Path setup --------------------------------------------------------------
 
