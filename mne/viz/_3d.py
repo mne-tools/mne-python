@@ -3295,7 +3295,7 @@ class _3d_Options:
     antialias: Optional[bool]
     depth_peeling: Optional[bool]
     smooth_shading: Optional[bool]
-    multi_samples: Optional[int | None]
+    multi_samples: Optional[int]
 
 
 _3d_options = _3d_Options(
