@@ -657,7 +657,7 @@ class _PyVistaRenderer(_AbstractRenderer):
     def _enable_depth_peeling(self):
         if not self.depth_peeling:
             return
-        if not self.figure.store['off_screen'] and not _is_mesa(self.plotter):
+        if not self.figure.store['off_screen']:
             for renderer in self._all_renderers:
                 renderer.enable_depth_peeling()
 
@@ -816,7 +816,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         else:
             grid_mesh = None
 
-        mapper = vtk.vtkFixedPointVolumeRayCastMapper()
+        mapper = vtk.vtkSmartVolumeMapper()
         if resolution is None:  # native
             mapper.SetScalarModeToUseCellData()
             mapper.SetInputDataObject(grid)
@@ -835,7 +835,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         volume_pos.GetProperty().SetScalarOpacityUnitDistance(dist)
         if center is not None and blending == 'mip':
             # We need to create a minimum intensity projection for the neg half
-            mapper_neg = vtk.vtkFixedPointVolumeRayCastMapper()
+            mapper_neg = vtk.vtkSmartVolumeMapper()
             if resolution is None:  # native
                 mapper_neg.SetScalarModeToUseCellData()
                 mapper_neg.SetInputDataObject(grid)

@@ -56,9 +56,11 @@ def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
     darkdetect = pytest.importorskip('darkdetect')
     monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmp_path))
     monkeypatch.delenv('MNE_BROWSER_THEME', raising=False)
+    # make it seem like the system is always in light mode
+    monkeypatch.setattr(darkdetect, 'theme', lambda: 'light')
     raw = RawArray(np.zeros((1, 1000)), create_info(1, 1000., 'eeg'))
     _, api = _check_qt_version(return_api=True)
-    if api in ('PyQt6', 'PySide6'):
+    if api in ('PyQt6', 'PySide6') and theme == 'dark':
         ctx = pytest.warns(RuntimeWarning, match='not yet supported')
         return_early = True
     else:
