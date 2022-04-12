@@ -34,3 +34,4 @@ from .annotate_nan import annotate_nan
 from .interpolate import equalize_bads
 from . import ieeg
 from ._css import cortical_signal_suppression
+from .GradientRemover import GradientRemover
