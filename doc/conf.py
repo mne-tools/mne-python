@@ -893,6 +893,9 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(
         'ignore', message=r'numpy\.ndarray size changed.*',
         category=RuntimeWarning)
+    warnings.filterwarnings(
+        'ignore', message=r'.*Setting theme=.*6 in qdarkstyle.*',
+        category=RuntimeWarning)
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:
