@@ -3292,24 +3292,28 @@ def plot_brain_colorbar(ax, clim, colormap='auto', transparent=True,
 
 @dataclass()
 class _3d_Options:
-    antialias: Optional[str]
-    depth_peeling: Optional[str]
-    smooth_shading: Optional[str]
+    antialias: Optional[bool]
+    depth_peeling: Optional[bool]
+    smooth_shading: Optional[bool]
+    multi_samples: Optional[int | None]
 
 
 _3d_options = _3d_Options(
     antialias=None,
     depth_peeling=None,
     smooth_shading=None,
+    multi_samples=None,
 )
 _3d_default = _3d_Options(
     antialias='true',
     depth_peeling='true',
     smooth_shading='true',
+    multi_samples='4',
 )
 
 
-def set_3d_options(antialias=None, depth_peeling=None, smooth_shading=None):
+def set_3d_options(antialias=None, depth_peeling=None, smooth_shading=None, *,
+                   multi_samples=None):
     """Set 3D rendering options.
 
     Parameters
@@ -3332,25 +3336,34 @@ def set_3d_options(antialias=None, depth_peeling=None, smooth_shading=None):
         where this type of shading is not supported or for performance
         reasons. This option can also be controlled using an environment
         variable, e.g., ``MNE_3D_OPTION_SMOOTH_SHADING=false``.
+    multi_samples : int
+        Number of multi-samples. Should be 1 for MESA for volumetric rendering
+        to work properly.
+
+        .. versionadded:: 1.1
 
     Notes
     -----
     .. versionadded:: 0.21.0
     """
     if antialias is not None:
-        _3d_options.antialias = str(bool(antialias)).lower()
+        _3d_options.antialias = bool(antialias)
     if depth_peeling is not None:
-        _3d_options.depth_peeling = str(bool(depth_peeling)).lower()
+        _3d_options.depth_peeling = bool(depth_peeling)
     if smooth_shading is not None:
-        _3d_options.smooth_shading = str(bool(smooth_shading)).lower()
+        _3d_options.smooth_shading = bool(smooth_shading)
+    if multi_samples is not None:
+        _3d_options.multi_samples = int(multi_samples)
 
 
 def _get_3d_option(key):
     _validate_type(key, 'str', 'key')
     opt = getattr(_3d_options, key)
-    if opt is None:
+    if opt is None:  # parse get_config (and defaults)
         default_value = getattr(_3d_default, key)
         opt = get_config(f'MNE_3D_OPTION_{key.upper()}', default_value)
-    opt = opt.lower()
-    _check_option(f'3D option {key}', opt, ('true', 'false'))
-    return opt == 'true'
+        if key == 'multi_samples':
+            opt = int(opt)
+        else:
+            opt = opt.lower() == 'true'
+    return opt

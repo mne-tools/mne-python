@@ -57,7 +57,7 @@ class PyVistaFigure(Figure3D):
     def _init(self, plotter=None, show=False, title='PyVista Scene',
               size=(600, 600), shape=(1, 1), background_color='black',
               smooth_shading=True, off_screen=False, notebook=False,
-              splash=False):
+              splash=False, multi_samples=None):
         self._plotter = plotter
         self.display = None
         self.background_color = background_color
@@ -71,8 +71,7 @@ class PyVistaFigure(Figure3D):
         self.store['shape'] = shape
         self.store['off_screen'] = off_screen
         self.store['border'] = False
-        # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
-        self.store['multi_samples'] = 1 if sys.platform == 'darwin' else 4
+        self.store['multi_samples'] = multi_samples
 
         if not self.notebook:
             self.store['show'] = show
@@ -155,14 +154,20 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1),
-                 notebook=None, smooth_shading=True, splash=False):
+                 notebook=None, smooth_shading=True, splash=False,
+                 multi_samples=None):
         from .._3d import _get_3d_option
         _require_version('pyvista', 'use 3D rendering', '0.32')
+        multi_samples = _get_3d_option('multi_samples')
+        # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
+        if sys.platform == 'darwin':
+            multi_samples = 1
         figure = PyVistaFigure()
         figure._init(
             show=show, title=name, size=size, shape=shape,
             background_color=bgcolor, notebook=notebook,
-            smooth_shading=smooth_shading, splash=splash)
+            smooth_shading=smooth_shading, splash=splash,
+            multi_samples=multi_samples)
         self.font_family = "arial"
         self.tube_n_sides = 20
         self.antialias = _get_3d_option('antialias')

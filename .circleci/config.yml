@@ -18,9 +18,7 @@ jobs:
           type: string
           default: "false"
       docker:
-        # Use 18.04 rather than 20.04 because MESA 20.0.8 on 18.04 has working
-        # transparency but 21.0.3 on 20.04 does not!
-        - image: cimg/base:stable-18.04
+        - image: cimg/base:stable-20.04
       steps:
         - restore_cache:
             keys:
@@ -98,6 +96,7 @@ jobs:
               echo "export MNE_FULL_DATE=true" >> $BASH_ENV
               source tools/get_minimal_commands.sh
               echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
+              echo "export MNE_3D_OPTION_MULTI_SAMPLES=1" >> $BASH_ENV
               echo "export MNE_BROWSER_BACKEND=qt" >> $BASH_ENV
               echo "export MNE_BROWSER_PRECOMPUTE=false" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
@@ -148,7 +147,7 @@ jobs:
 
         - run:
             name: Check Qt
-            command: LD_DEBUG=libs python -c "from PyQt5.QtWidgets import QApplication, QWidget; app = QApplication([])"
+            command: LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication, QWidget; app = QApplication([])"
 
         # Load tiny cache so that ~/.mne does not need to be created below
         - restore_cache:
