@@ -64,7 +64,7 @@ def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
     else:
         ctx = nullcontext()
         return_early = False
-    with ctx():
+    with ctx:
         fig = raw.plot(theme=theme)
     if return_early:
         return  # we could add a ton of conditionals below, but KISS
