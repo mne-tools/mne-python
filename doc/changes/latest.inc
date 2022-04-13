@@ -39,7 +39,7 @@ Bugs
 
 - Retain epochs metadata when using :func:`mne.channels.combine_channels` (:gh:`10504` by `Clemens Brunner`_)
 
-- Fix reading of fiducial locations in :func:`mne.io.read_raw_eeglab` (:gh:`XXX` by `Alex Gramfort`_)
+- Fix reading of fiducial locations in :func:`mne.io.read_raw_eeglab` (:gh:`10521` by `Alex Gramfort`_)
 
 API changes
 ~~~~~~~~~~~

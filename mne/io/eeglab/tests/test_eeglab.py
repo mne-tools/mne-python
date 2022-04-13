@@ -33,6 +33,7 @@ epochs_fname_onefile_mat = op.join(base_dir, 'test_epochs_onefile.set')
 raw_mat_fnames = [raw_fname_mat, raw_fname_onefile_mat]
 epochs_mat_fnames = [epochs_fname_mat, epochs_fname_onefile_mat]
 raw_fname_chanloc = op.join(base_dir, 'test_raw_chanloc.set')
+raw_fname_chanloc_fids = op.join(base_dir, 'test_raw_chanloc_fids.set')
 raw_fname_2021 = op.join(base_dir, 'test_raw_2021.set')
 raw_fname_h5 = op.join(base_dir, 'test_raw_h5.set')
 raw_fname_onefile_h5 = op.join(base_dir, 'test_raw_onefile_h5.set')
@@ -454,3 +455,14 @@ def test_get_montage_info_with_ch_type():
     with pytest.warns(RuntimeWarning, match='Unknown types found'):
         ch_names, ch_types, montage = \
             _get_montage_information(mat['EEG'], False)
+
+
+@testing.requires_testing_data
+def test_fidsposition_information():
+    """Test reading file with 3 fiducial locations."""
+    raw = read_raw_eeglab(raw_fname_chanloc_fids)
+    montage = raw.get_montage()
+    pos = montage.get_positions()
+    assert pos['nasion'] is not None
+    assert pos['lpa'] is not None
+    assert pos['rpa'] is not None
