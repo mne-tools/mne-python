@@ -1290,15 +1290,15 @@ class Brain(object):
             func=weakref.WeakMethod(self.save_image),
         )
 
-        myself = weakref.ref(self)
+        weakself = weakref.ref(self)
 
-        def func(filename, myself=myself):
-            myself = myself()
-            if myself is None:
+        def func(filename, weakself=weakself):
+            weakself = weakself()
+            if weakself is None:
                 return
-            myself.save_movie(
+            weakself.save_movie(
                 filename=filename,
-                time_dilation=(1. / myself.playback_speed))
+                time_dilation=(1. / weakself.playback_speed))
 
         self._renderer._tool_bar_add_file_button(
             name="movie",

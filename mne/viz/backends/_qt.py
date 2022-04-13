@@ -418,10 +418,15 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         self._tool_bar.addWidget(spacer)
 
     def _tool_bar_add_file_button(self, name, desc, func, *, shortcut=None):
-        def callback():
+        weakself = weakref.ref(self)
+
+        def callback(weakself=weakself):
+            weakself = weakself()
+            if weakself is None:
+                return
             return FileDialog(
-                self.plotter.app_window,
-                callback=weakref.WeakMethod(func),
+                weakself.app_window,
+                callback=func,
             )
 
         self._tool_bar_add_button(
