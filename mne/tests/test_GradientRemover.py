@@ -2,27 +2,33 @@ import pytest
 import numpy as np
 from mne.preprocessing import GradientRemover
 
+
 def n_trs():
     """Return a number of TRs for this test suite."""
     return 10
+
 
 def tr_code():
     """Return a TR marker code for this test suite."""
     return 1
 
+
 def samps_per_tr():
     """Return a number of samples per TR for this test suite."""
     return 100
 
+
 def sample_trs():
     """Return a sample array of TR makers for this test suite."""
     return np.asarray([x * samps_per_tr() for x in range(n_trs())])
+
 
 def sample_trs_longform():
     """Return a sample array of TR markers with the mne long event form."""
     return np.asarray(
         [[samps_per_tr(), 0, tr_code()] for x in range(n_trs())]
     )
+
 
 def sample_data():
     """Return sample TR data (zeros) for use in this test suite."""
@@ -36,7 +42,7 @@ def test_window_validity():
     # Odd numbers are not valid
     with pytest.raises(ValueError, match=r"Integer windows must be even"):
         GradientRemover(data, trs, 5)
-    # Windows should have exactly 2 elements as a tuple 
+    # Windows should have exactly 2 elements as a tuple
     with pytest.raises(ValueError, match=r"Tuple windows must contain"):
         GradientRemover(data, trs, (2, 2, 2))
     # Windows should be a tuple of integers or an integer
@@ -68,11 +74,11 @@ def test_tr_events_validity():
         GradientRemover(data, np.asarray([[1, 2], [1, 2]]))
 
     # Mangle the second TR of valid TRs
-    trs[1] = trs[1] + 1 # Short form
+    trs[1] = trs[1] + 1  # Short form
     with pytest.raises(ValueError, match=r"TR spacings are not"):
         GradientRemover(data, trs)
     trs = sample_trs_longform()
-    trs[1, 0] = trs[1, 0] + 1 # Long form
+    trs[1, 0] = trs[1, 0] + 1  # Long form
     with pytest.raises(ValueError, match=r"TR spacings are not"):
         GradientRemover(data, trs)
     # Make sure the correct spacing is found
@@ -87,7 +93,7 @@ def test_tr_events_validity():
 def test_get_tr():
     """Test for get_tr function to ensure valid indexing."""
     gr = GradientRemover(sample_data(), sample_trs())
-    
+
     # Make sure negative index triggers error
     with pytest.raises(ValueError, match=r"Index -1"):
         gr.get_tr(-1)

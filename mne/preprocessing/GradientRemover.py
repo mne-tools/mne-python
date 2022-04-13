@@ -1,6 +1,6 @@
-import mne
 import numpy as np
 from scipy.signal import detrend
+
 
 class GradientRemover:
     """A class to remove gradients from EEG data using a template approach."""
@@ -46,7 +46,7 @@ class GradientRemover:
         self._weight_before = self.window[0] / window_total
         self._weight_after = self.window[1] / window_total
         # Lazy evaluation
-        self._corrected = None 
+        self._corrected = None
 
     @property
     def corrected(self):
@@ -54,6 +54,7 @@ class GradientRemover:
             return self._corrected
         else:
             return self.correct()
+
     @property
     def raw(self):
         return self._raw
