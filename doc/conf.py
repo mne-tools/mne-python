@@ -312,9 +312,9 @@ class Resetter(object):
         except ImportError:
             vtkPolyData = None  # noqa
         try:
-            from mne_qt_browser._pg_figure import PyQtGraphBrowser
+            from mne_qt_browser._pg_figure import MNEQtBrowser
         except ImportError:
-            PyQtGraphBrowser = None
+            MNEQtBrowser = None
         from mne.viz.backends.renderer import backend
         _Renderer = backend._Renderer if backend is not None else None
         reset_warnings(gallery_conf, fname)
@@ -333,7 +333,7 @@ class Resetter(object):
         when = f'mne/conf.py:Resetter.__call__:{when}:{fname}'
         # Support stuff like
         # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html_dev-memory  # noqa: E501
-        # to just test PyQtGraphBrowser
+        # to just test MNEQtBrowser
         skips = os.getenv('MNE_SKIP_INSTANCE_ASSERTIONS', '').lower()
         prefix = ''
         if skips not in ('true', '1', 'all'):
@@ -350,15 +350,15 @@ class Resetter(object):
                 _assert_no_instances(vtkPolyData, when)
             if '_renderer' not in skips:
                 _assert_no_instances(_Renderer, when)
-            if PyQtGraphBrowser is not None and \
-                    'pyqtgraphbrowser' not in skips:
+            if MNEQtBrowser is not None and \
+                    'mneqtbrowser' not in skips:
                 # Ensure any manual fig.close() events get properly handled
                 from mne_qt_browser._pg_figure import QApplication
                 inst = QApplication.instance()
                 if inst is not None:
                     for _ in range(2):
                         inst.processEvents()
-                _assert_no_instances(PyQtGraphBrowser, when)
+                _assert_no_instances(MNEQtBrowser, when)
         # This will overwrite some Sphinx printing but it's useful
         # for memory timestamps
         if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
@@ -395,7 +395,7 @@ try:
     import mne_qt_browser
     _min_ver = _compare_version(mne_qt_browser.__version__, '>=', '0.2')
     if mne.viz.get_browser_backend() == 'qt' and _min_ver:
-        scrapers += (mne.viz._scraper._PyQtGraphScraper(),)
+        scrapers += (mne.viz._scraper._MNEQtBrowserScraper(),)
 except ImportError:
     pass
 

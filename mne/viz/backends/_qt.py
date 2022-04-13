@@ -6,6 +6,7 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
+import weakref
 
 import pyvista
 from pyvistaqt.plotting import FileDialog
@@ -420,7 +421,7 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         def callback():
             return FileDialog(
                 self.plotter.app_window,
-                callback=func,
+                callback=weakref.WeakMethod(func),
             )
 
         self._tool_bar_add_button(

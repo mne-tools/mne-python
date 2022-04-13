@@ -16,6 +16,7 @@ import time
 import copy
 import traceback
 import warnings
+import weakref
 
 import numpy as np
 from collections import OrderedDict
@@ -724,6 +725,7 @@ class Brain(object):
     @safe_event
     def _clean(self):
         # resolve the reference cycle
+        self._renderer._window_close_disconnect()
         self.clear_glyphs()
         self.remove_annotations()
         # clear init actors
@@ -1285,14 +1287,23 @@ class Brain(object):
         self._renderer._tool_bar_add_file_button(
             name="screenshot",
             desc="Take a screenshot",
-            func=self.save_image,
+            func=weakref.WeakMethod(self.save_image),
         )
+
+        myself = weakref.ref(self)
+
+        def func(filename, myself=myself):
+            myself = myself()
+            if myself is None:
+                return
+            myself.save_movie(
+                filename=filename,
+                time_dilation=(1. / myself.playback_speed))
+
         self._renderer._tool_bar_add_file_button(
             name="movie",
             desc="Save movie...",
-            func=lambda filename: self.save_movie(
-                filename=filename,
-                time_dilation=(1. / self.playback_speed)),
+            func=func,
             shortcut="ctrl+shift+s",
         )
         self._renderer._tool_bar_add_button(
