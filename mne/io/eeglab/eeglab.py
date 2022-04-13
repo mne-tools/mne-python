@@ -144,10 +144,25 @@ def _get_montage_information(eeg, get_pos):
              '\n'.join([f'{key}: {sorted(unknown_types[key])}'
                         for key in sorted(unknown_types)]))
 
+    lpa, rpa, nasion = None, None, None
+    if (hasattr(eeg, "nodatchans") and
+            "nodatchans" in eeg.chaninfo and
+            len(eeg.chaninfo['nodatchans'])):
+        for item in list(zip(*eeg.chaninfo['nodatchans'].values())):
+            d = dict(zip(eeg.chaninfo['nodatchans'].keys(), item))
+            if d["type"] != 'FID':
+                continue
+            if d['description'] == 'Nasion':
+                nasion = np.array([d["X"], d["Y"], d["Z"]])
+            if d['description'] == 'Right periauricular point':
+                rpa = np.array([d["X"], d["Y"], d["Z"]])
+            if d['description'] == 'Left periauricular point':
+                lpa = np.array([d["X"], d["Y"], d["Z"]])
+
     if pos_ch_names:
         montage = make_dig_montage(
             ch_pos=dict(zip(ch_names, np.array(pos))),
-            coord_frame='head')
+            coord_frame='head', lpa=lpa, rpa=rpa, nasion=nasion)
     else:
         montage = None
 
