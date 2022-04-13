@@ -366,6 +366,12 @@ def _assert_no_instances(cls, when=''):
                         del r_
                     else:
                         rep = repr(r)[:100].replace('\n', ' ')
+                        # If it's a __closure__, get more information
+                        if rep.startswith('<cell at '):
+                            try:
+                                rep += f' ({repr(r.cell_contents)[:100]})'
+                            except Exception:
+                                pass
                     name = _fullname(r)
                     ref.append(f'{name}: {rep}')
                     count += 1

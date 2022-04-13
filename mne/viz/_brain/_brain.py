@@ -1089,9 +1089,13 @@ class Brain(object):
             return
 
         layout = self._renderer._dock_add_group_box(name)
+        weakself = weakref.ref(self)
 
         # setup candidate annots
-        def _set_annot(annot):
+        def _set_annot(annot, weakself=weakself):
+            self = weakself()
+            if self is None:
+                return
             self.clear_glyphs()
             self.remove_labels()
             self.remove_annotations()
@@ -1106,7 +1110,10 @@ class Brain(object):
             self._renderer._update()
 
         # setup label extraction parameters
-        def _set_label_mode(mode):
+        def _set_label_mode(mode, weakself=weakself):
+            self = weakself()
+            if self is None:
+                return
             if self.traces_mode != 'label':
                 return
             glyphs = copy.deepcopy(self.picked_patches)
@@ -1284,26 +1291,32 @@ class Brain(object):
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_initialize(name="Toolbar")
+        weakself = weakref.ref(self)
+
+        def save_image(filename, weakself=weakself):
+            self = weakself()
+            if self is None:
+                return
+            self.save_image(filename)
+
         self._renderer._tool_bar_add_file_button(
             name="screenshot",
             desc="Take a screenshot",
-            func=self.save_image,
+            func=save_image,
         )
 
-        weakself = weakref.ref(self)
-
-        def func(filename, weakself=weakself):
-            weakself = weakself()
-            if weakself is None:
+        def save_movie(filename, weakself=weakself):
+            self = weakself()
+            if self is None:
                 return
-            weakself.save_movie(
+            self.save_movie(
                 filename=filename,
-                time_dilation=(1. / weakself.playback_speed))
+                time_dilation=(1. / self.playback_speed))
 
         self._renderer._tool_bar_add_file_button(
             name="movie",
             desc="Save movie...",
-            func=func,
+            func=save_movie,
             shortcut="ctrl+shift+s",
         )
         self._renderer._tool_bar_add_button(

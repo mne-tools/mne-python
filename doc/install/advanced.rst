@@ -191,7 +191,8 @@ to force MESA to use modern OpenGL by using this before executing
 
 Also, it's possible that different software rending backends might perform
 better than others, such as using the ``llvmpipe`` backend rather than ``swr``.
-In newer MESA (21+), rendering is off when using MSAA, so consider setting:
+In newer MESA (21+), rendering can be incorrect when using MSAA, so consider
+setting:
 
 .. code-block:: console
 

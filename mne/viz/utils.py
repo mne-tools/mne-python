@@ -2363,6 +2363,8 @@ def concatenate_images(images, axis=0, bgcolor='black', centered=True,
         The concatenated image.
     """
     n_channels = _ensure_int(n_channels, 'n_channels')
+    axis = _ensure_int(axis)
+    _check_option('axis', axis, (0, 1))
     _check_option('n_channels', n_channels, (3, 4))
     alpha = True if n_channels == 4 else False
     bgcolor = _to_rgb(bgcolor, name='bgcolor', alpha=alpha)
@@ -2378,7 +2380,7 @@ def concatenate_images(images, axis=0, bgcolor='black', centered=True,
     sec = np.array([0 == axis, 1 == axis]).astype(int)
     for image in images:
         shape = image.shape[:-1]
-        dec = ptr
+        dec = ptr.copy()
         dec += ((ret_shape - shape) // 2) * (1 - sec) if centered else 0
         ret[dec[0]:dec[0] + shape[0], dec[1]:dec[1] + shape[1], :] = image
         ptr += shape * sec
