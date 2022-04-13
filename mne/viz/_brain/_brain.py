@@ -1287,7 +1287,7 @@ class Brain(object):
         self._renderer._tool_bar_add_file_button(
             name="screenshot",
             desc="Take a screenshot",
-            func=weakref.WeakMethod(self.save_image),
+            func=self.save_image,
         )
 
         weakself = weakref.ref(self)
