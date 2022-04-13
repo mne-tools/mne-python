@@ -8,6 +8,15 @@
 
 }
 
+html[data-theme="light"] {
+    --mne-color-github: #000;
+    --mne-color-discourse: #231e20,
+}
+html[data-theme="dark"] {
+    --mne-color-github: #fff;
+    --mne-color-discourse: #d1c498;
+}
+
 /* ************************************************************ Sphinx fixes */
 dl.field-list {
     grid-template-columns: auto 1fr;
@@ -156,17 +165,23 @@ div.frontpage-gallery:hover .fadeout {
     opacity: 0.0;
     transition: 200ms linear;
 }
+div.card {
+    background-color: rgb(var(--pst-color-background));
+}
+div.card img.institution {
+    background-color: #fffe;
+}
 
 /* ****************************************************** navbar quick links */
 
 i.fa-github-square:before {
-    color: #000;
+    color: rgb(var(--mne-color-github));
 }
 i.fa-twitter-square:before {
     color: #55acee;
 }
 i.fa-discourse:before {
-    color: #231e20;
+    color: rgb(var(--mne-color-discourse));
 }
 i.fa-discord:before {
     color: #7289da;  /* 99aab5 is also in-brand for discord */

@@ -575,7 +575,7 @@ html_theme_options = {
     'use_edit_page_button': False,
     'navigation_with_keys': False,
     'show_toc_level': 1,
-    'navbar_end': ['version-switcher', 'navbar-icon-links'],
+    'navbar_end': ['theme-switcher', 'version-switcher', 'navbar-icon-links'],
     'footer_items': ['copyright'],
     'google_analytics_id': 'UA-37225609-1',
     'switcher': {
@@ -635,6 +635,9 @@ xxl = '6'
 # variables to pass to HTML templating engine
 html_context = {
     'build_dev_html': bool(int(os.environ.get('BUILD_DEV_HTML', False))),
+    'default_mode': 'auto',
+    'pygment_light_style': 'tango',
+    'pygment_dark_style': 'native',
     'funders': [
         dict(img='nih.png', size='3', title='National Institutes of Health'),
         dict(img='nsf.png', size='3.5',
