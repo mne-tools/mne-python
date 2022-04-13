@@ -152,11 +152,11 @@ def _get_montage_information(eeg, get_pos):
             d = dict(zip(eeg.chaninfo['nodatchans'].keys(), item))
             if d["type"] != 'FID':
                 continue
-            if d['description'] == 'Nasion':
+            elif d['description'] == 'Nasion':
                 nasion = np.array([d["X"], d["Y"], d["Z"]])
-            if d['description'] == 'Right periauricular point':
+            elif d['description'] == 'Right periauricular point':
                 rpa = np.array([d["X"], d["Y"], d["Z"]])
-            if d['description'] == 'Left periauricular point':
+            elif d['description'] == 'Left periauricular point':
                 lpa = np.array([d["X"], d["Y"], d["Z"]])
 
     if pos_ch_names:

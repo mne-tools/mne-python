@@ -466,3 +466,6 @@ def test_fidsposition_information():
     assert pos['nasion'] is not None
     assert pos['lpa'] is not None
     assert pos['rpa'] is not None
+    assert len(pos['nasion']) == 3
+    assert len(pos['lpa']) == 3
+    assert len(pos['rpa']) == 3
