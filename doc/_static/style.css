@@ -10,11 +10,15 @@
 
 html[data-theme="light"] {
     --mne-color-github: #000;
-    --mne-color-discourse: #231e20,
+    --mne-color-discourse: #231e20;
+    --pst-color-border-rgba: rgba(0, 0, 0, 0.125);
+    --pst-color-background-rgba: rgba(0, 0, 0, 0.03);
 }
 html[data-theme="dark"] {
     --mne-color-github: #fff;
     --mne-color-discourse: #d1c498;
+    --pst-color-border-rgba: rgba(201, 201, 201, 0.25);
+    --pst-color-background-rgba: rgba(255, 255, 255, 0.08);
 }
 
 /* ************************************************************ Sphinx fixes */
@@ -165,11 +169,16 @@ div.frontpage-gallery:hover .fadeout {
     opacity: 0.0;
     transition: 200ms linear;
 }
-div.card {
-    background-color: rgb(var(--pst-color-background));
-}
 div.card img.institution {
     background-color: #fffe;
+}
+div.card {
+    border: 1px solid var(--pst-color-border-rgba);
+    background-color: rgb(var(--pst-color-background));
+}
+.card-header {
+    border-bottom-color: var(--pst-color-border-rgba);
+    background-color: var(--pst-color-background-rgba);
 }
 
 /* ****************************************************** navbar quick links */
