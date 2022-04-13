@@ -37,6 +37,8 @@ Bugs
 
 - Retain epochs metadata when using :func:`mne.channels.combine_channels` (:gh:`10504` by `Clemens Brunner`_)
 
+- Fix bug in :meth:`mne.io.brainvision._get_vhdr_info` when BrainVision data are acquired with V-Amp and disabled lowpass filter is marked with value 0 (:gh:`10517` by `Alessandro Tonin`_)
+
 API changes
 ~~~~~~~~~~~
 - None yet
