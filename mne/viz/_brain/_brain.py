@@ -16,6 +16,7 @@ import time
 import copy
 import traceback
 import warnings
+import weakref
 
 import numpy as np
 from collections import OrderedDict
@@ -43,7 +44,7 @@ from ...transforms import (Transform, apply_trans, invert_transform,
                            _get_trans, _get_transforms_to_coord_frame,
                            _frame_to_str)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
-                      use_log_level, Bunch, _ReuseCycle, warn, deprecated,
+                      use_log_level, Bunch, _ReuseCycle, warn,
                       get_subjects_dir, _check_fname, _to_rgb)
 
 
@@ -724,6 +725,7 @@ class Brain(object):
     @safe_event
     def _clean(self):
         # resolve the reference cycle
+        self._renderer._window_close_disconnect()
         self.clear_glyphs()
         self.remove_annotations()
         # clear init actors
@@ -1087,9 +1089,13 @@ class Brain(object):
             return
 
         layout = self._renderer._dock_add_group_box(name)
+        weakself = weakref.ref(self)
 
         # setup candidate annots
-        def _set_annot(annot):
+        def _set_annot(annot, weakself=weakself):
+            self = weakself()
+            if self is None:
+                return
             self.clear_glyphs()
             self.remove_labels()
             self.remove_annotations()
@@ -1104,7 +1110,10 @@ class Brain(object):
             self._renderer._update()
 
         # setup label extraction parameters
-        def _set_label_mode(mode):
+        def _set_label_mode(mode, weakself=weakself):
+            self = weakself()
+            if self is None:
+                return
             if self.traces_mode != 'label':
                 return
             glyphs = copy.deepcopy(self.picked_patches)
@@ -1282,17 +1291,32 @@ class Brain(object):
 
     def _configure_tool_bar(self):
         self._renderer._tool_bar_initialize(name="Toolbar")
+        weakself = weakref.ref(self)
+
+        def save_image(filename, weakself=weakself):
+            self = weakself()
+            if self is None:
+                return
+            self.save_image(filename)
+
         self._renderer._tool_bar_add_file_button(
             name="screenshot",
             desc="Take a screenshot",
-            func=self.save_image,
+            func=save_image,
         )
+
+        def save_movie(filename, weakself=weakself):
+            self = weakself()
+            if self is None:
+                return
+            self.save_movie(
+                filename=filename,
+                time_dilation=(1. / self.playback_speed))
+
         self._renderer._tool_bar_add_file_button(
             name="movie",
             desc="Save movie...",
-            func=lambda filename: self.save_movie(
-                filename=filename,
-                time_dilation=(1. / self.playback_speed)),
+            func=save_movie,
             shortcut="ctrl+shift+s",
         )
         self._renderer._tool_bar_add_button(
@@ -3800,13 +3824,6 @@ class Brain(object):
                     keep_idx = keep_idx[np.in1d(keep_idx, restrict_idx)]
             show[keep_idx] = 1
             label *= show
-
-    @deprecated('enable_depth_peeling is deprecated and will be '
-                'removed in 1.1')
-    def enable_depth_peeling(self):
-        """Enable depth peeling.
-        """
-        self._renderer._enable_depth_peeling()
 
     def get_picked_points(self):
         """Return the vertices of the picked points.
