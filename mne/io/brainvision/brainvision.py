@@ -70,9 +70,7 @@ class RawBrainVision(BaseRaw):
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = op.abspath(vhdr_fname)
         ext = op.splitext(vhdr_fname)[-1]
-        ahdr_format = False
-        if ext == '.ahdr':
-            ahdr_format = True
+        ahdr_format = True if ext == '.ahdr' else False
         (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
          orig_units) = _get_vhdr_info(vhdr_fname, eog, misc, scale)
 
@@ -465,10 +463,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
     """
     scale = float(scale)
     ext = op.splitext(vhdr_fname)[-1]
-    ahdr_format = False
-    if ext == '.ahdr':
-        ahdr_format = True
-    elif ext != '.vhdr':
+    ahdr_format = True if ext == '.ahdr' else False
+    if ext not in ('.vhdr', '.ahdr'):
         raise IOError("The header file must be given to read the data, "
                       "not a file with extension '%s'." % ext)
 
@@ -560,7 +556,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         ch_dict[chan] = name
         ch_names[n] = name
         if resolution == "":
-            if not (unit):  # For truncated vhdrs (e.g. EEGLAB export)
+            if not unit:  # For truncated vhdrs (e.g. EEGLAB export)
                 resolution = 0.000001
             else:
                 resolution = 1.  # for files with units specified, but not res
@@ -575,7 +571,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         ch_dict[_AHDR_CHANNEL_NAME] = _AHDR_CHANNEL_NAME
         ch_names[-1] = _AHDR_CHANNEL_NAME
         orig_units[_AHDR_CHANNEL_NAME] = 'V'
-        cals[-1] = float(1)
+        cals[-1] = 1.
         ranges[-1] = 1
 
     misc = list(misc_chs.keys()) if misc == 'auto' else misc
