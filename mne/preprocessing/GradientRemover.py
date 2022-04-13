@@ -3,10 +3,10 @@ import numpy as np
 from scipy.signal import detrend
 
 class GradientRemover:
-    """A class to remove gradients from EEG data using a template approach.
-    """
+    """A class to remove gradients from EEG data using a template approach."""
+
     def __init__(self, eeg_data, tr_events, window=(4, 4)):
-        """Constructor for the gradient remover
+        """Construct a gradient remover.
 
         Parameters
         ----------
@@ -75,7 +75,7 @@ class GradientRemover:
         return len(self._data)
 
     def get_tr(self, n):
-        """Get the uncorrected data at a given TR
+        """Get the uncorrected data at a given TR.
 
         Parameters
         ----------
@@ -95,7 +95,7 @@ class GradientRemover:
         return self._data[:, this_start:this_end]
 
     def get_tr_detrended(self, n):
-        """Get the detrended data at a given TR
+        """Get the detrended data at a given TR.
 
         Parameters
         ----------
@@ -114,7 +114,7 @@ class GradientRemover:
         return detrend(self.get_tr(n))
 
     def get_tr_template(self, n):
-        """Get the gradient template data at a given TR
+        """Get the gradient template data at a given TR.
 
         Parameters
         ----------
@@ -152,7 +152,7 @@ class GradientRemover:
         )
 
     def get_tr_corrected(self, n):
-        """Get the gradient-corrected data at a given TR
+        """Get the gradient-corrected data at a given TR.
 
         Parameters
         ----------
