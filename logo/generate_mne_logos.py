@@ -17,12 +17,12 @@ from matplotlib import rcParams
 from scipy.stats import multivariate_normal
 from matplotlib.path import Path
 from matplotlib.text import TextPath
-from matplotlib.patches import PathPatch, Ellipse, FancyBboxPatch
+from matplotlib.patches import PathPatch, Ellipse, FancyBboxPatch, Rectangle
 from matplotlib.colors import LinearSegmentedColormap
 
 # manually set values
-dpi = 300.
-center_fudge = np.array([15, 0])  # compensate for font bounding box padding
+dpi = 300
+center_fudge = np.array([15, 30])  # compensate for font bounding box padding
 tagline_scale_fudge = 0.97  # to get justification right
 tagline_offset_fudge = np.array([0, -100.])
 
@@ -34,7 +34,7 @@ plt.rcdefaults()
 rcParams.update(rcp)
 
 # initialize figure (no axes, margins, etc)
-fig = plt.figure(1, figsize=(5, 3), frameon=False, dpi=dpi)
+fig = plt.figure(1, figsize=(5, 2.25), frameon=False, dpi=dpi)
 ax = plt.Axes(fig, [0., 0., 1., 1.])
 ax.set_axis_off()
 fig.add_axes(ax)
@@ -73,7 +73,10 @@ mne_field_line_cols = LinearSegmentedColormap('mne_line', redbl)
 # plot gradient and contour lines
 im = ax.imshow(Z, cmap=mne_field_grad_cols, aspect='equal', zorder=1)
 cs = ax.contour(Z, 9, cmap=mne_field_line_cols, linewidths=1, zorder=1)
-plot_dims = np.r_[np.diff(ax.get_xbound()), np.diff(ax.get_ybound())]
+xlim, ylim = ax.get_xbound(), ax.get_ybound()
+plot_dims = np.r_[np.diff(xlim), np.diff(ylim)]
+rect = Rectangle(
+    [xlim[0], ylim[0]], plot_dims[0], plot_dims[1], facecolor='w', zorder=0.5)
 
 # create MNE clipping mask
 mne_path = TextPath((0, 0), 'MNE')
@@ -86,13 +89,15 @@ mne_clip = Path(offset + vert * mult, mne_path.codes)
 ax.add_patch(PathPatch(mne_clip, color='w', zorder=0, linewidth=0))
 # apply clipping mask to field gradient and lines
 im.set_clip_path(mne_clip, transform=im.get_transform())
+ax.add_patch(rect)
+rect.set_clip_path(mne_clip, transform=im.get_transform())
 for coll in cs.collections:
     coll.set_clip_path(mne_clip, transform=im.get_transform())
 # get final position of clipping mask
 mne_corners = mne_clip.get_extents().corners()
 
 # add tagline
-rcParams.update({'font.sans-serif': ['Cooper Hewitt'], 'font.weight': 'light'})
+rcParams.update({'font.sans-serif': ['Cooper Hewitt'], 'font.weight': '300'})
 tag_path = TextPath((0, 0), 'MEG + EEG  ANALYSIS & VISUALIZATION')
 dims = tag_path.vertices.max(0) - tag_path.vertices.min(0)
 vert = tag_path.vertices - dims / 2.
@@ -113,6 +118,11 @@ plt.draw()
 static_dir = op.join(op.dirname(__file__), '..', 'doc', '_static')
 assert op.isdir(static_dir)
 plt.savefig(op.join(static_dir, 'mne_logo.svg'), transparent=True)
+tag_patch.set_facecolor('w')
+rect.set_facecolor('0.5')
+plt.savefig(op.join(static_dir, 'mne_logo_dark.svg'), transparent=True)
+tag_patch.set_facecolor('k')
+rect.set_facecolor('w')
 
 # modify to make the splash screen
 data_dir = op.join(op.dirname(__file__), '..', 'mne', 'icons')
@@ -133,7 +143,7 @@ patch = FancyBboxPatch(
     boxstyle="round,rounding_size=200.0", mutation_aspect=1)
 ax.add_patch(patch)
 fig.set_size_inches((512 / dpi, 512 * (h / w) / dpi))
-plt.savefig(op.join(data_dir, 'mne-splash.png'), transparent=True)
+plt.savefig(op.join(data_dir, 'mne_splash.png'), transparent=True)
 patch.remove()
 
 # modify to make an icon
@@ -144,20 +154,21 @@ ax.set_ylim(xy[1] + r / 1.9, xy[1] - r / 1.9)
 fig.set_size_inches((256 / dpi, 256 / dpi))
 # Qt does not support clip paths in SVG rendering so we have to use PNG here
 # then use "optipng -o7" on it afterward (14% reduction in file size)
-plt.savefig(op.join(data_dir, 'mne-circle-black.png'), transparent=True)
+plt.savefig(op.join(data_dir, 'mne_default_icon.png'), transparent=True)
 plt.close()
 
-# 92x22 image
-w_px = 92
-h_px = 22
-center_fudge = np.array([20, 0])
+# 188x45 image
+dpi = 96  # for SVG it's different
+w_px = 188
+h_px = 45
+center_fudge = np.array([60, 0])
 scale_fudge = 2.1
 rcParams.update({'font.sans-serif': ['Primetime'], 'font.weight': 'black'})
 x = np.linspace(-1., 1., w_px // 2)
 y = np.linspace(-1., 1., h_px // 2)
 X, Y = np.meshgrid(x, y)
 # initialize figure (no axes, margins, etc)
-fig = plt.figure(1, figsize=(w_px / dpi, h_px / dpi), frameon=False, dpi=dpi)
+fig = plt.figure(1, figsize=(w_px / dpi, h_px / dpi), facecolor='k', frameon=False, dpi=dpi)
 ax = plt.Axes(fig, [0., 0., 1., 1.])
 ax.set_axis_off()
 fig.add_axes(ax)
@@ -175,7 +186,7 @@ mult = [mult, -mult]  # y axis is inverted (origin at top left)
 offset = np.array([scale_fudge, 1.]) * \
     np.array([-dims[0], plot_dims[-1]]) / 2. - center_fudge
 mne_clip = Path(offset + vert * mult, mne_path.codes)
-mne_patch = PathPatch(mne_clip, facecolor='w', edgecolor='none', zorder=10)
+mne_patch = PathPatch(mne_clip, facecolor='0.5', edgecolor='none', zorder=10)
 ax.add_patch(mne_patch)
 # adjust xlim and ylim
 mne_corners = mne_clip.get_extents().corners()
@@ -188,5 +199,5 @@ ypad = np.abs(np.diff([ymax, ymin])) / 20.
 ax.set_xlim(xmin - xpad, xl[1] + xpad)
 ax.set_ylim(ymax + ypad, ymin - ypad)
 plt.draw()
-plt.savefig(op.join(static_dir, 'mne_logo_small.svg'), transparent=True)
+plt.savefig(op.join(static_dir, 'mne_logo_small.svg'), dpi=dpi, transparent=True)
 plt.close()

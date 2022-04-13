@@ -21,17 +21,12 @@ MNE-Python Homepage
     })
     observer.observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
     </script>
-    <picture>
-    <source srcset="_static/mne_logo_dark.svg" media="(prefers-color-scheme: dark)">
+    <link rel="preload" href="_images/mne_logo_dark.svg" as="image">
 
 .. image:: _static/mne_logo.svg
    :alt: MNE-Python
    :class: logo, mainlogo
    :align: center
-
-.. raw:: html
-
-    </picture>
 
 .. rst-class:: h4 text-center font-weight-light my-4
 
