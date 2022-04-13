@@ -10,15 +10,15 @@ class GradientRemover:
 
         Parameters
         ----------
-        eeg_data: np.ndarray
+        eeg_data : np.ndarray
             The raw EEG data to perform gradient correction on.
             Expected in shape (channels, time_points).
-        tr_events: np.ndarray
+        tr_events : np.ndarray
             The sample numbers for when TRs begin. The array may be a
             subset of an mne find_events that is a shape (N, 3), or a
             1-dimensional array of sample numbers. TRs must be perfectly
             spaced in time.
-        window: int or tuple[int, int]
+        window : int or tuple[int, int]
             The window to use for templates. Must be either an even integer
             to indicate the total size, with an even number of TRs
             templated before and after, OR a tuple containing the number of
@@ -80,13 +80,13 @@ class GradientRemover:
 
         Parameters
         ----------
-        n: int
+        n : int
            The TR to get the uncorrected data at (0-indexed).
 
         Returns
         -------
-        np.ndarray of shape (channels, tr_timepoints) representing the
-        uncorrected data at the given TR.
+        np.ndarray of shape (channels, tr_timepoints)
+            Represents the uncorrected data at the given TR.
 
         Raises
         ------
@@ -100,13 +100,13 @@ class GradientRemover:
 
         Parameters
         ----------
-        n: int
+        n : int
            The TR to get the detrended data at (0-indexed).
 
         Returns
         -------
-        np.ndarray of shape (channels, tr_timepoints) representing the
-        detrended data at the given TR.
+        np.ndarray of shape (channels, tr_timepoints)
+            Represents the detrended data at the given TR.
 
         Raises
         ------
@@ -119,13 +119,13 @@ class GradientRemover:
 
         Parameters
         ----------
-        n: int
+        n : int
            The TR to get the template data at (0-indexed).
 
         Returns
         -------
-        np.ndarray of shape (channels, tr_timepoints) representing the
-        template data at the given TR.
+        np.ndarray of shape (channels, tr_timepoints)
+            Represents the template data at the given TR.
 
         Raises
         ------
@@ -157,13 +157,13 @@ class GradientRemover:
 
         Parameters
         ----------
-        n: int
+        n : int
            The TR to get the corrected data at (0-indexed).
 
         Returns
         -------
-        np.ndarray of shape (channels, tr_timepoints) representing the
-        template data at the given TR.
+        np.ndarray of shape (channels, tr_timepoints)
+            Represents the template data at the given TR.
 
         Raises
         ------
@@ -174,7 +174,14 @@ class GradientRemover:
         return detrended - template
 
     def correct(self):
-        """Generate the gradient-corrected data."""
+        """Generate the gradient-corrected data.
+
+        Returns
+        -------
+        None
+            Returns None but fills in gradient-corrected data to this
+            object.
+        """
         corrected = self._data.copy()
         for tr in range(self.n_tr):
             this_start, this_end = self._tr_bounds(tr)

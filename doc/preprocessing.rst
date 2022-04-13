@@ -67,6 +67,7 @@ Projections:
 .. autosummary::
    :toctree: generated/
 
+   GradientRemover
    ICA
    Xdawn
    annotate_amplitude
