@@ -23,6 +23,7 @@ Current (1.1.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- Add support for ahdr files in :func:`mne.io.read_raw_brainvision` (:gh:`10515` by :newcontrib:`Alessandro Tonin`)
 - Add support for ``overview_mode`` in :meth:`raw.plot() <mne.io.Raw.plot>` and related functions/methods (:gh:`10501` by `Eric Larson`_)
 
 Bugs
