@@ -426,6 +426,8 @@
 
 .. _Senwen Deng: https://snwn.de
 
+.. _Alessandro Tonin: https://wysscenter.ch/team/alessandro-tonin
+
 .. _Michiru Kaneda: https://github.com/rcmdnk
 
 .. _Scott Huberty:  https://orcid.org/0000-0003-2637-031X
