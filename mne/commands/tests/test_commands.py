@@ -195,6 +195,7 @@ def test_maxfilter():
 @testing.requires_testing_data
 def test_report(tmp_path):
     """Test mne report."""
+    pytest.importorskip('nibabel')
     check_usage(mne_report)
     tempdir = str(tmp_path)
     use_fname = op.join(tempdir, op.basename(raw_fname))

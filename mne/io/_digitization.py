@@ -273,7 +273,8 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
     if len(dig_coord_frames) != 1:
         raise RuntimeError('Only single coordinate frame in dig is supported, '
                            f'got {dig_coord_frames}')
-
+    dig_ch_pos_location = np.array(dig_ch_pos_location)
+    dig_ch_pos_location.shape = (-1, 3)  # empty will be (0, 3)
     return Bunch(
         nasion=fids.get('nasion', None),
         lpa=fids.get('lpa', None),
@@ -281,7 +282,7 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
         hsp=np.array(hsp) if len(hsp) else None,
         hpi=np.array(hpi) if len(hpi) else None,
         elp=np.array(elp) if len(elp) else None,
-        dig_ch_pos_location=np.array(dig_ch_pos_location),
+        dig_ch_pos_location=dig_ch_pos_location,
         coord_frame=dig_coord_frames.pop(),
     )
 
