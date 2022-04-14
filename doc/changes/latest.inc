@@ -27,6 +27,8 @@ Enhancements
 
 - The ``pick_channels`` method gained a ``verbose`` parameter, allowing e.g. to suppress messages about removed projectors (:gh:`10544` by `Richard Höchenberger`_)
 
+- Add :meth:`mne.preprocessing.ICA.find_bads_muscle` to find muscle-related ICA components (:gh:`XXX` by `Alex Rockhill`)
+
 Bugs
 ~~~~
 - Fix bug in :func:`mne.io.read_raw_brainvision` when BrainVision data are acquired with the Brain Products "V-Amp" amplifier and disabled lowpass filter is marked with value ``0`` (:gh:`10517` by :newcontrib:`Alessandro Tonin`)

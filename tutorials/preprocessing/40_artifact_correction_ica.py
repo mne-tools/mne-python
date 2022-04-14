@@ -459,6 +459,11 @@ new_ica.plot_sources(ecg_evoked)
 # of automated approaches like `~mne.preprocessing.ICA.find_bads_ecg`
 # before accepting them.
 
+# %%
+# For EEG, activation of muscles for postural control of the head and neck
+# contaminate the signal as well. This is usually not detected by MEG. For
+# an example showing how to remove these components, see :ref:`ex-muscle-ica`.
+
 # clean up memory before moving on
 del raw, ica, new_ica
 
