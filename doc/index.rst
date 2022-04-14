@@ -21,7 +21,7 @@ MNE-Python Homepage
     })
     observer.observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
     </script>
-    <link rel="preload" href="_images/mne_logo_dark.svg" as="image">
+    <link rel="preload" href="_static/mne_logo_dark.svg" as="image">
 
 .. image:: _static/mne_logo.svg
    :alt: MNE-Python
