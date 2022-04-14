@@ -9,7 +9,7 @@ from mne.utils import requires_version
 
 
 @requires_version('sphinx_gallery')
-def test_pg_scraper(raw, pg_backend, tmp_path):
+def test_qt_scraper(raw, pg_backend, tmp_path):
     """Test sphinx-gallery scraping of the browser."""
     # make sure there is only one to scrape from old tests
     fig = raw.plot(group_by='selection')
@@ -22,6 +22,6 @@ def test_pg_scraper(raw, pg_backend, tmp_path):
         image_path_iterator=iter(image_paths))
     assert not any(op.isfile(image_path) for image_path in image_paths)
     assert not getattr(fig, '_scraped', False)
-    mne.viz._scraper._PyQtGraphScraper()(None, block_vars, gallery_conf)
+    mne.viz._scraper._MNEQtBrowserScraper()(None, block_vars, gallery_conf)
     assert all(op.isfile(image_path) for image_path in image_paths)
     assert fig._scraped

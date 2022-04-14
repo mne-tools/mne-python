@@ -89,7 +89,9 @@ stages:
       OPENBLAS_NUM_THREADS: '1'
     steps:
     - bash: |
-        sudo apt install libxkbcommon-x11-0 xvfb tcsh libxcb*
+        set -e
+        ./tools/setup_xvfb.sh
+        sudo apt install -yq tcsh
       displayName: 'Install Ubuntu dependencies'
     - bash: |
         source tools/get_minimal_commands.sh
@@ -106,16 +108,16 @@ stages:
         addToPath: true
       displayName: 'Get Python'
     - bash: |
-        /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
-      displayName: 'Spin up Xvfb'
-    - bash: |
         set -e
         python -m pip install --progress-bar off --upgrade pip setuptools wheel codecov
-        python -m pip install --progress-bar off mne-qt-browser[opengl] vtk scikit-learn pytest-error-for-skips python-picard
+        python -m pip install --progress-bar off mne-qt-browser[opengl] vtk scikit-learn pytest-error-for-skips python-picard PySide6 qtpy
         python -m pip uninstall -yq mne
         python -m pip install --progress-bar off --upgrade -e .[test]
       displayName: 'Install dependencies with pip'
-    - script: mne sys_info -pd
+    - bash: |
+        set -e
+        mne sys_info -pd
+        mne sys_info -pd | grep "qtpy: .*{PySide6=.*}$"
       displayName: Print config
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
@@ -152,10 +154,7 @@ stages:
       OPENBLAS_NUM_THREADS: '1'
       TEST_OPTIONS: "--tb=short --cov=mne --cov-report=xml --cov-report=html --cov-append -vv mne/viz/_brain mne/viz/backends mne/viz/tests/test_evoked.py mne/gui"
     steps:
-    - bash: |
-        set -e
-        ./tools/setup_xvfb.sh
-        sudo apt install libegl1
+    - bash: ./tools/setup_xvfb.sh
       displayName: 'Install Ubuntu dependencies'
     - task: UsePythonVersion@0
       inputs:
@@ -191,10 +190,10 @@ stages:
     - bash: |
         set -e
         mne sys_info -pd
-        mne sys_info -pd | grep "^qtpy: .*{PyQt5=.*}$"
+        mne sys_info -pd | grep "qtpy: .*{PySide6=.*}$"
         pytest -m "not slowtest" ${TEST_OPTIONS}
-        python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
-      displayName: 'PyQt5'
+        python -m pip uninstall -yq PySide6
+      displayName: 'PySide6'
     - bash: |
         set -e
         python -m pip install PyQt6
@@ -211,14 +210,15 @@ stages:
         pytest -m "not slowtest" ${TEST_OPTIONS}
         python -m pip uninstall -yq PySide2
       displayName: 'PySide2'
+    # PyQt5 leaves cruft behind, so run it last
     - bash: |
         set -e
-        python -m pip install PySide6
+        python -m pip install PyQt5
         mne sys_info -pd
-        mne sys_info -pd | grep "qtpy: .*{PySide6=.*}$"
+        mne sys_info -pd | grep "^qtpy: .*{PyQt5=.*}$"
         pytest -m "not slowtest" ${TEST_OPTIONS}
-        python -m pip uninstall -yq PySide6
-      displayName: 'PySide6'
+        python -m pip uninstall -yq PyQt5 PyQt5-sip PyQt5-Qt5
+      displayName: 'PyQt5'
     # Coverage
     - bash: bash <(curl -s https://codecov.io/bash)
       displayName: 'Codecov'
@@ -257,9 +257,9 @@ stages:
           PLATFORM: 'x86-64'
           TEST_MODE: 'conda'
           PYTHON_VERSION: '3.9'
-        3.7 pip:
+        3.9 pip:
           TEST_MODE: 'pip'
-          PYTHON_VERSION: '3.7'
+          PYTHON_VERSION: '3.9'
         3.10 pip pre:
           TEST_MODE: 'pip-pre'
           PYTHON_VERSION: '3.10'

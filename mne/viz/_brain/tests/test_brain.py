@@ -839,6 +839,35 @@ something
 
 
 @testing.requires_testing_data
+def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
+    """Test a simple scraping example."""
+    pytest.importorskip('sphinx_gallery')
+    stc = read_source_estimate(fname_stc, subject='sample')
+    size = (600, 300)
+    brain = stc.plot(subjects_dir=subjects_dir,
+                     time_viewer=True, show_traces=True,
+                     hemi='split', size=size, views='lat')
+    fnames = [str(tmp_path / f'temp_{ii}.png') for ii in range(2)]
+    block_vars = dict(image_path_iterator=iter(fnames),
+                      example_globals=dict(brain=brain))
+    block = ('code', '', 1)
+    gallery_conf = dict(src_dir=str(tmp_path), compress_images=[])
+    scraper = _BrainScraper()
+    rst = scraper(block, block_vars, gallery_conf)
+    assert brain.plotter is None  # closed
+    assert brain._cleaned
+    del brain
+    fname = fnames[0]
+    assert op.basename(fname) in rst
+    assert op.isfile(fname)
+    img = image.imread(fname)
+    w = img.shape[1]
+    w0 = size[0]
+    assert np.isclose(w, w0, atol=10) or \
+        np.isclose(w, w0 * 2, atol=10), f'w ∉ {{{w0}, {2 * w0}}}'  # HiDPI
+
+
+@testing.requires_testing_data
 @pytest.mark.slowtest
 def test_brain_linkviewer(renderer_interactive_pyvistaqt, brain_gc):
     """Test _LinkViewer primitives."""
