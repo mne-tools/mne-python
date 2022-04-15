@@ -18,7 +18,7 @@
 
 .. changes_1_0_2:
 
-Version 1.0.2 (unreleased)
+Version 1.0.2 (2022-04-15)
 --------------------------
 - Fix bug where ``theme`` was not handled properly in :meth:`mne.io.Raw.plot` (:gh:`10500` by `Eric Larson`_)
 
