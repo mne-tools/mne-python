@@ -41,6 +41,77 @@ from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
 # differences between algorithms
 
 
+@verbose
+def maxwell_filter_prepare_emptyroom(
+    raw_er, *, raw, bads='from_raw', verbose=None
+):
+    """Prepare an empty-room recording for Maxwell filtering.
+
+    Empty-room data by default lacks certain properties that are required to
+    ensure running :func:`~mne.preprocessing.maxwell_filter` will process the
+    empty-room recording the same way as the experimental data. This function
+    preconditions empty-room raw data instance accordingly so it can be used
+    for Maxwell filtering.
+
+    Parameters
+    ----------
+    raw_er : instance of Raw
+        The empty-room recording. It will be modified in-place.
+    raw : instance of Raw
+        The experimental recording, typically this will be the reference run
+        used for Maxwell filtering.
+    bads : 'from_raw' | 'union' | list of str
+        How to populate the list of bad channel names to be injected into
+        the empty-room recording. If ``'from_raw'`` (default) the list of bad
+        channels will be overwritten with that of ``raw``. If ``'union'``, will
+        use the union of bad channels in ``raw`` and ``raw_er``. Note that
+        this may lead to additional bad channels in the empty-room in
+        comparison to the experimental recording. If a list, you can explicitly
+        provide the list of channel names to be marked as bad.
+
+        .. note::
+           Non-MEG channels are silently dropped from the list of bads.
+    %(verbose)s
+
+    Returns
+    -------
+    raw_er : instance of Raw
+        The modified empty-room recording, ready for Maxwell filtering.
+
+    Notes
+    -----
+    .. versionadded:: 1.1
+    """
+    _validate_type(item=raw_er, types=BaseRaw, item_name='raw_er')
+    _validate_type(item=raw, types=BaseRaw, item_name='raw')
+    _validate_type(item=bads, types=(list, str), item_name='bads')
+    if isinstance(bads, str):
+        _check_option(
+            parameter='bads', value=bads, allowed_values=['from_raw', 'union']
+        )
+
+    # handle bads
+    if bads == 'from_raw':
+        bads = raw.info['bads']
+    elif bads == 'union':
+        bads = sorted(
+            set(*raw.info['bads'], *raw_er.info['bads'])
+        )
+    # only keep MEG channels
+    bads = [ch_name for ch_name in bads
+            if ch_name.startswith('MEG')]
+    raw_er.info['bads'] = bads
+
+    # handle dev_head_t
+    raw_er.info["dev_head_t"] = raw.info["dev_head_t"]
+
+    # handle montage
+    montage = raw.get_montage()
+    raw_er.set_montage(montage)
+
+    return raw_er
+
+
 # Changes to arguments here should also be made in find_bad_channels_maxwell
 @verbose
 def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
