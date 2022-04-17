@@ -50,8 +50,8 @@ def maxwell_filter_prepare_emptyroom(
     Empty-room data by default lacks certain properties that are required to
     ensure running :func:`~mne.preprocessing.maxwell_filter` will process the
     empty-room recording the same way as the experimental data. This function
-    preconditions empty-room raw data instance accordingly so it can be used
-    for Maxwell filtering.
+    preconditions an empty-room raw data instance accordingly so it can be used
+    for Maxwell filtering. Please see the ``Notes`` section for details.
 
     Parameters
     ----------
