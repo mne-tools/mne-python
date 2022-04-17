@@ -103,7 +103,7 @@ def maxwell_filter_prepare_emptyroom(
         bads = raw.info['bads']
     elif bads == 'union':
         bads = sorted(
-            set(*raw.info['bads'], *raw_er.info['bads'])
+            set([*raw.info['bads'], *raw_er.info['bads']])
         )
     # only keep MEG channels
     bads = [ch_name for ch_name in bads

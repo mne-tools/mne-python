@@ -24,7 +24,8 @@ from mne.io import (read_raw_fif, read_info, read_raw_bti, read_raw_kit,
                     BaseRaw, read_raw_ctf)
 from mne.io.constants import FIFF
 from mne.preprocessing import (maxwell_filter, find_bad_channels_maxwell,
-                               annotate_amplitude, compute_maxwell_basis)
+                               annotate_amplitude, compute_maxwell_basis,
+                               maxwell_filter_prepare_emptyroom)
 from mne.preprocessing.maxwell import (
     _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
@@ -1443,3 +1444,36 @@ def test_compute_maxwell_basis(regularize, n):
     xform = S[:, :n_use_in] @ pS[:n_use_in]
     got = xform @ raw.pick_types(meg=True, exclude='bads').get_data()
     assert_allclose(got, want)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize(
+    'bads', ['from_raw', 'union', ['MEG 0113', 'MEG 2313']]
+)
+def test_prepare_emptyroom(bads):
+    """Test prepare_emptyroom."""
+    raw = read_raw_fif(sample_fname)
+    raw_er = raw.copy().pick_types(meg=True)
+    raw_er.info['dev_head_t'] = None
+    raw_er.set_montage(None)
+    assert raw.info['bads']
+
+    if bads == 'from_raw':
+        raw.info['bads'] = ['MEG 0113', 'MEG 2313']
+    elif bads == 'union':
+        raw.info['bads'] = ['MEG 0113']
+        raw_er.info['bads'] = ['MEG 2313']
+    else:
+        pass
+
+    maxwell_filter_prepare_emptyroom(
+        raw_er=raw_er,
+        raw=raw,
+        bads=bads
+    )
+    assert raw_er.info['bads'] == ['MEG 0113', 'MEG 2313']
+    assert raw_er.info['dev_head_t'] == raw.info['dev_head_t']
+
+    montage_expected = raw.copy().pick_types(meg=True).get_montage()
+    # XXX assert raw_er.get_montage == montage_expected fails – why?
+    assert raw_er.get_montage().dig == montage_expected.dig
