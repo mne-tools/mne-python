@@ -53,14 +53,6 @@ def maxwell_filter_prepare_emptyroom(
     preconditions empty-room raw data instance accordingly so it can be used
     for Maxwell filtering.
 
-    Specifically, this function will:
-
-    * Compile the list of bad channels according to the ``bads`` parameter.
-    * Inject the device-to-head transformation matrix from the experimental
-      recording into the empty-room recording.
-    * Set the same montage on the empty-room recording as the experimental
-      recording.
-
     Parameters
     ----------
     raw_er : instance of Raw
@@ -88,6 +80,14 @@ def maxwell_filter_prepare_emptyroom(
 
     Notes
     -----
+    This function will:
+
+    * Compile the list of bad channels according to the ``bads`` parameter.
+    * Inject the device-to-head transformation matrix from the experimental
+      recording into the empty-room recording.
+    * Set the same montage on the empty-room recording as the experimental
+      recording.
+
     .. versionadded:: 1.1
     """
     _validate_type(item=raw_er, types=BaseRaw, item_name='raw_er')
