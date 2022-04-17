@@ -1479,7 +1479,6 @@ def test_prepare_emptyroom(bads):
     assert raw_er_prepared.info['dev_head_t'] == raw.info['dev_head_t']
 
     montage_expected = raw.copy().pick_types(meg=True).get_montage()
-    # XXX assert raw_er.get_montage == montage_expected fails – why?
     assert raw_er_prepared.get_montage().dig == montage_expected.dig
 
     # Ensure the originals were not modified
