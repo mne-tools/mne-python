@@ -1454,6 +1454,7 @@ def test_prepare_emptyroom(bads):
     """Test prepare_emptyroom."""
     raw = read_raw_fif(sample_fname)
     raw_er = raw.copy().pick_types(meg=True)
+    raw_er.info['bads'] = []
     raw_er.info['dev_head_t'] = None
     raw_er.set_montage(None)
     assert raw.info['bads']
