@@ -64,7 +64,7 @@ def maxwell_filter_prepare_emptyroom(
     Parameters
     ----------
     raw_er : instance of Raw
-        The empty-room recording. It will be modified in-place.
+        The empty-room recording. It will not be modified.
     raw : instance of Raw
         The experimental recording, typically this will be the reference run
         used for Maxwell filtering.
@@ -83,8 +83,8 @@ def maxwell_filter_prepare_emptyroom(
 
     Returns
     -------
-    raw_er : instance of Raw
-        The modified empty-room recording, ready for Maxwell filtering.
+    raw_er_prepared : instance of Raw
+        A copy of the passed empty-room recording, ready for Maxwell filtering.
 
     Notes
     -----
@@ -98,26 +98,30 @@ def maxwell_filter_prepare_emptyroom(
             parameter='bads', value=bads, allowed_values=['from_raw', 'union']
         )
 
+    raw_er_prepared = raw_er.copy()
+    del raw_er
+
     # handle bads
     if bads == 'from_raw':
         bads = raw.info['bads']
     elif bads == 'union':
         bads = sorted(
-            set([*raw.info['bads'], *raw_er.info['bads']])
+            set([*raw.info['bads'], *raw_er_prepared.info['bads']])
         )
+
     # only keep MEG channels
     bads = [ch_name for ch_name in bads
             if ch_name.startswith('MEG')]
-    raw_er.info['bads'] = bads
+    raw_er_prepared.info['bads'] = bads
 
     # handle dev_head_t
-    raw_er.info["dev_head_t"] = raw.info["dev_head_t"]
+    raw_er_prepared.info["dev_head_t"] = raw.info["dev_head_t"]
 
     # handle montage
     montage = raw.get_montage()
-    raw_er.set_montage(montage)
+    raw_er_prepared.set_montage(montage)
 
-    return raw_er
+    return raw_er_prepared
 
 
 # Changes to arguments here should also be made in find_bad_channels_maxwell

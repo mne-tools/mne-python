@@ -1454,27 +1454,36 @@ def test_prepare_emptyroom(bads):
     """Test prepare_emptyroom."""
     raw = read_raw_fif(sample_fname)
     raw_er = raw.copy().pick_types(meg=True)
-    raw_er.info['bads'] = []
     raw_er.info['dev_head_t'] = None
     raw_er.set_montage(None)
-    assert raw.info['bads']
 
     if bads == 'from_raw':
-        raw.info['bads'] = ['MEG 0113', 'MEG 2313']
+        raw_bads_orig = ['MEG 0113', 'MEG 2313']
+        raw_er_bads_orig = []
     elif bads == 'union':
-        raw.info['bads'] = ['MEG 0113']
-        raw_er.info['bads'] = ['MEG 2313']
+        raw_bads_orig = ['MEG 0113']
+        raw_er_bads_orig = ['MEG 2313']
     else:
-        pass
+        raw_bads_orig = bads
+        raw_er_bads_orig = []
 
-    maxwell_filter_prepare_emptyroom(
+    raw.info['bads'] = raw_bads_orig
+    raw_er.info['bads'] = raw_er_bads_orig
+
+    raw_er_prepared = maxwell_filter_prepare_emptyroom(
         raw_er=raw_er,
         raw=raw,
         bads=bads
     )
-    assert raw_er.info['bads'] == ['MEG 0113', 'MEG 2313']
-    assert raw_er.info['dev_head_t'] == raw.info['dev_head_t']
+    assert raw_er_prepared.info['bads'] == ['MEG 0113', 'MEG 2313']
+    assert raw_er_prepared.info['dev_head_t'] == raw.info['dev_head_t']
 
     montage_expected = raw.copy().pick_types(meg=True).get_montage()
     # XXX assert raw_er.get_montage == montage_expected fails – why?
-    assert raw_er.get_montage().dig == montage_expected.dig
+    assert raw_er_prepared.get_montage().dig == montage_expected.dig
+
+    # Ensure the originals were not modified
+    assert raw.info['bads'] == raw_bads_orig
+    assert raw_er.info['bads'] == raw_er_bads_orig
+    assert raw_er.info['dev_head_t'] is None
+    assert raw_er.get_montage() is None
