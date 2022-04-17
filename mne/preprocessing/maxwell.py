@@ -101,21 +101,20 @@ def maxwell_filter_prepare_emptyroom(
     raw_er_prepared = raw_er.copy()
     del raw_er
 
-    # handle bads
+    # handle bads; only keep MEG channels
+
     if bads == 'from_raw':
         bads = raw.info['bads']
     elif bads == 'union':
         bads = sorted(
-            set([*raw.info['bads'], *raw_er_prepared.info['bads']])
+            set(raw.info['bads'] + raw_er_prepared.info['bads'])
         )
-
-    # only keep MEG channels
     bads = [ch_name for ch_name in bads
             if ch_name.startswith('MEG')]
     raw_er_prepared.info['bads'] = bads
 
     # handle dev_head_t
-    raw_er_prepared.info["dev_head_t"] = raw.info["dev_head_t"]
+    raw_er_prepared.info['dev_head_t'] = raw.info['dev_head_t']
 
     # handle montage
     montage = raw.get_montage()
