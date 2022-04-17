@@ -99,7 +99,7 @@ def maxwell_filter_prepare_emptyroom(
         )
 
     raw_er_prepared = raw_er.copy()
-    del raw_er  # just to be sure, and to save memory
+    del raw_er  # just to be sure
 
     # handle bads; only keep MEG channels
 
