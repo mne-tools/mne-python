@@ -168,7 +168,8 @@ x = np.linspace(-1., 1., w_px // 2)
 y = np.linspace(-1., 1., h_px // 2)
 X, Y = np.meshgrid(x, y)
 # initialize figure (no axes, margins, etc)
-fig = plt.figure(1, figsize=(w_px / dpi, h_px / dpi), facecolor='k', frameon=False, dpi=dpi)
+fig = plt.figure(1, figsize=(w_px / dpi, h_px / dpi), facecolor='k',
+                 frameon=False, dpi=dpi)
 ax = plt.Axes(fig, [0., 0., 1., 1.])
 ax.set_axis_off()
 fig.add_axes(ax)
@@ -199,5 +200,6 @@ ypad = np.abs(np.diff([ymax, ymin])) / 20.
 ax.set_xlim(xmin - xpad, xl[1] + xpad)
 ax.set_ylim(ymax + ypad, ymin - ypad)
 plt.draw()
-plt.savefig(op.join(static_dir, 'mne_logo_small.svg'), dpi=dpi, transparent=True)
+plt.savefig(op.join(static_dir, 'mne_logo_small.svg'),
+            dpi=dpi, transparent=True)
 plt.close()
