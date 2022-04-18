@@ -85,11 +85,28 @@ def maxwell_filter_prepare_emptyroom(
     * Compile the list of bad channels according to the ``bads`` parameter.
     * Inject the device-to-head transformation matrix from the experimental
       recording into the empty-room recording.
-    * Set the same montage on the empty-room recording as the experimental
-      recording.
+    * Set the following properties of the empty-room recording to match the
+      experimental recording:
+
+      * Montage
+      * Measurement date
+      * Annotations
+
+    If no modification of the measurement date or annotations is desired,
+    we suggest saving them and reverting them afterward, e.g. with::
+
+        >>> orig_annot, meas_date = raw_er.annotations, raw_er.info['meas_date']  # doctest:+SKIP
+        >>> raw_er_prepared = prepare_empty_room(raw_er, raw=raw)  # doctest:+SKIP
+        >>> raw_er_prepared.set_meas_date(meas_date)  # doctest:+SKIP
+        >>> annot.onset += (raw_er_prepared.first_samp - raw_er.first_samp) / raw_er.info['sfreq']
+        >>> raw_er_prepared.set_annotations(orig_annot)  # doctest:+SKIP
+
+    Note that setting the ``meas_date`` back is necessary in order to revert
+    the annotations, because the onsets are relative to the ``meas_date`` (plus
+    first samp, which is why it is adjusted to reflect the new first_samp).
 
     .. versionadded:: 1.1
-    """
+    """  # noqa: E501
     _validate_type(item=raw_er, types=BaseRaw, item_name='raw_er')
     _validate_type(item=raw, types=BaseRaw, item_name='raw')
     _validate_type(item=bads, types=(list, str), item_name='bads')
@@ -119,6 +136,15 @@ def maxwell_filter_prepare_emptyroom(
     # handle montage
     montage = raw.get_montage()
     raw_er_prepared.set_montage(montage)
+
+    # handle first_samp
+    raw_er_prepared._cropped_samp = raw._cropped_samp
+
+    # handle meas_date
+    raw_er_prepared.set_meas_date(raw.info['meas_date'])
+
+    # handle annotations
+    raw_er_prepared.set_annotations(raw.annotations)
 
     return raw_er_prepared
 

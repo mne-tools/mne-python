@@ -25,7 +25,8 @@ from mne.io import (read_raw_fif, read_info, read_raw_bti, read_raw_kit,
 from mne.io.constants import FIFF
 from mne.preprocessing import (maxwell_filter, find_bad_channels_maxwell,
                                annotate_amplitude, compute_maxwell_basis,
-                               maxwell_filter_prepare_emptyroom)
+                               maxwell_filter_prepare_emptyroom,
+                               annotate_movement)
 from mne.preprocessing.maxwell import (
     _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
@@ -1448,21 +1449,31 @@ def test_compute_maxwell_basis(regularize, n):
 
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    'bads', ['from_raw', 'union', ['MEG 0113', 'MEG 2313']]
+    'bads', ['from_raw', 'union', ['MEG0113', 'MEG2313']]
 )
-def test_prepare_emptyroom(bads):
+@pytest.mark.parametrize('set_annot_when', ('before', 'after'))
+def test_prepare_emptyroom(bads, set_annot_when):
     """Test prepare_emptyroom."""
-    raw = read_raw_fif(sample_fname)
-    raw_er = raw.copy().pick_types(meg=True)
-    raw_er.info['dev_head_t'] = None
+    raw = read_raw_fif(raw_fname, allow_maxshield='yes')
+    names = [name for name in raw.ch_names if 'EEG' not in name]
+    raw.pick_channels(names)
+    raw_er = read_raw_fif(erm_fname, allow_maxshield='yes')
+    raw_er.pick_channels(names)
+    assert raw.ch_names == raw_er.ch_names
+    assert raw_er.info['dev_head_t'] is None
     raw_er.set_montage(None)
+    # to make life easier, make it the same duration
+    n_rep = max(int(np.ceil(len(raw.times) / len(raw_er.times))), 1)
+    raw_er = mne.concatenate_raws([raw_er] * n_rep).crop(0, raw.times[-1])
+    assert_allclose(raw.times, raw_er.times)
 
+    raw_er_first_samp_orig = raw_er.first_samp
     if bads == 'from_raw':
-        raw_bads_orig = ['MEG 0113', 'MEG 2313']
+        raw_bads_orig = ['MEG0113', 'MEG2313']
         raw_er_bads_orig = []
     elif bads == 'union':
-        raw_bads_orig = ['MEG 0113']
-        raw_er_bads_orig = ['MEG 2313']
+        raw_bads_orig = ['MEG0113']
+        raw_er_bads_orig = ['MEG2313']
     else:
         raw_bads_orig = bads
         raw_er_bads_orig = []
@@ -1470,12 +1481,21 @@ def test_prepare_emptyroom(bads):
     raw.info['bads'] = raw_bads_orig
     raw_er.info['bads'] = raw_er_bads_orig
 
+    assert len(raw.annotations) == 0
+    pos = mne.chpi.read_head_pos(pos_fname)
+    annot, _ = annotate_movement(raw, pos, 1.)
+    want_annot = 5
+    if set_annot_when == 'before':
+        raw.set_annotations(annot)
+    else:
+        assert set_annot_when == 'after'
+
     raw_er_prepared = maxwell_filter_prepare_emptyroom(
         raw_er=raw_er,
         raw=raw,
         bads=bads
     )
-    assert raw_er_prepared.info['bads'] == ['MEG 0113', 'MEG 2313']
+    assert raw_er_prepared.info['bads'] == ['MEG0113', 'MEG2313']
     assert raw_er_prepared.info['dev_head_t'] == raw.info['dev_head_t']
 
     montage_expected = raw.copy().pick_types(meg=True).get_montage()
@@ -1486,3 +1506,22 @@ def test_prepare_emptyroom(bads):
     assert raw_er.info['bads'] == raw_er_bads_orig
     assert raw_er.info['dev_head_t'] is None
     assert raw_er.get_montage() is None
+    assert raw_er.first_samp == raw_er_first_samp_orig
+
+    # Ensure first samp is set properly
+    assert raw_er_prepared.first_samp == raw.first_samp
+
+    # Ensure (movement) annotations carry over regardless of whether they're
+    # set before or after preparation
+    assert len(annot) == want_annot
+    if set_annot_when == 'after':
+        raw.set_annotations(annot)
+        raw_er_prepared.set_annotations(annot)
+    assert len(raw.annotations) == want_annot
+    prop_bad = np.isnan(
+        raw.get_data([0], reject_by_annotation='nan')).mean()
+    assert 0.3 < prop_bad < 0.4
+    assert len(raw_er_prepared.annotations) == want_annot
+    prop_bad_er = np.isnan(
+        raw_er_prepared.get_data([0], reject_by_annotation='nan')).mean()
+    assert_allclose(prop_bad, prop_bad_er)
