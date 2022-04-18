@@ -98,7 +98,7 @@ def maxwell_filter_prepare_emptyroom(
         >>> orig_annot, meas_date = raw_er.annotations, raw_er.info['meas_date']  # doctest:+SKIP
         >>> raw_er_prepared = prepare_empty_room(raw_er, raw=raw)  # doctest:+SKIP
         >>> raw_er_prepared.set_meas_date(meas_date)  # doctest:+SKIP
-        >>> annot.onset += (raw_er_prepared.first_samp - raw_er.first_samp) / raw_er.info['sfreq']
+        >>> annot.onset += (raw_er_prepared.first_samp - raw_er.first_samp) / raw_er.info['sfreq']  # doctest:+SKIP
         >>> raw_er_prepared.set_annotations(orig_annot)  # doctest:+SKIP
 
     Note that setting the ``meas_date`` back is necessary in order to revert
