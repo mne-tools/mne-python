@@ -1423,11 +1423,11 @@ class Coregistration(object):
         if low_res_path is None:
             # This should be very rare!
             warn('No low-resolution head found, decimating high resolution '
-                 'mesh (%d vertices): %s' % (len(self._bem_high_res.surf.rr),
+                 'mesh (%d vertices): %s' % (len(self._bem_high_res['rr']),
                                              high_res_path,))
             # Create one from the high res one, which we know we have
-            rr, tris = decimate_surface(self._bem_high_res.surf.rr,
-                                        self._bem_high_res.surf.tris,
+            rr, tris = decimate_surface(self._bem_high_res['rr'],
+                                        self._bem_high_res['tris'],
                                         n_triangles=5120)
             # directly set the attributes of bem_low_res
             self._bem_low_res = complete_surface_info(
