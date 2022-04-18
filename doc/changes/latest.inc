@@ -43,7 +43,7 @@ Bugs
 
 - Fix reading of fiducial locations in :func:`mne.io.read_raw_eeglab` (:gh:`10521` by `Alex Gramfort`_)
 
-- Fix bug in coregistration GUI that prevented it from starting up if only a high-resolution head surface was available (:gh:`10543` by `Richard Höchenberger`_)
+- Fix bug in coregistration GUI that prevented it from starting up if only a high-resolution head model was available (:gh:`10543` by `Richard Höchenberger`_)
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
