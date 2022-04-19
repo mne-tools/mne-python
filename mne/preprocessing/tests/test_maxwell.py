@@ -1449,15 +1449,15 @@ def test_compute_maxwell_basis(regularize, n):
 
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    'bads', ['from_raw', 'union', ['MEG0113', 'MEG2313']]
+    'bads', ['from_raw', 'union', 'keep', ['MEG0113', 'MEG2313']]
 )
 @pytest.mark.parametrize('set_annot_when', ('before', 'after'))
 def test_prepare_emptyroom(bads, set_annot_when):
     """Test prepare_emptyroom."""
-    raw = read_raw_fif(raw_fname, allow_maxshield='yes')
+    raw = read_raw_fif(raw_fname, allow_maxshield='yes', verbose=False)
     names = [name for name in raw.ch_names if 'EEG' not in name]
     raw.pick_channels(names)
-    raw_er = read_raw_fif(erm_fname, allow_maxshield='yes')
+    raw_er = read_raw_fif(erm_fname, allow_maxshield='yes', verbose=False)
     raw_er.pick_channels(names)
     assert raw.ch_names == raw_er.ch_names
     assert raw_er.info['dev_head_t'] is None
@@ -1474,6 +1474,9 @@ def test_prepare_emptyroom(bads, set_annot_when):
     elif bads == 'union':
         raw_bads_orig = ['MEG0113']
         raw_er_bads_orig = ['MEG2313']
+    elif bads == 'keep':
+        raw_bads_orig = []
+        raw_er_bads_orig = ['MEG0113', 'MEG2313']
     else:
         raw_bads_orig = bads
         raw_er_bads_orig = []

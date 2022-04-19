@@ -60,13 +60,14 @@ def maxwell_filter_prepare_emptyroom(
     raw : instance of Raw
         The experimental recording, typically this will be the reference run
         used for Maxwell filtering.
-    bads : 'from_raw' | 'union' | list of str
+    bads : 'from_raw' | 'union' | 'keep' | list of str
         How to populate the list of bad channel names to be injected into
         the empty-room recording. If ``'from_raw'`` (default) the list of bad
         channels will be overwritten with that of ``raw``. If ``'union'``, will
         use the union of bad channels in ``raw`` and ``raw_er``. Note that
         this may lead to additional bad channels in the empty-room in
-        comparison to the experimental recording. If a list, you can explicitly
+        comparison to the experimental recording. If ``'keep'``, don't alter
+        the existing list of bad channels. If a list, you can explicitly
         provide the list of channel names to be marked as bad.
 
         .. note::
@@ -112,7 +113,8 @@ def maxwell_filter_prepare_emptyroom(
     _validate_type(item=bads, types=(list, str), item_name='bads')
     if isinstance(bads, str):
         _check_option(
-            parameter='bads', value=bads, allowed_values=['from_raw', 'union']
+            parameter='bads', value=bads,
+            allowed_values=['from_raw', 'union', 'keep']
         )
 
     raw_er_prepared = raw_er.copy()
@@ -126,6 +128,9 @@ def maxwell_filter_prepare_emptyroom(
         bads = sorted(
             set(raw.info['bads'] + raw_er_prepared.info['bads'])
         )
+    elif bads == 'keep':
+        bads = raw_er_prepared.info['bads']
+
     bads = [ch_name for ch_name in bads
             if ch_name.startswith('MEG')]
     raw_er_prepared.info['bads'] = bads
