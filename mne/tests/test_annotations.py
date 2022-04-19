@@ -1440,17 +1440,26 @@ def test_annotation_duration_setting():
 
 
 @pytest.mark.parametrize('meas_date', (None, 1))
-@pytest.mark.parametrize('first_samp', (0, 100))
-def test_annot_noop(meas_date, first_samp):
+@pytest.mark.parametrize('set_meas_date', ('before', 'after'))
+@pytest.mark.parametrize('first_samp', (0, 100, 3000))
+def test_annot_noop(meas_date, first_samp, set_meas_date):
     """Show some unintuitive behavior of annotations."""
     sfreq = 1000.
-    raw = RawArray(np.zeros((1, 2000)), create_info(1, sfreq, 'eeg'),
-                   first_samp=first_samp)
-    annot = Annotations(0.5, 0.1, 'bad')
-    raw.set_annotations(annot)
-    raw.set_meas_date(meas_date)
+    info = create_info(1, sfreq, 'eeg')
+    onset = 0.5
+    annot_kwargs = dict()
+    if set_meas_date == 'before':
+        with info._unlock():
+            info['meas_date'] = _handle_meas_date(meas_date)
+        onset += first_samp / sfreq
+        annot_kwargs['orig_time'] = meas_date
+    raw = RawArray(np.zeros((1, 2000)), info, first_samp=first_samp)
+    annot = Annotations(onset, 0.1, 'bad', **annot_kwargs)
+    raw.set_annotations(annot, verbose='debug')
+    if set_meas_date == 'after':
+        raw.set_meas_date(meas_date)
     first_annot = raw.annotations
-    raw.set_annotations(first_annot)  # should be a no-op...
+    raw.set_annotations(first_annot, verbose='debug')  # should be a no-op...
     second_annot = raw.annotations
     want = first_annot.onset[0]
     # it has been shifted when meas_date is None!
