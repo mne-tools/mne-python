@@ -425,14 +425,14 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'kind': FIFF.FIFFV_POINT_EXTRA,
                         'coord_frame': coord_frame})
     if dig_ch_pos is not None:
-        try:  # use the last 3 as int if possible (e.g., EEG001->1)
-            idents = []
-            for key in dig_ch_pos:
-                _validate_type(key, str, 'dig_ch_pos')
-                idents.append(int(key[-3:]))
-        except ValueError:  # and if any conversion fails, simply use arange
-            idents = np.arange(1, len(dig_ch_pos) + 1)
+        idents = []
+        use_arange = False
         for key, value in dig_ch_pos.items():
+            _validate_type(key, str, 'dig_ch_pos')
+            try:
+                idents.append(int(key[-3:]))
+            except ValueError:
+                use_arange = True
             _validate_type(value, (np.ndarray, list, tuple), 'dig_ch_pos')
             value = np.array(value, dtype=float)
             dig_ch_pos[key] = value
@@ -440,6 +440,8 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                 raise RuntimeError(
                     "The position should be a 1D array of 3 floats. "
                     f"Provided shape {value.shape}.")
+        if use_arange:
+            idents = np.arange(1, len(dig_ch_pos) + 1)
         for key, ident in zip(dig_ch_pos, idents):
             dig.append({'r': dig_ch_pos[key], 'ident': int(ident),
                         'kind': FIFF.FIFFV_POINT_EEG,
