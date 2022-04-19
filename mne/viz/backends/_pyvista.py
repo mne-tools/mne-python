@@ -33,10 +33,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import pyvista
     from pyvista import Plotter, PolyData, Line, close_all, UnstructuredGrid
-    try:
-        from pyvistaqt import BackgroundPlotter  # noqa
-    except ImportError:
-        from pyvista import BackgroundPlotter
+    from pyvistaqt import BackgroundPlotter  # noqa
     from pyvista.plotting.plotting import _ALL_PLOTTERS
 VTK9 = _compare_version(getattr(vtk, 'VTK_VERSION', '9.0'), '>=', '9.0')
 
@@ -80,20 +77,21 @@ class PyVistaFigure(Figure3D):
             self.store['menu_bar'] = False
             self.store['toolbar'] = False
             self.store['update_app_icon'] = False
+            self._plotter_class = BackgroundPlotter
+            if 'app_window_class' in _get_args(BackgroundPlotter):
+                from ._qt import _MNEMainWindow
+                self.store['app_window_class'] = _MNEMainWindow
+        else:
+            self._plotter_class = Plotter
 
         self._nrows, self._ncols = self.store['shape']
         self._azimuth = self._elevation = None
 
     def _build(self):
-        if self.notebook:
-            plotter_class = Plotter
-        else:
-            plotter_class = BackgroundPlotter
-
         if self.plotter is None:
             if not self.notebook:
                 out = _init_mne_qtapp(
-                    enable_icon=hasattr(plotter_class, 'set_icon'),
+                    enable_icon=hasattr(self._plotter_class, 'set_icon'),
                     splash=self.splash)
                 # replace it with the Qt object
                 if self.splash:
@@ -102,7 +100,7 @@ class PyVistaFigure(Figure3D):
                 else:
                     app = out
                 self.store['app'] = app
-            plotter = plotter_class(**self.store)
+            plotter = self._plotter_class(**self.store)
             plotter.background_color = self.background_color
             self._plotter = plotter
         if self.plotter.iren is not None:

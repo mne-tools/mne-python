@@ -9,7 +9,7 @@ from contextlib import contextmanager
 import weakref
 
 import pyvista
-from pyvistaqt.plotting import FileDialog
+from pyvistaqt.plotting import FileDialog, MainWindow
 
 from qtpy.QtCore import Qt, Signal, QLocale, QObject
 from qtpy.QtGui import QIcon, QCursor
@@ -877,3 +877,15 @@ def _testing_context(interactive):
         pyvista.OFF_SCREEN = orig_offscreen
         renderer.MNE_3D_BACKEND_TESTING = orig_testing
         renderer.MNE_3D_BACKEND_INTERACTIVE = orig_interactive
+
+
+# In theory we should be able to do this later (e.g., in _pyvista.py when
+# initializing), but at least on Qt6 this has to be done earlier. So let's do
+# it immediately upon instantiation of the QMainWindow class.
+# TODO: This should eventually allow us to handle
+# https://github.com/mne-tools/mne-python/issues/9182
+
+class _MNEMainWindow(MainWindow):
+    def __init__(self, parent=None, title=None, size=None):
+        super().__init__(parent, title, size)
+        self.setAttribute(Qt.WA_ShowWithoutActivating, True)
