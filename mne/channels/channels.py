@@ -693,7 +693,7 @@ class UpdateChannelsMixin(object):
         return self
 
     @verbose
-    def pick_channels(self, ch_names, ordered=False, verbose=None):
+    def pick_channels(self, ch_names, ordered=False, *, verbose=None):
         """Pick some channels.
 
         Parameters
