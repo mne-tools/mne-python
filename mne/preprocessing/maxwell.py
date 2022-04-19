@@ -43,8 +43,8 @@ from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
 
 @verbose
 def maxwell_filter_prepare_emptyroom(
-    raw_er, *, raw, bads='from_raw', meas_date='from_raw',
-    annotations='from_raw', verbose=None
+    raw_er, *, raw, bads='from_raw', annotations='from_raw', meas_date='keep',
+    verbose=None
 ):
     """Prepare an empty-room recording for Maxwell filtering.
 
@@ -73,14 +73,14 @@ def maxwell_filter_prepare_emptyroom(
 
         .. note::
            Non-MEG channels are silently dropped from the list of bads.
-    meas_date : 'from_raw' | 'keep'
-        Whether to use the measurement date from ``raw`` (default) or to keep
-        it as is. Note that ``'keep'`` can only be combined with
-        ``annotations='keep'``.
     annotations : 'from_raw' | 'keep'
         Whether to copy the annotations over from ``raw`` (default) or to keep
-        them unchanged. Note that ``'from_raw'`` can only be combined with
-        ``meas_date='from_raw'``.
+        them unchanged.
+    meas_date : 'keep' | 'from_raw'
+        Whether to transfer the measurement date from ``raw`` or to keep
+        it as is (default). If you intend to manually transfer annotations
+        from ``raw`` **after** running this function, you should set this to
+        `'from_raw'`.
     %(verbose)s
 
     Returns
@@ -101,8 +101,8 @@ def maxwell_filter_prepare_emptyroom(
       * Montage
       * ``raw.first_time`` and ``raw.first_samp``
 
-    * Adjust the measurement date according to the ``meas_date`` parameter.
     * Adjust annotations according to the ``annotations`` parameter.
+    * Adjust the measurement date according to the ``meas_date`` parameter.
 
     .. versionadded:: 1.1
     """  # noqa: E501
@@ -114,23 +114,16 @@ def maxwell_filter_prepare_emptyroom(
             parameter='bads', value=bads,
             allowed_values=['from_raw', 'union', 'keep']
         )
-    _validate_type(item=meas_date, types=str, item_name='meas_date')
-    _check_option(
-        parameter='meas_date', value=meas_date,
-        allowed_values=['from_raw', 'keep']
-    )
     _validate_type(item=annotations, types=str, item_name='annotations')
     _check_option(
         parameter='annotations', value=annotations,
         allowed_values=['from_raw', 'keep']
     )
-
-    if annotations == 'keep' and meas_date != 'keep':
-        raise ValueError('annotations="keep" requires meas_date="keep"')
-    elif annotations == 'from_raw' and meas_date == 'keep':
-        raise ValueError(
-            'annotations="from_raw" requires meas_date="from_raw"'
-        )
+    _validate_type(item=meas_date, types=str, item_name='meas_date')
+    _check_option(
+        parameter='meas_date', value=annotations,
+        allowed_values=['from_raw', 'keep']
+    )
 
     raw_er_prepared = raw_er.copy()
     del raw_er  # just to be sure
@@ -160,13 +153,20 @@ def maxwell_filter_prepare_emptyroom(
     # handle first_samp
     raw_er_prepared._cropped_samp = raw._cropped_samp
 
-    # handle meas_date
-    if meas_date == 'from_raw':
-        raw_er_prepared.set_meas_date(raw.info['meas_date'])
-
-    # handle annotations
+    # handle annotations & measurement date
     if annotations == 'from_raw':
-        raw_er_prepared.set_annotations(raw.annotations)
+        if meas_date == 'keep':
+            annotations = raw.annotations.copy()
+            annotations._orig_time = raw_er_prepared.info['meas_date']
+            raw_er_prepared.set_annotations(annotations)
+        elif meas_date == 'from_raw':
+            raw_er_prepared.set_meas_date(raw.info['meas_date'])
+            raw_er_prepared.set_annotations(raw.annotations)
+    elif annotations == 'keep':
+        if meas_date == 'keep':
+            pass  # no-op
+        elif meas_date == 'from_raw':
+            raw_er_prepared.set_meas_date(raw.info['meas_date'])
 
     return raw_er_prepared
 
