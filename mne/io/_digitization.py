@@ -433,8 +433,9 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                 value = np.array(value, dtype=float)
                 dig_ch_pos[key] = value
                 if value.shape != (3, ):
-                    raise RuntimeError("The position should be a 1D array of "
-                                       "floats [x, y, z].")
+                    raise RuntimeError(
+                        "The position should be a 1D array of 3 floats. "
+                        f"Provided shape {value.shape}.")
                 idents.append(int(key[-3:]))
         except ValueError:  # and if any conversion fails, simply use arange
             idents = np.arange(1, len(dig_ch_pos) + 1)
