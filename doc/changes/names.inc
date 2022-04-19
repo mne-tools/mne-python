@@ -441,5 +441,3 @@
 .. _Nikolai Chapochnikov: https://github.com/chapochn
 
 .. _Matthias Dold: https://matthiasdold.de
-
-.. _Alessandro Tonin: https://github.com/Lychfindel
