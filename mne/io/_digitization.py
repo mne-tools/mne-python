@@ -433,10 +433,10 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                 if isinstance(value, (list, tuple)):
                     value = np.array(value)
                     dig_ch_pos[key] = value
-                if value.dtype == int:
-                    value = value.astype(np.float32)
+                if value.dtype == int or value.dtype == np.float32:
+                    value = value.astype(np.float64)
                     dig_ch_pos[key] = value
-                if value.shape != (3, ) or value.dtype != float:
+                if value.shape != (3, ) or value.dtype != np.float64:
                     raise RuntimeError("The position should be a 1D array of "
                                        "floats [x, y, z].")
                 idents.append(int(key[-3:]))
