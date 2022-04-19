@@ -62,9 +62,6 @@ vhdr_bad_date = op.join(data_dir, 'test_bad_date.vhdr')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
 
-# Test ahdr format
-ahdr_path = op.join(data_dir, 'test_format.ahdr')
-
 # XXX: BUG we cannot parse test.hpts FastSCAN file to create a DigMontage
 #      (plus I've removed montage from all the read_raw_brainvision and nothing
 #       broke, so we were not testing that set_montage in brainvision was
@@ -795,12 +792,3 @@ def test_parse_impedance():
         raw = read_raw_brainvision(vhdr_mixed_lowpass_path,
                                    eog=['HEOG', 'VEOG'], misc=['ECG'])
     assert object_diff(expected_impedances, raw.impedances) == ''
-
-
-def test_ahdr_format():
-    """Test case for parsing data in ahdr format"""
-    orig_raw = read_raw_brainvision(vhdr_path)
-    raw = read_raw_brainvision(ahdr_path)
-
-    assert_equal(raw.info["nchan"], orig_raw.info["nchan"] - 1)
-    assert_array_almost_equal(raw.get_data(), orig_raw.get_data()[:-1, :])
