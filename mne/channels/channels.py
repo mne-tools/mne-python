@@ -583,10 +583,12 @@ class SetChannelsMixin(MontageMixin):
             # we need to shift by first_time
             if orig_meas_date is None:
                 if meas_date is not None:
+                    logger.debug('annot.onset += first_time')
                     self.annotations.onset += self.first_time
             # If the original meas date is not None and our new one is None,
             # we need to shift by -first_time
             elif meas_date is None:
+                logger.debug('annot.onset -= first_time')
                 self.annotations.onset -= self.first_time
         return self
 
