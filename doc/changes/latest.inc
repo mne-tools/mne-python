@@ -27,7 +27,7 @@ Enhancements
 
 - The ``pick_channels`` method gained a ``verbose`` parameter, allowing e.g. to suppress messages about removed projectors (:gh:`10544` by `Richard Höchenberger`_)
 
-- Add :meth:`mne.preprocessing.ICA.find_bads_muscle` to find muscle-related ICA components (:gh:`XXX` by `Alex Rockhill`)
+- Add :meth:`mne.preprocessing.ICA.find_bads_muscle` to find muscle-related ICA components with an example, :ref:`ex-muscle-ica` (:gh:`10534` by `Alex Rockhill`)
 
 Bugs
 ~~~~
