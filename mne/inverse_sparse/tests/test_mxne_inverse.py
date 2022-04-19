@@ -204,16 +204,8 @@ def test_mxne_vol_sphere():
     fwd = mne.make_forward_solution(info, trans=None, src=src,
                                     bem=sphere, eeg=False, meg=True)
 
-    alpha = 80.
-    pytest.raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,
-                  loose=0.0, return_residual=False,
-                  maxit=3, tol=1e-8, active_set_size=10)
-
-    pytest.raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,
-                  loose=0.2, return_residual=False,
-                  maxit=3, tol=1e-8, active_set_size=10)
-
     # irMxNE tests
+    alpha = 80.
     with catch_logging() as log:
         stc = mixed_norm(evoked_l21, fwd, cov, alpha,
                          n_mxne_iter=1, maxit=30, tol=1e-8,

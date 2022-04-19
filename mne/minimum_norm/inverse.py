@@ -1407,6 +1407,10 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             raise ValueError('Computing inverse solutions for volume source '
                              'spaces with fixed orientations is not '
                              'supported.')
+    if 'volume' in loose and any(v < 1 for v in loose.values()):
+        raise ValueError('Computing inverse solutions with restricted '
+                         'orientations (loose < 1) is not supported for '
+                         'volume source spaces.')
 
     # Deal with "depth"
     if exp is not None:
@@ -1437,7 +1441,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                 'Forward operator has fixed orientation and can only '
                 'be used to make a fixed-orientation inverse '
                 'operator.')
-        if loose.get('surface', 1.) < 1. and not forward['surf_ori']:
+        if any(v < 1 for v in loose.values()) and not forward['surf_ori']:
             logger.info('Converting forward solution to surface orientation')
             convert_forward_solution(
                 forward, surf_ori=True, use_cps=use_cps, copy=False)
