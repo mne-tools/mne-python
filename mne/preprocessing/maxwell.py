@@ -43,7 +43,8 @@ from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
 
 @verbose
 def maxwell_filter_prepare_emptyroom(
-    raw_er, *, raw, bads='from_raw', verbose=None
+    raw_er, *, raw, bads='from_raw', meas_date='from_raw',
+    annotations='from_raw', verbose=None
 ):
     """Prepare an empty-room recording for Maxwell filtering.
 
@@ -72,6 +73,14 @@ def maxwell_filter_prepare_emptyroom(
 
         .. note::
            Non-MEG channels are silently dropped from the list of bads.
+    meas_date : 'from_raw' | 'keep'
+        Whether to use the measurement date from ``raw`` (default) or to keep
+        it as is. Note that ``'keep'`` can only be combined with
+        ``annotations='keep'``.
+    annotations : 'from_raw' | 'keep'
+        Whether to copy the annotations over from ``raw`` (default) or to keep
+        them unchanged. Note that ``'from_raw'`` can only be combined with
+        ``meas_date='from_raw'``.
     %(verbose)s
 
     Returns
@@ -90,21 +99,10 @@ def maxwell_filter_prepare_emptyroom(
       experimental recording:
 
       * Montage
-      * Measurement date
-      * Annotations
+      * ``raw.first_time`` and ``raw.first_samp``
 
-    If no modification of the measurement date or annotations is desired,
-    we suggest saving them and reverting them afterward, e.g. with::
-
-        >>> orig_annot, meas_date = raw_er.annotations, raw_er.info['meas_date']  # doctest:+SKIP
-        >>> raw_er_prepared = prepare_empty_room(raw_er, raw=raw)  # doctest:+SKIP
-        >>> raw_er_prepared.set_meas_date(meas_date)  # doctest:+SKIP
-        >>> annot.onset += (raw_er_prepared.first_samp - raw_er.first_samp) / raw_er.info['sfreq']  # doctest:+SKIP
-        >>> raw_er_prepared.set_annotations(orig_annot)  # doctest:+SKIP
-
-    Note that setting the ``meas_date`` back is necessary in order to revert
-    the annotations, because the onsets are relative to the ``meas_date`` (plus
-    first samp, which is why it is adjusted to reflect the new first_samp).
+    * Adjust the measurement date according to the ``meas_date`` parameter.
+    * Adjust annotations according to the ``annotations`` parameter.
 
     .. versionadded:: 1.1
     """  # noqa: E501
@@ -115,6 +113,23 @@ def maxwell_filter_prepare_emptyroom(
         _check_option(
             parameter='bads', value=bads,
             allowed_values=['from_raw', 'union', 'keep']
+        )
+    _validate_type(item=meas_date, types=str, item_name='meas_date')
+    _check_option(
+        parameter='meas_date', value=meas_date,
+        allowed_values=['from_raw', 'keep']
+    )
+    _validate_type(item=annotations, types=str, item_name='annotations')
+    _check_option(
+        parameter='annotations', value=annotations,
+        allowed_values=['from_raw', 'keep']
+    )
+
+    if annotations == 'keep' and meas_date != 'keep':
+        raise ValueError('annotations="keep" requires meas_date="keep"')
+    elif annotations == 'from_raw' and meas_date == 'keep':
+        raise ValueError(
+            'annotations="from_raw" requires meas_date="from_raw"'
         )
 
     raw_er_prepared = raw_er.copy()
@@ -146,10 +161,12 @@ def maxwell_filter_prepare_emptyroom(
     raw_er_prepared._cropped_samp = raw._cropped_samp
 
     # handle meas_date
-    raw_er_prepared.set_meas_date(raw.info['meas_date'])
+    if meas_date == 'from_raw':
+        raw_er_prepared.set_meas_date(raw.info['meas_date'])
 
     # handle annotations
-    raw_er_prepared.set_annotations(raw.annotations)
+    if annotations == 'from_raw':
+        raw_er_prepared.set_annotations(raw.annotations)
 
     return raw_er_prepared
 
