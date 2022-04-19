@@ -56,7 +56,7 @@ raw.resample(300, npad="auto")
 #     detecting muscle artifacts. See :ref:`tut-section-line-noise` for an
 #     example.
 
-raw.notch_filter([50, 100])
+raw.notch_filter([60, 120])
 
 # %%
 

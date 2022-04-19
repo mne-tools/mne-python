@@ -751,7 +751,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
         if len(lowpass) == 0:
             pass
         elif len(set(lowpass)) == 1:
-            if lowpass[0] in ('NaN', 'Off'):
+            if lowpass[0] in ('NaN', 'Off', '0'):
                 pass  # Placeholder for future use. Lowpass set in _empty_info
             else:
                 info['lowpass'] = float(lowpass[0])
@@ -764,7 +764,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
             if lp_s:
                 # We convert channels with disabled filters to having
                 # infinitely relaxed / no filters
-                lowpass = [float(filt) if filt not in ('NaN', 'Off')
+                lowpass = [float(filt) if filt not in ('NaN', 'Off', '0')
                            else 0.0 for filt in lowpass]
                 info['lowpass'] = np.min(np.array(lowpass, dtype=np.float64))
                 try:
@@ -786,7 +786,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
             else:
                 # We convert channels with disabled filters to having
                 # infinitely relaxed / no filters
-                lowpass = [float(filt) if filt not in ('NaN', 'Off')
+                lowpass = [float(filt) if filt not in ('NaN', 'Off', '0')
                            else np.Inf for filt in lowpass]
                 info['lowpass'] = np.max(np.array(lowpass, dtype=np.float64))
 

@@ -8,10 +8,10 @@ from ..utils import _pl
 from .backends._utils import _pixmap_to_ndarray
 
 
-class _PyQtGraphScraper:
+class _MNEQtBrowserScraper:
 
     def __repr__(self):
-        return '<PyQtGraphScraper>'
+        return '<MNEQtBrowserScraper>'
 
     def __call__(self, block, block_vars, gallery_conf):
         import mne_qt_browser
