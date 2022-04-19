@@ -1658,7 +1658,7 @@ def test_read_dig_localite(tmp_path):
 
 def test_make_wrong_dig_montage():
     """Test that a montage with non numeric is not possible."""
-    with pytest.raises(RuntimeError, match="a 1D array of floats"):
+    with pytest.raises(RuntimeError, match="a 1D array of 3 floats"):
         make_dig_montage(ch_pos={'A1': ['0', '0', '0']})
 
     with pytest.raises(TypeError, match="instance of ndarray, list, or tuple"):
