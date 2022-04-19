@@ -864,8 +864,8 @@ def read_raw_brainvision(vhdr_fname,
         Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
     misc : list or tuple of str | 'auto'
         Names of channels or list of indices that should be designated
-        MISC channels. Values should correspond to the electrodes
-        in the header file. If 'auto', units in header file are used for inferring
+        MISC channels. Values should correspond to the electrodes in the
+        header file. If 'auto', units in header file are used for inferring
         misc channels. Default is ``'auto'``.
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
