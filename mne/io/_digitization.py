@@ -430,13 +430,9 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
             for key, value in dig_ch_pos.items():
                 _validate_type(key, str, 'dig_ch_pos')
                 _validate_type(value, (np.ndarray, list, tuple), 'dig_ch_pos')
-                if isinstance(value, (list, tuple)):
-                    value = np.array(value)
-                    dig_ch_pos[key] = value
-                if value.dtype == int or value.dtype == np.float32:
-                    value = value.astype(np.float64)
-                    dig_ch_pos[key] = value
-                if value.shape != (3, ) or value.dtype != np.float64:
+                value = np.array(value, dtype=float)
+                dig_ch_pos[key] = value
+                if value.shape != (3, ):
                     raise RuntimeError("The position should be a 1D array of "
                                        "floats [x, y, z].")
                 idents.append(int(key[-3:]))
