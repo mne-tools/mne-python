@@ -672,8 +672,8 @@ class UpdateChannelsMixin(object):
             self.info, meg=meg, eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
-            ecog=ecog, fnirs=fnirs, dbs=dbs, include=include, exclude=exclude,
-            selection=selection)
+            ecog=ecog, fnirs=fnirs, csd=csd, dbs=dbs, include=include,
+            exclude=exclude, selection=selection)
 
         self._pick_drop_channels(idx)
 
@@ -1710,6 +1710,8 @@ def combine_channels(inst, groups, method='mean', keep_stim=False,
     elif isinstance(inst, BaseEpochs):
         combined_inst = EpochsArray(new_data, info, events=inst.events,
                                     tmin=inst.times[0])
+        if inst.metadata is not None:
+            combined_inst.metadata = inst.metadata.copy()
     elif isinstance(inst, Evoked):
         combined_inst = EvokedArray(new_data, info, tmin=inst.times[0])
 

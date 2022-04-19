@@ -38,6 +38,7 @@ fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
 fname_event = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc_raw-eve.fif')
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
+ctf_fname = op.join(data_path, 'CTF', 'somMDYO-18av.ds')
 
 reject = dict(grad=4000e-13, mag=4e-12)
 
@@ -523,9 +524,7 @@ def test_lcmv_cov(weight_norm, pick_ori):
 @testing.requires_testing_data
 def test_lcmv_ctf_comp():
     """Test interpolation with compensated CTF data."""
-    ctf_dir = op.join(testing.data_path(download=False), 'CTF')
-    raw_fname = op.join(ctf_dir, 'somMDYO-18av.ds')
-    raw = mne.io.read_raw_ctf(raw_fname, preload=True)
+    raw = mne.io.read_raw_ctf(ctf_fname, preload=True)
     raw.pick(raw.ch_names[:70])
 
     events = mne.make_fixed_length_events(raw, duration=0.2)[:2]

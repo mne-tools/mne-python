@@ -31,6 +31,9 @@ from mne.viz import Brain  # noqa
 matplotlib.use('agg')
 faulthandler.enable()
 os.environ['_MNE_BROWSER_NO_BLOCK'] = 'true'
+os.environ['MNE_BROWSER_OVERVIEW_MODE'] = 'hidden'
+os.environ['MNE_BROWSER_THEME'] = 'light'
+os.environ['MNE_3D_OPTION_THEME'] = 'light'
 
 # -- Path setup --------------------------------------------------------------
 
@@ -260,8 +263,7 @@ numpydoc_xref_ignore = {
     # unlinkable
     'CoregistrationUI',
     'IntracranialElectrodeLocator',
-    # TODO: fix the Renderer return type of create_3d_figure(scene=False)
-    'Renderer',
+    'mne_qt_browser.figure.MNEQtBrowser',
 }
 numpydoc_validate = True
 numpydoc_validation_checks = {'all'} | set(error_ignores)
@@ -310,9 +312,9 @@ class Resetter(object):
         except ImportError:
             vtkPolyData = None  # noqa
         try:
-            from mne_qt_browser._pg_figure import PyQtGraphBrowser
+            from mne_qt_browser._pg_figure import MNEQtBrowser
         except ImportError:
-            PyQtGraphBrowser = None
+            MNEQtBrowser = None
         from mne.viz.backends.renderer import backend
         _Renderer = backend._Renderer if backend is not None else None
         reset_warnings(gallery_conf, fname)
@@ -331,7 +333,7 @@ class Resetter(object):
         when = f'mne/conf.py:Resetter.__call__:{when}:{fname}'
         # Support stuff like
         # MNE_SKIP_INSTANCE_ASSERTIONS="Brain,Plotter,BackgroundPlotter,vtkPolyData,_Renderer" make html_dev-memory  # noqa: E501
-        # to just test PyQtGraphBrowser
+        # to just test MNEQtBrowser
         skips = os.getenv('MNE_SKIP_INSTANCE_ASSERTIONS', '').lower()
         prefix = ''
         if skips not in ('true', '1', 'all'):
@@ -348,9 +350,15 @@ class Resetter(object):
                 _assert_no_instances(vtkPolyData, when)
             if '_renderer' not in skips:
                 _assert_no_instances(_Renderer, when)
-            if PyQtGraphBrowser is not None and \
-                    'pyqtgraphbrowser' not in skips:
-                _assert_no_instances(PyQtGraphBrowser, when)
+            if MNEQtBrowser is not None and \
+                    'mneqtbrowser' not in skips:
+                # Ensure any manual fig.close() events get properly handled
+                from mne_qt_browser._pg_figure import QApplication
+                inst = QApplication.instance()
+                if inst is not None:
+                    for _ in range(2):
+                        inst.processEvents()
+                _assert_no_instances(MNEQtBrowser, when)
         # This will overwrite some Sphinx printing but it's useful
         # for memory timestamps
         if os.getenv('SG_STAMP_STARTS', '').lower() == 'true':
@@ -387,7 +395,7 @@ try:
     import mne_qt_browser
     _min_ver = _compare_version(mne_qt_browser.__version__, '>=', '0.2')
     if mne.viz.get_browser_backend() == 'qt' and _min_ver:
-        scrapers += (mne.viz._scraper._PyQtGraphScraper(),)
+        scrapers += (mne.viz._scraper._MNEQtBrowserScraper(),)
 except ImportError:
     pass
 
@@ -567,7 +575,7 @@ html_theme_options = {
     'use_edit_page_button': False,
     'navigation_with_keys': False,
     'show_toc_level': 1,
-    'navbar_end': ['version-switcher', 'navbar-icon-links'],
+    'navbar_end': ['theme-switcher', 'version-switcher', 'navbar-icon-links'],
     'footer_items': ['copyright'],
     'google_analytics_id': 'UA-37225609-1',
     'switcher': {
@@ -627,6 +635,9 @@ xxl = '6'
 # variables to pass to HTML templating engine
 html_context = {
     'build_dev_html': bool(int(os.environ.get('BUILD_DEV_HTML', False))),
+    'default_mode': 'auto',
+    'pygment_light_style': 'tango',
+    'pygment_dark_style': 'native',
     'funders': [
         dict(img='nih.png', size='3', title='National Institutes of Health'),
         dict(img='nsf.png', size='3.5',
@@ -884,6 +895,9 @@ def reset_warnings(gallery_conf, fname):
         'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
     warnings.filterwarnings(
         'ignore', message=r'numpy\.ndarray size changed.*',
+        category=RuntimeWarning)
+    warnings.filterwarnings(
+        'ignore', message=r'.*Setting theme=.*6 in qdarkstyle.*',
         category=RuntimeWarning)
 
     # In case we use np.set_printoptions in any tutorials, we only

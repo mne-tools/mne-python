@@ -29,7 +29,7 @@ class _LinkViewer(object):
             self.link_widgets(
                 name="time",
                 callback=self.set_time_point,
-                signal_type="valueChanged",
+                signal_type="floatValueChanged",
             )
 
             # link playback speed sliders
@@ -101,7 +101,7 @@ class _LinkViewer(object):
                 self.link_widgets(
                     name=name,
                     callback=func,
-                    signal_type="valueChanged"
+                    signal_type="floatValueChanged"
                 )
 
     def set_fmin(self, value):

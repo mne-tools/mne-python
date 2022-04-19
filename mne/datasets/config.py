@@ -87,7 +87,7 @@ I agree to the following:
 # respective repos, and make a new release of the dataset on GitHub. Then
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here:                  ↓↓↓↓↓         ↓↓↓
-RELEASES = dict(testing='0.132', misc='0.23')
+RELEASES = dict(testing='0.133', misc='0.23')
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
 
@@ -111,7 +111,7 @@ MNE_DATASETS = dict()
 # Testing and misc are at the top as they're updated most often
 MNE_DATASETS['testing'] = dict(
     archive_name=f'{TESTING_VERSIONED}.tar.gz',  # 'mne-testing-data',
-    hash='md5:2ff8bcd18053af3ee0587dce9d6ab516',
+    hash='md5:32173080843e20558f664df1531ae4c6',
     url=('https://codeload.github.com/mne-tools/mne-testing-data/'
          f'tar.gz/{RELEASES["testing"]}'),
     folder_name='MNE-testing-data',
@@ -246,7 +246,7 @@ MNE_DATASETS['erp_core'] = dict(
 MNE_DATASETS['epilepsy_ecog'] = dict(
     archive_name='MNE-epilepsy-ecog-data.tar.gz',
     hash='md5:ffb139174afa0f71ec98adbbb1729dea',
-    url='https://osf.io/z4epq/download?revision=1',
+    url='https://osf.io/z4epq/download?version=1',
     folder_name='MNE-epilepsy-ecog-data',
     config_key='MNE_DATASETS_EPILEPSY_ECOG_PATH',
 )

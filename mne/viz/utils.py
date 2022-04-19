@@ -55,7 +55,7 @@ _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
 
 @decorator
 def safe_event(fun, *args, **kwargs):
-    """Protect against PyQt5 exiting on event-handling errors."""
+    """Protect against Qt exiting on event-handling errors."""
     try:
         return fun(*args, **kwargs)
     except Exception:
@@ -143,7 +143,7 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
     if backend == 'matplotlib':
         plt_show(show, block=block, **kwargs)
     else:
-        from PyQt5.QtWidgets import QApplication
+        from qtpy.QtWidgets import QApplication
         from .backends._utils import _qt_app_exec
         if show:
             fig.show()
@@ -184,15 +184,19 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
 
     fig.canvas.draw()
     constrained = fig.get_constrained_layout()
+    kwargs = dict(pad=pad, h_pad=h_pad, w_pad=w_pad)
     if constrained:
         return  # no-op
     try:  # see https://github.com/matplotlib/matplotlib/issues/2654
         with warnings.catch_warnings(record=True) as ws:
-            fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
+            fig.tight_layout(**kwargs)
     except Exception:
         try:
             with warnings.catch_warnings(record=True) as ws:
-                fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
+                if hasattr(fig, 'set_layout_engine'):
+                    fig.set_layout_engine('tight', **kwargs)
+                else:
+                    fig.set_tight_layout(kwargs)
         except Exception:
             warn('Matplotlib function "tight_layout" is not supported.'
                  ' Skipping subplot adjustment.')
@@ -2359,6 +2363,8 @@ def concatenate_images(images, axis=0, bgcolor='black', centered=True,
         The concatenated image.
     """
     n_channels = _ensure_int(n_channels, 'n_channels')
+    axis = _ensure_int(axis)
+    _check_option('axis', axis, (0, 1))
     _check_option('n_channels', n_channels, (3, 4))
     alpha = True if n_channels == 4 else False
     bgcolor = _to_rgb(bgcolor, name='bgcolor', alpha=alpha)
@@ -2374,7 +2380,7 @@ def concatenate_images(images, axis=0, bgcolor='black', centered=True,
     sec = np.array([0 == axis, 1 == axis]).astype(int)
     for image in images:
         shape = image.shape[:-1]
-        dec = ptr
+        dec = ptr.copy()
         dec += ((ret_shape - shape) // 2) * (1 - sec) if centered else 0
         ret[dec[0]:dec[0] + shape[0], dec[1]:dec[1] + shape[1], :] = image
         ptr += shape * sec

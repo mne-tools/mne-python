@@ -91,7 +91,7 @@ Download the `server environment file`_ and use it to create the conda
 environment::
 
     curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
-    conda create --name=mne --file=server_environment.yml
+    conda env create -f server_environment.yml
 
 Using the development version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -191,6 +191,12 @@ to force MESA to use modern OpenGL by using this before executing
 
 Also, it's possible that different software rending backends might perform
 better than others, such as using the ``llvmpipe`` backend rather than ``swr``.
+In newer MESA (21+), rendering can be incorrect when using MSAA, so consider
+setting:
+
+.. code-block:: console
+
+    export MNE_3D_OPTION_MULTI_SAMPLES=1
 
 MESA also can have trouble with full-screen antialiasing, which you can
 disable with:
@@ -273,4 +279,3 @@ line for ``pip uninstall -y vtk``.
 .. _`pyvista`: https://docs.pyvista.org/
 .. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
 .. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb
-

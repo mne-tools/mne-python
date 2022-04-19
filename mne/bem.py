@@ -1018,7 +1018,7 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
 @verbose
 def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                        volume='T1', atlas=False, gcaatlas=False, preflood=None,
-                       show=False, copy=False, T1=None, brainmask='ws.mgz',
+                       show=False, copy=True, T1=None, brainmask='ws.mgz',
                        verbose=None):
     """Create BEM surfaces using the FreeSurfer watershed algorithm.
 
@@ -1042,10 +1042,11 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
         .. versionadded:: 0.12
 
     copy : bool
-        If True (default False), use copies instead of symlinks for surfaces
+        If True (default), use copies instead of symlinks for surfaces
         (if they do not already exist).
 
         .. versionadded:: 0.18
+        .. versionchanged:: 1.1 Use copies instead of symlinks.
     T1 : bool | None
         If True, pass the ``-T1`` flag.
         By default (None), this takes the same value as ``gcaatlas``.
@@ -1837,7 +1838,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
 
 @verbose
 def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
-                   flash_path=None, copy=False, verbose=None):
+                   flash_path=None, copy=True, verbose=None):
     """Create 3-Layer BEM model from prepared flash MRI images.
 
     Parameters
@@ -1855,10 +1856,11 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
         .. versionadded:: 0.13.0
     copy : bool
-        If True (default False), use copies instead of symlinks for surfaces
+        If True (default), use copies instead of symlinks for surfaces
         (if they do not already exist).
 
         .. versionadded:: 0.18
+        .. versionchanged:: 1.1 Use copies instead of symlinks.
     %(verbose)s
 
     See Also

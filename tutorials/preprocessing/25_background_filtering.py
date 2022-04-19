@@ -57,7 +57,7 @@ filters have a transfer function that is given by:
 
     H(z) &= \frac{b_0 + b_1 z^{-1} + b_2 z^{-2} + \ldots + b_M z^{-M}}
                  {1 + a_1 z^{-1} + a_2 z^{-2} + \ldots + a_N z^{-M}} \\
-         &= \frac{\sum_{k=0}^Mb_kz^{-k}}{\sum_{k=1}^Na_kz^{-k}}
+         &= \frac{\sum_{k=0}^Mb_kz^{-k}}{1 + \sum_{k=1}^Na_kz^{-k}}
 
 In the time domain, the numerator coefficients :math:`b_k` and denominator
 coefficients :math:`a_k` can be used to obtain our output data
@@ -66,38 +66,38 @@ coefficients :math:`a_k` can be used to obtain our output data
 .. math::
    :label: summations
 
-    y(n) &= b_0 x(n) + b_1 x(n-1) + \ldots + b_M x(n-M)
-            - a_1 y(n-1) - a_2 y(n - 2) - \ldots - a_N y(n - N)\\
+    y(n) &= b_0 x(n) + \ldots + b_M x(n-M)
+            - a_1 y(n-1) - \ldots - a_N y(n - N)\\
          &= \sum_{k=0}^M b_k x(n-k) - \sum_{k=1}^N a_k y(n-k)
 
 In other words, the output at time :math:`n` is determined by a sum over
 
-    1. the numerator coefficients :math:`b_k`, which get multiplied by
-       the previous input values :math:`x(n-k)`, and
-    2. the denominator coefficients :math:`a_k`, which get multiplied by
-       the previous output values :math:`y(n-k)`.
+1. the numerator coefficients :math:`b_k`, which get multiplied by the previous
+   input values :math:`x(n-k)`, and
+2. the denominator coefficients :math:`a_k`, which get multiplied by the
+   previous output values :math:`y(n-k)`.
 
 Note that these summations correspond to (1) a weighted `moving average`_ and
 (2) an autoregression_.
 
-Filters are broken into two classes: FIR_ (finite impulse response) and
-IIR_ (infinite impulse response) based on these coefficients.
+Filters are broken into two classes based on these coefficients: FIR_ (finite
+impulse response) and IIR_ (infinite impulse response) filters.
 FIR filters use a finite number of numerator
-coefficients :math:`b_k` (:math:`\forall k, a_k=0`), and thus each output
-value of :math:`y(n)` depends only on the :math:`M` previous input values.
+coefficients :math:`b_k` (where :math:`a_k=0\qquad \forall k`), and thus each
+output value :math:`y(n)` depends only on the :math:`M` previous input values.
 IIR filters depend on the previous input and output values, and thus can have
-effectively infinite impulse responses.
+effectively infinitely long impulse responses.
 
 As outlined in Parks & Burrus (1987) :footcite:`ParksBurrus1987`,
-FIR and IIR have different trade-offs:
+FIR and IIR filters have different pros and cons:
 
-    * A causal FIR filter can be linear-phase -- i.e., the same time delay
-      across all frequencies -- whereas a causal IIR filter cannot. The phase
-      and group delay characteristics are also usually better for FIR filters.
-    * IIR filters can generally have a steeper cutoff than an FIR filter of
-      equivalent order.
-    * IIR filters are generally less numerically stable, in part due to
-      accumulating error (due to its recursive calculations).
+* A causal FIR filter can be linear-phase -- i.e., the same time delay across
+  all frequencies -- whereas a causal IIR filter cannot. The phase and group
+  delay characteristics are also usually better for FIR filters.
+* IIR filters can generally have a steeper cutoff than an FIR filter of
+  equivalent order.
+* IIR filters are generally less numerically stable, in part due to
+  accumulating error (due to recursive calculations).
 
 In MNE-Python we default to using FIR filtering. As noted in Widmann *et al.*
 (2015) :footcite:`WidmannEtAl2015`:
@@ -105,7 +105,7 @@ In MNE-Python we default to using FIR filtering. As noted in Widmann *et al.*
     Despite IIR filters often being considered as computationally more
     efficient, they are recommended only when high throughput and sharp
     cutoffs are required
-    (Ifeachor and Jervis, 2002 :footcite:`IfeachorJervis2002`, p. 321)...
+    (Ifeachor and Jervis, 2002 :footcite:`IfeachorJervis2002`, p. 321).
     FIR filters are easier to control, are always stable, have a
     well-defined passband, can be corrected to zero-phase without
     additional computations, and can be converted to minimum-phase.
@@ -115,11 +115,11 @@ In MNE-Python we default to using FIR filtering. As noted in Widmann *et al.*
 When designing a filter (FIR or IIR), there are always trade-offs that
 need to be considered, including but not limited to:
 
-    1. Ripple in the pass-band
-    2. Attenuation of the stop-band
-    3. Steepness of roll-off
-    4. Filter order (i.e., length for FIR filters)
-    5. Time-domain ringing
+1. Ripple in the pass-band
+2. Attenuation of the stop-band
+3. Steepness of roll-off
+4. Filter order (i.e., length for FIR filters)
+5. Time-domain ringing
 
 In general, the sharper something is in frequency, the broader it is in time,
 and vice-versa. This is a fundamental time-frequency trade-off, and it will
@@ -155,7 +155,9 @@ import mne
 
 sfreq = 1000.
 f_p = 40.
-flim = (1., sfreq / 2.)  # limits for plotting
+# limits for plotting
+flim = (1., sfreq / 2.)  # frequencies
+dlim = (-0.2, 0.2)  # delays
 
 # %%
 # Take for example an ideal low-pass filter, which would give a magnitude
@@ -181,14 +183,15 @@ plot_ideal_filter(freq, gain, ax, title='Ideal %s Hz lowpass' % f_p, flim=flim)
 # (and thus infinite time) to represent. So although this filter has ideal
 # frequency suppression, it has poor time-domain characteristics.
 #
-# Let's try to naïvely make a brick-wall filter of length 0.1 s, and look
-# at the filter itself in the time domain and the frequency domain:
+# Let's try to naïvely make a brick-wall (sinc) filter of length 0.1 s, and
+# look at the filter itself in the time domain and the frequency domain:
 
 n = int(round(0.1 * sfreq))
 n -= n % 2 - 1  # make it odd
 t = np.arange(-(n // 2), n // 2 + 1) / sfreq  # center our sinc
 h = np.sinc(2 * f_p * t) / (4 * np.pi)
-plot_filter(h, sfreq, freq, gain, 'Sinc (0.1 s)', flim=flim, compensate=True)
+kwargs = dict(flim=flim, dlim=dlim)
+plot_filter(h, sfreq, freq, gain, 'Sinc (0.1 s)', compensate=True, **kwargs)
 
 # %%
 # This is not so good! Making the filter 10 times longer (1 s) gets us a
@@ -201,7 +204,7 @@ n = int(round(1. * sfreq))
 n -= n % 2 - 1  # make it odd
 t = np.arange(-(n // 2), n // 2 + 1) / sfreq
 h = np.sinc(2 * f_p * t) / (4 * np.pi)
-plot_filter(h, sfreq, freq, gain, 'Sinc (1.0 s)', flim=flim, compensate=True)
+plot_filter(h, sfreq, freq, gain, 'Sinc (1.0 s)', compensate=True, **kwargs)
 
 # %%
 # Let's make the stop-band tighter still with a longer filter (10 s),
@@ -211,7 +214,7 @@ n = int(round(10. * sfreq))
 n -= n % 2 - 1  # make it odd
 t = np.arange(-(n // 2), n // 2 + 1) / sfreq
 h = np.sinc(2 * f_p * t) / (4 * np.pi)
-plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 s)', flim=flim, compensate=True)
+plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 s)', compensate=True, **kwargs)
 
 # %%
 # Now we have very sharp frequency suppression, but our filter rings for the
@@ -221,12 +224,12 @@ plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 s)', flim=flim, compensate=True)
 # Fortunately, there are multiple established methods to design FIR filters
 # based on desired response characteristics. These include:
 #
-#     1. The Remez_ algorithm (:func:`scipy.signal.remez`, `MATLAB firpm`_)
-#     2. Windowed FIR design (:func:`scipy.signal.firwin2`,
-#        :func:`scipy.signal.firwin`, and `MATLAB fir2`_)
-#     3. Least squares designs (:func:`scipy.signal.firls`, `MATLAB firls`_)
-#     4. Frequency-domain design (construct filter in Fourier
-#        domain and use an :func:`IFFT <numpy.fft.ifft>` to invert it)
+# 1. The Remez_ algorithm (:func:`scipy.signal.remez`)
+# 2. Windowed FIR design (:func:`scipy.signal.firwin2`,
+#    :func:`scipy.signal.firwin`)
+# 3. Least squares design (:func:`scipy.signal.firls`)
+# 4. Frequency-domain design (construct filter in Fourier domain and use an
+#    :func:`IFFT <numpy.fft.ifft>` to invert it)
 #
 # .. note:: Remez and least squares designs have advantages when there are
 #           "do not care" regions in our frequency response. However, we want
@@ -240,8 +243,8 @@ plot_filter(h, sfreq, freq, gain, 'Sinc (10.0 s)', flim=flim, compensate=True)
 #
 # If we relax our frequency-domain filter requirements a little bit, we can
 # use these functions to construct a lowpass filter that instead has a
-# *transition band*, or a region between the pass frequency :math:`f_p`
-# and stop frequency :math:`f_s`, e.g.:
+# *transition band*, a region between the pass frequency :math:`f_p`
+# and stop frequency :math:`f_s`:
 
 trans_bandwidth = 10  # 10 Hz transition band
 f_s = f_p + trans_bandwidth  # = 50 Hz
@@ -260,17 +263,19 @@ plot_ideal_filter(freq, gain, ax, title=title, flim=flim)
 
 h = signal.firwin2(n, freq, gain, nyq=nyq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (1.0 s)',
-            flim=flim, compensate=True)
+            compensate=True, **kwargs)
 
 # %%
 # Since our lowpass is around 40 Hz with a 10 Hz transition, we can actually
 # use a shorter filter (5 cycles at 10 Hz = 0.5 s) and still get acceptable
 # stop-band attenuation:
 
+# sphinx_gallery_thumbnail_number = 7
+
 n = int(round(sfreq * 0.5)) + 1
 h = signal.firwin2(n, freq, gain, nyq=nyq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (0.5 s)',
-            flim=flim, compensate=True)
+            compensate=True, **kwargs)
 
 # %%
 # But if we shorten the filter too much (2 cycles of 10 Hz = 0.2 s),
@@ -279,7 +284,7 @@ plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (0.5 s)',
 n = int(round(sfreq * 0.2)) + 1
 h = signal.firwin2(n, freq, gain, nyq=nyq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (0.2 s)',
-            flim=flim, compensate=True)
+            compensate=True, **kwargs)
 
 # %%
 # If we want a filter that is only 0.1 seconds long, we should probably use
@@ -290,7 +295,7 @@ f_s = f_p + trans_bandwidth
 freq = [0, f_p, f_s, nyq]
 h = signal.firwin2(n, freq, gain, nyq=nyq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 50 Hz transition (0.2 s)',
-            flim=flim, compensate=True)
+            compensate=True, **kwargs)
 
 # %%
 # So far, we have only discussed *non-causal* filtering, which means that each
@@ -318,7 +323,16 @@ plot_filter(h, sfreq, freq, gain, 'Windowed 50 Hz transition (0.2 s)',
 # that the falloff is not as steep:
 
 h_min = signal.minimum_phase(h)
-plot_filter(h_min, sfreq, freq, gain, 'Minimum-phase', flim=flim)
+plot_filter(h_min, sfreq, freq, gain, 'Minimum-phase', **kwargs)
+
+# %%
+# Note that this minimum-phase filter has a *much* smaller delay compared to
+# an *uncompensated, causal* linear-phase filter, as shown below. This is why
+# in MNE-Python we currently only offer zero-phase, non-causal filters (i.e.,
+# delay-compensated filters) *or* minimum-phase causal filters. The linear
+# phase filter has a constant, large delay:
+
+plot_filter(h, sfreq, freq, gain, 'Linear phase (uncompensated)', **kwargs)
 
 # %%
 # .. _tut-effect-on-signals:
@@ -352,7 +366,7 @@ x += rng.randn(len(x)) / 1000.
 x += np.sin(2. * np.pi * 60. * np.arange(len(x)) / sfreq) / 2000.
 
 # %%
-# Filter it with a shallow cutoff, linear-phase FIR (which allows us to
+# Let's filter it with a shallow cutoff, linear-phase FIR (which allows us to
 # compensate for the constant filter delay):
 
 transition_band = 0.25 * f_p
@@ -366,14 +380,14 @@ x_v16 = np.convolve(h, x)
 # this is the linear->zero phase, causal-to-non-causal conversion / shift
 x_v16 = x_v16[len(h) // 2:]
 
-plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.16 default', flim=flim,
-            compensate=True)
+plot_filter(h, sfreq, freq, gain, 'MNE-Python ≥0.16 default',
+            compensate=True, **kwargs)
 
 # %%
-# Filter it with a different design method ``fir_design="firwin2"``, and also
-# compensate for the constant filter delay. This method does not produce
-# quite as sharp a transition compared to ``fir_design="firwin"``, despite
-# being twice as long:
+# Now let's filter it with a different design method ``fir_design="firwin2"``,
+# and also compensate for the constant filter delay. This method does not
+# produce quite as sharp a transition compared to ``fir_design="firwin"``,
+# despite being twice as long:
 
 transition_band = 0.25 * f_p
 f_s = f_p + transition_band
@@ -387,8 +401,8 @@ h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                              fir_design='firwin2', verbose=True)
 x_v14 = np.convolve(h, x)[len(h) // 2:]
 
-plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.14 default', flim=flim,
-            compensate=True)
+plot_filter(h, sfreq, freq, gain, 'MNE-Python 0.14 default',
+            compensate=True, **kwargs)
 
 # %%
 # Let's also filter with the MNE-Python 0.13 default, which is a
@@ -409,8 +423,8 @@ h = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
 x_v13 = np.convolve(np.convolve(h, x)[::-1], h)[::-1][len(h) - 1:-len(h) - 1]
 # the effective h is one that is applied to the time-reversed version of itself
 h_eff = np.convolve(h, h[::-1])
-plot_filter(h_eff, sfreq, freq, gain, 'MNE-Python 0.13 default', flim=flim,
-            compensate=True)
+plot_filter(h_eff, sfreq, freq, gain, 'MNE-Python ≤0.13 default',
+            compensate=True, **kwargs)
 
 # %%
 # Let's also filter it with the MNE-C default, which is a long-duration
@@ -423,7 +437,7 @@ transition_band = 5  # Hz (default in MNE-C)
 f_s = f_p + transition_band
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
-plot_filter(h, sfreq, freq, gain, 'MNE-C default', flim=flim, compensate=True)
+plot_filter(h, sfreq, freq, gain, 'MNE-C default', compensate=True, **kwargs)
 
 # %%
 # And now an example of a minimum-phase filter:
@@ -438,7 +452,7 @@ filter_dur = 6.6 / transition_band  # sec
 n = int(sfreq * filter_dur)
 freq = [0., f_p, f_s, sfreq / 2.]
 gain = [1., 1., 0., 0.]
-plot_filter(h, sfreq, freq, gain, 'Minimum-phase filter', flim=flim)
+plot_filter(h, sfreq, freq, gain, 'Minimum-phase filter', **kwargs)
 
 
 # %%
@@ -468,8 +482,8 @@ def plot_signal(x, offset):
 
 
 yscale = 30
-yticklabels = ['Original', 'Noisy', 'FIR-firwin (0.16)', 'FIR-firwin2 (0.14)',
-               'FIR-steep (0.13)', 'FIR-steep (MNE-C)', 'Minimum-phase']
+yticklabels = ['Original', 'Noisy', 'FIR-firwin (≥0.16)', 'FIR-firwin2 (0.14)',
+               'FIR-steep (≤0.13)', 'FIR-steep (MNE-C)', 'Minimum-phase']
 yticks = -np.arange(len(yticklabels)) / yscale
 plot_signal(x_orig, offset=yticks[0])
 plot_signal(x, offset=yticks[1])
@@ -505,7 +519,7 @@ plt.show()
 #
 # Often the default IIR filter is a `Butterworth filter`_, which is designed
 # to have a *maximally flat pass-band*. Let's look at a few filter orders,
-# i.e., a few different number of coefficients used and therefore steepness
+# i.e., a few different numbers of coefficients used and therefore steepness
 # of the filter:
 #
 # .. note:: Notice that the group delay (which is related to the phase) of
@@ -520,8 +534,8 @@ plt.show()
 #           these phase issues can theoretically be mitigated.
 
 sos = signal.iirfilter(2, f_p / nyq, btype='low', ftype='butter', output='sos')
-plot_filter(dict(sos=sos), sfreq, freq, gain, 'Butterworth order=2', flim=flim,
-            compensate=True)
+plot_filter(dict(sos=sos), sfreq, freq, gain, 'Butterworth order=2',
+            compensate=True, **kwargs)
 x_shallow = signal.sosfiltfilt(sos, x)
 del sos
 
@@ -550,8 +564,8 @@ iir_params = dict(order=8, ftype='butter')
 filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                                 method='iir', iir_params=iir_params,
                                 verbose=True)
-plot_filter(filt, sfreq, freq, gain, 'Butterworth order=8', flim=flim,
-            compensate=True)
+plot_filter(filt, sfreq, freq, gain, 'Butterworth order=8',
+            compensate=True, **kwargs)
 x_steep = signal.sosfiltfilt(filt['sos'], x)
 
 # %%
@@ -566,8 +580,8 @@ iir_params.update(ftype='cheby1',
 filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                                 method='iir', iir_params=iir_params,
                                 verbose=True)
-plot_filter(filt, sfreq, freq, gain,
-            'Chebychev-1 order=8, ripple=1 dB', flim=flim, compensate=True)
+plot_filter(filt, sfreq, freq, gain, 'Chebychev-1 order=8, ripple=1 dB',
+            compensate=True, **kwargs)
 
 # %%
 # If we can live with even more ripple, we can get it slightly steeper,
@@ -578,9 +592,8 @@ iir_params['rp'] = 6.
 filt = mne.filter.create_filter(x, sfreq, l_freq=None, h_freq=f_p,
                                 method='iir', iir_params=iir_params,
                                 verbose=True)
-plot_filter(filt, sfreq, freq, gain,
-            'Chebychev-1 order=8, ripple=6 dB', flim=flim,
-            compensate=True)
+plot_filter(filt, sfreq, freq, gain, 'Chebychev-1 order=8, ripple=6 dB',
+            compensate=True, **kwargs)
 
 # %%
 # Applying IIR filters
@@ -628,11 +641,11 @@ plt.show()
 # :footcite:`WidmannSchroger2012` that the problematic low-pass filters from
 # VanRullen (2011) :footcite:`VanRullen2011`:
 #
-#    1. Used a least-squares design (like :func:`scipy.signal.firls`) that
-#       included "do-not-care" transition regions, which can lead to
-#       uncontrolled behavior.
-#    2. Had a filter length that was independent of the transition bandwidth,
-#       which can cause excessive ringing and signal distortion.
+# 1. Used a least-squares design (like :func:`scipy.signal.firls`) that
+#    included "do-not-care" transition regions, which can lead to uncontrolled
+#    behavior.
+# 2. Had a filter length that was independent of the transition bandwidth,
+#    which can cause excessive ringing and signal distortion.
 #
 # .. _tut-filtering-hp-problems:
 #
@@ -660,10 +673,10 @@ plt.show()
 #    "The simulated component is a single-cycle cosine wave with an amplitude
 #    of 5µV [sic], onset of 500 ms poststimulus, and duration of 800 ms. The
 #    simulated component was embedded in 20 s of zero values to avoid
-#    filtering edge effects... Distortions [were] caused by 2 Hz low-pass
-#    and high-pass filters... No visible distortion to the original
-#    waveform [occurred] with 30 Hz low-pass and 0.01 Hz high-pass filters...
-#    Filter frequencies correspond to the half-amplitude (-6 dB) cutoff
+#    filtering edge effects. [...] Distortions [were] caused by 2 Hz low-pass
+#    and high-pass filters. [...] No visible distortion to the original
+#    waveform [occurred] with 30 Hz low-pass and 0.01 Hz high-pass filters.
+#    [...] Filter frequencies correspond to the half-amplitude (-6 dB) cutoff
 #    (12 dB/octave roll-off)."
 #
 # .. note:: This simulated signal contains energy not just within the
@@ -713,11 +726,11 @@ plt.show()
 # %%
 # Similarly, in a P300 paradigm reported by
 # Kappenman & Luck (2010) :footcite:`KappenmanLuck2010`,
-# they found that applying a 1 Hz high-pass decreased the probability of
+# they found that applying a 1&nbsp;Hz high-pass decreased the probability of
 # finding a significant difference in the N100 response, likely because
 # the P300 response was smeared (and inverted) in time by the high-pass
 # filter such that it tended to cancel out the increased N100. However,
-# they nonetheless note that some high-passing can still be useful to deal
+# they nonetheless noted that some high-passing can still be useful to deal
 # with drifts in the data.
 #
 # Even though these papers generally advise a 0.1 Hz or lower frequency for
@@ -799,10 +812,10 @@ baseline_plot(x)
 # perhaps even the application of baseline correction, depend on the
 # characteristics of the data being investigated, especially when it comes to:
 #
-#    1. The frequency content of the underlying evoked activity relative
-#       to the filtering parameters.
-#    2. The validity of the assumption of no consistent evoked activity
-#       in the baseline period.
+# 1. The frequency content of the underlying evoked activity relative to the
+#    filtering parameters.
+# 2. The validity of the assumption of no consistent evoked activity in the
+#    baseline period.
 #
 # We thus recommend carefully applying baseline correction and/or high-pass
 # values based on the characteristics of the data to be analyzed.
@@ -897,9 +910,9 @@ baseline_plot(x)
 # -----------------
 # MNE-C by default uses:
 #
-#    1. 5 Hz transition band for low-pass filters.
-#    2. 3-sample transition band for high-pass filters.
-#    3. Filter length of 8197 samples.
+# 1. 5 Hz transition band for low-pass filters.
+# 2. 3-sample transition band for high-pass filters.
+# 3. Filter length of 8197 samples.
 #
 # The filter is designed in the frequency domain, creating a linear-phase
 # filter such that the delay is compensated for as is done with the MNE-Python
@@ -947,7 +960,7 @@ baseline_plot(x)
 # 7. Direction of computation (one-pass forward/reverse, or two-pass forward
 #    and reverse)
 #
-# In the following, we will address how to deal with these parameters in MNE:
+# In the following, we will address how to deal with these parameters in MNE.
 #
 #
 # Filter type
@@ -965,13 +978,13 @@ baseline_plot(x)
 # with ``h_freq = 40``, the filter function will provide a transition
 # bandwidth that depends on the ``h_trans_bandwidth`` argument. The desired
 # half-amplitude  cutoff of the lowpass FIR filter is then at
-# ``h_freq + transition_bandwidth/2.``.
+# ``h_freq + transition_bandwidth/2``.
 #
 # Filter length (order) and transition bandwidth (roll-off)
 # ---------------------------------------------------------
 # In the :ref:`tut-filtering-in-python` section, we have already talked about
 # the default filter lengths and transition bandwidths that are used when no
-# custom values are specified using the respective filter function's arguments.
+# custom values are specified using the respective filter function arguments.
 #
 # If you want to find out about the filter length and transition bandwidth that
 # were used through the 'auto' setting, you can use
@@ -1002,8 +1015,8 @@ filter_length = fir_coefs.shape[0]
 # Passband ripple and stopband attenuation
 # ----------------------------------------
 #
-# When use standard :func:`scipy.signal.firwin` design (as for FIR filters in
-# MNE), the passband ripple and stopband attenuation are dependent upon the
+# When using the standard :func:`scipy.signal.firwin` design (as for FIR
+# filters in MNE), the passband ripple and stopband attenuation depend on the
 # window used in design. For standard windows the values are listed in this
 # table (see Ifeachor & Jervis (2002) :footcite:`IfeachorJervis2002`, p. 357):
 #
@@ -1028,7 +1041,7 @@ filter_length = fir_coefs.shape[0]
 #    By default, a symmetric linear-phase FIR filter is constructed.
 #    If ``phase='zero'`` (default), the delay of this filter
 #    is compensated for. If ``phase=='zero-double'``, then this filter
-#    is applied twice, once forward, and once backward. If 'minimum',
+#    is applied twice, once forward, and once backward. If ``'minimum'``,
 #    then a minimum-phase, causal filter will be used.
 #
 #
@@ -1036,12 +1049,12 @@ filter_length = fir_coefs.shape[0]
 # =======
 #
 # When filtering, there are always trade-offs that should be considered.
-# One important trade-off is between time-domain characteristics (like ringing)
-# and frequency-domain attenuation characteristics (like effective transition
-# bandwidth). Filters with sharp frequency cutoffs can produce outputs that
-# ring for a long time when they operate on signals with frequency content
-# in the transition band. In general, therefore, the wider a transition band
-# that can be tolerated, the better behaved the filter will be in the time
+# One important trade-off is balancing time-domain characteristics (like
+# ringing) and frequency-domain attenuation characteristics (like effective
+# transition bandwidth). Filters with sharp frequency cutoffs can produce
+# outputs that ring for a long time when they operate on signals with frequency
+# content in the transition band. In general, therefore, the wider a transition
+# band that can be tolerated, the better behaved the filter will be in the time
 # domain.
 #
 # References
@@ -1054,9 +1067,6 @@ filter_length = fir_coefs.shape[0]
 # .. _moving average: https://en.wikipedia.org/wiki/Moving_average
 # .. _autoregression: https://en.wikipedia.org/wiki/Autoregressive_model
 # .. _Remez: https://en.wikipedia.org/wiki/Remez_algorithm
-# .. _matlab firpm: https://www.mathworks.com/help/signal/ref/firpm.html
-# .. _matlab fir2: https://www.mathworks.com/help/signal/ref/fir2.html
-# .. _matlab firls: https://www.mathworks.com/help/signal/ref/firls.html
 # .. _Butterworth filter: https://en.wikipedia.org/wiki/Butterworth_filter
 # .. _eeglab filtering faq: https://sccn.ucsd.edu/wiki/Firfilt_FAQ
 # .. _ftbp: https://www.fieldtriptoolbox.org/reference/preproc/ft_preproc_bandpassfilter  # noqa

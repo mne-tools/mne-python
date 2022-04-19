@@ -1,82 +1,84 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
-   id="svg19"
-   width="141.13637pt"
-   viewBox="0 0 141.13637 33.749998"
-   version="1.1"
-   height="33.75pt">
-  <metadata
-     id="metadata23">
-    <rdf:RDF>
-      <cc:Work
-         rdf:about="">
-        <dc:format>image/svg+xml</dc:format>
-        <dc:type
-           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
-      </cc:Work>
-    </rdf:RDF>
-  </metadata>
-  <defs
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     id="defs4">
-    <style
-       id="style2"
-       type="text/css">
-*{stroke-linecap:butt;stroke-linejoin:round;}
-  </style>
-  </defs>
-  <g
-     transform="matrix(6.39205,0,0,6.39205,-1.1622396,-1.5564375e-5)"
-     style="stroke-linecap:butt;stroke-linejoin:round"
-     id="figure_1">
-    <g
-       style="stroke-linecap:butt;stroke-linejoin:round"
-       id="axes_1">
-      <g
-         transform="translate(0,0.32000046)"
-         style="stroke-linecap:butt;stroke-linejoin:round"
-         id="g7"
-         clip-path="url(#pc7af782329)">
-        <image
-           style="stroke-linecap:butt;stroke-linejoin:round"
-           y="-1.36"
-           xlink:href="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAB8AAAAICAYAAAABfSQaAAAAdElEQVR4nO3NsQ3CMAAF0fN3hzCxoigVEjsxLPsgpQIUEiKo8DcNO1CQ6656we9QPQqPok4RjxHPwndRH8JzxEvEy/efkcvmwK3Zc+qPDNeOYeo4v3rKVjgFnERJojTCu4CzcBalFSUH3Aq3QvywFV/x/8E/2JQwCpYkwJgAAAAASUVORK5CYII="
-           x="14"
-           width="7.4400001"
-           transform="matrix(1,0,0,-1,0,1.92)"
-           id="imaged79025e25a"
-           height="1.92" />
-      </g>
-      <g
-         style="stroke-linecap:butt;stroke-linejoin:round"
-         id="patch_1">
-        <path
-           id="path9"
-           style="fill:#808080;stroke-linecap:butt;stroke-linejoin:round"
-           d="M 3.793331,4.506059 V 2.586641 L 2.995202,3.904832 Q 2.980923,3.93339 2.947104,3.94316 2.913285,3.95293 2.889235,3.95293 2.860677,3.95293 2.826858,3.94316 2.793039,3.93339 2.77876,3.904832 L 1.980631,2.586641 V 4.506059 H 1.003636 V 0.773941 h 0.913866 q 0.048098,0 0.081917,0.042837 L 2.884726,2.293543 3.774543,0.816778 Q 3.808362,0.773941 3.851199,0.773941 H 4.770325 V 4.506059 Z M 7.665685,4.50155 6.371544,2.509985 V 4.50155 H 5.375761 V 0.773941 h 0.991274 l 1.29865,2.010354 V 0.773941 H 8.665977 V 4.50155 Z M 9.202272,4.50606 V 0.773941 h 2.977578 v 0.889816 h -2.005845 v 0.533589 h 1.890109 v 0.889817 h -1.890109 v 0.533589 h 2.005845 v 0.885307 z"
-           clip-path="url(#pc7af782329)" />
-      </g>
-    </g>
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="141pt" height="33.75pt" viewBox="0 0 141 33.75" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2022-04-13T15:28:23.367808</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.5.1, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="axes_1">
+   <g clip-path="url(#p4b09d73451)">
+    <image xlink:href="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAAEIAAAAQCAYAAACiEqkUAAAAsElEQVR4nO2QW2rEMBAEa8Ri2WLXd8rJcyeH+Bnc+VCHwJ5hCoYeNZI+KiR0r4H2gK2gve86Am2BzoC9/HdODp+P0vN0fwa6vDt1FXQG62PuU2fW8cXaZvbpyac++N4ry9b42hrL2ViuxvLT0BDcQ6Ah0IAz0AM0eq++MwaqoNo7jX3u0e+mt37yH61QSABSxB8pwqQIkyJMijApwqQIkyJMijApwqQIkyJMijApwvwCdAFgHcVQk7IAAAAASUVORK5CYII=" id="image580da91bb7" transform="scale(1 -1)translate(0 -12)" x="86" y="-10.75" width="49.5" height="12"/>
+   </g>
+   <g id="patch_1">
+    <path d="M 24.403707 28.911808 
+L 24.403707 16.530814 
+L 19.255463 25.033658 
+Q 19.163356 25.21787 18.945211 25.28089 
+Q 18.727065 25.34391 18.571939 25.34391 
+Q 18.387726 25.34391 18.169581 25.28089 
+Q 17.951435 25.21787 17.859329 25.033658 
+L 12.711085 16.530814 
+L 12.711085 28.911808 
+L 6.409091 28.911808 
+L 6.409091 4.838192 
+L 12.303879 4.838192 
+Q 12.614131 4.838192 12.832277 5.11451 
+L 18.542852 14.640216 
+L 24.282514 5.11451 
+Q 24.50066 4.838192 24.776978 4.838192 
+L 30.7057 4.838192 
+L 30.7057 28.911808 
+L 24.403707 28.911808 
+z
+M 49.381899 28.882722 
+L 41.034181 16.03635 
+L 41.034181 28.882722 
+L 34.610995 28.882722 
+L 34.610995 4.838192 
+L 41.005095 4.838192 
+L 49.381899 17.805756 
+L 49.381899 4.838192 
+L 55.834171 4.838192 
+L 55.834171 28.882722 
+L 49.381899 28.882722 
+z
+M 59.293479 28.911808 
+L 59.293479 4.838192 
+L 78.500016 4.838192 
+L 78.500016 10.577854 
+L 65.561538 10.577854 
+L 65.561538 14.019712 
+L 77.753472 14.019712 
+L 77.753472 19.759374 
+L 65.561538 19.759374 
+L 65.561538 23.201232 
+L 78.500016 23.201232 
+L 78.500016 28.911808 
+L 59.293479 28.911808 
+z
+" clip-path="url(#p4b09d73451)" style="fill: #808080"/>
+   </g>
   </g>
-  <defs
-     id="defs17">
-    <clipPath
-       style="stroke-linecap:butt;stroke-linejoin:round"
-       id="pc7af782329">
-      <rect
-         style="stroke-linecap:butt;stroke-linejoin:round"
-         id="rect14"
-         y="0.58733499"
-         x="0"
-         width="22.08"
-         height="4.10533" />
-    </clipPath>
-  </defs>
+ </g>
+ <defs>
+  <clipPath id="p4b09d73451">
+   <rect x="0" y="3.634511" width="141" height="26.480977"/>
+  </clipPath>
+ </defs>
 </svg>

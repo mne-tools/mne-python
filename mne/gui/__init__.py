@@ -146,7 +146,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         if val is not None:
             warn(f'{key} is deprecated and will be removed in 1.1.',
                  DeprecationWarning)
-    config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
+    config = get_config()
     if guess_mri_subject is None:
         guess_mri_subject = config.get(
             'MNE_COREG_GUESS_MRI_SUBJECT', 'true') == 'true'
@@ -228,7 +228,7 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
         The graphical user interface (GUI) window.
     """
     from ._ieeg_locate_gui import IntracranialElectrodeLocator
-    from PyQt5.QtWidgets import QApplication
+    from qtpy.QtWidgets import QApplication
     # get application
     app = QApplication.instance()
     if app is None:
@@ -249,7 +249,7 @@ class _LocateScraper(object):
     def __call__(self, block, block_vars, gallery_conf):
         from ._ieeg_locate_gui import IntracranialElectrodeLocator
         from sphinx_gallery.scrapers import figure_rst
-        from PyQt5 import QtGui
+        from qtpy import QtGui
         for gui in block_vars['example_globals'].values():
             if (isinstance(gui, IntracranialElectrodeLocator) and
                     not getattr(gui, '_scraped', False) and

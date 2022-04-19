@@ -225,14 +225,20 @@ class _IpyDock(_AbstractDock, _IpyLayout):
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
-    def _dock_add_button(self, name, callback, *, style=None, tooltip=None,
-                         layout=None):
+    def _dock_add_button(
+        self, name, callback, *, style='pushbutton', icon=None, tooltip=None,
+        layout=None
+    ):
         layout = self._dock_layout if layout is None else layout
-        kwargs = dict(description=name)
+        kwargs = dict()
+        if style == 'pushbutton':
+            kwargs["description"] = name
         if tooltip is not None:
             kwargs["tooltip"] = tooltip
         widget = Button(**kwargs)
         widget.on_click(lambda x: callback())
+        if icon is not None:
+            widget.icon = icon
         self._layout_add_widget(layout, widget)
         return _IpyWidget(widget)
 
@@ -345,7 +351,7 @@ class _IpyDock(_AbstractDock, _IpyLayout):
 
     def _dock_add_file_button(
         self, name, desc, func, *, filter=None, initial_directory=None,
-        save=False, is_directory=False, tooltip=None, layout=None
+        save=False, is_directory=False, icon=False, tooltip=None, layout=None
     ):
         layout = self._dock_layout if layout is None else layout
 
@@ -354,11 +360,16 @@ class _IpyDock(_AbstractDock, _IpyLayout):
             self._file_picker.connect(func)
             self._file_picker.show()
 
+        if icon:
+            kwargs = dict(style='toolbutton', icon='folder')
+        else:
+            kwargs = dict()
         widget = self._dock_add_button(
             name=desc,
             callback=callback,
             tooltip=tooltip,
             layout=layout,
+            **kwargs
         )
         return widget
 
@@ -371,20 +382,6 @@ def _generate_callback(callback, to_float=False):
 
 
 class _IpyToolBar(_AbstractToolBar, _IpyLayout):
-    def _tool_bar_load_icons(self):
-        self.icons = dict()
-        self.icons["help"] = "question"
-        self.icons["play"] = None
-        self.icons["pause"] = None
-        self.icons["reset"] = "history"
-        self.icons["scale"] = "magic"
-        self.icons["clear"] = "trash"
-        self.icons["movie"] = "video-camera"
-        self.icons["restore"] = "replay"
-        self.icons["screenshot"] = "camera"
-        self.icons["visibility_on"] = "eye"
-        self.icons["visibility_off"] = "eye"
-
     def _tool_bar_initialize(self, name="default", window=None):
         self.actions = dict()
         self._tool_bar = self._tool_bar_layout = HBox()
@@ -393,7 +390,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
     def _tool_bar_add_button(self, name, desc, func, *, icon_name=None,
                              shortcut=None):
         icon_name = name if icon_name is None else icon_name
-        icon = self.icons[icon_name]
+        icon = self._icons[icon_name]
         if icon is None:
             return
         widget = Button(tooltip=desc, icon=icon)
@@ -402,7 +399,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         self.actions[name] = widget
 
     def _tool_bar_update_button_icon(self, name, icon_name):
-        self.actions[name].icon = self.icons[icon_name]
+        self.actions[name].icon = self._icons[icon_name]
 
     def _tool_bar_add_text(self, name, value, placeholder):
         widget = Text(value=value, placeholder=placeholder)
@@ -432,9 +429,6 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         self._layout_add_widget(self._tool_bar_layout, widget)
         self.actions[name] = widget
         return _IpyWidget(widget)
-
-    def _tool_bar_set_theme(self):
-        pass
 
 
 class _IpyMenuBar(_AbstractMenuBar):
@@ -523,6 +517,25 @@ class _IpyBrainMplCanvas(_AbstractBrainMplCanvas, _IpyMplInterface):
 
 
 class _IpyWindow(_AbstractWindow):
+    def _window_initialize(self):
+        super()._window_initialize()
+        self._window_load_icons()
+
+    def _window_load_icons(self):
+        # from: https://fontawesome.com/icons
+        self._icons["help"] = "question"
+        self._icons["play"] = None
+        self._icons["pause"] = None
+        self._icons["reset"] = "history"
+        self._icons["scale"] = "magic"
+        self._icons["clear"] = "trash"
+        self._icons["movie"] = "video-camera"
+        self._icons["restore"] = "replay"
+        self._icons["screenshot"] = "camera"
+        self._icons["visibility_on"] = "eye"
+        self._icons["visibility_off"] = "eye"
+        self._icons["folder"] = "folder"
+
     def _window_close_connect(self, func, *, after=True):
         pass
 
@@ -660,13 +673,13 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         self._file_picker = _FilePicker(rows=10)
         kwargs["notebook"] = True
         super().__init__(*args, **kwargs)
+        self._window_initialize()
 
     def _update(self):
         if self.figure.display is not None:
             self.figure.display.update_canvas()
 
     def _display_default_tool_bar(self):
-        self._tool_bar_load_icons()
         self._tool_bar_initialize()
         self._tool_bar_add_file_button(
             name="screenshot",

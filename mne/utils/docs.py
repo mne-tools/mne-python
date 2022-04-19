@@ -15,6 +15,7 @@ import webbrowser
 
 from decorator import FunctionMaker
 
+from ._bunch import BunchConst
 from ..defaults import HEAD_SIZE_DEFAULT
 
 
@@ -38,7 +39,7 @@ def _reflow_param_docstring(docstring, has_first_line=True, width=75):
 # are alphabetized (you can look up by the name of the argument). This way
 # the same ``docdict`` entries are easier to reuse.
 
-docdict = dict()
+docdict = BunchConst()
 
 # %%
 # A
@@ -359,6 +360,11 @@ docdict['brain_kwargs'] = """
 brain_kwargs : dict | None
     Additional arguments to the :class:`mne.viz.Brain` constructor (e.g.,
     ``dict(silhouette=True)``).
+"""
+
+docdict['browser'] = """
+fig : matplotlib.figure.Figure | mne_qt_browser.figure.MNEQtBrowser
+    Browser instance.
 """
 
 docdict['buffer_size_clust'] = """
@@ -2061,6 +2067,14 @@ outlines : 'head' | 'skirt' | dict | None
     masking options, either directly or as a function that returns patches
     (required for multi-axis plots). If None, nothing will be drawn.
     Defaults to 'head'.
+"""
+
+docdict['overview_mode'] = """
+overview_mode : str | None
+    Can be "channels", "empty", or "hidden" to set the overview bar mode
+    for the ``'qt'`` backend. If None (default), the config option
+    ``MNE_BROWSER_OVERVIEW_MODE`` will be used, defaulting to "channels"
+    if it's not found.
 """
 
 docdict['overwrite'] = """
