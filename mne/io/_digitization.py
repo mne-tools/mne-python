@@ -427,8 +427,18 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
     if dig_ch_pos is not None:
         try:  # use the last 3 as int if possible (e.g., EEG001->1)
             idents = []
-            for key in dig_ch_pos:
+            for key, value in dig_ch_pos.items():
                 _validate_type(key, str, 'dig_ch_pos')
+                _validate_type(value, (np.ndarray, list, tuple), 'dig_ch_pos')
+                if isinstance(value, (list, tuple)):
+                    value = np.array(value)
+                    dig_ch_pos[key] = value
+                if value.dtype == int:
+                    value = value.astype(np.float32)
+                    dig_ch_pos[key] = value
+                if value.shape != (3, ) or value.dtype != float:
+                    raise ValueError("The position should be a 1D array of "
+                                      "floats [x, y, z].")
                 idents.append(int(key[-3:]))
         except ValueError:  # and if any conversion fails, simply use arange
             idents = np.arange(1, len(dig_ch_pos) + 1)
