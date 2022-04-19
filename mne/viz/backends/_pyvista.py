@@ -33,7 +33,10 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import pyvista
     from pyvista import Plotter, PolyData, Line, close_all, UnstructuredGrid
-    from pyvistaqt import BackgroundPlotter  # noqa
+    try:
+        from pyvistaqt import BackgroundPlotter  # noqa
+    except ImportError:
+        from pyvista import BackgroundPlotter
     from pyvista.plotting.plotting import _ALL_PLOTTERS
 VTK9 = _compare_version(getattr(vtk, 'VTK_VERSION', '9.0'), '>=', '9.0')
 
