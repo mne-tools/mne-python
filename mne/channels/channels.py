@@ -558,7 +558,6 @@ class SetChannelsMixin(MontageMixin):
         .. versionadded:: 0.20
         """
         from ..annotations import _handle_meas_date
-        orig_meas_date = self.info['meas_date']
         meas_date = _handle_meas_date(meas_date)
         with self.info._unlock():
             self.info['meas_date'] = meas_date
