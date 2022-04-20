@@ -806,6 +806,9 @@ dipole : instance of Dipole | list of Dipole
     one or more dipoles. Multiple simultaneous dipoles may be defined by
     assigning them identical times. Alternatively, multiple simultaneous
     dipoles may also be specified as a list of Dipole objects.
+
+    .. versionchanged:: 1.1
+        Added support for a list of :class:`mne.Dipole` instances.
 """
 
 docdict['distance'] = """
