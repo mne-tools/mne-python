@@ -98,7 +98,7 @@ def _convert_time(date_str, time_str):
         raise RuntimeError('Illegal time: %s' % time_str)
     # MNE-C uses mktime which uses local time, but here we instead decouple
     # conversion location from the process, and instead assume that the
-    # acquisiton was in GMT. This will be wrong for most sites, but at least
+    # acquisition was in GMT. This will be wrong for most sites, but at least
     # the value we obtain here won't depend on the geographical location
     # that the file was converted.
     res = timegm((date.tm_year, date.tm_mon, date.tm_mday,

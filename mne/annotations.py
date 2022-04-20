@@ -111,7 +111,7 @@ class Annotations(object):
         starting time of annotation acquisition. If None (default),
         starting time is determined from beginning of raw data acquisition.
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
-        the annotations with raw data if their acquisiton is started at the
+        the annotations with raw data if their acquisition is started at the
         same time. If it is a string, it should conform to the ISO8601 format.
         More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
         the ISO8601 format where the delimiter between date and time is ' '.
@@ -1195,7 +1195,7 @@ def _read_brainstorm_annotations(fname, orig_time=None):
         starting time of annotation acquisition. If None (default),
         starting time is determined from beginning of raw data acquisition.
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
-        the annotations with raw data if their acquisiton is started at the
+        the annotations with raw data if their acquisition is started at the
         same time.
 
     Returns
