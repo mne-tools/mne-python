@@ -1590,7 +1590,8 @@ def test_annot_meas_date_first_samp_crop(meas_date, first_samp):
     """Test yet another meas_date / first_samp issue."""
     sfreq = 1000.
     info = mne.create_info(1, sfreq, 'eeg')
-    raw = mne.io.RawArray(np.zeros((1, 3000)), info, first_samp=first_samp)
+    raw = mne.io.RawArray(
+        np.random.RandomState(0).randn(1, 3000), info, first_samp=first_samp)
     raw.set_meas_date(meas_date)
     onset = np.array([0, 1, 2], float)
     if meas_date is not None:
@@ -1607,10 +1608,15 @@ def test_annot_meas_date_first_samp_crop(meas_date, first_samp):
     assert len(raw_crop.annotations) == 2
     assert_array_equal(raw_crop.annotations.description, annot.description[:2])
     assert_array_equal(raw_crop.annotations.duration, annot.duration[:2])
+    # these two should be the equivalent
     raw_crop = raw.copy().crop(2, 2.5, verbose='debug')
-    assert len(raw_crop.annotations) == 1
+    raw_crop_2 = raw.copy().crop(1, None).crop(1, 1.5)
+    assert_allclose(raw_crop.get_data(), raw_crop_2.get_data())
+    assert raw_crop.first_samp == raw_crop_2.first_samp
     want_onset = onset[2:]
     if meas_date is None:
         want_onset = want_onset + raw.first_time
-    assert_allclose(raw_crop.annotations.onset, want_onset)
-    assert_allclose(raw_crop.annotations.duration, annot.duration[2:])
+    for this_raw in (raw_crop, raw_crop_2):
+        assert len(this_raw.annotations) == 1
+        assert_allclose(this_raw.annotations.onset, want_onset)
+        assert_allclose(this_raw.annotations.duration, annot.duration[2:])
