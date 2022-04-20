@@ -29,8 +29,6 @@ being reproducible.
 ###############################################################################
 # Importing everything and setting up the data paths for the MNE-Sample
 # dataset.
-import warnings
-
 import mne
 from mne.datasets import sample
 from mne.channels import read_vectorview_selection
