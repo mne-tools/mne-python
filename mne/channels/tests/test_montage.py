@@ -1654,3 +1654,12 @@ def test_read_dig_localite(tmp_path):
     s = '<DigMontage | 0 extras (headshape), 0 HPIs, 3 fiducials, 15 channels>'
     assert repr(montage) == s
     assert montage.ch_names == [f'ch{i:02}' for i in range(1, 16)]
+
+
+def test_make_wrong_dig_montage():
+    """Test that a montage with non numeric is not possible."""
+    make_dig_montage(ch_pos={'A1': ['0', '0', '0']})  # converted to floats
+    with pytest.raises(ValueError, match="could not convert string to float"):
+        make_dig_montage(ch_pos={'A1': ['a', 'b', 'c']})
+    with pytest.raises(TypeError, match="instance of ndarray, list, or tuple"):
+        make_dig_montage(ch_pos={'A1': 5})
