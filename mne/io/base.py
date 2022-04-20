@@ -404,26 +404,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         # set up cals and mult (cals, compensation, and projector)
         n_out = len(np.arange(len(self.ch_names))[idx])
-        cals = self._cals.ravel()[np.newaxis, :]
-        if projector is not None:
-            assert projector.shape[0] == projector.shape[1] == cals.shape[1]
-        if self._comp is not None:
-            if projector is not None:
-                mult = self._comp * cals
-                mult = np.dot(projector[idx], mult)
-            else:
-                mult = self._comp[idx] * cals
-        elif projector is not None:
-            mult = projector[idx] * cals
-        else:
-            mult = None
-        del projector
+        cals = self._cals.ravel()
+        mult = self._get_mult()
 
         if mult is None:
-            cals = cals.T[idx]
+            cals = cals[idx, np.newaxis]
             assert cals.shape == (n_out, 1)
             need_idx = idx  # sufficient just to read the given channels
         else:
+            mult = mult[idx] * cals
             cals = None  # shouldn't be used
             assert mult.shape == (n_out, len(self.ch_names))
             # read all necessary for proj
@@ -454,6 +443,17 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 int(start_file), int(stop_file), cals, mult)
             offset += n_read
         return data
+
+    def _get_mult():
+        """Get the linear operator that the data will be multiplied by."""
+        projector, comp = self._projector, self._comp
+        if comp is not None:
+            mult = comp
+            if projector is not None:
+                mult = projector @ mult
+        else:
+            mult = projector
+        return mult
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
