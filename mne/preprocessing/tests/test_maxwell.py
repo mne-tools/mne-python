@@ -294,27 +294,49 @@ def test_other_systems():
     _assert_shielding(raw_sss_auto, power, 0.7)
 
     # CTF
-    raw_ctf = read_crop(fname_ctf_raw)
-    assert raw_ctf.compensation_grade == 3
-    with pytest.raises(RuntimeError, match='compensated'):
-        maxwell_filter(raw_ctf)
-    raw_ctf.apply_gradient_compensation(0)
+    raw_ctf_3 = read_crop(fname_ctf_raw)
+    assert raw_ctf_3.compensation_grade == 3
+    raw_ctf_0 = raw_ctf_3.copy().apply_gradient_compensation(0)
+    assert raw_ctf_0.compensation_grade == 0
+    # 3rd-order gradient compensation works really well (better than MF here)
+    _assert_shielding(raw_ctf_3, raw_ctf_0, 20, 21)
+    origin = (0., 0., 0.04)
+    raw_sss_3 = maxwell_filter(raw_ctf_3, origin=origin, verbose=True)
+    _assert_n_free(raw_sss_3, 70)
+    _assert_shielding(raw_sss_3, raw_ctf_3, 0.12, 0.14)
+    _assert_shielding(raw_sss_3, raw_ctf_0, 2.63, 2.66)
+    assert raw_sss_3.compensation_grade == 3
+    raw_sss_3.apply_gradient_compensation(0)
+    assert raw_sss_3.compensation_grade == 0
+    _assert_shielding(raw_sss_3, raw_ctf_3, 0.15, 0.17)
+    _assert_shielding(raw_sss_3, raw_ctf_0, 3.18, 3.20)
     with pytest.raises(ValueError, match='digitization points'):
-        maxwell_filter(raw_ctf)
-    raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04))
-    _assert_n_free(raw_sss, 68)
-    _assert_shielding(raw_sss, raw_ctf, 1.8)
+        maxwell_filter(raw_ctf_0)
+    raw_sss_0 = maxwell_filter(raw_ctf_0, origin=origin, verbose=True)
+    _assert_n_free(raw_sss_0, 68)
+    _assert_shielding(raw_sss_0, raw_ctf_3, 0.07, 0.09)
+    _assert_shielding(raw_sss_0, raw_ctf_0, 1.8, 1.9)
+    raw_sss_0.apply_gradient_compensation(3)
+    _assert_shielding(raw_sss_0, raw_ctf_3, 0.07, 0.09)
+    _assert_shielding(raw_sss_0, raw_ctf_0, 1.63, 1.67)
+    with pytest.raises(RuntimeError, match='ignore_ref'):
+        maxwell_filter(raw_ctf_3, ignore_ref=True)
+    # ignoring ref outperforms including it in maxwell filtering
     with catch_logging() as log:
-        raw_sss = maxwell_filter(raw_ctf, origin=(0., 0., 0.04),
+        raw_sss = maxwell_filter(raw_ctf_0, origin=origin,
                                  ignore_ref=True, verbose=True)
     assert ', 12/15 out' in log.getvalue()  # homogeneous fields removed
     _assert_n_free(raw_sss, 70)
-    _assert_shielding(raw_sss, raw_ctf, 12)
-    raw_sss_auto = maxwell_filter(raw_ctf, origin=(0., 0., 0.04),
+    _assert_shielding(raw_sss, raw_ctf_0, 12, 13)
+    # if ignore_ref=True, we remove compensators because they will not
+    # work the way people expect (it puts noise back in the data!)
+    with pytest.raises(ValueError, match='Desired compensation.*not found'):
+        raw_sss.copy().apply_gradient_compensation(3)
+    raw_sss_auto = maxwell_filter(raw_ctf_0, origin=origin,
                                   ignore_ref=True, mag_scale='auto')
     assert_allclose(raw_sss._data, raw_sss_auto._data)
     with catch_logging() as log:
-        maxwell_filter(raw_ctf, origin=(0., 0., 0.04), regularize=None,
+        maxwell_filter(raw_ctf_0, origin=origin, regularize=None,
                        ignore_ref=True, verbose=True)
     assert '80/80 in, 12/15 out' in log.getvalue()  # homogeneous fields
 

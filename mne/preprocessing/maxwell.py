@@ -23,6 +23,7 @@ from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
                           quat_to_rot, rot_to_quat)
 from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
+from ..io.compensator import make_compensator
 from ..io.constants import FIFF, FWD
 from ..io.meas_info import _simplify_info, Info
 from ..io.proc_history import _read_ctc
@@ -238,7 +239,7 @@ def _prep_maxwell_filter(
 
     # triage inputs ASAP to avoid late-thrown errors
     _validate_type(raw, BaseRaw, 'raw')
-    _check_usable(raw)
+    _check_usable(raw, ignore_ref)
     _check_regularize(regularize)
     st_correlation = float(st_correlation)
     if st_correlation <= 0. or st_correlation > 1.:
@@ -340,7 +341,6 @@ def _prep_maxwell_filter(
     exp['extended_proj'] = extended_proj
     del extended_proj
     # Reconstruct data from internal space only (Eq. 38), and rescale S_recon
-    S_recon /= coil_scale
     if recon_trans is not None:
         # warn if we have translated too far
         diff = 1000 * (info['dev_head_t']['trans'][:3, 3] -
@@ -382,13 +382,26 @@ def _prep_maxwell_filter(
             np.zeros(3)])
     else:
         this_pos_quat = None
+
+    # Figure out our linear operator
+    comp = raw.compensation_grade
+    if comp not in (0, None):
+        mult = make_compensator(raw.info, 0, comp)
+        logger.info(f'    Accounting for compensation grade {comp}')
+        assert mult.shape[0] == mult.shape[1] == len(raw.ch_names)
+        mult = mult[np.ix_(meg_picks, meg_picks)]
+        S_recon = mult @ S_recon
+    else:
+        mult = None
+    S_recon /= coil_scale
+
     _get_this_decomp_trans = partial(
         _get_decomp, all_coils=all_coils,
         cal=calibration, regularize=regularize,
         exp=exp, ignore_ref=ignore_ref, coil_scale=coil_scale,
         grad_picks=grad_picks, mag_picks=mag_picks, good_mask=good_mask,
         mag_or_fine=mag_or_fine, bad_condition=bad_condition,
-        mag_scale=mag_scale)
+        mag_scale=mag_scale, mult=mult)
     update_kwargs.update(
         nchan=good_mask.sum(), st_only=st_only, recon_trans=recon_trans)
     params = dict(
@@ -398,7 +411,7 @@ def _prep_maxwell_filter(
         this_pos_quat=this_pos_quat, meg_picks=meg_picks,
         good_mask=good_mask, grad_picks=grad_picks, head_pos=head_pos,
         info=info, _get_this_decomp_trans=_get_this_decomp_trans,
-        S_recon=S_recon, update_kwargs=update_kwargs)
+        S_recon=S_recon, update_kwargs=update_kwargs, ignore_ref=ignore_ref)
     return params
 
 
@@ -406,7 +419,7 @@ def _run_maxwell_filter(
         raw, skip_by_annotation, st_duration, st_correlation, st_only,
         st_when, ctc, coil_scale, this_pos_quat, meg_picks, good_mask,
         grad_picks, head_pos, info, _get_this_decomp_trans, S_recon,
-        update_kwargs,
+        update_kwargs, *, ignore_ref=False,
         reconstruct='in', copy=True):
     # Eventually find_bad_channels_maxwell could be sped up by moving this
     # outside the loop (e.g., in the prep function) but regularization depends
@@ -426,7 +439,7 @@ def _run_maxwell_filter(
     del raw
     if not st_only:
         # remove MEG projectors, they won't apply now
-        _remove_meg_projs(raw_sss)
+        _remove_meg_projs_comps(raw_sss, ignore_ref)
     # Figure out which segments of data we can use
     onsets, ends = _annotations_starts_stops(
         raw_sss, skip_by_annotation, invert=True)
@@ -607,7 +620,7 @@ def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):
     return coil_scale, mag_scale
 
 
-def _remove_meg_projs(inst):
+def _remove_meg_projs_comps(inst, ignore_ref):
     """Remove inplace existing MEG projectors (assumes inactive)."""
     meg_picks = pick_types(inst.info, meg=True, exclude=[])
     meg_channels = [inst.ch_names[pi] for pi in meg_picks]
@@ -616,6 +629,10 @@ def _remove_meg_projs(inst):
         if not any(c in meg_channels for c in proj['data']['col_names']):
             non_meg_proj.append(proj)
     inst.add_proj(non_meg_proj, remove_existing=True, verbose=False)
+    if ignore_ref and inst.info['comps']:
+        assert inst.compensation_grade in (None, 0)
+        with inst.info._unlock():
+            inst.info['comps'] = []
 
 
 def _check_destination(destination, info, head_frame):
@@ -832,9 +849,9 @@ def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
     return pos
 
 
-def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
+def _get_decomp(trans, *, all_coils, cal, regularize, exp, ignore_ref,
                 coil_scale, grad_picks, mag_picks, good_mask, mag_or_fine,
-                bad_condition, t, mag_scale):
+                bad_condition, t, mag_scale, mult):
     """Get a decomposition matrix and pseudoinverse matrices."""
     from scipy import linalg
     #
@@ -843,6 +860,8 @@ def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
     S_decomp_full = _get_s_decomp(
         exp, all_coils, trans, coil_scale, cal, ignore_ref, grad_picks,
         mag_picks, mag_scale)
+    if mult is not None:
+        S_decomp_full = mult @ S_decomp_full
     S_decomp = S_decomp_full[good_mask]
     #
     # Extended SSS basis (eSSS)
@@ -1016,16 +1035,16 @@ def _check_regularize(regularize):
         raise ValueError('regularize must be None or "in"')
 
 
-def _check_usable(inst):
+def _check_usable(inst, ignore_ref):
     """Ensure our data are clean."""
     if inst.proj:
         raise RuntimeError('Projectors cannot be applied to data during '
                            'Maxwell filtering.')
     current_comp = inst.compensation_grade
-    if current_comp not in (0, None):
+    if current_comp not in (0, None) and ignore_ref:
         raise RuntimeError('Maxwell filter cannot be done on compensated '
-                           'channels, but data have been compensated with '
-                           'grade %s.' % current_comp)
+                           'channels (data have been compensated with '
+                           'grade {current_comp}) when ignore_ref=True')
 
 
 def _col_norm_pinv(x):
