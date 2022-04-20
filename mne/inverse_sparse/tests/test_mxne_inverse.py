@@ -204,8 +204,16 @@ def test_mxne_vol_sphere():
     fwd = mne.make_forward_solution(info, trans=None, src=src,
                                     bem=sphere, eeg=False, meg=True)
 
-    # irMxNE tests
     alpha = 80.
+
+    # Computing inverse with restricted orientations should also work, since
+    # we have a discrete source space.
+    stc = mixed_norm(evoked_l21, fwd, cov, alpha, loose=0.2,
+                     return_residual=False, maxit=3, tol=1e-8,
+                     active_set_size=10)
+    assert_array_almost_equal(stc.times, evoked_l21.times, 5)
+
+    # irMxNE tests
     with catch_logging() as log:
         stc = mixed_norm(evoked_l21, fwd, cov, alpha,
                          n_mxne_iter=1, maxit=30, tol=1e-8,
