@@ -52,14 +52,15 @@ ica.plot_sources(raw)
 # :footcite:`DharmapraniEtAl2016` manually.
 #
 # The criteria are:
-#   - Positive slope of log-log power spectrum between 7 and 75 Hz
-#     (here just flat because it's not in log-log)
-#   - Peripheral focus or dipole/multi-pole foci (the blue and red
-#     blobs in the topomap are far from the vertex where the most
-#     muscle is)
-#   - Single focal point (low spatial smoothness; there is just one focus
-#     of the topomap compared to components like the first ones that are
-#     more likely neural which spread across the topomap)
+#
+# - Positive slope of log-log power spectrum between 7 and 75 Hz
+#   (here just flat because it's not in log-log)
+# - Peripheral focus or dipole/multi-pole foci (the blue and red
+#   blobs in the topomap are far from the vertex where the most
+#   muscle is)
+# - Single focal point (low spatial smoothness; there is just one focus
+#   of the topomap compared to components like the first ones that are
+#   more likely neural which spread across the topomap)
 #
 # The other attribute worth noting is that the time course in
 # :func:`mne.preprocessing.ICA.plot_sources` looks like EMG; you can
