@@ -5,18 +5,22 @@ Computing source timecourses with an XFit-like multi-dipole model
 =================================================================
 
 MEGIN's XFit program offers a "guided ECD modeling" interface, where multiple
-dipoles can be fitted by manually selecting subsets of sensors and time ranges.
-Then, source timecourses can be computed using a multi-dipole model. The
-advantage of using a multi-dipole model over fitting each dipole in isolation,
-is that when a source is picked up by more than one dipole, a multi-dipole can
-prevent spatial leakage. This example shows how to build a multi-dipole model
-for estimating source timecourses for evokeds or single epochs.
+dipoles can be fitted interactively. By manually selecting subsets of sensors
+and time ranges, dipoles can be fitted to specific signal components. Then,
+source timecourses can be computed using a multi-dipole model. The advantage of
+using a multi-dipole model over fitting each dipole in isolation, is that when
+multiple dipoles contribute to the same signal component, the model can make
+sure that activity assigned to one dipole is not also assigned to another. This
+example shows how to build a multi-dipole model for estimating source
+timecourses for evokeds or single epochs.
 
-The XFit program is the recommended approach for obtaining dipole fits because
-it offers a convenient interface for it. These dipoles can then be imported
-into MNE-Python by using the :func:`mne.read_dipole` function for building and
-applying the multi-dipole model. However, this example will also demonstrate
-how to perform guided ECD modeling using only MNE-Python functionality.
+The XFit program is the recommended approach for guided ECD modeling, because
+it offers a convenient graphical user interface for it. These dipoles can then
+be imported into MNE-Python by using the :func:`mne.read_dipole` function for
+building and applying the multi-dipole model. In addition, this example will
+also demonstrate how to perform guided ECD modeling using only MNE-Python
+functionality, which is less convenient than using XFit, but has the benefit of
+being reproducible.
 """
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
@@ -76,17 +80,23 @@ bem = mne.read_bem_solution(bem_fname)
 picks_left = read_vectorview_selection('Left', info=info)
 evoked_fit_left = evoked_left.copy().crop(0.08, 0.08)
 evoked_fit_left.pick_channels(picks_left)
+cov_fit_left = cov.copy().pick_channels(picks_left)
 
 picks_right = read_vectorview_selection('Right', info=info)
 evoked_fit_right = evoked_right.copy().crop(0.08, 0.08)
 evoked_fit_right.pick_channels(picks_right)
+cov_fit_right = cov.copy().pick_channels(picks_right)
 
-# Fitting the dipoles with a subset of sensors currently generates warnings
-# regarding the projections. We will ignore these for now.
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    dip_left, _ = mne.fit_dipole(evoked_fit_left, cov, bem)
-    dip_right, _ = mne.fit_dipole(evoked_fit_right, cov, bem)
+# Any SSS projections that are active on this data need to be re-normalized
+# after picking channels.
+evoked_fit_left.info.normalize_proj()
+evoked_fit_right.info.normalize_proj()
+cov_fit_left['projs'] = evoked_fit_left.info['projs']
+cov_fit_right['projs'] = evoked_fit_right.info['projs']
+
+# Fit the dipoles with the subset of sensors.
+dip_left, _ = mne.fit_dipole(evoked_fit_left, cov_fit_left, bem)
+dip_right, _ = mne.fit_dipole(evoked_fit_right, cov_fit_right, bem)
 
 ###############################################################################
 # Now that we have the location and orientations of the dipoles, compute the
@@ -111,8 +121,10 @@ axes[1].set_title('Right auditory stimulation')
 axes[1].set_xlabel('Time (s)')
 fig.supylabel('Dipole amplitude')
 
+###############################################################################
 # We can also fit the timecourses to single epochs. Here, we do it for each
 # experimental condition separately.
+
 stcs_left = apply_inverse_epochs(epochs['left'], inv, lambda2=1E-6,
                                  method='MNE')
 stcs_right = apply_inverse_epochs(epochs['right'], inv, lambda2=1E-6,
@@ -139,18 +151,18 @@ n_left = len(amplitudes_left)
 mean_left = np.mean(amplitudes_left, axis=0)
 mean_right = np.mean(amplitudes_right, axis=0)
 
-fig = plt.figure(figsize=(8, 4))
-plt.scatter(np.arange(n), amplitudes[:, 0], label='Dipole 1')
-plt.scatter(np.arange(n), amplitudes[:, 1], label='Dipole 2')
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.scatter(np.arange(n), amplitudes[:, 0], label='Dipole 1')
+ax.scatter(np.arange(n), amplitudes[:, 1], label='Dipole 2')
 transition_point = n_left - 0.5
-plt.plot([0, transition_point], [mean_left[0], mean_left[0]], color='C0')
-plt.plot([0, transition_point], [mean_left[1], mean_left[1]], color='C1')
-plt.plot([transition_point, n], [mean_right[0], mean_right[0]], color='C0')
-plt.plot([transition_point, n], [mean_right[1], mean_right[1]], color='C1')
-plt.axvline(transition_point, color='black')
-plt.xlabel('Epochs')
-plt.ylabel('Dipole amplitude')
-plt.suptitle('Single epoch dipole amplitudes')
+ax.plot([0, transition_point], [mean_left[0], mean_left[0]], color='C0')
+ax.plot([0, transition_point], [mean_left[1], mean_left[1]], color='C1')
+ax.plot([transition_point, n], [mean_right[0], mean_right[0]], color='C0')
+ax.plot([transition_point, n], [mean_right[1], mean_right[1]], color='C1')
+ax.axvline(transition_point, color='black')
+ax.set_xlabel('Epochs')
+ax.set_ylabel('Dipole amplitude')
+ax.legend()
+fig.suptitle('Single epoch dipole amplitudes')
 fig.text(0.30, 0.9, 'Left auditory stimulation', ha='center')
 fig.text(0.70, 0.9, 'Right auditory stimulation', ha='center')
-plt.legend()
