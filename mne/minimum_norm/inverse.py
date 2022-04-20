@@ -1395,9 +1395,12 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     loose = _triage_loose(forward['src'], loose, fixed)
     del fixed
 
+    # Figure out what kind of inverse is requested
+    fixed_inverse = all(v == 0. for v in loose.values())
+    constrained_inverse = any(v < 1. for v in loose.values())
+
     # We only support fixed orientations for surface and discrete source
     # spaces. Not volume or mixed.
-    fixed_inverse = all(v == 0. for v in loose.values())
     if fixed_inverse:
         if len(loose) > 1:  # Mixed source space
             raise ValueError('Computing inverse solutions for mixed source '
@@ -1441,7 +1444,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                 'Forward operator has fixed orientation and can only '
                 'be used to make a fixed-orientation inverse '
                 'operator.')
-        if any(v < 1 for v in loose.values()) and not forward['surf_ori']:
+        if constrained_inverse and not forward['surf_ori']:
             logger.info('Converting forward solution to surface orientation')
             convert_forward_solution(
                 forward, surf_ori=True, use_cps=use_cps, copy=False)
@@ -1472,7 +1475,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                 forward, surf_ori=True, force_fixed=True,
                 use_cps=use_cps, copy=False)
     else:  # Free or loose orientation
-        if any(v < 1 for v in loose.values()):
+        if constrained_inverse:
             assert forward['surf_ori']
         # In theory we could have orient_prior=None for loose=1., but
         # the MNE-C code does not do this
