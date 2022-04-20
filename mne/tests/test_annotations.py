@@ -1544,9 +1544,8 @@ def test_annot_concat_crop(meas_date, first_samp_1, first_samp_2, setting):
     end_idx = np.where(raw.annotations.description == 'off')[0]
     tmins = raw.annotations.onset[start_idx]
     tmaxs = raw.annotations.onset[end_idx]
-    if meas_date_1 is not None:  # need to reference to what will be 0 time
-        tmins -= raw.first_time
-        tmaxs -= raw.first_time
+    tmins -= raw.first_time
+    tmaxs -= raw.first_time
     assert len(tmins) == len(tmaxs) == 2
     assert raw.info['meas_date'] == meas_date_1
     _assert_annotations_equal(raw.annotations, want_annot)
