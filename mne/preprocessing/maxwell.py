@@ -44,7 +44,7 @@ from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
 @verbose
 def maxwell_filter_prepare_emptyroom(
     raw_er, *, raw, bads='from_raw', annotations='from_raw', meas_date='keep',
-    verbose=None
+    emit_warning=False, verbose=None
 ):
     """Prepare an empty-room recording for Maxwell filtering.
 
@@ -72,14 +72,18 @@ def maxwell_filter_prepare_emptyroom(
 
         .. note::
            Non-MEG channels are silently dropped from the list of bads.
-    annotations : 'from_raw' | 'keep'
-        Whether to copy the annotations over from ``raw`` (default) or to keep
-        them unchanged.
+    annotations : 'from_raw' | 'union' | 'keep'
+        Whether to copy the annotations over from ``raw`` (default),
+        use the union of the annotations, or to keep them unchanged.
     meas_date : 'keep' | 'from_raw'
         Whether to transfer the measurement date from ``raw`` or to keep
         it as is (default). If you intend to manually transfer annotations
         from ``raw`` **after** running this function, you should set this to
         `'from_raw'`.
+    %(emit_warning)s
+        Unlike :meth:`raw.set_annotations <mne.io.Raw.set_annotations>`, the
+        default here is False, as empty-room recordings are often shorter than
+        raw.
     %(verbose)s
 
     Returns
@@ -115,7 +119,7 @@ def maxwell_filter_prepare_emptyroom(
     _validate_type(item=annotations, types=str, item_name='annotations')
     _check_option(
         parameter='annotations', value=annotations,
-        allowed_values=['from_raw', 'keep']
+        allowed_values=['from_raw', 'union', 'keep']
     )
     _validate_type(item=meas_date, types=str, item_name='meas_date')
     _check_option(
@@ -149,22 +153,27 @@ def maxwell_filter_prepare_emptyroom(
     raw_er_prepared.set_montage(montage)
 
     # handle first_samp
+    raw_er_prepared.annotations.onset += (
+        raw.first_time - raw_er_prepared.first_time)
     raw_er_prepared._cropped_samp = raw._cropped_samp
 
-    # handle annotations & measurement date
-    if annotations == 'from_raw':
-        if meas_date == 'keep':
-            annotations = raw.annotations.copy()
-            annotations._orig_time = raw_er_prepared.info['meas_date']
-            raw_er_prepared.set_annotations(annotations)
-        elif meas_date == 'from_raw':
-            raw_er_prepared.set_meas_date(raw.info['meas_date'])
-            raw_er_prepared.set_annotations(raw.annotations)
-    elif annotations == 'keep':
-        if meas_date == 'keep':
-            pass  # no-op
-        elif meas_date == 'from_raw':
-            raw_er_prepared.set_meas_date(raw.info['meas_date'])
+    # handle annotations
+    if annotations != 'keep':
+        er_annot = raw_er_prepared.annotations
+        if annotations == 'from_raw':
+            er_annot.delete(np.arange(len(er_annot)))
+        er_annot.append(
+            raw.annotations.onset,
+            raw.annotations.duration,
+            raw.annotations.description,
+            raw.annotations.ch_names)
+        if raw_er_prepared.info['meas_date'] is None:
+            er_annot.onset -= raw_er_prepared.first_time
+        raw_er_prepared.set_annotations(er_annot, emit_warning)
+
+    # handle measurement date
+    if meas_date == 'from_raw':
+        raw_er_prepared.set_meas_date(raw.info['meas_date'])
 
     return raw_er_prepared
 

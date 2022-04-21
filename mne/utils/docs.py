@@ -887,6 +887,11 @@ The only modes that work for vector and volume source estimates are ``'mean'``,
 ``'max'``, and ``'auto'``.
 """
 
+docdict['emit_warning'] = """
+emit_warning : bool
+    Whether to emit warnings when cropping or omitting annotations.
+"""
+
 docdict['epochs_preload'] = """
     Load all epochs from disk when creating the object
     or wait before accessing each epoch (more memory

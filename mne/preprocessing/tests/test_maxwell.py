@@ -1448,11 +1448,8 @@ def test_compute_maxwell_basis(regularize, n):
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize(
-    'bads', ['from_raw', 'union', 'keep']
-)
-@pytest.mark.parametrize('set_annot_when', ('before', 'after'))
-def test_prepare_emptyroom(bads, set_annot_when):
+@pytest.mark.parametrize('bads', ('from_raw', 'union', 'keep'))
+def test_prepare_emptyroom_bads(bads):
     """Test prepare_emptyroom."""
     raw = read_raw_fif(raw_fname, allow_maxshield='yes', verbose=False)
     names = [name for name in raw.ch_names if 'EEG' not in name]
@@ -1461,13 +1458,9 @@ def test_prepare_emptyroom(bads, set_annot_when):
     raw_er.pick_channels(names)
     assert raw.ch_names == raw_er.ch_names
     assert raw_er.info['dev_head_t'] is None
+    assert raw.info['dev_head_t'] is not None
     raw_er.set_montage(None)
-    # to make life easier, make it the same duration
-    n_rep = max(int(np.ceil(len(raw.times) / len(raw_er.times))), 1)
-    raw_er = mne.concatenate_raws([raw_er] * n_rep).crop(0, raw.times[-1])
-    assert_allclose(raw.times, raw_er.times)
 
-    raw_er_first_samp_orig = raw_er.first_samp
     if bads == 'from_raw':
         raw_bads_orig = ['MEG0113', 'MEG2313']
         raw_er_bads_orig = []
@@ -1480,15 +1473,6 @@ def test_prepare_emptyroom(bads, set_annot_when):
 
     raw.info['bads'] = raw_bads_orig
     raw_er.info['bads'] = raw_er_bads_orig
-
-    assert len(raw.annotations) == 0
-    pos = mne.chpi.read_head_pos(pos_fname)
-    annot, _ = annotate_movement(raw, pos, 1.)
-    want_annot = 5
-    if set_annot_when == 'before':
-        raw.set_annotations(annot)
-    else:
-        assert set_annot_when == 'after'
 
     raw_er_prepared = maxwell_filter_prepare_emptyroom(
         raw_er=raw_er,
@@ -1506,9 +1490,54 @@ def test_prepare_emptyroom(bads, set_annot_when):
     assert raw_er.info['bads'] == raw_er_bads_orig
     assert raw_er.info['dev_head_t'] is None
     assert raw_er.get_montage() is None
-    assert raw_er.first_samp == raw_er_first_samp_orig
 
-    # Ensure first samp is set properly
+
+@testing.requires_testing_data
+@pytest.mark.slowtest  # lots of params
+@pytest.mark.parametrize('set_annot_when', ('before', 'after'))
+@pytest.mark.parametrize('raw_meas_date', ('orig', None))
+@pytest.mark.parametrize('raw_er_meas_date', ('orig', None))
+def test_prepare_emptyroom_annot_first_samp(set_annot_when, raw_meas_date,
+                                            raw_er_meas_date):
+    """Test prepare_emptyroom."""
+    raw = read_raw_fif(raw_fname, allow_maxshield='yes', verbose=False)
+    raw_er = read_raw_fif(erm_fname, allow_maxshield='yes', verbose=False)
+    names = raw.ch_names[:3]  # make it faster
+    raw.pick_channels(names)
+    raw_er.pick_channels(names)
+    assert raw.ch_names == raw_er.ch_names
+    assert raw.info['meas_date'] != raw_er.info['meas_date']
+    if raw_meas_date is None:
+        raw.set_meas_date(None)
+    if raw_er_meas_date is None:
+        raw_er.set_meas_date(None)
+    # to make life easier, make it the same duration
+    n_rep = max(int(np.ceil(len(raw.times) / len(raw_er.times))), 1)
+    raw_er = mne.concatenate_raws([raw_er] * n_rep).crop(0, raw.times[-1])
+    assert_allclose(raw.times, raw_er.times)
+    raw_er_first_samp_orig = raw_er.first_samp
+    assert len(raw.annotations) == 0
+    pos = mne.chpi.read_head_pos(pos_fname)
+    annot, _ = annotate_movement(raw, pos, 1.)
+    # Add an annotation right at the beginning and end to make sure nothing
+    # gets cropped
+    onset = raw.times[[0, -1]]
+    duration = 1. / raw.info['sfreq']
+    annot.append(onset + raw.first_time * (raw.info['meas_date'] is not None),
+                 duration, ['BAD_CUSTOM'])
+    want_annot = 7  # 5 from annotate_movement plus our first and last samps
+    if set_annot_when == 'before':
+        raw.set_annotations(annot)
+        meas_date = 'keep'
+        want_date = raw_er.info['meas_date']
+    else:
+        assert set_annot_when == 'after'
+        meas_date = 'from_raw'
+        want_date = raw.info['meas_date']
+    raw_er_prepared = maxwell_filter_prepare_emptyroom(
+        raw_er=raw_er, raw=raw, meas_date=meas_date, emit_warning=True)
+    assert raw_er.first_samp == raw_er_first_samp_orig
+    assert raw_er_prepared.info['meas_date'] == want_date
     assert raw_er_prepared.first_samp == raw.first_samp
 
     # Ensure (movement) annotations carry over regardless of whether they're
