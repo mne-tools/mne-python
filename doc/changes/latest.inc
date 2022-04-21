@@ -37,7 +37,7 @@ Bugs
 
 - Fix bug where ``theme`` was not handled properly in :meth:`mne.io.Raw.plot` (:gh:`10487`, :gh:`10500` by `Mathieu Scheltienne`_ and `Eric Larson`_)
 
-- Fix bug with :meth:`raw.crop(start, stop) <mne.io.Raw.crop>` when ``raw.info['meas_date'] is None`` where annotations would shift when ``start != 0`` (:gh:`10491` by `Eric Larson`_)
+- Fix bug in :meth:`raw.crop(start, stop) <mne.io.Raw.crop>` that would cause annotations to be erroneously shifted when ``start != 0`` and no measurement date was set. (:gh:`10491` by `Eric Larson`_)
 
 - Rendering issues with recent MESA releases can be avoided by setting the new environment variable``MNE_3D_OPTION_MULTI_SAMPLES=1`` or using :func:`mne.viz.set_3d_options` (:gh:`10513` by `Eric Larson`_)
 

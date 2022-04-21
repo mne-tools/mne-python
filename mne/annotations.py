@@ -233,11 +233,11 @@ class Annotations(object):
 
     .. warning::
        This means that when ``raw.info['meas_date'] is None``, doing
-       ``raw.set_annotations(raw.annotations)`` is a no-op if and only if
-       ``raw.first_samp == 0``. When it's non-zero, the ``raw.set_annotations``
-       will assume that the "new" annotations refer to the original
-       data (with ``first_samp==0``), and will be re-referenced to the new
-       time offset!
+       ``raw.set_annotations(raw.annotations)`` will not alter ``raw`` if and
+       only if ``raw.first_samp == 0``. When it's non-zero,
+       ``raw.set_annotations`` will assume that the "new" annotations refer to
+       the original data (with ``first_samp==0``), and will be re-referenced to
+       the new time offset!
 
     **Specific annotation**
 
