@@ -109,20 +109,8 @@ class RawSNIRF(BaseRaw):
 
             last_samps = dat.get('/nirs/data1/dataTimeSeries').shape[0] - 1
 
-            samplingrate_raw = np.array(dat.get('nirs/data1/time'))
-            sampling_rate = 0
-            if samplingrate_raw.shape == (2, 1):
-                # specified as onset/samplerate
-                warn("Onset/sample rate SNIRF not yet supported.")
-            else:
-                # specified as time points
-                fs_diff = np.around(np.diff(samplingrate_raw), decimals=4)
-                if len(np.unique(fs_diff)) == 1:
-                    # Uniformly sampled data
-                    sampling_rate = 1. / np.unique(fs_diff)
-                else:
-                    # print(np.unique(fs_diff))
-                    warn("Non uniform sampled data not supported.")
+            sampling_rate = _extract_sampling_rate(dat)
+
             if sampling_rate == 0:
                 warn("Unable to extract sample rate from SNIRF file.")
 
@@ -447,3 +435,39 @@ def _correct_shape(arr):
     if arr.shape == ():
         arr = arr[np.newaxis]
     return arr
+
+
+def _get_timeunit_scaling(time_unit):
+    """MNE expects time in seconds, return scaling from time_unit to seconds."""
+    scalings = {'ms': 1000, 's': 1, 'unknown': 1}
+    if time_unit in scalings:
+        return scalings[time_unit]
+    else:
+        raise RuntimeError(f'The time unit {time_unit} is not supported by MNE. '
+                           'Please report this error as a GitHub issue to inform '
+                           'the developers.')
+
+
+def _extract_sampling_rate(dat):
+    """Extract the sample rate from the time field."""
+    time_data = np.array(dat.get('nirs/data1/time'))
+    sampling_rate = 0
+    if len(time_data) == 2:
+        # specified as onset, samplerate
+        sampling_rate = 1. / (time_data[1] - time_data[0])
+    else:
+        # specified as time points
+        fs_diff = np.around(np.diff(time_data), decimals=4)
+        if len(np.unique(fs_diff)) == 1:
+            # Uniformly sampled data
+            sampling_rate = 1. / np.unique(fs_diff)
+        else:
+            warn("MNE does not currently support reading "
+                 "SNIRF files with non-uniform sampled data.")
+
+    time_unit = _correct_shape(np.array(dat.get('/nirs/metaDataTags/TimeUnit')))
+    time_unit = str(time_unit[0], 'utf-8')
+    time_unit_scaling = _get_timeunit_scaling(time_unit)
+    sampling_rate *= time_unit_scaling
+
+    return sampling_rate
