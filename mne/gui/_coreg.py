@@ -339,7 +339,9 @@ class CoregistrationUI(HasTraits):
             subjects = _get_subjects(subjects_dir)
             low_res_path = _find_head_bem(
                 subjects[0], subjects_dir, high_res=False)
-            valid = low_res_path is not None
+            high_res_path = _find_head_bem(
+                subjects[0], subjects_dir, high_res=True)
+            valid = low_res_path is not None or high_res_path is not None
         except Exception:
             valid = False
         if valid:
