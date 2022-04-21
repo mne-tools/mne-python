@@ -79,7 +79,7 @@ def maxwell_filter_prepare_emptyroom(
         Whether to transfer the measurement date from ``raw`` or to keep
         it as is (default). If you intend to manually transfer annotations
         from ``raw`` **after** running this function, you should set this to
-        `'from_raw'`.
+        ``'from_raw'``.
     %(emit_warning)s
         Unlike :meth:`raw.set_annotations <mne.io.Raw.set_annotations>`, the
         default here is False, as empty-room recordings are often shorter than
