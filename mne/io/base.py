@@ -1367,6 +1367,37 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return self
 
     @verbose
+    def crop_by_annotations(self, annotations=None, *, verbose=None):
+        """Get crops of raw data file for selected annotations.
+
+        Parameters
+        ----------
+        annotations : instance of Annotations | None
+            The annotations to use for cropping the raw file. If None,
+            the annotations from the instance are used.
+        %(verbose)s
+
+        Returns
+        -------
+        raws : list
+            The cropped raw objects.
+        """
+        if annotations is None:
+            annotations = self.annotations
+
+        raws = []
+        for annot in annotations:
+            onset = annot["onset"] - self.first_time
+            # be careful about near-zero errors (crop is very picky about this,
+            # e.g., -1e-8 is an error)
+            if -self.info['sfreq'] / 2 < onset < 0:
+                onset = 0
+            raw_crop = self.copy().crop(onset, onset + annot["duration"])
+            raws.append(raw_crop)
+
+        return raws
+
+    @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=None,
              drop_small_buffer=False, proj=False, fmt='single',
              overwrite=False, split_size='2GB', split_naming='neuromag',
