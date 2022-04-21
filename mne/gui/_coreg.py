@@ -283,6 +283,7 @@ class CoregistrationUI(HasTraits):
         self._configure_status_bar()
         self._configure_dock()
         self._configure_picking()
+        self._configure_legend()
 
         # once the docks are initialized
         self._set_current_fiducial(self._defaults["fiducial"])
@@ -745,6 +746,14 @@ class CoregistrationUI(HasTraits):
             self._on_button_release,
             self._on_pick
         )
+
+    def _configure_legend(self):
+        colors = \
+            [np.array(DEFAULTS['coreg'][f"{fid.lower()}_color"]).astype(float)
+             for fid in self._defaults['fiducials']]
+        labels = list(zip(self._defaults['fiducials'], colors))
+        mri_fids_legend_actor = self._renderer.legend(labels=labels)
+        self._update_actor("mri_fids_legend", mri_fids_legend_actor)
 
     @verbose
     def _redraw(self, verbose=None):
@@ -1410,6 +1419,7 @@ class CoregistrationUI(HasTraits):
             desc="Load",
             func=self._set_subjects_dir,
             is_directory=True,
+            icon=True,
             tooltip="Load the path to the directory containing the "
                     "FreeSurfer subjects",
             layout=subjects_dir_layout,
@@ -1519,6 +1529,7 @@ class CoregistrationUI(HasTraits):
             name="info_file",
             desc="Load",
             func=self._set_info_file,
+            icon=True,
             tooltip="Load the FIFF file with digitization data for "
                     "coregistration",
             layout=info_file_layout,

@@ -1353,9 +1353,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self._data = self._data[:, smin:smax + 1].copy()
 
         annotations = self.annotations
-        if annotations.orig_time is None:
-            annotations.onset -= tmin
         # now call setter to filter out annotations outside of interval
+        if annotations.orig_time is None:
+            assert self.info['meas_date'] is None
+            # When self.info['meas_date'] is None (which is guaranteed if
+            # self.annotations.orig_time is None), when we do the
+            # self.set_annotations, it's assumed that the annotations onset
+            # are relative to first_time, so we have to subtract it, then
+            # set_annotations will put it back.
+            annotations.onset -= self.first_time
         self.set_annotations(annotations, False)
 
         return self
@@ -1575,7 +1581,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, time_format='float',
-             precompute=None, use_opengl=None, *, theme=None, verbose=None):
+             precompute=None, use_opengl=None, *, theme=None,
+             overview_mode=None, verbose=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
@@ -1584,7 +1591,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                         event_id=event_id, show_scrollbars=show_scrollbars,
                         show_scalebars=show_scalebars, time_format=time_format,
                         precompute=precompute, use_opengl=use_opengl,
-                        theme=theme, verbose=verbose)
+                        theme=theme, overview_mode=overview_mode,
+                        verbose=verbose)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)

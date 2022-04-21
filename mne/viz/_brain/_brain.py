@@ -16,6 +16,7 @@ import time
 import copy
 import traceback
 import warnings
+import weakref
 
 import numpy as np
 from collections import OrderedDict
@@ -43,8 +44,8 @@ from ...transforms import (Transform, apply_trans, invert_transform,
                            _get_trans, _get_transforms_to_coord_frame,
                            _frame_to_str)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
-                      use_log_level, Bunch, _ReuseCycle, warn, deprecated,
-                      get_subjects_dir, _check_fname, _to_rgb, get_config)
+                      use_log_level, Bunch, _ReuseCycle, warn,
+                      get_subjects_dir, _check_fname, _to_rgb)
 
 
 _ARROW_MOVE = 10  # degrees per press
@@ -459,6 +460,7 @@ class Brain(object):
         subjects_dir = get_subjects_dir(subjects_dir)
 
         self.time_viewer = False
+        self._hash = time.time_ns()
         self._block = block
         self._hemi = hemi
         self._units = units
@@ -512,16 +514,11 @@ class Brain(object):
         offset = None if (not offset or hemi != 'both') else 0.0
         logger.debug(f'Hemi offset: {offset}')
         _validate_type(theme, (str, None), 'theme')
-        if theme is None:
-            theme = get_config('MNE_3D_OPTION_THEME', 'auto')
-
         self._renderer = _get_renderer(name=self._title, size=size,
                                        bgcolor=self._bg_color,
                                        shape=shape,
                                        fig=figure)
         self._renderer._window_close_connect(self._clean)
-        # TODO: Eventually all 3D windows could use this if we move this call
-        # into _get_renderer / the Qt backend itself.
         self._renderer._window_set_theme(theme)
         self.plotter = self._renderer.plotter
 
@@ -728,6 +725,7 @@ class Brain(object):
     @safe_event
     def _clean(self):
         # resolve the reference cycle
+        self._renderer._window_close_disconnect()
         self.clear_glyphs()
         self.remove_annotations()
         # clear init actors
@@ -1091,9 +1089,13 @@ class Brain(object):
             return
 
         layout = self._renderer._dock_add_group_box(name)
+        weakself = weakref.ref(self)
 
         # setup candidate annots
-        def _set_annot(annot):
+        def _set_annot(annot, weakself=weakself):
+            self = weakself()
+            if self is None:
+                return
             self.clear_glyphs()
             self.remove_labels()
             self.remove_annotations()
@@ -1108,7 +1110,10 @@ class Brain(object):
             self._renderer._update()
 
         # setup label extraction parameters
-        def _set_label_mode(mode):
+        def _set_label_mode(mode, weakself=weakself):
+            self = weakself()
+            if self is None:
+                return
             if self.traces_mode != 'label':
                 return
             glyphs = copy.deepcopy(self.picked_patches)
@@ -1285,20 +1290,33 @@ class Brain(object):
         )
 
     def _configure_tool_bar(self):
-        self._renderer._tool_bar_load_icons()
         self._renderer._tool_bar_initialize(name="Toolbar")
-        self._renderer._tool_bar_set_theme()
+        weakself = weakref.ref(self)
+
+        def save_image(filename, weakself=weakself):
+            self = weakself()
+            if self is None:
+                return
+            self.save_image(filename)
+
         self._renderer._tool_bar_add_file_button(
             name="screenshot",
             desc="Take a screenshot",
-            func=self.save_image,
+            func=save_image,
         )
+
+        def save_movie(filename, weakself=weakself):
+            self = weakself()
+            if self is None:
+                return
+            self.save_movie(
+                filename=filename,
+                time_dilation=(1. / self.playback_speed))
+
         self._renderer._tool_bar_add_file_button(
             name="movie",
             desc="Save movie...",
-            func=lambda filename: self.save_movie(
-                filename=filename,
-                time_dilation=(1. / self.playback_speed)),
+            func=save_movie,
             shortcut="ctrl+shift+s",
         )
         self._renderer._tool_bar_add_button(
@@ -1778,7 +1796,7 @@ class Brain(object):
             return
         for widget in self.widgets.values():
             if widget is not None:
-                for key in ('triggered', 'valueChanged'):
+                for key in ('triggered', 'floatValueChanged'):
                     setattr(widget, key, None)
         self.widgets.clear()
 
@@ -2482,8 +2500,7 @@ class Brain(object):
                     pos, dipole.ori, colors, scales):
                 actor, _ = self._renderer.quiver3d(
                     *this_pos, *this_ori, color=color, opacity=alpha,
-                    mode='arrow', scale=scale, scale_mode='scalar',
-                    scalars=[1])
+                    mode='arrow', scale=scale)
                 self._add_actor('dipole', actor)
 
         self._renderer._update()
@@ -3808,13 +3825,6 @@ class Brain(object):
             show[keep_idx] = 1
             label *= show
 
-    @deprecated('enable_depth_peeling is deprecated and will be '
-                'removed in 1.1')
-    def enable_depth_peeling(self):
-        """Enable depth peeling.
-        """
-        self._renderer._enable_depth_peeling()
-
     def get_picked_points(self):
         """Return the vertices of the picked points.
 
@@ -3828,7 +3838,7 @@ class Brain(object):
 
     def __hash__(self):
         """Hash the object."""
-        raise NotImplementedError
+        return self._hash
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):

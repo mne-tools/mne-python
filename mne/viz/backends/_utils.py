@@ -9,11 +9,12 @@
 import collections.abc
 from colorsys import rgb_to_hls
 from contextlib import contextmanager
+import functools
 import platform
 import signal
 import sys
 
-from decorator import decorator
+from pathlib import Path
 import numpy as np
 
 VALID_BROWSE_BACKENDS = (
@@ -75,18 +76,12 @@ def _alpha_blend_background(ctable, background_color):
     return (use_table * alphas) + background_color * (1 - alphas)
 
 
-@decorator
-def run_once(fun, *args, **kwargs):
-    """Run the function only once."""
-    if not hasattr(fun, "_has_run"):
-        fun._has_run = True
-        return fun(*args, **kwargs)
-
-
-@run_once
-def _init_qt_resources():
-    from ...icons import resources
-    resources.qInitResources()
+@functools.lru_cache(1)
+def _qt_init_icons():
+    from qtpy.QtGui import QIcon
+    icons_path = f"{Path(__file__).parent.parent.parent}/icons"
+    QIcon.setThemeSearchPaths([icons_path])
+    return icons_path
 
 
 @contextmanager
@@ -116,16 +111,15 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
 
     Returns
     -------
-    app : ``PyQt5.QtWidgets.QApplication``
+    app : ``qtpy.QtWidgets.QApplication``
         Instance of QApplication.
-    splash : ``PyQt5.QtWidgets.QSplashScreen``
+    splash : ``qtpy.QtWidgets.QSplashScreen``
         Instance of QSplashScreen. Only returned if splash is True or a
         string.
     """
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtGui import QIcon, QPixmap
-    from PyQt5.QtWidgets import QApplication, QSplashScreen
-
+    from qtpy.QtCore import Qt
+    from qtpy.QtGui import QIcon, QPixmap, QGuiApplication
+    from qtpy.QtWidgets import QApplication, QSplashScreen
     app_name = 'MNE-Python'
     organization_name = 'MNE'
 
@@ -152,16 +146,20 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         app.setApplicationName(app_name)
     app.setOrganizationName(organization_name)
 
+    if enable_icon or splash:
+        icons_path = _qt_init_icons()
+
     if enable_icon:
         # Set icon
-        _init_qt_resources()
-        kind = 'bigsur-' if platform.mac_ver()[0] >= '10.16' else ''
-        app.setWindowIcon(QIcon(f":/mne-{kind}icon.png"))
+        kind = 'bigsur_' if platform.mac_ver()[0] >= '10.16' else 'default_'
+        app.setWindowIcon(QIcon(f"{icons_path}/mne_{kind}icon.png"))
 
     out = app
     if splash:
-        qsplash = QSplashScreen(
-            QPixmap(':/mne-splash.png'), Qt.WindowStaysOnTopHint)
+        pixmap = QPixmap(f"{icons_path}/mne_splash.png")
+        pixmap.setDevicePixelRatio(
+            QGuiApplication.primaryScreen().devicePixelRatio())
+        qsplash = QSplashScreen(pixmap, Qt.WindowStaysOnTopHint)
         if isinstance(splash, str):
             alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
             qsplash.showMessage(
@@ -188,37 +186,106 @@ def _qt_app_exec(app):
             signal.signal(signal.SIGINT, old_signal)
 
 
+def _qt_detect_theme():
+    from ..utils import logger
+    try:
+        import darkdetect
+        theme = darkdetect.theme().lower()
+    except ModuleNotFoundError:
+        logger.info('For automatic theme detection, "darkdetect" has to'
+                    ' be installed! You can install it with '
+                    '`pip install darkdetect`')
+        theme = 'light'
+    except Exception:
+        theme = 'light'
+    return theme
+
+
 def _qt_get_stylesheet(theme):
-    from ..utils import logger, warn, _validate_type
+    from ...fixes import _compare_version
+    from ...utils import logger, warn, _validate_type, _check_qt_version
     _validate_type(theme, ('path-like',), 'theme')
     theme = str(theme)
+    orig_theme = theme
+    system_theme = None
+    stylesheet = ''
+    extra_msg = ''
     if theme == 'auto':
-        try:
-            import darkdetect
-            theme = darkdetect.theme().lower()
-        except Exception:
-            theme = 'light'
+        theme = system_theme = _qt_detect_theme()
     if theme in ('dark', 'light'):
-        if theme == 'light' and sys.platform != 'darwin':
-            stylesheet = ''
+        if system_theme is None:
+            system_theme = _qt_detect_theme()
+        qt_version, api = _check_qt_version(return_api=True)
+        # On macOS, we shouldn't need to set anything when the requested theme
+        # matches that of the current OS state
+        if sys.platform == 'darwin':
+            extra_msg = f'when in {system_theme} mode on macOS'
+        # But before 5.13, we need to patch some mistakes
+        if sys.platform == 'darwin' and theme == system_theme:
+            if theme == 'dark' and _compare_version(qt_version, '<', '5.13'):
+                # Taken using "Digital Color Meter" on macOS 12.2.1 looking at
+                # Meld, and also adapting (MIT-licensed)
+                # https://github.com/ColinDuquesnoy/QDarkStyleSheet/blob/master/qdarkstyle/dark/style.qss  # noqa: E501
+                # Something around rgb(51, 51, 51) worked as the bgcolor here,
+                # but it's easy enough just to set it transparent and inherit
+                # the bgcolor of the window (which is the same). We also take
+                # the separator images from QDarkStyle (MIT).
+                icons_path = _qt_init_icons()
+                stylesheet = """\
+QStatusBar {
+  border: 1px solid rgb(76, 76, 75);
+  background: transparent;
+}
+QStatusBar QLabel {
+  background: transparent;
+}
+QToolBar {
+  background-color: transparent;
+  border-bottom: 1px solid rgb(99, 99, 99);
+}
+QToolBar::separator:horizontal {
+  width: 16px;
+  image: url("%(icons_path)s/toolbar_separator_horizontal@2x.png");
+}
+QToolBar::separator:vertical {
+  height: 16px;
+  image: url("%(icons_path)s/toolbar_separator_vertical@2x.png");
+}
+QToolBar::handle:horizontal {
+  width: 16px;
+  image: url("%(icons_path)s/toolbar_move_horizontal@2x.png");
+}
+QToolBar::handle:vertical {
+  height: 16px;
+  image: url("%(icons_path)s/toolbar_move_vertical@2x.png");
+}
+""" % dict(icons_path=icons_path)
         else:
-            try:
-                import qdarkstyle
-            except ModuleNotFoundError:
-                logger.info('For Dark-Mode "qdarkstyle" has to be installed! '
-                            'You can install it with `pip install qdarkstyle`')
-                stylesheet = ''
+            # Here we are on non-macOS (or on macOS but our sys theme does not
+            # match the requested theme)
+            if api in ('PySide6', 'PyQt6'):
+                if orig_theme != 'auto' and not \
+                        (theme == system_theme == 'light'):
+                    warn(f'Setting theme={repr(theme)} is not yet supported '
+                         f'for {api} in qdarkstyle, it will be ignored')
             else:
-                klass = getattr(getattr(qdarkstyle, theme).palette,
-                                f'{theme.capitalize()}Palette')
-                stylesheet = qdarkstyle.load_stylesheet(klass)
+                try:
+                    import qdarkstyle
+                except ModuleNotFoundError:
+                    logger.info(
+                        f'To use {theme} mode{extra_msg}, "qdarkstyle" has to '
+                        'be installed! You can install it with:\n'
+                        'pip install qdarkstyle\n')
+                else:
+                    klass = getattr(getattr(qdarkstyle, theme).palette,
+                                    f'{theme.capitalize()}Palette')
+                    stylesheet = qdarkstyle.load_stylesheet(klass)
     else:
         try:
             file = open(theme, 'r')
         except IOError:
             warn('Requested theme file not found, will use light instead: '
                  f'{repr(theme)}')
-            stylesheet = ''
         else:
             with file as fid:
                 stylesheet = fid.read()
@@ -243,3 +310,15 @@ def _qt_is_dark(widget):
     win = widget.window()
     bgcolor = win.palette().color(win.backgroundRole()).getRgbF()[:3]
     return rgb_to_hls(*bgcolor)[1] < 0.5
+
+
+def _pixmap_to_ndarray(pixmap):
+    img = pixmap.toImage()
+    img = img.convertToFormat(img.Format_RGBA8888)
+    ptr = img.bits()
+    count = img.height() * img.width() * 4
+    if hasattr(ptr, 'setsize'):  # PyQt
+        ptr.setsize(count)
+    data = np.frombuffer(ptr, dtype=np.uint8, count=count).copy()
+    data.shape = (img.height(), img.width(), 4)
+    return data / 255.

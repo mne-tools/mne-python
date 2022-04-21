@@ -138,7 +138,7 @@
 
 .. _Erkka Heinila: https://github.com/Teekuningas
 
-.. _Andrea Brovelli: http://andrea-brovelli.net
+.. _Andrea Brovelli: https://andrea-brovelli.net
 
 .. _Richard Höchenberger: https://github.com/hoechenberger
 
@@ -426,6 +426,8 @@
 
 .. _Senwen Deng: https://snwn.de
 
+.. _Alessandro Tonin: https://wysscenter.ch/team/alessandro-tonin
+
 .. _Michiru Kaneda: https://github.com/rcmdnk
 
 .. _Scott Huberty:  https://orcid.org/0000-0003-2637-031X
@@ -437,3 +439,5 @@
 .. _John Veillette: https://psychology.uchicago.edu/directory/john-veillette
 
 .. _Nikolai Chapochnikov: https://github.com/chapochn
+
+.. _Matthias Dold: https://matthiasdold.de

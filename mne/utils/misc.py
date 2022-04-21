@@ -347,7 +347,8 @@ def _assert_no_instances(cls, when=''):
             check = False
         if check:
             if cls.__name__ == 'Brain':
-                ref.append(f'Brain._cleaned = {obj._cleaned}')
+                ref.append(
+                    f'Brain._cleaned = {getattr(obj, "_cleaned", None)}')
             rr = gc.get_referrers(obj)
             count = 0
             for r in rr:
@@ -365,6 +366,12 @@ def _assert_no_instances(cls, when=''):
                         del r_
                     else:
                         rep = repr(r)[:100].replace('\n', ' ')
+                        # If it's a __closure__, get more information
+                        if rep.startswith('<cell at '):
+                            try:
+                                rep += f' ({repr(r.cell_contents)[:100]})'
+                            except Exception:
+                                pass
                     name = _fullname(r)
                     ref.append(f'{name}: {rep}')
                     count += 1

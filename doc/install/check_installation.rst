@@ -27,7 +27,7 @@ MNE-Python and its dependencies. Typical output looks like this::
     mne:           0.21.dev0
     numpy:         1.19.0.dev0+8dfaa4a {blas=openblas, lapack=openblas}
     scipy:         1.5.0.dev0+f614064
-    matplotlib:    3.2.1 {backend=Qt5Agg}
+    matplotlib:    3.2.1 {backend=QtAgg}
 
     sklearn:       0.22.2.post1
     numba:         0.49.0
@@ -37,7 +37,7 @@ MNE-Python and its dependencies. Typical output looks like this::
     dipy:          1.1.1
     pyvista:       0.25.2 {pyvistaqt=0.1.0}
     vtk:           9.0.0
-    PyQt5:         5.14.1
+    qtpy:          2.0.1 {PySide6=6.2.4}
 
 
 .. collapse:: |hand-paper| If you get an error...

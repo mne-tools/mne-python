@@ -35,7 +35,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              proj=True, group_by='type', butterfly=False, decim='auto',
              noise_cov=None, event_id=None, show_scrollbars=True,
              show_scalebars=True, time_format='float',
-             precompute=None, use_opengl=None, *, theme=None, verbose=None):
+             precompute=None, use_opengl=None, *, theme=None,
+             overview_mode=None, verbose=None):
     """Plot raw data.
 
     Parameters
@@ -162,12 +163,14 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     %(theme_pg)s
 
         .. versionadded:: 1.0
+    %(overview_mode)s
+
+        .. versionadded:: 1.1
     %(verbose)s
 
     Returns
     -------
-    fig : matplotlib.figure.Figure | ``PyQt5.QtWidgets.QMainWindow``
-        Browser instance.
+    %(browser)s
 
     Notes
     -----
@@ -351,7 +354,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   bgcolor=bgcolor,
                   # Qt-specific
                   precompute=precompute,
-                  use_opengl=use_opengl)
+                  use_opengl=use_opengl,
+                  theme=theme,
+                  overview_mode=overview_mode,
+                  )
 
     fig = _get_browser(show=show, block=block, **params)
 

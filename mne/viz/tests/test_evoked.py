@@ -38,6 +38,8 @@ cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 event_id, tmin, tmax = 1, -0.1, 0.1
 
+ctf_fname = testing.data_path(download=False) / 'CTF' / 'testdata_ctf.ds'
+
 # Use a subset of channels for plotting speed
 # make sure we have a magnetometer and a pair of grad pairs for topomap.
 default_picks = (0, 1, 2, 3, 4, 6, 7, 61, 122, 183, 244, 305,
@@ -492,10 +494,7 @@ def test_plot_compare_evokeds_neuromag122():
 @testing.requires_testing_data
 def test_plot_ctf():
     """Test plotting of CTF evoked."""
-    ctf_dir = op.join(testing.data_path(download=False), 'CTF')
-    raw_fname = op.join(ctf_dir, 'testdata_ctf.ds')
-
-    raw = mne.io.read_raw_ctf(raw_fname, preload=True)
+    raw = mne.io.read_raw_ctf(ctf_fname, preload=True)
     events = np.array([[200, 0, 1]])
     event_id = 1
     tmin, tmax = -0.1, 0.5  # start and end of an epoch in sec.

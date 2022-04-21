@@ -26,7 +26,7 @@ from ._utils import (_get_colormap_from_array, _alpha_blend_background,
 from ...fixes import _get_args, _point_data, _cell_data, _compare_version
 from ...transforms import apply_trans
 from ...utils import (copy_base_doc_to_subclass_doc, _check_option,
-                      _require_version)
+                      _require_version, _validate_type)
 
 
 with warnings.catch_warnings():
@@ -57,7 +57,7 @@ class PyVistaFigure(Figure3D):
     def _init(self, plotter=None, show=False, title='PyVista Scene',
               size=(600, 600), shape=(1, 1), background_color='black',
               smooth_shading=True, off_screen=False, notebook=False,
-              splash=False):
+              splash=False, multi_samples=None):
         self._plotter = plotter
         self.display = None
         self.background_color = background_color
@@ -71,8 +71,7 @@ class PyVistaFigure(Figure3D):
         self.store['shape'] = shape
         self.store['off_screen'] = off_screen
         self.store['border'] = False
-        # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
-        self.store['multi_samples'] = 1 if sys.platform == 'darwin' else 4
+        self.store['multi_samples'] = multi_samples
 
         if not self.notebook:
             self.store['show'] = show
@@ -155,14 +154,20 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1),
-                 notebook=None, smooth_shading=True, splash=False):
+                 notebook=None, smooth_shading=True, splash=False,
+                 multi_samples=None):
         from .._3d import _get_3d_option
         _require_version('pyvista', 'use 3D rendering', '0.32')
+        multi_samples = _get_3d_option('multi_samples')
+        # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
+        if sys.platform == 'darwin':
+            multi_samples = 1
         figure = PyVistaFigure()
         figure._init(
             show=show, title=name, size=size, shape=shape,
             background_color=bgcolor, notebook=notebook,
-            smooth_shading=smooth_shading, splash=splash)
+            smooth_shading=smooth_shading, splash=splash,
+            multi_samples=multi_samples)
         self.font_family = "arial"
         self.tube_n_sides = 20
         self.antialias = _get_3d_option('antialias')
@@ -278,6 +283,11 @@ class _PyVistaRenderer(_AbstractRenderer):
             for renderer in self._all_renderers:
                 renderer.disable_parallel_projection()
             getattr(self.plotter, f'enable_{interaction}_style')()
+
+    def legend(self, labels, border=False, size=0.1, face='triangle',
+               loc='upper left'):
+        return self.plotter.add_legend(
+            labels, size=(size, size), face=face, loc=loc)
 
     def polydata(self, mesh, color=None, opacity=1.0, normals=None,
                  backface_culling=False, scalars=None, colormap=None,
@@ -489,24 +499,17 @@ class _PyVistaRenderer(_AbstractRenderer):
             if not VTK9:
                 args = (np.arange(n_points) * 3,) + args
             grid = UnstructuredGrid(*args)
-            if scalars is not None:
-                _point_data(grid)['scalars'] = np.array(scalars)
-                scalars = 'scalars'
+            if scalars is None:
+                scalars = np.ones((n_points,))
+            _point_data(grid)['scalars'] = np.array(scalars)
             _point_data(grid)['vec'] = vectors
-            if scale_mode == 'scalar':
-                scale = scalars
-                scalars = None
-            elif scale_mode == 'vector':
-                scale = True
-            else:
-                scale = False
             if mode == '2darrow':
                 return _arrow_glyph(grid, factor), grid
             elif mode == 'arrow':
                 alg = _glyph(
                     grid,
                     orient='vec',
-                    scalars=scale,
+                    scalars='scalars',
                     factor=factor
                 )
                 mesh = pyvista.wrap(alg.GetOutput())
@@ -551,14 +554,14 @@ class _PyVistaRenderer(_AbstractRenderer):
                     glyph = trp
                 glyph.Update()
                 geom = glyph.GetOutput()
-                mesh = grid.glyph(orient='vec', scale=scale, factor=factor,
-                                  geom=geom)
+                mesh = grid.glyph(orient='vec', scale=scale_mode == 'vector',
+                                  factor=factor, geom=geom)
             actor = _add_mesh(
                 self.plotter,
                 mesh=mesh,
                 color=color,
                 opacity=opacity,
-                scalars=scalars,
+                scalars=None,
                 colormap=colormap,
                 show_scalar_bar=False,
                 backface_culling=backface_culling,
@@ -678,12 +681,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             bad_system = (
                 sys.platform == 'darwin' or
                 os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true')
-            # MESA (could use GPUInfo / _get_gpu_info here, but it takes
-            # > 700 ms to make a new window + report capabilities!)
-            # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
-            gpu_info = self.plotter.ren_win.ReportCapabilities()
-            gpu_info = re.findall("OpenGL renderer string:(.+)\n", gpu_info)
-            bad_system |= 'mesa' in ' '.join(gpu_info).lower().split()
+            bad_system |= _is_mesa(self.plotter)
             if not bad_system:
                 for renderer in self._all_renderers:
                     renderer.enable_anti_aliasing()
@@ -1045,8 +1043,7 @@ def _set_3d_title(figure, title, size=16):
 
 
 def _check_3d_figure(figure):
-    if not isinstance(figure, PyVistaFigure):
-        raise TypeError('figure must be an instance of PyVistaFigure.')
+    _validate_type(figure, PyVistaFigure, 'figure')
 
 
 def _close_3d_figure(figure):
@@ -1154,3 +1151,12 @@ def _disabled_depth_peeling():
         yield
     finally:
         depth_peeling["enabled"] = depth_peeling_enabled
+
+
+def _is_mesa(plotter):
+    # MESA (could use GPUInfo / _get_gpu_info here, but it takes
+    # > 700 ms to make a new window + report capabilities!)
+    # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
+    gpu_info = plotter.ren_win.ReportCapabilities()
+    gpu_info = re.findall("OpenGL renderer string:(.+)\n", gpu_info)
+    return ' mesa ' in ' '.join(gpu_info).lower().split()

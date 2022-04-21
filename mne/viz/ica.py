@@ -31,7 +31,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True,
                      time_format='float', precompute=None,
-                     use_opengl=None, *, theme=None):
+                     use_opengl=None, *, theme=None, overview_mode=None):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -72,11 +72,13 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     %(theme_pg)s
 
         .. versionadded:: 1.0
+    %(overview_mode)s
+
+        .. versionadded:: 1.1
 
     Returns
     -------
-    fig : instance of Figure
-        The figure.
+    %(browser)s
 
     Notes
     -----
@@ -99,7 +101,8 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
                             show_first_samp=show_first_samp,
                             show_scrollbars=show_scrollbars,
                             time_format=time_format, precompute=precompute,
-                            use_opengl=use_opengl, theme=theme)
+                            use_opengl=use_opengl, theme=theme,
+                            overview_mode=overview_mode)
     elif isinstance(inst, Evoked):
         if start is not None or stop is not None:
             inst = inst.copy().crop(start, stop)
@@ -960,7 +963,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                   show_scrollbars, show_first_samp, time_format,
-                  precompute, use_opengl, *, theme=None):
+                  precompute, use_opengl, *, theme=None, overview_mode=None):
     """Plot the ICA components as a RawArray or EpochsArray."""
     from ._figure import _get_browser
     from .. import EpochsArray, BaseEpochs
@@ -1098,7 +1101,10 @@ def _plot_sources(ica, inst, picks, exclude, start, stop, show, title, block,
                   scalebars_visible=False,
                   window_title=title,
                   precompute=precompute,
-                  use_opengl=use_opengl)
+                  use_opengl=use_opengl,
+                  theme=theme,
+                  overview_mode=overview_mode,
+                  )
     if is_epo:
         params.update(n_epochs=n_epochs,
                       boundary_times=boundary_times,

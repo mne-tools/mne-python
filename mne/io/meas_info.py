@@ -723,7 +723,7 @@ class Info(dict, MontageMixin, ContainsMixin):
         smartshield : dict
             MaxShield information. This dictionary is (always?) empty,
             but its presence implies that MaxShield was used during
-            acquisiton.
+            acquisition.
 
     * ``subject_info`` dict:
 

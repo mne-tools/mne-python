@@ -650,7 +650,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 noise_cov=None, butterfly=False, show_scrollbars=True,
                 show_scalebars=True, epoch_colors=None, event_id=None,
                 group_by='type', precompute=None, use_opengl=None, *,
-                theme=None):
+                theme=None, overview_mode=None):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -737,11 +737,13 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     %(theme_pg)s
 
         .. versionadded:: 1.0
+    %(overview_mode)s
+
+        .. versionadded:: 1.1
 
     Returns
     -------
-    fig : instance of matplotlib.figure.Figure
-        The figure.
+    %(browser)s
 
     Notes
     -----
@@ -908,7 +910,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   xlabel='Epoch number',
                   # pyqtgraph-specific
                   precompute=precompute,
-                  use_opengl=use_opengl)
+                  use_opengl=use_opengl,
+                  theme=theme,
+                  overview_mode=overview_mode)
 
     fig = _get_browser(show=show, block=block, **params)
 

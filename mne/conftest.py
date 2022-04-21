@@ -26,7 +26,7 @@ from mne.fixes import has_numba, _compare_version
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.stats import cluster_level
 from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
-                       _check_pyqt5_version)
+                       _check_qt_version, _TempDir)
 
 # data from sample dataset
 from mne.viz._figure import use_browser_backend
@@ -67,8 +67,13 @@ def pytest_configure(config):
 
     # Fixtures
     for fixture in ('matplotlib_config', 'close_all', 'check_verbose',
-                    'qt_config'):
+                    'qt_config', 'protect_config'):
         config.addinivalue_line('usefixtures', fixture)
+
+    # pytest-qt uses PYTEST_QT_API, but let's make it respect qtpy's QT_API
+    # if present
+    if os.getenv('PYTEST_QT_API') is None and os.getenv('QT_API') is not None:
+        os.environ['PYTEST_QT_API'] = os.environ['QT_API']
 
     # Warnings
     # - Once SciPy updates not to have non-integer and non-tuple errors (1.2.0)
@@ -414,15 +419,11 @@ pre_2_0_skip_funcs = ['test_plot_raw_white',
 
 
 def _check_pyqtgraph(request):
-    # Check PyQt5
-    try:
-        import PyQt5  # noqa: F401
-    except ModuleNotFoundError:
-        pytest.skip('PyQt5 is not installed but needed for pyqtgraph!')
-    if not _compare_version(_check_pyqt5_version(), '>=', '5.12'):
-        pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
+    # Check Qt
+    qt_version, api = _check_qt_version(return_api=True)
+    if (not qt_version) or _compare_version(qt_version, '<', '5.12'):
+        pytest.skip(f'Qt API {api} has version {qt_version} '
                     f'but pyqtgraph needs >= 5.12!')
-    # Check mne-qt-browser
     try:
         import mne_qt_browser  # noqa: F401
         # Check mne-qt-browser version
@@ -437,6 +438,10 @@ def _check_pyqtgraph(request):
                         f'mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip('Requires mne_qt_browser')
+    else:
+        ver = mne_qt_browser.__version__
+        if api != 'PyQt5' and _compare_version(ver, '<=', '0.2.6'):
+            pytest.skip(f'mne_qt_browser {ver} requires PyQt5, API is {api}')
 
 
 @pytest.mark.pgtest
@@ -457,13 +462,14 @@ def pg_backend(request, garbage_collect):
     'matplotlib',
     pytest.param('qt', marks=pytest.mark.pgtest),
 ])
-def browser_backend(request, garbage_collect):
+def browser_backend(request, garbage_collect, monkeypatch):
     """Parametrizes the name of the browser backend."""
     backend_name = request.param
     if backend_name == 'qt':
         _check_pyqtgraph(request)
     with use_browser_backend(backend_name) as backend:
         backend._close_all()
+        monkeypatch.setenv('MNE_BROWSE_RAW_SIZE', '10,10')
         yield backend
         backend._close_all()
         if backend_name == 'qt':
@@ -521,15 +527,15 @@ def _use_backend(backend_name, interactive):
 
 def _check_skip_backend(name):
     from mne.viz.backends.tests._utils import (has_pyvista,
-                                               has_pyqt5, has_imageio_ffmpeg,
+                                               has_imageio_ffmpeg,
                                                has_pyvistaqt)
     if name in ('pyvistaqt', 'notebook'):
         if not has_pyvista():
             pytest.skip("Test skipped, requires pyvista.")
         if not has_imageio_ffmpeg():
             pytest.skip("Test skipped, requires imageio-ffmpeg")
-    if name == 'pyvistaqt' and not has_pyqt5():
-        pytest.skip("Test skipped, requires PyQt5.")
+    if name == 'pyvistaqt' and not _check_qt_version():
+        pytest.skip("Test skipped, requires Qt.")
     if name == 'pyvistaqt' and not has_pyvistaqt():
         pytest.skip("Test skipped, requires pyvistaqt")
 
@@ -537,10 +543,10 @@ def _check_skip_backend(name):
 @pytest.fixture(scope='session')
 def pixel_ratio():
     """Get the pixel ratio."""
-    from mne.viz.backends.tests._utils import has_pyvista, has_pyqt5
-    if not has_pyvista() or not has_pyqt5():
+    from mne.viz.backends.tests._utils import has_pyvista
+    if not has_pyvista() or not _check_qt_version():
         return 1.
-    from PyQt5.QtWidgets import QApplication, QMainWindow
+    from qtpy.QtWidgets import QApplication, QMainWindow
     _ = QApplication.instance() or QApplication([])
     window = QMainWindow()
     ratio = float(window.devicePixelRatio())
@@ -699,6 +705,14 @@ def options_3d():
             "MNE_3D_OPTION_SMOOTH_SHADING": "false",
         }
     ):
+        yield
+
+
+@pytest.fixture(scope='session')
+def protect_config():
+    """Protect ~/.mne."""
+    temp = _TempDir()
+    with mock.patch.dict(os.environ, {"_MNE_FAKE_HOME_DIR": temp}):
         yield
 
 

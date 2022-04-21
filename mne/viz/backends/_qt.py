@@ -6,19 +6,20 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
+import weakref
 
 import pyvista
 from pyvistaqt.plotting import FileDialog
 
-from PyQt5.QtCore import Qt, pyqtSignal, QLocale, QObject
-from PyQt5.QtGui import QIcon, QImage, QPixmap, QCursor
-from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
-                             QHBoxLayout, QLabel, QToolButton, QMenuBar,
-                             QSlider, QSpinBox, QVBoxLayout, QWidget,
-                             QSizePolicy, QScrollArea, QStyle, QProgressBar,
-                             QStyleOptionSlider, QLayout, QCheckBox,
-                             QButtonGroup, QRadioButton, QLineEdit,
-                             QFileDialog, QPushButton, QMessageBox)
+from qtpy.QtCore import Qt, Signal, QLocale, QObject
+from qtpy.QtGui import QIcon, QCursor
+from qtpy.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
+                            QHBoxLayout, QLabel, QToolButton, QMenuBar,
+                            QSlider, QSpinBox, QVBoxLayout, QWidget,
+                            QSizePolicy, QScrollArea, QStyle, QProgressBar,
+                            QStyleOptionSlider, QLayout, QCheckBox,
+                            QButtonGroup, QRadioButton, QLineEdit,
+                            QFileDialog, QPushButton, QMessageBox)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
@@ -28,9 +29,9 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog)
-from ._utils import (_init_qt_resources, _qt_disable_paint,
-                     _qt_get_stylesheet, _qt_is_dark, _qt_raise_window)
-from ..utils import _check_option, safe_event
+from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
+                     _qt_detect_theme, _qt_raise_window)
+from ..utils import _check_option, safe_event, get_config
 
 
 class _QtDialog(_AbstractDialog):
@@ -137,7 +138,8 @@ class _QtDock(_AbstractDock, _QtLayout):
         return _QtWidget(widget)
 
     def _dock_add_button(
-        self, name, callback, *, style='pushbutton', tooltip=None, layout=None
+        self, name, callback, *, style='pushbutton', icon=None, tooltip=None,
+        layout=None
     ):
         _check_option(
             parameter='style',
@@ -153,6 +155,8 @@ class _QtDock(_AbstractDock, _QtLayout):
             widget.setStyleSheet(
                 'QPushButton:pressed {color: none;}'
             )
+        if icon is not None:
+            widget.setIcon(self._icons[icon])
 
         _set_widget_tooltip(widget, tooltip)
         widget.clicked.connect(callback)
@@ -183,7 +187,10 @@ class _QtDock(_AbstractDock, _QtLayout):
         widget.setMinimum(cast(rng[0]))
         widget.setMaximum(cast(rng[1]))
         widget.setValue(cast(value))
-        widget.valueChanged.connect(callback)
+        if double:
+            widget.floatValueChanged.connect(callback)
+        else:
+            widget.valueChanged.connect(callback)
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
@@ -271,7 +278,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_file_button(
         self, name, desc, func, *, filter=None, initial_directory=None,
-        save=False, is_directory=False, tooltip=None, layout=None
+        save=False, is_directory=False, icon=False, tooltip=None, layout=None
     ):
         layout = self._dock_layout if layout is None else layout
 
@@ -296,11 +303,16 @@ class _QtDock(_AbstractDock, _QtLayout):
                 return
             func(name)
 
+        if icon:
+            kwargs = dict(style='toolbutton', icon='folder')
+        else:
+            kwargs = dict()
         button_widget = self._dock_add_button(
             name=desc,
             callback=callback,
             tooltip=tooltip,
             layout=layout,
+            **kwargs
         )
         return button_widget  # It's already a _QtWidget instance
 
@@ -308,7 +320,7 @@ class _QtDock(_AbstractDock, _QtLayout):
 class QFloatSlider(QSlider):
     """Slider that handles float values."""
 
-    valueChanged = pyqtSignal(float)
+    floatValueChanged = Signal(float)
 
     def __init__(self, ori, parent=None):
         """Initialize the slider."""
@@ -323,7 +335,7 @@ class QFloatSlider(QSlider):
         super().valueChanged.connect(self._convert)
 
     def _convert(self, value):
-        self.valueChanged.emit(value / self._precision)
+        self.floatValueChanged.emit(value / self._precision)
 
     def minimum(self):
         """Get the minimum."""
@@ -379,21 +391,6 @@ class QFloatSlider(QSlider):
 
 
 class _QtToolBar(_AbstractToolBar, _QtLayout):
-    def _tool_bar_load_icons(self):
-        _init_qt_resources()
-        self.icons = dict()
-        self.icons["help"] = QIcon(":/help.svg")
-        self.icons["play"] = QIcon(":/play.svg")
-        self.icons["pause"] = QIcon(":/pause.svg")
-        self.icons["reset"] = QIcon(":/reset.svg")
-        self.icons["scale"] = QIcon(":/scale.svg")
-        self.icons["clear"] = QIcon(":/clear.svg")
-        self.icons["movie"] = QIcon(":/movie.svg")
-        self.icons["restore"] = QIcon(":/restore.svg")
-        self.icons["screenshot"] = QIcon(":/screenshot.svg")
-        self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
-        self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
-
     def _tool_bar_initialize(self, name="default", window=None):
         self.actions = dict()
         window = self._window if window is None else window
@@ -403,13 +400,14 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_add_button(self, name, desc, func, *, icon_name=None,
                              shortcut=None):
         icon_name = name if icon_name is None else icon_name
-        icon = self.icons[icon_name]
-        self.actions[name] = self._tool_bar.addAction(icon, desc, func)
+        icon = self._icons[icon_name]
+        self.actions[name] = self._tool_bar.addAction(
+            icon, desc, func)
         if shortcut is not None:
             self.actions[name].setShortcut(shortcut)
 
     def _tool_bar_update_button_icon(self, name, icon_name):
-        self.actions[name].setIcon(self.icons[icon_name])
+        self.actions[name].setIcon(self._icons[icon_name])
 
     def _tool_bar_add_text(self, name, value, placeholder):
         pass
@@ -420,9 +418,14 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         self._tool_bar.addWidget(spacer)
 
     def _tool_bar_add_file_button(self, name, desc, func, *, shortcut=None):
-        def callback():
+        weakself = weakref.ref(self)
+
+        def callback(weakself=weakself):
+            weakself = weakself()
+            if weakself is None:
+                return
             return FileDialog(
-                self.plotter.app_window,
+                weakself.app_window,
                 callback=func,
             )
 
@@ -436,14 +439,6 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_add_play_button(self, name, desc, func, *, shortcut=None):
         self._tool_bar_add_button(
             name=name, desc=desc, func=func, icon_name=None, shortcut=shortcut)
-
-    def _tool_bar_set_theme(self):
-        if _qt_is_dark(self._tool_bar):
-            for icon_key in self.icons:
-                icon = self.icons[icon_key]
-                image = icon.pixmap(80).toImage()
-                image.invertPixels(mode=QImage.InvertRgb)
-                self.icons[icon_key] = QIcon(QPixmap.fromImage(image))
 
 
 class _QtMenuBar(_AbstractMenuBar):
@@ -492,7 +487,7 @@ class _QtPlayback(_AbstractPlayback):
 
 class _QtMplInterface(_AbstractMplInterface):
     def _mpl_initialize(self):
-        from PyQt5 import QtWidgets
+        from qtpy import QtWidgets
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
         self.canvas = FigureCanvasQTAgg(self.fig)
         FigureCanvasQTAgg.setSizePolicy(
@@ -525,6 +520,8 @@ class _QtWindow(_AbstractWindow):
         super()._window_initialize()
         self._interactor = self.figure.plotter.interactor
         self._window = self.figure.plotter.app_window
+        self._window_load_icons()
+        self._window_set_theme()
         self._window.setLocale(QLocale(QLocale.Language.English))
         self._window.signal_close.connect(self._window_clean)
         self._window_before_close_callbacks = list()
@@ -550,6 +547,20 @@ class _QtWindow(_AbstractWindow):
             for callback in self._window_after_close_callbacks:
                 callback()
         self._window.closeEvent = closeEvent
+
+    def _window_load_icons(self):
+        self._icons["help"] = QIcon.fromTheme("help")
+        self._icons["play"] = QIcon.fromTheme("play")
+        self._icons["pause"] = QIcon.fromTheme("pause")
+        self._icons["reset"] = QIcon.fromTheme("reset")
+        self._icons["scale"] = QIcon.fromTheme("scale")
+        self._icons["clear"] = QIcon.fromTheme("clear")
+        self._icons["movie"] = QIcon.fromTheme("movie")
+        self._icons["restore"] = QIcon.fromTheme("restore")
+        self._icons["screenshot"] = QIcon.fromTheme("screenshot")
+        self._icons["visibility_on"] = QIcon.fromTheme("visibility_on")
+        self._icons["visibility_off"] = QIcon.fromTheme("visibility_off")
+        self._icons["folder"] = QIcon.fromTheme("folder")
 
     def _window_clean(self):
         self.figure._plotter = None
@@ -650,9 +661,18 @@ class _QtWindow(_AbstractWindow):
             self._process_events()
             self._process_events()
 
-    def _window_set_theme(self, theme):
+    def _window_set_theme(self, theme=None):
+        if theme is None:
+            default_theme = _qt_detect_theme()
+        else:
+            default_theme = theme
+        theme = get_config('MNE_3D_OPTION_THEME', default_theme)
         stylesheet = _qt_get_stylesheet(theme)
         self._window.setStyleSheet(stylesheet)
+        if _qt_is_dark(self._window):
+            QIcon.setThemeName('dark')
+        else:
+            QIcon.setThemeName('light')
 
 
 class _QtWidgetList(_AbstractWidgetList):
@@ -703,7 +723,7 @@ class _QtWidget(_AbstractWidget):
         elif hasattr(self._widget, "currentText"):
             return self._widget.currentText()
         elif hasattr(self._widget, "checkState"):
-            return bool(self._widget.checkState())
+            return self._widget.checkState() != Qt.Unchecked
         else:
             assert hasattr(self._widget, "text")
             return self._widget.text()
@@ -744,7 +764,7 @@ class _QtWidget(_AbstractWidget):
 
 
 class _QtDialogCommunicator(QObject):
-    signal_show = pyqtSignal()
+    signal_show = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)

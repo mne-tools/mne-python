@@ -487,10 +487,7 @@ def test_maxwell_filter_additional(tmp_path):
     # TODO: Future tests integrate with mne/io/tests/test_proc_history
 
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
-    data_path = op.join(testing.data_path(download=False))
-
     file_name = 'test_move_anon'
-
     raw_fname = op.join(data_path, 'SSS', file_name + '_raw.fif')
 
     # Use 2.0 seconds of data to get stable cov. estimate
