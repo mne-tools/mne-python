@@ -21,6 +21,7 @@ import numpy as np
 import mne
 from mne import read_events, pick_types, Epochs
 from mne.channels import read_layout
+from mne.coreg import create_default_subject
 from mne.datasets import testing
 from mne.fixes import has_numba, _compare_version
 from mne.io import read_raw_fif, read_raw_ctf
@@ -225,6 +226,7 @@ def matplotlib_config():
         plt.rcParams['figure.raise_window'] = False
     except KeyError:  # MPL < 3.3
         pass
+
     # Make sure that we always reraise exceptions in handlers
     orig = cbook.CallbackRegistry
 
@@ -565,6 +567,23 @@ def subjects_dir_tmp(tmp_path):
     for key in ('sample', 'fsaverage'):
         shutil.copytree(op.join(subjects_dir, key), str(tmp_path / key))
     return str(tmp_path)
+
+
+@pytest.fixture(params=[testing._pytest_param()])
+def subjects_dir_tmp_few(tmp_path):
+    """Copy fewer files to a tmp_path."""
+    subjects_path = tmp_path / 'subjects'
+    os.mkdir(subjects_path)
+    # add fsaverage
+    create_default_subject(subjects_dir=subjects_path, fs_home=test_path,
+                           verbose=True)
+    # add sample (with few files)
+    sample_path = subjects_path / 'sample'
+    os.makedirs(sample_path / 'bem')
+    for dirname in ('mri', 'surf'):
+        shutil.copytree(
+            test_path / 'subjects' / 'sample' / dirname, sample_path / dirname)
+    return subjects_path
 
 
 # Scoping these as session will make things faster, but need to make sure

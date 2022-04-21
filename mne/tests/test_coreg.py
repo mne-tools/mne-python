@@ -2,7 +2,7 @@ from functools import reduce
 from glob import glob
 import os
 import os.path as op
-from shutil import copyfile, copytree
+from shutil import copyfile
 
 import pytest
 import numpy as np
@@ -167,21 +167,11 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
 @pytest.mark.slowtest  # can take forever on OSX Travis
 @testing.requires_testing_data
 @requires_nibabel()
-def test_scale_mri_xfm(tmp_path, few_surfaces):
+def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
     """Test scale_mri transforms and MRI scaling."""
     # scale fsaverage
-    tempdir = str(tmp_path)
-    fake_home = data_path
-    # add fsaverage
-    create_default_subject(subjects_dir=tempdir, fs_home=fake_home,
-                           verbose=True)
-    # add sample (with few files)
-    sample_dir = op.join(tempdir, 'sample')
-    os.mkdir(sample_dir)
-    os.mkdir(op.join(sample_dir, 'bem'))
-    for dirname in ('mri', 'surf'):
-        copytree(op.join(fake_home, 'subjects', 'sample', dirname),
-                 op.join(sample_dir, dirname))
+    tempdir = str(subjects_dir_tmp_few)
+    sample_dir = subjects_dir_tmp_few / 'sample'
     subject_to = 'flachkopf'
     spacing = 'oct2'
     for subject_from in ('fsaverage', 'sample'):
