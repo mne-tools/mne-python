@@ -384,15 +384,9 @@ def _prep_maxwell_filter(
         this_pos_quat = None
 
     # Figure out our linear operator
-    comp = raw.compensation_grade
-    if comp not in (0, None):
-        mult = make_compensator(raw.info, 0, comp)
-        logger.info(f'    Accounting for compensation grade {comp}')
-        assert mult.shape[0] == mult.shape[1] == len(raw.ch_names)
-        mult = mult[np.ix_(meg_picks, meg_picks)]
+    mult = _get_sensor_operator(raw, meg_picks)
+    if mult is not None:
         S_recon = mult @ S_recon
-    else:
-        mult = None
     S_recon /= coil_scale
 
     _get_this_decomp_trans = partial(
@@ -618,6 +612,18 @@ def _get_coil_scale(meg_picks, mag_picks, grad_picks, mag_scale, info):
     coil_scale = np.ones((len(meg_picks), 1))
     coil_scale[mag_picks] = mag_scale
     return coil_scale, mag_scale
+
+
+def _get_sensor_operator(raw, meg_picks):
+    comp = raw.compensation_grade
+    if comp not in (0, None):
+        mult = make_compensator(raw.info, 0, comp)
+        logger.info(f'    Accounting for compensation grade {comp}')
+        assert mult.shape[0] == mult.shape[1] == len(raw.ch_names)
+        mult = mult[np.ix_(meg_picks, meg_picks)]
+    else:
+        mult = None
+    return mult
 
 
 def _remove_meg_projs_comps(inst, ignore_ref):

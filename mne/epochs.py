@@ -3697,7 +3697,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
                                         _check_usable, _col_norm_pinv,
                                         _get_n_moments, _get_mf_picks_fix_mags,
                                         _prep_mf_coils, _check_destination,
-                                        _remove_meg_projs, _get_coil_scale)
+                                        _remove_meg_projs_comps,
+                                        _get_coil_scale, _get_sensor_operator)
     if head_pos is None:
         raise TypeError('head_pos must be provided and cannot be None')
     from .chpi import head_pos_to_trans_rot_t
@@ -3710,7 +3711,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         head_pos = head_pos_to_trans_rot_t(head_pos)
     trn, rot, t = head_pos
     del head_pos
-    _check_usable(epochs)
+    _check_usable(epochs, ignore_ref)
     origin = _check_origin(origin, epochs.info, 'head')
     recon_trans = _check_destination(destination, epochs.info, True)
 
@@ -3723,6 +3724,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         _get_mf_picks_fix_mags(info_to, int_order, ext_order, ignore_ref)
     coil_scale, mag_scale = _get_coil_scale(
         meg_picks, mag_picks, grad_picks, mag_scale, info_to)
+    mult = _get_sensor_operator(epochs, meg_picks)
     n_channels, n_times = len(epochs.ch_names), len(epochs.times)
     other_picks = np.setdiff1d(np.arange(n_channels), meg_picks)
     data = np.zeros((n_channels, n_times))
@@ -3787,6 +3789,9 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         # (We would need to include external here for regularization to work)
         exp['ext_order'] = 0
         S_recon = _trans_sss_basis(exp, all_coils_recon, recon_trans)
+        if mult is not None:
+            S_decomp = mult @ S_decomp
+            S_recon = mult @ S_recon
         exp['ext_order'] = ext_order
         # We could determine regularization on basis of destination basis
         # matrix, restricted to good channels, as regularizing individual
@@ -3805,7 +3810,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     evoked = epochs._evoked_from_epoch_data(data, info_to, picks,
                                             n_events=count, kind='average',
                                             comment=epochs._name)
-    _remove_meg_projs(evoked)  # remove MEG projectors, they won't apply now
+    _remove_meg_projs_comps(evoked, ignore_ref)
     logger.info('Created Evoked dataset from %s epochs' % (count,))
     return (evoked, mapping) if return_mapping else evoked
 
