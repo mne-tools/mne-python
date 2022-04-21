@@ -1387,10 +1387,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         raws = []
         for annot in annotations:
-            onset = annot["onset"]
-            onset = onset - self.first_samp / self.info["sfreq"]
-            raw_crop = self.copy().crop(onset,
-                                        onset + annot["duration"])
+            onset = annot["onset"] - self.first_time
+            # be careful about near-zero errors (crop is very picky about this,
+            # e.g., -1e-8 is an error)
+            if -self.info['sfreq'] / 2 < onset < 0:
+                onset = 0
+            raw_crop = self.copy().crop(onset, onset + annot["duration"])
             raws.append(raw_crop)
 
         return raws

@@ -32,6 +32,9 @@ from mne.io.proj import Projection
 from mne.io.utils import _mult_cal_one
 from mne.io.constants import FIFF
 
+raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
+                    'data', 'test_raw.fif')
+
 
 def assert_named_constants(info):
     """Assert that info['chs'] has named constants."""
@@ -494,8 +497,6 @@ def _test_concat(reader, *args):
 @testing.requires_testing_data
 def test_time_as_index():
     """Test indexing of raw times."""
-    raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                        'data', 'test_raw.fif')
     raw = read_raw_fif(raw_fname)
 
     # Test original (non-rounding) indexing behavior
@@ -508,21 +509,21 @@ def test_time_as_index():
 
 
 @pytest.mark.parametrize('meas_date', [None, "orig"])
-def test_crop_by_annotations(meas_date):
+@pytest.mark.parametrize('first_samp', [0, 10000])
+def test_crop_by_annotations(meas_date, first_samp):
     """Test crop by annotations of raw."""
-    raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                        'data', 'test_raw.fif')
     raw = read_raw_fif(raw_fname)
 
     if meas_date is None:
         raw.set_meas_date(None)
 
-    raw = mne.io.RawArray(raw.get_data(),
-                          raw.info,
-                          first_samp=0)
+    raw = mne.io.RawArray(raw.get_data(), raw.info, first_samp=first_samp)
 
+    onset = np.array([0, 1.5], float)
+    if meas_date is not None:
+        onset += raw.first_time
     annot = mne.Annotations(
-        onset=[0, 1.5],
+        onset=onset,
         duration=[1, 0.5],
         description=["a", "b"],
         orig_time=raw.info['meas_date'])
