@@ -92,6 +92,7 @@ Projections:
    infomax
    equalize_bads
    maxwell_filter
+   maxwell_filter_prepare_emptyroom
    oversampled_temporal_projection
    peak_finder
    read_ica

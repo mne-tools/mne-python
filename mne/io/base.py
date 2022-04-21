@@ -660,8 +660,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         annotations : instance of mne.Annotations | None
             Annotations to set. If None, the annotations is defined
             but empty.
-        emit_warning : bool
-            Whether to emit warnings when cropping or omitting annotations.
+        %(emit_warning)s
+            The default is True.
         %(on_missing_ch_names)s
         %(verbose)s
 
