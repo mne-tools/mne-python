@@ -61,15 +61,14 @@ def maxwell_filter_prepare_emptyroom(
     raw : instance of Raw
         The experimental recording, typically this will be the reference run
         used for Maxwell filtering.
-    bads : 'from_raw' | 'union' | 'keep' | list of str
+    bads : 'from_raw' | 'union' | 'keep'
         How to populate the list of bad channel names to be injected into
         the empty-room recording. If ``'from_raw'`` (default) the list of bad
         channels will be overwritten with that of ``raw``. If ``'union'``, will
         use the union of bad channels in ``raw`` and ``raw_er``. Note that
         this may lead to additional bad channels in the empty-room in
         comparison to the experimental recording. If ``'keep'``, don't alter
-        the existing list of bad channels. If a list, you can explicitly
-        provide the list of channel names to be marked as bad.
+        the existing list of bad channels.
 
         .. note::
            Non-MEG channels are silently dropped from the list of bads.
@@ -108,12 +107,11 @@ def maxwell_filter_prepare_emptyroom(
     """  # noqa: E501
     _validate_type(item=raw_er, types=BaseRaw, item_name='raw_er')
     _validate_type(item=raw, types=BaseRaw, item_name='raw')
-    _validate_type(item=bads, types=(list, str), item_name='bads')
-    if isinstance(bads, str):
-        _check_option(
-            parameter='bads', value=bads,
-            allowed_values=['from_raw', 'union', 'keep']
-        )
+    _validate_type(item=bads, types=str, item_name='bads')
+    _check_option(
+        parameter='bads', value=bads,
+        allowed_values=['from_raw', 'union', 'keep']
+    )
     _validate_type(item=annotations, types=str, item_name='annotations')
     _check_option(
         parameter='annotations', value=annotations,

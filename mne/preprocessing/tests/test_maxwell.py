@@ -1449,7 +1449,7 @@ def test_compute_maxwell_basis(regularize, n):
 
 @testing.requires_testing_data
 @pytest.mark.parametrize(
-    'bads', ['from_raw', 'union', 'keep', ['MEG0113', 'MEG2313']]
+    'bads', ['from_raw', 'union', 'keep']
 )
 @pytest.mark.parametrize('set_annot_when', ('before', 'after'))
 def test_prepare_emptyroom(bads, set_annot_when):
@@ -1477,9 +1477,6 @@ def test_prepare_emptyroom(bads, set_annot_when):
     elif bads == 'keep':
         raw_bads_orig = []
         raw_er_bads_orig = ['MEG0113', 'MEG2313']
-    else:
-        raw_bads_orig = bads
-        raw_er_bads_orig = []
 
     raw.info['bads'] = raw_bads_orig
     raw_er.info['bads'] = raw_er_bads_orig
