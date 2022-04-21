@@ -1440,22 +1440,34 @@ def test_annotation_duration_setting():
 
 
 @pytest.mark.parametrize('meas_date', (None, 1))
-@pytest.mark.parametrize('first_samp', (0, 100))
-def test_annot_noop(meas_date, first_samp):
+@pytest.mark.parametrize('set_meas_date', ('before', 'after'))
+@pytest.mark.parametrize('first_samp', (0, 100, 3000))
+def test_annot_noop(meas_date, first_samp, set_meas_date):
     """Show some unintuitive behavior of annotations."""
     sfreq = 1000.
-    raw = RawArray(np.zeros((1, 2000)), create_info(1, sfreq, 'eeg'),
-                   first_samp=first_samp)
-    annot = Annotations(0.5, 0.1, 'bad')
-    raw.set_annotations(annot)
-    raw.set_meas_date(meas_date)
+    info = create_info(1, sfreq, 'eeg')
+    onset = 0.5
+    annot_kwargs = dict()
+    if set_meas_date == 'before':
+        with info._unlock():
+            info['meas_date'] = _handle_meas_date(meas_date)
+        if meas_date is not None:
+            onset += first_samp / sfreq
+        annot_kwargs['orig_time'] = meas_date
+    raw = RawArray(np.zeros((1, 2000)), info, first_samp=first_samp)
+    annot = Annotations(onset, 0.1, 'bad', **annot_kwargs)
+    raw.set_annotations(annot, verbose='debug')
+    if set_meas_date == 'after':
+        raw.set_meas_date(meas_date)
     first_annot = raw.annotations
-    raw.set_annotations(first_annot)  # should be a no-op...
+    if meas_date is None:
+        first_annot.onset -= raw.first_time
+    raw.set_annotations(first_annot, verbose='debug')  # should be a no-op...
     second_annot = raw.annotations
     want = first_annot.onset[0]
     # it has been shifted when meas_date is None!
     if meas_date is None:
-        want = want + first_samp / sfreq
+        want = want + raw.first_time
     assert_allclose(second_annot.onset[0], want)
 
 
@@ -1532,9 +1544,8 @@ def test_annot_concat_crop(meas_date, first_samp_1, first_samp_2, setting):
     end_idx = np.where(raw.annotations.description == 'off')[0]
     tmins = raw.annotations.onset[start_idx]
     tmaxs = raw.annotations.onset[end_idx]
-    if meas_date_1 is not None:  # need to reference to what will be 0 time
-        tmins -= raw.first_time
-        tmaxs -= raw.first_time
+    tmins -= raw.first_time
+    tmaxs -= raw.first_time
     assert len(tmins) == len(tmaxs) == 2
     assert raw.info['meas_date'] == meas_date_1
     _assert_annotations_equal(raw.annotations, want_annot)
@@ -1571,3 +1582,41 @@ def test_annot_concat_crop(meas_date, first_samp_1, first_samp_2, setting):
         assert sess.first_samp == want_first_samp
         assert sess.annotations.orig_time == meas_date_1
         assert list(sess.annotations.description) == descs
+
+
+@pytest.mark.parametrize('first_samp', (0, 10000))
+@pytest.mark.parametrize('meas_date', (None, 24 * 60 * 60))
+def test_annot_meas_date_first_samp_crop(meas_date, first_samp):
+    """Test yet another meas_date / first_samp issue."""
+    sfreq = 1000.
+    info = mne.create_info(1, sfreq, 'eeg')
+    raw = mne.io.RawArray(
+        np.random.RandomState(0).randn(1, 3000), info, first_samp=first_samp)
+    raw.set_meas_date(meas_date)
+    onset = np.array([0, 1, 2], float)
+    if meas_date is not None:
+        onset += first_samp / sfreq
+    annot = mne.Annotations(
+        onset=onset,
+        duration=[0.1, 0.2, 0.3],
+        description=["a", "b", "c"],
+        orig_time=raw.info['meas_date'])
+    assert len(annot) == 3
+    raw.set_annotations(annot)
+    assert len(raw.annotations) == 3
+    raw_crop = raw.copy().crop(0, 1.5, verbose='debug')
+    assert len(raw_crop.annotations) == 2
+    assert_array_equal(raw_crop.annotations.description, annot.description[:2])
+    assert_array_equal(raw_crop.annotations.duration, annot.duration[:2])
+    # these two should be the equivalent
+    raw_crop = raw.copy().crop(2, 2.5, verbose='debug')
+    raw_crop_2 = raw.copy().crop(1, None).crop(1, 1.5)
+    assert_allclose(raw_crop.get_data(), raw_crop_2.get_data())
+    assert raw_crop.first_samp == raw_crop_2.first_samp
+    want_onset = onset[2:]
+    if meas_date is None:
+        want_onset = want_onset + raw.first_time
+    for this_raw in (raw_crop, raw_crop_2):
+        assert len(this_raw.annotations) == 1
+        assert_allclose(this_raw.annotations.onset, want_onset)
+        assert_allclose(this_raw.annotations.duration, annot.duration[2:])
