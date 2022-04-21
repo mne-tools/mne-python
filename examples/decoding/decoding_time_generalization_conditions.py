@@ -56,7 +56,10 @@ epochs = mne.Epochs(raw, events, event_id=event_id, tmin=tmin, tmax=tmax,
 # %%
 # We will train the classifier on all left visual vs auditory trials
 # and test on all right visual vs auditory trials.
-clf = make_pipeline(StandardScaler(), LogisticRegression(solver='lbfgs'))
+clf = make_pipeline(
+    StandardScaler(),
+    LogisticRegression(solver='liblinear')  # liblinear is faster than lbfgs
+)
 time_gen = GeneralizingEstimator(clf, scoring='roc_auc', n_jobs=1,
                                  verbose=True)
 

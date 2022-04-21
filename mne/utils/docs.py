@@ -801,10 +801,14 @@ dig_kinds : list of str | str
 """
 
 docdict['dipole'] = """
-dipole : instance of Dipole
+dipole : instance of Dipole | list of Dipole
     Dipole object containing position, orientation and amplitude of
     one or more dipoles. Multiple simultaneous dipoles may be defined by
-    assigning them identical times.
+    assigning them identical times. Alternatively, multiple simultaneous
+    dipoles may also be specified as a list of Dipole objects.
+
+    .. versionchanged:: 1.1
+        Added support for a list of :class:`mne.Dipole` instances.
 """
 
 docdict['distance'] = """

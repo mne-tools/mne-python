@@ -13,12 +13,14 @@ html[data-theme="light"] {
     --mne-color-discourse: #231e20;
     --pst-color-border-rgba: rgba(0, 0, 0, 0.125);
     --pst-color-background-rgba: rgba(0, 0, 0, 0.03);
+    --pst-color-info-rgba: #007bff18;
 }
 html[data-theme="dark"] {
     --mne-color-github: #fff;
     --mne-color-discourse: #d1c498;
     --pst-color-border-rgba: rgba(201, 201, 201, 0.25);
     --pst-color-background-rgba: rgba(255, 255, 255, 0.08);
+    --pst-color-info-rgba: #407dbf18;
 }
 
 /* ************************************************************ Sphinx fixes */
@@ -52,7 +54,7 @@ p.sphx-glr-signature {
 /* script/notebook download buttons */
 .sphx-glr-download a.download {
     background-image: none;
-    background-color: rgba(var(--pst-color-info), 0.1);
+    background-color: var(--pst-color-info-rgba);
     border-color: rgb(var(--pst-color-info));
 }
 /* Report embedding */
@@ -86,7 +88,7 @@ aside.sidebar {
     clear: right;
     overflow-x: auto;
     /* above copied from div.sidebar in basic.css; below are our overrides */
-    background-color: rgba(var(--pst-color-info), 0.1);
+    background-color: var(--pst-color-info-rgba);
     border: 1px solid rgb(var(--pst-color-info));
     border-radius: 4px;
 }

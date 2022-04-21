@@ -118,9 +118,11 @@ y = epochs.events[:, 2]  # target: auditory left vs visual left
 
 # Uses all MEG sensors and time points as separate classification
 # features, so the resulting filters used are spatio-temporal
-clf = make_pipeline(Scaler(epochs.info),
-                    Vectorizer(),
-                    LogisticRegression(solver='lbfgs'))
+clf = make_pipeline(
+    Scaler(epochs.info),
+    Vectorizer(),
+    LogisticRegression(solver='liblinear')  # liblinear is faster than lbfgs
+)
 
 scores = cross_val_multiscore(clf, X, y, cv=5, n_jobs=1)
 
@@ -203,7 +205,10 @@ print('Spatio-temporal: %0.1f%%' % (100 * score,))
 # We can use CSP with these data with:
 
 csp = CSP(n_components=3, norm_trace=False)
-clf_csp = make_pipeline(csp, LinearModel(LogisticRegression(solver='lbfgs')))
+clf_csp = make_pipeline(
+    csp,
+    LinearModel(LogisticRegression(solver='liblinear'))
+)
 scores = cross_val_multiscore(clf_csp, X, y, cv=5, n_jobs=1)
 print('CSP: %0.1f%%' % (100 * scores.mean(),))
 
@@ -298,7 +303,10 @@ csp.plot_filters(epochs.info, scalings=1e-9)
 
 # We will train the classifier on all left visual vs auditory trials on MEG
 
-clf = make_pipeline(StandardScaler(), LogisticRegression(solver='lbfgs'))
+clf = make_pipeline(
+    StandardScaler(),
+    LogisticRegression(solver='liblinear')
+)
 
 time_decod = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc', verbose=True)
 # here we use cv=3 just for speed
@@ -320,8 +328,10 @@ ax.set_title('Sensor space decoding')
 # %%
 # You can retrieve the spatial filters and spatial patterns if you explicitly
 # use a LinearModel
-clf = make_pipeline(StandardScaler(),
-                    LinearModel(LogisticRegression(solver='lbfgs')))
+clf = make_pipeline(
+    StandardScaler(),
+    LinearModel(LogisticRegression(solver='liblinear'))
+)
 time_decod = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc', verbose=True)
 time_decod.fit(X, y)
 

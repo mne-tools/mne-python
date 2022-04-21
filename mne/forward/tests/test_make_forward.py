@@ -459,6 +459,12 @@ def test_make_forward_dipole(tmp_path):
     assert isinstance(stc, VolSourceEstimate)
     assert_allclose(stc.times, np.arange(0., 0.003, 0.001))
 
+    # Test passing a list of Dipoles instead of a single Dipole object
+    fwd2, stc2 = make_forward_dipole([dip_even_samp[0], dip_even_samp[1:]],
+                                     sphere, info, trans=fname_trans)
+    assert_array_equal(fwd['sol']['data'], fwd2['sol']['data'])
+    assert_array_equal(stc.data, stc2.data)
+
 
 @testing.requires_testing_data
 def test_make_forward_no_meg(tmp_path):
