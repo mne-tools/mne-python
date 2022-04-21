@@ -1353,9 +1353,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self._data = self._data[:, smin:smax + 1].copy()
 
         annotations = self.annotations
-        if annotations.orig_time is None:
-            annotations.onset -= tmin
         # now call setter to filter out annotations outside of interval
+        if annotations.orig_time is None:
+            assert self.info['meas_date'] is None
+            # When self.info['meas_date'] is None (which is guaranteed if
+            # self.annotations.orig_time is None), when we do the
+            # self.set_annotations, it's assumed that the annotations onset
+            # are relative to first_time, so we have to subtract it, then
+            # set_annotations will put it back.
+            annotations.onset -= self.first_time
         self.set_annotations(annotations, False)
 
         return self

@@ -18,6 +18,11 @@
 
 .. changes_1_0_2:
 
+Version 1.0.X
+-------------
+- Fix bug in :meth:`raw.crop(start, stop) <mne.io.Raw.crop>` that would cause annotations to be erroneously shifted when ``start != 0`` and no measurement date was set. (:gh:`10491` by `Eric Larson`_)
+
+
 Version 1.0.2 (2022-04-15)
 --------------------------
 - Fix bug where ``theme`` was not handled properly in :meth:`mne.io.Raw.plot` (:gh:`10500` by `Eric Larson`_)
