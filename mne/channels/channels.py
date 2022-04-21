@@ -692,7 +692,8 @@ class UpdateChannelsMixin(object):
 
         return self
 
-    def pick_channels(self, ch_names, ordered=False):
+    @verbose
+    def pick_channels(self, ch_names, ordered=False, *, verbose=None):
         """Pick some channels.
 
         Parameters
@@ -704,6 +705,9 @@ class UpdateChannelsMixin(object):
             the modified instance matches the order of ``ch_names``.
 
             .. versionadded:: 0.20.0
+        %(verbose)s
+
+            .. versionadded:: 1.1
 
         Returns
         -------
