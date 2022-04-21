@@ -145,6 +145,8 @@ def pytest_configure(config):
     ignore:.*starting_affine overwritten by centre_of_mass transform.*:
     # TODO: This is indicative of a problem
     ignore:.*Matplotlib is currently using agg.*:
+    # qdarkstyle
+    ignore:.*Setting theme=.*:RuntimeWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
@@ -219,7 +221,10 @@ def matplotlib_config():
     # functionality)
     plt.ioff()
     plt.rcParams['figure.dpi'] = 100
-
+    try:
+        plt.rcParams['figure.raise_window'] = False
+    except KeyError:  # MPL < 3.3
+        pass
     # Make sure that we always reraise exceptions in handlers
     orig = cbook.CallbackRegistry
 

@@ -52,9 +52,6 @@ eegbci.standardize(raw)  # set channel names
 montage = make_standard_montage('standard_1005')
 raw.set_montage(montage)
 
-# strip channel names of "." characters
-raw.rename_channels(lambda x: x.strip('.'))
-
 # Apply band-pass filter
 raw.filter(7., 30., fir_design='firwin', skip_by_annotation='edge')
 
