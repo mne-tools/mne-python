@@ -35,7 +35,7 @@ Enhancements
 
 - It is now possible to compute inverse solutions with restricted source orientations using discrete forward models (:gh:`10464` by `Marijn van Vliet`_)
 
-- The new function :func:`mne.preprocessing.maxwell_filter_prepare_emptyroom` simplifies the preconditioning of an empty-room recording for our Maxwell filtering operations (:gh:`10533` by `Richard Höchenberger`_)
+- The new function :func:`mne.preprocessing.maxwell_filter_prepare_emptyroom` simplifies the preconditioning of an empty-room recording for our Maxwell filtering operations (:gh:`10533` by `Richard Höchenberger`_ and `Eric Larson`_)
 
 Bugs
 ~~~~

@@ -82,8 +82,8 @@ def maxwell_filter_prepare_emptyroom(
         ``'from_raw'``.
     %(emit_warning)s
         Unlike :meth:`raw.set_annotations <mne.io.Raw.set_annotations>`, the
-        default here is False, as empty-room recordings are often shorter than
-        raw.
+        default here is ``False``, as empty-room recordings are often shorter
+        than raw.
     %(verbose)s
 
     Returns
@@ -131,7 +131,6 @@ def maxwell_filter_prepare_emptyroom(
     del raw_er  # just to be sure
 
     # handle bads; only keep MEG channels
-
     if bads == 'from_raw':
         bads = raw.info['bads']
     elif bads == 'union':
@@ -154,7 +153,8 @@ def maxwell_filter_prepare_emptyroom(
 
     # handle first_samp
     raw_er_prepared.annotations.onset += (
-        raw.first_time - raw_er_prepared.first_time)
+        raw.first_time - raw_er_prepared.first_time
+    )
     raw_er_prepared._cropped_samp = raw._cropped_samp
 
     # handle annotations
@@ -166,7 +166,8 @@ def maxwell_filter_prepare_emptyroom(
             raw.annotations.onset,
             raw.annotations.duration,
             raw.annotations.description,
-            raw.annotations.ch_names)
+            raw.annotations.ch_names
+        )
         if raw_er_prepared.info['meas_date'] is None:
             er_annot.onset -= raw_er_prepared.first_time
         raw_er_prepared.set_annotations(er_annot, emit_warning)
