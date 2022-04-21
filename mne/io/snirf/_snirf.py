@@ -438,14 +438,14 @@ def _correct_shape(arr):
 
 
 def _get_timeunit_scaling(time_unit):
-    """MNE expects time in seconds, return scaling from time_unit to seconds."""
+    """MNE expects time in seconds, return required scaling."""
     scalings = {'ms': 1000, 's': 1, 'unknown': 1}
     if time_unit in scalings:
         return scalings[time_unit]
     else:
-        raise RuntimeError(f'The time unit {time_unit} is not supported by MNE. '
-                           'Please report this error as a GitHub issue to inform '
-                           'the developers.')
+        raise RuntimeError(f'The time unit {time_unit} is not supported by '
+                           'MNE. Please report this error as a GitHub'
+                           'issue to inform the developers.')
 
 
 def _extract_sampling_rate(dat):
@@ -465,7 +465,8 @@ def _extract_sampling_rate(dat):
             warn("MNE does not currently support reading "
                  "SNIRF files with non-uniform sampled data.")
 
-    time_unit = _correct_shape(np.array(dat.get('/nirs/metaDataTags/TimeUnit')))
+    time_unit = dat.get('/nirs/metaDataTags/TimeUnit')
+    time_unit = _correct_shape(np.array(time_unit))
     time_unit = str(time_unit[0], 'utf-8')
     time_unit_scaling = _get_timeunit_scaling(time_unit)
     sampling_rate *= time_unit_scaling
