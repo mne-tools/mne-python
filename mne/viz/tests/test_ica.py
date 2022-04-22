@@ -104,7 +104,7 @@ def test_plot_ica_components():
 
     topomap_ax = c_fig.axes[labels.index('topomap')]
     title = topomap_ax.get_title()
-    assert (lbl == title)
+    assert (lbl.split(' ')[0] == title.split(' ')[0])
 
     ica.info = None
     with pytest.raises(RuntimeError, match='fit the ICA'):
@@ -146,10 +146,31 @@ def test_plot_ica_properties():
     assert raw.ch_names[0] == 'MEG 0113'
     assert 'Interpolation mode local to mean' in log, log
     ica.plot_properties(epochs, picks=1, dB=False, plot_std=1.5, **topoargs)
-    ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
-                        topomap_args={'res': 4, 'colorbar': True},
-                        psd_args={'fmax': 65.}, plot_std=False,
-                        figsize=[4.5, 4.5], reject=reject)
+    fig = ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
+                              topomap_args={'res': 4, 'colorbar': True},
+                              psd_args={'fmax': 65.}, plot_std=False,
+                              log_scale=True, figsize=[4.5, 4.5],
+                              reject=reject)[0]
+
+    # test keypresses
+    ax_labels = [ax.get_label() for ax in fig.axes]
+
+    # test topomap change type
+    ax = fig.axes[ax_labels.index('topomap')]
+    assert ax.get_title() == 'ICA001 (mag)'
+    fig.canvas.key_press_event('t')
+    assert ax.get_title() == 'ICA001 (grad)'
+    fig.canvas.key_press_event('t')
+    assert ax.get_title() == 'ICA001 (mag)'
+
+    # test log scale
+    ax = fig.axes[ax_labels.index('spectrum')]
+    assert ax.get_xscale() == 'log'
+    fig.canvas.key_press_event('l')
+    assert ax.get_xscale() == 'linear'
+    fig.canvas.key_press_event('l')
+    assert ax.get_xscale() == 'log'
+
     plt.close('all')
 
     with pytest.raises(TypeError, match='must be an instance'):

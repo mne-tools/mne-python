@@ -39,6 +39,8 @@ Enhancements
 
 - The new function :func:`mne.preprocessing.maxwell_filter_prepare_emptyroom` simplifies the preconditioning of an empty-room recording for our Maxwell filtering operations (:gh:`10533` by `Richard Höchenberger`_ and `Eric Larson`_)
 
+- Add keyboard shortcuts to toggle :meth:`mne.preprocessing.ICA.plot_properties` topomap channel types ('t') and power spectral density log-scale ('l') (:gh:`10557` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 - Fix bug in :func:`mne.io.read_raw_brainvision` when BrainVision data are acquired with the Brain Products "V-Amp" amplifier and disabled lowpass filter is marked with value ``0`` (:gh:`10517` by :newcontrib:`Alessandro Tonin`)
