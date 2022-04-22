@@ -157,7 +157,6 @@ def test_plot_ica_properties():
 
     # test topomap change type
     ax = fig.axes[ax_labels.index('topomap')]
-    print(ax)
     assert ax.get_title() == 'ICA001 (mag)'
     fig.canvas.key_press_event('t')
     assert ax.get_title() == 'ICA001 (grad)'

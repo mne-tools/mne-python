@@ -142,9 +142,11 @@ def _plot_ica_properties_on_press(event, ica, pick, topomap_args):
             _plot_ica_topomap(ica, pick, ch_type=ch_type, show=False,
                               axes=ax, **topomap_args)
             ax._ch_type = ch_type
+            del ax
         elif event.key == 'l':
             ax = fig.axes[ax_labels.index('spectrum')]
             _set_scale(ax, 'linear' if ax.get_xscale() == 'log' else 'log')
+            del ax
         fig.canvas.draw()
 
 
