@@ -117,39 +117,6 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     return fig
 
 
-def _set_scale(ax, scale):
-    """Set the scale of a matplotlib axis."""
-    ax.set_xscale(scale)
-    ax.set_yscale(scale)
-    ax.relim()
-    ax.autoscale()
-
-
-def _plot_ica_properties_on_press(event, ica, pick, topomap_args):
-    """Handle keypress events for ica properties plot."""
-    import matplotlib.pyplot as plt
-    fig = event.canvas.figure
-    if event.key == 'escape':
-        plt.close(fig)
-    if event.key in ('t', 'l'):
-        ax_labels = [ax.get_label() for ax in fig.axes]
-        if event.key == 't':
-            ax = fig.axes[ax_labels.index('topomap')]
-            ax.clear()
-            ch_types = list(set(ica.get_channel_types()))
-            ch_type = \
-                ch_types[(ch_types.index(ax._ch_type) + 1) % len(ch_types)]
-            _plot_ica_topomap(ica, pick, ch_type=ch_type, show=False,
-                              axes=ax, **topomap_args)
-            ax._ch_type = ch_type
-            del ax
-        elif event.key == 'l':
-            ax = fig.axes[ax_labels.index('spectrum')]
-            _set_scale(ax, 'linear' if ax.get_xscale() == 'log' else 'log')
-            del ax
-        fig.canvas.draw()
-
-
 def _create_properties_layout(figsize=None, fig=None):
     """Create main figure and axes layout used by plot_ica_properties."""
     import matplotlib.pyplot as plt
@@ -262,6 +229,13 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     image_ax.yaxis.set_ticks(yt[1:])
     image_ax.set_ylim([-0.5, n_trials + 0.5])
 
+    def _set_scale(ax, scale):
+        """Set the scale of a matplotlib axis."""
+        ax.set_xscale(scale)
+        ax.set_yscale(scale)
+        ax.relim()
+        ax.autoscale()
+
     # spectrum
     set_title_and_labels(spec_ax, 'Spectrum', 'Frequency (Hz)', psd_ylabel)
     spec_ax.yaxis.labelpad = 0
@@ -280,6 +254,29 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     hist_ax.set_ylabel("")
     hist_ax.set_yticks([])
     set_title_and_labels(hist_ax, None, None, None)
+
+    def _plot_ica_properties_on_press(event, ica, pick, topomap_args):
+        """Handle keypress events for ica properties plot."""
+        import matplotlib.pyplot as plt
+        fig = event.canvas.figure
+        if event.key == 'escape':
+            plt.close(fig)
+        if event.key in ('t', 'l'):
+            ax_labels = [ax.get_label() for ax in fig.axes]
+            if event.key == 't':
+                ax = fig.axes[ax_labels.index('topomap')]
+                ax.clear()
+                ch_types = list(set(ica.get_channel_types()))
+                ch_type = \
+                    ch_types[(ch_types.index(ax._ch_type) + 1) % len(ch_types)]
+                _plot_ica_topomap(ica, pick, ch_type=ch_type, show=False,
+                                  axes=ax, **topomap_args)
+                ax._ch_type = ch_type
+            elif event.key == 'l':
+                ax = fig.axes[ax_labels.index('spectrum')]
+                _set_scale(ax, 'linear' if ax.get_xscale() == 'log' else 'log')
+            del ax
+            fig.canvas.draw()
 
     # add keypress event handler
     fig.canvas.mpl_connect(

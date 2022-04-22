@@ -104,7 +104,7 @@ def test_plot_ica_components():
 
     topomap_ax = c_fig.axes[labels.index('topomap')]
     title = topomap_ax.get_title()
-    assert (lbl == title)
+    assert (lbl.split(' ')[0] == title.split(' ')[0])
 
     ica.info = None
     with pytest.raises(RuntimeError, match='fit the ICA'):

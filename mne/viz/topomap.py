@@ -1230,7 +1230,10 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     titles = list()
     for ii, data_, ax in zip(picks, data, axes):
         kwargs = dict(color='gray') if ii in ica.exclude else dict()
-        titles.append(ax.set_title(ica._ica_names[ii], fontsize=12, **kwargs))
+        comp_title = ica._ica_names[ii]
+        if len(set(ica.get_channel_types())) > 1:
+            comp_title += f' ({ch_type})'
+        titles.append(ax.set_title(comp_title, fontsize=12, **kwargs))
         if merge_channels:
             data_, names_ = _merge_ch_data(data_, ch_type, names.copy())
         vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
@@ -1262,7 +1265,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         # title was pressed -> identify the IC
         if title_pressed is not None:
             label = title_pressed.get_text()
-            ic = int(label[-3:])
+            ic = int(label.split(' ')[0][-3:])
             # add or remove IC from exclude depending on current state
             if ic in ica.exclude:
                 ica.exclude.remove(ic)
@@ -1280,7 +1283,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
             if event.inaxes is not None:
                 label = event.inaxes.get_label()
                 if label.startswith('ICA'):
-                    ic = int(label[-3:])
+                    ic = int(label.split(' ')[0][-3:])
                     ica.plot_properties(inst, picks=ic, show=True,
                                         plot_std=plot_std,
                                         topomap_args=topomap_args,
