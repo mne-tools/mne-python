@@ -1052,7 +1052,10 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64,
     if merge_channels:
         data, names = _merge_ch_data(data, ch_type, names)
 
-    axes.set_title(ica._ica_names[idx], fontsize=12)
+    topo_title = ica._ica_names[idx]
+    if len(set(ica.get_channel_types())) > 1:
+        topo_title += f' ({ch_type})'
+    axes.set_title(topo_title, fontsize=12)
     vmin_, vmax_ = _setup_vmin_vmax(data, vmin, vmax)
     im = plot_topomap(
         data.ravel(), pos, vmin=vmin_, vmax=vmax_, res=res, axes=axes,

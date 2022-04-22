@@ -70,12 +70,11 @@ ica.plot_sources(raw)
 # ICA component 13 is a textbook example of what muscle artifact looks like.
 # The focus of the topomap for this component is right on the temporalis
 # muscle near the ears. There is also a minimum in the power spectrum at around
-# 10 Hz, then a maximum at around 25 Hz, then a slow linear dropoff (relative
-# to non-muscle components) in non-log-log units (this slope is positive in
-# log-log units) this is a very typical pattern for muscle artifact.
+# 10 Hz, then a maximum at around 25 Hz, generally resulting in a positive
+# slope in log-log units; this is a very typical pattern for muscle artifact.
 
 muscle_idx = [6, 7, 8, 9, 10, 11, 12, 13, 14]
-ica.plot_properties(raw, picks=muscle_idx)
+ica.plot_properties(raw, picks=muscle_idx, log_scale=True)
 
 # first, remove blinks and heartbeat to compare
 blink_idx = [0]
@@ -109,7 +108,7 @@ for sub in (1, 2):
     ica.fit(raw)
     ica.plot_sources(raw)
     muscle_idx_auto, scores = ica.find_bads_muscle(raw)
-    ica.plot_properties(raw, picks=muscle_idx_auto)
+    ica.plot_properties(raw, picks=muscle_idx_auto, log_scale=True)
     ica.plot_scores(scores, exclude=muscle_idx_auto)
 
     print(f'Manually found muscle artifact ICA components:      {muscle_idx}\n'

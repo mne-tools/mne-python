@@ -2045,11 +2045,13 @@ class ICA(ContainsMixin, _VerboseDep):
 
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
-                        plot_std=True, topomap_args=None, image_args=None,
-                        psd_args=None, figsize=None, show=True, reject='auto',
-                        reject_by_annotation=True, *, verbose=None):
+                        plot_std=True, log_scale=False, topomap_args=None,
+                        image_args=None, psd_args=None, figsize=None,
+                        show=True, reject='auto', reject_by_annotation=True,
+                        *, verbose=None):
         return plot_ica_properties(self, inst, picks=picks, axes=axes,
                                    dB=dB, plot_std=plot_std,
+                                   log_scale=log_scale,
                                    topomap_args=topomap_args,
                                    image_args=image_args, psd_args=psd_args,
                                    figsize=figsize, show=show, reject=reject,

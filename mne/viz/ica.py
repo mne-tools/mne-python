@@ -18,6 +18,7 @@ from .utils import (tight_layout, _make_event_color_dict,
 from .topomap import _plot_ica_topomap
 from .epochs import plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
+from ..channels.channels import _get_ch_type
 from ..utils import _validate_type, fill_doc
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
@@ -116,6 +117,37 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     return fig
 
 
+def _set_scale(ax, scale):
+    """Set the scale of a matplotlib axis."""
+    ax.set_xscale(scale)
+    ax.set_yscale(scale)
+    ax.relim()
+    ax.autoscale()
+
+
+def _plot_ica_properties_on_press(event, ica, pick, topomap_args):
+    """Handle keypress events for ica properties plot."""
+    import matplotlib.pyplot as plt
+    fig = event.canvas.figure
+    if event.key == 'escape':
+        plt.close(fig)
+    if event.key in ('t', 'l'):
+        ax_labels = [ax.get_label() for ax in fig.axes]
+        if event.key == 't':
+            ax = fig.axes[ax_labels.index('topomap')]
+            ax.clear()
+            ch_types = list(set(ica.get_channel_types()))
+            ch_type = \
+                ch_types[(ch_types.index(ax._ch_type) + 1) % len(ch_types)]
+            _plot_ica_topomap(ica, pick, ch_type=ch_type, show=False,
+                              axes=ax, **topomap_args)
+            ax._ch_type = ch_type
+        elif event.key == 'l':
+            ax = fig.axes[ax_labels.index('spectrum')]
+            _set_scale(ax, 'linear' if ax.get_xscale() == 'log' else 'log')
+        fig.canvas.draw()
+
+
 def _create_properties_layout(figsize=None, fig=None):
     """Create main figure and axes layout used by plot_ica_properties."""
     import matplotlib.pyplot as plt
@@ -139,8 +171,8 @@ def _create_properties_layout(figsize=None, fig=None):
 def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
                          epoch_var, plot_lowpass_edge, epochs_src,
                          set_title_and_labels, plot_std, psd_ylabel,
-                         spectrum_std, topomap_args, image_args, fig, axes,
-                         kind, dropped_indices):
+                         spectrum_std, log_scale, topomap_args, image_args,
+                         fig, axes, kind, dropped_indices):
     """Plot ICA properties (helper)."""
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
     from scipy.stats import gaussian_kde
@@ -151,6 +183,8 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     # --------
     # component topomap
     _plot_ica_topomap(ica, pick, show=False, axes=topo_ax, **topomap_args)
+    topo_ax._ch_type = _get_ch_type(ica, ch_type=None,
+                                    allow_ref_meg=ica.allow_ref_meg)
 
     # image and erp
     # we create a new epoch with dropped rows
@@ -209,8 +243,6 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
 
     # aesthetics
     # ----------
-    topo_ax.set_title(ica._ica_names[pick])
-
     set_title_and_labels(image_ax, kind + ' image and ERP/ERF', [], kind)
 
     # erp
@@ -236,6 +268,8 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     air = np.diff(ylim)[0] * 0.1
     spec_ax.set_ylim(ylim[0] - air, ylim[1] + air)
     image_ax.axhline(0, color='k', linewidth=.5)
+    if log_scale:
+        _set_scale(spec_ax, 'log')
 
     # epoch variance
     var_ax_title = 'Dropped segments: %.2f %%' % var_percent
@@ -244,6 +278,11 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     hist_ax.set_ylabel("")
     hist_ax.set_yticks([])
     set_title_and_labels(hist_ax, None, None, None)
+
+    # add keypress event handler
+    fig.canvas.mpl_connect(
+        'key_press_event', lambda event: _plot_ica_properties_on_press(
+            event, ica, pick, topomap_args))
 
     return fig
 
@@ -269,9 +308,10 @@ def _get_psd_label_and_std(this_psd, dB, ica, num_std):
 
 @verbose
 def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
-                        plot_std=True, topomap_args=None, image_args=None,
-                        psd_args=None, figsize=None, show=True, reject='auto',
-                        reject_by_annotation=True, *, verbose=None):
+                        plot_std=True, log_scale=False, topomap_args=None,
+                        image_args=None, psd_args=None, figsize=None,
+                        show=True, reject='auto', reject_by_annotation=True,
+                        *, verbose=None):
     """Display component properties.
 
     Properties include the topography, epochs image, ERP/ERF, power
@@ -303,6 +343,8 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         For the ERP/ERF, by default, plot the 95 percent parametric confidence
         interval is calculated. To change this, use ``ci`` in ``ts_args`` in
         ``image_args`` (see below).
+    log_scale : bool
+        Whether to use a log scale to plot the spectrum. Defaults to False.
     topomap_args : dict | None
         Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
         additional arguments. Defaults to None.
@@ -338,7 +380,7 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     .. versionadded:: 0.13
     """
     return _fast_plot_ica_properties(ica, inst, picks=picks, axes=axes, dB=dB,
-                                     plot_std=plot_std,
+                                     plot_std=plot_std, log_scale=log_scale,
                                      topomap_args=topomap_args,
                                      image_args=image_args, psd_args=psd_args,
                                      figsize=figsize, show=show,
@@ -348,9 +390,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
 
 
 def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
-                              plot_std=True, topomap_args=None,
-                              image_args=None, psd_args=None, figsize=None,
-                              show=True, reject='auto', precomputed_data=None,
+                              plot_std=True, log_scale=False,
+                              topomap_args=None, image_args=None,
+                              psd_args=None, figsize=None, show=True,
+                              reject='auto', precomputed_data=None,
                               reject_by_annotation=True, *, verbose=None):
     """Display component properties."""
     from ..preprocessing import ICA
@@ -392,8 +435,8 @@ def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
                             ("topomap_args", topomap_args),
                             ("image_args", image_args)):
         _validate_type(item, dict, item_name, "dictionary")
-    if dB is not None:
-        _validate_type(dB, bool, "dB", "bool")
+    _validate_type(dB, (bool, None), "dB")
+    _validate_type(log_scale, (bool, None), "log_scale")
 
     # calculations
     # ------------
@@ -451,9 +494,9 @@ def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         # the actual plot
         fig = _plot_ica_properties(
             pick, ica, inst, psds_mean, freqs, ica_data.shape[1],
-            epoch_var, plot_lowpass_edge,
-            epochs_src, set_title_and_labels, plot_std, psd_ylabel,
-            spectrum_std, topomap_args, image_args, fig, axes, kind,
+            epoch_var, plot_lowpass_edge, epochs_src,
+            set_title_and_labels, plot_std, psd_ylabel, spectrum_std,
+            log_scale, topomap_args, image_args, fig, axes, kind,
             dropped_indices)
         all_fig.append(fig)
 
