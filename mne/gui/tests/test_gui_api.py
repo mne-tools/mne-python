@@ -157,7 +157,7 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
         rng=['foo', 'bar'],
         callback=mock,
     )
-    with _check_widget_trigger(widget, mock, 'foo', 'bar', get_value=False):
+    with _check_widget_trigger(widget, mock, None, None, get_value=False):
         widget.set_value(1, 'bar')
     assert widget.get_value(0) == 'foo'
     assert widget.get_value(1) == 'bar'
@@ -253,7 +253,7 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
         func=mock,
         shortcut=None,
     )
-    assert 'help' in renderer.actions
+    renderer.actions['help'].trigger()
 
     # play button
     assert 'play' not in renderer.actions
