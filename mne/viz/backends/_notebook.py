@@ -404,7 +404,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
     def _tool_bar_add_text(self, name, value, placeholder):
         widget = Text(value=value, placeholder=placeholder)
         self._layout_add_widget(self._tool_bar_layout, widget)
-        self.actions[name] = widget
+        self.actions[name] = _IpyAction(widget)
 
     def _tool_bar_add_spacer(self):
         pass

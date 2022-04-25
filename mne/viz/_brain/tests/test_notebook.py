@@ -120,8 +120,8 @@ def test_notebook_button_counts(renderer_notebook, brain_gc, nbexec):
         '_field' not in k for k in rend.actions.keys())
     number_of_buttons = 0
     for widget in rend.actions.values():
-        if hasattr(widget, '_action'):
-            action = widget._action
+        action = widget._action
+        if hasattr(action, "click"):
             action.click()
             number_of_buttons += 1
     assert number_of_buttons == total_number_of_buttons
