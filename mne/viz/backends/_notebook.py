@@ -396,10 +396,10 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
         widget = Button(tooltip=desc, icon=icon)
         widget.on_click(lambda x: func())
         self._layout_add_widget(self._tool_bar_layout, widget)
-        self.actions[name] = widget
+        self.actions[name] = _IpyAction(widget)
 
     def _tool_bar_update_button_icon(self, name, icon_name):
-        self.actions[name].icon = self._icons[icon_name]
+        self.actions[name].set_icon(self._icons[icon_name])
 
     def _tool_bar_add_text(self, name, value, placeholder):
         widget = Text(value=value, placeholder=placeholder)
@@ -658,7 +658,16 @@ class _IpyWidget(_AbstractWidget):
 
 class _IpyAction(_AbstractAction):
     def trigger(self):
-        self._action()
+        if callable(self._action):
+            self._action()
+        else:  # standard Button widget
+            self._action.click()
+
+    def set_icon(self, icon):
+        self._action.icon = icon
+
+    def set_shortcut(self, shortcut):
+        pass
 
 
 class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
