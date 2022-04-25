@@ -427,7 +427,7 @@ class _IpyToolBar(_AbstractToolBar, _IpyLayout):
     def _tool_bar_add_play_button(self, name, desc, func, *, shortcut=None):
         widget = Play(interval=500)
         self._layout_add_widget(self._tool_bar_layout, widget)
-        self.actions[name] = widget
+        self.actions[name] = _IpyAction(widget)
         return _IpyWidget(widget)
 
 
