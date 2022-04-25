@@ -120,10 +120,10 @@ def test_notebook_button_counts(renderer_notebook, brain_gc, nbexec):
     total_number_of_buttons = sum(
         '_field' not in k for k in rend.actions.keys())
     number_of_buttons = 0
-    for widget in rend.actions.values():
-        action = widget._action
-        if isinstance(action, Button):
-            action.click()
+    for action in rend.actions.values():
+        widget = action._action
+        if isinstance(widget, Button):
+            widget.click()
             number_of_buttons += 1
     assert number_of_buttons == total_number_of_buttons
     assert fig.display is not None
