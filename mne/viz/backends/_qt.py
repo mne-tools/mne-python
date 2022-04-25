@@ -425,7 +425,7 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
             if weakself is None:
                 return
             return FileDialog(
-                weakself.app_window,
+                weakself._window,
                 callback=func,
             )
 
