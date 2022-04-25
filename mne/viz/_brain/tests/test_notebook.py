@@ -109,6 +109,7 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
 def test_notebook_button_counts(renderer_notebook, brain_gc, nbexec):
     """Test button counts."""
     import mne
+    from ipywidgets import Button
     mne.viz.set_3d_backend('notebook')
     rend = mne.viz.create_3d_figure(size=(100, 100), scene=False)
     fig = rend.scene()
@@ -121,7 +122,7 @@ def test_notebook_button_counts(renderer_notebook, brain_gc, nbexec):
     number_of_buttons = 0
     for widget in rend.actions.values():
         action = widget._action
-        if hasattr(action, "click"):
+        if isinstance(action, Button):
             action.click()
             number_of_buttons += 1
     assert number_of_buttons == total_number_of_buttons
