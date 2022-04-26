@@ -800,7 +800,7 @@ def test_parse_impedance():
 
 @testing.requires_testing_data
 def test_ahdr_format():
-    """Test case for parsing data in ahdr format"""
+    """Test case for parsing data in ahdr format."""
     expected_num_channels = 6
     expected_hp = 0.0
     expected_lp = 250.0

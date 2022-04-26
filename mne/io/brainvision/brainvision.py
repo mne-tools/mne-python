@@ -464,7 +464,7 @@ def _get_hdr_info(hdr_fname, eog, misc, scale):
     """
     scale = float(scale)
     ext = op.splitext(hdr_fname)[-1]
-    ahdr_format = True if ext == '.ahdr' else False
+    ahdr_format = (ext == '.ahdr')
     if ext not in ('.vhdr', '.ahdr'):
         raise IOError("The header file must be given to read the data, "
                       "not a file with extension '%s'." % ext)
