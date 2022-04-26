@@ -479,8 +479,22 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
         window = self._window if window is None else window
         self._status_bar = window.statusBar()
 
+    def _status_bar_add_check_box(self, name, value, callback, *, stretch=0):
+        widget = QCheckBox(name)
+        widget.setChecked(value)
+        widget.stateChanged.connect(callback)
+        self._layout_add_widget(self._status_bar.layout(), widget, stretch)
+        return _QtWidget(widget)
+
     def _status_bar_add_label(self, value, *, stretch=0):
         widget = QLabel(value)
+        self._layout_add_widget(self._status_bar.layout(), widget, stretch)
+        return _QtWidget(widget)
+
+    def _status_bar_add_text(self, value, callback, *, stretch=0):
+        widget = QLineEdit(value)
+        if callback is not None:
+            widget.textChanged.connect(callback)
         self._layout_add_widget(self._status_bar.layout(), widget, stretch)
         return _QtWidget(widget)
 

@@ -16,7 +16,7 @@ from qtpy import QtCore, QtGui
 from qtpy.QtCore import Signal
 from qtpy.QtWidgets import (QLabel, QAbstractItemView,
                             QListView, QSlider, QPushButton,
-                            QComboBox, QPlainTextEdit)
+                            QComboBox)
 
 from matplotlib import patheffects
 from matplotlib.backends.backend_qt5agg import FigureCanvas
@@ -201,7 +201,7 @@ class IntracranialElectrodeLocator():
         # Menus
         button_hbox = self._get_button_bar()
         slider_hbox = self._get_slider_bar()
-        bottom_hbox = self._get_bottom_bar()
+        self._configure_status_bar()
 
         # Add lines
         self._lines = dict()
@@ -218,7 +218,6 @@ class IntracranialElectrodeLocator():
         main_vbox.addLayout(button_hbox)
         main_vbox.addLayout(slider_hbox)
         main_vbox.addLayout(plot_ch_hbox)
-        main_vbox.addLayout(bottom_hbox)
 
         self._renderer._window_initialize(
             window=self._window, central_layout=main_vbox)
@@ -540,44 +539,30 @@ class IntracranialElectrodeLocator():
         slider_hbox.addLayout(ct_slider_vbox)
         return slider_hbox
 
-    def _get_bottom_bar(self):
+    def _configure_status_bar(self):
         """Make a bar at the bottom with information in it."""
-        hbox = self._renderer._layout_create(orientation="horizontal")
-
-        hbox.addStretch(3)
-
-        self._toggle_show_mip_button = QPushButton('Show Max Intensity Proj')
-        self._toggle_show_mip_button.released.connect(
-            self._toggle_show_mip)
-        hbox.addWidget(self._toggle_show_mip_button)
-
-        self._toggle_show_max_button = QPushButton('Show Maxima')
-        self._toggle_show_max_button.released.connect(
-            self._toggle_show_max)
-        hbox.addWidget(self._toggle_show_max_button)
-
-        self._intensity_label = QLabel('')  # update later
-        hbox.addWidget(self._intensity_label)
-
-        VOX_label = QLabel('VOX =')
-        self._VOX_textbox = QPlainTextEdit('')  # update later
-        self._VOX_textbox.setMaximumHeight(25)
-        self._VOX_textbox.setMaximumWidth(125)
-        self._VOX_textbox.focusOutEvent = self._update_VOX
-        self._VOX_textbox.textChanged.connect(self._check_update_VOX)
-        hbox.addWidget(VOX_label)
-        hbox.addWidget(self._VOX_textbox)
-
-        RAS_label = QLabel('RAS =')
-        self._RAS_textbox = QPlainTextEdit('')  # update later
-        self._RAS_textbox.setMaximumHeight(25)
-        self._RAS_textbox.setMaximumWidth(200)
-        self._RAS_textbox.focusOutEvent = self._update_RAS
-        self._RAS_textbox.textChanged.connect(self._check_update_RAS)
-        hbox.addWidget(RAS_label)
-        hbox.addWidget(self._RAS_textbox)
+        self._renderer._status_bar_initialize(self._window)
+        self._toggle_show_mip_button = \
+            self._renderer._status_bar_add_check_box(
+                name='Show Max Intensity Proj',
+                value=False,
+                callback=self._toggle_show_mip,
+            )
+        self._renderer._status_bar_add_check_box(
+            name='Show Maxima',
+            value=False,
+            callback=self._toggle_show_max,
+        )
+        self._intensity_label = self._renderer._status_bar_add_label('')
+        self._renderer._status_bar_add_label('VOX = ')
+        self._VOX_textbox = self._renderer._status_bar_add_text(
+            value='', callback=self._update_VOX
+        )
+        self._renderer._status_bar_add_label('RAS =')
+        self._RAS_textbox = self._renderer._status_bar_add_text(
+            value='', callback=self._update_RAS,
+        )
         self._update_moved()  # update text now
-        return hbox
 
     def _group_channels(self, groups):
         """Automatically find a group based on the name of the channel."""
@@ -610,8 +595,7 @@ class IntracranialElectrodeLocator():
                 line.remove()
             self._lines_2D.pop(group)
         if only_2D:  # if not in projection, don't add 2D lines
-            if self._toggle_show_mip_button.text() == \
-                    'Show Max Intensity Proj':
+            if not self._toggle_show_mip_button.get_value():
                 return
         elif group in self._lines:  # if updating 3D, remove first
             self._renderer.plotter.remove_actor(
@@ -635,7 +619,7 @@ class IntracranialElectrodeLocator():
             self._lines[group] = self._renderer.tube(
                 [pos[target_idx]], [pos[insert_idx] + elec_v * _BOLT_SCALAR],
                 radius=self._radius * _TUBE_SCALAR, color=_CMAP(group)[:3])[0]
-        if self._toggle_show_mip_button.text() == 'Hide Max Intensity Proj':
+        if self._toggle_show_mip_button.get_value():
             # add 2D lines on each slice plot if in max intensity projection
             target_vox = apply_trans(self._ras_vox_t, pos[target_idx])
             insert_vox = apply_trans(self._ras_vox_t,
@@ -722,14 +706,14 @@ class IntracranialElectrodeLocator():
 
     def _update_RAS(self, event):
         """Interpret user input to the RAS textbox."""
-        text = self._RAS_textbox.toPlainText()
+        text = self._RAS_textbox.get_value()
         ras = self._convert_text(text, 'ras')
         if ras is not None:
             self._set_ras(ras)
 
     def _update_VOX(self, event):
         """Interpret user input to the RAS textbox."""
-        text = self._VOX_textbox.toPlainText()
+        text = self._VOX_textbox.get_value()
         ras = self._convert_text(text, 'vox')
         if ras is not None:
             self._set_ras(ras)
@@ -791,13 +775,13 @@ class IntracranialElectrodeLocator():
 
     def _check_update_RAS(self):
         """Check whether the RAS textbox is done being edited."""
-        if '\n' in self._RAS_textbox.toPlainText():
+        if '\n' in self._RAS_textbox.get_value():
             self._update_RAS(event=None)
             self._ch_list.setFocus()  # remove focus from text edit
 
     def _check_update_VOX(self):
         """Check whether the VOX textbox is done being edited."""
-        if '\n' in self._VOX_textbox.toPlainText():
+        if '\n' in self._VOX_textbox.get_value():
             self._update_VOX(event=None)
             self._ch_list.setFocus()  # remove focus from text edit
 
@@ -874,8 +858,7 @@ class IntracranialElectrodeLocator():
         for axis in range(3) if axis is None else [axis]:
             self._images['chs'][axis].set_data(
                 self._make_ch_image(axis))
-            if self._toggle_show_mip_button.text() == \
-                    'Hide Max Intensity Proj':
+            if self._toggle_show_mip_button.get_value():
                 self._images['mip_chs'][axis].set_data(
                     self._make_ch_image(axis, proj=True))
             if draw:
@@ -927,7 +910,7 @@ class IntracranialElectrodeLocator():
     def _update_radius(self):
         """Update channel plot radius."""
         self._radius = np.round(self._radius_slider.value()).astype(int)
-        if self._toggle_show_max_button.text() == 'Hide Maxima':
+        if self._toggle_show_max_button.get_value():
             self._update_ct_maxima()
             self._update_ct_images()
         else:
@@ -973,10 +956,9 @@ class IntracranialElectrodeLocator():
             False
         self._ct_maxima = np.where(self._ct_maxima, 1, np.nan)  # transparent
 
-    def _toggle_show_mip(self):
+    def _toggle_show_mip(self, state):
         """Toggle whether the maximum-intensity projection is shown."""
-        if self._toggle_show_mip_button.text() == 'Show Max Intensity Proj':
-            self._toggle_show_mip_button.setText('Hide Max Intensity Proj')
+        if state:
             self._images['mip'] = list()
             self._images['mip_chs'] = list()
             ct_min, ct_max = np.nanmin(self._ct_data), np.nanmax(self._ct_data)
@@ -1005,15 +987,13 @@ class IntracranialElectrodeLocator():
                 img.remove()
             self._images.pop('mip')
             self._images.pop('mip_chs')
-            self._toggle_show_mip_button.setText('Show Max Intensity Proj')
             for group in set(self._groups.values()):  # remove lines
                 self._update_lines(group, only_2D=True)
         self._draw()
 
-    def _toggle_show_max(self):
+    def _toggle_show_max(self, state):
         """Toggle whether to color local maxima differently."""
-        if self._toggle_show_max_button.text() == 'Show Maxima':
-            self._toggle_show_max_button.setText('Hide Maxima')
+        if state:
             # happens on initiation or if the radius is changed with it off
             if self._ct_maxima is None:  # otherwise don't recompute
                 self._update_ct_maxima()
@@ -1029,7 +1009,6 @@ class IntracranialElectrodeLocator():
             for img in self._images['local_max']:
                 img.remove()
             self._images.pop('local_max')
-            self._toggle_show_max_button.setText('Show Maxima')
         self._draw()
 
     def _toggle_show_brain(self):
@@ -1098,11 +1077,11 @@ class IntracranialElectrodeLocator():
 
     def _update_moved(self):
         """Update when cursor position changes."""
-        self._RAS_textbox.setPlainText('{:.2f}, {:.2f}, {:.2f}'.format(
+        self._RAS_textbox.set_value('{:.2f}, {:.2f}, {:.2f}'.format(
             *self._ras))
-        self._VOX_textbox.setPlainText('{:3d}, {:3d}, {:3d}'.format(
+        self._VOX_textbox.set_value('{:3d}, {:3d}, {:3d}'.format(
             *self._current_slice))
-        self._intensity_label.setText('intensity = {:.2f}'.format(
+        self._intensity_label.set_value('intensity = {:.2f}'.format(
             self._ct_data[tuple(self._current_slice)]))
 
     @safe_event
