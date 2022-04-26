@@ -1450,7 +1450,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar',
     """
     from scipy.signal import get_window
     from scipy.fft import ifftshift, fftfreq
-    n_jobs = check_n_jobs(n_jobs)
+    n_jobs = check_n_jobs(n_jobs, allow_cuda=True)
     # check explicitly for backwards compatibility
     if not isinstance(axis, int):
         err = ("The axis parameter needs to be an integer (got %s). "

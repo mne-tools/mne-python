@@ -48,6 +48,11 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
         Ignored if the joblib version is too old to support this.
 
         .. versionadded:: 0.18
+    max_jobs : int | None
+        The maximum number of jobs to use. This is useful when you know ahead
+        of a the maximum number of calls into :class:`joblib.Parallel` that
+        you will need, and the returned ``n_jobs`` should not exceed this
+        value.
     %(verbose)s INFO or DEBUG
         will print parallel status, others will not.
 

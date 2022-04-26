@@ -552,7 +552,8 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
 
     parallel, p_fun, n_jobs = parallel_func(
         func=_plot_one_ica_property,
-        max_jobs=len(picks),
+        n_jobs=n_jobs,
+        max_jobs=len(picks)
     )
     outs = parallel(
         p_fun(

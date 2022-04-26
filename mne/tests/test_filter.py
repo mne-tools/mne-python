@@ -366,9 +366,12 @@ def test_filters():
         pytest.raises((ValueError, TypeError),
                       filter_data, a, sfreq, 4, 8, None, fl,
                       1.0, 1.0, fir_design='firwin')
-    for nj in ['blah', 0.5]:
-        pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 1000,
-                      1.0, 1.0, n_jobs=nj, phase='zero', fir_design='firwin')
+    with pytest.raises(TypeError, match='got <class'):
+        filter_data(a, sfreq, 4, 8, None, 1000, 1.0, 1.0, n_jobs=0.5,
+                    phase='zero', fir_design='firwin')
+    with pytest.raises(ValueError, match='Invalid value'):
+        filter_data(a, sfreq, 4, 8, None, 1000, 1.0, 1.0, n_jobs='blah',
+                    phase='zero', fir_design='firwin')
     pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 100,
                   1., 1., fir_window='foo')
     pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 10,
