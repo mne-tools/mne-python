@@ -15,7 +15,7 @@ from scipy.ndimage import maximum_filter
 from qtpy import QtCore, QtGui
 from qtpy.QtCore import Signal
 from qtpy.QtWidgets import (QLabel,
-                            QMessageBox, QWidget, QAbstractItemView,
+                            QMessageBox, QAbstractItemView,
                             QListView, QSlider, QPushButton,
                             QComboBox, QPlainTextEdit)
 
@@ -156,7 +156,6 @@ class IntracranialElectrodeLocator():
         self._renderer = _get_renderer(
             name='IEEG Locator', size=(400, 400), bgcolor='w')
         self._window = self._renderer._window_create()
-        self._renderer._window_initialize(window=self._window)
 
         # Main plots: make one plot for each view; sagittal, coronal, axial
         plts = [_make_slice_plot(), _make_slice_plot(), _make_slice_plot()]
@@ -201,9 +200,8 @@ class IntracranialElectrodeLocator():
         main_vbox.addLayout(plot_ch_hbox)
         main_vbox.addLayout(bottom_hbox)
 
-        central_widget = QWidget()
-        central_widget.setLayout(main_vbox)
-        self._window.setCentralWidget(central_widget)
+        self._renderer._window_initialize(
+            window=self._window, central_layout=main_vbox)
 
         # ready for user
         self._move_cursors_to_pos()

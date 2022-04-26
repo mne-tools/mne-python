@@ -530,13 +530,19 @@ class _QtBrainMplCanvas(_AbstractBrainMplCanvas, _QtMplInterface):
 
 
 class _QtWindow(_AbstractWindow):
-    def _window_initialize(self, window=None):
+    def _window_initialize(self, window=None, central_layout=None):
         super()._window_initialize()
         self._interactor = self.figure.plotter.interactor
         if window is None:
             self._window = self.figure.plotter.app_window
         else:
             self._window = window
+        if central_layout is not None:
+            central_widget = self._window.centralWidget()
+            if central_widget is None:
+                central_widget = QWidget()
+                self._window.setCentralWidget(central_widget)
+            central_widget.setLayout(central_layout)
         self._window_load_icons()
         self._window_set_theme()
         self._window.setLocale(QLocale(QLocale.Language.English))
