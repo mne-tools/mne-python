@@ -826,7 +826,7 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
         super().__init__(*args, **kwargs)
         self._window_initialize()
 
-    def show(self, simple=False):
+    def show(self):
         super().show()
         with _qt_disable_paint(self.plotter):
             with self._window_ensure_minimum_sizes():
