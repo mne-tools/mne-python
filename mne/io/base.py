@@ -1038,8 +1038,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                pad='reflect_limited', verbose=None):  # noqa: D102
         return super().filter(
             l_freq, h_freq, picks, filter_length, l_trans_bandwidth,
-            h_trans_bandwidth, n_jobs, method, iir_params, phase,
-            fir_window, fir_design, skip_by_annotation, pad, verbose)
+            h_trans_bandwidth, n_jobs=n_jobs, method=method,
+            iir_params=iir_params, phase=phase, fir_window=fir_window,
+            fir_design=fir_design, skip_by_annotation=skip_by_annotation,
+            pad=pad, verbose=verbose)
 
     @verbose
     def notch_filter(self, freqs, picks=None, filter_length='auto',

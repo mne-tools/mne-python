@@ -278,14 +278,13 @@ def _source_induced_power(epochs, inverse_operator, freqs, label=None,
 
     inv = inverse_operator
     parallel, my_compute_source_tfrs, n_jobs = parallel_func(
-        _compute_pow_plv, n_jobs)
+        _compute_pow_plv, n_jobs, max_jobs=len(epochs_data))
     Fs = epochs.info['sfreq']  # sampling in Hz
 
     logger.info('Computing source power ...')
 
     Ws = morlet(Fs, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
 
-    n_jobs = min(n_jobs, len(epochs_data))
     out = parallel(my_compute_source_tfrs(data=data, K=K, sel=sel, Ws=Ws,
                                           source_ori=inv['source_ori'],
                                           use_fft=use_fft, Vh=Vh,
