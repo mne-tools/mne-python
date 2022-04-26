@@ -194,7 +194,7 @@ class IntracranialElectrodeLocator():
         plot_ch_hbox.addLayout(plt_grid)
         plot_ch_hbox.addWidget(self._ch_list)
 
-        main_vbox = self._renderer._layout_create(orientation="vertical")
+        main_vbox = self._renderer._layout_create()
         main_vbox.addLayout(button_hbox)
         main_vbox.addLayout(slider_hbox)
         main_vbox.addLayout(plot_ch_hbox)
@@ -492,12 +492,12 @@ class IntracranialElectrodeLocator():
 
         slider_hbox = self._renderer._layout_create(orientation="horizontal")
 
-        ch_vbox = self._renderer._layout_create(orientation="vertical")
+        ch_vbox = self._renderer._layout_create()
         ch_vbox.addWidget(make_label('ch alpha'))
         ch_vbox.addWidget(make_label('ch radius'))
         slider_hbox.addLayout(ch_vbox)
 
-        ch_slider_vbox = self._renderer._layout_create(orientation="vertical")
+        ch_slider_vbox = self._renderer._layout_create()
         self._alpha_slider = make_slider(0, 100, self._ch_alpha * 100,
                                          self._update_ch_alpha)
         ch_plot_max = _CH_PLOT_SIZE // 50  # max 1 / 50 of plot size
@@ -507,12 +507,12 @@ class IntracranialElectrodeLocator():
         ch_slider_vbox.addWidget(self._radius_slider)
         slider_hbox.addLayout(ch_slider_vbox)
 
-        ct_vbox = self._renderer._layout_create(orientation="vertical")
+        ct_vbox = self._renderer._layout_create()
         ct_vbox.addWidget(make_label('CT min'))
         ct_vbox.addWidget(make_label('CT max'))
         slider_hbox.addLayout(ct_vbox)
 
-        ct_slider_vbox = self._renderer._layout_create(orientation="vertical")
+        ct_slider_vbox = self._renderer._layout_create()
         ct_min = int(round(np.nanmin(self._ct_data)))
         ct_max = int(round(np.nanmax(self._ct_data)))
         self._ct_min_slider = make_slider(
