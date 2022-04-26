@@ -152,11 +152,11 @@ def test_plot_evoked_field(renderer):
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
-    for t in ['meg', None]:
+    for t, n_contours in zip(['meg', None], [21, 0]):
         with pytest.warns(RuntimeWarning, match='projection'):
             maps = make_field_map(evoked, trans_fname, subject='sample',
                                   subjects_dir=subjects_dir, n_jobs=1,
-                                  ch_type=t)
+                                  ch_type=t, n_contours=n_contours)
         evoked.plot_field(maps, time=0.1)
 
 

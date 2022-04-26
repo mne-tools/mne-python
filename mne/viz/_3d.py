@@ -404,9 +404,10 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                          polygon_offset=-1)
 
         # And the field lines on top
-        renderer.contour(surface=surf, scalars=data, contours=n_contours,
-                         vmin=-vmax, vmax=vmax, opacity=alpha,
-                         colormap=colormap_lines)
+        if n_contours > 0:
+            renderer.contour(surface=surf, scalars=data, contours=n_contours,
+                             vmin=-vmax, vmax=vmax, opacity=alpha,
+                             colormap=colormap_lines)
 
     if time_label is not None:
         if '%' in time_label:
