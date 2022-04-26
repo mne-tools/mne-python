@@ -210,6 +210,7 @@ class IntracranialElectrodeLocator():
         self._ch_list.setFocus()  # always focus on list
 
     def show(self):
+        """Display the window."""
         self._window.show()
 
     def _load_image_data(self, ct):
