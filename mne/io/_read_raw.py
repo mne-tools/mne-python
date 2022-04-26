@@ -32,6 +32,7 @@ supported = {
     ".bdf": read_raw_bdf,
     ".gdf": read_raw_gdf,
     ".vhdr": read_raw_brainvision,
+    ".ahdr": read_raw_brainvision,
     ".fif": read_raw_fif,
     ".fif.gz": read_raw_fif,
     ".set": read_raw_eeglab,
@@ -51,6 +52,7 @@ supported = {
 
 # known but unsupported file formats
 suggested = {".vmrk": partial(_read_unsupported, suggest=".vhdr"),
+             ".amrk": partial(_read_unsupported, suggest=".ahdr"),
              ".eeg": partial(_read_unsupported, suggest=".vhdr")}
 
 # all known file formats
