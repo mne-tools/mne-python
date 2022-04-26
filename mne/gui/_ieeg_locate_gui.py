@@ -13,8 +13,8 @@ import platform
 from scipy.ndimage import maximum_filter
 
 from qtpy import QtCore, QtGui
-from qtpy.QtCore import Slot, Signal
-from qtpy.QtWidgets import (QMainWindow, QGridLayout,
+from qtpy.QtCore import Signal
+from qtpy.QtWidgets import (QGridLayout,
                             QVBoxLayout, QHBoxLayout, QLabel,
                             QMessageBox, QWidget, QAbstractItemView,
                             QListView, QSlider, QPushButton,
@@ -27,7 +27,7 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 
 from .._freesurfer import _import_nibabel
-from ..viz.backends.renderer import _get_renderer
+from ..viz.backends.renderer import _get_renderer, _get_window
 from ..viz.utils import safe_event
 from ..surface import _read_mri_surface, _voxel_neighbors, _marching_cubes
 from ..transforms import (apply_trans, _frame_to_str, _get_trans,
@@ -103,7 +103,7 @@ def _make_slice_plot(width=4, height=4, dpi=300):
     return canvas, fig
 
 
-class IntracranialElectrodeLocator(QMainWindow):
+class IntracranialElectrodeLocator():
     """Locate electrode contacts using a coregistered MRI and CT."""
 
     _xy_idx = (
@@ -121,7 +121,7 @@ class IntracranialElectrodeLocator(QMainWindow):
                   dimensions [256, 256, 256] for display.
         """
         # initialize QMainWindow class
-        super(IntracranialElectrodeLocator, self).__init__()
+        self._window = _get_window()
 
         if not info.ch_names:
             raise ValueError('No channels found in `info` to locate')
@@ -204,11 +204,14 @@ class IntracranialElectrodeLocator(QMainWindow):
 
         central_widget = QWidget()
         central_widget.setLayout(main_vbox)
-        self.setCentralWidget(central_widget)
+        self._window.setCentralWidget(central_widget)
 
         # ready for user
         self._move_cursors_to_pos()
         self._ch_list.setFocus()  # always focus on list
+
+    def show(self):
+        self._window.show()
 
     def _load_image_data(self, ct):
         """Get MRI and CT data to display and transforms to/from vox/RAS."""
@@ -698,13 +701,11 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._ch_index = index.row()
         self._update_ch_selection()
 
-    @Slot()
     def _next_ch(self):
         """Increment the current channel selection index."""
         self._ch_index = (self._ch_index + 1) % len(self._ch_names)
         self._update_ch_selection()
 
-    @Slot()
     def _update_RAS(self, event):
         """Interpret user input to the RAS textbox."""
         text = self._RAS_textbox.toPlainText()
@@ -712,7 +713,6 @@ class IntracranialElectrodeLocator(QMainWindow):
         if ras is not None:
             self._set_ras(ras)
 
-    @Slot()
     def _update_VOX(self, event):
         """Interpret user input to the RAS textbox."""
         text = self._VOX_textbox.toPlainText()
@@ -775,14 +775,12 @@ class IntracranialElectrodeLocator(QMainWindow):
     def _current_slice(self):
         return self._vox.round().astype(int)
 
-    @Slot()
     def _check_update_RAS(self):
         """Check whether the RAS textbox is done being edited."""
         if '\n' in self._RAS_textbox.toPlainText():
             self._update_RAS(event=None)
             self._ch_list.setFocus()  # remove focus from text edit
 
-    @Slot()
     def _check_update_VOX(self):
         """Check whether the VOX textbox is done being edited."""
         if '\n' in self._VOX_textbox.toPlainText():
@@ -809,7 +807,6 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._ch_list_model.index(self._ch_names.index(name), 0),
             brush, QtCore.Qt.ForegroundRole)
 
-    @Slot()
     def _toggle_snap(self):
         """Toggle snapping the contact location to the center of mass."""
         if self._snap_button.text() == 'Off':
@@ -819,7 +816,6 @@ class IntracranialElectrodeLocator(QMainWindow):
             self._snap_button.setText('Off')
             self._snap_button.setStyleSheet("background-color: red")
 
-    @Slot()
     def _mark_ch(self):
         """Mark the current channel as being located at the crosshair."""
         name = self._ch_names[self._ch_index]
@@ -842,7 +838,6 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._next_ch()
         self._ch_list.setFocus()
 
-    @Slot()
     def _remove_ch(self):
         """Remove the location data for the current channel."""
         name = self._ch_names[self._ch_index]
