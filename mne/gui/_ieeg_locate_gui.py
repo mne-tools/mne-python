@@ -14,8 +14,7 @@ from scipy.ndimage import maximum_filter
 
 from qtpy import QtCore, QtGui
 from qtpy.QtCore import Signal
-from qtpy.QtWidgets import (QLabel,
-                            QMessageBox, QAbstractItemView,
+from qtpy.QtWidgets import (QLabel, QAbstractItemView,
                             QListView, QSlider, QPushButton,
                             QComboBox, QPlainTextEdit)
 
@@ -153,9 +152,30 @@ class IntracranialElectrodeLocator():
         self._group_channels(groups)
 
         # GUI design
+        self._configure_ui()
+
+        # ready for user
+        self._move_cursors_to_pos()
+        self._ch_list.setFocus()  # always focus on list
+
+    def _configure_ui(self):
+        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
         self._renderer = _get_renderer(
             name='IEEG Locator', size=(400, 400), bgcolor='w')
         self._window = self._renderer._window_create()
+        self._help_dialog = self._renderer._dialog_warning(
+            title="Help",
+            text="Help:\n'm': mark channel location\n"
+                 "'r': remove channel location\n"
+                 "'b': toggle viewing of brain in T1\n"
+                 "'+'/'-': zoom\nleft/right arrow: left/right\n"
+                 "up/down arrow: superior/inferior\n"
+                 "left angle bracket/right angle bracket: anterior/posterior",
+            info_text="",
+            callback=lambda x: None,
+            buttons=["Ok"],
+            modal=not MNE_3D_BACKEND_TESTING,
+        )
 
         # Main plots: make one plot for each view; sagittal, coronal, axial
         plts = [_make_slice_plot(), _make_slice_plot(), _make_slice_plot()]
@@ -202,10 +222,6 @@ class IntracranialElectrodeLocator():
 
         self._renderer._window_initialize(
             window=self._window, central_layout=main_vbox)
-
-        # ready for user
-        self._move_cursors_to_pos()
-        self._ch_list.setFocus()  # always focus on list
 
     def show(self):
         """Display the window."""
@@ -947,14 +963,7 @@ class IntracranialElectrodeLocator():
 
     def _show_help(self):
         """Show the help menu."""
-        QMessageBox.information(
-            self, 'Help',
-            "Help:\n'm': mark channel location\n"
-            "'r': remove channel location\n"
-            "'b': toggle viewing of brain in T1\n"
-            "'+'/'-': zoom\nleft/right arrow: left/right\n"
-            "up/down arrow: superior/inferior\n"
-            "left angle bracket/right angle bracket: anterior/posterior")
+        self._help_dialog.show()
 
     def _update_ct_maxima(self):
         """Compute the maximum voxels based on the current radius."""
