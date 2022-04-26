@@ -156,6 +156,7 @@ class IntracranialElectrodeLocator():
         self._renderer = _get_renderer(
             name='IEEG Locator', size=(400, 400), bgcolor='w')
         self._window = self._renderer._window_create()
+        self._renderer._window_initialize(window=self._window)
 
         # Main plots: make one plot for each view; sagittal, coronal, axial
         plts = [_make_slice_plot(), _make_slice_plot(), _make_slice_plot()]
