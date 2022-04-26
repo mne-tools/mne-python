@@ -107,36 +107,10 @@ def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
                                  monkeypatch):
     """Test that using CoregistrationUI matches mne coreg."""
     from mne.gui import coregistration
-    from mne.gui._coreg import CoregistrationUI
     config = get_config()
     # the sample subject in testing has MRI fids
     assert op.isfile(op.join(
         subjects_dir, 'sample', 'bem', 'sample-fiducials.fif'))
-
-    deprecated_params = [
-        'standalone', 'head_transparency', 'project_eeg'
-    ]
-    for param in deprecated_params:
-        kwargs = {p: None for p in deprecated_params}
-        kwargs[param] = True
-        with pytest.warns(DeprecationWarning, match=f'{param} is deprecated'):
-            coreg = CoregistrationUI(
-                info_file=None, subject='sample', subjects_dir=subjects_dir,
-                **kwargs)
-            coreg.close()
-    del kwargs
-
-    deprecated_params = [
-        'project_eeg'
-    ]
-    for param in deprecated_params:
-        kwargs = {p: None for p in deprecated_params}
-        kwargs[param] = True
-        with pytest.warns(DeprecationWarning, match=f'{param} is deprecated'):
-            coreg = coregistration(
-                subject='sample', subjects_dir=subjects_dir, **kwargs)
-            coreg.close()
-    del kwargs
 
     coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
                            trans=fname_trans)

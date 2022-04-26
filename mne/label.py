@@ -25,7 +25,7 @@ from .surface import (complete_surface_info, read_surface, fast_cross_3d,
                       _mesh_borders, mesh_edges, mesh_dist)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
                     check_random_state, _validate_type, fill_doc,
-                    _check_option, check_version, _check_fname, _VerboseDep)
+                    _check_option, check_version, _check_fname)
 
 
 def _blend_colors(color_1, color_2):
@@ -140,7 +140,7 @@ def _n_colors(n, bytes_=False, cmap='hsv'):
 
 
 @fill_doc
-class Label(_VerboseDep):
+class Label:
     """A FreeSurfer/MNE label with vertices restricted to one hemisphere.
 
     Labels can be combined with the ``+`` operator:

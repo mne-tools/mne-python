@@ -13,8 +13,7 @@ from .base import BaseEstimator
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper
-from ..utils import (fill_doc, _check_option, _validate_type, verbose,
-                     _VerboseDep)
+from ..utils import fill_doc, _check_option, _validate_type, verbose
 from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
                        _picks_to_idx)
 from ..cov import _check_scalings_user
@@ -330,7 +329,7 @@ class Vectorizer(TransformerMixin):
 
 
 @fill_doc
-class PSDEstimator(TransformerMixin, _VerboseDep):
+class PSDEstimator(TransformerMixin):
     """Compute power spectral density (PSD) using a multi-taper method.
 
     Parameters
@@ -418,7 +417,7 @@ class PSDEstimator(TransformerMixin, _VerboseDep):
 
 
 @fill_doc
-class FilterEstimator(TransformerMixin, _VerboseDep):
+class FilterEstimator(TransformerMixin):
     """Estimator to filter RtEpochs.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop

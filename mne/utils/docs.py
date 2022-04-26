@@ -1715,12 +1715,6 @@ match_case : bool
     .. versionadded:: 0.20
 """
 
-docdict['max_ori_out_deprecated'] = """
-max_ori_out : None
-    This argument is deprecated and will be removed in 1.1, as signed
-    values are always returned. Do not pass it as an argument.
-"""
-
 docdict['max_step_clust'] = """
 max_step : int
     Maximum distance along the second dimension (typically this is the "time"

@@ -22,7 +22,7 @@ from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     fill_doc, _check_option, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
                     _convert_times, _scale_dataframe_data, _check_time_format,
-                    _check_preload, _check_fname, _VerboseDep)
+                    _check_preload, _check_fname)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -62,7 +62,7 @@ _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 @fill_doc
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              InterpolationMixin, FilterMixin, TimeMixin, SizeMixin,
-             ShiftTimeMixin, _VerboseDep):
+             ShiftTimeMixin):
     """Evoked data.
 
     Parameters

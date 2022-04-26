@@ -62,7 +62,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_pandas_index_arguments, _convert_times,
                     _scale_dataframe_data, _check_time_format, object_size,
                     _on_missing, _validate_type, _ensure_events,
-                    _path_like, _VerboseDep)
+                    _path_like)
 from .utils.docs import fill_doc
 from .annotations import (_write_annotations, _read_annotations_fif,
                           EpochAnnotationsMixin)
@@ -340,8 +340,7 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 @fill_doc
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin,
-                 _VerboseDep):
+                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin):
     """Abstract base class for `~mne.Epochs`-type classes.
 
     .. warning:: This class provides basic functionality and should never be

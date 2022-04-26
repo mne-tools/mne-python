@@ -348,9 +348,6 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     evoked_ch.pick_channels(evoked_ch.ch_names[1:])
     filters = make_lcmv(evoked.info, forward_vol, data_cov, reg=0.01,
                         noise_cov=noise_cov)
-    with pytest.deprecated_call(match='max_ori_out'):
-        with pytest.raises(ValueError, match='was computed with'):
-            apply_lcmv(evoked_ch, filters, max_ori_out='deprecated')
 
     # Test if discrepancies in channel selection of data and fwd model are
     # handled correctly in apply_lcmv

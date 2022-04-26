@@ -9,11 +9,11 @@ from .base import BaseEstimator, _check_estimator
 from ..fixes import _get_check_scoring
 from ..parallel import parallel_func
 from ..utils import (_validate_type, array_split_idx, ProgressBar,
-                     verbose, fill_doc, _VerboseDep)
+                     verbose, fill_doc)
 
 
 @fill_doc
-class SlidingEstimator(BaseEstimator, TransformerMixin, _VerboseDep):
+class SlidingEstimator(BaseEstimator, TransformerMixin):
     """Search Light.
 
     Fit, predict and score a series of models to each subset of the dataset

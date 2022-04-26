@@ -36,12 +36,11 @@ from .source_space import _make_volume_source_space, SourceSpaces
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
                     check_fname, _pl, fill_doc, _check_option, ShiftTimeMixin,
-                    _svd_lwork, _repeated_svd, _get_blas_funcs, _validate_type,
-                    _VerboseDep)
+                    _svd_lwork, _repeated_svd, _get_blas_funcs, _validate_type)
 
 
 @fill_doc
-class Dipole(_VerboseDep):
+class Dipole:
     u"""Dipole class for sequential dipole fits.
 
     .. note:: This class should usually not be instantiated directly,
@@ -428,7 +427,7 @@ def _read_dipole_fixed(fname):
 
 
 @fill_doc
-class DipoleFixed(ShiftTimeMixin, _VerboseDep):
+class DipoleFixed(ShiftTimeMixin):
     """Dipole class for fixed-position dipole fits.
 
     .. note:: This class should usually not be instantiated directly,

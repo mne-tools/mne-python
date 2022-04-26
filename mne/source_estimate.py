@@ -32,8 +32,7 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _check_stc_units, _check_pandas_installed,
                     _check_pandas_index_arguments, _convert_times, _ensure_int,
                     _build_data_frame, _check_time_format, _path_like,
-                    sizeof_fmt, object_size, _check_fname, _import_h5io_funcs,
-                    _VerboseDep)
+                    sizeof_fmt, object_size, _check_fname, _import_h5io_funcs)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import TimeMixin
@@ -447,7 +446,7 @@ def _verify_source_estimate_compat(a, b):
                          'names, %r and %r' % (a.subject, b.subject))
 
 
-class _BaseSourceEstimate(TimeMixin, _VerboseDep):
+class _BaseSourceEstimate(TimeMixin):
 
     _data_ndim = 2
 
