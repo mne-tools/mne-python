@@ -495,7 +495,7 @@ class Label(_VerboseDep):
 
     @verbose
     def smooth(self, subject=None, smooth=2, grade=None,
-               subjects_dir=None, n_jobs=1, verbose=None):
+               subjects_dir=None, n_jobs=None, verbose=None):
         """Smooth the label.
 
         Useful for filling in labels made in a
@@ -541,7 +541,7 @@ class Label(_VerboseDep):
 
     @verbose
     def morph(self, subject_from=None, subject_to=None, smooth=5, grade=None,
-              subjects_dir=None, n_jobs=1, verbose=None):
+              subjects_dir=None, n_jobs=None, verbose=None):
         """Morph the label.
 
         Useful for transforming a label from one subject to another.
@@ -1587,7 +1587,7 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
 
 
 @fill_doc
-def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
+def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=None,
                 overlap=True, names=None, surface='white', colors=None):
     """Generate circular labels in source space with region growing.
 

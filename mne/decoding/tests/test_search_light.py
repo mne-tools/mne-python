@@ -121,7 +121,7 @@ def test_search_light():
     assert_array_equal(score_manual, score_sl)
 
     # n_jobs
-    sl = SlidingEstimator(logreg, n_jobs=1, scoring='roc_auc')
+    sl = SlidingEstimator(logreg, n_jobs=None, scoring='roc_auc')
     score_1job = sl.fit(X, y).score(X, y)
     sl.n_jobs = 2
     score_njobs = sl.fit(X, y).score(X, y)

@@ -1845,7 +1845,7 @@ def plot_epochs_psd_topomap(epochs, bands=None,
                             tmin=None, tmax=None, proj=False,
                             bandwidth=None, adaptive=False, low_bias=True,
                             normalization='length', ch_type=None,
-                            cmap=None, agg_fun=None, dB=False, n_jobs=1,
+                            cmap=None, agg_fun=None, dB=False, n_jobs=None,
                             normalize=False, cbar_fmt='auto',
                             outlines='head', axes=None, show=True,
                             sphere=None, vlim=(None, None), verbose=None):

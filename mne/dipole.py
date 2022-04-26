@@ -789,7 +789,7 @@ def _write_dipole_bdip(fname, dip):
 # #############################################################################
 # Fitting
 
-def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
+def _dipole_forwards(fwd_data, whitener, rr, n_jobs=None):
     """Compute the forward solution and do other nice stuff."""
     B = _compute_forwards_meeg(rr, fwd_data, n_jobs, silent=True)
     B = np.concatenate(B, axis=1)
@@ -810,7 +810,7 @@ def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
 
 
 @verbose
-def _make_guesses(surf, grid, exclude, mindist, n_jobs=1, verbose=None):
+def _make_guesses(surf, grid, exclude, mindist, n_jobs=None, verbose=None):
     """Make a guess space inside a sphere or BEM surface."""
     if 'rr' in surf:
         logger.info('Guess surface (%s) is in %s coordinates'
@@ -1188,7 +1188,7 @@ def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
 
 
 @verbose
-def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
+def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=None,
                pos=None, ori=None, rank=None, accuracy='normal', tol=5e-5,
                verbose=None):
     """Fit a dipole.

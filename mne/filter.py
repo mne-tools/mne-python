@@ -123,7 +123,7 @@ def next_fast_len(target):
 
 
 def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
-                        n_jobs=1, copy=True, pad='reflect_limited'):
+                        n_jobs=None, copy=True, pad='reflect_limited'):
     """Filter the signal x using h with overlap-add FFTs.
 
     Parameters
@@ -742,9 +742,9 @@ def _check_method(method, iir_params, extra_types=()):
 
 @verbose
 def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
-                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
-                method='fir', iir_params=None, copy=True, phase='zero',
-                fir_window='hamming', fir_design='firwin',
+                l_trans_bandwidth='auto', h_trans_bandwidth='auto',
+                n_jobs=None, method='fir', iir_params=None, copy=True,
+                phase='zero', fir_window='hamming', fir_design='firwin',
                 pad='reflect_limited', verbose=None):
     """Filter a subset of channels.
 
@@ -1071,7 +1071,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
 @verbose
 def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
                  trans_bandwidth=1, method='fir', iir_params=None,
-                 mt_bandwidth=None, p_value=0.05, picks=None, n_jobs=1,
+                 mt_bandwidth=None, p_value=0.05, picks=None, n_jobs=None,
                  copy=True, phase='zero', fir_window='hamming',
                  fir_design='firwin', pad='reflect_limited',
                  verbose=None):
@@ -1405,8 +1405,8 @@ def _resamp_ratio_len(up, down, n):
 
 
 @verbose
-def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
-             pad='reflect_limited', verbose=None):
+def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar',
+             n_jobs=None, pad='reflect_limited', verbose=None):
     """Resample an array.
 
     Operates along the last dimension of the array.
@@ -1925,7 +1925,7 @@ class FilterMixin(object):
 
     @verbose
     def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
-               l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
+               l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=None,
                method='fir', iir_params=None, phase='zero',
                fir_window='hamming', fir_design='firwin',
                skip_by_annotation=('edge', 'bad_acq_skip'), pad='edge',
@@ -2036,7 +2036,7 @@ class FilterMixin(object):
         return self
 
     @verbose
-    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
+    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=None,
                  pad='edge', verbose=None):  # lgtm
         """Resample data.
 
@@ -2102,8 +2102,8 @@ class FilterMixin(object):
         return self
 
     @verbose
-    def apply_hilbert(self, picks=None, envelope=False, n_jobs=1, n_fft='auto',
-                      verbose=None):
+    def apply_hilbert(self, picks=None, envelope=False, n_jobs=None,
+                      n_fft='auto', verbose=None):
         """Compute analytic signal or envelope for a subset of channels.
 
         Parameters

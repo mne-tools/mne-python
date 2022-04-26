@@ -1825,9 +1825,10 @@ n_comp : int
 """
 
 docdict['n_jobs'] = """
-n_jobs : int
-    The number of jobs to run in parallel (default ``1``). If ``-1``, it is set
+n_jobs : int | None
+    The number of jobs to run in parallel. If ``-1``, it is set
     to the number of CPU cores. Requires the ``joblib`` package.
+    If ``None`` (default), TODO ACTUALLY DO SOMETHING HERE.
 """
 
 docdict['n_jobs_cuda'] = """

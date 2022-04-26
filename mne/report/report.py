@@ -954,7 +954,7 @@ class Report(_VerboseDep):
     @fill_doc
     def add_evokeds(self, evokeds, *, titles=None, noise_cov=None, projs=None,
                     n_time_points=None, tags=('evoked',), replace=False,
-                    topomap_kwargs=None, n_jobs=1):
+                    topomap_kwargs=None, n_jobs=None):
         """Add `~mne.Evoked` objects to the report.
 
         Parameters
@@ -1719,7 +1719,7 @@ class Report(_VerboseDep):
     @fill_doc
     def add_ica(
         self, ica, title, *, inst, picks=None, ecg_evoked=None,
-        eog_evoked=None, ecg_scores=None, eog_scores=None, n_jobs=1,
+        eog_evoked=None, ecg_scores=None, eog_scores=None, n_jobs=None,
         tags=('ica',), replace=False
     ):
         """Add (a fitted) `~mne.preprocessing.ICA` to the report.
@@ -2098,7 +2098,7 @@ class Report(_VerboseDep):
 
     @fill_doc
     def add_bem(self, subject, title, *, subjects_dir=None, decim=2, width=512,
-                n_jobs=1, tags=('bem',), replace=False):
+                n_jobs=None, tags=('bem',), replace=False):
         """Render a visualization of the boundary element model (BEM) surfaces.
 
         Parameters
@@ -2301,7 +2301,7 @@ class Report(_VerboseDep):
                     raise
 
     @verbose
-    def parse_folder(self, data_path, pattern=None, n_jobs=1, mri_decim=2,
+    def parse_folder(self, data_path, pattern=None, n_jobs=None, mri_decim=2,
                      sort_content=True, *, on_error='warn',
                      image_format=None, render_bem=True,
                      n_time_points_evokeds=None, n_time_points_stcs=None,
@@ -2630,7 +2630,7 @@ class Report(_VerboseDep):
         return content_sorted
 
     def _render_one_bem_axis(self, *, mri_fname, surfaces,
-                             image_format, orientation, decim=2, n_jobs=1,
+                             image_format, orientation, decim=2, n_jobs=None,
                              width=512, tags):
         """Render one axis of bem contours (only PNG)."""
         import nibabel as nib

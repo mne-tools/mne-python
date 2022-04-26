@@ -101,7 +101,7 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
 
 @fill_doc
 def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
-                        width=1.0, decim=1, return_itc=False, n_jobs=1):
+                        width=1.0, decim=1, return_itc=False, n_jobs=None):
     """Compute power and intertrial coherence using Stockwell (S) transform.
 
     Same computation as `~mne.time_frequency.tfr_stockwell`, but operates on
@@ -195,7 +195,7 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
 
 @verbose
 def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
-                  width=1.0, decim=1, return_itc=False, n_jobs=1,
+                  width=1.0, decim=1, return_itc=False, n_jobs=None,
                   verbose=None):
     """Compute Time-Frequency Representation (TFR) using Stockwell Transform.
 

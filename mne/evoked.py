@@ -192,7 +192,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return data
 
     @verbose
-    def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
+    def apply_function(self, fun, picks=None, dtype=None, n_jobs=None,
                        verbose=None, **kwargs):
         """Apply a function to a subset of channels.
 
@@ -499,7 +499,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
-                   n_jobs=1, fig=None, vmax=None, n_contours=21, verbose=None):
+                   n_jobs=None, fig=None, vmax=None, n_contours=21,
+                   verbose=None):
         return plot_evoked_field(self, surf_maps, time=time,
                                  time_label=time_label, n_jobs=n_jobs,
                                  fig=fig, vmax=vmax, n_contours=n_contours,

@@ -439,9 +439,9 @@ def _check_n_samples(n_samples, n_chan):
 @verbose
 def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
                            flat=None, picks=None, method='empirical',
-                           method_params=None, cv=3, scalings=None, n_jobs=1,
-                           return_estimators=False, reject_by_annotation=True,
-                           rank=None, verbose=None):
+                           method_params=None, cv=3, scalings=None,
+                           n_jobs=None, return_estimators=False,
+                           reject_by_annotation=True, rank=None, verbose=None):
     """Estimate noise covariance matrix from a continuous segment of raw data.
 
     It is typically useful to estimate a noise covariance from empty room
@@ -678,8 +678,9 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
 @verbose
 def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                        projs=None, method='empirical', method_params=None,
-                       cv=3, scalings=None, n_jobs=1, return_estimators=False,
-                       on_mismatch='raise', rank=None, verbose=None):
+                       cv=3, scalings=None, n_jobs=None,
+                       return_estimators=False, on_mismatch='raise',
+                       rank=None, verbose=None):
     """Estimate noise covariance matrix from epochs.
 
     The noise covariance is typically estimated on pre-stimulus periods
@@ -1748,7 +1749,7 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None,
     scalings = _handle_default('scalings_cov_rank', None)
     cov = _compute_covariance_auto(
         data.T, method=method, method_params=method_params,
-        info=info, cv=None, n_jobs=1, stop_early=True,
+        info=info, cv=None, n_jobs=None, stop_early=True,
         picks_list=picks_list, scalings=scalings,
         rank=rank)[reg]['data']
     return cov

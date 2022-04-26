@@ -364,7 +364,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
 @verbose
 def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
                          adaptive=False, low_bias=True, normalization='length',
-                         output='power', n_jobs=1, verbose=None):
+                         output='power', n_jobs=None, verbose=None):
     """Compute power spectral density (PSD) using a multi-taper method.
 
     Parameters
@@ -479,7 +479,7 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
 @verbose
 def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
                          zero_mean=True, time_bandwidth=None, use_fft=True,
-                         decim=1, output='complex', n_jobs=1,
+                         decim=1, output='complex', n_jobs=None,
                          verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 

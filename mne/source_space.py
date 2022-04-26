@@ -1198,7 +1198,7 @@ def _check_spacing(spacing, verbose=None):
 
 @verbose
 def setup_source_space(subject, spacing='oct6', surface='white',
-                       subjects_dir=None, add_dist=True, n_jobs=1,
+                       subjects_dir=None, add_dist=True, n_jobs=None, *,
                        verbose=None):
     """Set up bilateral hemisphere surface-based source space with subsampling.
 
@@ -1665,8 +1665,8 @@ def _make_discrete_source_space(pos, coord_frame='mri'):
 
 
 def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
-                              volume_labels=None, do_neighbors=True, n_jobs=1,
-                              vol_info={}, single_volume=False):
+                              volume_labels=None, do_neighbors=True,
+                              n_jobs=None, vol_info={}, single_volume=False):
     """Make a source space which covers the volume bounded by surf."""
     # Figure out the grid size in the MRI coordinate frame
     if 'rr' in surf:
@@ -2099,7 +2099,7 @@ def _pts_in_hull(pts, hull, tolerance=1e-12):
 
 
 @verbose
-def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
+def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None,
                           verbose=None):
     """Remove all source space points closer than a given limit (in mm)."""
     if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD and mri_head_t is None:
@@ -2230,7 +2230,8 @@ _DIST_WARN_LIMIT = 10242  # warn for anything larger than ICO-5
 
 
 @verbose
-def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
+def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *,
+                               verbose=None):
     """Compute inter-source distances along the cortical surface.
 
     This function will also try to add patch info for the source space.

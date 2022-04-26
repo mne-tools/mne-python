@@ -86,8 +86,8 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
 
 @verbose
 def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
-                    n_per_seg=None, n_jobs=1, average='mean', window='hamming',
-                    verbose=None):
+                    n_per_seg=None, n_jobs=None, average='mean',
+                    window='hamming', *, verbose=None):
     """Compute power spectral density (PSD) using Welch's method.
 
     Parameters
@@ -178,8 +178,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
 
 @verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
-              n_overlap=0, n_per_seg=None, picks=None, proj=False, n_jobs=1,
-              reject_by_annotation=True, average='mean', window='hamming',
+              n_overlap=0, n_per_seg=None, picks=None, proj=False, n_jobs=None,
+              reject_by_annotation=True, average='mean', window='hamming', *,
               verbose=None):
     """Compute the power spectral density (PSD) using Welch's method.
 
@@ -260,7 +260,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
 def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                    bandwidth=None, adaptive=False, low_bias=True,
                    normalization='length', picks=None, proj=False,
-                   n_jobs=1, reject_by_annotation=False, verbose=None):
+                   n_jobs=None, reject_by_annotation=False, *, verbose=None):
     """Compute the power spectral density (PSD) using multitapers.
 
     Calculates spectral density for orthogonal tapers, then averages them

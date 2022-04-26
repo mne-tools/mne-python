@@ -302,7 +302,7 @@ def _set_aspect_equal(ax):
 
 @verbose
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
-                      n_jobs=1, fig=None, vmax=None, n_contours=21,
+                      n_jobs=None, fig=None, vmax=None, n_contours=21,
                       verbose=None):
     """Plot MEG/EEG fields on head surface and helmet in 3D.
 

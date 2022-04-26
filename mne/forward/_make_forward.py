@@ -530,7 +530,7 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
 
 @verbose
 def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
-                          mindist=0.0, ignore_ref=False, n_jobs=1,
+                          mindist=0.0, ignore_ref=False, n_jobs=None, *,
                           verbose=None):
     """Calculate a forward solution for a subject.
 
@@ -640,7 +640,8 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
 
 
 @verbose
-def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
+def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *,
+                        verbose=None):
     """Convert dipole object to source estimate and calculate forward operator.
 
     The instance of Dipole is converted to a discrete source space,

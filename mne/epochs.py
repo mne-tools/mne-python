@@ -1182,7 +1182,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  proj=False, bandwidth=None, adaptive=False, low_bias=True,
                  normalization='length', picks=None, ax=None, color='black',
                  xscale='linear', area_mode='std', area_alpha=0.33,
-                 dB=True, estimate='auto', show=True, n_jobs=1,
+                 dB=True, estimate='auto', show=True, n_jobs=None,
                  average=False, line_alpha=None, spatial_colors=True,
                  sphere=None, exclude='bads', verbose=None):
         return plot_epochs_psd(self, fmin=fmin, fmax=fmax, tmin=tmin,
@@ -1201,7 +1201,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                          tmax=None, proj=False, bandwidth=None, adaptive=False,
                          low_bias=True, normalization='length', ch_type=None,
                          cmap=None, agg_fun=None, dB=True,
-                         n_jobs=1, normalize=False, cbar_fmt='auto',
+                         n_jobs=None, normalize=False, cbar_fmt='auto',
                          outlines='head', axes=None, show=True,
                          sphere=None, vlim=(None, None), verbose=None):
         return plot_epochs_psd_topomap(
@@ -1583,7 +1583,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                               tmax=tmax)
 
     @verbose
-    def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
+    def apply_function(self, fun, picks=None, dtype=None, n_jobs=None,
                        channel_wise=True, verbose=None, **kwargs):
         """Apply a function to a subset of channels.
 

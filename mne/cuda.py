@@ -168,13 +168,13 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft,
             except Exception as exp:
                 logger.info('CUDA not used, could not instantiate memory '
                             '(arrays may be too large: "%s"), falling back to '
-                            'n_jobs=1' % str(exp))
+                            'n_jobs=None' % str(exp))
             cuda_dict.update(h_fft=h_fft,
                              rfft=_cuda_upload_rfft,
                              irfft=_cuda_irfft_get)
         else:
             logger.info('CUDA not used, CUDA could not be initialized, '
-                        'falling back to n_jobs=1')
+                        'falling back to n_jobs=None')
     return n_jobs, cuda_dict
 
 
@@ -265,14 +265,14 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
             except Exception:
                 logger.info('CUDA not used, could not instantiate memory '
                             '(arrays may be too large), falling back to '
-                            'n_jobs=1')
+                            'n_jobs=None')
             else:
                 cuda_dict.update(use_cuda=True,
                                  rfft=_cuda_upload_rfft,
                                  irfft=_cuda_irfft_get)
         else:
             logger.info('CUDA not used, CUDA could not be initialized, '
-                        'falling back to n_jobs=1')
+                        'falling back to n_jobs=None')
     cuda_dict['W'] = W
     return n_jobs, cuda_dict
 

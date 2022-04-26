@@ -282,10 +282,10 @@ def test_resample_scipy():
 def test_n_jobs(n_jobs):
     """Test resampling against SciPy."""
     x = np.random.RandomState(0).randn(4, 100)
-    y1 = resample(x, 2, 1, n_jobs=1)
+    y1 = resample(x, 2, 1, n_jobs=None)
     y2 = resample(x, 2, 1, n_jobs=n_jobs)
     assert_allclose(y1, y2)
-    y1 = filter_data(x, 100., 0, 40, n_jobs=1)
+    y1 = filter_data(x, 100., 0, 40, n_jobs=None)
     y2 = filter_data(x, 100., 0, 40, n_jobs=n_jobs)
     assert_allclose(y1, y2)
 
@@ -426,7 +426,7 @@ def test_filters():
     assert_array_almost_equal(bp[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
     # note that on systems without CUDA, this line serves as a test for a
-    # graceful fallback to n_jobs=1
+    # graceful fallback to n_jobs=None
     bp_up_dn = resample(resample(bp, 2, 1, n_jobs='cuda'), 1, 2, n_jobs='cuda')
     assert_array_almost_equal(bp[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
@@ -552,7 +552,7 @@ def test_filter_auto():
 def test_cuda_fir():
     """Test CUDA-based filtering."""
     # Using `n_jobs='cuda'` on a non-CUDA system should be fine,
-    # as it should fall back to using n_jobs=1.
+    # as it should fall back to using n_jobs=None.
     rng = np.random.RandomState(0)
     sfreq = 500
     sig_len_secs = 20
@@ -598,7 +598,7 @@ def test_cuda_resampling():
         for N in (997, 1000):  # one prime, one even
             a = rng.randn(2, N)
             for fro, to in ((1, 2), (2, 1), (1, 3), (3, 1)):
-                a1 = resample(a, fro, to, n_jobs=1, npad='auto',
+                a1 = resample(a, fro, to, n_jobs=None, npad='auto',
                               window=window)
                 a2 = resample(a, fro, to, n_jobs='cuda', npad='auto',
                               window=window)

@@ -273,7 +273,7 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
 
 def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
                  n_cycles=7.0, zero_mean=None, time_bandwidth=None,
-                 use_fft=True, decim=1, output='complex', n_jobs=1,
+                 use_fft=True, decim=1, output='complex', n_jobs=None,
                  verbose=None):
     """Compute time-frequency transforms.
 
@@ -689,7 +689,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
 
 @verbose
 def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
-               n_jobs=1, picks=None, zero_mean=True, average=True,
+               n_jobs=None, picks=None, zero_mean=True, average=True,
                output='power', verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
@@ -758,7 +758,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 @verbose
 def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
                      zero_mean=False, use_fft=True, decim=1, output='complex',
-                     n_jobs=1, verbose=None):
+                     n_jobs=None, verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
     Same computation as `~mne.time_frequency.tfr_morlet`, but operates on
@@ -833,7 +833,7 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
 @verbose
 def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                    use_fft=True, return_itc=True, decim=1,
-                   n_jobs=1, picks=None, average=True, verbose=None):
+                   n_jobs=None, picks=None, average=True, verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
     Same computation as `~mne.time_frequency.tfr_array_multitaper`, but

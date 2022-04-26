@@ -706,7 +706,7 @@ class _BaseSourceEstimate(TimeMixin, _VerboseDep):
         return self  # return self for chaining methods
 
     @verbose
-    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
+    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=None,
                  verbose=None):
         """Resample data.
 

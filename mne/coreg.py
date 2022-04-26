@@ -1085,7 +1085,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
 
 @verbose
 def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
-                       subjects_dir=None, n_jobs=1, verbose=None):
+                       subjects_dir=None, n_jobs=None, verbose=None):
     """Scale a source space for an mri created with scale_mri().
 
     Parameters

@@ -173,7 +173,7 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, origin, miss=None):
     logger.info(f'    Computing dot products for {len(coils_from)} '
                 f'{kind.upper()} channel{_pl(coils_from)}...')
     self_dots = _do_self_dots(int_rad, False, coils_from, origin, kind,
-                              lut_fun, n_fact, n_jobs=1)
+                              lut_fun, n_fact, n_jobs=None)
     logger.info(f'    Computing cross products for {len(coils_from)} → '
                 f'{len(coils_to)} {kind.upper()} channel{_pl(coils_to)}...')
     cross_dots = _do_cross_dots(int_rad, False, coils_from, coils_to,
@@ -273,7 +273,7 @@ def _as_meg_type_inst(inst, ch_type='grad', mode='fast'):
 
 @verbose
 def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
-                          n_jobs=1, origin=(0., 0., 0.04), verbose=None):
+                          n_jobs=None, origin=(0., 0., 0.04), verbose=None):
     """Re-map M/EEG data to a surface.
 
     Parameters
@@ -385,7 +385,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 @verbose
 def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
                    ch_type=None, mode='fast', meg_surf='helmet',
-                   origin=(0., 0., 0.04), n_jobs=1, verbose=None):
+                   origin=(0., 0., 0.04), n_jobs=None, verbose=None):
     """Compute surface maps used for field display in 3D.
 
     Parameters

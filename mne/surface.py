@@ -549,7 +549,7 @@ class _DistanceQuery(object):
 
 
 @verbose
-def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
+def _points_outside_surface(rr, surf, n_jobs=None, verbose=None):
     """Check whether points are outside a surface.
 
     Parameters
@@ -627,7 +627,7 @@ class _CheckInside(object):
                 self.surf['rr'], self.surf['tris']).clean()
 
     @verbose
-    def __call__(self, rr, n_jobs=1, verbose=None):
+    def __call__(self, rr, n_jobs=None, verbose=None):
         n_orig = len(rr)
         logger.info(f'Checking surface interior status for '
                     f'{n_orig} point{_pl(n_orig, " ")}...')

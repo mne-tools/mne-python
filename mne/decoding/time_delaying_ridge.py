@@ -15,7 +15,7 @@ from ..parallel import check_n_jobs
 from ..utils import warn, ProgressBar, logger
 
 
-def _compute_corrs(X, y, smin, smax, n_jobs=1, fit_intercept=False,
+def _compute_corrs(X, y, smin, smax, n_jobs=None, fit_intercept=False,
                    edge_correction=True):
     """Compute auto- and cross-correlations."""
     if fit_intercept:
@@ -272,7 +272,7 @@ class TimeDelayingRidge(BaseEstimator):
     _estimator_type = "regressor"
 
     def __init__(self, tmin, tmax, sfreq, alpha=0., reg_type='ridge',
-                 fit_intercept=True, n_jobs=1, edge_correction=True):
+                 fit_intercept=True, n_jobs=None, edge_correction=True):
         if tmin > tmax:
             raise ValueError('tmin must be <= tmax, got %s and %s'
                              % (tmin, tmax))

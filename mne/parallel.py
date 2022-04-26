@@ -29,8 +29,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
     ----------
     func : callable
         A function.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     max_nbytes : int, str, or None
         Threshold on the minimum size of arrays passed to the workers that
         triggers automated memory mapping. Can be an int in Bytes,
@@ -63,6 +62,8 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
     """
     should_print = (logger.level <= logging.INFO)
     # for a single job, we don't need joblib
+    if n_jobs is None:
+        n_jobs = 1  # TODO: Actually fix this
     if n_jobs != 1:
         try:
             from joblib import Parallel, delayed

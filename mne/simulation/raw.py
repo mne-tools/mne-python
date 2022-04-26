@@ -126,7 +126,7 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
 
 @verbose
 def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
-                 mindist=1.0, interp='cos2', n_jobs=1, use_cps=True,
+                 mindist=1.0, interp='cos2', n_jobs=None, use_cps=True,
                  forward=None, first_samp=0, max_iter=10000, verbose=None):
     u"""Simulate raw data.
 
@@ -332,7 +332,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
 
 
 @verbose
-def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
+def add_eog(raw, head_pos=None, interp='cos2', n_jobs=None, random_state=None,
             verbose=None):
     """Add blink noise to raw data.
 
@@ -386,7 +386,7 @@ def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
 
 
 @verbose
-def add_ecg(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
+def add_ecg(raw, head_pos=None, interp='cos2', n_jobs=None, random_state=None,
             verbose=None):
     """Add ECG noise to raw data.
 
@@ -529,7 +529,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
 
 
 @verbose
-def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
+def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=None, verbose=None):
     """Add cHPI activations to raw data.
 
     Parameters

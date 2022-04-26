@@ -61,7 +61,7 @@ def _identity(x):
 def test_progressbar_parallel_basic(capsys):
     """Test ProgressBar with parallel computing, basic version."""
     assert capsys.readouterr().out == ''
-    parallel, p_fun, _ = parallel_func(_identity, total=10, n_jobs=1,
+    parallel, p_fun, _ = parallel_func(_identity, total=10, n_jobs=None,
                                        verbose=True)
     with use_log_level(True):
         out = parallel(p_fun(x) for x in range(10))
@@ -81,7 +81,7 @@ def test_progressbar_parallel_advanced(capsys):
     """Test ProgressBar with parallel computing, advanced version."""
     assert capsys.readouterr().out == ''
     # This must be "1" because "capsys" won't get stdout properly otherwise
-    parallel, p_fun, _ = parallel_func(_identity_block, n_jobs=1,
+    parallel, p_fun, _ = parallel_func(_identity_block, n_jobs=None,
                                        verbose=False)
     arr = np.arange(10)
     with use_log_level(True):
@@ -111,7 +111,7 @@ def test_progressbar_parallel_more(capsys):
     """Test ProgressBar with parallel computing, advanced version."""
     assert capsys.readouterr().out == ''
     # This must be "1" because "capsys" won't get stdout properly otherwise
-    parallel, p_fun, _ = parallel_func(_identity_block_wide, n_jobs=1,
+    parallel, p_fun, _ = parallel_func(_identity_block_wide, n_jobs=None,
                                        verbose=False)
     arr = np.arange(10)
     with use_log_level(True):
