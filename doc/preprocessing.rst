@@ -76,6 +76,7 @@ Projections:
    annotate_nan
    compute_average_dev_head_t
    compute_current_source_density
+   compute_bridged_electrodes
    compute_fine_calibration
    compute_maxwell_basis
    compute_proj_ecg

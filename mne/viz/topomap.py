@@ -2619,3 +2619,52 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
     plt_show(show)
 
     return fig
+
+
+def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
+                            colorbar=True, sphere=None, topomap_args=None):
+    """Topoplot electrode distance matrix with bridged electrodes connected.
+
+    Parameters
+    ----------
+    %(info_not_none)s
+    bridged_idx : list of tuple
+        The indices of channels marked as bridged with each bridged
+        pair stored as a tuple.
+    ed_matrix : ndarray of float, shape (n_channels, n_channels)
+        The electrical distance matrix for each pair of EEG electrodes.
+    title : str
+        A title to add to the plot.
+    colorbar : bool
+        Whether to add a colorbar.
+    %(sphere_topomap)s
+    topomap_args : dict | None
+        Arguments to pass to :func:`mne.viz.plot_topomap`.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        The topoplot figure handle.
+    """
+    picks = pick_types(info, eeg=True)
+    # fill in lower triangular
+    tril_idx = np.tril_indices(picks.size)
+    for epo_idx in range(ed_matrix.shape[0]):
+        ed_matrix[epo_idx][tril_idx] = ed_matrix[epo_idx].T[tril_idx]
+    elec_dists = np.median(np.nanmin(ed_matrix, axis=1), axis=0)
+    if topomap_args is None:
+        topomap_args = dict()
+    if 'vmax' not in topomap_args:
+        topomap_args['vmax'] = max([elec_dists[idx] for idxs in bridged_idx
+                                    for idx in idxs]) * 100
+    im, cn = plot_topomap(elec_dists, info, **topomap_args)
+    # add bridged connections
+    pos = _find_topomap_coords(info, picks, sphere=sphere)
+    for idx0, idx1 in bridged_idx:
+        im.axes.plot([pos[idx0][0], pos[idx1][0]],
+                     [pos[idx0][1], pos[idx1][1]], color='r')
+    if title is not None:
+        im.axes.set_title(title)
+    if colorbar:
+        cax = im.figure.colorbar(im)
+        cax.set_label(r'Electrical Distance ($\mu$$V^2$)')

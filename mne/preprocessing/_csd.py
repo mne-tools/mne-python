@@ -15,7 +15,8 @@
 import numpy as np
 
 from .. import pick_types
-from ..utils import _validate_type, _ensure_int, _check_preload, verbose
+from ..utils import (_validate_type, _ensure_int, _check_preload, verbose,
+                     logger)
 from ..io import BaseRaw
 from ..io.constants import FIFF
 from ..epochs import BaseEpochs, make_fixed_length_epochs
@@ -178,10 +179,18 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
 
 
 @verbose
-def compute_bridged_electrodes(inst, ed_threshold=3, epoch_threshold=0.5,
-                               l_freq=0.5, h_freq=30, epoch_duration=2,
-                               verbose=None):
+def compute_bridged_electrodes(inst, ed_threshold=3, lm_cutoff=5,
+                               n_bins=20, ed_max=12, epoch_threshold=0.5,
+                               l_freq=0.5, h_freq=30,
+                               epoch_duration=2, verbose=None):
     """Compute bridged EEG electrodes using the intrinsic Hjorth algorithm.
+
+    First an electrical distance matrix is computed by taking the pairwise
+    variance. Then, a local maximum near 0 :math:`{\\mu}`V:sup:`2` and a
+    a local minimum below 5 :math:`{\\mu}`V:sup:`2` are found, the presence
+    of which is indicative of bridging. Finally, electrode distances below
+    the local minimum are marked as bridged as long as they happen on more
+    than the ``epoch_threshold`` proportion of epochs.
 
     Based on :footcite:`TenkeKayser2001,GreischarEtAl2004,DelormeMakeig2004`.
     Original implementation
@@ -192,8 +201,19 @@ def compute_bridged_electrodes(inst, ed_threshold=3, epoch_threshold=0.5,
     inst : instance of Raw, Epochs or Evoked
         The data to compute electrode bridging on.
     ed_threshold : float
-        The bridged electrode threshold in μV:sup:`2`. The default is
-        3 μV:sup:`2` as used in :footcite:`GreischarEtAl2004`.
+        The bridged electrode threshold in :math:`{\\mu}`V:sup:`2`. The
+        default is 3 :math:`{\\mu}`V:sup:`2` as used in
+        :footcite:`GreischarEtAl2004`.
+    lm_cutoff : float
+        The distance in :math:`{\\mu}`V:sup:`2` cutoff below which to
+        search for a local minimum (lm) indicative of bridging.
+        Defaults to 5 :math:`{\\mu}`V:sup:`2`.
+    n_bins : int
+        The number of bins to use to create a histogram of the electrical
+        distance matrix.
+    ed_max : float
+        The maximum electrical distance to consider when making the
+        histogram of electrical distances.
     epoch_threshold : float
         The proportion of epochs with electrical distance less than
         ``ed_threshold`` in order to consider the channel bridged.
@@ -231,46 +251,55 @@ def compute_bridged_electrodes(inst, ed_threshold=3, epoch_threshold=0.5,
         raise RuntimeError('No EEG channels found, cannot compute '
                            'electrode bridging')
     # first, filter
-    inst.filter(l_freq=l_freq, h_freq=h_freq, picks=picks)
+    inst.filter(l_freq=l_freq, h_freq=h_freq, picks=picks, verbose=False)
 
     if isinstance(inst, BaseRaw):
         inst = make_fixed_length_epochs(inst, duration=epoch_duration,
-                                        preload=True)
+                                        preload=True, verbose=False)
 
     # standardize shape
     data = inst.get_data()
     if isinstance(inst, Evoked):
         data = data.reshape((1,) + data.shape)  # expand evoked
 
-    # next, compute electrical distance matrix
+    # next, compute electrical distance matrix, upper triangular
     n_epochs = data.shape[0]
-    ed_matrix = np.zeros((n_epochs, picks.size, picks.size))
+    ed_matrix = np.zeros((n_epochs, picks.size, picks.size)) * np.nan
     for i, idx0 in enumerate(picks):
-        for j, idx1 in enumerate(picks[:i + 1]):
-            ed_matrix[:, i, j] = np.var(data[:, idx0] - data[:, idx1], axis=1)
+        for j, idx1 in enumerate(picks[i + 1:]):
+            ed_matrix[:, i, i + 1 + j] = \
+                np.var(data[:, idx0] - data[:, idx1], axis=1)
 
     # scale, fill in other half, diagonal
     ed_matrix *= 1e12  # scale to muV**2
-    ed_matrix += np.swapaxes(ed_matrix, 2, 1)
-    for i in range(n_epochs):
-        np.fill_diagonal(ed_matrix[i], np.inf)
 
-    '''
-    ed_matrix = np.median(ed_matrix, axis=0)
-    np.fill_diagonal(ed_matrix, 1)
-    # now, compute weighting factor
-    weights = (1 / ed_matrix) / np.max(1 / ed_matrix, axis=0)
+    # initialize bridged indices
+    bridged_idx = list()
 
-    # finally compute intrinsic hjorth by subtracting scale nearest
-    # electical distance neighbor
-    hjorth = np.empty(data.shape)
+    # compute histogram
+    bins, edges = np.histogram(ed_matrix[~np.isnan(ed_matrix)],
+                               bins=np.linspace(0, ed_max, n_bins))
+    centers = (edges[1:] + edges[:-1]) / 2
+
+    # check if has peak near 0, if not, no bridges
+    if np.diff(bins[centers <= ed_threshold]).sum() >= 0:
+        return bridged_idx, ed_matrix
+
+    # find local minimum, also indicative of bridging
+    centers_interp = np.linspace(0, lm_cutoff, n_bins)
+    bins_interp = np.interp(centers_interp, centers, bins)
+    local_minimum = centers_interp[np.argmin(bins_interp)]
+
+    # find electrodes that are below the cutoff local minumum on
+    # `epochs_threshold` proportion of epochs
+    check_bridged = ed_matrix < local_minimum
     for i, idx0 in enumerate(picks):
-        idx1 = np.argmax(weights[idx0])
-        hjorth[i] = data[idx0] - data[idx1] * weights[idx0, idx1]
-    hjorth *= 1e12  # scale to μV**2
-    '''
+        for j, idx1 in enumerate(picks[i + 1:]):
+            if np.sum(check_bridged[:, i, i + 1 + j]) / \
+                    n_epochs > epoch_threshold:
+                logger.info('Bridge detected between '
+                            f'{inst.ch_names[picks[idx0]]} and '
+                            f'{inst.ch_names[picks[idx1]]}')
+                bridged_idx.append((idx0, idx1))
 
-    bridged_idx = [idx for i, idx in enumerate(picks) if
-                   np.sum(np.min(ed_matrix[:, i], axis=0) < ed_threshold) >
-                   n_epochs * epoch_threshold]
     return bridged_idx, ed_matrix

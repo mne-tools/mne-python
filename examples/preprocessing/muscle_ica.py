@@ -114,3 +114,8 @@ for sub in (1, 2):
     print(f'Manually found muscle artifact ICA components:      {muscle_idx}\n'
           'Automatically found muscle artifact ICA components: '
           f'{muscle_idx_auto}')
+
+# %%
+# References
+# ----------
+# .. footbibliography::
