@@ -1450,6 +1450,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar',
     """
     from scipy.signal import get_window
     from scipy.fft import ifftshift, fftfreq
+    n_jobs = check_n_jobs(n_jobs)
     # check explicitly for backwards compatibility
     if not isinstance(axis, int):
         err = ("The axis parameter needs to be an integer (got %s). "
@@ -2168,6 +2169,7 @@ class FilterMixin(object):
         inverse, and computing the envelope in source space.
         """
         _check_preload(self, 'inst.apply_hilbert')
+        n_jobs = check_n_jobs(n_jobs)
         if n_fft is None:
             n_fft = len(self.times)
         elif isinstance(n_fft, str):

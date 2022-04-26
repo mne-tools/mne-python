@@ -38,7 +38,7 @@ from ..annotations import (_annotations_starts_stops, _write_annotations,
                            _handle_meas_date)
 from ..filter import (FilterMixin, notch_filter, resample, _resamp_ratio_len,
                       _resample_stim_channels, _check_fun)
-from ..parallel import parallel_func
+from ..parallel import parallel_func, check_n_jobs
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, fill_doc, copy_doc,
                      check_fname, _get_stim_channel, _stamp_to_dt,
@@ -999,6 +999,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             The raw object with transformed data.
         """
         _check_preload(self, 'raw.apply_function')
+        n_jobs = check_n_jobs(n_jobs)
         picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
 
         if not callable(fun):

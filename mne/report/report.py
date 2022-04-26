@@ -442,7 +442,7 @@ def _get_bem_contour_figs_as_arrays(
         prefer = 'threads'
 
     parallel, p_fun, n_jobs = parallel_func(
-        _plot_mri_contours, use_jobs, prefer=prefer, max_jobs=max(1, len(sl)))
+        _plot_mri_contours, n_jobs, prefer=prefer, max_jobs=len(sl))
     outs = parallel(
         p_fun(
             slices=s, mri_fname=mri_fname, surfaces=surfaces,
@@ -450,7 +450,7 @@ def _get_bem_contour_figs_as_arrays(
             show_orientation=show_orientation, width=width,
             slices_as_subplots=False
         )
-        for s in np.array_split(sl, use_jobs)
+        for s in np.array_split(sl, n_jobs)
     )
     out = list()
     for o in outs:
@@ -552,7 +552,7 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
 
     parallel, p_fun, n_jobs = parallel_func(
         func=_plot_one_ica_property,
-        max_jobs=max(1, len(picks)),
+        max_jobs=len(picks),
     )
     outs = parallel(
         p_fun(
@@ -2445,8 +2445,8 @@ class Report(_VerboseDep):
         # render plots in parallel; check that n_jobs <= # of files
         logger.info(f'Iterating over {len(fnames)} potential files '
                     f'(this may take some ')
-        parallel, p_fun, n_jobs = parallel_func(self._iterate_files, use_jobs)
-        use_jobs = min(n_jobs, max(1, len(fnames)))
+        parallel, p_fun, n_jobs = parallel_func(
+            self._iterate_files, n_jobs, max_jobs=len(fnames))
         parallel(
             p_fun(
                 fnames=fname, cov=cov, sfreq=sfreq,
@@ -2454,7 +2454,7 @@ class Report(_VerboseDep):
                 n_time_points_evokeds=n_time_points_evokeds,
                 n_time_points_stcs=n_time_points_stcs, on_error=on_error,
                 stc_plot_kwargs=stc_plot_kwargs, topomap_kwargs=topomap_kwargs,
-            ) for fname in np.array_split(fnames, use_jobs)
+            ) for fname in np.array_split(fnames, n_jobs)
         )
 
         # Render BEM
@@ -3062,7 +3062,7 @@ class Report(_VerboseDep):
             topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
             parallel, p_fun, n_jobs = parallel_func(
                 func=self._plot_one_evoked_topomap_timepoint,
-                n_jobs=n_jobs, max_jobs=max(1, len(times)),
+                n_jobs=n_jobs, max_jobs=len(times),
             )
             fig_arrays = parallel(
                 p_fun(

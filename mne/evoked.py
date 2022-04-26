@@ -41,7 +41,7 @@ from .io.write import (start_and_end_file, start_block, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id, write_float, write_complex_float_matrix)
 from .io.base import TimeMixin, _check_maxshield, _get_ch_factors
-from .parallel import parallel_func
+from .parallel import parallel_func, check_n_jobs
 
 _aspect_dict = {
     'average': FIFF.FIFFV_ASPECT_AVERAGE,
@@ -224,6 +224,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         # check the dimension of the incoming evoked data
         _check_option('evoked.ndim', self._data.ndim, [2])
+        n_jobs = check_n_jobs(n_jobs)
 
         if n_jobs == 1:
             # modify data inplace to save memory

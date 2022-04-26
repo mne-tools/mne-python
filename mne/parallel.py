@@ -181,8 +181,8 @@ def check_n_jobs(n_jobs, allow_cuda=False, *, max_jobs=None):
                 warn('multiprocessing not installed. Cannot run in parallel.')
                 n_jobs = 1
     if max_jobs is not None:
-        max_jobs = _ensure_int(max_jobs, 'max_jobs')
-    if not isinstance(n_jobs, str):
-        n_jobs = min(_ensure_int(n_jobs, 'n_jobs'), max_jobs)
+        max_jobs = max(_ensure_int(max_jobs, 'max_jobs'), 1)
+        if not isinstance(n_jobs, str):
+            n_jobs = min(_ensure_int(n_jobs, 'n_jobs'), max_jobs)
 
     return n_jobs

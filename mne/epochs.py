@@ -44,7 +44,7 @@ from .baseline import rescale, _log_rescale, _check_baseline
 from .channels.channels import (UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import detrend, FilterMixin, _check_fun
-from .parallel import parallel_func
+from .parallel import parallel_func, check_n_jobs
 
 from .event import (_read_events_fif, make_fixed_length_events,
                     match_event_names)
@@ -1606,6 +1606,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         """
         _check_preload(self, 'epochs.apply_function')
         picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
+        n_jobs = check_n_jobs(n_jobs)
 
         if not callable(fun):
             raise ValueError('fun needs to be a function')

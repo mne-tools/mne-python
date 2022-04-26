@@ -29,7 +29,7 @@ raw = mne.io.read_raw_fif(raw_fname)
 raw.crop(tmin=100, tmax=130)  # take 30 seconds for speed
 
 # pick only EEG channels, muscle artifact is basically not picked up by MEG
-# if you have a simulatenous recording, you may want to do ICA on MEG and EEG
+# if you have a simultaneous recording, you may want to do ICA on MEG and EEG
 # separately
 raw.pick_types(eeg=True)
 
