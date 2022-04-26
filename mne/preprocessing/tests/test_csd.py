@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Test the compute_current_source_density function.
+"""Test the current source density and related functions.
 
 For each supported file format, implement a test.
 """
@@ -183,3 +183,7 @@ def test_csd_fif():
         ch.update(coil_type=FIFF.FIFFV_COIL_EEG, unit=FIFF.FIFF_UNIT_V)
         raw_csd._data[pick] = raw._data[pick]
     assert object_diff(raw.info, raw_csd.info) == ''
+
+
+def test_compute_bridged_electrodes():
+    """Test computing bridged electrodes."""

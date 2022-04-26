@@ -18,7 +18,7 @@ from .. import pick_types
 from ..utils import _validate_type, _ensure_int, _check_preload, verbose
 from ..io import BaseRaw
 from ..io.constants import FIFF
-from ..epochs import BaseEpochs
+from ..epochs import BaseEpochs, make_fixed_length_epochs
 from ..evoked import Evoked
 from ..bem import fit_sphere_to_headshape
 from ..channels.interpolation import _calc_g, _calc_h
@@ -175,3 +175,102 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
         inst.info['chs'][pick].update(coil_type=FIFF.FIFFV_COIL_EEG_CSD,
                                       unit=FIFF.FIFF_UNIT_V_M2)
     return inst
+
+
+@verbose
+def compute_bridged_electrodes(inst, ed_threshold=3, epoch_threshold=0.5,
+                               l_freq=0.5, h_freq=30, epoch_duration=2,
+                               verbose=None):
+    """Compute bridged EEG electrodes using the intrinsic Hjorth algorithm.
+
+    Based on :footcite:`TenkeKayser2001,GreischarEtAl2004,DelormeMakeig2004`.
+    Original implementation
+    https://psychophysiology.cpmc.columbia.edu/software/eBridge/index.html.
+
+    Parameters
+    ----------
+    inst : instance of Raw, Epochs or Evoked
+        The data to compute electrode bridging on.
+    ed_threshold : float
+        The bridged electrode threshold in μV:sup:`2`. The default is
+        3 μV:sup:`2` as used in :footcite:`GreischarEtAl2004`.
+    epoch_threshold : float
+        The proportion of epochs with electrical distance less than
+        ``ed_threshold`` in order to consider the channel bridged.
+        The default is 0.5.
+    l_freq : float
+        The low cutoff frequency to use. Default is 0.5 Hz.
+    h_freq : float
+        The high cutoff frequency to use. Default is 30 Hz.
+    epoch_duration : float
+        The time in seconds to divide the raw into fixed-length epochs
+        to check for consistent bridging. Only used if ``inst`` is
+        :class:`mne.io.BaseRaw`. The default is 2 seconds.
+    %(verbose)s
+
+    Returns
+    -------
+    bridged_idx : list of tuple
+        The indices of channels marked as bridged with each bridged
+        pair stored as a tuple.
+    ed_matrix : ndarray of float, shape (n_channels, n_channels)
+        The electrical distance matrix for each pair of EEG electrodes.
+
+    Notes
+    -----
+    .. versionadded:: 1.1
+
+    References
+    ----------
+    .. footbibliography::
+    """
+    _check_preload(inst, 'Computing bridged electrodes')
+    inst = inst.copy()  # don't modify original
+    picks = pick_types(inst.info, eeg=True)
+    if len(picks) == 0:
+        raise RuntimeError('No EEG channels found, cannot compute '
+                           'electrode bridging')
+    # first, filter
+    inst.filter(l_freq=l_freq, h_freq=h_freq, picks=picks)
+
+    if isinstance(inst, BaseRaw):
+        inst = make_fixed_length_epochs(inst, duration=epoch_duration,
+                                        preload=True)
+
+    # standardize shape
+    data = inst.get_data()
+    if isinstance(inst, Evoked):
+        data = data.reshape((1,) + data.shape)  # expand evoked
+
+    # next, compute electrical distance matrix
+    n_epochs = data.shape[0]
+    ed_matrix = np.zeros((n_epochs, picks.size, picks.size))
+    for i, idx0 in enumerate(picks):
+        for j, idx1 in enumerate(picks[:i + 1]):
+            ed_matrix[:, i, j] = np.var(data[:, idx0] - data[:, idx1], axis=1)
+
+    # scale, fill in other half, diagonal
+    ed_matrix *= 1e12  # scale to muV**2
+    ed_matrix += np.swapaxes(ed_matrix, 2, 1)
+    for i in range(n_epochs):
+        np.fill_diagonal(ed_matrix[i], np.inf)
+
+    '''
+    ed_matrix = np.median(ed_matrix, axis=0)
+    np.fill_diagonal(ed_matrix, 1)
+    # now, compute weighting factor
+    weights = (1 / ed_matrix) / np.max(1 / ed_matrix, axis=0)
+
+    # finally compute intrinsic hjorth by subtracting scale nearest
+    # electical distance neighbor
+    hjorth = np.empty(data.shape)
+    for i, idx0 in enumerate(picks):
+        idx1 = np.argmax(weights[idx0])
+        hjorth[i] = data[idx0] - data[idx1] * weights[idx0, idx1]
+    hjorth *= 1e12  # scale to μV**2
+    '''
+
+    bridged_idx = [idx for i, idx in enumerate(picks) if
+                   np.sum(np.min(ed_matrix[:, i], axis=0) < ed_threshold) >
+                   n_epochs * epoch_threshold]
+    return bridged_idx, ed_matrix
