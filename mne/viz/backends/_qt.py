@@ -90,6 +90,10 @@ class _QtLayout(_AbstractLayout):
         else:
             layout.addWidget(widget, stretch)
 
+    def _layout_create(self, vertical=True):
+        layout = QVBoxLayout() if vertical else QHBoxLayout()
+        return layout
+
 
 class _QtDock(_AbstractDock, _QtLayout):
     def _dock_initialize(self, window=None, name="Controls",
@@ -674,6 +678,9 @@ class _QtWindow(_AbstractWindow):
         else:
             QIcon.setThemeName('light')
 
+    def _window_create(self):
+        return _MNEMainWindow()
+
 
 class _QtWidgetList(_AbstractWidgetList):
     def __init__(self, src):
@@ -806,7 +813,7 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
         super().__init__(*args, **kwargs)
         self._window_initialize()
 
-    def show(self):
+    def show(self, simple=False):
         super().show()
         with _qt_disable_paint(self.plotter):
             with self._window_ensure_minimum_sizes():

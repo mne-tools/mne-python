@@ -14,8 +14,7 @@ from scipy.ndimage import maximum_filter
 
 from qtpy import QtCore, QtGui
 from qtpy.QtCore import Signal
-from qtpy.QtWidgets import (QGridLayout,
-                            QVBoxLayout, QHBoxLayout, QLabel,
+from qtpy.QtWidgets import (QLabel,
                             QMessageBox, QWidget, QAbstractItemView,
                             QListView, QSlider, QPushButton,
                             QComboBox, QPlainTextEdit)
@@ -27,7 +26,7 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 
 from .._freesurfer import _import_nibabel
-from ..viz.backends.renderer import _get_renderer, _get_window
+from ..viz.backends.renderer import _get_renderer
 from ..viz.utils import safe_event
 from ..surface import _read_mri_surface, _voxel_neighbors, _marching_cubes
 from ..transforms import (apply_trans, _frame_to_str, _get_trans,
@@ -120,9 +119,6 @@ class IntracranialElectrodeLocator():
                   obtained from the image header. Images will be resampled to
                   dimensions [256, 256, 256] for display.
         """
-        # initialize QMainWindow class
-        self._window = _get_window()
-
         if not info.ch_names:
             raise ValueError('No channels found in `info` to locate')
 
@@ -157,17 +153,22 @@ class IntracranialElectrodeLocator():
         self._group_channels(groups)
 
         # GUI design
-
-        # Main plots: make one plot for each view; sagittal, coronal, axial
-        plt_grid = QGridLayout()
-        plts = [_make_slice_plot(), _make_slice_plot(), _make_slice_plot()]
-        self._figs = [plts[0][1], plts[1][1], plts[2][1]]
-        plt_grid.addWidget(plts[0][0], 0, 0)
-        plt_grid.addWidget(plts[1][0], 0, 1)
-        plt_grid.addWidget(plts[2][0], 1, 0)
         self._renderer = _get_renderer(
             name='IEEG Locator', size=(400, 400), bgcolor='w')
-        plt_grid.addWidget(self._renderer.plotter)
+        self._window = self._renderer._window_create()
+
+        # Main plots: make one plot for each view; sagittal, coronal, axial
+        plts = [_make_slice_plot(), _make_slice_plot(), _make_slice_plot()]
+        self._figs = [plts[0][1], plts[1][1], plts[2][1]]
+        row1 = self._renderer._layout_create(vertical=False)
+        self._renderer._layout_add_widget(row1, plts[0][0])
+        self._renderer._layout_add_widget(row1, plts[1][0])
+        row2 = self._renderer._layout_create(vertical=False)
+        self._renderer._layout_add_widget(row2, plts[2][0])
+        self._renderer._layout_add_widget(row2, self._renderer.plotter)
+        plt_grid = self._renderer._layout_create(vertical=True)
+        self._renderer._layout_add_widget(plt_grid, row1)
+        self._renderer._layout_add_widget(plt_grid, row2)
 
         # Channel selector
         self._ch_list = QListView()
@@ -192,11 +193,11 @@ class IntracranialElectrodeLocator():
             self._update_lines(group)
 
         # Put everything together
-        plot_ch_hbox = QHBoxLayout()
+        plot_ch_hbox = self._renderer._layout_create(vertical=False)
         plot_ch_hbox.addLayout(plt_grid)
         plot_ch_hbox.addWidget(self._ch_list)
 
-        main_vbox = QVBoxLayout()
+        main_vbox = self._renderer._layout_create(vertical=True)
         main_vbox.addLayout(button_hbox)
         main_vbox.addLayout(slider_hbox)
         main_vbox.addLayout(plot_ch_hbox)
@@ -421,7 +422,7 @@ class IntracranialElectrodeLocator():
 
     def _get_button_bar(self):
         """Make a bar with buttons for user interactions."""
-        hbox = QHBoxLayout()
+        hbox = self._renderer._layout_create(vertical=False)
 
         help_button = QPushButton('Help')
         help_button.released.connect(self._show_help)
@@ -492,14 +493,14 @@ class IntracranialElectrodeLocator():
             slider.keyPressEvent = self._key_press_event
             return slider
 
-        slider_hbox = QHBoxLayout()
+        slider_hbox = self._renderer._layout_create(vertical=False)
 
-        ch_vbox = QVBoxLayout()
+        ch_vbox = self._renderer._layout_create(vertical=True)
         ch_vbox.addWidget(make_label('ch alpha'))
         ch_vbox.addWidget(make_label('ch radius'))
         slider_hbox.addLayout(ch_vbox)
 
-        ch_slider_vbox = QVBoxLayout()
+        ch_slider_vbox = self._renderer._layout_create(vertical=True)
         self._alpha_slider = make_slider(0, 100, self._ch_alpha * 100,
                                          self._update_ch_alpha)
         ch_plot_max = _CH_PLOT_SIZE // 50  # max 1 / 50 of plot size
@@ -509,12 +510,12 @@ class IntracranialElectrodeLocator():
         ch_slider_vbox.addWidget(self._radius_slider)
         slider_hbox.addLayout(ch_slider_vbox)
 
-        ct_vbox = QVBoxLayout()
+        ct_vbox = self._renderer._layout_create(vertical=True)
         ct_vbox.addWidget(make_label('CT min'))
         ct_vbox.addWidget(make_label('CT max'))
         slider_hbox.addLayout(ct_vbox)
 
-        ct_slider_vbox = QVBoxLayout()
+        ct_slider_vbox = self._renderer._layout_create(vertical=True)
         ct_min = int(round(np.nanmin(self._ct_data)))
         ct_max = int(round(np.nanmax(self._ct_data)))
         self._ct_min_slider = make_slider(
@@ -528,7 +529,7 @@ class IntracranialElectrodeLocator():
 
     def _get_bottom_bar(self):
         """Make a bar at the bottom with information in it."""
-        hbox = QHBoxLayout()
+        hbox = self._renderer._layout_create(vertical=False)
 
         hbox.addStretch(3)
 

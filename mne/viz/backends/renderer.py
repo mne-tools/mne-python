@@ -40,11 +40,6 @@ def _get_renderer(*args, **kwargs):
     return backend._Renderer(*args, **kwargs)
 
 
-def _get_window(*args, **kwargs):
-    _get_3d_backend()
-    return backend._MNEMainWindow(*args, **kwargs)
-
-
 def _check_3d_backend_name(backend_name):
     _validate_type(backend_name, str, 'backend_name')
     backend_name = 'pyvistaqt' if backend_name == 'pyvista' else backend_name
