@@ -22,7 +22,6 @@ from ..transforms import (transform_surface_to, read_trans, _find_trans,
 from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _do_cross_dots)
-from ..parallel import check_n_jobs
 from ..utils import logger, verbose, _check_option, _reg_pinv, _pl
 from ..epochs import EpochsArray, BaseEpochs
 from ..evoked import Evoked, EvokedArray
@@ -314,7 +313,6 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     # deal with coordinate frames here -- always go to "head" (easiest)
     orig_surf = surf
     surf = transform_surface_to(deepcopy(surf), 'head', trans)
-    n_jobs = check_n_jobs(n_jobs)
     origin = _check_origin(origin, info)
 
     #

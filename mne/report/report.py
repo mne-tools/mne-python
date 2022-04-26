@@ -53,7 +53,7 @@ from ..epochs import read_epochs, BaseEpochs
 from ..preprocessing.ica import read_ica
 from .. import dig_mri_distances
 from ..minimum_norm import read_inverse_operator, InverseOperator
-from ..parallel import parallel_func, check_n_jobs
+from ..parallel import parallel_func
 
 _BEM_VIEWS = ('axial', 'sagittal', 'coronal')
 
@@ -435,14 +435,14 @@ def _get_bem_contour_figs_as_arrays(
     """
     # Matplotlib <3.2 doesn't work nicely with process-based parallelization
     from matplotlib import __version__ as MPL_VERSION
+    # TODO: Maybe we should only prefer if there is no context now?
     if _compare_version(MPL_VERSION, '>=', '3.2'):
         prefer = 'processes'
     else:
         prefer = 'threads'
 
-    use_jobs = min(n_jobs, max(1, len(sl)))
-    parallel, p_fun, _ = parallel_func(_plot_mri_contours, use_jobs,
-                                       prefer=prefer)
+    parallel, p_fun, n_jobs = parallel_func(
+        _plot_mri_contours, use_jobs, prefer=prefer, max_jobs=max(1, len(sl)))
     outs = parallel(
         p_fun(
             slices=s, mri_fname=mri_fname, surfaces=surfaces,
@@ -550,10 +550,9 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
         plt.close(fig)
         return fig_array
 
-    use_jobs = min(n_jobs, max(1, len(picks)))
-    parallel, p_fun, _ = parallel_func(
+    parallel, p_fun, n_jobs = parallel_func(
         func=_plot_one_ica_property,
-        n_jobs=use_jobs
+        max_jobs=max(1, len(picks)),
     )
     outs = parallel(
         p_fun(
@@ -2368,7 +2367,6 @@ class Report(_VerboseDep):
         image_format = _check_image_format(self, image_format)
         _check_option('on_error', on_error, ['ignore', 'warn', 'raise'])
 
-        n_jobs = check_n_jobs(n_jobs)
         self.data_path = data_path
 
         if self.title is None:
@@ -2447,8 +2445,8 @@ class Report(_VerboseDep):
         # render plots in parallel; check that n_jobs <= # of files
         logger.info(f'Iterating over {len(fnames)} potential files '
                     f'(this may take some ')
+        parallel, p_fun, n_jobs = parallel_func(self._iterate_files, use_jobs)
         use_jobs = min(n_jobs, max(1, len(fnames)))
-        parallel, p_fun, _ = parallel_func(self._iterate_files, use_jobs)
         parallel(
             p_fun(
                 fnames=fname, cov=cov, sfreq=sfreq,
@@ -3062,11 +3060,9 @@ class Report(_VerboseDep):
             dom_id = None
         else:
             topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
-
-            use_jobs = min(n_jobs, max(1, len(times)))
-            parallel, p_fun, _ = parallel_func(
+            parallel, p_fun, n_jobs = parallel_func(
                 func=self._plot_one_evoked_topomap_timepoint,
-                n_jobs=use_jobs
+                n_jobs=n_jobs, max_jobs=max(1, len(times)),
             )
             fig_arrays = parallel(
                 p_fun(

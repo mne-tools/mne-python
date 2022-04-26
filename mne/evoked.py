@@ -231,7 +231,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 self._data[idx, :] = _check_fun(fun, data_in[idx, :], **kwargs)
         else:
             # use parallel function
-            parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
+            parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
             data_picks_new = parallel(p_fun(
                 fun, data_in[p, :], **kwargs) for p in picks)
             for pp, p in enumerate(picks):

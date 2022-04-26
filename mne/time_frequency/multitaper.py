@@ -6,7 +6,7 @@
 import operator
 import numpy as np
 
-from ..parallel import parallel_func, check_n_jobs
+from ..parallel import parallel_func
 from ..utils import sum_squared, warn, verbose, logger, _check_option
 
 
@@ -443,8 +443,7 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
         psd = np.zeros((x.shape[0], n_freqs))
 
     # Let's go in up to 50 MB chunks of signals to save memory
-    n_jobs = check_n_jobs(n_jobs)
-    n_chunk = max(50000000 // (len(freq_mask) * len(eigvals) * 16), n_jobs)
+    n_chunk = max(50000000 // (len(freq_mask) * len(eigvals) * 16), 1)
     offsets = np.concatenate((np.arange(0, x.shape[0], n_chunk), [x.shape[0]]))
     for start, stop in zip(offsets[:-1], offsets[1:]):
         x_mt = _mt_spectra(x[start:stop], dpss, sfreq)[0]
@@ -452,9 +451,9 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
             if not adaptive:
                 psd[start:stop] = _psd_from_mt(x_mt[:, :, freq_mask], weights)
             else:
-                n_splits = min(stop - start, n_jobs)
                 parallel, my_psd_from_mt_adaptive, n_jobs = \
-                    parallel_func(_psd_from_mt_adaptive, n_splits)
+                    parallel_func(_psd_from_mt_adaptive, n_jobs)
+                n_splits = min(stop - start, n_jobs)
                 out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
                                for x in np.array_split(x_mt, n_splits))
                 psd[start:stop] = np.concatenate(out)

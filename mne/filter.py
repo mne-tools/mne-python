@@ -745,7 +745,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
                 l_trans_bandwidth='auto', h_trans_bandwidth='auto',
                 n_jobs=None, method='fir', iir_params=None, copy=True,
                 phase='zero', fir_window='hamming', fir_design='firwin',
-                pad='reflect_limited', verbose=None):
+                pad='reflect_limited', *, verbose=None):
     """Filter a subset of channels.
 
     Parameters
@@ -1073,7 +1073,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
                  trans_bandwidth=1, method='fir', iir_params=None,
                  mt_bandwidth=None, p_value=0.05, picks=None, n_jobs=None,
                  copy=True, phase='zero', fir_window='hamming',
-                 fir_design='firwin', pad='reflect_limited',
+                 fir_design='firwin', pad='reflect_limited', *,
                  verbose=None):
     r"""Notch filter for the signal x.
 
@@ -1406,7 +1406,7 @@ def _resamp_ratio_len(up, down, n):
 
 @verbose
 def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar',
-             n_jobs=None, pad='reflect_limited', verbose=None):
+             n_jobs=None, pad='reflect_limited', *, verbose=None):
     """Resample an array.
 
     Operates along the last dimension of the array.
@@ -1928,7 +1928,7 @@ class FilterMixin(object):
                l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=None,
                method='fir', iir_params=None, phase='zero',
                fir_window='hamming', fir_design='firwin',
-               skip_by_annotation=('edge', 'bad_acq_skip'), pad='edge',
+               skip_by_annotation=('edge', 'bad_acq_skip'), pad='edge', *,
                verbose=None):
         """Filter a subset of channels.
 
@@ -2037,7 +2037,7 @@ class FilterMixin(object):
 
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=None,
-                 pad='edge', verbose=None):  # lgtm
+                 pad='edge', *, verbose=None):  # lgtm
         """Resample data.
 
         If appropriate, an anti-aliasing filter is applied before resampling.
@@ -2103,7 +2103,7 @@ class FilterMixin(object):
 
     @verbose
     def apply_hilbert(self, picks=None, envelope=False, n_jobs=None,
-                      n_fft='auto', verbose=None):
+                      n_fft='auto', *, verbose=None):
         """Compute analytic signal or envelope for a subset of channels.
 
         Parameters

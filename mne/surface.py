@@ -566,8 +566,7 @@ def _points_outside_surface(rr, surf, n_jobs=None, verbose=None):
     """
     rr = np.atleast_2d(rr)
     assert rr.shape[1] == 3
-    assert n_jobs > 0
-    parallel, p_fun, _ = parallel_func(_get_solids, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(_get_solids, n_jobs)
     tot_angles = parallel(p_fun(surf['rr'][tris], rr)
                           for tris in np.array_split(surf['tris'], n_jobs))
     return np.abs(np.sum(tot_angles, axis=0) / (2 * np.pi) - 1.0) > 1e-5

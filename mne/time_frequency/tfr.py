@@ -392,7 +392,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     # Parallel computation
     all_Ws = sum([list(W) for W in Ws], list())
     _get_nfft(all_Ws, epoch_data, use_fft)
-    parallel, my_cwt, _ = parallel_func(_time_frequency_loop, n_jobs)
+    parallel, my_cwt, n_jobs = parallel_func(_time_frequency_loop, n_jobs)
 
     # Parallelization is applied across channels.
     tfrs = parallel(

@@ -9,7 +9,7 @@ import numpy as np
 
 from ..io.pick import _pick_data_channels, pick_info
 from ..utils import verbose, warn, fill_doc, _validate_type
-from ..parallel import parallel_func, check_n_jobs
+from ..parallel import parallel_func
 from .tfr import AverageTFR, _get_data
 
 
@@ -181,7 +181,7 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
     psd = np.empty((n_channels, n_freq, n_out))
     itc = np.empty((n_channels, n_freq, n_out)) if return_itc else None
 
-    parallel, my_st, _ = parallel_func(_st_power_itc, n_jobs)
+    parallel, my_st, n_jobs = parallel_func(_st_power_itc, n_jobs)
     tfrs = parallel(my_st(data[:, c, :], start_f, return_itc, zero_pad,
                           decim, W)
                     for c in range(n_channels))
@@ -257,7 +257,6 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     picks = _pick_data_channels(inst.info)
     info = pick_info(inst.info, picks)
     data = data[:, picks, :]
-    n_jobs = check_n_jobs(n_jobs)
     power, itc, freqs = tfr_array_stockwell(data, sfreq=info['sfreq'],
                                             fmin=fmin, fmax=fmax, n_fft=n_fft,
                                             width=width, decim=decim,

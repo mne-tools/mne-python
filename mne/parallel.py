@@ -8,8 +8,8 @@ import logging
 import os
 
 from . import get_config
-from .utils import logger, verbose, warn, ProgressBar
-from .utils.check import int_like
+from .utils import (logger, verbose, warn, ProgressBar, _validate_type,
+                    _check_option, _ensure_int)
 from .fixes import _get_args
 
 if 'MNE_FORCE_SERIAL' in os.environ:
@@ -20,7 +20,7 @@ else:
 
 @verbose
 def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
-                  total=None, prefer=None, verbose=None):
+                  total=None, prefer=None, *, max_jobs=None, verbose=None):
     """Return parallel instance with delayed function.
 
     Util function to use joblib only if available
@@ -63,7 +63,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
     should_print = (logger.level <= logging.INFO)
     # for a single job, we don't need joblib
     if n_jobs is None:
-        n_jobs = 1  # TODO: Actually fix this
+        n_jobs = 1
     if n_jobs != 1:
         try:
             from joblib import Parallel, delayed
@@ -107,7 +107,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
             kwargs['temp_folder'] = cache_dir
             kwargs['max_nbytes'] = max_nbytes
 
-        n_jobs = check_n_jobs(n_jobs)
+        n_jobs = check_n_jobs(n_jobs, max_jobs=max_jobs)
         parallel = _check_wrapper(Parallel(n_jobs, **kwargs))
         my_func = delayed(func)
 
@@ -136,7 +136,7 @@ def _check_wrapper(fun):
     return run
 
 
-def check_n_jobs(n_jobs, allow_cuda=False):
+def check_n_jobs(n_jobs, allow_cuda=False, *, max_jobs=None):
     """Check n_jobs in particular for negative values.
 
     Parameters
@@ -145,6 +145,8 @@ def check_n_jobs(n_jobs, allow_cuda=False):
         The number of jobs.
     allow_cuda : bool
         Allow n_jobs to be 'cuda'. Default: False.
+    max_jobs : int
+        The maximum number of jobs to allow.
 
     Returns
     -------
@@ -152,12 +154,14 @@ def check_n_jobs(n_jobs, allow_cuda=False):
         The checked number of jobs. Always positive (or 'cuda' if
         applicable).
     """
-    if not isinstance(n_jobs, int_like):
-        if not allow_cuda:
-            raise ValueError('n_jobs must be an integer')
-        elif not isinstance(n_jobs, str) or n_jobs != 'cuda':
-            raise ValueError('n_jobs must be an integer, or "cuda"')
-        # else, we have n_jobs='cuda' and this is okay, so do nothing
+    types = ('int-like', None)
+    if allow_cuda:
+        types = types + ('str',)
+    _validate_type(n_jobs, types, 'n_jobs')
+    if n_jobs is None:
+        n_jobs = 1  # TODO actually do something better here
+    if isinstance(n_jobs, str):
+        _check_option('n_jobs', n_jobs, ('cuda',), extra='when str')
     elif _force_serial:
         n_jobs = 1
         logger.info('... MNE_FORCE_SERIAL set. Processing in forced '
@@ -176,5 +180,9 @@ def check_n_jobs(n_jobs, allow_cuda=False):
             if n_jobs != 1:
                 warn('multiprocessing not installed. Cannot run in parallel.')
                 n_jobs = 1
+    if max_jobs is not None:
+        max_jobs = _ensure_int(max_jobs, 'max_jobs')
+    if not isinstance(n_jobs, str):
+        n_jobs = min(_ensure_int(n_jobs, 'n_jobs'), max_jobs)
 
     return n_jobs

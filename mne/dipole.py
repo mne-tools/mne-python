@@ -900,7 +900,7 @@ def _fit_dipoles(fun, min_dist_to_inner_skull, data, times, guess_rrs,
                  guess_data, fwd_data, whitener, ori, n_jobs, rank, rhoend):
     """Fit a single dipole to the given whitened, projected data."""
     from scipy.optimize import fmin_cobyla
-    parallel, p_fun, _ = parallel_func(fun, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(fun, n_jobs)
     # parallel over time points
     res = parallel(p_fun(min_dist_to_inner_skull, B, t, guess_rrs,
                          guess_data, fwd_data, whitener,

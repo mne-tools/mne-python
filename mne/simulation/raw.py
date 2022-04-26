@@ -31,7 +31,6 @@ from ..source_estimate import _BaseSourceEstimate
 from ..surface import _CheckInside
 from ..utils import (logger, verbose, check_random_state, _pl, _validate_type,
                      _check_preload)
-from ..parallel import check_n_jobs
 from .source import SourceSimulator
 
 
@@ -247,7 +246,6 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         event_ch = pick_channels(info['ch_names'],
                                  _get_stim_channel(None, info))[0]
 
-    n_jobs = check_n_jobs(n_jobs)
     if forward is not None:
         if any(x is not None for x in (trans, src, bem, head_pos)):
             raise ValueError('If forward is not None then trans, src, bem, '

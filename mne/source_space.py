@@ -38,7 +38,7 @@ from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
                     _check_fname, _path_like, _check_sphere,
                     _validate_type, _check_option, _is_numeric, _pl, _suggest,
                     object_size, sizeof_fmt)
-from .parallel import parallel_func, check_n_jobs
+from .parallel import parallel_func
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
                          _coord_frame_name, Transform, _str_to_frame,
@@ -2272,7 +2272,6 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *,
     """
     from scipy.sparse import csr_matrix
     from scipy.sparse.csgraph import dijkstra
-    n_jobs = check_n_jobs(n_jobs)
     src = _ensure_src(src)
     dist_limit = float(dist_limit)
     if dist_limit < 0:
@@ -2288,7 +2287,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *,
         raise RuntimeError('Currently all source spaces must be of surface '
                            'type')
 
-    parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(_do_src_distances, n_jobs)
     min_dists = list()
     min_idxs = list()
     msg = 'patch information' if patch_only else 'source space distances'

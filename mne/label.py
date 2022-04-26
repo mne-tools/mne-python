@@ -14,7 +14,7 @@ import re
 import numpy as np
 
 from .morph_map import read_morph_map
-from .parallel import parallel_func, check_n_jobs
+from .parallel import parallel_func
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
                               _center_of_mass, extract_label_time_course,
                               spatial_src_adjacency)
@@ -1639,7 +1639,6 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=None,
     used for each label.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    n_jobs = check_n_jobs(n_jobs)
 
     # make sure the inputs are arrays
     if np.isscalar(seeds):
@@ -1705,7 +1704,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=None,
 
     if overlap:
         # create the patches
-        parallel, my_grow_labels, _ = parallel_func(_grow_labels, n_jobs)
+        parallel, my_grow_labels, n_jobs = parallel_func(_grow_labels, n_jobs)
         seeds = np.array_split(np.array(seeds, dtype='O'), n_jobs)
         extents = np.array_split(extents, n_jobs)
         hemis = np.array_split(hemis, n_jobs)

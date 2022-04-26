@@ -1151,7 +1151,8 @@ def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
 
     # Prepare the function that does the actual CSD computation for parallel
     # execution.
-    parallel, my_csd, _ = parallel_func(csd_function, n_jobs, verbose=verbose)
+    parallel, my_csd, n_jobs = parallel_func(
+        csd_function, n_jobs, verbose=verbose)
 
     # Compute CSD for each trial
     n_blocks = int(np.ceil(n_epochs / float(n_jobs)))
