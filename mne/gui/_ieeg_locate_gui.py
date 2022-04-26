@@ -160,15 +160,12 @@ class IntracranialElectrodeLocator():
         # Main plots: make one plot for each view; sagittal, coronal, axial
         plts = [_make_slice_plot(), _make_slice_plot(), _make_slice_plot()]
         self._figs = [plts[0][1], plts[1][1], plts[2][1]]
-        row1 = self._renderer._layout_create(vertical=False)
-        self._renderer._layout_add_widget(row1, plts[0][0])
-        self._renderer._layout_add_widget(row1, plts[1][0])
-        row2 = self._renderer._layout_create(vertical=False)
-        self._renderer._layout_add_widget(row2, plts[2][0])
-        self._renderer._layout_add_widget(row2, self._renderer.plotter)
-        plt_grid = self._renderer._layout_create(vertical=True)
-        self._renderer._layout_add_widget(plt_grid, row1)
-        self._renderer._layout_add_widget(plt_grid, row2)
+        plt_grid = self._renderer._layout_create(orientation='grid')
+        self._renderer._layout_add_widget(plt_grid, plts[0][0], row=0, col=0)
+        self._renderer._layout_add_widget(plt_grid, plts[1][0], row=1, col=0)
+        self._renderer._layout_add_widget(plt_grid, plts[2][0], row=0, col=1)
+        self._renderer._layout_add_widget(plt_grid, self._renderer.plotter,
+                                          row=1, col=1)
 
         # Channel selector
         self._ch_list = QListView()
@@ -193,11 +190,11 @@ class IntracranialElectrodeLocator():
             self._update_lines(group)
 
         # Put everything together
-        plot_ch_hbox = self._renderer._layout_create(vertical=False)
+        plot_ch_hbox = self._renderer._layout_create(orientation="horizontal")
         plot_ch_hbox.addLayout(plt_grid)
         plot_ch_hbox.addWidget(self._ch_list)
 
-        main_vbox = self._renderer._layout_create(vertical=True)
+        main_vbox = self._renderer._layout_create(orientation="vertical")
         main_vbox.addLayout(button_hbox)
         main_vbox.addLayout(slider_hbox)
         main_vbox.addLayout(plot_ch_hbox)
@@ -422,7 +419,7 @@ class IntracranialElectrodeLocator():
 
     def _get_button_bar(self):
         """Make a bar with buttons for user interactions."""
-        hbox = self._renderer._layout_create(vertical=False)
+        hbox = self._renderer._layout_create(orientation="horizontal")
 
         help_button = QPushButton('Help')
         help_button.released.connect(self._show_help)
@@ -493,14 +490,14 @@ class IntracranialElectrodeLocator():
             slider.keyPressEvent = self._key_press_event
             return slider
 
-        slider_hbox = self._renderer._layout_create(vertical=False)
+        slider_hbox = self._renderer._layout_create(orientation="horizontal")
 
-        ch_vbox = self._renderer._layout_create(vertical=True)
+        ch_vbox = self._renderer._layout_create(orientation="vertical")
         ch_vbox.addWidget(make_label('ch alpha'))
         ch_vbox.addWidget(make_label('ch radius'))
         slider_hbox.addLayout(ch_vbox)
 
-        ch_slider_vbox = self._renderer._layout_create(vertical=True)
+        ch_slider_vbox = self._renderer._layout_create(orientation="vertical")
         self._alpha_slider = make_slider(0, 100, self._ch_alpha * 100,
                                          self._update_ch_alpha)
         ch_plot_max = _CH_PLOT_SIZE // 50  # max 1 / 50 of plot size
@@ -510,12 +507,12 @@ class IntracranialElectrodeLocator():
         ch_slider_vbox.addWidget(self._radius_slider)
         slider_hbox.addLayout(ch_slider_vbox)
 
-        ct_vbox = self._renderer._layout_create(vertical=True)
+        ct_vbox = self._renderer._layout_create(orientation="vertical")
         ct_vbox.addWidget(make_label('CT min'))
         ct_vbox.addWidget(make_label('CT max'))
         slider_hbox.addLayout(ct_vbox)
 
-        ct_slider_vbox = self._renderer._layout_create(vertical=True)
+        ct_slider_vbox = self._renderer._layout_create(orientation="vertical")
         ct_min = int(round(np.nanmin(self._ct_data)))
         ct_max = int(round(np.nanmax(self._ct_data)))
         self._ct_min_slider = make_slider(
@@ -529,7 +526,7 @@ class IntracranialElectrodeLocator():
 
     def _get_bottom_bar(self):
         """Make a bar at the bottom with information in it."""
-        hbox = self._renderer._layout_create(vertical=False)
+        hbox = self._renderer._layout_create(orientation="horizontal")
 
         hbox.addStretch(3)
 

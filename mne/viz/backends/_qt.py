@@ -18,7 +18,7 @@ from qtpy.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                             QSlider, QSpinBox, QVBoxLayout, QWidget,
                             QSizePolicy, QScrollArea, QStyle, QProgressBar,
                             QStyleOptionSlider, QLayout, QCheckBox,
-                            QButtonGroup, QRadioButton, QLineEdit,
+                            QButtonGroup, QRadioButton, QLineEdit, QGridLayout,
                             QFileDialog, QPushButton, QMessageBox)
 
 from ._pyvista import _PyVistaRenderer
@@ -83,15 +83,25 @@ class _QtLayout(_AbstractLayout):
     def _layout_initialize(self, max_width):
         pass
 
-    def _layout_add_widget(self, layout, widget, stretch=0):
+    def _layout_add_widget(self, layout, widget, stretch=0,
+                           *, row=None, col=None):
         """Add a widget to an existing layout."""
         if isinstance(widget, QLayout):
             layout.addLayout(widget)
         else:
-            layout.addWidget(widget, stretch)
+            if isinstance(layout, QGridLayout):
+                layout.addWidget(widget, row, col)
+            else:
+                layout.addWidget(widget, stretch)
 
-    def _layout_create(self, vertical=True):
-        layout = QVBoxLayout() if vertical else QHBoxLayout()
+    def _layout_create(self, orientation='vertical'):
+        if orientation == 'vertical':
+            layout = QVBoxLayout()
+        elif orientation == 'horizontal':
+            layout = QHBoxLayout()
+        else:
+            assert orientation == 'grid'
+            layout = QGridLayout()
         return layout
 
 
