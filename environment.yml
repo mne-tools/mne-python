@@ -16,7 +16,6 @@ dependencies:
 - pandas
 - xlrd
 - scikit-learn
-- joblib
 - h5py
 - jinja2
 - pillow
