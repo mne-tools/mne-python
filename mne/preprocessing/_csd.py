@@ -179,8 +179,8 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
 
 
 @verbose
-def compute_bridged_electrodes(inst, ed_threshold=3, lm_cutoff=5,
-                               n_bins=20, ed_max=12, epoch_threshold=0.5,
+def compute_bridged_electrodes(inst, lm_cutoff=12, kde_args=None,
+                               epoch_threshold=0.5,
                                l_freq=0.5, h_freq=30,
                                epoch_duration=2, verbose=None):
     """Compute bridged EEG electrodes using the intrinsic Hjorth algorithm.
@@ -200,20 +200,15 @@ def compute_bridged_electrodes(inst, ed_threshold=3, lm_cutoff=5,
     ----------
     inst : instance of Raw, Epochs or Evoked
         The data to compute electrode bridging on.
-    ed_threshold : float
-        The bridged electrode threshold in :math:`{\\mu}`V:sup:`2`. The
-        default is 3 :math:`{\\mu}`V:sup:`2` as used in
-        :footcite:`GreischarEtAl2004`.
     lm_cutoff : float
         The distance in :math:`{\\mu}`V:sup:`2` cutoff below which to
         search for a local minimum (lm) indicative of bridging.
-        Defaults to 5 :math:`{\\mu}`V:sup:`2`.
-    n_bins : int
-        The number of bins to use to create a histogram of the electrical
-        distance matrix.
-    ed_max : float
-        The maximum electrical distance to consider when making the
-        histogram of electrical distances.
+        Defaults to 8 :math:`{\\mu}`V:sup:`2` based on
+        :footcite:`GreischarEtAl2004`.
+    kde_args : dict | None
+        Arguments to pass to :class:`sklearn.neighbors.KernelDensity` to
+        modify the estimation of distribution of electrical distances
+        from which the local minimum is estimated.
     epoch_threshold : float
         The proportion of epochs with electrical distance less than
         ``ed_threshold`` in order to consider the channel bridged.
@@ -244,6 +239,7 @@ def compute_bridged_electrodes(inst, ed_threshold=3, lm_cutoff=5,
     ----------
     .. footbibliography::
     """
+    from sklearn.neighbors import KernelDensity
     _check_preload(inst, 'Computing bridged electrodes')
     inst = inst.copy()  # don't modify original
     picks = pick_types(inst.info, eeg=True)
@@ -278,14 +274,10 @@ def compute_bridged_electrodes(inst, ed_threshold=3, lm_cutoff=5,
 
     # compute histogram
     bins, edges = np.histogram(ed_matrix[~np.isnan(ed_matrix)],
-                               bins=np.linspace(0, ed_max, n_bins))
+                               bins=np.linspace(0, lm_cutoff, n_bins))
     centers = (edges[1:] + edges[:-1]) / 2
 
-    # check if has peak near 0, if not, no bridges
-    if np.diff(bins[centers <= ed_threshold]).sum() >= 0:
-        return bridged_idx, ed_matrix
-
-    # find local minimum, also indicative of bridging
+    # find local minimum
     centers_interp = np.linspace(0, lm_cutoff, n_bins)
     bins_interp = np.interp(centers_interp, centers, bins)
     local_minimum = centers_interp[np.argmin(bins_interp)]

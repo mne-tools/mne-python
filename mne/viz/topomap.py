@@ -2621,8 +2621,41 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
     return fig
 
 
+def _voroni_topomap(data, pos, info, sphere, ch_type, outlines, ax, cmap):
+    """Make a Voroni diagram on a topomap."""
+    from scipy.spatial import Voronoi
+    clip_origin = _adjust_meg_sphere(sphere, info, ch_type)[1]
+    outlines = _make_head_outlines(
+        sphere, pos, outlines, clip_origin)
+    rx, ry = outlines['clip_radius']
+    cx, cy = clip_origin
+    vor = Voronoi(np.concatenate([pos, [[1, 1], [1, -1], [-1, 1], [1, -1]]]))
+    for point_idx, region_idx in enumerate(vor.point_region[:-4]):
+        polygon = list()
+        if -1 in vor.regions[region_idx]:
+            continue
+        for i in vor.regions[region_idx]:
+            if i == -1:
+                # outer bound, take each other point and project to edge
+                for j in vor.regions[region_idx]:
+                    if j != -1:
+                        x, y = vor.vertices[j]
+                        x *= rx / np.linalg.norm(vor.vertices[j])
+                        y *= ry / np.linalg.norm(vor.vertices[j])
+                        polygon.append((x, y))
+            else:
+                x, y = vor.vertices[i]
+                if (x - cx)**2 / rx**2 + (y - cy)**2 / ry**2 < 1:
+                    polygon.append((x, y))
+                else:
+                    x *= rx / np.linalg.norm(vor.vertices[i])
+                    y *= ry / np.linalg.norm(vor.vertices[i])
+                    polygon.append((x, y))
+        ax.fill(*zip(*polygon), color=cmap(data[point_idx]))
+
+
 def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
-                            colorbar=True, sphere=None, topomap_args=None):
+                            topomap_args=None):
     """Topoplot electrode distance matrix with bridged electrodes connected.
 
     Parameters
@@ -2635,9 +2668,6 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
         The electrical distance matrix for each pair of EEG electrodes.
     title : str
         A title to add to the plot.
-    colorbar : bool
-        Whether to add a colorbar.
-    %(sphere_topomap)s
     topomap_args : dict | None
         Arguments to pass to :func:`mne.viz.plot_topomap`.
 
@@ -2646,20 +2676,27 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     fig : instance of matplotlib.figure.Figure
         The topoplot figure handle.
     """
+    # handle colorbar here instead of in plot_topomap
+    colorbar = topomap_args.pop('colorbar') if \
+        'colorbar' in topomap_args else True
+    # use sphere to find positions
+    sphere = topomap_args['sphere'] if 'sphere' in topomap_args else None
     picks = pick_types(info, eeg=True)
     # fill in lower triangular
     tril_idx = np.tril_indices(picks.size)
     for epo_idx in range(ed_matrix.shape[0]):
         ed_matrix[epo_idx][tril_idx] = ed_matrix[epo_idx].T[tril_idx]
     elec_dists = np.median(np.nanmin(ed_matrix, axis=1), axis=0)
-    if topomap_args is None:
-        topomap_args = dict()
-    if 'vmax' not in topomap_args:
-        topomap_args['vmax'] = max([elec_dists[idx] for idxs in bridged_idx
-                                    for idx in idxs]) * 100
-    im, cn = plot_topomap(elec_dists, info, **topomap_args)
-    # add bridged connections
     pos = _find_topomap_coords(info, picks, sphere=sphere)
+    if 'image_interp' not in topomap_args:  # default is Vononi
+        im, cn = plot_topomap(np.zeros((picks.size,)), info, **topomap_args)
+        # plot Vonorni Diagram over topomap
+        _voroni_topomap(elec_dists, pos, info, sphere, 'eeg',
+                        topomap_args.get('outlines', 'head'), im.axes,
+                        im.cmap)
+    else:
+        im, cn = plot_topomap(elec_dists, info, **topomap_args)
+    # add bridged connections
     for idx0, idx1 in bridged_idx:
         im.axes.plot([pos[idx0][0], pos[idx1][0]],
                      [pos[idx0][1], pos[idx1][1]], color='r')
