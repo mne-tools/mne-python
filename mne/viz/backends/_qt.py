@@ -416,16 +416,16 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         icon_name = name if icon_name is None else icon_name
         if icon_name in self._icons:
             icon = self._icons[icon_name]
-            self.actions[name] = self._tool_bar.addAction(
-                icon, desc, func)
+            self.actions[name] = _QtAction(self._tool_bar.addAction(
+                icon, desc, func))
         else:
-            self.actions[name] = self._tool_bar.addAction(
-                desc, func)
+            self.actions[name] = _QtAction(self._tool_bar.addAction(
+                desc, func))
         if shortcut is not None:
-            self.actions[name].setShortcut(shortcut)
+            self.actions[name].set_shortcut(shortcut)
 
     def _tool_bar_update_button_icon(self, name, icon_name):
-        self.actions[name].setIcon(self._icons[icon_name])
+        self.actions[name].set_icon(self._icons[icon_name])
 
     def _tool_bar_add_text(self, name, value, placeholder):
         pass
@@ -443,7 +443,7 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
             if weakself is None:
                 return
             return FileDialog(
-                weakself.app_window,
+                weakself._window,
                 callback=func,
             )
 
@@ -863,6 +863,12 @@ class _QtDialogWidget(_QtWidget):
 class _QtAction(_AbstractAction):
     def trigger(self):
         self._action.trigger()
+
+    def set_icon(self, icon):
+        self._action.setIcon(icon)
+
+    def set_shortcut(self, shortcut):
+        self._action.setShortcut(shortcut)
 
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,

@@ -735,6 +735,14 @@ class _AbstractAction(ABC):
     def trigger(self):
         pass
 
+    @abstractmethod
+    def set_icon(self):
+        pass
+
+    @abstractmethod
+    def set_shortcut(self):
+        pass
+
 
 class _AbstractMplInterface(ABC):
     @abstractmethod

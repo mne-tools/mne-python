@@ -39,13 +39,13 @@ class RawBrainVision(BaseRaw):
         Path to the EEG header file.
     eog : list or tuple
         Names of channels or list of indices that should be designated
-        EOG channels. Values should correspond to the vhdr file.
+        EOG channels. Values should correspond to the header file.
         Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
     misc : list or tuple of str | 'auto'
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
-        in the vhdr file. If 'auto', units in vhdr file are used for inferring
-        misc channels. Default is ``'auto'``.
+        in the header file. If 'auto', units in header file are used for
+        inferring misc channels. Default is ``'auto'``.
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
         header file, units are in microvolts. Default scale factor is 1.
@@ -68,9 +68,11 @@ class RawBrainVision(BaseRaw):
                  scale=1., preload=False, verbose=None):  # noqa: D107
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
-        vhdr_fname = op.abspath(vhdr_fname)
+        hdr_fname = op.abspath(vhdr_fname)
+        ext = op.splitext(hdr_fname)[-1]
+        ahdr_format = True if ext == '.ahdr' else False
         (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
-         orig_units) = _get_vhdr_info(vhdr_fname, eog, misc, scale)
+         orig_units) = _get_hdr_info(hdr_fname, eog, misc, scale)
 
         with open(data_fname, 'rb') as f:
             if isinstance(fmt, dict):  # ASCII, this will be slow :(
@@ -99,14 +101,18 @@ class RawBrainVision(BaseRaw):
 
         self.set_montage(montage)
 
-        settings, cfg, cinfo, _ = _aux_vhdr_info(vhdr_fname)
+        settings, cfg, cinfo, _ = _aux_hdr_info(hdr_fname)
         split_settings = settings.splitlines()
         self.impedances = _parse_impedance(split_settings,
                                            self.info['meas_date'])
 
-        # Get annotations from vmrk file
+        # Get annotations from marker file
         annots = read_annotations(mrk_fname, info['sfreq'])
         self.set_annotations(annots)
+
+        # Drop the fake ahdr channel if needed
+        if ahdr_format:
+            self.drop_channels(_AHDR_CHANNEL_NAME)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -167,13 +173,13 @@ def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     _mult_cal_one(data, block, idx, cals, mult)
 
 
-def _read_vmrk(fname):
-    """Read annotations from a vmrk file.
+def _read_mrk(fname):
+    """Read annotations from a vmrk/amrk file.
 
     Parameters
     ----------
     fname : str
-        vmrk file to be read.
+        vmrk/amrk file to be read.
 
     Returns
     -------
@@ -187,7 +193,7 @@ def _read_vmrk(fname):
         The recording time as a string. Defaults to empty string if no
         recording time is found.
     """
-    # read vmrk file
+    # read marker file
     with open(fname, 'rb') as fid:
         txt = fid.read()
 
@@ -260,35 +266,39 @@ def _read_vmrk(fname):
 
 
 def _read_annotations_brainvision(fname, sfreq='auto'):
-    """Create Annotations from BrainVision vmrk.
+    """Create Annotations from BrainVision vmrk/amrk.
 
-    This function reads a .vmrk file and makes an
+    This function reads a .vmrk or .amrk file and makes an
     :class:`mne.Annotations` object.
 
     Parameters
     ----------
     fname : str | object
-        The path to the .vmrk file.
+        The path to the .vmrk/.amrk file.
     sfreq : float | 'auto'
         The sampling frequency in the file. It's necessary
-        as Annotations are expressed in seconds and vmrk
+        as Annotations are expressed in seconds and vmrk/amrk
         files are in samples. If set to 'auto' then
-        the sfreq is taken from the .vhdr file that
+        the sfreq is taken from the .vhdr/.ahdr file that
         has the same name (without file extension). So
-        data.vmrk looks for sfreq in data.vhdr.
+        data.vmrk/amrk looks for sfreq in data.vhdr or,
+        if it does not exist, in data.ahdr.
 
     Returns
     -------
     annotations : instance of Annotations
         The annotations present in the file.
     """
-    onset, duration, description, date_str = _read_vmrk(fname)
+    onset, duration, description, date_str = _read_mrk(fname)
     orig_time = _str_to_meas_date(date_str)
 
     if sfreq == 'auto':
-        vhdr_fname = op.splitext(fname)[0] + '.vhdr'
-        logger.info("Finding 'sfreq' from header file: %s" % vhdr_fname)
-        _, _, _, info = _aux_vhdr_info(vhdr_fname)
+        hdr_fname = op.splitext(fname)[0] + '.vhdr'
+        # if vhdr file does not exist assume that the format is ahdr
+        if not op.exists(hdr_fname):
+            hdr_fname = op.splitext(fname)[0] + '.ahdr'
+        logger.info("Finding 'sfreq' from header file: %s" % hdr_fname)
+        _, _, _, info = _aux_hdr_info(hdr_fname)
         sfreq = info['sfreq']
 
     onset = np.array(onset, dtype=float) / sfreq
@@ -304,8 +314,10 @@ def _check_bv_version(header, kind):
     _data_err = """\
     MNE-Python currently only supports %s versions 1.0 and 2.0, got unparsable\
      %r. Contact MNE-Python developers for support."""
-    # optional space, optional Core, Version/Header, optional comma, 1/2
-    _data_re = r'Brain ?Vision( Core)? Data Exchange %s File,? Version %s\.0'
+    # optional space, optional Core or V-Amp, optional Exchange,
+    # Version/Header, optional comma, 1/2
+    _data_re = (r"Brain ?Vision( Core| V-Amp)? Data( Exchange)? "
+                r"%s File,? Version %s\.0")
 
     assert kind in ('header', 'marker')
 
@@ -356,9 +368,9 @@ def _str_to_meas_date(date_str):
     return meas_date
 
 
-def _aux_vhdr_info(vhdr_fname):
-    """Aux function for _get_vhdr_info."""
-    with open(vhdr_fname, 'rb') as f:
+def _aux_hdr_info(hdr_fname):
+    """Aux function for _get_hdr_info."""
+    with open(hdr_fname, 'rb') as f:
         # extract the first section to resemble a cfg
         header = f.readline()
         codepage = 'utf-8'
@@ -412,20 +424,20 @@ def _aux_vhdr_info(vhdr_fname):
 
 
 @fill_doc
-def _get_vhdr_info(vhdr_fname, eog, misc, scale):
+def _get_hdr_info(hdr_fname, eog, misc, scale):
     """Extract all the information from the header file.
 
     Parameters
     ----------
-    vhdr_fname : str
+    hdr_fname : str
         Raw EEG header to be read.
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
-        correspond to the vhdr file.
+        correspond to the header file.
     misc : list or tuple of str | 'auto'
         Names of channels or list of indices that should be designated
-        MISC channels. Values should correspond to the electrodes
-        in the vhdr file. If 'auto', units in vhdr file are used for inferring
+        MISC channels. Values should correspond to the electrodes in the
+        header file. If 'auto', units in header file are used for inferring
         misc channels. Default is ``'auto'``.
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
@@ -451,12 +463,13 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         the header file. Example: {'FC1': 'nV'}
     """
     scale = float(scale)
-    ext = op.splitext(vhdr_fname)[-1]
-    if ext != '.vhdr':
+    ext = op.splitext(hdr_fname)[-1]
+    ahdr_format = (ext == '.ahdr')
+    if ext not in ('.vhdr', '.ahdr'):
         raise IOError("The header file must be given to read the data, "
                       "not a file with extension '%s'." % ext)
 
-    settings, cfg, cinfostr, info = _aux_vhdr_info(vhdr_fname)
+    settings, cfg, cinfostr, info = _aux_hdr_info(hdr_fname)
     info._unlocked = True
 
     order = cfg.get(cinfostr, 'DataOrientation')
@@ -480,7 +493,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
                for key in cfg.options('ASCII Infos')}
 
     # locate EEG binary file and marker file for the stim channel
-    path = op.dirname(vhdr_fname)
+    path = op.dirname(hdr_fname)
     data_fname = op.join(path, cfg.get(cinfostr, 'DataFile'))
     mrk_fname = op.join(path, cfg.get(cinfostr, 'MarkerFile'))
 
@@ -502,6 +515,9 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
 
     # load channel labels
     nchan = cfg.getint(cinfostr, 'NumberOfChannels')
+    if ahdr_format:
+        # add one fake channel for ahdr format
+        nchan += 1
     n_samples = None
     if order == 'C':
         try:
@@ -541,7 +557,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         ch_dict[chan] = name
         ch_names[n] = name
         if resolution == "":
-            if not(unit):  # For truncated vhdrs (e.g. EEGLAB export)
+            if not unit:  # For truncated vhdrs (e.g. EEGLAB export)
                 resolution = 0.000001
             else:
                 resolution = 1.  # for files with units specified, but not res
@@ -552,13 +568,21 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         if unit not in ('V', 'mV', 'µV', 'uV', 'nV'):
             misc_chs[name] = (FIFF.FIFF_UNIT_CEL if unit == 'C'
                               else FIFF.FIFF_UNIT_NONE)
+    if ahdr_format:
+        ch_dict[_AHDR_CHANNEL_NAME] = _AHDR_CHANNEL_NAME
+        ch_names[-1] = _AHDR_CHANNEL_NAME
+        orig_units[_AHDR_CHANNEL_NAME] = 'V'
+        cals[-1] = 1.
+        ranges[-1] = 1
+
     misc = list(misc_chs.keys()) if misc == 'auto' else misc
 
-    # create montage: 'Coordinates' section in VHDR file corresponds to "BVEF"
-    # BrainVision Electrode File. The data are based on BrainVision Analyzer
-    # coordinate system: Defined between standard electrode positions: X-axis
-    # from T7 to T8, Y-axis from Oz to Fpz, Z-axis orthogonal from XY-plane
-    # through Cz, fit to a sphere if idealized (when radius=1), specified in mm
+    # create montage: 'Coordinates' section in VHDR/AHDR file corresponds to
+    # "BVEF" BrainVision Electrode File. The data are based on BrainVision
+    # Analyzer coordinate system: Defined between standard electrode positions:
+    # X-axis from T7 to T8, Y-axis from Oz to Fpz, Z-axis orthogonal from
+    # XY-plane through Cz, fit to a sphere if idealized (when radius=1),
+    # specified in mm
     montage = None
     if cfg.has_section('Coordinates'):
         from ...transforms import _sph_to_cart
@@ -657,6 +681,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         lp_s = '[s]' in header[lp_col]
 
         for i, ch in enumerate(ch_names, 1):
+            if ahdr_format and i == len(ch_names) and ch == _AHDR_CHANNEL_NAME:
+                break
             # double check alignment with channel by using the hw settings
             if idx == idx_amp:
                 line_amp = settings[idx + i]
@@ -834,12 +860,12 @@ def read_raw_brainvision(vhdr_fname,
         Path to the EEG header file.
     eog : list or tuple of str
         Names of channels or list of indices that should be designated
-        EOG channels. Values should correspond to the vhdr file
+        EOG channels. Values should correspond to the header file
         Default is ``('HEOGL', 'HEOGR', 'VEOGb')``.
     misc : list or tuple of str | 'auto'
         Names of channels or list of indices that should be designated
-        MISC channels. Values should correspond to the electrodes
-        in the vhdr file. If 'auto', units in vhdr file are used for inferring
+        MISC channels. Values should correspond to the electrodes in the
+        header file. If 'auto', units in header file are used for inferring
         misc channels. Default is ``'auto'``.
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
@@ -867,6 +893,7 @@ _OTHER_ACCEPTED_MARKERS = {
     'New Segment/': 99999, 'SyncStatus/Sync On': 99998
 }
 _OTHER_OFFSET = 10001  # where to start "unknown" event_ids
+_AHDR_CHANNEL_NAME = "AHDR_CHANNEL"
 
 
 class _BVEventParser(_DefaultEventParser):
@@ -901,9 +928,9 @@ def _parse_impedance(settings, recording_date=None):
     Parameters
     ----------
     settings : list
-        The header settings lines fom the VHDR file.
+        The header settings lines fom the VHDR/AHDR file.
     recording_date : datetime.datetime | None
-        The date of the recording as extracted from the VMRK file.
+        The date of the recording as extracted from the VMRK/AMRK file.
 
     Returns
     -------
@@ -963,7 +990,7 @@ def _parse_impedance_ranges(settings):
     Parameters
     ----------
     settings : list
-        The header settings lines fom the VHDR file.
+        The header settings lines fom the VHDR/AHDR file.
 
     Returns
     -------
