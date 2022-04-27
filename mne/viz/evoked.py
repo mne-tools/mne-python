@@ -13,6 +13,7 @@
 
 from copy import deepcopy
 from functools import partial
+from itertools import cycle
 from numbers import Integral
 
 import numpy as np
@@ -863,13 +864,23 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
         fig_facecolor = background_color
         axis_facecolor = background_color
         font_color = 'k'
-    if color is None:
+
+    if type(color) in (tuple, list):
+        if len(color) != len(evoked):
+            raise ValueError('Lists of evoked objects and colors'
+                             ' must have the same length')
+    elif color is None:
         if dark_background:
             color = ['w'] + _get_color_list()
         else:
             color = _get_color_list()
         color = color * ((len(evoked) % len(color)) + 1)
         color = color[:len(evoked)]
+    else:
+        if not isinstance(color, str):
+            raise ValueError('color must be of type tuple, list, str, or None.')
+        color = cycle([color])
+
     return _plot_evoked_topo(evoked=evoked, layout=layout,
                              layout_scale=layout_scale, color=color,
                              border=border, ylim=ylim, scalings=scalings,

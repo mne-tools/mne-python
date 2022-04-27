@@ -9,7 +9,6 @@
 
 from copy import deepcopy
 from functools import partial
-from itertools import cycle
 
 import numpy as np
 
@@ -661,21 +660,6 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
 
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
-
-    if type(color) in (tuple, list):
-        if len(color) != len(evoked):
-            raise ValueError('Lists of evoked objects and colors'
-                             ' must have the same length')
-    elif color is None:
-        colors = ['w'] + _get_color_list
-        stop = (slice(len(evoked)) if len(evoked) < len(colors)
-                else slice(len(colors)))
-        color = cycle(colors[stop])
-        if len(evoked) > len(colors):
-            warn('More evoked objects than colors available. You should pass '
-                 'a list of unique colors.')
-    else:
-        color = cycle([color])
 
     noise_cov = _check_cov(noise_cov, evoked[0].info)
     if noise_cov is not None:
