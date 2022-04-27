@@ -1830,8 +1830,8 @@ n_jobs : int | None
     to the number of CPU cores. Requires the :mod:`joblib` package.
     ``None`` (default) is a marker for 'unset' that will be interpreted
     as ``n_jobs=1`` (sequential execution) unless the call is performed under
-    a :class:`joblib.parallel_backend` context manager that sets another value
-    for ``n_jobs``.
+    a :func:`joblib:joblib.parallel_backend` context manager that sets another
+    value for ``n_jobs``.
 """
 
 docdict['n_jobs_cuda'] = """

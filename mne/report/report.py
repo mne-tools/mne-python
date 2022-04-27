@@ -435,14 +435,12 @@ def _get_bem_contour_figs_as_arrays(
     """
     # Matplotlib <3.2 doesn't work nicely with process-based parallelization
     from matplotlib import __version__ as MPL_VERSION
-    # TODO: Maybe we should only prefer if there is no context now?
-    if _compare_version(MPL_VERSION, '>=', '3.2'):
-        prefer = 'processes'
-    else:
-        prefer = 'threads'
+    kwargs = dict()
+    if _compare_version(MPL_VERSION, '<', '3.2'):
+        kwargs['prefer'] = 'threads'
 
     parallel, p_fun, n_jobs = parallel_func(
-        _plot_mri_contours, n_jobs, prefer=prefer, max_jobs=len(sl))
+        _plot_mri_contours, n_jobs, max_jobs=len(sl), **kwargs)
     outs = parallel(
         p_fun(
             slices=s, mri_fname=mri_fname, surfaces=surfaces,
