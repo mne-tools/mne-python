@@ -1483,7 +1483,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     # XXX BUG destroys ax -> fig assignment if title & axes are passed
     if title is not None:
-        title_ax = plt.subplot(4, 3, 2)
+        title_ax = fig.add_subplot(4, 3, 2)
         if title == '':
             title = old_title
         title_ax.text(.5, .5, title, transform=title_ax.transAxes,

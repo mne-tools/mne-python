@@ -2189,7 +2189,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     >>> fig = stc_vol_sample.plot(morph)  # doctest: +SKIP
     """  # noqa: E501
     from matplotlib import pyplot as plt, colors
-    from matplotlib.cbook import mplDeprecation
     import nibabel as nib
     from ..source_estimate import VolSourceEstimate
     from ..morph import SourceMorph
@@ -2480,7 +2479,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         if params.get('fig_anat') is not None and plot_kwargs['colorbar']:
             params['fig_anat']._cbar.ax.clear()
         with warnings.catch_warnings(record=True):  # nilearn bug; ax recreated
-            warnings.simplefilter('ignore', mplDeprecation)
+            warnings.simplefilter('ignore', DeprecationWarning)
             params['fig_anat'] = partial(
                 plot_func, **plot_kwargs)(*args, **kwargs)
         params['fig_anat']._cbar.outline.set_visible(False)

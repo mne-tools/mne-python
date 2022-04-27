@@ -1994,7 +1994,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                        size[1] * factor[1])
         else:
             size = [int(x * factor) for x in size]
-        self.canvas.manager.canvas.resize(*size)
+        self.canvas.manager.resize(*size)
 
     def _get_ticklabels(self, orientation):
         if orientation == 'x':
