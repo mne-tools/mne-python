@@ -878,7 +878,9 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
         color = color[:len(evoked)]
     else:
         if not isinstance(color, str):
-            raise ValueError('color must be of type tuple, list, str, or None.')
+            raise ValueError(
+                'color must be of type tuple, list, str, or None.'
+            )
         color = cycle([color])
 
     return _plot_evoked_topo(evoked=evoked, layout=layout,

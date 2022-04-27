@@ -13,10 +13,10 @@ from functools import partial
 import numpy as np
 
 from ..io.pick import channel_type, pick_types
-from ..utils import _clean_names, warn, _check_option, Bunch, fill_doc, _to_rgb
+from ..utils import _clean_names, _check_option, Bunch, fill_doc, _to_rgb
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
-from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
+from .utils import (_check_delayed_ssp, _draw_proj_checkbox,
                     add_background_image, plt_show, _setup_vmin_vmax,
                     DraggableColorbar, _setup_ax_spines,
                     _check_cov, _plot_masked_image)
