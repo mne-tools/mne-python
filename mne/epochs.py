@@ -44,7 +44,7 @@ from .baseline import rescale, _log_rescale, _check_baseline
 from .channels.channels import (UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import detrend, FilterMixin, _check_fun
-from .parallel import parallel_func, check_n_jobs
+from .parallel import parallel_func
 
 from .event import (_read_events_fif, make_fixed_length_events,
                     match_event_names)
@@ -1606,7 +1606,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         """
         _check_preload(self, 'epochs.apply_function')
         picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
-        n_jobs = check_n_jobs(n_jobs)
 
         if not callable(fun):
             raise ValueError('fun needs to be a function')
@@ -1616,6 +1615,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             self._data = self._data.astype(dtype)
 
         if channel_wise:
+            parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
             if n_jobs == 1:
                 _fun = partial(_check_fun, fun, **kwargs)
                 # modify data inplace to save memory
@@ -1624,7 +1624,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                         _fun, -1, data_in[:, idx, :])
             else:
                 # use parallel function
-                parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
                 data_picks_new = parallel(p_fun(
                     fun, data_in[:, p, :], **kwargs) for p in picks)
                 for pp, p in enumerate(picks):

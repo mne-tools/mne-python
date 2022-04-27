@@ -10,7 +10,7 @@ from .annotations import _annotations_starts_stops
 from .io.pick import _picks_to_idx
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
-from .parallel import parallel_func, check_n_jobs
+from .parallel import parallel_func
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, warn, _pl,
                     _check_preload, _validate_type, _check_option, _ensure_int)
@@ -157,7 +157,6 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
     x : array, shape (n_signals, n_times)
         x filtered.
     """
-    n_jobs = check_n_jobs(n_jobs, allow_cuda=True)
     # set up array for filtering, reshape to 2D, operate on last axis
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     # Extend the signal by mirroring the edges to reduce transient filter
@@ -197,17 +196,16 @@ def _overlap_add_filter(x, h, n_fft=None, phase='zero', picks=None,
                          '2 * len(h) - 1 (%s), got %s' % (min_fft, n_fft))
 
     # Figure out if we should use CUDA
-    n_jobs, cuda_dict = _setup_cuda_fft_multiply_repeated(
-        n_jobs, h, n_fft)
+    n_jobs, cuda_dict = _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft)
 
     # Process each row separately
     picks = _picks_to_idx(len(x), picks)
+    parallel, p_fun, _ = parallel_func(_1d_overlap_filter, n_jobs)
     if n_jobs == 1:
         for p in picks:
             x[p] = _1d_overlap_filter(x[p], len(h), n_edge, phase,
                                       cuda_dict, pad, n_fft)
     else:
-        parallel, p_fun, _ = parallel_func(_1d_overlap_filter, n_jobs)
         data_new = parallel(p_fun(x[p], len(h), n_edge, phase,
                                   cuda_dict, pad, n_fft) for p in picks)
         for pp, p in enumerate(picks):
@@ -428,7 +426,6 @@ def _filtfilt(x, iir_params, picks, n_jobs, copy):
     # set up array for filtering, reshape to 2D, operate on last axis
     from scipy.signal import filtfilt, sosfiltfilt
     padlen = min(iir_params['padlen'], x.shape[-1] - 1)
-    n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if 'sos' in iir_params:
         fun = partial(sosfiltfilt, sos=iir_params['sos'], padlen=padlen,
@@ -438,11 +435,11 @@ def _filtfilt(x, iir_params, picks, n_jobs, copy):
         fun = partial(filtfilt, b=iir_params['b'], a=iir_params['a'],
                       padlen=padlen, axis=-1)
         _check_coefficients((iir_params['b'], iir_params['a']))
+    parallel, p_fun, n_jobs = parallel_func(fun, n_jobs)
     if n_jobs == 1:
         for p in picks:
             x[p] = fun(x=x[p])
     else:
-        parallel, p_fun, _ = parallel_func(fun, n_jobs)
         data_new = parallel(p_fun(x=x[p]) for p in picks)
         for pp, p in enumerate(picks):
             x[p] = data_new[pp]
@@ -1222,7 +1219,6 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                       p_value, picks, n_jobs, copy, filter_length):
     """Call _mt_spectrum_remove."""
     # set up array for filtering, reshape to 2D, operate on last axis
-    n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if isinstance(filter_length, str) and filter_length == 'auto':
         filter_length = '10s'
@@ -1233,6 +1229,7 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
         _get_window_thresh, sfreq=sfreq, mt_bandwidth=mt_bandwidth,
         p_value=p_value)
     window_fun, threshold = get_wt(filter_length)
+    parallel, p_fun, n_jobs = parallel_func(_mt_spectrum_remove_win, n_jobs)
     if n_jobs == 1:
         freq_list = list()
         for ii, x_ in enumerate(x):
@@ -1242,7 +1239,6 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                     get_wt)
                 freq_list.append(f)
     else:
-        parallel, p_fun, _ = parallel_func(_mt_spectrum_remove_win, n_jobs)
         data_new = parallel(p_fun(x_, sfreq, line_freqs, notch_widths,
                                   window_fun, threshold, get_wt)
                             for xi, x_ in enumerate(x)
@@ -1450,7 +1446,6 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar',
     """
     from scipy.signal import get_window
     from scipy.fft import ifftshift, fftfreq
-    n_jobs = check_n_jobs(n_jobs, allow_cuda=True)
     # check explicitly for backwards compatibility
     if not isinstance(axis, int):
         err = ("The axis parameter needs to be an integer (got %s). "
@@ -1516,13 +1511,13 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar',
 
     # do the resampling using an adaptation of scipy's FFT-based resample()
     # use of the 'flat' window is recommended for minimal ringing
+    parallel, p_fun, n_jobs = parallel_func(_fft_resample, n_jobs)
     if n_jobs == 1:
         y = np.zeros((len(x_flat), new_len - to_removes.sum()), dtype=x.dtype)
         for xi, x_ in enumerate(x_flat):
             y[xi] = _fft_resample(x_, new_len, npads, to_removes,
                                   cuda_dict, pad)
     else:
-        parallel, p_fun, _ = parallel_func(_fft_resample, n_jobs)
         y = parallel(p_fun(x_, new_len, npads, to_removes, cuda_dict, pad)
                      for x_ in x_flat)
         y = np.array(y)
@@ -2169,7 +2164,6 @@ class FilterMixin(object):
         inverse, and computing the envelope in source space.
         """
         _check_preload(self, 'inst.apply_hilbert')
-        n_jobs = check_n_jobs(n_jobs)
         if n_fft is None:
             n_fft = len(self.times)
         elif isinstance(n_fft, str):
@@ -2189,6 +2183,7 @@ class FilterMixin(object):
         if dtype is not None and dtype != self._data.dtype:
             self._data = self._data.astype(dtype)
 
+        parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
         if n_jobs == 1:
             # modify data inplace to save memory
             for idx in picks:
@@ -2196,7 +2191,6 @@ class FilterMixin(object):
                     _my_hilbert, data_in[..., idx, :], *args, **kwargs)
         else:
             # use parallel function
-            parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
             data_picks_new = parallel(
                 p_fun(_my_hilbert, data_in[..., p, :], *args, **kwargs)
                 for p in picks)

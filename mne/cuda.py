@@ -156,7 +156,8 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft,
     from scipy.fft import rfft, irfft
     cuda_dict = dict(n_fft=n_fft, rfft=rfft, irfft=irfft,
                      h_fft=rfft(h, n=n_fft))
-    if n_jobs == 'cuda':
+    if isinstance(n_jobs, str):
+        _check_option('n_jobs', n_jobs, ('cuda',))
         n_jobs = 1
         init_cuda()
         if _cuda_capable:
@@ -253,7 +254,8 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
     W = W.copy()
     W[1:rfft_len_x] = (W[1:rfft_len_x] + W[::-1][:rfft_len_x - 1]) / 2.
     W = W[:rfft_len_x]
-    if n_jobs == 'cuda':
+    if isinstance(n_jobs, str):
+        _check_option('n_jobs', n_jobs, ('cuda',))
         n_jobs = 1
         init_cuda()
         if _cuda_capable:

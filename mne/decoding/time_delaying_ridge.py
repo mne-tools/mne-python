@@ -11,7 +11,6 @@ from .base import BaseEstimator
 from ..cuda import _setup_cuda_fft_multiply_repeated
 from ..filter import next_fast_len
 from ..fixes import jit
-from ..parallel import check_n_jobs
 from ..utils import warn, ProgressBar, logger
 
 
@@ -42,8 +41,9 @@ def _compute_corrs(X, y, smin, smax, n_jobs=None, fit_intercept=False,
 
     n_fft = next_fast_len(2 * X.shape[0] - 1)
 
-    n_jobs, cuda_dict = _setup_cuda_fft_multiply_repeated(
+    _, cuda_dict = _setup_cuda_fft_multiply_repeated(
         n_jobs, [1.], n_fft, 'correlation calculations')
+    del n_jobs  # only used to set as CUDA
 
     # create our Toeplitz indexer
     ij = np.empty((len_trf, len_trf), int)
@@ -314,7 +314,6 @@ class TimeDelayingRidge(BaseEstimator):
         else:
             assert X.ndim == 2 and y.ndim == 2
             assert X.shape[0] == y.shape[0]
-        n_jobs = check_n_jobs(self.n_jobs, allow_cuda=True)
         # These are split into two functions because it's possible that we
         # might want to allow people to do them separately (e.g., to test
         # different regularization parameters).

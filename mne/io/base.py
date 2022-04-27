@@ -38,7 +38,7 @@ from ..annotations import (_annotations_starts_stops, _write_annotations,
                            _handle_meas_date)
 from ..filter import (FilterMixin, notch_filter, resample, _resamp_ratio_len,
                       _resample_stim_channels, _check_fun)
-from ..parallel import parallel_func, check_n_jobs
+from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, fill_doc, copy_doc,
                      check_fname, _get_stim_channel, _stamp_to_dt,
@@ -999,7 +999,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             The raw object with transformed data.
         """
         _check_preload(self, 'raw.apply_function')
-        n_jobs = check_n_jobs(n_jobs)
         picks = _picks_to_idx(self.info, picks, exclude=(), with_ref_meg=False)
 
         if not callable(fun):
@@ -1010,6 +1009,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self._data = self._data.astype(dtype)
 
         if channel_wise:
+            parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
             if n_jobs == 1:
                 # modify data inplace to save memory
                 for idx in picks:
@@ -1017,7 +1017,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                                     **kwargs)
             else:
                 # use parallel function
-                parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
                 data_picks_new = parallel(
                     p_fun(fun, data_in[p], **kwargs) for p in picks)
                 for pp, p in enumerate(picks):
