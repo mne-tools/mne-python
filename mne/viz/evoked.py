@@ -865,7 +865,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
         axis_facecolor = background_color
         font_color = 'k'
 
-    if type(color) in (tuple, list):
+    if isinstance(color, (tuple, list)):
         if len(color) != len(evoked):
             raise ValueError('Lists of evoked objects and colors'
                              ' must have the same length')
