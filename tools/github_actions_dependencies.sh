@@ -14,19 +14,20 @@ else
 	echo "Date utils"
 	# https://pip.pypa.io/en/latest/user_guide/#possible-ways-to-reduce-backtracking-occurring
 	pip install $STD_ARGS --pre --only-binary ":all:" python-dateutil pytz joblib threadpoolctl six
-	echo "PyQt5"
-	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt5 PyQt5-sip PyQt5-Qt5
+	echo "PyQt6"
+	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6 PyQt6-sip PyQt6-Qt6
 	echo "NumPy/SciPy/pandas etc."
-	# TODO: Currently missing dipy for 3.10 https://github.com/dipy/dipy/issues/2489
-	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy scipy pandas "scikit-learn>=0.24.2" statsmodels
+	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy scipy pandas scikit-learn statsmodels dipy
 	echo "H5py, pillow, matplotlib"
 	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py pillow matplotlib
+	# We don't install Numba here because it forces an old NumPy version
 	echo "nilearn"
-	pip install $STD_ARGS --pre --only-binary ":all:" https://github.com/nilearn/nilearn/zipball/main
+	pip install $STD_ARGS --pre https://github.com/nilearn/nilearn/zipball/main
 	echo "VTK"
 	# Have to use our own version until VTK releases a 3.10 build
-	wget -q https://osf.io/hjyvx/download -O vtk-9.1.20211213.dev0-cp310-cp310-linux_x86_64.whl
-	pip install $STD_ARGS --pre --only-binary ":all:" vtk-9.1.20211213.dev0-cp310-cp310-linux_x86_64.whl
+	wget -q https://osf.io/ajder/download -O vtk-9.1.20220406.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+	pip install $STD_ARGS --pre --only-binary ":all:" vtk-9.1.20220406.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+	python -c "import vtk"
 	echo "PyVista"
 	pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
 	echo "pyvistaqt"
@@ -39,7 +40,13 @@ else
 	fi
 	EXTRA_ARGS="--pre"
 fi
-pip install $STD_ARGS $EXTRA_ARGS -r requirements_testing.txt
+# for compat_minimal and compat_old, we don't want to --upgrade
+if [ ! -z "$CONDA_DEPENDENCIES" ]; then
+	pip install -r requirements_base.txt -r requirements_testing.txt
+else
+	pip install $STD_ARGS $EXTRA_ARGS -r requirements_base.txt -r requirements_testing.txt -r requirements_hdf5.txt
+fi
+
 if [ "${DEPS}" != "minimal" ]; then
 	pip install $STD_ARGS $EXTRA_ARGS -r requirements_testing_extra.txt
 fi

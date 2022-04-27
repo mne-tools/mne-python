@@ -4,7 +4,7 @@ if [ "$CIRCLE_BRANCH" == "main" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]
     echo "Doing a full dev build";
     echo html_dev-memory > build.txt;
     python -c "import mne; mne.datasets._download_all_example_data()";
-elif [ "$CIRCLE_BRANCH" == "maint/0.24" ]; then
+elif [ "$CIRCLE_BRANCH" == "maint/1.0" ]; then
     echo "Doing a full stable build";
     echo html_stable-memory > build.txt;
     python -c "import mne; mne.datasets._download_all_example_data()";
@@ -12,7 +12,7 @@ else
     echo "Doing a partial build";
     FNAMES=$(git diff --name-only $(git merge-base $CIRCLE_BRANCH upstream/main) $CIRCLE_BRANCH);
     if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
-        FNAMES="tutorials/inverse/30_mne_dspm_loreta.py tutorials/machine-learning/30_strf.py examples/connectivity/mne_inverse_label_connectivity.py tutorials/machine-learning/50_decoding.py tutorials/stats-source-space/20_cluster_1samp_spatiotemporal.py tutorials/evoked/20_visualize_evoked.py "${FNAMES};
+        FNAMES="tutorials/inverse/30_mne_dspm_loreta.py tutorials/machine-learning/30_strf.py tutorials/machine-learning/50_decoding.py tutorials/stats-source-space/20_cluster_1samp_spatiotemporal.py tutorials/evoked/20_visualize_evoked.py "${FNAMES};
         python -c "import mne; print(mne.datasets.testing.data_path(update_path=True))";
     fi;
     echo FNAMES="$FNAMES";
@@ -61,7 +61,7 @@ else
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*hcp_mmp_parcellation.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
-                python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=mne.datasets.sample.data_path() + '/subjects', accept=True))";
+                python -c "import mne; print(mne.datasets.fetch_hcp_mmp_parcellation(subjects_dir=mne.datasets.sample.data_path() / 'subjects', accept=True))";
             fi;
             if [[ $(cat $FNAME | grep -x ".*datasets.*misc.*" | wc -l) -gt 0 ]]; then
                 python -c "import mne; print(mne.datasets.misc.data_path(update_path=True))";

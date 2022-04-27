@@ -12,15 +12,15 @@ import numpy as np
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx, BaseRaw, read_raw_fif
 from mne.preprocessing.nirs import optical_density, beer_lambert_law
-from mne.utils import _validate_type
+from mne.utils import _validate_type, requires_version
 from mne.datasets import testing
-from mne.externals.pymatreader import read_mat
 
-fname_nirx_15_0 = op.join(data_path(download=False),
+testing_path = data_path(download=False)
+fname_nirx_15_0 = op.join(testing_path,
                           'NIRx', 'nirscout', 'nirx_15_0_recording')
-fname_nirx_15_2 = op.join(data_path(download=False),
+fname_nirx_15_2 = op.join(testing_path,
                           'NIRx', 'nirscout', 'nirx_15_2_recording')
-fname_nirx_15_2_short = op.join(data_path(download=False),
+fname_nirx_15_2_short = op.join(testing_path,
                                 'NIRx', 'nirscout',
                                 'nirx_15_2_recording_w_short')
 
@@ -73,15 +73,17 @@ def test_beer_lambert_unordered_errors():
         beer_lambert_law(raw_od)
 
 
+@requires_version('pymatreader')
 @testing.requires_testing_data
 def test_beer_lambert_v_matlab():
     """Compare MNE results to MATLAB toolbox."""
+    from pymatreader import read_mat
     raw = read_raw_nirx(fname_nirx_15_0)
     raw = optical_density(raw)
     raw = beer_lambert_law(raw, ppf=0.121)
     raw._data *= 1e6  # Scale to uM for comparison to MATLAB
 
-    matlab_fname = op.join(data_path(download=False),
+    matlab_fname = op.join(testing_path,
                            'NIRx', 'nirscout', 'validation',
                            'nirx_15_0_recording_bl.mat')
     matlab_data = read_mat(matlab_fname)

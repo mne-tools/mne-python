@@ -25,16 +25,16 @@ from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      _gen_events, SizeMixin, _is_numeric, _check_option,
                      _validate_type, _check_combine, _check_pandas_installed,
                      _check_pandas_index_arguments, _check_time_format,
-                     _convert_times, _build_data_frame, warn)
-from ..channels.channels import ContainsMixin, UpdateChannelsMixin
+                     _convert_times, _build_data_frame, warn,
+                     _import_h5io_funcs)
+from ..channels.channels import UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
                        _get_channel_types)
-from ..io.meas_info import Info
+from ..io.meas_info import Info, ContainsMixin
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _connection_line, _prepare_joint_axes,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
-from ..externals.h5io import write_hdf5, read_hdf5
 
 
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
@@ -331,10 +331,13 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     -------
     out : array
         Time frequency transform of epoch_data. If output is in ['complex',
-        'phase', 'power'], then shape of out is (n_epochs, n_chans, n_freqs,
-        n_times), else it is (n_chans, n_freqs, n_times). If output is
-        'avg_power_itc', the real values code for 'avg_power' and the
-        imaginary values code for the 'itc': out = avg_power + i * itc
+        'phase', 'power'], then shape of ``out`` is ``(n_epochs, n_chans,
+        n_freqs, n_times)``, else it is ``(n_chans, n_freqs, n_times)``.
+        However, using multitaper method and output ``'complex'`` or
+        ``'phase'`` results in shape of ``out`` being ``(n_epochs, n_chans,
+        n_tapers, n_freqs, n_times)``. If output is ``'avg_power_itc'``, the
+        real values in the ``output`` contain average power' and the imaginary
+        values contain the ITC: ``out = avg_power + i * itc``.
     """
     # Check data
     epoch_data = np.asarray(epoch_data)
@@ -370,6 +373,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
 
     # Initialize output
     n_freqs = len(freqs)
+    n_tapers = len(Ws)
     n_epochs, n_chans, n_times = epoch_data[:, :, decim].shape
     if output in ('power', 'phase', 'avg_power', 'itc'):
         dtype = np.float64
@@ -380,6 +384,8 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
 
     if ('avg_' in output) or ('itc' in output):
         out = np.empty((n_chans, n_freqs, n_times), dtype)
+    elif output in ['complex', 'phase'] and method == 'multitaper':
+        out = np.empty((n_chans, n_tapers, n_epochs, n_freqs, n_times), dtype)
     else:
         out = np.empty((n_chans, n_epochs, n_freqs, n_times), dtype)
 
@@ -390,7 +396,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
 
     # Parallelization is applied across channels.
     tfrs = parallel(
-        my_cwt(channel, Ws, output, use_fft, 'same', decim)
+        my_cwt(channel, Ws, output, use_fft, 'same', decim, method)
         for channel in epoch_data.transpose(1, 0, 2))
 
     # FIXME: to avoid overheads we should use np.array_split()
@@ -399,7 +405,10 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
 
     if ('avg_' not in output) and ('itc' not in output):
         # This is to enforce that the first dimension is for epochs
-        out = out.transpose(1, 0, 2, 3)
+        if output in ['complex', 'phase'] and method == 'multitaper':
+            out = out.transpose(2, 0, 1, 3, 4)
+        else:
+            out = out.transpose(1, 0, 2, 3)
     return out
 
 
@@ -427,11 +436,6 @@ def _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
         raise ValueError('zero_mean should be of type bool, got %s. instead'
                          % type(zero_mean))
     freqs = np.asarray(freqs)
-
-    if (method == 'multitaper') and (output == 'phase'):
-        raise NotImplementedError(
-            'This function is not optimized to compute the phase using the '
-            'multitaper method. Use np.angle of the complex output instead.')
 
     # Check n_cycles
     if isinstance(n_cycles, (int, float)):
@@ -472,7 +476,8 @@ def _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
     return freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim
 
 
-def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
+def _time_frequency_loop(X, Ws, output, use_fft, mode, decim,
+                         method=None):
     """Aux. function to _compute_tfr.
 
     Loops time-frequency transform across wavelets and epochs.
@@ -499,6 +504,9 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
         See numpy.convolve.
     decim : slice
         The decimation slice: e.g. power[:, decim]
+    method : str | None
+        Used only for multitapering to create tapers dimension in the output
+        if ``output in ['complex', 'phase']``.
     """
     # Set output type
     dtype = np.float64
@@ -507,15 +515,19 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
 
     # Init outputs
     decim = _check_decim(decim)
+    n_tapers = len(Ws)
     n_epochs, n_times = X[:, decim].shape
     n_freqs = len(Ws[0])
     if ('avg_' in output) or ('itc' in output):
         tfrs = np.zeros((n_freqs, n_times), dtype=dtype)
+    elif output in ['complex', 'phase'] and method == 'multitaper':
+        tfrs = np.zeros((n_tapers, n_epochs, n_freqs, n_times),
+                        dtype=dtype)
     else:
         tfrs = np.zeros((n_epochs, n_freqs, n_times), dtype=dtype)
 
     # Loops across tapers.
-    for W in Ws:
+    for taper_idx, W in enumerate(Ws):
         # No need to check here, it's done earlier (outside parallel part)
         nfft = _get_nfft(W, X, use_fft, check=False)
         coefs = _cwt_gen(
@@ -543,6 +555,8 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
             # Stack or add
             if ('avg_' in output) or ('itc' in output):
                 tfrs += tfr
+            elif output in ['complex', 'phase'] and method == 'multitaper':
+                tfrs[taper_idx, epoch_idx] += tfr
             else:
                 tfrs[epoch_idx] += tfr
 
@@ -557,7 +571,8 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim):
         tfrs /= n_epochs
 
     # Normalization by number of taper
-    tfrs /= len(Ws)
+    if n_tapers > 1 and output not in ['complex', 'phase']:
+        tfrs /= n_tapers
     return tfrs
 
 
@@ -710,7 +725,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         Make sure the wavelet has a mean of zero.
 
         .. versionadded:: 0.13.0
-    %(tfr_average)s
+    %(average_tfr)s
     output : str
         Can be "power" (default) or "complex". If "complex", then
         average must be False.
@@ -855,7 +870,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         .. note:: Decimation may create aliasing artifacts.
     %(n_jobs)s
     %(picks_good_data)s
-    %(tfr_average)s
+    %(average_tfr)s
     %(verbose)s
 
     Returns
@@ -990,7 +1005,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             - dividing by the mean of baseline values, taking the log, and
               dividing by the standard deviation of log baseline values
               ('zlogratio')
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1032,13 +1047,13 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         Parameters
         ----------
         %(picks_all)s
-        %(df_index_epo)s
+        %(index_df_epo)s
             Valid string values are ``'time'``, ``'freq'``, ``'epoch'``, and
             ``'condition'`` for ``EpochsTFR`` and ``'time'`` and ``'freq'``
             for ``AverageTFR``.
             Defaults to ``None``.
-        %(df_longform_epo)s
-        %(df_time_format)s
+        %(long_format_df_epo)s
+        %(time_format_df)s
 
             .. versionadded:: 0.23
         %(verbose)s
@@ -1297,7 +1312,7 @@ class AverageTFR(_BaseTFR):
             :func:`mne.viz.plot_topomap` for more details.
 
             .. versionadded:: 0.24
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1489,7 +1504,7 @@ class AverageTFR(_BaseTFR):
             to style the image. ``axes`` and ``show`` are ignored. Beyond that,
             if ``None``, no customizable arguments will be passed.
             Defaults to ``None``.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1995,7 +2010,7 @@ class AverageTFR(_BaseTFR):
             The axes to plot to. If None the axes is defined automatically.
         show : bool
             Call pyplot.show() at the end.
-        %(topomap_outlines)s
+        %(outlines_topomap)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
@@ -2003,7 +2018,7 @@ class AverageTFR(_BaseTFR):
             inaccurate, use array for accuracy). If an array, the values
             represent the levels for the contours. If colorbar=True, the ticks
             in colorbar correspond to the contour levels. Defaults to 6.
-        %(topomap_sphere_auto)s
+        %(sphere_topomap_auto)s
 
         Returns
         -------
@@ -2488,6 +2503,7 @@ def write_tfrs(fname, tfr, overwrite=False, *, verbose=None):
     -----
     .. versionadded:: 0.9.0
     """
+    _, write_hdf5 = _import_h5io_funcs()
     out = []
     if not isinstance(tfr, (list, tuple)):
         tfr = [tfr]
@@ -2539,6 +2555,7 @@ def read_tfrs(fname, condition=None):
     .. versionadded:: 0.9.0
     """
     check_fname(fname, 'tfr', ('-tfr.h5', '_tfr.h5'))
+    read_hdf5, _ = _import_h5io_funcs()
 
     logger.info('Reading %s ...' % fname)
     tfr_data = read_hdf5(fname, title='mnepython', slash='replace')

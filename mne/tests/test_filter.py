@@ -538,7 +538,15 @@ def test_filter_auto():
     with pytest.raises(ValueError, match='Data to be filtered must be real'):
         filter_data(x.astype(np.float32), sfreq, None, 10)
     with pytest.raises(ValueError, match='Data to be filtered must be real'):
-        filter_data(1j, 1000., None, 40.)
+        filter_data([1j], 1000., None, 40.)
+    with pytest.raises(TypeError, match='instance of ndarray'):
+        filter_data('foo', 1000., None, 40.)
+    # gh-10258
+    raw = RawArray([[0.]], create_info(1, 1000., 'eeg'))
+    with pytest.raises(TypeError, match=r'.*copy\(\)\.filter\(\.\.\.\)` in.*'):
+        filter_data(raw, 1000., None, 40.)
+    with pytest.raises(TypeError, match=r'.*copy\(\)\.notch_filter\(\.\.\..*'):
+        notch_filter(raw, 1000., [60.])
 
 
 def test_cuda_fir():

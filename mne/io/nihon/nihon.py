@@ -98,6 +98,8 @@ _default_chan_labels += ['X12/BP1', 'X13/BP2', 'X14/BP3', 'X15/BP4']
 _default_chan_labels += [f'X{i}' for i in range(16, 166)]
 _default_chan_labels += ['NA28', 'Z']
 
+_encodings = ('utf-8', 'latin1')
+
 
 def _read_21e_file(fname):
     fname = _ensure_path(fname)
@@ -106,21 +108,31 @@ def _read_21e_file(fname):
     if e_fname.exists():
         # Read the 21E file and update the labels accordingly.
         logger.info('Found 21E file, reading channel names.')
-        with open(e_fname, 'r') as fid:
-            keep_parsing = False
-            for line in fid:
-                if line.startswith('['):
-                    if 'ELECTRODE' in line or 'REFERENCE' in line:
-                        keep_parsing = True
-                    else:
-                        keep_parsing = False
-                elif keep_parsing is True:
-                    idx, name = line.split('=')
-                    idx = int(idx)
-                    if idx >= len(_chan_labels):
-                        n = idx - len(_chan_labels) + 1
-                        _chan_labels.extend(['UNK'] * n)
-                    _chan_labels[idx] = name.strip()
+        for enc in _encodings:
+            try:
+                with open(e_fname, 'r', encoding=enc) as fid:
+                    keep_parsing = False
+                    for line in fid:
+                        if line.startswith('['):
+                            if 'ELECTRODE' in line or 'REFERENCE' in line:
+                                keep_parsing = True
+                            else:
+                                keep_parsing = False
+                        elif keep_parsing is True:
+                            idx, name = line.split('=')
+                            idx = int(idx)
+                            if idx >= len(_chan_labels):
+                                n = idx - len(_chan_labels) + 1
+                                _chan_labels.extend(['UNK'] * n)
+                            _chan_labels[idx] = name.strip()
+            except UnicodeDecodeError:
+                pass
+            else:
+                break
+        else:
+            warn(f'Could not decode 21E file as one of {_encodings}; '
+                 f'Default channel names are chosen.')
+
     return _chan_labels
 
 
@@ -253,7 +265,6 @@ def _read_nihon_annotations(fname):
         n_logblocks = np.fromfile(fid, np.uint8, 1)[0]
         all_onsets = []
         all_descriptions = []
-        encodings = ('utf-8', 'latin1')
         for t_block in range(n_logblocks):
             fid.seek(0x92 + t_block * 20)
             t_blk_address = np.fromfile(fid, np.uint32, 1)[0]
@@ -262,7 +273,7 @@ def _read_nihon_annotations(fname):
             fid.seek(t_blk_address + 0x14)
             t_logs = np.fromfile(fid, '|S45', n_logs)
             for t_log in t_logs:
-                for enc in encodings:
+                for enc in _encodings:
                     try:
                         t_log = t_log.decode(enc)
                     except UnicodeDecodeError:
@@ -270,7 +281,7 @@ def _read_nihon_annotations(fname):
                     else:
                         break
                 else:
-                    warn(f'Could not decode log as one of {encodings}')
+                    warn(f'Could not decode log as one of {_encodings}')
                     continue
                 t_desc = t_log[:20].strip('\x00')
                 t_onset = datetime.strptime(t_log[20:26], '%H%M%S')
@@ -355,15 +366,14 @@ class RawNihon(BaseRaw):
         if 'meas_date' in metadata:
             with info._unlock():
                 info['meas_date'] = metadata['meas_date']
-        chs = {x: _map_ch_to_specs(x) for x in ch_names}
+        chs = {x: _map_ch_to_specs(x) for x in info['ch_names']}
 
-        orig_ch_names = header['ch_names']
         cal = np.array(
-            [chs[x]['cal'] for x in orig_ch_names], float)[:, np.newaxis]
+            [chs[x]['cal'] for x in info['ch_names']], float)[:, np.newaxis]
         offsets = np.array(
-            [chs[x]['offset'] for x in orig_ch_names], float)[:, np.newaxis]
+            [chs[x]['offset'] for x in info['ch_names']], float)[:, np.newaxis]
         gains = np.array(
-            [chs[x]['unit'] for x in orig_ch_names], float)[:, np.newaxis]
+            [chs[x]['unit'] for x in info['ch_names']], float)[:, np.newaxis]
 
         raw_extras = dict(
             cal=cal, offsets=offsets, gains=gains, header=header)

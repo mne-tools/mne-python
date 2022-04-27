@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-sensitivity-maps:
 
@@ -28,10 +29,9 @@ import matplotlib.pyplot as plt
 print(__doc__)
 
 data_path = sample.data_path()
-
-fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-
-subjects_dir = data_path + '/subjects'
+meg_path = data_path / 'MEG' / 'sample'
+fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+subjects_dir = data_path / 'subjects'
 
 # Read the forward solutions with surface orientation
 fwd = mne.read_forward_solution(fwd_fname)

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-spm-faces:
 
@@ -35,12 +36,13 @@ from mne.minimum_norm import make_inverse_operator, apply_inverse
 print(__doc__)
 
 data_path = spm_face.data_path()
-subjects_dir = data_path + '/subjects'
+subjects_dir = data_path / 'subjects'
+spm_path = data_path / 'MEG' / 'spm'
 
 # %%
 # Load and filter data, set up epochs
 
-raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D.ds'
+raw_fname = spm_path / 'SPM_CTF_MEG_example_faces%d_3D.ds'
 
 raw = io.read_raw_ctf(raw_fname % 1, preload=True)  # Take first run
 # Here to save memory and time we'll downsample heavily -- this is not
@@ -97,8 +99,7 @@ noise_cov = mne.compute_covariance(epochs, tmax=0, method='shrunk',
 
 # The transformation here was aligned using the dig-montage. It's included in
 # the spm_faces dataset and is named SPM_dig_montage.fif.
-trans_fname = data_path + ('/MEG/spm/SPM_CTF_MEG_example_faces1_3D_'
-                           'raw-trans.fif')
+trans_fname = spm_path / 'SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
 
 maps = mne.make_field_map(evoked[0], trans_fname, subject='spm',
                           subjects_dir=subjects_dir, n_jobs=1)
@@ -113,8 +114,8 @@ evoked[0].plot_white(noise_cov)
 # %%
 # Compute forward model
 
-src = data_path + '/subjects/spm/bem/spm-oct-6-src.fif'
-bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
+src = subjects_dir / 'spm' / 'bem' / 'spm-oct-6-src.fif'
+bem = subjects_dir / 'spm' / 'bem' / 'spm-5120-5120-5120-bem-sol.fif'
 forward = mne.make_forward_solution(contrast.info, trans_fname, src, bem)
 
 # %%

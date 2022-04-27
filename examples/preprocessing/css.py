@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-css:
+
 =================================================================
 Cortical Signal Suppression (CSS) for removal of cortical signals
 =================================================================
@@ -25,14 +28,15 @@ from mne.simulation import simulate_sparse_stc, simulate_evoked
 ###############################################################################
 # Load sample subject data
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
-fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-ave_fname = data_path + '/MEG/sample/sample_audvis-no-filter-ave.fif'
-cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
-trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
-bem_fname = subjects_dir + '/sample' + '/bem' + '/sample-5120-bem-sol.fif'
+subjects_dir = data_path / 'subjects'
+meg_path = data_path / 'MEG' / 'sample'
+fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+ave_fname = meg_path / 'sample_audvis-no-filter-ave.fif'
+cov_fname = meg_path / 'sample_audvis-cov.fif'
+trans_fname = meg_path / 'sample_audvis_raw-trans.fif'
+bem_fname = subjects_dir / 'sample' / 'bem' / '/sample-5120-bem-sol.fif'
 
-raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
+raw = mne.io.read_raw_fif(meg_path / 'sample_audvis_raw.fif')
 fwd = mne.read_forward_solution(fwd_fname)
 fwd = mne.convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
 fwd = mne.pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])

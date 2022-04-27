@@ -23,7 +23,6 @@ from shutil import copyfile
 import time
 import warnings
 import webbrowser
-import html as stdlib_html  # avoid namespace confusion!
 
 import numpy as np
 
@@ -41,21 +40,20 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     _path_like, use_log_level, _check_fname,
-                     _check_ch_locs)
+                     _path_like, use_log_level, _check_fname, _VerboseDep,
+                     _check_ch_locs, _import_h5io_funcs)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
-                   plot_compare_evokeds, set_3d_view, get_3d_backend)
+                   plot_compare_evokeds, set_3d_view, get_3d_backend,
+                   Figure3D, use_browser_backend)
 from ..viz.misc import _plot_mri_contours, _get_bem_plotting_surfaces
 from ..viz.utils import _ndarray_to_fig, tight_layout
+from ..viz._scraper import _mne_qt_browser_screenshot
 from ..forward import read_forward_solution, Forward
 from ..epochs import read_epochs, BaseEpochs
 from ..preprocessing.ica import read_ica
 from .. import dig_mri_distances
 from ..minimum_norm import read_inverse_operator, InverseOperator
 from ..parallel import parallel_func, check_n_jobs
-
-from ..externals.tempita import Template
-from ..externals.h5io import read_hdf5, write_hdf5
 
 _BEM_VIEWS = ('axial', 'sagittal', 'coronal')
 
@@ -115,168 +113,153 @@ def _get_ch_types(inst):
 ###############################################################################
 # HTML generation
 
-
 def _html_header_element(*, lang, include, js, css, title, tags, mne_logo_img):
-    template_path = template_dir / 'header.html'
-
-    if title is not None:
-        title = stdlib_html.escape(title)
-    t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(lang=lang, include=include, js=js, css=css, title=title,
-                     tags=tags, mne_logo_img=mne_logo_img)
-    return t
+    from ..html_templates import report_templates_env
+    t = report_templates_env.get_template('header.html.jinja')
+    t_rendered = t.render(
+        lang=lang, include=include, js=js, css=css, title=title, tags=tags,
+        mne_logo_img=mne_logo_img
+    )
+    return t_rendered
 
 
 def _html_footer_element(*, mne_version, date):
-    template_path = template_dir / 'footer.html'
-    t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(mne_version=mne_version, date=date)
-    return t
+    from ..html_templates import report_templates_env
+    t = report_templates_env.get_template('footer.html.jinja')
+    t_rendered = t.render(mne_version=mne_version, date=date)
+    return t_rendered
 
 
 def _html_toc_element(*, content_elements):
-    template_path = template_dir / 'toc.html'
-    t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(content_elements=content_elements)
-    return t
+    from ..html_templates import report_templates_env
+    t = report_templates_env.get_template('toc.html.jinja')
+    t_rendered = t.render(content_elements=content_elements)
+    return t_rendered
 
 
 def _html_raw_element(*, id, repr, psd, butterfly, ssp_projs, title, tags):
-    template_path = template_dir / 'raw.html'
-
-    title = stdlib_html.escape(title)
-    t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, repr=repr, psd=psd, butterfly=butterfly,
-                     ssp_projs=ssp_projs, tags=tags, title=title)
-    return t
+    from ..html_templates import report_templates_env
+    t = report_templates_env.get_template('raw.html.jinja')
+    t_rendered = t.render(
+        id=id, repr=repr, psd=psd, butterfly=butterfly, ssp_projs=ssp_projs,
+        tags=tags, title=title
+    )
+    return t_rendered
 
 
 def _html_epochs_element(*, id, repr, metadata, erp_imgs, drop_log, psd,
                          ssp_projs, title, tags):
-    template_path = template_dir / 'epochs.html'
-
-    title = stdlib_html.escape(title)
-    t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(
+    from ..html_templates import report_templates_env
+    t = report_templates_env.get_template('epochs.html.jinja')
+    t_rendered = t.render(
         id=id, repr=repr, metadata=metadata, erp_imgs=erp_imgs,
         drop_log=drop_log, psd=psd, ssp_projs=ssp_projs, tags=tags, title=title
     )
-    return t
+    return t_rendered
 
 
 def _html_evoked_element(*, id, joint, slider, gfp, whitened, ssp_projs, title,
                          tags):
-    template_path = template_dir / 'evoked.html'
-
-    title = stdlib_html.escape(title)
-    t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, joint=joint, slider=slider, gfp=gfp,
-                     whitened=whitened, ssp_projs=ssp_projs, tags=tags,
-                     title=title)
-    return t
+    from ..html_templates import report_templates_env
+    t = report_templates_env.get_template('evoked.html.jinja')
+    t_rendered = t.render(
+        id=id, joint=joint, slider=slider, gfp=gfp, whitened=whitened,
+        ssp_projs=ssp_projs, tags=tags, title=title
+    )
+    return t_rendered
 
 
 def _html_cov_element(*, id, matrix, svd, title, tags):
-    template_path = template_dir / 'cov.html'
-
-    title = stdlib_html.escape(title)
-    t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, matrix=matrix, svd=svd, tags=tags, title=title)
-    return t
+    from ..html_templates import report_templates_env
+    t = report_templates_env.get_template('cov.html.jinja')
+    t_rendered = t.render(
+        id=id, matrix=matrix, svd=svd, tags=tags, title=title
+    )
+    return t_rendered
 
 
 def _html_forward_sol_element(*, id, repr, sensitivity_maps, title, tags):
-    template_path = template_dir / 'forward.html'
-
-    title = stdlib_html.escape(title)
-    t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, repr=repr, sensitivity_maps=sensitivity_maps,
-                     tags=tags, title=title)
-    return t
+    from ..html_templates import report_templates_env
+    t = report_templates_env.get_template('forward.html.jinja')
+    t_rendered = t.render(
+        id=id, repr=repr, sensitivity_maps=sensitivity_maps, tags=tags,
+        title=title
+    )
+    return t_rendered
 
 
 def _html_inverse_operator_element(*, id, repr, source_space, title, tags):
-    template_path = template_dir / 'inverse.html'
-
-    title = stdlib_html.escape(title)
-    t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, repr=repr, source_space=source_space, tags=tags,
-                     title=title)
-    return t
+    from ..html_templates import report_templates_env
+    t = report_templates_env.get_template('inverse.html.jinja')
+    t_rendered = t.render(
+        id=id, repr=repr, source_space=source_space, tags=tags, title=title
+    )
+    return t_rendered
 
 
 def _html_ica_element(*, id, repr, overlay, ecg, eog, ecg_scores, eog_scores,
                       properties, topographies, title, tags):
-    template_path = template_dir / 'ica.html'
-
-    title = stdlib_html.escape(title)
-    t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, repr=repr, overlay=overlay, ecg=ecg, eog=eog,
-                     ecg_scores=ecg_scores, eog_scores=eog_scores,
-                     properties=properties, topographies=topographies,
-                     tags=tags, title=title)
-    return t
+    from ..html_templates import report_templates_env
+    t = report_templates_env.get_template('ica.html.jinja')
+    t_rendered = t.render(
+        id=id, repr=repr, overlay=overlay, ecg=ecg, eog=eog,
+        ecg_scores=ecg_scores, eog_scores=eog_scores, properties=properties,
+        topographies=topographies, tags=tags, title=title
+    )
+    return t_rendered
 
 
 def _html_slider_element(*, id, images, captions, start_idx, image_format,
                          title, tags, klass=''):
-    template_path = template_dir / 'slider.html'
-
-    title = stdlib_html.escape(title)
+    from ..html_templates import report_templates_env
     captions_ = []
     for caption in captions:
         if caption is None:
             caption = ''
-        else:
-            caption = stdlib_html.escape(caption)
         captions_.append(caption)
     del captions
 
-    t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, images=images, captions=captions_, tags=tags,
-                     title=title, start_idx=start_idx,
-                     image_format=image_format, klass=klass)
-    return t
+    t = report_templates_env.get_template('slider.html.jinja')
+    t_rendered = t.render(
+        id=id, images=images, captions=captions_, tags=tags, title=title,
+        start_idx=start_idx, image_format=image_format, klass=klass
+    )
+    return t_rendered
 
 
 def _html_image_element(*, id, img, image_format, caption, show, div_klass,
                         img_klass, title, tags):
-    template_path = template_dir / 'image.html'
-
-    title = stdlib_html.escape(title)
-    if caption is not None:
-        caption = stdlib_html.escape(caption)
-    t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, img=img, caption=caption, tags=tags, title=title,
-                     image_format=image_format, div_klass=div_klass,
-                     img_klass=img_klass, show=show)
-    return t
+    from ..html_templates import report_templates_env
+    t = report_templates_env.get_template('image.html.jinja')
+    t_rendered = t.render(
+        id=id, img=img, caption=caption, tags=tags, title=title,
+        image_format=image_format, div_klass=div_klass, img_klass=img_klass,
+        show=show
+    )
+    return t_rendered
 
 
 def _html_code_element(*, id, code, language, title, tags):
-    template_path = template_dir / 'code.html'
-
-    title = stdlib_html.escape(title)
-    t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, code=code, language=language, title=title,
-                     tags=tags)
-    return t
+    from ..html_templates import report_templates_env
+    t = report_templates_env.get_template('code.html.jinja')
+    t_rendered = t.render(
+        id=id, code=code, language=language, title=title, tags=tags
+    )
+    return t_rendered
 
 
 def _html_element(*, id, div_klass, html, title, tags):
-    template_path = template_dir / 'html.html'
-
-    title = stdlib_html.escape(title)
-    t = Template(template_path.read_text(encoding='utf-8'))
-    t = t.substitute(id=id, div_klass=div_klass, html=html, title=title,
-                     tags=tags)
-    return t
+    from ..html_templates import report_templates_env
+    t = report_templates_env.get_template('html.html.jinja')
+    t_rendered = t.render(
+        id=id, div_klass=div_klass, html=html, title=title, tags=tags
+    )
+    return t_rendered
 
 
 @dataclass
 class _ContentElement:
     name: str
-    name_html_escaped: str
     dom_id: str
     tags: Tuple[str]
     html: str
@@ -284,19 +267,24 @@ class _ContentElement:
 
 def _check_tags(tags) -> Tuple[str]:
     # Must be iterable, but not a string
-    if (isinstance(tags, str) or not isinstance(tags, (Sequence, np.ndarray))):
+    if isinstance(tags, str):
+        tags = (tags,)
+    elif isinstance(tags, (Sequence, np.ndarray)):
+        tags = tuple(tags)
+    else:
         raise TypeError(
-            f'tags must be a collection of str, but got {type(tags)} '
+            f'tags must be a string (without spaces or special characters) or '
+            f'an array-like object of such strings, but got {type(tags)} '
             f'instead: {tags}'
         )
-    tags = tuple(tags)
 
     # Check for invalid dtypes
     bad_tags = [tag for tag in tags
                 if not isinstance(tag, str)]
     if bad_tags:
         raise TypeError(
-            f'tags must be strings, but got the following instead: '
+            f'All tags must be strings without spaces or special characters, '
+            f'but got the following instead: '
             f'{", ".join([str(tag) for tag in bad_tags])}'
         )
 
@@ -341,30 +329,49 @@ def _constrain_fig_resolution(fig, *, max_width, max_res):
     fig.set_dpi(dpi)
 
 
-def _fig_to_img(fig, *, image_format='png', auto_close=True):
+def _fig_to_img(fig, *, image_format='png', own_figure=True):
     """Plot figure and create a binary image."""
     # fig can be ndarray, mpl Figure, PyVista Figure
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
     if isinstance(fig, np.ndarray):
+        # In this case, we are creating the fig, so we might as well
+        # auto-close in all cases
         fig = _ndarray_to_fig(fig)
-        _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-        )
-    elif not isinstance(fig, Figure):
-        from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
-        backend._check_3d_figure(figure=fig)
-        if not MNE_3D_BACKEND_TESTING:
-            img = backend._take_3d_screenshot(figure=fig)
-        else:  # Testing mode
-            img = np.zeros((2, 2, 3))
-
-        if auto_close:
-            backend._close_3d_figure(figure=fig)
+        if own_figure:
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
+        own_figure = True  # close the figure we just created
+    elif isinstance(fig, Figure):
+        pass  # nothing to do
+    else:
+        # Don't attempt a mne_qt_browser import here (it might pull in Qt
+        # libraries we don't want), so use a probably good enough class name
+        # check instead
+        if fig.__class__.__name__ in ('MNEQtBrowser', 'PyQtGraphBrowser'):
+            img = _mne_qt_browser_screenshot(fig, return_type='ndarray')
+            print(img.shape, img.max(), img.min(), img.mean())
+        elif isinstance(fig, Figure3D):
+            from ..viz.backends.renderer import backend, MNE_3D_BACKEND_TESTING
+            backend._check_3d_figure(figure=fig)
+            if not MNE_3D_BACKEND_TESTING:
+                img = backend._take_3d_screenshot(figure=fig)
+            else:  # Testing mode
+                img = np.zeros((2, 2, 3))
+            if own_figure:
+                backend._close_3d_figure(figure=fig)
+        else:
+            raise TypeError(
+                'figure must be an instance of np.ndarray, matplotlib Figure, '
+                'mne_qt_browser.figure.MNEQtBrowser, or mne.viz.Figure3D, got '
+                f'{type(fig)}')
         fig = _ndarray_to_fig(img)
-        _constrain_fig_resolution(
-            fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
-        )
+        if own_figure:
+            _constrain_fig_resolution(
+                fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
+            )
+        own_figure = True  # close the fig we just created
 
     output = BytesIO()
     logger.debug(
@@ -380,7 +387,7 @@ def _fig_to_img(fig, *, image_format='png', auto_close=True):
         )
         fig.savefig(output, format=image_format, dpi=fig.get_dpi())
 
-    if auto_close:
+    if own_figure:
         plt.close(fig)
     output = output.getvalue()
     return (output.decode('utf-8') if image_format == 'svg' else
@@ -451,7 +458,7 @@ def _get_bem_contour_figs_as_arrays(
     return out
 
 
-def _iterate_trans_views(function, **kwargs):
+def _iterate_trans_views(function, alpha, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     from ..viz import create_3d_figure
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
@@ -461,9 +468,11 @@ def _iterate_trans_views(function, **kwargs):
     from ..viz.backends.renderer import backend
     try:
         try:
-            return _itv(function, fig, surfaces=['head-dense'], **kwargs)
+            return _itv(
+                function, fig, surfaces={'head-dense': alpha}, **kwargs
+            )
         except IOError:
-            return _itv(function, fig, surfaces=['head'], **kwargs)
+            return _itv(function, fig, surfaces={'head': alpha}, **kwargs)
     finally:
         backend._close_3d_figure(fig)
 
@@ -595,6 +604,7 @@ def open_report(fname, **params):
     fname = _check_fname(fname=fname, overwrite='read', must_exist=False)
     if op.exists(fname):
         # Check **params with the loaded report
+        read_hdf5, _ = _import_h5io_funcs()
         state = read_hdf5(fname, title='mnepython')
         for param in params.keys():
             if param not in state:
@@ -637,7 +647,7 @@ def _check_image_format(rep, image_format):
 
 
 @fill_doc
-class Report(object):
+class Report(_VerboseDep):
     r"""Object for rendering HTML.
 
     Parameters
@@ -721,9 +731,11 @@ class Report(object):
     .. versionadded:: 0.8.0
     """
 
+    @verbose
     def __init__(self, info_fname=None, subjects_dir=None,
                  subject=None, title=None, cov_fname=None, baseline=None,
-                 image_format='png', raw_psd=False, projs=False, verbose=None):
+                 image_format='png', raw_psd=False, projs=False, *,
+                 verbose=None):
         self.info_fname = str(info_fname) if info_fname is not None else None
         self.cov_fname = str(cov_fname) if cov_fname is not None else None
         self.baseline = baseline
@@ -734,7 +746,6 @@ class Report(object):
         self.title = title
         self.image_format = _check_image_format(None, image_format)
         self.projs = projs
-        self.verbose = verbose
 
         self._dom_id = 0
         self._content = []
@@ -783,7 +794,7 @@ class Report(object):
         return (
             'baseline', 'cov_fname', 'include', '_content', 'image_format',
             'info_fname', '_dom_id', 'raw_psd', 'projs',
-            'subjects_dir', 'subject', 'title', 'data_path', 'lang', 'verbose',
+            'subjects_dir', 'subject', 'title', 'data_path', 'lang',
             'fname'
         )
 
@@ -891,14 +902,14 @@ class Report(object):
 
             If ``True``, add PSD plots based on all ``epochs``. If ``False``,
             do not add PSD plots.
-        %(report_projs)s
+        %(projs_report)s
         %(topomap_kwargs)s
         drop_log_ignore : array-like of str
             The drop reasons to ignore when creating the drop log bar plot.
             All epochs for which a drop reason listed here appears in
             ``epochs.drop_log`` will be excluded from the drop log plot.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -960,13 +971,13 @@ class Report(object):
             A noise covariance matrix. If provided, will be used to whiten
             the ``evokeds``. If ``None``, will fall back to the ``cov_fname``
             provided upon report creation.
-        %(report_projs)s
+        %(projs_report)s
         n_time_points : int | None
             The number of equidistant time points to render. If ``None``,
             will render each `~mne.Evoked` at 21 time points, unless the data
             contains fewer time points, in which case all will be rendered.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
         %(topomap_kwargs)s
         %(n_jobs)s
 
@@ -1057,7 +1068,7 @@ class Report(object):
             Whether to add PSD plots. Overrides the ``raw_psd`` parameter
             passed when initializing the `~mne.Report`. If ``None``, use
             ``raw_psd`` from `~mne.Report` creation.
-        %(report_projs)s
+        %(projs_report)s
         butterfly : bool | int
             Whether to add butterfly plots of the data. Can be useful to
             spot problematic channels. If ``True``, 10 equally-spaced 1-second
@@ -1066,8 +1077,8 @@ class Report(object):
             amount of time if the data contains many sensors. You can disable
             butterfly plots altogether by passing ``False``.
         %(scalings)s
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
         %(topomap_kwargs)s
 
         Notes
@@ -1137,9 +1148,9 @@ class Report(object):
             The number of equidistant time points to render. If ``None``,
             will render ``stc`` at 51 time points, unless the data
             contains fewer time points, in which case all will be rendered.
-        %(report_tags)s
-        %(report_replace)s
-        %(report_stc_plot_kwargs)s
+        %(tags_report)s
+        %(replace_report)s
+        %(stc_plot_kwargs_report)s
 
         Notes
         -----
@@ -1183,8 +1194,8 @@ class Report(object):
             passed on report creation. If supplied, also pass ``subjects_dir``.
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1226,8 +1237,8 @@ class Report(object):
             The FreeSurfer ``SUBJECTS_DIR``.
         trans : path-like | instance of Transform | None
             The ``head -> MRI`` transformation for ``subject``.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1254,7 +1265,7 @@ class Report(object):
 
     @fill_doc
     def add_trans(self, trans, *, info, title, subject=None, subjects_dir=None,
-                  tags=('coregistration',), replace=False):
+                  alpha=None, tags=('coregistration',), replace=False):
         """Add a coregistration visualization to the report.
 
         Parameters
@@ -1272,8 +1283,12 @@ class Report(object):
             report creation.
         subjects_dir : path-like | None
             The FreeSurfer ``SUBJECTS_DIR``.
-        %(report_tags)s
-        %(report_replace)s
+        alpha : float | None
+            The level of opacity to apply to the head surface. If a float, must
+            be between 0 and 1 (inclusive), where 1 means fully opaque. If
+            ``None``, will use the MNE-Python default value.
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1286,6 +1301,7 @@ class Report(object):
             info=info,
             subject=subject,
             subjects_dir=subjects_dir,
+            alpha=alpha,
             title=title,
             tags=tags
         )
@@ -1310,8 +1326,8 @@ class Report(object):
             The `~mne.Info` corresponding to ``cov``.
         title : str
             The title corresponding to the `~mne.Covariance` object.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1360,8 +1376,8 @@ class Report(object):
         first_samp : int
             The first sample point in the recording. This corresponds to
             ``raw.first_samp`` on files created with Elekta/Neuromag systems.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1402,8 +1418,8 @@ class Report(object):
         title : str
             The title corresponding to the `~mne.Projection` object.
         %(topomap_kwargs)s
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1505,7 +1521,8 @@ class Report(object):
 
     def _render_ica_artifact_sources(self, *, ica, inst, artifact_type,
                                      image_format, tags):
-        fig = ica.plot_sources(inst=inst, show=False)
+        with use_browser_backend('matplotlib'):
+            fig = ica.plot_sources(inst=inst, show=False)
         _constrain_fig_resolution(
             fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
         )
@@ -1728,8 +1745,8 @@ class Report(object):
             If passed, will be used to visualize the scoring for each ICA
             component.
         %(n_jobs)s
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1765,7 +1782,7 @@ class Report(object):
             The title of the element(s) to remove.
 
             .. versionadded:: 0.24.0
-        tags : array-like of str | None
+        tags : array-like of str | str | None
              If supplied, restrict the operation to elements with the supplied
              tags.
 
@@ -1830,7 +1847,6 @@ class Report(object):
 
         new_content = _ContentElement(
             name=name,
-            name_html_escaped=stdlib_html.escape(name),
             dom_id=dom_id,
             tags=tags,
             html=html
@@ -1880,8 +1896,8 @@ class Report(object):
         language : str
             The programming language of ``code``. This will be used for syntax
             highlighting. Can be ``'auto'`` to try to auto-detect the language.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1911,7 +1927,7 @@ class Report(object):
         ----------
         title : str
             The title to assign.
-        %(report_tags)s
+        %(tags_report)s
 
         Notes
         -----
@@ -1932,19 +1948,19 @@ class Report(object):
 
         Parameters
         ----------
-        fig : matplotlib.figure.Figure | PyVista renderer | array | array-like of matplotlib.figure.Figure | array-like of PyVista renderer | array-like of array
+        fig : matplotlib.figure.Figure | Figure3D | array | array-like of matplotlib.figure.Figure | array-like of Figure3D | array-like of array
             One or more figures to add to the report. All figures must be an
             instance of :class:`matplotlib.figure.Figure`,
-            PyVista renderer, or :class:`numpy.ndarray`. If
+            :class:`mne.viz.Figure3D`, or :class:`numpy.ndarray`. If
             multiple figures are passed, they will be added as "slides"
             that can be navigated using buttons and a slider element.
         title : str
             The title corresponding to the figure(s).
         caption : str | array-like of str | None
             The caption(s) to add to the figure(s).
-        %(report_image_format)s
-        %(report_tags)s
-        %(report_replace)s
+        %(image_format_report)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1982,7 +1998,8 @@ class Report(object):
 
         assert figs
         if len(figs) == 1:
-            img = _fig_to_img(fig=figs[0], image_format=image_format)
+            img = _fig_to_img(fig=figs[0], image_format=image_format,
+                              own_figure=False)
             dom_id = self._get_dom_id()
             html = _html_image_element(
                 img=img, div_klass='custom-image', img_klass='custom-image',
@@ -1992,7 +2009,8 @@ class Report(object):
         else:
             html, dom_id = self._render_slider(
                 figs=figs, imgs=None, title=title, captions=captions,
-                start_idx=0, image_format=image_format, tags=tags
+                start_idx=0, image_format=image_format, tags=tags,
+                own_figure=False
             )
 
         self._add_or_replace(
@@ -2016,8 +2034,8 @@ class Report(object):
             Title corresponding to the images.
         caption : str | None
             If not ``None``, the caption to add to the image.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -2057,8 +2075,8 @@ class Report(object):
             The HTML content to add.
         title : str
             The title corresponding to ``html``.
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -2099,8 +2117,8 @@ class Report(object):
             Typically a factor of 2 more than the number of MRI voxels along
             each dimension (typically 512, default) is reasonable.
         %(n_jobs)s
-        %(report_tags)s
-        %(report_replace)s
+        %(tags_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -2129,7 +2147,7 @@ class Report(object):
         )
 
     def _render_slider(self, *, figs, imgs, title, captions, start_idx,
-                       image_format, tags, klass=''):
+                       image_format, tags, klass='', own_figure=True):
         if figs is not None and imgs is not None:
             raise ValueError('Must only provide either figs or imgs')
 
@@ -2143,10 +2161,10 @@ class Report(object):
                 f'Number of captions ({len(captions)}) must be equal to the '
                 f'number of images ({len(imgs)})'
             )
-        elif figs:
-            imgs = [_fig_to_img(fig=fig, image_format=image_format)
+        elif figs:  # figs can be None if imgs is provided
+            imgs = [_fig_to_img(fig=fig, image_format=image_format,
+                                own_figure=own_figure)
                     for fig in figs]
-
         dom_id = self._get_dom_id()
         html = _html_slider_element(
             id=dom_id,
@@ -2317,7 +2335,7 @@ class Report(object):
         on_error : str
             What to do if a file cannot be rendered. Can be 'ignore',
             'warn' (default), or 'raise'.
-        %(report_image_format)s
+        %(image_format_report)s
 
             .. versionadded:: 0.15
         render_bem : bool
@@ -2337,13 +2355,13 @@ class Report(object):
             data.
 
             .. versionadded:: 0.24.0
-        %(report_stc_plot_kwargs)s
+        %(stc_plot_kwargs_report)s
 
             .. versionadded:: 0.24.0
         %(topomap_kwargs)s
 
             .. versionadded:: 0.24.0
-        %(verbose_meth)s
+        %(verbose)s
         """
         _validate_type(data_path, 'path-like', 'data_path')
         data_path = str(data_path)
@@ -2511,7 +2529,7 @@ class Report(object):
             -> bem -> forward-solution -> inverse-operator -> source-estimate.
 
             .. versionadded:: 0.24.0
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -2547,6 +2565,7 @@ class Report(object):
             logger.info(f'Saving report to : {fname}')
 
             if is_hdf5:
+                _, write_hdf5 = _import_h5io_funcs()
                 write_hdf5(fname, self.__getstate__(), overwrite=overwrite,
                            title='mnepython')
             else:
@@ -2664,10 +2683,11 @@ class Report(object):
             raw.set_annotations(None)
 
             # Create the figure once and re-use it for performance reasons
-            fig = raw.plot(
-                butterfly=True, show_scrollbars=False, start=t_starts[0],
-                duration=durations[0], scalings=scalings, show=False
-            )
+            with use_browser_backend('matplotlib'):
+                fig = raw.plot(
+                    butterfly=True, show_scrollbars=False, start=t_starts[0],
+                    duration=durations[0], scalings=scalings, show=False
+                )
             _constrain_fig_resolution(
                 fig, max_width=MAX_IMG_WIDTH, max_res=MAX_IMG_RES
             )
@@ -2918,7 +2938,7 @@ class Report(object):
                      f'create joint plot')
                 continue
 
-            with use_log_level(level=False):
+            with use_log_level(False):
                 fig = evoked.copy().pick(ch_type, verbose=False).plot_joint(
                     ts_args=dict(gfp=True),
                     title=None,
@@ -3392,7 +3412,7 @@ class Report(object):
         epochs.load_data()
 
         for ch_type in ch_types:
-            with use_log_level(level=False):
+            with use_log_level(False):
                 figs = epochs.copy().pick(ch_type, verbose=False).plot_image(
                     show=False
                 )
@@ -3497,8 +3517,8 @@ class Report(object):
 
         return htmls
 
-    def _render_trans(self, *, trans, info, subject, subjects_dir, title,
-                      tags):
+    def _render_trans(self, *, trans, info, subject, subjects_dir, alpha,
+                      title, tags):
         """Render trans (only PNG)."""
         if not isinstance(trans, Transform):
             trans = read_trans(trans)
@@ -3510,7 +3530,7 @@ class Report(object):
                       meg=['helmet', 'sensors'], show_axes=True,
                       coord_frame='mri')
         img, caption = _iterate_trans_views(
-            function=plot_alignment, **kwargs)
+            function=plot_alignment, alpha=alpha, **kwargs)
 
         dom_id = self._get_dom_id()
         html = _html_image_element(

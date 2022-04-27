@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-gamma-map:
+
 ===============================================================================
 Compute a sparse inverse solution using the Gamma-MAP empirical Bayesian method
 ===============================================================================
@@ -23,10 +26,11 @@ from mne.viz import (plot_sparse_source_estimates,
 print(__doc__)
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
-fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
-cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
+subjects_dir = data_path / 'subjects'
+meg_path = data_path / 'MEG' / 'sample'
+fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+evoked_fname = meg_path / 'sample_audvis-ave.fif'
+cov_fname = meg_path / 'sample_audvis-cov.fif'
 
 # Read the evoked response and crop it
 condition = 'Left visual'

@@ -2,8 +2,9 @@
 """
 .. _tut-bad-channels:
 
+=====================
 Handling bad channels
-==========================
+=====================
 
 This tutorial covers manual marking of bad channels and reconstructing bad
 channels based on good signals at other sensors.
@@ -226,7 +227,8 @@ eeg_data = raw.copy().pick_types(meg=False, eeg=True, exclude=[])
 eeg_data_interp = eeg_data.copy().interpolate_bads(reset_bads=False)
 
 for title, data in zip(['orig.', 'interp.'], [eeg_data, eeg_data_interp]):
-    fig = data.plot(butterfly=True, color='#00000022', bad_color='r')
+    with mne.viz.use_browser_backend('matplotlib'):
+        fig = data.plot(butterfly=True, color='#00000022', bad_color='r')
     fig.subplots_adjust(top=0.9)
     fig.suptitle(title, size='xx-large', weight='bold')
 

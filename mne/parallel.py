@@ -67,11 +67,8 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
         try:
             from joblib import Parallel, delayed
         except ImportError:
-            try:
-                from sklearn.externals.joblib import Parallel, delayed
-            except ImportError:
-                warn('joblib not installed. Cannot run in parallel.')
-                n_jobs = 1
+            warn('joblib not installed. Cannot run in parallel.')
+            n_jobs = 1
     if n_jobs == 1:
         n_jobs = 1
         my_func = func

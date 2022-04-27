@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-res-metrics-meeg:
+
 ==============================================================
 Compute spatial resolution metrics to compare MEG with EEG+MEG
 ==============================================================
@@ -25,10 +28,11 @@ from mne.minimum_norm.spatial_resolution import resolution_metrics
 print(__doc__)
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects/'
-fname_fwd_emeg = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
-fname_evo = data_path + '/MEG/sample/sample_audvis-ave.fif'
+subjects_dir = data_path / 'subjects/'
+meg_path = data_path / 'MEG' / 'sample'
+fname_fwd_emeg = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+fname_cov = meg_path / 'sample_audvis-cov.fif'
+fname_evo = meg_path / 'sample_audvis-ave.fif'
 
 # read forward solution with EEG and MEG
 forward_emeg = mne.read_forward_solution(fname_fwd_emeg)

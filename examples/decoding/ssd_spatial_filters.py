@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-ssd-spatial-filters:
+
 ===========================================================
 Compute Spectro-Spatial Decomposition (SSD) spatial filters
 ===========================================================
@@ -26,7 +29,7 @@ from mne.decoding import SSD
 
 # %%
 # Define parameters
-fname = data_path() + '/SubjectCMC.ds'
+fname = data_path() / 'SubjectCMC.ds'
 
 # Prepare data
 raw = mne.io.read_raw_ctf(fname)

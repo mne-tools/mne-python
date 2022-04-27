@@ -20,9 +20,8 @@ from mne.io import read_raw_eeglab
 from mne.io.eeglab.eeglab import _get_montage_information, _dol_to_lod
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
-from mne.utils import check_version, Bunch
+from mne.utils import Bunch
 from mne.annotations import events_from_annotations, read_annotations
-from mne.externals.pymatreader import read_mat
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 
@@ -34,6 +33,7 @@ epochs_fname_onefile_mat = op.join(base_dir, 'test_epochs_onefile.set')
 raw_mat_fnames = [raw_fname_mat, raw_fname_onefile_mat]
 epochs_mat_fnames = [epochs_fname_mat, epochs_fname_onefile_mat]
 raw_fname_chanloc = op.join(base_dir, 'test_raw_chanloc.set')
+raw_fname_chanloc_fids = op.join(base_dir, 'test_raw_chanloc_fids.set')
 raw_fname_2021 = op.join(base_dir, 'test_raw_2021.set')
 raw_fname_h5 = op.join(base_dir, 'test_raw_h5.set')
 raw_fname_onefile_h5 = op.join(base_dir, 'test_raw_onefile_h5.set')
@@ -45,13 +45,13 @@ epochs_h5_fnames = [epochs_fname_h5, epochs_fname_onefile_h5]
 montage_path = op.join(base_dir, 'test_chans.locs')
 
 
-needs_h5 = pytest.mark.skipif(not check_version('h5py'), reason='Needs h5py')
+pymatreader = pytest.importorskip('pymatreader')  # module-level
 
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname', [
     raw_fname_mat,
-    pytest.param(raw_fname_h5, marks=needs_h5),
+    raw_fname_h5,
     raw_fname_chanloc,
 ], ids=op.basename)
 def test_io_set_raw(fname):
@@ -242,7 +242,7 @@ def test_io_set_raw_more(tmp_path):
 @testing.requires_testing_data
 @pytest.mark.parametrize('fnames', [
     epochs_mat_fnames,
-    pytest.param(epochs_h5_fnames, marks=[needs_h5, pytest.mark.slowtest]),
+    pytest.param(epochs_h5_fnames, marks=[pytest.mark.slowtest]),
 ])
 def test_io_set_epochs(fnames):
     """Test importing EEGLAB .set epochs files."""
@@ -334,7 +334,6 @@ def test_eeglab_read_annotations():
 @testing.requires_testing_data
 def test_eeglab_event_from_annot():
     """Test all forms of obtaining annotations."""
-    base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
     raw_fname_mat = op.join(base_dir, 'test_raw.set')
     raw_fname = raw_fname_mat
     event_id = {'rt': 1, 'square': 2}
@@ -437,7 +436,7 @@ def test_read_single_epoch():
 @testing.requires_testing_data
 def test_get_montage_info_with_ch_type():
     """Test that the channel types are properly returned."""
-    mat = read_mat(raw_fname_onefile_mat, uint16_codec=None)
+    mat = pymatreader.read_mat(raw_fname_onefile_mat, uint16_codec=None)
     n = len(mat['EEG']['chanlocs']['labels'])
     mat['EEG']['chanlocs']['type'] = ['eeg'] * (n - 2) + ['eog'] + ['stim']
     mat['EEG']['chanlocs'] = _dol_to_lod(mat['EEG']['chanlocs'])
@@ -448,7 +447,7 @@ def test_get_montage_info_with_ch_type():
     assert montage is None
 
     # test unknown type warning
-    mat = read_mat(raw_fname_onefile_mat, uint16_codec=None)
+    mat = pymatreader.read_mat(raw_fname_onefile_mat, uint16_codec=None)
     n = len(mat['EEG']['chanlocs']['labels'])
     mat['EEG']['chanlocs']['type'] = ['eeg'] * (n - 2) + ['eog'] + ['unknown']
     mat['EEG']['chanlocs'] = _dol_to_lod(mat['EEG']['chanlocs'])
@@ -456,3 +455,17 @@ def test_get_montage_info_with_ch_type():
     with pytest.warns(RuntimeWarning, match='Unknown types found'):
         ch_names, ch_types, montage = \
             _get_montage_information(mat['EEG'], False)
+
+
+@testing.requires_testing_data
+def test_fidsposition_information():
+    """Test reading file with 3 fiducial locations."""
+    raw = read_raw_eeglab(raw_fname_chanloc_fids)
+    montage = raw.get_montage()
+    pos = montage.get_positions()
+    assert pos['nasion'] is not None
+    assert pos['lpa'] is not None
+    assert pos['rpa'] is not None
+    assert len(pos['nasion']) == 3
+    assert len(pos['lpa']) == 3
+    assert len(pos['rpa']) == 3

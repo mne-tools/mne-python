@@ -49,7 +49,6 @@ from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      _validate_type, _check_compensation_grade, _check_option,
                      _check_stc_units, _stamp_to_dt, _on_missing)
 from ..label import Label
-from ..data.html_templates import forward_template
 
 
 class Forward(dict):
@@ -115,9 +114,11 @@ class Forward(dict):
         return entr
 
     def _repr_html_(self):
+        from ..html_templates import repr_templates_env
         good_chs, bad_chs, _, _, = self['info']._get_chs_for_repr()
         src_descr, src_ori = self._get_src_type_and_ori_for_repr()
-        html = forward_template.substitute(
+        t = repr_templates_env.get_template('forward.html.jinja')
+        html = t.render(
             good_channels=good_chs,
             bad_channels=bad_chs,
             source_space_descr=src_descr,
@@ -1024,10 +1025,10 @@ def _triage_loose(src, loose, fixed='auto'):
     del fixed
 
     for key, this_loose in loose.items():
-        if key != 'surface' and this_loose != 1:
+        if key not in ('surface', 'discrete') and this_loose != 1:
             raise ValueError(
-                'loose parameter has to be 1 or "auto" for non-surface '
-                f'source spaces, got loose["{key}"] = {this_loose}')
+                'loose parameter has to be 1 or "auto" for non-surface/'
+                f'discrete source spaces, got loose["{key}"] = {this_loose}')
         if not 0 <= this_loose <= 1:
             raise ValueError(
                 f'loose ({key}) must be between 0 and 1, got {this_loose}')
@@ -1147,7 +1148,7 @@ def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
         ``limit_depth_chs='whiten'``.
 
         .. versionadded:: 0.18
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -1508,11 +1509,7 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     with info._unlock():
         info['projs'] = []
     # store sensor data in Raw object using the info
-    raw = RawArray(data, info)
-    raw.preload = True
-
-    raw._first_samps = np.array([int(np.round(times[0] * sfreq))])
-    raw._last_samps = np.array([raw.first_samp + raw._data.shape[1] - 1])
+    raw = RawArray(data, info, first_samp=int(np.round(times[0] * sfreq)))
     raw._projector = None
     return raw
 

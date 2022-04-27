@@ -16,10 +16,9 @@ from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
-                     _pl, _check_src_normal, check_version, _sym_mat_pow, warn)
+                     _pl, _check_src_normal, check_version, _sym_mat_pow, warn,
+                     _import_h5io_funcs)
 from ..time_frequency.csd import CrossSpectralDensity
-
-from ..externals.h5io import read_hdf5, write_hdf5
 
 
 def _check_proj_match(proj, filters):
@@ -460,6 +459,8 @@ class Beamformer(dict):
         %(overwrite)s
         %(verbose)s
         """
+        _, write_hdf5 = _import_h5io_funcs()
+
         ending = '-%s.h5' % (self['kind'].lower(),)
         check_fname(fname, self['kind'], (ending,))
         csd_orig = None
@@ -486,6 +487,7 @@ def read_beamformer(fname):
     filter : instance of Beamformer
         The beamformer filter.
     """
+    read_hdf5, _ = _import_h5io_funcs()
     beamformer = read_hdf5(fname, title='mnepython')
     if 'csd' in beamformer:
         beamformer['csd'] = CrossSpectralDensity(**beamformer['csd'])

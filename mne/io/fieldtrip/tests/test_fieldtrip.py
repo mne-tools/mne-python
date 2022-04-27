@@ -15,13 +15,11 @@ import numpy as np
 import mne
 from mne.datasets import testing
 from mne.io.fieldtrip.utils import NOINFO_WARNING, _create_events
-from mne.utils import _check_pandas_installed, requires_h5py, _record_warnings
-from mne.io.fieldtrip.tests.helpers import (check_info_fields, get_data_paths,
-                                            get_raw_data, get_epochs,
-                                            get_evoked, _has_h5py,
-                                            pandas_not_found_warning_msg,
-                                            get_raw_info, check_data,
-                                            assert_warning_in_record)
+from mne.utils import _check_pandas_installed, _record_warnings
+from mne.io.fieldtrip.tests.helpers import (
+    check_info_fields, get_data_paths, get_raw_data, get_epochs, get_evoked,
+    pandas_not_found_warning_msg, get_raw_info, check_data,
+    assert_warning_in_record)
 
 # missing: KIT: biggest problem here is that the channels do not have the same
 # names.
@@ -48,6 +46,9 @@ for obj in (all_test_params_epochs, all_test_params_raw):
 no_info_warning = {'expected_warning': RuntimeWarning,
                    'match': NOINFO_WARNING}
 
+pymatreader = pytest.importorskip('pymatreader')  # module-level
+testing_path = mne.datasets.testing.data_path(download=False)
+
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
@@ -70,11 +71,6 @@ def test_read_evoked(cur_system, version, use_info):
 
     cur_fname = os.path.join(test_data_folder_ft,
                              'averaged_%s.mat' % (version,))
-    if version == 'v73' and not _has_h5py():
-        with pytest.raises(ImportError):
-            mne.io.read_evoked_fieldtrip(cur_fname, info)
-        return
-
     with ctx:
         avg_ft = mne.io.read_evoked_fieldtrip(cur_fname, info)
 
@@ -113,19 +109,11 @@ def test_read_epochs(cur_system, version, use_info, monkeypatch):
     cur_fname = os.path.join(test_data_folder_ft,
                              'epoched_%s.mat' % (version,))
     if has_pandas:
-        if version == 'v73' and not _has_h5py():
-            with pytest.raises(ImportError):
-                mne.io.read_epochs_fieldtrip(cur_fname, info)
-            return
         with ctx:
             epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname, info)
         assert isinstance(epoched_ft.metadata, pandas.DataFrame)
     else:
         with _record_warnings() as warn_record:
-            if version == 'v73' and not _has_h5py():
-                with pytest.raises(ImportError):
-                    mne.io.read_epochs_fieldtrip(cur_fname, info)
-                return
             epoched_ft = mne.io.read_epochs_fieldtrip(cur_fname, info)
             assert epoched_ft.metadata is None
             assert_warning_in_record(pandas_not_found_warning_msg, warn_record)
@@ -137,17 +125,16 @@ def test_read_epochs(cur_system, version, use_info, monkeypatch):
 
     check_data(mne_data, ft_data, cur_system)
     check_info_fields(mne_epoched, epoched_ft, use_info)
+    read_mat = pymatreader.read_mat
 
     # weird sfreq
-    from mne.externals.pymatreader import read_mat
-
     def modify_mat(fname, variable_names=None, ignore_fields=None):
         out = read_mat(fname, variable_names, ignore_fields)
         if 'fsample' in out['data']:
             out['data']['fsample'] = np.repeat(out['data']['fsample'], 2)
         return out
 
-    monkeypatch.setattr(mne.externals.pymatreader, 'read_mat', modify_mat)
+    monkeypatch.setattr(pymatreader, 'read_mat', modify_mat)
     with pytest.warns(RuntimeWarning, match='multiple'):
         mne.io.read_epochs_fieldtrip(cur_fname, info)
 
@@ -176,10 +163,6 @@ def test_raw(cur_system, version, use_info):
     cur_fname = os.path.join(test_data_folder_ft,
                              'raw_%s.mat' % (version,))
 
-    if version == 'v73' and not _has_h5py():
-        with pytest.raises(ImportError):
-            mne.io.read_raw_fieldtrip(cur_fname, info)
-        return
     with ctx:
         raw_fiff_ft = mne.io.read_raw_fieldtrip(cur_fname, info)
 
@@ -227,11 +210,9 @@ def test_invalid_trialinfocolumn():
 @testing.requires_testing_data
 def test_create_events():
     """Test 2dim trialinfo fields."""
-    from mne.externals.pymatreader import read_mat
-
     test_data_folder_ft = get_data_paths('neuromag306')
     cur_fname = os.path.join(test_data_folder_ft, 'epoched_v7.mat')
-    original_data = read_mat(cur_fname, ['data', ])
+    original_data = pymatreader.read_mat(cur_fname, ['data', ])
 
     new_data = copy.deepcopy(original_data)
     new_data['trialinfo'] = np.array([[1, 2, 3, 4],
@@ -251,10 +232,9 @@ def test_create_events():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('version', all_versions)
-@requires_h5py
 def test_one_channel_elec_bug(version):
     """Test if loading data having only one elec in the elec field works."""
-    fname = os.path.join(mne.datasets.testing.data_path(), 'fieldtrip',
+    fname = os.path.join(testing_path, 'fieldtrip',
                          'one_channel_elec_bug_data_%s.mat' % (version, ))
 
     with pytest.warns(**no_info_warning):
@@ -268,7 +248,6 @@ def test_one_channel_elec_bug(version):
 @pytest.mark.filterwarnings('ignore:.*number of bytes.*:RuntimeWarning')
 @pytest.mark.parametrize('version', all_versions)
 @pytest.mark.parametrize('type', ['averaged', 'epoched', 'raw'])
-@requires_h5py
 def test_throw_exception_on_cellarray(version, type):
     """Test for a meaningful exception when the data is a cell array."""
     fname = os.path.join(get_data_paths('cellarray'),
@@ -309,9 +288,7 @@ def test_with_missing_channels():
 @pytest.mark.filterwarnings('ignore: Cannot guess the correct type')
 def test_throw_error_on_non_uniform_time_field():
     """Test if an error is thrown when time fields are not uniform."""
-    fname = os.path.join(mne.datasets.testing.data_path(),
-                         'fieldtrip',
-                         'not_uniform_time.mat')
+    fname = os.path.join(testing_path, 'fieldtrip', 'not_uniform_time.mat')
 
     with pytest.raises(RuntimeError, match='Loading data with non-uniform '
                                            'times per epoch is not supported'):
@@ -322,9 +299,7 @@ def test_throw_error_on_non_uniform_time_field():
 @pytest.mark.filterwarnings('ignore: Importing FieldTrip data without an info')
 def test_throw_error_when_importing_old_ft_version_data():
     """Test if an error is thrown if the data was saved with an old version."""
-    fname = os.path.join(mne.datasets.testing.data_path(),
-                         'fieldtrip',
-                         'old_version.mat')
+    fname = os.path.join(testing_path, 'fieldtrip', 'old_version.mat')
 
     with pytest.raises(RuntimeError, match='This file was created with '
                                            'an old version of FieldTrip. You '

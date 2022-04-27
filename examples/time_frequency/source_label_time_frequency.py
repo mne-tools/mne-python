@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-source-space-power-phase-locking:
+
 =========================================================
 Compute power and phase lock in label of the source space
 =========================================================
@@ -30,10 +33,11 @@ print(__doc__)
 # %%
 # Set parameters
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_raw.fif'
+fname_inv = meg_path / 'sample_audvis-meg-oct-6-meg-inv.fif'
 label_name = 'Aud-rh'
-fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
+fname_label = meg_path / 'labels' / f'{label_name}.label'
 
 tmin, tmax, event_id = -0.2, 0.5, 2
 

@@ -199,7 +199,7 @@ def write_dig(fname, pts, coord_frame=None, *, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Destination file name.
     pts : iterator of dict
         Iterator through digitizer points. Each point is a dictionary with
@@ -273,7 +273,8 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
     if len(dig_coord_frames) != 1:
         raise RuntimeError('Only single coordinate frame in dig is supported, '
                            f'got {dig_coord_frames}')
-
+    dig_ch_pos_location = np.array(dig_ch_pos_location)
+    dig_ch_pos_location.shape = (-1, 3)  # empty will be (0, 3)
     return Bunch(
         nasion=fids.get('nasion', None),
         lpa=fids.get('lpa', None),
@@ -281,7 +282,7 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
         hsp=np.array(hsp) if len(hsp) else None,
         hpi=np.array(hpi) if len(hpi) else None,
         elp=np.array(elp) if len(elp) else None,
-        dig_ch_pos_location=np.array(dig_ch_pos_location),
+        dig_ch_pos_location=dig_ch_pos_location,
         coord_frame=dig_coord_frames.pop(),
     )
 
@@ -424,12 +425,22 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'kind': FIFF.FIFFV_POINT_EXTRA,
                         'coord_frame': coord_frame})
     if dig_ch_pos is not None:
-        try:  # use the last 3 as int if possible (e.g., EEG001->1)
-            idents = []
-            for key in dig_ch_pos:
-                _validate_type(key, str, 'dig_ch_pos')
+        idents = []
+        use_arange = False
+        for key, value in dig_ch_pos.items():
+            _validate_type(key, str, 'dig_ch_pos')
+            try:
                 idents.append(int(key[-3:]))
-        except ValueError:  # and if any conversion fails, simply use arange
+            except ValueError:
+                use_arange = True
+            _validate_type(value, (np.ndarray, list, tuple), 'dig_ch_pos')
+            value = np.array(value, dtype=float)
+            dig_ch_pos[key] = value
+            if value.shape != (3, ):
+                raise RuntimeError(
+                    "The position should be a 1D array of 3 floats. "
+                    f"Provided shape {value.shape}.")
+        if use_arange:
             idents = np.arange(1, len(dig_ch_pos) + 1)
         for key, ident in zip(dig_ch_pos, idents):
             dig.append({'r': dig_ch_pos[key], 'ident': int(ident),

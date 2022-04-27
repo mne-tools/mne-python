@@ -762,8 +762,8 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     %(filter_length)s
     %(l_trans_bandwidth)s
     %(h_trans_bandwidth)s
-    %(n_jobs-fir)s
-    %(method-fir)s
+    %(n_jobs_fir)s
+    %(method_fir)s
     %(iir_params)s
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
@@ -771,7 +771,7 @@ def filter_data(data, sfreq, l_freq, h_freq, picks=None, filter_length='auto',
     %(phase)s
     %(fir_window)s
     %(fir_design)s
-    %(pad-fir)s
+    %(pad_fir)s
         The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15
@@ -852,7 +852,7 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
     %(filter_length)s
     %(l_trans_bandwidth)s
     %(h_trans_bandwidth)s
-    %(method-fir)s
+    %(method_fir)s
     %(iir_params)s
     %(phase)s
     %(fir_window)s
@@ -1097,7 +1097,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
     trans_bandwidth : float
         Width of the transition band in Hz.
         Only used for ``method='fir'``.
-    %(method-fir)s
+    %(method_fir)s
         'spectrum_fit' will use multi-taper estimation of sinusoidal
         components. If freqs=None and method='spectrum_fit', significant
         sinusoidal components are detected using an F test, and noted by
@@ -1114,14 +1114,14 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
     %(picks_nostr)s
         Only supported for 2D (n_channels, n_times) and 3D
         (n_epochs, n_channels, n_times) data.
-    %(n_jobs-fir)s
+    %(n_jobs_fir)s
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
     %(phase)s
     %(fir_window)s
     %(fir_design)s
-    %(pad-fir)s
+    %(pad_fir)s
         The default is ``'reflect_limited'``.
     %(verbose)s
 
@@ -1158,6 +1158,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
     & Hemant Bokil, Oxford University Press, New York, 2008. Please
     cite this in publications if method 'spectrum_fit' is used.
     """
+    x = _check_filterable(x, 'notch filtered', 'notch_filter')
     iir_params, method = _check_method(method, iir_params, ['spectrum_fit'])
 
     if freqs is not None:
@@ -1370,7 +1371,27 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     return x - datafit, rm_freqs
 
 
-def _check_filterable(x, kind='filtered'):
+def _check_filterable(x, kind='filtered', alternative='filter'):
+    # Let's be fairly strict about this -- users can easily coerce to ndarray
+    # at their end, and we already should do it internally any time we are
+    # using these low-level functions. At the same time, let's
+    # help people who might accidentally use low-level functions that they
+    # shouldn't use by pushing them in the right direction
+    from .io.base import BaseRaw
+    from .epochs import BaseEpochs
+    from .evoked import Evoked
+    if isinstance(x, (BaseRaw, BaseEpochs, Evoked)):
+        try:
+            name = x.__class__.__name__
+        except Exception:
+            pass
+        else:
+            raise TypeError(
+                'This low-level function only operates on np.ndarray '
+                f'instances. To get a {kind} {name} instance, use a method '
+                f'like `inst_new = inst.copy().{alternative}(...)` '
+                'instead.')
+    _validate_type(x, (np.ndarray, list, tuple), f'Data to be {kind}')
     x = np.asanyarray(x)
     if x.dtype != np.float64:
         raise ValueError('Data to be %s must be real floating, got %s'
@@ -1401,8 +1422,8 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     %(npad)s
     axis : int
         Axis along which to resample (default is the last axis).
-    %(window-resample)s
-    %(n_jobs-cuda)s
+    %(window_resample)s
+    %(n_jobs_cuda)s
     %(pad)s
         The default is ``'reflect_limited'``.
 
@@ -1438,7 +1459,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
         raise TypeError(err)
 
     # make sure our arithmetic will work
-    x = _check_filterable(x, 'resampled')
+    x = _check_filterable(x, 'resampled', 'resample')
     ratio, final_len = _resamp_ratio_len(up, down, x.shape[axis])
     del up, down
     if axis < 0:
@@ -1856,7 +1877,7 @@ class FilterMixin(object):
             instead of FIR/IIR filtering. This parameter is thus used to
             determine the length of the window over which a 5th-order
             polynomial smoothing is used.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1919,8 +1940,8 @@ class FilterMixin(object):
         %(filter_length)s
         %(l_trans_bandwidth)s
         %(h_trans_bandwidth)s
-        %(n_jobs-fir)s
-        %(method-fir)s
+        %(n_jobs_fir)s
+        %(method_fir)s
         %(iir_params)s
         %(phase)s
         %(fir_window)s
@@ -1936,8 +1957,8 @@ class FilterMixin(object):
             To disable, provide an empty list. Only used if ``inst`` is raw.
 
             .. versionadded:: 0.16.
-        %(pad-fir)s
-        %(verbose_meth)s
+        %(pad_fir)s
+        %(verbose)s
 
         Returns
         -------
@@ -2029,14 +2050,14 @@ class FilterMixin(object):
         sfreq : float
             New sample rate to use.
         %(npad)s
-        %(window-resample)s
-        %(n_jobs-cuda)s
+        %(window_resample)s
+        %(n_jobs_cuda)s
         %(pad)s
             The default is ``'edge'``, which pads with the edge values of each
             vector.
 
             .. versionadded:: 0.15
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -2097,7 +2118,7 @@ class FilterMixin(object):
             will be padded with zeros before computing Hilbert, then cut back
             to original length. If None, n == self.n_times. If 'auto',
             the next highest fast FFT length will be use.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------

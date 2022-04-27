@@ -2,20 +2,21 @@
 #
 # License: BSD Style.
 
+import logging
 import sys
 import os
 import os.path as op
 from shutil import rmtree
 
 from .. import __version__ as mne_version
-from ..utils import logger, warn, _safe_input, _soft_import
+from ..utils import logger, warn, _safe_input
 from .config import (
     _bst_license_text,
     RELEASES,
     TESTING_VERSIONED,
     MISC_VERSIONED,
 )
-from .utils import _dataset_version, _do_path_update, _get_path
+from .utils import _dataset_version, _do_path_update, _get_path, _mne_path
 from ..fixes import _compare_version
 
 
@@ -35,7 +36,7 @@ def fetch_dataset(
     auth=None,
     token=None,
 ):
-    """Fetch an MNE-compatible dataset.
+    """Fetch an MNE-compatible dataset using pooch.
 
     Parameters
     ----------
@@ -86,7 +87,7 @@ def fetch_dataset(
 
     Returns
     -------
-    data_path : str
+    data_path : instance of Path
         The path to the fetched dataset.
     version : str
         Only returned if ``return_version`` is True.
@@ -127,8 +128,7 @@ def fetch_dataset(
     multiple files must be downloaded and (optionally) uncompressed separately,
     pass a list of dicts.
     """  # noqa E501
-    # import pooch library for handling the dataset downloading
-    pooch = _soft_import("pooch", "dataset downloading", strict=True)
+    import pooch
 
     if auth is not None:
         if len(auth) != 2:
@@ -163,6 +163,8 @@ def fetch_dataset(
     if name.startswith("bst_"):
         final_path = op.join(final_path, name)
 
+    final_path = _mne_path(final_path)
+
     # additional condition: check for version.txt and parse it
     # check if testing or misc data is outdated; if so, redownload it
     want_version = RELEASES.get(name, None)
@@ -178,10 +180,14 @@ def fetch_dataset(
             f"Dataset {name} version {data_version} out of date, "
             f"latest version is {want_version}"
         )
+    empty = _mne_path("")
 
     # return empty string if outdated dataset and we don't want to download
     if (not force_update) and outdated and not download:
-        return ("", data_version) if return_version else ""
+        logger.info(
+            'Dataset out of date, force_upload=False, and download=False, '
+            'returning empty data_path')
+        return (empty, data_version) if return_version else empty
 
     # reasons to bail early (hf_sef has separate code for this):
     if (
@@ -198,7 +204,7 @@ def fetch_dataset(
             return (final_path, data_version) if return_version else final_path
         # ...if download=False (useful for debugging)
         elif not download:
-            return ("", data_version) if return_version else ""
+            return (empty, data_version) if return_version else empty
         # ...if user didn't accept the license
         elif name.startswith("bst_"):
             if accept or "--accept-brainstorm-license" in sys.argv:
@@ -213,7 +219,7 @@ def fetch_dataset(
                     "You must agree to the license to use this " "dataset"
                 )
     # downloader & processors
-    download_params = dict(progressbar=True)  # use tqdm
+    download_params = dict(progressbar=logger.level <= logging.INFO)
     if name == "fake":
         download_params["progressbar"] = False
     if auth is not None:
@@ -235,7 +241,7 @@ def fetch_dataset(
 
     # create the download manager
     fetcher = pooch.create(
-        path=final_path if processor is None else path,
+        path=str(final_path) if processor is None else path,
         base_url="",  # Full URLs are given in the `urls` dict.
         version=None,  # Data versioning is decoupled from MNE-Python version.
         urls=urls,

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-timefreq-twoway-anova:
 
@@ -23,6 +24,7 @@ comparisons using False Discovery Rate correction.
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
 
@@ -42,8 +44,9 @@ print(__doc__)
 # Set parameters
 # --------------
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_raw.fif'
+event_fname = meg_path / 'sample_audvis_raw-eve.fif'
 tmin, tmax = -0.2, 0.5
 
 # Setup for reading the raw data
@@ -118,10 +121,9 @@ n_times = len(times)
 # Now we'll assemble the data matrix and swap axes so the trial replications
 # are the first dimension and the conditions are the second dimension.
 data = np.swapaxes(np.asarray(epochs_power), 1, 0)
-# reshape last two dimensions in one mass-univariate observation-vector
-data = data.reshape(n_replications, n_conditions, n_freqs * n_times)
 
-# so we have replications * conditions * observations:
+# so we have replications x conditions x observations
+# where the time-frequency observations are freqs x times:
 print(data.shape)
 
 # %%
@@ -150,23 +152,23 @@ fvals, pvals = f_mway_rm(data, factor_levels, effects=effects)
 
 effect_labels = ['modality', 'location', 'modality by location']
 
+fig, axes = plt.subplots(3, 1, figsize=(6, 6))
+
 # let's visualize our effects by computing f-images
-for effect, sig, effect_label in zip(fvals, pvals, effect_labels):
-    plt.figure()
+for effect, sig, effect_label, ax in zip(fvals, pvals, effect_labels, axes):
     # show naive F-values in gray
-    plt.imshow(effect.reshape(8, 211), cmap=plt.cm.gray, extent=[times[0],
-               times[-1], freqs[0], freqs[-1]], aspect='auto',
-               origin='lower')
-    # create mask for significant Time-frequency locations
+    ax.imshow(effect, cmap='gray', aspect='auto', origin='lower',
+              extent=[times[0], times[-1], freqs[0], freqs[-1]])
+    # create mask for significant time-frequency locations
     effect[sig >= 0.05] = np.nan
-    plt.imshow(effect.reshape(8, 211), cmap='RdBu_r', extent=[times[0],
-               times[-1], freqs[0], freqs[-1]], aspect='auto',
-               origin='lower')
-    plt.colorbar()
-    plt.xlabel('Time (ms)')
-    plt.ylabel('Frequency (Hz)')
-    plt.title(r"Time-locked response for '%s' (%s)" % (effect_label, ch_name))
-    plt.show()
+    c = ax.imshow(effect, cmap='autumn', aspect='auto', origin='lower',
+                  extent=[times[0], times[-1], freqs[0], freqs[-1]])
+    fig.colorbar(c, ax=ax)
+    ax.set_xlabel('Time (ms)')
+    ax.set_ylabel('Frequency (Hz)')
+    ax.set_title(f'Time-locked response for "{effect_label}" ({ch_name})')
+
+fig.tight_layout()
 
 # %%
 # Account for multiple comparisons using FDR versus permutation clustering test
@@ -181,7 +183,7 @@ effects = 'A:B'
 # A stat_fun must deal with a variable number of input arguments.
 # Inside the clustering function each condition will be passed as flattened
 # array, necessitated by the clustering procedure. The ANOVA however expects an
-# input array of dimensions: subjects X conditions X observations (optional).
+# input array of dimensions: subjects x conditions x observations (optional).
 # The following function catches the list input and swaps the first and
 # the second dimension and finally calls the ANOVA function.
 
@@ -197,7 +199,7 @@ f_thresh = f_threshold_mway_rm(n_replications, factor_levels, effects,
                                pthresh)
 tail = 1  # f-test, so tail > 0
 n_permutations = 256  # Save some time (the test won't be too sensitive ...)
-T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
+F_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
     epochs_power, stat_fun=stat_fun, threshold=f_thresh, tail=tail, n_jobs=1,
     n_permutations=n_permutations, buffer_size=None, out_type='mask')
 
@@ -205,41 +207,45 @@ T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
 # Create new stats image with only significant clusters:
 
 good_clusters = np.where(cluster_p_values < .05)[0]
-T_obs_plot = T_obs.copy()
-T_obs_plot[~clusters[np.squeeze(good_clusters)]] = np.nan
+F_obs_plot = F_obs.copy()
+F_obs_plot[~clusters[np.squeeze(good_clusters)]] = np.nan
 
-plt.figure()
-for f_image, cmap in zip([T_obs, T_obs_plot], [plt.cm.gray, 'RdBu_r']):
-    plt.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
-               freqs[0], freqs[-1]], aspect='auto',
-               origin='lower')
-plt.xlabel('Time (ms)')
-plt.ylabel('Frequency (Hz)')
-plt.title("Time-locked response for 'modality by location' (%s)\n"
-          " cluster-level corrected (p <= 0.05)" % ch_name)
-plt.show()
+fig, ax = plt.subplots(figsize=(6, 4))
+for f_image, cmap in zip([F_obs, F_obs_plot], ['gray', 'autumn']):
+    c = ax.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
+                  extent=[times[0], times[-1], freqs[0], freqs[-1]])
+
+fig.colorbar(c, ax=ax)
+ax.set_xlabel('Time (ms)')
+ax.set_ylabel('Frequency (Hz)')
+ax.set_title(f'Time-locked response for "modality by location" ({ch_name})\n'
+             'cluster-level corrected (p <= 0.05)')
+fig.tight_layout()
 
 # %%
 # Now using FDR:
 
 mask, _ = fdr_correction(pvals[2])
-T_obs_plot2 = T_obs.copy()
-T_obs_plot2[~mask.reshape(T_obs_plot.shape)] = np.nan
+F_obs_plot2 = F_obs.copy()
+F_obs_plot2[~mask.reshape(F_obs_plot.shape)] = np.nan
 
-plt.figure()
-for f_image, cmap in zip([T_obs, T_obs_plot2], [plt.cm.gray, 'RdBu_r']):
-    if np.isnan(f_image).all():
-        continue  # nothing to show
-    plt.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
-               freqs[0], freqs[-1]], aspect='auto',
-               origin='lower')
+fig, ax = plt.subplots(figsize=(6, 4))
+for f_image, cmap in zip([F_obs, F_obs_plot2], ['gray', 'autumn']):
+    c = ax.imshow(f_image, cmap=cmap, aspect='auto', origin='lower',
+                  extent=[times[0], times[-1], freqs[0], freqs[-1]])
 
-plt.xlabel('Time (ms)')
-plt.ylabel('Frequency (Hz)')
-plt.title("Time-locked response for 'modality by location' (%s)\n"
-          " FDR corrected (p <= 0.05)" % ch_name)
-plt.show()
+fig.colorbar(c, ax=ax)
+ax.set_xlabel('Time (ms)')
+ax.set_ylabel('Frequency (Hz)')
+ax.set_title(f'Time-locked response for "modality by location" ({ch_name})\n'
+             'FDR corrected (p <= 0.05)')
+fig.tight_layout()
 
 # %%
-# Both cluster level and FDR correction help get rid of
-# potential spots we saw in the naive f-images.
+# Both cluster-level and FDR correction help get rid of potential
+# false-positives that we saw in the naive f-images. The cluster permutation
+# correction is biased toward time-frequencies with contiguous areas of high
+# or low power, which is likely appropriate given the highly correlated nature
+# of this data. This is the most likely explanation for why one cluster was
+# preserved by the cluster permutation correction, but no time-frequencies
+# were significant using the FDR correction.

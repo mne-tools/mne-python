@@ -1,13 +1,15 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-forward:
 
+==================================
 Head model and forward computation
 ==================================
 
 The aim of this tutorial is to be a getting started for forward computation.
 
-For more extensive details and presentation of the general
-concepts for forward modeling, see :ref:`ch_forward`.
+For more extensive details and presentation of the general concepts for forward
+modeling, see :ref:`ch_forward`.
 """
 
 # %%

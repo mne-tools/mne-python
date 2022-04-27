@@ -6,11 +6,11 @@ import numpy as np
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..time_frequency.tfr import _compute_tfr, _check_tfr_param
-from ..utils import fill_doc, _check_option
+from ..utils import fill_doc, _check_option, verbose, _VerboseDep
 
 
 @fill_doc
-class TimeFrequency(TransformerMixin, BaseEstimator):
+class TimeFrequency(TransformerMixin, BaseEstimator, _VerboseDep):
     """Time frequency transformer.
 
     Time-frequency transform of times series along the last axis.
@@ -59,10 +59,10 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
     mne.time_frequency.tfr_multitaper
     """
 
+    @verbose
     def __init__(self, freqs, sfreq=1.0, method='morlet', n_cycles=7.0,
                  time_bandwidth=None, use_fft=True, decim=1, output='complex',
-                 n_jobs=1, verbose=None):  # noqa: D102
-        """Init TimeFrequency transformer."""
+                 n_jobs=1, *, verbose=None):  # noqa: D102
         freqs, sfreq, _, n_cycles, time_bandwidth, decim = \
             _check_tfr_param(freqs, sfreq, method, True, n_cycles,
                              time_bandwidth, use_fft, decim, output)
@@ -77,7 +77,6 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         self.output = _check_option('output', output,
                                     ['complex', 'power', 'phase'])
         self.n_jobs = n_jobs
-        self.verbose = verbose
 
     def fit_transform(self, X, y=None):
         """Time-frequency transform of times series along the last axis.
@@ -138,8 +137,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         # Compute time-frequency
         Xt = _compute_tfr(X, self.freqs, self.sfreq, self.method,
                           self.n_cycles, True, self.time_bandwidth,
-                          self.use_fft, self.decim, self.output, self.n_jobs,
-                          self.verbose)
+                          self.use_fft, self.decim, self.output, self.n_jobs)
 
         # Back to original shape
         if not shape:

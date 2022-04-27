@@ -14,18 +14,20 @@ import shutil
 import sys
 import warnings
 import pytest
+from unittest import mock
 
 import numpy as np
 
 import mne
 from mne import read_events, pick_types, Epochs
 from mne.channels import read_layout
+from mne.coreg import create_default_subject
 from mne.datasets import testing
 from mne.fixes import has_numba, _compare_version
 from mne.io import read_raw_fif, read_raw_ctf
 from mne.stats import cluster_level
 from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
-                       _check_pyqt5_version)
+                       _check_qt_version, _TempDir)
 
 # data from sample dataset
 from mne.viz._figure import use_browser_backend
@@ -65,8 +67,14 @@ def pytest_configure(config):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
-    for fixture in ('matplotlib_config', 'close_all', 'check_verbose'):
+    for fixture in ('matplotlib_config', 'close_all', 'check_verbose',
+                    'qt_config', 'protect_config'):
         config.addinivalue_line('usefixtures', fixture)
+
+    # pytest-qt uses PYTEST_QT_API, but let's make it respect qtpy's QT_API
+    # if present
+    if os.getenv('PYTEST_QT_API') is None and os.getenv('QT_API') is not None:
+        os.environ['PYTEST_QT_API'] = os.environ['QT_API']
 
     # Warnings
     # - Once SciPy updates not to have non-integer and non-tuple errors (1.2.0)
@@ -98,7 +106,6 @@ def pytest_configure(config):
     ignore:.*imp.*:DeprecationWarning
     ignore:Exception creating Regex for oneOf.*:SyntaxWarning
     ignore:scipy\.gradient is deprecated.*:DeprecationWarning
-    ignore:sklearn\.externals\.joblib is deprecated.*:FutureWarning
     ignore:The sklearn.*module.*deprecated.*:FutureWarning
     ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
     ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning
@@ -126,9 +133,21 @@ def pytest_configure(config):
     ignore:.*Found the following unknown channel type.*:RuntimeWarning
     ignore:.*np\.MachAr.*:DeprecationWarning
     ignore:.*Passing unrecognized arguments to super.*:DeprecationWarning
+    ignore:.*numpy.ndarray size changed.*:
+    ignore:.*There is no current event loop.*:DeprecationWarning
+    # present in nilearn v 0.8.1, fixed in nilearn main
     ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
     ignore:.*pandas\.Int64Index is deprecated.*:FutureWarning
     always::ResourceWarning
+    # Jupyter notebook stuff
+    ignore:.*unclosed context <zmq\.asyncio\.*:ResourceWarning
+    ignore:.*unclosed event loop <.*:ResourceWarning
+    # https://github.com/dipy/dipy/pull/2558
+    ignore:.*starting_affine overwritten by centre_of_mass transform.*:
+    # TODO: This is indicative of a problem
+    ignore:.*Matplotlib is currently using agg.*:
+    # qdarkstyle
+    ignore:.*Setting theme=.*:RuntimeWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
@@ -175,6 +194,12 @@ def verbose_debug():
 
 
 @pytest.fixture(scope='session')
+def qt_config():
+    """Configure the Qt backend for viz tests."""
+    os.environ['_MNE_BROWSER_NO_BLOCK'] = 'true'
+
+
+@pytest.fixture(scope='session')
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
@@ -197,12 +222,16 @@ def matplotlib_config():
     # functionality)
     plt.ioff()
     plt.rcParams['figure.dpi'] = 100
+    try:
+        plt.rcParams['figure.raise_window'] = False
+    except KeyError:  # MPL < 3.3
+        pass
 
     # Make sure that we always reraise exceptions in handlers
     orig = cbook.CallbackRegistry
 
     class CallbackRegistryReraise(orig):
-        def __init__(self, exception_handler=None):
+        def __init__(self, exception_handler=None, signals=None):
             super(CallbackRegistryReraise, self).__init__(exception_handler)
 
     cbook.CallbackRegistry = CallbackRegistryReraise
@@ -389,74 +418,103 @@ def mpl_backend(garbage_collect):
         backend._close_all()
 
 
-def _check_pyqtgraph():
-    try:
-        import PyQt5  # noqa: F401
-    except ModuleNotFoundError:
-        pytest.skip('PyQt5 is not installed but needed for pyqtgraph!')
-    if not _compare_version(_check_pyqt5_version(), '>=', '5.12'):
-        pytest.skip(f'PyQt5 has version {_check_pyqt5_version()}'
+# Skip functions or modules for mne-qt-browser < 0.2.0
+pre_2_0_skip_modules = ['mne.viz.tests.test_epochs',
+                        'mne.viz.tests.test_ica']
+pre_2_0_skip_funcs = ['test_plot_raw_white',
+                      'test_plot_raw_selection']
+
+
+def _check_pyqtgraph(request):
+    # Check Qt
+    qt_version, api = _check_qt_version(return_api=True)
+    if (not qt_version) or _compare_version(qt_version, '<', '5.12'):
+        pytest.skip(f'Qt API {api} has version {qt_version} '
                     f'but pyqtgraph needs >= 5.12!')
     try:
         import mne_qt_browser  # noqa: F401
+        # Check mne-qt-browser version
+        lower_2_0 = _compare_version(mne_qt_browser.__version__, '<', '0.2.0')
+        m_name = request.function.__module__
+        f_name = request.function.__name__
+        if lower_2_0 and m_name in pre_2_0_skip_modules:
+            pytest.skip(f'Test-Module "{m_name}" was skipped for'
+                        f' mne-qt-browser < 0.2.0')
+        elif lower_2_0 and f_name in pre_2_0_skip_funcs:
+            pytest.skip(f'Test "{f_name}" was skipped for '
+                        f'mne-qt-browser < 0.2.0')
     except Exception:
         pytest.skip('Requires mne_qt_browser')
+    else:
+        ver = mne_qt_browser.__version__
+        if api != 'PyQt5' and _compare_version(ver, '<=', '0.2.6'):
+            pytest.skip(f'mne_qt_browser {ver} requires PyQt5, API is {api}')
 
 
 @pytest.mark.pgtest
 @pytest.fixture
-def pg_backend(garbage_collect):
+def pg_backend(request, garbage_collect):
     """Use for pyqtgraph-specific test-functions."""
-    _check_pyqtgraph()
-    with use_browser_backend('pyqtgraph') as backend:
+    _check_pyqtgraph(request)
+    with use_browser_backend('qt') as backend:
+        backend._close_all()
         yield backend
         backend._close_all()
+        # This shouldn't be necessary, but let's make sure nothing is stale
+        import mne_qt_browser
+        mne_qt_browser._browser_instances.clear()
 
 
 @pytest.fixture(params=[
     'matplotlib',
-    pytest.param('pyqtgraph', marks=pytest.mark.pgtest),
+    pytest.param('qt', marks=pytest.mark.pgtest),
 ])
-def browser_backend(request, garbage_collect):
+def browser_backend(request, garbage_collect, monkeypatch):
     """Parametrizes the name of the browser backend."""
     backend_name = request.param
-    if backend_name == 'pyqtgraph':
-        _check_pyqtgraph()
+    if backend_name == 'qt':
+        _check_pyqtgraph(request)
     with use_browser_backend(backend_name) as backend:
+        backend._close_all()
+        monkeypatch.setenv('MNE_BROWSE_RAW_SIZE', '10,10')
         yield backend
         backend._close_all()
+        if backend_name == 'qt':
+            # This shouldn't be necessary, but let's make sure nothing is stale
+            import mne_qt_browser
+            mne_qt_browser._browser_instances.clear()
 
 
 @pytest.fixture(params=["pyvistaqt"])
-def renderer(request, garbage_collect):
+def renderer(request, options_3d, garbage_collect):
     """Yield the 3D backends."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
 @pytest.fixture(params=["pyvistaqt"])
-def renderer_pyvistaqt(request, garbage_collect):
+def renderer_pyvistaqt(request, options_3d, garbage_collect):
     """Yield the PyVista backend."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
 @pytest.fixture(params=["notebook"])
-def renderer_notebook(request):
+def renderer_notebook(request, options_3d):
     """Yield the 3D notebook renderer."""
     with _use_backend(request.param, interactive=False) as renderer:
         yield renderer
 
 
 @pytest.fixture(scope="module", params=["pyvistaqt"])
-def renderer_interactive_pyvistaqt(request):
+def renderer_interactive_pyvistaqt(request, options_3d):
     """Yield the interactive PyVista backend."""
     with _use_backend(request.param, interactive=True) as renderer:
         yield renderer
 
 
 @pytest.fixture(scope="module", params=["pyvistaqt"])
-def renderer_interactive(request):
+def renderer_interactive(request, options_3d):
     """Yield the interactive 3D backends."""
     with _use_backend(request.param, interactive=True) as renderer:
         yield renderer
@@ -476,15 +534,15 @@ def _use_backend(backend_name, interactive):
 
 def _check_skip_backend(name):
     from mne.viz.backends.tests._utils import (has_pyvista,
-                                               has_pyqt5, has_imageio_ffmpeg,
+                                               has_imageio_ffmpeg,
                                                has_pyvistaqt)
     if name in ('pyvistaqt', 'notebook'):
         if not has_pyvista():
             pytest.skip("Test skipped, requires pyvista.")
         if not has_imageio_ffmpeg():
             pytest.skip("Test skipped, requires imageio-ffmpeg")
-    if name == 'pyvistaqt' and not has_pyqt5():
-        pytest.skip("Test skipped, requires PyQt5.")
+    if name == 'pyvistaqt' and not _check_qt_version():
+        pytest.skip("Test skipped, requires Qt.")
     if name == 'pyvistaqt' and not has_pyvistaqt():
         pytest.skip("Test skipped, requires pyvistaqt")
 
@@ -492,10 +550,10 @@ def _check_skip_backend(name):
 @pytest.fixture(scope='session')
 def pixel_ratio():
     """Get the pixel ratio."""
-    from mne.viz.backends.tests._utils import has_pyvista, has_pyqt5
-    if not has_pyvista() or not has_pyqt5():
+    from mne.viz.backends.tests._utils import has_pyvista
+    if not has_pyvista() or not _check_qt_version():
         return 1.
-    from PyQt5.QtWidgets import QApplication, QMainWindow
+    from qtpy.QtWidgets import QApplication, QMainWindow
     _ = QApplication.instance() or QApplication([])
     window = QMainWindow()
     ratio = float(window.devicePixelRatio())
@@ -509,6 +567,23 @@ def subjects_dir_tmp(tmp_path):
     for key in ('sample', 'fsaverage'):
         shutil.copytree(op.join(subjects_dir, key), str(tmp_path / key))
     return str(tmp_path)
+
+
+@pytest.fixture(params=[testing._pytest_param()])
+def subjects_dir_tmp_few(tmp_path):
+    """Copy fewer files to a tmp_path."""
+    subjects_path = tmp_path / 'subjects'
+    os.mkdir(subjects_path)
+    # add fsaverage
+    create_default_subject(subjects_dir=subjects_path, fs_home=test_path,
+                           verbose=True)
+    # add sample (with few files)
+    sample_path = subjects_path / 'sample'
+    os.makedirs(sample_path / 'bem')
+    for dirname in ('mri', 'surf'):
+        shutil.copytree(
+            test_path / 'subjects' / 'sample' / dirname, sample_path / dirname)
+    return subjects_path
 
 
 # Scoping these as session will make things faster, but need to make sure
@@ -588,7 +663,7 @@ def _all_src_types_inv_evoked(_evoked_cov_sphere, _all_src_types_fwd):
     invs = dict()
     for kind, fwd in _all_src_types_fwd.items():
         assert fwd['src'].kind == kind
-        with pytest.warns(RuntimeWarning, match='has magnitude'):
+        with pytest.warns(RuntimeWarning, match='has been reduced'):
             invs[kind] = mne.minimum_norm.make_inverse_operator(
                 evoked.info, fwd, cov)
     return invs, evoked
@@ -639,6 +714,30 @@ def download_is_error(monkeypatch):
     """Prevent downloading by raising an error when it's attempted."""
     import pooch
     monkeypatch.setattr(pooch, 'retrieve', _fail)
+
+
+# We can't use monkeypatch because its scope (function-level) conflicts with
+# the requests fixture (module-level), so we live with a module-scoped version
+# that uses mock
+@pytest.fixture(scope='module')
+def options_3d():
+    """Disable advanced 3d rendering."""
+    with mock.patch.dict(
+        os.environ, {
+            "MNE_3D_OPTION_ANTIALIAS": "false",
+            "MNE_3D_OPTION_DEPTH_PEELING": "false",
+            "MNE_3D_OPTION_SMOOTH_SHADING": "false",
+        }
+    ):
+        yield
+
+
+@pytest.fixture(scope='session')
+def protect_config():
+    """Protect ~/.mne."""
+    temp = _TempDir()
+    with mock.patch.dict(os.environ, {"_MNE_FAKE_HOME_DIR": temp}):
+        yield
 
 
 @pytest.fixture()

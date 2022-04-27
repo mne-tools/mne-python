@@ -104,8 +104,15 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
         space. They only necessary if computation of a ``compute_dev_head_t``
         is True.
     coord_frame : str
-        The coordinate frame of the points. Usually this is "unknown"
+        The coordinate frame of the points. Usually this is ``'unknown'``
         for native digitizer space.
+        Other valid values are: ``'head'``, ``'meg'``, ``'mri'``,
+        ``'mri_voxel'``, ``'mri_tal'``, ``'ras'``, ``'fs_tal'``,
+        ``'ctf_head'``, and ``'ctf_meg'``.
+
+        .. note::
+            For custom montages without fiducials, this parameter must be set
+            to ``'head'``.
 
     Returns
     -------
@@ -120,12 +127,6 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_fif
     read_dig_localite
     read_dig_polhemus_isotrak
-
-    Notes
-    -----
-    Valid ``coord_frame`` arguments are 'meg', 'mri', 'mri_voxel', 'head',
-    'mri_tal', 'ras', 'fs_tal', 'ctf_head', 'ctf_meg', 'unknown'. For custom
-    montages without fiducials this parameter has to be set to 'head'.
     """
     _validate_type(ch_pos, (dict, None), 'ch_pos')
     if ch_pos is None:
@@ -203,7 +204,7 @@ class DigMontage(object):
 
         Parameters
         ----------
-        %(rename_channels_mapping_duplicates)s
+        %(mapping_rename_channels_duplicates)s
 
         Returns
         -------
@@ -403,8 +404,8 @@ class DigMontage(object):
         coordinate frame. Any coordinate frame can be transformed
         to ``head`` if the fiducials (i.e. LPA, RPA and Nasion) are
         defined. One can use this function to estimate those fiducials
-        and then use ``montage.get_native_head_t()`` to get the
-        head <-> MRI transform.
+        and then use ``mne.channels.compute_native_head_t(montage)``
+        to get the head <-> MRI transform.
         """
         # get coordframe and fiducial coordinates
         montage_bunch = _get_data_as_dict_from_dig(self.dig)
@@ -1482,16 +1483,19 @@ def compute_native_head_t(montage):
     return Transform(coord_frame, 'head', native_head_t)
 
 
-def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
+def make_standard_montage(kind, head_size='auto'):
     """Read a generic (built-in) montage.
 
     Parameters
     ----------
     kind : str
         The name of the montage to use. See notes for valid kinds.
-    head_size : float
+    head_size : float | None | str
         The head size (radius, in meters) to use for spherical montages.
-        Defaults to 95mm.
+        Can be None to not scale the read sizes. ``'auto'`` (default) will
+        use 95mm for all montages except the ``'standard*'``, ``'mgh*'``, and
+        ``'artinis*'``, which are already in fsaverage's MRI coordinates
+        (same as MNI).
 
     Returns
     -------
@@ -1565,7 +1569,15 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     .. versionadded:: 0.19.0
     """
     from ._standard_montage_utils import standard_montage_look_up_table
+    _validate_type(kind, str, 'kind')
     _check_option('kind', kind, _BUILT_IN_MONTAGES)
+    _validate_type(head_size, ('numeric', str, None), 'head_size')
+    if isinstance(head_size, str):
+        _check_option('head_size', head_size, ('auto',), extra='when str')
+        if kind.startswith(('standard', 'mgh', 'artinis')):
+            head_size = None
+        else:
+            head_size = HEAD_SIZE_DEFAULT
     return standard_montage_look_up_table[kind](head_size=head_size)
 
 

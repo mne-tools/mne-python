@@ -12,11 +12,21 @@ MNE-Python Homepage
 
 .. LOGO
 
+.. raw:: html
+
+    <script type="text/javascript">
+    var observer = new MutationObserver(function(mutations) {
+    const dark = document.documentElement.dataset.theme == 'dark';
+    document.getElementsByClassName('mainlogo')[0].src = dark ? '_static/mne_logo_dark.svg' : "_static/mne_logo.svg";
+    })
+    observer.observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
+    </script>
+    <link rel="preload" href="_static/mne_logo_dark.svg" as="image">
+
 .. image:: _static/mne_logo.svg
    :alt: MNE-Python
-   :class: logo
+   :class: logo, mainlogo
    :align: center
-
 
 .. rst-class:: h4 text-center font-weight-light my-4
 
@@ -28,8 +38,8 @@ MNE-Python Homepage
 .. toctree::
    :hidden:
 
-   Install<install/index>
-   Documentation<overview/index>
-   API Reference<python_reference>
-   Get help<overview/get_help>
-   Development<overview/development>
+   Install <install/index>
+   Documentation <overview/index>
+   API Reference <python_reference>
+   Get help <overview/get_help>
+   Development <overview/development>

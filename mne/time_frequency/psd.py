@@ -110,10 +110,10 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         Length of each Welch segment (windowed with a Hamming window). Defaults
         to None, which sets n_per_seg equal to n_fft.
     %(n_jobs)s
-    %(average-psd)s
+    %(average_psd)s
 
         .. versionadded:: 0.19.0
-    %(window-psd)s
+    %(window_psd)s
 
         .. versionadded:: 0.22.0
     %(verbose)s
@@ -216,10 +216,10 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     %(reject_by_annotation_raw)s
 
         .. versionadded:: 0.15.0
-    %(average-psd)s
+    %(average_psd)s
 
         .. versionadded:: 0.19.0
-    %(window-psd)s
+    %(window_psd)s
 
         .. versionadded:: 0.22.0
     %(verbose)s

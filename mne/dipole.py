@@ -13,7 +13,7 @@ import re
 
 import numpy as np
 
-from .cov import read_cov, compute_whitener
+from .cov import compute_whitener, _ensure_cov
 from .io.constants import FIFF
 from .io.pick import pick_types
 from .io.proj import make_projector, _needs_eeg_average_ref_proj
@@ -36,11 +36,12 @@ from .source_space import _make_volume_source_space, SourceSpaces
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
                     check_fname, _pl, fill_doc, _check_option, ShiftTimeMixin,
-                    _svd_lwork, _repeated_svd, _get_blas_funcs, _validate_type)
+                    _svd_lwork, _repeated_svd, _get_blas_funcs, _validate_type,
+                    _VerboseDep)
 
 
 @fill_doc
-class Dipole(object):
+class Dipole(_VerboseDep):
     u"""Dipole class for sequential dipole fits.
 
     .. note:: This class should usually not be instantiated directly,
@@ -99,7 +100,7 @@ class Dipole(object):
     @verbose
     def __init__(self, times, pos, amplitude, ori, gof,
                  name=None, conf=None, khi2=None, nfree=None,
-                 verbose=None):  # noqa: D102
+                 *, verbose=None):  # noqa: D102
         self.times = np.array(times)
         self.pos = np.array(pos)
         self.amplitude = np.array(amplitude)
@@ -112,7 +113,6 @@ class Dipole(object):
                 self.conf[key] = np.array(value)
         self.khi2 = np.array(khi2) if khi2 is not None else None
         self.nfree = np.array(nfree) if nfree is not None else None
-        self.verbose = verbose
 
     def __repr__(self):  # noqa: D105
         s = "n_times : %s" % len(self.times)
@@ -131,7 +131,7 @@ class Dipole(object):
         %(overwrite)s
 
             .. versionadded:: 0.20
-        %(verbose_meth)s
+        %(verbose)s
 
         Notes
         -----
@@ -243,20 +243,20 @@ class Dipole(object):
             The scale of the dipoles if ``mode`` is 'arrow' or 'sphere'.
         color : tuple
             The color of the dipoles if ``mode`` is 'arrow' or 'sphere'.
-        fig : PyVista renderer | None
-            PyVista Scene in which to plot the alignment.
+        fig : instance of Figure3D | None
+            PyVista figure in which to plot the alignment.
             If ``None``, creates a new 600x600 pixel figure with black
             background.
 
             .. versionadded:: 0.14.0
-        %(verbose_meth)s
-        %(dipole_locs_fig_title)s
+        %(verbose)s
+        %(title_dipole_locs_fig)s
 
             .. versionadded:: 0.21.0
 
         Returns
         -------
-        fig : instance of PyVista renderer or matplotlib.figure.Figure
+        fig : instance of Figure3D or matplotlib.figure.Figure
             The PyVista figure or matplotlib Figure.
 
         Notes
@@ -295,7 +295,7 @@ class Dipole(object):
     @verbose
     def to_mri(self, subject, trans, subjects_dir=None,
                verbose=None):
-        """Convert dipole location from head to MNI coordinates.
+        """Convert dipole location from head to MRI surface RAS coordinates.
 
         Parameters
         ----------
@@ -428,7 +428,7 @@ def _read_dipole_fixed(fname):
 
 
 @fill_doc
-class DipoleFixed(ShiftTimeMixin):
+class DipoleFixed(ShiftTimeMixin, _VerboseDep):
     """Dipole class for fixed-position dipole fits.
 
     .. note:: This class should usually not be instantiated directly,
@@ -466,7 +466,7 @@ class DipoleFixed(ShiftTimeMixin):
 
     @verbose
     def __init__(self, info, data, times, nave, aspect_kind,
-                 comment='', verbose=None):  # noqa: D102
+                 comment='', *, verbose=None):  # noqa: D102
         self.info = info
         self.nave = nave
         self._aspect_kind = aspect_kind
@@ -474,7 +474,6 @@ class DipoleFixed(ShiftTimeMixin):
         self.comment = comment
         self.times = times
         self.data = data
-        self.verbose = verbose
         self.preload = True
         self._update_first_last()
 
@@ -513,7 +512,7 @@ class DipoleFixed(ShiftTimeMixin):
             The name of the .fif file. Must end with ``'.fif'`` or
             ``'.fif.gz'`` to make it explicit that the file contains
             dipole information in FIF format.
-        %(verbose_meth)s
+        %(verbose)s
         """
         check_fname(fname, 'DipoleFixed', ('-dip.fif', '-dip.fif.gz',
                                            '_dip.fif', '_dip.fif.gz',),
@@ -559,8 +558,7 @@ def read_dipole(fname, verbose=None):
 
     Returns
     -------
-    dipole : instance of Dipole or DipoleFixed
-        The dipole.
+    %(dipole)s
 
     See Also
     --------
@@ -1229,7 +1227,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         for each time instant.
 
         .. versionadded:: 0.12
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.20
     accuracy : str
@@ -1377,9 +1375,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
                         % (1000 * guess_exclude,))
         logger.info(f'Using {accuracy} MEG coil definitions.')
         fit_n_jobs = n_jobs
-    if isinstance(cov, str):
-        logger.info('Noise covariance  : %s' % (cov,))
-        cov = read_cov(cov, verbose=False)
+    cov = _ensure_cov(cov)
     logger.info('')
 
     _print_coord_trans(mri_head_t)

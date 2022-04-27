@@ -28,7 +28,8 @@ from mne.io import read_raw_fif, Info, RawArray, read_raw_ctf, read_raw_eeglab
 from mne.io.pick import _DATA_CH_TYPES_SPLIT, get_channel_type_constants
 from mne.io.eeglab.eeglab import _check_load_mat
 from mne.rank import _compute_rank_int
-from mne.utils import catch_logging, requires_sklearn, _record_warnings
+from mne.utils import (catch_logging, requires_sklearn, _record_warnings,
+                       check_version)
 from mne.datasets import testing
 from mne.event import make_fixed_length_events
 
@@ -51,6 +52,8 @@ event_id, tmin, tmax = 1, -0.2, 0.2
 # if stop is too small pca may fail in some cases, but we're okay on this file
 start, stop = 0, 6
 score_funcs_unsuited = ['pointbiserialr', 'ansari']
+pymatreader_mark = pytest.mark.skipif(
+    not check_version('pymatreader'), reason='Requires pymatreader')
 
 
 def ICA(*args, **kwargs):
@@ -249,7 +252,8 @@ def test_ica_noop(n_components, n_pca_components, tmp_path):
 
 @requires_sklearn
 @pytest.mark.parametrize("method, max_iter_default", [("fastica", 1000),
-                         ("infomax", 500), ("picard", 500)])
+                                                      ("infomax", 500),
+                                                      ("picard", 500)])
 def test_ica_max_iter_(method, max_iter_default):
     """Test that ICA.max_iter is set to the right defaults."""
     _skip_check_picard(method)
@@ -427,7 +431,8 @@ def test_ica_reset(method):
 @pytest.mark.parametrize('n_components', (2, 0.6))
 @pytest.mark.parametrize('noise_cov', (False, True))
 @pytest.mark.parametrize('n_pca_components', [20])
-def test_ica_core(method, n_components, noise_cov, n_pca_components):
+def test_ica_core(method, n_components, noise_cov, n_pca_components,
+                  browser_backend):
     """Test ICA on raw and epochs."""
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(0, stop).load_data()
@@ -496,13 +501,11 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components):
     print(raw_sources)
 
     # test for gh-6271 (scaling of ICA traces)
-    fig = raw_sources.plot()
-    assert len(fig.mne.ax_main.lines) in (4, 8)
-    for line in fig.mne.ax_main.lines:
+    fig = raw_sources.plot(clipping=None)
+    assert len(fig.mne.traces) in (2, 6)
+    for line in fig.mne.traces:
         y = line.get_ydata()
-        if len(y) > 2:  # actual data, not markers
-            assert np.ptp(y) < 15
-    plt.close('all')
+        assert np.ptp(y) < 15
 
     sources = raw_sources[:, :][0]
     assert (sources.shape[0] == ica.n_components_)
@@ -883,9 +886,11 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     # Test ica fiff export
     assert raw.last_samp - raw.first_samp + 1 == raw.n_times
     assert raw.n_times > 100
-    ica_raw = ica.get_sources(raw, start=0, stop=100)
+    ica_raw = ica.get_sources(raw, start=100, stop=200)
+    assert ica_raw.first_samp == raw.first_samp + 100
     assert ica_raw.n_times == 100
     assert ica_raw.last_samp - ica_raw.first_samp + 1 == 100
+    assert ica_raw._data.shape[1] == 100
     assert_equal(len(ica_raw._filenames), 1)  # API consistency
     ica_chans = [ch for ch in ica_raw.ch_names if 'ICA' in ch]
     assert (ica.n_components_ == len(ica_chans))
@@ -1317,12 +1322,17 @@ def test_ica_labels():
     for key in ('ecg', 'eog', 'ref_meg', 'ecg/ECG-MAG'):
         assert key in ica.labels_
 
+    scores = ica.find_bads_muscle(raw)[1]
+    assert 'muscle' in ica.labels_
+    assert ica.labels_['muscle'] == [0]
+    assert_allclose(scores, [0.56, 0.01, 0.03, 0.00], atol=0.03)
+
 
 @requires_sklearn
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname, grade', [
     (fif_fname, None),
-    (eeglab_fname, None),
+    pytest.param(eeglab_fname, None, marks=pymatreader_mark),
     (ctf_fname2, 0),
     (ctf_fname2, 1),
 ])
@@ -1369,6 +1379,7 @@ def test_ica_eeg(fname, grade):
             ica.get_sources(inst)
 
 
+@pymatreader_mark
 @testing.requires_testing_data
 def test_read_ica_eeglab():
     """Test read_ica_eeglab function."""
@@ -1401,6 +1412,7 @@ def test_read_ica_eeglab():
                     rtol=1e-05, atol=1e-08)
 
 
+@pymatreader_mark
 @testing.requires_testing_data
 def test_read_ica_eeglab_mismatch(tmp_path):
     """Test read_ica_eeglab function when there is a mismatch."""

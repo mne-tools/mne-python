@@ -2,20 +2,24 @@
 #
 # License: BSD-3-Clause
 
-import os
+from contextlib import nullcontext
 import os.path as op
+import os
 
 import pytest
-import warnings
 from numpy.testing import assert_allclose
 import numpy as np
 
+import mne
 from mne.datasets import testing
 from mne.io import read_info
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io.constants import FIFF
-from mne.utils import get_config
+from mne.utils import get_config, catch_logging
 from mne.channels import DigMontage
+from mne.coreg import Coregistration
+from mne.viz import _3d
+
 
 data_path = testing.data_path(download=False)
 raw_path = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -86,53 +90,93 @@ def test_coreg_gui_pyvista_file_support(inst_path, tmp_path,
         inst_path = tmp_path / 'tmp-dig.fif'
         dig.save(inst_path)
 
-    # Suppressing warnings here is not ideal.
-    # However ctf_raw_path (catch-alp-good-f.ds) is poorly formed and causes
-    # mne.io.read_raw to issue warning.
-    # XXX consider replacing ctf_raw_path and removing warning ignore filter.
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    if inst_path == ctf_raw_path:
+        ctx = pytest.warns(RuntimeWarning, match='MEG ref channel RMSP')
+    elif inst_path == snirf_nirsport2_raw_path:  # TODO: This is maybe a bug?
+        ctx = pytest.warns(RuntimeWarning, match='assuming "head"')
+    else:
+        ctx = nullcontext()
+    with ctx:
         coregistration(inst=inst_path, subject='sample',
                        subjects_dir=subjects_dir)
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
+def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
+                                 monkeypatch):
     """Test that using CoregistrationUI matches mne coreg."""
     from mne.gui import coregistration
-    config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
-    tmp_trans = tmp_path / 'tmp-trans.fif'
+    from mne.gui._coreg import CoregistrationUI
+    config = get_config()
     # the sample subject in testing has MRI fids
     assert op.isfile(op.join(
         subjects_dir, 'sample', 'bem', 'sample-fiducials.fif'))
+
+    deprecated_params = [
+        'standalone', 'head_transparency', 'project_eeg'
+    ]
+    for param in deprecated_params:
+        kwargs = {p: None for p in deprecated_params}
+        kwargs[param] = True
+        with pytest.warns(DeprecationWarning, match=f'{param} is deprecated'):
+            coreg = CoregistrationUI(
+                info_file=None, subject='sample', subjects_dir=subjects_dir,
+                **kwargs)
+            coreg.close()
+    del kwargs
+
+    deprecated_params = [
+        'project_eeg'
+    ]
+    for param in deprecated_params:
+        kwargs = {p: None for p in deprecated_params}
+        kwargs[param] = True
+        with pytest.warns(DeprecationWarning, match=f'{param} is deprecated'):
+            coreg = coregistration(
+                subject='sample', subjects_dir=subjects_dir, **kwargs)
+            coreg.close()
+    del kwargs
+
     coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
                            trans=fname_trans)
     assert coreg._lock_fids
     coreg._reset_fiducials()
     coreg.close()
 
-    coreg = coregistration(inst=raw_path, subject='sample',
-                           subjects_dir=subjects_dir)
+    # make it always log the distances
+    monkeypatch.setattr(_3d.logger, 'info', _3d.logger.warning)
+    with catch_logging() as log:
+        coreg = coregistration(inst=raw_path, subject='sample',
+                               head_high_res=False,  # for speed
+                               subjects_dir=subjects_dir, verbose='debug')
+    log = log.getvalue()
+    assert 'Total 16/78 points inside the surface' in log
     coreg._set_fiducials_file(fid_fname)
     assert coreg._fiducials_file == fid_fname
 
     # fitting (with scaling)
+    assert not coreg._mri_scale_modified
     coreg._reset()
     coreg._reset_fitting_parameters()
     coreg._set_scale_mode("uniform")
     coreg._fits_fiducials()
-    assert_allclose(coreg._coreg._scale,
+    assert_allclose(coreg.coreg._scale,
                     np.array([97.46, 97.46, 97.46]) * 1e-2,
                     atol=1e-3)
+    shown_scale = [coreg._widgets[f's{x}'].get_value() for x in 'XYZ']
+    assert_allclose(shown_scale, coreg.coreg._scale * 100, atol=1e-2)
     coreg._set_icp_fid_match("nearest")
     coreg._set_scale_mode("3-axis")
     coreg._fits_icp()
-    assert_allclose(coreg._coreg._scale,
+    assert_allclose(coreg.coreg._scale,
                     np.array([104.43, 101.47, 125.78]) * 1e-2,
                     atol=1e-3)
+    shown_scale = [coreg._widgets[f's{x}'].get_value() for x in 'XYZ']
+    assert_allclose(shown_scale, coreg.coreg._scale * 100, atol=1e-2)
     coreg._set_scale_mode("None")
     coreg._set_icp_fid_match("matched")
+    assert coreg._mri_scale_modified
 
     # unlock fiducials
     assert coreg._lock_fids
@@ -140,34 +184,63 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert not coreg._lock_fids
 
     # picking
+    assert not coreg._mri_fids_modified
     vtk_picker = TstVTKPicker(coreg._surfaces['head'], 0, (0, 0))
     coreg._on_mouse_move(vtk_picker, None)
     coreg._on_button_press(vtk_picker, None)
     coreg._on_pick(vtk_picker, None)
     coreg._on_button_release(vtk_picker, None)
     coreg._on_pick(vtk_picker, None)  # also pick when locked
+    assert coreg._mri_fids_modified
 
     # lock fiducials
-    assert not coreg._head_transparency
     coreg._set_lock_fids(True)
     assert coreg._lock_fids
-    assert coreg._head_transparency
 
     # fitting (no scaling)
     assert coreg._nasion_weight == 10.
     coreg._set_point_weight(11., 'nasion')
     assert coreg._nasion_weight == 11.
     coreg._fit_fiducials()
-    coreg._fit_icp()
-    assert coreg._coreg._extra_points_filter is None
+    with catch_logging() as log:
+        coreg._redraw()  # actually emit the log
+    log = log.getvalue()
+    assert 'Total 6/78 points inside the surface' in log
+    with catch_logging() as log:
+        coreg._fit_icp()
+        coreg._redraw()
+    log = log.getvalue()
+    assert 'Total 38/78 points inside the surface' in log
+    assert coreg.coreg._extra_points_filter is None
     coreg._omit_hsp()
-    assert coreg._coreg._extra_points_filter is not None
+    with catch_logging() as log:
+        coreg._redraw()
+    log = log.getvalue()
+    assert 'Total 29/53 points inside the surface' in log
+    assert coreg.coreg._extra_points_filter is not None
     coreg._reset_omit_hsp_filter()
-    assert coreg._coreg._extra_points_filter is None
+    with catch_logging() as log:
+        coreg._redraw()
+    log = log.getvalue()
+    assert 'Total 38/78 points inside the surface' in log
+    assert coreg.coreg._extra_points_filter is None
 
     assert coreg._grow_hair == 0
-    coreg._set_grow_hair(0.1)
-    assert coreg._grow_hair == 0.1
+    coreg._fit_fiducials()  # go back to few inside to start
+    with catch_logging() as log:
+        coreg._redraw()
+    log = log.getvalue()
+    assert 'Total 6/78 points inside the surface' in log
+    norm = np.linalg.norm(coreg._head_geo['rr'])  # what's used for inside
+    assert_allclose(norm, 5.949288, atol=1e-3)
+    coreg._set_grow_hair(20.0)
+    with catch_logging() as log:
+        coreg._redraw()
+    assert coreg._grow_hair == 20.0
+    norm = np.linalg.norm(coreg._head_geo['rr'])
+    assert_allclose(norm, 6.555220, atol=1e-3)  # outward
+    log = log.getvalue()
+    assert 'Total 8/78 points inside the surface' in log  # more outside now
 
     # visualization
     assert not coreg._helmet
@@ -176,17 +249,63 @@ def test_coreg_gui_pyvista(tmp_path, renderer_interactive_pyvistaqt):
     assert coreg._orient_glyphs
     assert coreg._scale_by_distance
     assert coreg._mark_inside
-    assert coreg._project_eeg == \
-        (config.get('MNE_COREG_PROJECT_EEG', '') == 'true')
+    assert_allclose(
+        coreg._head_opacity,
+        float(config.get('MNE_COREG_HEAD_OPACITY', '0.8')))
     assert coreg._hpi_coils
     assert coreg._eeg_channels
     assert coreg._head_shape_points
     assert coreg._scale_mode == 'None'
     assert coreg._icp_fid_match == 'matched'
-    assert coreg._head_resolution == \
-        (config.get('MNE_COREG_HEAD_HIGH_RES', 'true') == 'true')
+    assert coreg._head_resolution is False
 
+    assert coreg._trans_modified
+    tmp_trans = tmp_path / 'tmp-trans.fif'
     coreg._save_trans(tmp_trans)
+    assert not coreg._trans_modified
     assert op.isfile(tmp_trans)
 
+    # first, disable auto cleanup
+    coreg._renderer._window_close_disconnect(after=True)
+    # test _close_callback()
+    coreg.close()
+    coreg._widgets['close_dialog'].trigger('Discard')  # do not save
+    coreg._clean()  # finally, cleanup internal structures
+
+    # Coregistration instance should survive
+    assert isinstance(coreg.coreg, Coregistration)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_coreg_gui_notebook(renderer_notebook, nbexec):
+    """Test the coregistration UI in a notebook."""
+    import os
+    import mne
+    from mne.datasets import testing
+    from mne.gui import coregistration
+    mne.viz.set_3d_backend('notebook')  # set the 3d backend
+    with mne.utils.modified_env(_MNE_FAKE_HOME_DIR=None):
+        data_path = testing.data_path(download=False)
+    subjects_dir = os.path.join(data_path, 'subjects')
+    coregistration(subject='sample', subjects_dir=subjects_dir)
+
+
+@pytest.mark.slowtest
+def test_no_sparse_head(subjects_dir_tmp, renderer_interactive_pyvistaqt,
+                        monkeypatch):
+    """Test mne.gui.coregistration with no sparse head."""
+    from mne.gui import coregistration
+    subject = 'sample'
+    out_rr, out_tris = mne.read_surface(
+        op.join(subjects_dir_tmp, subject, 'bem', 'outer_skin.surf'))
+    for head in ('sample-head.fif', 'outer_skin.surf'):
+        os.remove(op.join(subjects_dir_tmp, subject, 'bem', head))
+    # Avoid actually doing the decimation (it's slow)
+    monkeypatch.setattr(
+        mne.coreg, 'decimate_surface',
+        lambda rr, tris, n_triangles: (out_rr, out_tris))
+    with pytest.warns(RuntimeWarning, match='No low-resolution head found'):
+        coreg = coregistration(
+            inst=raw_path, subject=subject, subjects_dir=subjects_dir_tmp)
     coreg.close()

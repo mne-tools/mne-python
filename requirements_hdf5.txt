@@ -1,0 +1,3 @@
+# requirements for MNE-Python functions that use HDF5 I/O
+h5io
+pymatreader

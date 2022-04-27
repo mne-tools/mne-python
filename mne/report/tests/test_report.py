@@ -19,13 +19,15 @@ import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
-from mne import Epochs, read_events, read_evokeds, read_cov, pick_channels_cov
+from mne import (Epochs, read_events, read_evokeds, read_cov,
+                 pick_channels_cov, create_info)
 from mne.report import report as report_mod
 from mne.report.report import CONTENT_ORDER
-from mne.io import read_raw_fif, read_info
+from mne.io import read_raw_fif, read_info, RawArray
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper, report
-from mne.utils import requires_nibabel, Bunch, requires_h5py, requires_sklearn
+from mne.utils import (requires_nibabel, Bunch, requires_version,
+                       requires_sklearn)
 from mne.viz import plot_alignment
 from mne.io.write import DATE_NONE
 from mne.preprocessing import ICA
@@ -206,6 +208,23 @@ def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
 
     with pytest.raises(TypeError, match='It seems you passed a path'):
         report.add_figure(fig='foo', title='title')
+    with pytest.raises(TypeError, match='.*MNEQtBrowser.*Figure3D.*got.*'):
+        report.add_figure(fig=1., title='title')
+
+
+def test_render_mne_qt_browser(tmp_path, browser_backend):
+    """Test adding a mne_qt_browser (and matplotlib) raw plot."""
+    report = Report()
+    info = create_info(1, 1000., 'eeg')
+    data = np.zeros((1, 1000))
+    raw = RawArray(data, info)
+    fig = raw.plot()
+    name = fig.__class__.__name__
+    if browser_backend.name == 'matplotlib':
+        assert 'MNEBrowseFigure' in name
+    else:
+        assert 'MNEQtBrowser' in name or 'PyQtGraphBrowser' in name
+    report.add_figure(fig, title='raw')
 
 
 @testing.requires_testing_data
@@ -355,16 +374,22 @@ def test_report_raw_psd_and_date(tmp_path):
 @testing.requires_testing_data
 def test_render_add_sections(renderer, tmp_path):
     """Test adding figures/images to section."""
+    from pyvista.plotting import plotting
     tempdir = str(tmp_path)
     report = Report(subjects_dir=subjects_dir)
     # Check add_figure functionality
+    plt.close('all')
+    assert len(plt.get_fignums()) == 0
     fig = plt.plot([1, 2], [1, 2])[0].figure
+    assert len(plt.get_fignums()) == 1
 
     report.add_figure(fig=fig, title='evoked response', image_format='svg')
     assert 'caption' not in report._content[-1].html
+    assert len(plt.get_fignums()) == 1
 
     report.add_figure(fig=fig, title='evoked with caption', caption='descr')
     assert 'caption' in report._content[-1].html
+    assert len(plt.get_fignums()) == 1
 
     # Check add_image with png
     img_fname = op.join(tempdir, 'testimage.png')
@@ -376,10 +401,14 @@ def test_render_add_sections(renderer, tmp_path):
 
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
+    n_before = len(plotting._ALL_PLOTTERS)
     fig = plot_alignment(evoked.info, trans_fname, subject='sample',
                          subjects_dir=subjects_dir)
+    n_after = n_before + 1
+    assert n_after == len(plotting._ALL_PLOTTERS)
 
     report.add_figure(fig=fig, title='random image')
+    assert n_after == len(plotting._ALL_PLOTTERS)  # not closed
     assert (repr(report))
     fname = op.join(str(tmp_path), 'test.html')
     report.save(fname, open_browser=False)
@@ -519,7 +548,7 @@ def test_validate_input():
     items_new, captions_new, comments_new = values
 
 
-@requires_h5py
+@requires_version('h5io')
 def test_open_report(tmp_path):
     """Test the open_report function."""
     tempdir = str(tmp_path)
@@ -527,8 +556,9 @@ def test_open_report(tmp_path):
 
     # Test creating a new report through the open_report function
     fig1 = _get_example_figures()[0]
-    with open_report(hdf5, subjects_dir=subjects_dir) as report:
-        assert report.subjects_dir == subjects_dir
+    this_sub_dir = tempdir
+    with open_report(hdf5, subjects_dir=this_sub_dir) as report:
+        assert report.subjects_dir == this_sub_dir
         assert report.fname == hdf5
         report.add_figure(fig=fig1, title='evoked response')
     # Exiting the context block should have triggered saving to HDF5
@@ -545,11 +575,11 @@ def test_open_report(tmp_path):
     # Check parameters when loading a report
     pytest.raises(ValueError, open_report, hdf5, foo='bar')  # non-existing
     pytest.raises(ValueError, open_report, hdf5, subjects_dir='foo')
-    open_report(hdf5, subjects_dir=subjects_dir)  # This should work
+    open_report(hdf5, subjects_dir=this_sub_dir)  # This should work
 
     # Check that the context manager doesn't swallow exceptions
     with pytest.raises(ZeroDivisionError):
-        with open_report(hdf5, subjects_dir=subjects_dir) as report:
+        with open_report(hdf5, subjects_dir=this_sub_dir) as report:
             1 / 0
 
 
@@ -707,7 +737,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     )
     epochs_with_metadata = Epochs(
         raw=raw, events=metadata_events, event_id=metadata_event_id,
-        baseline=None,  metadata=metadata
+        baseline=None, metadata=metadata
     )
     evokeds = read_evokeds(evoked_fname)
     evoked = evokeds[0].pick('eeg')
@@ -749,7 +779,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         match='requested to calculate PSD on a duration'
     ):
         r.add_epochs(
-            epochs=epochs_with_metadata, title='my epochs 2',  psd=100000000,
+            epochs=epochs_with_metadata, title='my epochs 2', psd=100000000,
             projs=False
         )
 
@@ -882,33 +912,32 @@ def test_sorting(tmp_path):
 
 
 @pytest.mark.parametrize(
-    ('tags', 'not_a_collection', 'wrong_dtype', 'invalid_chars'),
+    ('tags', 'str_or_array', 'wrong_dtype', 'invalid_chars'),
     [
-        # not a collection
-        ('foo', True, False, False),
-        (123, True, False, False),
         # wrong dtype
-        ([1, 2, 3], False, True, False),
-        (['foo', 1], False, True, False),
+        (123, False, True, False),
+        ([1, 2, 3], True, True, False),
+        (['foo', 1], True, True, False),
         # invalid characters
-        (['foo bar'], False, False, True),
-        (['foo"'], False, False, True),
-        (['foo\n'], False, False, True),
+        (['foo bar'], True, False, True),
+        (['foo"'], True, False, True),
+        (['foo\n'], True, False, True),
         # all good
-        (['foo'], False, False, False),
-        (['foo', 'bar'], False, False, False),
-        (np.array(['foo', 'bar']), False, False, False)
+        ('foo', True, False, False),
+        (['foo'], True, False, False),
+        (['foo', 'bar'], True, False, False),
+        (np.array(['foo', 'bar']), True, False, False)
     ]
 )
-def test_tags(tags, not_a_collection, wrong_dtype, invalid_chars):
+def test_tags(tags, str_or_array, wrong_dtype, invalid_chars):
     """Test handling of invalid tags."""
     r = Report()
 
-    if not_a_collection:
-        with pytest.raises(TypeError, match='must be a collection of str'):
+    if not str_or_array:
+        with pytest.raises(TypeError, match='must be a string.*or an array.*'):
             r.add_code(code='foo', title='bar', tags=tags)
     elif wrong_dtype:
-        with pytest.raises(TypeError, match='must be strings'):
+        with pytest.raises(TypeError, match='tags must be strings'):
             r.add_code(code='foo', title='bar', tags=tags)
     elif invalid_chars:
         with pytest.raises(ValueError, match='contained invalid characters'):

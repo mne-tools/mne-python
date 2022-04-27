@@ -2,11 +2,12 @@
 """
 .. _tut-dipole-orientations:
 
+==================================================================
 The role of dipole orientations in distributed source localization
 ==================================================================
 
 When performing source localization in a distributed manner
-(MNE/dSPM/sLORETA/eLORETA),
+(i.e., using MNE/dSPM/sLORETA/eLORETA),
 the source space is defined as a grid of dipoles that spans a large portion of
 the cortex. These dipoles have both a position and an orientation. In this
 tutorial, we will look at the various options available to restrict the
@@ -16,8 +17,8 @@ See :ref:`inverse_orientation_constraints` for related information.
 """
 
 # %%
-# Loading data
-# ------------
+# Load data
+# ---------
 # Load everything we need to perform source localization on the sample dataset.
 
 import mne
@@ -26,15 +27,16 @@ from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 
 data_path = sample.data_path()
-evokeds = mne.read_evokeds(data_path + '/MEG/sample/sample_audvis-ave.fif')
+meg_path = data_path / 'MEG' / 'sample'
+evokeds = mne.read_evokeds(meg_path / 'sample_audvis-ave.fif')
 left_auditory = evokeds[0].apply_baseline()
 fwd = mne.read_forward_solution(
-    data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif')
+    meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif')
 mne.convert_forward_solution(fwd, surf_ori=True, copy=False)
-noise_cov = mne.read_cov(data_path + '/MEG/sample/sample_audvis-cov.fif')
+noise_cov = mne.read_cov(meg_path / 'sample_audvis-cov.fif')
 subject = 'sample'
-subjects_dir = data_path + '/subjects'
-trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
+subjects_dir = data_path / 'subjects'
+trans_fname = meg_path / 'sample_audvis_raw-trans.fif'
 
 # %%
 # The source space
@@ -43,7 +45,6 @@ trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 # :func:`mne.setup_source_space` function. Dipoles are placed along fixed
 # intervals on the cortex, determined by the ``spacing`` parameter. The source
 # space does not define the orientation for these dipoles.
-
 
 lh = fwd['src'][0]  # Visualize the left hemisphere
 verts = lh['rr']  # The vertices of the source space
@@ -109,7 +110,7 @@ mne.viz.set_3d_view(figure=fig, azimuth=180, distance=0.1)
 # Restricting the dipole orientations in this manner leads to the following
 # source estimate for the sample data:
 
-# Compute the source estimate for the 'left - auditory' condition in the sample
+# Compute the source estimate for the left auditory condition in the sample
 # dataset.
 inv = make_inverse_operator(left_auditory.info, fwd, noise_cov, fixed=True)
 stc = apply_inverse(left_auditory, inv, pick_ori=None)

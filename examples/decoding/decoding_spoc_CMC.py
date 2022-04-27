@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-spoc-cmc:
 
@@ -36,7 +37,7 @@ from sklearn.linear_model import Ridge
 from sklearn.model_selection import KFold, cross_val_predict
 
 # Define parameters
-fname = data_path() + '/SubjectCMC.ds'
+fname = data_path() / 'SubjectCMC.ds'
 raw = mne.io.read_raw_ctf(fname)
 raw.crop(50., 200.)  # crop for memory purposes
 

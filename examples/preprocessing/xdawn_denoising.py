@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-xdawn-denoising:
 
@@ -36,8 +37,9 @@ data_path = sample.data_path()
 
 # %%
 # Set parameters and read data
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
 tmin, tmax = -0.1, 0.3
 event_id = dict(vis_r=4)
 

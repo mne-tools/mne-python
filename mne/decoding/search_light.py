@@ -9,11 +9,11 @@ from .base import BaseEstimator, _check_estimator
 from ..fixes import _get_check_scoring
 from ..parallel import parallel_func
 from ..utils import (_validate_type, array_split_idx, ProgressBar,
-                     verbose, fill_doc)
+                     verbose, fill_doc, _VerboseDep)
 
 
 @fill_doc
-class SlidingEstimator(BaseEstimator, TransformerMixin):
+class SlidingEstimator(BaseEstimator, TransformerMixin, _VerboseDep):
     """Search Light.
 
     Fit, predict and score a series of models to each subset of the dataset
@@ -33,14 +33,14 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         List of fitted scikit-learn estimators (one per task).
     """
 
-    def __init__(self, base_estimator, scoring=None, n_jobs=1,
+    @verbose
+    def __init__(self, base_estimator, scoring=None, n_jobs=1, *,
                  verbose=None):  # noqa: D102
         _check_estimator(base_estimator)
         self._estimator_type = getattr(base_estimator, "_estimator_type", None)
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs
         self.scoring = scoring
-        self.verbose = verbose
 
         _validate_type(self.n_jobs, 'int', 'n_jobs')
 
@@ -51,7 +51,6 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             repr_str += ', fitted with %i estimators' % len(self.estimators_)
         return repr_str + '>'
 
-    @verbose  # to use class value
     def fit(self, X, y, **fit_params):
         """Fit a series of independent estimators to the dataset.
 
@@ -120,7 +119,6 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         """  # noqa: E501
         return self.fit(X, y, **fit_params).transform(X)
 
-    @verbose  # to use the class value
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation."""
         self._check_Xy(X)
@@ -431,7 +429,6 @@ class GeneralizingEstimator(SlidingEstimator):
             repr_str += ', fitted with %i estimators>' % len(self.estimators_)
         return repr_str
 
-    @verbose  # use class value
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation."""
         self._check_Xy(X)
@@ -531,7 +528,6 @@ class GeneralizingEstimator(SlidingEstimator):
         """  # noqa: E501
         return self._transform(X, 'decision_function')
 
-    @verbose  # to use class value
     def score(self, X, y):
         """Score each of the estimators on the tested dimensions.
 

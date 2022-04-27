@@ -8,7 +8,7 @@ from itertools import product
 
 import mne
 from mne.channels import equalize_channels
-from mne.utils import sum_squared, requires_h5py
+from mne.utils import sum_squared, requires_version
 from mne.time_frequency import (csd_fourier, csd_multitaper,
                                 csd_morlet, csd_array_fourier,
                                 csd_array_multitaper, csd_array_morlet,
@@ -220,7 +220,7 @@ def test_csd_get_data():
     raises(IndexError, csd.mean().get_data, index=15)
 
 
-@requires_h5py
+@requires_version('h5io')
 def test_csd_save(tmp_path):
     """Test saving and loading a CrossSpectralDensity."""
     csd = _make_csd()

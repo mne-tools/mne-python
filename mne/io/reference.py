@@ -284,13 +284,13 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     ----------
     inst : instance of Raw | Epochs | Evoked
         Instance of Raw or Epochs with EEG channels and reference channel(s).
-    %(set_eeg_reference_ref_channels)s
+    %(ref_channels_set_eeg_reference)s
     copy : bool
         Specifies whether the data will be copied (True) or modified in-place
         (False). Defaults to True.
-    %(set_eeg_reference_projection)s
-    %(set_eeg_reference_ch_type)s
-    %(set_eeg_reference_forward)s
+    %(projection_set_eeg_reference)s
+    %(ch_type_set_eeg_reference)s
+    %(forward_set_eeg_reference)s
     %(verbose)s
 
     Returns

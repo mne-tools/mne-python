@@ -47,13 +47,7 @@ pandas_not_found_warning_msg = 'The Pandas library is not installed. Not ' \
                                'returning the original trialinfo matrix as ' \
                                'metadata.'
 
-
-def _has_h5py():
-    try:
-        import h5py  # noqa
-        return True
-    except ImportError:
-        return False
+testing_path = mne.datasets.testing.data_path(download=False)
 
 
 def _remove_ignored_ch_fields(info):
@@ -92,15 +86,12 @@ def _remove_bad_dig_fields(info):
 
 def get_data_paths(system):
     """Return common paths for all tests."""
-    test_data_folder_ft = os.path.join(mne.datasets.testing.data_path(),
-                                       'fieldtrip/ft_test_data', system)
-
-    return test_data_folder_ft
+    return testing_path / 'fieldtrip' / 'ft_test_data' / system
 
 
 def get_cfg_local(system):
     """Return cfg_local field for the system."""
-    from mne.externals.pymatreader import read_mat
+    from pymatreader import read_mat
     cfg_local = read_mat(os.path.join(get_data_paths(system), 'raw_v7.mat'),
                          ['cfg_local'])['cfg_local']
 
@@ -111,8 +102,7 @@ def get_raw_info(system):
     """Return the info dict of the raw data."""
     cfg_local = get_cfg_local(system)
 
-    raw_data_file = os.path.join(mne.datasets.testing.data_path(),
-                                 cfg_local['file_name'])
+    raw_data_file = os.path.join(testing_path, cfg_local['file_name'])
     reader_function = system_to_reader_fn_dict[system]
 
     info = reader_function(raw_data_file, preload=False).info
@@ -125,8 +115,7 @@ def get_raw_data(system, drop_extra_chs=False):
     """Find, load and process the raw data."""
     cfg_local = get_cfg_local(system)
 
-    raw_data_file = os.path.join(mne.datasets.testing.data_path(),
-                                 cfg_local['file_name'])
+    raw_data_file = os.path.join(testing_path, cfg_local['file_name'])
     reader_function = system_to_reader_fn_dict[system]
 
     raw_data = reader_function(raw_data_file, preload=True)

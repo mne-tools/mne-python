@@ -1085,28 +1085,28 @@ def permutation_cluster_test(
         dimension represented in the ``adjacency`` parameter
         (e.g., spectral data should be provided as
         ``(observations, frequencies, channels/vertices)``).
-    %(clust_thresh_f)s
-    %(clust_nperm_int)s
-    %(clust_tail)s
-    %(clust_stat_f)s
-    %(clust_adj_n)s
+    %(threshold_clust_f)s
+    %(n_permutations_clust_int)s
+    %(tail_clust)s
+    %(stat_fun_clust_f)s
+    %(adjacency_clust_n)s
     %(n_jobs)s
     %(seed)s
-    %(clust_maxstep)s
+    %(max_step_clust)s
     exclude : bool array or None
         Mask to apply to the data to exclude certain points from clustering
         (e.g., medial wall vertices). Should be the same shape as X. If None,
         no points are excluded.
-    %(clust_stepdown)s
-    %(clust_power_f)s
-    %(clust_out)s
-    %(clust_disjoint)s
-    %(clust_buffer)s
+    %(step_down_p_clust)s
+    %(f_power_clust)s
+    %(out_type_clust)s
+    %(check_disjoint_clust)s
+    %(buffer_size_clust)s
     %(verbose)s
 
     Returns
     -------
-    F_obs : array, shape (n_tests,)
+    F_obs : array, shape (p[, q])
         Statistic (F by default) observed for all variables.
     clusters : list
         List type defined by out_type above.
@@ -1145,28 +1145,28 @@ def permutation_cluster_1samp_test(
         time-frequency image) associated with the kth observation. For
         spatiotemporal data, see also
         :func:`mne.stats.spatio_temporal_cluster_1samp_test`.
-    %(clust_thresh_t)s
-    %(clust_nperm_all)s
-    %(clust_tail)s
-    %(clust_stat_t)s
-    %(clust_adj_1)s
+    %(threshold_clust_t)s
+    %(n_permutations_clust_all)s
+    %(tail_clust)s
+    %(stat_fun_clust_t)s
+    %(adjacency_clust_1)s
     %(n_jobs)s
     %(seed)s
-    %(clust_maxstep)s
+    %(max_step_clust)s
     exclude : bool array or None
         Mask to apply to the data to exclude certain points from clustering
         (e.g., medial wall vertices). Should be the same shape as X. If None,
         no points are excluded.
-    %(clust_stepdown)s
-    %(clust_power_t)s
-    %(clust_out)s
-    %(clust_disjoint)s
-    %(clust_buffer)s
+    %(step_down_p_clust)s
+    %(t_power_clust)s
+    %(out_type_clust)s
+    %(check_disjoint_clust)s
+    %(buffer_size_clust)s
     %(verbose)s
 
     Returns
     -------
-    t_obs : array, shape (n_tests,)
+    t_obs : array, shape (p[, q])
         T-statistic observed for all variables.
     clusters : list
         List type defined by out_type above.
@@ -1228,29 +1228,32 @@ def spatio_temporal_cluster_1samp_test(
 
     Parameters
     ----------
-    X : array, shape (n_observations, n_times, n_vertices)
+    X : array, shape (n_observations, p[, q], n_vertices)
         The data to be clustered. The first dimension should correspond to the
         difference between paired samples (observations) in two conditions.
-    %(clust_thresh_t)s
-    %(clust_nperm_all)s
-    %(clust_tail)s
-    %(clust_stat_t)s
-    %(clust_adj_st1)s
+        The second, and optionally third, dimensions correspond to the
+        time or time-frequency data. And, the last dimension should be spatial;
+        it is the dimension the adjacency parameter will be applied to.
+    %(threshold_clust_t)s
+    %(n_permutations_clust_all)s
+    %(tail_clust)s
+    %(stat_fun_clust_t)s
+    %(adjacency_clust_st1)s
     %(n_jobs)s
     %(seed)s
-    %(clust_maxstep)s
+    %(max_step_clust)s
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
-    %(clust_stepdown)s
-    %(clust_power_t)s
-    %(clust_out)s
-    %(clust_disjoint)s
-    %(clust_buffer)s
+    %(step_down_p_clust)s
+    %(t_power_clust)s
+    %(out_type_clust)s
+    %(check_disjoint_clust)s
+    %(buffer_size_clust)s
     %(verbose)s
 
     Returns
     -------
-    t_obs : array, shape (n_times * n_vertices,)
+    t_obs : array, shape (p[, q], n_vertices)
         T-statistic observed for all variables.
     clusters : list
         List type defined by out_type above.
@@ -1263,11 +1266,10 @@ def spatio_temporal_cluster_1samp_test(
     ----------
     .. footbibliography::
     """
-    n_samples, n_times, n_vertices = X.shape
     # convert spatial_exclude before passing on if necessary
     if spatial_exclude is not None:
-        exclude = _st_mask_from_s_inds(n_times, n_vertices,
-                                       spatial_exclude, True)
+        exclude = _st_mask_from_s_inds(
+            np.prod(X.shape[1:-1]), X.shape[-1], spatial_exclude, True)
     else:
         exclude = None
     return permutation_cluster_1samp_test(
@@ -1294,33 +1296,35 @@ def spatio_temporal_cluster_test(
 
     Parameters
     ----------
-    X : list of array, shape (n_observations, n_times, n_vertices)
+    X : list of array, shape (n_observations, p[, q], n_vertices)
         The data to be clustered. Each array in ``X`` should contain the
         observations for one group. The first dimension of each array is the
-        number of observations from that group (and may vary between groups);
-        the remaining dimensions (times and vertices) should match across all
-        groups.
-    %(clust_thresh_f)s
-    %(clust_nperm_int)s
-    %(clust_tail)s
-    %(clust_stat_f)s
-    %(clust_adj_stn)s
+        number of observations from that group (and may vary between groups).
+        The second, and optionally third, dimensions correspond to the
+        time or time-frequency data. And, the last dimension should be spatial;
+        it is the dimension the adjacency parameter will be applied to. All
+        dimensions except the first should match across all groups.
+    %(threshold_clust_f)s
+    %(n_permutations_clust_int)s
+    %(tail_clust)s
+    %(stat_fun_clust_f)s
+    %(adjacency_clust_stn)s
     %(n_jobs)s
     %(seed)s
-    %(clust_maxstep)s
+    %(max_step_clust)s
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
-    %(clust_stepdown)s
-    %(clust_power_f)s
-    %(clust_out)s
-    %(clust_disjoint)s
-    %(clust_buffer)s
+    %(step_down_p_clust)s
+    %(f_power_clust)s
+    %(out_type_clust)s
+    %(check_disjoint_clust)s
+    %(buffer_size_clust)s
     %(verbose)s
 
     Returns
     -------
-    t_obs : array, shape (n_times * n_vertices,)
-        Statistic (t by default) observed for all variables.
+    F_obs : array, shape (p[, q], n_vertices)
+        Statistic (F by default) observed for all variables.
     clusters : list
         List type defined by out_type above.
     cluster_pv: array
@@ -1332,11 +1336,10 @@ def spatio_temporal_cluster_test(
     ----------
     .. footbibliography::
     """
-    n_samples, n_times, n_vertices = X[0].shape
     # convert spatial_exclude before passing on if necessary
     if spatial_exclude is not None:
-        exclude = _st_mask_from_s_inds(n_times, n_vertices,
-                                       spatial_exclude, True)
+        exclude = _st_mask_from_s_inds(
+            np.prod(X[0].shape[1:-1]), X[0].shape[-1], spatial_exclude, True)
     else:
         exclude = None
     return permutation_cluster_test(

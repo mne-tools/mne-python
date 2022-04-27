@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-working-with-ecog:
 
@@ -16,12 +17,12 @@ This example shows how to use:
 - channel locations in FreeSurfer's ``fsaverage`` MRI space
 - projection onto a pial surface
 
-For a complementary example that involves sEEG data, channel locations in
-MNI space, or projection into a volume, see :ref:`tut-working-with-seeg`.
+For a complementary example that involves sEEG data, channel locations in MNI
+space, or projection into a volume, see :ref:`tut-working-with-seeg`.
 
-Please note that this tutorial requires 3D plotting dependencies
-(see :ref:`quick-start`) as well as ``mne-bids`` which can be installed
-using ``pip``.
+Please note that this tutorial requires 3D plotting dependencies (see
+:ref:`manual-install`) as well as ``mne-bids`` which can be installed using
+``pip``.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Chris Holdgraf <choldgraf@gmail.com>
@@ -49,7 +50,6 @@ print(__doc__)
 bids_root = mne.datasets.epilepsy_ecog.data_path()
 sample_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(sample_path, 'subjects')
-
 
 # %%
 # Load in data and perform basic preprocessing

@@ -1,14 +1,14 @@
 # requirements for building docs
 sphinx!=4.1.0
 https://github.com/numpy/numpydoc/archive/main.zip
-https://github.com/pydata/pydata-sphinx-theme/archive/af02a6a5fe5c8f322f148274c5eeb4204638a7f4.zip
+https://github.com/pydata/pydata-sphinx-theme/archive/454918d43c9a9d10764aeccccfb1a7aca4918cfd.zip
 https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
 sphinxcontrib-bibtex>=2.1.2
 memory_profiler
 neo
 seaborn!=0.11.2
 sphinx_copybutton
-mne-bids
+https://github.com/mne-tools/mne-bids/zipball/main
 pyxdf
 https://github.com/mne-tools/mne-connectivity/archive/main.zip
 pytest

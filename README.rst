@@ -92,10 +92,14 @@ The minimum required dependencies to run MNE-Python are:
 - Python >= 3.7
 - NumPy >= 1.18.1
 - SciPy >= 1.4.1
+- Matplotlib >= 3.1.0
+- pooch >= 1.5
+- tqdm
+- Jinja2
+- decorator
 
 For full functionality, some functions require:
 
-- Matplotlib >= 3.1.0
 - Scikit-learn >= 0.22.0
 - Numba >= 0.48.0
 - NiBabel >= 2.5.0
@@ -107,6 +111,9 @@ For full functionality, some functions require:
 - PyVista >= 0.32
 - pyvistaqt >= 0.4
 - mffpy >= 0.5.7
+- h5py
+- h5io
+- pymatreader
 
 Contributing to MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -130,7 +137,7 @@ MNE-Python is **BSD-licenced** (3 clause):
     This software is OSI Certified Open Source Software.
     OSI Certified is a certification mark of the Open Source Initiative.
 
-    Copyright (c) 2011-2021, authors of MNE-Python.
+    Copyright (c) 2011-2022, authors of MNE-Python.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without

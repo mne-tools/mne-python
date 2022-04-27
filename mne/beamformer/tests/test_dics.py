@@ -24,7 +24,7 @@ from mne.surface import _compute_nearest
 from mne.time_frequency import CrossSpectralDensity, csd_morlet
 from mne.time_frequency.csd import _sym_mat_to_vector
 from mne.transforms import invert_transform, apply_trans
-from mne.utils import object_diff, requires_h5py, catch_logging
+from mne.utils import object_diff, requires_version, catch_logging
 
 data_path = testing.data_path(download=False)
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -144,7 +144,7 @@ def _make_rand_csd(info, csd):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_h5py
+@requires_version('h5io')
 @idx_param
 @pytest.mark.parametrize('whiten', [
     pytest.param(False, marks=pytest.mark.slowtest),

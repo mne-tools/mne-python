@@ -326,6 +326,14 @@ def _file_like(obj):
     return all(callable(getattr(obj, name, None)) for name in ('read', 'seek'))
 
 
+def _fullname(obj):
+    klass = obj.__class__
+    module = klass.__module__
+    if module == 'builtins':
+        return klass.__qualname__
+    return module + '.' + klass.__qualname__
+
+
 def _assert_no_instances(cls, when=''):
     __tracebackhide__ = True
     n = 0
@@ -339,7 +347,8 @@ def _assert_no_instances(cls, when=''):
             check = False
         if check:
             if cls.__name__ == 'Brain':
-                ref.append(f'Brain._cleaned = {obj._cleaned}')
+                ref.append(
+                    f'Brain._cleaned = {getattr(obj, "_cleaned", None)}')
             rr = gc.get_referrers(obj)
             count = 0
             for r in rr:
@@ -350,14 +359,21 @@ def _assert_no_instances(cls, when=''):
                     if isinstance(r, (list, dict)):
                         rep = f'len={len(r)}'
                         r_ = gc.get_referrers(r)
-                        types = (x.__class__.__name__ for x in r_)
+                        types = (_fullname(x) for x in r_)
                         types = "/".join(sorted(set(
                             x for x in types if x is not None)))
                         rep += f', {len(r_)} referrers: {types}'
                         del r_
                     else:
                         rep = repr(r)[:100].replace('\n', ' ')
-                    ref.append(f'{r.__class__.__name__}: {rep}')
+                        # If it's a __closure__, get more information
+                        if rep.startswith('<cell at '):
+                            try:
+                                rep += f' ({repr(r.cell_contents)[:100]})'
+                            except Exception:
+                                pass
+                    name = _fullname(r)
+                    ref.append(f'{name}: {rep}')
                     count += 1
                 del r
             del rr

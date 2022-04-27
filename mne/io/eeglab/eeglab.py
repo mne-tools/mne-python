@@ -13,7 +13,8 @@ from ..utils import _read_segments_file, _find_channels
 from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
-from ...utils import logger, verbose, warn, fill_doc, Bunch, _check_fname
+from ...utils import (logger, verbose, warn, fill_doc, Bunch, _check_fname,
+                      _import_pymatreader_funcs)
 from ...channels import make_dig_montage
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -56,7 +57,7 @@ def _check_eeglab_fname(fname, dataname):
 
 def _check_load_mat(fname, uint16_codec):
     """Check if the mat struct contains 'EEG'."""
-    from ...externals.pymatreader import read_mat
+    read_mat = _import_pymatreader_funcs('EEGLAB I/O')
     eeg = read_mat(fname, uint16_codec=uint16_codec)
     if 'ALLEEG' in eeg:
         raise NotImplementedError(
@@ -143,10 +144,25 @@ def _get_montage_information(eeg, get_pos):
              '\n'.join([f'{key}: {sorted(unknown_types[key])}'
                         for key in sorted(unknown_types)]))
 
+    lpa, rpa, nasion = None, None, None
+    if (hasattr(eeg, "chaninfo") and
+            "nodatchans" in eeg.chaninfo and
+            len(eeg.chaninfo['nodatchans'])):
+        for item in list(zip(*eeg.chaninfo['nodatchans'].values())):
+            d = dict(zip(eeg.chaninfo['nodatchans'].keys(), item))
+            if d["type"] != 'FID':
+                continue
+            elif d['description'] == 'Nasion':
+                nasion = np.array([d["X"], d["Y"], d["Z"]])
+            elif d['description'] == 'Right periauricular point':
+                rpa = np.array([d["X"], d["Y"], d["Z"]])
+            elif d['description'] == 'Left periauricular point':
+                lpa = np.array([d["X"], d["Y"], d["Z"]])
+
     if pos_ch_names:
         montage = make_dig_montage(
             ch_pos=dict(zip(ch_names, np.array(pos))),
-            coord_frame='head')
+            coord_frame='head', lpa=lpa, rpa=rpa, nasion=nasion)
     else:
         montage = None
 

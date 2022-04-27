@@ -8,6 +8,21 @@
 
 }
 
+html[data-theme="light"] {
+    --mne-color-github: #000;
+    --mne-color-discourse: #231e20;
+    --pst-color-border-rgba: rgba(0, 0, 0, 0.125);
+    --pst-color-background-rgba: rgba(0, 0, 0, 0.03);
+    --pst-color-info-rgba: #007bff18;
+}
+html[data-theme="dark"] {
+    --mne-color-github: #fff;
+    --mne-color-discourse: #d1c498;
+    --pst-color-border-rgba: rgba(201, 201, 201, 0.25);
+    --pst-color-background-rgba: rgba(255, 255, 255, 0.08);
+    --pst-color-info-rgba: #407dbf18;
+}
+
 /* ************************************************************ Sphinx fixes */
 dl.field-list {
     grid-template-columns: auto 1fr;
@@ -39,7 +54,7 @@ p.sphx-glr-signature {
 /* script/notebook download buttons */
 .sphx-glr-download a.download {
     background-image: none;
-    background-color: rgba(var(--pst-color-info), 0.1);
+    background-color: var(--pst-color-info-rgba);
     border-color: rgb(var(--pst-color-info));
 }
 /* Report embedding */
@@ -49,11 +64,6 @@ iframe.sg_report {
     margin: 20px auto;
     display: block;
     border-style: solid;
-}
-/* gallery thumbnail size */
-.sphx-glr-thumbcontainer {
-    min-width: 160px;
-    height: 250px;
 }
 
 /* ******************************** make HTML'd pandas dataframes scrollable */
@@ -78,7 +88,7 @@ aside.sidebar {
     clear: right;
     overflow-x: auto;
     /* above copied from div.sidebar in basic.css; below are our overrides */
-    background-color: rgba(var(--pst-color-info), 0.1);
+    background-color: var(--pst-color-info-rgba);
     border: 1px solid rgb(var(--pst-color-info));
     border-radius: 4px;
 }
@@ -161,17 +171,28 @@ div.frontpage-gallery:hover .fadeout {
     opacity: 0.0;
     transition: 200ms linear;
 }
+div.card img.institution {
+    background-color: #fffe;
+}
+div.card {
+    border: 1px solid var(--pst-color-border-rgba);
+    background-color: rgb(var(--pst-color-background));
+}
+.card-header {
+    border-bottom-color: var(--pst-color-border-rgba);
+    background-color: var(--pst-color-background-rgba);
+}
 
 /* ****************************************************** navbar quick links */
 
 i.fa-github-square:before {
-    color: #000;
+    color: rgb(var(--mne-color-github));
 }
 i.fa-twitter-square:before {
     color: #55acee;
 }
 i.fa-discourse:before {
-    color: #231e20;
+    color: rgb(var(--mne-color-discourse));
 }
 i.fa-discord:before {
     color: #7289da;  /* 99aab5 is also in-brand for discord */

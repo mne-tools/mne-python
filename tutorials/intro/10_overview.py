@@ -2,6 +2,7 @@
 """
 .. _tut-overview:
 
+============================================
 Overview of MEG/EEG analysis with MNE-Python
 ============================================
 
@@ -14,7 +15,6 @@ tutorials address each of these topics in greater detail.
 
 We begin by importing the necessary Python modules:
 """
-
 # %%
 
 import os
@@ -28,8 +28,8 @@ import mne
 # MNE-Python data structures are based around the FIF file format from
 # Neuromag, but there are reader functions for :ref:`a wide variety of other
 # data formats <data-formats>`. MNE-Python also has interfaces to a
-# variety of :ref:`publicly available datasets <datasets>`,
-# which MNE-Python can download and manage for you.
+# variety of :ref:`publicly available datasets <datasets>`, which MNE-Python
+# can download and manage for you.
 #
 # We'll start this tutorial by loading one of the example datasets (called
 # ":ref:`sample-dataset`"), which contains EEG and MEG data from one subject

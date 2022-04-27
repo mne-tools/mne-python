@@ -18,7 +18,6 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_equal, assert_array_less)
 import numpy as np
 from numpy.fft import rfft, rfftfreq
-import matplotlib.pyplot as plt
 import scipy.signal
 
 import mne
@@ -2072,7 +2071,7 @@ def test_epoch_eq():
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_equal(new_shapes[0] + new_shapes[1], new_shapes[2])
     assert_equal(new_shapes[3], old_shapes[3])
-    with pytest.raises(KeyError, match='keys must be strings, got'):
+    with pytest.raises(ValueError, match='keys must be strings, got'):
         epochs.equalize_event_counts([1, 'a'])
 
     # now let's combine conditions
@@ -2730,7 +2729,7 @@ def test_add_channels_epochs():
     assert_allclose(new_proj[n_meg:, n_meg:], np.eye(n_eeg), atol=1e-12)
 
 
-def test_array_epochs(tmp_path):
+def test_array_epochs(tmp_path, browser_backend):
     """Test creating epochs from array."""
     tempdir = str(tmp_path)
 
@@ -2768,7 +2767,6 @@ def test_array_epochs(tmp_path):
 
     # plotting
     epochs[0].plot()
-    plt.close('all')
 
     # indexing
     assert_array_equal(np.unique(epochs['1'].events[:, 2]), np.array([1]))

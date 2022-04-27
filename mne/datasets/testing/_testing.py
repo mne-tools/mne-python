@@ -14,7 +14,7 @@ has_testing_data = partial(has_dataset, name='testing')
 
 @verbose
 def data_path(path=None, force_update=False, update_path=True,
-              download=True, verbose=None):  # noqa: D103
+              download=True, *, verbose=None):  # noqa: D103
     # Make sure we don't do something stupid
     if download and \
             get_config('MNE_SKIP_TESTING_DATASET_TESTS', 'false') == 'true':
@@ -52,13 +52,14 @@ def requires_testing_data(func):
 
 
 def _pytest_param(*args, **kwargs):
-    if len(args) == len(kwargs) == 0:
+    if len(args) == 0:
         args = ('testing_data',)
     import pytest
     # turn anything that uses testing data into an auto-skipper by
     # setting params=[testing._pytest_param()], or by parametrizing functions
     # with testing._pytest_param(whatever)
-    return pytest.param(*args, **kwargs, marks=_pytest_mark())
+    kwargs['marks'] = kwargs.get('marks', list()) + [_pytest_mark()]
+    return pytest.param(*args, **kwargs)
 
 
 def _pytest_mark():

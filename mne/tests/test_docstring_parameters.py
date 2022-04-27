@@ -1,6 +1,13 @@
+# -*- coding: utf-8 -*-
+# Author: Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD-3-Clause
+
+from collections import Counter
 import inspect
 from inspect import getsource
 import os.path as op
+from pathlib import Path
 from pkgutil import walk_packages
 import re
 import sys
@@ -63,15 +70,12 @@ def _func_name(func, cls=None):
 
 # functions to ignore args / docstring of
 docstring_ignores = {
-    'mne.externals',
     'mne.fixes',
     'mne.io.write',
     'mne.io.meas_info.Info',
 }
 char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [
-    'mne.externals.tqdm._tqdm.__main__',
-    'mne.externals.tqdm._tqdm.cli',
     'mne.channels.tests.test_montage',
     'mne.io.curry.tests.test_curry',
 ]
@@ -145,7 +149,8 @@ def test_docstring_parameters():
                 method = getattr(cls, method_name)
                 incorrect += check_parameters_match(method, cls=cls)
             if hasattr(cls, '__call__') and \
-                    'of type object' not in str(cls.__call__):
+                    'of type object' not in str(cls.__call__) and \
+                    'of ABCMeta object' not in str(cls.__call__):
                 incorrect += check_parameters_match(cls.__call__, cls)
         functions = inspect.getmembers(module, inspect.isfunction)
         for fname, func in functions:
@@ -281,7 +286,6 @@ def test_documented():
             if not name.startswith('_') and name not in known_names:
                 from_mod = inspect.getmodule(cf).__name__
                 if (from_mod.startswith('mne') and
-                        not from_mod.startswith('mne.externals') and
                         not any(from_mod.startswith(x)
                                 for x in documented_ignored_mods) and
                         name not in documented_ignored_names and
@@ -291,3 +295,22 @@ def test_documented():
         raise AssertionError('\n\nFound new public members missing from '
                              'doc/python_reference.rst:\n\n* ' +
                              '\n* '.join(sorted(set(missing))))
+
+
+def test_docdict_order():
+    """Test that docdict is alphabetical."""
+    docs_path = Path(__file__).parent.parent / 'utils' / 'docs.py'
+    assert docs_path.is_file(), docs_path
+    with open(docs_path, 'r') as fid:
+        docs = fid.read()
+    entries = re.findall(r'docdict\[["\']([a-z_\-0-9]+)["\']\] = ', docs)
+    # We can always modify the upper or lower bounds here as entries are made.
+    # This just makes sure our regex is reasonable.
+    # As of 2022/03/02 we're at 346
+    assert 340 < len(entries) < 500
+    # no dups (verbosely describe the error)
+    for key, count in Counter(entries).items():
+        assert count == 1, key
+    # this should be redundant, but why not
+    assert len(set(entries)) == len(entries)
+    assert sorted(entries) == entries

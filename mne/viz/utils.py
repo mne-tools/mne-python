@@ -13,14 +13,19 @@
 # License: Simplified BSD
 from collections import defaultdict
 from contextlib import contextmanager
-from functools import partial
-import difflib
-import webbrowser
-import tempfile
-import math
-import numpy as np
-import warnings
 from datetime import datetime
+import difflib
+from functools import partial
+import math
+import os
+import sys
+import tempfile
+import traceback
+import warnings
+import webbrowser
+
+from decorator import decorator
+import numpy as np
 
 from ..defaults import _handle_default
 from ..fixes import _get_args
@@ -46,6 +51,15 @@ _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
                              'ecg': "ECG sensor", 'emg': "EMG sensor",
                              'ecog': "ECoG channel",
                              'misc': "miscellaneous sensor"}
+
+
+@decorator
+def safe_event(fun, *args, **kwargs):
+    """Protect against Qt exiting on event-handling errors."""
+    try:
+        return fun(*args, **kwargs)
+    except Exception:
+        traceback.print_exc(file=sys.stderr)
 
 
 def _setup_vmin_vmax(data, vmin, vmax, norm=False):
@@ -116,17 +130,20 @@ def _show_browser(show=True, block=True, fig=None, **kwargs):
     block : bool
         If to block execution on showing.
     fig : instance of Figure | None
-        Needs to be passed for pyqtgraph backend,
-         optional for matplotlib.
+        Needs to be passed for Qt backend,
+        optional for matplotlib.
     **kwargs : dict
         Extra arguments for :func:`matplotlib.pyplot.show`.
     """
     from ._figure import get_browser_backend
+    _validate_type(block, bool, 'block')
     backend = get_browser_backend()
+    if os.getenv('_MNE_BROWSER_NO_BLOCK', 'false').lower() == 'true':
+        block = False
     if backend == 'matplotlib':
         plt_show(show, block=block, **kwargs)
     else:
-        from PyQt5.QtWidgets import QApplication
+        from qtpy.QtWidgets import QApplication
         from .backends._utils import _qt_app_exec
         if show:
             fig.show()
@@ -167,15 +184,19 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
 
     fig.canvas.draw()
     constrained = fig.get_constrained_layout()
+    kwargs = dict(pad=pad, h_pad=h_pad, w_pad=w_pad)
     if constrained:
         return  # no-op
     try:  # see https://github.com/matplotlib/matplotlib/issues/2654
         with warnings.catch_warnings(record=True) as ws:
-            fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
+            fig.tight_layout(**kwargs)
     except Exception:
         try:
             with warnings.catch_warnings(record=True) as ws:
-                fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
+                if hasattr(fig, 'set_layout_engine'):
+                    fig.set_layout_engine('tight', **kwargs)
+                else:
+                    fig.set_tight_layout(kwargs)
         except Exception:
             warn('Matplotlib function "tight_layout" is not supported.'
                  ' Skipping subplot adjustment.')
@@ -889,7 +910,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         .. versionadded:: 0.13.0
     show : bool
         Show figure if True. Defaults to True.
-    %(topomap_sphere_auto)s
+    %(sphere_topomap_auto)s
     pointsize : float | None
         The size of the points. If None (default), will bet set to 75 if
         ``kind='3d'``, or 25 otherwise.
@@ -1387,7 +1408,7 @@ class DraggableColorbar(object):
         self.cbar.ax.figure.canvas.draw()
 
 
-class SelectFromCollection(object):
+class SelectFromCollection:
     """Select channels from a matplotlib collection using ``LassoSelector``.
 
     Selected channels are saved in the ``selection`` attribute. This tool
@@ -1410,7 +1431,8 @@ class SelectFromCollection(object):
     Notes
     -----
     This tool selects collection objects based on their *origins*
-    (i.e., ``offsets``). Emits mpl event 'lasso_event' when selection is ready.
+    (i.e., ``offsets``). Calls all callbacks in self.callbacks when selection
+    is ready.
     """
 
     def __init__(self, ax, collection, ch_names, alpha_other=0.5,
@@ -1443,6 +1465,7 @@ class SelectFromCollection(object):
         line_kw = _prop_kw('line', dict(color='red', linewidth=0.5))
         self.lasso = LassoSelector(ax, onselect=self.on_select, **line_kw)
         self.selection = list()
+        self.callbacks = list()
 
     def on_select(self, verts):
         """Select a subset from the collection."""
@@ -1459,7 +1482,7 @@ class SelectFromCollection(object):
 
         self.selection[:] = np.array(self.ch_names)[inds].tolist()
         self.style_sensors(inds)
-        self.canvas.callbacks.process('lasso_event')
+        self.notify()
 
     def select_one(self, ind):
         """Select or deselect one sensor."""
@@ -1471,7 +1494,12 @@ class SelectFromCollection(object):
             self.selection.append(ch_name)
         inds = np.in1d(self.ch_names, self.selection).nonzero()[0]
         self.style_sensors(inds)
-        self.canvas.callbacks.process('lasso_event')
+        self.notify()
+
+    def notify(self):
+        """Notify listeners that a selection has been made."""
+        for callback in self.callbacks:
+            callback()
 
     def select_many(self, inds):
         """Select many sensors using indices (for predefined selections)."""
@@ -1854,14 +1882,10 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
 
 def _check_cov(noise_cov, info):
     """Check the noise_cov for whitening and issue an SSS warning."""
-    from ..cov import read_cov, Covariance
+    from ..cov import _ensure_cov
     if noise_cov is None:
         return None
-    if isinstance(noise_cov, str):
-        noise_cov = read_cov(noise_cov)
-    if not isinstance(noise_cov, Covariance):
-        raise TypeError('noise_cov must be a str or Covariance, got %s'
-                        % (type(noise_cov),))
+    noise_cov = _ensure_cov(noise_cov, name='noise_cov', verbose=False)
     if _check_sss(info)[2]:  # has_sss
         warn('Data have been processed with SSS, which changes the relative '
              'scaling of magnetometers and gradiometers when viewing data '
@@ -2006,16 +2030,16 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
         dy = np.median(np.diff(yvals)) / 2. if len(yvals) > 1 else 0.5
         extent = [times[0] - dt, times[-1] + dt,
                   yvals[0] - dy, yvals[-1] + dy]
-        im_args = dict(interpolation='nearest', origin='lower',
-                       extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
-
+        im_args = dict(interpolation='nearest', origin='lower', extent=extent,
+                       aspect='auto')
         if draw_mask:
-            ax.imshow(data, alpha=mask_alpha, cmap=mask_cmap, **im_args)
-            im = ax.imshow(
-                np.ma.masked_where(~mask, data), cmap=cmap, **im_args)
+            ax.imshow(data, alpha=mask_alpha, cmap=mask_cmap, norm=cnorm,
+                      **im_args)
+            im = ax.imshow(np.ma.masked_where(~mask, data), cmap=cmap,
+                           norm=cnorm, **im_args)
         else:
-            ax.imshow(data, cmap=cmap, **im_args)  # see #6481
-            im = ax.imshow(data, cmap=cmap, **im_args)
+            ax.imshow(data, cmap=cmap, norm=cnorm, **im_args)  # see #6481
+            im = ax.imshow(data, cmap=cmap, norm=cnorm, **im_args)
 
         if draw_contour and np.unique(mask).size == 2:
             big_mask = np.kron(mask, np.ones((10, 10)))
@@ -2339,6 +2363,8 @@ def concatenate_images(images, axis=0, bgcolor='black', centered=True,
         The concatenated image.
     """
     n_channels = _ensure_int(n_channels, 'n_channels')
+    axis = _ensure_int(axis)
+    _check_option('axis', axis, (0, 1))
     _check_option('n_channels', n_channels, (3, 4))
     alpha = True if n_channels == 4 else False
     bgcolor = _to_rgb(bgcolor, name='bgcolor', alpha=alpha)
@@ -2354,7 +2380,7 @@ def concatenate_images(images, axis=0, bgcolor='black', centered=True,
     sec = np.array([0 == axis, 1 == axis]).astype(int)
     for image in images:
         shape = image.shape[:-1]
-        dec = ptr
+        dec = ptr.copy()
         dec += ((ret_shape - shape) // 2) * (1 - sec) if centered else 0
         ret[dec[0]:dec[0] + shape[0], dec[1]:dec[1] + shape[1], :] = image
         ptr += shape * sec
@@ -2373,3 +2399,14 @@ def _prop_kw(kind, val):
     from matplotlib.widgets import SpanSelector
     pre = '' if 'props' in _get_args(SpanSelector) else kind
     return {pre + 'props': val}
+
+
+def _handle_precompute(precompute):
+    _validate_type(precompute, (bool, str, None), 'precompute')
+    if precompute is None:
+        precompute = get_config('MNE_BROWSER_PRECOMPUTE', 'auto').lower()
+        _check_option('MNE_BROWSER_PRECOMPUTE',
+                      precompute, ('true', 'false', 'auto'),
+                      extra='when precompute=None is used')
+        precompute = dict(true=True, false=False, auto='auto')[precompute]
+    return precompute

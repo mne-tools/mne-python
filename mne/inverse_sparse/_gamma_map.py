@@ -207,7 +207,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
         If True, the residual is returned as an Evoked instance.
     return_as_dipoles : bool
         If True, the sources are returned as a list of Dipole instances.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
     %(pick_ori)s

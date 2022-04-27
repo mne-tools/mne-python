@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-epochs-metadata:
 
+===========================
 Working with Epoch metadata
 ===========================
 

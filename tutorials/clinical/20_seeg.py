@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-working-with-seeg:
 
@@ -18,8 +19,8 @@ This example shows how to use:
 Note that our sample sEEG electrodes are already assumed to be in MNI
 space. If you want to map positions from your subject MRI space to MNI
 fsaverage space, you must apply the FreeSurfer's talairach.xfm transform
-for your dataset. You can take a look at :ref:`tut-freesurfer-mne` for
-more information.
+for your dataset. You can take a look at :ref:`tut-freesurfer-mne` for more
+information.
 
 For an example that involves ECoG data, channel locations in a
 subject-specific MRI, or projection into a surface, see
@@ -27,7 +28,7 @@ subject-specific MRI, or projection into a surface, see
 how to visualize surface grid channels on the brain.
 
 Please note that this tutorial requires 3D plotting dependencies,
-see :ref:`quick-start`.
+see :ref:`manual-install`.
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
@@ -41,7 +42,6 @@ see :ref:`quick-start`.
 import os.path as op
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import fetch_fsaverage
@@ -126,8 +126,7 @@ print(f'Electrodes in the dataset: {electrodes}')
 electrodes = ('LPM', 'LSMA')  # choose two for this example
 for elec in electrodes:
     picks = [ch_name for ch_name in epochs.ch_names if elec in ch_name]
-    fig = plt.figure(num=None, figsize=(8, 8), facecolor='black')
-    mne.viz.plot_channel_labels_circle(labels, colors, picks=picks, fig=fig)
+    fig, ax = mne.viz.plot_channel_labels_circle(labels, colors, picks=picks)
     fig.text(0.3, 0.9, 'Anatomical Labels', color='white')
 
 # %%
@@ -147,7 +146,6 @@ brain = mne.viz.Brain('fsaverage', alpha=0.1, cortex='low_contrast',
                       subjects_dir=subjects_dir, units='m', figure=fig)
 brain.add_volume_labels(aseg='aparc+aseg', labels=labels)
 brain.show_view(azimuth=120, elevation=90, distance=0.25)
-brain.enable_depth_peeling()
 
 # %%
 # Next, we'll get the epoch data and plot its amplitude over time.

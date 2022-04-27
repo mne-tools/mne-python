@@ -13,19 +13,20 @@ Actual implementation of _Renderer and _Projection classes.
 
 from contextlib import contextmanager
 import os
+import re
 import sys
 import warnings
 
 import numpy as np
 import vtk
 
-from ._abstract import _AbstractRenderer
+from ._abstract import _AbstractRenderer, Figure3D
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
                      ALLOWED_QUIVER_MODES, _init_mne_qtapp)
 from ...fixes import _get_args, _point_data, _cell_data, _compare_version
 from ...transforms import apply_trans
 from ...utils import (copy_base_doc_to_subclass_doc, _check_option,
-                      _require_version)
+                      _require_version, _validate_type)
 
 
 with warnings.catch_warnings():
@@ -43,30 +44,34 @@ VTK9 = _compare_version(getattr(vtk, 'VTK_VERSION', '9.0'), '>=', '9.0')
 _FIGURES = dict()
 
 
-class _Figure(object):
-    def __init__(self,
-                 plotter=None,
-                 show=False,
-                 title='PyVista Scene',
-                 size=(600, 600),
-                 shape=(1, 1),
-                 background_color='black',
-                 smooth_shading=True,
-                 off_screen=False,
-                 notebook=False):
-        self.plotter = plotter
+class PyVistaFigure(Figure3D):
+    """PyVista-based 3D Figure.
+
+    This class is not meant to be instantiated directly, use
+    :func:`mne.viz.create_3d_figure` instead.
+    """
+
+    def __init__(self):
+        pass
+
+    def _init(self, plotter=None, show=False, title='PyVista Scene',
+              size=(600, 600), shape=(1, 1), background_color='black',
+              smooth_shading=True, off_screen=False, notebook=False,
+              splash=False, multi_samples=None):
+        self._plotter = plotter
         self.display = None
         self.background_color = background_color
         self.smooth_shading = smooth_shading
         self.notebook = notebook
+        self.title = title
+        self.splash = splash
 
         self.store = dict()
         self.store['window_size'] = size
         self.store['shape'] = shape
         self.store['off_screen'] = off_screen
         self.store['border'] = False
-        # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
-        self.store['multi_samples'] = 1 if sys.platform == 'darwin' else 4
+        self.store['multi_samples'] = multi_samples
 
         if not self.notebook:
             self.store['show'] = show
@@ -75,31 +80,39 @@ class _Figure(object):
             self.store['menu_bar'] = False
             self.store['toolbar'] = False
             self.store['update_app_icon'] = False
+            self._plotter_class = BackgroundPlotter
+            if 'app_window_class' in _get_args(BackgroundPlotter):
+                from ._qt import _MNEMainWindow
+                self.store['app_window_class'] = _MNEMainWindow
+        else:
+            self._plotter_class = Plotter
 
         self._nrows, self._ncols = self.store['shape']
         self._azimuth = self._elevation = None
 
-    def build(self):
-        if self.notebook:
-            plotter_class = Plotter
-        else:
-            plotter_class = BackgroundPlotter
-
+    def _build(self):
         if self.plotter is None:
             if not self.notebook:
-                app = _init_mne_qtapp(enable_icon=hasattr(plotter_class,
-                                                          'set_icon'))
+                out = _init_mne_qtapp(
+                    enable_icon=hasattr(self._plotter_class, 'set_icon'),
+                    splash=self.splash)
+                # replace it with the Qt object
+                if self.splash:
+                    self.splash = out[1]
+                    app = out[0]
+                else:
+                    app = out
                 self.store['app'] = app
-            plotter = plotter_class(**self.store)
+            plotter = self._plotter_class(**self.store)
             plotter.background_color = self.background_color
-            self.plotter = plotter
+            self._plotter = plotter
         if self.plotter.iren is not None:
             self.plotter.iren.initialize()
         _process_events(self.plotter)
         _process_events(self.plotter)
         return self.plotter
 
-    def is_active(self):
+    def _is_active(self):
         if self.plotter is None:
             return False
         return hasattr(self.plotter, 'ren_win')
@@ -142,21 +155,30 @@ class _PyVistaRenderer(_AbstractRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1),
-                 notebook=None, smooth_shading=True):
-        from .renderer import MNE_3D_BACKEND_TESTING
+                 notebook=None, smooth_shading=True, splash=False,
+                 multi_samples=None):
         from .._3d import _get_3d_option
         _require_version('pyvista', 'use 3D rendering', '0.32')
-        figure = _Figure(show=show, title=name, size=size, shape=shape,
-                         background_color=bgcolor, notebook=notebook,
-                         smooth_shading=smooth_shading)
+        multi_samples = _get_3d_option('multi_samples')
+        # multi_samples > 1 is broken on macOS + Intel Iris + volume rendering
+        if sys.platform == 'darwin':
+            multi_samples = 1
+        figure = PyVistaFigure()
+        figure._init(
+            show=show, title=name, size=size, shape=shape,
+            background_color=bgcolor, notebook=notebook,
+            smooth_shading=smooth_shading, splash=splash,
+            multi_samples=multi_samples)
         self.font_family = "arial"
         self.tube_n_sides = 20
-        antialias = _get_3d_option('antialias')
-        self.antialias = antialias and not MNE_3D_BACKEND_TESTING
+        self.antialias = _get_3d_option('antialias')
+        self.depth_peeling = _get_3d_option('depth_peeling')
+        # smooth_shading=True fails on MacOS CIs
+        self.smooth_shading = _get_3d_option('smooth_shading')
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
             # Restore only active plotter
-            if saved_fig is not None and saved_fig.is_active():
+            if saved_fig is not None and saved_fig._is_active():
                 self.figure = saved_fig
             else:
                 self.figure = figure
@@ -172,14 +194,13 @@ class _PyVistaRenderer(_AbstractRenderer):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            if MNE_3D_BACKEND_TESTING:
-                self.tube_n_sides = 3
-                # smooth_shading=True fails on MacOS CIs
-                self.figure.smooth_shading = False
+            # pyvista theme may enable depth peeling by default so
+            # we disable it initially to better control the value afterwards
             with _disabled_depth_peeling():
-                self.plotter = self.figure.build()
+                self.plotter = self.figure._build()
             self._hide_axes()
-            self._enable_aa()
+            self._enable_antialias()
+            self._enable_depth_peeling()
 
         # FIX: https://github.com/pyvista/pyvistaqt/pull/68
         if not hasattr(self.plotter, "iren"):
@@ -264,6 +285,11 @@ class _PyVistaRenderer(_AbstractRenderer):
                 renderer.disable_parallel_projection()
             getattr(self.plotter, f'enable_{interaction}_style')()
 
+    def legend(self, labels, border=False, size=0.1, face='triangle',
+               loc='upper left'):
+        return self.plotter.add_legend(
+            labels, size=(size, size), face=face, loc=loc)
+
     def polydata(self, mesh, color=None, opacity=1.0, normals=None,
                  backface_culling=False, scalars=None, colormap=None,
                  vmin=None, vmax=None, interpolate_before_map=True,
@@ -299,7 +325,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
                 rng=[vmin, vmax], show_scalar_bar=False,
-                smooth_shading=self.figure.smooth_shading,
+                smooth_shading=self.smooth_shading,
                 interpolate_before_map=interpolate_before_map,
                 style=representation, line_width=line_width, **kwargs,
             )
@@ -367,7 +393,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 rng=[vmin, vmax],
                 cmap=colormap,
                 opacity=opacity,
-                smooth_shading=self.figure.smooth_shading
+                smooth_shading=self.smooth_shading
             )
             return actor, contour
 
@@ -423,7 +449,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 self.plotter,
                 mesh=glyph, color=color, opacity=opacity,
                 backface_culling=backface_culling,
-                smooth_shading=self.figure.smooth_shading
+                smooth_shading=self.smooth_shading
             )
             return actor, glyph
 
@@ -451,7 +477,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                     color=color,
                     show_scalar_bar=False,
                     cmap=cmap,
-                    smooth_shading=self.figure.smooth_shading,
+                    smooth_shading=self.smooth_shading,
                 )
         return actor, tube
 
@@ -460,7 +486,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                  opacity=1.0, scale_mode='none', scalars=None, colormap=None,
                  backface_culling=False, line_width=2., name=None,
                  glyph_width=None, glyph_depth=None, glyph_radius=0.15,
-                 solid_transform=None):
+                 solid_transform=None, *, clim=None):
         _check_option('mode', mode, ALLOWED_QUIVER_MODES)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
@@ -474,24 +500,17 @@ class _PyVistaRenderer(_AbstractRenderer):
             if not VTK9:
                 args = (np.arange(n_points) * 3,) + args
             grid = UnstructuredGrid(*args)
-            if scalars is not None:
-                _point_data(grid)['scalars'] = np.array(scalars)
-                scalars = 'scalars'
+            if scalars is None:
+                scalars = np.ones((n_points,))
+            _point_data(grid)['scalars'] = np.array(scalars)
             _point_data(grid)['vec'] = vectors
-            if scale_mode == 'scalar':
-                scale = scalars
-                scalars = None
-            elif scale_mode == 'vector':
-                scale = True
-            else:
-                scale = False
             if mode == '2darrow':
                 return _arrow_glyph(grid, factor), grid
             elif mode == 'arrow':
                 alg = _glyph(
                     grid,
                     orient='vec',
-                    scalars=scale,
+                    scalars='scalars',
                     factor=factor
                 )
                 mesh = pyvista.wrap(alg.GetOutput())
@@ -536,17 +555,18 @@ class _PyVistaRenderer(_AbstractRenderer):
                     glyph = trp
                 glyph.Update()
                 geom = glyph.GetOutput()
-                mesh = grid.glyph(orient='vec', scale=scale, factor=factor,
-                                  geom=geom)
+                mesh = grid.glyph(orient='vec', scale=scale_mode == 'vector',
+                                  factor=factor, geom=geom)
             actor = _add_mesh(
                 self.plotter,
                 mesh=mesh,
                 color=color,
                 opacity=opacity,
-                scalars=scalars,
+                scalars=None,
                 colormap=colormap,
                 show_scalar_bar=False,
-                backface_culling=backface_culling
+                backface_culling=backface_culling,
+                clim=clim,
             )
         return actor, mesh
 
@@ -640,12 +660,14 @@ class _PyVistaRenderer(_AbstractRenderer):
 
         return _Projection(xy=xy, pts=pts, plotter=self.plotter)
 
-    def enable_depth_peeling(self):
+    def _enable_depth_peeling(self):
+        if not self.depth_peeling:
+            return
         if not self.figure.store['off_screen']:
             for renderer in self._all_renderers:
                 renderer.enable_depth_peeling()
 
-    def _enable_aa(self):
+    def _enable_antialias(self):
         """Enable it everywhere except Azure."""
         if not self.antialias:
             return
@@ -655,10 +677,13 @@ class _PyVistaRenderer(_AbstractRenderer):
         # before the window has actually been made "active"...?
         # For Mayavi we have an "on activated" event or so, we should look into
         # using this for Azure at some point, too.
-        if os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true':
-            return
-        if self.figure.is_active():
-            if sys.platform != 'darwin':
+        if self.figure._is_active():
+            # macOS, Azure
+            bad_system = (
+                sys.platform == 'darwin' or
+                os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true')
+            bad_system |= _is_mesa(self.plotter)
+            if not bad_system:
                 for renderer in self._all_renderers:
                     renderer.enable_anti_aliasing()
             for plotter in self._all_plotters:
@@ -1019,8 +1044,7 @@ def _set_3d_title(figure, title, size=16):
 
 
 def _check_3d_figure(figure):
-    if not isinstance(figure, _Figure):
-        raise TypeError('figure must be an instance of _Figure.')
+    _validate_type(figure, PyVistaFigure, 'figure')
 
 
 def _close_3d_figure(figure):
@@ -1128,3 +1152,12 @@ def _disabled_depth_peeling():
         yield
     finally:
         depth_peeling["enabled"] = depth_peeling_enabled
+
+
+def _is_mesa(plotter):
+    # MESA (could use GPUInfo / _get_gpu_info here, but it takes
+    # > 700 ms to make a new window + report capabilities!)
+    # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
+    gpu_info = plotter.ren_win.ReportCapabilities()
+    gpu_info = re.findall("OpenGL renderer string:(.+)\n", gpu_info)
+    return ' mesa ' in ' '.join(gpu_info).lower().split()

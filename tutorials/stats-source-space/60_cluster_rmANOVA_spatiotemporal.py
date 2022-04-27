@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _tut-cluster-rm-anova-spatiotemporal:
+
 ======================================================================
 Repeated measures ANOVA on source data with spatio-temporal clustering
 ======================================================================
@@ -39,10 +42,11 @@ print(__doc__)
 # Set parameters
 # --------------
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-subjects_dir = data_path + '/subjects'
-src_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
+subjects_dir = data_path / 'subjects'
+src_fname = subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-ico-5-src.fif'
 
 tmin = -0.2
 tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
@@ -70,7 +74,7 @@ epochs.equalize_event_counts(event_id)
 # %%
 # Transform to source space
 # -------------------------
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+fname_inv = meg_path / 'sample_audvis-meg-oct-6-meg-inv.fif'
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE, sLORETA, or eLORETA)
@@ -215,7 +219,7 @@ f_thresh = f_threshold_mway_rm(n_subjects, factor_levels, effects, pthresh)
 n_permutations = 50  # ... run way fewer permutations (reduces sensitivity)
 
 print('Clustering.')
-T_obs, clusters, cluster_p_values, H0 = clu = \
+F_obs, clusters, cluster_p_values, H0 = clu = \
     spatio_temporal_cluster_test(X, adjacency=adjacency, n_jobs=1,
                                  threshold=f_thresh, stat_fun=stat_fun,
                                  n_permutations=n_permutations,

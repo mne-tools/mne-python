@@ -59,7 +59,7 @@ def _annotation_helper(raw, browse_backend, events=False):
             fig._fake_click(xy, fig=ann_fig, ax=ann_fig.mne.radio_ax,
                             xform='data')
     else:
-        # The modal dialogs of the pyqtgraph-backend would block the test,
+        # The modal dialogs of the Qt-backend would block the test,
         # thus a new description will be added programmatically.
         ann_fig._add_description('BAD test')
 
@@ -96,7 +96,7 @@ def _annotation_helper(raw, browse_backend, events=False):
     # with QTest, there seems to happen a rounding of pixels to integers
     # internally. This deviatian also seems to change between runs
     # (maybe device-dependent?).
-    atol = 1e-10 if ismpl else 1e-2
+    atol = 1e-10 if ismpl else 2e-2
     assert_allclose(onset, want_onset, atol=atol)
     assert_allclose(raw.annotations.duration[n_anns], 4., atol=atol)
     # modify annotation from end (duration 4 → 1.5)
@@ -272,7 +272,8 @@ def test_plot_raw_selection(raw, browser_backend):
     assert len(fig.mne.traces) == len(sel_dict['Misc'])  # 1
     # switch to butterfly mode
     fig._fake_keypress('b', fig=sel_fig)
-    # ToDo: For pyqtgraph-backend the framework around RawTraceItem makes
+
+    # ToDo: For Qt-backend the framework around RawTraceItem makes
     #  it difficult to show the same channel multiple times which is why
     #  it is currently not implemented.
     #  This would be relevant if you wanted to plot several selections in
@@ -318,7 +319,7 @@ def test_plot_raw_selection(raw, browser_backend):
     fig._click_ch_name(ch_index=1, button=1)  # mark good
     assert lasso.ec[:, 0].sum() == 0   # all channels black
     # test lasso
-    # Testing lasso-interactivity of sensor-plot within pyqtgraph-backend
+    # Testing lasso-interactivity of sensor-plot within Qt-backend
     # with QTest doesn't seem to work.
     want = ['MEG 0121', 'MEG 0122', 'MEG 0123']
     if ismpl:
@@ -387,7 +388,7 @@ def test_plot_raw_child_figures(raw, browser_backend):
     # test child fig toggles
     _child_fig_helper(fig, '?', 'fig_help', browser_backend)
     _child_fig_helper(fig, 'j', 'fig_proj', browser_backend)
-    # In pyqtgraph, this is a dock-widget instead of a separated window.
+    # In Qt, this is a dock-widget instead of a separated window.
     if ismpl:
         _child_fig_helper(fig, 'a', 'fig_annotation', browser_backend)
     assert len(fig.mne.child_figs) == 0  # make sure the helper cleaned up
@@ -414,7 +415,22 @@ def test_plot_raw_child_figures(raw, browser_backend):
     fig._resize_by_factor(0.5)
 
 
-def test_plot_raw_keypresses(raw, browser_backend):
+def _monkeypatch_fig(fig, browser_backend):
+    if browser_backend.name == 'matplotlib':
+        fig.canvas.manager.full_screen_toggle = lambda: None
+    else:
+        # Monkeypatch the Qt methods
+        def _full():
+            fig.isFullScreen = lambda: True
+
+        def _norm():
+            fig.isFullScreen = lambda: False
+
+        fig.showFullScreen = _full
+        fig.showNormal = _norm
+
+
+def test_plot_raw_keypresses(raw, browser_backend, monkeypatch):
     """Test keypress interactivity of plot_raw()."""
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
@@ -424,11 +440,14 @@ def test_plot_raw_keypresses(raw, browser_backend):
     keys = ('pagedown', 'down', 'up', 'down', 'right', 'left', '-', '+', '=',
             'd', 'd', 'pageup', 'home', 'end', 'z', 'z', 's', 's', 'f11', 't',
             'b')
+    # Avoid annoying fullscreen issues by monkey-patching our handlers
+    _monkeypatch_fig(fig, browser_backend)
     # test for group_by='original'
     for key in 2 * keys + ('escape',):
         fig._fake_keypress(key)
     # test for group_by='selection'
     fig = plot_raw(raw, group_by='selection')
+    _monkeypatch_fig(fig, browser_backend)
     for key in 2 * keys + ('escape',):
         fig._fake_keypress(key)
 
@@ -478,7 +497,7 @@ def test_plot_raw_traces(raw, events, browser_backend):
     assert labels == [raw.ch_names[5], raw.ch_names[2], raw.ch_names[3]]
     for _ in (0, 0):
         # first click changes channels to mid; second time shouldn't change
-        # This needs to be changed for pyqtgraph, because there scrollbars are
+        # This needs to be changed for Qt, because there scrollbars are
         # drawn differently (value of slider at lower end, not at middle)
         yclick = 0.5 if ismpl else 0.7
         fig._fake_click((0.5, yclick), ax=vscroll)
@@ -531,7 +550,7 @@ def test_plot_raw_groupby(raw, browser_backend, group_by):
     fig._fake_click((0.5, 0.5), ax=fig.mne.ax_vscroll)  # change channels
     if browser_backend.name == 'matplotlib':
         # Test lasso-selection
-        # (test difficult with pyqtgraph-backend, set plot_raw_selection)
+        # (test difficult with Qt-backend, set plot_raw_selection)
         sel_fig = fig.mne.fig_selection
         topo_ax = sel_fig.mne.sensor_ax
         fig._fake_click([-0.425, 0.20223853], fig=sel_fig, ax=topo_ax,
@@ -662,7 +681,7 @@ def test_remove_annotations(raw, hide_which, browser_backend):
 def test_plot_raw_filtered(filtorder, raw, browser_backend):
     """Test filtering of raw plots."""
     # Opening that many plots can cause a Segmentation fault
-    # if multithreading is activated in pyqtgraph-backend
+    # if multithreading is activated in Qt-backend
     pg_kwargs = {'precompute': False}
     with pytest.raises(ValueError, match='lowpass.*Nyquist'):
         raw.plot(lowpass=raw.info['sfreq'] / 2., filtorder=filtorder,

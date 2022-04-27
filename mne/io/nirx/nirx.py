@@ -11,6 +11,7 @@ import json
 
 import numpy as np
 
+from ._localized_abbr import _localized_abbr
 from ..base import BaseRaw
 from ..utils import _mult_cal_one
 from ..constants import FIFF
@@ -77,7 +78,7 @@ class RawNIRX(BaseRaw):
 
     @verbose
     def __init__(self, fname, saturated, preload=False, verbose=None):
-        from ...externals.pymatreader import read_mat
+        from scipy.io import loadmat
         logger.info('Loading %s' % fname)
         _validate_type(fname, 'path-like', 'fname')
         _validate_type(saturated, str, 'saturated')
@@ -185,21 +186,43 @@ class RawNIRX(BaseRaw):
 
         meas_date = None
         # Several formats have been observed so we try each in turn
-        for dt_code in ['"%a, %b %d, %Y""%H:%M:%S.%f"',
-                        '"%a, %d %b %Y""%H:%M:%S.%f"',
-                        '%Y-%m-%d %H:%M:%S.%f']:
-            try:
-                meas_date = dt.datetime.strptime(datetime_str, dt_code)
-                meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
+        for loc, translations in _localized_abbr.items():
+            do_break = False
+            # So far we are lucky in that all the formats below, if they
+            # include %a (weekday abbr), always come first. Thus we can use
+            # a .split(), replace, and rejoin.
+            loc_datetime_str = datetime_str.split(' ')
+            for key, val in translations['weekday'].items():
+                loc_datetime_str[0] = loc_datetime_str[0].replace(key, val)
+            for ii in range(1, len(loc_datetime_str)):
+                for key, val in translations['month'].items():
+                    loc_datetime_str[ii] = \
+                        loc_datetime_str[ii].replace(key, val)
+            loc_datetime_str = ' '.join(loc_datetime_str)
+            logger.debug(f'Trying {loc} datetime: {loc_datetime_str}')
+            for dt_code in ['"%a, %b %d, %Y""%H:%M:%S.%f"',
+                            '"%a %d %b %Y""%H:%M:%S.%f"',
+                            '"%a, %d %b %Y""%H:%M:%S.%f"',
+                            '%Y-%m-%d %H:%M:%S.%f']:
+                try:
+                    meas_date = dt.datetime.strptime(loc_datetime_str, dt_code)
+                except ValueError:
+                    pass
+                else:
+                    meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
+                    do_break = True
+                    logger.debug(
+                        f'Measurement date language {loc} detected: {dt_code}')
+                    break
+            if do_break:
                 break
-            except ValueError:
-                pass
         if meas_date is None:
             warn("Extraction of measurement date from NIRX file failed. "
-                 "This can be caused by files saved in certain locales. "
+                 "This can be caused by files saved in certain locales "
+                 f"(currently only {list(_localized_abbr)} supported). "
                  "Please report this as a github issue. "
                  "The date is being set to January 1st, 2000, "
-                 "instead of {}".format(datetime_str))
+                 f"instead of {repr(datetime_str)}.")
             meas_date = dt.datetime(2000, 1, 1, 0, 0, 0,
                                     tzinfo=dt.timezone.utc)
 
@@ -285,11 +308,12 @@ class RawNIRX(BaseRaw):
         #   Sources and detectors are both called optodes
         #   Each source - detector pair produces a channel
         #   Channels are defined as the midpoint between source and detector
-        mat_data = read_mat(files['probeInfo.mat'], uint16_codec=None)
-        requested_channels = mat_data['probeInfo']['probes']['index_c']
-        src_locs = mat_data['probeInfo']['probes']['coords_s3'] / 100.
-        det_locs = mat_data['probeInfo']['probes']['coords_d3'] / 100.
-        ch_locs = mat_data['probeInfo']['probes']['coords_c3'] / 100.
+        mat_data = loadmat(files['probeInfo.mat'])
+        probes = mat_data['probeInfo']['probes'][0, 0]
+        requested_channels = probes['index_c'][0, 0]
+        src_locs = probes['coords_s3'][0, 0] / 100.
+        det_locs = probes['coords_d3'][0, 0] / 100.
+        ch_locs = probes['coords_c3'][0, 0] / 100.
 
         # These are all in MNI coordinates, so let's transform them to
         # the Neuromag head coordinate frame

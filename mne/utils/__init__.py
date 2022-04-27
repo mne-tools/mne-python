@@ -3,7 +3,7 @@
 # is changed here!
 _doc_special_members = ('__contains__', '__getitem__', '__iter__', '__len__',
                         '__add__', '__sub__', '__mul__', '__div__',
-                        '__neg__', '__hash__')
+                        '__neg__')
 
 from ._bunch import Bunch, BunchConst, BunchConstNamed
 from .check import (check_fname, check_version, check_random_state,
@@ -15,12 +15,14 @@ from .check import (check_fname, check_version, check_random_state,
                     _check_channels_spatial_filter, _check_one_ch_type,
                     _check_rank, _check_option, _check_depth, _check_combine,
                     _path_like, _check_src_normal, _check_stc_units,
-                    _check_pyqt5_version, _check_sphere, _check_time_format,
+                    _check_qt_version, _check_sphere, _check_time_format,
                     _check_freesurfer_home, _suggest, _require_version,
                     _on_missing, _check_on_missing, int_like, _safe_input,
                     _check_all_same_channel_names, path_like, _ensure_events,
                     _check_eeglabio_installed, _check_dict_keys,
-                    _check_edflib_installed, _to_rgb, _soft_import)
+                    _check_edflib_installed, _to_rgb, _soft_import,
+                    _import_h5py, _import_h5io_funcs,
+                    _import_pymatreader_funcs)
 from .config import (set_config, get_config, get_config_path, set_cache_dir,
                      set_memmap_min_size, get_subjects_dir, _get_stim_channel,
                      sys_info, _get_extra_data_path, _get_root_dir,
@@ -32,7 +34,7 @@ from .fetching import _url_to_local_path
 from ._logging import (verbose, logger, set_log_level, set_log_file,
                        use_log_level, catch_logging, warn, filter_out_warnings,
                        wrapped_stdout, _get_call_line, _record_warnings,
-                       ClosingStringIO)
+                       ClosingStringIO, _VerboseDep)
 from .misc import (run_subprocess, _pl, _clean_names, pformat, _file_like,
                    _explain_exception, _get_argvalues, sizeof_fmt,
                    running_subprocess, _DefaultEventParser,

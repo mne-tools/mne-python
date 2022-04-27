@@ -4,9 +4,10 @@
 
 # License: BSD-3-Clause
 
+import copy
 import os.path as op
 import warnings
-import copy
+
 import numpy as np
 
 from .fixes import _get_img_fdata
@@ -20,8 +21,8 @@ from .surface import mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
                     BunchConst, _check_fname, warn, _custom_lru_cache,
-                    _ensure_int, ProgressBar, use_log_level)
-from .externals.h5io import read_hdf5, write_hdf5
+                    _ensure_int, ProgressBar, use_log_level,
+                    _import_h5io_funcs, _VerboseDep)
 
 
 @verbose
@@ -292,11 +293,11 @@ _SOURCE_MORPH_ATTRIBUTES = [  # used in writing
     'subject_from', 'subject_to', 'kind', 'zooms', 'niter_affine', 'niter_sdr',
     'spacing', 'smooth', 'xhemi', 'morph_mat', 'vertices_to',
     'shape', 'affine', 'pre_affine', 'sdr_morph', 'src_data',
-    'vol_morph_mat', 'verbose']
+    'vol_morph_mat']
 
 
 @fill_doc
-class SourceMorph(object):
+class SourceMorph(_VerboseDep):
     """Morph source space data from one subject to another.
 
     .. note:: This class should not be instantiated directly.
@@ -360,11 +361,12 @@ class SourceMorph(object):
     .. footbibliography::
     """
 
+    @verbose
     def __init__(self, subject_from, subject_to, kind, zooms,
                  niter_affine, niter_sdr, spacing, smooth, xhemi,
                  morph_mat, vertices_to, shape,
                  affine, pre_affine, sdr_morph, src_data,
-                 vol_morph_mat, verbose=None):
+                 vol_morph_mat, *, verbose=None):
         # universal
         self.subject_from = subject_from
         self.subject_to = subject_to
@@ -387,7 +389,6 @@ class SourceMorph(object):
         # used by both
         self.src_data = src_data
         self.vol_morph_mat = vol_morph_mat
-        self.verbose = verbose
         # compute vertices_to here (partly for backward compat and no src
         # provided)
         if vertices_to is None or len(vertices_to) == 0 and kind == 'volume':
@@ -432,7 +433,7 @@ class SourceMorph(object):
         mri_space : bool | None
             Whether the image to world registration should be in mri space. The
             default (None) is mri_space=mri_resolution.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -473,7 +474,7 @@ class SourceMorph(object):
 
         Parameters
         ----------
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -646,8 +647,9 @@ class SourceMorph(object):
             The stem of the file name. '-morph.h5' will be added if fname does
             not end with '.h5'.
         %(overwrite)s
-        %(verbose_meth)s
+        %(verbose)s
         """
+        _, write_hdf5 = _import_h5io_funcs()
         fname = _check_fname(fname, overwrite=overwrite, must_exist=False)
         if not fname.endswith('.h5'):
             fname = '%s-morph.h5' % fname
@@ -743,6 +745,7 @@ def read_source_morph(fname):
     source_morph : instance of SourceMorph
         The loaded morph.
     """
+    read_hdf5, _ = _import_h5io_funcs()
     vals = read_hdf5(fname)
     if vals['pre_affine'] is not None:  # reconstruct
         from dipy.align.imaffine import AffineMap

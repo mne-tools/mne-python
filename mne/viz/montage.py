@@ -17,13 +17,14 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
         The montage to visualize.
     scale_factor : float
         Determines the size of the points.
-    show_names : bool
-        Whether to show the channel names.
+    show_names : bool | list
+        Whether to display all channel names. If a list, only the channel
+        names in the list are shown. Defaults to True.
     kind : str
         Whether to plot the montage as '3d' or 'topomap' (default).
     show : bool
         Show figure if True.
-    %(topomap_sphere_auto)s
+    %(sphere_topomap_auto)s
     %(verbose)s
 
     Returns

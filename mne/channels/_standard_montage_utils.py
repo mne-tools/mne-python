@@ -12,6 +12,7 @@ from functools import partial
 import xml.etree.ElementTree as ElementTree
 
 from .montage import make_dig_montage
+from .._freesurfer import get_mni_fiducials
 from ..transforms import _sph_to_cart
 from ..utils import warn, _pl
 from . import __file__ as _CHANNELS_INIT_FILE
@@ -93,12 +94,20 @@ def _mgh_or_standard(basename, head_size, coord_frame='unknown'):
                 break
             ch_names_.append(line.strip(' ').strip('\n'))
 
-    pos = np.array(pos)
+    pos = np.array(pos) / 1000.
     ch_pos = _check_dupes_odict(ch_names_, pos)
     nasion, lpa, rpa = [ch_pos.pop(n) for n in fid_names]
-    scale = head_size / np.median(np.linalg.norm(pos, axis=1))
+    if head_size is None:
+        scale = 1.
+    else:
+        scale = head_size / np.median(np.linalg.norm(pos, axis=1))
     for value in ch_pos.values():
         value *= scale
+    # if we are in MRI/MNI coordinates, we need to replace nasion, LPA, and RPA
+    # with those of fsaverage for ``trans='fsaverage'`` to work
+    if coord_frame == 'mri':
+        lpa, nasion, rpa = [
+            x['r'].copy() for x in get_mni_fiducials('fsaverage')]
     nasion *= scale
     lpa *= scale
     rpa *= scale
@@ -130,20 +139,26 @@ standard_montage_look_up_table = {
     'biosemi32': partial(_biosemi, basename='biosemi32.txt'),
     'biosemi64': partial(_biosemi, basename='biosemi64.txt'),
 
-    'mgh60': partial(_mgh_or_standard, basename='mgh60.elc'),
-    'mgh70': partial(_mgh_or_standard, basename='mgh70.elc'),
+    'mgh60': partial(_mgh_or_standard, basename='mgh60.elc',
+                     coord_frame='mri'),
+    'mgh70': partial(_mgh_or_standard, basename='mgh70.elc',
+                     coord_frame='mri'),
     'standard_1005': partial(_mgh_or_standard,
-                             basename='standard_1005.elc'),
+                             basename='standard_1005.elc', coord_frame='mri'),
     'standard_1020': partial(_mgh_or_standard,
-                             basename='standard_1020.elc'),
+                             basename='standard_1020.elc', coord_frame='mri'),
     'standard_alphabetic': partial(_mgh_or_standard,
-                                   basename='standard_alphabetic.elc'),
+                                   basename='standard_alphabetic.elc',
+                                   coord_frame='mri'),
     'standard_postfixed': partial(_mgh_or_standard,
-                                  basename='standard_postfixed.elc'),
+                                  basename='standard_postfixed.elc',
+                                  coord_frame='mri'),
     'standard_prefixed': partial(_mgh_or_standard,
-                                 basename='standard_prefixed.elc'),
+                                 basename='standard_prefixed.elc',
+                                 coord_frame='mri'),
     'standard_primed': partial(_mgh_or_standard,
-                               basename='standard_primed.elc'),
+                               basename='standard_primed.elc',
+                               coord_frame='mri'),
     'artinis-octamon': partial(_mgh_or_standard, coord_frame='mri',
                                basename='artinis-octamon.elc'),
     'artinis-brite23': partial(_mgh_or_standard, coord_frame='mri',
@@ -293,10 +308,7 @@ def _read_theta_phi_in_degrees(fname, head_size, fid_names=None,
 def _read_elp_besa(fname, head_size):
     # This .elp is not the same as polhemus elp. see _read_isotrak_elp_points
     dtype = np.dtype('S8, S8, f8, f8, f8')
-    try:
-        data = np.loadtxt(fname, dtype=dtype, skip_header=1)
-    except TypeError:
-        data = np.loadtxt(fname, dtype=dtype, skiprows=1)
+    data = np.loadtxt(fname, dtype=dtype, skiprows=1)
 
     ch_names = data['f1'].astype(str).tolist()
     az = data['f2']

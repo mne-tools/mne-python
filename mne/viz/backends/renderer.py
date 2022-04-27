@@ -270,7 +270,7 @@ def set_3d_title(figure, title, size=40):
 
 
 def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
-                     handle=None, scene=True, *, show=False):
+                     handle=None, *, scene=True, show=False):
     """Return an empty figure based on the current 3d backend.
 
     .. warning:: Proceed with caution when the renderer object is
@@ -289,8 +289,9 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
     handle : int | None
         The figure identifier.
     scene : bool
-        Specify if the returned object is the scene. If False,
-        the renderer object is returned. Defaults to True.
+        If True (default), the returned object is the Figure3D. If False,
+        an advanced, undocumented Renderer object is returned (the API is not
+        stable or documented, so this is not recommended).
     show : bool
         If True, show the renderer immediately.
 
@@ -298,9 +299,8 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
 
     Returns
     -------
-    figure : object
-        The requested empty scene or the renderer object if
-        ``scene=False``.
+    figure : instance of Figure3D or ``Renderer``
+        The requested empty figure or renderer, depending on ``scene``.
     """
     renderer = _get_renderer(
         fig=handle,

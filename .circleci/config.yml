@@ -1,17 +1,15 @@
-# Tagging a commit with:
-# - [circle front] will build the front page and perform test-doc
-# - [circle full] will build everything
-# - [circle linkcheck] will run our linkcheck
+# By default, for PRs CircleCI will build only examples that have changed.
+# For main commits, builds are skipped entirely, as we only do full builds
+# scheduled for one time daily.
+#
+# Tagging a commit with the following overrides these behaviors:
+# - [circle front] will run the front page examples and perform test-doc
+# - [circle full] will run all examples and perform test-doc
+# - [circle linkcheck] will run our linkcheck job
 # - [circle deploy] on a main or maint/* commit will try to immediately build
 #   and deploy docs rather than waiting for the nightly build
 
 version: 2.1
-
-_xvfb: &xvfb
-  name: Start Xvfb virtual framebuffer
-  command: |
-    echo "export DISPLAY=:99" >> $BASH_ENV
-    /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1280x1024x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix
 
 jobs:
     build_docs:
@@ -20,9 +18,7 @@ jobs:
           type: string
           default: "false"
       docker:
-        # Use 18.04 rather than 20.04 because MESA 20.0.8 on 18.04 has working
-        # transparency but 21.0.3 on 20.04 does not!
-        - image: cimg/base:stable-18.04
+        - image: cimg/base:stable-20.04
       steps:
         - restore_cache:
             keys:
@@ -91,22 +87,20 @@ jobs:
             name: Set BASH_ENV
             command: |
               set -e
-              sudo apt update -qq
-              sudo apt install -qq libosmesa6 libglx-mesa0 libopengl0 libglx0 libdbus-1-3 \
-                libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
-                libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 \
-                graphviz optipng \
-                python3.8-venv python3-venv \
-                xvfb libxft2 ffmpeg
+              ./tools/setup_xvfb.sh
+              sudo apt install -qq graphviz optipng python3.8-venv python3-venv libxft2 ffmpeg
               python3.8 -m venv ~/python_env
               echo "set -e" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
               echo "export MNE_FULL_DATE=true" >> $BASH_ENV
-              echo "export MNE_3D_OPTION_ANTIALIAS=false" >> $BASH_ENV
               source tools/get_minimal_commands.sh
               echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
+              echo "export MNE_3D_OPTION_MULTI_SAMPLES=1" >> $BASH_ENV
+              echo "export MNE_BROWSER_BACKEND=qt" >> $BASH_ENV
+              echo "export MNE_BROWSER_PRECOMPUTE=false" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
+              echo "export DISPLAY=:99" >> $BASH_ENV
               echo "source ~/python_env/bin/activate" >> $BASH_ENV
               mkdir -p ~/.local/bin
               ln -s ~/python_env/bin/python ~/.local/bin/python
@@ -118,9 +112,6 @@ jobs:
             name: check neuromag2ft
             command: |
               neuromag2ft --version
-
-        - run:
-            <<: *xvfb
 
         - run:
             name: Install fonts needed for diagrams
@@ -155,8 +146,8 @@ jobs:
               - ~/.local/bin
 
         - run:
-            name: Check PyQt5
-            command: LD_DEBUG=libs python -c "from PyQt5.QtWidgets import QApplication, QWidget; app = QApplication([])"
+            name: Check Qt
+            command: LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication, QWidget; app = QApplication([])"
 
         # Load tiny cache so that ~/.mne does not need to be created below
         - restore_cache:
@@ -517,7 +508,7 @@ workflows:
             branches:
               only:
                 - main
-                - maint/0.24
+                - maint/1.0
 
   main:
     jobs:

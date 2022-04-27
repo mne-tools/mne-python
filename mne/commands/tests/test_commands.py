@@ -23,13 +23,16 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_info
 from mne.utils import (requires_mne, requires_vtk, requires_freesurfer,
-                       requires_nibabel, ArgvSetter, modified_env,
+                       requires_nibabel, ArgvSetter,
                        _stamp_to_dt, _record_warnings)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
-subjects_dir = op.join(testing.data_path(download=False), 'subjects')
+testing_path = testing.data_path(download=False)
+subjects_dir = op.join(testing_path, 'subjects')
+bem_model_fname = op.join(testing_path, 'subjects',
+                          'sample', 'bem', 'sample-320-320-320-bem.fif')
 
 
 def check_usage(module, force_help=False):
@@ -128,11 +131,13 @@ def test_kit2fiff():
     check_usage(mne_kit2fiff, force_help=True)
 
 
-@pytest.mark.slowtest  # slow on Travis OSX
+@pytest.mark.slowtest
+@pytest.mark.ultraslowtest
 @requires_vtk
 @testing.requires_testing_data
-def test_make_scalp_surfaces(tmp_path):
+def test_make_scalp_surfaces(tmp_path, monkeypatch):
     """Test mne make_scalp_surfaces."""
+    pytest.importorskip('nibabel')
     check_usage(mne_make_scalp_surfaces)
     has = 'SUBJECTS_DIR' in os.environ
     # Copy necessary files to avoid FreeSurfer call
@@ -146,18 +151,19 @@ def test_make_scalp_surfaces(tmp_path):
     shutil.copy(op.join(surf_path, 'lh.seghead'), surf_path_new)
 
     cmd = ('-s', 'sample', '--subjects-dir', tempdir)
-    with modified_env(**{'_MNE_TESTING_SCALP': 'true'}):
-        dense_fname = op.join(subj_dir, 'sample-head-dense.fif')
-        medium_fname = op.join(subj_dir, 'sample-head-medium.fif')
-        with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
-            with modified_env(FREESURFER_HOME=None):
-                pytest.raises(RuntimeError, mne_make_scalp_surfaces.run)
-            with modified_env(FREESURFER_HOME=tempdir):
-                mne_make_scalp_surfaces.run()
-                assert op.isfile(dense_fname)
-                assert op.isfile(medium_fname)
-                with pytest.raises(IOError, match='overwrite'):
-                    mne_make_scalp_surfaces.run()
+    monkeypatch.setenv('_MNE_TESTING_SCALP', 'true')
+    dense_fname = op.join(subj_dir, 'sample-head-dense.fif')
+    medium_fname = op.join(subj_dir, 'sample-head-medium.fif')
+    with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
+        monkeypatch.delenv('FREESURFER_HOME', None)
+        with pytest.raises(RuntimeError, match='The FreeSurfer environ'):
+            mne_make_scalp_surfaces.run()
+        monkeypatch.setenv('FREESURFER_HOME', tempdir)
+        mne_make_scalp_surfaces.run()
+        assert op.isfile(dense_fname)
+        assert op.isfile(medium_fname)
+        with pytest.raises(IOError, match='overwrite'):
+            mne_make_scalp_surfaces.run()
     # actually check the outputs
     head_py = read_bem_surfaces(dense_fname)
     assert_equal(len(head_py), 1)
@@ -189,6 +195,7 @@ def test_maxfilter():
 @testing.requires_testing_data
 def test_report(tmp_path):
     """Test mne report."""
+    pytest.importorskip('nibabel')
     check_usage(mne_report)
     tempdir = str(tmp_path)
     use_fname = op.join(tempdir, op.basename(raw_fname))
@@ -304,7 +311,6 @@ def test_setup_source_space(tmp_path):
     """Test mne setup_source_space."""
     check_usage(mne_setup_source_space, force_help=True)
     # Using the sample dataset
-    subjects_dir = op.join(testing.data_path(download=False), 'subjects')
     use_fname = op.join(tmp_path, "sources-src.fif")
     # Test  command
     with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
@@ -334,7 +340,6 @@ def test_setup_forward_model(tmp_path):
     """Test mne setup_forward_model."""
     check_usage(mne_setup_forward_model, force_help=True)
     # Using the sample dataset
-    subjects_dir = op.join(testing.data_path(download=False), 'subjects')
     use_fname = op.join(tmp_path, "model-bem.fif")
     # Test  command
     with ArgvSetter(('--model', use_fname, '-d', subjects_dir, '--homog',
@@ -352,8 +357,6 @@ def test_mne_prepare_bem_model(tmp_path):
     """Test mne setup_source_space."""
     check_usage(mne_prepare_bem_model, force_help=True)
     # Using the sample dataset
-    bem_model_fname = op.join(testing.data_path(download=False), 'subjects',
-                              'sample', 'bem', 'sample-320-320-320-bem.fif')
     bem_solution_fname = op.join(tmp_path, "bem_solution-bem-sol.fif")
     # Test  command
     with ArgvSetter(('--bem', bem_model_fname, '--sol', bem_solution_fname,

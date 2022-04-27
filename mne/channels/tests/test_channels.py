@@ -15,8 +15,7 @@ from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 
 from mne.channels import (rename_channels, read_ch_adjacency, combine_channels,
                           find_ch_adjacency, make_1020_channel_selections,
-                          read_custom_montage, equalize_channels,
-                          make_standard_montage)
+                          read_custom_montage, equalize_channels)
 from mne.channels.channels import (_ch_neighbor_adjacency,
                                    _compute_ch_adjacency)
 from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
@@ -25,12 +24,15 @@ from mne.io.constants import FIFF
 from mne import (pick_types, pick_channels, EpochsArray, EvokedArray,
                  make_ad_hoc_cov, create_info, read_events, Epochs)
 from mne.datasets import testing
+from mne.utils import requires_pandas, requires_version
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 eve_fname = op.join(base_dir, 'test-eve.fif')
 fname_kit_157 = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
+
+testing_path = testing.data_path(download=False)
 
 
 @pytest.mark.parametrize('preload', (True, False))
@@ -273,12 +275,12 @@ def test_get_set_sensor_positions():
                        raw2.info['chs'][13]['loc'])
 
 
+@requires_version('pymatreader')
 @testing.requires_testing_data
 def test_1020_selection():
     """Test making a 10/20 selection dict."""
-    base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
-    raw_fname = op.join(base_dir, 'test_raw.set')
-    loc_fname = op.join(base_dir, 'test_chans.locs')
+    raw_fname = op.join(testing_path, 'EEGLAB', 'test_raw.set')
+    loc_fname = op.join(testing_path, 'EEGLAB', 'test_chans.locs')
     raw = read_raw_eeglab(raw_fname, preload=True)
     montage = read_custom_montage(loc_fname)
     raw = raw.rename_channels(dict(zip(raw.ch_names, montage.ch_names)))
@@ -305,8 +307,6 @@ def test_1020_selection():
 @testing.requires_testing_data
 def test_find_ch_adjacency():
     """Test computing the adjacency matrix."""
-    data_path = testing.data_path()
-
     raw = read_raw_fif(raw_fname, preload=True)
     sizes = {'mag': 828, 'grad': 1700, 'eeg': 384}
     nchans = {'mag': 102, 'grad': 204, 'eeg': 60}
@@ -325,13 +325,13 @@ def test_find_ch_adjacency():
     raw.pick_types(meg='mag')
     find_ch_adjacency(raw.info, None)
 
-    bti_fname = op.join(data_path, 'BTi', 'erm_HFH', 'c,rfDC')
-    bti_config_name = op.join(data_path, 'BTi', 'erm_HFH', 'config')
+    bti_fname = op.join(testing_path, 'BTi', 'erm_HFH', 'c,rfDC')
+    bti_config_name = op.join(testing_path, 'BTi', 'erm_HFH', 'config')
     raw = read_raw_bti(bti_fname, bti_config_name, None)
     _, ch_names = find_ch_adjacency(raw.info, 'mag')
     assert 'A1' in ch_names
 
-    ctf_fname = op.join(data_path, 'CTF', 'testdata_ctf_short.ds')
+    ctf_fname = op.join(testing_path, 'CTF', 'testdata_ctf_short.ds')
     raw = read_raw_ctf(ctf_fname)
     _, ch_names = find_ch_adjacency(raw.info, 'mag')
     assert 'MLC11' in ch_names
@@ -347,7 +347,7 @@ def test_find_ch_adjacency():
 @testing.requires_testing_data
 def test_neuromag122_adjacency():
     """Test computing the adjacency matrix of Neuromag122-Data."""
-    nm122_fname = op.join(testing.data_path(), 'misc',
+    nm122_fname = op.join(testing_path, 'misc',
                           'neuromag122_test_file-raw.fif')
     raw = read_raw_fif(nm122_fname, preload=True)
     conn, ch_names = find_ch_adjacency(raw.info, 'grad')
@@ -522,14 +522,18 @@ def test_combine_channels():
     assert len(record) == 3
 
 
-def test_get_montage():
-    """Test ContainsMixin.get_montage()."""
-    ch_names = make_standard_montage('standard_1020').ch_names
-    sfreq = 512
-    data = np.zeros((len(ch_names), sfreq * 2))
-    raw = RawArray(data, create_info(ch_names, sfreq, 'eeg'))
-    raw.set_montage('standard_1020')
+@requires_pandas
+def test_combine_channels_metadata():
+    """Test if metadata is correctly retained in combined object."""
+    import pandas as pd
 
-    assert len(raw.get_montage().ch_names) == len(ch_names)
-    raw.info['bads'] = [ch_names[0]]
-    assert len(raw.get_montage().ch_names) == len(ch_names)
+    raw = read_raw_fif(raw_fname, preload=True)
+    epochs = Epochs(raw, read_events(eve_fname), preload=True)
+
+    metadata = pd.DataFrame({"A": np.arange(len(epochs)),
+                             "B": np.ones(len(epochs))})
+    epochs.metadata = metadata
+
+    good = dict(foo=[0, 1, 3, 4], bar=[5, 2])  # good grad and mag
+    combined_epochs = combine_channels(epochs, good)
+    pd.testing.assert_frame_equal(epochs.metadata, combined_epochs.metadata)

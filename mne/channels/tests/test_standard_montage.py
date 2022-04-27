@@ -29,10 +29,11 @@ def test_standard_montages_have_fids(kind):
     for k, v in fids.items():
         assert v is not None, k
     for d in montage.dig:
-        if kind == 'artinis-octamon' or kind == 'artinis-brite23':
-            assert d['coord_frame'] == FIFF.FIFFV_COORD_MRI
+        if kind.startswith(('artinis', 'standard', 'mgh')):
+            want = FIFF.FIFFV_COORD_MRI
         else:
-            assert d['coord_frame'] == FIFF.FIFFV_COORD_UNKNOWN
+            want = FIFF.FIFFV_COORD_UNKNOWN
+        assert d['coord_frame'] == want
 
 
 def test_standard_montage_errors():
@@ -142,12 +143,11 @@ def test_set_montage_artinis_fsaverage(kind):
     assert trans['from'] == trans_fs['from']
     translation = 1000 * np.linalg.norm(trans['trans'][:3, 3] -
                                         trans_fs['trans'][:3, 3])
-    # TODO: This is actually quite big...
-    assert 15 < translation < 18  # mm
+    assert 0 < translation < 1  # mm
     rotation = np.rad2deg(
         _angle_between_quats(rot_to_quat(trans['trans'][:3, :3]),
                              rot_to_quat(trans_fs['trans'][:3, :3])))
-    assert 3 < rotation < 7  # degrees
+    assert 0 < rotation < 1  # degrees
 
 
 def test_set_montage_artinis_basic():
@@ -172,15 +172,15 @@ def test_set_montage_artinis_basic():
 
     # Check a known location
     assert_array_almost_equal(raw.info['chs'][0]['loc'][:3],
-                              [0.0616, 0.075398, 0.07347])
+                              [0.054243, 0.081884, 0.054544])
     assert_array_almost_equal(raw.info['chs'][8]['loc'][:3],
-                              [-0.033875,  0.101276,  0.077291])
+                              [-0.03013, 0.105097, 0.055894])
     assert_array_almost_equal(raw.info['chs'][12]['loc'][:3],
-                              [-0.062749,  0.080417,  0.074884])
+                              [-0.055681, 0.086566, 0.055858])
     assert_array_almost_equal(raw_od.info['chs'][12]['loc'][:3],
-                              [-0.062749,  0.080417,  0.074884])
+                              [-0.055681, 0.086566, 0.055858])
     assert_array_almost_equal(raw_hb.info['chs'][12]['loc'][:3],
-                              [-0.062749,  0.080417,  0.074884])
+                              [-0.055681, 0.086566, 0.055858])
     # Check that locations are identical for a pair of channels (all elements
     # except the 10th which is the wavelength if not hbo and hbr type)
     assert_array_almost_equal(raw.info['chs'][0]['loc'][:9],
@@ -200,11 +200,11 @@ def test_set_montage_artinis_basic():
                   raw.info['chs'][0]['loc'][:9])
     # Check a known location
     assert_array_almost_equal(raw.info['chs'][0]['loc'][:3],
-                              [0.085583, 0.036275, 0.089426])
+                              [0.068931, 0.046201, 0.072055])
     assert_array_almost_equal(raw.info['chs'][8]['loc'][:3],
-                              [0.069555, 0.078579, 0.069305])
+                              [0.055196, 0.082757, 0.052165])
     assert_array_almost_equal(raw.info['chs'][12]['loc'][:3],
-                              [0.044861, 0.100952, 0.065175])
+                              [0.033592, 0.102607, 0.047423])
     # Check that locations are identical for a pair of channels (all elements
     # except the 10th which is the wavelength if not hbo and hbr type)
     assert_array_almost_equal(raw.info['chs'][0]['loc'][:9],

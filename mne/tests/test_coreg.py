@@ -2,7 +2,7 @@ from functools import reduce
 from glob import glob
 import os
 import os.path as op
-from shutil import copyfile, copytree
+from shutil import copyfile
 
 import pytest
 import numpy as np
@@ -13,14 +13,14 @@ import mne
 from mne.datasets import testing
 from mne.transforms import (Transform, apply_trans, rotation, translation,
                             scaling, read_trans, _angle_between_quats,
-                            rot_to_quat)
+                            rot_to_quat, invert_transform)
 from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
                        _is_mri_subject, scale_labels, scale_source_space,
                        coregister_fiducials, get_mni_fiducials, Coregistration)
 from mne.io import read_fiducials, read_info
 from mne.io.constants import FIFF
-from mne.utils import (requires_nibabel, modified_env, check_version,
-                       catch_logging, _record_warnings)
+from mne.utils import (requires_nibabel, check_version, catch_logging,
+                       _record_warnings)
 from mne.source_space import write_source_spaces
 from mne.channels import DigMontage
 
@@ -33,10 +33,10 @@ trans_fname = op.join(data_path, 'MEG', 'sample',
 
 
 @pytest.fixture
-def few_surfaces():
+def few_surfaces(monkeypatch):
     """Set the _MNE_FEW_SURFACES env var."""
-    with modified_env(_MNE_FEW_SURFACES='true'):
-        yield
+    monkeypatch.setenv('_MNE_FEW_SURFACES', 'true')
+    yield
 
 
 def test_coregister_fiducials():
@@ -73,7 +73,7 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
     # create fsaverage using the testing "fsaverage" instead of the FreeSurfer
     # one
     tempdir = str(tmp_path)
-    fake_home = testing.data_path()
+    fake_home = data_path
     create_default_subject(subjects_dir=tempdir, fs_home=fake_home,
                            verbose=True)
     assert _is_mri_subject('fsaverage', tempdir), "Creating fsaverage failed"
@@ -86,7 +86,7 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
 
     # copy MRI file from sample data (shouldn't matter that it's incorrect,
     # so here choose a small one)
-    path_from = op.join(testing.data_path(), 'subjects', 'sample', 'mri',
+    path_from = op.join(fake_home, 'subjects', 'sample', 'mri',
                         'T1.mgz')
     path_to = op.join(tempdir, 'fsaverage', 'mri', 'orig.mgz')
     copyfile(path_from, path_to)
@@ -167,21 +167,11 @@ def test_scale_mri(tmp_path, few_surfaces, scale):
 @pytest.mark.slowtest  # can take forever on OSX Travis
 @testing.requires_testing_data
 @requires_nibabel()
-def test_scale_mri_xfm(tmp_path, few_surfaces):
+def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
     """Test scale_mri transforms and MRI scaling."""
     # scale fsaverage
-    tempdir = str(tmp_path)
-    fake_home = testing.data_path()
-    # add fsaverage
-    create_default_subject(subjects_dir=tempdir, fs_home=fake_home,
-                           verbose=True)
-    # add sample (with few files)
-    sample_dir = op.join(tempdir, 'sample')
-    os.mkdir(sample_dir)
-    os.mkdir(op.join(sample_dir, 'bem'))
-    for dirname in ('mri', 'surf'):
-        copytree(op.join(fake_home, 'subjects', 'sample', dirname),
-                 op.join(sample_dir, dirname))
+    tempdir = str(subjects_dir_tmp_few)
+    sample_dir = subjects_dir_tmp_few / 'sample'
     subject_to = 'flachkopf'
     spacing = 'oct2'
     for subject_from in ('fsaverage', 'sample'):
@@ -235,6 +225,17 @@ def test_scale_mri_xfm(tmp_path, few_surfaces):
         mni = mne.vertex_to_mni(vertices, hemis, subject_to,
                                 subjects_dir=tempdir)
         assert_allclose(mni, mni_from, atol=1e-3)  # 0.001 mm
+        # Check head_to_mni (the `trans` here does not really matter)
+        trans = rotation(0.001, 0.002, 0.003) @ translation(0.01, 0.02, 0.03)
+        trans = Transform('head', 'mri', trans)
+        pos_head_from = np.random.RandomState(0).randn(4, 3)
+        pos_mni_from = mne.head_to_mni(
+            pos_head_from, subject_from, trans, tempdir)
+        pos_mri_from = apply_trans(trans, pos_head_from)
+        pos_mri = pos_mri_from * scale
+        pos_head = apply_trans(invert_transform(trans), pos_mri)
+        pos_mni = mne.head_to_mni(pos_head, subject_to, trans, tempdir)
+        assert_allclose(pos_mni, pos_mni_from, atol=1e-3)
 
 
 def test_fit_matched_points():
@@ -311,6 +312,11 @@ def test_coregistration(scale_mode, ref_scale, grow_hair, fiducials,
     coreg = Coregistration(info, subject=subject, subjects_dir=subjects_dir,
                            fiducials=fiducials)
     assert np.allclose(coreg._last_parameters, coreg._parameters)
+    assert len(coreg.fiducials.dig) == 3
+    for dig_point in coreg.fiducials.dig:
+        assert dig_point['coord_frame'] == FIFF.FIFFV_COORD_MRI
+        assert dig_point['kind'] == FIFF.FIFFV_POINT_CARDINAL
+
     coreg.set_fid_match(fid_match)
     default_params = list(coreg._default_parameters)
     coreg.set_rotation(default_params[:3])

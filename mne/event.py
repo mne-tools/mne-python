@@ -8,11 +8,13 @@
 # License: BSD-3-Clause
 
 import os.path as op
+from collections.abc import Sequence
+
 import numpy as np
 
-
 from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
-                    _validate_type, _check_option, fill_doc, _check_fname)
+                    _validate_type, _check_option, fill_doc, _check_fname,
+                    _on_missing, _check_on_missing)
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -472,7 +474,8 @@ def _find_events(data, first_samp, verbose=None, output='onset',
     initial_value = data[0, 0]
     if initial_value != 0:
         if initial_event:
-            events = np.insert(events, 0, [0, 0, initial_value], axis=0)
+            events = np.insert(
+                events, 0, [first_samp, 0, initial_value], axis=0)
         else:
             logger.info('Trigger channel has a non-zero initial value of {} '
                         '(consider using initial_event=True to detect this '
@@ -1422,3 +1425,86 @@ class AcqParserFIF(object):
             conds_data.append(dict(events=cat_t0, event_id=cat_id,
                                    tmin=tmin, tmax=tmax))
         return conds_data[0] if len(conds_data) == 1 else conds_data
+
+
+def match_event_names(event_names, keys, *, on_missing='raise'):
+    """Search a collection of event names for matching (sub-)groups of events.
+
+    This function is particularly helpful when using grouped event names
+    (i.e., event names containing forward slashes ``/``). Please see the
+    Examples section below for a working example.
+
+    Parameters
+    ----------
+    event_names : array-like of str | dict
+        Either a collection of event names, or the ``event_id`` dictionary
+        mapping event names to event codes.
+    keys : array-like of str | str
+        One or multiple event names or groups to search for in ``event_names``.
+    on_missing : 'raise' | 'warn' | 'ignore'
+        How to handle situations when none of the ``keys`` can be found in
+        ``event_names``. If ``'warn'`` or ``'ignore'``, an empty list will be
+        returned.
+
+    Returns
+    -------
+    matches : list of str
+        All event names that match any of the ``keys`` provided.
+
+    Notes
+    -----
+    .. versionadded:: 1.0
+
+    Examples
+    --------
+    Assuming the following grouped event names in the data, you could easily
+    query for all ``auditory`` and ``left`` event names::
+
+        >>> event_names = [
+        ...     'auditory/left',
+        ...     'auditory/right',
+        ...     'visual/left',
+        ...     'visual/right'
+        ... ]
+        >>> match_event_names(
+        ...     event_names=event_names,
+        ...     keys=['auditory', 'left']
+        ... )
+        ['auditory/left', 'auditory/right', 'visual/left']
+    """
+    _check_on_missing(on_missing)
+
+    if isinstance(event_names, dict):
+        event_names = list(event_names)
+
+    # ensure we have a list of `keys`
+    if (
+        isinstance(keys, (Sequence, np.ndarray)) and
+        not isinstance(keys, str)
+    ):
+        keys = list(keys)
+    else:
+        keys = [keys]
+
+    matches = []
+
+    # form the hierarchical event name mapping
+    for key in keys:
+        if not isinstance(key, str):
+            raise ValueError(f'keys must be strings, got {type(key)} ({key})')
+
+        matches.extend(
+            name for name in event_names
+            if set(key.split('/')).issubset(name.split('/'))
+        )
+
+    if not matches:
+        _on_missing(
+            on_missing=on_missing,
+            msg=f'Event name "{key}" could not be found. The following events '
+                f'are present in the data: {", ".join(event_names)}',
+            error_klass=KeyError
+        )
+
+    matches = sorted(set(matches))  # deduplicate if necessary
+    return matches

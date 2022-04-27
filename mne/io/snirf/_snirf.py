@@ -10,8 +10,8 @@ from ..base import BaseRaw
 from ..meas_info import create_info, _format_dig_points
 from ..utils import _mult_cal_one
 from ...annotations import Annotations
-from ...utils import logger, verbose, fill_doc, warn, _check_fname
-from ...utils.check import _require_version
+from ...utils import (logger, verbose, fill_doc, warn, _check_fname,
+                      _import_h5py)
 from ..constants import FIFF
 from .._digitization import _make_dig_points
 from ...transforms import _frame_to_str, apply_trans
@@ -82,8 +82,6 @@ class RawSNIRF(BaseRaw):
     @verbose
     def __init__(self, fname, optode_frame="unknown",
                  preload=False, verbose=None):
-        _require_version('h5py', 'read raw SNIRF data')
-        from ...externals.pymatreader.utils import _import_h5py
         # Must be here due to circular import error
         from ...preprocessing.nirs import _validate_nirs_info
         h5py = _import_h5py()
@@ -232,14 +230,27 @@ class RawSNIRF(BaseRaw):
                     ch_types.append('fnirs_cw_amplitude')
 
                 elif snirf_data_type == 99999:
-                    hb_id = _correct_shape(
+                    dt_id = _correct_shape(
                         np.array(dat.get('nirs/data1/' + chan +
                                          '/dataTypeLabel')))[0].decode('UTF-8')
+
+                    # Convert between SNIRF processed names and MNE type names
+                    dt_id = dt_id.lower().replace("dod", "fnirs_od")
+
                     ch_name = sources[src_idx - 1] + '_' + \
-                        detectors[det_idx - 1] + ' ' + \
-                        hb_id.lower()
+                        detectors[det_idx - 1]
+
+                    if dt_id == "fnirs_od":
+                        wve_idx = int(_correct_shape(np.array(
+                            dat.get('nirs/data1/' + chan +
+                                    '/wavelengthIndex')))[0])
+                        suffix = ' ' + str(fnirs_wavelengths[wve_idx - 1])
+                    else:
+                        suffix = ' ' + dt_id.lower()
+                    ch_name = ch_name + suffix
+
                     chnames.append(ch_name)
-                    ch_types.append(hb_id.lower())
+                    ch_types.append(dt_id)
 
             # Create mne structure
             info = create_info(chnames,
@@ -311,7 +322,9 @@ class RawSNIRF(BaseRaw):
                 info['chs'][idx]['loc'][0:3] = midpoint
                 info['chs'][idx]['coord_frame'] = coord_frame
 
-                if snirf_data_type in [1]:
+                if (snirf_data_type in [1]) or \
+                    ((snirf_data_type == 99999) and
+                        (ch_types[idx] == "fnirs_od")):
                     wve_idx = int(_correct_shape(np.array(dat.get(
                         'nirs/data1/' + chan + '/wavelengthIndex')))[0])
                     info['chs'][idx]['loc'][9] = fnirs_wavelengths[wve_idx - 1]

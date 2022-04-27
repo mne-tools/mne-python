@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-cov-power:
+
 ===================================================================
 Compute source power estimate by projecting the covariance with MNE
 ===================================================================
@@ -29,8 +32,9 @@ from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse_cov
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+subjects_dir = data_path / 'subjects'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname)
 
 # %%
@@ -105,7 +109,7 @@ data_cov.plot_topomap(evoked.info, 'grad', noise_cov=noise_cov,
 # Finally, we can construct an inverse using the empty-room noise covariance:
 
 # Read the forward solution and compute the inverse operator
-fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
+fname_fwd = meg_path / 'sample_audvis-meg-oct-6-fwd.fif'
 fwd = mne.read_forward_solution(fname_fwd)
 
 # make an MEG inverse operator

@@ -4,13 +4,14 @@
 #
 # License: BSD-3-Clause
 
-import importlib
 from builtins import input  # no-op here but facilitates testing
 from difflib import get_close_matches
+from importlib import import_module
 import operator
 import os
 import os.path as op
 from pathlib import Path
+import re
 import sys
 import warnings
 import numbers
@@ -64,7 +65,8 @@ def check_fname(fname, filetype, endings, endings_err=()):
              % (fname, filetype, print_endings))
 
 
-def check_version(library, min_version='0.0', *, return_version=False):
+def check_version(library, min_version='0.0', *, strip=True,
+                  return_version=False):
     r"""Check minimum library version required.
 
     Parameters
@@ -75,6 +77,15 @@ def check_version(library, min_version='0.0', *, return_version=False):
         The minimum version string. Anything that matches
         ``'(\d+ | [a-z]+ | \.)'``. Can also be empty to skip version
         check (just check for library presence).
+    strip : bool
+        If True (default), then PEP440 development markers like ``.devN``
+        will be stripped from the version. This makes it so that
+        ``check_version('mne', '1.1')`` will be ``True`` even when on version
+        ``'1.1.dev0'`` (prerelease/dev version). This option is provided for
+        backward compatibility with the behavior of ``LooseVersion``, and
+        diverges from how modern parsing in ``packaging.version.parse`` works.
+
+        .. versionadded:: 1.0
     return_version : bool
         If True (default False), also return the version (can be None if the
         library is missing).
@@ -91,15 +102,40 @@ def check_version(library, min_version='0.0', *, return_version=False):
     ok = True
     version = None
     try:
-        library = __import__(library)
+        library = import_module(library)
     except ImportError:
         ok = False
     else:
-        version = library.__version__
-        if min_version and _compare_version(version, '<', min_version):
-            ok = False
+        check_version = min_version and min_version != '0.0'
+        get_version = check_version or return_version
+        if get_version:
+            version = library.__version__
+            if strip:
+                version = _strip_dev(version)
+        if check_version:
+            if _compare_version(version, '<', min_version):
+                ok = False
     out = (ok, version) if return_version else ok
     return out
+
+
+def _strip_dev(version):
+    # First capturing group () is what we want to keep, at the beginning:
+    #
+    # - at least one numeral, then
+    # - repeats of {dot, at least one numeral}
+    #
+    # The rest (consume to the end of the string) is the stuff we want to cut
+    # off:
+    #
+    # - A period (maybe), then
+    # - "dev", "rc", or "+", then
+    # - numerals, periods, dashes, and "a" through "g" (hex chars)
+    #
+    # Thanks https://www.regextester.com !
+    exp = r'^([0-9]+(?:\.[0-9]+)*)\.?(?:dev|rc|\+)[0-9+a-g\.\-]+$'
+    match = re.match(exp, version)
+    return match.groups()[0] if match is not None else version
 
 
 def _require_version(lib, what, version='0.0'):
@@ -110,6 +146,22 @@ def _require_version(lib, what, version='0.0'):
         why = 'package was not found' if got is None else f'got {repr(got)}'
         raise ImportError(f'The {lib} package{extra} is required to {what}, '
                           f'{why}')
+
+
+def _import_h5py():
+    _require_version('h5py', 'read MATLAB files >= v7.3')
+    import h5py
+    return h5py
+
+
+def _import_h5io_funcs():
+    h5io = _soft_import('h5io', 'HDF5-based I/O')
+    return h5io.read_hdf5, h5io.write_hdf5
+
+
+def _import_pymatreader_funcs(purpose):
+    pymatreader = _soft_import('pymatreader', purpose)
+    return pymatreader.read_mat
 
 
 # adapted from scikit-learn utils/validation.py
@@ -280,7 +332,7 @@ def _soft_import(name, purpose, strict=True):
         Whether to raise an error if module import fails.
     """
     try:
-        mod = importlib.import_module(name)
+        mod = import_module(name)
         return mod
     except (ImportError, ModuleNotFoundError):
         if strict:
@@ -727,23 +779,26 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
              % (1e9 * max_cur))
 
 
-def _check_pyqt5_version():
-    bad = True
+def _check_qt_version(*, return_api=False):
+    """Check if Qt is installed."""
     try:
-        from PyQt5.Qt import PYQT_VERSION_STR as version
+        from qtpy import QtCore, API_NAME as api
     except Exception:
-        version = 'unknown'
+        api = version = None
     else:
-        if _compare_version(version, '>=', '5.10'):
-            bad = False
-    bad &= sys.platform == 'darwin'
-    if bad:
-        warn('macOS users should use PyQt5 >= 5.10 for GUIs, got %s. '
-             'Please upgrade e.g. with:\n\n'
-             '    pip install "PyQt5>=5.10,<5.14"\n'
-             % (version,))
-
-    return version
+        try:  # pyside
+            version = QtCore.__version__
+        except AttributeError:
+            version = QtCore.QT_VERSION_STR
+        if sys.platform == 'darwin' and api in ('PyQt5', 'PySide2'):
+            if not _compare_version(version, '>=', '5.10'):
+                warn(f'macOS users should use {api} >= 5.10 for GUIs, '
+                     f'got {version}. Please upgrade e.g. with:\n\n'
+                     f'    pip install "{api}>=5.10,<5.14"\n')
+    if return_api:
+        return version, api
+    else:
+        return version
 
 
 def _check_sphere(sphere, info=None, sphere_units='m'):

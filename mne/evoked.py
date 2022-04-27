@@ -12,7 +12,7 @@ from copy import deepcopy
 import numpy as np
 
 from .baseline import rescale, _log_rescale, _check_baseline
-from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
+from .channels.channels import (UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
@@ -22,7 +22,7 @@ from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     fill_doc, _check_option, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
                     _convert_times, _scale_dataframe_data, _check_time_format,
-                    _check_preload, _check_fname)
+                    _check_preload, _check_fname, _VerboseDep)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -33,7 +33,7 @@ from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.tree import dir_tree_find
 from .io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
-from .io.meas_info import (read_meas_info, write_meas_info,
+from .io.meas_info import (ContainsMixin, read_meas_info, write_meas_info,
                            _read_extended_ch_info, _rename_list,
                            _ensure_infos_match)
 from .io.proj import ProjMixin
@@ -62,7 +62,7 @@ _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 @fill_doc
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              InterpolationMixin, FilterMixin, TimeMixin, SizeMixin,
-             ShiftTimeMixin):
+             ShiftTimeMixin, _VerboseDep):
     """Evoked data.
 
     Parameters
@@ -114,7 +114,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     baseline : None | tuple of length 2
          This attribute reflects whether the data has been baseline-corrected
          (it will be a ``tuple`` then) or not (it will be ``None``).
-    %(verbose)s
 
     Notes
     -----
@@ -123,7 +122,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def __init__(self, fname, condition=None, proj=True,
-                 kind='average', allow_maxshield=False,
+                 kind='average', allow_maxshield=False, *,
                  verbose=None):  # noqa: D102
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
@@ -132,7 +131,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self.data, self.baseline = _read_evoked(fname, condition, kind,
                                                     allow_maxshield)
         self._update_first_last()
-        self.verbose = verbose
         self.preload = True
         # project and baseline correct
         if proj:
@@ -202,12 +200,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(applyfun_fun_evoked)s
+        %(fun_applyfun_evoked)s
         %(picks_all_data_noref)s
-        %(applyfun_dtype)s
+        %(dtype_applyfun)s
         %(n_jobs)s
-        %(verbose_meth)s
-        %(kwarg_fun)s
+        %(verbose)s
+        %(kwargs_fun)s
 
         Returns
         -------
@@ -250,7 +248,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(baseline_evoked)s
             Defaults to ``(None, 0)``, i.e. beginning of the the data until
             time point zero.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -355,7 +353,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         tmax : float | None
             End time of selection in seconds.
         %(include_tmax)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -396,8 +394,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         %(decim)s
-        %(decim_offset)s
-        %(verbose_meth)s
+        %(offset_decim)s
+        %(verbose)s
 
         Returns
         -------
@@ -562,11 +560,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             or "s" (will become the default in 0.17).
 
             .. versionadded:: 0.16
-        %(topomap_sphere_auto)s
-        %(topomap_extrapolate)s
+        %(sphere_topomap_auto)s
+        %(extrapolate_topomap)s
 
             .. versionadded:: 0.22
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -791,12 +789,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         %(picks_all)s
-        %(df_index_evk)s
+        %(index_df_evk)s
             Defaults to ``None``.
-        %(df_scalings)s
-        %(df_copy)s
-        %(df_longform_raw)s
-        %(df_time_format)s
+        %(scalings_df)s
+        %(copy_df)s
+        %(long_format_df_raw)s
+        %(time_format_df)s
 
             .. versionadded:: 0.20
         %(verbose)s
@@ -895,7 +893,7 @@ class EvokedArray(Evoked):
 
     @verbose
     def __init__(self, data, info, tmin=0., comment='', nave=1, kind='average',
-                 baseline=None, verbose=None):  # noqa: D102
+                 baseline=None, *, verbose=None):  # noqa: D102
         dtype = np.complex128 if np.iscomplexobj(data) else np.float64
         data = np.asanyarray(data, dtype=dtype)
 
@@ -919,7 +917,6 @@ class EvokedArray(Evoked):
         self.kind = kind
         self.comment = comment
         self.picks = None
-        self.verbose = verbose
         self.preload = True
         self._projector = None
         _validate_type(self.kind, "str", "kind")
@@ -930,7 +927,7 @@ class EvokedArray(Evoked):
 
         self.baseline = baseline
         if self.baseline is not None:  # omit log msg if not baselining
-            self.apply_baseline(self.baseline, verbose=self.verbose)
+            self.apply_baseline(self.baseline)
 
 
 def _get_entries(fid, evoked_node, allow_maxshield=False):
@@ -1387,7 +1384,7 @@ def write_evokeds(fname, evoked, *, on_mismatch='raise', overwrite=False,
         The evoked dataset, or list of evoked datasets, to save in one file.
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
-    %(on_info_mismatch)s
+    %(on_mismatch_info)s
     %(overwrite)s
 
         .. versionadded:: 1.0

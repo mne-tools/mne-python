@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 r"""
+.. _tut-mvpa:
+
 ===============
 Decoding (MVPA)
 ===============
@@ -38,8 +41,9 @@ from mne.decoding import (SlidingEstimator, GeneralizingEstimator, Scaler,
 
 data_path = sample.data_path()
 
-subjects_dir = data_path + '/subjects'
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+subjects_dir = data_path / 'subjects'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
 tmin, tmax = -0.200, 0.500
 event_id = {'Auditory/Left': 1, 'Visual/Left': 3}  # just use two
 raw = mne.io.read_raw_fif(raw_fname)
@@ -114,9 +118,11 @@ y = epochs.events[:, 2]  # target: auditory left vs visual left
 
 # Uses all MEG sensors and time points as separate classification
 # features, so the resulting filters used are spatio-temporal
-clf = make_pipeline(Scaler(epochs.info),
-                    Vectorizer(),
-                    LogisticRegression(solver='lbfgs'))
+clf = make_pipeline(
+    Scaler(epochs.info),
+    Vectorizer(),
+    LogisticRegression(solver='liblinear')  # liblinear is faster than lbfgs
+)
 
 scores = cross_val_multiscore(clf, X, y, cv=5, n_jobs=1)
 
@@ -199,7 +205,10 @@ print('Spatio-temporal: %0.1f%%' % (100 * score,))
 # We can use CSP with these data with:
 
 csp = CSP(n_components=3, norm_trace=False)
-clf_csp = make_pipeline(csp, LinearModel(LogisticRegression(solver='lbfgs')))
+clf_csp = make_pipeline(
+    csp,
+    LinearModel(LogisticRegression(solver='liblinear'))
+)
 scores = cross_val_multiscore(clf_csp, X, y, cv=5, n_jobs=1)
 print('CSP: %0.1f%%' % (100 * scores.mean(),))
 
@@ -294,7 +303,10 @@ csp.plot_filters(epochs.info, scalings=1e-9)
 
 # We will train the classifier on all left visual vs auditory trials on MEG
 
-clf = make_pipeline(StandardScaler(), LogisticRegression(solver='lbfgs'))
+clf = make_pipeline(
+    StandardScaler(),
+    LogisticRegression(solver='liblinear')
+)
 
 time_decod = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc', verbose=True)
 # here we use cv=3 just for speed
@@ -316,8 +328,10 @@ ax.set_title('Sensor space decoding')
 # %%
 # You can retrieve the spatial filters and spatial patterns if you explicitly
 # use a LinearModel
-clf = make_pipeline(StandardScaler(),
-                    LinearModel(LogisticRegression(solver='lbfgs')))
+clf = make_pipeline(
+    StandardScaler(),
+    LinearModel(LogisticRegression(solver='liblinear'))
+)
 time_decod = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc', verbose=True)
 time_decod.fit(X, y)
 
@@ -395,7 +409,7 @@ cbar.set_label('AUC')
 cov = mne.compute_covariance(epochs, tmax=0.)
 del epochs
 fwd = mne.read_forward_solution(
-    data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif')
+    meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif')
 inv = mne.minimum_norm.make_inverse_operator(
     evoked_time_gen.info, fwd, cov, loose=0.)
 stc = mne.minimum_norm.apply_inverse(evoked_time_gen, inv, 1. / 9., 'dSPM')
@@ -418,7 +432,7 @@ brain = stc.plot(hemi='split', views=('lat', 'med'), initial_time=0.1,
 #
 # .. topic:: Examples
 #
-#     * :ref:`tut-dec-st-source`
+#     * :ref:`ex-dec-st-source`
 #
 # Exercise
 # ========

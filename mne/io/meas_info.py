@@ -18,8 +18,8 @@ import string
 
 import numpy as np
 
-from .pick import (channel_type, pick_channels, pick_info,
-                   get_channel_type_constants, pick_types)
+from .pick import (channel_type, pick_channels, pick_info, _get_channel_types,
+                   get_channel_type_constants, pick_types, _contains_ch_type)
 from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
 from .tree import dir_tree_find
@@ -34,16 +34,17 @@ from .write import (start_and_end_file, start_block, end_block,
                     write_julian, write_float_matrix, write_id, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import (invert_transform, Transform, _coord_frame_name,
-                          _ensure_trans)
+                          _ensure_trans, _frame_to_str)
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
                      _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric, deprecated,
-                     _check_option, _on_missing, _check_on_missing, fill_doc)
+                     _check_option, _on_missing, _check_on_missing, fill_doc,
+                     _check_fname)
 from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
-from ._digitization import write_dig
+from ._digitization import write_dig, _get_data_as_dict_from_dig
 from .compensator import get_current_comp
-from ..data.html_templates import info_template
 from ..defaults import _handle_default
+
 
 b = bytes  # alias
 
@@ -146,7 +147,45 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
 
 
 class MontageMixin(object):
-    """Mixin for Montage setting."""
+    """Mixin for Montage getting and setting."""
+
+    @fill_doc
+    def get_montage(self):
+        """Get a DigMontage from instance.
+
+        Returns
+        -------
+        %(montage)s
+        """
+        from ..channels.montage import make_dig_montage
+        info = self if isinstance(self, Info) else self.info
+        if info['dig'] is None:
+            return None
+        # obtain coord_frame, and landmark coords
+        # (nasion, lpa, rpa, hsp, hpi) from DigPoints
+        montage_bunch = _get_data_as_dict_from_dig(info['dig'])
+        coord_frame = _frame_to_str.get(montage_bunch.coord_frame)
+
+        # get the channel names and chs data structure
+        ch_names, chs = info['ch_names'], info['chs']
+        picks = pick_types(info, meg=False, eeg=True, seeg=True,
+                           ecog=True, dbs=True, fnirs=True, exclude=[])
+
+        # channel positions from dig do not match ch_names one to one,
+        # so use loc[:3] instead
+        ch_pos = {ch_names[ii]: chs[ii]['loc'][:3] for ii in picks}
+
+        # create montage
+        montage = make_dig_montage(
+            ch_pos=ch_pos,
+            coord_frame=coord_frame,
+            nasion=montage_bunch.nasion,
+            lpa=montage_bunch.lpa,
+            rpa=montage_bunch.rpa,
+            hsp=montage_bunch.hsp,
+            hpi=montage_bunch.hpi,
+        )
+        return montage
 
     @verbose
     def set_montage(self, montage, match_case=True, match_alias=False,
@@ -159,7 +198,7 @@ class MontageMixin(object):
         %(match_case)s
         %(match_alias)s
         %(on_missing_montage)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -183,6 +222,68 @@ class MontageMixin(object):
         info = self if isinstance(self, Info) else self.info
         _set_montage(info, montage, match_case, match_alias, on_missing)
         return self
+
+
+class ContainsMixin(object):
+    """Mixin class for Raw, Evoked, Epochs and Info."""
+
+    def __contains__(self, ch_type):
+        """Check channel type membership.
+
+        Parameters
+        ----------
+        ch_type : str
+            Channel type to check for. Can be e.g. 'meg', 'eeg', 'stim', etc.
+
+        Returns
+        -------
+        in : bool
+            Whether or not the instance contains the given channel type.
+
+        Examples
+        --------
+        Channel type membership can be tested as::
+
+            >>> 'meg' in inst  # doctest: +SKIP
+            True
+            >>> 'seeg' in inst  # doctest: +SKIP
+            False
+
+        """
+        info = self if isinstance(self, Info) else self.info
+        if ch_type == 'meg':
+            has_ch_type = (_contains_ch_type(info, 'mag') or
+                           _contains_ch_type(info, 'grad'))
+        else:
+            has_ch_type = _contains_ch_type(info, ch_type)
+        return has_ch_type
+
+    @property
+    def compensation_grade(self):
+        """The current gradient compensation grade."""
+        info = self if isinstance(self, Info) else self.info
+        return get_current_comp(info)
+
+    @fill_doc
+    def get_channel_types(self, picks=None, unique=False, only_data_chs=False):
+        """Get a list of channel type for each channel.
+
+        Parameters
+        ----------
+        %(picks_all)s
+        unique : bool
+            Whether to return only unique channel types. Default is ``False``.
+        only_data_chs : bool
+            Whether to ignore non-data channels. Default is ``False``.
+
+        Returns
+        -------
+        channel_types : list
+            The channel types.
+        """
+        info = self if isinstance(self, Info) else self.info
+        return _get_channel_types(info, picks=picks, unique=unique,
+                                  only_data_chs=only_data_chs)
 
 
 def _format_trans(obj, key):
@@ -252,7 +353,7 @@ def _check_helium_info(helium_info):
     return helium_info
 
 
-class Info(dict, MontageMixin):
+class Info(dict, MontageMixin, ContainsMixin):
     """Measurement information.
 
     This data structure behaves like a dictionary. It contains all metadata
@@ -622,7 +723,7 @@ class Info(dict, MontageMixin):
         smartshield : dict
             MaxShield information. This dictionary is (always?) empty,
             but its presence implies that MaxShield was used during
-            acquisiton.
+            acquisition.
 
     * ``subject_info`` dict:
 
@@ -732,7 +833,7 @@ class Info(dict, MontageMixin):
             self['chs'] = _dict_unpack(self['chs'], _CH_CAST)
         for pi, proj in enumerate(self.get('projs', [])):
             if not isinstance(proj, Projection):
-                self['projs'][pi] = Projection(proj)
+                self['projs'][pi] = Projection(**proj)
         # Old files could have meas_date as tuple instead of datetime
         try:
             meas_date = self['meas_date']
@@ -975,6 +1076,12 @@ class Info(dict, MontageMixin):
                 if self.get(key) is not None:
                     self[key] = float(self[key])
 
+        for pi, proj in enumerate(self.get('projs', [])):
+            _validate_type(proj, Projection, f'info["projs"][{pi}]')
+            for key in ('kind', 'active', 'desc', 'data', 'explained_var'):
+                if key not in proj:
+                    raise RuntimeError(f'Projection incomplete, missing {key}')
+
         # Ensure info['chs'] has immutable entries (copies much faster)
         for ci, ch in enumerate(self['chs']):
             _check_ch_keys(ch, ci)
@@ -1077,6 +1184,7 @@ class Info(dict, MontageMixin):
 
     def _repr_html_(self, caption=None):
         """Summarize info for HTML representation."""
+        from ..html_templates import repr_templates_env
         if isinstance(caption, str):
             html = f'<h4>{caption}</h4>'
         else:
@@ -1084,20 +1192,63 @@ class Info(dict, MontageMixin):
 
         good_channels, bad_channels, ecg, eog = self._get_chs_for_repr()
 
-        # meas date
-        meas_date = self['meas_date']
-        if meas_date is not None:
-            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
-        projs = self['projs']
-        if projs:
-            projs = '<br/>'.join(
-                p['desc'] + ': o%s' % {0: 'ff', 1: 'n'}[p['active']]
-                for p in projs)
+        # TODO
+        # Most of the following checks are to ensure that we get a proper repr
+        # for Forward['info'] (and probably others like
+        # InverseOperator['info']??), which doesn't seem to follow our standard
+        # Info structure used elsewhere.
+        # Proposed solution for a future refactoring:
+        # Forward['info'] should get its own Info subclass (with respective
+        # repr).
 
-        html += info_template.substitute(
-            caption=caption, info=self, meas_date=meas_date, ecg=ecg,
+        # meas date
+        if 'meas_date' in self and self['meas_date'] is not None:
+            meas_date = self['meas_date'].strftime(
+                "%B %d, %Y  %H:%M:%S"
+            ) + ' GMT'
+        else:
+            meas_date = None
+
+        if 'projs' in self and self['projs']:
+            projs = [
+                f'{p["desc"]} : {"on" if p["active"] else "off"}'
+                for p in self['projs']
+            ]
+        else:
+            projs = None
+
+        if 'subject_info' in self:
+            subject_info = self['subject_info']
+        else:
+            subject_info = None
+
+        if 'lowpass' in self:
+            lowpass = self['lowpass']
+        else:
+            lowpass = None
+
+        if 'highpass' in self:
+            highpass = self['highpass']
+        else:
+            highpass = None
+
+        if 'sfreq' in self:
+            sfreq = self['sfreq']
+        else:
+            sfreq = None
+
+        if 'experimenter' in self:
+            experimenter = self['experimenter']
+        else:
+            experimenter = None
+
+        info_template = repr_templates_env.get_template('info.html.jinja')
+        html += info_template.render(
+            caption=caption, meas_date=meas_date, ecg=ecg,
             eog=eog, good_channels=good_channels, bad_channels=bad_channels,
-            projs=projs)
+            projs=projs, subject_info=subject_info, lowpass=lowpass,
+            highpass=highpass, sfreq=sfreq, experimenter=experimenter
+        )
         return html
 
 
@@ -1119,18 +1270,23 @@ def read_fiducials(fname, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename to read.
     %(verbose)s
 
     Returns
     -------
-    pts : list of dicts
+    pts : list of dict
         List of digitizer points (each point in a dict).
     coord_frame : int
         The coordinate frame of the points (one of
-        mne.io.constants.FIFF.FIFFV_COORD_...).
+        ``mne.io.constants.FIFF.FIFFV_COORD_...``).
     """
+    fname = _check_fname(
+        fname=fname,
+        overwrite='read',
+        must_exist=True
+    )
     fid, tree, _ = fiff_open(fname)
     with fid:
         isotrak = dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)
@@ -1156,20 +1312,24 @@ def read_fiducials(fname, verbose=None):
 
 
 @verbose
-def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN, *,
-                    overwrite=False, verbose=None):
+def write_fiducials(fname, pts, coord_frame='unknown', *, overwrite=False,
+                    verbose=None):
     """Write fiducials to a fiff file.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Destination file name.
     pts : iterator of dict
         Iterator through digitizer points. Each point is a dictionary with
         the keys 'kind', 'ident' and 'r'.
-    coord_frame : int
-        The coordinate frame of the points (one of
-        mne.io.constants.FIFF.FIFFV_COORD_...).
+    coord_frame : str | int
+        The coordinate frame of the points. If a string, must be one of
+        ``'meg'``, ``'mri'``, ``'mri_voxel'``, ``'head'``,
+        ``'mri_tal'``, ``'ras'``, ``'fs_tal'``, ``'ctf_head'``,
+        ``'ctf_meg'``, and ``'unknown'``
+        If an integer, must be one of the constants defined as
+        ``mne.io.constants.FIFF.FIFFV_COORD_...``.
     %(overwrite)s
 
         .. versionadded:: 1.0
@@ -2439,7 +2599,8 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     Parameters
     ----------
     %(info_not_none)s
-    %(anonymize_info_parameters)s
+    %(daysback_anonymize_info)s
+    %(keep_his_anonymize_info)s
     %(verbose)s
 
     Returns

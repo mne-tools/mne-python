@@ -879,7 +879,7 @@ _DEFAULT_ALIM = (-80, 10)
 def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
                 flim=None, fscale='log', alim=_DEFAULT_ALIM, show=True,
                 compensate=False, plot=('time', 'magnitude', 'delay'),
-                axes=None):
+                axes=None, *, dlim=None):
     """Plot properties of a filter.
 
     Parameters
@@ -932,6 +932,11 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
         Defaults to ``None``.
 
         .. versionadded:: 0.21.0
+    dlim : None | tuple
+        The y-axis delay limits (sec) to use (default:
+        ``(-tmax / 2., tmax / 2.)``).
+
+        .. versionadded:: 1.1.0
 
     Returns
     -------
@@ -1036,8 +1041,9 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
                          % (len(axes), len(plot)))
 
     t = np.arange(len(h))
-    dlim = np.abs(t).max() / 2.
-    dlim = [-dlim, dlim]
+    if dlim is None:
+        dlim = np.abs(t).max() / 2.
+        dlim = [-dlim, dlim]
     if compensate:
         n_shift = (len(h) - 1) // 2
         t -= n_shift

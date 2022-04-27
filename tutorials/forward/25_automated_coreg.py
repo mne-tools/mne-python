@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _tut-auto-coreg:
+
 =============================================
 Using an automated approach to coregistration
 =============================================
@@ -17,7 +20,6 @@ automated MEG-MRI coregistration via scripting.
 #
 # License: BSD-3-Clause
 
-import os.path as op
 import numpy as np
 
 import mne
@@ -26,10 +28,10 @@ from mne.io import read_info
 
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(data_path, 'subjects')
+subjects_dir = data_path / 'subjects'
 subject = 'sample'
 
-fname_raw = op.join(data_path, 'MEG', subject, subject + '_audvis_raw.fif')
+fname_raw = data_path / 'MEG' / subject / f'{subject}_audvis_raw.fif'
 info = read_info(fname_raw)
 plot_kwargs = dict(subject=subject, subjects_dir=subjects_dir,
                    surfaces="head-dense", dig=True, eeg=[],
@@ -40,11 +42,14 @@ view_kwargs = dict(azimuth=45, elevation=90, distance=0.6,
 
 # %%
 # Set up the coregistration model
+# -------------------------------
 fiducials = "estimated"  # get fiducials from fsaverage
 coreg = Coregistration(info, subject, subjects_dir, fiducials=fiducials)
 fig = mne.viz.plot_alignment(info, trans=coreg.trans, **plot_kwargs)
 
 # %%
+# Initial fit with fiducials
+# --------------------------
 # Do first a coregistration fit using only 3 fiducial points. This allows
 # to find a good initial solution before further optimization using
 # head shape points. This can also be useful to detect outlier head shape
@@ -55,6 +60,8 @@ coreg.fit_fiducials(verbose=True)
 fig = mne.viz.plot_alignment(info, trans=coreg.trans, **plot_kwargs)
 
 # %%
+# Refining with ICP
+# -----------------
 # Next we refine the transformation using a few iteration of the
 # Iterative Closest Point (ICP) algorithm. As the initial fiducials
 # are obtained from fsaverage and not from precise manual picking in the
@@ -63,12 +70,15 @@ coreg.fit_icp(n_iterations=6, nasion_weight=2., verbose=True)
 fig = mne.viz.plot_alignment(info, trans=coreg.trans, **plot_kwargs)
 
 # %%
+# Omitting bad points
+# -------------------
 # It is now very clear that we have one point that is an outlier
 # and that should be removed.
 coreg.omit_head_shape_points(distance=5. / 1000)  # distance is in meters
 
 # %%
-# Do a final coregistration fit
+# Final coregistration fit
+# ------------------------
 
 # sphinx_gallery_thumbnail_number = 4
 coreg.fit_icp(n_iterations=20, nasion_weight=10., verbose=True)
@@ -88,9 +98,7 @@ print(
 #     .. code-block:: python
 #
 #         mne.write_trans('/path/to/filename-trans.fif', coreg.trans)
-
-
-# %%
+#
 # .. note:: The :class:`mne.coreg.Coregistration` class has the ability to
 #           compute MRI scale factors using
 #           :meth:`~mne.coreg.Coregistration.set_scale_mode` that is useful

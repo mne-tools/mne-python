@@ -87,7 +87,7 @@ I agree to the following:
 # respective repos, and make a new release of the dataset on GitHub. Then
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here:                  ↓↓↓↓↓         ↓↓↓
-RELEASES = dict(testing='0.128', misc='0.23')
+RELEASES = dict(testing='0.134', misc='0.23')
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
 
@@ -111,7 +111,7 @@ MNE_DATASETS = dict()
 # Testing and misc are at the top as they're updated most often
 MNE_DATASETS['testing'] = dict(
     archive_name=f'{TESTING_VERSIONED}.tar.gz',  # 'mne-testing-data',
-    hash='md5:88c04e31fd496f394fa96fe7cdd70217',
+    hash='md5:9d234ff0156e6feccbbbc01469a861eb',
     url=('https://codeload.github.com/mne-tools/mne-testing-data/'
          f'tar.gz/{RELEASES["testing"]}'),
     folder_name='MNE-testing-data',
@@ -168,8 +168,8 @@ MNE_DATASETS['phantom_4dbti'] = dict(
 
 MNE_DATASETS['sample'] = dict(
     archive_name='MNE-sample-data-processed.tar.gz',
-    hash='md5:12b75d1cb7df9dfb4ad73ed82f61094f',
-    url='https://osf.io/86qa2/download?version=5',
+    hash='md5:e8f30c4516abdc12a0c08e6bae57409c',
+    url='https://osf.io/86qa2/download?version=6',
     folder_name='MNE-sample-data',
     config_key='MNE_DATASETS_SAMPLE_PATH',
 )
@@ -246,7 +246,7 @@ MNE_DATASETS['erp_core'] = dict(
 MNE_DATASETS['epilepsy_ecog'] = dict(
     archive_name='MNE-epilepsy-ecog-data.tar.gz',
     hash='md5:ffb139174afa0f71ec98adbbb1729dea',
-    url='https://osf.io/z4epq/download?revision=1',
+    url='https://osf.io/z4epq/download?version=1',
     folder_name='MNE-epilepsy-ecog-data',
     config_key='MNE_DATASETS_EPILEPSY_ECOG_PATH',
 )

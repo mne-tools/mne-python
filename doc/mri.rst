@@ -16,6 +16,8 @@ Step by step instructions for using :func:`gui.coregistration`:
 
    coreg.get_mni_fiducials
    coreg.estimate_head_mri_t
+   io.read_fiducials
+   io.write_fiducials
    get_montage_volume_labels
    gui.coregistration
    gui.locate_ieeg
@@ -23,6 +25,7 @@ Step by step instructions for using :func:`gui.coregistration`:
    head_to_mni
    head_to_mri
    read_freesurfer_lut
+   read_lta
    read_talxfm
    scale_mri
    scale_bem

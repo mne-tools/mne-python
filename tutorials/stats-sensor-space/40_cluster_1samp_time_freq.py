@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _tut-cluster-one-samp-tfr:
+
 ===============================================================
 Non-parametric 1 sample cluster statistic on single trial power
 ===============================================================
@@ -36,7 +39,8 @@ print(__doc__)
 # Set parameters
 # --------------
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_raw.fif'
 tmin, tmax, event_id = -0.3, 0.6, 1
 
 # Setup for reading the raw data

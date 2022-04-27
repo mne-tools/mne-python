@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
 """
-==================================================
+.. _ex-csd-matrix:
+
+=============================================
 Compute a cross-spectral density (CSD) matrix
-==================================================
+=============================================
 
 A cross-spectral density (CSD) matrix is similar to a covariance matrix, but in
 the time-frequency domain. It is the first step towards computing
@@ -35,8 +38,9 @@ n_jobs = 1
 # %%
 # Loading the sample dataset.
 data_path = sample.data_path()
-fname_raw = data_path + '/MEG/sample/sample_audvis_raw.fif'
-fname_event = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
+meg_path = data_path / 'MEG' / 'sample'
+fname_raw = meg_path / 'sample_audvis_raw.fif'
+fname_event = meg_path / 'sample_audvis_raw-eve.fif'
 raw = mne.io.read_raw_fif(fname_raw)
 events = mne.read_events(fname_event)
 

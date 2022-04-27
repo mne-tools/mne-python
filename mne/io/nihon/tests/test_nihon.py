@@ -1,26 +1,28 @@
 # -*- coding: utf-8 -*-
 # Authors: Federico Raimondo  <federaimondo@gmail.com>
 #          simplified BSD-3 license
-from pathlib import Path
 
 import pytest
 from numpy.testing import assert_array_almost_equal
 
 from mne.io import read_raw_nihon, read_raw_edf
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.datasets.testing import data_path, requires_testing_data
+from mne.datasets import testing
 from mne.io.nihon.nihon import (_read_nihon_header, _read_nihon_metadata,
                                 _read_nihon_annotations)
+from mne.io.nihon import nihon
+
+data_path = testing.data_path(download=False)
 
 
-@requires_testing_data
+@testing.requires_testing_data
 def test_nihon_eeg():
     """Test reading Nihon Kohden EEG files."""
-    fname = Path(data_path()) / 'NihonKohden' / 'MB0400FU.EEG'
+    fname = data_path / 'NihonKohden' / 'MB0400FU.EEG'
     raw = read_raw_nihon(fname.as_posix(), preload=True)
     assert 'RawNihon' in repr(raw)
     _test_raw_reader(read_raw_nihon, fname=fname, test_scaling=False)
-    fname_edf = Path(data_path()) / 'NihonKohden' / 'MB0400FU.EDF'
+    fname_edf = data_path / 'NihonKohden' / 'MB0400FU.EDF'
     raw_edf = read_raw_edf(fname_edf, preload=True)
 
     assert raw._data.shape == raw_edf._data.shape
@@ -48,7 +50,7 @@ def test_nihon_eeg():
     with pytest.raises(ValueError, match='Not a valid Nihon Kohden EEG file'):
         raw = _read_nihon_header(fname_edf)
 
-    bad_fname = Path(data_path()) / 'eximia' / 'text_eximia.nxe'
+    bad_fname = data_path / 'eximia' / 'text_eximia.nxe'
 
     msg = 'No PNT file exists. Metadata will be blank'
     with pytest.warns(RuntimeWarning, match=msg):
@@ -67,3 +69,23 @@ def test_nihon_eeg():
     picks = [ch for ch in raw.ch_names if ch.startswith('$')]
     ch_types = raw.get_channel_types(picks=picks)
     assert all(ch == 'misc' for ch in ch_types)
+
+
+@testing.requires_testing_data
+def test_nihon_duplicate_channels(monkeypatch):
+    """Test deduplication of channel names."""
+    fname = data_path / 'NihonKohden' / 'MB0400FU.EEG'
+
+    def return_channel_duplicates(fname):
+        ch_names = nihon._default_chan_labels
+        ch_names[1] = ch_names[0]
+        return ch_names
+
+    monkeypatch.setattr(nihon, '_read_21e_file', return_channel_duplicates)
+
+    assert len(nihon._read_21e_file(fname)) > \
+           len(set(nihon._read_21e_file(fname)))
+    msg = 'Channel names are not unique, found duplicates for: ' \
+          '{\'FP1\'}. Applying running numbers for duplicates.'
+    with pytest.warns(RuntimeWarning, match=msg):
+        read_raw_nihon(fname)

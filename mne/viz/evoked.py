@@ -669,7 +669,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         for each channel equals the pyplot default.
     xlim : 'tight' | tuple | None
         X limits for plots.
-    %(plot_proj)s
+    %(proj_plot)s
     hline : list of float | None
         The values at which to show an horizontal line.
     units : dict | None
@@ -747,7 +747,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
-    %(topomap_sphere_auto)s
+    %(sphere_topomap_auto)s
     %(verbose)s
 
     Returns
@@ -998,7 +998,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
             group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
 
         If None, all picked channels are plotted to the same axis.
-    %(topomap_sphere_auto)s
+    %(sphere_topomap_auto)s
 
     Returns
     -------
@@ -1052,16 +1052,16 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
     ----------
     evoked : instance of mne.Evoked
         The evoked response.
-    noise_cov : list | instance of Covariance | str
+    noise_cov : list | instance of Covariance | path-like
         The noise covariance. Can be a string to load a covariance from disk.
     show : bool
         Show figure if True.
-    %(rank_None)s
+    %(rank_none)s
     time_unit : str
         The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
-    %(topomap_sphere_auto)s
+    %(sphere_topomap_auto)s
     axes : list | None
         List of axes to plot into.
 
@@ -1100,14 +1100,16 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
            covariance estimation and spatial whitening of MEG and EEG
            signals, vol. 108, 328-342, NeuroImage.
     """
-    from ..cov import whiten_evoked, read_cov  # recursive import
+    from ..cov import whiten_evoked, Covariance, _ensure_cov
     import matplotlib.pyplot as plt
     time_unit, times = _check_time_unit(time_unit, evoked.times)
 
-    if isinstance(noise_cov, str):
-        noise_cov = read_cov(noise_cov)
+    _validate_type(noise_cov, (list, tuple, Covariance, 'path-like'))
     if not isinstance(noise_cov, (list, tuple)):
         noise_cov = [noise_cov]
+    for ci, c in enumerate(noise_cov):
+        noise_cov[ci] = _ensure_cov(
+            noise_cov[ci], f'noise_cov[{ci}]', verbose=False)
 
     evoked = evoked.copy()  # handle ref meg
     passive_idx = [idx for idx, proj in enumerate(evoked.info['projs'])
@@ -2128,7 +2130,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         unless ``picks`` is a single channel (not channel type) or
         ``axes='topo'``, in which cases no combining is performed. Defaults to
         ``None``.
-    %(topomap_sphere_auto)s
+    %(sphere_topomap_auto)s
 
     Returns
     -------

@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
 """
-===========================
+.. _ex-muscle-artifacts:
+
+=========================
 Annotate muscle artifacts
-===========================
+=========================
 
 Muscle contractions produce high frequency activity that can mask brain signal
 of interest. Muscle artifacts can be produced when clenching the jaw,
@@ -53,7 +56,7 @@ raw.resample(300, npad="auto")
 #     detecting muscle artifacts. See :ref:`tut-section-line-noise` for an
 #     example.
 
-raw.notch_filter([50, 100])
+raw.notch_filter([60, 120])
 
 # %%
 

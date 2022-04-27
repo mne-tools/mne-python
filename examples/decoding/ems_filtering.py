@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-ems-filtering:
 
@@ -39,8 +40,9 @@ print(__doc__)
 data_path = sample.data_path()
 
 # Preprocess the data
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
 event_ids = {'AudL': 1, 'VisL': 3}
 
 # Read data and create epochs

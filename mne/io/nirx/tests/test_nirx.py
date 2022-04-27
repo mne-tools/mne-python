@@ -23,40 +23,41 @@ from mne.preprocessing.nirs import source_detector_distances,\
     short_channels
 from mne.io.constants import FIFF
 
-fname_nirx_15_0 = op.join(data_path(download=False),
-                          'NIRx', 'nirscout', 'nirx_15_0_recording')
-fname_nirx_15_2 = op.join(data_path(download=False),
-                          'NIRx', 'nirscout', 'nirx_15_2_recording')
-fname_nirx_15_2_short = op.join(data_path(download=False),
-                                'NIRx', 'nirscout',
-                                'nirx_15_2_recording_w_short')
-fname_nirx_15_3_short = op.join(data_path(download=False),
-                                'NIRx', 'nirscout', 'nirx_15_3_recording')
+testing_path = data_path(download=False)
+fname_nirx_15_0 = op.join(
+    testing_path, 'NIRx', 'nirscout', 'nirx_15_0_recording')
+fname_nirx_15_2 = op.join(
+    testing_path, 'NIRx', 'nirscout', 'nirx_15_2_recording')
+fname_nirx_15_2_short = op.join(
+    testing_path, 'NIRx', 'nirscout', 'nirx_15_2_recording_w_short')
+fname_nirx_15_3_short = op.join(
+    testing_path, 'NIRx', 'nirscout', 'nirx_15_3_recording')
 
 
 # This file has no saturated sections
-nirsport1_wo_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
+nirsport1_wo_sat = op.join(testing_path, 'NIRx', 'nirsport_v1',
                            'nirx_15_3_recording_wo_saturation')
 # This file has saturation, but not on the optode pairing in montage
-nirsport1_w_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
+nirsport1_w_sat = op.join(testing_path, 'NIRx', 'nirsport_v1',
                           'nirx_15_3_recording_w_saturation_'
                           'not_on_montage_channels')
 # This file has saturation in channels of interest
-nirsport1_w_fullsat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
-                              'nirx_15_3_recording_w_'
-                              'saturation_on_montage_channels')
+nirsport1_w_fullsat = op.join(
+    testing_path, 'NIRx', 'nirsport_v1', 'nirx_15_3_recording_w_'
+    'saturation_on_montage_channels')
 
 # NIRSport2 device using Aurora software and matching snirf file
-nirsport2 = op.join(data_path(download=False), 'NIRx', 'nirsport_v2',
-                    'aurora_recording _w_short_and_acc')
-nirsport2_snirf = op.join(data_path(download=False), 'SNIRF', 'NIRx',
-                          'NIRSport2', '1.0.3', '2021-05-05_001.snirf')
+nirsport2 = op.join(
+    testing_path, 'NIRx', 'nirsport_v2', 'aurora_recording _w_short_and_acc')
+nirsport2_snirf = op.join(
+    testing_path, 'SNIRF', 'NIRx', 'NIRSport2', '1.0.3',
+    '2021-05-05_001.snirf')
 
-nirsport2_2021_9 = op.join(data_path(download=False), 'NIRx', 'nirsport_v2',
-                           'aurora_2021_9')
-snirf_nirsport2_20219 = op.join(data_path(download=False),
-                                'SNIRF', 'NIRx', 'NIRSport2', '2021.9',
-                                '2021-10-01_002.snirf')
+nirsport2_2021_9 = op.join(
+    testing_path, 'NIRx', 'nirsport_v2', 'aurora_2021_9')
+snirf_nirsport2_20219 = op.join(
+    testing_path, 'SNIRF', 'NIRx', 'NIRSport2', '2021.9',
+    '2021-10-01_002.snirf')
 
 
 @requires_h5py
@@ -257,9 +258,9 @@ def test_nirx_missing_warn():
 def test_nirx_missing_evt(tmp_path):
     """Test reading NIRX files when missing data."""
     shutil.copytree(fname_nirx_15_2_short, str(tmp_path) + "/data/")
-    os.rename(str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.evt",
-              str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.xxx")
-    fname = str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.hdr"
+    os.rename(tmp_path / "data" / "NIRS-2019-08-23_001.evt",
+              tmp_path / "data" / "NIRS-2019-08-23_001.xxx")
+    fname = tmp_path / "data" / "NIRS-2019-08-23_001.hdr"
     raw = read_raw_nirx(fname, preload=True)
     assert raw.annotations.onset.shape == (0, )
 
@@ -268,9 +269,9 @@ def test_nirx_missing_evt(tmp_path):
 def test_nirx_dat_warn(tmp_path):
     """Test reading NIRX files when missing data."""
     shutil.copytree(fname_nirx_15_2_short, str(tmp_path) + "/data/")
-    os.rename(str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.dat",
-              str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.tmp")
-    fname = str(tmp_path) + "/data" + "/NIRS-2019-08-23_001.hdr"
+    os.rename(tmp_path / "data" / "NIRS-2019-08-23_001.dat",
+              tmp_path / "data" / "NIRS-2019-08-23_001.tmp")
+    fname = tmp_path / "data" / "NIRS-2019-08-23_001.hdr"
     with pytest.raises(RuntimeWarning, match='A single dat'):
         read_raw_nirx(fname, preload=True)
 
@@ -456,7 +457,7 @@ def test_nirx_15_3_short():
 
 
 @requires_testing_data
-def test_encoding(tmp_path):
+def test_locale_encoding(tmp_path):
     """Test NIRx encoding."""
     fname = tmp_path / 'latin'
     shutil.copytree(fname_nirx_15_2, fname)
@@ -464,13 +465,28 @@ def test_encoding(tmp_path):
     hdr = list()
     with open(hdr_fname, 'rb') as fid:
         hdr.extend(line for line in fid)
+    # French
     hdr[2] = b'Date="jeu. 13 f\xe9vr. 2020"\r\n'
     with open(hdr_fname, 'wb') as fid:
         for line in hdr:
             fid.write(line)
-    # smoke test
-    with pytest.raises(RuntimeWarning, match='Extraction of measurement date'):
-        read_raw_nirx(fname)
+    read_raw_nirx(fname, verbose='debug')
+    # German
+    hdr[2] = b'Date="mi 13 dez 2020"\r\n'
+    with open(hdr_fname, 'wb') as fid:
+        for line in hdr:
+            fid.write(line)
+    read_raw_nirx(fname, verbose='debug')
+    # Italian
+    hdr[2] = b'Date="ven 24 gen 2020"\r\n'
+    hdr[3] = b'Time="10:57:41.454"\r\n'
+    with open(hdr_fname, 'wb') as fid:
+        for line in hdr:
+            fid.write(line)
+    raw = read_raw_nirx(fname, verbose='debug')
+    want_dt = dt.datetime(
+        2020, 1, 24, 10, 57, 41, 454000, tzinfo=dt.timezone.utc)
+    assert raw.info['meas_date'] == want_dt
 
 
 @requires_testing_data
@@ -577,7 +593,7 @@ def test_nirx_15_0():
     [fname_nirx_15_2_short, 1],
     [fname_nirx_15_2, 0],
     [fname_nirx_15_2, 0],
-    [nirsport2_2021_9, 0]
+    [nirsport2_2021_9, 0],
 ))
 def test_nirx_standard(fname, boundary_decimal):
     """Test standard operations."""

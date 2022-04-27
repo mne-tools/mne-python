@@ -2,6 +2,7 @@
 """
 .. _tut-configure-mne:
 
+======================
 Configuring MNE-Python
 ======================
 
@@ -206,9 +207,12 @@ raw = mne.io.read_raw_kit(kit_data_path, verbose='info')
 # This time, we got a few messages about extracting information from the file,
 # converting that information into the MNE-Python :class:`~mne.Info` format,
 # etc. Finally, if we request ``debug``-level information, we get even more
-# detail:
+# detail -- and we do so this time using the :func:`mne.use_log_level` context
+# manager, which is another way to accomplish the same thing as passing
+# ``verbose='debug'``:
 
-raw = mne.io.read_raw_kit(kit_data_path, verbose='debug')
+with mne.use_log_level('debug'):
+    raw = mne.io.read_raw_kit(kit_data_path)
 
 # %%
 # We've been passing string values to the ``verbose`` parameter, but we can see

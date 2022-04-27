@@ -59,22 +59,8 @@ def make_lcmv_resolution_matrix(filters, forward, info):
     return resmat
 
 
-def _get_matrix_from_lcmv(filters, forward, info, max_ori_out='signed',
-                          verbose=None):
+def _get_matrix_from_lcmv(filters, forward, info, verbose=None):
     """Get inverse matrix for LCMV beamformer.
-
-    Parameters
-    ----------
-    filters : instance of Beamformer
-        LCMV spatial filter.
-    forward : instance of Forward
-        The forward solution.
-    %(info_not_none)s Used to compute the LCMV filters.
-    max_ori_out : str
-        As for beamformer.apply_lcmv(). Default 'signed'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose() and
-        Logging documentation for more).
 
     Returns
     -------
@@ -94,8 +80,7 @@ def _get_matrix_from_lcmv(filters, forward, info, max_ori_out='signed',
     evo_ident = EvokedArray(id_mat, info=info, tmin=0.)
 
     # apply beamformer to identity matrix
-    stc_lcmv = apply_lcmv(evo_ident, filters, max_ori_out='signed',
-                          verbose=verbose)
+    stc_lcmv = apply_lcmv(evo_ident, filters, verbose=verbose)
 
     # turn source estimate into numpsy array
     invmat = stc_lcmv.data

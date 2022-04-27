@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-cluster-evoked:
+
 =======================================================
 Permutation F-test on sensor data with 1D cluster level
 =======================================================
@@ -26,8 +29,9 @@ print(__doc__)
 # %%
 # Set parameters
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
 tmin = -0.2
 tmax = 0.5
 
@@ -67,24 +71,23 @@ T_obs, clusters, cluster_p_values, H0 = \
 # %%
 # Plot
 times = epochs1.times
-plt.close('all')
-plt.subplot(211)
-plt.title('Channel : ' + channel)
-plt.plot(times, condition1.mean(axis=0) - condition2.mean(axis=0),
-         label="ERF Contrast (Event 1 - Event 2)")
-plt.ylabel("MEG (T / m)")
-plt.legend()
-plt.subplot(212)
+fig, (ax, ax2) = plt.subplots(2, 1, figsize=(8, 4))
+ax.set_title('Channel : ' + channel)
+ax.plot(times, condition1.mean(axis=0) - condition2.mean(axis=0),
+        label="ERF Contrast (Event 1 - Event 2)")
+ax.set_ylabel("MEG (T / m)")
+ax.legend()
+
 for i_c, c in enumerate(clusters):
     c = c[0]
     if cluster_p_values[i_c] <= 0.05:
-        h = plt.axvspan(times[c.start], times[c.stop - 1],
+        h = ax2.axvspan(times[c.start], times[c.stop - 1],
                         color='r', alpha=0.3)
     else:
-        plt.axvspan(times[c.start], times[c.stop - 1], color=(0.3, 0.3, 0.3),
+        ax2.axvspan(times[c.start], times[c.stop - 1], color=(0.3, 0.3, 0.3),
                     alpha=0.3)
+
 hf = plt.plot(times, T_obs, 'g')
-plt.legend((h, ), ('cluster p-value < 0.05', ))
-plt.xlabel("time (ms)")
-plt.ylabel("f-values")
-plt.show()
+ax2.legend((h, ), ('cluster p-value < 0.05', ))
+ax2.set_xlabel("time (ms)")
+ax2.set_ylabel("f-values")

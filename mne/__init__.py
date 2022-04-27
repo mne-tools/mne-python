@@ -21,7 +21,8 @@ from ._version import __version__
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,
                     get_config, get_config_path, set_cache_dir,
-                    set_memmap_min_size, grand_average, sys_info, open_docs)
+                    set_memmap_min_size, grand_average, sys_info, open_docs,
+                    use_log_level)
 from .io.pick import (pick_types, pick_channels,
                       pick_channels_regexp, pick_channels_forward,
                       pick_types_forward, pick_channels_cov,
@@ -45,7 +46,7 @@ from .event import (read_events, write_events, find_events, merge_events,
                     find_stim_steps, AcqParserFIF)
 from ._freesurfer import (head_to_mni, head_to_mri, read_talxfm,
                           get_volume_labels_from_aseg, read_freesurfer_lut,
-                          vertex_to_mni)
+                          vertex_to_mni, read_lta)
 from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       average_forward_solutions, Forward,
                       write_forward_solution, make_forward_solution,
@@ -110,7 +111,6 @@ from . import datasets
 from . import dipole
 from . import epochs
 from . import event
-from . import externals
 from . import io
 from . import filter
 from . import gui

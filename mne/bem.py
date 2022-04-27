@@ -33,8 +33,7 @@ from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
-                    _on_missing)
-from .externals.h5io import write_hdf5, read_hdf5
+                    _on_missing, _import_h5io_funcs)
 
 
 # ############################################################################
@@ -1019,7 +1018,7 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
 @verbose
 def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                        volume='T1', atlas=False, gcaatlas=False, preflood=None,
-                       show=False, copy=False, T1=None, brainmask='ws.mgz',
+                       show=False, copy=True, T1=None, brainmask='ws.mgz',
                        verbose=None):
     """Create BEM surfaces using the FreeSurfer watershed algorithm.
 
@@ -1043,10 +1042,11 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
         .. versionadded:: 0.12
 
     copy : bool
-        If True (default False), use copies instead of symlinks for surfaces
+        If True (default), use copies instead of symlinks for surfaces
         (if they do not already exist).
 
         .. versionadded:: 0.18
+        .. versionchanged:: 1.1 Use copies instead of symlinks.
     T1 : bool | None
         If True, pass the ``-T1`` flag.
         By default (None), this takes the same value as ``gcaatlas``.
@@ -1250,6 +1250,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, on_defects='raise',
 
 
 def _read_bem_surfaces_h5(fname, s_id):
+    read_hdf5, _ = _import_h5io_funcs()
     bem = read_hdf5(fname)
     try:
         [s['id'] for s in bem['surfs']]
@@ -1392,6 +1393,7 @@ def read_bem_solution(fname, verbose=None):
     fname = _check_fname(fname, 'read', True, 'fname')
     # mirrors fwd_bem_load_surfaces from fwd_bem_model.c
     if fname.endswith('.h5'):
+        read_hdf5, _ = _import_h5io_funcs()
         logger.info('Loading surfaces and solution...')
         bem = read_hdf5(fname)
     else:
@@ -1557,6 +1559,7 @@ def write_bem_surfaces(fname, surfs, overwrite=False, verbose=None):
     fname = _check_fname(fname, overwrite=overwrite, name='fname')
 
     if fname.endswith('.h5'):
+        _, write_hdf5 = _import_h5io_funcs()
         write_hdf5(fname, dict(surfs=surfs), overwrite=True)
     else:
         with start_and_end_file(fname) as fid:
@@ -1627,6 +1630,7 @@ def write_bem_solution(fname, bem, overwrite=False, verbose=None):
     """
     fname = _check_fname(fname, overwrite=overwrite, name='fname')
     if fname.endswith('.h5'):
+        _, write_hdf5 = _import_h5io_funcs()
         bem = {k: bem[k] for k in ('surfs', 'solution', 'bem_method')}
         write_hdf5(fname, bem, overwrite=True)
     else:
@@ -1834,7 +1838,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
 
 @verbose
 def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
-                   flash_path=None, copy=False, verbose=None):
+                   flash_path=None, copy=True, verbose=None):
     """Create 3-Layer BEM model from prepared flash MRI images.
 
     Parameters
@@ -1852,10 +1856,11 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
         .. versionadded:: 0.13.0
     copy : bool
-        If True (default False), use copies instead of symlinks for surfaces
+        If True (default), use copies instead of symlinks for surfaces
         (if they do not already exist).
 
         .. versionadded:: 0.18
+        .. versionchanged:: 1.1 Use copies instead of symlinks.
     %(verbose)s
 
     See Also
@@ -2087,6 +2092,7 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     this_env['SUBJECTS_DIR'] = subjects_dir
     this_env['SUBJECT'] = subject
+    this_env['subjdir'] = subjects_dir + '/' + subject
     if 'FREESURFER_HOME' not in this_env:
         raise RuntimeError('The FreeSurfer environment needs to be set up '
                            'for this script')

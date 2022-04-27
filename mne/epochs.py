@@ -27,7 +27,7 @@ from .io.write import (start_and_end_file, start_block, end_block,
                        write_complex_double_matrix, write_id, write_string,
                        _get_split_size, _NEXT_FILE_BUFFER, INT32_MAX)
 from .io.meas_info import (read_meas_info, write_meas_info, _merge_info,
-                           _ensure_infos_match)
+                           _ensure_infos_match, ContainsMixin)
 from .io.open import fiff_open, _get_next_fname
 from .io.tree import dir_tree_find
 from .io.tag import read_tag, read_tag_info
@@ -41,12 +41,13 @@ from .io.base import BaseRaw, TimeMixin, _get_ch_factors
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale, _check_baseline
-from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
+from .channels.channels import (UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import detrend, FilterMixin, _check_fun
 from .parallel import parallel_func
 
-from .event import _read_events_fif, make_fixed_length_events
+from .event import (_read_events_fif, make_fixed_length_events,
+                    match_event_names)
 from .fixes import rng_uniform
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
@@ -61,9 +62,8 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_pandas_index_arguments, _convert_times,
                     _scale_dataframe_data, _check_time_format, object_size,
                     _on_missing, _validate_type, _ensure_events,
-                    _path_like)
+                    _path_like, _VerboseDep)
 from .utils.docs import fill_doc
-from .data.html_templates import epochs_template
 from .annotations import (_write_annotations, _read_annotations_fif,
                           EpochAnnotationsMixin)
 
@@ -340,7 +340,8 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 @fill_doc
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin):
+                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin,
+                 _VerboseDep):
     """Abstract base class for `~mne.Epochs`-type classes.
 
     .. warning:: This class provides basic functionality and should never be
@@ -358,15 +359,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     %(baseline_epochs)s
         Defaults to ``(None, 0)``, i.e. beginning of the the data until
         time point zero.
-    %(epochs_raw)s
+    %(raw_epochs)s
     %(picks_all)s
     %(reject_epochs)s
     %(flat)s
     %(decim)s
     %(epochs_reject_tmin_tmax)s
-    %(epochs_detrend)s
+    %(detrend_epochs)s
     %(proj_epochs)s
-    %(epochs_on_missing)s
+    %(on_missing_epochs)s
     preload_at_end : bool
         %(epochs_preload)s
     selection : iterable | None
@@ -377,8 +378,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         be ignored.
     filename : str | None
         The filename (if the epochs are read from disk).
-    %(epochs_metadata)s
-    %(epochs_event_repeated)s
+    %(metadata_epochs)s
+    %(event_repeated_epochs)s
     %(verbose)s
     raw_sfreq : float
         The original Raw object sampling rate. If None, then it is set to
@@ -401,10 +402,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  detrend=None, proj=True, on_missing='raise',
                  preload_at_end=False, selection=None, drop_log=None,
                  filename=None, metadata=None, event_repeated='error',
-                 verbose=None, *, raw_sfreq=None,
+                 *, verbose=None, raw_sfreq=None,
                  annotations=None):  # noqa: D102
-        self.verbose = verbose
-
         if events is not None:  # RtEpochs can have events=None
             events = _ensure_events(events)
             events_max = events.max()
@@ -659,8 +658,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Parameters
         ----------
         %(decim)s
-        %(decim_offset)s
-        %(verbose_meth)s
+        %(offset_decim)s
+        %(verbose)s
 
         Returns
         -------
@@ -715,7 +714,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(baseline_epochs)s
             Defaults to ``(None, 0)``, i.e. beginning of the the data until
             time point zero.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1003,7 +1002,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Returns
         -------
-        %(by_event_type_returns_average)s
+        %(evoked_by_event_type_returns)s
 
         Notes
         -----
@@ -1047,7 +1046,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Returns
         -------
-        %(by_event_type_returns_stderr)s
+        %(std_err_by_event_type_returns)s
         """
         return self.average(picks=picks, method="std",
                             by_event_type=by_event_type)
@@ -1133,8 +1132,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         info = deepcopy(info)
         # don't apply baseline correction; we'll set evoked.baseline manually
         evoked = EvokedArray(data, info, tmin=self.times[0], comment=comment,
-                             nave=n_events, kind=kind, baseline=None,
-                             verbose=self.verbose)
+                             nave=n_events, kind=kind, baseline=None)
         evoked.baseline = self.baseline
 
         # the above constructor doesn't recreate the times object precisely
@@ -1164,7 +1162,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
              title=None, events=None, event_color=None,
              order=None, show=True, block=False, decim='auto', noise_cov=None,
              butterfly=False, show_scrollbars=True, show_scalebars=True,
-             epoch_colors=None, event_id=None, group_by='type'):
+             epoch_colors=None, event_id=None, group_by='type',
+             precompute=None, use_opengl=None, *, theme=None,
+             overview_mode=None):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, events=events, event_color=event_color,
@@ -1173,7 +1173,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                            show_scrollbars=show_scrollbars,
                            show_scalebars=show_scalebars,
                            epoch_colors=epoch_colors, event_id=event_id,
-                           group_by=group_by)
+                           group_by=group_by, precompute=precompute,
+                           use_opengl=use_opengl, theme=theme,
+                           overview_mode=overview_mode)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None,
@@ -1241,7 +1243,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         ----------
         %(reject_drop_bad)s
         %(flat_drop_bad)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1336,7 +1338,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         reason : str
             Reason for dropping the epochs ('ECG', 'timeout', 'blink' etc).
             Default: 'USER'.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1397,7 +1399,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             Start time of data to get in seconds.
         tmax : int | float | None
             End time of data to get in seconds.
-        %(verbose_meth)s
+        %(verbose)s
         """
         start, stop = self._handle_tmin_tmax(tmin, tmax)
 
@@ -1589,13 +1591,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Parameters
         ----------
-        %(applyfun_fun)s
+        %(fun_applyfun)s
         %(picks_all_data_noref)s
-        %(applyfun_dtype)s
+        %(dtype_applyfun)s
         %(n_jobs)s
-        %(applyfun_chwise_epo)s
-        %(verbose_meth)s
-        %(kwarg_fun)s
+        %(channel_wise_applyfun_epo)s
+        %(verbose)s
+        %(kwargs_fun)s
 
         Returns
         -------
@@ -1689,6 +1691,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return '<%s | %s>' % (class_name, s)
 
     def _repr_html_(self):
+        from .html_templates import repr_templates_env
         if self.baseline is None:
             baseline = 'off'
         else:
@@ -1696,22 +1699,24 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             baseline = f'{baseline[0]} – {baseline[1]} sec'
 
         if isinstance(self.event_id, dict):
-            events = ''
+            event_strings = []
             for k, v in sorted(self.event_id.items()):
                 n_events = sum(self.events[:, 2] == v)
-                events += f'{k}: {n_events}<br>'
+                event_strings.append(f'{k}: {n_events}')
         elif isinstance(self.event_id, list):
-            events = ''
+            event_strings = []
             for k in self.event_id:
                 n_events = sum(self.events[:, 2] == k)
-                events += f'{k}: {n_events}<br>'
+                event_strings.append(f'{k}: {n_events}')
         elif isinstance(self.event_id, int):
             n_events = len(self.events[:, 2])
-            events = f'{self.event_id}: {n_events}<br>'
+            event_strings = [f'{self.event_id}: {n_events}']
         else:
-            events = None
-        return epochs_template.substitute(epochs=self, baseline=baseline,
-                                          events=events)
+            event_strings = None
+
+        t = repr_templates_env.get_template('epochs.html.jinja')
+        t = t.render(epochs=self, baseline=baseline, events=event_strings)
+        return t
 
     @verbose
     def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
@@ -1724,7 +1729,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         tmax : float | None
             End time of selection in seconds.
         %(include_tmax)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1831,7 +1836,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(split_naming)s
 
             .. versionadded:: 0.24
-        %(verbose_meth)s
+        %(verbose)s
 
         Notes
         -----
@@ -1942,8 +1947,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Parameters
         ----------
-        %(export_params_fname)s
-        %(export_params_fmt)s
+        %(fname_export_params)s
+        %(fmt_export_params)s
         %(overwrite)s
 
             .. versionadded:: 0.24.1
@@ -2113,13 +2118,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Parameters
         ----------
         %(picks_all)s
-        %(df_index_epo)s
+        %(index_df_epo)s
             Valid string values are 'time', 'epoch', and 'condition'.
             Defaults to ``None``.
-        %(df_scalings)s
-        %(df_copy)s
-        %(df_longform_epo)s
-        %(df_time_format)s
+        %(scalings_df)s
+        %(copy_df)s
+        %(long_format_df_epo)s
+        %(time_format_df)s
 
             .. versionadded:: 0.20
         %(verbose)s
@@ -2343,7 +2348,6 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
     ----------
     .. footbibliography::
     """
-    from .utils.mixin import _hid_match
     pd = _check_pandas_installed()
 
     _validate_type(event_id, types=(dict,), item_name='event_id')
@@ -2380,7 +2384,7 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
                                    keep_last=keep_last).items():
         for first_last_event_name in values:
             try:
-                _hid_match(event_id, [first_last_event_name])
+                match_event_names(event_id, [first_last_event_name])
             except KeyError:
                 raise ValueError(
                     f'Event "{first_last_event_name}", specified in '
@@ -2476,7 +2480,9 @@ def make_metadata(events, event_id, tmin, tmax, sfreq,
 
             # Handle keep_first and keep_last event aggregation
             for event_group_name in keep_first + keep_last:
-                if event_name not in _hid_match(event_id, [event_group_name]):
+                if event_name not in match_event_names(
+                    event_id, [event_group_name]
+                ):
                     continue
 
                 if event_group_name in keep_first:
@@ -2524,7 +2530,7 @@ class Epochs(BaseEpochs):
 
     Parameters
     ----------
-    %(epochs_raw)s
+    %(raw_epochs)s
     %(events_epochs)s
     %(event_id)s
     %(epochs_tmin_tmax)s
@@ -2539,11 +2545,11 @@ class Epochs(BaseEpochs):
     %(proj_epochs)s
     %(decim)s
     %(epochs_reject_tmin_tmax)s
-    %(epochs_detrend)s
-    %(epochs_on_missing)s
+    %(detrend_epochs)s
+    %(on_missing_epochs)s
     %(reject_by_annotation_epochs)s
-    %(epochs_metadata)s
-    %(epochs_event_repeated)s
+    %(metadata_epochs)s
+    %(event_repeated_epochs)s
     %(verbose)s
 
     Attributes
@@ -2580,7 +2586,6 @@ class Epochs(BaseEpochs):
         Time vector in seconds. Goes from ``tmin`` to ``tmax``. Time interval
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
-    %(verbose)s
 
     See Also
     --------
@@ -3169,7 +3174,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
 
     Parameters
     ----------
-    %(epochs_fname)s
+    %(fname_epochs)s
     %(proj_epochs)s
     preload : bool
         If True, read all epochs from disk immediately. If ``False``, epochs
@@ -3207,7 +3212,7 @@ class EpochsFIF(BaseEpochs):
 
     Parameters
     ----------
-    %(epochs_fname)s
+    %(fname_epochs)s
     %(proj_epochs)s
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
@@ -3278,7 +3283,7 @@ class EpochsFIF(BaseEpochs):
 
         unsafe_annot_add = raw_sfreq is None
         (info, data, raw_sfreq, events, event_id, tmin, tmax, metadata,
-         baseline, selection, drop_log, _) = \
+         baseline, selection, drop_log) = \
             _concatenate_epochs(ep_list, with_data=preload, add_offset=False)
         # we need this uniqueness for non-preloaded data to work properly
         if len(np.unique(events[:, 0])) != len(events):
@@ -3438,13 +3443,9 @@ def add_channels_epochs(epochs_list, verbose=None):
 
     proj = any(e.proj for e in epochs_list)
 
-    if verbose is None:
-        verbose = any(e.verbose for e in epochs_list)
-
     epochs = epochs_list[0].copy()
     epochs.info = info
     epochs.picks = None
-    epochs.verbose = verbose
     epochs.events = events
     epochs.preload = True
     epochs._bad_dropped = True
@@ -3490,7 +3491,6 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
     baseline, tmin, tmax = out.baseline, out.tmin, out.tmax
     raw_sfreq = out._raw_sfreq
     info = deepcopy(out.info)
-    verbose = out.verbose
     drop_log = out.drop_log
     event_id = deepcopy(out.event_id)
     selection = out.selection
@@ -3577,18 +3577,17 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
                     dtype=this_data.dtype)
             data[start:stop] = this_data
     return (info, data, raw_sfreq, events, event_id, tmin, tmax, metadata,
-            baseline, selection, drop_log, verbose)
+            baseline, selection, drop_log)
 
 
 def _finish_concat(info, data, raw_sfreq, events, event_id, tmin, tmax,
-                   metadata, baseline, selection, drop_log, verbose):
+                   metadata, baseline, selection, drop_log):
     """Finish concatenation for epochs not read from disk."""
     selection = np.where([len(d) == 0 for d in drop_log])[0]
     out = BaseEpochs(
         info, data, events, event_id, tmin, tmax, baseline=baseline,
         selection=selection, drop_log=drop_log, proj=False,
-        on_missing='ignore', metadata=metadata, verbose=verbose,
-        raw_sfreq=raw_sfreq)
+        on_missing='ignore', metadata=metadata, raw_sfreq=raw_sfreq)
     out.drop_bad()
     return out
 
@@ -3610,7 +3609,7 @@ def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
         Epochs sets, such that they are easy to distinguish after the
         concatenation.
         If False, the event times are unaltered during the concatenation.
-    %(on_info_mismatch)s
+    %(on_mismatch_info)s
     %(verbose)s
 
         .. versionadded:: 0.24
@@ -3640,24 +3639,24 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     ----------
     epochs : instance of Epochs
         The epochs to operate on.
-    %(maxwell_pos)s
+    %(head_pos_maxwell)s
     orig_sfreq : float | None
         The original sample frequency of the data (that matches the
         event sample numbers in ``epochs.events``). Can be ``None``
         if data have not been decimated or resampled.
     %(picks_all_data)s
-    %(maxwell_origin)s
+    %(origin_maxwell)s
     weight_all : bool
         If True, all channels are weighted by the SSS basis weights.
         If False, only MEG channels are weighted, other channels
         receive uniform weight per epoch.
-    %(maxwell_int)s
-    %(maxwell_ext)s
-    %(maxwell_dest)s
-    %(maxwell_ref)s
+    %(int_order_maxwell)s
+    %(ext_order_maxwell)s
+    %(destination_maxwell_dest)s
+    %(ignore_ref_maxwell)s
     return_mapping : bool
         If True, return the mapping matrix.
-    %(maxwell_mag)s
+    %(mag_scale_maxwell)s
 
         .. versionadded:: 0.13
     %(verbose)s

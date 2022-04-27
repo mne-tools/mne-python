@@ -18,18 +18,22 @@ import numpy as np
 from numpy.testing import (assert_allclose, assert_array_almost_equal,
                            assert_array_equal, assert_array_less)
 
+import mne
 from mne import concatenate_raws, create_info, Annotations, pick_types
 from mne.datasets import testing
-from mne.externals.h5io import read_hdf5, write_hdf5
 from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
 from mne.io.base import _get_scaling
 from mne.utils import (_TempDir, catch_logging, _raw_annot, _stamp_to_dt,
-                       object_diff, check_version, requires_pandas)
+                       object_diff, check_version, requires_pandas,
+                       _import_h5io_funcs)
 from mne.io.meas_info import _get_valid_units
 from mne.io._digitization import DigPoint
 from mne.io.proj import Projection
 from mne.io.utils import _mult_cal_one
 from mne.io.constants import FIFF
+
+raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
+                    'data', 'test_raw.fif')
 
 
 def assert_named_constants(info):
@@ -139,7 +143,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             other_raw.info, meg=meg, eeg=eeg, fnirs=fnirs)
         col_names = [other_raw.ch_names[pick] for pick in picks]
         proj = np.ones((1, len(picks)))
-        proj /= proj.shape[1]
+        proj /= np.sqrt(proj.shape[1])
         proj = Projection(
             data=dict(data=proj, nrow=1, row_names=None,
                       col_names=col_names, ncol=len(picks)),
@@ -234,12 +238,17 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             this_proj = other_raw.info['projs'][0]['data']
             assert this_proj['col_names'] == col_names
             assert this_proj['data'].shape == proj['data']['data'].shape
+            assert_allclose(
+                np.linalg.norm(proj['data']['data']), 1., atol=1e-6)
+            assert_allclose(
+                np.linalg.norm(this_proj['data']), 1., atol=1e-6)
             assert_allclose(this_proj['data'], proj['data']['data'])
             proj = other_raw.apply_proj().get_data()
             assert_allclose(proj[picks], data_load_apply_get, atol=1e-10)
             assert_allclose(proj, direct, atol=1e-10, err_msg=t_kw['err_msg'])
     else:
         raw = reader(**kwargs)
+    n_samp = len(raw.times)
     assert_named_constants(raw.info)
     # smoke test for gh #9743
     ids = [id(ch['loc']) for ch in raw.info['chs']]
@@ -359,7 +368,8 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
 
     # Make sure that writing info to h5 format
     # (all fields should be compatible)
-    if check_version('h5py'):
+    if check_version('h5io'):
+        read_hdf5, write_hdf5 = _import_h5io_funcs()
         fname_h5 = op.join(tempdir, 'info.h5')
         with _writing_info_hdf5(raw.info):
             write_hdf5(fname_h5, raw.info)
@@ -397,7 +407,59 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
                 os.chdir(orig_dir)
             raw_chdir.load_data()
 
+    # make sure that cropping works (with first_samp shift)
+    if n_samp >= 50:  # we crop to this number of samples below
+        for t_prop in (0., 0.5):
+            _test_raw_crop(reader, t_prop, kwargs)
+            if test_preloading:
+                use_kwargs = kwargs.copy()
+                use_kwargs['preload'] = True
+                _test_raw_crop(reader, t_prop, use_kwargs)
+
     return raw
+
+
+def _test_raw_crop(reader, t_prop, kwargs):
+    raw_1 = reader(**kwargs)
+    n_samp = 50  # crop to this number of samples (per instance)
+    crop_t = n_samp / raw_1.info['sfreq']
+    t_start = t_prop * crop_t  # also crop to some fraction into the first inst
+    extra = f' t_start={t_start}, preload={kwargs.get("preload", False)}'
+    stop = (n_samp - 1) / raw_1.info['sfreq']
+    raw_1.crop(0, stop)
+    assert len(raw_1.times) == 50
+    first_time = raw_1.first_time
+    atol = 0.5 / raw_1.info['sfreq']
+    assert_allclose(raw_1.times[-1], stop, atol=atol)
+    raw_2, raw_3 = raw_1.copy(), raw_1.copy()
+    t_tot = raw_1.times[-1] * 3 + 2. / raw_1.info['sfreq']
+    raw_concat = concatenate_raws([raw_1, raw_2, raw_3])
+    assert len(raw_concat._filenames) == 3
+    assert_allclose(raw_concat.times[-1], t_tot)
+    assert_allclose(raw_concat.first_time, first_time)
+    # keep all instances, but crop to t_start at the beginning
+    raw_concat.crop(t_start, None)
+    assert len(raw_concat._filenames) == 3
+    assert_allclose(raw_concat.times[-1], t_tot - t_start, atol=atol)
+    assert_allclose(
+        raw_concat.first_time, first_time + t_start, atol=atol,
+        err_msg=f'Base concat, {extra}')
+    # drop the first instance
+    raw_concat.crop(crop_t, None)
+    assert len(raw_concat._filenames) == 2
+    assert_allclose(
+        raw_concat.times[-1], t_tot - t_start - crop_t, atol=atol)
+    assert_allclose(
+        raw_concat.first_time, first_time + t_start + crop_t,
+        atol=atol, err_msg=f'Dropping one, {extra}')
+    # drop the second instance, leaving just one
+    raw_concat.crop(crop_t, None)
+    assert len(raw_concat._filenames) == 1
+    assert_allclose(
+        raw_concat.times[-1], t_tot - t_start - 2 * crop_t, atol=atol)
+    assert_allclose(
+        raw_concat.first_time, first_time + t_start + 2 * crop_t,
+        atol=atol, err_msg=f'Dropping two, {extra}')
 
 
 def _test_concat(reader, *args):
@@ -435,8 +497,6 @@ def _test_concat(reader, *args):
 @testing.requires_testing_data
 def test_time_as_index():
     """Test indexing of raw times."""
-    raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                        'data', 'test_raw.fif')
     raw = read_raw_fif(raw_fname)
 
     # Test original (non-rounding) indexing behavior
@@ -446,6 +506,37 @@ def test_time_as_index():
     # Test new (rounding) indexing behavior
     new_inds = raw.time_as_index(raw.times, use_rounding=True)
     assert_array_equal(new_inds, np.arange(len(raw.times)))
+
+
+@pytest.mark.parametrize('meas_date', [None, "orig"])
+@pytest.mark.parametrize('first_samp', [0, 10000])
+def test_crop_by_annotations(meas_date, first_samp):
+    """Test crop by annotations of raw."""
+    raw = read_raw_fif(raw_fname)
+
+    if meas_date is None:
+        raw.set_meas_date(None)
+
+    raw = mne.io.RawArray(raw.get_data(), raw.info, first_samp=first_samp)
+
+    onset = np.array([0, 1.5], float)
+    if meas_date is not None:
+        onset += raw.first_time
+    annot = mne.Annotations(
+        onset=onset,
+        duration=[1, 0.5],
+        description=["a", "b"],
+        orig_time=raw.info['meas_date'])
+
+    raw.set_annotations(annot)
+    raws = raw.crop_by_annotations()
+    assert len(raws) == 2
+    assert len(raws[0].annotations) == 1
+    assert raws[0].times[-1] == pytest.approx(annot[:1].duration[0], rel=1e-3)
+    assert raws[0].annotations.description[0] == annot.description[0]
+    assert len(raws[1].annotations) == 1
+    assert raws[1].times[-1] == pytest.approx(annot[1:2].duration[0], rel=5e-3)
+    assert raws[1].annotations.description[0] == annot.description[1]
 
 
 @pytest.mark.parametrize('offset, origin', [

@@ -5,7 +5,6 @@
 
 import os
 import os.path as op
-import re
 
 from setuptools import setup
 
@@ -61,17 +60,11 @@ if __name__ == "__main__":
     with open('README.rst', 'r') as fid:
         long_description = fid.read()
 
-    hard_dependencies = ('numpy', 'scipy')
-    data_dependencies = ('pooch', 'tqdm')
-    install_requires = list()
-    data_requires = list()
-    for req in parse_requirements_file('requirements.txt'):
-        pkg = re.split(r'[~<>=!;]', req, maxsplit=1)[0]
-        if pkg in hard_dependencies:
-            install_requires.append(req)
-        elif pkg in data_dependencies:
-            data_requires.append(req)
-
+    # data_dependencies is empty, but let's leave them so that we don't break
+    # people's workflows who did `pip install mne[data]`
+    install_requires = parse_requirements_file('requirements_base.txt')
+    data_requires = []
+    hdf5_requires = parse_requirements_file('requirements_hdf5.txt')
     test_requires = (parse_requirements_file('requirements_testing.txt') +
                      parse_requirements_file('requirements_testing_extra.txt'))
     setup(name=DISTNAME,
@@ -109,6 +102,7 @@ if __name__ == "__main__":
           install_requires=install_requires,
           extras_require={
               'data': data_requires,
+              'hdf5': hdf5_requires,
               'test': test_requires,
           },
           packages=package_tree('mne'),
@@ -134,6 +128,8 @@ if __name__ == "__main__":
               op.join('datasets', '_phantom', '*.txt'),
               op.join('html', '*.js'),
               op.join('html', '*.css'),
+              op.join('html_templates', 'repr', '*.jinja'),
+              op.join('html_templates', 'report', '*.jinja'),
               op.join('icons', '*.svg'),
               op.join('icons', '*.png'),
               op.join('io', 'artemis123', 'resources', '*.csv'),

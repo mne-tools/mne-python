@@ -20,7 +20,7 @@ MR-space (which is where the brain structures are best determined using the
 be warped to a template space such as ``fsaverage`` for group comparisons.
 Please note that this tutorial requires ``nibabel``, ``nilearn`` and ``dipy``
 which can be installed using ``pip`` as well as 3D plotting
-(see :ref:`quick-start`).
+(see :ref:`manual-install`).
 """
 
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
@@ -187,41 +187,62 @@ del CT_resampled
 # here::
 #
 #    reg_affine, _ = mne.transforms.compute_volume_registration(
-#         CT_orig, T1, pipeline='rigids')
+#         CT_orig, T1, pipeline='rigids', zooms=dict(translation=5)))
 #
-# And instead we just hard-code the resulting 4x4 matrix:
+# Instead we just hard-code the resulting 4x4 matrix:
 
 reg_affine = np.array([
     [0.99270756, -0.03243313, 0.11610254, -133.094156],
     [0.04374389, 0.99439665, -0.09623816, -97.58320673],
     [-0.11233068, 0.10061512, 0.98856381, -84.45551601],
     [0., 0., 0., 1.]])
-CT_aligned = mne.transforms.apply_volume_registration(CT_orig, T1, reg_affine)
+# use a cval='1%' here to make the values outside the domain of the CT
+# the same as the background level during interpolation
+CT_aligned = mne.transforms.apply_volume_registration(
+    CT_orig, T1, reg_affine, cval='1%')
 plot_overlay(T1, CT_aligned, 'Aligned CT Overlaid on T1', thresh=0.95)
 del CT_orig
 
 # %%
 # .. note::
-#     Alignment failures sometimes occur which requires manual alignment.
-#     This can be done using Freesurfer's ``freeview`` to align manually
+#     Alignment failures sometimes occur which requires manual pre-alignment.
+#     Freesurfer's ``freeview`` can be used to to align manually
 #
-#         - Load the two scans from the command line using
-#           ``freeview $MISC_PATH/seeg/sample_seeg/mri/T1.mgz
-#           $MISC_PATH/seeg/sample_seeg_CT.mgz``
-#         - Navigate to the upper toolbar, go to
-#           :menuselection:`Tools --> Transform Volume`
-#         - Use the rotation and translation slide bars to align the CT
-#           to the MR (be sure to have the CT selected in the upper left menu)
-#         - Save the modified volume using the ``Save Volume As...`` button
-#         - Resample to the T1 shape and affine using::
+#     .. code-block:: bash
 #
-#               CT_aligned_pre = nib.load(op.join(misc_path, 'seeg',
-#                                                 'sample_seeg_CT_aligned.mgz'))
-#               CT_aligned = resample(
-#                   moving=np.asarray(CT_aligned_pre.dataobj),
-#                   static=np.asarray(T1.dataobj),
-#                   moving_affine=CT_aligned_pre.affine,
-#                   static_affine=T1.affine)
+#         $ freeview $MISC_PATH/seeg/sample_seeg/mri/T1.mgz \
+#            $MISC_PATH/seeg/sample_seeg_CT.mgz:colormap=heat:opacity=0.6
+#
+#     - Navigate to the upper toolbar, go to
+#       :menuselection:`Tools --> Transform Volume`
+#     - Use the rotation and translation slide bars to align the CT
+#       to the MR (be sure to have the CT selected in the upper left menu)
+#     - Save the linear transform array (lta) file using the ``Save Reg...``
+#       button
+#
+#     Since we really require as much precision as possible for the
+#     alignment, we should rerun the algorithm starting with the manual
+#     alignment. This time, we just want to skip to the most exact rigid
+#     alignment, without smoothing, since the manual alignment is already
+#     very close.
+#
+#     .. code-block:: python
+#
+#         from dipy.align import affine_registration
+#         # load transform
+#         manual_reg_affine_vox = mne.read_lta(op.join(  # the path used above
+#             misc_path, 'seeg', 'sample_seeg_CT_aligned_manual.mgz.lta'))
+#         # convert from vox->vox to ras->ras
+#         manual_reg_affine = \
+#             CT_orig.affine @ np.linalg.inv(manual_reg_affine_vox) \
+#             @ np.linalg.inv(T1.affine)
+#         CT_aligned_fix_img = affine_registration(
+#             moving=np.array(CT_orig.dataobj), static=np.array(T1.dataobj),
+#             moving_affine=CT_orig.affine, static_affine=T1.affine,
+#             pipeline=['rigid'], starting_affine=manual_reg_affine,
+#             level_iters=[100], sigmas=[0], factors=[1])[0]
+#         CT_aligned = nib.MGHImage(
+#             CT_aligned_fix_img.astype(np.float32), T1.affine)
 #
 #     The rest of the tutorial can then be completed using ``CT_aligned``
 #     from this point on.
@@ -317,6 +338,7 @@ subj_trans = mne.coreg.estimate_head_mri_t(
 
 # load electrophysiology data to find channel locations for
 # (the channels are already located in the example)
+
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
 
 gui = mne.gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
@@ -324,7 +346,7 @@ gui = mne.gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
                           subjects_dir=op.join(misc_path, 'seeg'))
 # The `raw` object is modified to contain the channel locations
 # after closing the GUI and can now be saved
-gui.close()  # close when done
+# gui.close()  # typically you close when done
 
 # %%
 # Let's do a quick sidebar and show what this looks like for ECoG as well.
@@ -340,7 +362,7 @@ reg_affine = np.array([
     [0., 0., 0., 1.]])
 # align CT
 CT_aligned_ecog = mne.transforms.apply_volume_registration(
-    CT_orig_ecog, T1_ecog, reg_affine)
+    CT_orig_ecog, T1_ecog, reg_affine, cval='1%')
 
 raw_ecog = mne.io.read_raw(op.join(misc_path, 'ecog', 'sample_ecog_ieeg.fif'))
 # use estimated `trans` which was used when the locations were found previously

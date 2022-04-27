@@ -14,7 +14,7 @@
 
 .. _Simon Kornblith: http://simonster.com
 
-.. _Teon Brooks: https://teonbrooks.github.io
+.. _Teon Brooks: https://teonbrooks.com
 
 .. _Mainak Jas: https://jasmainak.github.io
 
@@ -82,7 +82,7 @@
 
 .. _Jair Montoya Martinez: https://github.com/jmontoyam
 
-.. _Samu Taulu: http://ilabs.washington.edu/institute-faculty/bio/i-labs-samu-taulu-dsc
+.. _Samu Taulu: https://phys.washington.edu/people/samu-taulu
 
 .. _Lorenzo Desantis: https://github.com/lorenzo-desantis/
 
@@ -138,7 +138,7 @@
 
 .. _Erkka Heinila: https://github.com/Teekuningas
 
-.. _Andrea Brovelli: http://andrea-brovelli.net
+.. _Andrea Brovelli: https://andrea-brovelli.net
 
 .. _Richard Höchenberger: https://github.com/hoechenberger
 
@@ -161,6 +161,8 @@
 .. _Stefan Repplinger: https://github.com/stfnrpplngr
 
 .. _Okba Bekhelifi: https://github.com/okbalefthanded
+
+.. _Matthias Eberlein: https://github.com/MatthiasEb
 
 .. _Nicolas Barascud: https://github.com/nbara
 
@@ -408,7 +410,7 @@
 
 .. _Mathieu Scheltienne: https://github.com/mscheltienne
 
-.. _Timothy Gates: https://github.com/timgates42
+.. _Timothy Gates: https://au.linkedin.com/in/tim-gates-0528a4199
 
 .. _Reza Shoorangiz: https://github.com/rezashr
 
@@ -423,3 +425,19 @@
 .. _Adina Wagner: https://github.com/adswa
 
 .. _Senwen Deng: https://snwn.de
+
+.. _Alessandro Tonin: https://wysscenter.ch/team/alessandro-tonin
+
+.. _Michiru Kaneda: https://github.com/rcmdnk
+
+.. _Scott Huberty:  https://orcid.org/0000-0003-2637-031X
+
+.. _Etienne de Montalivet: https://github.com/etiennedemontalivet
+
+.. _Federico Zamberlan: https://github.com/fzamberlan
+
+.. _John Veillette: https://psychology.uchicago.edu/directory/john-veillette
+
+.. _Nikolai Chapochnikov: https://github.com/chapochn
+
+.. _Matthias Dold: https://matthiasdold.de

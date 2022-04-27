@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-epochs-dataframe:
 
+=====================================
 Exporting Epochs to Pandas DataFrames
 =====================================
 
@@ -17,7 +19,10 @@ need and loading the data:
 
 # %%
 import os
+
+import matplotlib.pyplot as plt
 import seaborn as sns
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
@@ -126,10 +131,12 @@ long_df.head()
 # confidence band for each channel, with confidence computed across the epochs
 # in the chosen condition:
 
+plt.figure()
 channels = ['MEG 1332', 'MEG 1342']
 data = long_df.loc['auditory/left'].query('channel in @channels')
 # convert channel column (CategoryDtype → string; for a nicer-looking legend)
 data['channel'] = data['channel'].astype(str)
+data.reset_index(drop=True, inplace=True)  # speeds things up
 sns.lineplot(x='time', y='value', hue='channel', data=data)
 
 # %%
@@ -139,6 +146,7 @@ sns.lineplot(x='time', y='value', hue='channel', data=data)
 # of the timing of the peak in each channel as a :func:`~seaborn.violinplot`:
 
 # sphinx_gallery_thumbnail_number = 2
+plt.figure()
 df = epochs.to_data_frame(time_format=None)
 peak_latency = (df.filter(regex=r'condition|epoch|MEG 1332|MEG 2123')
                 .groupby(['condition', 'epoch'])

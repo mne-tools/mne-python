@@ -8,6 +8,7 @@ import shutil
 import zipfile
 
 import numpy as np
+import pooch
 import pytest
 
 from mne.io.constants import (FIFF, FWD, _coord_frame_named, _ch_kind_named,
@@ -16,10 +17,6 @@ from mne.io.constants import (FIFF, FWD, _coord_frame_named, _ch_kind_named,
                               _dig_cardinal_named)
 from mne.forward._make_forward import _read_coil_defs
 from mne.utils import requires_good_network
-from mne.utils.check import _soft_import
-
-# import pooch library for handling the dataset downloading
-pooch = _soft_import('pooch', 'dataset downloading', strict=True)
 
 
 # https://github.com/mne-tools/fiff-constants/commits/master

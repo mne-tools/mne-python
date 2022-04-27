@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-topo-compare:
+
 =================================================
 Compare evoked responses for different conditions
 =================================================
@@ -29,8 +32,9 @@ data_path = sample.data_path()
 
 # %%
 # Set parameters
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
 tmin = -0.2
 tmax = 0.5
 

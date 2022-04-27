@@ -29,8 +29,10 @@ fname_evoked = op.join(base_dir, 'test-ave.fif')
 
 data_path = testing.data_path(download=False)
 egi_evoked_fname = op.join(data_path, 'EGI', 'test_egi_evoked.mff')
+misc_path = misc.data_path(download=False)
 
 
+@requires_version('pymatreader')
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
                     reason='eeglabio not installed')
 def test_export_raw_eeglab(tmp_path):
@@ -239,7 +241,8 @@ def test_rawarray_edf(tmp_path):
 @pytest.mark.parametrize(
     ['dataset', 'format'], [
         ['test', 'edf'],
-        pytest.param('misc', 'edf', marks=pytest.mark.slowtest),
+        pytest.param('misc', 'edf', marks=[pytest.mark.slowtest,
+                                           misc._pytest_mark()]),
     ])
 def test_export_raw_edf(tmp_path, dataset, format):
     """Test saving a Raw instance to EDF format."""
@@ -247,7 +250,7 @@ def test_export_raw_edf(tmp_path, dataset, format):
         fname = _resource_path('mne.io.tests.data', 'test_raw.fif')
         raw = read_raw_fif(fname)
     elif dataset == 'misc':
-        fname = op.join(misc.data_path(), 'ecog', 'sample_ecog_ieeg.fif')
+        fname = op.join(misc_path, 'ecog', 'sample_ecog_ieeg.fif')
         raw = read_raw_fif(fname)
 
     # only test with EEG channels
@@ -297,6 +300,7 @@ def test_export_raw_edf(tmp_path, dataset, format):
         raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
 
 
+@requires_version('pymatreader')
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
                     reason='eeglabio not installed')
 @pytest.mark.parametrize('preload', (True, False))

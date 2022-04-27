@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-linear-sensor-decoding:
+
 =========================================================================
 Decoding sensor space data with generalization across time and conditions
 =========================================================================
@@ -32,8 +35,9 @@ print(__doc__)
 # Preprocess data
 data_path = sample.data_path()
 # Load and filter data, set up epochs
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-events_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+events_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')  # Pick MEG channels
 raw.filter(1., 30., fir_design='firwin')  # Band pass filtering signals
@@ -52,7 +56,10 @@ epochs = mne.Epochs(raw, events, event_id=event_id, tmin=tmin, tmax=tmax,
 # %%
 # We will train the classifier on all left visual vs auditory trials
 # and test on all right visual vs auditory trials.
-clf = make_pipeline(StandardScaler(), LogisticRegression(solver='lbfgs'))
+clf = make_pipeline(
+    StandardScaler(),
+    LogisticRegression(solver='liblinear')  # liblinear is faster than lbfgs
+)
 time_gen = GeneralizingEstimator(clf, scoring='roc_auc', n_jobs=1,
                                  verbose=True)
 
