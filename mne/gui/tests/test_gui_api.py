@@ -340,6 +340,7 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
             text='',
             info_text='',
             callback=mock,
+            icon='NoIcon',
             modal=False,
         )
         widget.show()
