@@ -463,18 +463,14 @@ class IntracranialElectrodeLocator():
     def _configure_dock(self):
         """Make a bar with sliders on it."""
         self._renderer._dock_initialize(window=self._window, area="top")
+        dock_layout = self._renderer._dock_layout
+        row1_layout = self._renderer._layout_create(orientation='horizontal')
         self._alpha_slider = self._renderer._dock_add_slider(
             name="ch alpha",
             value=self._ch_alpha * 100,
             rng=[0, 100],
             callback=self._update_ch_alpha,
-        )
-        ch_plot_max = _CH_PLOT_SIZE // 50  # max 1 / 50 of plot size
-        self._radius_slider = self._renderer._dock_add_slider(
-            name="ch radius",
-            value=self._radius,
-            rng=[0, ch_plot_max],
-            callback=self._update_radius,
+            layout=row1_layout,
         )
         ct_min = int(round(np.nanmin(self._ct_data)))
         ct_max = int(round(np.nanmax(self._ct_data)))
@@ -483,13 +479,26 @@ class IntracranialElectrodeLocator():
             value=ct_min,
             rng=[ct_min, ct_max],
             callback=self._update_ct_scale,
+            layout=row1_layout,
+        )
+        self._renderer._layout_add_widget(dock_layout, row1_layout)
+        row2_layout = self._renderer._layout_create(orientation='horizontal')
+        ch_plot_max = _CH_PLOT_SIZE // 50  # max 1 / 50 of plot size
+        self._radius_slider = self._renderer._dock_add_slider(
+            name="ch radius",
+            value=self._radius,
+            rng=[0, ch_plot_max],
+            callback=self._update_radius,
+            layout=row2_layout,
         )
         self._ct_max_slider = self._renderer._dock_add_slider(
             name="CT max",
             value=ct_max,
             rng=[ct_min, ct_max],
             callback=self._update_ct_scale,
+            layout=row2_layout,
         )
+        self._renderer._layout_add_widget(dock_layout, row2_layout)
 
     def _configure_status_bar(self):
         """Make a bar at the bottom with information in it."""
