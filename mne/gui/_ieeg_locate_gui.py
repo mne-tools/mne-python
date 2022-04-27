@@ -13,9 +13,8 @@ import platform
 from scipy.ndimage import maximum_filter
 
 from qtpy import QtCore, QtGui
-from qtpy.QtCore import Signal
 from qtpy.QtWidgets import (QLabel, QAbstractItemView,
-                            QListView, QSlider, QComboBox)
+                            QListView, QSlider)
 
 from matplotlib import patheffects
 from matplotlib.backends.backend_qt5agg import FigureCanvas
@@ -74,17 +73,6 @@ def _load_image(img, name, verbose=True):
     aff_trans = nib.orientations.inv_ornt_aff(ornt_trans, img.shape)
     vox_ras_t = np.dot(orig_mgh.header.get_vox2ras_tkr(), aff_trans)
     return img_data, vox_ras_t
-
-
-class ComboBox(QComboBox):
-    """Dropdown menu that emits a click when popped up."""
-
-    clicked = Signal()
-
-    def showPopup(self):
-        """Override show popup method to emit click."""
-        self.clicked.emit()
-        super(ComboBox, self).showPopup()
 
 
 def _make_slice_plot(width=4, height=4, dpi=300):
@@ -461,25 +449,17 @@ class IntracranialElectrodeLocator():
             desc='Remove',
             func=self._remove_ch,
         )
-
-        self._group_selector = ComboBox()
-        group_model = self._group_selector.model()
-
-        for i in range(_N_COLORS):
-            self._group_selector.addItem(' ')
-            color = QtGui.QColor()
-            color.setRgb(*(255 * np.array(_CMAP(i))).round().astype(int))
-            brush = QtGui.QBrush(color)
-            brush.setStyle(QtCore.Qt.SolidPattern)
-            group_model.setData(group_model.index(i, 0),
-                                brush, QtCore.Qt.BackgroundRole)
-        self._group_selector.clicked.connect(self._select_group)
-        self._group_selector.currentIndexChanged.connect(
-            self._select_group)
-
+        self._group_selector = self._renderer._tool_bar_add_combo_box(
+            name="Select Group",
+            value=0,
+            rng=[' '] * _N_COLORS,
+            callback=self._select_group,
+            indexing=True,
+            compact=True,
+            tooltip="Select the FreeSurfer subject name",
+        )
         # update background color for current selection
         self._update_group()
-        self._renderer._tool_bar.addWidget(self._group_selector)
 
     def _get_slider_bar(self):
         """Make a bar with sliders on it."""
@@ -640,16 +620,17 @@ class IntracranialElectrodeLocator():
             self._ch_list_model.index(self._ch_index, 0))
         self._ch_list.keyPressEvent = self._key_press_event
 
-    def _select_group(self):
+    def _select_group(self, idx):
         """Change the group label to the selection."""
-        group = self._group_selector.currentIndex()
-        self._groups[self._ch_names[self._ch_index]] = group
+        self._groups[self._ch_names[self._ch_index]] = idx
         # color differently if found already
         self._color_list_item(self._ch_names[self._ch_index])
         self._update_group()
 
     def _update_group(self):
         """Set background for closed group menu."""
+        # XXX: disabled for now
+        return
         group = self._group_selector.currentIndex()
         rgb = (255 * np.array(_CMAP(group))).round().astype(int)
         self._group_selector.setStyleSheet(

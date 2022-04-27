@@ -466,6 +466,21 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         self._tool_bar.addWidget(widget)
         return _QtWidget(widget)
 
+    def _tool_bar_add_combo_box(self, name, value, rng, callback, *,
+                                indexing=False, compact=True, tooltip=None):
+        widget = QComboBox()
+        _set_widget_tooltip(widget, tooltip)
+        widget.addItems(rng)
+        if indexing:
+            widget.setCurrentIndex(value)
+            widget.currentIndexChanged.connect(callback)
+        else:
+            widget.setCurrentText(value)
+            widget.currentTextChanged.connect(callback)
+        widget.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        self._tool_bar.addWidget(widget)
+        return _QtWidget(widget)
+
 
 class _QtMenuBar(_AbstractMenuBar):
     def _menu_initialize(self, window=None):
