@@ -156,8 +156,8 @@ def test_plot_evoked_field(renderer):
         with pytest.warns(RuntimeWarning, match='projection'):
             maps = make_field_map(evoked, trans_fname, subject='sample',
                                   subjects_dir=subjects_dir, n_jobs=1,
-                                  ch_type=t, n_contours=n_contours)
-        evoked.plot_field(maps, time=0.1)
+                                  ch_type=t)
+        evoked.plot_field(maps, time=0.1, n_contours=n_contours)
 
 
 def _assert_n_actors(fig, renderer, n_actors):
