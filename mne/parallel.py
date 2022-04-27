@@ -167,7 +167,8 @@ def check_n_jobs(n_jobs, allow_cuda=False, *, max_jobs=None):
     if n_jobs is None:
         n_jobs = 1  # TODO actually do something better here
     n_jobs = _ensure_int(n_jobs, 'n_jobs')
-    if os.getenv('MNE_FORCE_SERIAL', '').lower() in ('true', '1'):
+    if os.getenv('MNE_FORCE_SERIAL', '').lower() in ('true', '1') and \
+            n_jobs != 1:
         n_jobs = 1
         logger.info('... MNE_FORCE_SERIAL set. Processing in forced '
                     'serial mode.')
