@@ -150,7 +150,7 @@ class IntracranialElectrodeLocator():
         self._renderer = _get_renderer(
             name='IEEG Locator', size=(400, 400), bgcolor='w')
         self._window = self._renderer._window_create()
-        self._help_dialog = self._renderer._dialog_warning(
+        self._help_dialog = self._renderer._dialog_create(
             title="Help",
             text="Help:\n'm': mark channel location\n"
                  "'r': remove channel location\n"
@@ -160,6 +160,7 @@ class IntracranialElectrodeLocator():
                  "left angle bracket/right angle bracket: anterior/posterior",
             info_text="",
             callback=lambda x: None,
+            icon="Information",
             buttons=["Ok"],
             modal=not MNE_3D_BACKEND_TESTING,
         )
