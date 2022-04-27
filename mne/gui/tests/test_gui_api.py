@@ -319,7 +319,7 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
     if renderer._kind == 'qt':
         # warning
         buttons = ["Save", "Cancel"]
-        widget = renderer._dialog_warning(
+        widget = renderer._dialog_create(
             title='',
             text='',
             info_text='',
@@ -335,7 +335,7 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
 
         # buttons list empty means OK button (default)
         button = 'Ok'
-        widget = renderer._dialog_warning(
+        widget = renderer._dialog_create(
             title='',
             text='',
             info_text='',
