@@ -1827,11 +1827,11 @@ n_comp : int
 docdict['n_jobs'] = """
 n_jobs : int | None
     The number of jobs to run in parallel. If ``-1``, it is set
-    to the number of CPU cores. Requires the ``joblib`` package.
+    to the number of CPU cores. Requires the :mod:`joblib` package.
     ``None`` (default) is a marker for 'unset' that will be interpreted
-    as n_jobs=1 (sequential execution) unless the call is performed under a
-    :class:`joblib.parallel_backend` context manager that sets another value
-    n_jobs.
+    as ``n_jobs=1`` (sequential execution) unless the call is performed under
+    a :class:`joblib.parallel_backend` context manager that sets another value
+    for ``n_jobs``.
 """
 
 docdict['n_jobs_cuda'] = """
