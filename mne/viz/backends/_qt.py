@@ -117,11 +117,14 @@ class _QtDock(_AbstractDock, _QtLayout):
     def _dock_initialize(self, window=None, name="Controls",
                          area="left", max_width=None):
         window = self._window if window is None else window
-        qt_area = Qt.LeftDockWidgetArea if area == "left" \
-            else Qt.RightDockWidgetArea
+        qt_area = list(area.lower())
+        qt_area[0] = qt_area[0].upper()
+        qt_area = ''.join(qt_area)
+        qt_area = getattr(Qt, qt_area + 'DockWidgetArea')
         self._dock, self._dock_layout = _create_dock_widget(
-            self._window, name, qt_area, max_width=max_width
+            window, name, qt_area, max_width=max_width
         )
+        # resolve corner
         if area == "left":
             window.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
         else:

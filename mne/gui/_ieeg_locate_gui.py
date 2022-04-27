@@ -13,8 +13,7 @@ import platform
 from scipy.ndimage import maximum_filter
 
 from qtpy import QtCore, QtGui
-from qtpy.QtWidgets import (QLabel, QAbstractItemView,
-                            QListView, QSlider)
+from qtpy.QtWidgets import QAbstractItemView, QListView
 
 from matplotlib import patheffects
 from matplotlib.backends.backend_qt5agg import FigureCanvas
@@ -188,7 +187,7 @@ class IntracranialElectrodeLocator():
 
         # Menus
         self._configure_tool_bar()
-        slider_hbox = self._get_slider_bar()
+        self._configure_dock()
         self._configure_status_bar()
 
         # Add lines
@@ -203,7 +202,6 @@ class IntracranialElectrodeLocator():
         plot_ch_hbox.addWidget(self._ch_list)
 
         main_vbox = self._renderer._layout_create()
-        main_vbox.addLayout(slider_hbox)
         main_vbox.addLayout(plot_ch_hbox)
 
         self._renderer._window_initialize(
@@ -462,58 +460,36 @@ class IntracranialElectrodeLocator():
         # update background color for current selection
         self._update_group()
 
-    def _get_slider_bar(self):
+    def _configure_dock(self):
         """Make a bar with sliders on it."""
-
-        def make_label(name):
-            label = QLabel(name)
-            label.setAlignment(QtCore.Qt.AlignCenter)
-            return label
-
-        def make_slider(smin, smax, sval, sfun=None):
-            slider = QSlider(QtCore.Qt.Horizontal)
-            slider.setMinimum(int(round(smin)))
-            slider.setMaximum(int(round(smax)))
-            slider.setValue(int(round(sval)))
-            slider.setTracking(False)  # only update on release
-            if sfun is not None:
-                slider.valueChanged.connect(sfun)
-            slider.keyPressEvent = self._key_press_event
-            return slider
-
-        slider_hbox = self._renderer._layout_create(orientation="horizontal")
-
-        ch_vbox = self._renderer._layout_create()
-        ch_vbox.addWidget(make_label('ch alpha'))
-        ch_vbox.addWidget(make_label('ch radius'))
-        slider_hbox.addLayout(ch_vbox)
-
-        ch_slider_vbox = self._renderer._layout_create()
-        self._alpha_slider = make_slider(0, 100, self._ch_alpha * 100,
-                                         self._update_ch_alpha)
+        self._renderer._dock_initialize(window=self._window, area="top")
+        self._alpha_slider = self._renderer._dock_add_slider(
+            name="ch alpha",
+            value=self._ch_alpha * 100,
+            rng=[0, 100],
+            callback=self._update_ch_alpha,
+        )
         ch_plot_max = _CH_PLOT_SIZE // 50  # max 1 / 50 of plot size
-        ch_slider_vbox.addWidget(self._alpha_slider)
-        self._radius_slider = make_slider(0, ch_plot_max, self._radius,
-                                          self._update_radius)
-        ch_slider_vbox.addWidget(self._radius_slider)
-        slider_hbox.addLayout(ch_slider_vbox)
-
-        ct_vbox = self._renderer._layout_create()
-        ct_vbox.addWidget(make_label('CT min'))
-        ct_vbox.addWidget(make_label('CT max'))
-        slider_hbox.addLayout(ct_vbox)
-
-        ct_slider_vbox = self._renderer._layout_create()
+        self._radius_slider = self._renderer._dock_add_slider(
+            name="ch radius",
+            value=self._radius,
+            rng=[0, ch_plot_max],
+            callback=self._update_radius,
+        )
         ct_min = int(round(np.nanmin(self._ct_data)))
         ct_max = int(round(np.nanmax(self._ct_data)))
-        self._ct_min_slider = make_slider(
-            ct_min, ct_max, ct_min, self._update_ct_scale)
-        ct_slider_vbox.addWidget(self._ct_min_slider)
-        self._ct_max_slider = make_slider(
-            ct_min, ct_max, ct_max, self._update_ct_scale)
-        ct_slider_vbox.addWidget(self._ct_max_slider)
-        slider_hbox.addLayout(ct_slider_vbox)
-        return slider_hbox
+        self._ct_min_slider = self._renderer._dock_add_slider(
+            name="CT min",
+            value=ct_min,
+            rng=[ct_min, ct_max],
+            callback=self._update_ct_scale,
+        )
+        self._ct_max_slider = self._renderer._dock_add_slider(
+            name="CT max",
+            value=ct_max,
+            rng=[ct_min, ct_max],
+            callback=self._update_ct_scale,
+        )
 
     def _configure_status_bar(self):
         """Make a bar at the bottom with information in it."""
@@ -838,8 +814,8 @@ class IntracranialElectrodeLocator():
             ct_data = np.take(self._ct_data, self._current_slice[axis],
                               axis=axis).T
             # Threshold the CT so only bright objects (electrodes) are visible
-            ct_data[ct_data < self._ct_min_slider.value()] = np.nan
-            ct_data[ct_data > self._ct_max_slider.value()] = np.nan
+            ct_data[ct_data < self._ct_min_slider.get_value()] = np.nan
+            ct_data[ct_data > self._ct_max_slider.get_value()] = np.nan
             self._images['ct'][axis].set_data(ct_data)
             if 'local_max' in self._images:
                 ct_max_data = np.take(
@@ -868,16 +844,16 @@ class IntracranialElectrodeLocator():
 
     def _update_ct_scale(self):
         """Update CT min slider value."""
-        new_min = self._ct_min_slider.value()
-        new_max = self._ct_max_slider.value()
+        new_min = self._ct_min_slider.get_value()
+        new_max = self._ct_max_slider.get_value()
         # handle inversions
-        self._ct_min_slider.setValue(min([new_min, new_max]))
-        self._ct_max_slider.setValue(max([new_min, new_max]))
+        self._ct_min_slider.set_value(min([new_min, new_max]))
+        self._ct_max_slider.set_value(max([new_min, new_max]))
         self._update_ct_images(draw=True)
 
     def _update_radius(self):
         """Update channel plot radius."""
-        self._radius = np.round(self._radius_slider.value()).astype(int)
+        self._radius = np.round(self._radius_slider.get_value()).astype(int)
         if self._toggle_show_max_button.get_value():
             self._update_ct_maxima()
             self._update_ct_images()
@@ -893,7 +869,7 @@ class IntracranialElectrodeLocator():
 
     def _update_ch_alpha(self):
         """Update channel plot alpha."""
-        self._ch_alpha = self._alpha_slider.value() / 100
+        self._ch_alpha = self._alpha_slider.get_value() / 100
         for axis in range(3):
             self._images['chs'][axis].set_alpha(self._ch_alpha)
         self._draw()
