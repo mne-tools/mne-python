@@ -2910,17 +2910,21 @@ sphere : float | array-like | instance of ConductorModel
 """ % (HEAD_SIZE_DEFAULT,)
 
 docdict['sphere_topomap_auto'] = """
-sphere : float | array-like | str | None
+sphere : float | array-like | 'auto' | 'eeglab' | None
     The sphere parameters to use for the cartoon head.
     Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
     meters, or a single float to give the radius (origin assumed 0, 0, 0).
     Can also be a spherical ConductorModel, which will use the origin and
-    radius. Can be "auto" to use a digitization-based fit.
+    radius. Can be "auto" to use a digitization-based fit. If ``'eeglab'``,
+    assume that the EEG electrodes ``'Fpz'``, ``'Oz'``, ``'T7'``, and ``'T8'``
+    are all placed on the head circle. If ``'Fpz'`` is not present, it will
+    be approximated from the coordinates of ``'Oz'``.
     Can also be None (default) to use 'auto' when enough extra digitization
     points are available, and %s otherwise.
     Currently the head radius does not affect plotting.
 
     .. versionadded:: 0.20
+    .. versionchanged:: 1.1 Added ``'eeglab'`` option.
 """ % (HEAD_SIZE_DEFAULT,)
 
 docdict['split_naming'] = """

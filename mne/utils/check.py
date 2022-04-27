@@ -847,12 +847,79 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
             else:
                 sphere = 'auto'
     if isinstance(sphere, str):
-        if sphere != 'auto':
-            raise ValueError('sphere, if str, must be "auto", got %r'
-                             % (sphere))
-        R, r0, _ = fit_sphere_to_headshape(info, verbose=False, units='m')
-        sphere = tuple(r0) + (R,)
-        sphere_units = 'm'
+        if sphere not in ('auto', 'eeglab'):
+            raise ValueError(
+                f'sphere, if str, must be "auto" or "eeglab", got {sphere}'
+            )
+        assert info is not None
+
+        if sphere == 'auto':
+            R, r0, _ = fit_sphere_to_headshape(info, verbose=False, units='m')
+            sphere = tuple(r0) + (R,)
+            sphere_units = 'm'
+        elif sphere == 'eeglab':
+            montage = info.get_montage()
+            # We need digpoints for the 2D plane formed by
+            # Fpz<->Oz and T7<->T8, as this plane will be the horizon.
+            # We implement some special-handling in case Fpz is missing.
+            horizon_ch_names = ('Oz', 'Fpz', 'T7', 'T8')
+            ch_pos = montage.get_positions()['ch_pos']
+
+            if 'Fpz' not in ch_pos:
+                if 'Oz' in ch_pos:
+                    logger.info(
+                        'Approximating Fpz location by mirroring Oz along '
+                        'the X and Y axes.'
+                    )
+                    ch_pos['Fpz'] = ch_pos['Oz'] * [-1, -1, 1]
+
+            for ch_name in horizon_ch_names:
+                if ch_name not in ch_pos:
+                    msg = (
+                        f'sphere="eeglab" requires digitization points of '
+                        f'the following electrode locations in the data: '
+                        f'{", ".join(horizon_ch_names)}, but could not find: '
+                        f'{ch_name}'
+                    )
+                    if ch_name == 'Fpz':
+                        msg += (
+                            ', and was unable to approximate its location '
+                            'from Oz'
+                        )
+                    raise ValueError(msg)
+
+            #  Calculate the radius from: T7<->T8, Fpz<->Oz
+            radius = np.abs([
+                ch_pos['T7'][0],   # X axis
+                ch_pos['T8'][0],   # X axis
+                ch_pos['Fpz'][1],  # Y axis
+                ch_pos['Oz'][1]    # Y axis
+            ]).mean()
+
+            # Calculate the center of the head sphere
+            # Use 4 digpoints for each of the 3 axes to hopefully get a better
+            # approximation than when using just 2 digpoints.
+            x = np.mean([
+                ch_pos['T7'][0],
+                ch_pos['T8'][0],
+                ch_pos['Fpz'][0],
+                ch_pos['Oz'][0]
+            ])
+            y = np.mean([
+                ch_pos['T7'][1],
+                ch_pos['T8'][1],
+                ch_pos['Fpz'][1],
+                ch_pos['Oz'][1]
+            ])
+            z = np.mean([
+                ch_pos['T7'][2],
+                ch_pos['T8'][2],
+                ch_pos['Fpz'][2],
+                ch_pos['Oz'][2]
+            ])
+            sphere = (x, y, z, radius)
+            sphere_units = 'm'
+            del x, y, z, radius, montage, ch_pos
     elif isinstance(sphere, ConductorModel):
         if not sphere['is_sphere'] or len(sphere['layers']) == 0:
             raise ValueError('sphere, if a ConductorModel, must be spherical '
