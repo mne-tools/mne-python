@@ -318,7 +318,7 @@ class TimeDelayingRidge(BaseEstimator):
         # might want to allow people to do them separately (e.g., to test
         # different regularization parameters).
         self.cov_, x_y_, n_ch_x, X_offset, y_offset = _compute_corrs(
-            X, y, self._smin, self._smax, n_jobs, self.fit_intercept,
+            X, y, self._smin, self._smax, self.n_jobs, self.fit_intercept,
             self.edge_correction)
         self.coef_ = _fit_corrs(self.cov_, x_y_, n_ch_x,
                                 self.reg_type, self.alpha, n_ch_x)

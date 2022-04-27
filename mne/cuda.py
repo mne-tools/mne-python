@@ -5,7 +5,7 @@
 import numpy as np
 
 from .utils import (sizeof_fmt, logger, get_config, warn, _explain_exception,
-                    verbose, fill_doc)
+                    verbose, fill_doc, check_option)
 
 
 _cuda_capable = False

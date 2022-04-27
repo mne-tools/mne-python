@@ -95,7 +95,6 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
             max_nbytes = None  # disable memmaping
         kwargs['temp_folder'] = cache_dir
         kwargs['max_nbytes'] = max_nbytes
-
         parallel = Parallel(n_jobs, **kwargs)
         n_jobs = _check_n_jobs(parallel.n_jobs)
         if max_jobs is not None:
@@ -142,8 +141,6 @@ def check_n_jobs(n_jobs, allow_cuda=False):
 
 
 def _check_n_jobs(n_jobs):
-    if n_jobs is None:
-        return n_jobs
     n_jobs = _ensure_int(n_jobs, 'n_jobs', must_be='an int or None')
     if os.getenv('MNE_FORCE_SERIAL', '').lower() in ('true', '1') and \
             n_jobs != 1:
