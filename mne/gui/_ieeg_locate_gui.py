@@ -15,8 +15,7 @@ from scipy.ndimage import maximum_filter
 from qtpy import QtCore, QtGui
 from qtpy.QtCore import Signal
 from qtpy.QtWidgets import (QLabel, QAbstractItemView,
-                            QListView, QSlider, QPushButton,
-                            QComboBox)
+                            QListView, QSlider, QComboBox)
 
 from matplotlib import patheffects
 from matplotlib.backends.backend_qt5agg import FigureCanvas
@@ -199,7 +198,7 @@ class IntracranialElectrodeLocator():
         self._plot_images()
 
         # Menus
-        button_hbox = self._get_button_bar()
+        self._configure_tool_bar()
         slider_hbox = self._get_slider_bar()
         self._configure_status_bar()
 
@@ -215,7 +214,6 @@ class IntracranialElectrodeLocator():
         plot_ch_hbox.addWidget(self._ch_list)
 
         main_vbox = self._renderer._layout_create()
-        main_vbox.addLayout(button_hbox)
         main_vbox.addLayout(slider_hbox)
         main_vbox.addLayout(plot_ch_hbox)
 
@@ -432,38 +430,37 @@ class IntracranialElectrodeLocator():
         if render:
             self._renderer._update()
 
-    def _get_button_bar(self):
+    def _configure_tool_bar(self):
         """Make a bar with buttons for user interactions."""
-        hbox = self._renderer._layout_create(orientation="horizontal")
-
-        help_button = QPushButton('Help')
-        help_button.released.connect(self._show_help)
-        hbox.addWidget(help_button)
-
-        hbox.addStretch(8)
-
-        hbox.addWidget(QLabel('Snap to Center'))
-        self._snap_button = QPushButton('Off')
-        self._snap_button.setMaximumWidth(25)  # not too big
-        hbox.addWidget(self._snap_button)
-        self._snap_button.released.connect(self._toggle_snap)
-        self._toggle_snap()  # turn on to start
-
-        hbox.addStretch(1)
-
-        self._toggle_brain_button = QPushButton('Show Brain')
-        self._toggle_brain_button.released.connect(self._toggle_show_brain)
-        hbox.addWidget(self._toggle_brain_button)
-
-        hbox.addStretch(1)
-
-        mark_button = QPushButton('Mark')
-        hbox.addWidget(mark_button)
-        mark_button.released.connect(self._mark_ch)
-
-        remove_button = QPushButton('Remove')
-        hbox.addWidget(remove_button)
-        remove_button.released.connect(self._remove_ch)
+        self._renderer._tool_bar_initialize(window=self._window)
+        self._renderer._tool_bar_add_button(
+            name='help',
+            desc='Help',
+            func=self._show_help,
+        )
+        self._renderer._tool_bar_add_spacer()
+        self._snap_button = self._renderer._tool_bar_add_check_box(
+            name='Snap to Center',
+            value=True,
+            callback=lambda x: None,
+        )
+        self._renderer._tool_bar_add_spacer()
+        self._renderer._tool_bar_add_check_box(
+            name='Show Brain',
+            value=False,
+            callback=self._toggle_show_brain,
+        )
+        self._renderer._tool_bar_add_spacer()
+        self._renderer._tool_bar_add_button(
+            name='mark',
+            desc='Mark',
+            func=self._mark_ch,
+        )
+        self._renderer._tool_bar_add_button(
+            name='remove',
+            desc='Remove',
+            func=self._remove_ch,
+        )
 
         self._group_selector = ComboBox()
         group_model = self._group_selector.model()
@@ -479,12 +476,10 @@ class IntracranialElectrodeLocator():
         self._group_selector.clicked.connect(self._select_group)
         self._group_selector.currentIndexChanged.connect(
             self._select_group)
-        hbox.addWidget(self._group_selector)
 
         # update background color for current selection
         self._update_group()
-
-        return hbox
+        self._renderer._tool_bar.addWidget(self._group_selector)
 
     def _get_slider_bar(self):
         """Make a bar with sliders on it."""
@@ -805,19 +800,10 @@ class IntracranialElectrodeLocator():
             self._ch_list_model.index(self._ch_names.index(name), 0),
             brush, QtCore.Qt.ForegroundRole)
 
-    def _toggle_snap(self):
-        """Toggle snapping the contact location to the center of mass."""
-        if self._snap_button.text() == 'Off':
-            self._snap_button.setText('On')
-            self._snap_button.setStyleSheet("background-color: green")
-        else:  # text == 'On', turn off
-            self._snap_button.setText('Off')
-            self._snap_button.setStyleSheet("background-color: red")
-
     def _mark_ch(self):
         """Mark the current channel as being located at the crosshair."""
         name = self._ch_names[self._ch_index]
-        if self._snap_button.text() == 'Off':
+        if not self._snap_button.get_value():
             self._chs[name][:] = self._ras
         else:
             shape = np.mean(self._mri_data.shape)  # Freesurfer shape (256)
@@ -1017,7 +1003,6 @@ class IntracranialElectrodeLocator():
             for img in self._images['mri']:
                 img.remove()
             self._images.pop('mri')
-            self._toggle_brain_button.setText('Show Brain')
         else:
             self._images['mri'] = list()
             for axis in range(3):
@@ -1025,7 +1010,6 @@ class IntracranialElectrodeLocator():
                                    self._current_slice[axis], axis=axis).T
                 self._images['mri'].append(self._figs[axis].axes[0].imshow(
                     mri_data, cmap='hot', aspect='auto', alpha=0.25, zorder=2))
-            self._toggle_brain_button.setText('Hide Brain')
         self._draw()
 
     def _key_press_event(self, event):

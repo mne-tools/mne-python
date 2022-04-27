@@ -414,9 +414,13 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_add_button(self, name, desc, func, *, icon_name=None,
                              shortcut=None):
         icon_name = name if icon_name is None else icon_name
-        icon = self._icons[icon_name]
-        self.actions[name] = self._tool_bar.addAction(
-            icon, desc, func)
+        if icon_name in self._icons:
+            icon = self._icons[icon_name]
+            self.actions[name] = self._tool_bar.addAction(
+                icon, desc, func)
+        else:
+            self.actions[name] = self._tool_bar.addAction(
+                desc, func)
         if shortcut is not None:
             self.actions[name].setShortcut(shortcut)
 
@@ -453,6 +457,14 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_add_play_button(self, name, desc, func, *, shortcut=None):
         self._tool_bar_add_button(
             name=name, desc=desc, func=func, icon_name=None, shortcut=shortcut)
+
+    def _tool_bar_add_check_box(self, name, value, callback, *, tooltip=None):
+        widget = QCheckBox(name)
+        _set_widget_tooltip(widget, tooltip)
+        widget.setChecked(value)
+        widget.stateChanged.connect(callback)
+        self._tool_bar.addWidget(widget)
+        return _QtWidget(widget)
 
 
 class _QtMenuBar(_AbstractMenuBar):
