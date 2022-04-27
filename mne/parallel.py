@@ -5,17 +5,13 @@
 # License: Simplified BSD
 
 import logging
+import multiprocessing
 import os
 
 from . import get_config
 from .utils import (logger, verbose, warn, ProgressBar, _validate_type,
                     _check_option, _ensure_int)
 from .fixes import _get_args
-
-if 'MNE_FORCE_SERIAL' in os.environ:
-    _force_serial = True
-else:
-    _force_serial = None
 
 
 @verbose
@@ -163,31 +159,27 @@ def check_n_jobs(n_jobs, allow_cuda=False, *, max_jobs=None):
     if allow_cuda:
         types = types + ('str',)
     _validate_type(n_jobs, types, 'n_jobs')
+    if isinstance(n_jobs, str):
+        # We can only be in this path if allow_cuda
+        _check_option('n_jobs', n_jobs, ('cuda',), extra='when str')
+        return 'cuda'  # return 'cuda'
+    # From now on we're int | None
     if n_jobs is None:
         n_jobs = 1  # TODO actually do something better here
-    if isinstance(n_jobs, str):
-        _check_option('n_jobs', n_jobs, ('cuda',), extra='when str')
-    elif _force_serial:
+    n_jobs = _ensure_int(n_jobs, 'n_jobs')
+    if os.getenv('MNE_FORCE_SERIAL', '').lower() in ('true', '1'):
         n_jobs = 1
         logger.info('... MNE_FORCE_SERIAL set. Processing in forced '
                     'serial mode.')
     elif n_jobs <= 0:
-        try:
-            import multiprocessing
-            n_cores = multiprocessing.cpu_count()
-            n_jobs = min(n_cores + n_jobs + 1, n_cores)
-            if n_jobs <= 0:
-                raise ValueError('If n_jobs has a negative value it must not '
-                                 'be less than the number of CPUs present. '
-                                 'You\'ve got %s CPUs' % n_cores)
-        except ImportError:
-            # only warn if they tried to use something other than 1 job
-            if n_jobs != 1:
-                warn('multiprocessing not installed. Cannot run in parallel.')
-                n_jobs = 1
+        n_cores = multiprocessing.cpu_count()
+        n_jobs_orig = n_jobs
+        n_jobs = min(n_cores + n_jobs + 1, n_cores)
+        if n_jobs <= 0:
+            raise ValueError(
+                f'If n_jobs has a non-positive value ({n_jobs_orig}) it must '
+                f'not be less than the number of CPUs present ({n_cores})')
     if max_jobs is not None:
-        max_jobs = max(_ensure_int(max_jobs, 'max_jobs'), 1)
-        if not isinstance(n_jobs, str):
-            n_jobs = min(_ensure_int(n_jobs, 'n_jobs'), max_jobs)
-
+        n_jobs = min(n_jobs, max(_ensure_int(max_jobs, 'max_jobs'), 1))
+    # n_jobs is now an int and > 0
     return n_jobs
