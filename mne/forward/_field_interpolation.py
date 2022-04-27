@@ -383,7 +383,8 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 @verbose
 def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
                    ch_type=None, mode='fast', meg_surf='helmet',
-                   origin=(0., 0., 0.04), n_jobs=None, verbose=None):
+                   origin=(0., 0., 0.04), n_jobs=None, *,
+                   head_source=('bem', 'head'), verbose=None):
     """Compute surface maps used for field display in 3D.
 
     Parameters
@@ -418,6 +419,11 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
 
         .. versionadded:: 0.11
     %(n_jobs)s
+    head_source : str | list of str
+        Head source(s) to use. See the ``source`` option of
+        :func:`mne.get_head_surf` for more information.
+
+        .. versionadded:: 1.1
     %(verbose)s
 
     Returns
@@ -457,7 +463,8 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         if this_type == 'meg' and meg_surf == 'helmet':
             surf = get_meg_helmet_surf(info, trans)
         else:
-            surf = get_head_surf(subject, subjects_dir=subjects_dir)
+            surf = get_head_surf(
+                subject, source=head_source, subjects_dir=subjects_dir)
         surfs.append(surf)
 
     surf_maps = list()

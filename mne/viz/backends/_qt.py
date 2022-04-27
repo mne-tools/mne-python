@@ -35,13 +35,26 @@ from ..utils import _check_option, safe_event, get_config
 
 
 class _QtDialog(_AbstractDialog):
-    def _dialog_warning(self, title, text, info_text, callback, *,
-                        buttons=[], modal=True, window=None):
+    # from QMessageBox.StandardButtons
+    supported_button_names = [
+        "Ok", "Open", "Save", "Cancel", "Close", "Discard", "Apply",
+        "Reset", "RestoreDefaults", "Help", "SaveAll", "Yes",
+        "YesToAll", "No", "NoToAll", "Abort", "Retry", "Ignore"
+    ]
+    # from QMessageBox.Icon
+    supported_icon_names = [
+        "NoIcon", "Question", "Information", "Warning", "Critical"
+    ]
+
+    def _dialog_create(self, title, text, info_text, callback, *,
+                       icon='Warning', buttons=[], modal=True, window=None):
         window = self._window if window is None else window
         widget = QMessageBox(window)
         widget.setWindowTitle(title)
         widget.setText(text)
-        widget.setIcon(QMessageBox.Warning)
+        # icon is one of _QtDialog.supported_icon_names
+        icon_id = getattr(QMessageBox, icon)
+        widget.setIcon(icon_id)
         widget.setInformativeText(info_text)
 
         if not buttons:
@@ -49,7 +62,7 @@ class _QtDialog(_AbstractDialog):
 
         button_ids = list()
         for button in buttons:
-            # button is one of QMessageBox.StandardButtons
+            # button is one of _QtDialog.supported_button_names
             button_id = getattr(QMessageBox, button)
             button_ids.append(button_id)
         standard_buttons = default_button = button_ids[0]
@@ -61,12 +74,7 @@ class _QtDialog(_AbstractDialog):
         @safe_event
         def func(button):
             button_id = widget.standardButton(button)
-            supported_button_names = [
-                "Ok", "Open", "Save", "Cancel", "Close", "Discard", "Apply",
-                "Reset", "RestoreDefaults", "Help", "SaveAll", "Yes",
-                "YesToAll", "No", "NoToAll", "Abort", "Retry", "Ignore"
-            ]
-            for button_name in supported_button_names:
+            for button_name in _QtDialog.supported_button_names:
                 if button_id == getattr(QMessageBox, button_name):
                     widget.setCursor(QCursor(Qt.WaitCursor))
                     try:
@@ -95,10 +103,9 @@ class _QtDock(_AbstractDock, _QtLayout):
     def _dock_initialize(self, window=None, name="Controls",
                          area="left", max_width=None):
         window = self._window if window is None else window
-        qt_area = Qt.LeftDockWidgetArea if area == "left" \
-            else Qt.RightDockWidgetArea
+        qt_area = getattr(Qt, f'{area.capitalize()}DockWidgetArea')
         self._dock, self._dock_layout = _create_dock_widget(
-            self._window, name, qt_area, max_width=max_width
+            window, name, qt_area, max_width=max_width
         )
         if area == "left":
             window.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
