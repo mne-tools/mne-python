@@ -1364,7 +1364,7 @@ class DraggableColorbar(object):
             self.index = 0
         cmap = self.cycle[self.index]
         self.cbar.mappable.set_cmap(cmap)
-        self.cbar.draw_all()
+        _draw_without_rendering(self.cbar)
         self.mappable.set_cmap(cmap)
         self._update()
 
@@ -1403,9 +1403,18 @@ class DraggableColorbar(object):
         from matplotlib.ticker import AutoLocator
         self.cbar.set_ticks(AutoLocator())
         self.cbar.update_ticks()
-        self.cbar.draw_all()
+        _draw_without_rendering(self.cbar)
         self.mappable.set_norm(self.cbar.norm)
         self.cbar.ax.figure.canvas.draw()
+
+
+def _draw_without_rendering(cbar):
+    # draw_all deprecated in Matplotlib 3.6
+    try:
+        meth = cbar.ax.figure.draw_without_rendering
+    except AttributeError:
+        meth = cbar.draw_all
+    return meth()
 
 
 class SelectFromCollection:
