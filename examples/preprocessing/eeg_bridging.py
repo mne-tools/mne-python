@@ -75,12 +75,12 @@ for sub in range(1, 11):
 # bridging. In the zoomed out color scale version on the right, we can see
 # that there is a distribution of electrical distances that are specific to
 # that subject's head physiology/geometry and brain activity during the
-# recording. On the right, when we zoom in, we can see several electical
+# recording. On the right, when we zoom in, we can see several electrical
 # distance outliers that are near zero; these indicate bridging.
 
+bridged_idx, ed_matrix = ed_data[6]
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
 fig.suptitle('Subject 6 Electrical Distance Matrix')
-bridged_idx, ed_matrix = ed_data[6]
 im1 = ax1.imshow(np.nanmedian(ed_matrix, axis=0))  # take median across epochs
 cax1 = fig.colorbar(im1, ax=ax1)
 cax1.set_label(r'Electrical Distance ($\mu$$V^2$)')
@@ -112,27 +112,61 @@ ax.set_ylabel('Count')
 # %%
 # Now, let's look at the topography of the electrical distance matrix and
 # see where our bridged channels are and check that their spatial
-# arrangement makes sense.
+# arrangement makes sense. Here, we are looking at the minimum electrical
+# distance for each channel and taking the median across all epochs
+# (the raw data is epoched into 2 second non-overlapping intervals).
+# This example is of the subject from the EEGBCI dataset with the most
+# bridged channels so there are many light areas and red lines. They are
+# generally grouped together and are biased toward horizontal connections
+# (this may be because the EEG experimenter usually stands to the side and
+# may have inserted the gel syringe tip in too far).
 
+fig, ax = plt.subplots()
 mne.viz.plot_bridged_electrodes(
-    raw_data[6], bridged_idx, ed_matrix,
+    raw_data[6].info, bridged_idx, ed_matrix,
     title=f'Subject 6 Bridged Electrodes',
     topomap_args=dict(names=raw_data[6].ch_names, axes=ax,
-                      image_interp='voroni', vmax=0.05, show_names=True))
+                      vmax=5, show_names=True))
 
 # %%
-# Let's look
+# Finally, let's do a sanity check and make sure that the bridged electrodes
+# are indeed implausibly similar. We'll plot two bridged electrode pairs:
+# F2-F4 and FC2-FC4, for subject 6 where they are bridged and subject 1
+# where they are not. As we can see, the pairs are nearly identical for
+# subject 6 confirming that they are likely bridged. Interestingly, even
+# though the two pairs are adjacent to each other, there are two distinctive
+# pairs, meaning that it is unlikely that all four of these electrodes are
+# bridged.
+
+raw = raw_data[6].copy().pick_channels(['F2', 'F4', 'FC2', 'FC4'])
+raw.add_channels([mne.io.RawArray(
+    raw.get_data(ch1) - raw.get_data(ch2),
+    mne.create_info([f'{ch1}-{ch2}'], raw.info['sfreq'], 'eeg'),
+    raw.first_samp) for ch1, ch2 in [('F2', 'F4'), ('FC2', 'FC4')]])
+raw.plot(duration=20, scalings=dict(eeg=2e-4))
+
+raw = raw_data[1].copy().pick_channels(['F2', 'F4', 'FC2', 'FC4'])
+raw.add_channels([mne.io.RawArray(
+    raw.get_data(ch1) - raw.get_data(ch2),
+    mne.create_info([f'{ch1}-{ch2}'], raw.info['sfreq'], 'eeg'),
+    raw.first_samp) for ch1, ch2 in [('F2', 'F4'), ('FC2', 'FC4')]])
+raw.plot(duration=20, scalings=dict(eeg=2e-4))
 
 # %%
-# Let's look at the histograms of electrical distances for the EEGBCI dataset.
-# As we can see in the zoomed in insert on the right, for subjects 6, 7 and 8
-# (and to a lesser extent 2 and 4), there is a different shape of the
-# distribution of electrical distances around 0 :math:`{\\mu}`V:sup:`2`
-# than for the other subjects. These subjects' distributions have a peak around
-# 0 :math:`{\\mu}`V:sup:`2` distance and a trough around
-# 5 :math:`{\\mu}`V:sup:`2` which is indicative of electrode bridging.
-# The rest of the subjects' distributions increase monotonically,
-# indicating normal spatial separation of sources.
+# Now, let's look at the histograms of electrical distances for the whole
+# EEGBCI dataset. As we can see in the zoomed in insert on the right,
+# for subjects 6, 7 and 8 (and to a lesser extent 2 and 4), there is a
+# different shape of the distribution of electrical distances around
+# 0 :math:`{\\mu}`V:sup:`2` than for the other subjects. These subjects'
+# distributions have a peak around 0 :math:`{\\mu}`V:sup:`2` distance
+# and a trough around 5 :math:`{\\mu}`V:sup:`2` which is indicative of
+# electrode bridging. The rest of the subjects' distributions increase
+# monotonically, indicating normal spatial separation of sources. The
+# large discrepancy in shapes of distributions is likely driven primarily by
+# artifacts such as blinks which are an order of magnitude larger than
+# neural data since this data has not been preprocessed but likely
+# reflect neural or at least anatomical differences as well (i.e. the
+# distance from the sensors to the brain).
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
 fig.suptitle('Electrical Distance Distribution for EEGBCI Subjects')
@@ -156,35 +190,47 @@ ax2.legend(loc=(1.04, 0))
 fig.subplots_adjust(right=0.725, bottom=0.15, wspace=0.4)
 
 # %%
-# Let's look at topoplots with bridged electrodes to try and
-# understand electrode bridging better.
+# For the group of subjects, let's look at their electrical distances
+# and bridging. Especially since this is the same task, the lack of
+# low electrical distances in many of the subjects is compelling
+# evidence that the low electrical distance is caused by bridging
+# and that it is avoidable given more judicious application of gel or
+# other conductive electrolyte solution.
 
 for sub, (bridged_idx, ed_matrix) in ed_data.items():
     fig, ax = plt.subplots()
     mne.viz.plot_bridged_electrodes(
-        infos[sub], bridged_idx, ed_matrix,
+        raw_data[sub].info, bridged_idx, ed_matrix,
         title=f'Subject {sub} Bridged Electrodes',
-        topomap_args=dict(names=infos[sub].ch_names, axes=ax,
-                          image_interp='voroni', vmax=0.05, show_names=True))
+        topomap_args=dict(names=raw_data[sub].ch_names, axes=ax,
+                          vmax=5, show_names=True))
 
 # %%
 # Electrode bridging is often brought about by inserting more gel in order
 # to bring impendances down. Thus it can be helpful to compare bridging
 # to impedances in the quest to be an ideal EEG technician! Low
 # impedances lead to less noisy data and EEG without bridging is more
-# spatially precise. Impedances are recommended to be stored in an EEG dataset
-# in the :ref:`electrodes-tsv` file within th eBrain Imaging Data Structure
-# (BIDS). Since the impedances are not stored for this dataset, we will fake
+# spatially precise. Brain Imaging Data Structure (BIDS) recommendeds that
+# impedances be stored in an EEG dataset in the :ref:`electrodes-tsv` file.
+# Since the impedances are not stored for this dataset, we will fake
 # them to demonstrate how they would be plotted.
 
 np.random.seed(11)  # seed for reproducibility
 impedances = np.random.random((len(raw.ch_names,))) * 10
 fig, ax = plt.subplots(figsize=(5, 5))
 im, cn = mne.viz.plot_topomap(impedances, raw.info, axes=ax)
-ax.set_title('Electrode Impendances Audio/Visual Task')
+ax.set_title('Electrode Impendances')
 cax = fig.colorbar(im, ax=ax)
 cax.set_label(r'Impedance (k$\Omega$)')
 
+# %%
+# Summary
+# -------
+# In this example, we have shown a dataset where electrical bridging occurred
+# during the EEG setup for several subjects. Hopefully this is convincing as to
+# the importance of proper technique as well as checking your work to
+# learn and improve as an EEG experimenter, and hopefully this tool will help
+# us all collect better EEG data in the future.
 
 # %%
 # References

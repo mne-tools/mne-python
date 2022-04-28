@@ -179,10 +179,9 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
 
 
 @verbose
-def compute_bridged_electrodes(inst, lm_cutoff=12, kde_args=None,
-                               epoch_threshold=0.5,
-                               l_freq=0.5, h_freq=30,
-                               epoch_duration=2, verbose=None):
+def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
+                               l_freq=0.5, h_freq=30, epoch_duration=2,
+                               bw_method=None, verbose=None):
     """Compute bridged EEG electrodes using the intrinsic Hjorth algorithm.
 
     First an electrical distance matrix is computed by taking the pairwise
@@ -203,12 +202,8 @@ def compute_bridged_electrodes(inst, lm_cutoff=12, kde_args=None,
     lm_cutoff : float
         The distance in :math:`{\\mu}`V:sup:`2` cutoff below which to
         search for a local minimum (lm) indicative of bridging.
-        Defaults to 8 :math:`{\\mu}`V:sup:`2` based on
-        :footcite:`GreischarEtAl2004`.
-    kde_args : dict | None
-        Arguments to pass to :class:`sklearn.neighbors.KernelDensity` to
-        modify the estimation of distribution of electrical distances
-        from which the local minimum is estimated.
+        Defaults to 16 :math:`{\\mu}`V:sup:`2` to be conservative based
+        on the distributions in :footcite:`GreischarEtAl2004`.
     epoch_threshold : float
         The proportion of epochs with electrical distance less than
         ``ed_threshold`` in order to consider the channel bridged.
@@ -221,6 +216,8 @@ def compute_bridged_electrodes(inst, lm_cutoff=12, kde_args=None,
         The time in seconds to divide the raw into fixed-length epochs
         to check for consistent bridging. Only used if ``inst`` is
         :class:`mne.io.BaseRaw`. The default is 2 seconds.
+    bw_method : None
+        ``bw_method`` to pass to :ref:`scipy.stats.gaussian_kde`.
     %(verbose)s
 
     Returns
@@ -239,7 +236,8 @@ def compute_bridged_electrodes(inst, lm_cutoff=12, kde_args=None,
     ----------
     .. footbibliography::
     """
-    from sklearn.neighbors import KernelDensity
+    from scipy.stats import gaussian_kde
+    from scipy.optimize import minimize_scalar
     _check_preload(inst, 'Computing bridged electrodes')
     inst = inst.copy()  # don't modify original
     picks = pick_types(inst.info, eeg=True)
@@ -254,17 +252,16 @@ def compute_bridged_electrodes(inst, lm_cutoff=12, kde_args=None,
                                         preload=True, verbose=False)
 
     # standardize shape
-    data = inst.get_data()
+    data = inst.get_data(picks=picks)
     if isinstance(inst, Evoked):
         data = data.reshape((1,) + data.shape)  # expand evoked
 
     # next, compute electrical distance matrix, upper triangular
     n_epochs = data.shape[0]
     ed_matrix = np.zeros((n_epochs, picks.size, picks.size)) * np.nan
-    for i, idx0 in enumerate(picks):
-        for j, idx1 in enumerate(picks[i + 1:]):
-            ed_matrix[:, i, i + 1 + j] = \
-                np.var(data[:, idx0] - data[:, idx1], axis=1)
+    for i in range(picks.size):
+        for j in range(i + 1, picks.size):
+            ed_matrix[:, i, j] = np.var(data[:, i] - data[:, j], axis=1)
 
     # scale, fill in other half, diagonal
     ed_matrix *= 1e12  # scale to muV**2
@@ -272,26 +269,25 @@ def compute_bridged_electrodes(inst, lm_cutoff=12, kde_args=None,
     # initialize bridged indices
     bridged_idx = list()
 
-    # compute histogram
-    bins, edges = np.histogram(ed_matrix[~np.isnan(ed_matrix)],
-                               bins=np.linspace(0, lm_cutoff, n_bins))
-    centers = (edges[1:] + edges[:-1]) / 2
+    # if not enough values below local minimum cutoff, return no bridges
+    if ed_matrix[ed_matrix < lm_cutoff].size / n_epochs < epoch_threshold:
+        return bridged_idx, ed_matrix
 
-    # find local minimum
-    centers_interp = np.linspace(0, lm_cutoff, n_bins)
-    bins_interp = np.interp(centers_interp, centers, bins)
-    local_minimum = centers_interp[np.argmin(bins_interp)]
+    # kernel density estimation
+    kde = gaussian_kde(ed_matrix[ed_matrix < lm_cutoff])
+    local_minimum = float(minimize_scalar(
+        lambda x: kde(x) if x < lm_cutoff and x > 0 else np.inf).x)
+    logger.info(f'Local minimum {local_minimum} found')
 
-    # find electrodes that are below the cutoff local minumum on
+    # find electrodes that are below the cutoff local minimum on
     # `epochs_threshold` proportion of epochs
     check_bridged = ed_matrix < local_minimum
-    for i, idx0 in enumerate(picks):
-        for j, idx1 in enumerate(picks[i + 1:]):
-            if np.sum(check_bridged[:, i, i + 1 + j]) / \
-                    n_epochs > epoch_threshold:
+    for i in range(picks.size):
+        for j in range(i + 1, picks.size):
+            if np.sum(check_bridged[:, i, j]) / n_epochs > epoch_threshold:
                 logger.info('Bridge detected between '
-                            f'{inst.ch_names[picks[idx0]]} and '
-                            f'{inst.ch_names[picks[idx1]]}')
-                bridged_idx.append((idx0, idx1))
+                            f'{inst.ch_names[picks[i]]} and '
+                            f'{inst.ch_names[picks[j]]}')
+                bridged_idx.append((picks[i], picks[j]))
 
     return bridged_idx, ed_matrix
