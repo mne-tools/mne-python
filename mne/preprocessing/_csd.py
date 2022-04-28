@@ -12,6 +12,7 @@
 # License: Relicensed under BSD-3-Clause and adapted with
 #          permission from authors of original GPL code
 
+import warnings
 import numpy as np
 
 from .. import pick_types
@@ -182,18 +183,18 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
 def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
                                l_freq=0.5, h_freq=30, epoch_duration=2,
                                bw_method=None, verbose=None):
-    """Compute bridged EEG electrodes using the intrinsic Hjorth algorithm.
+    r"""Compute bridged EEG electrodes using the intrinsic Hjorth algorithm.
 
     First an electrical distance matrix is computed by taking the pairwise
-    variance. Then, a local maximum near 0 :math:`{\\mu}`V:sup:`2` and a
-    a local minimum below 5 :math:`{\\mu}`V:sup:`2` are found, the presence
+    variance. Then, a local maximum near 0 :math:`\mu`V:sup:`2` and a
+    a local minimum below 5 :math:`\mu`V:sup:`2` are found, the presence
     of which is indicative of bridging. Finally, electrode distances below
     the local minimum are marked as bridged as long as they happen on more
     than the ``epoch_threshold`` proportion of epochs.
 
-    Based on :footcite:`TenkeKayser2001,GreischarEtAl2004,DelormeMakeig2004`.
-    Original implementation
-    https://psychophysiology.cpmc.columbia.edu/software/eBridge/index.html.
+    Based on :footcite:`TenkeKayser2001,GreischarEtAl2004,DelormeMakeig2004`
+    and the `EEGLAB implementation
+    <https://psychophysiology.cpmc.columbia.edu/software/eBridge/index.html>`_.
 
     Parameters
     ----------
@@ -217,7 +218,7 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
         to check for consistent bridging. Only used if ``inst`` is
         :class:`mne.io.BaseRaw`. The default is 2 seconds.
     bw_method : None
-        ``bw_method`` to pass to :ref:`scipy.stats.gaussian_kde`.
+        ``bw_method`` to pass to :class:`scipy.stats.gaussian_kde`.
     %(verbose)s
 
     Returns
@@ -270,18 +271,23 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
     bridged_idx = list()
 
     # if not enough values below local minimum cutoff, return no bridges
-    if ed_matrix[ed_matrix < lm_cutoff].size / n_epochs < epoch_threshold:
+    ed_flat = ed_matrix[~np.isnan(ed_matrix)]
+    if ed_flat[ed_flat < lm_cutoff].size / n_epochs < epoch_threshold:
         return bridged_idx, ed_matrix
 
     # kernel density estimation
-    kde = gaussian_kde(ed_matrix[ed_matrix < lm_cutoff])
-    local_minimum = float(minimize_scalar(
-        lambda x: kde(x) if x < lm_cutoff and x > 0 else np.inf).x)
+    kde = gaussian_kde(ed_flat[ed_flat < lm_cutoff])
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            'ignore', 'invalid value encountered in true_divide')
+        local_minimum = float(minimize_scalar(
+            lambda x: kde(x) if x < lm_cutoff and x > 0 else np.inf).x)
     logger.info(f'Local minimum {local_minimum} found')
 
     # find electrodes that are below the cutoff local minimum on
     # `epochs_threshold` proportion of epochs
-    check_bridged = ed_matrix < local_minimum
+    check_bridged = np.logical_and(~np.isnan(ed_matrix),
+                                   ed_matrix < local_minimum)
     for i in range(picks.size):
         for j in range(i + 1, picks.size):
             if np.sum(check_bridged[:, i, j]) / n_epochs > epoch_threshold:

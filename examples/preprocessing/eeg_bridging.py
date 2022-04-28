@@ -33,6 +33,7 @@ https://psychophysiology.cpmc.columbia.edu/software/eBridge/tutorial.html.
 
 # sphinx_gallery_thumbnail_number = 2
 
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -81,7 +82,12 @@ for sub in range(1, 11):
 bridged_idx, ed_matrix = ed_data[6]
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
 fig.suptitle('Subject 6 Electrical Distance Matrix')
-im1 = ax1.imshow(np.nanmedian(ed_matrix, axis=0))  # take median across epochs
+with warnings.catch_warnings():
+    # lower triangular matrix is NaNs so we should to suppress the warning
+    warnings.filterwarnings(
+        action='ignore', message='All-NaN slice encountered')
+    # take median across epochs
+    im1 = ax1.imshow(np.nanmedian(ed_matrix, axis=0))
 cax1 = fig.colorbar(im1, ax=ax1)
 cax1.set_label(r'Electrical Distance ($\mu$$V^2$)')
 # zoomed in colors
@@ -124,7 +130,7 @@ ax.set_ylabel('Count')
 fig, ax = plt.subplots()
 mne.viz.plot_bridged_electrodes(
     raw_data[6].info, bridged_idx, ed_matrix,
-    title=f'Subject 6 Bridged Electrodes',
+    title='Subject 6 Bridged Electrodes',
     topomap_args=dict(names=raw_data[6].ch_names, axes=ax,
                       vmax=5, show_names=True))
 
@@ -211,11 +217,15 @@ for sub, (bridged_idx, ed_matrix) in ed_data.items():
 # to impedances in the quest to be an ideal EEG technician! Low
 # impedances lead to less noisy data and EEG without bridging is more
 # spatially precise. Brain Imaging Data Structure (BIDS) recommendeds that
-# impedances be stored in an EEG dataset in the :ref:`electrodes-tsv` file.
+# impedances be stored in an EEG dataset in the `electrodes.tsv
+# <https://bids-specification.readthedocs.io/en/stable/\
+# 04-modality-specific-files/03-electroencephalography.html\
+# #electrodes-description-_electrodestsv>`_ file.
 # Since the impedances are not stored for this dataset, we will fake
 # them to demonstrate how they would be plotted.
 
 np.random.seed(11)  # seed for reproducibility
+raw = raw_data[1]
 impedances = np.random.random((len(raw.ch_names,))) * 10
 fig, ax = plt.subplots(figsize=(5, 5))
 im, cn = mne.viz.plot_topomap(impedances, raw.info, axes=ax)
@@ -236,6 +246,3 @@ cax.set_label(r'Impedance (k$\Omega$)')
 # References
 # ----------
 # .. footbibliography::
-#
-#
-# .. _electrodes-tsv: https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/03-electroencephalography.html#electrodes-description-_electrodestsv  # noqa E501
