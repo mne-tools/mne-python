@@ -1428,7 +1428,7 @@ image_format : 'png' | 'svg' | 'gif' | None
 docdict['image_interp_topomap'] = """
 image_interp : str
     The image interpolation to be used. All matplotlib options are
-    accepted.
+    accepted as well as ``'voronoi'``.
 """
 
 docdict['include_tmax'] = """

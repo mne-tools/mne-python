@@ -41,6 +41,8 @@ import mne
 print(__doc__)
 
 # %%
+# Compute Electrical Distance Metric
+# ----------------------------------
 # First, let's compute electrical distance metrics for a group of example
 # subjects from the EEGBCI dataset in order to estimate electrode bridging.
 # The electrical distance is just the variance of signals subtracted
@@ -69,6 +71,8 @@ for sub in range(1, 11):
 
 
 # %%
+# Examine an Electrical Distance Matrix
+# -------------------------------------
 # Before we look at the electrical distance distributions across subjects,
 # let's look at the distance matrix for one subject and try and understand
 # how the algorithm works. We'll use subject 6 as it is a good example of
@@ -99,6 +103,8 @@ for ax in (ax1, ax2):
 fig.tight_layout()
 
 # %%
+# Examine the Distibution of Electrical Distances
+# -----------------------------------------------
 # Now let's plot a histogram of the electrical distance matrix. Note that the
 # electrical distance matrix is upper triangular but does not include the
 # diagonal from the previous plot. This means that the pairwise electrical
@@ -115,6 +121,8 @@ ax.set_xlabel(r'Electrical Distance ($\mu$$V^2$)')
 ax.set_ylabel('Count')
 
 # %%
+# Plot Electrical Distances on a Topomap
+# --------------------------------------
 # Now, let's look at the topography of the electrical distance matrix and
 # see where our bridged channels are and check that their spatial
 # arrangement makes sense. Here, we are looking at the minimum electrical
@@ -126,14 +134,13 @@ ax.set_ylabel('Count')
 # (this may be because the EEG experimenter usually stands to the side and
 # may have inserted the gel syringe tip in too far).
 
-fig, ax = plt.subplots()
 mne.viz.plot_bridged_electrodes(
     raw_data[6].info, bridged_idx, ed_matrix,
-    title='Subject 6 Bridged Electrodes',
-    topomap_args=dict(names=raw_data[6].ch_names, axes=ax,
-                      vmax=5, show_names=True))
+    title='Subject 6 Bridged Electrodes', topomap_args=dict(vmax=5))
 
 # %%
+# Plot the Raw Voltage Time Series for Bridged Electrodes
+# -------------------------------------------------------
 # Finally, let's do a sanity check and make sure that the bridged electrodes
 # are indeed implausibly similar. We'll plot two bridged electrode pairs:
 # F2-F4 and FC2-FC4, for subject 6 where they are bridged and subject 1
@@ -158,13 +165,15 @@ raw.add_channels([mne.io.RawArray(
 raw.plot(duration=20, scalings=dict(eeg=2e-4))
 
 # %%
+# Compare Bridging Accross Subjects in the EEGBCI Dataset
+# -------------------------------------------------------
 # Now, let's look at the histograms of electrical distances for the whole
 # EEGBCI dataset. As we can see in the zoomed in insert on the right,
 # for subjects 6, 7 and 8 (and to a lesser extent 2 and 4), there is a
 # different shape of the distribution of electrical distances around
-# 0 :math:`{\\mu}`V:sup:`2` than for the other subjects. These subjects'
-# distributions have a peak around 0 :math:`{\\mu}`V:sup:`2` distance
-# and a trough around 5 :math:`{\\mu}`V:sup:`2` which is indicative of
+# 0 :math:`\muV^2` than for the other subjects. These subjects'
+# distributions have a peak around 0 :math:`\muV^2` distance
+# and a trough around 5 :math:`\muV^2` which is indicative of
 # electrode bridging. The rest of the subjects' distributions increase
 # monotonically, indicating normal spatial separation of sources. The
 # large discrepancy in shapes of distributions is likely driven primarily by
@@ -203,14 +212,13 @@ fig.subplots_adjust(right=0.725, bottom=0.15, wspace=0.4)
 # other conductive electrolyte solution.
 
 for sub, (bridged_idx, ed_matrix) in ed_data.items():
-    fig, ax = plt.subplots()
     mne.viz.plot_bridged_electrodes(
         raw_data[sub].info, bridged_idx, ed_matrix,
-        title=f'Subject {sub} Bridged Electrodes',
-        topomap_args=dict(names=raw_data[sub].ch_names, axes=ax,
-                          vmax=5, show_names=True))
+        title=f'Subject {sub} Bridged Electrodes', topomap_args=dict(vmax=5))
 
 # %%
+# The Relationship Between Bridging and Impedances
+# ------------------------------------------------
 # Electrode bridging is often brought about by inserting more gel in order
 # to bring impendances down. Thus it can be helpful to compare bridging
 # to impedances in the quest to be an ideal EEG technician! Low
