@@ -103,8 +103,8 @@ for ax in (ax1, ax2):
 fig.tight_layout()
 
 # %%
-# Examine the Distibution of Electrical Distances
-# -----------------------------------------------
+# Examine the Distribution of Electrical Distances
+# ------------------------------------------------
 # Now let's plot a histogram of the electrical distance matrix. Note that the
 # electrical distance matrix is upper triangular but does not include the
 # diagonal from the previous plot. This means that the pairwise electrical
@@ -165,7 +165,7 @@ raw.add_channels([mne.io.RawArray(
 raw.plot(duration=20, scalings=dict(eeg=2e-4))
 
 # %%
-# Compare Bridging Accross Subjects in the EEGBCI Dataset
+# Compare Bridging Across Subjects in the EEGBCI Dataset
 # -------------------------------------------------------
 # Now, let's look at the histograms of electrical distances for the whole
 # EEGBCI dataset. As we can see in the zoomed in insert on the right,

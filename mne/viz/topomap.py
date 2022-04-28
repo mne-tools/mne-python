@@ -838,7 +838,7 @@ _VORONOI_CIRCLE_RES = 100
 def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res):
     """Make a Voronoi diagram on a topomap."""
     from scipy.spatial import Voronoi
-    # we need an image axis object so first emtpy image to plot over
+    # we need an image axis object so first empty image to plot over
     im = ax.imshow(np.zeros((res, res)) * np.nan, cmap=cmap,
                    origin='lower', aspect='equal', extent=extent,
                    norm=norm)
