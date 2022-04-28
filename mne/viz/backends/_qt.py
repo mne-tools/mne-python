@@ -605,8 +605,10 @@ class _QtBrainMplCanvas(_AbstractBrainMplCanvas, _QtMplInterface):
 
 
 class _QtWindow(_AbstractWindow):
-    def _window_initialize(self, window=None, central_layout=None):
+    def _window_initialize(self, window=None, central_layout=None,
+                           theme_support=True):
         super()._window_initialize()
+        self._window_theme_support = theme_support
         self._interactor = self.figure.plotter.interactor
         if window is None:
             self._window = self.figure.plotter.app_window
@@ -760,6 +762,8 @@ class _QtWindow(_AbstractWindow):
             self._process_events()
 
     def _window_set_theme(self, theme=None):
+        if not self._window_theme_support:
+            return
         if theme is None:
             default_theme = _qt_detect_theme()
         else:

@@ -205,7 +205,8 @@ class IntracranialElectrodeLocator():
         main_vbox.addLayout(plot_ch_hbox)
 
         self._renderer._window_initialize(
-            window=self._window, central_layout=main_vbox)
+            window=self._window, central_layout=main_vbox,
+            theme_support=False)
 
     def show(self):
         """Display the window."""
