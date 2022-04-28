@@ -783,10 +783,14 @@ class IntracranialElectrodeLocator():
 
     def _toggle_snap(self):
         """Toggle snapping the contact location to the center of mass."""
+        style = dict()
         if self._snap_button.get_text() == 'Off':
             self._snap_button.set_text('On')
+            style["background-color"] = "green"
         else:  # text == 'On', turn off
             self._snap_button.set_text('Off')
+            style["background-color"] = "red"
+        self._snap_button.set_style(style)
 
     def _mark_ch(self):
         """Mark the current channel as being located at the crosshair."""
