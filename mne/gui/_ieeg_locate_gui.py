@@ -426,16 +426,20 @@ class IntracranialElectrodeLocator():
             func=self._show_help,
         )
         self._renderer._tool_bar_add_spacer()
-        self._snap_button = self._renderer._tool_bar_add_check_box(
-            name='Snap to Center',
-            value=True,
-            callback=lambda x: None,
+        self._renderer._tool_bar_add_label("Snap to Center")
+        self._snap_button = self._renderer._tool_bar_add_button(
+            name='snap_to_center',
+            desc='Off',
+            func=self._toggle_snap,
+            action=False,
         )
+        self._toggle_snap()  # turn on to start
         self._renderer._tool_bar_add_spacer()
-        self._renderer._tool_bar_add_check_box(
-            name='Show Brain',
-            value=False,
-            callback=self._toggle_show_brain,
+        self._toggle_brain_button = self._renderer._tool_bar_add_button(
+            name='show_brain',
+            desc='Show Brain',
+            func=self._toggle_show_brain,
+            action=False,
         )
         self._renderer._tool_bar_add_spacer()
         self._renderer._tool_bar_add_button(
@@ -504,16 +508,15 @@ class IntracranialElectrodeLocator():
         """Make a bar at the bottom with information in it."""
         self._renderer._status_bar_initialize(self._window)
         self._toggle_show_mip_button = \
-            self._renderer._status_bar_add_check_box(
+            self._renderer._status_bar_add_button(
                 name='Show Max Intensity Proj',
-                value=False,
                 callback=self._toggle_show_mip,
             )
-        self._renderer._status_bar_add_check_box(
-            name='Show Maxima',
-            value=False,
-            callback=self._toggle_show_max,
-        )
+        self._toggle_show_max_button = \
+            self._renderer._status_bar_add_button(
+                name='Show Maxima',
+                callback=self._toggle_show_max,
+            )
         self._intensity_label = self._renderer._status_bar_add_label('')
         self._renderer._status_bar_add_label('VOX = ')
         self._VOX_textbox = self._renderer._status_bar_add_text(
@@ -556,7 +559,8 @@ class IntracranialElectrodeLocator():
                 line.remove()
             self._lines_2D.pop(group)
         if only_2D:  # if not in projection, don't add 2D lines
-            if not self._toggle_show_mip_button.get_value():
+            if self._toggle_show_mip_button.get_text() == \
+                    'Show Max Intensity Proj':
                 return
         elif group in self._lines:  # if updating 3D, remove first
             self._renderer.plotter.remove_actor(
@@ -580,7 +584,8 @@ class IntracranialElectrodeLocator():
             self._lines[group] = self._renderer.tube(
                 [pos[target_idx]], [pos[insert_idx] + elec_v * _BOLT_SCALAR],
                 radius=self._radius * _TUBE_SCALAR, color=_CMAP(group)[:3])[0]
-        if self._toggle_show_mip_button.get_value():
+        if self._toggle_show_mip_button.get_text() == \
+                'Hide Max Intensity Proj':
             # add 2D lines on each slice plot if in max intensity projection
             target_vox = apply_trans(self._ras_vox_t, pos[target_idx])
             insert_vox = apply_trans(self._ras_vox_t,
@@ -767,10 +772,17 @@ class IntracranialElectrodeLocator():
             self._ch_list_model.index(self._ch_names.index(name), 0),
             brush, QtCore.Qt.ForegroundRole)
 
+    def _toggle_snap(self):
+        """Toggle snapping the contact location to the center of mass."""
+        if self._snap_button.get_text() == 'Off':
+            self._snap_button.set_text('On')
+        else:  # text == 'On', turn off
+            self._snap_button.set_text('Off')
+
     def _mark_ch(self):
         """Mark the current channel as being located at the crosshair."""
         name = self._ch_names[self._ch_index]
-        if not self._snap_button.get_value():
+        if self._snap_button.get_text() == 'Off':
             self._chs[name][:] = self._ras
         else:
             shape = np.mean(self._mri_data.shape)  # Freesurfer shape (256)
@@ -811,7 +823,8 @@ class IntracranialElectrodeLocator():
         for axis in range(3) if axis is None else [axis]:
             self._images['chs'][axis].set_data(
                 self._make_ch_image(axis))
-            if self._toggle_show_mip_button.get_value():
+            if self._toggle_show_mip_button.get_text() == \
+                    'Hide Max Intensity Proj':
                 self._images['mip_chs'][axis].set_data(
                     self._make_ch_image(axis, proj=True))
             if draw:
@@ -863,7 +876,7 @@ class IntracranialElectrodeLocator():
     def _update_radius(self):
         """Update channel plot radius."""
         self._radius = np.round(self._radius_slider.get_value()).astype(int)
-        if self._toggle_show_max_button.get_value():
+        if self._toggle_show_max_button.get_text():
             self._update_ct_maxima()
             self._update_ct_images()
         else:
@@ -909,9 +922,11 @@ class IntracranialElectrodeLocator():
             False
         self._ct_maxima = np.where(self._ct_maxima, 1, np.nan)  # transparent
 
-    def _toggle_show_mip(self, state):
+    def _toggle_show_mip(self):
         """Toggle whether the maximum-intensity projection is shown."""
-        if state:
+        if self._toggle_show_mip_button.get_text() == \
+                'Show Max Intensity Proj':
+            self._toggle_show_mip_button.set_text('Hide Max Intensity Proj')
             self._images['mip'] = list()
             self._images['mip_chs'] = list()
             ct_min, ct_max = np.nanmin(self._ct_data), np.nanmax(self._ct_data)
@@ -940,13 +955,15 @@ class IntracranialElectrodeLocator():
                 img.remove()
             self._images.pop('mip')
             self._images.pop('mip_chs')
+            self._toggle_show_mip_button.set_text('Show Max Intensity Proj')
             for group in set(self._groups.values()):  # remove lines
                 self._update_lines(group, only_2D=True)
         self._draw()
 
-    def _toggle_show_max(self, state):
+    def _toggle_show_max(self):
         """Toggle whether to color local maxima differently."""
-        if state:
+        if self._toggle_show_max_button.get_text() == 'Show Maxima':
+            self._toggle_show_max_button.set_text('Hide Maxima')
             # happens on initiation or if the radius is changed with it off
             if self._ct_maxima is None:  # otherwise don't recompute
                 self._update_ct_maxima()
@@ -962,6 +979,7 @@ class IntracranialElectrodeLocator():
             for img in self._images['local_max']:
                 img.remove()
             self._images.pop('local_max')
+            self._toggle_show_max_button.set_text('Show Maxima')
         self._draw()
 
     def _toggle_show_brain(self):
@@ -970,6 +988,7 @@ class IntracranialElectrodeLocator():
             for img in self._images['mri']:
                 img.remove()
             self._images.pop('mri')
+            self._toggle_brain_button.set_text('Show Brain')
         else:
             self._images['mri'] = list()
             for axis in range(3):
@@ -977,6 +996,7 @@ class IntracranialElectrodeLocator():
                                    self._current_slice[axis], axis=axis).T
                 self._images['mri'].append(self._figs[axis].axes[0].imshow(
                     mri_data, cmap='hot', aspect='auto', alpha=0.25, zorder=2))
+            self._toggle_brain_button.set_text('Hide Brain')
         self._draw()
 
     def _key_press_event(self, event):

@@ -422,8 +422,18 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         self._tool_bar = window.addToolBar(name)
         self._tool_bar_layout = self._tool_bar.layout()
 
+    def _tool_bar_add_label(self, value):
+        widget = QLabel(value)
+        self._tool_bar.addWidget(widget)
+        return _QtWidget(widget)
+
     def _tool_bar_add_button(self, name, desc, func, *, icon_name=None,
-                             shortcut=None):
+                             shortcut=None, action=True):
+        if not action:
+            widget = QPushButton(desc)
+            widget.clicked.connect(func)
+            self._tool_bar.addWidget(widget)
+            return _QtWidget(widget)
         icon_name = name if icon_name is None else icon_name
         if icon_name in self._icons:
             icon = self._icons[icon_name]
@@ -469,14 +479,6 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         self._tool_bar_add_button(
             name=name, desc=desc, func=func, icon_name=None, shortcut=shortcut)
 
-    def _tool_bar_add_check_box(self, name, value, callback, *, tooltip=None):
-        widget = QCheckBox(name)
-        _set_widget_tooltip(widget, tooltip)
-        widget.setChecked(value)
-        widget.stateChanged.connect(callback)
-        self._tool_bar.addWidget(widget)
-        return _QtWidget(widget)
-
     def _tool_bar_add_combo_box(self, name, value, rng, callback, *,
                                 indexing=False, compact=True, tooltip=None):
         widget = QComboBox()
@@ -516,6 +518,12 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
     def _status_bar_initialize(self, window=None):
         window = self._window if window is None else window
         self._status_bar = window.statusBar()
+
+    def _status_bar_add_button(self, name, callback, *, stretch=0):
+        widget = QPushButton(name)
+        widget.clicked.connect(callback)
+        self._layout_add_widget(self._status_bar.layout(), widget, stretch)
+        return _QtWidget(widget)
 
     def _status_bar_add_check_box(self, name, value, callback, *, stretch=0):
         widget = QCheckBox(name)
@@ -805,6 +813,12 @@ class _QtWidget(_AbstractWidget):
         else:
             assert hasattr(self._widget, "text")
             return self._widget.text()
+
+    def set_text(self, text):
+        self._widget.setText(text)
+
+    def get_text(self):
+        return self._widget.text()
 
     def set_range(self, rng):
         self._widget.setRange(rng[0], rng[1])
