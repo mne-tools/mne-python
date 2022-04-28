@@ -154,8 +154,8 @@ class IntracranialElectrodeLocator():
         self._figs = [plts[0][1], plts[1][1], plts[2][1]]
         plt_grid = self._renderer._layout_create(orientation='grid')
         self._renderer._layout_add_widget(plt_grid, plts[0][0], row=0, col=0)
-        self._renderer._layout_add_widget(plt_grid, plts[1][0], row=1, col=0)
-        self._renderer._layout_add_widget(plt_grid, plts[2][0], row=0, col=1)
+        self._renderer._layout_add_widget(plt_grid, plts[1][0], row=0, col=1)
+        self._renderer._layout_add_widget(plt_grid, plts[2][0], row=1, col=0)
         self._renderer._layout_add_widget(plt_grid, self._renderer.plotter,
                                           row=1, col=1)
 
