@@ -34,6 +34,23 @@ from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
 from ..utils import _check_option, safe_event, get_config
 
 
+class ComboBox(QComboBox):
+    """Dropdown menu that emits a click when popped up."""
+
+    clicked = Signal()
+
+    def __init__(self, indexing=False, emit_clicked=False):
+        super().__init__()
+        self._indexing = indexing
+        self._emit_clicked = emit_clicked
+
+    def showPopup(self):
+        """Override show popup method to emit click."""
+        if self._emit_clicked:
+            self.clicked.emit()
+        super(ComboBox, self).showPopup()
+
+
 class _QtDialog(_AbstractDialog):
     # from QMessageBox.StandardButtons
     supported_button_names = [
@@ -253,7 +270,7 @@ class _QtDock(_AbstractDock, _QtLayout):
                             tooltip=None, layout=None):
         layout = self._dock_named_layout(
             name=name, layout=layout, compact=compact)
-        widget = QComboBox()
+        widget = ComboBox()
         _set_widget_tooltip(widget, tooltip)
         widget.addItems(rng)
         widget.setCurrentText(value)
@@ -479,7 +496,7 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_add_combo_box(self, name, value, rng, callback, *,
                                 indexing=False, compact=True, tooltip=None,
                                 colors=None):
-        widget = QComboBox()
+        widget = ComboBox(indexing)
         _set_widget_tooltip(widget, tooltip)
         widget.addItems(rng)
         if colors:
@@ -495,7 +512,7 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         else:
             widget.setCurrentText(value)
             widget.currentTextChanged.connect(callback)
-        widget.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        widget.setSizeAdjustPolicy(ComboBox.AdjustToContents)
         self._tool_bar.addWidget(widget)
         return _QtWidget(widget)
 
@@ -790,11 +807,14 @@ class _QtWidget(_AbstractWidget):
     def set_value(self, value):
         if isinstance(self._widget, (QRadioButton, QToolButton, QPushButton)):
             self._widget.click()
+        elif isinstance(self._widget, ComboBox):
+            if self._widget._indexing:
+                self._widget.setCurrentIndex(value)
+            else:
+                self._widget.setCurrentText(value)
         else:
             if hasattr(self._widget, "setValue"):
                 self._widget.setValue(value)
-            elif hasattr(self._widget, "setCurrentText"):
-                self._widget.setCurrentText(value)
             elif hasattr(self._widget, "setChecked"):
                 self._widget.setChecked(value)
             else:
@@ -802,15 +822,19 @@ class _QtWidget(_AbstractWidget):
                 self._widget.setText(value)
 
     def get_value(self):
-        if hasattr(self._widget, "value"):
-            return self._widget.value()
-        elif hasattr(self._widget, "currentText"):
-            return self._widget.currentText()
-        elif hasattr(self._widget, "checkState"):
-            return self._widget.checkState() != Qt.Unchecked
+        if isinstance(self._widget, ComboBox):
+            if self._widget._indexing:
+                return self._widget.currentIndex()
+            else:
+                return self._widget.currentText()
         else:
-            assert hasattr(self._widget, "text")
-            return self._widget.text()
+            if hasattr(self._widget, "value"):
+                return self._widget.value()
+            elif hasattr(self._widget, "checkState"):
+                return self._widget.checkState() != Qt.Unchecked
+            else:
+                assert hasattr(self._widget, "text")
+                return self._widget.text()
 
     def set_text(self, text):
         self._widget.setText(text)

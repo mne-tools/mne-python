@@ -662,7 +662,7 @@ class IntracranialElectrodeLocator():
         name = self._ch_names[self._ch_index]
         self._ch_list.setCurrentIndex(
             self._ch_list_model.index(self._ch_index, 0))
-        self._group_selector.setCurrentIndex(self._groups[name])
+        self._group_selector.set_value(self._groups[name])
         self._update_group()
         if not np.isnan(self._chs[name]).any():
             self._set_ras(self._chs[name])
