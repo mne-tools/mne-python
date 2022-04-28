@@ -43,10 +43,10 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
 
         .. versionadded:: 0.18
     max_jobs : int | None
-        The maximum number of jobs to use. This is useful when you know ahead
+        The upper limit of jobs to use. This is useful when you know ahead
         of a the maximum number of calls into :class:`joblib.Parallel` that
-        you will need, and the returned ``n_jobs`` should not exceed this
-        value.
+        you will possibly want or need, and the returned ``n_jobs`` should not
+        exceed this value regardless of how many jobs the user requests.
     %(verbose)s INFO or DEBUG
         will print parallel status, others will not.
 
@@ -57,7 +57,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
     my_func: callable
         ``func`` if not parallel or delayed(func).
     n_jobs: int
-        Number of jobs >= 0.
+        Number of jobs >= 1.
     """
     should_print = (logger.level <= logging.INFO)
     # for a single job, we don't need joblib
