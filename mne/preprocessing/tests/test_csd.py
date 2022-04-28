@@ -195,15 +195,18 @@ def test_compute_bridged_electrodes():
         bridged_idx, ed_matrix = compute_bridged_electrodes(raw)
 
     # test output
+    epoch_duration = 3
     raw = read_raw_fif(raw_fname).load_data()
     idx0 = raw.ch_names.index('EEG 001')
     idx1 = raw.ch_names.index('EEG 002')
     raw._data[idx1] = raw._data[idx0]
-    bridged_idx, ed_matrix = compute_bridged_electrodes(raw)
+    bridged_idx, ed_matrix = compute_bridged_electrodes(
+        raw, epoch_duration=epoch_duration)
     assert bridged_idx == [(idx0, idx1)]
     picks = pick_types(raw.info, meg=False, eeg=True)
-    assert ed_matrix.shape == (raw.times.size // (2 * raw.info['sfreq']),
-                               picks.size, picks.size)
+    assert ed_matrix.shape == \
+        (raw.times.size // (epoch_duration * raw.info['sfreq']),
+         picks.size, picks.size)
     picks = list(picks)
     assert np.all(ed_matrix[:, picks.index(idx0), picks.index(idx1)] == 0)
     assert np.all(np.isnan(ed_matrix[0][np.tril_indices(len(picks), -1)]))

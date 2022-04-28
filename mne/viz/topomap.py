@@ -2621,9 +2621,9 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
     return fig
 
 
-def _voroni_topomap(data, pos, info, sphere, ch_type, outlines, ax, cmap,
-                    norm):
-    """Make a Voroni diagram on a topomap."""
+def _voronoi_topomap(data, pos, info, sphere, ch_type, outlines, ax, cmap,
+                     norm):
+    """Make a Voronoi diagram on a topomap."""
     from scipy.spatial import Voronoi
     sphere = _check_sphere(sphere)
     clip_origin = _adjust_meg_sphere(sphere, info, ch_type)[1]
@@ -2697,9 +2697,9 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     else:  # default is Vononi
         im, cn = plot_topomap(np.zeros((picks.size,)), info, **topomap_args)
         # plot Vonorni Diagram over topomap
-        _voroni_topomap(elec_dists, pos, info, sphere, 'eeg',
-                        topomap_args.get('outlines', 'head'), im.axes,
-                        im.cmap, im.norm)
+        _voronoi_topomap(elec_dists, pos, info, sphere, 'eeg',
+                         topomap_args.get('outlines', 'head'), im.axes,
+                         im.cmap, im.norm)
 
     # add bridged connections
     for idx0, idx1 in bridged_idx:

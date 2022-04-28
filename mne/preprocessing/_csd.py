@@ -226,7 +226,7 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
     bridged_idx : list of tuple
         The indices of channels marked as bridged with each bridged
         pair stored as a tuple.
-    ed_matrix : ndarray of float, shape (n_channels, n_channels)
+    ed_matrix : ndarray of float, shape (n_epochs, n_channels, n_channels)
         The electrical distance matrix for each pair of EEG electrodes.
 
     Notes
@@ -255,7 +255,7 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
     # standardize shape
     data = inst.get_data(picks=picks)
     if isinstance(inst, Evoked):
-        data = data.reshape((1,) + data.shape)  # expand evoked
+        data = data[np.newaxis, ...]  # expand evoked
 
     # next, compute electrical distance matrix, upper triangular
     n_epochs = data.shape[0]
@@ -286,11 +286,10 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
 
     # find electrodes that are below the cutoff local minimum on
     # `epochs_threshold` proportion of epochs
-    check_bridged = np.logical_and(~np.isnan(ed_matrix),
-                                   ed_matrix < local_minimum)
     for i in range(picks.size):
         for j in range(i + 1, picks.size):
-            if np.sum(check_bridged[:, i, j]) / n_epochs > epoch_threshold:
+            bridged_count = np.sum(ed_matrix[:, i, j] < local_minimum)
+            if bridged_count / n_epochs > epoch_threshold:
                 logger.info('Bridge detected between '
                             f'{inst.ch_names[picks[i]]} and '
                             f'{inst.ch_names[picks[j]]}')

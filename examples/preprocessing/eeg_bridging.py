@@ -33,7 +33,6 @@ https://psychophysiology.cpmc.columbia.edu/software/eBridge/tutorial.html.
 
 # sphinx_gallery_thumbnail_number = 2
 
-import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -82,16 +81,16 @@ for sub in range(1, 11):
 bridged_idx, ed_matrix = ed_data[6]
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
 fig.suptitle('Subject 6 Electrical Distance Matrix')
-with warnings.catch_warnings():
-    # lower triangular matrix is NaNs so we should to suppress the warning
-    warnings.filterwarnings(
-        action='ignore', message='All-NaN slice encountered')
-    # take median across epochs
-    im1 = ax1.imshow(np.nanmedian(ed_matrix, axis=0))
+# take median across epochs, only use upper triangular, lower is NaNs
+ed_plot = np.zeros(ed_matrix.shape[1:]) * np.nan
+triu_idx = np.triu_indices(ed_plot.shape[0], 1)
+for idx0, idx1 in np.array(triu_idx).T:
+    ed_plot[idx0, idx1] = np.nanmedian(ed_matrix[:, idx0, idx1])
+im1 = ax1.imshow(ed_plot, aspect='auto')
 cax1 = fig.colorbar(im1, ax=ax1)
 cax1.set_label(r'Electrical Distance ($\mu$$V^2$)')
 # zoomed in colors
-im2 = ax2.imshow(np.nanmedian(ed_matrix, axis=0), vmax=5)
+im2 = ax2.imshow(ed_plot, aspect='auto', vmax=5)
 cax2 = fig.colorbar(im2, ax=ax2)
 cax2.set_label(r'Electrical Distance ($\mu$$V^2$)')
 for ax in (ax1, ax2):
@@ -103,11 +102,11 @@ fig.tight_layout()
 # Now let's plot a histogram of the electrical distance matrix. Note that the
 # electrical distance matrix is upper triangular but does not include the
 # diagonal from the previous plot. This means that the pairwise electrical
-# distances are not computed between the same channel (which makes sense
+# distances are not computed between the same channel (which makes sense as
 # the differences between a channel and itself would just be zero). The initial
-# peak near zero is therefore represents pairs of different channels with
-# that are nearly identical which is indicative of bridging. EEG recordings
-# without ridged electrodes do not have a peak near zero.
+# peak near zero therefore represents pairs of different channels that
+# are nearly identical which is indicative of bridging. EEG recordings
+# without bridged electrodes do not have a peak near zero.
 
 fig, ax = plt.subplots(figsize=(5, 5))
 fig.suptitle('Subject 6 Electrical Distance Matrix Distribution')
@@ -216,7 +215,7 @@ for sub, (bridged_idx, ed_matrix) in ed_data.items():
 # to bring impendances down. Thus it can be helpful to compare bridging
 # to impedances in the quest to be an ideal EEG technician! Low
 # impedances lead to less noisy data and EEG without bridging is more
-# spatially precise. Brain Imaging Data Structure (BIDS) recommendeds that
+# spatially precise. Brain Imaging Data Structure (BIDS) recommends that
 # impedances be stored in an EEG dataset in the `electrodes.tsv
 # <https://bids-specification.readthedocs.io/en/stable/\
 # 04-modality-specific-files/03-electroencephalography.html\
@@ -224,9 +223,9 @@ for sub, (bridged_idx, ed_matrix) in ed_data.items():
 # Since the impedances are not stored for this dataset, we will fake
 # them to demonstrate how they would be plotted.
 
-np.random.seed(11)  # seed for reproducibility
+rng = np.random.default_rng(11)  # seed for reproducibility
 raw = raw_data[1]
-impedances = np.random.random((len(raw.ch_names,))) * 10
+impedances = rng.random((len(raw.ch_names,))) * 10
 fig, ax = plt.subplots(figsize=(5, 5))
 im, cn = mne.viz.plot_topomap(impedances, raw.info, axes=ax)
 ax.set_title('Electrode Impendances')

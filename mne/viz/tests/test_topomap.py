@@ -648,8 +648,8 @@ def test_plot_topomap_cnorm():
     else:
         from matplotlib.colors import DivergingNorm as TwoSlopeNorm
 
-    np.random.seed(42)
-    v = np.random.uniform(low=-1, high=2.5, size=64)
+    rng = np.random.default_rng(42)
+    v = rng.uniform(low=-1, high=2.5, size=64)
     v[:3] = [-1, 0, 2.5]
 
     montage = make_standard_montage("biosemi64")
@@ -672,7 +672,7 @@ def test_plot_topomap_cnorm():
 
 def test_plot_bridged_electrodes():
     """Test plotting of bridged electrodes."""
-    np.random.seed(42)
+    rng = np.random.default_rng(42)
     montage = make_standard_montage("biosemi64")
     info = create_info(montage.ch_names, 256, "eeg").set_montage("biosemi64")
     bridged_idx = [(0, 1), (2, 3)]
@@ -681,8 +681,7 @@ def test_plot_bridged_electrodes():
                           len(info.ch_names))) * np.nan
     triu_idx = np.triu_indices(len(info.ch_names), 1)
     for i in range(n_epochs):
-        ed_matrix[i][triu_idx] = \
-            np.random.random() + np.random.random(triu_idx[0].size)
+        ed_matrix[i][triu_idx] = rng.random() + rng.random(triu_idx[0].size)
     fig = plot_bridged_electrodes(info, bridged_idx, ed_matrix,
                                   topomap_args=dict(names=info.ch_names,
                                                     vmax=1, show_names=True))
