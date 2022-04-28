@@ -43,6 +43,8 @@ Enhancements
 
 - Add :func:`mne.preprocessing.compute_bridged_electrodes` to detect EEG electrodes with shared spatial sources due to a conductive medium connecting two or more electrodes, add :ref:`ex-eeg-bridging` for an example and :func:`mne.viz.plot_bridged_electrodes` to help visualize (:gh:`10571` by `Alex Rockhill`_)
 
+- Add ``'voronoi'`` as an option for the ``image_interp`` argument in :func:`mne.viz.plot_topomap` to plot a topomap without interpolation using a Voronoi parcelation (:gh:`10571` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 - Fix bug in :func:`mne.io.read_raw_brainvision` when BrainVision data are acquired with the Brain Products "V-Amp" amplifier and disabled lowpass filter is marked with value ``0`` (:gh:`10517` by :newcontrib:`Alessandro Tonin`)
