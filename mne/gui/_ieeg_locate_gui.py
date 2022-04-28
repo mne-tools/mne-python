@@ -145,24 +145,9 @@ class IntracranialElectrodeLocator():
         self._ch_list.setFocus()  # always focus on list
 
     def _configure_ui(self):
-        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
         self._renderer = _get_renderer(
             name='IEEG Locator', size=(400, 400), bgcolor='w')
         self._window = self._renderer._window_create()
-        self._help_dialog = self._renderer._dialog_create(
-            title="Help",
-            text="Help:\n'm': mark channel location\n"
-                 "'r': remove channel location\n"
-                 "'b': toggle viewing of brain in T1\n"
-                 "'+'/'-': zoom\nleft/right arrow: left/right\n"
-                 "up/down arrow: superior/inferior\n"
-                 "left angle bracket/right angle bracket: anterior/posterior",
-            info_text="",
-            callback=lambda x: None,
-            icon="Information",
-            buttons=["Ok"],
-            modal=not MNE_3D_BACKEND_TESTING,
-        )
 
         # Main plots: make one plot for each view; sagittal, coronal, axial
         plts = [_make_slice_plot(), _make_slice_plot(), _make_slice_plot()]
@@ -186,6 +171,7 @@ class IntracranialElectrodeLocator():
         self._plot_images()
 
         # Menus
+        self._configure_dialogs()
         self._configure_tool_bar()
         self._configure_dock()
         self._configure_status_bar()
@@ -417,6 +403,23 @@ class IntracranialElectrodeLocator():
             self._3d_chs[name].SetScale(self._radius * _RADIUS_SCALAR)
         if render:
             self._renderer._update()
+
+    def _configure_dialogs(self):
+        from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+        self._help_dialog = self._renderer._dialog_create(
+            title="Help",
+            text="Help:\n'm': mark channel location\n"
+                 "'r': remove channel location\n"
+                 "'b': toggle viewing of brain in T1\n"
+                 "'+'/'-': zoom\nleft/right arrow: left/right\n"
+                 "up/down arrow: superior/inferior\n"
+                 "left angle bracket/right angle bracket: anterior/posterior",
+            info_text="",
+            callback=lambda x: None,
+            icon="Information",
+            buttons=["Ok"],
+            modal=not MNE_3D_BACKEND_TESTING,
+        )
 
     def _configure_tool_bar(self):
         """Make a bar with buttons for user interactions."""
