@@ -451,11 +451,13 @@ class IntracranialElectrodeLocator():
             name='mark',
             desc='Mark',
             func=self._mark_ch,
+            action=False,
         )
         self._renderer._tool_bar_add_button(
             name='remove',
             desc='Remove',
             func=self._remove_ch,
+            action=False,
         )
         colors = list()
         for i in range(_N_COLORS):
