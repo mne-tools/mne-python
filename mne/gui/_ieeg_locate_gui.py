@@ -453,6 +453,11 @@ class IntracranialElectrodeLocator():
             desc='Remove',
             func=self._remove_ch,
         )
+        colors = list()
+        for i in range(_N_COLORS):
+            color = QtGui.QColor()
+            color.setRgb(*(255 * np.array(_CMAP(i))).round().astype(int))
+            colors.append(color)
         self._group_selector = self._renderer._tool_bar_add_combo_box(
             name="Select Group",
             value=0,
@@ -461,6 +466,7 @@ class IntracranialElectrodeLocator():
             indexing=True,
             compact=True,
             tooltip="Select the FreeSurfer subject name",
+            colors=colors,
         )
         # update background color for current selection
         self._update_group()

@@ -12,7 +12,7 @@ import pyvista
 from pyvistaqt.plotting import FileDialog, MainWindow
 
 from qtpy.QtCore import Qt, Signal, QLocale, QObject
-from qtpy.QtGui import QIcon, QCursor
+from qtpy.QtGui import QIcon, QCursor, QBrush
 from qtpy.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                             QHBoxLayout, QLabel, QToolButton, QMenuBar,
                             QSlider, QSpinBox, QVBoxLayout, QWidget,
@@ -477,10 +477,18 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
             name=name, desc=desc, func=func, icon_name=None, shortcut=shortcut)
 
     def _tool_bar_add_combo_box(self, name, value, rng, callback, *,
-                                indexing=False, compact=True, tooltip=None):
+                                indexing=False, compact=True, tooltip=None,
+                                colors=None):
         widget = QComboBox()
         _set_widget_tooltip(widget, tooltip)
         widget.addItems(rng)
+        if colors:
+            model = widget.model()
+            for idx, color in enumerate(colors):
+                brush = QBrush(color)
+                brush.setStyle(Qt.SolidPattern)
+                model.setData(model.index(idx, 0),
+                              brush, Qt.BackgroundRole)
         if indexing:
             widget.setCurrentIndex(value)
             widget.currentIndexChanged.connect(callback)
