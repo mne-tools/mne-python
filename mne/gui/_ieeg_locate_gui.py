@@ -424,6 +424,7 @@ class IntracranialElectrodeLocator():
             name='help',
             desc='Help',
             func=self._show_help,
+            action=False,
         )
         self._renderer._tool_bar_add_spacer()
         self._renderer._tool_bar_add_label("Snap to Center")
@@ -466,7 +467,8 @@ class IntracranialElectrodeLocator():
 
     def _configure_dock(self):
         """Make a bar with sliders on it."""
-        self._renderer._dock_initialize(window=self._window, area="top")
+        self._renderer._dock_initialize(
+            window=self._window, area="top", name="")
         dock_layout = self._renderer._dock_layout
         row1_layout = self._renderer._layout_create(orientation='horizontal')
         self._alpha_slider = self._renderer._dock_add_slider(
