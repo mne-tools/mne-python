@@ -634,12 +634,10 @@ class IntracranialElectrodeLocator():
 
     def _update_group(self):
         """Set background for closed group menu."""
-        # XXX: disabled for now
-        return
-        group = self._group_selector.currentIndex()
+        group = self._group_selector.get_value()
         rgb = (255 * np.array(_CMAP(group))).round().astype(int)
-        self._group_selector.setStyleSheet(
-            'background-color: rgb({:d},{:d},{:d})'.format(*rgb))
+        style = {'background-color': 'rgb({:d},{:d},{:d})'.format(*rgb)}
+        self._group_selector.set_style(style)
         self._group_selector.update()
 
     def _on_scroll(self, event):
