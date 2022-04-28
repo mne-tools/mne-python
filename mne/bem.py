@@ -2092,6 +2092,7 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     this_env['SUBJECTS_DIR'] = subjects_dir
     this_env['SUBJECT'] = subject
+    this_env['subjdir'] = subjects_dir + '/' + subject
     if 'FREESURFER_HOME' not in this_env:
         raise RuntimeError('The FreeSurfer environment needs to be set up '
                            'for this script')
