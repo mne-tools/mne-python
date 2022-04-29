@@ -13,7 +13,7 @@
 import numpy as np
 
 from .parametric import f_oneway, ttest_1samp_no_p
-from ..parallel import parallel_func, check_n_jobs
+from ..parallel import parallel_func
 from ..fixes import jit, has_numba
 from ..utils import (split_list, logger, verbose, ProgressBar, warn, _pl,
                      check_random_state, _check_option, _validate_type)
@@ -833,7 +833,6 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                               adjacency, n_jobs, seed, max_step,
                               exclude, step_down_p, t_power, out_type,
                               check_disjoint, buffer_size):
-    n_jobs = check_n_jobs(n_jobs)
     """Aux Function.
 
     Note. X is required to be a list. Depending on the length of X
@@ -955,7 +954,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         orders = [rng.permutation(len(X_full))
                   for _ in range(n_permutations - 1)]
     del rng
-    parallel, my_do_perm_func, _ = parallel_func(
+    parallel, my_do_perm_func, n_jobs = parallel_func(
         do_perm_func, n_jobs, verbose=False)
 
     if len(clusters) == 0:
@@ -1058,7 +1057,7 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind='within'):
 @verbose
 def permutation_cluster_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
-        adjacency=None, n_jobs=1, seed=None, max_step=1, exclude=None,
+        adjacency=None, n_jobs=None, seed=None, max_step=1, exclude=None,
         step_down_p=0, t_power=1, out_type='indices', check_disjoint=False,
         buffer_size=1000, verbose=None):
     """Cluster-level statistical permutation test.
@@ -1131,7 +1130,7 @@ def permutation_cluster_test(
 @verbose
 def permutation_cluster_1samp_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
-        adjacency=None, n_jobs=1, seed=None, max_step=1,
+        adjacency=None, n_jobs=None, seed=None, max_step=1,
         exclude=None, step_down_p=0, t_power=1, out_type='indices',
         check_disjoint=False, buffer_size=1000, verbose=None):
     """Non-parametric cluster-level paired t-test.
@@ -1215,7 +1214,7 @@ def permutation_cluster_1samp_test(
 @verbose
 def spatio_temporal_cluster_1samp_test(
         X, threshold=None, n_permutations=1024, tail=0,
-        stat_fun=None, adjacency=None, n_jobs=1, seed=None,
+        stat_fun=None, adjacency=None, n_jobs=None, seed=None,
         max_step=1, spatial_exclude=None, step_down_p=0, t_power=1,
         out_type='indices', check_disjoint=False, buffer_size=1000,
         verbose=None):
@@ -1283,7 +1282,7 @@ def spatio_temporal_cluster_1samp_test(
 @verbose
 def spatio_temporal_cluster_test(
         X, threshold=None, n_permutations=1024, tail=0, stat_fun=None,
-        adjacency=None, n_jobs=1, seed=None, max_step=1,
+        adjacency=None, n_jobs=None, seed=None, max_step=1,
         spatial_exclude=None, step_down_p=0, t_power=1, out_type='indices',
         check_disjoint=False, buffer_size=1000,
         verbose=None):

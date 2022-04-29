@@ -90,7 +90,7 @@ for band, fmin, fmax in iter_freqs:
     raw.load_data()
 
     # bandpass filter
-    raw.filter(fmin, fmax, n_jobs=1,  # use more jobs to speed up.
+    raw.filter(fmin, fmax, n_jobs=None,  # use more jobs to speed up.
                l_trans_bandwidth=1,  # make sure filter params are the same
                h_trans_bandwidth=1)  # in each band and skip "auto" option.
 

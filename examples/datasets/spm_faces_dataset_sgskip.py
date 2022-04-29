@@ -102,7 +102,7 @@ noise_cov = mne.compute_covariance(epochs, tmax=0, method='shrunk',
 trans_fname = spm_path / 'SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
 
 maps = mne.make_field_map(evoked[0], trans_fname, subject='spm',
-                          subjects_dir=subjects_dir, n_jobs=1)
+                          subjects_dir=subjects_dir, n_jobs=None)
 
 evoked[0].plot_field(maps, time=0.170)
 

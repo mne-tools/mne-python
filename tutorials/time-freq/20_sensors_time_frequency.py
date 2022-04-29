@@ -83,7 +83,7 @@ epochs.plot_psd_topomap(ch_type='grad', normalize=False)
 #    :meth:`~mne.Epochs.plot_psd`).
 
 f, ax = plt.subplots()
-psds, freqs = psd_multitaper(epochs, fmin=2, fmax=40, n_jobs=1)
+psds, freqs = psd_multitaper(epochs, fmin=2, fmax=40, n_jobs=None)
 psds = 10 * np.log10(psds)  # convert to dB
 psds_mean = psds.mean(0).mean(0)
 psds_std = psds.mean(0).std(0)
@@ -104,7 +104,7 @@ plt.show()
 # bias relative to the mean), which is a more robust measure.
 
 # Estimate PSDs based on "mean" and "median" averaging for comparison.
-kwargs = dict(fmin=2, fmax=40, n_jobs=1)
+kwargs = dict(fmin=2, fmax=40, n_jobs=None)
 psds_welch_mean, freqs_mean = psd_welch(epochs, average='mean', **kwargs)
 psds_welch_median, freqs_median = psd_welch(epochs, average='median', **kwargs)
 
@@ -159,7 +159,7 @@ print(psds_welch_unagg.shape)
 freqs = np.logspace(*np.log10([6, 35]), num=8)
 n_cycles = freqs / 2.  # different number of cycle per frequency
 power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
-                        return_itc=True, decim=3, n_jobs=1)
+                        return_itc=True, decim=3, n_jobs=None)
 
 # %%
 # Inspect power

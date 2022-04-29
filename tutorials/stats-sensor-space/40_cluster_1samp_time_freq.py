@@ -72,7 +72,7 @@ decim = 5
 freqs = np.arange(8, 40, 2)  # define frequencies of interest
 sfreq = raw.info['sfreq']  # sampling in Hz
 tfr_epochs = tfr_morlet(epochs, freqs, n_cycles=4., decim=decim,
-                        average=False, return_itc=False, n_jobs=1)
+                        average=False, return_itc=False, n_jobs=None)
 
 # Baseline power
 tfr_epochs.apply_baseline(mode='logratio', baseline=(-.100, 0))
