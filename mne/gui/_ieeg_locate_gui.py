@@ -12,7 +12,7 @@ import platform
 
 from scipy.ndimage import maximum_filter
 
-from qtpy import QtCore, QtGui
+from qtpy import QtCore
 
 from matplotlib import patheffects
 from matplotlib.backends.backend_qt5agg import FigureCanvas
@@ -461,8 +461,7 @@ class IntracranialElectrodeLocator():
         )
         colors = list()
         for i in range(_N_COLORS):
-            color = QtGui.QColor()
-            color.setRgb(*(255 * np.array(_CMAP(i))).round().astype(int))
+            color = (255 * np.array(_CMAP(i))).round().astype(int)
             colors.append(color)
         self._group_selector = self._renderer._tool_bar_add_combo_box(
             name="Select Group",

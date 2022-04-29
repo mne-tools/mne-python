@@ -541,6 +541,7 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         if colors:
             model = widget.model()
             for idx, color in enumerate(colors):
+                color = QColor(*color)
                 brush = QBrush(color)
                 brush.setStyle(Qt.SolidPattern)
                 model.setData(model.index(idx, 0),
