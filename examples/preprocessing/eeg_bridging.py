@@ -113,8 +113,8 @@ fig.tight_layout()
 # Examine the Distribution of Electrical Distances
 # ------------------------------------------------
 # Now let's plot a histogram of the electrical distance matrix. Note that the
-# electrical distance matrix is upper triangular but does not include the
-# diagonal from the previous plot. This means that the pairwise electrical
+# electrical distance matrix from the previous plot is upper triangular but
+# does not include the diagonal. This means that the pairwise electrical
 # distances are not computed between the same channel (which makes sense as
 # the differences between a channel and itself would just be zero). The initial
 # peak near zero therefore represents pairs of different channels that
