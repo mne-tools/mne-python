@@ -469,8 +469,6 @@ class IntracranialElectrodeLocator():
             rng=[' '] * _N_COLORS,
             callback=self._select_group,
             indexing=True,
-            compact=True,
-            tooltip="Select the FreeSurfer subject name",
             colors=colors,
         )
         # update background color for current selection
