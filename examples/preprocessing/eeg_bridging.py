@@ -171,9 +171,9 @@ raw.plot(duration=20, scalings=dict(eeg=2e-4))
 # EEGBCI dataset. As we can see in the zoomed in insert on the right,
 # for subjects 6, 7 and 8 (and to a lesser extent 2 and 4), there is a
 # different shape of the distribution of electrical distances around
-# 0 :math:`\muV^2` than for the other subjects. These subjects'
-# distributions have a peak around 0 :math:`\muV^2` distance
-# and a trough around 5 :math:`\muV^2` which is indicative of
+# 0 :math:`{\mu}V^2` than for the other subjects. These subjects'
+# distributions have a peak around 0 :math:`{\mu}V^2` distance
+# and a trough around 5 :math:`{\mu}V^2` which is indicative of
 # electrode bridging. The rest of the subjects' distributions increase
 # monotonically, indicating normal spatial separation of sources. The
 # large discrepancy in shapes of distributions is likely driven primarily by

@@ -186,8 +186,8 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
     r"""Compute bridged EEG electrodes using the intrinsic Hjorth algorithm.
 
     First an electrical distance matrix is computed by taking the pairwise
-    variance. Then, a local maximum near 0 :math:`\muV^2` and a
-    a local minimum below 5 :math:`\muV^2` are found, the presence
+    variance. Then, a local maximum near 0 :math:`{\mu}V^2` and a
+    a local minimum below 5 :math:`{\mu}V^2` are found, the presence
     of which is indicative of bridging. Finally, electrode distances below
     the local minimum are marked as bridged as long as they happen on more
     than the ``epoch_threshold`` proportion of epochs.
@@ -201,9 +201,9 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
     inst : instance of Raw, Epochs or Evoked
         The data to compute electrode bridging on.
     lm_cutoff : float
-        The distance in :math:`\muV^2` cutoff below which to
+        The distance in :math:`{\mu}V^2` cutoff below which to
         search for a local minimum (lm) indicative of bridging.
-        Defaults to 16 :math:`\muV^2` to be conservative based
+        Defaults to 16 :math:`{\mu}V^2` to be conservative based
         on the distributions in :footcite:`GreischarEtAl2004`.
     epoch_threshold : float
         The proportion of epochs with electrical distance less than
