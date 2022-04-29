@@ -2684,16 +2684,15 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     import matplotlib.pyplot as plt
     if topomap_args is None:
         topomap_args = dict()
-    if 'image_interp' not in topomap_args:
-        topomap_args['image_interp'] = 'voronoi'
-    if 'names' not in topomap_args:
-        topomap_args['names'] = info.ch_names
-    if 'show_names' not in topomap_args:
-        topomap_args['show_names'] = True
-    if 'contours' not in topomap_args:
-        topomap_args['contours'] = False
+    else:
+        topomap_args = topomap_args.copy()  # don't change original
+    topomap_args.setdefault('image_interp', 'voronoi')
+    topomap_args.setdefault('names', info.ch_names)
+    topomap_args.setdefault('show_names', True)
+    topomap_args.setdefault('contours', False)
     if 'axes' not in topomap_args:
         fig, ax = plt.subplots()
+        topomap_args['axes'] = ax
     else:
         fig = None
     # handle colorbar here instead of in plot_topomap

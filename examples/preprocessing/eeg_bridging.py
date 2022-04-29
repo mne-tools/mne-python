@@ -11,7 +11,7 @@ applied the gel conducting signal from the scalp to the electrode for one
 electrode connects with the gel conducting signal from another electrode
 "bridging" the two signals. This is undesirable because the signals from the
 two (or more) electrodes are not as independent as they would otherwise be;
-they are more similar to each other than they would otherwise be causing
+they are very similar to each other introducting additional
 spatial smearing. An algorithm has been developed to detect electrode
 bridging :footcite:`TenkeKayser2001`, which has been implemented in EEGLAB
 :footcite:`DelormeMakeig2004`. Unfortunately, there is not a lot to be
@@ -57,14 +57,14 @@ print(__doc__)
 #           bridging so using the last segment of the data will
 #           give the most conservative estimate.
 
+montage = mne.channels.make_standard_montage('standard_1005')
 ed_data = dict()  # electrical distance/bridging data
 raw_data = dict()  # store infos for electrode positions
 for sub in range(1, 11):
     print(f'Computing electrode bridges for subject {sub}')
-    raw = mne.io.read_raw(mne.datasets.eegbci.load_data(
-        subject=sub, runs=(1,))[0], preload=True, verbose=False)
+    raw_fname = mne.datasets.eegbci.load_data(subject=sub, runs=(1,))[0]
+    raw = mne.io.read_raw(raw_fname, preload=True, verbose=False)
     mne.datasets.eegbci.standardize(raw)  # set channel names
-    montage = mne.channels.make_standard_montage('standard_1005')
     raw.set_montage(montage, verbose=False)
     raw_data[sub] = raw
     ed_data[sub] = mne.preprocessing.compute_bridged_electrodes(raw)
@@ -79,27 +79,34 @@ for sub in range(1, 11):
 # bridging. In the zoomed out color scale version on the right, we can see
 # that there is a distribution of electrical distances that are specific to
 # that subject's head physiology/geometry and brain activity during the
-# recording. On the right, when we zoom in, we can see several electrical
-# distance outliers that are near zero; these indicate bridging.
+# recording. On the right, when we clip the color range to zoom in, we can
+# see several electrical distance outliers that are near zero;
+# these indicate bridging.
 
 bridged_idx, ed_matrix = ed_data[6]
+
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 4))
 fig.suptitle('Subject 6 Electrical Distance Matrix')
+
 # take median across epochs, only use upper triangular, lower is NaNs
 ed_plot = np.zeros(ed_matrix.shape[1:]) * np.nan
 triu_idx = np.triu_indices(ed_plot.shape[0], 1)
 for idx0, idx1 in np.array(triu_idx).T:
     ed_plot[idx0, idx1] = np.nanmedian(ed_matrix[:, idx0, idx1])
+
+# plot full distribution color range
 im1 = ax1.imshow(ed_plot, aspect='auto')
 cax1 = fig.colorbar(im1, ax=ax1)
 cax1.set_label(r'Electrical Distance ($\mu$$V^2$)')
-# zoomed in colors
+
+# plot zoomed in colors
 im2 = ax2.imshow(ed_plot, aspect='auto', vmax=5)
 cax2 = fig.colorbar(im2, ax=ax2)
 cax2.set_label(r'Electrical Distance ($\mu$$V^2$)')
 for ax in (ax1, ax2):
     ax.set_xlabel('Channel Index')
     ax.set_ylabel('Channel Index')
+
 fig.tight_layout()
 
 # %%
@@ -118,7 +125,7 @@ fig, ax = plt.subplots(figsize=(5, 5))
 fig.suptitle('Subject 6 Electrical Distance Matrix Distribution')
 ax.hist(ed_matrix[~np.isnan(ed_matrix)], bins=np.linspace(0, 500, 51))
 ax.set_xlabel(r'Electrical Distance ($\mu$$V^2$)')
-ax.set_ylabel('Count')
+ax.set_ylabel('Count (channel pairs for all epochs)')
 
 # %%
 # Plot Electrical Distances on a Topomap
