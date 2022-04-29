@@ -12,14 +12,16 @@ import pyvista
 from pyvistaqt.plotting import FileDialog, MainWindow
 
 from qtpy.QtCore import Qt, Signal, QLocale, QObject
-from qtpy.QtGui import QIcon, QCursor, QBrush
+from qtpy.QtGui import (QIcon, QCursor, QBrush, QStandardItem,
+                        QStandardItemModel, QColor)
 from qtpy.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                             QHBoxLayout, QLabel, QToolButton, QMenuBar,
                             QSlider, QSpinBox, QVBoxLayout, QWidget,
                             QSizePolicy, QScrollArea, QStyle, QProgressBar,
                             QStyleOptionSlider, QLayout, QCheckBox,
                             QButtonGroup, QRadioButton, QLineEdit, QGridLayout,
-                            QFileDialog, QPushButton, QMessageBox)
+                            QFileDialog, QPushButton, QMessageBox,
+                            QAbstractItemView, QListView)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
@@ -49,6 +51,43 @@ class ComboBox(QComboBox):
         if self._emit_clicked:
             self.clicked.emit()
         super(ComboBox, self).showPopup()
+
+
+class _QtListView():
+    def _list_view_initialize(self, items, idx, callback):
+        list_view = QListView()
+        list_view.setSelectionMode(QAbstractItemView.SingleSelection)
+        model = QStandardItemModel(list_view)
+        for item in items:
+            model.appendRow(QStandardItem(item))
+        list_view.setModel(model)
+        list_view.clicked.connect(callback)
+        list_view.setCurrentIndex(model.index(idx, 0))
+        return list_view
+
+    def _list_view_focus(self, list_view):
+        list_view.setFocus()
+
+    def _list_view_set_index(self, list_view, idx):
+        model = list_view.model()
+        list_view.setCurrentIndex(model.index(idx, 0))
+
+    def _list_view_set_item_color(self, list_view, idx, color,
+                                  text_color='black'):
+        model = list_view.model()
+        if isinstance(color, str):
+            background_color = QColor(color)
+        else:
+            background_color = QColor('white')
+            background_color.setRgb(*color)
+        brush = QBrush(background_color)
+        brush.setStyle(Qt.SolidPattern)
+        model.setData(model.index(idx, 0), brush, Qt.BackgroundRole)
+        # color text black
+        color = QColor(text_color)
+        brush = QBrush(color)
+        brush.setStyle(Qt.SolidPattern)
+        model.setData(model.index(idx, 0), brush, Qt.ForegroundRole)
 
 
 class _QtDialog(_AbstractDialog):
@@ -923,7 +962,8 @@ class _QtAction(_AbstractAction):
 
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
-                _QtStatusBar, _QtWindow, _QtPlayback, _QtDialog):
+                _QtStatusBar, _QtWindow, _QtPlayback, _QtDialog,
+                _QtListView):
     _kind = 'qt'
 
     def __init__(self, *args, **kwargs):

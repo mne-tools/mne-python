@@ -13,7 +13,6 @@ import platform
 from scipy.ndimage import maximum_filter
 
 from qtpy import QtCore, QtGui
-from qtpy.QtWidgets import QAbstractItemView, QListView
 
 from matplotlib import patheffects
 from matplotlib.backends.backend_qt5agg import FigureCanvas
@@ -142,7 +141,7 @@ class IntracranialElectrodeLocator():
 
         # ready for user
         self._move_cursors_to_pos()
-        self._ch_list.setFocus()  # always focus on list
+        self._renderer._list_view_focus(self._ch_list)  # always focus on list
 
     def _configure_ui(self):
         self._renderer = _get_renderer(
@@ -160,12 +159,13 @@ class IntracranialElectrodeLocator():
                                           row=1, col=1)
 
         # Channel selector
-        self._ch_list = QListView()
-        self._ch_list.setSelectionMode(QAbstractItemView.SingleSelection)
-        max_ch_name_len = max([len(name) for name in self._chs])
-        self._ch_list.setMinimumWidth(max_ch_name_len * _CH_MENU_WIDTH)
-        self._ch_list.setMaximumWidth(max_ch_name_len * _CH_MENU_WIDTH)
-        self._set_ch_names()
+        self._ch_list = self._renderer._list_view_initialize(
+            items=self._ch_names,
+            idx=0,
+            callback=self._go_to_ch,
+        )
+        for name in self._ch_names:
+            self._color_list_item(name=name)
 
         # Plots
         self._plot_images()
@@ -613,18 +613,6 @@ class IntracranialElectrodeLocator():
                     color=_CMAP(group), linewidth=0.25, zorder=7)[0])
             self._lines_2D[group] = lines_2D
 
-    def _set_ch_names(self):
-        """Add the channel names to the selector."""
-        self._ch_list_model = QtGui.QStandardItemModel(self._ch_list)
-        for name in self._ch_names:
-            self._ch_list_model.appendRow(QtGui.QStandardItem(name))
-            self._color_list_item(name=name)
-        self._ch_list.setModel(self._ch_list_model)
-        self._ch_list.clicked.connect(self._go_to_ch)
-        self._ch_list.setCurrentIndex(
-            self._ch_list_model.index(self._ch_index, 0))
-        self._ch_list.keyPressEvent = self._key_press_event
-
     def _select_group(self, idx):
         """Change the group label to the selection."""
         self._groups[self._ch_names[self._ch_index]] = idx
@@ -664,8 +652,7 @@ class IntracranialElectrodeLocator():
     def _update_ch_selection(self):
         """Update which channel is selected."""
         name = self._ch_names[self._ch_index]
-        self._ch_list.setCurrentIndex(
-            self._ch_list_model.index(self._ch_index, 0))
+        self._renderer._list_view_set_index(self._ch_list, self._ch_index)
         self._group_selector.set_value(self._groups[name])
         self._update_group()
         if not np.isnan(self._chs[name]).any():
@@ -756,33 +743,28 @@ class IntracranialElectrodeLocator():
         """Check whether the RAS textbox is done being edited."""
         if '\n' in self._RAS_textbox.get_value():
             self._update_RAS(event=None)
-            self._ch_list.setFocus()  # remove focus from text edit
+            # remove focus from text edit
+            self._renderer._list_view_focus(self._ch_list)
 
     def _check_update_VOX(self):
         """Check whether the VOX textbox is done being edited."""
         if '\n' in self._VOX_textbox.get_value():
             self._update_VOX(event=None)
-            self._ch_list.setFocus()  # remove focus from text edit
+            # remove focus from text edit
+            self._renderer._list_view_focus(self._ch_list)
 
     def _color_list_item(self, name=None):
         """Color the item in the view list for easy id of marked channels."""
         name = self._ch_names[self._ch_index] if name is None else name
-        color = QtGui.QColor('white')
+        color = 'white'
         if not np.isnan(self._chs[name]).any():
             group = self._groups[name]
-            color.setRgb(*[int(c * 255) for c in _CMAP(group)])
-        brush = QtGui.QBrush(color)
-        brush.setStyle(QtCore.Qt.SolidPattern)
-        self._ch_list_model.setData(
-            self._ch_list_model.index(self._ch_names.index(name), 0),
-            brush, QtCore.Qt.BackgroundRole)
-        # color text black
-        color = QtGui.QColor('black')
-        brush = QtGui.QBrush(color)
-        brush.setStyle(QtCore.Qt.SolidPattern)
-        self._ch_list_model.setData(
-            self._ch_list_model.index(self._ch_names.index(name), 0),
-            brush, QtCore.Qt.ForegroundRole)
+            color = [int(c * 255) for c in _CMAP(group)]
+        self._renderer._list_view_set_item_color(
+            list_view=self._ch_list,
+            idx=self._ch_names.index(name),
+            color=color,
+        )
 
     def _toggle_snap(self):
         """Toggle snapping the contact location to the center of mass."""
@@ -815,7 +797,7 @@ class IntracranialElectrodeLocator():
         self._plot_3d_ch(name, render=True)
         self._save_ch_coords()
         self._next_ch()
-        self._ch_list.setFocus()
+        self._renderer._list_view_focus(self._ch_list)
 
     def _remove_ch(self):
         """Remove the location data for the current channel."""
@@ -827,7 +809,7 @@ class IntracranialElectrodeLocator():
         self._update_ch_images(draw=True)
         self._plot_3d_ch(name, render=True)
         self._next_ch()
-        self._ch_list.setFocus()
+        self._renderer._list_view_focus(self._ch_list)
 
     def _draw(self, axis=None):
         """Update the figures with a draw call."""
@@ -903,7 +885,8 @@ class IntracranialElectrodeLocator():
                 actor.SetOrigin(self._chs[name])
                 actor.SetScale(self._radius * _RADIUS_SCALAR)
         self._renderer._update()
-        self._ch_list.setFocus()  # remove focus from 3d plotter
+        # remove focus from 3d plotter
+        self._renderer._list_view_focus(self._ch_list)
 
     def _update_ch_alpha(self):
         """Update channel plot alpha."""
@@ -914,7 +897,8 @@ class IntracranialElectrodeLocator():
         for actor in self._3d_chs.values():
             actor.GetProperty().SetOpacity(self._ch_alpha)
         self._renderer._update()
-        self._ch_list.setFocus()  # remove focus from 3d plotter
+        # remove focus from 3d plotter
+        self._renderer._list_view_focus(self._ch_list)
 
     def _move_cursors_to_pos(self):
         """Move the cursors to a position."""
@@ -1017,6 +1001,8 @@ class IntracranialElectrodeLocator():
 
     def _key_press_event(self, event):
         """Execute functions when the user presses a key."""
+        # XXX: disabled for now
+        return
         if event.key() == 'escape':
             self.close()
 
