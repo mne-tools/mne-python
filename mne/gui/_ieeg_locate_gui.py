@@ -183,15 +183,15 @@ class IntracranialElectrodeLocator():
             self._update_lines(group)
 
         # Put everything together
-        plot_ch_hbox = self._renderer._layout_create(orientation="horizontal")
-        plot_ch_hbox.addLayout(plt_grid)
-        plot_ch_hbox.addWidget(self._ch_list)
+        plot_layout = self._renderer._layout_create(orientation="horizontal")
+        self._renderer._layout_add_widget(plot_layout, plt_grid)
+        self._renderer._layout_add_widget(plot_layout, self._ch_list)
 
-        main_vbox = self._renderer._layout_create()
-        main_vbox.addLayout(plot_ch_hbox)
+        main_layout = self._renderer._layout_create()
+        self._renderer._layout_add_widget(main_layout, plot_layout)
 
         self._renderer._window_initialize(
-            window=self._window, central_layout=main_vbox,
+            window=self._window, central_layout=main_layout,
             theme_support=False)
 
     def show(self):
