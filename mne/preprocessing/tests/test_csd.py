@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Test the compute_current_source_density function.
+"""Test the current source density and related functions.
 
 For each supported file format, implement a test.
 """
@@ -23,7 +23,8 @@ from mne.io.constants import FIFF
 from mne.utils import object_diff
 from mne.datasets import testing
 
-from mne.preprocessing import compute_current_source_density
+from mne.preprocessing import (compute_current_source_density,
+                               compute_bridged_electrodes)
 
 data_path = op.join(testing.data_path(download=False), 'preprocessing')
 eeg_fname = op.join(data_path, 'test_eeg.mat')
@@ -183,3 +184,29 @@ def test_csd_fif():
         ch.update(coil_type=FIFF.FIFFV_COIL_EEG, unit=FIFF.FIFF_UNIT_V)
         raw_csd._data[pick] = raw._data[pick]
     assert object_diff(raw.info, raw_csd.info) == ''
+
+
+def test_compute_bridged_electrodes():
+    """Test computing bridged electrodes."""
+    # test I/O
+    raw = read_raw_fif(raw_fname).load_data()
+    raw.pick_types(meg=True)
+    with pytest.raises(RuntimeError, match='No EEG channels found'):
+        bridged_idx, ed_matrix = compute_bridged_electrodes(raw)
+
+    # test output
+    epoch_duration = 3
+    raw = read_raw_fif(raw_fname).load_data()
+    idx0 = raw.ch_names.index('EEG 001')
+    idx1 = raw.ch_names.index('EEG 002')
+    raw._data[idx1] = raw._data[idx0]
+    bridged_idx, ed_matrix = compute_bridged_electrodes(
+        raw, epoch_duration=epoch_duration)
+    assert bridged_idx == [(idx0, idx1)]
+    picks = pick_types(raw.info, meg=False, eeg=True)
+    assert ed_matrix.shape == \
+        (raw.times.size // (epoch_duration * raw.info['sfreq']),
+         picks.size, picks.size)
+    picks = list(picks)
+    assert np.all(ed_matrix[:, picks.index(idx0), picks.index(idx1)] == 0)
+    assert np.all(np.isnan(ed_matrix[0][np.tril_indices(len(picks), -1)]))
