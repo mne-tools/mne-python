@@ -18,23 +18,25 @@ Installing MNE-Python with all dependencies
 We suggest to install MNE-Python into its own ``conda`` environment.
 
 The dependency stack is large and may take a long time (several tens of
-minutes) to resolve on some systems via ``conda``. We therefore highly
-recommend using ``mamba``, a ``conda`` replacement with a much faster solver.
+minutes) to resolve on some systems via the default ``conda`` solver. We
+therefore highly recommend using the
+`libmamba solver <https://www.anaconda.com/blog/a-faster-conda-for-a-growing-community>`__,
+which is **much** faster, albeit still an experimental feature.
 
 Run in your terminal:
 
-  .. code-block:: console
+.. code-block:: console
 
-     conda install --channel conda-forge mamba
-     mamba create --name=mne --channel=conda-forge --strict-channel-priority mne
+   conda install --name=base conda-libmamba-solver
+   conda create --experimental-solver=libmamba --strict-channel-priority --channel=conda-forge --name=mne mne
 
-  This will create a new ``conda`` environment called ``mne`` (you can adjust
-  this by passing a different name via ``--name``) and install all
-  dependencies into it.
+This will create a new ``conda`` environment called ``mne`` (you can adjust
+this by passing a different name via ``--name``) and install all
+dependencies into it.
 
-  If you need to convert structural MRI scans into models
-  of the scalp, inner/outer skull, and cortical surfaces, you will also need
-  :doc:`FreeSurfer <freesurfer>`.
+If you need to convert structural MRI scans into models
+of the scalp, inner/outer skull, and cortical surfaces, you will also need
+:doc:`FreeSurfer <freesurfer>`.
 
 Installing a minimal MNE-Python with core functionality only
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -49,7 +51,7 @@ or via :code:`conda`:
 
 .. code-block:: console
 
-   conda create --name=mne --channel=conda-forge --strict-channel-priority mne-base
+   conda create --strict-channel-priority --channel=conda-forge --name=mne  mne-base
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``).
@@ -68,7 +70,7 @@ or via :code:`conda`
 
 .. code-block:: console
 
-   conda create --name=mne --channel=conda-forge --strict-channel-priority mne-base h5io h5py pymatreader
+   conda create --strict-channel-priority --channel=conda-forge --name=mne mne-base h5io h5py pymatreader
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``).
