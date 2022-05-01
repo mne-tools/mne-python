@@ -13,8 +13,33 @@ Install via :code:`pip` or :code:`conda`
 MNE-Python requires Python version |min_python_version| or higher. If you
 need to install Python, please see :ref:`install-python`.
 
-- If you only need MNE-Python's core functionality including 2D plotting (but
-  **without 3D visualization**), install via :code:`pip`:
+Installing MNE-Python with all dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+We suggest to install MNE-Python into its own ``conda`` environment.
+
+The dependency stack is large and may take a long time to  (several tens of
+minutes) to resolve on some systems via ``conda``. We therefore highly recommend
+using ``mamba``, a ``conda`` replacement with a much faster solver.
+
+Run in your terminal:
+
+  .. code-block:: console
+
+     conda install --channel conda-forge mamba
+     mamba create --name=mne --channel=conda-forge --strict-channel-priority mne
+
+  This will create a new ``conda`` environment called ``mne`` (you can adjust
+  this by passing a different name via ``--name``) and install all
+  dependencies into it.
+
+  If you need to convert structural MRI scans into models
+  of the scalp, inner/outer skull, and cortical surfaces, you will also need
+  :doc:`FreeSurfer <freesurfer>`.
+
+Installing a minimal MNE-Python with only core functionality (including 2D plotting)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+If you only need MNE-Python's core functionality including 2D plotting (but
+**without 3D visualization**), install via :code:`pip`:
 
   .. code-block:: console
 
@@ -24,11 +49,16 @@ need to install Python, please see :ref:`install-python`.
 
   .. code-block:: console
 
-      conda install --channel=conda-forge mne-base
+      conda create --name=mne --channel=conda-forge --strict-channel-priority mne-base
 
-- If you plan to use MNE-Python's functions that require **HDF5 I/O** (this
-  includes :func:`mne.io.read_raw_eeglab`, :meth:`mne.SourceMorph.save`, and
-  others), you should run via :code:`pip`:
+  This will create a new ``conda`` environment called ``mne`` (you can adjust
+  this by passing a different name via ``--name``).
+
+Installing a minimal MNE-Python with EEGLAB I/O support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+If you plan to use MNE-Python's functions that require **HDF5 I/O** (this
+includes :func:`mne.io.read_raw_eeglab`, :meth:`mne.SourceMorph.save`, and
+others), you should run via :code:`pip`:
 
   .. code-block:: console
 
@@ -38,25 +68,13 @@ need to install Python, please see :ref:`install-python`.
 
   .. code-block:: console
 
-     conda install --channel=conda-forge mne-base h5io h5py pymatreader
+     conda create --name=mne --channel=conda-forge --strict-channel-priority mne-base h5io h5py pymatreader
 
-  to install the necessary dependencies.
+  This will create a new ``conda`` environment called ``mne`` (you can adjust
+  this by passing a different name via ``--name``).
 
-- If you need MNE-Python **with 3D visualization** capabilities (e.g., plotting
-  estimated source activity on a cortical surface) it is a good idea to install
-  MNE-Python into its own ``conda`` environment. To do this:
-
-  .. code-block:: console
-
-     conda create --name=mne --channel=conda-forge mne
-     #                   ↑↑↑                       ↑↑↑
-     #             environment name            package name
-
-  This will create a new ``conda`` environment called ``mne`` and install all
-  dependencies into it. If you need to convert structural MRI scans into models
-  of the scalp, inner/outer skull, and cortical surfaces, you will also need
-  :doc:`FreeSurfer <freesurfer>`.
-
+Installing MNE-Python for other scenarios
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The :ref:`advanced_setup` page has additional
 tips and tricks for special situations (servers, notebooks, CUDA, installing
 the development version, etc). The :ref:`contributing` has additional
@@ -70,6 +88,14 @@ Most users find it convenient to write and run their code in an `Integrated
 Development Environment`_ (IDE). Some popular choices for scientific
 Python development are:
 
+- `Visual Studio Code`_ (often shortened to "VS Code" or "vscode") is a
+  development-focused text editor that supports many programming languages in
+  addition to Python, includes an integrated terminal console, and has a rich
+  ecosystem of packages to extend its capabilities. Installing
+  `Microsoft's Python Extension
+  <https://marketplace.visualstudio.com/items?itemName=ms-python.python>`__ is
+  enough to get most Python users up and running. VS Code is free and
+  open-source.
 - `Spyder`_ is a free and open-source IDE developed by and for scientists who
   use Python. It is included by default in the ``base`` environment when you
   install Anaconda, and can be started from a terminal with the command
@@ -101,14 +127,6 @@ Python development are:
   If the Spyder graphic backend is not set to ``inline`` but to e.g. ``Qt5``,
   ``pyqt`` must be installed in the ``mne`` environment.
 
-- `Visual Studio Code`_ (often shortened to "VS Code" or "vscode") is a
-  development-focused text editor that supports many programming languages in
-  addition to Python, includes an integrated terminal console, and has a rich
-  ecosystem of packages to extend its capabilities. Installing
-  `Microsoft's Python Extension
-  <https://marketplace.visualstudio.com/items?itemName=ms-python.python>`__ is
-  enough to get most Python users up and running. VS Code is free and
-  open-source.
 - `PyCharm`_ is an IDE specifically for Python development that provides an
   all-in-one installation (no extension packages needed). PyCharm comes in a
   free "community" edition and a paid "professional" edition, and is
