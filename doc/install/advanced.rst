@@ -88,7 +88,9 @@ Installing to a headless server
 
 With `pyvista`_:
 Download the `server environment file`_ and use it to create the conda
-environment::
+environment
+
+.. code-block:: console
 
     curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
     conda env create -f server_environment.yml

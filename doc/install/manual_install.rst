@@ -108,20 +108,24 @@ Python development are:
   Spyder to use the ``mne`` environment as its default interpreter by opening
   Spyder and navigating to
   :samp:`Tools > Preferences > Python Interpreter > Use the following interpreter`.
-  There, paste the output of the following terminal commands::
+  There, paste the output of the following terminal commands
 
-      $ conda activate mne
-      $ python -c "import sys; print(sys.executable)"
+  .. code-block:: console
+
+      conda activate mne
+      python -c "import sys; print(sys.executable)"
 
   It should be something like ``C:\Users\user\anaconda3\envs\mne\python.exe``
   (Windows) or ``/Users/user/opt/anaconda3/envs/mne/bin/python`` (macOS).
 
   If the Spyder console can not start because ``spyder-kernels`` is missing,
   install the required version in the ``mne`` environment with the following
-  commands in the terminal::
+  commands in the terminal
 
-      $ conda activate mne
-      $ conda install spyder-kernels=HERE_EXACT_VERSION -c conda-forge
+.. code-block:: console
+
+      conda activate mne
+      conda install spyder-kernels=HERE_EXACT_VERSION -c conda-forge
 
   Refer to the `spyder documentation <https://docs.spyder-ide.org/current/troubleshooting/common-illnesses.html#spyder-kernels-not-installed-incompatible>`_
   for more information about ``spyder-kernels`` and the version matching.
