@@ -51,7 +51,7 @@ or via :code:`conda`:
 
 .. code-block:: bash
 
-   conda create --strict-channel-priority --channel=conda-forge --name=mne  mne-base
+   conda create --strict-channel-priority --channel=conda-forge --name=mne mne-base
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``).
@@ -120,12 +120,13 @@ Python development are:
 
   If the Spyder console can not start because ``spyder-kernels`` is missing,
   install the required version in the ``mne`` environment with the following
-  commands in the terminal
+  commands in the terminal, where you replace ``...`` with the exact version of
+  ``spyder-kernels`` that Spyder tells you it requires.
 
 .. code-block:: bash
 
       conda activate mne
-      conda install spyder-kernels=HERE_EXACT_VERSION -c conda-forge
+      conda install --strict-channel-priority --channel=conda-forge spyder-kernels=...
 
   Refer to the `spyder documentation <https://docs.spyder-ide.org/current/troubleshooting/common-illnesses.html#spyder-kernels-not-installed-incompatible>`_
   for more information about ``spyder-kernels`` and the version matching.
