@@ -88,7 +88,6 @@ def test_snirf_gowerlabs():
     """Test reading SNIRF files."""
     raw = read_raw_snirf(lumo110, preload=True)
 
-    # Test data import
     assert raw._data.shape == (216, 274)
     assert raw.info['dig'][0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
     assert len(raw.ch_names) == 216

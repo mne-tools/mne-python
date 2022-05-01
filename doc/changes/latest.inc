@@ -51,7 +51,7 @@ Enhancements
 
 - Add ``'voronoi'`` as an option for the ``image_interp`` argument in :func:`mne.viz.plot_topomap` to plot a topomap without interpolation using a Voronoi parcelation (:gh:`10571` by `Alex Rockhill`_)
 
-- Add support for reading data from Gowerlabs devices to :func:`mne.io.read_raw_snirf` (:gh:`10544` by `Robert Luke`_ and `Samuel Powell`_)
+- Add support for reading data from Gowerlabs devices to :func:`mne.io.read_raw_snirf` (:gh:`10555` by `Robert Luke`_ and `Samuel Powell`_)
 
 Bugs
 ~~~~
@@ -84,3 +84,5 @@ Bugs
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - When creating BEM surfaces via :func:`mne.bem.make_watershed_bem` and :func:`mne.bem.make_flash_bem`, the ``copy`` parameter now defaults to ``True``. This means that instead of creating symbolic links inside the FreeSurfer subject's ``bem`` folder, we now create "actual" files. This should avoid troubles when sharing files across different operating systems and file systems (:gh:`10531` by `Richard Höchenberger`_)
+
+- The ordering of channels returned by :func:`mne.io.read_raw_nirx` is now ordered by channel name, rather than the order provided by the manufacturer. This enables consistent ordering of channels across different file types(:gh:`10555` by `Robert Luke`_)
