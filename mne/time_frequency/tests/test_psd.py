@@ -264,7 +264,7 @@ def test_compares_psd():
     # Compute psds with the new implementation using Welch
     psds_welch, freqs_welch = psd_welch(raw, tmin=tmin, tmax=tmax, fmin=fmin,
                                         fmax=fmax, proj=False, picks=picks,
-                                        n_fft=n_fft, n_jobs=1)
+                                        n_fft=n_fft, n_jobs=None)
 
     # Compute psds with plt.psd
     start, stop = raw.time_as_index([tmin, tmax])

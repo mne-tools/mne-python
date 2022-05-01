@@ -23,7 +23,6 @@ from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
                           Transform, invert_transform)
 from ..utils import logger, verbose, warn, _pl, _validate_type
-from ..parallel import check_n_jobs
 from ..source_space import (_ensure_src, _filter_source_spaces,
                             _make_discrete_source_space, _complete_vol_src)
 from ..source_estimate import VolSourceEstimate
@@ -530,7 +529,7 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
 
 @verbose
 def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
-                          mindist=0.0, ignore_ref=False, n_jobs=1,
+                          mindist=0.0, ignore_ref=False, n_jobs=None, *,
                           verbose=None):
     """Calculate a forward solution for a subject.
 
@@ -593,7 +592,6 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
         info = read_info(info, verbose=False)
     else:
         info_extra = 'instance of Info'
-    n_jobs = check_n_jobs(n_jobs)
 
     # Report the setup
     logger.info('Source space          : %s' % src)
@@ -640,7 +638,8 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
 
 
 @verbose
-def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
+def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *,
+                        verbose=None):
     """Convert dipole object to source estimate and calculate forward operator.
 
     The instance of Dipole is converted to a discrete source space,

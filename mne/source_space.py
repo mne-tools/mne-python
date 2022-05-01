@@ -38,7 +38,7 @@ from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
                     _check_fname, _path_like, _check_sphere,
                     _validate_type, _check_option, _is_numeric, _pl, _suggest,
                     object_size, sizeof_fmt)
-from .parallel import parallel_func, check_n_jobs
+from .parallel import parallel_func
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
                          _coord_frame_name, Transform, _str_to_frame,
@@ -1198,7 +1198,7 @@ def _check_spacing(spacing, verbose=None):
 
 @verbose
 def setup_source_space(subject, spacing='oct6', surface='white',
-                       subjects_dir=None, add_dist=True, n_jobs=1,
+                       subjects_dir=None, add_dist=True, n_jobs=None, *,
                        verbose=None):
     """Set up bilateral hemisphere surface-based source space with subsampling.
 
@@ -1665,8 +1665,8 @@ def _make_discrete_source_space(pos, coord_frame='mri'):
 
 
 def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
-                              volume_labels=None, do_neighbors=True, n_jobs=1,
-                              vol_info={}, single_volume=False):
+                              volume_labels=None, do_neighbors=True,
+                              n_jobs=None, vol_info={}, single_volume=False):
     """Make a source space which covers the volume bounded by surf."""
     # Figure out the grid size in the MRI coordinate frame
     if 'rr' in surf:
@@ -2099,7 +2099,7 @@ def _pts_in_hull(pts, hull, tolerance=1e-12):
 
 
 @verbose
-def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
+def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None,
                           verbose=None):
     """Remove all source space points closer than a given limit (in mm)."""
     if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD and mri_head_t is None:
@@ -2230,7 +2230,8 @@ _DIST_WARN_LIMIT = 10242  # warn for anything larger than ICO-5
 
 
 @verbose
-def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
+def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *,
+                               verbose=None):
     """Compute inter-source distances along the cortical surface.
 
     This function will also try to add patch info for the source space.
@@ -2271,7 +2272,6 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     """
     from scipy.sparse import csr_matrix
     from scipy.sparse.csgraph import dijkstra
-    n_jobs = check_n_jobs(n_jobs)
     src = _ensure_src(src)
     dist_limit = float(dist_limit)
     if dist_limit < 0:
@@ -2287,7 +2287,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         raise RuntimeError('Currently all source spaces must be of surface '
                            'type')
 
-    parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(_do_src_distances, n_jobs)
     min_dists = list()
     min_idxs = list()
     msg = 'patch information' if patch_only else 'source space distances'

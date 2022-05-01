@@ -88,8 +88,9 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
         # play is not a button widget, it does not have a click() method
         number_of_buttons = 1
         for action in brain._renderer.actions.values():
-            if isinstance(action, Button):
-                action.click()
+            widget = action._action
+            if isinstance(widget, Button):
+                widget.click()
                 number_of_buttons += 1
         assert number_of_buttons == total_number_of_buttons
         assert os.path.isfile(movie_path)
@@ -121,8 +122,9 @@ def test_notebook_button_counts(renderer_notebook, brain_gc, nbexec):
         '_field' not in k for k in rend.actions.keys())
     number_of_buttons = 0
     for action in rend.actions.values():
-        if isinstance(action, Button):
-            action.click()
+        widget = action._action
+        if isinstance(widget, Button):
+            widget.click()
             number_of_buttons += 1
     assert number_of_buttons == total_number_of_buttons
     assert fig.display is not None

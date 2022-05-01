@@ -353,7 +353,7 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
 
 @fill_doc
 def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
-                         cv=None, n_jobs=1, verbose=0, fit_params=None,
+                         cv=None, n_jobs=None, verbose=0, fit_params=None,
                          pre_dispatch='2*n_jobs'):
     """Evaluate a score by cross-validation.
 

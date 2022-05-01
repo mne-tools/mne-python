@@ -30,7 +30,8 @@ from mne.time_frequency.tfr import AverageTFR
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
-                             plot_arrowmap, plot_psds_topomap)
+                             plot_arrowmap, plot_psds_topomap,
+                             plot_bridged_electrodes)
 from mne.viz.utils import _find_peaks, _fake_click
 from mne.utils import requires_sklearn, check_version
 
@@ -647,8 +648,8 @@ def test_plot_topomap_cnorm():
     else:
         from matplotlib.colors import DivergingNorm as TwoSlopeNorm
 
-    np.random.seed(42)
-    v = np.random.uniform(low=-1, high=2.5, size=64)
+    rng = np.random.default_rng(42)
+    v = rng.uniform(low=-1, high=2.5, size=64)
     v[:3] = [-1, 0, 2.5]
 
     montage = make_standard_montage("biosemi64")
@@ -667,3 +668,25 @@ def test_plot_topomap_cnorm():
     msg = "vmax=2.5 is implicitly defined by cnorm, ignoring vmax=10.*"
     with pytest.warns(RuntimeWarning, match=msg):
         plot_topomap(v, info, vmax=10, cnorm=cnorm)
+
+
+def test_plot_bridged_electrodes():
+    """Test plotting of bridged electrodes."""
+    rng = np.random.default_rng(42)
+    montage = make_standard_montage("biosemi64")
+    info = create_info(montage.ch_names, 256, "eeg").set_montage("biosemi64")
+    bridged_idx = [(0, 1), (2, 3)]
+    n_epochs = 10
+    ed_matrix = np.zeros((n_epochs, len(info.ch_names),
+                          len(info.ch_names))) * np.nan
+    triu_idx = np.triu_indices(len(info.ch_names), 1)
+    for i in range(n_epochs):
+        ed_matrix[i][triu_idx] = rng.random() + rng.random(triu_idx[0].size)
+    fig = plot_bridged_electrodes(info, bridged_idx, ed_matrix,
+                                  topomap_args=dict(names=info.ch_names,
+                                                    vmax=1, show_names=True))
+    # two bridged lines plus head outlines
+    assert len(fig.axes[0].lines) == 6
+
+    with pytest.raises(RuntimeError, match='Expected'):
+        plot_bridged_electrodes(info, bridged_idx, np.zeros((5, 6, 7)))

@@ -41,6 +41,144 @@ from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
 # differences between algorithms
 
 
+@verbose
+def maxwell_filter_prepare_emptyroom(
+    raw_er, *, raw, bads='from_raw', annotations='from_raw', meas_date='keep',
+    emit_warning=False, verbose=None
+):
+    """Prepare an empty-room recording for Maxwell filtering.
+
+    Empty-room data by default lacks certain properties that are required to
+    ensure running :func:`~mne.preprocessing.maxwell_filter` will process the
+    empty-room recording the same way as the experimental data. This function
+    preconditions an empty-room raw data instance accordingly so it can be used
+    for Maxwell filtering. Please see the ``Notes`` section for details.
+
+    Parameters
+    ----------
+    raw_er : instance of Raw
+        The empty-room recording. It will not be modified.
+    raw : instance of Raw
+        The experimental recording, typically this will be the reference run
+        used for Maxwell filtering.
+    bads : 'from_raw' | 'union' | 'keep'
+        How to populate the list of bad channel names to be injected into
+        the empty-room recording. If ``'from_raw'`` (default) the list of bad
+        channels will be overwritten with that of ``raw``. If ``'union'``, will
+        use the union of bad channels in ``raw`` and ``raw_er``. Note that
+        this may lead to additional bad channels in the empty-room in
+        comparison to the experimental recording. If ``'keep'``, don't alter
+        the existing list of bad channels.
+
+        .. note::
+           Non-MEG channels are silently dropped from the list of bads.
+    annotations : 'from_raw' | 'union' | 'keep'
+        Whether to copy the annotations over from ``raw`` (default),
+        use the union of the annotations, or to keep them unchanged.
+    meas_date : 'keep' | 'from_raw'
+        Whether to transfer the measurement date from ``raw`` or to keep
+        it as is (default). If you intend to manually transfer annotations
+        from ``raw`` **after** running this function, you should set this to
+        ``'from_raw'``.
+    %(emit_warning)s
+        Unlike :meth:`raw.set_annotations <mne.io.Raw.set_annotations>`, the
+        default here is ``False``, as empty-room recordings are often shorter
+        than raw.
+    %(verbose)s
+
+    Returns
+    -------
+    raw_er_prepared : instance of Raw
+        A copy of the passed empty-room recording, ready for Maxwell filtering.
+
+    Notes
+    -----
+    This function will:
+
+    * Compile the list of bad channels according to the ``bads`` parameter.
+    * Inject the device-to-head transformation matrix from the experimental
+      recording into the empty-room recording.
+    * Set the following properties of the empty-room recording to match the
+      experimental recording:
+
+      * Montage
+      * ``raw.first_time`` and ``raw.first_samp``
+
+    * Adjust annotations according to the ``annotations`` parameter.
+    * Adjust the measurement date according to the ``meas_date`` parameter.
+
+    .. versionadded:: 1.1
+    """  # noqa: E501
+    _validate_type(item=raw_er, types=BaseRaw, item_name='raw_er')
+    _validate_type(item=raw, types=BaseRaw, item_name='raw')
+    _validate_type(item=bads, types=str, item_name='bads')
+    _check_option(
+        parameter='bads', value=bads,
+        allowed_values=['from_raw', 'union', 'keep']
+    )
+    _validate_type(item=annotations, types=str, item_name='annotations')
+    _check_option(
+        parameter='annotations', value=annotations,
+        allowed_values=['from_raw', 'union', 'keep']
+    )
+    _validate_type(item=meas_date, types=str, item_name='meas_date')
+    _check_option(
+        parameter='meas_date', value=annotations,
+        allowed_values=['from_raw', 'keep']
+    )
+
+    raw_er_prepared = raw_er.copy()
+    del raw_er  # just to be sure
+
+    # handle bads; only keep MEG channels
+    if bads == 'from_raw':
+        bads = raw.info['bads']
+    elif bads == 'union':
+        bads = sorted(
+            set(raw.info['bads'] + raw_er_prepared.info['bads'])
+        )
+    elif bads == 'keep':
+        bads = raw_er_prepared.info['bads']
+
+    bads = [ch_name for ch_name in bads
+            if ch_name.startswith('MEG')]
+    raw_er_prepared.info['bads'] = bads
+
+    # handle dev_head_t
+    raw_er_prepared.info['dev_head_t'] = raw.info['dev_head_t']
+
+    # handle montage
+    montage = raw.get_montage()
+    raw_er_prepared.set_montage(montage)
+
+    # handle first_samp
+    raw_er_prepared.annotations.onset += (
+        raw.first_time - raw_er_prepared.first_time
+    )
+    raw_er_prepared._cropped_samp = raw._cropped_samp
+
+    # handle annotations
+    if annotations != 'keep':
+        er_annot = raw_er_prepared.annotations
+        if annotations == 'from_raw':
+            er_annot.delete(np.arange(len(er_annot)))
+        er_annot.append(
+            raw.annotations.onset,
+            raw.annotations.duration,
+            raw.annotations.description,
+            raw.annotations.ch_names
+        )
+        if raw_er_prepared.info['meas_date'] is None:
+            er_annot.onset -= raw_er_prepared.first_time
+        raw_er_prepared.set_annotations(er_annot, emit_warning)
+
+    # handle measurement date
+    if meas_date == 'from_raw':
+        raw_er_prepared.set_meas_date(raw.info['meas_date'])
+
+    return raw_er_prepared
+
+
 # Changes to arguments here should also be made in find_bad_channels_maxwell
 @verbose
 def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,

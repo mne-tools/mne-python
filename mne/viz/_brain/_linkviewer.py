@@ -134,7 +134,7 @@ class _LinkViewer(object):
     def link_widgets(self, name, callback, signal_type, actions=False):
         for brain in self.brains:
             if actions:
-                widget = brain._renderer.actions[name]
+                widget = brain._renderer.actions[name]._action
             else:
                 widget = brain.widgets[name].widget
             if widget is not None:

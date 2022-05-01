@@ -192,7 +192,7 @@ def test_make_field_map_meeg():
     evoked.pick_channels([evoked.ch_names[p] for p in picks])
     evoked.info.normalize_proj()
     maps = make_field_map(evoked, trans_fname, subject='sample',
-                          subjects_dir=subjects_dir, n_jobs=1, verbose='debug')
+                          subjects_dir=subjects_dir, verbose='debug')
     assert_equal(maps[0]['data'].shape, (642, 6))  # EEG->Head
     assert_equal(maps[1]['data'].shape, (304, 31))  # MEG->Helmet
     # reasonable ranges

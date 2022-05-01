@@ -24,7 +24,9 @@ from mne.io import (read_raw_fif, read_info, read_raw_bti, read_raw_kit,
                     BaseRaw, read_raw_ctf)
 from mne.io.constants import FIFF
 from mne.preprocessing import (maxwell_filter, find_bad_channels_maxwell,
-                               annotate_amplitude, compute_maxwell_basis)
+                               annotate_amplitude, compute_maxwell_basis,
+                               maxwell_filter_prepare_emptyroom,
+                               annotate_movement)
 from mne.preprocessing.maxwell import (
     _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
@@ -1443,3 +1445,112 @@ def test_compute_maxwell_basis(regularize, n):
     xform = S[:, :n_use_in] @ pS[:n_use_in]
     got = xform @ raw.pick_types(meg=True, exclude='bads').get_data()
     assert_allclose(got, want)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('bads', ('from_raw', 'union', 'keep'))
+def test_prepare_emptyroom_bads(bads):
+    """Test prepare_emptyroom."""
+    raw = read_raw_fif(raw_fname, allow_maxshield='yes', verbose=False)
+    names = [name for name in raw.ch_names if 'EEG' not in name]
+    raw.pick_channels(names)
+    raw_er = read_raw_fif(erm_fname, allow_maxshield='yes', verbose=False)
+    raw_er.pick_channels(names)
+    assert raw.ch_names == raw_er.ch_names
+    assert raw_er.info['dev_head_t'] is None
+    assert raw.info['dev_head_t'] is not None
+    raw_er.set_montage(None)
+
+    if bads == 'from_raw':
+        raw_bads_orig = ['MEG0113', 'MEG2313']
+        raw_er_bads_orig = []
+    elif bads == 'union':
+        raw_bads_orig = ['MEG0113']
+        raw_er_bads_orig = ['MEG2313']
+    elif bads == 'keep':
+        raw_bads_orig = []
+        raw_er_bads_orig = ['MEG0113', 'MEG2313']
+
+    raw.info['bads'] = raw_bads_orig
+    raw_er.info['bads'] = raw_er_bads_orig
+
+    raw_er_prepared = maxwell_filter_prepare_emptyroom(
+        raw_er=raw_er,
+        raw=raw,
+        bads=bads
+    )
+    assert raw_er_prepared.info['bads'] == ['MEG0113', 'MEG2313']
+    assert raw_er_prepared.info['dev_head_t'] == raw.info['dev_head_t']
+
+    montage_expected = raw.copy().pick_types(meg=True).get_montage()
+    assert raw_er_prepared.get_montage().dig == montage_expected.dig
+
+    # Ensure the originals were not modified
+    assert raw.info['bads'] == raw_bads_orig
+    assert raw_er.info['bads'] == raw_er_bads_orig
+    assert raw_er.info['dev_head_t'] is None
+    assert raw_er.get_montage() is None
+
+
+@testing.requires_testing_data
+@pytest.mark.slowtest  # lots of params
+@pytest.mark.parametrize('set_annot_when', ('before', 'after'))
+@pytest.mark.parametrize('raw_meas_date', ('orig', None))
+@pytest.mark.parametrize('raw_er_meas_date', ('orig', None))
+def test_prepare_emptyroom_annot_first_samp(set_annot_when, raw_meas_date,
+                                            raw_er_meas_date):
+    """Test prepare_emptyroom."""
+    raw = read_raw_fif(raw_fname, allow_maxshield='yes', verbose=False)
+    raw_er = read_raw_fif(erm_fname, allow_maxshield='yes', verbose=False)
+    names = raw.ch_names[:3]  # make it faster
+    raw.pick_channels(names)
+    raw_er.pick_channels(names)
+    assert raw.ch_names == raw_er.ch_names
+    assert raw.info['meas_date'] != raw_er.info['meas_date']
+    if raw_meas_date is None:
+        raw.set_meas_date(None)
+    if raw_er_meas_date is None:
+        raw_er.set_meas_date(None)
+    # to make life easier, make it the same duration
+    n_rep = max(int(np.ceil(len(raw.times) / len(raw_er.times))), 1)
+    raw_er = mne.concatenate_raws([raw_er] * n_rep).crop(0, raw.times[-1])
+    assert_allclose(raw.times, raw_er.times)
+    raw_er_first_samp_orig = raw_er.first_samp
+    assert len(raw.annotations) == 0
+    pos = mne.chpi.read_head_pos(pos_fname)
+    annot, _ = annotate_movement(raw, pos, 1.)
+    # Add an annotation right at the beginning and end to make sure nothing
+    # gets cropped
+    onset = raw.times[[0, -1]]
+    duration = 1. / raw.info['sfreq']
+    annot.append(onset + raw.first_time * (raw.info['meas_date'] is not None),
+                 duration, ['BAD_CUSTOM'])
+    want_annot = 7  # 5 from annotate_movement plus our first and last samps
+    if set_annot_when == 'before':
+        raw.set_annotations(annot)
+        meas_date = 'keep'
+        want_date = raw_er.info['meas_date']
+    else:
+        assert set_annot_when == 'after'
+        meas_date = 'from_raw'
+        want_date = raw.info['meas_date']
+    raw_er_prepared = maxwell_filter_prepare_emptyroom(
+        raw_er=raw_er, raw=raw, meas_date=meas_date, emit_warning=True)
+    assert raw_er.first_samp == raw_er_first_samp_orig
+    assert raw_er_prepared.info['meas_date'] == want_date
+    assert raw_er_prepared.first_samp == raw.first_samp
+
+    # Ensure (movement) annotations carry over regardless of whether they're
+    # set before or after preparation
+    assert len(annot) == want_annot
+    if set_annot_when == 'after':
+        raw.set_annotations(annot)
+        raw_er_prepared.set_annotations(annot)
+    assert len(raw.annotations) == want_annot
+    prop_bad = np.isnan(
+        raw.get_data([0], reject_by_annotation='nan')).mean()
+    assert 0.3 < prop_bad < 0.4
+    assert len(raw_er_prepared.annotations) == want_annot
+    prop_bad_er = np.isnan(
+        raw_er_prepared.get_data([0], reject_by_annotation='nan')).mean()
+    assert_allclose(prop_bad, prop_bad_er)

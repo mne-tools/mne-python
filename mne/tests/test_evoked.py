@@ -861,6 +861,6 @@ def test_apply_function_evk():
         return data * multiplier
 
     mult = -1
-    applied = evoked.apply_function(fun, n_jobs=1, multiplier=mult)
+    applied = evoked.apply_function(fun, n_jobs=None, multiplier=mult)
     assert np.shape(applied.data) == np.shape(evoked_data)
     assert np.equal(applied.data, evoked_data * mult).all()

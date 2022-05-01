@@ -252,7 +252,8 @@ def test_ica_noop(n_components, n_pca_components, tmp_path):
 
 @requires_sklearn
 @pytest.mark.parametrize("method, max_iter_default", [("fastica", 1000),
-                         ("infomax", 500), ("picard", 500)])
+                                                      ("infomax", 500),
+                                                      ("picard", 500)])
 def test_ica_max_iter_(method, max_iter_default):
     """Test that ICA.max_iter is set to the right defaults."""
     _skip_check_picard(method)
@@ -1320,6 +1321,11 @@ def test_ica_labels():
     ica.find_bads_ecg(raw, l_freq=None, h_freq=None, threshold='auto')
     for key in ('ecg', 'eog', 'ref_meg', 'ecg/ECG-MAG'):
         assert key in ica.labels_
+
+    scores = ica.find_bads_muscle(raw)[1]
+    assert 'muscle' in ica.labels_
+    assert ica.labels_['muscle'] == [0]
+    assert_allclose(scores, [0.56, 0.01, 0.03, 0.00], atol=0.03)
 
 
 @requires_sklearn
