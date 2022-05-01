@@ -140,19 +140,20 @@ def _fiff_open(fname, fid, preload):
     tag = read_tag_info(fid)
 
     #   Check that this looks like a fif file
+    prefix = f'file {repr(fname)} does not'
     if tag.kind != FIFF.FIFF_FILE_ID:
-        raise ValueError('file does not start with a file id tag')
+        raise ValueError(f'{prefix} start with a file id tag')
 
     if tag.type != FIFF.FIFFT_ID_STRUCT:
-        raise ValueError('file does not start with a file id tag')
+        raise ValueError(f'{prefix} start with a file id tag')
 
     if tag.size != 20:
-        raise ValueError('file does not start with a file id tag')
+        raise ValueError(f'{prefix} start with a file id tag')
 
     tag = read_tag(fid)
 
     if tag.kind != FIFF.FIFF_DIR_POINTER:
-        raise ValueError('file does not have a directory pointer')
+        raise ValueError(f'{prefix} have a directory pointer')
 
     #   Read or create the directory tree
     logger.debug('    Creating tag directory for %s...' % fname)

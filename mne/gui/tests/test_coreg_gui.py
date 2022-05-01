@@ -2,13 +2,15 @@
 #
 # License: BSD-3-Clause
 
+from contextlib import nullcontext
 import os.path as op
+import os
 
 import pytest
-import warnings
 from numpy.testing import assert_allclose
 import numpy as np
 
+import mne
 from mne.datasets import testing
 from mne.io import read_info
 from mne.io.kit.tests import data_dir as kit_data_dir
@@ -88,12 +90,13 @@ def test_coreg_gui_pyvista_file_support(inst_path, tmp_path,
         inst_path = tmp_path / 'tmp-dig.fif'
         dig.save(inst_path)
 
-    # Suppressing warnings here is not ideal.
-    # However ctf_raw_path (catch-alp-good-f.ds) is poorly formed and causes
-    # mne.io.read_raw to issue warning.
-    # XXX consider replacing ctf_raw_path and removing warning ignore filter.
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    if inst_path == ctf_raw_path:
+        ctx = pytest.warns(RuntimeWarning, match='MEG ref channel RMSP')
+    elif inst_path == snirf_nirsport2_raw_path:  # TODO: This is maybe a bug?
+        ctx = pytest.warns(RuntimeWarning, match='assuming "head"')
+    else:
+        ctx = nullcontext()
+    with ctx:
         coregistration(inst=inst_path, subject='sample',
                        subjects_dir=subjects_dir)
 
@@ -286,3 +289,23 @@ def test_coreg_gui_notebook(renderer_notebook, nbexec):
         data_path = testing.data_path(download=False)
     subjects_dir = os.path.join(data_path, 'subjects')
     coregistration(subject='sample', subjects_dir=subjects_dir)
+
+
+@pytest.mark.slowtest
+def test_no_sparse_head(subjects_dir_tmp, renderer_interactive_pyvistaqt,
+                        monkeypatch):
+    """Test mne.gui.coregistration with no sparse head."""
+    from mne.gui import coregistration
+    subject = 'sample'
+    out_rr, out_tris = mne.read_surface(
+        op.join(subjects_dir_tmp, subject, 'bem', 'outer_skin.surf'))
+    for head in ('sample-head.fif', 'outer_skin.surf'):
+        os.remove(op.join(subjects_dir_tmp, subject, 'bem', head))
+    # Avoid actually doing the decimation (it's slow)
+    monkeypatch.setattr(
+        mne.coreg, 'decimate_surface',
+        lambda rr, tris, n_triangles: (out_rr, out_tris))
+    with pytest.warns(RuntimeWarning, match='No low-resolution head found'):
+        coreg = coregistration(
+            inst=raw_path, subject=subject, subjects_dir=subjects_dir_tmp)
+    coreg.close()

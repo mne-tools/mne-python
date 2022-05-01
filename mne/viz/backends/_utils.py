@@ -160,6 +160,7 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         pixmap.setDevicePixelRatio(
             QGuiApplication.primaryScreen().devicePixelRatio())
         qsplash = QSplashScreen(pixmap, Qt.WindowStaysOnTopHint)
+        qsplash.setAttribute(Qt.WA_ShowWithoutActivating, True)
         if isinstance(splash, str):
             alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
             qsplash.showMessage(

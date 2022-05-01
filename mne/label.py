@@ -14,7 +14,7 @@ import re
 import numpy as np
 
 from .morph_map import read_morph_map
-from .parallel import parallel_func, check_n_jobs
+from .parallel import parallel_func
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
                               _center_of_mass, extract_label_time_course,
                               spatial_src_adjacency)
@@ -495,7 +495,7 @@ class Label(_VerboseDep):
 
     @verbose
     def smooth(self, subject=None, smooth=2, grade=None,
-               subjects_dir=None, n_jobs=1, verbose=None):
+               subjects_dir=None, n_jobs=None, verbose=None):
         """Smooth the label.
 
         Useful for filling in labels made in a
@@ -541,7 +541,7 @@ class Label(_VerboseDep):
 
     @verbose
     def morph(self, subject_from=None, subject_to=None, smooth=5, grade=None,
-              subjects_dir=None, n_jobs=1, verbose=None):
+              subjects_dir=None, n_jobs=None, verbose=None):
         """Morph the label.
 
         Useful for transforming a label from one subject to another.
@@ -1587,7 +1587,7 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
 
 
 @fill_doc
-def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
+def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=None,
                 overlap=True, names=None, surface='white', colors=None):
     """Generate circular labels in source space with region growing.
 
@@ -1639,7 +1639,6 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     used for each label.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    n_jobs = check_n_jobs(n_jobs)
 
     # make sure the inputs are arrays
     if np.isscalar(seeds):
@@ -1705,7 +1704,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
 
     if overlap:
         # create the patches
-        parallel, my_grow_labels, _ = parallel_func(_grow_labels, n_jobs)
+        parallel, my_grow_labels, n_jobs = parallel_func(_grow_labels, n_jobs)
         seeds = np.array_split(np.array(seeds, dtype='O'), n_jobs)
         extents = np.array_split(extents, n_jobs)
         hemis = np.array_split(hemis, n_jobs)

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _ex-multi-dipole:
+
 =================================================================
 Computing source timecourses with an XFit-like multi-dipole model
 =================================================================
@@ -42,7 +44,7 @@ meg_path = data_path / 'MEG' / 'sample'
 raw_fname = meg_path / 'sample_audvis_raw.fif'
 cov_fname = meg_path / 'sample_audvis-shrunk-cov.fif'
 bem_dir = data_path / 'subjects' / 'sample' / 'bem'
-bem_fname =  bem_dir / 'sample-5120-5120-5120-bem-sol.fif'
+bem_fname = bem_dir / 'sample-5120-5120-5120-bem-sol.fif'
 
 ###############################################################################
 # Read the MEG data from the audvis experiment. Make epochs and evokeds for the

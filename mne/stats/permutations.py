@@ -21,7 +21,7 @@ def _max_stat(X, X2, perms, dof_scaling):
 
 
 @verbose
-def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
+def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=None,
                        seed=None, verbose=None):
     """One sample/paired sample permutation test based on a t-statistic.
 

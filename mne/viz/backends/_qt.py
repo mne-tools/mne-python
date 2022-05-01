@@ -9,7 +9,7 @@ from contextlib import contextmanager
 import weakref
 
 import pyvista
-from pyvistaqt.plotting import FileDialog
+from pyvistaqt.plotting import FileDialog, MainWindow
 
 from qtpy.QtCore import Qt, Signal, QLocale, QObject
 from qtpy.QtGui import QIcon, QCursor
@@ -35,13 +35,26 @@ from ..utils import _check_option, safe_event, get_config
 
 
 class _QtDialog(_AbstractDialog):
-    def _dialog_warning(self, title, text, info_text, callback, *,
-                        buttons=[], modal=True, window=None):
+    # from QMessageBox.StandardButtons
+    supported_button_names = [
+        "Ok", "Open", "Save", "Cancel", "Close", "Discard", "Apply",
+        "Reset", "RestoreDefaults", "Help", "SaveAll", "Yes",
+        "YesToAll", "No", "NoToAll", "Abort", "Retry", "Ignore"
+    ]
+    # from QMessageBox.Icon
+    supported_icon_names = [
+        "NoIcon", "Question", "Information", "Warning", "Critical"
+    ]
+
+    def _dialog_create(self, title, text, info_text, callback, *,
+                       icon='Warning', buttons=[], modal=True, window=None):
         window = self._window if window is None else window
         widget = QMessageBox(window)
         widget.setWindowTitle(title)
         widget.setText(text)
-        widget.setIcon(QMessageBox.Warning)
+        # icon is one of _QtDialog.supported_icon_names
+        icon_id = getattr(QMessageBox, icon)
+        widget.setIcon(icon_id)
         widget.setInformativeText(info_text)
 
         if not buttons:
@@ -49,7 +62,7 @@ class _QtDialog(_AbstractDialog):
 
         button_ids = list()
         for button in buttons:
-            # button is one of QMessageBox.StandardButtons
+            # button is one of _QtDialog.supported_button_names
             button_id = getattr(QMessageBox, button)
             button_ids.append(button_id)
         standard_buttons = default_button = button_ids[0]
@@ -61,12 +74,7 @@ class _QtDialog(_AbstractDialog):
         @safe_event
         def func(button):
             button_id = widget.standardButton(button)
-            supported_button_names = [
-                "Ok", "Open", "Save", "Cancel", "Close", "Discard", "Apply",
-                "Reset", "RestoreDefaults", "Help", "SaveAll", "Yes",
-                "YesToAll", "No", "NoToAll", "Abort", "Retry", "Ignore"
-            ]
-            for button_name in supported_button_names:
+            for button_name in _QtDialog.supported_button_names:
                 if button_id == getattr(QMessageBox, button_name):
                     widget.setCursor(QCursor(Qt.WaitCursor))
                     try:
@@ -95,10 +103,9 @@ class _QtDock(_AbstractDock, _QtLayout):
     def _dock_initialize(self, window=None, name="Controls",
                          area="left", max_width=None):
         window = self._window if window is None else window
-        qt_area = Qt.LeftDockWidgetArea if area == "left" \
-            else Qt.RightDockWidgetArea
+        qt_area = getattr(Qt, f'{area.capitalize()}DockWidgetArea')
         self._dock, self._dock_layout = _create_dock_widget(
-            self._window, name, qt_area, max_width=max_width
+            window, name, qt_area, max_width=max_width
         )
         if area == "left":
             window.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
@@ -401,13 +408,13 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
                              shortcut=None):
         icon_name = name if icon_name is None else icon_name
         icon = self._icons[icon_name]
-        self.actions[name] = self._tool_bar.addAction(
-            icon, desc, func)
+        self.actions[name] = _QtAction(self._tool_bar.addAction(
+            icon, desc, func))
         if shortcut is not None:
-            self.actions[name].setShortcut(shortcut)
+            self.actions[name].set_shortcut(shortcut)
 
     def _tool_bar_update_button_icon(self, name, icon_name):
-        self.actions[name].setIcon(self._icons[icon_name])
+        self.actions[name].set_icon(self._icons[icon_name])
 
     def _tool_bar_add_text(self, name, value, placeholder):
         pass
@@ -425,7 +432,7 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
             if weakself is None:
                 return
             return FileDialog(
-                weakself.app_window,
+                weakself._window,
                 callback=func,
             )
 
@@ -797,6 +804,12 @@ class _QtAction(_AbstractAction):
     def trigger(self):
         self._action.trigger()
 
+    def set_icon(self, icon):
+        self._action.setIcon(icon)
+
+    def set_shortcut(self, shortcut):
+        self._action.setShortcut(shortcut)
+
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
                 _QtStatusBar, _QtWindow, _QtPlayback, _QtDialog):
@@ -877,3 +890,15 @@ def _testing_context(interactive):
         pyvista.OFF_SCREEN = orig_offscreen
         renderer.MNE_3D_BACKEND_TESTING = orig_testing
         renderer.MNE_3D_BACKEND_INTERACTIVE = orig_interactive
+
+
+# In theory we should be able to do this later (e.g., in _pyvista.py when
+# initializing), but at least on Qt6 this has to be done earlier. So let's do
+# it immediately upon instantiation of the QMainWindow class.
+# TODO: This should eventually allow us to handle
+# https://github.com/mne-tools/mne-python/issues/9182
+
+class _MNEMainWindow(MainWindow):
+    def __init__(self, parent=None, title=None, size=None):
+        super().__init__(parent, title, size)
+        self.setAttribute(Qt.WA_ShowWithoutActivating, True)

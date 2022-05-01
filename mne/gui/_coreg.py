@@ -339,7 +339,9 @@ class CoregistrationUI(HasTraits):
             subjects = _get_subjects(subjects_dir)
             low_res_path = _find_head_bem(
                 subjects[0], subjects_dir, high_res=False)
-            valid = low_res_path is not None
+            high_res_path = _find_head_bem(
+                subjects[0], subjects_dir, high_res=True)
+            valid = low_res_path is not None or high_res_path is not None
         except Exception:
             valid = False
         if valid:
@@ -715,7 +717,7 @@ class CoregistrationUI(HasTraits):
         for name, buttons in zip(
                 ["overwrite_subject", "overwrite_subject_exit"],
                 [["Yes", "No"], ["Yes", "Discard", "Cancel"]]):
-            self._widgets[name] = self._renderer._dialog_warning(
+            self._widgets[name] = self._renderer._dialog_create(
                 title="CoregistrationUI",
                 text="The name of the output subject used to "
                      "save the scaled anatomy already exists.",
@@ -1861,7 +1863,7 @@ class CoregistrationUI(HasTraits):
                 if self._subject_to:
                     self._save_subject(exit_mode=True)
                 else:
-                    dialog = self._renderer._dialog_warning(
+                    dialog = self._renderer._dialog_create(
                         title="CoregistrationUI",
                         text="The name of the output subject used to "
                              "save the scaled anatomy is not set.",
@@ -1891,7 +1893,7 @@ class CoregistrationUI(HasTraits):
             if self._mri_scale_modified:
                 text += "<li>scaled subject MRI</li>"
             text += "</ul>"
-            self._widgets["close_dialog"] = self._renderer._dialog_warning(
+            self._widgets["close_dialog"] = self._renderer._dialog_create(
                 title="CoregistrationUI",
                 text=text,
                 info_text="Do you want to save?",

@@ -157,7 +157,7 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
         rng=['foo', 'bar'],
         callback=mock,
     )
-    with _check_widget_trigger(widget, mock, 'foo', 'bar', get_value=False):
+    with _check_widget_trigger(widget, mock, None, None, get_value=False):
         widget.set_value(1, 'bar')
     assert widget.get_value(0) == 'foo'
     assert widget.get_value(1) == 'bar'
@@ -253,7 +253,7 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
         func=mock,
         shortcut=None,
     )
-    assert 'help' in renderer.actions
+    renderer.actions['help'].trigger()
 
     # play button
     assert 'play' not in renderer.actions
@@ -319,7 +319,7 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
     if renderer._kind == 'qt':
         # warning
         buttons = ["Save", "Cancel"]
-        widget = renderer._dialog_warning(
+        widget = renderer._dialog_create(
             title='',
             text='',
             info_text='',
@@ -335,11 +335,12 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
 
         # buttons list empty means OK button (default)
         button = 'Ok'
-        widget = renderer._dialog_warning(
+        widget = renderer._dialog_create(
             title='',
             text='',
             info_text='',
             callback=mock,
+            icon='NoIcon',
             modal=False,
         )
         widget.show()

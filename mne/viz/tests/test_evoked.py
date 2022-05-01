@@ -23,7 +23,7 @@ import mne
 from mne import (read_events, Epochs, read_cov, compute_covariance,
                  make_fixed_length_events, compute_proj_evoked)
 from mne.io import read_raw_fif
-from mne.utils import catch_logging, requires_version
+from mne.utils import catch_logging
 from mne.viz import plot_compare_evokeds, plot_evoked_white
 from mne.viz.utils import _fake_click
 from mne.datasets import testing
@@ -170,7 +170,6 @@ def test_plot_evoked():
     assert 'Need more than one' in log_file.getvalue()
 
 
-@requires_version('matplotlib', '2.2')
 def test_constrained_layout():
     """Test that we handle constrained layouts correctly."""
     fig, ax = plt.subplots(1, 1, constrained_layout=True)

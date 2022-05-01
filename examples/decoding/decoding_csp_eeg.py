@@ -52,9 +52,6 @@ eegbci.standardize(raw)  # set channel names
 montage = make_standard_montage('standard_1005')
 raw.set_montage(montage)
 
-# strip channel names of "." characters
-raw.rename_channels(lambda x: x.strip('.'))
-
 # Apply band-pass filter
 raw.filter(7., 30., fir_design='firwin', skip_by_annotation='edge')
 
@@ -86,7 +83,7 @@ csp = CSP(n_components=4, reg=None, log=True, norm_trace=False)
 
 # Use scikit-learn Pipeline with cross_val_score function
 clf = Pipeline([('CSP', csp), ('LDA', lda)])
-scores = cross_val_score(clf, epochs_data_train, labels, cv=cv, n_jobs=1)
+scores = cross_val_score(clf, epochs_data_train, labels, cv=cv, n_jobs=None)
 
 # Printing the results
 class_balance = np.mean(labels == labels[0])

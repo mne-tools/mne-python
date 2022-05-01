@@ -278,7 +278,7 @@ report.add_ica(
     inst=raw,
     eog_evoked=eog_epochs.average(),
     eog_scores=eog_scores,
-    n_jobs=1  # could be increased!
+    n_jobs=None  # could be increased!
 )
 report.save('report_ica.html', overwrite=True)
 

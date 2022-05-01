@@ -76,7 +76,7 @@ trans = mne.transforms.Transform('head', 'mri')  # identity transformation
 # with mne.use_coil_def(coil_def_fname):
 #     fwd = mne.make_forward_solution(
 #         raw.info, trans, src, bem, eeg=False, mindist=5.0,
-#         n_jobs=1, verbose=True)
+#         n_jobs=None, verbose=True)
 
 fwd = mne.read_forward_solution(fwd_fname)
 # use fixed orientation here just to save memory later
