@@ -123,16 +123,17 @@ Python development are:
   commands in the terminal, where you replace ``...`` with the exact version of
   ``spyder-kernels`` that Spyder tells you it requires.
 
-.. code-block:: bash
+  .. code-block:: bash
 
       conda activate mne
       conda install --strict-channel-priority --channel=conda-forge spyder-kernels=...
 
-  Refer to the `spyder documentation <https://docs.spyder-ide.org/current/troubleshooting/common-illnesses.html#spyder-kernels-not-installed-incompatible>`_
+  Refer to the `Spyder documentation <https://docs.spyder-ide.org/current/troubleshooting/common-illnesses.html#spyder-kernels-not-installed-incompatible>`_
   for more information about ``spyder-kernels`` and the version matching.
 
   If the Spyder graphic backend is not set to ``inline`` but to e.g. ``Qt5``,
-  ``pyqt`` must be installed in the ``mne`` environment.
+  ``PyQt5`` (``pip``) or ``pyqt`` (``conda``) must be installed in the ``mne``
+  environment.
 
 - `PyCharm`_ is an IDE specifically for Python development that provides an
   all-in-one installation (no extension packages needed). PyCharm comes in a
