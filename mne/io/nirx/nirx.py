@@ -459,6 +459,9 @@ class RawNIRX(BaseRaw):
         annot = Annotations(onset, duration, description, ch_names=ch_names)
         self.set_annotations(annot)
 
+        sort_idx = np.argsort(self.ch_names)
+        self.pick(picks=sort_idx)
+
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
 

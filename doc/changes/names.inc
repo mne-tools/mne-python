@@ -441,3 +441,5 @@
 .. _Nikolai Chapochnikov: https://github.com/chapochn
 
 .. _Matthias Dold: https://matthiasdold.de
+
+.. _Samuel Powell: https://github.com/samuelpowell

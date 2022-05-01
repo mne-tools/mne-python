@@ -50,16 +50,25 @@ h5py = pytest.importorskip('h5py')  # module-level
 ft_od = op.join(testing_path, 'SNIRF', 'FieldTrip',
                 '220307_opticaldensity.snirf')
 
+# GowerLabs
+lumo110 = op.join(testing_path, 'SNIRF', 'GowerLabs', 'lumomat-1-1-0.snirf')
+
+
+def _get_loc(raw, ch_name):
+    return raw.copy().pick(ch_name).info['chs'][0]['loc']
+
 
 @requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*contains 2D location.*:')
+@pytest.mark.filterwarnings('ignore:.*measurement date.*:')
 @pytest.mark.parametrize('fname', ([sfnirs_homer_103_wShort,
                                     nirx_nirsport2_103,
                                     sfnirs_homer_103_153,
                                     nirx_nirsport2_103,
                                     nirx_nirsport2_103_2,
                                     nirx_nirsport2_103_2,
-                                    kernel_hb
+                                    kernel_hb,
+                                    lumo110
                                     ]))
 def test_basic_reading_and_min_process(fname):
     """Test reading SNIRF files and minimum typical processing."""
@@ -74,6 +83,17 @@ def test_basic_reading_and_min_process(fname):
 
 
 @requires_testing_data
+@pytest.mark.filterwarnings('ignore:.*measurement date.*:')
+def test_snirf_gowerlabs():
+    """Test reading SNIRF files."""
+    raw = read_raw_snirf(lumo110, preload=True)
+
+    # Test data import
+    assert raw._data.shape == (216, 274)
+    assert raw.info['dig'][0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+
+
+@requires_testing_data
 def test_snirf_basic():
     """Test reading SNIRF files."""
     raw = read_raw_snirf(sfnirs_homer_103_wShort, preload=True)
@@ -85,7 +105,7 @@ def test_snirf_basic():
     # Test channel naming
     assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D1 850",
                                         "S1_D9 760", "S1_D9 850"]
-    assert raw.info['ch_names'][24:26] == ["S5_D13 760", "S5_D13 850"]
+    # assert raw.info['ch_names'][24:26] == ["S5_D8 760", "S5_D8 850"]
 
     # Test frequency encoding
     assert raw.info['chs'][0]['loc'][9] == 760
@@ -93,25 +113,25 @@ def test_snirf_basic():
 
     # Test source locations
     assert_allclose([-8.6765 * 1e-2, 0.0049 * 1e-2, -2.6167 * 1e-2],
-                    raw.info['chs'][0]['loc'][3:6], rtol=0.02)
+                    _get_loc(raw, 'S1_D1 760')[3:6], rtol=0.02)
     assert_allclose([7.9579 * 1e-2, -2.7571 * 1e-2, -2.2631 * 1e-2],
-                    raw.info['chs'][4]['loc'][3:6], rtol=0.02)
+                    _get_loc(raw, 'S2_D3 760')[3:6], rtol=0.02)
     assert_allclose([-2.1387 * 1e-2, -8.8874 * 1e-2, 3.8393 * 1e-2],
-                    raw.info['chs'][8]['loc'][3:6], rtol=0.02)
+                    _get_loc(raw, 'S3_D2 760')[3:6], rtol=0.02)
     assert_allclose([1.8602 * 1e-2, 9.7164 * 1e-2, 1.7539 * 1e-2],
-                    raw.info['chs'][12]['loc'][3:6], rtol=0.02)
+                    _get_loc(raw, 'S4_D4 760')[3:6], rtol=0.02)
     assert_allclose([-0.1108 * 1e-2, 0.7066 * 1e-2, 8.9883 * 1e-2],
-                    raw.info['chs'][16]['loc'][3:6], rtol=0.02)
+                    _get_loc(raw, 'S5_D5 760')[3:6], rtol=0.02)
 
     # Test detector locations
     assert_allclose([-8.0409 * 1e-2, -2.9677 * 1e-2, -2.5415 * 1e-2],
-                    raw.info['chs'][0]['loc'][6:9], rtol=0.02)
+                    _get_loc(raw, 'S1_D1 760')[6:9], rtol=0.02)
     assert_allclose([-8.7329 * 1e-2, 0.7577 * 1e-2, -2.7980 * 1e-2],
-                    raw.info['chs'][3]['loc'][6:9], rtol=0.02)
+                    _get_loc(raw, 'S1_D9 850')[6:9], rtol=0.02)
     assert_allclose([9.2027 * 1e-2, 0.0161 * 1e-2, -2.8909 * 1e-2],
-                    raw.info['chs'][5]['loc'][6:9], rtol=0.02)
+                    _get_loc(raw, 'S2_D3 850')[6:9], rtol=0.02)
     assert_allclose([7.7548 * 1e-2, -3.5901 * 1e-2, -2.3179 * 1e-2],
-                    raw.info['chs'][7]['loc'][6:9], rtol=0.02)
+                    _get_loc(raw, 'S2_D10 850')[6:9], rtol=0.02)
 
     assert 'fnirs_cw_amplitude' in raw
 
@@ -186,9 +206,9 @@ def test_snirf_nirsport2():
     assert_almost_equal(raw.info['sfreq'], 7.6, decimal=1)
 
     # Test channel naming
-    assert raw.info['ch_names'][:4] == ['S1_D1 760', 'S1_D1 850',
-                                        'S1_D3 760', 'S1_D3 850']
-    assert raw.info['ch_names'][24:26] == ['S6_D4 760', 'S6_D4 850']
+    assert raw.info['ch_names'][:4] == ['S10_D3 760', 'S10_D3 850',
+                                        'S10_D9 760', 'S10_D9 850']
+    assert raw.info['ch_names'][24:26] == ['S15_D11 760', 'S15_D11 850']
 
     # Test frequency encoding
     assert raw.info['chs'][0]['loc'][9] == 760
@@ -226,7 +246,7 @@ def test_snirf_nirsport2_w_positions():
     # Test channel naming
     assert raw.info['ch_names'][:4] == ['S1_D1 760', 'S1_D1 850',
                                         'S1_D6 760', 'S1_D6 850']
-    assert raw.info['ch_names'][24:26] == ['S6_D4 760', 'S6_D4 850']
+    assert raw.info['ch_names'][24:26] == ['S6_D14 760', 'S6_D14 850']
 
     # Test frequency encoding
     assert raw.info['chs'][0]['loc'][9] == 760
@@ -238,11 +258,12 @@ def test_snirf_nirsport2_w_positions():
     # nirsite https://github.com/mne-tools/mne-testing-data/pull/86
     # figure 3
     allowed_distance_error = 0.005
-    distances = source_detector_distances(raw.info)
-    assert_allclose(distances[::2][:14],
-                    [0.0304, 0.0411, 0.008, 0.0400, 0.008, 0.0310, 0.0411,
-                     0.008, 0.0299, 0.008, 0.0370, 0.008, 0.0404, 0.008],
-                    atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S1_D1 760").info),
+                    [0.0304], atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S2_D2 760").info),
+                    [0.0400], atol=allowed_distance_error)
 
     # Test location of detectors
     # The locations of detectors can be seen in the first
@@ -260,10 +281,6 @@ def test_snirf_nirsport2_w_positions():
     assert raw.info['ch_names'][2][3:5] == 'D6'
     assert_allclose(
         mni_locs[2], [-0.0841, -0.0138, 0.0248], atol=allowed_dist_error)
-
-    assert raw.info['ch_names'][34][3:5] == 'D5'
-    assert_allclose(
-        mni_locs[34], [0.0845, -0.0451, -0.0123], atol=allowed_dist_error)
 
     # Test location of sensors
     # The locations of sensors can be seen in the second

@@ -96,6 +96,10 @@ class RawSNIRF(BaseRaw):
                      "MNE does not support this feature. "
                      "Only the first dataset will be processed.")
 
+            manafacturer = _get_metadata_str(dat, "ManufacturerName")
+            if (optode_frame == "unknown") & (manafacturer == "Gowerlabs"):
+                optode_frame = "head"
+
             snirf_data_type = np.array(dat.get('nirs/data1/measurementList1'
                                                '/dataType')).item()
             if snirf_data_type not in [1, 99999]:
@@ -268,8 +272,7 @@ class RawSNIRF(BaseRaw):
             # Update info
             info.update(subject_info=subject_info)
 
-            LengthUnit = np.array(dat.get('/nirs/metaDataTags/LengthUnit'))
-            LengthUnit = _correct_shape(LengthUnit)[0].decode('UTF-8')
+            LengthUnit = _get_metadata_str(dat, "LengthUnit")
             scal = 1
             if "cm" in LengthUnit:
                 scal = 100
@@ -319,15 +322,17 @@ class RawSNIRF(BaseRaw):
 
             if 'landmarkPos3D' in dat.get('nirs/probe/'):
                 diglocs = np.array(dat.get('/nirs/probe/landmarkPos3D'))
+                diglocs /= scal
                 digname = np.array(dat.get('/nirs/probe/landmarkLabels'))
                 nasion, lpa, rpa, hpi = None, None, None, None
                 extra_ps = dict()
                 for idx, dign in enumerate(digname):
-                    if dign == b'LPA':
+                    dign = dign.lower()
+                    if dign in [b'lpa', b'al']:
                         lpa = diglocs[idx, :3]
-                    elif dign == b'NASION':
+                    elif dign in [b'nasion']:
                         nasion = diglocs[idx, :3]
-                    elif dign == b'RPA':
+                    elif dign in [b'rpa', b'ar']:
                         rpa = diglocs[idx, :3]
                     else:
                         extra_ps[f'EEG{len(extra_ps) + 1:03d}'] = \
@@ -408,14 +413,16 @@ class RawSNIRF(BaseRaw):
                         annot.append(data[:, 0], 1.0, desc.decode('UTF-8'))
             self.set_annotations(annot, emit_warning=False)
 
-            # Reorder channels to match expected ordering in MNE if required'
+            # MNE requires channels are paired as alternating wavelengths
             if len(_validate_nirs_info(self.info, throw_errors=False)) == 0:
-                num_chans = len(self.ch_names)
-                chans = []
-                for idx in range(num_chans // 2):
-                    chans.append(idx)
-                    chans.append(idx + num_chans // 2)
-                self.pick(picks=chans)
+                # num_chans = len(self.ch_names)
+                # chans = []
+                # for idx in range(num_chans // 2):
+                #     chans.append(idx)
+                #     chans.append(idx + num_chans // 2)
+                # self.pick(picks=chans)
+                sort_idx = np.argsort(self.ch_names)
+                self.pick(picks=sort_idx)
 
         # Validate that the fNIRS info is correctly formatted
         _validate_nirs_info(self.info)
@@ -465,10 +472,17 @@ def _extract_sampling_rate(dat):
             warn("MNE does not currently support reading "
                  "SNIRF files with non-uniform sampled data.")
 
-    time_unit = dat.get('/nirs/metaDataTags/TimeUnit')
-    time_unit = _correct_shape(np.array(time_unit))
-    time_unit = str(time_unit[0], 'utf-8')
+    time_unit = _get_metadata_str(dat, "TimeUnit")
     time_unit_scaling = _get_timeunit_scaling(time_unit)
     sampling_rate *= time_unit_scaling
 
     return sampling_rate
+
+
+def _get_metadata_str(dat, field):
+    if field not in np.array(dat.get('nirs/metaDataTags')):
+        return None
+    data = dat.get(f'/nirs/metaDataTags/{field}')
+    data = _correct_shape(np.array(data))
+    data = str(data[0], 'utf-8')
+    return data
