@@ -40,8 +40,8 @@ The Shared Near Infrared Spectroscopy Format
 is designed by the fNIRS community in an effort to facilitate
 sharing and analysis of fNIRS data. And is the official format of the
 Society for functional near-infrared spectroscopy (SfNIRS).
-The manufacturers NIRx, Kernel, and Cortivision export data in the SNIRF
-format, and these files can be imported in to MNE.
+The manufacturers Gowerlabs, NIRx, Kernel, and Cortivision 
+export data in the SNIRF format, and these files can be imported in to MNE.
 SNIRF is the preferred format for reading data in to MNE-Python.
 Data stored in the SNIRF format can be read in
 using :func:`mne.io.read_raw_snirf`.
@@ -68,6 +68,7 @@ NIRx     ICBM-152 MNI        mri
 Kernel   ICBM 2009b          mri
 =======  ==================  =================
 
+The coordinate system is automatically detected for Gowerlabs SNIRF files.
 
 
 ***********************

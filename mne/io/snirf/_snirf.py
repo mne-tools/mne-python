@@ -272,15 +272,11 @@ class RawSNIRF(BaseRaw):
             # Update info
             info.update(subject_info=subject_info)
 
-            LengthUnit = _get_metadata_str(dat, "LengthUnit")
-            scal = 1
-            if "cm" in LengthUnit:
-                scal = 100
-            elif "mm" in LengthUnit:
-                scal = 1000
+            length_unit = _get_metadata_str(dat, "LengthUnit")
+            length_scaling = _get_lengthunit_scaling(length_unit)
 
-            srcPos3D /= scal
-            detPos3D /= scal
+            srcPos3D /= length_scaling
+            detPos3D /= length_scaling
 
             if optode_frame in ["mri", "meg"]:
                 # These are all in MNI or MEG coordinates, so let's transform
@@ -322,7 +318,7 @@ class RawSNIRF(BaseRaw):
 
             if 'landmarkPos3D' in dat.get('nirs/probe/'):
                 diglocs = np.array(dat.get('/nirs/probe/landmarkPos3D'))
-                diglocs /= scal
+                diglocs /= length_scaling
                 digname = np.array(dat.get('/nirs/probe/landmarkLabels'))
                 nasion, lpa, rpa, hpi = None, None, None, None
                 extra_ps = dict()
@@ -445,6 +441,17 @@ def _get_timeunit_scaling(time_unit):
         return scalings[time_unit]
     else:
         raise RuntimeError(f'The time unit {time_unit} is not supported by '
+                           'MNE. Please report this error as a GitHub'
+                           'issue to inform the developers.')
+
+
+def _get_lengthunit_scaling(length_unit):
+    """MNE expects distance in m, return required scaling."""
+    scalings = {'cm': 100, 'mm': 1000}
+    if length_unit in scalings:
+        return scalings[length_unit]
+    else:
+        raise RuntimeError(f'The time unit {length_unit} is not supported by '
                            'MNE. Please report this error as a GitHub'
                            'issue to inform the developers.')
 
