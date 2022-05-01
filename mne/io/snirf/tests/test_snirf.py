@@ -91,6 +91,8 @@ def test_snirf_gowerlabs():
     # Test data import
     assert raw._data.shape == (216, 274)
     assert raw.info['dig'][0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+    assert len(raw.ch_names) == 216
+    assert_allclose(raw.info['sfreq'], 10.0)
 
 
 @requires_testing_data
