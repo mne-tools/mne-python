@@ -17,9 +17,9 @@ Installing MNE-Python with all dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 We suggest to install MNE-Python into its own ``conda`` environment.
 
-The dependency stack is large and may take a long time to  (several tens of
-minutes) to resolve on some systems via ``conda``. We therefore highly recommend
-using ``mamba``, a ``conda`` replacement with a much faster solver.
+The dependency stack is large and may take a long time (several tens of
+minutes) to resolve on some systems via ``conda``. We therefore highly
+recommend using ``mamba``, a ``conda`` replacement with a much faster solver.
 
 Run in your terminal:
 
@@ -36,23 +36,23 @@ Run in your terminal:
   of the scalp, inner/outer skull, and cortical surfaces, you will also need
   :doc:`FreeSurfer <freesurfer>`.
 
-Installing a minimal MNE-Python with only core functionality (including 2D plotting)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Installing a minimal MNE-Python with core functionality only
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you only need MNE-Python's core functionality including 2D plotting (but
 **without 3D visualization**), install via :code:`pip`:
 
-  .. code-block:: console
+.. code-block:: console
 
-      pip install mne
+   pip install mne
 
-  or via :code:`conda`:
+or via :code:`conda`:
 
-  .. code-block:: console
+.. code-block:: console
 
-      conda create --name=mne --channel=conda-forge --strict-channel-priority mne-base
+   conda create --name=mne --channel=conda-forge --strict-channel-priority mne-base
 
-  This will create a new ``conda`` environment called ``mne`` (you can adjust
-  this by passing a different name via ``--name``).
+This will create a new ``conda`` environment called ``mne`` (you can adjust
+this by passing a different name via ``--name``).
 
 Installing a minimal MNE-Python with EEGLAB I/O support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -60,18 +60,18 @@ If you plan to use MNE-Python's functions that require **HDF5 I/O** (this
 includes :func:`mne.io.read_raw_eeglab`, :meth:`mne.SourceMorph.save`, and
 others), you should run via :code:`pip`:
 
-  .. code-block:: console
+.. code-block:: console
 
-      pip install mne[hdf5]
+   pip install mne[hdf5]
 
-  or via :code:`conda`
+or via :code:`conda`
 
-  .. code-block:: console
+.. code-block:: console
 
-     conda create --name=mne --channel=conda-forge --strict-channel-priority mne-base h5io h5py pymatreader
+   conda create --name=mne --channel=conda-forge --strict-channel-priority mne-base h5io h5py pymatreader
 
-  This will create a new ``conda`` environment called ``mne`` (you can adjust
-  this by passing a different name via ``--name``).
+This will create a new ``conda`` environment called ``mne`` (you can adjust
+this by passing a different name via ``--name``).
 
 Installing MNE-Python for other scenarios
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
