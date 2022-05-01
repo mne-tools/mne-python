@@ -25,7 +25,7 @@ which is **much** faster, albeit still an experimental feature.
 
 Run in your terminal:
 
-.. code-block:: console
+.. code-block:: bash
 
    conda install --name=base conda-libmamba-solver
    conda create --experimental-solver=libmamba --strict-channel-priority --channel=conda-forge --name=mne mne
@@ -43,13 +43,13 @@ Installing a minimal MNE-Python with core functionality only
 If you only need MNE-Python's core functionality including 2D plotting (but
 **without 3D visualization**), install via :code:`pip`:
 
-.. code-block:: console
+.. code-block:: bash
 
    pip install mne
 
 or via :code:`conda`:
 
-.. code-block:: console
+.. code-block:: bash
 
    conda create --strict-channel-priority --channel=conda-forge --name=mne  mne-base
 
@@ -62,13 +62,13 @@ If you plan to use MNE-Python's functions that require **HDF5 I/O** (this
 includes :func:`mne.io.read_raw_eeglab`, :meth:`mne.SourceMorph.save`, and
 others), you should run via :code:`pip`:
 
-.. code-block:: console
+.. code-block:: bash
 
    pip install mne[hdf5]
 
 or via :code:`conda`
 
-.. code-block:: console
+.. code-block:: bash
 
    conda create --strict-channel-priority --channel=conda-forge --name=mne mne-base h5io h5py pymatreader
 
@@ -110,7 +110,7 @@ Python development are:
   :samp:`Tools > Preferences > Python Interpreter > Use the following interpreter`.
   There, paste the output of the following terminal commands
 
-  .. code-block:: console
+  .. code-block:: bash
 
       conda activate mne
       python -c "import sys; print(sys.executable)"
@@ -122,7 +122,7 @@ Python development are:
   install the required version in the ``mne`` environment with the following
   commands in the terminal
 
-.. code-block:: console
+.. code-block:: bash
 
       conda activate mne
       conda install spyder-kernels=HERE_EXACT_VERSION -c conda-forge
