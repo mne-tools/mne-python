@@ -415,12 +415,6 @@ class RawSNIRF(BaseRaw):
 
             # MNE requires channels are paired as alternating wavelengths
             if len(_validate_nirs_info(self.info, throw_errors=False)) == 0:
-                # num_chans = len(self.ch_names)
-                # chans = []
-                # for idx in range(num_chans // 2):
-                #     chans.append(idx)
-                #     chans.append(idx + num_chans // 2)
-                # self.pick(picks=chans)
                 sort_idx = np.argsort(self.ch_names)
                 self.pick(picks=sort_idx)
 
