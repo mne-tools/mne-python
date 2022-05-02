@@ -237,8 +237,9 @@ for sub, (bridged_idx, ed_matrix) in ed_data.items():
 # to aid in interpolation.
 
 # use subject 2, only one bridged electrode pair
-raw = mne.preprocessing.interpolate_bridged_channels(
-    raw_data[2], bridged_idx=ed_data[2][1])
+bridged_idx = ed_data[2][0]
+raw = mne.preprocessing.interpolate_bridged_electrodes(
+    raw_data[2], bridged_idx=bridged_idx)
 
 # %%
 # The Relationship Between Bridging and Impedances
