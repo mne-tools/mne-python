@@ -198,6 +198,10 @@ class IntracranialElectrodeLocator():
         """Display the window."""
         self._window.show()
 
+    def grab(self):
+        """Render the widget into a pixmap."""
+        return self._window.grab()
+
     def _load_image_data(self, ct):
         """Get MRI and CT data to display and transforms to/from vox/RAS."""
         # allows recon-all not to be finished (T1 made in a few minutes)

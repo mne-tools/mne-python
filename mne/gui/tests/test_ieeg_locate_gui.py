@@ -178,16 +178,16 @@ def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
     gui._set_ras(coords[0])  # move to first position
     gui._mark_ch()
     assert_allclose(coords[0], gui._chs['LAMY 1'], atol=0.2)
-    gui._snap_button.click()
-    assert gui._snap_button.text() == 'Off'
+    gui._snap_button.set_value(True)
+    assert gui._snap_button.get_text() == 'Off'
     # now make sure no snap happens
     gui._ch_index = 0
     gui._set_ras(coords[1] + 1)
     gui._mark_ch()
     assert_allclose(coords[1] + 1, gui._chs['LAMY 1'], atol=0.01)
     # check that it turns back on
-    gui._snap_button.click()
-    assert gui._snap_button.text() == 'On'
+    gui._snap_button.set_value(True)
+    assert gui._snap_button.get_text() == 'On'
 
     # test remove
     gui._ch_index = 1
@@ -200,12 +200,12 @@ def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
     assert np.isnan(raw.info['chs'][1]['loc'][:3]).all()  # LAMY 2 (removed)
 
     # move sliders
-    gui._alpha_slider.setValue(75)
+    gui._alpha_slider.set_value(75)
     assert gui._ch_alpha == 0.75
-    gui._radius_slider.setValue(5)
+    gui._radius_slider.set_value(5)
     assert gui._radius == 5
     ct_sum_before = np.nansum(gui._images['ct'][0].get_array().data)
-    gui._ct_min_slider.setValue(500)
+    gui._ct_min_slider.set_value(500)
     assert np.nansum(gui._images['ct'][0].get_array().data) < ct_sum_before
 
     # test buttons

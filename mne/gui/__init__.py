@@ -269,7 +269,7 @@ class _LocateScraper(object):
                 # https://doc.qt.io/qt-5/qwidget.html#mapTo
                 # https://doc.qt.io/qt-5/qpainter.html#drawPixmap-1
                 QtGui.QPainter(pixmap).drawPixmap(
-                    plotter.mapTo(gui, plotter.rect().topLeft()),
+                    plotter.mapTo(gui._window, plotter.rect().topLeft()),
                     sub_pixmap)
                 # https://doc.qt.io/qt-5/qpixmap.html#save
                 pixmap.save(img_fname)
