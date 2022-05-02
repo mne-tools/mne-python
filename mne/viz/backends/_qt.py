@@ -36,6 +36,47 @@ from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
 from ..utils import _check_option, safe_event, get_config
 
 
+class _QtKeyPress():
+    _widget_id = 0
+    _keypress_callbacks = dict()
+    _keypress_to_qt = dict(
+        escape=Qt.Key_Escape,
+        up=Qt.Key_Up,
+        down=Qt.Key_Down,
+        left=Qt.Key_Left,
+        right=Qt.Key_Right,
+        comma=Qt.Key_Comma,
+        period=Qt.Key_Period,
+        page_up=Qt.Key_PageUp,
+        page_down=Qt.Key_PageDown,
+    )
+
+    def _keypress_initialize(self, widget):
+        self._widget_id = _QtKeyPress._widget_id
+        _QtKeyPress._widget_id += 1
+        _QtKeyPress._keypress_callbacks[self._widget_id] = dict()
+
+        def keyPressEvent(event):
+            text = event.text()
+            widget_callbacks = _QtKeyPress._keypress_callbacks[self._widget_id]
+            if text in widget_callbacks:
+                callback = widget_callbacks[text]
+                callback()
+            else:
+                key = event.key()
+                if key in widget_callbacks:
+                    callback = widget_callbacks[key]
+                    callback()
+
+        widget.keyPressEvent = keyPressEvent
+
+    def _keypress_add(self, shortcut, callback, key=False):
+        widget_callbacks = _QtKeyPress._keypress_callbacks[self._widget_id]
+        if key:
+            shortcut = _QtKeyPress._keypress_to_qt[shortcut]
+        widget_callbacks[shortcut] = callback
+
+
 class ComboBox(QComboBox):
     """Dropdown menu that emits a click when popped up."""
 
@@ -53,7 +94,7 @@ class ComboBox(QComboBox):
         super(ComboBox, self).showPopup()
 
 
-class _QtListView():
+class _QtListView(_QtKeyPress):
     def _list_view_initialize(self, items, idx, callback):
         list_view = QListView()
         list_view.setSelectionMode(QAbstractItemView.SingleSelection)

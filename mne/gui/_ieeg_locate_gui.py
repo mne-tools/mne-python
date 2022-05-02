@@ -12,8 +12,6 @@ import platform
 
 from scipy.ndimage import maximum_filter
 
-from qtpy import QtCore
-
 from matplotlib import patheffects
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.colors import LinearSegmentedColormap
@@ -166,6 +164,34 @@ class IntracranialElectrodeLocator():
         )
         for name in self._ch_names:
             self._color_list_item(name=name)
+        self._renderer._keypress_initialize(self._ch_list)
+        self._renderer._keypress_add('h', self._show_help)
+        self._renderer._keypress_add('m', self._mark_ch)
+        self._renderer._keypress_add('r', self._remove_ch)
+        self._renderer._keypress_add('b', self._toggle_show_brain)
+        self._renderer._keypress_add(
+            '+', partial(self._zoom, sign=1, draw=True))
+        self._renderer._keypress_add(
+            '-', partial(self._zoom, sign=-1, draw=True))
+        self._renderer._keypress_add(
+            '=', partial(self._zoom, sign=1, draw=True))
+        self._renderer._keypress_add('escape', self.close, key=True)
+        self._renderer._keypress_add(
+            'up', partial(self._adjust_ras, x=True), key=True)
+        self._renderer._keypress_add(
+            'down', partial(self._adjust_ras, x=False), key=True)
+        self._renderer._keypress_add(
+            'right', partial(self._adjust_ras, y=True), key=True)
+        self._renderer._keypress_add(
+            'left', partial(self._adjust_ras, y=False), key=True)
+        self._renderer._keypress_add(
+            'page_up', partial(self._adjust_ras, z=True), key=True)
+        self._renderer._keypress_add(
+            'page_down', partial(self._adjust_ras, z=False), key=True)
+        self._renderer._keypress_add(
+            'comma', partial(self._adjust_ras, z=True), key=True)
+        self._renderer._keypress_add(
+            'period', partial(self._adjust_ras, z=False), key=True)
 
         # Plots
         self._plot_images()
@@ -721,6 +747,16 @@ class IntracranialElectrodeLocator():
     def _ras(self):
         return self._ras_safe
 
+    def _adjust_ras(self, x=None, y=None, z=None):
+        ras = np.array(self._ras)
+        if x is not None:
+            ras[2] += 1 if x else -1
+        if y is not None:
+            ras[0] += 1 if y else -1
+        if z is not None:
+            ras[1] += 1 if z else -1
+        self._set_ras(ras)
+
     def _set_ras(self, ras, update_plots=True):
         ras = np.asarray(ras, dtype=float)
         assert ras.shape == (3,)
@@ -1006,43 +1042,6 @@ class IntracranialElectrodeLocator():
                     mri_data, cmap='hot', aspect='auto', alpha=0.25, zorder=2))
             self._toggle_brain_button.set_text('Hide Brain')
         self._draw()
-
-    def _key_press_event(self, event):
-        """Execute functions when the user presses a key."""
-        # XXX: disabled for now
-        return
-        if event.key() == 'escape':
-            self.close()
-
-        if event.text() == 'h':
-            self._show_help()
-
-        if event.text() == 'm':
-            self._mark_ch()
-
-        if event.text() == 'r':
-            self._remove_ch()
-
-        if event.text() == 'b':
-            self._toggle_show_brain()
-
-        if event.text() in ('=', '+', '-'):
-            self._zoom(sign=-2 * (event.text() == '-') + 1, draw=True)
-
-        # Changing slices
-        if event.key() in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down,
-                           QtCore.Qt.Key_Left, QtCore.Qt.Key_Right,
-                           QtCore.Qt.Key_Comma, QtCore.Qt.Key_Period,
-                           QtCore.Qt.Key_PageUp, QtCore.Qt.Key_PageDown):
-            ras = np.array(self._ras)
-            if event.key() in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down):
-                ras[2] += 2 * (event.key() == QtCore.Qt.Key_Up) - 1
-            elif event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right):
-                ras[0] += 2 * (event.key() == QtCore.Qt.Key_Right) - 1
-            else:
-                ras[1] += 2 * (event.key() == QtCore.Qt.Key_PageUp or
-                               event.key() == QtCore.Qt.Key_Period) - 1
-            self._set_ras(ras)
 
     def _on_click(self, event, axis):
         """Move to view on MRI and CT on click."""
