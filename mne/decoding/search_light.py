@@ -9,7 +9,7 @@ from .base import BaseEstimator, _check_estimator
 from ..fixes import _get_check_scoring
 from ..parallel import parallel_func
 from ..utils import (array_split_idx, ProgressBar,
-                     verbose, fill_doc, _VerboseDep)
+                     verbose, fill_doc)
 
 
 @fill_doc
