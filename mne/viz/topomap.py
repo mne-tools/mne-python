@@ -737,9 +737,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         If an array, the values represent the levels for the contours. The
         values are in µV for EEG, fT for magnetometers and fT/m for
         gradiometers. Defaults to 6.
-    image_interp : str
-        The image interpolation to be used. All matplotlib options are
-        accepted.
+    %(image_interp_topomap)s
     show : bool
         Show figure if True.
     onselect : callable | None
@@ -832,6 +830,41 @@ def _setup_interp(pos, res, extrapolate, sphere, outlines, border):
     interp = _GridData(pos, extrapolate, clip_origin, clip_radius, border)
     extent = (xmin, xmax, ymin, ymax)
     return extent, Xi, Yi, interp
+
+
+_VORONOI_CIRCLE_RES = 100
+
+
+def _voronoi_topomap(data, pos, outlines, ax, cmap, norm, extent, res):
+    """Make a Voronoi diagram on a topomap."""
+    from scipy.spatial import Voronoi
+    # we need an image axis object so first empty image to plot over
+    im = ax.imshow(np.zeros((res, res)) * np.nan, cmap=cmap,
+                   origin='lower', aspect='equal', extent=extent,
+                   norm=norm)
+    rx, ry = outlines['clip_radius']
+    cx, cy = outlines.get('clip_origin', (0., 0.))
+    # add points on the circle to make boundaries, expand out to
+    # ensure regions extend to the edge of the topomap
+    vor = Voronoi(np.concatenate(
+        [pos, [(rx * 1.5 * np.cos(2 * np.pi / _VORONOI_CIRCLE_RES * t),
+                ry * 1.5 * np.sin(2 * np.pi / _VORONOI_CIRCLE_RES * t))
+               for t in range(_VORONOI_CIRCLE_RES)]]))
+    for point_idx, region_idx in enumerate(
+            vor.point_region[:-_VORONOI_CIRCLE_RES]):
+        if -1 in vor.regions[region_idx]:
+            continue
+        polygon = list()
+        for i in vor.regions[region_idx]:
+            x, y = vor.vertices[i]
+            if (x - cx)**2 / rx**2 + (y - cy)**2 / ry**2 < 1:
+                polygon.append((x, y))
+            else:
+                x *= rx / np.linalg.norm(vor.vertices[i])
+                y *= ry / np.linalg.norm(vor.vertices[i])
+                polygon.append((x, y))
+        ax.fill(*zip(*polygon), color=cmap(norm(data[point_idx])))
+    return im
 
 
 def _get_patch(outlines, extrapolate, interp, ax):
@@ -931,7 +964,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     norm = min(data) >= 0
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
     if cmap is None:
-        cmap = 'Reds' if norm else 'RdBu_r'
+        cmap = plt.get_cmap('Reds' if norm else 'RdBu_r')
 
     outlines = _make_head_outlines(sphere, pos, outlines, (0., 0.))
     assert isinstance(outlines, dict)
@@ -950,11 +983,17 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     # plot outline
     patch_ = _get_patch(outlines, extrapolate, interp, ax)
 
-    # plot interpolated map
+    # get colormap normalization
     if cnorm is None:
         cnorm = Normalize(vmin=vmin, vmax=vmax)
-    im = ax.imshow(Zi, cmap=cmap, origin='lower', aspect='equal',
-                   extent=extent, interpolation=image_interp, norm=cnorm)
+
+    # plot interpolated map
+    if image_interp == 'voronoi':
+        im = _voronoi_topomap(data, pos=pos, outlines=outlines, ax=ax,
+                              cmap=cmap, norm=cnorm, extent=extent, res=res)
+    else:
+        im = ax.imshow(Zi, cmap=cmap, origin='lower', aspect='equal',
+                       extent=extent, interpolation=image_interp, norm=cnorm)
 
     # gh-1432 had a workaround for no contours here, but we'll remove it
     # because mpl has probably fixed it
@@ -1130,9 +1169,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         values for the contour thresholds (may sometimes be inaccurate, use
         array for accuracy). If an array, the values represent the levels for
         the contours. Defaults to 6.
-    image_interp : str
-        The image interpolation to be used. All matplotlib options are
-        accepted.
+    %(image_interp_topomap)s
     inst : Raw | Epochs | None
         To be able to see component properties after clicking on component
         topomap you need to pass relevant data - instances of Raw or Epochs
@@ -1845,7 +1882,7 @@ def plot_epochs_psd_topomap(epochs, bands=None,
                             tmin=None, tmax=None, proj=False,
                             bandwidth=None, adaptive=False, low_bias=True,
                             normalization='length', ch_type=None,
-                            cmap=None, agg_fun=None, dB=False, n_jobs=1,
+                            cmap=None, agg_fun=None, dB=False, n_jobs=None,
                             normalize=False, cbar_fmt='auto',
                             outlines='head', axes=None, show=True,
                             sphere=None, vlim=(None, None), verbose=None):
@@ -2618,4 +2655,72 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
         tight_layout(fig=fig)
     plt_show(show)
 
+    return fig
+
+
+@fill_doc
+def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
+                            topomap_args=None):
+    """Topoplot electrode distance matrix with bridged electrodes connected.
+
+    Parameters
+    ----------
+    %(info_not_none)s
+    bridged_idx : list of tuple
+        The indices of channels marked as bridged with each bridged
+        pair stored as a tuple.
+    ed_matrix : ndarray of float, shape (n_channels, n_channels)
+        The electrical distance matrix for each pair of EEG electrodes.
+    title : str
+        A title to add to the plot.
+    topomap_args : dict | None
+        Arguments to pass to :func:`mne.viz.plot_topomap`.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        The topoplot figure handle.
+    """
+    import matplotlib.pyplot as plt
+    if topomap_args is None:
+        topomap_args = dict()
+    else:
+        topomap_args = topomap_args.copy()  # don't change original
+    topomap_args.setdefault('image_interp', 'voronoi')
+    topomap_args.setdefault('names', info.ch_names)
+    topomap_args.setdefault('show_names', True)
+    topomap_args.setdefault('contours', False)
+    if 'axes' not in topomap_args:
+        fig, ax = plt.subplots()
+        topomap_args['axes'] = ax
+    else:
+        fig = None
+    # handle colorbar here instead of in plot_topomap
+    colorbar = topomap_args.pop('colorbar') if \
+        'colorbar' in topomap_args else True
+    # use sphere to find positions
+    sphere = topomap_args['sphere'] if 'sphere' in topomap_args else None
+    picks = pick_types(info, eeg=True)
+    if ed_matrix.shape[1:] != (picks.size, picks.size):
+        raise RuntimeError(
+            f'Expected {(ed_matrix.shape[0], picks.size, picks.size)} '
+            f'shaped `ed_matrix`, got {ed_matrix.shape}')
+    # fill in lower triangular
+    ed_matrix = ed_matrix.copy()
+    tril_idx = np.tril_indices(picks.size)
+    for epo_idx in range(ed_matrix.shape[0]):
+        ed_matrix[epo_idx][tril_idx] = ed_matrix[epo_idx].T[tril_idx]
+    elec_dists = np.median(np.nanmin(ed_matrix, axis=1), axis=0)
+    pos = _find_topomap_coords(info, picks, sphere=sphere)
+    im, cn = plot_topomap(elec_dists, info, **topomap_args)
+    fig = im.figure if fig is None else fig
+    # add bridged connections
+    for idx0, idx1 in bridged_idx:
+        im.axes.plot([pos[idx0][0], pos[idx1][0]],
+                     [pos[idx0][1], pos[idx1][1]], color='r')
+    if title is not None:
+        im.axes.set_title(title)
+    if colorbar:
+        cax = fig.colorbar(im)
+        cax.set_label(r'Electrical Distance ($\mu$$V^2$)')
     return fig

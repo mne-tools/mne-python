@@ -5,7 +5,7 @@
 import numpy as np
 
 from .utils import (sizeof_fmt, logger, get_config, warn, _explain_exception,
-                    verbose, fill_doc)
+                    verbose, fill_doc, _check_option)
 
 
 _cuda_capable = False
@@ -156,7 +156,8 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft,
     from scipy.fft import rfft, irfft
     cuda_dict = dict(n_fft=n_fft, rfft=rfft, irfft=irfft,
                      h_fft=rfft(h, n=n_fft))
-    if n_jobs == 'cuda':
+    if isinstance(n_jobs, str):
+        _check_option('n_jobs', n_jobs, ('cuda',))
         n_jobs = 1
         init_cuda()
         if _cuda_capable:
@@ -168,13 +169,13 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft,
             except Exception as exp:
                 logger.info('CUDA not used, could not instantiate memory '
                             '(arrays may be too large: "%s"), falling back to '
-                            'n_jobs=1' % str(exp))
+                            'n_jobs=None' % str(exp))
             cuda_dict.update(h_fft=h_fft,
                              rfft=_cuda_upload_rfft,
                              irfft=_cuda_irfft_get)
         else:
             logger.info('CUDA not used, CUDA could not be initialized, '
-                        'falling back to n_jobs=1')
+                        'falling back to n_jobs=None')
     return n_jobs, cuda_dict
 
 
@@ -253,7 +254,8 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
     W = W.copy()
     W[1:rfft_len_x] = (W[1:rfft_len_x] + W[::-1][:rfft_len_x - 1]) / 2.
     W = W[:rfft_len_x]
-    if n_jobs == 'cuda':
+    if isinstance(n_jobs, str):
+        _check_option('n_jobs', n_jobs, ('cuda',))
         n_jobs = 1
         init_cuda()
         if _cuda_capable:
@@ -265,14 +267,14 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
             except Exception:
                 logger.info('CUDA not used, could not instantiate memory '
                             '(arrays may be too large), falling back to '
-                            'n_jobs=1')
+                            'n_jobs=None')
             else:
                 cuda_dict.update(use_cuda=True,
                                  rfft=_cuda_upload_rfft,
                                  irfft=_cuda_irfft_get)
         else:
             logger.info('CUDA not used, CUDA could not be initialized, '
-                        'falling back to n_jobs=1')
+                        'falling back to n_jobs=None')
     cuda_dict['W'] = W
     return n_jobs, cuda_dict
 

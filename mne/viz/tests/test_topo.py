@@ -132,6 +132,13 @@ def test_plot_topo():
     plot_evoked_topo([evoked, evoked], merge_grads=True,
                      background_color='w')
 
+    plot_evoked_topo([evoked, evoked], merge_grads=True,
+                     background_color='w', color='blue')
+
+    with pytest.raises(ValueError, match='must be .*tuple, list, str,.*'):
+        plot_evoked_topo([evoked, evoked], merge_grads=True,
+                         color=np.array(["blue", "red"]))
+
     picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
     picked_evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
     picked_evoked_eeg.pick_channels(picked_evoked_eeg.ch_names[:3])

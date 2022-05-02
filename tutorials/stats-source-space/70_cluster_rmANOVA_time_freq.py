@@ -200,8 +200,9 @@ f_thresh = f_threshold_mway_rm(n_replications, factor_levels, effects,
 tail = 1  # f-test, so tail > 0
 n_permutations = 256  # Save some time (the test won't be too sensitive ...)
 F_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
-    epochs_power, stat_fun=stat_fun, threshold=f_thresh, tail=tail, n_jobs=1,
-    n_permutations=n_permutations, buffer_size=None, out_type='mask')
+    epochs_power, stat_fun=stat_fun, threshold=f_thresh, tail=tail,
+    n_jobs=None, n_permutations=n_permutations, buffer_size=None,
+    out_type='mask')
 
 # %%
 # Create new stats image with only significant clusters:

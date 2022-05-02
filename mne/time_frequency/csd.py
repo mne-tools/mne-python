@@ -611,7 +611,7 @@ def read_csd(fname):
 
 @verbose
 def csd_fourier(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
-                n_fft=None, projs=None, n_jobs=1, verbose=None):
+                n_fft=None, projs=None, n_jobs=None, *, verbose=None):
     """Estimate cross-spectral density from an array using short-time fourier.
 
     Parameters
@@ -661,7 +661,7 @@ def csd_fourier(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
 @verbose
 def csd_array_fourier(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
                       tmax=None, ch_names=None, n_fft=None, projs=None,
-                      n_jobs=1, verbose=None):
+                      n_jobs=None, *, verbose=None):
     """Estimate cross-spectral density from an array using short-time fourier.
 
     Parameters
@@ -742,7 +742,7 @@ def csd_array_fourier(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
 @verbose
 def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                    picks=None, n_fft=None, bandwidth=None, adaptive=False,
-                   low_bias=True, projs=None, n_jobs=1, verbose=None):
+                   low_bias=True, projs=None, n_jobs=None, *, verbose=None):
     """Estimate cross-spectral density from epochs using a multitaper method.
 
     Parameters
@@ -801,8 +801,8 @@ def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 @verbose
 def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
                          tmax=None, ch_names=None, n_fft=None, bandwidth=None,
-                         adaptive=False, low_bias=True, projs=None, n_jobs=1,
-                         verbose=None):
+                         adaptive=False, low_bias=True, projs=None,
+                         n_jobs=None, *, verbose=None):
     """Estimate cross-spectral density from an array using a multitaper method.
 
     Parameters
@@ -892,7 +892,7 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
 
 @verbose
 def csd_morlet(epochs, frequencies, tmin=None, tmax=None, picks=None,
-               n_cycles=7, use_fft=True, decim=1, projs=None, n_jobs=1,
+               n_cycles=7, use_fft=True, decim=1, projs=None, n_jobs=None, *,
                verbose=None):
     """Estimate cross-spectral density from epochs using Morlet wavelets.
 
@@ -952,7 +952,7 @@ def csd_morlet(epochs, frequencies, tmin=None, tmax=None, picks=None,
 @verbose
 def csd_array_morlet(X, sfreq, frequencies, t0=0, tmin=None, tmax=None,
                      ch_names=None, n_cycles=7, use_fft=True, decim=1,
-                     projs=None, n_jobs=1, verbose=None):
+                     projs=None, n_jobs=None, *, verbose=None):
     """Estimate cross-spectral density from an array using Morlet wavelets.
 
     Parameters
@@ -1106,7 +1106,8 @@ def _prepare_csd_array(X, sfreq, t0, tmin, tmax, fmin=None, fmax=None):
 
 @verbose
 def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
-                          ch_names=None, projs=None, n_jobs=1, verbose=None):
+                          ch_names=None, projs=None, n_jobs=None, *,
+                          verbose=None):
     """Estimate cross-spectral density with a given function.
 
     This function will apply the given CSD function in parallel across epochs.
@@ -1150,7 +1151,8 @@ def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
 
     # Prepare the function that does the actual CSD computation for parallel
     # execution.
-    parallel, my_csd, _ = parallel_func(csd_function, n_jobs, verbose=verbose)
+    parallel, my_csd, n_jobs = parallel_func(
+        csd_function, n_jobs, verbose=verbose)
 
     # Compute CSD for each trial
     n_blocks = int(np.ceil(n_epochs / float(n_jobs)))

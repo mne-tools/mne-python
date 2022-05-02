@@ -60,7 +60,7 @@ clf = make_pipeline(
     StandardScaler(),
     LogisticRegression(solver='liblinear')  # liblinear is faster than lbfgs
 )
-time_gen = GeneralizingEstimator(clf, scoring='roc_auc', n_jobs=1,
+time_gen = GeneralizingEstimator(clf, scoring='roc_auc', n_jobs=None,
                                  verbose=True)
 
 # Fit classifiers on the epochs where the stimulus was presented to the left.

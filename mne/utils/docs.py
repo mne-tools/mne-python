@@ -1428,7 +1428,7 @@ image_format : 'png' | 'svg' | 'gif' | None
 docdict['image_interp_topomap'] = """
 image_interp : str
     The image interpolation to be used. All matplotlib options are
-    accepted.
+    accepted as well as ``'voronoi'``.
 """
 
 docdict['include_tmax'] = """
@@ -1825,9 +1825,13 @@ n_comp : int
 """
 
 docdict['n_jobs'] = """
-n_jobs : int
-    The number of jobs to run in parallel (default ``1``). If ``-1``, it is set
-    to the number of CPU cores. Requires the ``joblib`` package.
+n_jobs : int | None
+    The number of jobs to run in parallel. If ``-1``, it is set
+    to the number of CPU cores. Requires the :mod:`joblib` package.
+    ``None`` (default) is a marker for 'unset' that will be interpreted
+    as ``n_jobs=1`` (sequential execution) unless the call is performed under
+    a :func:`joblib:joblib.parallel_backend` context manager that sets another
+    value for ``n_jobs``.
 """
 
 docdict['n_jobs_cuda'] = """
