@@ -35,6 +35,7 @@ https://psychophysiology.cpmc.columbia.edu/software/eBridge/tutorial.html.
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 
 import mne
 
@@ -236,13 +237,25 @@ for sub, (bridged_idx, ed_matrix) in ed_data.items():
 # 04-modality-specific-files/03-electroencephalography.html\
 # #electrodes-description-_electrodestsv>`_ file.
 # Since the impedances are not stored for this dataset, we will fake
-# them to demonstrate how they would be plotted.
+# them to demonstrate how they would be plotted. Here, the impedances
+# are plotted as is typical at the end of a setup; most channels are
+# good but there are a few that need to have their impedance lowered.
+# The impedances should ideally all be less than 25 KOhm before
+# starting an experiment when using active systems and less than 5 KOhm
+# when using a passive system.
 
 rng = np.random.default_rng(11)  # seed for reproducibility
 raw = raw_data[1]
-impedances = rng.random((len(raw.ch_names,))) * 10
+# typically impedances < 25 kOhm are acceptable for active systems and
+# impedances < 5 kOhm are desirable for a passive system
+impedances = rng.random((len(raw.ch_names,))) * 30
+impedances[10] = 80  # set a few bad impendances
+impedances[25] = 99
+cmap = LinearSegmentedColormap.from_list(name='impedance_cmap',
+                                         colors=['g', 'y', 'r'], N=256)
 fig, ax = plt.subplots(figsize=(5, 5))
-im, cn = mne.viz.plot_topomap(impedances, raw.info, axes=ax)
+im, cn = mne.viz.plot_topomap(impedances, raw.info, axes=ax,
+                              cmap=cmap, vmin=25, vmax=75)
 ax.set_title('Electrode Impendances')
 cax = fig.colorbar(im, ax=ax)
 cax.set_label(r'Impedance (k$\Omega$)')
