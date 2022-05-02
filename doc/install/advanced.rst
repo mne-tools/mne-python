@@ -13,7 +13,7 @@ conda environment to include the ``nb_conda_kernels`` package; this will
 make it easier to use MNE-Python in Jupyter Notebooks launched from the
 Anaconda GUI:
 
-.. code-block:: console
+.. code-block:: bash
 
     conda install --name=base nb_conda_kernels
 
@@ -24,7 +24,7 @@ will work correctly. On macOS, certain matplotlib functions might not work as
 expected on backends other than Qt. Enabling Qt can be accomplished when
 starting IPython from a terminal:
 
-.. code-block:: console
+.. code-block:: bash
 
     ipython --matplotlib=qt
 
@@ -88,7 +88,9 @@ Installing to a headless server
 
 With `pyvista`_:
 Download the `server environment file`_ and use it to create the conda
-environment::
+environment
+
+.. code-block:: bash
 
     curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
     conda env create -f server_environment.yml
@@ -134,7 +136,7 @@ It is also possible to use a system-level installation of Python (version
 |min_python_version| or higher) and use ``pip`` to install MNE-Python and its
 dependencies, using the provided `requirements file`_:
 
-.. code-block:: console
+.. code-block:: bash
 
     curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/requirements.txt
     pip install --user -r requirements.txt
@@ -153,7 +155,7 @@ operations (e.g. FIR filtering) by roughly an order of magnitude. To use CUDA,
 first  ensure that you are running the `NVIDIA proprietary drivers`_ on your
 operating system, and then do:
 
-.. code-block:: console
+.. code-block:: bash
 
     conda install cupy
     MNE_USE_CUDA=true python -c "import mne; mne.cuda.init_cuda(verbose=True)"
@@ -166,7 +168,7 @@ is working properly. To permanently enable CUDA in MNE, you can do::
 
 You can then test MNE CUDA support by running the associated test:
 
-.. code-block:: console
+.. code-block:: bash
 
     pytest mne/tests/test_filter.py -k cuda
 
@@ -185,7 +187,7 @@ For example, on CentOS 7.5 you might be able to use an environment variable
 to force MESA to use modern OpenGL by using this before executing
 ``spyder`` or ``python``:
 
-.. code-block:: console
+.. code-block:: bash
 
     export MESA_GL_VERSION_OVERRIDE=3.3
 
@@ -195,7 +197,7 @@ better than others, such as using the ``llvmpipe`` backend rather than ``swr``.
 MESA also can have trouble with full-screen antialiasing, which you can
 disable with:
 
-.. code-block:: console
+.. code-block:: bash
 
     export MNE_3D_OPTION_ANTIALIAS=false
 
@@ -212,7 +214,7 @@ If you have CentOS 7 or newer, you can also try some `prebuilt binaries <https:/
 After downloading the files, untar them and add them to the appropriate library paths
 using the following commands:
 
-.. code-block:: console
+.. code-block:: bash
 
     tar xzvf mesa_18.3.6_centos_lib.tgz
     export LIBGL_DRIVERS_PATH="${PWD}/lib"
@@ -220,7 +222,7 @@ using the following commands:
 
 To check that everything went well, type the following:
 
-.. code-block:: console
+.. code-block:: bash
 
     glxinfo | grep "OpenGL core profile version"
 
@@ -230,7 +232,7 @@ which should give::
 
 Another way to check is to type:
 
-.. code-block:: console
+.. code-block:: bash
 
     mne sys_info
 
@@ -255,7 +257,7 @@ the pyvista 3D backend and find that you can click-drag to rotate the brain,
 but cannot adjust any of the settings sliders, it is likely that your versions
 of VTK and/or QT are incompatible. This series of commands should fix it:
 
-.. code-block:: console
+.. code-block:: bash
 
     conda uninstall vtk
     pip uninstall -y pyvista
