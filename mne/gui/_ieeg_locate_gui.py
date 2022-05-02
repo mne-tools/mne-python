@@ -202,6 +202,13 @@ class IntracranialElectrodeLocator():
         """Render the widget into a pixmap."""
         return self._window.grab()
 
+    def close(self):
+        """Close all plots and cleanup data structure."""
+        # XXX: this patch is necessary to close normally. Must be investigated.
+        self._renderer._window = self._renderer.figure.plotter.app_window
+        self._renderer.close()
+        self._window.close()
+
     def _load_image_data(self, ct):
         """Get MRI and CT data to display and transforms to/from vox/RAS."""
         # allows recon-all not to be finished (T1 made in a few minutes)

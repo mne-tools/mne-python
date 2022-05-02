@@ -273,7 +273,6 @@ class _LocateScraper(object):
                     sub_pixmap)
                 # https://doc.qt.io/qt-5/qpixmap.html#save
                 pixmap.save(img_fname)
-                gui._renderer.close()  # TODO should be triggered by close...
                 gui.close()
                 return figure_rst(
                     [img_fname], gallery_conf['src_dir'], 'iEEG GUI')
