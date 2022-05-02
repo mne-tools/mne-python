@@ -721,8 +721,8 @@ def _cart_to_sph(cart):
     sph_pts : ndarray, shape (n_points, 3)
         Array containing points in spherical coordinates (rad, azimuth, polar)
     """
-    assert cart.ndim == 2 and cart.shape[1] == 3
     cart = np.atleast_2d(cart)
+    assert cart.ndim == 2 and cart.shape[1] == 3
     out = np.empty((len(cart), 3))
     out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
     norm = np.where(out[:, 0] > 0, out[:, 0], 1)  # protect against / 0
@@ -746,8 +746,8 @@ def _sph_to_cart(sph_pts):
         Array containing points in Cartesian coordinates (x, y, z)
 
     """
-    assert sph_pts.ndim == 2 and sph_pts.shape[1] == 3
     sph_pts = np.atleast_2d(sph_pts)
+    assert sph_pts.ndim == 2 and sph_pts.shape[1] == 3
     cart_pts = np.empty((len(sph_pts), 3))
     cart_pts[:, 2] = sph_pts[:, 0] * np.cos(sph_pts[:, 2])
     xy = sph_pts[:, 0] * np.sin(sph_pts[:, 2])

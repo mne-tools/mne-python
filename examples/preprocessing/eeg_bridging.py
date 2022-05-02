@@ -16,13 +16,14 @@ spatial smearing. An algorithm has been developed to detect electrode
 bridging :footcite:`TenkeKayser2001`, which has been implemented in EEGLAB
 :footcite:`DelormeMakeig2004`. Unfortunately, there is not a lot to be
 done about electrode brigding once the data has been collected as far as
-preprocessing. Therefore, the recommendation is to check for electrode
-bridging early in data collection and address the problem. Or, if the data
-has already been collected, quantify the extent of the bridging so as not
-to introduce bias into the data from this effect and exclude subjects with
-bridging that might effect the outcome of a study. Preventing electrode
-bridging is ideal but awareness of the problem at least will mitigate its
-potential as a confound to a study. This tutorial follows
+preprocessing other than interpolating bridged channels. Therefore, our
+recommendation is to check for electrode bridging early in data collection
+and address the problem. Or, if the data has already been collected, quantify
+the extent of the bridging so as not to introduce bias into the data from this
+effect and exclude subjects with bridging that might effect the outcome of a
+study. Preventing electrode bridging is ideal but awareness of the problem at
+least will mitigate its potential as a confound to a study. This tutorial
+follows
 https://psychophysiology.cpmc.columbia.edu/software/eBridge/tutorial.html.
 """
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
@@ -222,6 +223,22 @@ for sub, (bridged_idx, ed_matrix) in ed_data.items():
     mne.viz.plot_bridged_electrodes(
         raw_data[sub].info, bridged_idx, ed_matrix,
         title=f'Subject {sub} Bridged Electrodes', topomap_args=dict(vmax=5))
+
+# %%
+# For subjects with many bridged channels like Subject 6 shown in the example
+# above, it is advisable to exclude the subject. This because EEG recording
+# montage will not be comparable with the other subjects. And, if we tried to
+# interpole, the interpolation would depend on other channels which are also
+# bridged in that case. However, for subjects with only a few bridged channels,
+# those channels can be interpolated. Since the bridged data is still
+# biological (i.e. it is recording the subject's brain), it's just spatially
+# smeared, we can use :func:`mne.preprocessing.interpolate_bridged_electrodes`
+# to make a virtual channel midway between the two bridged channels
+# to aid in interpolation.
+
+# use subject 2, only one bridged electrode pair
+raw = mne.preprocessing.interpolate_bridged_channels(
+    raw_data[2], bridged_idx=ed_data[2][1])
 
 # %%
 # The Relationship Between Bridging and Impedances

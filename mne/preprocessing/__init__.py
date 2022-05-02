@@ -30,6 +30,6 @@ from ._regress import regress_artifact
 from ._fine_cal import (compute_fine_calibration, read_fine_calibration,
                         write_fine_calibration)
 from .annotate_nan import annotate_nan
-from .interpolate import equalize_bads
+from .interpolate import equalize_bads, interpolate_bridged_electrodes
 from . import ieeg
 from ._css import cortical_signal_suppression
