@@ -90,10 +90,7 @@ class RawNIRX(BaseRaw):
         fname = _check_fname(fname, 'read', True, 'fname', need_dir=True)
 
         json_config = glob.glob('%s/*%s' % (fname, "config.json"))
-        if len(json_config):
-            is_aurora = True
-        else:
-            is_aurora = False
+        is_aurora = len(json_config) > 0
 
         if is_aurora:
             # NIRSport2 devices using Aurora software
@@ -167,8 +164,11 @@ class RawNIRX(BaseRaw):
         else:
             if hdr['GeneralInfo']['NIRStar'] not in ['"15.0"', '"15.2"',
                                                      '"15.3"']:
-                raise RuntimeError('MNE does not support this NIRStar version'
-                                   ' (%s)' % (hdr['GeneralInfo']['NIRStar'],))
+                raise RuntimeError(
+                    'MNE does not support this NIRStar version'
+                    ' (%s).' % (hdr['GeneralInfo']['NIRStar'],) +
+                    'We recommend using another software such as `homer3` to '
+                    'convert your files to `snirf` format first.')
             if "NIRScout" not in hdr['GeneralInfo']['Device'] \
                     and "NIRSport" not in hdr['GeneralInfo']['Device']:
                 warn("Only import of data from NIRScout devices have been "
