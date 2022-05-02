@@ -252,7 +252,7 @@ coords, faces = mne.read_surface(op.join(conv_dir, 'sample-head.obj'))
 #    This error is caused by having too few or too many vertices. The full
 #    error is something like:
 #
-#    .. code-block:: bash
+#    .. code-block:: console
 #
 #       RuntimeError: Cannot decimate to requested ico grade 4. The provided
 #       BEM surface has 20516 triangles, which cannot be isomorphic with a
@@ -264,7 +264,7 @@ coords, faces = mne.read_surface(op.join(conv_dir, 'sample-head.obj'))
 #    This error can occur when trying to match the original number of
 #    triangles by removing vertices. The full error looks like:
 #
-#    .. code-block:: bash
+#    .. code-block:: console
 #
 #       RuntimeError: Surface inner skull has topological defects: 12 / 20484
 #       vertices have fewer than three neighboring triangles [733, 1014, 2068,
@@ -276,7 +276,7 @@ coords, faces = mne.read_surface(op.join(conv_dir, 'sample-head.obj'))
 #    topology (i.e., the expected pattern of vertices/edges/faces is
 #    disrupted).
 #
-#    .. code-block:: bash
+#    .. code-block:: console
 #
 #       RuntimeError: Surface inner skull is not complete (sum of solid
 #       angles yielded 0.999668, should be 1.)
@@ -287,7 +287,7 @@ coords, faces = mne.read_surface(op.join(conv_dir, 'sample-head.obj'))
 #    memory (the order of the vertex/face definitions) and what is expected by
 #    MNE-Python.  The full error is:
 #
-#    .. code-block:: bash
+#    .. code-block:: console
 #
 #       RuntimeError: The source surface has a matching number of
 #       triangles but ordering is wrong

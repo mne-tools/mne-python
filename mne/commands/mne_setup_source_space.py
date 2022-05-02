@@ -3,7 +3,7 @@
 
 Examples
 --------
-.. code-block:: bash
+.. code-block:: console
 
     $ mne setup_source_space --subject sample
 

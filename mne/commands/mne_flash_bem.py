@@ -3,7 +3,7 @@
 
 Examples
 --------
-.. code-block:: bash
+.. code-block:: console
 
     $ mne flash_bem --subject=sample
 

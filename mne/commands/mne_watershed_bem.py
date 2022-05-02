@@ -4,7 +4,7 @@
 
 Examples
 --------
-.. code-block:: bash
+.. code-block:: console
 
     $ mne watershed_bem -s sample
 

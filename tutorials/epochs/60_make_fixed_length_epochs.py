@@ -24,7 +24,7 @@ the signal.
     sub-module are housed in a separate package called
     :mod:`mne-connectivity <mne_connectivity>`. Download it by  running:
 
-    .. code-block:: bash
+    .. code-block:: console
 
         $ pip install mne-connectivity
 """

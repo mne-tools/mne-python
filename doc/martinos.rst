@@ -9,19 +9,19 @@ For people within the MGH/MIT/HMS Martinos Center, MNE is available on the netwo
 
 In a terminal do:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ setenv PATH /usr/pubsw/packages/python/anaconda/bin:${PATH}
 
 If you use Bash replace the previous instruction with:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ export PATH=/usr/pubsw/packages/python/anaconda/bin:${PATH}
 
 Then start the python interpreter with:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ ipython
 

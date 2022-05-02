@@ -3,7 +3,7 @@
 
 Examples
 --------
-.. code-block:: bash
+.. code-block:: console
 
     $ mne clean_eog_ecg -i in_raw.fif -o clean_raw.fif -e -c
 

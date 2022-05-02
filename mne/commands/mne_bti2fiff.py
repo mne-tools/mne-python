@@ -14,7 +14,7 @@ Notes
 
 Examples
 --------
-.. code-block:: bash
+.. code-block:: console
 
      $ mne bti2fiff --pdf C,rfDC -o my_raw.fif
 

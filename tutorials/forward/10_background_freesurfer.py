@@ -30,7 +30,7 @@ After downloading and installing FreeSurfer, there are a few steps to set up
 the environment. First is to define an environment variable ``FREESURFER_HOME``
 and then run the FreeSurfer setup script:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ export FREESURFER_HOME=/path/to/FreeSurfer
     $ source $FREESURFER_HOME/SetUpFreeSurfer.sh
@@ -46,7 +46,7 @@ reconstructions of your research subjects. This is done with an environment
 variable called ``SUBJECTS_DIR``, which will contain the individual subjects'
 reconstructions in separate sub-folders.
 
-.. code-block:: bash
+.. code-block:: console
 
     $ export SUBJECTS_DIR=/path/to/your/subjects_dir
 
@@ -59,7 +59,7 @@ Anatomical reconstruction
 The first processing stage is the creation of various surface reconstructions.
 Usually a full FreeSurfer reconstruction is obtained by the following commands:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ my_subject=sample
     $ my_NIfTI=/path/to/NIfTI.nii.gz

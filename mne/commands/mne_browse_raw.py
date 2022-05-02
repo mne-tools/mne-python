@@ -6,7 +6,7 @@ This uses :func:`mne.io.read_raw` so it supports the same formats
 
 Examples
 --------
-.. code-block:: bash
+.. code-block:: console
 
     $ mne browse_raw sample_audvis_raw.fif \
                      --proj sample_audvis_ecg-proj.fif \

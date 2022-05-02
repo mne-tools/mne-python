@@ -21,7 +21,7 @@ conda to ``/home/user/anaconda3``):
 
 .. collapse:: |linux| Linux
 
-    .. code-block:: bash
+    .. code-block:: console
 
         $ conda --version && python --version
         conda 4.9.2
@@ -34,7 +34,7 @@ conda to ``/home/user/anaconda3``):
 
 .. collapse:: |apple| macOS
 
-    .. code-block:: bash
+    .. code-block:: console
 
         $ conda --version && python --version
         conda 4.9.2

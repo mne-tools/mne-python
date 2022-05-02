@@ -26,7 +26,7 @@ If you wish to update MNE-Python only and leave other packages in their current
 state, you can usually safely do this with ``pip``, even if you originally
 installed via conda. With the ``mne`` environment active, do:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ pip install -U mne
 
@@ -48,7 +48,7 @@ create the new, updated environment re-using the original name. In the first
 step we'll also use conda in ``--offline`` mode so that it uses cached
 copies of all the packages instead of re-downloading them.
 
-.. code-block:: bash
+.. code-block:: console
 
     $ conda create --name old_mne --clone mne --offline  # copy with new name,
     $ conda env remove --name mne --all                  # remove original,
@@ -62,7 +62,7 @@ copies of all the packages instead of re-downloading them.
     ``conda list --name mne`` will show you what is missing from the new
     environment. On Linux, you can automate that comparison like this:
 
-    .. code-block:: bash
+    .. code-block:: console
 
         $ diff <(conda list -n mne | cut -d " " -f 1 | sort) <(conda list -n old_mne | cut -d " " -f 1 | sort) | grep "^>" | cut -d " " -f 2
 
@@ -80,6 +80,6 @@ research and you just can't wait for the next official release of MNE-Python to
 start taking advantage of them. In such cases, you can use ``pip`` to install
 the *development version* of MNE-Python:
 
-.. code-block:: bash
+.. code-block:: console
 
     $ pip install -U --no-deps https://github.com/mne-tools/mne-python/archive/main.zip
