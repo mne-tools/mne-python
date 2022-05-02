@@ -23,12 +23,10 @@ therefore highly recommend using the
 `libmamba solver <https://www.anaconda.com/blog/a-faster-conda-for-a-growing-community>`__,
 which is **much** faster, albeit still an experimental feature.
 
-Run in your terminal:
+Run in your terminal …
 
-.. code-block:: bash
-
-   conda install --name=base conda-libmamba-solver
-   conda create --experimental-solver=libmamba --strict-channel-priority --channel=conda-forge --name=mne mne
+.. raw:: html
+    :file: manual_install_platform_selector.html
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``) and install all
