@@ -360,7 +360,7 @@ class PSDEstimator(TransformerMixin):
 
     @verbose
     def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
-                 adaptive=False, low_bias=True, n_jobs=1,
+                 adaptive=False, low_bias=True, n_jobs=None,
                  normalization='length', *, verbose=None):  # noqa: D102
         self.sfreq = sfreq
         self.fmin = fmin
@@ -469,9 +469,9 @@ class FilterEstimator(TransformerMixin):
     """
 
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='auto',
-                 l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
-                 method='fir', iir_params=None, fir_design='firwin', *,
-                 verbose=None):  # noqa: D102
+                 l_trans_bandwidth='auto', h_trans_bandwidth='auto',
+                 n_jobs=None, method='fir', iir_params=None,
+                 fir_design='firwin', *, verbose=None):  # noqa: D102
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -769,7 +769,7 @@ class TemporalFilter(TransformerMixin):
     @verbose
     def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
                  filter_length='auto', l_trans_bandwidth='auto',
-                 h_trans_bandwidth='auto', n_jobs=1, method='fir',
+                 h_trans_bandwidth='auto', n_jobs=None, method='fir',
                  iir_params=None, fir_window='hamming', fir_design='firwin',
                  *, verbose=None):  # noqa: D102
         self.l_freq = l_freq

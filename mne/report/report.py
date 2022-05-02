@@ -53,7 +53,7 @@ from ..epochs import read_epochs, BaseEpochs
 from ..preprocessing.ica import read_ica
 from .. import dig_mri_distances
 from ..minimum_norm import read_inverse_operator, InverseOperator
-from ..parallel import parallel_func, check_n_jobs
+from ..parallel import parallel_func
 
 _BEM_VIEWS = ('axial', 'sagittal', 'coronal')
 
@@ -435,14 +435,12 @@ def _get_bem_contour_figs_as_arrays(
     """
     # Matplotlib <3.2 doesn't work nicely with process-based parallelization
     from matplotlib import __version__ as MPL_VERSION
-    if _compare_version(MPL_VERSION, '>=', '3.2'):
-        prefer = 'processes'
-    else:
-        prefer = 'threads'
+    kwargs = dict()
+    if _compare_version(MPL_VERSION, '<', '3.2'):
+        kwargs['prefer'] = 'threads'
 
-    use_jobs = min(n_jobs, max(1, len(sl)))
-    parallel, p_fun, _ = parallel_func(_plot_mri_contours, use_jobs,
-                                       prefer=prefer)
+    parallel, p_fun, n_jobs = parallel_func(
+        _plot_mri_contours, n_jobs, max_jobs=len(sl), **kwargs)
     outs = parallel(
         p_fun(
             slices=s, mri_fname=mri_fname, surfaces=surfaces,
@@ -450,7 +448,7 @@ def _get_bem_contour_figs_as_arrays(
             show_orientation=show_orientation, width=width,
             slices_as_subplots=False
         )
-        for s in np.array_split(sl, use_jobs)
+        for s in np.array_split(sl, n_jobs)
     )
     out = list()
     for o in outs:
@@ -550,10 +548,10 @@ def _plot_ica_properties_as_arrays(*, ica, inst, picks, n_jobs):
         plt.close(fig)
         return fig_array
 
-    use_jobs = min(n_jobs, max(1, len(picks)))
-    parallel, p_fun, _ = parallel_func(
+    parallel, p_fun, n_jobs = parallel_func(
         func=_plot_one_ica_property,
-        n_jobs=use_jobs
+        n_jobs=n_jobs,
+        max_jobs=len(picks)
     )
     outs = parallel(
         p_fun(
@@ -954,7 +952,7 @@ class Report:
     @fill_doc
     def add_evokeds(self, evokeds, *, titles=None, noise_cov=None, projs=None,
                     n_time_points=None, tags=('evoked',), replace=False,
-                    topomap_kwargs=None, n_jobs=1):
+                    topomap_kwargs=None, n_jobs=None):
         """Add `~mne.Evoked` objects to the report.
 
         Parameters
@@ -1719,7 +1717,7 @@ class Report:
     @fill_doc
     def add_ica(
         self, ica, title, *, inst, picks=None, ecg_evoked=None,
-        eog_evoked=None, ecg_scores=None, eog_scores=None, n_jobs=1,
+        eog_evoked=None, ecg_scores=None, eog_scores=None, n_jobs=None,
         tags=('ica',), replace=False
     ):
         """Add (a fitted) `~mne.preprocessing.ICA` to the report.
@@ -2098,7 +2096,7 @@ class Report:
 
     @fill_doc
     def add_bem(self, subject, title, *, subjects_dir=None, decim=2, width=512,
-                n_jobs=1, tags=('bem',), replace=False):
+                n_jobs=None, tags=('bem',), replace=False):
         """Render a visualization of the boundary element model (BEM) surfaces.
 
         Parameters
@@ -2301,7 +2299,7 @@ class Report:
                     raise
 
     @verbose
-    def parse_folder(self, data_path, pattern=None, n_jobs=1, mri_decim=2,
+    def parse_folder(self, data_path, pattern=None, n_jobs=None, mri_decim=2,
                      sort_content=True, *, on_error='warn',
                      image_format=None, render_bem=True,
                      n_time_points_evokeds=None, n_time_points_stcs=None,
@@ -2368,7 +2366,6 @@ class Report:
         image_format = _check_image_format(self, image_format)
         _check_option('on_error', on_error, ['ignore', 'warn', 'raise'])
 
-        n_jobs = check_n_jobs(n_jobs)
         self.data_path = data_path
 
         if self.title is None:
@@ -2447,8 +2444,8 @@ class Report:
         # render plots in parallel; check that n_jobs <= # of files
         logger.info(f'Iterating over {len(fnames)} potential files '
                     f'(this may take some ')
-        use_jobs = min(n_jobs, max(1, len(fnames)))
-        parallel, p_fun, _ = parallel_func(self._iterate_files, use_jobs)
+        parallel, p_fun, n_jobs = parallel_func(
+            self._iterate_files, n_jobs, max_jobs=len(fnames))
         parallel(
             p_fun(
                 fnames=fname, cov=cov, sfreq=sfreq,
@@ -2456,7 +2453,7 @@ class Report:
                 n_time_points_evokeds=n_time_points_evokeds,
                 n_time_points_stcs=n_time_points_stcs, on_error=on_error,
                 stc_plot_kwargs=stc_plot_kwargs, topomap_kwargs=topomap_kwargs,
-            ) for fname in np.array_split(fnames, use_jobs)
+            ) for fname in np.array_split(fnames, n_jobs)
         )
 
         # Render BEM
@@ -2630,7 +2627,7 @@ class Report:
         return content_sorted
 
     def _render_one_bem_axis(self, *, mri_fname, surfaces,
-                             image_format, orientation, decim=2, n_jobs=1,
+                             image_format, orientation, decim=2, n_jobs=None,
                              width=512, tags):
         """Render one axis of bem contours (only PNG)."""
         import nibabel as nib
@@ -3062,11 +3059,9 @@ class Report:
             dom_id = None
         else:
             topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
-
-            use_jobs = min(n_jobs, max(1, len(times)))
-            parallel, p_fun, _ = parallel_func(
+            parallel, p_fun, n_jobs = parallel_func(
                 func=self._plot_one_evoked_topomap_timepoint,
-                n_jobs=use_jobs
+                n_jobs=n_jobs, max_jobs=len(times),
             )
             fig_arrays = parallel(
                 p_fun(

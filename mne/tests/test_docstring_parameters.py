@@ -207,7 +207,6 @@ adjust_axes
 apply_maxfilter
 apply_trans
 channel_type
-check_n_jobs
 combine_kit_markers
 combine_tfr
 combine_transforms

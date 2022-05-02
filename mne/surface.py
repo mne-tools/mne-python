@@ -549,7 +549,7 @@ class _DistanceQuery(object):
 
 
 @verbose
-def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
+def _points_outside_surface(rr, surf, n_jobs=None, verbose=None):
     """Check whether points are outside a surface.
 
     Parameters
@@ -566,8 +566,7 @@ def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
     """
     rr = np.atleast_2d(rr)
     assert rr.shape[1] == 3
-    assert n_jobs > 0
-    parallel, p_fun, _ = parallel_func(_get_solids, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(_get_solids, n_jobs)
     tot_angles = parallel(p_fun(surf['rr'][tris], rr)
                           for tris in np.array_split(surf['tris'], n_jobs))
     return np.abs(np.sum(tot_angles, axis=0) / (2 * np.pi) - 1.0) > 1e-5
@@ -627,7 +626,7 @@ class _CheckInside(object):
                 self.surf['rr'], self.surf['tris']).clean()
 
     @verbose
-    def __call__(self, rr, n_jobs=1, verbose=None):
+    def __call__(self, rr, n_jobs=None, verbose=None):
         n_orig = len(rr)
         logger.info(f'Checking surface interior status for '
                     f'{n_orig} point{_pl(n_orig, " ")}...')

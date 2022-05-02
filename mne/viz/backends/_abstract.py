@@ -645,8 +645,8 @@ class _AbstractPlayback(ABC):
 
 class _AbstractDialog(ABC):
     @abstractmethod
-    def _dialog_warning(self, title, text, info_text, callback, *,
-                        buttons=[], modal=True, window=None):
+    def _dialog_create(self, title, text, info_text, callback, *,
+                       icon='Warning', buttons=[], modal=True, window=None):
         pass
 
 

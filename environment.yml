@@ -45,3 +45,5 @@ dependencies:
 - ipyvtklink
 - mne-qt-browser
 - pymatreader
+- eeglabio
+- edflib-python

@@ -115,7 +115,7 @@ for ii in event_id:
     data.append(evoked.data[:, 0])
 evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.)
 del epochs
-dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=1)
+dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=None)
 
 # %%
 # Do a quick visualization of how much variance we explained, putting the

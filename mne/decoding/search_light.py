@@ -8,8 +8,8 @@ from .mixin import TransformerMixin
 from .base import BaseEstimator, _check_estimator
 from ..fixes import _get_check_scoring
 from ..parallel import parallel_func
-from ..utils import (_validate_type, array_split_idx, ProgressBar,
-                     verbose, fill_doc)
+from ..utils import (array_split_idx, ProgressBar,
+                     verbose, fill_doc, _VerboseDep)
 
 
 @fill_doc
@@ -34,15 +34,13 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
     """
 
     @verbose
-    def __init__(self, base_estimator, scoring=None, n_jobs=1, *,
+    def __init__(self, base_estimator, scoring=None, n_jobs=None, *,
                  verbose=None):  # noqa: D102
         _check_estimator(base_estimator)
         self._estimator_type = getattr(base_estimator, "_estimator_type", None)
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs
         self.scoring = scoring
-
-        _validate_type(self.n_jobs, 'int', 'n_jobs')
 
     def __repr__(self):  # noqa: D105
         repr_str = '<' + super(SlidingEstimator, self).__repr__()
@@ -72,12 +70,11 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             Return self.
         """
         self._check_Xy(X, y)
+        parallel, p_func, n_jobs = parallel_func(
+            _sl_fit, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
         self.estimators_ = list()
         self.fit_params = fit_params
         # For fitting, the parallelization is across estimators.
-        parallel, p_func, n_jobs = parallel_func(_sl_fit, self.n_jobs,
-                                                 verbose=False)
-        n_jobs = min(n_jobs, X.shape[-1])
         mesg = 'Fitting %s' % (self.__class__.__name__,)
         with ProgressBar(X.shape[-1], mesg=mesg) as pb:
             estimators = parallel(
@@ -128,10 +125,9 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
                              'X.shape[-1]')
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
-        mesg = 'Transforming %s' % (self.__class__.__name__,)
         parallel, p_func, n_jobs = parallel_func(
-            _sl_transform, self.n_jobs, verbose=False)
-        n_jobs = min(n_jobs, X.shape[-1])
+            _sl_transform, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
+        mesg = 'Transforming %s' % (self.__class__.__name__,)
         X_splits = np.array_split(X, n_jobs, axis=-1)
         idx, est_splits = zip(*array_split_idx(self.estimators_, n_jobs))
         with ProgressBar(X.shape[-1], mesg=mesg) as pb:
@@ -274,8 +270,8 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
-        parallel, p_func, n_jobs = parallel_func(_sl_score, self.n_jobs)
-        n_jobs = min(n_jobs, X.shape[-1])
+        parallel, p_func, n_jobs = parallel_func(
+            _sl_score, self.n_jobs, max_jobs=X.shape[-1])
         X_splits = np.array_split(X, n_jobs, axis=-1)
         est_splits = np.array_split(self.estimators_, n_jobs)
         score = parallel(p_func(est, scoring, x, y)
@@ -435,8 +431,7 @@ class GeneralizingEstimator(SlidingEstimator):
         method = _check_method(self.base_estimator, method)
         mesg = 'Transforming %s' % (self.__class__.__name__,)
         parallel, p_func, n_jobs = parallel_func(
-            _gl_transform, self.n_jobs, verbose=False)
-        n_jobs = min(n_jobs, X.shape[-1])
+            _gl_transform, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
         with ProgressBar(X.shape[-1] * len(self.estimators_), mesg=mesg) as pb:
             y_pred = parallel(
                 p_func(self.estimators_, x_split, method, pb.subset(pb_idx))
@@ -552,9 +547,8 @@ class GeneralizingEstimator(SlidingEstimator):
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         mesg = 'Scoring %s' % (self.__class__.__name__,)
-        parallel, p_func, n_jobs = parallel_func(_gl_score, self.n_jobs,
-                                                 verbose=False)
-        n_jobs = min(n_jobs, X.shape[-1])
+        parallel, p_func, n_jobs = parallel_func(
+            _gl_score, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
         scoring = check_scoring(self.base_estimator, self.scoring)
         y = _fix_auc(scoring, y)
         with ProgressBar(X.shape[-1] * len(self.estimators_), mesg=mesg) as pb:

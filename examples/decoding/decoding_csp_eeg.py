@@ -83,7 +83,7 @@ csp = CSP(n_components=4, reg=None, log=True, norm_trace=False)
 
 # Use scikit-learn Pipeline with cross_val_score function
 clf = Pipeline([('CSP', csp), ('LDA', lda)])
-scores = cross_val_score(clf, epochs_data_train, labels, cv=cv, n_jobs=1)
+scores = cross_val_score(clf, epochs_data_train, labels, cv=cv, n_jobs=None)
 
 # Printing the results
 class_balance = np.mean(labels == labels[0])

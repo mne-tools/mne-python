@@ -68,7 +68,7 @@ def compute_bias(raw):
     idx = epochs.time_as_index(0.036)[0]
     data = epochs.get_data()[:, :, idx].T
     evoked = mne.EvokedArray(data, epochs.info, tmin=0.)
-    dip = fit_dipole(evoked, cov, sphere, n_jobs=1, verbose=False)[0]
+    dip = fit_dipole(evoked, cov, sphere, n_jobs=None, verbose=False)[0]
     actual_pos = mne.dipole.get_phantom_dipoles()[0][dipole_number - 1]
     misses = 1000 * np.linalg.norm(dip.pos - actual_pos, axis=-1)
     return misses

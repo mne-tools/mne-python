@@ -924,7 +924,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     proj=False, bandwidth=None, adaptive=False, low_bias=True,
                     normalization='length', picks=None, ax=None, color='black',
                     xscale='linear', area_mode='std', area_alpha=0.33,
-                    dB=True, estimate='auto', show=True, n_jobs=1,
+                    dB=True, estimate='auto', show=True, n_jobs=None,
                     average=False, line_alpha=None, spatial_colors=True,
                     sphere=None, exclude='bads', verbose=None):
     """%(plot_psd_doc)s.

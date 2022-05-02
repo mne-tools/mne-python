@@ -106,7 +106,7 @@ class ReceptiveField(BaseEstimator):
     @verbose
     def __init__(self, tmin, tmax, sfreq, feature_names=None, estimator=None,
                  fit_intercept=None, scoring='r2', patterns=False,
-                 n_jobs=1, edge_correction=True, verbose=None):
+                 n_jobs=None, edge_correction=True, verbose=None):
         self.feature_names = feature_names
         self.sfreq = float(sfreq)
         self.tmin = tmin

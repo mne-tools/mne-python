@@ -22,12 +22,12 @@ from .maxwell import (maxwell_filter, find_bad_channels_maxwell,
                       compute_maxwell_basis, maxwell_filter_prepare_emptyroom)
 from .realign import realign_raw
 from .xdawn import Xdawn
-from ._csd import compute_current_source_density
+from ._csd import compute_current_source_density, compute_bridged_electrodes
 from . import nirs
 from .artifact_detection import (annotate_movement, compute_average_dev_head_t,
                                  annotate_muscle_zscore, annotate_break)
 from ._regress import regress_artifact
-from ._fine_cal import (compute_fine_calibration,  read_fine_calibration,
+from ._fine_cal import (compute_fine_calibration, read_fine_calibration,
                         write_fine_calibration)
 from .annotate_nan import annotate_nan
 from .interpolate import equalize_bads

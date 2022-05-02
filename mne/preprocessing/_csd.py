@@ -12,13 +12,15 @@
 # License: Relicensed under BSD-3-Clause and adapted with
 #          permission from authors of original GPL code
 
+import warnings
 import numpy as np
 
 from .. import pick_types
-from ..utils import _validate_type, _ensure_int, _check_preload, verbose
+from ..utils import (_validate_type, _ensure_int, _check_preload, verbose,
+                     logger)
 from ..io import BaseRaw
 from ..io.constants import FIFF
-from ..epochs import BaseEpochs
+from ..epochs import BaseEpochs, make_fixed_length_epochs
 from ..evoked import Evoked
 from ..bem import fit_sphere_to_headshape
 from ..channels.interpolation import _calc_g, _calc_h
@@ -175,3 +177,122 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
         inst.info['chs'][pick].update(coil_type=FIFF.FIFFV_COIL_EEG_CSD,
                                       unit=FIFF.FIFF_UNIT_V_M2)
     return inst
+
+
+@verbose
+def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
+                               l_freq=0.5, h_freq=30, epoch_duration=2,
+                               bw_method=None, verbose=None):
+    r"""Compute bridged EEG electrodes using the intrinsic Hjorth algorithm.
+
+    First an electrical distance matrix is computed by taking the pairwise
+    variance. Then, a local maximum near 0 :math:`{\mu}V^2` and a
+    a local minimum below 5 :math:`{\mu}V^2` are found, the presence
+    of which is indicative of bridging. Finally, electrode distances below
+    the local minimum are marked as bridged as long as they happen on more
+    than the ``epoch_threshold`` proportion of epochs.
+
+    Based on :footcite:`TenkeKayser2001,GreischarEtAl2004,DelormeMakeig2004`
+    and the `EEGLAB implementation
+    <https://psychophysiology.cpmc.columbia.edu/software/eBridge/index.html>`_.
+
+    Parameters
+    ----------
+    inst : instance of Raw, Epochs or Evoked
+        The data to compute electrode bridging on.
+    lm_cutoff : float
+        The distance in :math:`{\mu}V^2` cutoff below which to
+        search for a local minimum (lm) indicative of bridging.
+        Defaults to 16 :math:`{\mu}V^2` to be conservative based
+        on the distributions in :footcite:`GreischarEtAl2004`.
+    epoch_threshold : float
+        The proportion of epochs with electrical distance less than
+        ``ed_threshold`` in order to consider the channel bridged.
+        The default is 0.5.
+    l_freq : float
+        The low cutoff frequency to use. Default is 0.5 Hz.
+    h_freq : float
+        The high cutoff frequency to use. Default is 30 Hz.
+    epoch_duration : float
+        The time in seconds to divide the raw into fixed-length epochs
+        to check for consistent bridging. Only used if ``inst`` is
+        :class:`mne.io.BaseRaw`. The default is 2 seconds.
+    bw_method : None
+        ``bw_method`` to pass to :class:`scipy.stats.gaussian_kde`.
+    %(verbose)s
+
+    Returns
+    -------
+    bridged_idx : list of tuple
+        The indices of channels marked as bridged with each bridged
+        pair stored as a tuple.
+    ed_matrix : ndarray of float, shape (n_epochs, n_channels, n_channels)
+        The electrical distance matrix for each pair of EEG electrodes.
+
+    Notes
+    -----
+    .. versionadded:: 1.1
+
+    References
+    ----------
+    .. footbibliography::
+    """
+    from scipy.stats import gaussian_kde
+    from scipy.optimize import minimize_scalar
+    _check_preload(inst, 'Computing bridged electrodes')
+    inst = inst.copy()  # don't modify original
+    picks = pick_types(inst.info, eeg=True)
+    if len(picks) == 0:
+        raise RuntimeError('No EEG channels found, cannot compute '
+                           'electrode bridging')
+    # first, filter
+    inst.filter(l_freq=l_freq, h_freq=h_freq, picks=picks, verbose=False)
+
+    if isinstance(inst, BaseRaw):
+        inst = make_fixed_length_epochs(inst, duration=epoch_duration,
+                                        preload=True, verbose=False)
+
+    # standardize shape
+    data = inst.get_data(picks=picks)
+    if isinstance(inst, Evoked):
+        data = data[np.newaxis, ...]  # expand evoked
+
+    # next, compute electrical distance matrix, upper triangular
+    n_epochs = data.shape[0]
+    ed_matrix = np.zeros((n_epochs, picks.size, picks.size)) * np.nan
+    for i in range(picks.size):
+        for j in range(i + 1, picks.size):
+            ed_matrix[:, i, j] = np.var(data[:, i] - data[:, j], axis=1)
+
+    # scale, fill in other half, diagonal
+    ed_matrix *= 1e12  # scale to muV**2
+
+    # initialize bridged indices
+    bridged_idx = list()
+
+    # if not enough values below local minimum cutoff, return no bridges
+    ed_flat = ed_matrix[~np.isnan(ed_matrix)]
+    if ed_flat[ed_flat < lm_cutoff].size / n_epochs < epoch_threshold:
+        return bridged_idx, ed_matrix
+
+    # kernel density estimation
+    kde = gaussian_kde(ed_flat[ed_flat < lm_cutoff])
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            'ignore', 'invalid value encountered in true_divide')
+        local_minimum = float(minimize_scalar(
+            lambda x: kde(x) if x < lm_cutoff and x > 0 else np.inf).x)
+    logger.info(f'Local minimum {local_minimum} found')
+
+    # find electrodes that are below the cutoff local minimum on
+    # `epochs_threshold` proportion of epochs
+    for i in range(picks.size):
+        for j in range(i + 1, picks.size):
+            bridged_count = np.sum(ed_matrix[:, i, j] < local_minimum)
+            if bridged_count / n_epochs > epoch_threshold:
+                logger.info('Bridge detected between '
+                            f'{inst.ch_names[picks[i]]} and '
+                            f'{inst.ch_names[picks[j]]}')
+                bridged_idx.append((picks[i], picks[j]))
+
+    return bridged_idx, ed_matrix

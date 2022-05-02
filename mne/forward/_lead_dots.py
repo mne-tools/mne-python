@@ -322,7 +322,7 @@ def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
     rmags = [r / rl[:, np.newaxis] for r, rl in zip(rmags, rlens)]
     cosmags = [coil['cosmag'] for coil in coils]
     ws = [coil['w'] for coil in coils]
-    parallel, p_fun, _ = parallel_func(_do_self_dots_subset, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(_do_self_dots_subset, n_jobs)
     prods = parallel(p_fun(intrad, rmags, rlens, cosmags,
                            ws, volume, lut, n_fact, ch_type, idx)
                      for idx in np.array_split(np.arange(len(rmags)), n_jobs))
@@ -461,7 +461,7 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
     this_nn = surf['nn'][sel]
 
     # loop over the coils
-    parallel, p_fun, _ = parallel_func(_do_surface_dots_subset, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(_do_surface_dots_subset, n_jobs)
     prods = parallel(p_fun(intrad, rsurf, rmags, rref, refl, lsurf, rlens,
                            this_nn, cosmags, ws, volume, lut, n_fact, ch_type,
                            idx)

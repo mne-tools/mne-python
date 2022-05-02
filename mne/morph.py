@@ -1099,7 +1099,7 @@ def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
 
 
 @verbose
-def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
+def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None,
                       verbose=None):
     """Convert a grade to source space vertices for a given subject.
 
