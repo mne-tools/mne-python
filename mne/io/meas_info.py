@@ -18,7 +18,7 @@ import string
 
 import numpy as np
 
-from .pick import (channel_type, pick_channels, pick_info, _get_channel_types,
+from .pick import (channel_type, _get_channel_types,
                    get_channel_type_constants, pick_types, _contains_ch_type)
 from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
@@ -36,7 +36,7 @@ from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import (invert_transform, Transform, _coord_frame_name,
                           _ensure_trans, _frame_to_str)
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
-                     _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric, deprecated,
+                     _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric,
                      _check_option, _on_missing, _check_on_missing, fill_doc,
                      _check_fname)
 from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
@@ -1113,33 +1113,6 @@ class Info(dict, MontageMixin, ContainsMixin):
         with self._unlock():
             self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
             self['nchan'] = len(self['chs'])
-
-    @deprecated('use inst.pick_channels instead.')
-    def pick_channels(self, ch_names, ordered=False):
-        """Pick channels from this Info object.
-
-        Parameters
-        ----------
-        ch_names : list of str
-            List of channels to keep. All other channels are dropped.
-        ordered : bool
-            If True (default False), ensure that the order of the channels
-            matches the order of ``ch_names``.
-
-        Returns
-        -------
-        info : instance of Info.
-            The modified Info object.
-
-        Notes
-        -----
-        Operates in-place.
-
-        .. versionadded:: 0.20.0
-        """
-        sel = pick_channels(self.ch_names, ch_names, exclude=[],
-                            ordered=ordered)
-        return pick_info(self, sel, copy=False, verbose=False)
 
     @property
     def ch_names(self):

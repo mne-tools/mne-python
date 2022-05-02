@@ -13,7 +13,7 @@ from ..utils import (array_split_idx, ProgressBar,
 
 
 @fill_doc
-class SlidingEstimator(BaseEstimator, TransformerMixin, _VerboseDep):
+class SlidingEstimator(BaseEstimator, TransformerMixin):
     """Search Light.
 
     Fit, predict and score a series of models to each subset of the dataset

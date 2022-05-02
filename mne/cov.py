@@ -36,7 +36,7 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     warn, copy_function_doc_to_method_doc, _pl,
                     _undo_scaling_cov, _scaled_array, _validate_type,
                     _check_option, eigh, fill_doc, _on_missing,
-                    _check_on_missing, _check_fname, _VerboseDep)
+                    _check_on_missing, _check_fname)
 from . import viz
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
@@ -64,7 +64,7 @@ def _get_tslice(epochs, tmin, tmax):
 
 
 @fill_doc
-class Covariance(dict, _VerboseDep):
+class Covariance(dict):
     """Noise covariance matrix.
 
     .. warning:: This class should not be instantiated directly, but

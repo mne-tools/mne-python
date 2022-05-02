@@ -11,11 +11,11 @@ import numpy as np
 from .base import get_coef, BaseEstimator, _check_estimator
 from .time_delaying_ridge import TimeDelayingRidge
 from ..fixes import is_regressor
-from ..utils import _validate_type, verbose, fill_doc, _VerboseDep
+from ..utils import _validate_type, verbose, fill_doc
 
 
 @fill_doc
-class ReceptiveField(BaseEstimator, _VerboseDep):
+class ReceptiveField(BaseEstimator):
     """Fit a receptive field model.
 
     This allows you to fit an encoding model (stimulus to brain) or a decoding

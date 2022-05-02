@@ -5,7 +5,7 @@
 
 import numpy as np
 
-from .utils import _ensure_int, verbose, logger, _VerboseDep
+from .utils import _ensure_int, verbose, logger
 
 
 ###############################################################################
@@ -218,7 +218,7 @@ def _check_store(store):
     return store
 
 
-class _COLA(_VerboseDep):
+class _COLA:
     r"""Constant overlap-add processing helper.
 
     Parameters

@@ -8,7 +8,6 @@
 # License: BSD-3-Clause
 
 from .annotate_amplitude import annotate_amplitude
-from .flat import annotate_flat
 from .maxfilter import apply_maxfilter
 from .ssp import compute_proj_ecg, compute_proj_eog
 from .eog import find_eog_events, create_eog_epochs

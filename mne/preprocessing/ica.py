@@ -56,7 +56,7 @@ from ..utils import (logger, check_fname, _check_fname, verbose,
                      copy_function_doc_to_method_doc, _pl, warn, Bunch,
                      _check_preload, _check_compensation_grade, fill_doc,
                      _check_option, _PCA, int_like, _require_version,
-                     _check_all_same_channel_names, _VerboseDep)
+                     _check_all_same_channel_names)
 
 from ..fixes import _get_args, _safe_svd
 from ..filter import filter_data
@@ -138,7 +138,7 @@ _KNOWN_ICA_METHODS = ('fastica', 'infomax', 'picard')
 
 
 @fill_doc
-class ICA(ContainsMixin, _VerboseDep):
+class ICA(ContainsMixin):
     u"""Data decomposition using Independent Component Analysis (ICA).
 
     This object estimates independent components from :class:`mne.io.Raw`,

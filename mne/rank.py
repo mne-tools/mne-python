@@ -109,7 +109,7 @@ def _estimate_rank_from_s(s, tol='auto', tol_kind='absolute'):
 
 def _estimate_rank_raw(raw, picks=None, tol=1e-4, scalings='norm',
                        with_ref_meg=False, tol_kind='absolute'):
-    """Aid the deprecation of raw.estimate_rank."""
+    """Aid the transition away from raw.estimate_rank."""
     if picks is None:
         picks = _picks_to_idx(raw.info, picks, with_ref_meg=with_ref_meg)
     # conveniency wrapper to expose the expert "tol" option + scalings options

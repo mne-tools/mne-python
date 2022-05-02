@@ -1061,13 +1061,6 @@ def test_info_bad():
         info['dev_head_t'] = Transform('mri', 'head', np.eye(4))
 
 
-def test_info_pick_channels():
-    """Test that info.pick_channels emits a deprecation warning."""
-    info = create_info(2, 1000., 'eeg')
-    with pytest.deprecated_call(match='use inst.pick_channels instead.'):
-        info.pick_channels(['0'])
-
-
 def test_get_montage():
     """Test ContainsMixin.get_montage()."""
     ch_names = make_standard_montage('standard_1020').ch_names
