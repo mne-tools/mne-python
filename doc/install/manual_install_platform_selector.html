@@ -13,8 +13,8 @@
         <div id="collape-all-but-apple-silicon" class="collapse" aria-labelledby="platformSelectorAccordion"
             data-parent="#platformSelectorAccordion">
             <div class="card-body">
-                <div class="highlight highlight-bash notranslate">
-                    <pre>conda install --name<span class="o">=</span>base conda-libmamba-solver
+                <div class="highlight highlight-console notranslate">
+                    <pre>$ conda install --name<span class="o">=</span>base conda-libmamba-solver
 conda create --experimental-solver<span class="o">=</span>libmamba --strict-channel-priority --channel<span class="o">=</span>conda-forge --name<span class="o">=</span>mne mne</pre>
                 </div>
             </div>
@@ -44,8 +44,8 @@ conda create --experimental-solver<span class="o">=</span>libmamba --strict-chan
                     should
                     you decide to install any additional packages into the same <code>conda</code> environment.
                 </p>
-                <div class="highlight highlight-bash notranslate">
-                    <pre>conda install --name<span class="o">=</span>base conda-libmamba-solver
+                <div class="highlight highlight-console notranslate">
+                    <pre>$ conda install --name<span class="o">=</span>base conda-libmamba-solver
 CONDA_SUBDIR<span class="o">=</span>osx-64 conda create --experimental-solver<span class="o">=</span>libmamba --strict-channel-priority --channel<span class="o">=</span>conda-forge --name<span class="o">=</span>mne mne
 conda activate mne
 conda config --env --set subdir osx-64</pre>
