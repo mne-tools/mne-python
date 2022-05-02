@@ -38,8 +38,8 @@ from ..utils import _check_option, safe_event, get_config
 
 class _QtKeyPress():
     _widget_id = 0
-    _keypress_callbacks = dict()
-    _keypress_to_qt = dict(
+    _callbacks = dict()
+    _to_qt = dict(
         escape=Qt.Key_Escape,
         up=Qt.Key_Up,
         down=Qt.Key_Down,
@@ -54,11 +54,11 @@ class _QtKeyPress():
     def _keypress_initialize(self, widget):
         self._widget_id = _QtKeyPress._widget_id
         _QtKeyPress._widget_id += 1
-        _QtKeyPress._keypress_callbacks[self._widget_id] = dict()
+        _QtKeyPress._callbacks[self._widget_id] = dict()
 
         def keyPressEvent(event):
             text = event.text()
-            widget_callbacks = _QtKeyPress._keypress_callbacks[self._widget_id]
+            widget_callbacks = _QtKeyPress._callbacks[self._widget_id]
             if text in widget_callbacks:
                 callback = widget_callbacks[text]
                 callback()
@@ -71,9 +71,9 @@ class _QtKeyPress():
         widget.keyPressEvent = keyPressEvent
 
     def _keypress_add(self, shortcut, callback, key=False):
-        widget_callbacks = _QtKeyPress._keypress_callbacks[self._widget_id]
+        widget_callbacks = _QtKeyPress._callbacks[self._widget_id]
         if key:
-            shortcut = _QtKeyPress._keypress_to_qt[shortcut]
+            shortcut = _QtKeyPress._to_qt[shortcut]
         widget_callbacks[shortcut] = callback
 
 
