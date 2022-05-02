@@ -167,8 +167,9 @@ class RawNIRX(BaseRaw):
                 raise RuntimeError(
                     'MNE does not support this NIRStar version'
                     ' (%s).' % (hdr['GeneralInfo']['NIRStar'],) +
-                    'We recommend using another software such as `homer3` to '
-                    'convert your files to `snirf` format first.')
+                    'We recommend using another software such as '
+                    '`NIRS Toolbox` to convert your files to `snirf` '
+                    'format first.')
             if "NIRScout" not in hdr['GeneralInfo']['Device'] \
                     and "NIRSport" not in hdr['GeneralInfo']['Device']:
                 warn("Only import of data from NIRScout devices have been "
