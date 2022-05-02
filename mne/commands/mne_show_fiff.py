@@ -3,14 +3,14 @@
 
 Examples
 --------
-.. code-block:: console
+.. code-block:: bash
 
     $ mne show_fiff test_raw.fif
 
 
 To see only tag 102:
 
-.. code-block:: console
+.. code-block:: bash
 
     $ mne show_fiff test_raw.fif --tag=102
 

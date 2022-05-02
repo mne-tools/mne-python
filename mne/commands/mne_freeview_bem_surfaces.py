@@ -3,7 +3,7 @@
 
 Examples
 --------
-.. code-block:: console
+.. code-block:: bash
 
     $ mne freeview_bem_surfaces -s sample
 

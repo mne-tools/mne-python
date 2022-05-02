@@ -33,7 +33,7 @@ environment variables ``FREESURFER_HOME``, ``SUBJECTS_DIR``, and ``SUBJECT``.
     out of the box; the most current version (2.7.11, as of May 2019) may
     require these additional steps to work:
 
-    .. code-block:: console
+    .. code-block:: bash
 
         $ cd /opt/X11/lib
         $ sudo cp libXt.6.dylib libXt.6.dylib.bak
@@ -57,7 +57,7 @@ the development version are also available on the download page.
 To install from the compressed tar archive, change directory to the desired
 install location, and unpack the software using ``tar``:
 
-.. code-block:: console
+.. code-block:: bash
 
     $ cd <path_to_desired_install_location>
     $ tar zxvf <path_to_archive_file>
@@ -89,7 +89,7 @@ bash compatible shells, e.g., sh/bash/zsh, the script to source is
 source is ``$MNE_ROOT/bin/mne_setup``.  If you don't know what shell you are
 using, you can run the following command to find out:
 
-.. code-block:: console
+.. code-block:: bash
 
     $ echo $SHELL
 
@@ -134,7 +134,7 @@ Testing MNE-C installation
 An easy way to verify whether your installation of MNE-C is working is to test
 the OpenGL graphics performance:
 
-.. code-block:: console
+.. code-block:: bash
 
     $ $MNE_ROOT/bin/mne_opengl_test
 
@@ -164,7 +164,7 @@ Troubleshooting MNE-C installation
 If MNE-C can't find ``libxp.so.6``, download libxp6 from debian_ or similar and
 install it:
 
-.. code-block:: console
+.. code-block:: bash
 
     $ sudo dpkg -i libxp6_1.0.2-1ubuntu1_amd64.deb
 
@@ -172,7 +172,7 @@ If MNE-C can't find ``libgfortran.so.1``, you can probably safely link that
 filename to the current version of libfortran that came with your system. On
 a typical 64-bit Ubuntu-like system this would be accomplished by:
 
-.. code-block:: console
+.. code-block:: bash
 
     $ cd /usr/lib/x86_64-linux-gnu
     $ sudo ln -s libgfortran.so.1 $(find . -maxdepth 1 -type f -name libgfortran.so*)

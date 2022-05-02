@@ -3,7 +3,7 @@
 
 Examples
 --------
-.. code-block:: console
+.. code-block:: bash
 
     $ mne prepare_bem_model --bem sample-5120-5120-5120-bem.fif
 

@@ -9,7 +9,7 @@ To anonymize other file types call :func:`mne.io.anonymize_info` on their
 
 Examples
 --------
-.. code-block:: console
+.. code-block:: bash
 
     $ mne anonymize -f sample_audvis_raw.fif
 

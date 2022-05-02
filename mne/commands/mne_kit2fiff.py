@@ -5,13 +5,13 @@
 
 Examples
 --------
-.. code-block:: console
+.. code-block:: bash
 
     $ mne kit2fiff --input input.sqd --output output.fif
 
 Use without arguments to invoke GUI:
 
-.. code-block:: console
+.. code-block:: bash
 
     $ mne kt2fiff
 

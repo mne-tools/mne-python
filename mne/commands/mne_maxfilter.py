@@ -3,7 +3,7 @@
 
 Examples
 --------
-.. code-block:: console
+.. code-block:: bash
 
     $ mne maxfilter -i sample_audvis_raw.fif --st
 

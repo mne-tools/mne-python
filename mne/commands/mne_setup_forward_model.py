@@ -3,7 +3,7 @@
 
 Examples
 --------
-.. code-block:: console
+.. code-block:: bash
 
     $ mne setup_forward_model -s 'sample'
 

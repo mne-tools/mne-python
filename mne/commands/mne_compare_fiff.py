@@ -3,7 +3,7 @@
 
 Examples
 --------
-.. code-block:: console
+.. code-block:: bash
 
     $ mne compare_fiff test_raw.fif test_raw_sss.fif
 

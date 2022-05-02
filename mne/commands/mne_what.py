@@ -3,7 +3,7 @@ r"""Check type of FIF file.
 
 Examples
 --------
-.. code-block:: console
+.. code-block:: bash
 
     $ mne what sample_audvis_raw.fif
     raw

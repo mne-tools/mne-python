@@ -52,7 +52,7 @@ If it takes several seconds you can either:
 
 - Change the configuration defaults by running in your terminal:
 
-  .. code-block:: console
+  .. code-block:: bash
 
       $ defaults write org.python.python NSAppSleepDisabled -bool YES
 
@@ -89,7 +89,7 @@ is a software bug (not bad data or user error):
 - Make sure you're using `the most current version`_. You can check it locally
   at a shell prompt with:
 
-  .. code-block:: console
+  .. code-block:: bash
 
       $ mne sys_info
 
@@ -148,7 +148,7 @@ downloaded data and an example asks you whether to download it again, make sure
 the data reside in the examples directory and that you run the script from its
 current directory:
 
-.. code-block:: console
+.. code-block:: bash
 
   $ cd examples/preprocessing
 
@@ -200,7 +200,7 @@ whether to use :func:`mne.read_cov`, :func:`mne.read_epochs`,
 :func:`mne.read_evokeds`, etc. There is also a corresponding command line tool
 :ref:`mne what`:
 
-.. code-block:: console
+.. code-block:: bash
 
     $ mne what sample_audvis_eog-eve.fif
     events

@@ -3,7 +3,7 @@ r"""Compute SSP/PCA projections for EOG artifacts.
 
 Examples
 --------
-.. code-block:: console
+.. code-block:: bash
 
     $ mne compute_proj_eog -i sample_audvis_raw.fif -a \
                            --l-freq 1 --h-freq 35 \
@@ -11,7 +11,7 @@ Examples
 
 or
 
-.. code-block:: console
+.. code-block:: bash
 
     $ mne compute_proj_eog -i sample_audvis_raw.fif -a \
                            --l-freq 1 --h-freq 35 \
