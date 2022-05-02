@@ -964,7 +964,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     norm = min(data) >= 0
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
     if cmap is None:
-        cmap = 'Reds' if norm else 'RdBu_r'
+        cmap = plt.get_cmap('Reds' if norm else 'RdBu_r')
     elif isinstance(cmap, str):
         cmap = plt.get_cmap(cmap)
 
