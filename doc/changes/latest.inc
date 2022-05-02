@@ -51,8 +51,7 @@ Enhancements
 
 - Add ``'voronoi'`` as an option for the ``image_interp`` argument in :func:`mne.viz.plot_topomap` to plot a topomap without interpolation using a Voronoi parcelation (:gh:`10571` by `Alex Rockhill`_)
 
-- Add :func:`mne.preprocessing.interpolate_bridged_electrodes` to use the spatially smeared signal to get a
-better interpolation rather than dropping those channels (:gh:`10587` by `Alex Rockhill`_)
+- Add :func:`mne.preprocessing.interpolate_bridged_electrodes` to use the spatially smeared signal to get a better interpolation rather than dropping those channels (:gh:`10587` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
