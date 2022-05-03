@@ -1239,11 +1239,9 @@ def _decimate_surface_vtk(points, triangles, n_triangles):
     try:
         from vtkmodules.util.numpy_support import \
             numpy_to_vtk, numpy_to_vtkIdTypeArray
-        from vtkmodules.numpy_interface.dataset_adapter import WrapDataObject
         from vtkmodules.vtkCommonDataModel import vtkPolyData, vtkCellArray
         from vtkmodules.vtkCommonCore import vtkPoints
         from vtkmodules.vtkFiltersCore import vtkQuadricDecimation
-
     except ImportError:
         raise ValueError('This function requires the VTK package to be '
                          'installed')
