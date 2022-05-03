@@ -52,9 +52,9 @@ def get_fill_colors(cols, n_fill):
     if ind.size > 0:
         # choose the two colors between which there is the large step
         ind = ind[0] + 1
-        fillcols = np.r_[np.tile(cols[ind, :], (n_fill / 2, 1)),
+        fillcols = np.r_[np.tile(cols[ind, :], (int(n_fill / 2), 1)),
                          np.tile(cols[ind + 1, :],
-                                 (n_fill - n_fill / 2, 1))]
+                                 (n_fill - int(n_fill / 2), 1))]
     else:
         # choose a color from the middle of the colormap
         fillcols = np.tile(cols[int(cols.shape[0] / 2), :], (n_fill, 1))
