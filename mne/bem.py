@@ -2136,6 +2136,9 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
         raise RuntimeError('%s does not exist. Please check your subject '
                            'directory path.' % subj_path)
 
+    # Backward compat for old FreeSurfer (?)
+    if mri == 'T1.mgz':
+        mri = mri if op.exists(op.join(subj_path, 'mri', mri)) else 'T1'
     _check_mri(mri, subject, subjects_dir)
 
     logger.info('1. Creating a dense scalp tessellation with mkheadsurf...')
