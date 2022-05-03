@@ -1,0 +1,56 @@
+<div class="accordion mt-5 mb-5" id="platformSelectorAccordion">
+    <div class="card">
+        <div class="card-header text-center" id="all-but-apple-silicon">
+            <button class="btn btn-block collapsed" type="button" data-toggle="collapse"
+                data-target="#collape-all-but-apple-silicon" aria-expanded="false"
+                aria-controls="collape-all-but-apple-silicon">
+                <h5 class="m-0 font-weight-bold">
+                    <i class="fab fa-apple"></i>&ensp;<i class="fab fa-windows"></i>&ensp;<i
+                        class="fab fa-linux"></i>&ensp; … on macOS (Intel), Windows, and Linux
+                </h5>
+            </button>
+        </div>
+        <div id="collape-all-but-apple-silicon" class="collapse" aria-labelledby="platformSelectorAccordion"
+            data-parent="#platformSelectorAccordion">
+            <div class="card-body">
+                <div class="highlight highlight-console notranslate">
+                    <pre><span class="gp">$ </span>conda install --name<span class="o">=</span>base conda-libmamba-solver
+<span class="gp">$ </span>conda create --experimental-solver<span class="o">=</span>libmamba --strict-channel-priority --channel<span class="o">=</span>conda-forge --name<span class="o">=</span>mne mne</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header text-center" id="apple-silicon">
+            <button class="btn btn-block collapsed" type="button" data-toggle="collapse"
+                data-target="#collape-apple-silicon" aria-expanded="false" aria-controls="apple-silicon">
+                <h5 class="m-0 font-weight-bold">
+                    <i class="fab fa-apple"></i>&ensp; … on macOS (M1 / Apple Silicon)
+                </h5>
+            </button>
+        </div>
+        <div id="collape-apple-silicon" class="collapse" aria-labelledby="platformSelectorAccordion"
+            data-parent="#platformSelectorAccordion">
+            <div class="card-body">
+                <p>Not all MNE-Python dependencies are already available natively for M1 systems (Apple Silicon).
+                    Therefore, we need to explicitly request <code>conda</code> to install the Intel-based packages
+                    (by default, it would try to download all dependencies for Apple Silicon – and fail!).
+                    Those Intel binaries will be automatically run through macOS's emulation layer, Rosetta.
+                </p>
+                <p>
+                    The procedure consists of two main steps: First we create the environment from Intel-based packages.
+                    Then, we configure the environment to always use Intel packages even for future installations,
+                    should
+                    you decide to install any additional packages into the same <code>conda</code> environment.
+                </p>
+                <div class="highlight highlight-console notranslate">
+                    <pre><span class="gp">$ </span>conda install --name<span class="o">=</span>base conda-libmamba-solver
+<span class="gp">$ </span>CONDA_SUBDIR<span class="o">=</span>osx-64 conda create --experimental-solver<span class="o">=</span>libmamba --strict-channel-priority --channel<span class="o">=</span>conda-forge --name<span class="o">=</span>mne mne
+<span class="gp">$ </span>conda activate mne
+<span class="gp">$ </span>conda config --env --set subdir osx-64</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -105,7 +105,7 @@ conda to ``/home/user/anaconda3``):
     ``.zprofile`` if you're using macOS Catalina or later, where the default
     shell is ``zsh``):
 
-    .. code-block:: bash
+    .. code-block:: console
 
         # >>> conda initialize >>>
         # !! Contents within this block are managed by 'conda init' !!

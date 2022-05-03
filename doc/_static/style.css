@@ -180,6 +180,12 @@ ul.icon-bullets {
 .small-stack {
     font-size: 0.5em;
 }
+/* *********************************************************** copy button */
+button.copybtn {
+    /* always show; https://sphinx-copybutton.readthedocs.io/en/latest/use.html#modify-the-copy-button-s-css */
+    opacity: var(--copybtn-opacity);
+ }
+
 /* *********************************************************** miscellaneous */
 .hidden {
     display: none;
