@@ -28,12 +28,12 @@ from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
                       _fast_cross_nd_sum, _get_solids, _complete_sphere_surf,
-                      decimate_surface)
+                      decimate_surface, _fix_topology, _rr_tris_dict)
 from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
-                    _on_missing, _import_h5io_funcs)
+                    _on_missing, _import_h5io_funcs, _ensure_int)
 
 
 # ############################################################################
@@ -263,7 +263,7 @@ def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
     if len(fewer) > 0:
         msg = ('Surface {} has topological defects: {:.0f} / {:.0f} vertices '
                'have fewer than three neighboring triangles [{}]{}'
-               .format(_bem_surf_name[surf['id']], len(fewer), surf['ntri'],
+               .format(_bem_surf_name[surf['id']], len(fewer), len(surf['rr']),
                        ', '.join(str(f) for f in fewer), extra))
         _on_missing(on_missing=incomplete, msg=msg, name='on_defects')
     return surf
@@ -470,7 +470,7 @@ def _check_thicknesses(surfs):
 
 
 def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
-                     incomplete='raise', extra=''):
+                     incomplete='raise', extra='', *, fix_topology=False):
     """Convert surfaces to a BEM."""
     # equivalent of mne_surf2bem
     # surfs can be strings (filenames) or surface dicts
@@ -480,7 +480,10 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
                          'number of elements (1 or 3)')
     for si, surf in enumerate(surfs):
         if isinstance(surf, str):
-            surfs[si] = read_surface(surf, return_dict=True)[-1]
+            surfs[si] = surf = read_surface(surf, return_dict=True)[-1]
+        # Attempt to fix topology if requested
+        if fix_topology:
+            surfs[si] = _rr_tris_dict(*_fix_topology(surf['rr'], surf['tris']))
     # Downsampling if the surface is isomorphic with a subdivided icosahedron
     if ico is not None:
         for si, surf in enumerate(surfs):
@@ -1571,7 +1574,7 @@ def write_bem_surfaces(fname, surfs, overwrite=False, verbose=None):
 
 @verbose
 def write_head_bem(fname, rr, tris, on_defects='raise', overwrite=False,
-                   verbose=None):
+                   *, fix_topology=False, verbose=None):
     """Write a head surface to a fiff file.
 
     Parameters
@@ -1584,12 +1587,15 @@ def write_head_bem(fname, rr, tris, on_defects='raise', overwrite=False,
         Triangulation (each line contains indices for three points which
         together form a face).
     %(on_defects)s
+    %(fix_topology)s
+
+        .. versionadded:: 1.1
     %(overwrite)s
     %(verbose)s
     """
     surf = _surfaces_to_bem([dict(rr=rr, tris=tris)],
                             [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False,
-                            incomplete=on_defects)
+                            incomplete=on_defects, fix_topology=fix_topology)
     write_bem_surfaces(fname, surf, overwrite=overwrite)
 
 
@@ -2067,7 +2073,9 @@ def _check_file(fname, overwrite):
 
 @verbose
 def make_scalp_surfaces(subject, subjects_dir=None, force=True,
-                        overwrite=False, no_decimate=False, verbose=None):
+                        overwrite=False, no_decimate=False, *,
+                        fix_topology=False, threshold=20,
+                        mri='T1.mgz', verbose=None):
     """Create surfaces of the scalp and neck.
 
     The scalp surfaces are required for using the MNE coregistration GUI, and
@@ -2080,14 +2088,40 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     %(subjects_dir)s
     force : bool
         Force creation of the surface even if it has some topological defects.
-        Defaults to ``True``.
+        Defaults to ``True``, but consider using ``force=False`` with
+        ``fix_topology=True`` instead.
     %(overwrite)s
     no_decimate : bool
         Disable the "medium" and "sparse" decimations. In this case, only
         a "dense" surface will be generated. Defaults to ``False``, i.e.,
         create surfaces for all three types of decimations.
+    %(fix_topology)s
+
+        .. versionadded:: 1.1
+    threshold : int
+        The threshold to use with the MRI in the call to ``mkheadsurf``.
+        The default is 20.
+
+        .. versionadded:: 1.1
+    mri : str
+        The MRI to use. Should exist in ``$SUBJECTS_DIR/$SUBJECT/mri``.
+
+        .. versionadded:: 1.1
     %(verbose)s
+
+    Notes
+    -----
+    For problematic MRIs, consider smoothing your T1 with a Gaussian kernel
+    first with a command like:
+
+    .. code-block:: console
+
+        $ mri_convert --fwhm 3 T1.mgz T1_smoothed_3.mgz
+
+    Then this function can be invoked with ``mri='T1_smoothed_3.mgz`` for
+    example to operate on the smoothed MRI.
     """
+    from ._freesurfer import _check_mri
     this_env = deepcopy(os.environ)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     this_env['SUBJECTS_DIR'] = subjects_dir
@@ -2102,7 +2136,7 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
         raise RuntimeError('%s does not exist. Please check your subject '
                            'directory path.' % subj_path)
 
-    mri = 'T1.mgz' if op.exists(op.join(subj_path, 'mri', 'T1.mgz')) else 'T1'
+    _check_mri(mri, subject, subjects_dir)
 
     logger.info('1. Creating a dense scalp tessellation with mkheadsurf...')
 
@@ -2116,9 +2150,12 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
         return surf
 
     my_seghead = check_seghead()
+    threshold = _ensure_int(threshold, 'threshold')
     if my_seghead is None:
-        run_subprocess(['mkheadsurf', '-subjid', subject, '-srcvol', mri],
-                       env=this_env)
+        run_subprocess([
+            'mkheadsurf', '-subjid', subject, '-srcvol', mri,
+            '-thresh1', str(threshold),
+            '-thresh2', str(threshold)], env=this_env)
 
     surf = check_seghead()
     if surf is None:
@@ -2133,10 +2170,12 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     logger.info('2. Creating %s ...' % dense_fname)
     _check_file(dense_fname, overwrite)
     # Helpful message if we get a topology error
-    msg = '\n\nConsider using --force as an additional input parameter.'
+    msg = ('\n\nConsider using --fix-topology as an additional input '
+           'parameter to use pymeshfix to fix the mesh, or --force to ignore '
+           'the problem.')
     surf = _surfaces_to_bem(
         [surf], [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1],
-        incomplete=incomplete, extra=msg)[0]
+        incomplete=incomplete, extra=msg, fix_topology=fix_topology)[0]
     write_bem_surfaces(dense_fname, surf, overwrite=overwrite)
     levels = 'medium', 'sparse'
     tris = [] if no_decimate else [30000, 2500]
@@ -2154,5 +2193,5 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
         dec_surf = _surfaces_to_bem(
             [dict(rr=points, tris=tris)],
             [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False,
-            incomplete=incomplete, extra=msg)
+            incomplete=incomplete, extra=msg, fix_topology=fix_topology)
         write_bem_surfaces(dec_fname, dec_surf, overwrite=overwrite)

@@ -47,3 +47,4 @@ dependencies:
 - pymatreader
 - eeglabio
 - edflib-python
+- pymeshfix

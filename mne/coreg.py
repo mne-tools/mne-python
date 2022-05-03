@@ -53,10 +53,12 @@ mri_transforms_dirname = os.path.join(subject_dirname, 'mri', 'transforms')
 surf_dirname = os.path.join(subject_dirname, 'surf')
 bem_fname = os.path.join(bem_dirname, "{subject}-{name}.fif")
 head_bem_fname = pformat(bem_fname, name='head')
+head_sparse_fname = pformat(bem_fname, name='head-sparse')
 fid_fname = pformat(bem_fname, name='fiducials')
 fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
 src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
 _head_fnames = (os.path.join(bem_dirname, 'outer_skin.surf'),
+                head_sparse_fname,
                 head_bem_fname)
 _high_res_head_fnames = (os.path.join(bem_dirname, '{subject}-head-dense.fif'),
                          os.path.join(surf_dirname, 'lh.seghead'),

@@ -308,7 +308,7 @@ class Resetter(object):
         except ImportError:
             BackgroundPlotter = None  # noqa
         try:
-            from vtk import vtkPolyData  # noqa
+            from vtkmodules.vtkCommonDataModel import vtkPolyData  # noqa
         except ImportError:
             vtkPolyData = None  # noqa
         try:
