@@ -239,7 +239,74 @@ for sub, (bridged_idx, ed_matrix) in ed_data.items():
 # use subject 2, only one bridged electrode pair
 bridged_idx = ed_data[2][0]
 raw = mne.preprocessing.interpolate_bridged_electrodes(
-    raw_data[2], bridged_idx=bridged_idx)
+    raw_data[2].copy(), bridged_idx=bridged_idx)
+
+# %%
+# Let's make sure that our virtual channel aided the interpolation. We can do
+# this by simulating a bridge to make sure that we recover the original data
+# better with the virtual channel method. If we make two channels nearly the
+# same to simulate a bridged electrode but save the original data, we can
+# compare the two interpolation methods. As we can see, the virtual channel
+# recovers the original data more slightly closely. However, as shown in the
+# plots, there is still residual signal for both methods implying that it is
+# there is still a loss of data compared to unbridged channels.
+
+raw = raw_data[2].copy()
+
+# pick two channels to simulate being bridged
+idx0, idx1 = 9, 10
+ch0, ch1 = raw.ch_names[idx0], raw.ch_names[idx1]
+bridged_idx_simulated = [(idx0, idx1)]
+# get the original data to compare to
+data_orig = raw_data[2].get_data(picks=(idx0, idx1))
+
+# simulate a bridge between the two channels by taking their mean and adding
+# some noise
+rng = np.random.default_rng(11)  # seed for reproducibility
+raw_sim = raw.copy()  # raw with simulated electrode bridge
+# remove channels with original data
+raw_sim = raw_sim.drop_channels([ch0, ch1])
+bridged_data = np.tile(np.mean(data_orig, axis=0), (2, 1))  # copy mean
+# add separate noise for each channel
+bridged_data[0] += 1e-7 * rng.normal(size=raw.times.size)
+bridged_data[1] += 1e-7 * rng.normal(size=raw.times.size)
+# add back simulated data
+raw_sim = raw_sim.add_channels([mne.io.RawArray(
+    bridged_data, mne.create_info([ch0, ch1], raw.info['sfreq'], 'eeg'),
+    raw.first_samp)])
+raw_sim.set_montage(montage)  # add back channel positions
+
+# use virtual channel method
+raw_virtual = mne.preprocessing.interpolate_bridged_electrodes(
+    raw_sim.copy(), bridged_idx=bridged_idx_simulated)
+data_virtual = raw_virtual.get_data(picks=(idx0, idx1))
+
+# set bads to be bridged electrodes to interpolate without a virtual channel
+raw_comp = raw_sim.copy()
+raw_comp.info['bads'] = [raw_sim.ch_names[idx0], raw_sim.ch_names[idx1]]
+raw_comp.interpolate_bads()
+data_comp = raw_comp.get_data(picks=(idx0, idx1))
+
+# compute variance of residuals
+print('Variance of residual (interpolated data - original data)\n\n'
+      'With adding virtual channel:                         {}\n'
+      'Compared to interpolation only using other channels: {}'
+      ''.format(np.mean(np.var(data_virtual - data_orig, axis=1)),
+                np.mean(np.var(data_comp - data_orig, axis=1))))
+
+# plot results
+raw = raw.pick_channels([ch0, ch1])
+raw = raw.add_channels([mne.io.RawArray(
+    np.concatenate([data_virtual, data_virtual - data_orig]),
+    mne.create_info([f'{ch0} virtual', f'{ch1} virtual',
+                     f'{ch0} virtual diff', f'{ch1} virtual diff'],
+                    raw.info['sfreq'], 'eeg'), raw.first_samp)])
+raw = raw.add_channels([mne.io.RawArray(
+    np.concatenate([data_comp, data_comp - data_orig]),
+    mne.create_info([f'{ch0} comp', f'{ch1} comp',
+                     f'{ch0} comp diff', f'{ch1} comp diff'],
+                    raw.info['sfreq'], 'eeg'), raw.first_samp)])
+raw.plot(scalings=dict(eeg=2e-4))
 
 # %%
 # The Relationship Between Bridging and Impedances
