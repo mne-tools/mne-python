@@ -1587,10 +1587,10 @@ def write_head_bem(fname, rr, tris, on_defects='raise', overwrite=False,
         Triangulation (each line contains indices for three points which
         together form a face).
     %(on_defects)s
+    %(overwrite)s
     %(fix_topology)s
 
         .. versionadded:: 1.1
-    %(overwrite)s
     %(verbose)s
     """
     surf = _surfaces_to_bem([dict(rr=rr, tris=tris)],
