@@ -1825,18 +1825,17 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
     imdata.SetOrigin([0, 0, 0])
     imdata.GetPointData().SetScalars(data_vtk)
 
-    # compute marching cubes
+    # compute marching cubes on smoothed data
     mc.SetNumberOfContours(len(level))
     for li, lev in enumerate(level):
         mc.SetValue(li, lev)
     mc.SetInputData(imdata)
-    sel_input = mc
-    sel_input.Update()
-    sel_input = _vtk_smooth(sel_input.GetOutput(), smooth)
+    mc.Update()
+    mc = _vtk_smooth(mc.GetOutput(), smooth)
 
     # get verts and triangles
     selector = vtkThreshold()
-    selector.SetInputConnection(sel_input.GetOutputPort())
+    selector.SetInputData(mc)
     dsa = vtkDataSetAttributes()
     selector.SetInputArrayToProcess(
         0, 0, 0, imdata.FIELD_ASSOCIATION_POINTS, dsa.SCALARS)
