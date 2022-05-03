@@ -965,6 +965,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
     if cmap is None:
         cmap = plt.get_cmap('Reds' if norm else 'RdBu_r')
+    elif isinstance(cmap, str):
+        cmap = plt.get_cmap(cmap)
 
     outlines = _make_head_outlines(sphere, pos, outlines, (0., 0.))
     assert isinstance(outlines, dict)
@@ -2687,6 +2689,7 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     else:
         topomap_args = topomap_args.copy()  # don't change original
     topomap_args.setdefault('image_interp', 'voronoi')
+    topomap_args.setdefault('cmap', 'summer_r')
     topomap_args.setdefault('names', info.ch_names)
     topomap_args.setdefault('show_names', True)
     topomap_args.setdefault('contours', False)
