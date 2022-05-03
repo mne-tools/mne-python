@@ -66,7 +66,7 @@ mne.viz.set_3d_backend('pyvistaqt')
 # coordinate frame an ACPC coordinate frame. This can be done using
 # Freesurfer's freeview:
 #
-# .. code-block:: bash
+# .. code-block:: console
 #
 #     $ freeview $MISC_PATH/seeg/sample_seeg_T1.mgz
 #
@@ -118,7 +118,7 @@ viewer.figs[0].axes[0].annotate(
 # The example dataset contains the data from completed reconstruction so
 # we will proceed using that.
 #
-# .. code-block:: bash
+# .. code-block:: console
 #
 #     $ export SUBJECT=sample_seeg
 #     $ export SUBJECTS_DIR=$MY_DATA_DIRECTORY
@@ -208,7 +208,7 @@ del CT_orig
 #     Alignment failures sometimes occur which requires manual pre-alignment.
 #     Freesurfer's ``freeview`` can be used to to align manually
 #
-#     .. code-block:: bash
+#     .. code-block:: console
 #
 #         $ freeview $MISC_PATH/seeg/sample_seeg/mri/T1.mgz \
 #            $MISC_PATH/seeg/sample_seeg_CT.mgz:colormap=heat:opacity=0.6
