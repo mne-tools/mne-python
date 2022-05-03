@@ -24,7 +24,9 @@ bridging that might effect the outcome of a study. Preventing electrode
 bridging is ideal but awareness of the problem at least will mitigate its
 potential as a confound to a study. This tutorial follows
 https://psychophysiology.cpmc.columbia.edu/software/eBridge/tutorial.html.
-"""
+
+.. _electrodes.tsv: https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/03-electroencephalography.html#electrodes-description-_electrodestsv
+"""  # noqa: E501
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
@@ -232,10 +234,7 @@ for sub, (bridged_idx, ed_matrix) in ed_data.items():
 # to impedances in the quest to be an ideal EEG technician! Low
 # impedances lead to less noisy data and EEG without bridging is more
 # spatially precise. Brain Imaging Data Structure (BIDS) recommends that
-# impedances be stored in an EEG dataset in the `electrodes.tsv
-# <https://bids-specification.readthedocs.io/en/stable/\
-# 04-modality-specific-files/03-electroencephalography.html\
-# #electrodes-description-_electrodestsv>`_ file.
+# impedances be stored in an EEG dataset in the `electrodes.tsv`_ file.
 # Since the impedances are not stored for this dataset, we will fake
 # them to demonstrate how they would be plotted. Here, the impedances
 # are plotted as is typical at the end of a setup; most channels are
