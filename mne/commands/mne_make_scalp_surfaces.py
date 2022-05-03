@@ -37,7 +37,7 @@ def run():
     parser.add_option('-x', '--fix-topology', dest='fix_topology',
                       help='Use pymeshfix to process the generated mesh '
                       'topology.', action='store_true')
-    parser.add_option('-m', '--mri', dest='mri', type='str',
+    parser.add_option('-m', '--mri', dest='mri', type='str', default='T1.mgz',
                       help='The MRI file to process using mkheadsurf.')
     parser.add_option('-f', '--force', dest='force', action='store_true',
                       help='Force creation of the surface even if it has '
