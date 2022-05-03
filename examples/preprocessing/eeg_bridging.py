@@ -306,7 +306,7 @@ raw = raw.add_channels([mne.io.RawArray(
     mne.create_info([f'{ch0} comp', f'{ch1} comp',
                      f'{ch0} comp diff', f'{ch1} comp diff'],
                     raw.info['sfreq'], 'eeg'), raw.first_samp)])
-raw.plot(scalings=dict(eeg=2e-4))
+raw.plot(scalings=dict(eeg=7e-5))
 
 # %%
 # The Relationship Between Bridging and Impedances
