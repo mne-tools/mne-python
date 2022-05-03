@@ -13,9 +13,9 @@ conda environment to include the ``nb_conda_kernels`` package; this will
 make it easier to use MNE-Python in Jupyter Notebooks launched from the
 Anaconda GUI:
 
-.. code-block:: bash
+.. code-block:: console
 
-    conda install --name=base nb_conda_kernels
+    $ conda install --name=base nb_conda_kernels
 
 When using MNE-Python within IPython or a Jupyter notebook, we strongly
 recommend using the Qt matplotlib backend for fast and correct rendering. On
@@ -24,9 +24,9 @@ will work correctly. On macOS, certain matplotlib functions might not work as
 expected on backends other than Qt. Enabling Qt can be accomplished when
 starting IPython from a terminal:
 
-.. code-block:: bash
+.. code-block:: console
 
-    ipython --matplotlib=qt
+    $ ipython --matplotlib=qt
 
 or in a Jupyter Notebook, you can use the "magic" command:
 
@@ -90,10 +90,10 @@ With `pyvista`_:
 Download the `server environment file`_ and use it to create the conda
 environment
 
-.. code-block:: bash
+.. code-block:: console
 
-    curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
-    conda env create -f server_environment.yml
+    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
+    $ conda env create -f server_environment.yml
 
 Using the development version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -136,10 +136,10 @@ It is also possible to use a system-level installation of Python (version
 |min_python_version| or higher) and use ``pip`` to install MNE-Python and its
 dependencies, using the provided `requirements file`_:
 
-.. code-block:: bash
+.. code-block:: console
 
-    curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/requirements.txt
-    pip install --user -r requirements.txt
+    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/requirements.txt
+    $ pip install --user -r requirements.txt
 
 Other configurations will probably also work, but we may be unable to offer
 support if you encounter difficulties related to your particular Python
@@ -155,10 +155,10 @@ operations (e.g. FIR filtering) by roughly an order of magnitude. To use CUDA,
 first  ensure that you are running the `NVIDIA proprietary drivers`_ on your
 operating system, and then do:
 
-.. code-block:: bash
+.. code-block:: console
 
-    conda install cupy
-    MNE_USE_CUDA=true python -c "import mne; mne.cuda.init_cuda(verbose=True)"
+    $ conda install cupy
+    $ MNE_USE_CUDA=true python -c "import mne; mne.cuda.init_cuda(verbose=True)"
     Enabling CUDA with 1.55 GB available memory
 
 If you receive a message reporting the GPU's available memory, CuPy_
@@ -168,9 +168,9 @@ is working properly. To permanently enable CUDA in MNE, you can do::
 
 You can then test MNE CUDA support by running the associated test:
 
-.. code-block:: bash
+.. code-block:: console
 
-    pytest mne/tests/test_filter.py -k cuda
+    $ pytest mne/tests/test_filter.py -k cuda
 
 If the tests pass, then CUDA should work in MNE. You can use CUDA in methods
 that state that they allow passing ``n_jobs='cuda'``, such as
@@ -187,9 +187,9 @@ For example, on CentOS 7.5 you might be able to use an environment variable
 to force MESA to use modern OpenGL by using this before executing
 ``spyder`` or ``python``:
 
-.. code-block:: bash
+.. code-block:: console
 
-    export MESA_GL_VERSION_OVERRIDE=3.3
+    $ export MESA_GL_VERSION_OVERRIDE=3.3
 
 Also, it's possible that different software rending backends might perform
 better than others, such as using the ``llvmpipe`` backend rather than ``swr``.
@@ -197,9 +197,9 @@ better than others, such as using the ``llvmpipe`` backend rather than ``swr``.
 MESA also can have trouble with full-screen antialiasing, which you can
 disable with:
 
-.. code-block:: bash
+.. code-block:: console
 
-    export MNE_3D_OPTION_ANTIALIAS=false
+    $ export MNE_3D_OPTION_ANTIALIAS=false
 
 or by doing
 :func:`mne.viz.set_3d_options(antialias=False) <mne.viz.set_3d_options>` within
@@ -214,17 +214,17 @@ If you have CentOS 7 or newer, you can also try some `prebuilt binaries <https:/
 After downloading the files, untar them and add them to the appropriate library paths
 using the following commands:
 
-.. code-block:: bash
+.. code-block:: console
 
-    tar xzvf mesa_18.3.6_centos_lib.tgz
-    export LIBGL_DRIVERS_PATH="${PWD}/lib"
-    export LD_LIBRARY_PATH="${PWD}/lib"
+    $ tar xzvf mesa_18.3.6_centos_lib.tgz
+    $ export LIBGL_DRIVERS_PATH="${PWD}/lib"
+    $ export LD_LIBRARY_PATH="${PWD}/lib"
 
 To check that everything went well, type the following:
 
-.. code-block:: bash
+.. code-block:: console
 
-    glxinfo | grep "OpenGL core profile version"
+    $ glxinfo | grep "OpenGL core profile version"
 
 which should give::
 
@@ -232,9 +232,9 @@ which should give::
 
 Another way to check is to type:
 
-.. code-block:: bash
+.. code-block:: console
 
-    mne sys_info
+    $ mne sys_info
 
 and it should show the right version of MESA::
 
@@ -257,12 +257,12 @@ the pyvista 3D backend and find that you can click-drag to rotate the brain,
 but cannot adjust any of the settings sliders, it is likely that your versions
 of VTK and/or QT are incompatible. This series of commands should fix it:
 
-.. code-block:: bash
+.. code-block:: console
 
-    conda uninstall vtk
-    pip uninstall -y pyvista
-    conda install vtk
-    pip install --no-cache pyvista
+    $ conda uninstall vtk
+    $ pip uninstall -y pyvista
+    $ conda install vtk
+    $ pip install --no-cache pyvista
 
 If you installed VTK using ``pip`` rather than ``conda``, substitute the first
 line for ``pip uninstall -y vtk``.

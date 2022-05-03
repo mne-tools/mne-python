@@ -52,9 +52,9 @@ Installing MNE-Python
 
 To install the latest stable version of MNE-Python, you can use pip_ in a terminal:
 
-.. code-block:: bash
+.. code-block:: console
 
-    pip install -U mne
+    $ pip install -U mne
 
 - MNE-Python 0.17 was the last release to support Python 2.7
 - MNE-Python 0.18 requires Python 3.5 or higher
@@ -70,15 +70,15 @@ Get the latest code
 
 To install the latest version of the code using pip_ open a terminal and type:
 
-.. code-block:: bash
+.. code-block:: console
 
-    pip install -U https://github.com/mne-tools/mne-python/archive/main.zip
+    $ pip install -U https://github.com/mne-tools/mne-python/archive/main.zip
 
 To get the latest code using `git <https://git-scm.com/>`__, open a terminal and type:
 
-.. code-block:: bash
+.. code-block:: console
 
-    git clone https://github.com/mne-tools/mne-python.git
+    $ git clone https://github.com/mne-tools/mne-python.git
 
 Alternatively, you can also download a
 `zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/main.zip>`__.
