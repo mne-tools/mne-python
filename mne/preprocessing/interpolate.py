@@ -124,15 +124,17 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
             [f'{ch0}-{ch1} virtual'], inst.info['sfreq'], 'eeg')
         virtual_info['chs'][0]['loc'][:3] = pos_virtual
         if isinstance(inst, BaseRaw):
-            virtual_ch = RawArray(data[idx0:idx0 + 1], virtual_info,
-                                  first_samp=inst.first_samp)
+            virtual_ch = RawArray(
+                (data[idx0:idx0 + 1] + data[idx1:idx1 + 1]) / 2,
+                virtual_info, first_samp=inst.first_samp)
         elif isinstance(inst, BaseEpochs):
-            virtual_ch = EpochsArray(data[:, idx0:idx0 + 1], virtual_info,
-                                     tmin=inst.tmin)
+            virtual_ch = EpochsArray(
+                (data[:, idx0:idx0 + 1] + data[:, idx1:idx1 + 1]) / 2,
+                virtual_info, tmin=inst.tmin)
         else:  # evoked
-            virtual_ch = EvokedArray(data[idx0:idx0 + 1], virtual_info,
-                                     tmin=inst.tmin, nave=inst.nave,
-                                     kind=inst.kind)
+            virtual_ch = EvokedArray(
+                (data[idx0:idx0 + 1] + data[idx1:idx1 + 1]) / 2,
+                virtual_info, tmin=inst.tmin, nave=inst.nave, kind=inst.kind)
         virtual_chs[f'{ch0}-{ch1} virtual'] = virtual_ch
 
     # add the virtual channels
