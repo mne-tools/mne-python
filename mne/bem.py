@@ -2121,7 +2121,6 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     Then this function can be invoked with ``mri='T1_smoothed_3.mgz`` for
     example to operate on the smoothed MRI.
     """
-    from ._freesurfer import _check_mri
     this_env = deepcopy(os.environ)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     this_env['SUBJECTS_DIR'] = subjects_dir
@@ -2139,7 +2138,6 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     # Backward compat for old FreeSurfer (?)
     if mri == 'T1.mgz':
         mri = mri if op.exists(op.join(subj_path, 'mri', mri)) else 'T1'
-    _check_mri(mri, subject, subjects_dir)
 
     logger.info('1. Creating a dense scalp tessellation with mkheadsurf...')
 
