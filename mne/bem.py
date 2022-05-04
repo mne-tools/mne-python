@@ -2136,6 +2136,7 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
                            'directory path.' % subj_path)
 
     # Backward compat for old FreeSurfer (?)
+    _validate_type(mri, str, 'mri')
     if mri == 'T1.mgz':
         mri = mri if op.exists(op.join(subj_path, 'mri', mri)) else 'T1'
 
