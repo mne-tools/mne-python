@@ -25,6 +25,8 @@ Enhancements
 ~~~~~~~~~~~~
 - Add support for ahdr files in :func:`mne.io.read_raw_brainvision` (:gh:`10515` by :newcontrib:`Alessandro Tonin`)
 
+- Add support for reading data from Gowerlabs devices to :func:`mne.io.read_raw_snirf` (:gh:`10555` by :newcontrib:`Samuel Powell` and `Robert Luke`_)
+
 - Add support for ``overview_mode`` in :meth:`raw.plot() <mne.io.Raw.plot>` and related functions/methods (:gh:`10501` by `Eric Larson`_)
 
 - Add :meth:`mne.io.Raw.crop_by_annotations` method to get chunks of Raw data based on :class:`mne.Annotations`. (:gh:`10460` by `Alex Gramfort`_)
@@ -50,8 +52,6 @@ Enhancements
 - Add :func:`mne.preprocessing.compute_bridged_electrodes` to detect EEG electrodes with shared spatial sources due to a conductive medium connecting two or more electrodes, add :ref:`ex-eeg-bridging` for an example and :func:`mne.viz.plot_bridged_electrodes` to help visualize (:gh:`10571` by `Alex Rockhill`_)
 
 - Add ``'voronoi'`` as an option for the ``image_interp`` argument in :func:`mne.viz.plot_topomap` to plot a topomap without interpolation using a Voronoi parcelation (:gh:`10571` by `Alex Rockhill`_)
-
-- Add support for reading data from Gowerlabs devices to :func:`mne.io.read_raw_snirf` (:gh:`10555` by `Robert Luke`_ and `Samuel Powell`_)
 
 Bugs
 ~~~~

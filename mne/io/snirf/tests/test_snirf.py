@@ -106,7 +106,6 @@ def test_snirf_basic():
     # Test channel naming
     assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D1 850",
                                         "S1_D9 760", "S1_D9 850"]
-    # assert raw.info['ch_names'][24:26] == ["S5_D8 760", "S5_D8 850"]
 
     # Test frequency encoding
     assert raw.info['chs'][0]['loc'][9] == 760
