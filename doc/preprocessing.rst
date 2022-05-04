@@ -91,6 +91,7 @@ Projections:
    ica_find_ecg_events
    ica_find_eog_events
    infomax
+   interpolate_bridged_electrodes
    equalize_bads
    maxwell_filter
    maxwell_filter_prepare_emptyroom
