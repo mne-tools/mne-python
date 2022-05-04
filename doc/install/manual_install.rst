@@ -19,9 +19,8 @@ We suggest to install MNE-Python into its own ``conda`` environment.
 
 The dependency stack is large and may take a long time (several tens of
 minutes) to resolve on some systems via the default ``conda`` solver. We
-therefore highly recommend using the
-`libmamba solver <https://www.anaconda.com/blog/a-faster-conda-for-a-growing-community>`__,
-which is **much** faster, albeit still an experimental feature.
+therefore highly recommend using ``mamba`` <https://mamba.readthedocs.io/>`__
+instead, a ``conda`` replacement that is **much** faster.
 
 Run in your terminal …
 
