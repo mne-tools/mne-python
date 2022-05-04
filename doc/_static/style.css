@@ -129,13 +129,6 @@ h5.card-header::before {
     margin-top: 0px;
 }
 
-/* ************************************************* dev version warning bar */
-.devbar {
-    /* body top padding minus navbar height; */
-    /*might be possible to calc from theme variables */
-    margin-top: -20px;
-}
-
 /* ******************************************************** version dropdown */
 .dropdown {
     padding: 0 .5rem;  /* match other items in the hamburger menu */
