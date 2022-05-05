@@ -53,4 +53,5 @@ def test_temporal_derivative_distribution_repair(fname, tmp_path):
     # Ensure that applying the algorithm reduces the step change
     raw_hb = tddr(raw_hb)
     assert np.max(np.diff(raw_hb._data[0])) < shift_amp
+    assert_allclose(raw_hb._data[1], 0.)  # unchanged
     assert_allclose(raw_hb._data[2], 1.)  # unchanged
