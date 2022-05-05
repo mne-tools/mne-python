@@ -9,7 +9,7 @@ import numpy as np
 from ...io import BaseRaw
 from ...utils import _validate_type, verbose
 from ...io.pick import _picks_to_idx
-from ..nirs import _channel_frequencies, _check_channels_ordered
+from ..nirs import _validate_nirs_info
 
 
 @verbose
@@ -47,8 +47,7 @@ def temporal_derivative_distribution_repair(raw, *, verbose=None):
     """
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
-    _check_channels_ordered(
-        raw.info, np.unique(_channel_frequencies(raw.info, nominal=True)))
+    _validate_nirs_info(raw.info)
 
     picks = _picks_to_idx(raw.info, ['fnirs_od', 'hbo', 'hbr'], exclude=[])
     if not len(picks):
