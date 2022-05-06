@@ -333,6 +333,20 @@ def test_plot_topomap_basic(monkeypatch):
     assert_equal(texts[0], 'Custom')
     plt.close('all')
 
+    # Test averaging
+    averaging_times = [ev_bad.times[0], times[0], ev_bad.times[-1]]
+    p = plt_topomap(averaging_times, ch_type='eeg', average=0.01)
+
+    expected_ax_titles = (
+        '-0.200 – -0.195 s',  # clipped on the left
+        '0.095 – 0.105 s',    # full range
+        '0.494 – 0.499 s'     # clipped on the right
+    )
+    for idx, expected_title in enumerate(expected_ax_titles):
+        assert p.axes[idx].get_title() == expected_title
+
+    del averaging_times, expected_ax_titles, expected_title
+
     # delaunay triangulation warning
     plt_topomap(times, ch_type='mag')
     # projs have already been applied

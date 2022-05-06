@@ -55,6 +55,8 @@ Enhancements
 
 - Add :func:`mne.preprocessing.interpolate_bridged_electrodes` to use the spatially smeared signal to get a better interpolation rather than dropping those channels (:gh:`10587` by `Alex Rockhill`_)
 
+- :func:`mne.viz.plot_evoked_topomap` and :meth:`mne.Evoked.plot_topomap` now display the time range the map was averaged over if ``average`` was passed (:gh:`10606` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 - Make ``color`` parameter check in in :func:`mne.viz.plot_evoked_topo` consistent (:gh:`10217` by :newcontrib:`T. Wang` and `Stefan Appelhoff`_)
