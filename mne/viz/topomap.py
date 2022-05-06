@@ -1572,8 +1572,14 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     %(mask_params_topomap)s
     %(outlines_topomap)s
     %(contours_topomap)s
-    %(image_interp_topomap)s
-    %(average_topomap)s
+    average : float | array-like of float, shape (n_times,) | None
+        The time window (in seconds) around a given time point to be used for
+        averaging. For example, 0.2 would translate into a time window that
+        starts 0.1 s before and ends 0.1 s after the given time point. If the
+        time window exceeds the duration of the data, it will be clipped.
+        Different time windows (one per time point) can be provided by
+        passing an ``array-like`` object (e.g., ``[0.1, 0.2, 0.3]``). If
+        ``None`` (default), no averaging will take place.
     %(axes_topomap)s
     %(extrapolate_topomap)s
 
@@ -1707,25 +1713,46 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
                                     sfreq=evoked.info['sfreq']))[0][0]
                 for t in times]
     # do averaging if requested
-    avg_err = '"average" must be `None` or a positive number of seconds'
+    avg_err = ('"average" must be `None`, a positive number of seconds, or '
+               'an array-like object of the previous')
+
     averaged_times = []
     if average is None:
+        average = np.array([None] * n_times)
         data = data[np.ix_(picks, time_idx)]
-    elif not _is_numeric(average):
-        raise TypeError(f'{avg_err}; got type {type(average)}.')
-    elif average <= 0:
-        raise ValueError(f'{avg_err}; got {average}.')
     else:
+        if _is_numeric(average):
+            average = np.array([average])
+        else:
+            # It should be an array-like object
+            average = np.array(average)
+            if average.size == 0:
+                raise ValueError(f'{avg_err}; got {average}.')
+
         data_ = np.zeros((len(picks), len(time_idx)))
-        ave_time = average / 2.
-        iter_times = evoked.times[time_idx]
-        for ii, (idx, tmin_, tmax_) in enumerate(zip(time_idx,
-                                                     iter_times - ave_time,
-                                                     iter_times + ave_time)):
-            my_range = (tmin_ < evoked.times) & (evoked.times < tmax_)
-            data_[:, ii] = data[picks][:, my_range].mean(-1)
-            averaged_times.append(evoked.times[my_range])
+
+        for average_idx, (this_average, this_time, this_time_idx) in enumerate(
+            zip(average, evoked.times[time_idx], time_idx)
+        ):
+            if (
+                (_is_numeric(this_average) and this_average <= 0) or
+                (not _is_numeric(this_average) and this_average is not None)
+            ):
+                raise ValueError(
+                    f'{avg_err}; got "{this_average}" in {average}'
+                )
+
+            if this_average is None:
+                data_[:, average_idx] = data[picks][:, this_time_idx]
+                averaged_times.append([this_time])
+            else:
+                tmin_ = this_time - this_average / 2
+                tmax_ = this_time + this_average / 2
+                time_mask = (tmin_ < evoked.times) & (evoked.times < tmax_)
+                data_[:, average_idx] = data[picks][:, time_mask].mean(-1)
+                averaged_times.append(evoked.times[time_mask])
         data = data_
+
     # apply scalings and merge channels
     data *= scaling
     if merge_channels:
@@ -1758,21 +1785,23 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
                   ch_type=ch_type)
     images, contours_ = [], []
     # loop over times
-    for idx, time in enumerate(times):
-        adjust_for_cbar = colorbar and ncols is not None and idx >= ncols - 1
-        ax_idx = idx + 1 if adjust_for_cbar else idx
+    for average_idx, (time, this_average) in enumerate(
+        zip(times, average)
+    ):
+        adjust_for_cbar = colorbar and ncols is not None and average_idx >= ncols - 1
+        ax_idx = average_idx + 1 if adjust_for_cbar else average_idx
         tp, cn, interp = _plot_topomap(
-            data[:, idx], pos, axes=axes[ax_idx],
-            mask=mask_[:, idx] if mask is not None else None, **kwargs)
+            data[:, average_idx], pos, axes=axes[ax_idx],
+            mask=mask_[:, average_idx] if mask is not None else None, **kwargs)
 
         images.append(tp)
         if cn is not None:
             contours_.append(cn)
         if time_format != '':
-            if average is None:
+            if this_average is None:
                 axes_title = time_format % (time * scaling_time)
             else:
-                tmin_, tmax_ = averaged_times[idx][0], averaged_times[idx][-1]
+                tmin_, tmax_ = averaged_times[average_idx][0], averaged_times[average_idx][-1]
                 from_time = time_format % (tmin_ * scaling_time)
                 from_time = from_time.split(' ')[0]  # Remove unit
                 to_time = time_format % (tmax_ * scaling_time)
