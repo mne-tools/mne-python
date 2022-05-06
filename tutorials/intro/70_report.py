@@ -657,3 +657,29 @@ report.parse_folder(
     data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=5
 )
 report.save('report_parse_folder_cov.html', overwrite=True)
+
+# %%
+#
+# Adding custom HTML (e.g., a description text)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# The :meth:`~mne.Report.add_html` method allows you to add custom HTML to
+# your report. This feature can be very convenient to add short descriptions,
+# lists, or reminders to your report (among many other things you can think
+# of encoding in HTML).
+
+report = mne.Report(title='Report on hypothesis 1')
+
+my_html = """
+<p>We have the following hypothesis:</p>
+<ol>
+<li>There is a difference between images showing man-made vs. natural
+environments</li>
+<li>This difference manifests itself most strongly in the amplitude of the
+N1 ERP component</li>
+</ol>
+<p>Below we show several plots and tests of the data.</p>
+"""
+
+report.add_html(title='Hypothesis', html=my_html)
+report.save('report_add_html.html')
