@@ -153,7 +153,6 @@ run_subprocess([%r, '--version'])
 requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
                                call=_n2ft_call)
 
-requires_vtk = partial(requires_module, name='vtk')
 requires_good_network = partial(
     requires_module, name='good network connection',
     call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'

@@ -22,7 +22,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_prepare_bem_model, mne_sys_info)
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_info
-from mne.utils import (requires_mne, requires_vtk, requires_freesurfer,
+from mne.utils import (requires_mne, requires_freesurfer,
                        requires_nibabel, ArgvSetter,
                        _stamp_to_dt, _record_warnings)
 
@@ -133,11 +133,11 @@ def test_kit2fiff():
 
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
-@requires_vtk
 @testing.requires_testing_data
 def test_make_scalp_surfaces(tmp_path, monkeypatch):
     """Test mne make_scalp_surfaces."""
     pytest.importorskip('nibabel')
+    pytest.importorskip('pyvista')
     check_usage(mne_make_scalp_surfaces)
     has = 'SUBJECTS_DIR' in os.environ
     # Copy necessary files to avoid FreeSurfer call
