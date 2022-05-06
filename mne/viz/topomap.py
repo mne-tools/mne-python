@@ -1708,6 +1708,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
                 for t in times]
     # do averaging if requested
     avg_err = '"average" must be `None` or a positive number of seconds'
+    averaged_times = []
     if average is None:
         data = data[np.ix_(picks, time_idx)]
     elif not _is_numeric(average):
@@ -1723,6 +1724,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
                                                      iter_times + ave_time)):
             my_range = (tmin_ < evoked.times) & (evoked.times < tmax_)
             data_[:, ii] = data[picks][:, my_range].mean(-1)
+            averaged_times.append(evoked.times[my_range])
         data = data_
     # apply scalings and merge channels
     data *= scaling
@@ -1767,7 +1769,16 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         if cn is not None:
             contours_.append(cn)
         if time_format != '':
-            axes[ax_idx].set_title(time_format % (time * scaling_time))
+            if average is None:
+                axes_title = time_format % (time * scaling_time)
+            else:
+                tmin_, tmax_ = averaged_times[idx][0], averaged_times[idx][-1]
+                from_time = time_format % (tmin_ * scaling_time)
+                from_time = from_time.split(' ')[0]  # Remove unit
+                to_time = time_format % (tmax_ * scaling_time)
+                axes_title = f'{from_time} – {to_time}'
+                del from_time, to_time, tmin_, tmax_
+            axes[ax_idx].set_title(axes_title)
 
     if interactive:
         axes.append(plt.subplot(gs[1, :-1]))

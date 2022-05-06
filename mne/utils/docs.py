@@ -235,10 +235,11 @@ average : bool, default True
 
 docdict['average_topomap'] = """
 average : float | None
-    The time window around a given time to be used for averaging (seconds).
-    For example, 0.01 would translate into window that starts 5 ms before
-    and ends 5 ms after a given time point. Defaults to None, which means
-    no averaging.
+    The time window (in seconds) around a given time point to be used for
+    averaging. For example, 0.2 would translate into a time window that starts
+    0.1 s before and ends 0.1 s after the given time point. If the time window
+    exceeds the duration of the data, it will be clipped. If ``None``
+    (default), no averaging will take place.
 """
 
 docdict['axes_psd_topo'] = """
