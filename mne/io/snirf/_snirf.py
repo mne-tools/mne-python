@@ -447,7 +447,7 @@ def _get_timeunit_scaling(time_unit):
 
 def _get_lengthunit_scaling(length_unit):
     """MNE expects distance in m, return required scaling."""
-    scalings = {'cm': 100, 'mm': 1000}
+    scalings = {'cm': 100, 'mm': 1000, 'm': 1}
     if length_unit in scalings:
         return scalings[length_unit]
     else:
