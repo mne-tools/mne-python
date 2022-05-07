@@ -1668,7 +1668,16 @@ def test_make_wrong_dig_montage():
         make_dig_montage(ch_pos={'A1': 5})
 
 
+@testing.requires_testing_data
 def test_fnirs_montage():
+    """Ensure fNIRS montages can be get and set."""
     raw = read_raw_nirx(fnirs_dname)
+    info_orig = raw.copy().info
     mtg = raw.get_montage()
+    # Make a change to the montage before setting
+    raw.info['chs'][2]['loc'][:3] = [1., 2, 3]
+    # Set montage back to original
     raw.set_montage(mtg)
+
+    for ch in range(len(raw.ch_names)):
+        assert_array_equal(info_orig['chs'][ch]['loc'], raw.info['chs'][ch]['loc'])

@@ -57,6 +57,8 @@ Enhancements
 
 - :func:`mne.viz.plot_evoked_topomap` and :meth:`mne.Evoked.plot_topomap` now display the time range the map was averaged over if ``average`` was passed (:gh:`10606` by `Richard Höchenberger`_)
 
+- Added fNIRS support to :func:`mne.Info.get_montage` (:gh:`10611` by `Robert Luke`_)
+
 Bugs
 ~~~~
 - Make ``color`` parameter check in in :func:`mne.viz.plot_evoked_topo` consistent (:gh:`10217` by :newcontrib:`T. Wang` and `Stefan Appelhoff`_)

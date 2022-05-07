@@ -226,7 +226,6 @@ def _fnirs_spread_bads(info):
 
 def _fnirs_optode_names(info):
     """Return list of unique optode names."""
-
     picks_wave = _picks_to_idx(info, ['fnirs_cw_amplitude', 'fnirs_od'],
                                exclude=[], allow_empty=True)
     picks_chroma = _picks_to_idx(info, ['hbo', 'hbr'],

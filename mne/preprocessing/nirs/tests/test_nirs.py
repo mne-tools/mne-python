@@ -379,10 +379,13 @@ def test_fnirs_channel_naming_and_order_custom_chroma():
 
 def test_optode_names():
     """Ensure optode name extraction is correct."""
-    raw = read_raw_nirx(fname_nirx_15_2_short)
-    src_names, det_names = _fnirs_optode_names(raw.info)
-    assert_array_equal(src_names, [f"S{n}" for n in range(1, 6)])
-    assert_array_equal(det_names, [f"D{n}" for n in range(1, 14)])
+    ch_names = ['S11_D2 760', 'S11_D2 850', 'S3_D1 760',
+                'S3_D1 850', 'S2_D13 760', 'S2_D13 850']
+    ch_types = np.repeat("fnirs_od", 6)
+    info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=1.0)
+    src_names, det_names = _fnirs_optode_names(info)
+    assert_array_equal(src_names, [f"S{n}" for n in ["2", "3", "11"]])
+    assert_array_equal(det_names, [f"D{n}" for n in ["1", "2", "13"]])
 
     ch_names = ['S1_D11 hbo', 'S1_D11 hbr', 'S2_D17 hbo', 'S2_D17 hbr',
                 'S3_D1 hbo', 'S3_D1 hbr']
@@ -393,6 +396,7 @@ def test_optode_names():
     assert_array_equal(det_names, [f"D{n}" for n in ["1", "11", "17"]])
 
 
+@testing.requires_testing_data
 def test_optode_loc():
     """Ensure optode location extraction is correct."""
     raw = read_raw_nirx(fname_nirx_15_2_short)
