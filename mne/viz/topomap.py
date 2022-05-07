@@ -1580,6 +1580,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         Different time windows (one per time point) can be provided by
         passing an ``array-like`` object (e.g., ``[0.1, 0.2, 0.3]``). If
         ``None`` (default), no averaging will take place.
+
+        .. versionchanged:: 1.1
+           Support for ``array-like`` input.
     %(axes_topomap)s
     %(extrapolate_topomap)s
 
