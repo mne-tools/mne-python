@@ -8,7 +8,7 @@ import os.path as op
 
 import pytest
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from mne import create_info
 from mne.datasets.testing import data_path
@@ -16,7 +16,8 @@ from mne.io import read_raw_nirx, RawArray
 from mne.preprocessing.nirs import (optical_density, beer_lambert_law,
                                     _fnirs_check_bads, _fnirs_spread_bads,
                                     _check_channels_ordered,
-                                    _channel_frequencies, _channel_chromophore)
+                                    _channel_frequencies, _channel_chromophore,
+                                    _fnirs_optode_names, _optode_position)
 from mne.io.pick import _picks_to_idx
 
 from mne.datasets import testing
@@ -374,3 +375,26 @@ def test_fnirs_channel_naming_and_order_custom_chroma():
     raw = RawArray(data, info, verbose=True)
     with pytest.raises(ValueError, match='can not be parsed'):
         _check_channels_ordered(raw.info, ["hbo", "hbr"])
+
+
+def test_optode_names():
+    """Ensure optode name extraction is correct."""
+    raw = read_raw_nirx(fname_nirx_15_2_short)
+    src_names, det_names = _fnirs_optode_names(raw.info)
+    assert_array_equal(src_names, [f"S{n}" for n in range(1, 6)])
+    assert_array_equal(det_names, [f"D{n}" for n in range(1, 14)])
+
+    ch_names = ['S1_D11 hbo', 'S1_D11 hbr', 'S2_D17 hbo', 'S2_D17 hbr',
+                'S3_D1 hbo', 'S3_D1 hbr']
+    ch_types = np.tile(["hbo", "hbr"], 3)
+    info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=1.0)
+    src_names, det_names = _fnirs_optode_names(info)
+    assert_array_equal(src_names, [f"S{n}" for n in range(1, 4)])
+    assert_array_equal(det_names, [f"D{n}" for n in ["1", "11", "17"]])
+
+
+def test_optode_loc():
+    """Ensure optode location extraction is correct."""
+    raw = read_raw_nirx(fname_nirx_15_2_short)
+    loc = _optode_position(raw.info, "D3")
+    assert_array_almost_equal(loc, [0.082804, 0.01573, 0.024852])

@@ -175,6 +175,13 @@ class MontageMixin(object):
         # so use loc[:3] instead
         ch_pos = {ch_names[ii]: chs[ii]['loc'][:3] for ii in picks}
 
+        # fNIRS uses multiple channels for the same sensors
+        # so we use a private function to format these for
+        # dig montage
+        fnirs_picks = pick_types(info, fnirs=True, exclude=[])
+        if len(ch_pos) == len(fnirs_picks):
+            ch_pos = _get_fnirs_ch_pos(info)
+
         # create montage
         montage = make_dig_montage(
             ch_pos=ch_pos,
@@ -2903,3 +2910,19 @@ def _ensure_infos_match(info1, info2, name, *, on_mismatch='raise'):
                f"runs to a common head position.")
         _on_missing(on_missing=on_mismatch, msg=msg,
                     name='on_mismatch')
+
+
+def _get_fnirs_ch_pos(info):
+    """Return positions of each fNIRS optode.
+
+    fNIRS uses two types of optodes, sources and detectors.
+    There can be multiple connections between each source
+    and detector at different wavelengths. This function
+    returns the location of each source and detector.
+    """
+    from ..preprocessing.nirs import _fnirs_optode_names, _optode_position
+    srcs, dets = _fnirs_optode_names(info)
+    ch_pos = {}
+    for optode in [*srcs, *dets]:
+        ch_pos[optode] = _optode_position(info, optode)
+    return ch_pos
