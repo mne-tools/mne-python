@@ -333,7 +333,7 @@ def test_plot_topomap_basic(monkeypatch):
     assert_equal(texts[0], 'Custom')
     plt.close('all')
 
-    # Test averaging
+    # Test averaging with a scalar input
     averaging_times = [ev_bad.times[0], times[0], ev_bad.times[-1]]
     p = plt_topomap(averaging_times, ch_type='eeg', average=0.01)
 
@@ -341,6 +341,19 @@ def test_plot_topomap_basic(monkeypatch):
         '-0.200 – -0.195 s',  # clipped on the left
         '0.095 – 0.105 s',    # full range
         '0.494 – 0.499 s'     # clipped on the right
+    )
+    for idx, expected_title in enumerate(expected_ax_titles):
+        assert p.axes[idx].get_title() == expected_title
+
+    # Test averging with an array-like input
+    averaging_durations = [0.01, 0.02, None]
+    p = plt_topomap(
+        averaging_times, ch_type='eeg', average=averaging_durations
+    )
+    expected_ax_titles = (
+        '-0.200 – -0.195 s',  # clipped on the left
+        '0.090 – 0.110 s',    # full range
+        '0.499 s'             # No averaging
     )
     for idx, expected_title in enumerate(expected_ax_titles):
         assert p.axes[idx].get_title() == expected_title
