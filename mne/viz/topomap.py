@@ -1732,6 +1732,13 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         else:
             average = np.array(average)
 
+        if len(average) != n_times:
+            raise ValueError(
+                f'You requested to plot topographic maps for {n_times} time '
+                f'points, but provided {len(average)} periods for '
+                f'averaging. The number of time points and averaging periods '
+                f'must be equal.'
+            )
         data_ = np.zeros((len(picks), len(time_idx)))
 
         for average_idx, (this_average, this_time, this_time_idx) in enumerate(

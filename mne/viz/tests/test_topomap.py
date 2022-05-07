@@ -358,6 +358,13 @@ def test_plot_topomap_basic(monkeypatch):
     for idx, expected_title in enumerate(expected_ax_titles):
         assert p.axes[idx].get_title() == expected_title
 
+    # Test averaging with array-like input, but n_times != n_average
+    averaging_durations = [0.01, 0.02]
+    with pytest.raises(ValueError, match='3 time points.*2 periods'):
+        plt_topomap(
+            averaging_times, ch_type='eeg', average=averaging_durations
+        )
+
     del averaging_times, expected_ax_titles, expected_title
 
     # delaunay triangulation warning
