@@ -1725,12 +1725,12 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         data = data[np.ix_(picks, time_idx)]
     else:
         if _is_numeric(average):
-            average = np.array([average])
-        else:
+            average = np.array([average] * n_times)
+        elif np.array(average).ndim == 0:
             # It should be an array-like object
+            raise TypeError(f'{avg_err}; got type: {type(average)}.')
+        else:
             average = np.array(average)
-            if average.size == 0:
-                raise ValueError(f'{avg_err}; got {average}.')
 
         data_ = np.zeros((len(picks), len(time_idx)))
 
@@ -1741,9 +1741,11 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
                 (_is_numeric(this_average) and this_average <= 0) or
                 (not _is_numeric(this_average) and this_average is not None)
             ):
-                raise ValueError(
-                    f'{avg_err}; got "{this_average}" in {average}'
-                )
+                if len(average) == 1:
+                    msg = f'{avg_err}; got {this_average}'
+                else:
+                    msg = f'{avg_err}; got {this_average} in {average}'
+                raise ValueError(msg)
 
             if this_average is None:
                 data_[:, average_idx] = data[picks][:, this_time_idx]
