@@ -1572,6 +1572,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     %(mask_params_topomap)s
     %(outlines_topomap)s
     %(contours_topomap)s
+    %(image_interp_topomap)s
     average : float | array-like of float, shape (n_times,) | None
         The time window (in seconds) around a given time point to be used for
         averaging. For example, 0.2 would translate into a time window that
