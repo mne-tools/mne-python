@@ -63,7 +63,6 @@ bdf_fname1 = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 bdf_fname2 = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 egi_fname1 = op.join(data_path, 'EGI', 'test_egi.mff')
 cnt_fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
-cnt_fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
 fnirs_dname = op.join(data_path, 'NIRx', 'nirscout',
                       'nirx_15_2_recording_w_short')
 subjects_dir = op.join(data_path, 'subjects')
