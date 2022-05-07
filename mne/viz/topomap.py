@@ -1793,7 +1793,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     for average_idx, (time, this_average) in enumerate(
         zip(times, average)
     ):
-        adjust_for_cbar = colorbar and ncols is not None and average_idx >= ncols - 1
+        adjust_for_cbar = (colorbar and
+                           ncols is not None and
+                           average_idx >= ncols - 1)
         ax_idx = average_idx + 1 if adjust_for_cbar else average_idx
         tp, cn, interp = _plot_topomap(
             data[:, average_idx], pos, axes=axes[ax_idx],
@@ -1806,7 +1808,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
             if this_average is None:
                 axes_title = time_format % (time * scaling_time)
             else:
-                tmin_, tmax_ = averaged_times[average_idx][0], averaged_times[average_idx][-1]
+                tmin_ = averaged_times[average_idx][0]
+                tmax_ = averaged_times[average_idx][-1]
                 from_time = time_format % (tmin_ * scaling_time)
                 from_time = from_time.split(' ')[0]  # Remove unit
                 to_time = time_format % (tmax_ * scaling_time)
