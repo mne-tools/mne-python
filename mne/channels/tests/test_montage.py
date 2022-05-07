@@ -1680,4 +1680,5 @@ def test_fnirs_montage():
     raw.set_montage(mtg)
 
     for ch in range(len(raw.ch_names)):
-        assert_array_equal(info_orig['chs'][ch]['loc'], raw.info['chs'][ch]['loc'])
+        assert_array_equal(info_orig['chs'][ch]['loc'],
+                           raw.info['chs'][ch]['loc'])
