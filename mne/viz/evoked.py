@@ -772,7 +772,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
         .. versionadded:: 0.16
     %(sphere_topomap_auto)s
-    highlight : array-like of float, shape(2,) | array-like of tuples of float, shape (n, 2) | None
+    highlight : array-like of float, shape(2,) | array-like of float, shape (n, 2) | None
         Segments of the data to highlight by means of a light-yellow
         background color. Can be used to put visual emphasis on certain
         time periods. The time periods must be specified as ``array-like``
