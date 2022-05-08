@@ -99,8 +99,17 @@ evks['aud/left'].plot_topomap(ch_type='mag', times=times, colorbar=True)
 
 # %%
 
-fig = evks['aud/left'].plot_topomap(ch_type='mag', times=0.09, average=0.1)
-fig.text(0.5, 0.05, 'average from 40-140 ms', ha='center')
+fig = evks['aud/left'].plot_topomap(ch_type='mag', times=times, average=0.1)
+
+# %%
+# It is also possible to pass different time durations to average over for each
+# time point. Passing a value of ``None`` will disable averaging for that
+# time point:
+
+averaging_durations = [0.01, 0.02, 0.03, None, None]
+fig = evks['aud/left'].plot_topomap(
+    ch_type='mag', times=times, average=averaging_durations
+)
 
 # %%
 # Additional examples of plotting scalp topographies can be found in

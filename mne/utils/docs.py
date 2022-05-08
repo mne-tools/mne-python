@@ -233,15 +233,6 @@ average : bool, default True
     .. versionadded:: 0.13.0
 """
 
-docdict['average_topomap'] = """
-average : float | None
-    The time window (in seconds) around a given time point to be used for
-    averaging. For example, 0.2 would translate into a time window that starts
-    0.1 s before and ends 0.1 s after the given time point. If the time window
-    exceeds the duration of the data, it will be clipped. If ``None``
-    (default), no averaging will take place.
-"""
-
 docdict['axes_psd_topo'] = """
 axes : list of Axes | None
     List of axes to plot consecutive topographies to. If ``None`` the axes
