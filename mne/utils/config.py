@@ -579,7 +579,7 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                      'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
                      'qtpy', 'ipympl', 'pyqtgraph', 'pooch', '', 'mne_bids',
                      'mne_nirs', 'mne_features', 'mne_qt_browser',
-                     'mne_connectivity')
+                     'mne_connectivity', 'mne_icalabel')
     if dependencies == 'developer':
         use_mod_names += (
             '', 'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',
