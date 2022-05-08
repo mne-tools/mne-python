@@ -85,6 +85,18 @@ evks['aud/left'].plot(exclude=[])
 evks['aud/left'].plot(picks='mag', spatial_colors=True, gfp=True)
 
 # %%
+# Interesting time periods can be highlighted via the ``highlight`` parameter.
+
+time_ranges_of_interest = [
+    (0.05, 0.14),
+    (0.22, 0.27)
+]
+evks['aud/left'].plot(
+    picks='mag', spatial_colors=True, gfp=True,
+    highlight=time_ranges_of_interest
+)
+
+# %%
 # Plotting scalp topographies
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #

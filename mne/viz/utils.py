@@ -2233,7 +2233,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
                     ch_types_used=ch_types_used, selectable=True, psd=True,
                     line_alpha=line_alpha, nave=None, time_unit='ms',
-                    sphere=sphere)
+                    sphere=sphere, highlight=None)
 
     for ii, (ax, xlabel) in enumerate(zip(ax_list, xlabels_list)):
         ax.grid(True, linestyle=':')
