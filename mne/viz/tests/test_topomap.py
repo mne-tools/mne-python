@@ -345,7 +345,7 @@ def test_plot_topomap_basic(monkeypatch):
     for idx, expected_title in enumerate(expected_ax_titles):
         assert p.axes[idx].get_title() == expected_title
 
-    # Test averging with an array-like input
+    # Test averaging with an array-like input
     averaging_durations = [0.01, 0.02, None]
     p = plt_topomap(
         averaging_times, ch_type='eeg', average=averaging_durations
