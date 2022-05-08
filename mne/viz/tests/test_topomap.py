@@ -297,9 +297,9 @@ def test_plot_topomap_basic(monkeypatch):
     plt_topomap(times, ch_type='grad', mask=mask, show_names=True,
                 mask_params={'marker': 'x'})
     plt.close('all')
-    with pytest.raises(ValueError, match='number of seconds; got -'):
+    with pytest.raises(ValueError, match='number of seconds.* got -'):
         plt_topomap(times, ch_type='eeg', average=-1e3)
-    with pytest.raises(TypeError, match='number of seconds; got type'):
+    with pytest.raises(TypeError, match='number of seconds.* got type'):
         plt_topomap(times, ch_type='eeg', average='x')
 
     p = plt_topomap(times, ch_type='grad', image_interp='bilinear',
@@ -333,7 +333,7 @@ def test_plot_topomap_basic(monkeypatch):
     assert_equal(texts[0], 'Custom')
     plt.close('all')
 
-    # Test averaging
+    # Test averaging with a scalar input
     averaging_times = [ev_bad.times[0], times[0], ev_bad.times[-1]]
     p = plt_topomap(averaging_times, ch_type='eeg', average=0.01)
 
@@ -344,6 +344,26 @@ def test_plot_topomap_basic(monkeypatch):
     )
     for idx, expected_title in enumerate(expected_ax_titles):
         assert p.axes[idx].get_title() == expected_title
+
+    # Test averaging with an array-like input
+    averaging_durations = [0.01, 0.02, None]
+    p = plt_topomap(
+        averaging_times, ch_type='eeg', average=averaging_durations
+    )
+    expected_ax_titles = (
+        '-0.200 – -0.195 s',  # clipped on the left
+        '0.090 – 0.110 s',    # full range
+        '0.499 s'             # No averaging
+    )
+    for idx, expected_title in enumerate(expected_ax_titles):
+        assert p.axes[idx].get_title() == expected_title
+
+    # Test averaging with array-like input, but n_times != n_average
+    averaging_durations = [0.01, 0.02]
+    with pytest.raises(ValueError, match='3 time points.*2 periods'):
+        plt_topomap(
+            averaging_times, ch_type='eeg', average=averaging_durations
+        )
 
     del averaging_times, expected_ax_titles, expected_title
 
