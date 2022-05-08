@@ -551,6 +551,8 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                         this_ylim, this_highlight[0], this_highlight[1],
                         facecolor='orange', alpha=0.15, zorder=99
                     )
+                # Put back the y limits as fill_betweenx messes them up
+                ax.set_ylim(this_ylim)
 
         lines.append(line_list)
 
