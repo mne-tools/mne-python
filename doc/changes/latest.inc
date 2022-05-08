@@ -23,6 +23,9 @@ Current (1.1.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+
+- Add ``mne-icalabel`` to :func:`mne.sys_info` (:gh:`10615` by `Adam Li`_)
+
 - Add support for ahdr files in :func:`mne.io.read_raw_brainvision` (:gh:`10515` by :newcontrib:`Alessandro Tonin`)
 
 - Add support for reading data from Gowerlabs devices to :func:`mne.io.read_raw_snirf` (:gh:`10555` by :newcontrib:`Samuel Powell` and `Robert Luke`_)
