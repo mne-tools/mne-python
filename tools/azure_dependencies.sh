@@ -20,7 +20,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" https://github.com/pyvista/pyvista-wheels/raw/3b70f3933bc246b035354b172a0459ffc96b0343/vtk-9.1.0.dev0-cp310-cp310-win_amd64.whl
 	python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
 	python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
-	python -m pip install --progress-bar off pymeshfix
+	python -m pip install --progress-bar off imageio-ffmpeg xlrd mffpy pymeshfix python-picard patsy
 	EXTRA_ARGS="--pre"
 else
 	echo "Unknown run type ${TEST_MODE}"
