@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_allclose
 
+import mne
 from mne import (concatenate_raws, read_bem_surfaces, read_surface,
                  read_source_spaces, read_bem_solution)
 from mne.bem import ConductorModel
@@ -148,16 +149,18 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     os.mkdir(surf_path_new)
     subj_dir = op.join(tempdir, 'sample', 'bem')
     os.mkdir(subj_dir)
-    shutil.copy(op.join(surf_path, 'lh.seghead'), surf_path_new)
 
     cmd = ('-s', 'sample', '--subjects-dir', tempdir)
-    monkeypatch.setenv('_MNE_TESTING_SCALP', 'true')
+    monkeypatch.setattr(
+        mne.bem, 'decimate_surface',
+        lambda points, triangles, n_triangles: (points, triangles))
     dense_fname = op.join(subj_dir, 'sample-head-dense.fif')
     medium_fname = op.join(subj_dir, 'sample-head-medium.fif')
     with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
         monkeypatch.delenv('FREESURFER_HOME', None)
         with pytest.raises(RuntimeError, match='The FreeSurfer environ'):
             mne_make_scalp_surfaces.run()
+        shutil.copy(op.join(surf_path, 'lh.seghead'), surf_path_new)
         monkeypatch.setenv('FREESURFER_HOME', tempdir)
         mne_make_scalp_surfaces.run()
         assert op.isfile(dense_fname)

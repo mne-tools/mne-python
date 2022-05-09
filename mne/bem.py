@@ -261,10 +261,13 @@ def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
     surf = complete_surface_info(surf, copy=copy, verbose=False)
     fewer = np.where([len(t) < 3 for t in surf['neighbor_tri']])[0]
     if len(fewer) > 0:
+        fewer = list(fewer)
+        fewer = (fewer[:80] + ['...']) if len(fewer) > 80 else fewer
+        fewer = ', '.join(str(f) for f in fewer)
         msg = ('Surface {} has topological defects: {:.0f} / {:.0f} vertices '
                'have fewer than three neighboring triangles [{}]{}'
                .format(_bem_surf_name[surf['id']], len(fewer), len(surf['rr']),
-                       ', '.join(str(f) for f in fewer), extra))
+                       fewer, extra))
         _on_missing(on_missing=incomplete, msg=msg, name='on_defects')
     return surf
 
@@ -2071,6 +2074,12 @@ def _check_file(fname, overwrite):
         raise IOError(f'File {fname} exists, use --overwrite to overwrite it')
 
 
+_tri_levels = dict(
+    medium=30000,
+    sparse=2500,
+)
+
+
 @verbose
 def make_scalp_surfaces(subject, subjects_dir=None, force=True,
                         overwrite=False, no_decimate=False, *,
@@ -2121,14 +2130,7 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     Then this function can be invoked with ``mri='T1_smoothed_3.mgz`` for
     example to operate on the smoothed MRI.
     """
-    this_env = deepcopy(os.environ)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    this_env['SUBJECTS_DIR'] = subjects_dir
-    this_env['SUBJECT'] = subject
-    this_env['subjdir'] = subjects_dir + '/' + subject
-    if 'FREESURFER_HOME' not in this_env:
-        raise RuntimeError('The FreeSurfer environment needs to be set up '
-                           'for this script')
     incomplete = 'warn' if force else 'raise'
     subj_path = op.join(subjects_dir, subject)
     if not op.exists(subj_path):
@@ -2154,6 +2156,15 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     my_seghead = check_seghead()
     threshold = _ensure_int(threshold, 'threshold')
     if my_seghead is None:
+        this_env = deepcopy(os.environ)
+        this_env['SUBJECTS_DIR'] = subjects_dir
+        this_env['SUBJECT'] = subject
+        this_env['subjdir'] = subjects_dir + '/' + subject
+        if 'FREESURFER_HOME' not in this_env:
+            raise RuntimeError(
+                'The FreeSurfer environment needs to be set up to use '
+                'make_scalp_surfaces to create the outer skin surface '
+                'lh.seghead')
         run_subprocess([
             'mkheadsurf', '-subjid', subject, '-srcvol', mri,
             '-thresh1', str(threshold),
@@ -2179,13 +2190,14 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
         [surf], [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1],
         incomplete=incomplete, extra=msg, fix_topology=fix_topology)[0]
     write_bem_surfaces(dense_fname, surf, overwrite=overwrite)
-    levels = 'medium', 'sparse'
-    tris = [] if no_decimate else [30000, 2500]
     if os.getenv('_MNE_TESTING_SCALP', 'false') == 'true':
         tris = [len(surf['tris'])]  # don't actually decimate
-    for ii, (n_tri, level) in enumerate(zip(tris, levels), 3):
-        logger.info('%i. Creating %s tessellation...' % (ii, level))
-        logger.info('%i.1 Decimating the dense tessellation...' % ii)
+    for ii, (level, n_tri) in enumerate(_tri_levels.items(), 3):
+        if no_decimate:
+            break
+        logger.info(f'{ii}. Creating {level} tessellation...')
+        logger.info(f'{ii}.1 Decimating the dense tessellation '
+                    f'({len(surf["tris"])} -> {n_tri} triangles)...')
         points, tris = decimate_surface(points=surf['rr'],
                                         triangles=surf['tris'],
                                         n_triangles=n_tri)
@@ -2197,3 +2209,4 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
             [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False,
             incomplete=incomplete, extra=msg, fix_topology=fix_topology)
         write_bem_surfaces(dec_fname, dec_surf, overwrite=overwrite)
+    logger.info('[done]')
