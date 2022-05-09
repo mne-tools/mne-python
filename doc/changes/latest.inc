@@ -54,7 +54,7 @@ Enhancements
 
 - Add :func:`mne.preprocessing.compute_bridged_electrodes` to detect EEG electrodes with shared spatial sources due to a conductive medium connecting two or more electrodes, add :ref:`ex-eeg-bridging` for an example and :func:`mne.viz.plot_bridged_electrodes` to help visualize (:gh:`10571` by `Alex Rockhill`_)
 
-- Add ``'voronoi'`` as an option for the ``interpolation`` argument in :func:`mne.viz.plot_topomap` to plot a topomap without interpolation using a Voronoi parcelation (:gh:`10571` by `Alex Rockhill`_)
+- Add ``'nearest'`` as an option for the ``interpolation`` argument in :func:`mne.viz.plot_topomap` to plot a topomap without interpolation using a Voronoi parcelation (:gh:`10571` by `Alex Rockhill`_)
 
 - Add :func:`mne.preprocessing.interpolate_bridged_electrodes` to use the spatially smeared signal to get a better interpolation rather than dropping those channels (:gh:`10587` by `Alex Rockhill`_)
 
@@ -98,4 +98,4 @@ API and behavior changes
 
 - The ordering of channels returned by :func:`mne.io.read_raw_nirx` is now ordered by channel name, rather than the order provided by the manufacturer. This enables consistent ordering of channels across different file types (:gh:`10555` by `Robert Luke`_)
 
-- :func:`mne.viz.plot_topomap`, :func:`mne.viz.plot_evoked_topomap`, :func:`mne.viz.plot_arrowmap`, :func:`mne.viz.plot_ica_components`, :meth:`mne.Covariance.plot_topomap`, :meth:`mne.Evoked.plot_topomap`, :meth:`mne.Evoked.animate_topomap`, :meth:`mne.decoding.CSP.plot_patterns`, :meth:`mne.Projection.plot_topomap` and :meth:`mne.preprocessing.plot_components` now use ``'interpolation'`` instead of ``'image_interp'``. The interpolation previously used a cubic interpolation but now allows ``'linear'`` and ``'nearest'``. There was a subsequent matplotlib plotting interpolation controlled by ``'image_interp'`` that has been removed as a parameter but can be set afterward using ``im.set_interpolation`` (:gh:`10617` by `Alex Rockhill`_)
+- :func:`mne.viz.plot_topomap`, :func:`mne.viz.plot_evoked_topomap`, :func:`mne.viz.plot_arrowmap`, :func:`mne.viz.plot_ica_components`, :meth:`mne.Covariance.plot_topomap`, :meth:`mne.Evoked.plot_topomap`, :meth:`mne.Evoked.animate_topomap`, :meth:`mne.decoding.CSP.plot_patterns`, :meth:`mne.Projection.plot_topomap` and :meth:`mne.preprocessing.ICA.plot_components` now use ``'interpolation'`` instead of ``'image_interp'``. The interpolation previously used a cubic interpolation but now allows ``'linear'`` and ``'nearest'``. There was a subsequent matplotlib plotting interpolation controlled by ``'image_interp'`` that has been removed as a parameter but can be set afterward using ``im.set_interpolation`` (:gh:`10617` by `Alex Rockhill`_)
