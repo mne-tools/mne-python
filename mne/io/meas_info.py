@@ -175,12 +175,16 @@ class MontageMixin(object):
         # so use loc[:3] instead
         ch_pos = {ch_names[ii]: chs[ii]['loc'][:3] for ii in picks}
 
-        # fNIRS uses multiple channels for the same sensors
-        # so we use a private function to format these for
-        # dig montage
+        # fNIRS uses multiple channels for the same sensors, we use
+        # a private function to format these for dig montage.
         fnirs_picks = pick_types(info, fnirs=True, exclude=[])
         if len(ch_pos) == len(fnirs_picks):
             ch_pos = _get_fnirs_ch_pos(info)
+        elif len(fnirs_picks) > 0:
+            raise ValueError("MNE does not support getting the montage "
+                             "for a mix of fNIRS and other data types. "
+                             "Please raise a GitHub issue if you "
+                             "require this feature.")
 
         # create montage
         montage = make_dig_montage(
