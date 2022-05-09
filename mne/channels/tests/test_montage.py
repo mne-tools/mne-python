@@ -1673,6 +1673,12 @@ def test_fnirs_montage():
     raw = read_raw_nirx(fnirs_dname)
     info_orig = raw.copy().info
     mtg = raw.get_montage()
+
+    num_sources = np.sum(["S" in optode for optode in mtg.ch_names])
+    num_detectors = np.sum(["D" in optode for optode in mtg.ch_names])
+    assert num_sources == 5
+    assert num_detectors == 13
+
     # Make a change to the montage before setting
     raw.info['chs'][2]['loc'][:3] = [1., 2, 3]
     # Set montage back to original
