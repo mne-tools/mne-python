@@ -21,6 +21,11 @@ be warped to a template space such as ``fsaverage`` for group comparisons.
 Please note that this tutorial requires ``nibabel``, ``nilearn`` and ``dipy``
 which can be installed using ``pip`` as well as 3D plotting
 (see :ref:`manual-install`).
+
+Support for intracranial electrophysiology analysis in MNE was added after
+the original publication, so please cite :footcite:`RockhillEtAl2022` if you
+use this module in your analysis to support the addition of new projects to
+MNE.
 """
 
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
