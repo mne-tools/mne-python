@@ -75,7 +75,7 @@ def test_plot_ica_components():
                             verbose='debug', ch_type='grad')
     log = log.getvalue()
     assert 'grad data' in log
-    assert 'Interpolation mode local to mean' in log
+    assert 'extrapolation mode local to mean' in log
     fig = plt.gcf()
 
     # test title click
