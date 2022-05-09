@@ -158,6 +158,9 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
                           colorbar=False, mask_params=dict(markersize=10))
     image = ax_topo.images[0]
 
+    # remove the title that would otherwise say "0.000 s"
+    ax_topo.set_title("")
+
     # create additional axes (for ERF and colorbar)
     divider = make_axes_locatable(ax_topo)
 

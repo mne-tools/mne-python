@@ -580,7 +580,6 @@ html_theme_options = {
     'google_analytics_id': 'UA-37225609-1',
     'switcher': {
         'json_url': 'https://mne.tools/dev/_static/versions.json',
-        'url_template': 'https://mne.tools/{version}/',
         'version_match': switcher_version_match,
     }
 }

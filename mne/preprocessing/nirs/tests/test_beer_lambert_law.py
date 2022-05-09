@@ -88,12 +88,21 @@ def test_beer_lambert_v_matlab():
                            'nirx_15_0_recording_bl.mat')
     matlab_data = read_mat(matlab_fname)
 
+    matlab_names = ["_"] * len(raw.ch_names)
+    for idx in range(len(raw.ch_names)):
+        matlab_names[idx] = ("S" + str(int(matlab_data['sources'][idx])) +
+                             "_D" + str(int(matlab_data['detectors'][idx])) +
+                             " " + matlab_data['type'][idx])
+    matlab_to_mne = np.argsort(matlab_names)
+
     for idx in range(raw.get_data().shape[0]):
 
-        mean_error = np.mean(matlab_data['data'][:, idx] -
+        matlab_idx = matlab_to_mne[idx]
+
+        mean_error = np.mean(matlab_data['data'][:, matlab_idx] -
                              raw._data[idx])
         assert mean_error < 0.1
-        matlab_name = ("S" + str(int(matlab_data['sources'][idx])) +
-                       "_D" + str(int(matlab_data['detectors'][idx])) +
-                       " " + matlab_data['type'][idx])
+        matlab_name = ("S" + str(int(matlab_data['sources'][matlab_idx])) +
+                       "_D" + str(int(matlab_data['detectors'][matlab_idx])) +
+                       " " + matlab_data['type'][matlab_idx])
         assert raw.info['ch_names'][idx] == matlab_name

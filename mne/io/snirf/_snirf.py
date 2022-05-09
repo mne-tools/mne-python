@@ -96,6 +96,10 @@ class RawSNIRF(BaseRaw):
                      "MNE does not support this feature. "
                      "Only the first dataset will be processed.")
 
+            manafacturer = _get_metadata_str(dat, "ManufacturerName")
+            if (optode_frame == "unknown") & (manafacturer == "Gowerlabs"):
+                optode_frame = "head"
+
             snirf_data_type = np.array(dat.get('nirs/data1/measurementList1'
                                                '/dataType')).item()
             if snirf_data_type not in [1, 99999]:
@@ -109,20 +113,8 @@ class RawSNIRF(BaseRaw):
 
             last_samps = dat.get('/nirs/data1/dataTimeSeries').shape[0] - 1
 
-            samplingrate_raw = np.array(dat.get('nirs/data1/time'))
-            sampling_rate = 0
-            if samplingrate_raw.shape == (2, 1):
-                # specified as onset/samplerate
-                warn("Onset/sample rate SNIRF not yet supported.")
-            else:
-                # specified as time points
-                fs_diff = np.around(np.diff(samplingrate_raw), decimals=4)
-                if len(np.unique(fs_diff)) == 1:
-                    # Uniformly sampled data
-                    sampling_rate = 1. / np.unique(fs_diff)
-                else:
-                    # print(np.unique(fs_diff))
-                    warn("Non uniform sampled data not supported.")
+            sampling_rate = _extract_sampling_rate(dat)
+
             if sampling_rate == 0:
                 warn("Unable to extract sample rate from SNIRF file.")
 
@@ -280,16 +272,11 @@ class RawSNIRF(BaseRaw):
             # Update info
             info.update(subject_info=subject_info)
 
-            LengthUnit = np.array(dat.get('/nirs/metaDataTags/LengthUnit'))
-            LengthUnit = _correct_shape(LengthUnit)[0].decode('UTF-8')
-            scal = 1
-            if "cm" in LengthUnit:
-                scal = 100
-            elif "mm" in LengthUnit:
-                scal = 1000
+            length_unit = _get_metadata_str(dat, "LengthUnit")
+            length_scaling = _get_lengthunit_scaling(length_unit)
 
-            srcPos3D /= scal
-            detPos3D /= scal
+            srcPos3D /= length_scaling
+            detPos3D /= length_scaling
 
             if optode_frame in ["mri", "meg"]:
                 # These are all in MNI or MEG coordinates, so let's transform
@@ -331,15 +318,17 @@ class RawSNIRF(BaseRaw):
 
             if 'landmarkPos3D' in dat.get('nirs/probe/'):
                 diglocs = np.array(dat.get('/nirs/probe/landmarkPos3D'))
+                diglocs /= length_scaling
                 digname = np.array(dat.get('/nirs/probe/landmarkLabels'))
                 nasion, lpa, rpa, hpi = None, None, None, None
                 extra_ps = dict()
                 for idx, dign in enumerate(digname):
-                    if dign == b'LPA':
+                    dign = dign.lower()
+                    if dign in [b'lpa', b'al']:
                         lpa = diglocs[idx, :3]
-                    elif dign == b'NASION':
+                    elif dign in [b'nasion']:
                         nasion = diglocs[idx, :3]
-                    elif dign == b'RPA':
+                    elif dign in [b'rpa', b'ar']:
                         rpa = diglocs[idx, :3]
                     else:
                         extra_ps[f'EEG{len(extra_ps) + 1:03d}'] = \
@@ -420,14 +409,10 @@ class RawSNIRF(BaseRaw):
                         annot.append(data[:, 0], 1.0, desc.decode('UTF-8'))
             self.set_annotations(annot, emit_warning=False)
 
-            # Reorder channels to match expected ordering in MNE if required'
+            # MNE requires channels are paired as alternating wavelengths
             if len(_validate_nirs_info(self.info, throw_errors=False)) == 0:
-                num_chans = len(self.ch_names)
-                chans = []
-                for idx in range(num_chans // 2):
-                    chans.append(idx)
-                    chans.append(idx + num_chans // 2)
-                self.pick(picks=chans)
+                sort_idx = np.argsort(self.ch_names)
+                self.pick(picks=sort_idx)
 
         # Validate that the fNIRS info is correctly formatted
         _validate_nirs_info(self.info)
@@ -447,3 +432,58 @@ def _correct_shape(arr):
     if arr.shape == ():
         arr = arr[np.newaxis]
     return arr
+
+
+def _get_timeunit_scaling(time_unit):
+    """MNE expects time in seconds, return required scaling."""
+    scalings = {'ms': 1000, 's': 1, 'unknown': 1}
+    if time_unit in scalings:
+        return scalings[time_unit]
+    else:
+        raise RuntimeError(f'The time unit {time_unit} is not supported by '
+                           'MNE. Please report this error as a GitHub '
+                           'issue to inform the developers.')
+
+
+def _get_lengthunit_scaling(length_unit):
+    """MNE expects distance in m, return required scaling."""
+    scalings = {'m': 1, 'cm': 100, 'mm': 1000}
+    if length_unit in scalings:
+        return scalings[length_unit]
+    else:
+        raise RuntimeError(f'The length unit {length_unit} is not supported '
+                           'by MNE. Please report this error as a GitHub '
+                           'issue to inform the developers.')
+
+
+def _extract_sampling_rate(dat):
+    """Extract the sample rate from the time field."""
+    time_data = np.array(dat.get('nirs/data1/time'))
+    sampling_rate = 0
+    if len(time_data) == 2:
+        # specified as onset, samplerate
+        sampling_rate = 1. / (time_data[1] - time_data[0])
+    else:
+        # specified as time points
+        fs_diff = np.around(np.diff(time_data), decimals=4)
+        if len(np.unique(fs_diff)) == 1:
+            # Uniformly sampled data
+            sampling_rate = 1. / np.unique(fs_diff)
+        else:
+            warn("MNE does not currently support reading "
+                 "SNIRF files with non-uniform sampled data.")
+
+    time_unit = _get_metadata_str(dat, "TimeUnit")
+    time_unit_scaling = _get_timeunit_scaling(time_unit)
+    sampling_rate *= time_unit_scaling
+
+    return sampling_rate
+
+
+def _get_metadata_str(dat, field):
+    if field not in np.array(dat.get('nirs/metaDataTags')):
+        return None
+    data = dat.get(f'/nirs/metaDataTags/{field}')
+    data = _correct_shape(np.array(data))
+    data = str(data[0], 'utf-8')
+    return data

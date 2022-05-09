@@ -169,6 +169,20 @@ def test_plot_evoked():
         evoked.plot(verbose=True, time_unit='s')
     assert 'Need more than one' in log_file.getvalue()
 
+    # Test highlight
+    for highlight in [
+        (0, 0.1),
+        [(0, 0.1), (0.1, 0.2)]
+    ]:
+        fig = evoked.plot(time_unit='s', highlight=highlight)
+        for ax in fig.get_axes():
+            highlighted_areas = [child for child in ax.get_children()
+                                 if isinstance(child, PolyCollection)]
+            assert len(highlighted_areas) == len(np.atleast_2d(highlight))
+
+    with pytest.raises(ValueError, match='must be reshapable into a 2D array'):
+        fig = evoked.plot(time_unit='s', highlight=0.1)
+
 
 def test_constrained_layout():
     """Test that we handle constrained layouts correctly."""
