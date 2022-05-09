@@ -32,6 +32,8 @@ else
 	pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
 	echo "pyvistaqt"
 	pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
+	echo "pymeshfix"
+	pip install --progress-bar off pymeshfix
 	echo "imageio-ffmpeg, xlrd, mffpy"
 	pip install --progress-bar off --pre imageio-ffmpeg xlrd mffpy
 	if [ "$OSTYPE" == "darwin"* ]; then
