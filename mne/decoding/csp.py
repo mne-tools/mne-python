@@ -14,6 +14,7 @@ import numpy as np
 from .base import BaseEstimator
 from .mixin import TransformerMixin
 from ..cov import _regularized_covariance
+from ..defaults import _INTERPOLATION_DEFAULT
 from ..fixes import pinv
 from ..utils import fill_doc, _check_option, _validate_type, copy_doc
 
@@ -242,8 +243,8 @@ class CSP(TransformerMixin, BaseEstimator):
                       size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
                       show=True, show_names=False, title=None, mask=None,
                       mask_params=None, outlines='head', contours=6,
-                      image_interp='bilinear', average=None,
-                      sphere=None):
+                      interpolation=_INTERPOLATION_DEFAULT,
+                      image_interp=None, average=None, sphere=None):
         """Plot topographic patterns of components.
 
         The patterns explain how the measured data was generated from the
@@ -321,9 +322,8 @@ class CSP(TransformerMixin, BaseEstimator):
             suitable values for the contour thresholds (may sometimes be
             inaccurate, use array for accuracy). If an array, the values
             represent the levels for the contours. Defaults to 6.
-        image_interp : str
-            The image interpolation to be used.
-            All matplotlib options are accepted.
+        %(interpolation_topomap)s
+        %(image_interp_topomap)s
         average : float | None
             The time window around a given time to be used for averaging
             (seconds). For example, 0.01 would translate into window that
@@ -354,8 +354,9 @@ class CSP(TransformerMixin, BaseEstimator):
             scalings=scalings, units=units, time_unit='s',
             time_format=name_format, size=size, show_names=show_names,
             title=title, mask_params=mask_params, mask=mask, outlines=outlines,
-            contours=contours, image_interp=image_interp, show=show,
-            average=average, sphere=sphere)
+            contours=contours, interpolation=interpolation,
+            image_interp=image_interp, show=show, average=average,
+            sphere=sphere)
 
     @fill_doc
     def plot_filters(self, info, components=None, ch_type=None,
@@ -364,7 +365,8 @@ class CSP(TransformerMixin, BaseEstimator):
                      size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None):
+                     interpolation=_INTERPOLATION_DEFAULT, image_interp=None,
+                     average=None):
         """Plot topographic filters of components.
 
         The filters are used to extract discriminant neural sources from
@@ -449,9 +451,8 @@ class CSP(TransformerMixin, BaseEstimator):
             suitable values for the contour thresholds (may sometimes be
             inaccurate, use array for accuracy). If an array, the values
             represent the levels for the contours. Defaults to 6.
-        image_interp : str
-            The image interpolation to be used.
-            All matplotlib options are accepted.
+        %(interpolation_topomap)s
+        %(image_interp_topomap)s
         average : float | None
             The time window around a given time to be used for averaging
             (seconds). For example, 0.01 would translate into window that
@@ -481,7 +482,8 @@ class CSP(TransformerMixin, BaseEstimator):
             time_unit='s', time_format=name_format, size=size,
             show_names=show_names, title=title, mask_params=mask_params,
             mask=mask, outlines=outlines, contours=contours,
-            image_interp=image_interp, show=show, average=average)
+            interpolation=interpolation, image_interp=image_interp,
+            show=show, average=average)
 
     def _compute_covariance_matrices(self, X, y):
         _, n_channels, _ = X.shape

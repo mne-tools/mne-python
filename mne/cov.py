@@ -10,7 +10,8 @@ from math import log
 
 import numpy as np
 
-from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT, DEFAULTS
+from .defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                       _BORDER_DEFAULT, DEFAULTS)
 from .io.write import start_and_end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _check_projs, _needs_eeg_average_ref_proj,
@@ -257,8 +258,9 @@ class Covariance(dict):
                      size=1, cbar_fmt="%3.1f",
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
-                     contours=6, image_interp='bilinear',
-                     axes=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
+                     contours=6, interpolation=_INTERPOLATION_DEFAULT,
+                     image_interp=None, axes=None,
+                     extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
                      border=_BORDER_DEFAULT,
                      noise_cov=None, verbose=None):
         """Plot a topomap of the covariance diagonal.
@@ -284,6 +286,7 @@ class Covariance(dict):
         %(mask_params_topomap)s
         %(outlines_topomap)s
         %(contours_topomap)s
+        %(interpolation_topomap)s
         %(image_interp_topomap)s
         %(axes_topomap)s
         %(extrapolate_topomap)s
@@ -324,7 +327,8 @@ class Covariance(dict):
             units=units, res=res, size=size, cbar_fmt=cbar_fmt,
             proj=proj, show=show, show_names=show_names, title=title,
             mask=mask, mask_params=mask_params, outlines=outlines,
-            contours=contours, image_interp=image_interp, axes=axes,
+            contours=contours, interpolation=interpolation,
+            image_interp=image_interp, axes=axes,
             extrapolate=extrapolate, sphere=sphere, border=border,
             time_format='')
 

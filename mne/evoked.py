@@ -15,7 +15,8 @@ from .baseline import rescale, _log_rescale, _check_baseline
 from .channels.channels import (UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
-from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
+from .defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                       _BORDER_DEFAULT)
 from .filter import detrend, FilterMixin, _check_fun
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
@@ -484,8 +485,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                      time_unit='s', time_format=None,
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
-                     contours=6, image_interp='bilinear', average=None,
-                     axes=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
+                     contours=6, interpolation=_INTERPOLATION_DEFAULT,
+                     image_interp=None, average=None, axes=None,
+                     extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
                      border=_BORDER_DEFAULT, nrows=1, ncols='auto'):
         return plot_evoked_topomap(
             self, times=times, ch_type=ch_type, vmin=vmin,
@@ -495,9 +497,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             time_format=time_format, proj=proj, show=show,
             show_names=show_names, title=title, mask=mask,
             mask_params=mask_params, outlines=outlines, contours=contours,
-            image_interp=image_interp, average=average,
-            axes=axes, extrapolate=extrapolate, sphere=sphere, border=border,
-            nrows=nrows, ncols=ncols)
+            interpolation=interpolation, image_interp=image_interp,
+            average=average, axes=axes, extrapolate=extrapolate,
+            sphere=sphere, border=border, nrows=nrows, ncols=ncols)
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
@@ -526,7 +528,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @fill_doc
     def animate_topomap(self, ch_type=None, times=None, frame_rate=None,
                         butterfly=False, blit=True, show=True, time_unit='s',
-                        sphere=None, *, extrapolate=_EXTRAPOLATE_DEFAULT,
+                        sphere=None, *, interpolation=_INTERPOLATION_DEFAULT,
+                        image_interp=None, extrapolate=_EXTRAPOLATE_DEFAULT,
                         verbose=None):
         """Make animation of evoked data as topomap timeseries.
 
@@ -564,6 +567,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. versionadded:: 0.16
         %(sphere_topomap_auto)s
+        %(interpolation_topomap)s
+        %(image_interp_topomap)s
         %(extrapolate_topomap)s
 
             .. versionadded:: 0.22
@@ -580,10 +585,17 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -----
         .. versionadded:: 0.12.0
         """
+        if image_interp is not None:
+            # use default cubic if default bilinear is passed
+            interpolation = \
+                'cubic' if image_interp == 'bilinear' else image_interp
+            warn('`image_interp` has been deprecated and has been replaced '
+                 'with `interpolation` as of version 1.1', DeprecationWarning)
         return _topomap_animation(
             self, ch_type=ch_type, times=times, frame_rate=frame_rate,
             butterfly=butterfly, blit=blit, show=show, time_unit=time_unit,
-            sphere=sphere, extrapolate=extrapolate, verbose=verbose)
+            sphere=sphere, interpolation=interpolation,
+            extrapolate=extrapolate, verbose=verbose)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields.
