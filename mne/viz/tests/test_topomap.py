@@ -153,10 +153,6 @@ def test_plot_topomap_animation(capsys):
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
 
-    # test deprecation
-    with pytest.raises(DeprecationWarning, match='`image_interp`'):
-        evoked.animate_topomap(image_interp='bilinear')
-
     # Test animation
     _, anim = evoked.animate_topomap(ch_type='grad', times=[0, 0.1],
                                      butterfly=False, time_unit='s',
@@ -193,8 +189,6 @@ def test_plot_topomap_basic(monkeypatch):
     pytest.raises(ValueError, plt_topomap, ch_type='mag')
     pytest.raises(ValueError, plt_topomap, times=[-100])  # bad time
     pytest.raises(ValueError, plt_topomap, times=[[0]])  # bad time
-    with pytest.raises(DeprecationWarning, match='`image_interp`'):
-        evoked.plot_topomap([0.1], image_interp='bilinear')
 
     evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
                         contours=[-100, 0, 100], time_unit='ms')
@@ -309,7 +303,7 @@ def test_plot_topomap_basic(monkeypatch):
     with pytest.raises(TypeError, match='number of seconds.* got type'):
         plt_topomap(times, ch_type='eeg', average='x')
 
-    p = plt_topomap(times, ch_type='grad', interpolation='cubic',
+    p = plt_topomap(times, ch_type='grad', image_interp='cubic',
                     show_names=lambda x: x.replace('MEG', ''))
     subplot = [x for x in p.get_children() if 'Subplot' in str(type(x))]
     assert len(subplot) >= 1, [type(x) for x in p.get_children()]

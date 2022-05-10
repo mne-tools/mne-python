@@ -485,8 +485,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                      time_unit='s', time_format=None,
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
-                     contours=6, interpolation=_INTERPOLATION_DEFAULT,
-                     image_interp=None, average=None, axes=None,
+                     contours=6, image_interp=_INTERPOLATION_DEFAULT,
+                     average=None, axes=None,
                      extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
                      border=_BORDER_DEFAULT, nrows=1, ncols='auto'):
         return plot_evoked_topomap(
@@ -497,9 +497,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             time_format=time_format, proj=proj, show=show,
             show_names=show_names, title=title, mask=mask,
             mask_params=mask_params, outlines=outlines, contours=contours,
-            interpolation=interpolation, image_interp=image_interp,
-            average=average, axes=axes, extrapolate=extrapolate,
-            sphere=sphere, border=border, nrows=nrows, ncols=ncols)
+            image_interp=image_interp, average=average, axes=axes,
+            extrapolate=extrapolate, sphere=sphere, border=border,
+            nrows=nrows, ncols=ncols)
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
@@ -528,9 +528,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @fill_doc
     def animate_topomap(self, ch_type=None, times=None, frame_rate=None,
                         butterfly=False, blit=True, show=True, time_unit='s',
-                        sphere=None, *, interpolation=_INTERPOLATION_DEFAULT,
-                        image_interp=None, extrapolate=_EXTRAPOLATE_DEFAULT,
-                        verbose=None):
+                        sphere=None, *, image_interp=_INTERPOLATION_DEFAULT,
+                        extrapolate=_EXTRAPOLATE_DEFAULT, verbose=None):
         """Make animation of evoked data as topomap timeseries.
 
         The animation can be paused/resumed with left mouse button.
@@ -567,7 +566,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. versionadded:: 0.16
         %(sphere_topomap_auto)s
-        %(interpolation_topomap)s
         %(image_interp_topomap)s
         %(extrapolate_topomap)s
 
@@ -585,16 +583,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -----
         .. versionadded:: 0.12.0
         """
-        if image_interp is not None:
-            # use default cubic if default bilinear is passed
-            interpolation = \
-                'cubic' if image_interp == 'bilinear' else image_interp
-            warn('`image_interp` has been deprecated and has been replaced '
-                 'with `interpolation` as of version 1.1', DeprecationWarning)
         return _topomap_animation(
             self, ch_type=ch_type, times=times, frame_rate=frame_rate,
             butterfly=butterfly, blit=blit, show=show, time_unit=time_unit,
-            sphere=sphere, interpolation=interpolation,
+            sphere=sphere, image_interp=image_interp,
             extrapolate=extrapolate, verbose=verbose)
 
     def as_type(self, ch_type='grad', mode='fast'):

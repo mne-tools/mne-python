@@ -1419,7 +1419,10 @@ image_format : 'png' | 'svg' | 'gif' | None
 
 docdict['image_interp_topomap'] = """
 image_interp : str
-    Deprecated, please use the ``'interpolation'`` parameter instead.
+    The image interpolation to be used. Options are ``'cubic'`` (default)
+    to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+    ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+    ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
 """
 
 docdict['include_tmax'] = """
@@ -1510,14 +1513,6 @@ interpolation : str | None
     Interpolation method (:class:`scipy.interpolate.interp1d` parameter).
     Must be one of 'linear', 'nearest', 'zero', 'slinear', 'quadratic',
     or 'cubic'.
-"""
-
-docdict['interpolation_topomap'] = """
-interpolation : str
-    The image interpolation to be used. Options are ``'cubic'`` (default)
-    to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
-    ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
-    ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
 """
 
 docdict['inversion_bf'] = """
@@ -2362,7 +2357,7 @@ contours : int | array of float
     values for the contour thresholds (may sometimes be inaccurate, use
     array for accuracy). If an array, the values represent the levels for
     the contours. Defaults to 6.
-""" + docdict['interpolation_topomap'] + docdict['image_interp_topomap'] + """
+""" + docdict['image_interp_topomap'] + """
 axes : instance of Axes | list | None
     The axes to plot to. If list, the list must be a list of Axes of
     the same length as the number of projectors. If instance of Axes,

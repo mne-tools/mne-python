@@ -65,13 +65,13 @@ def test_plot_ica_components():
         ica.fit(raw, picks=ica_picks)
 
     for components in [0, [0], [0, 1], [0, 1] * 2, None]:
-        ica.plot_components(components, interpolation='cubic',
+        ica.plot_components(components, image_interp='cubic',
                             colorbar=True, **fast_test)
     plt.close('all')
 
     # test interactive mode (passing 'inst' arg)
     with catch_logging() as log:
-        ica.plot_components([0, 1], interpolation='cubic', inst=raw, res=16,
+        ica.plot_components([0, 1], image_interp='cubic', inst=raw, res=16,
                             verbose='debug', ch_type='grad')
     log = log.getvalue()
     assert 'grad data' in log

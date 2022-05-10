@@ -74,7 +74,7 @@ class Projection(dict):
     def plot_topomap(self, info, cmap=None, sensors=True,
                      colorbar=False, res=64, size=1, show=True,
                      outlines='head', contours=6,
-                     interpolation=_INTERPOLATION_DEFAULT, image_interp=None,
+                     image_interp=_INTERPOLATION_DEFAULT,
                      axes=None, vlim=(None, None), sphere=None,
                      border=_BORDER_DEFAULT):
         """Plot topographic maps of SSP projections.
@@ -99,8 +99,8 @@ class Projection(dict):
         return plot_projs_topomap(
             self, info, cmap, sensors, colorbar=colorbar, res=res, size=size,
             show=show, outlines=outlines, contours=contours,
-            interpolation=interpolation, image_interp=image_interp,
-            axes=axes, vlim=vlim, sphere=sphere, border=border)
+            image_interp=image_interp, axes=axes, vlim=vlim,
+            sphere=sphere, border=border)
 
 
 class ProjMixin(object):
@@ -291,9 +291,9 @@ class ProjMixin(object):
     def plot_projs_topomap(self, ch_type=None, cmap=None,
                            sensors=True, colorbar=False, res=64, size=1,
                            show=True, outlines='head', contours=6,
-                           interpolation=_INTERPOLATION_DEFAULT,
-                           image_interp=None, axes=None, vlim=(None, None),
-                           sphere=None, extrapolate=_EXTRAPOLATE_DEFAULT,
+                           image_interp=_INTERPOLATION_DEFAULT, axes=None,
+                           vlim=(None, None), sphere=None,
+                           extrapolate=_EXTRAPOLATE_DEFAULT,
                            border=_BORDER_DEFAULT):
         """Plot SSP vector.
 
@@ -306,7 +306,6 @@ class ProjMixin(object):
             ch_types is provided, it will return multiple figures.
         %(proj_topomap_kwargs)s
         %(sphere_topomap_auto)s
-        %(interpolation_topomap)s
         %(image_interp_topomap)s
         %(extrapolate_topomap)s
 
@@ -324,7 +323,6 @@ class ProjMixin(object):
                                      sensors=sensors, colorbar=colorbar,
                                      res=res, size=size, show=show,
                                      outlines=outlines, contours=contours,
-                                     interpolation=interpolation,
                                      image_interp=image_interp, axes=axes,
                                      vlim=vlim, sphere=sphere,
                                      extrapolate=extrapolate, border=border)
