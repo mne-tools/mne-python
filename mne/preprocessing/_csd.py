@@ -176,6 +176,18 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     for pick in picks:
         inst.info['chs'][pick].update(coil_type=FIFF.FIFFV_COIL_EEG_CSD,
                                       unit=FIFF.FIFF_UNIT_V_M2)
+
+    # Remove rejection thresholds for EEG
+    if inst.reject is not None and 'eeg' in inst.reject:
+        del inst.reject['eeg']
+        if not inst.reject:  # Set it to None if nothing's left
+            inst.reject = None
+
+    if inst.flat is not None and 'eeg' in inst.flat:
+        del inst.flat['eeg']
+        if not inst.flat:  # Set it to None if nothing's left
+            inst.flat = None
+
     return inst
 
 
