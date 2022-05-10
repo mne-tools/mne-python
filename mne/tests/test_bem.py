@@ -424,8 +424,8 @@ def test_io_head_bem(tmp_path):
 
 
 @pytest.mark.slowtest  # ~4 sec locally
-def test_make_scalp_surfaces_fix_topology(tmp_path, monkeypatch):
-    """Test fix_topology=True for make_scalp_surfaces."""
+def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
+    """Test topology checks for make_scalp_surfaces."""
     pytest.importorskip('pyvista')
     subjects_dir = tmp_path
     subject = 'test'
@@ -457,15 +457,16 @@ def test_make_scalp_surfaces_fix_topology(tmp_path, monkeypatch):
     sparse_path = (bem_dir / f'{subject}-head-sparse.fif')
     assert not sparse_path.is_file()
 
-    # These are fixable
-    pytest.importorskip('pymeshfix')
-    monkeypatch.setattr(mne.bem, '_tri_levels', dict(sparse=250))
-    make_scalp_surfaces(
-        subject, subjects_dir, fix_topology=True, overwrite=True)
-    surf, = read_bem_surfaces(sparse_path)
-    assert len(surf['tris']) < 320  # lots of issues, fewer tris
+    # These are ignorable
+    monkeypatch.setattr(mne.bem, '_tri_levels', dict(sparse=315))
+    with pytest.warns(RuntimeWarning, match='.*have fewer than three.*'):
+        make_scalp_surfaces(
+            subject, subjects_dir, force=True, overwrite=True)
+    surf, = read_bem_surfaces(sparse_path, on_defects='ignore')
+    assert len(surf['tris']) == 315
     monkeypatch.setattr(mne.bem, '_tri_levels', dict(sparse=319))
-    make_scalp_surfaces(
-        subject, subjects_dir, fix_topology=True, overwrite=True)
-    surf, = read_bem_surfaces(sparse_path)
-    assert len(surf['tris']) == 320  # one missing tri comes back
+    with pytest.warns(RuntimeWarning, match='.*is not complete.*'):
+        make_scalp_surfaces(
+            subject, subjects_dir, force=True, overwrite=True)
+    surf, = read_bem_surfaces(sparse_path, on_defects='ignore')
+    assert len(surf['tris']) == 319

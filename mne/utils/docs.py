@@ -1164,16 +1164,6 @@ fir_window : str
     .. versionadded:: 0.15
 """
 
-# In principle we could use intersphinx for this link, but 1) it's just as
-# likely to break, and 2) no reason to add extra load-URL bandwidth/time use
-# for the doc builds for a single URL.
-docdict['fix_topology'] = """
-fix_topology : bool
-    If True (default False), attempt to fix mesh topology using
-    `pymeshfix <https://pymeshfix.pyvista.org/>`__ to produce a watertight
-    mesh.
-"""
-
 _flat_common = """\
     Reject epochs based on **minimum** peak-to-peak signal amplitude (PTP).
     Valid **keys** can be any channel type present in the object. The

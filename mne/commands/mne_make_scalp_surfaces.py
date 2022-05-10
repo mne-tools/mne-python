@@ -34,15 +34,11 @@ def run():
                       help='Overwrite previously computed surface')
     parser.add_option('-s', '--subject', dest='subject',
                       help='The name of the subject', type='str')
-    parser.add_option('-x', '--fix-topology', dest='fix_topology',
-                      help='Use pymeshfix to process the generated mesh '
-                      'topology.', action='store_true')
     parser.add_option('-m', '--mri', dest='mri', type='str', default='T1.mgz',
                       help='The MRI file to process using mkheadsurf.')
     parser.add_option('-f', '--force', dest='force', action='store_true',
                       help='Force creation of the surface even if it has '
-                           'some topological defects. '
-                           'Consider using --fix-topology instead.')
+                           'some topological defects.')
     parser.add_option('-t', '--threshold', dest='threshold', type='int',
                       default=20, help='Threshold value to use with the MRI.')
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
@@ -64,7 +60,6 @@ def run():
         force=options.force,
         overwrite=options.overwrite,
         no_decimate=options.no_decimate,
-        fix_topology=options.fix_topology,
         threshold=options.threshold,
         mri=options.mri,
         verbose=options.verbose)

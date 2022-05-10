@@ -115,7 +115,6 @@ For full functionality, some functions require:
 - h5py
 - h5io
 - pymatreader
-- pymeshfix
 
 Contributing to MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

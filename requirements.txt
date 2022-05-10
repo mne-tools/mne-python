@@ -39,4 +39,3 @@ ipyvtklink
 mne-qt-browser
 darkdetect
 qdarkstyle
-pymeshfix

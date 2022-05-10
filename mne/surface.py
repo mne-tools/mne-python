@@ -1275,28 +1275,6 @@ def _decimate_surface_vtk(points, triangles, n_triangles):
     return out['rr'], out['tris']
 
 
-def _fix_topology(rr, tris):
-    try:
-        from pymeshfix import clean_from_arrays
-    except ImportError as exc:
-        raise RuntimeError(
-            'Fixing mesh topology requires pymeshfix, but got: '
-            f'{exc}') from None
-    n_r, n_t = rr.shape[0], tris.shape[0]
-    rr, tris = clean_from_arrays(rr, tris, verbose=False)
-    n_r_out, n_t_out = rr.shape[0], tris.shape[0]
-    logger.info('    Cleaning mesh using pymeshfix...')
-    if n_r_out != n_r:
-        logger.info(
-            '    Vertex count change:   '
-            f'{n_r:6d} → {n_r_out:6d}')
-    if n_t_out != n_t:
-        logger.info(
-            '    Triangle count change: '
-            f'{n_t:6d} → {n_t_out:6d}')
-    return rr, tris
-
-
 def _decimate_surface_sphere(rr, tris, n_triangles):
     _check_freesurfer_home()
     map_ = {}
