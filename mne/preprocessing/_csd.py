@@ -178,15 +178,11 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
                                       unit=FIFF.FIFF_UNIT_V_M2)
 
     # Remove rejection thresholds for EEG
-    if inst.reject is not None and 'eeg' in inst.reject:
-        del inst.reject['eeg']
-        if not inst.reject:  # Set it to None if nothing's left
-            inst.reject = None
-
-    if inst.flat is not None and 'eeg' in inst.flat:
-        del inst.flat['eeg']
-        if not inst.flat:  # Set it to None if nothing's left
-            inst.flat = None
+    if isinstance(inst, BaseEpochs):
+        inst.reject = None if inst.reject is None else \
+            {k: v for k, v in inst.reject.items() if k != 'eeg'}
+        inst.flat = None if inst.flat is None else \
+            {k: v for k, v in inst.flat.items() if k != 'eeg'}
 
     return inst
 
