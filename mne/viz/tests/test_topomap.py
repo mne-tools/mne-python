@@ -190,6 +190,9 @@ def test_plot_topomap_basic(monkeypatch):
     pytest.raises(ValueError, plt_topomap, times=[-100])  # bad time
     pytest.raises(ValueError, plt_topomap, times=[[0]])  # bad time
 
+    with pytest.raises(RuntimeError, match='`image_interp` must be'):
+        evoked.plot_topomap([0.1], image_interp='bilinear')
+
     evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
                         contours=[-100, 0, 100], time_unit='ms')
 

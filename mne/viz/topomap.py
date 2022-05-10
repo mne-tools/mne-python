@@ -797,7 +797,6 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     else:
         from matplotlib.colors import DivergingNorm as TwoSlopeNorm
     _validate_type(cnorm, (TwoSlopeNorm, None), 'cnorm')
-    _check_option('image_interp', image_interp, ('cubic', 'nearest', 'linear'))
     if cnorm is not None:
         if vmin is not None:
             warn(f"vmin={cnorm.vmin} is implicitly defined by cnorm, ignoring "
@@ -813,6 +812,15 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
 
 def _setup_interp(pos, res, image_interp, extrapolate, outlines, border):
+    if image_interp not in ('cubic', 'linear', 'nearest'):
+        raise RuntimeError(
+            '`image_interp` must be `cubic`, `linear` or `nearest`, got '
+            f'{image_interp}. Previously, `image_interp` controlled '
+            'the matplotlib image interpolation after an original cubic '
+            'interpolation but this was changed to control the first '
+            'interpolation instead for simplicity. To change the '
+            'matplotlib image interpolation, use '
+            '`im.set_interpolation(...)')
     logger.debug(f'Interpolation mode {image_interp}, '
                  f'extrapolation mode {extrapolate} to {border}')
     xlim = np.inf, -np.inf,
