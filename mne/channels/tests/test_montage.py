@@ -1687,3 +1687,8 @@ def test_fnirs_montage():
     for ch in range(len(raw.ch_names)):
         assert_array_equal(info_orig['chs'][ch]['loc'],
                            raw.info['chs'][ch]['loc'])
+
+    # Mixed channel types not supported yet
+    raw.set_channel_types({ch_name: 'eeg' for ch_name in raw.ch_names[-2:]})
+    with pytest.raises(ValueError, match='mix of fNIRS'):
+        raw.get_montage()
