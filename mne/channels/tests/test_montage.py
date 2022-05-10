@@ -41,7 +41,7 @@ from mne.viz._3d import _fiducial_coords
 
 from mne.io.kit import read_mrk
 from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
-                    read_fiducials, __file__ as _MNE_IO_FILE)
+                    read_fiducials, __file__ as _MNE_IO_FILE, read_raw_nirx)
 
 from mne.io import RawArray
 from mne.datasets import testing
@@ -63,6 +63,8 @@ bdf_fname1 = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 bdf_fname2 = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 egi_fname1 = op.join(data_path, 'EGI', 'test_egi.mff')
 cnt_fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
+fnirs_dname = op.join(data_path, 'NIRx', 'nirscout',
+                      'nirx_15_2_recording_w_short')
 subjects_dir = op.join(data_path, 'subjects')
 
 io_dir = op.dirname(_MNE_IO_FILE)
@@ -1663,3 +1665,30 @@ def test_make_wrong_dig_montage():
         make_dig_montage(ch_pos={'A1': ['a', 'b', 'c']})
     with pytest.raises(TypeError, match="instance of ndarray, list, or tuple"):
         make_dig_montage(ch_pos={'A1': 5})
+
+
+@testing.requires_testing_data
+def test_fnirs_montage():
+    """Ensure fNIRS montages can be get and set."""
+    raw = read_raw_nirx(fnirs_dname)
+    info_orig = raw.copy().info
+    mtg = raw.get_montage()
+
+    num_sources = np.sum(["S" in optode for optode in mtg.ch_names])
+    num_detectors = np.sum(["D" in optode for optode in mtg.ch_names])
+    assert num_sources == 5
+    assert num_detectors == 13
+
+    # Make a change to the montage before setting
+    raw.info['chs'][2]['loc'][:3] = [1., 2, 3]
+    # Set montage back to original
+    raw.set_montage(mtg)
+
+    for ch in range(len(raw.ch_names)):
+        assert_array_equal(info_orig['chs'][ch]['loc'],
+                           raw.info['chs'][ch]['loc'])
+
+    # Mixed channel types not supported yet
+    raw.set_channel_types({ch_name: 'eeg' for ch_name in raw.ch_names[-2:]})
+    with pytest.raises(ValueError, match='mix of fNIRS'):
+        raw.get_montage()

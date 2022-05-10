@@ -332,7 +332,7 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper,
     ('MNE', 89, 92, dict(limit_depth_chs='whiten'), 0.2),  # sparse default
     ('dSPM', 85, 87, 0.8, 0.2),
     ('sLORETA', 100, 100, 0.8, 0.2),
-    ('eLORETA', 99, 100, None, 0.2),
+    pytest.param('eLORETA', 99, 100, None, 0.2, marks=pytest.mark.slowtest),
     pytest.param('eLORETA', 99, 100, 0.8, 0.2, marks=pytest.mark.slowtest),
     pytest.param('eLORETA', 99, 100, 0.8, 0.001, marks=pytest.mark.slowtest),
 ])
@@ -831,6 +831,7 @@ def test_inverse_operator_volume(evoked, tmp_path):
         apply_inverse(evoked, inv_vol, pick_ori='normal')
 
 
+@pytest.mark.slowtest
 def test_inverse_operator_discrete(evoked, tmp_path):
     """Test MNE inverse computation on discrete source space."""
     # Make discrete source space
