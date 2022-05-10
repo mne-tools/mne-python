@@ -276,7 +276,7 @@ coords, faces = mne.read_surface(conv_dir / 'sample-head.obj')
 #
 # Topological errors
 # ~~~~~~~~~~~~~~~~~~
-# MNE-Python requires that meshes satisify some topological checks to ensure
+# MNE-Python requires that meshes satisfy some topological checks to ensure
 # that subsequent processing like BEM solving and electrode projection can
 # work properly.
 #
