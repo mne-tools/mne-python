@@ -14,6 +14,7 @@ additional options.
 #          Denis A. Engeman <denis.engemann@gmail.com>
 #          Mikołaj Magnuski <mmagnuski@swps.edu.pl>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
 
@@ -150,6 +151,34 @@ for _chs, _time in zip(_channels, _times):
 
 evoked.plot_topomap(times, ch_type='mag', time_unit='s', mask=mask,
                     mask_params=dict(markersize=10, markerfacecolor='y'))
+
+# %%
+# Interpolating topomaps
+# ----------------------
+# We can also look at the effects of interpolating our data. Perhaps, we
+# might have data per channel such as the impedance of each electrode that
+# we don't want interpolated, or we just want to visualize the data without
+# interpolation as a sanity check. We can use ``image_interp='nearest'`` to
+# prevent any interpolation or ``image_interp='linear'`` to do a linear
+# interpolation instead of the default cubic interpolation.
+
+# %%
+# The default cubic interpolation is the smoothest and is great for
+# publications.
+
+evoked.plot_topomap(times, ch_type='eeg', time_unit='s', image_interp='cubic')
+
+# %%
+# The linear interpolation might be helpful in some cases.
+
+evoked.plot_topomap(times, ch_type='eeg', time_unit='s', image_interp='linear')
+
+# %%
+# The nearest (Voronoi, no interpolation) interpolation is especially helpful
+# for debugging and seeing the values assigned to the topomap unaltered.
+
+evoked.plot_topomap(times, ch_type='eeg', time_unit='s',
+                    image_interp='nearest', contours=0)
 
 # %%
 # Animating the topomap

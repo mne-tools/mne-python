@@ -602,6 +602,7 @@ class _GridData(object):
 
     def __init__(self, pos, image_interp, extrapolate, origin, radii, border):
         from scipy.interpolate import (CloughTocher2DInterpolator,
+                                       NearestNDInterpolator,
                                        LinearNDInterpolator)
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
@@ -619,7 +620,7 @@ class _GridData(object):
         self.border = border
         self.tri = tri
         self.interp = {'cubic': CloughTocher2DInterpolator,
-                       'nearest': CloughTocher2DInterpolator,  # hack not used
+                       'nearest': NearestNDInterpolator,  # used only for anim
                        'linear': LinearNDInterpolator}[image_interp]
 
     def set_values(self, v):
@@ -811,8 +812,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                          cnorm=cnorm)[:2]
 
 
-def _setup_interp(pos, res, image_interp, extrapolate, sphere, outlines,
-                  border):
+def _setup_interp(pos, res, image_interp, extrapolate, outlines, border):
     logger.debug(f'Interpolation mode {image_interp}, '
                  f'extrapolation mode {extrapolate} to {border}')
     xlim = np.inf, -np.inf,
@@ -985,9 +985,9 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     mask_params = _handle_default('mask_params', mask_params)
 
-    # find mask limits
+    # find mask limits and setup interpolation
     extent, Xi, Yi, interp = _setup_interp(
-        pos, res, image_interp, extrapolate, sphere, outlines, border)
+        pos, res, image_interp, extrapolate, outlines, border)
     interp.set_values(data)
     Zi = interp.set_locations(Xi, Yi)()
 
@@ -999,7 +999,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         cnorm = Normalize(vmin=vmin, vmax=vmax)
 
     # plot interpolated map
-    if image_interp == 'nearest':
+    if image_interp == 'nearest':  # plot over with Voronoi, more accurate
         im = _voronoi_topomap(data, pos=pos, outlines=outlines, ax=ax,
                               cmap=cmap, norm=cnorm, extent=extent, res=res)
     else:
@@ -2288,8 +2288,6 @@ def _check_extrapolate(extrapolate, ch_type):
 def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere, ch_type,
                image_interp, extrapolate, verbose):
     """Initialize animated topomap."""
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import Normalize
     logger.info('Initializing animation...')
     data = params['data']
     items = list()
@@ -2315,7 +2313,8 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere, ch_type,
 
     _hide_frame(ax)
     extent, Xi, Yi, interp = _setup_interp(
-        params['pos'], 64, image_interp, extrapolate, sphere, outlines, 0)
+        pos=params['pos'], res=64, image_interp=image_interp,
+        extrapolate=extrapolate, outlines=outlines, border=0)
 
     patch_ = _get_patch(outlines, extrapolate, interp, ax)
 
@@ -2329,17 +2328,9 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere, ch_type,
     params.update({'vmin': vmin, 'vmax': vmax, 'Xi': Xi, 'Yi': Yi, 'Zi': Zi,
                    'extent': extent, 'cmap': cmap, 'cont_lims': cont_lims})
     # plot map and contour
-    if isinstance(cmap, str):
-        cmap = plt.get_cmap(cmap)
-    cnorm = Normalize(vmin=vmin, vmax=vmax)
-    if image_interp == 'nearest':
-        im = _voronoi_topomap(
-            data, pos=params['pos'], outlines=outlines, ax=ax,
-            cmap=cmap, norm=cnorm, extent=extent, res=64)
-    else:
-        im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
-                       aspect='equal', extent=extent,
-                       interpolation='bilinear')
+    im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
+                   aspect='equal', extent=extent,
+                   interpolation='bilinear')
     ax.autoscale(enable=True, tight=True)
     ax.figure.colorbar(im, cax=ax_cbar)
     cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
