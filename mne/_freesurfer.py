@@ -683,9 +683,12 @@ def _get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
         try_fnames = [op.join(subject_dir, 'bem', f'{subject}-head-dense.fif'),
                       op.join(subject_dir, 'surf', 'lh.seghead')]
     else:
-        try_fnames = [op.join(subject_dir, 'bem', 'outer_skin.surf'),
-                      op.join(subject_dir, 'bem', 'flash', 'outer_skin.surf'),
-                      op.join(subject_dir, 'bem', f'{subject}-head.fif')]
+        try_fnames = [
+            op.join(subject_dir, 'bem', 'outer_skin.surf'),
+            op.join(subject_dir, 'bem', 'flash', 'outer_skin.surf'),
+            op.join(subject_dir, 'bem', f'{subject}-head-sparse.fif'),
+            op.join(subject_dir, 'bem', f'{subject}-head.fif'),
+        ]
     for fname in try_fnames:
         if op.exists(fname):
             logger.info(f'Using {op.basename(fname)} for head surface.')
