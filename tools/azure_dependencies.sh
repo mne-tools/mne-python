@@ -14,7 +14,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	# SciPy Windows build is missing from conda nightly builds
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps scipy
-	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" pandas scikit-learn dipy statsmodels
+	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps --default-timeout=60 -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" pandas scikit-learn dipy statsmodels
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py Pillow matplotlib
 	# Until VTK comes out with a 3.10 wheel, we need to use PyVista's
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" https://github.com/pyvista/pyvista-wheels/raw/3b70f3933bc246b035354b172a0459ffc96b0343/vtk-9.1.0.dev0-cp310-cp310-win_amd64.whl
