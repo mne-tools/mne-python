@@ -256,7 +256,7 @@ raw = mne.preprocessing.interpolate_bridged_electrodes(
 
 raw = raw_data[2].copy()
 
-# pick two channels to simulate being bridged
+# pick two channels to simulate a bridge
 idx0, idx1 = 9, 10
 ch0, ch1 = raw.ch_names[idx0], raw.ch_names[idx1]
 bridged_idx_simulated = [(idx0, idx1)]

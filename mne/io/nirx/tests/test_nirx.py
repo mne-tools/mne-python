@@ -151,7 +151,7 @@ def test_nirsport_v2():
         np.diff(raw.annotations.onset), [2.3, 3.1], atol=0.1)
 
     mon = raw.get_montage()
-    assert len(mon.dig) == 43
+    assert len(mon.dig) == 27
 
 
 @requires_testing_data

@@ -152,13 +152,14 @@ def test_plot_topomap_animation(capsys):
     # evoked
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
+
     # Test animation
     _, anim = evoked.animate_topomap(ch_type='grad', times=[0, 0.1],
                                      butterfly=False, time_unit='s',
                                      verbose='debug')
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     out, _ = capsys.readouterr()
-    assert 'Interpolation mode local to 0' in out
+    assert 'extrapolation mode local to 0' in out
     plt.close('all')
 
 
@@ -168,7 +169,7 @@ def test_plot_topomap_animation_nirs(fnirs_evoked, capsys):
     fig, anim = fnirs_evoked.animate_topomap(ch_type='hbo', verbose='debug')
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     out, _ = capsys.readouterr()
-    assert 'Interpolation mode head to 0' in out
+    assert 'extrapolation mode head to 0' in out
     assert len(fig.axes) == 2
     plt.close('all')
 
@@ -188,6 +189,9 @@ def test_plot_topomap_basic(monkeypatch):
     pytest.raises(ValueError, plt_topomap, ch_type='mag')
     pytest.raises(ValueError, plt_topomap, times=[-100])  # bad time
     pytest.raises(ValueError, plt_topomap, times=[[0]])  # bad time
+
+    with pytest.raises(RuntimeError, match='`image_interp` must be'):
+        evoked.plot_topomap([0.1], image_interp='bilinear')
 
     evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
                         contours=[-100, 0, 100], time_unit='ms')
@@ -302,7 +306,7 @@ def test_plot_topomap_basic(monkeypatch):
     with pytest.raises(TypeError, match='number of seconds.* got type'):
         plt_topomap(times, ch_type='eeg', average='x')
 
-    p = plt_topomap(times, ch_type='grad', image_interp='bilinear',
+    p = plt_topomap(times, ch_type='grad', image_interp='cubic',
                     show_names=lambda x: x.replace('MEG', ''))
     subplot = [x for x in p.get_children() if 'Subplot' in str(type(x))]
     assert len(subplot) >= 1, [type(x) for x in p.get_children()]

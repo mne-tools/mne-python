@@ -21,7 +21,8 @@ from ..baseline import rescale
 from ..channels.channels import _get_ch_type
 from ..channels.layout import (
     _find_topomap_coords, find_layout, _pair_grad_sensors, _merge_ch_data)
-from ..defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
+from ..defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                        _BORDER_DEFAULT)
 from ..io.pick import (pick_types, _picks_by_type, pick_info, pick_channels,
                        _pick_data_channels, _picks_to_idx, _get_channel_types,
                        _MEG_CH_TYPES_SPLIT)
@@ -275,7 +276,8 @@ def _eliminate_zeros(proj):
 @fill_doc
 def plot_projs_topomap(projs, info, cmap=None, sensors=True,
                        colorbar=False, res=64, size=1, show=True,
-                       outlines='head', contours=6, image_interp='bilinear',
+                       outlines='head', contours=6,
+                       image_interp=_INTERPOLATION_DEFAULT,
                        axes=None, vlim=(None, None),
                        sphere=None, extrapolate=_EXTRAPOLATE_DEFAULT,
                        border=_BORDER_DEFAULT):
@@ -598,7 +600,10 @@ class _GridData(object):
     to be set independently.
     """
 
-    def __init__(self, pos, extrapolate, origin, radii, border):
+    def __init__(self, pos, image_interp, extrapolate, origin, radii, border):
+        from scipy.interpolate import (CloughTocher2DInterpolator,
+                                       NearestNDInterpolator,
+                                       LinearNDInterpolator)
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
         _validate_type(border, ('numeric', str), 'border')
@@ -614,6 +619,9 @@ class _GridData(object):
         self.mask_pts = mask_pts
         self.border = border
         self.tri = tri
+        self.interp = {'cubic': CloughTocher2DInterpolator,
+                       'nearest': NearestNDInterpolator,  # used only for anim
+                       'linear': LinearNDInterpolator}[image_interp]
 
     def set_values(self, v):
         """Set the values at interpolation points."""
@@ -624,8 +632,6 @@ class _GridData(object):
         #
         # Eventually we could also do set_values with this class if we want,
         # see scipy/interpolate/rbf.py, especially the self.nodes one-liner.
-        from scipy.interpolate import CloughTocher2DInterpolator
-
         if isinstance(self.border, str):
             # we've already checked that border = 'mean'
             n_points = v.shape[0]
@@ -648,7 +654,7 @@ class _GridData(object):
             v_extra = np.full(self.n_extra, self.border, dtype=float)
 
         v = np.concatenate((v, v_extra))
-        self.interpolator = CloughTocher2DInterpolator(self.tri, v)
+        self.interpolator = self.interp(self.tri, v)
         return self
 
     def set_locations(self, Xi, Yi):
@@ -690,7 +696,7 @@ def _get_pos_outlines(info, picks, sphere, to_sphere=True):
 def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  res=64, axes=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head',
-                 contours=6, image_interp='bilinear', show=True,
+                 contours=6, image_interp=_INTERPOLATION_DEFAULT, show=True,
                  onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT,
                  sphere=None, border=_BORDER_DEFAULT,
                  ch_type='eeg', cnorm=None):
@@ -800,13 +806,23 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  f"vmax={vmax}.")
     return _plot_topomap(data, pos, vmin, vmax, cmap, sensors, res, axes,
                          names, show_names, mask, mask_params, outlines,
-                         contours, image_interp, show,
-                         onselect, extrapolate, sphere=sphere, border=border,
-                         ch_type=ch_type, cnorm=cnorm)[:2]
+                         contours, image_interp, show, onselect, extrapolate,
+                         sphere=sphere, border=border, ch_type=ch_type,
+                         cnorm=cnorm)[:2]
 
 
-def _setup_interp(pos, res, extrapolate, sphere, outlines, border):
-    logger.debug(f'Interpolation mode {extrapolate} to {border}')
+def _setup_interp(pos, res, image_interp, extrapolate, outlines, border):
+    if image_interp not in ('cubic', 'linear', 'nearest'):
+        raise RuntimeError(
+            '`image_interp` must be `cubic`, `linear` or `nearest`, got '
+            f'{image_interp}. Previously, `image_interp` controlled '
+            'the matplotlib image interpolation after an original cubic '
+            'interpolation but this was changed to control the first '
+            'interpolation instead for simplicity. To change the '
+            'matplotlib image interpolation, use '
+            '`im.set_interpolation(...)')
+    logger.debug(f'Interpolation mode {image_interp}, '
+                 f'extrapolation mode {extrapolate} to {border}')
     xlim = np.inf, -np.inf,
     ylim = np.inf, -np.inf,
     mask_ = np.c_[outlines['mask_pos']]
@@ -827,7 +843,8 @@ def _setup_interp(pos, res, extrapolate, sphere, outlines, border):
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
-    interp = _GridData(pos, extrapolate, clip_origin, clip_radius, border)
+    interp = _GridData(pos, image_interp, extrapolate,
+                       clip_origin, clip_radius, border)
     extent = (xmin, xmax, ymin, ymax)
     return extent, Xi, Yi, interp
 
@@ -893,8 +910,8 @@ def _get_patch(outlines, extrapolate, interp, ax):
 
 def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   res=64, axes=None, names=None, show_names=False, mask=None,
-                  mask_params=None, outlines='head',
-                  contours=6, image_interp='bilinear', show=True,
+                  mask_params=None, outlines='head', contours=6,
+                  image_interp=_INTERPOLATION_DEFAULT, show=True,
                   onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
                   border=_BORDER_DEFAULT, ch_type='eeg', cnorm=None):
     from matplotlib.colors import Normalize
@@ -976,9 +993,9 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     mask_params = _handle_default('mask_params', mask_params)
 
-    # find mask limits
+    # find mask limits and setup interpolation
     extent, Xi, Yi, interp = _setup_interp(
-        pos, res, extrapolate, sphere, outlines, border)
+        pos, res, image_interp, extrapolate, outlines, border)
     interp.set_values(data)
     Zi = interp.set_locations(Xi, Yi)()
 
@@ -990,12 +1007,12 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         cnorm = Normalize(vmin=vmin, vmax=vmax)
 
     # plot interpolated map
-    if image_interp == 'voronoi':
+    if image_interp == 'nearest':  # plot over with Voronoi, more accurate
         im = _voronoi_topomap(data, pos=pos, outlines=outlines, ax=ax,
                               cmap=cmap, norm=cnorm, extent=extent, res=res)
     else:
         im = ax.imshow(Zi, cmap=cmap, origin='lower', aspect='equal',
-                       extent=extent, interpolation=image_interp, norm=cnorm)
+                       extent=extent, interpolation='bilinear', norm=cnorm)
 
     # gh-1432 had a workaround for no contours here, but we'll remove it
     # because mpl has probably fixed it
@@ -1065,7 +1082,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64,
                       vmin=None, vmax=None, cmap='RdBu_r', colorbar=False,
                       title=None, show=True, outlines='head', contours=6,
-                      image_interp='bilinear', axes=None,
+                      image_interp=_INTERPOLATION_DEFAULT, axes=None,
                       sensors=True, allow_ref_meg=False,
                       extrapolate=_EXTRAPOLATE_DEFAULT,
                       sphere=None, border=_BORDER_DEFAULT):
@@ -1116,9 +1133,10 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         vmin=None, vmax=None, cmap='RdBu_r',
                         sensors=True, colorbar=False, title=None,
                         show=True, outlines='head', contours=6,
-                        image_interp='bilinear',
-                        inst=None, plot_std=True, topomap_args=None,
-                        image_args=None, psd_args=None, reject='auto',
+                        image_interp=_INTERPOLATION_DEFAULT,
+                        inst=None, plot_std=True,
+                        topomap_args=None, image_args=None,
+                        psd_args=None, reject='auto',
                         sphere=None, *, verbose=None):
     """Project mixing matrix on interpolated sensor topography.
 
@@ -1500,7 +1518,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         _, contours = _set_contour_locator(vmin, vmax, contours)
 
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
-                         axes=axes, cmap=cmap[0], image_interp='bilinear',
+                         axes=axes, cmap=cmap[0],
+                         image_interp=_INTERPOLATION_DEFAULT,
                          contours=contours, names=names, show_names=show_names,
                          show=False, onselect=selection_callback,
                          sensors=sensors, res=res, ch_type=ch_type,
@@ -1528,7 +1547,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
                         time_unit='s', time_format=None, proj=False,
                         show=True, show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
-                        image_interp='bilinear', average=None,
+                        image_interp=_INTERPOLATION_DEFAULT, average=None,
                         axes=None, extrapolate=_EXTRAPOLATE_DEFAULT,
                         sphere=None, border=_BORDER_DEFAULT,
                         nrows=1, ncols='auto'):
@@ -1794,8 +1813,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
                   show_names=show_names, cmap=cmap[0], mask_params=mask_params,
                   outlines=outlines, contours=contours,
                   image_interp=image_interp, show=False,
-                  extrapolate=extrapolate, sphere=sphere, border=border,
-                  ch_type=ch_type)
+                  extrapolate=extrapolate, sphere=sphere,
+                  border=border, ch_type=ch_type)
     images, contours_ = [], []
     # loop over times
     for average_idx, (time, this_average) in enumerate(
@@ -1922,9 +1941,9 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
     if title is not None:
         ax.set_title(title, fontsize=10)
     im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axes=ax,
-                         cmap=cmap[0], image_interp='bilinear', contours=0,
-                         outlines=outlines, show=False, sphere=sphere,
-                         ch_type=ch_type)
+                         cmap=cmap[0], image_interp=_INTERPOLATION_DEFAULT,
+                         contours=0, outlines=outlines, show=False,
+                         sphere=sphere, ch_type=ch_type)
 
     if colorbar:
         cbar, cax = _add_colorbar(ax, im, cmap, pad=0.25, title=None,
@@ -2275,7 +2294,7 @@ def _check_extrapolate(extrapolate, ch_type):
 
 @verbose
 def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere, ch_type,
-               extrapolate, verbose):
+               image_interp, extrapolate, verbose):
     """Initialize animated topomap."""
     logger.info('Initializing animation...')
     data = params['data']
@@ -2302,7 +2321,8 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere, ch_type,
 
     _hide_frame(ax)
     extent, Xi, Yi, interp = _setup_interp(
-        params['pos'], 64, extrapolate, sphere, outlines, 0)
+        pos=params['pos'], res=64, image_interp=image_interp,
+        extrapolate=extrapolate, outlines=outlines, border=0)
 
     patch_ = _get_patch(outlines, extrapolate, interp, ax)
 
@@ -2372,7 +2392,8 @@ def _animate(frame, ax, ax_line, params):
     patch = params['patch']
 
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
-                   aspect='equal', extent=extent, interpolation='bilinear')
+                   aspect='equal', extent=extent,
+                   interpolation='bilinear')
     cont_lims = params['cont_lims']
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('ignore')
@@ -2412,7 +2433,8 @@ def _key_press(event, params):
 
 
 def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
-                       show, time_unit, sphere, extrapolate, *, verbose=None):
+                       show, time_unit, sphere, image_interp,
+                       extrapolate, *, verbose=None):
     """Make animation of evoked data as topomap timeseries.
 
     See mne.evoked.Evoked.animate_topomap.
@@ -2463,6 +2485,7 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
                         params=params, merge_channels=merge_channels,
                         sphere=sphere, ch_type=ch_type,
+                        image_interp=image_interp,
                         extrapolate=extrapolate, verbose=verbose)
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
     pause_func = partial(_pause_anim, params=params)
@@ -2541,7 +2564,8 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
         vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
         plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
                      res=64, axes=ax, cmap=cmap, outlines=outlines,
-                     contours=contours, show=False, image_interp='bilinear')[0]
+                     contours=contours, show=False,
+                     image_interp=_INTERPOLATION_DEFAULT)[0]
         _hide_frame(ax)
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.8)
@@ -2565,8 +2589,9 @@ def _trigradient(x, y, z):
 def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
                   vmax=None, cmap=None, sensors=True, res=64, axes=None,
                   names=None, show_names=False, mask=None, mask_params=None,
-                  outlines='head', contours=6, image_interp='bilinear',
-                  show=True, onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT,
+                  outlines='head', contours=6,
+                  image_interp=_INTERPOLATION_DEFAULT, show=True,
+                  onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT,
                   sphere=None):
     """Plot arrow map.
 
@@ -2623,9 +2648,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
         If an array, the values represent the levels for the contours. The
         values are in µV for EEG, fT for magnetometers and fT/m for
         gradiometers. Defaults to 6.
-    image_interp : str
-        The image interpolation to be used. All matplotlib options are
-        accepted.
+    %(image_interp_topomap)s
     show : bool
         Show figure if True.
     onselect : callable | None
@@ -2744,7 +2767,7 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
         topomap_args = dict()
     else:
         topomap_args = topomap_args.copy()  # don't change original
-    topomap_args.setdefault('image_interp', 'voronoi')
+    topomap_args.setdefault('image_interp', 'nearest')
     topomap_args.setdefault('cmap', 'summer_r')
     topomap_args.setdefault('names', info.ch_names)
     topomap_args.setdefault('show_names', True)
