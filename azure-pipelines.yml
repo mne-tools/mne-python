@@ -111,7 +111,7 @@ stages:
     - bash: |
         set -e
         python -m pip install --progress-bar off --upgrade pip setuptools wheel codecov
-        python -m pip install --progress-bar off mne-qt-browser[opengl] vtk scikit-learn pytest-error-for-skips python-picard
+        python -m pip install --progress-bar off mne-qt-browser[opengl] vtk scikit-learn pytest-error-for-skips python-picard "pyqt5>=5.10,!=5.15.3"
         python -m pip uninstall -yq mne
         python -m pip install --progress-bar off --upgrade -e .[test]
       displayName: 'Install dependencies with pip'
