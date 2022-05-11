@@ -24,6 +24,8 @@ Version 1.0.X
 
 - Retain epochs metadata when using :func:`mne.channels.combine_channels` (:gh:`10504` by `Clemens Brunner`_)
 
+- Fix issue with saving epochs once :func:`~mne.preprocessing.compute_current_source_density` has been used if a rejection threshold was used first (:gh:`10619` by `Alex Rockhill`_ and `Richard Höchenberger`_)
+
 Version 1.0.2 (2022-04-15)
 --------------------------
 - Fix bug where ``theme`` was not handled properly in :meth:`mne.io.Raw.plot` (:gh:`10500` by `Eric Larson`_)

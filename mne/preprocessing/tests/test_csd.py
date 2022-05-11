@@ -17,7 +17,8 @@ from scipy.io import loadmat
 from scipy import linalg
 
 from mne.channels import make_dig_montage
-from mne import create_info, EvokedArray, pick_types, Epochs
+from mne import (create_info, EvokedArray, pick_types, Epochs, find_events,
+                 read_epochs)
 from mne.io import read_raw_fif, RawArray
 from mne.io.constants import FIFF
 from mne.utils import object_diff
@@ -183,3 +184,16 @@ def test_csd_fif():
         ch.update(coil_type=FIFF.FIFFV_COIL_EEG, unit=FIFF.FIFF_UNIT_V)
         raw_csd._data[pick] = raw._data[pick]
     assert object_diff(raw.info, raw_csd.info) == ''
+
+
+def test_csd_epochs(tmp_path):
+    """Test making epochs, saving to disk and loading."""
+    raw = read_raw_fif(raw_fname)
+    raw.pick_types(eeg=True, stim=True).load_data()
+    events = find_events(raw)
+    epochs = Epochs(raw, events, reject=dict(eeg=1e-4), preload=True)
+    epochs = compute_current_source_density(epochs)
+    epo_fname = tmp_path / 'test_csd_epo.fif'
+    epochs.save(epo_fname)
+    epochs2 = read_epochs(epo_fname, preload=True)
+    assert_allclose(epochs._data, epochs2._data)
