@@ -158,8 +158,26 @@ def _get_head_surface(subject, source, subjects_dir, on_defects, raise_error=Tru
     return surf
 
 
+# New helmets can be written for example with:
+#
+# import os.path as op
+# import mne
+# from mne.io.constants import FIFF
+# surf = mne.read_surface('kernel.obj', return_dict=True)[-1]
+# surf['rr'] *= 1000  # needs to be in mm
+# mne.surface.complete_surface_info(surf, copy=False, do_neighbor_tri=False)
+# surf['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+# surfs = mne.bem._surfaces_to_bem(
+#     [surf], ids=[FIFF.FIFFV_MNE_SURF_MEG_HELMET], sigmas=[1.],
+#     incomplete='ignore')
+# del surfs[0]['sigma']
+# bem_fname = op.join(op.dirname(mne.__file__), 'data', 'helmets',
+#                     'kernel.fif.gz')
+# mne.write_bem_surfaces(bem_fname, surfs, overwrite=True)
+
+
 @verbose
-def get_meg_helmet_surf(info, trans=None, verbose=None):
+def get_meg_helmet_surf(info, trans=None, *, verbose=None):
     """Load the MEG helmet associated with the MEG sensors.
 
     Parameters
