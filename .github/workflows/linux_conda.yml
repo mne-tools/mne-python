@@ -47,7 +47,7 @@ jobs:
         run: ./tools/github_actions_install.sh
         name: 'Install MNE'
       - shell: bash -el {0}
-        run: LIBGL_DEBUG=verbose python -c "import pyvistaqt; pyvistaqt.BackgroundPlotter(show=True)"
+        run: LIBGL_DEBUG=verbose LD_DEBUG=libs python -c "import pyvistaqt; pyvistaqt.BackgroundPlotter(show=True)"
         name: 'Check Qt GL'
       - shell: bash -el {0}
         run: ./tools/github_actions_infos.sh
