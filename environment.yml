@@ -38,7 +38,7 @@ dependencies:
 - nilearn
 - python-picard
 - qtpy
-- pyqt!=5.15.3,!=5.15.4
+- pyqt
 - mne
 - mffpy>=0.5.7
 - ipywidgets
