@@ -236,10 +236,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                                  "found in `axes`")
             ax = axes[sel]
             # the unwieldy dict comp below defaults the title to the sel
-            titles = ({channel_type(evoked.info, idx): sel
-                       for idx in group_by[sel]} if titles is None else titles)
+            title = ({channel_type(evoked.info, idx): sel
+                      for idx in group_by[sel]} if titles is None else titles)
             _plot_evoked(evoked, group_by[sel], exclude, unit, show, ylim,
-                         proj, xlim, hline, units, scalings, titles,
+                         proj, xlim, hline, units, scalings, title,
                          ax, plot_type, cmap=cmap, gfp=gfp,
                          window_title=window_title,
                          selectable=selectable, noise_cov=noise_cov,
