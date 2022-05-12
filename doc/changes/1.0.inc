@@ -16,15 +16,17 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
-.. changes_1_0_2:
+.. _changes_1_0_3:
 
-Version 1.0.X
--------------
+Version 1.0.3 (2022-05-12)
+--------------------------
 - Fix bug in :meth:`raw.crop(start, stop) <mne.io.Raw.crop>` that would cause annotations to be erroneously shifted when ``start != 0`` and no measurement date was set. (:gh:`10491` by `Eric Larson`_)
 
 - Retain epochs metadata when using :func:`mne.channels.combine_channels` (:gh:`10504` by `Clemens Brunner`_)
 
 - Fix issue with saving epochs once :func:`~mne.preprocessing.compute_current_source_density` has been used if a rejection threshold was used first (:gh:`10619` by `Alex Rockhill`_ and `Richard Höchenberger`_)
+
+.. _changes_1_0_2:
 
 Version 1.0.2 (2022-04-15)
 --------------------------
