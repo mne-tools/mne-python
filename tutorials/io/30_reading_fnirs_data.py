@@ -25,7 +25,6 @@ frequency domain fNIRS).
              Manual modification of channel names and metadata
              is not recommended.
 
-
 .. _import-snirf:
 
 *****************
