@@ -2204,7 +2204,6 @@ def distance_to_bem(pos, bem, trans=None):
     -------
     distances : array, shape = (1,) | (n,)
     """
-
     if pos.size == 3:
         pos = np.expand_dims(pos, axis=0)
 
