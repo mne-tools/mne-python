@@ -2202,34 +2202,31 @@ def distance_to_bem(
         Conductor model.
     trans : array, shape = (4, 4) | instance of Transform
         Transform matrix.
-    
+
     Returns
     -------
-    distances : array, shape = (3,) | (n, 3)
+    distances : array, shape = (1,) | (n,)
     """
 
     if pos.size == 3:
-        single_pos = True
         pos = np.expand_dims(pos, axis=0)
-    else:
-        single_pos = False
 
     n = pos.shape[0]
 
     distance = np.zeros((n,))
 
-    if bem["is_sphere"]:
-        center = bem["r0"]
+    if bem['is_sphere']:
+        center = bem['r0']
 
         if trans:
             center = apply_trans(trans, center, move=True)
-        radius = bem["layers"][0]["rad"]
+        radius = bem['layers'][0]['rad']
 
         for i in range(n):
             distance[i] = radius - np.linalg.norm(pos[i, :] - center)
 
     else:  # is BEM
-        surface_points = bem["surfs"][0]["rr"]
+        surface_points = bem['surfs'][0]['rr']
 
         if trans:
             surface_points = apply_trans(
@@ -2237,9 +2234,8 @@ def distance_to_bem(
             )
 
         for i in range(n):
-            distance[i] = np.min(np.linalg.norm(surface_points - pos[i, :], axis=1))
-
-    if single_pos:
-        distance = np.squeeze(distance)[()]
+            distance[i] = np.min(np.linalg.norm(
+                surface_points - pos[i, :], axis=1)
+            )
 
     return distance

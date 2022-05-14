@@ -483,13 +483,17 @@ def test_distance_to_bem():
             [0.0, r, 0.0],
             [0.0, 0.0, r],
             [r / np.sqrt(3.0), r / np.sqrt(3.0), r / np.sqrt(3.0)],
-            [r/2., 0.0, 0.0],
-            [0.0, r/2., 0.0],
-            [0.0, 0.0, r/2.],
-            [r/2. / np.sqrt(3.0), r/2. / np.sqrt(3.0), r/2. / np.sqrt(3.0)],
+            [r / 2., 0.0, 0.0],
+            [0.0, r / 2., 0.0],
+            [0.0, 0.0, r / 2.],
+            [
+                r / 2. / np.sqrt(3.0),
+                r / 2. / np.sqrt(3.0),
+                r / 2. / np.sqrt(3.0)
+            ],
         ]
     )
-    true_dist = np.array([0., 0., 0., 0., r/2., r/2., r/2., r/2.])
+    true_dist = np.array([0., 0., 0., 0., r / 2., r / 2., r / 2., r / 2.])
     dist = distance_to_bem(pos, bem)
     assert np.all(dist == true_dist)
 
