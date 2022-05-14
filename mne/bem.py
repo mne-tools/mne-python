@@ -2189,9 +2189,7 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     logger.info('[done]')
 
 
-def distance_to_bem(
-    pos: np.array, bem: ConductorModel, trans: Transform = None
-) -> np.array:
+def distance_to_bem(pos, bem, trans=None):
     """Calculate the distance of postions to inner skull surface.
 
     Parameters
@@ -2200,8 +2198,7 @@ def distance_to_bem(
         Position(s) in m, in head coordinates.
     bem : instance of ConductorModel
         Conductor model.
-    trans : array, shape = (4, 4) | instance of Transform
-        Transform matrix.
+    %(trans)s If None (default), assumes bem is in head coordinates.
 
     Returns
     -------
@@ -2222,8 +2219,7 @@ def distance_to_bem(
             center = apply_trans(trans, center, move=True)
         radius = bem['layers'][0]['rad']
 
-        for i in range(n):
-            distance[i] = radius - np.linalg.norm(pos[i, :] - center)
+        distance = radius - np.linalg.norm(pos - center)
 
     else:  # is BEM
         surface_points = bem['surfs'][0]['rr']
