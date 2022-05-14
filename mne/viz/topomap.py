@@ -2870,65 +2870,66 @@ def plot_ch_adjacency(inst, adj_matrix, color='gray', kind='3d'):
             ch_pair = tuple([ch_idx, ngb_idx])
             lines[ch_pair] = ax.plot(*this_pos.T, color=color)[0]
 
-
-    def onpick(event, axes=None, positions=None, highlighted=None,
-               line_dict=None, adj_matrix=None):
-        node_ind = event.ind[0]
-        if node_ind in highlighted:
-            # de-select node, change its color back to normal
-            highlighted[node_ind].remove()
-            del highlighted[node_ind]
-            fig.canvas.draw()
-        else:
-            # new node selected
-            if len(highlighted) == 0:
-                # add current node
-                dots = axes.scatter(
-                    *positions[node_ind, :].T, color='tab:green', s=100,
-                    zorder=15)
-                highlighted[node_ind] = dots
-                fig.canvas.draw()  # make sure it renders
-            else:
-                # add or remove line
-                key = list(highlighted.keys())[0]
-                both_nodes = [key, node_ind]
-                both_nodes.sort()
-                both_nodes = tuple(both_nodes)
-
-                if both_nodes in line_dict.keys():
-                    # remove line
-                    line_dict[both_nodes].remove()
-                    # remove line_dict entry
-                    del line_dict[both_nodes]
-
-                    # clear adjacency matrix entry
-                    print(both_nodes)
-                    adj_matrix[both_nodes, both_nodes[::-1]] = False
-                else:
-                    # add line
-                    selected_pos = positions[both_nodes, :]
-                    line = axes.plot(*selected_pos.T, color='tab:green')[0]
-                    # add line to line_dict
-                    line_dict[both_nodes] = line
-
-                    # modify adjacency matrix
-                    print(both_nodes)
-                    adj_matrix[both_nodes, both_nodes[::-1]] = True
-
-                # de-highlight previous
-                highlighted[key].remove()
-                del highlighted[key]
-
-                # highlight new node
-                dots = axes.scatter(
-                    *positions[node_ind, :].T, color='tab:green', s=100,
-                    zorder=15)
-                highlighted[node_ind] = dots
-                fig.canvas.draw()
-
-    highlighted = dict()
-    this_onpick = partial(onpick, axes=ax, positions=pos,
-                          highlighted=highlighted, line_dict=lines,
-                          adj_matrix=adj_matrix)
-    fig.canvas.mpl_connect('pick_event', this_onpick)
+    if kind == '2d':
+        # allow interactivity in 2d plots
+        highlighted = dict()
+        this_onpick = partial(_onpick_ch_adjacency, axes=ax, positions=pos,
+                            highlighted=highlighted, line_dict=lines,
+                            adj_matrix=adj_matrix)
+        fig.canvas.mpl_connect('pick_event', this_onpick)
     return fig
+
+
+def _onpick_ch_adjacency(event, axes=None, positions=None, highlighted=None,
+                         line_dict=None, adj_matrix=None):
+    '''Helper function for interactivity in plot_ch_adjacency.'''
+    node_ind = event.ind[0]
+    if node_ind in highlighted:
+        # de-select node, change its color back to normal
+        highlighted[node_ind].remove()
+        del highlighted[node_ind]
+        axes.figure.canvas.draw()
+    else:
+        # new node selected
+        if len(highlighted) == 0:
+            # add current node
+            dots = axes.scatter(
+                *positions[node_ind, :].T, color='tab:green', s=100,
+                zorder=15)
+            highlighted[node_ind] = dots
+            axes.figure.canvas.draw()  # make sure it renders
+        else:
+            # add or remove line
+            key = list(highlighted.keys())[0]
+            both_nodes = [key, node_ind]
+            both_nodes.sort()
+            both_nodes = tuple(both_nodes)
+
+            if both_nodes in line_dict.keys():
+                # remove line
+                line_dict[both_nodes].remove()
+                # remove line_dict entry
+                del line_dict[both_nodes]
+
+                # clear adjacency matrix entry
+                adj_matrix[both_nodes, both_nodes[::-1]] = False
+            else:
+                # add line
+                selected_pos = positions[both_nodes, :]
+                line = axes.plot(*selected_pos.T, color='tab:green')[0]
+                # add line to line_dict
+                line_dict[both_nodes] = line
+
+                # modify adjacency matrix
+                adj_matrix[both_nodes, both_nodes[::-1]] = True
+
+            # de-highlight previous
+            highlighted[key].remove()
+            del highlighted[key]
+
+            # highlight new node
+            dots = axes.scatter(
+                *positions[node_ind, :].T, color='tab:green', s=100,
+                zorder=15)
+            highlighted[node_ind] = dots
+            axes.figure.canvas.draw()
