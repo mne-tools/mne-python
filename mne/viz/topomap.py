@@ -2809,7 +2809,7 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     return fig
 
 
-def plot_neighbours(inst, adj_matrix, color='gray', kind='3d'):
+def plot_ch_adjacency(inst, adj_matrix, color='gray', kind='3d'):
     '''Plot channel adjacency.
 
     Parameters
