@@ -2827,8 +2827,13 @@ def plot_ch_adjacency(inst, adj_matrix, color='gray', kind='3d'):
     '''
     from functools import partial
     from scipy import sparse
-    from mne.viz import plot_sensors
-    assert isinstance(inst, (mne.io.Raw, mne.Epochs, mne.Evoked))
+
+    from . import plot_sensors
+    from ..io import BaseRaw
+    from ..epochs import BaseEpochs
+    from ..evoked import Evoked
+
+    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), 'inst')
     info = inst.info
 
     if isinstance(adj_matrix, (sparse.coo_matrix, sparse.csr_matrix)):
