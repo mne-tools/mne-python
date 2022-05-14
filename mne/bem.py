@@ -2219,7 +2219,9 @@ def distance_to_bem(pos, bem, trans=None):
             center = apply_trans(trans, center, move=True)
         radius = bem['layers'][0]['rad']
 
-        distance = radius - np.linalg.norm(pos - center)
+        distance = radius - np.linalg.norm(
+            pos[:, np.newaxis] - center, axis=-1
+        )
 
     else:  # is BEM
         surface_points = bem['surfs'][0]['rr']
@@ -2229,9 +2231,8 @@ def distance_to_bem(pos, bem, trans=None):
                 trans, surface_points, move=True
             )
 
-        for i in range(n):
-            distance[i] = np.min(np.linalg.norm(
-                surface_points - pos[i, :], axis=1)
-            )
+        distance = np.min(np.linalg.norm(
+            surface_points[:, np.newaxis] - pos, axis=-1), axis=0
+        )
 
     return distance

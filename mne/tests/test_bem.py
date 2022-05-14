@@ -495,6 +495,7 @@ def test_distance_to_bem():
     )
     true_dist = np.array([0., 0., 0., 0., r / 2., r / 2., r / 2., r / 2.])
     dist = distance_to_bem(pos, bem)
+    dist = np.squeeze(dist)
     assert np.all(dist == true_dist)
 
     # refer to test_surfaces.py:test_compute_nearest() for bem surfs?
