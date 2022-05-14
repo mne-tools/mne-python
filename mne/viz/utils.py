@@ -2419,3 +2419,33 @@ def _handle_precompute(precompute):
                       extra='when precompute=None is used')
         precompute = dict(true=True, false=False, auto='auto')[precompute]
     return precompute
+
+
+def set_3d_axes_equal(ax):
+    '''Make axes of 3D plot have equal scale so that spheres appear as spheres,
+    cubes as cubes, etc..  This is one possible solution to Matplotlib's
+    ax.set_aspect('equal') and ax.axis('equal') not working for 3D.
+    Input
+      ax: a matplotlib axis, e.g., as output from plt.gca().
+    modified from:
+    http://stackoverflow.com/questions/13685386/matplotlib-equal-unit-length-with-equal-aspect-ratio-z-axis-is-not-equal-to
+
+    Should not longer be necessary for matplotlib >= 3.3.0
+    https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.3.0.html#axes3d-no-longer-distorts-the-3d-plot-to-match-the-2d-aspect-ratio
+    '''
+
+    x_lim, y_lim, z_lim = ax.get_xlim3d(), ax.get_ylim3d(), ax.get_zlim3d()
+
+    def get_range(lim):
+        return lim[1] - lim[0], np.mean(lim)
+    x_range, x_mean = get_range(x_lim)
+    y_range, y_mean = get_range(y_lim)
+    z_range, z_mean = get_range(z_lim)
+
+    # The plot bounding box is a sphere in the sense of the infinity
+    # norm, hence I call half the max range the plot radius.
+    plot_radius = 0.5 * max([x_range, y_range, z_range])
+
+    ax.set_xlim3d([x_mean - plot_radius, x_mean + plot_radius])
+    ax.set_ylim3d([y_mean - plot_radius, y_mean + plot_radius])
+    ax.set_zlim3d([z_mean - plot_radius, z_mean + plot_radius])

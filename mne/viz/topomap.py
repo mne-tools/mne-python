@@ -32,7 +32,8 @@ from ..utils import (_clean_names, _time_mask, verbose, logger, fill_doc,
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
-                    _validate_if_list_of_axes, _setup_cmap, _check_time_unit)
+                    _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
+                    set_3d_axes_equal)
 from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
@@ -2805,4 +2806,124 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     if colorbar:
         cax = fig.colorbar(im)
         cax.set_label(r'Electrical Distance ($\mu$$V^2$)')
+    return fig
+
+
+def plot_neighbours(inst, adj_matrix, color='gray', kind='3d'):
+    '''Plot channel adjacency.
+
+    Parameters
+    ----------
+    inst : mne Raw, Epochs or info
+        mne-python data container
+    adj_matrix : boolean numpy array
+        Defines which channels are adjacent to each other.
+    color : matplotlib color or 'random'
+        Color to plot the web of adjacency relations with.
+    Returns
+    -------
+    fig : matplotlib figure
+        Figure.
+    '''
+    from functools import partial
+    from scipy import sparse
+    from mne.viz import plot_sensors
+    assert isinstance(inst, (mne.io.Raw, mne.Epochs, mne.Evoked))
+    info = inst.info
+
+    if isinstance(adj_matrix, (sparse.coo_matrix, sparse.csr_matrix)):
+        # FIX: but in this case the adjacency matrix won't be
+        # modified in place...
+        adj_matrix = adj_matrix.toarray()
+
+    if kind == '3d':
+        fig = plot_sensors(info, kind=kind, show=False)
+        pos = np.array([x['loc'][:3] for x in info['chs']])
+        set_3d_axes_equal(fig.axes[0])
+    elif kind == '2d':
+        import matplotlib as mpl
+        fig = plot_sensors(info, kind='topomap', show=False)
+        fig.axes[0].axis('equal')
+        path_collection = fig.axes[0].findobj(mpl.collections.PathCollection)
+        pos = path_collection[0].get_offsets()
+        path_collection[0].set_zorder(10)
+
+    ax = fig.axes[0]
+
+    lines = dict()
+    n_channels = adj_matrix.shape[0]
+    for ch_idx in range(n_channels):
+        # make sure we don't repeat channels
+        ch_neighbours = np.where(adj_matrix[ch_idx, ch_idx + 1:])[0]
+        if len(ch_neighbours) == 0:
+            continue
+
+        ch_neighbours += ch_idx + 1
+
+        for ngb_idx in ch_neighbours:
+            this_pos = pos[[ch_idx, ngb_idx], :]
+            ch_pair = tuple([ch_idx, ngb_idx])
+            lines[ch_pair] = ax.plot(*this_pos.T, color=color)[0]
+
+
+    def onpick(event, axes=None, positions=None, highlighted=None,
+               line_dict=None, adj_matrix=None):
+        node_ind = event.ind[0]
+        if node_ind in highlighted:
+            # de-select node, change its color back to normal
+            highlighted[node_ind].remove()
+            del highlighted[node_ind]
+            fig.canvas.draw()
+        else:
+            # new node selected
+            if len(highlighted) == 0:
+                # add current node
+                dots = axes.scatter(
+                    *positions[node_ind, :].T, color='tab:green', s=100,
+                    zorder=15)
+                highlighted[node_ind] = dots
+                fig.canvas.draw()  # make sure it renders
+            else:
+                # add or remove line
+                key = list(highlighted.keys())[0]
+                both_nodes = [key, node_ind]
+                both_nodes.sort()
+                both_nodes = tuple(both_nodes)
+
+                if both_nodes in line_dict.keys():
+                    # remove line
+                    line_dict[both_nodes].remove()
+                    # remove line_dict entry
+                    del line_dict[both_nodes]
+
+                    # clear adjacency matrix entry
+                    print(both_nodes)
+                    adj_matrix[both_nodes, both_nodes[::-1]] = False
+                else:
+                    # add line
+                    selected_pos = positions[both_nodes, :]
+                    line = axes.plot(*selected_pos.T, color='tab:green')[0]
+                    # add line to line_dict
+                    line_dict[both_nodes] = line
+
+                    # modify adjacency matrix
+                    print(both_nodes)
+                    adj_matrix[both_nodes, both_nodes[::-1]] = True
+
+                # de-highlight previous
+                highlighted[key].remove()
+                del highlighted[key]
+
+                # highlight new node
+                dots = axes.scatter(
+                    *positions[node_ind, :].T, color='tab:green', s=100,
+                    zorder=15)
+                highlighted[node_ind] = dots
+                fig.canvas.draw()
+
+    highlighted = dict()
+    this_onpick = partial(onpick, axes=ax, positions=pos,
+                          highlighted=highlighted, line_dict=lines,
+                          adj_matrix=adj_matrix)
+    fig.canvas.mpl_connect('pick_event', this_onpick)
     return fig
