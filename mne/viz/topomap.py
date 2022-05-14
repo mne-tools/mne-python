@@ -2809,17 +2809,19 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     return fig
 
 
-def plot_ch_adjacency(inst, adj_matrix, color='gray', kind='3d'):
+def plot_ch_adjacency(inst, adjacency, color='gray', kind='3d'):
     '''Plot channel adjacency.
 
     Parameters
     ----------
-    inst : mne Raw, Epochs or info
+    inst : Raw | Epochs | Evoked
         mne-python data container
-    adj_matrix : boolean numpy array
-        Defines which channels are adjacent to each other.
-    color : matplotlib color or 'random'
-        Color to plot the web of adjacency relations with.
+    adjacency : array
+        Array of channels x channels chape. Defines which channels are adjacent
+        to each other.
+    color : matplotlib color
+        Color to plot the adjacency relations with.
+
     Returns
     -------
     fig : matplotlib figure
@@ -2836,10 +2838,14 @@ def plot_ch_adjacency(inst, adj_matrix, color='gray', kind='3d'):
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), 'inst')
     info = inst.info
 
-    if isinstance(adj_matrix, (sparse.coo_matrix, sparse.csr_matrix)):
+    if isinstance(adjacency, (sparse.coo_matrix, sparse.csr_matrix)):
         # FIX: but in this case the adjacency matrix won't be
         # modified in place...
-        adj_matrix = adj_matrix.toarray()
+        adjacency = adjacency.toarray()
+        if kind == '2d':
+            raise warnings.warn('When adjacency is passed as a sparse array, '
+                                "the modifications applied interactively won"
+                                "'t be reflected in the adjacency matrix.")
 
     if kind == '3d':
         fig = plot_sensors(info, kind=kind, show=False)
@@ -2856,10 +2862,10 @@ def plot_ch_adjacency(inst, adj_matrix, color='gray', kind='3d'):
     ax = fig.axes[0]
 
     lines = dict()
-    n_channels = adj_matrix.shape[0]
+    n_channels = adjacency.shape[0]
     for ch_idx in range(n_channels):
         # make sure we don't repeat channels
-        ch_neighbours = np.where(adj_matrix[ch_idx, ch_idx + 1:])[0]
+        ch_neighbours = np.where(adjacency[ch_idx, ch_idx + 1:])[0]
         if len(ch_neighbours) == 0:
             continue
 
@@ -2874,8 +2880,8 @@ def plot_ch_adjacency(inst, adj_matrix, color='gray', kind='3d'):
         # allow interactivity in 2d plots
         highlighted = dict()
         this_onpick = partial(_onpick_ch_adjacency, axes=ax, positions=pos,
-                            highlighted=highlighted, line_dict=lines,
-                            adj_matrix=adj_matrix)
+                              highlighted=highlighted, line_dict=lines,
+                              adj_matrix=adjacency)
         fig.canvas.mpl_connect('pick_event', this_onpick)
     return fig
 
