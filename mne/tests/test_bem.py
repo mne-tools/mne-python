@@ -25,7 +25,7 @@ from mne.utils import catch_logging, check_version
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
                      _check_surface_size, _bem_find_surface,
-                     make_scalp_surfaces)
+                     make_scalp_surfaces, distance_to_bem)
 from mne.surface import read_surface, _get_ico_surface
 from mne.io import read_info
 
@@ -470,3 +470,28 @@ def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
             subject, subjects_dir, force=True, overwrite=True)
     surf, = read_bem_surfaces(sparse_path, on_defects='ignore')
     assert len(surf['tris']) == 319
+
+
+def test_distance_to_bem():
+    """Test distance_to_bem, only using spherical models, no transform case."""
+    # Test spherical ConductorModels
+    bem = make_sphere_model(r0=np.array([0, 0, 0]), verbose=0)
+    r = bem['layers'][0]['rad']
+    pos = np.array(
+        [
+            [r, 0.0, 0.0],
+            [0.0, r, 0.0],
+            [0.0, 0.0, r],
+            [r / np.sqrt(3.0), r / np.sqrt(3.0), r / np.sqrt(3.0)],
+            [r/2., 0.0, 0.0],
+            [0.0, r/2., 0.0],
+            [0.0, 0.0, r/2.],
+            [r/2. / np.sqrt(3.0), r/2. / np.sqrt(3.0), r/2. / np.sqrt(3.0)],
+        ]
+    )
+    true_dist = np.array([0., 0., 0., 0., r/2., r/2., r/2., r/2.])
+    dist = distance_to_bem(pos, bem)
+    assert np.all(dist == true_dist)
+
+    # refer to test_surfaces.py:test_compute_nearest() for bem surfs?
+    # need cases testing trans kwarg
