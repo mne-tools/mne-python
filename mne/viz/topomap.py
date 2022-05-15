@@ -2844,9 +2844,9 @@ def plot_ch_adjacency(inst, adjacency, color='gray', kind='3d'):
         # modified in place...
         adjacency = adjacency.toarray()
         if kind == '2d':
-            raise warnings.warn('When adjacency is passed as a sparse array, '
-                                "the modifications applied interactively won"
-                                "'t be reflected in the adjacency matrix.")
+            warnings.warn('When adjacency is passed as a sparse array, '
+                          "the modifications applied interactively won"
+                          "'t be reflected in the adjacency matrix.")
 
     if kind == '3d':
         with plt.rc_context({'toolbar': 'None'}):
