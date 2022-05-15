@@ -2817,10 +2817,12 @@ def plot_ch_adjacency(inst, adjacency, color='gray', kind='3d'):
     inst : Raw | Epochs | Evoked
         mne-python data container
     adjacency : array
-        Array of channels x channels chape. Defines which channels are adjacent
+        Array of channels x channels shape. Defines which channels are adjacent
         to each other.
     color : matplotlib color
         Color to plot the adjacency relations with.
+    kind : str
+        How to plot the adjacency. Can be either ``'3d'`` or ``'2d'``.
 
     Returns
     -------

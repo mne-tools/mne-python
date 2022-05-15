@@ -2425,12 +2425,14 @@ def set_3d_axes_equal(ax):
     '''Make axes of 3D plot have equal scale so that spheres appear as spheres,
     cubes as cubes, etc..  This is one possible solution to Matplotlib's
     ax.set_aspect('equal') and ax.axis('equal') not working for 3D.
+
     Input
       ax: a matplotlib axis, e.g., as output from plt.gca().
+
     modified from:
     http://stackoverflow.com/questions/13685386/matplotlib-equal-unit-length-with-equal-aspect-ratio-z-axis-is-not-equal-to
 
-    Should not longer be necessary for matplotlib >= 3.3.0
+    Should no longer be necessary for matplotlib >= 3.3.0:
     https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.3.0.html#axes3d-no-longer-distorts-the-3d-plot-to-match-the-2d-aspect-ratio
     '''
 
