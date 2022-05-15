@@ -2189,27 +2189,33 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     logger.info('[done]')
 
 
-def distance_to_bem(pos, bem, trans=None):
+@verbose
+def distance_to_bem(pos, bem, trans=None, verbose=None):
     """Calculate the distance of postions to inner skull surface.
 
     Parameters
     ----------
-    pos : array, shape = (3,) | (n, 3)
+    pos : array, shape (3,) | (n, 3)
         Position(s) in m, in head coordinates.
     bem : instance of ConductorModel
         Conductor model.
     %(trans)s If None (default), assumes bem is in head coordinates.
+    %(verbose)s
 
     Returns
     -------
-    distances : array, shape = (1,) | (n,)
+    distances : float | array, shape (n,)
+        The computed distance(s). A float is returned if pos is
+        an array of shape (3,) corresponding to a single position.
     """
-    if pos.size == 3:
-        pos = np.expand_dims(pos, axis=0)
+    ndim = pos.ndim
+    if ndim == 1:
+        pos = pos[np.newaxis, :]
 
     n = pos.shape[0]
-
     distance = np.zeros((n,))
+
+    logger.info(f'Computing distance to inner skull surface for {n} positions...')
 
     if bem['is_sphere']:
         center = bem['r0']
@@ -2219,7 +2225,7 @@ def distance_to_bem(pos, bem, trans=None):
         radius = bem['layers'][0]['rad']
 
         distance = radius - np.linalg.norm(
-            pos[:, np.newaxis] - center, axis=-1
+            pos - center, axis=1
         )
 
     else:  # is BEM

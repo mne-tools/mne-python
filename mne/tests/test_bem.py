@@ -472,11 +472,18 @@ def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
     assert len(surf['tris']) == 319
 
 
-def test_distance_to_bem():
+@pytest.mark.parametrize("bem_type", ["bem", "sphere"])
+@pytest.mark.parametrize("n_pos", [1, 10])
+@testing.requires_testing_data
+def test_distance_to_bem(bem_type, n_pos):
     """Test distance_to_bem, only using spherical models, no transform case."""
     # Test spherical ConductorModels
-    bem = make_sphere_model(r0=np.array([0, 0, 0]), verbose=0)
-    r = bem['layers'][0]['rad']
+    if bem_type == "sphere":
+        bem = make_sphere_model(r0=np.array([0, 0, 0]), verbose=0)
+        r = bem['layers'][0]['rad']
+    else:
+        bem = read_bem_solution(fname_bem_sol_1)
+        r = 5.0
     pos = np.array(
         [
             [r, 0.0, 0.0],
@@ -497,6 +504,3 @@ def test_distance_to_bem():
     dist = distance_to_bem(pos, bem)
     dist = np.squeeze(dist)
     assert np.all(dist == true_dist)
-
-    # refer to test_surfaces.py:test_compute_nearest() for bem surfs?
-    # need cases testing trans kwarg
