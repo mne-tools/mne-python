@@ -2829,6 +2829,7 @@ def plot_ch_adjacency(inst, adjacency, color='gray', kind='3d'):
     '''
     from functools import partial
     from scipy import sparse
+    import matplotlib.pyplot as plt
 
     from . import plot_sensors
     from ..io import BaseRaw
@@ -2848,12 +2849,14 @@ def plot_ch_adjacency(inst, adjacency, color='gray', kind='3d'):
                                 "'t be reflected in the adjacency matrix.")
 
     if kind == '3d':
-        fig = plot_sensors(info, kind=kind, show=False)
+        with plt.rc_context({'toolbar': 'None'}):
+            fig = plot_sensors(info, kind=kind, show=False)
         pos = np.array([x['loc'][:3] for x in info['chs']])
         set_3d_axes_equal(fig.axes[0])
     elif kind == '2d':
         import matplotlib as mpl
-        fig = plot_sensors(info, kind='topomap', show=False)
+        with plt.rc_context({'toolbar': 'None'}):
+            fig = plot_sensors(info, kind='topomap', show=False)
         fig.axes[0].axis('equal')
         path_collection = fig.axes[0].findobj(mpl.collections.PathCollection)
         pos = path_collection[0].get_offsets()
@@ -2883,6 +2886,7 @@ def plot_ch_adjacency(inst, adjacency, color='gray', kind='3d'):
                               highlighted=highlighted, line_dict=lines,
                               adj_matrix=adjacency)
         fig.canvas.mpl_connect('pick_event', this_onpick)
+
     return fig
 
 
