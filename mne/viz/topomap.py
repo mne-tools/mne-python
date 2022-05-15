@@ -2862,8 +2862,13 @@ def plot_ch_adjacency(inst, adjacency, color='gray', kind='3d'):
         pos = path_collection[0].get_offsets()
         path_collection[0].set_zorder(10)
 
-    ax = fig.axes[0]
+        # scale node size with number of connections
+        n_connections = [np.sum(adjacency[i]) - 1
+                        for i in range(adjacency.shape[0])]
+        node_size = [x ** 2.5 for x in n_connections]
+        path_collection[0].set_sizes(node_size)
 
+    ax = fig.axes[0]
     lines = dict()
     n_channels = adjacency.shape[0]
     for ch_idx in range(n_channels):
@@ -2884,16 +2889,19 @@ def plot_ch_adjacency(inst, adjacency, color='gray', kind='3d'):
         highlighted = dict()
         this_onpick = partial(_onpick_ch_adjacency, axes=ax, positions=pos,
                               highlighted=highlighted, line_dict=lines,
-                              adj_matrix=adjacency)
+                              adjacency=adjacency, node_size=node_size,
+                              path_collection=path_collection)
         fig.canvas.mpl_connect('pick_event', this_onpick)
 
     return fig
 
 
 def _onpick_ch_adjacency(event, axes=None, positions=None, highlighted=None,
-                         line_dict=None, adj_matrix=None):
+                         line_dict=None, adjacency=None, node_size=None,
+                         path_collection=None):
     '''Helper function for interactivity in plot_ch_adjacency.'''
     node_ind = event.ind[0]
+
     if node_ind in highlighted:
         # de-select node, change its color back to normal
         highlighted[node_ind].remove()
@@ -2902,9 +2910,10 @@ def _onpick_ch_adjacency(event, axes=None, positions=None, highlighted=None,
     else:
         # new node selected
         if len(highlighted) == 0:
+            size = max(node_size[node_ind] * 2, 100)
             # add current node
             dots = axes.scatter(
-                *positions[node_ind, :].T, color='tab:green', s=100,
+                *positions[node_ind, :].T, color='tab:green', s=size,
                 zorder=15)
             highlighted[node_ind] = dots
             axes.figure.canvas.draw()  # make sure it renders
@@ -2917,29 +2926,39 @@ def _onpick_ch_adjacency(event, axes=None, positions=None, highlighted=None,
 
             if both_nodes in line_dict.keys():
                 # remove line
+                n_conn_change = -1
                 line_dict[both_nodes].remove()
                 # remove line_dict entry
                 del line_dict[both_nodes]
 
                 # clear adjacency matrix entry
-                adj_matrix[both_nodes, both_nodes[::-1]] = False
+                adjacency[both_nodes, both_nodes[::-1]] = False
             else:
                 # add line
+                n_conn_change = +1
                 selected_pos = positions[both_nodes, :]
                 line = axes.plot(*selected_pos.T, color='tab:green')[0]
                 # add line to line_dict
                 line_dict[both_nodes] = line
 
                 # modify adjacency matrix
-                adj_matrix[both_nodes, both_nodes[::-1]] = True
+                adjacency[both_nodes, both_nodes[::-1]] = True
 
             # de-highlight previous
             highlighted[key].remove()
             del highlighted[key]
 
+            # update node sizes
+            n_connections = [np.sum(adjacency[idx]) - 1 + n_conn_change
+                             for idx in both_nodes]
+            for idx, n_conn in zip(both_nodes, n_connections):
+                node_size[idx] = n_conn ** 2.5
+            path_collection[0].set_sizes(node_size)
+
             # highlight new node
+            size = max(node_size[node_ind] * 2, 100)
             dots = axes.scatter(
-                *positions[node_ind, :].T, color='tab:green', s=100,
+                *positions[node_ind, :].T, color='tab:green', s=size,
                 zorder=15)
             highlighted[node_ind] = dots
             axes.figure.canvas.draw()
