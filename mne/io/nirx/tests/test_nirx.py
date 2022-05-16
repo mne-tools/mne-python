@@ -608,6 +608,7 @@ def test_nirx_standard(fname, boundary_decimal):
                      boundary_decimal=boundary_decimal)  # low fs
 
 
+# Below are the native (on-disk) orders, which should be preserved
 @requires_testing_data
 @pytest.mark.parametrize('fname, want_order', [
     (fname_nirx_15_0, ['S1_D1', 'S2_D2', 'S3_D3', 'S4_D4', 'S5_D5', 'S6_D6', 'S7_D7', 'S8_D8', 'S9_D9', 'S10_D10']),  # noqa: E501

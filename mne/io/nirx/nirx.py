@@ -515,6 +515,11 @@ def _convert_fnirs_to_head(trans, fro, to, src_locs, det_locs, ch_locs):
 
 
 def _nirs_sort_idx(info):
+    # TODO: Remove any actual reordering that is done and just use this
+    # function to get picks to operate on in an ordered way. This should be
+    # done by refactoring mne.preprocessing.nirs.nirs._check_channels_ordered
+    # and this function to make sure the picks we obtain here are in the
+    # correct order.
     nirs_picks = pick_types(info, fnirs=True, exclude=())
     other_picks = np.setdiff1d(np.arange(info['nchan']), nirs_picks)
     prefixes = [info['ch_names'][pick].split()[0] for pick in nirs_picks]

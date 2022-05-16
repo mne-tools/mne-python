@@ -25,6 +25,15 @@ frequency domain fNIRS).
              Manual modification of channel names and metadata
              is not recommended.
 
+.. note:: To provide a consistent interface across different measurement
+          devices and file types, MNE-Python uses a standard ordering of
+          channels. MNE-Python internally orders channels by ascending source
+          number. When there are multiple channels with the same source number,
+          they are ordered by ascending detector number. The ordering of
+          channels is done automatically when data is imported. Therefore,
+          the ordering of channels within MNE-Python may be different to what
+          was provided by the hardware vendor.
+
 .. _import-snirf:
 
 *****************
@@ -155,7 +164,7 @@ MNE-Python due to the lack of standardisation of the file format (the
 naming and ordering of channels, the type and scaling of data, and
 specification of sensor positions varies between each vendor). You will likely
 have to adapt this depending on the system from which your CSV originated.
-"""  # noqa:E501
+"""
 
 # %%
 
