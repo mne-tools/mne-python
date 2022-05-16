@@ -15,7 +15,7 @@ from ...utils import (logger, verbose, fill_doc, warn, _check_fname,
 from ..constants import FIFF
 from .._digitization import _make_dig_points
 from ...transforms import _frame_to_str, apply_trans
-from ..nirx.nirx import _convert_fnirs_to_head
+from ..nirx.nirx import _convert_fnirs_to_head, _nirs_sort_idx
 from ..._freesurfer import get_mni_fiducials
 
 
@@ -411,8 +411,7 @@ class RawSNIRF(BaseRaw):
 
             # MNE requires channels are paired as alternating wavelengths
             if len(_validate_nirs_info(self.info, throw_errors=False)) == 0:
-                sort_idx = np.argsort(self.ch_names)
-                self.pick(picks=sort_idx)
+                self.pick(picks=_nirs_sort_idx(self.info))
 
         # Validate that the fNIRS info is correctly formatted
         _validate_nirs_info(self.info)

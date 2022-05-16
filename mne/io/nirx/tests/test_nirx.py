@@ -71,6 +71,7 @@ def test_nirsport_v2_matches_snirf(fname_nirx, fname_snirf):
     """Test NIRSport2 raw files return same data as snirf."""
     raw = read_raw_nirx(fname_nirx, preload=True)
     raw_snirf = read_raw_snirf(fname_snirf, preload=True)
+    assert raw.ch_names == raw_snirf.ch_names
 
     assert_allclose(raw._data, raw_snirf._data)
 
@@ -119,9 +120,9 @@ def test_nirsport_v2():
     assert_allclose(
         mni_locs[2], [-0.0841, -0.0138, 0.0248], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][13][3:5] == 'D5'
+    assert raw.info['ch_names'][34][3:5] == 'D5'
     assert_allclose(
-        mni_locs[13], [0.0845, -0.0451, -0.0123], atol=allowed_dist_error)
+        mni_locs[34], [0.0845, -0.0451, -0.0123], atol=allowed_dist_error)
 
     # Test location of sensors
     # The locations of sensors can be seen in the second
@@ -141,7 +142,7 @@ def test_nirsport_v2():
 
     assert raw.info['ch_names'][39][:2] == 'S8'
     assert_allclose(
-        mni_locs[39], [0.0828, -0.046, 0.0285], atol=allowed_dist_error)
+        mni_locs[34], [0.0828, -0.046, 0.0285], atol=allowed_dist_error)
 
     assert len(raw.annotations) == 3
     assert raw.annotations.description[0] == '1.0'
@@ -291,7 +292,7 @@ def test_nirx_15_2_short():
     # Test channel naming
     assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D1 850",
                                         "S1_D9 760", "S1_D9 850"]
-    assert raw.info['ch_names'][24:26] == ["S5_D8 760", "S5_D8 850"]
+    assert raw.info['ch_names'][24:26] == ["S5_D13 760", "S5_D13 850"]
 
     # Test frequency encoding
     assert raw.info['chs'][0]['loc'][9] == 760
@@ -319,7 +320,7 @@ def test_nirx_15_2_short():
     # These are the ones marked as red at
     # https://github.com/mne-tools/mne-testing-data/pull/51 step 4 figure 2
     is_short = short_channels(raw.info)
-    assert_array_equal(is_short[:9:2], [False, True, True, False, True])
+    assert_array_equal(is_short[:9:2], [False, True, False, True, False])
     is_short = short_channels(raw.info, threshold=0.003)
     assert_array_equal(is_short[:3:2], [False, False])
     is_short = short_channels(raw.info, threshold=50)
@@ -346,29 +347,29 @@ def test_nirx_15_2_short():
     assert_allclose(
         mni_locs[0], [-0.0841, -0.0464, -0.0129], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][6][3:5] == 'D3'
+    assert raw.info['ch_names'][4][3:5] == 'D3'
     assert_allclose(
-        mni_locs[6], [0.0846, -0.0142, -0.0156], atol=allowed_dist_error)
+        mni_locs[4], [0.0846, -0.0142, -0.0156], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][10][3:5] == 'D2'
+    assert raw.info['ch_names'][8][3:5] == 'D2'
     assert_allclose(
-        mni_locs[10], [0.0207, -0.1062, 0.0484], atol=allowed_dist_error)
+        mni_locs[8], [0.0207, -0.1062, 0.0484], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][14][3:5] == 'D4'
+    assert raw.info['ch_names'][12][3:5] == 'D4'
     assert_allclose(
-        mni_locs[14], [-0.0196, 0.0821, 0.0275], atol=allowed_dist_error)
+        mni_locs[12], [-0.0196, 0.0821, 0.0275], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][18][3:5] == 'D5'
+    assert raw.info['ch_names'][16][3:5] == 'D5'
     assert_allclose(
-        mni_locs[18], [-0.0360, 0.0276, 0.0778], atol=allowed_dist_error)
+        mni_locs[16], [-0.0360, 0.0276, 0.0778], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][20][3:5] == 'D6'
+    assert raw.info['ch_names'][19][3:5] == 'D6'
     assert_allclose(
-        mni_locs[20], [0.0352, 0.0283, 0.0780], atol=allowed_dist_error)
+        mni_locs[19], [0.0352, 0.0283, 0.0780], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][23][3:5] == 'D7'
+    assert raw.info['ch_names'][21][3:5] == 'D7'
     assert_allclose(
-        mni_locs[23], [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
+        mni_locs[21], [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
 
 
 @requires_testing_data
@@ -383,7 +384,7 @@ def test_nirx_15_3_short():
     # Test channel naming
     assert raw.info['ch_names'][:4] == ["S1_D2 760", "S1_D2 850",
                                         "S1_D9 760", "S1_D9 850"]
-    assert raw.info['ch_names'][24:26] == ["S5_D8 760", "S5_D8 850"]
+    assert raw.info['ch_names'][24:26] == ["S5_D13 760", "S5_D13 850"]
 
     # Test frequency encoding
     assert raw.info['chs'][0]['loc'][9] == 760
@@ -411,7 +412,7 @@ def test_nirx_15_3_short():
     # These are the ones marked as red at
     # https://github.com/mne-tools/mne-testing-data/pull/72
     is_short = short_channels(raw.info)
-    assert_array_equal(is_short[:9:2], [False, True, False, True, True])
+    assert_array_equal(is_short[:9:2], [False, True, False, True, False])
     is_short = short_channels(raw.info, threshold=0.003)
     assert_array_equal(is_short[:3:2], [False, False])
     is_short = short_channels(raw.info, threshold=50)
@@ -438,25 +439,25 @@ def test_nirx_15_3_short():
     assert_allclose(
         mni_locs[4], [0.0846, -0.0142, -0.0156], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][10][3:5] == 'D3'
+    assert raw.info['ch_names'][8][3:5] == 'D3'
     assert_allclose(
-        mni_locs[10], [0.0207, -0.1062, 0.0484], atol=allowed_dist_error)
+        mni_locs[8], [0.0207, -0.1062, 0.0484], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][14][3:5] == 'D4'
+    assert raw.info['ch_names'][12][3:5] == 'D4'
     assert_allclose(
-        mni_locs[14], [-0.0196, 0.0821, 0.0275], atol=allowed_dist_error)
+        mni_locs[12], [-0.0196, 0.0821, 0.0275], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][18][3:5] == 'D5'
+    assert raw.info['ch_names'][16][3:5] == 'D5'
     assert_allclose(
-        mni_locs[18], [-0.0360, 0.0276, 0.0778], atol=allowed_dist_error)
+        mni_locs[16], [-0.0360, 0.0276, 0.0778], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][20][3:5] == 'D6'
+    assert raw.info['ch_names'][19][3:5] == 'D6'
     assert_allclose(
-        mni_locs[20], [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
+        mni_locs[19], [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][22][3:5] == 'D7'
+    assert raw.info['ch_names'][21][3:5] == 'D7'
     assert_allclose(
-        mni_locs[22], [-0.0394, -0.0483, 0.0928], atol=allowed_dist_error)
+        mni_locs[21], [-0.0394, -0.0483, 0.0928], atol=allowed_dist_error)
 
 
 @requires_testing_data
@@ -504,8 +505,8 @@ def test_nirx_15_2():
                                                 tzinfo=dt.timezone.utc)
 
     # Test channel naming
-    assert raw.info['ch_names'][:4] == ["S10_D10 760", "S10_D10 850",
-                                        "S10_D9 760", "S10_D9 850"]
+    assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D1 850",
+                                        "S1_D10 760", "S1_D10 850"]
 
     # Test info import
     assert raw.info['subject_info'] == dict(sex=1, first_name="TestRecording",
@@ -522,13 +523,13 @@ def test_nirx_15_2():
     head_mri_t, _ = _get_trans('fsaverage', 'head', 'mri')
     mni_locs = apply_trans(head_mri_t, locs)
 
-    assert raw.info['ch_names'][28][3:5] == 'D1'
+    assert raw.info['ch_names'][0][3:5] == 'D1'
     assert_allclose(
-        mni_locs[28], [-0.0292, 0.0852, -0.0142], atol=allowed_dist_error)
+        mni_locs[0], [-0.0292, 0.0852, -0.0142], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][42][3:5] == 'D4'
+    assert raw.info['ch_names'][15][3:5] == 'D4'
     assert_allclose(
-        mni_locs[42], [-0.0739, -0.0756, -0.0075], atol=allowed_dist_error)
+        mni_locs[15], [-0.0739, -0.0756, -0.0075], atol=allowed_dist_error)
 
     # Old name aliases for backward compat
     assert 'fnirs_cw_amplitude' in raw
@@ -552,12 +553,12 @@ def test_nirx_15_0():
                                                 tzinfo=dt.timezone.utc)
 
     # Test channel naming
-    assert raw.info['ch_names'][:12] == ["S10_D10 760", "S10_D10 850",
-                                         "S1_D1 760", "S1_D1 850",
+    assert raw.info['ch_names'][:12] == ["S1_D1 760", "S1_D1 850",
                                          "S2_D2 760", "S2_D2 850",
                                          "S3_D3 760", "S3_D3 850",
                                          "S4_D4 760", "S4_D4 850",
-                                         "S5_D5 760", "S5_D5 850"]
+                                         "S5_D5 760", "S5_D5 850",
+                                         "S6_D6 760", "S6_D6 850"]
 
     # Test info import
     assert raw.info['subject_info'] == {'birthday': (2004, 10, 27),
@@ -575,13 +576,13 @@ def test_nirx_15_0():
     head_mri_t, _ = _get_trans('fsaverage', 'head', 'mri')
     mni_locs = apply_trans(head_mri_t, locs)
 
-    assert raw.info['ch_names'][2][3:5] == 'D1'
+    assert raw.info['ch_names'][0][3:5] == 'D1'
     assert_allclose(
-        mni_locs[2], [0.0287, -0.1143, -0.0332], atol=allowed_dist_error)
+        mni_locs[0], [0.0287, -0.1143, -0.0332], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][17][3:5] == 'D8'
+    assert raw.info['ch_names'][15][3:5] == 'D8'
     assert_allclose(
-        mni_locs[17], [-0.0693, -0.0480, 0.0657], atol=allowed_dist_error)
+        mni_locs[15], [-0.0693, -0.0480, 0.0657], atol=allowed_dist_error)
 
     # Test distance between optodes matches values from
     allowed_distance_error = 0.0002
@@ -605,3 +606,24 @@ def test_nirx_standard(fname, boundary_decimal):
     """Test standard operations."""
     _test_raw_reader(read_raw_nirx, fname=fname,
                      boundary_decimal=boundary_decimal)  # low fs
+
+
+# Below are the native (on-disk) orders, which should be preserved
+@requires_testing_data
+@pytest.mark.parametrize('fname, want_order', [
+    (fname_nirx_15_0, ['S1_D1', 'S2_D2', 'S3_D3', 'S4_D4', 'S5_D5', 'S6_D6', 'S7_D7', 'S8_D8', 'S9_D9', 'S10_D10']),  # noqa: E501
+    (fname_nirx_15_2, ['S1_D1', 'S1_D10', 'S2_D1', 'S2_D2', 'S3_D2', 'S3_D3', 'S4_D3', 'S4_D4', 'S5_D4', 'S5_D5', 'S6_D5', 'S6_D6', 'S7_D6', 'S7_D7', 'S8_D7', 'S8_D8', 'S9_D8', 'S9_D9', 'S10_D9', 'S10_D10', 'S11_D11', 'S11_D12', 'S12_D12', 'S12_D13', 'S13_D13', 'S13_D14', 'S14_D14', 'S14_D15', 'S15_D15', 'S15_D16', 'S16_D11', 'S16_D16']),  # noqa: E501
+    (fname_nirx_15_2_short, ['S1_D1', 'S1_D9', 'S2_D3', 'S2_D10', 'S3_D2', 'S3_D11', 'S4_D4', 'S4_D12', 'S5_D5', 'S5_D6', 'S5_D7', 'S5_D8', 'S5_D13']),  # noqa: E501
+    (fname_nirx_15_3_short, ['S1_D2', 'S1_D9', 'S2_D1', 'S2_D10', 'S3_D3', 'S3_D11', 'S4_D4', 'S4_D12', 'S5_D5', 'S5_D6', 'S5_D7', 'S5_D8', 'S5_D13']),  # noqa: E501
+    (nirsport1_wo_sat, ['S1_D4', 'S1_D5', 'S1_D6', 'S2_D5', 'S2_D6', 'S3_D5', 'S4_D1', 'S4_D3', 'S4_D4', 'S5_D1', 'S5_D2', 'S6_D1', 'S6_D3']),  # noqa: E501
+    (nirsport2, ['S1_D1', 'S1_D6', 'S1_D9', 'S2_D2', 'S2_D10', 'S3_D5', 'S3_D7', 'S3_D11', 'S4_D8', 'S4_D12', 'S5_D3', 'S5_D13', 'S6_D4', 'S6_D14', 'S7_D1', 'S7_D6', 'S7_D15', 'S8_D5', 'S8_D7', 'S8_D16']),  # noqa: E501
+    (nirsport2_2021_9, ['S1_D1', 'S1_D3', 'S2_D1', 'S2_D2', 'S2_D4', 'S3_D2', 'S3_D5', 'S4_D1', 'S4_D3', 'S4_D4', 'S4_D6', 'S5_D2', 'S5_D4', 'S5_D5', 'S5_D7', 'S6_D3', 'S6_D6', 'S7_D4', 'S7_D6', 'S7_D7', 'S8_D5', 'S8_D7']),  # noqa: E501
+])
+def test_channel_order(fname, want_order):
+    """Test that logical channel order is preserved."""
+    raw = read_raw_nirx(fname)
+    ch_names = raw.ch_names
+    prefixes = [ch_name.split()[0] for ch_name in ch_names]
+    assert prefixes[::2] == prefixes[1::2]
+    prefixes = prefixes[::2]
+    assert prefixes == want_order
