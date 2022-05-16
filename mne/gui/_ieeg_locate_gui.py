@@ -175,23 +175,23 @@ class IntracranialElectrodeLocator():
             '-', partial(self._zoom, sign=-1, draw=True))
         self._renderer._keypress_add(
             '=', partial(self._zoom, sign=1, draw=True))
-        self._renderer._keypress_add('escape', self.close, key=True)
+        self._renderer._keypress_add('escape', self.close)
         self._renderer._keypress_add(
-            'up', partial(self._adjust_ras, x=True), key=True)
+            'up', partial(self._adjust_ras, x=True))
         self._renderer._keypress_add(
-            'down', partial(self._adjust_ras, x=False), key=True)
+            'down', partial(self._adjust_ras, x=False))
         self._renderer._keypress_add(
-            'right', partial(self._adjust_ras, y=True), key=True)
+            'right', partial(self._adjust_ras, y=True))
         self._renderer._keypress_add(
-            'left', partial(self._adjust_ras, y=False), key=True)
+            'left', partial(self._adjust_ras, y=False))
         self._renderer._keypress_add(
-            'page_up', partial(self._adjust_ras, z=True), key=True)
+            'page_up', partial(self._adjust_ras, z=True))
         self._renderer._keypress_add(
-            'page_down', partial(self._adjust_ras, z=False), key=True)
+            'page_down', partial(self._adjust_ras, z=False))
         self._renderer._keypress_add(
-            'comma', partial(self._adjust_ras, z=True), key=True)
+            'comma', partial(self._adjust_ras, z=True))
         self._renderer._keypress_add(
-            'period', partial(self._adjust_ras, z=False), key=True)
+            'period', partial(self._adjust_ras, z=False))
 
         # Plots
         self._plot_images()
