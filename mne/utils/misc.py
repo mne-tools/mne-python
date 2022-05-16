@@ -24,10 +24,10 @@ from ..fixes import _get_args
 from ._logging import logger, verbose, warn
 
 
-def _pl(x, non_pl=''):
+def _pl(x, non_pl='', pl='s'):
     """Determine if plural should be used."""
     len_x = x if isinstance(x, (int, np.generic)) else len(x)
-    return non_pl if len_x == 1 else 's'
+    return non_pl if len_x == 1 else pl
 
 
 def _explain_exception(start=-1, stop=None, prefix='> '):

@@ -538,6 +538,7 @@ def test_bads_reconstruction():
     assert_meg_snr(raw_sss, read_crop(sss_bad_recon_fname), 300.)
 
 
+@pytest.mark.slowtest
 @buggy_mkl_svd
 @testing.requires_testing_data
 def test_spatiotemporal():

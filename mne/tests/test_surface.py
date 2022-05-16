@@ -20,7 +20,7 @@ from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
                          _normal_orth, _read_patch, _marching_cubes,
                          _voxel_neighbors, warp_montage_volume)
 from mne.transforms import _get_trans, compute_volume_registration, apply_trans
-from mne.utils import (requires_vtk, catch_logging, object_diff,
+from mne.utils import (catch_logging, object_diff,
                        requires_freesurfer, requires_nibabel, requires_dipy,
                        _record_warnings)
 
@@ -166,9 +166,9 @@ def test_read_curv():
     assert np.logical_or(bin_curv == 0, bin_curv == 1).all()
 
 
-@requires_vtk
 def test_decimate_surface_vtk():
     """Test triangular surface decimation."""
+    pytest.importorskip('pyvista')
     points = np.array([[-0.00686118, -0.10369860, 0.02615170],
                        [-0.00713948, -0.10370162, 0.02614874],
                        [-0.00686208, -0.10368247, 0.02588313],
@@ -225,12 +225,12 @@ def test_normal_orth():
 
 
 # 0.06 sec locally even with all these params
-@requires_vtk
 @pytest.mark.parametrize('dtype', (np.float64, np.uint16, '>i4'))
 @pytest.mark.parametrize('value', (1, 12))
 @pytest.mark.parametrize('smooth', (0, 0.9))
 def test_marching_cubes(dtype, value, smooth):
     """Test creating surfaces via marching cubes."""
+    pytest.importorskip('pyvista')
     data = np.zeros((50, 50, 50), dtype=dtype)
     data[20:30, 20:30, 20:30] = value
     level = [value]

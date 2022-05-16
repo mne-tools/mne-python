@@ -33,7 +33,7 @@ from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
-                    _on_missing, _import_h5io_funcs)
+                    _on_missing, _import_h5io_funcs, _ensure_int)
 
 
 # ############################################################################
@@ -261,10 +261,13 @@ def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
     surf = complete_surface_info(surf, copy=copy, verbose=False)
     fewer = np.where([len(t) < 3 for t in surf['neighbor_tri']])[0]
     if len(fewer) > 0:
+        fewer = list(fewer)
+        fewer = (fewer[:80] + ['...']) if len(fewer) > 80 else fewer
+        fewer = ', '.join(str(f) for f in fewer)
         msg = ('Surface {} has topological defects: {:.0f} / {:.0f} vertices '
                'have fewer than three neighboring triangles [{}]{}'
-               .format(_bem_surf_name[surf['id']], len(fewer), surf['ntri'],
-                       ', '.join(str(f) for f in fewer), extra))
+               .format(_bem_surf_name[surf['id']], len(fewer), len(surf['rr']),
+                       fewer, extra))
         _on_missing(on_missing=incomplete, msg=msg, name='on_defects')
     return surf
 
@@ -480,7 +483,7 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
                          'number of elements (1 or 3)')
     for si, surf in enumerate(surfs):
         if isinstance(surf, str):
-            surfs[si] = read_surface(surf, return_dict=True)[-1]
+            surfs[si] = surf = read_surface(surf, return_dict=True)[-1]
     # Downsampling if the surface is isomorphic with a subdivided icosahedron
     if ico is not None:
         for si, surf in enumerate(surfs):
@@ -1571,7 +1574,7 @@ def write_bem_surfaces(fname, surfs, overwrite=False, verbose=None):
 
 @verbose
 def write_head_bem(fname, rr, tris, on_defects='raise', overwrite=False,
-                   verbose=None):
+                   *, verbose=None):
     """Write a head surface to a fiff file.
 
     Parameters
@@ -2065,9 +2068,16 @@ def _check_file(fname, overwrite):
         raise IOError(f'File {fname} exists, use --overwrite to overwrite it')
 
 
+_tri_levels = dict(
+    medium=30000,
+    sparse=2500,
+)
+
+
 @verbose
 def make_scalp_surfaces(subject, subjects_dir=None, force=True,
-                        overwrite=False, no_decimate=False, verbose=None):
+                        overwrite=False, no_decimate=False, *,
+                        threshold=20, mri='T1.mgz', verbose=None):
     """Create surfaces of the scalp and neck.
 
     The scalp surfaces are required for using the MNE coregistration GUI, and
@@ -2080,29 +2090,35 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     %(subjects_dir)s
     force : bool
         Force creation of the surface even if it has some topological defects.
-        Defaults to ``True``.
+        Defaults to ``True``. See :ref:`tut-fix-meshes` for ideas on how to
+        fix problematic meshes.
     %(overwrite)s
     no_decimate : bool
         Disable the "medium" and "sparse" decimations. In this case, only
         a "dense" surface will be generated. Defaults to ``False``, i.e.,
         create surfaces for all three types of decimations.
+    threshold : int
+        The threshold to use with the MRI in the call to ``mkheadsurf``.
+        The default is 20.
+
+        .. versionadded:: 1.1
+    mri : str
+        The MRI to use. Should exist in ``$SUBJECTS_DIR/$SUBJECT/mri``.
+
+        .. versionadded:: 1.1
     %(verbose)s
     """
-    this_env = deepcopy(os.environ)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    this_env['SUBJECTS_DIR'] = subjects_dir
-    this_env['SUBJECT'] = subject
-    this_env['subjdir'] = subjects_dir + '/' + subject
-    if 'FREESURFER_HOME' not in this_env:
-        raise RuntimeError('The FreeSurfer environment needs to be set up '
-                           'for this script')
     incomplete = 'warn' if force else 'raise'
     subj_path = op.join(subjects_dir, subject)
     if not op.exists(subj_path):
         raise RuntimeError('%s does not exist. Please check your subject '
                            'directory path.' % subj_path)
 
-    mri = 'T1.mgz' if op.exists(op.join(subj_path, 'mri', 'T1.mgz')) else 'T1'
+    # Backward compat for old FreeSurfer (?)
+    _validate_type(mri, str, 'mri')
+    if mri == 'T1.mgz':
+        mri = mri if op.exists(op.join(subj_path, 'mri', mri)) else 'T1'
 
     logger.info('1. Creating a dense scalp tessellation with mkheadsurf...')
 
@@ -2116,9 +2132,21 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
         return surf
 
     my_seghead = check_seghead()
+    threshold = _ensure_int(threshold, 'threshold')
     if my_seghead is None:
-        run_subprocess(['mkheadsurf', '-subjid', subject, '-srcvol', mri],
-                       env=this_env)
+        this_env = deepcopy(os.environ)
+        this_env['SUBJECTS_DIR'] = subjects_dir
+        this_env['SUBJECT'] = subject
+        this_env['subjdir'] = subjects_dir + '/' + subject
+        if 'FREESURFER_HOME' not in this_env:
+            raise RuntimeError(
+                'The FreeSurfer environment needs to be set up to use '
+                'make_scalp_surfaces to create the outer skin surface '
+                'lh.seghead')
+        run_subprocess([
+            'mkheadsurf', '-subjid', subject, '-srcvol', mri,
+            '-thresh1', str(threshold),
+            '-thresh2', str(threshold)], env=this_env)
 
     surf = check_seghead()
     if surf is None:
@@ -2133,18 +2161,20 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     logger.info('2. Creating %s ...' % dense_fname)
     _check_file(dense_fname, overwrite)
     # Helpful message if we get a topology error
-    msg = '\n\nConsider using --force as an additional input parameter.'
+    msg = ('\n\nConsider using pymeshfix directly to fix the mesh, or --force '
+           'to ignore the problem.')
     surf = _surfaces_to_bem(
         [surf], [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1],
         incomplete=incomplete, extra=msg)[0]
     write_bem_surfaces(dense_fname, surf, overwrite=overwrite)
-    levels = 'medium', 'sparse'
-    tris = [] if no_decimate else [30000, 2500]
     if os.getenv('_MNE_TESTING_SCALP', 'false') == 'true':
         tris = [len(surf['tris'])]  # don't actually decimate
-    for ii, (n_tri, level) in enumerate(zip(tris, levels), 3):
-        logger.info('%i. Creating %s tessellation...' % (ii, level))
-        logger.info('%i.1 Decimating the dense tessellation...' % ii)
+    for ii, (level, n_tri) in enumerate(_tri_levels.items(), 3):
+        if no_decimate:
+            break
+        logger.info(f'{ii}. Creating {level} tessellation...')
+        logger.info(f'{ii}.1 Decimating the dense tessellation '
+                    f'({len(surf["tris"])} -> {n_tri} triangles)...')
         points, tris = decimate_surface(points=surf['rr'],
                                         triangles=surf['tris'],
                                         n_triangles=n_tri)
@@ -2156,3 +2186,4 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
             [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False,
             incomplete=incomplete, extra=msg)
         write_bem_surfaces(dec_fname, dec_surf, overwrite=overwrite)
+    logger.info('[done]')

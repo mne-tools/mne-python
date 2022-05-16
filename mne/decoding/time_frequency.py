@@ -6,11 +6,11 @@ import numpy as np
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..time_frequency.tfr import _compute_tfr, _check_tfr_param
-from ..utils import fill_doc, _check_option, verbose, _VerboseDep
+from ..utils import fill_doc, _check_option, verbose
 
 
 @fill_doc
-class TimeFrequency(TransformerMixin, BaseEstimator, _VerboseDep):
+class TimeFrequency(TransformerMixin, BaseEstimator):
     """Time frequency transformer.
 
     Time-frequency transform of times series along the last axis.

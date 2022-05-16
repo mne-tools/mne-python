@@ -40,7 +40,7 @@ from ..proj import read_proj
 from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
-                     _path_like, use_log_level, _check_fname, _VerboseDep,
+                     _path_like, use_log_level, _check_fname,
                      _check_ch_locs, _import_h5io_funcs)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend,
@@ -645,7 +645,7 @@ def _check_image_format(rep, image_format):
 
 
 @fill_doc
-class Report(_VerboseDep):
+class Report:
     r"""Object for rendering HTML.
 
     Parameters

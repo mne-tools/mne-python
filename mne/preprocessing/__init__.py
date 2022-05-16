@@ -8,7 +8,6 @@
 # License: BSD-3-Clause
 
 from .annotate_amplitude import annotate_amplitude
-from .flat import annotate_flat
 from .maxfilter import apply_maxfilter
 from .ssp import compute_proj_ecg, compute_proj_eog
 from .eog import find_eog_events, create_eog_epochs
@@ -31,6 +30,6 @@ from ._regress import regress_artifact
 from ._fine_cal import (compute_fine_calibration, read_fine_calibration,
                         write_fine_calibration)
 from .annotate_nan import annotate_nan
-from .interpolate import equalize_bads
+from .interpolate import equalize_bads, interpolate_bridged_electrodes
 from . import ieeg
 from ._css import cortical_signal_suppression

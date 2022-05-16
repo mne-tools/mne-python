@@ -30,7 +30,7 @@ from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
 from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
-                     warn, verbose, logger, _validate_type)
+                     verbose, logger, _validate_type)
 from ..surface import _DistanceQuery, _CheckInside
 from ..channels import read_dig_fif
 
@@ -136,33 +136,7 @@ class CoregistrationUI(HasTraits):
                  head_shape_points=None, eeg_channels=None, orient_glyphs=None,
                  scale_by_distance=None, mark_inside=None,
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
-                 show=True, block=False, interaction='terrain',
-                 project_eeg=None, head_transparency=None, standalone=None,
-                 verbose=None):
-        if standalone is not None:
-            depr_message = ('standalone is deprecated and will be replaced by '
-                            'block in 1.1.')
-            if block is None:
-                block = standalone
-                warn(depr_message, DeprecationWarning)
-            else:
-                warn(depr_message + ' Since you passed values for both '
-                     'standalone and block, standalone will be ignored.',
-                     DeprecationWarning)
-        if head_transparency is not None:
-            depr_message = ('head_transparency is deprecated and will be'
-                            ' replaced by head_opacity in 1.1.')
-            if head_opacity is None:
-                head_opacity = 0.8 if head_transparency else 1.0
-                warn(depr_message, DeprecationWarning)
-            else:
-                warn(depr_message + ' Since you passed values for both '
-                     'head_transparency and head_opacity, '
-                     'head_transparency will be ignored.',
-                     DeprecationWarning)
-        if project_eeg is not None:
-            warn('project_eeg is deprecated and will be removed in 1.1.',
-                 DeprecationWarning)
+                 show=True, block=False, interaction='terrain', verbose=None):
         from ..viz.backends.renderer import _get_renderer
         from ..viz.backends._utils import _qt_app_exec
 

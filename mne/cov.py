@@ -10,7 +10,8 @@ from math import log
 
 import numpy as np
 
-from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT, DEFAULTS
+from .defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                       _BORDER_DEFAULT, DEFAULTS)
 from .io.write import start_and_end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _check_projs, _needs_eeg_average_ref_proj,
@@ -36,7 +37,7 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     warn, copy_function_doc_to_method_doc, _pl,
                     _undo_scaling_cov, _scaled_array, _validate_type,
                     _check_option, eigh, fill_doc, _on_missing,
-                    _check_on_missing, _check_fname, _VerboseDep)
+                    _check_on_missing, _check_fname)
 from . import viz
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
@@ -64,7 +65,7 @@ def _get_tslice(epochs, tmin, tmax):
 
 
 @fill_doc
-class Covariance(dict, _VerboseDep):
+class Covariance(dict):
     """Noise covariance matrix.
 
     .. warning:: This class should not be instantiated directly, but
@@ -257,10 +258,9 @@ class Covariance(dict, _VerboseDep):
                      size=1, cbar_fmt="%3.1f",
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
-                     contours=6, image_interp='bilinear',
+                     contours=6, image_interp=_INTERPOLATION_DEFAULT,
                      axes=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
-                     border=_BORDER_DEFAULT,
-                     noise_cov=None, verbose=None):
+                     border=_BORDER_DEFAULT, noise_cov=None, verbose=None):
         """Plot a topomap of the covariance diagonal.
 
         Parameters

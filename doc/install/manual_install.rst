@@ -19,16 +19,13 @@ We suggest to install MNE-Python into its own ``conda`` environment.
 
 The dependency stack is large and may take a long time (several tens of
 minutes) to resolve on some systems via the default ``conda`` solver. We
-therefore highly recommend using the
-`libmamba solver <https://www.anaconda.com/blog/a-faster-conda-for-a-growing-community>`__,
-which is **much** faster, albeit still an experimental feature.
+therefore highly recommend using `mamba <https://mamba.readthedocs.io/>`__
+instead, a ``conda`` replacement that is **much** faster.
 
-Run in your terminal:
+Run in your terminal …
 
-.. code-block:: bash
-
-   conda install --name=base conda-libmamba-solver
-   conda create --experimental-solver=libmamba --strict-channel-priority --channel=conda-forge --name=mne mne
+.. raw:: html
+    :file: manual_install_platform_selector.html
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``) and install all
@@ -43,15 +40,15 @@ Installing a minimal MNE-Python with core functionality only
 If you only need MNE-Python's core functionality including 2D plotting (but
 **without 3D visualization**), install via :code:`pip`:
 
-.. code-block:: bash
+.. code-block:: console
 
-   pip install mne
+   $ pip install mne
 
 or via :code:`conda`:
 
-.. code-block:: bash
+.. code-block:: console
 
-   conda create --strict-channel-priority --channel=conda-forge --name=mne mne-base
+   $ conda create --strict-channel-priority --channel=conda-forge --name=mne mne-base
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``).
@@ -62,15 +59,15 @@ If you plan to use MNE-Python's functions that require **HDF5 I/O** (this
 includes :func:`mne.io.read_raw_eeglab`, :meth:`mne.SourceMorph.save`, and
 others), you should run via :code:`pip`:
 
-.. code-block:: bash
+.. code-block:: console
 
-   pip install mne[hdf5]
+   $ pip install mne[hdf5]
 
 or via :code:`conda`
 
-.. code-block:: bash
+.. code-block:: console
 
-   conda create --strict-channel-priority --channel=conda-forge --name=mne mne-base h5io h5py pymatreader
+   $ conda create --strict-channel-priority --channel=conda-forge --name=mne mne-base h5io h5py pymatreader
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``).
@@ -110,10 +107,10 @@ Python development are:
   :samp:`Tools > Preferences > Python Interpreter > Use the following interpreter`.
   There, paste the output of the following terminal commands
 
-  .. code-block:: bash
+  .. code-block:: console
 
-      conda activate mne
-      python -c "import sys; print(sys.executable)"
+      $ conda activate mne
+      $ python -c "import sys; print(sys.executable)"
 
   It should be something like ``C:\Users\user\anaconda3\envs\mne\python.exe``
   (Windows) or ``/Users/user/opt/anaconda3/envs/mne/bin/python`` (macOS).
@@ -123,10 +120,10 @@ Python development are:
   commands in the terminal, where you replace ``...`` with the exact version of
   ``spyder-kernels`` that Spyder tells you it requires.
 
-  .. code-block:: bash
+  .. code-block:: console
 
-      conda activate mne
-      conda install --strict-channel-priority --channel=conda-forge spyder-kernels=...
+      $ conda activate mne
+      $ conda install --strict-channel-priority --channel=conda-forge spyder-kernels=...
 
   Refer to the `Spyder documentation <https://docs.spyder-ide.org/current/troubleshooting/common-illnesses.html#spyder-kernels-not-installed-incompatible>`_
   for more information about ``spyder-kernels`` and the version matching.

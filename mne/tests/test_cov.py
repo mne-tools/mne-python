@@ -257,7 +257,11 @@ def test_io_cov(tmp_path):
         read_cov(cov_badname)
 
 
-@pytest.mark.parametrize('method', (None, 'empirical', 'shrunk'))
+@pytest.mark.parametrize('method', [
+    None,
+    'empirical',
+    pytest.param('shrunk', marks=pytest.mark.slowtest),
+])
 def test_cov_estimation_on_raw(method, tmp_path):
     """Test estimation from raw (typically empty room)."""
     if method == 'shrunk':

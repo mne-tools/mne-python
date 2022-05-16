@@ -34,7 +34,7 @@ from .fetching import _url_to_local_path
 from ._logging import (verbose, logger, set_log_level, set_log_file,
                        use_log_level, catch_logging, warn, filter_out_warnings,
                        wrapped_stdout, _get_call_line, _record_warnings,
-                       ClosingStringIO, _VerboseDep)
+                       ClosingStringIO)
 from .misc import (run_subprocess, _pl, _clean_names, pformat, _file_like,
                    _explain_exception, _get_argvalues, sizeof_fmt,
                    running_subprocess, _DefaultEventParser,
@@ -45,7 +45,7 @@ from ._testing import (run_command_if_main, requires_sklearn,
                        requires_good_network, requires_pandas, requires_h5py,
                        ArgvSetter, SilenceStdout, has_freesurfer, has_mne_c,
                        _TempDir, has_nibabel, buggy_mkl_svd,
-                       requires_numpydoc, requires_vtk, requires_freesurfer,
+                       requires_numpydoc, requires_freesurfer,
                        requires_nitime, requires_dipy,
                        requires_neuromag2ft, requires_pylsl,
                        assert_object_equal, assert_and_remove_boundary_annot,

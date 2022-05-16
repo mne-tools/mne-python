@@ -18,7 +18,7 @@ import string
 
 import numpy as np
 
-from .pick import (channel_type, pick_channels, pick_info, _get_channel_types,
+from .pick import (channel_type, _get_channel_types,
                    get_channel_type_constants, pick_types, _contains_ch_type)
 from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
@@ -36,7 +36,7 @@ from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import (invert_transform, Transform, _coord_frame_name,
                           _ensure_trans, _frame_to_str)
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
-                     _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric, deprecated,
+                     _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric,
                      _check_option, _on_missing, _check_on_missing, fill_doc,
                      _check_fname)
 from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
@@ -174,6 +174,17 @@ class MontageMixin(object):
         # channel positions from dig do not match ch_names one to one,
         # so use loc[:3] instead
         ch_pos = {ch_names[ii]: chs[ii]['loc'][:3] for ii in picks}
+
+        # fNIRS uses multiple channels for the same sensors, we use
+        # a private function to format these for dig montage.
+        fnirs_picks = pick_types(info, fnirs=True, exclude=[])
+        if len(ch_pos) == len(fnirs_picks):
+            ch_pos = _get_fnirs_ch_pos(info)
+        elif len(fnirs_picks) > 0:
+            raise ValueError("MNE does not support getting the montage "
+                             "for a mix of fNIRS and other data types. "
+                             "Please raise a GitHub issue if you "
+                             "require this feature.")
 
         # create montage
         montage = make_dig_montage(
@@ -1113,33 +1124,6 @@ class Info(dict, MontageMixin, ContainsMixin):
         with self._unlock():
             self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
             self['nchan'] = len(self['chs'])
-
-    @deprecated('use inst.pick_channels instead.')
-    def pick_channels(self, ch_names, ordered=False):
-        """Pick channels from this Info object.
-
-        Parameters
-        ----------
-        ch_names : list of str
-            List of channels to keep. All other channels are dropped.
-        ordered : bool
-            If True (default False), ensure that the order of the channels
-            matches the order of ``ch_names``.
-
-        Returns
-        -------
-        info : instance of Info.
-            The modified Info object.
-
-        Notes
-        -----
-        Operates in-place.
-
-        .. versionadded:: 0.20.0
-        """
-        sel = pick_channels(self.ch_names, ch_names, exclude=[],
-                            ordered=ordered)
-        return pick_info(self, sel, copy=False, verbose=False)
 
     @property
     def ch_names(self):
@@ -2930,3 +2914,19 @@ def _ensure_infos_match(info1, info2, name, *, on_mismatch='raise'):
                f"runs to a common head position.")
         _on_missing(on_missing=on_mismatch, msg=msg,
                     name='on_mismatch')
+
+
+def _get_fnirs_ch_pos(info):
+    """Return positions of each fNIRS optode.
+
+    fNIRS uses two types of optodes, sources and detectors.
+    There can be multiple connections between each source
+    and detector at different wavelengths. This function
+    returns the location of each source and detector.
+    """
+    from ..preprocessing.nirs import _fnirs_optode_names, _optode_position
+    srcs, dets = _fnirs_optode_names(info)
+    ch_pos = {}
+    for optode in [*srcs, *dets]:
+        ch_pos[optode] = _optode_position(info, optode)
+    return ch_pos

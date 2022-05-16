@@ -222,3 +222,40 @@ def _fnirs_spread_bads(info):
     info['bads'] = new_bads
 
     return info
+
+
+def _fnirs_optode_names(info):
+    """Return list of unique optode names."""
+    picks_wave = _picks_to_idx(info, ['fnirs_cw_amplitude', 'fnirs_od'],
+                               exclude=[], allow_empty=True)
+    picks_chroma = _picks_to_idx(info, ['hbo', 'hbr'],
+                                 exclude=[], allow_empty=True)
+
+    if len(picks_wave) > 0:
+        regex = _S_D_F_RE
+    elif len(picks_chroma) > 0:
+        regex = _S_D_H_RE
+    else:
+        return [], []
+
+    sources = np.unique([int(regex.match(ch).groups()[0])
+                         for ch in info.ch_names])
+    detectors = np.unique([int(regex.match(ch).groups()[1])
+                           for ch in info.ch_names])
+
+    src_names = [f"S{s}" for s in sources]
+    det_names = [f"D{d}" for d in detectors]
+
+    return src_names, det_names
+
+
+def _optode_position(info, optode):
+    """Find the position of an optode."""
+    idx = [optode in a for a in info.ch_names].index(True)
+
+    if "S" in optode:
+        loc_idx = range(3, 6)
+    elif "D" in optode:
+        loc_idx = range(6, 9)
+
+    return info["chs"][idx]["loc"][loc_idx]

@@ -572,15 +572,25 @@ def _points_outside_surface(rr, surf, n_jobs=None, verbose=None):
     return np.abs(np.sum(tot_angles, axis=0) / (2 * np.pi) - 1.0) > 1e-5
 
 
-def _surface_to_polydata(rr, tris=None):
+def _surface_to_polydata(surf):
     import pyvista as pv
-    vertices = np.array(rr)
-    if tris is None:
+    vertices = np.array(surf['rr'])
+    if 'tris' not in surf:
         return pv.PolyData(vertices)
     else:
-        triangles = np.array(tris)
+        triangles = np.array(surf['tris'])
         triangles = np.c_[np.full(len(triangles), 3), triangles]
         return pv.PolyData(vertices, triangles)
+
+
+def _polydata_to_surface(pd, normals=True):
+    from pyvista import PolyData
+    if not isinstance(pd, PolyData):
+        pd = PolyData(pd)
+    out = dict(rr=pd.points, tris=pd.faces.reshape(-1, 4)[:, 1:])
+    if normals:
+        out['nn'] = pd.point_normals
+    return out
 
 
 class _CheckInside(object):
@@ -617,13 +627,9 @@ class _CheckInside(object):
     def _init_pyvista(self):
         if not isinstance(self.surf, dict):
             self.pdata = self.surf
-            self.surf = dict(
-                rr=self.pdata.points,
-                tris=self.pdata.faces.reshape(-1, 4)[:, 1:],
-                nn=self.pdata.point_normals)
+            self.surf = _polydata_to_surface(self.pdata)
         else:
-            self.pdata = _surface_to_polydata(
-                self.surf['rr'], self.surf['tris']).clean()
+            self.pdata = _surface_to_polydata(self.surf).clean()
 
     @verbose
     def __call__(self, rr, n_jobs=None, verbose=None):
@@ -643,7 +649,7 @@ class _CheckInside(object):
         return inside
 
     def _call_pyvista(self, rr):
-        pdata = _surface_to_polydata(rr)
+        pdata = _surface_to_polydata(dict(rr=rr))
         out = pdata.select_enclosed_points(self.pdata, check_surface=False)
         return out['SelectedPoints'].astype(bool)
 
@@ -818,9 +824,12 @@ def read_surface(fname, read_metadata=False, return_dict=False,
             ret += (dict(),)
 
     if return_dict:
-        ret += (dict(rr=ret[0], tris=ret[1], ntri=len(ret[1]), use_tris=ret[1],
-                     np=len(ret[0])),)
+        ret += (_rr_tris_dict(ret[0], ret[1]),)
     return ret
+
+
+def _rr_tris_dict(rr, tris):
+    return dict(rr=rr, tris=tris, ntri=len(tris), use_tris=tris, np=len(rr))
 
 
 def _read_mri_surface(fname):
@@ -1228,11 +1237,11 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
 def _decimate_surface_vtk(points, triangles, n_triangles):
     """Aux function."""
     try:
-        from vtk.util.numpy_support import \
+        from vtkmodules.util.numpy_support import \
             numpy_to_vtk, numpy_to_vtkIdTypeArray
-        from vtk.numpy_interface.dataset_adapter import WrapDataObject
-        from vtk import \
-            vtkPolyData, vtkQuadricDecimation, vtkPoints, vtkCellArray
+        from vtkmodules.vtkCommonDataModel import vtkPolyData, vtkCellArray
+        from vtkmodules.vtkCommonCore import vtkPoints
+        from vtkmodules.vtkFiltersCore import vtkQuadricDecimation
     except ImportError:
         raise ValueError('This function requires the VTK package to be '
                          'installed')
@@ -1261,10 +1270,9 @@ def _decimate_surface_vtk(points, triangles, n_triangles):
     reduction = 1 - (float(n_triangles) / len(triangles))
     decimate.SetTargetReduction(reduction)
     decimate.Update()
-    out = WrapDataObject(decimate.GetOutput())
-    rrs = out.Points
-    tris = out.Polygons.reshape(-1, 4)[:, 1:]
-    return rrs, tris
+
+    out = _polydata_to_surface(decimate.GetOutput(), normals=False)
+    return out['rr'], out['tris']
 
 
 def _decimate_surface_sphere(rr, tris, n_triangles):
@@ -1317,7 +1325,7 @@ def _decimate_surface_sphere(rr, tris, n_triangles):
 
 
 @verbose
-def decimate_surface(points, triangles, n_triangles, method='quadric',
+def decimate_surface(points, triangles, n_triangles, method='quadric', *,
                      verbose=None):
     """Decimate surface data.
 
@@ -1754,16 +1762,13 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
     # Also vtkDiscreteFlyingEdges3D should be faster.
     # If we ever want not-discrete (continuous/float) marching cubes,
     # we should probably use vtkFlyingEdges3D rather than vtkMarchingCubes.
-    from vtk import (vtkImageData, vtkThreshold,
-                     vtkWindowedSincPolyDataFilter, vtkDiscreteFlyingEdges3D,
-                     vtkGeometryFilter, vtkDataSetAttributes, VTK_DOUBLE)
-    from vtk.util import numpy_support
+    from vtkmodules.vtkCommonDataModel import \
+        vtkImageData, vtkDataSetAttributes
+    from vtkmodules.vtkFiltersCore import vtkThreshold
+    from vtkmodules.vtkFiltersGeneral import vtkDiscreteFlyingEdges3D
+    from vtkmodules.vtkFiltersGeometry import vtkGeometryFilter
+    from vtkmodules.util.numpy_support import vtk_to_numpy, numpy_to_vtk
     from scipy.ndimage import binary_dilation
-    _validate_type(smooth, 'numeric', smooth)
-    smooth = float(smooth)
-    if not 0 <= smooth < 1:
-        raise ValueError('smooth must be between 0 (inclusive) and 1 '
-                         f'(exclusive), got {smooth}')
 
     if image.ndim != 3:
         raise ValueError(f'3D data must be supplied, got {image.shape}')
@@ -1787,8 +1792,7 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
 
     # force double as passing integer types directly can be problematic!
     image_shape = image.shape
-    data_vtk = numpy_support.numpy_to_vtk(
-        image.ravel(), deep=True, array_type=VTK_DOUBLE)
+    data_vtk = numpy_to_vtk(image.ravel().astype(float), deep=True)
     del image
 
     mc = vtkDiscreteFlyingEdges3D()
@@ -1799,28 +1803,17 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
     imdata.SetOrigin([0, 0, 0])
     imdata.GetPointData().SetScalars(data_vtk)
 
-    # compute marching cubes
+    # compute marching cubes on smoothed data
     mc.SetNumberOfContours(len(level))
     for li, lev in enumerate(level):
         mc.SetValue(li, lev)
     mc.SetInputData(imdata)
-    sel_input = mc
-    if smooth:
-        smoother = vtkWindowedSincPolyDataFilter()
-        smoother.SetInputConnection(sel_input.GetOutputPort())
-        smoother.SetNumberOfIterations(100)
-        smoother.BoundarySmoothingOff()
-        smoother.FeatureEdgeSmoothingOff()
-        smoother.SetFeatureAngle(120.0)
-        smoother.SetPassBand(1 - smooth)
-        smoother.NonManifoldSmoothingOn()
-        smoother.NormalizeCoordinatesOff()
-        sel_input = smoother
-    sel_input.Update()
+    mc.Update()
+    mc = _vtk_smooth(mc.GetOutput(), smooth)
 
     # get verts and triangles
     selector = vtkThreshold()
-    selector.SetInputConnection(sel_input.GetOutputPort())
+    selector.SetInputData(mc)
     dsa = vtkDataSetAttributes()
     selector.SetInputArrayToProcess(
         0, 0, 0, imdata.FIELD_ASSOCIATION_POINTS, dsa.SCALARS)
@@ -1839,12 +1832,42 @@ def _marching_cubes(image, level, smooth=0, fill_hole_size=None):
             selector.SetUpperThreshold(val)
         geometry.Update()
         polydata = geometry.GetOutput()
-        rr = numpy_support.vtk_to_numpy(polydata.GetPoints().GetData())
-        tris = numpy_support.vtk_to_numpy(
+        rr = vtk_to_numpy(polydata.GetPoints().GetData())
+        tris = vtk_to_numpy(
             polydata.GetPolys().GetConnectivityArray()).reshape(-1, 3)
         rr = np.ascontiguousarray(rr[:, ::-1])
         tris = np.ascontiguousarray(tris[:, ::-1])
         out.append((rr, tris))
+    return out
+
+
+def _vtk_smooth(pd, smooth):
+    _validate_type(smooth, 'numeric', smooth)
+    smooth = float(smooth)
+    if not 0 <= smooth < 1:
+        raise ValueError('smoothing factor must be between 0 (inclusive) and '
+                         f'1 (exclusive), got {smooth}')
+    if smooth == 0:
+        return pd
+    from vtkmodules.vtkFiltersCore import vtkWindowedSincPolyDataFilter
+    logger.info(f'    Smoothing by a factor of {smooth}')
+    return_ndarray = False
+    if isinstance(pd, dict):
+        pd = _surface_to_polydata(pd)
+        return_ndarray = True
+    smoother = vtkWindowedSincPolyDataFilter()
+    smoother.SetInputData(pd)
+    smoother.SetNumberOfIterations(100)
+    smoother.BoundarySmoothingOff()
+    smoother.FeatureEdgeSmoothingOff()
+    smoother.SetFeatureAngle(120.0)
+    smoother.SetPassBand(1 - smooth)
+    smoother.NonManifoldSmoothingOn()
+    smoother.NormalizeCoordinatesOff()
+    smoother.Update()
+    out = smoother.GetOutput()
+    if return_ndarray:
+        out = _polydata_to_surface(out, normals=False)
     return out
 
 

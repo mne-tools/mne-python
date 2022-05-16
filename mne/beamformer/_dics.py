@@ -75,8 +75,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         matrices to compute real filters.
 
         .. versionchanged:: 0.23
-            Version 0.23 deprecated ``False`` as default for ``real_filter``.
-            With version 0.24, ``True`` is the new default.
+            Version 0.23 an earlier used ``real_filter=False`` as the default,
+            as of version 0.24 ``True`` is the default.
     %(inversion_bf)s
 
         .. versionchanged:: 0.21

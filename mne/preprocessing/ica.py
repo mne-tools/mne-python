@@ -26,6 +26,7 @@ from .infomax_ import infomax
 
 from ..cov import compute_whitener
 from .. import Covariance, Evoked
+from ..defaults import _INTERPOLATION_DEFAULT
 from ..io.pick import (pick_types, pick_channels, pick_info,
                        _picks_to_idx, _get_channel_types, _DATA_CH_TYPES_SPLIT)
 from ..io.proj import make_projector
@@ -56,7 +57,7 @@ from ..utils import (logger, check_fname, _check_fname, verbose,
                      copy_function_doc_to_method_doc, _pl, warn, Bunch,
                      _check_preload, _check_compensation_grade, fill_doc,
                      _check_option, _PCA, int_like, _require_version,
-                     _check_all_same_channel_names, _VerboseDep)
+                     _check_all_same_channel_names)
 
 from ..fixes import _get_args, _safe_svd
 from ..filter import filter_data
@@ -138,7 +139,7 @@ _KNOWN_ICA_METHODS = ('fastica', 'infomax', 'picard')
 
 
 @fill_doc
-class ICA(ContainsMixin, _VerboseDep):
+class ICA(ContainsMixin):
     u"""Data decomposition using Independent Component Analysis (ICA).
 
     This object estimates independent components from :class:`mne.io.Raw`,
@@ -2027,10 +2028,10 @@ class ICA(ContainsMixin, _VerboseDep):
     def plot_components(self, picks=None, ch_type=None, res=64,
                         vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                         colorbar=False, title=None, show=True, outlines='head',
-                        contours=6, image_interp='bilinear',
-                        inst=None, plot_std=True, topomap_args=None,
-                        image_args=None, psd_args=None, reject='auto',
-                        sphere=None, verbose=None):
+                        contours=6, image_interp=_INTERPOLATION_DEFAULT,
+                        inst=None, plot_std=True,
+                        topomap_args=None, image_args=None, psd_args=None,
+                        reject='auto', sphere=None, verbose=None):
         return plot_ica_components(self, picks=picks, ch_type=ch_type,
                                    res=res, vmin=vmin,
                                    vmax=vmax, cmap=cmap, sensors=sensors,

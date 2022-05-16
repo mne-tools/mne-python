@@ -22,7 +22,7 @@ from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
                     BunchConst, _check_fname, warn, _custom_lru_cache,
                     _ensure_int, ProgressBar, use_log_level,
-                    _import_h5io_funcs, _VerboseDep)
+                    _import_h5io_funcs)
 
 
 @verbose
@@ -297,7 +297,7 @@ _SOURCE_MORPH_ATTRIBUTES = [  # used in writing
 
 
 @fill_doc
-class SourceMorph(_VerboseDep):
+class SourceMorph:
     """Morph source space data from one subject to another.
 
     .. note:: This class should not be instantiated directly.

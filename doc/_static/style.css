@@ -14,6 +14,7 @@ html[data-theme="light"] {
     --pst-color-border-rgba: rgba(0, 0, 0, 0.125);
     --pst-color-background-rgba: rgba(0, 0, 0, 0.03);
     --pst-color-info-rgba: #007bff18;
+    --copybtn-opacity: 0.75;
 }
 html[data-theme="dark"] {
     --mne-color-github: #fff;
@@ -21,6 +22,7 @@ html[data-theme="dark"] {
     --pst-color-border-rgba: rgba(201, 201, 201, 0.25);
     --pst-color-background-rgba: rgba(255, 255, 255, 0.08);
     --pst-color-info-rgba: #407dbf18;
+    --copybtn-opacity: 0.25;
 }
 
 /* ************************************************************ Sphinx fixes */
@@ -127,13 +129,6 @@ h5.card-header::before {
     margin-top: 0px;
 }
 
-/* ************************************************* dev version warning bar */
-.devbar {
-    /* body top padding minus navbar height; */
-    /*might be possible to calc from theme variables */
-    margin-top: -20px;
-}
-
 /* ******************************************************** version dropdown */
 .dropdown {
     padding: 0 .5rem;  /* match other items in the hamburger menu */
@@ -206,6 +201,12 @@ ul.icon-bullets {
 .small-stack {
     font-size: 0.5em;
 }
+/* *********************************************************** copy button */
+button.copybtn {
+    /* always show; https://sphinx-copybutton.readthedocs.io/en/latest/use.html#modify-the-copy-button-s-css */
+    opacity: var(--copybtn-opacity);
+ }
+
 /* *********************************************************** miscellaneous */
 .hidden {
     display: none;

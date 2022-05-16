@@ -10,7 +10,7 @@ from mne import read_evokeds, Epochs, create_info
 from mne.io import read_raw_fif, RawArray
 from mne.utils import (warn, set_log_level, set_log_file, filter_out_warnings,
                        verbose, _get_call_line, use_log_level, catch_logging,
-                       logger, check, _VerboseDep)
+                       logger, check)
 from mne.utils._logging import _frame_info
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -222,7 +222,7 @@ def test_verbose_strictness():
     with pytest.raises(RuntimeError, match='does not accept'):
         bad_verbose()
 
-    class Okay(_VerboseDep):
+    class Okay:
 
         @verbose
         def meth_2(self, verbose=None):
@@ -237,12 +237,6 @@ def test_verbose_strictness():
         o.meth_2(verbose=True)
     log = log.getvalue()
     assert 'meth_2' in log
-    with pytest.deprecated_call(match='will be removed'):
-        assert o.verbose is None
-    with pytest.deprecated_call(match='ignored'):
-        o.verbose = False
-    with pytest.deprecated_call(match='will be removed'):
-        assert o.verbose is None
     with catch_logging() as log:
         o.meth_2(verbose=False)
     log = log.getvalue()

@@ -95,11 +95,12 @@ def test_nirsport_v2():
     # nirsite https://github.com/mne-tools/mne-testing-data/pull/86
     # figure 3
     allowed_distance_error = 0.005
-    distances = source_detector_distances(raw.info)
-    assert_allclose(distances[::2][:14],
-                    [0.0304, 0.0411, 0.008, 0.0400, 0.008, 0.0310, 0.0411,
-                     0.008, 0.0299, 0.008, 0.0370, 0.008, 0.0404, 0.008],
-                    atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S1_D1 760").info),
+                    [0.0304], atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S2_D2 760").info),
+                    [0.0400], atol=allowed_distance_error)
 
     # Test location of detectors
     # The locations of detectors can be seen in the first
@@ -118,9 +119,9 @@ def test_nirsport_v2():
     assert_allclose(
         mni_locs[2], [-0.0841, -0.0138, 0.0248], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][34][3:5] == 'D5'
+    assert raw.info['ch_names'][13][3:5] == 'D5'
     assert_allclose(
-        mni_locs[34], [0.0845, -0.0451, -0.0123], atol=allowed_dist_error)
+        mni_locs[13], [0.0845, -0.0451, -0.0123], atol=allowed_dist_error)
 
     # Test location of sensors
     # The locations of sensors can be seen in the second
@@ -138,9 +139,9 @@ def test_nirsport_v2():
     assert_allclose(
         mni_locs[9], [-0.0, -0.1195, 0.0142], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][34][:2] == 'S8'
+    assert raw.info['ch_names'][39][:2] == 'S8'
     assert_allclose(
-        mni_locs[34], [0.0828, -0.046, 0.0285], atol=allowed_dist_error)
+        mni_locs[39], [0.0828, -0.046, 0.0285], atol=allowed_dist_error)
 
     assert len(raw.annotations) == 3
     assert raw.annotations.description[0] == '1.0'
@@ -150,7 +151,7 @@ def test_nirsport_v2():
         np.diff(raw.annotations.onset), [2.3, 3.1], atol=0.1)
 
     mon = raw.get_montage()
-    assert len(mon.dig) == 43
+    assert len(mon.dig) == 27
 
 
 @requires_testing_data
@@ -290,7 +291,7 @@ def test_nirx_15_2_short():
     # Test channel naming
     assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D1 850",
                                         "S1_D9 760", "S1_D9 850"]
-    assert raw.info['ch_names'][24:26] == ["S5_D13 760", "S5_D13 850"]
+    assert raw.info['ch_names'][24:26] == ["S5_D8 760", "S5_D8 850"]
 
     # Test frequency encoding
     assert raw.info['chs'][0]['loc'][9] == 760
@@ -307,17 +308,18 @@ def test_nirx_15_2_short():
     # nirsite https://github.com/mne-tools/mne-testing-data/pull/51
     # step 4 figure 2
     allowed_distance_error = 0.0002
-    distances = source_detector_distances(raw.info)
-    assert_allclose(distances[::2], [
-        0.0304, 0.0078, 0.0310, 0.0086, 0.0416,
-        0.0072, 0.0389, 0.0075, 0.0558, 0.0562,
-        0.0561, 0.0565, 0.0077], atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S1_D1 760").info),
+                    [0.0304], atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S2_D10 760").info),
+                    [0.0086], atol=allowed_distance_error)
 
     # Test which channels are short
     # These are the ones marked as red at
     # https://github.com/mne-tools/mne-testing-data/pull/51 step 4 figure 2
     is_short = short_channels(raw.info)
-    assert_array_equal(is_short[:9:2], [False, True, False, True, False])
+    assert_array_equal(is_short[:9:2], [False, True, True, False, True])
     is_short = short_channels(raw.info, threshold=0.003)
     assert_array_equal(is_short[:3:2], [False, False])
     is_short = short_channels(raw.info, threshold=50)
@@ -344,29 +346,29 @@ def test_nirx_15_2_short():
     assert_allclose(
         mni_locs[0], [-0.0841, -0.0464, -0.0129], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][4][3:5] == 'D3'
+    assert raw.info['ch_names'][6][3:5] == 'D3'
     assert_allclose(
-        mni_locs[4], [0.0846, -0.0142, -0.0156], atol=allowed_dist_error)
+        mni_locs[6], [0.0846, -0.0142, -0.0156], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][8][3:5] == 'D2'
+    assert raw.info['ch_names'][10][3:5] == 'D2'
     assert_allclose(
-        mni_locs[8], [0.0207, -0.1062, 0.0484], atol=allowed_dist_error)
+        mni_locs[10], [0.0207, -0.1062, 0.0484], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][12][3:5] == 'D4'
+    assert raw.info['ch_names'][14][3:5] == 'D4'
     assert_allclose(
-        mni_locs[12], [-0.0196, 0.0821, 0.0275], atol=allowed_dist_error)
+        mni_locs[14], [-0.0196, 0.0821, 0.0275], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][16][3:5] == 'D5'
+    assert raw.info['ch_names'][18][3:5] == 'D5'
     assert_allclose(
-        mni_locs[16], [-0.0360, 0.0276, 0.0778], atol=allowed_dist_error)
+        mni_locs[18], [-0.0360, 0.0276, 0.0778], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][19][3:5] == 'D6'
+    assert raw.info['ch_names'][20][3:5] == 'D6'
     assert_allclose(
-        mni_locs[19], [0.0352, 0.0283, 0.0780], atol=allowed_dist_error)
+        mni_locs[20], [0.0352, 0.0283, 0.0780], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][21][3:5] == 'D7'
+    assert raw.info['ch_names'][23][3:5] == 'D7'
     assert_allclose(
-        mni_locs[21], [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
+        mni_locs[23], [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
 
 
 @requires_testing_data
@@ -381,7 +383,7 @@ def test_nirx_15_3_short():
     # Test channel naming
     assert raw.info['ch_names'][:4] == ["S1_D2 760", "S1_D2 850",
                                         "S1_D9 760", "S1_D9 850"]
-    assert raw.info['ch_names'][24:26] == ["S5_D13 760", "S5_D13 850"]
+    assert raw.info['ch_names'][24:26] == ["S5_D8 760", "S5_D8 850"]
 
     # Test frequency encoding
     assert raw.info['chs'][0]['loc'][9] == 760
@@ -398,17 +400,18 @@ def test_nirx_15_3_short():
     # Test distance between optodes matches values from
     # https://github.com/mne-tools/mne-testing-data/pull/72
     allowed_distance_error = 0.001
-    distances = source_detector_distances(raw.info)
-    assert_allclose(distances[::2], [
-        0.0304, 0.0078, 0.0310, 0.0086, 0.0416,
-        0.0072, 0.0389, 0.0075, 0.0558, 0.0562,
-        0.0561, 0.0565, 0.0077], atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S1_D2 760").info),
+                    [0.0304], atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S5_D13 760").info),
+                    [0.0076], atol=allowed_distance_error)
 
     # Test which channels are short
     # These are the ones marked as red at
     # https://github.com/mne-tools/mne-testing-data/pull/72
     is_short = short_channels(raw.info)
-    assert_array_equal(is_short[:9:2], [False, True, False, True, False])
+    assert_array_equal(is_short[:9:2], [False, True, False, True, True])
     is_short = short_channels(raw.info, threshold=0.003)
     assert_array_equal(is_short[:3:2], [False, False])
     is_short = short_channels(raw.info, threshold=50)
@@ -435,25 +438,25 @@ def test_nirx_15_3_short():
     assert_allclose(
         mni_locs[4], [0.0846, -0.0142, -0.0156], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][8][3:5] == 'D3'
+    assert raw.info['ch_names'][10][3:5] == 'D3'
     assert_allclose(
-        mni_locs[8], [0.0207, -0.1062, 0.0484], atol=allowed_dist_error)
+        mni_locs[10], [0.0207, -0.1062, 0.0484], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][12][3:5] == 'D4'
+    assert raw.info['ch_names'][14][3:5] == 'D4'
     assert_allclose(
-        mni_locs[12], [-0.0196, 0.0821, 0.0275], atol=allowed_dist_error)
+        mni_locs[14], [-0.0196, 0.0821, 0.0275], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][16][3:5] == 'D5'
+    assert raw.info['ch_names'][18][3:5] == 'D5'
     assert_allclose(
-        mni_locs[16], [-0.0360, 0.0276, 0.0778], atol=allowed_dist_error)
+        mni_locs[18], [-0.0360, 0.0276, 0.0778], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][19][3:5] == 'D6'
+    assert raw.info['ch_names'][20][3:5] == 'D6'
     assert_allclose(
-        mni_locs[19], [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
+        mni_locs[20], [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][21][3:5] == 'D7'
+    assert raw.info['ch_names'][22][3:5] == 'D7'
     assert_allclose(
-        mni_locs[21], [-0.0394, -0.0483, 0.0928], atol=allowed_dist_error)
+        mni_locs[22], [-0.0394, -0.0483, 0.0928], atol=allowed_dist_error)
 
 
 @requires_testing_data
@@ -501,8 +504,8 @@ def test_nirx_15_2():
                                                 tzinfo=dt.timezone.utc)
 
     # Test channel naming
-    assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D1 850",
-                                        "S1_D10 760", "S1_D10 850"]
+    assert raw.info['ch_names'][:4] == ["S10_D10 760", "S10_D10 850",
+                                        "S10_D9 760", "S10_D9 850"]
 
     # Test info import
     assert raw.info['subject_info'] == dict(sex=1, first_name="TestRecording",
@@ -519,13 +522,13 @@ def test_nirx_15_2():
     head_mri_t, _ = _get_trans('fsaverage', 'head', 'mri')
     mni_locs = apply_trans(head_mri_t, locs)
 
-    assert raw.info['ch_names'][0][3:5] == 'D1'
+    assert raw.info['ch_names'][28][3:5] == 'D1'
     assert_allclose(
-        mni_locs[0], [-0.0292, 0.0852, -0.0142], atol=allowed_dist_error)
+        mni_locs[28], [-0.0292, 0.0852, -0.0142], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][15][3:5] == 'D4'
+    assert raw.info['ch_names'][42][3:5] == 'D4'
     assert_allclose(
-        mni_locs[15], [-0.0739, -0.0756, -0.0075], atol=allowed_dist_error)
+        mni_locs[42], [-0.0739, -0.0756, -0.0075], atol=allowed_dist_error)
 
     # Old name aliases for backward compat
     assert 'fnirs_cw_amplitude' in raw
@@ -549,12 +552,12 @@ def test_nirx_15_0():
                                                 tzinfo=dt.timezone.utc)
 
     # Test channel naming
-    assert raw.info['ch_names'][:12] == ["S1_D1 760", "S1_D1 850",
+    assert raw.info['ch_names'][:12] == ["S10_D10 760", "S10_D10 850",
+                                         "S1_D1 760", "S1_D1 850",
                                          "S2_D2 760", "S2_D2 850",
                                          "S3_D3 760", "S3_D3 850",
                                          "S4_D4 760", "S4_D4 850",
-                                         "S5_D5 760", "S5_D5 850",
-                                         "S6_D6 760", "S6_D6 850"]
+                                         "S5_D5 760", "S5_D5 850"]
 
     # Test info import
     assert raw.info['subject_info'] == {'birthday': (2004, 10, 27),
@@ -572,20 +575,23 @@ def test_nirx_15_0():
     head_mri_t, _ = _get_trans('fsaverage', 'head', 'mri')
     mni_locs = apply_trans(head_mri_t, locs)
 
-    assert raw.info['ch_names'][0][3:5] == 'D1'
+    assert raw.info['ch_names'][2][3:5] == 'D1'
     assert_allclose(
-        mni_locs[0], [0.0287, -0.1143, -0.0332], atol=allowed_dist_error)
+        mni_locs[2], [0.0287, -0.1143, -0.0332], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][15][3:5] == 'D8'
+    assert raw.info['ch_names'][17][3:5] == 'D8'
     assert_allclose(
-        mni_locs[15], [-0.0693, -0.0480, 0.0657], atol=allowed_dist_error)
+        mni_locs[17], [-0.0693, -0.0480, 0.0657], atol=allowed_dist_error)
 
     # Test distance between optodes matches values from
     allowed_distance_error = 0.0002
-    distances = source_detector_distances(raw.info)
-    assert_allclose(distances[::2], [
-        0.0301, 0.0315, 0.0343, 0.0368, 0.0408,
-        0.0399, 0.0393, 0.0367, 0.0336, 0.0447], atol=allowed_distance_error)
+
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S1_D1 760").info),
+                    [0.0300], atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S7_D7 760").info),
+                    [0.0392], atol=allowed_distance_error)
 
 
 @requires_testing_data
