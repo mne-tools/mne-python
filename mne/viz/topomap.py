@@ -2810,7 +2810,7 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
 
 
 def plot_ch_adjacency(inst, adjacency, ch_type=None, color='gray', kind='3d'):
-    '''Plot channel adjacency.
+    """Plot channel adjacency.
 
     Parameters
     ----------
@@ -2831,7 +2831,7 @@ def plot_ch_adjacency(inst, adjacency, ch_type=None, color='gray', kind='3d'):
     -------
     fig : matplotlib figure
         Figure.
-    '''
+    """
     from functools import partial
     from scipy import sparse
     import matplotlib.pyplot as plt
@@ -2927,7 +2927,7 @@ def plot_ch_adjacency(inst, adjacency, ch_type=None, color='gray', kind='3d'):
 def _onpick_ch_adjacency(event, axes=None, positions=None, highlighted=None,
                          line_dict=None, adjacency=None, node_size=None,
                          path_collection=None):
-    '''Helper function for interactivity in plot_ch_adjacency.'''
+    """Handles interactivity in plot_ch_adjacency."""
     node_ind = event.ind[0]
 
     if node_ind in highlighted:
