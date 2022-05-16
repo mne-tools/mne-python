@@ -2191,7 +2191,7 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
 
 @verbose
 def distance_to_bem(pos, bem, trans=None, verbose=None):
-    """Calculate the distance of postions to inner skull surface.
+    """Calculate the distance of positions to inner skull surface.
 
     Parameters
     ----------
