@@ -476,31 +476,39 @@ def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
 @pytest.mark.parametrize("n_pos", [1, 10])
 @testing.requires_testing_data
 def test_distance_to_bem(bem_type, n_pos):
-    """Test distance_to_bem, only using spherical models, no transform case."""
+    """Test distance_to_bem."""
     # Test spherical ConductorModels
     if bem_type == "sphere":
         bem = make_sphere_model(r0=np.array([0, 0, 0]), verbose=0)
         r = bem['layers'][0]['rad']
+        true_dist = np.array([r, 0., 0., 0., 0., 0., 0., 0., 0., 0.])
     else:
         bem = read_bem_solution(fname_bem_sol_1)
-        r = 5.0
+        r = 0.05
+        true_dist = np.array([
+            0.01708097, 0.00256595, 0.01022884, 0.02306622, 0.02927288,
+            0.04491787, 0.00990493, 0.02244751, 0.04819345, 0.01928304
+        ])
+
     pos = np.array(
         [
+            [0.0, 0.0, 0.0],
             [r, 0.0, 0.0],
+            [-r, 0.0, 0.0],
             [0.0, r, 0.0],
+            [0.0, -r, 0.0],
             [0.0, 0.0, r],
-            [r / np.sqrt(3.0), r / np.sqrt(3.0), r / np.sqrt(3.0)],
-            [r / 2., 0.0, 0.0],
-            [0.0, r / 2., 0.0],
-            [0.0, 0.0, r / 2.],
-            [
-                r / 2. / np.sqrt(3.0),
-                r / 2. / np.sqrt(3.0),
-                r / 2. / np.sqrt(3.0)
-            ],
+            [-r / np.sqrt(2.), r / np.sqrt(2.), 0.0],
+            [-r / np.sqrt(2.), -r / np.sqrt(2.), 0.0],
+            [0, -r / np.sqrt(2.), r / np.sqrt(2.)],
+            [r / np.sqrt(3.), r / np.sqrt(3.), r / np.sqrt(3.)]
         ]
     )
-    true_dist = np.array([0., 0., 0., 0., r / 2., r / 2., r / 2., r / 2.])
+
+    if n_pos == 1:
+        pos = pos[0, :]
+        true_dist = true_dist[0]
+
     dist = distance_to_bem(pos, bem)
     dist = np.squeeze(dist)
-    assert np.all(dist == true_dist)
+    assert np.allclose(dist, true_dist)
