@@ -72,8 +72,7 @@ class _QtKeyPress():
 
     def _keypress_add(self, shortcut, callback):
         widget_callbacks = _QtKeyPress._callbacks[self._widget_id]
-        special_key = len(shortcut) > 1
-        if special_key:
+        if len(shortcut) > 1:  # special key
             shortcut = _QtKeyPress._to_qt[shortcut]
         widget_callbacks[shortcut] = callback
 
