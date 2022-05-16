@@ -2204,7 +2204,7 @@ def distance_to_bem(pos, bem, trans=None, verbose=None):
 
     Returns
     -------
-    distances : float | array, shape (n,)
+    distances : float | array, shape (n,)
         The computed distance(s). A float is returned if pos is
         an array of shape (3,) corresponding to a single position.
     """
@@ -2215,7 +2215,9 @@ def distance_to_bem(pos, bem, trans=None, verbose=None):
     n = pos.shape[0]
     distance = np.zeros((n,))
 
-    logger.info(f'Computing distance to inner skull surface for {n} positions...')
+    logger.info(
+        f'Computing distance to inner skull surface for {n} positions...'
+    )
 
     if bem['is_sphere']:
         center = bem['r0']
