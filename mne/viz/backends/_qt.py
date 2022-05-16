@@ -633,10 +633,18 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
         self._layout_add_widget(self._status_bar.layout(), widget, stretch)
         return _QtWidget(widget)
 
-    def _status_bar_add_text(self, value, callback, *, stretch=0):
+    def _status_bar_add_text(self, value, callback, *, stretch=0,
+                             editing_finished=False):
         widget = QLineEdit(value)
+
+        def func():
+            value = widget.text()
+            callback(value)
         if callback is not None:
-            widget.textChanged.connect(callback)
+            if editing_finished:
+                widget.editingFinished.connect(func)
+            else:
+                widget.textChanged.connect(callback)
         self._layout_add_widget(self._status_bar.layout(), widget, stretch)
         return _QtWidget(widget)
 

@@ -569,11 +569,13 @@ class IntracranialElectrodeLocator():
         self._intensity_label = self._renderer._status_bar_add_label('')
         self._renderer._status_bar_add_label('VOX = ')
         self._VOX_textbox = self._renderer._status_bar_add_text(
-            value='', callback=self._update_VOX
+            value='', callback=self._update_VOX,
+            editing_finished=True,
         )
         self._renderer._status_bar_add_label('RAS =')
         self._RAS_textbox = self._renderer._status_bar_add_text(
             value='', callback=self._update_RAS,
+            editing_finished=True,
         )
         self._update_moved()  # update text now
 
@@ -705,17 +707,15 @@ class IntracranialElectrodeLocator():
         self._ch_index = (self._ch_index + 1) % len(self._ch_names)
         self._update_ch_selection()
 
-    def _update_RAS(self, event):
+    def _update_RAS(self, value):
         """Interpret user input to the RAS textbox."""
-        text = self._RAS_textbox.get_value()
-        ras = self._convert_text(text, 'ras')
+        ras = self._convert_text(value, 'ras')
         if ras is not None:
             self._set_ras(ras)
 
-    def _update_VOX(self, event):
+    def _update_VOX(self, value):
         """Interpret user input to the RAS textbox."""
-        text = self._VOX_textbox.get_value()
-        ras = self._convert_text(text, 'vox')
+        ras = self._convert_text(value, 'vox')
         if ras is not None:
             self._set_ras(ras)
 
@@ -783,20 +783,6 @@ class IntracranialElectrodeLocator():
     @property
     def _current_slice(self):
         return self._vox.round().astype(int)
-
-    def _check_update_RAS(self):
-        """Check whether the RAS textbox is done being edited."""
-        if '\n' in self._RAS_textbox.get_value():
-            self._update_RAS(event=None)
-            # remove focus from text edit
-            self._renderer._list_view_focus(self._ch_list)
-
-    def _check_update_VOX(self):
-        """Check whether the VOX textbox is done being edited."""
-        if '\n' in self._VOX_textbox.get_value():
-            self._update_VOX(event=None)
-            # remove focus from text edit
-            self._renderer._list_view_focus(self._ch_list)
 
     def _color_list_item(self, name=None):
         """Color the item in the view list for easy id of marked channels."""
