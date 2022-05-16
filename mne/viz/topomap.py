@@ -2809,7 +2809,7 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     return fig
 
 
-def plot_ch_adjacency(inst, adjacency, color='gray', kind='3d'):
+def plot_ch_adjacency(inst, adjacency, ch_type=None, color='gray', kind='3d'):
     '''Plot channel adjacency.
 
     Parameters
@@ -2819,6 +2819,9 @@ def plot_ch_adjacency(inst, adjacency, color='gray', kind='3d'):
     adjacency : array
         Array of channels x channels shape. Defines which channels are adjacent
         to each other.
+    ch_type : None | str
+        Channel type of ``inst`` to use so that channels match ``adjacency``
+        matrix.
     color : matplotlib color
         Color to plot the adjacency relations with.
     kind : str
@@ -2850,15 +2853,38 @@ def plot_ch_adjacency(inst, adjacency, color='gray', kind='3d'):
                           "the modifications applied interactively won"
                           "'t be reflected in the adjacency matrix.")
 
+    # check ch_type
+    ch_types = inst.get_channel_types(only_data_chs=True)
+    if ch_type is None:
+        unique_ch_types = np.unique(ch_types)
+
+        if len(unique_ch_types) > 1:
+            raise ValueError('Channels of multiple types present in ``inst``'
+                             '. Please use ``ch_type`` argument to select '
+                             'relevant channels.')  # or RuntimeError?
+        elif len(unique_ch_types) == 0:
+            raise ValueError('No data channels found in ``inst``.')
+        else:
+            ch_type = unique_ch_types[0]
+
+    # make sure adjacency is correct size wrt to inst:
+    n_inst_channels = (np.array(ch_types) == ch_type).sum()
+    if adjacency.shape[0] != n_inst_channels:
+        raise ValueError('``adjacency`` must have the same number of rows '
+                         'as the number of channels in ``inst``. Found '
+                         f'{adjacency.shape[0]} channels for ``adjacency`` and'
+                         f' {n_inst_channels} for ``inst``.')
+
     if kind == '3d':
         with plt.rc_context({'toolbar': 'None'}):
-            fig = plot_sensors(info, kind=kind, show=False)
+            fig = plot_sensors(info, kind=kind, show=False, ch_type=ch_type)
         pos = np.array([x['loc'][:3] for x in info['chs']])
         set_3d_axes_equal(fig.axes[0])
     elif kind == '2d':
         import matplotlib as mpl
         with plt.rc_context({'toolbar': 'None'}):
-            fig = plot_sensors(info, kind='topomap', show=False)
+            fig = plot_sensors(info, kind='topomap', show=False,
+                               ch_type=ch_type)
         fig.axes[0].axis('equal')
         path_collection = fig.axes[0].findobj(mpl.collections.PathCollection)
         pos = path_collection[0].get_offsets()
