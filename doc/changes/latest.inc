@@ -28,6 +28,8 @@ Enhancements
 
 - Add support for reading data from Gowerlabs devices to :func:`mne.io.read_raw_snirf` (:gh:`10555` by :newcontrib:`Samuel Powell` and `Robert Luke`_)
 
+- Add built-in sensor layout files for Geodesic Head Web 130 and 280 devices (:gh:`10627` by `Evan Hathaway`_)
+
 - Add ``mne-icalabel`` to :func:`mne.sys_info` (:gh:`10615` by `Adam Li`_)
 
 - Add support for ``overview_mode`` in :meth:`raw.plot() <mne.io.Raw.plot>` and related functions/methods (:gh:`10501` by `Eric Larson`_)
