@@ -2890,7 +2890,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='3d', edit=False):
         # scale node size with number of connections
         n_connections = [np.sum(adjacency[i]) - 1
                          for i in range(adjacency.shape[0])]
-        node_size = [x ** 2.5 for x in n_connections]
+        node_size = [max(x, 3) ** 2.5 for x in n_connections]
         path_collection[0].set_sizes(node_size)
 
     ax = fig.axes[0]
@@ -2977,7 +2977,7 @@ def _onpick_ch_adjacency(event, axes=None, positions=None, highlighted=None,
             n_connections = [np.sum(adjacency[idx]) - 1 + n_conn_change
                              for idx in both_nodes]
             for idx, n_conn in zip(both_nodes, n_connections):
-                node_size[idx] = n_conn ** 2.5
+                node_size[idx] = max(n_conn, 3) ** 2.5
             path_collection[0].set_sizes(node_size)
 
             # highlight new node
