@@ -16,7 +16,7 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
-.. _changes_1_0_3:
+.. _changes_1_0_4:
 
 Version 1.0.4 (xxxx-xx-xx)
 --------------------------
