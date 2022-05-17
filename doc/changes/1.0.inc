@@ -18,7 +18,7 @@
 
 .. _changes_1_0_4:
 
-Version 1.0.4 (xxxx-xx-xx)
+Version 1.0.4 (unreleased)
 --------------------------
 - Reduce memory usage when loading an EDF file with ``preload=False`` (:gh:`10638` by `Clemens Brunner`_)
 
