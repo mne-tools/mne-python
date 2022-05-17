@@ -2809,21 +2809,18 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     return fig
 
 
-def plot_ch_adjacency(inst, adjacency, ch_type=None, color='gray', kind='3d'):
+def plot_ch_adjacency(info, adjacency, ch_names, kind='3d'):
     """Plot channel adjacency.
 
     Parameters
     ----------
-    inst : Raw | Epochs | Evoked
-        mne-python data container
+    info : instance of Info
+        Info object with channel locations.
     adjacency : array
         Array of channels x channels shape. Defines which channels are adjacent
         to each other.
-    ch_type : None | str
-        Channel type of ``inst`` to use so that channels match ``adjacency``
-        matrix.
-    color : matplotlib color
-        Color to plot the adjacency relations with.
+    ch_names : list of str
+        Names of succesive channels in the ``adjacency`` matix.
     kind : str
         How to plot the adjacency. Can be either ``'3d'`` or ``'2d'``.
 
@@ -2841,8 +2838,7 @@ def plot_ch_adjacency(inst, adjacency, ch_type=None, color='gray', kind='3d'):
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
 
-    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), 'inst')
-    info = inst.info
+    _validate_type(info, Info, 'info')
 
     if isinstance(adjacency, (sparse.coo_matrix, sparse.csr_matrix)):
         # FIX: but in this case the adjacency matrix won't be
@@ -2853,38 +2849,27 @@ def plot_ch_adjacency(inst, adjacency, ch_type=None, color='gray', kind='3d'):
                           "the modifications applied interactively won"
                           "'t be reflected in the adjacency matrix.")
 
-    # check ch_type
-    ch_types = inst.get_channel_types(only_data_chs=True)
-    if ch_type is None:
-        unique_ch_types = np.unique(ch_types)
-
-        if len(unique_ch_types) > 1:
-            raise ValueError('Channels of multiple types present in ``inst``'
-                             '. Please use ``ch_type`` argument to select '
-                             'relevant channels.')  # or RuntimeError?
-        elif len(unique_ch_types) == 0:
-            raise ValueError('No data channels found in ``inst``.')
-        else:
-            ch_type = unique_ch_types[0]
+    # select relevant channels
+    sel = pick_channels(info.ch_names, ch_names, ordered=True)
+    info = pick_info(info, sel)
 
     # make sure adjacency is correct size wrt to inst:
-    n_inst_channels = (np.array(ch_types) == ch_type).sum()
-    if adjacency.shape[0] != n_inst_channels:
+    n_channels = len(info.ch_names)
+    if adjacency.shape[0] != n_channels:
         raise ValueError('``adjacency`` must have the same number of rows '
                          'as the number of channels in ``inst``. Found '
                          f'{adjacency.shape[0]} channels for ``adjacency`` and'
-                         f' {n_inst_channels} for ``inst``.')
+                         f' {n_channels} for ``inst``.')
 
     if kind == '3d':
         with plt.rc_context({'toolbar': 'None'}):
-            fig = plot_sensors(info, kind=kind, show=False, ch_type=ch_type)
+            fig = plot_sensors(info, kind=kind, show=False)
         pos = np.array([x['loc'][:3] for x in info['chs']])
         set_3d_axes_equal(fig.axes[0])
     elif kind == '2d':
         import matplotlib as mpl
         with plt.rc_context({'toolbar': 'None'}):
-            fig = plot_sensors(info, kind='topomap', show=False,
-                               ch_type=ch_type)
+            fig = plot_sensors(info, kind='topomap', show=False)
         fig.axes[0].axis('equal')
         path_collection = fig.axes[0].findobj(mpl.collections.PathCollection)
         pos = path_collection[0].get_offsets()
@@ -2910,7 +2895,7 @@ def plot_ch_adjacency(inst, adjacency, ch_type=None, color='gray', kind='3d'):
         for ngb_idx in ch_neighbours:
             this_pos = pos[[ch_idx, ngb_idx], :]
             ch_pair = tuple([ch_idx, ngb_idx])
-            lines[ch_pair] = ax.plot(*this_pos.T, color=color)[0]
+            lines[ch_pair] = ax.plot(*this_pos.T, color='gray')[0]
 
     if kind == '2d':
         # allow interactivity in 2d plots
