@@ -7,8 +7,8 @@
 import re
 import numpy as np
 
-from ...io.pick import _picks_to_idx
-from ...utils import fill_doc
+from ...io.pick import _picks_to_idx, pick_types
+from ...utils import fill_doc, _check_option, _validate_type
 
 
 # Standardized fNIRS channel name regexs
@@ -31,10 +31,10 @@ def source_detector_distances(info, picks=None):
         Array containing distances in meters.
         Of shape equal to number of channels, or shape of picks if supplied.
     """
-    dist = [np.linalg.norm(ch['loc'][3:6] - ch['loc'][6:9])
-            for ch in info['chs']]
-    picks = _picks_to_idx(info, picks, exclude=[])
-    return np.array(dist, float)[picks]
+    return np.array([
+        np.linalg.norm(np.diff(
+            info['chs'][pick]['loc'][3:9].reshape(2, 3), axis=0)[0])
+        for pick in _picks_to_idx(info, picks, exclude=[])], float)
 
 
 @fill_doc
@@ -59,18 +59,24 @@ def short_channels(info, threshold=0.01):
     return source_detector_distances(info) < threshold
 
 
-def _channel_frequencies(info, nominal=False):
+def _channel_frequencies(info, *, throw_errors=True):
     """Return the light frequency for each channel."""
     # Only valid for fNIRS data before conversion to haemoglobin
     picks = _picks_to_idx(info, ['fnirs_cw_amplitude', 'fnirs_od'],
                           exclude=[], allow_empty=True)
     freqs = np.empty(picks.size, int)
-    for ii in picks:
-        if nominal:
-            freq = float(_S_D_F_RE.match(info['ch_names'][ii]).groups()[2])
-        else:
-            freq = info['chs'][ii]['loc'][9]
-        freqs[ii] = freq
+    for pick in picks:
+        freq_nom = float(_S_D_F_RE.match(info['ch_names'][pick]).groups()[2])
+        freq = info['chs'][pick]['loc'][9]
+        if not np.isclose(freq, freq_nom, atol=1.):
+            if throw_errors:
+                raise ValueError(
+                    f'Nominal channel frequency for channel '
+                    f'{repr(info["ch_names"][pick])} ({freq_nom}) does not '
+                    'match frequency encoded in the channel measurement '
+                    f'information ({freq})')
+            return freqs[:0]
+        freqs[pick] = round(freq)
     return freqs
 
 
@@ -84,7 +90,8 @@ def _channel_chromophore(info):
     return chroma
 
 
-def _check_channels_ordered(info, pair_vals, throw_errors=True):
+def _check_channels_ordered(info, pair_vals, *, throw_errors=True,
+                            check_bads=True):
     """Check channels follow expected fNIRS format.
 
     If the channels are correctly ordered then an array of valid picks
@@ -103,8 +110,6 @@ def _check_channels_ordered(info, pair_vals, throw_errors=True):
     # All chromophore fNIRS data
     picks_chroma = _picks_to_idx(info, ['hbo', 'hbr'],
                                  exclude=[], allow_empty=True)
-    # All continuous wave fNIRS data
-    picks = np.hstack([picks_chroma, picks_wave])
 
     if (len(picks_wave) > 0) & (len(picks_chroma) > 0):
         picks = _throw_or_return_empty(
@@ -112,11 +117,43 @@ def _check_channels_ordered(info, pair_vals, throw_errors=True):
             'density, and haemoglobin data in the same raw structure.',
             throw_errors)
 
+    # All continuous wave fNIRS data
+    if len(picks_wave):
+        error_word = "frequencies"
+        use_RE = _S_D_F_RE
+        picks = picks_wave
+    else:
+        error_word = "chromophore"
+        use_RE = _S_D_H_RE
+        picks = picks_chroma
+
+    pair_vals = np.array(pair_vals)
+    if pair_vals.shape != (2,):
+        raise ValueError(
+            f'Exactly two {error_word} must exist in info, got '
+            f'{list(pair_vals)}')
+    # In principle we do not need to require that these be sorted --
+    # all we need to do is change our sorted() below to make use of a
+    # pair_vals.index(...) in a sort key -- but in practice we always want
+    # (hbo, hbr) or (lower_freq, upper_freq) pairings, both of which will
+    # work with a naive string sort, so let's just enforce sorted-ness here
+    is_str = pair_vals.dtype.kind == 'U'
+    pair_vals = list(pair_vals)
+    if is_str:
+        if pair_vals != ['hbo', 'hbr']:
+            raise ValueError(
+                f'The {error_word} in info must be ["hbo", "hbr"], but got '
+                f'{pair_vals} instead')
+    elif not np.array_equal(np.unique(pair_vals), pair_vals):
+        raise ValueError(
+            f'The {error_word} in info must be unique and sorted, but got '
+            f'got {pair_vals} instead')
+
     if len(picks) % 2 != 0:
         picks = _throw_or_return_empty(
             'NIRS channels not ordered correctly. An even number of NIRS '
-            f'channels is required.  {len(info.ch_names)} channels were'
-            f'provided: {info.ch_names}', throw_errors)
+            f'channels is required. {len(info.ch_names)} channels were'
+            f'provided', throw_errors)
 
     # Ensure wavelength info exists for waveform data
     all_freqs = [info["chs"][ii]["loc"][9] for ii in picks_wave]
@@ -126,51 +163,59 @@ def _check_channels_ordered(info, pair_vals, throw_errors=True):
             f'info["chs"] structure. The encoded wavelengths are {all_freqs}.',
             throw_errors)
 
-    for ii, jj in zip(picks[::2], picks[1::2]):
-        ch1_name_info = _S_D_F_RE.match(info['chs'][ii]['ch_name'])
-        ch2_name_info = _S_D_F_RE.match(info['chs'][jj]['ch_name'])
-
-        if bool(ch2_name_info) & bool(ch1_name_info):
-
-            first_value = float(ch1_name_info.groups()[2])
-            second_value = float(ch2_name_info.groups()[2])
-            error_word = "frequencies"
-
-        else:
-            ch1_name_info = _S_D_H_RE.match(info['chs'][ii]['ch_name'])
-            ch2_name_info = _S_D_H_RE.match(info['chs'][jj]['ch_name'])
-
-            if bool(ch2_name_info) & bool(ch1_name_info):
-
-                first_value = ch1_name_info.groups()[2]
-                second_value = ch2_name_info.groups()[2]
-                error_word = "chromophore"
-
-                if (first_value not in ["hbo", "hbr"] or
-                        second_value not in ["hbo", "hbr"]):
-                    picks = _throw_or_return_empty(
-                        "NIRS channels have specified naming conventions."
-                        "Chromophore data must be labeled either hbo or hbr. "
-                        f"Failing channels are {info['chs'][ii]['ch_name']}, "
-                        f"{info['chs'][jj]['ch_name']}", throw_errors)
-
-            else:
-                picks = _throw_or_return_empty(
-                    'NIRS channels have specified naming conventions. '
-                    'The provided channel names can not be parsed.'
-                    f'Channels are {info.ch_names}', throw_errors)
-
-        if (ch1_name_info.groups()[0] != ch2_name_info.groups()[0]) or \
-           (ch1_name_info.groups()[1] != ch2_name_info.groups()[1]) or \
-           (first_value != pair_vals[0]) or \
-           (second_value != pair_vals[1]):
+    # Validate the channel naming scheme
+    for pick in picks:
+        ch_name_info = use_RE.match(info['chs'][pick]['ch_name'])
+        if not bool(ch_name_info):
             picks = _throw_or_return_empty(
-                'NIRS channels not ordered correctly. Channels must be'
-                'ordered as source detector pairs with alternating'
-                f' {error_word}: {pair_vals[0]} & {pair_vals[1]}',
-                throw_errors)
+                'NIRS channels have specified naming conventions. '
+                'The provided channel name can not be parsed: '
+                f'{repr(info.ch_names[pick])}', throw_errors)
+            break
+        value = ch_name_info.groups()[2]
+        if len(picks_wave):
+            value = value
+        else:  # picks_chroma
+            if value not in ["hbo", "hbr"]:
+                picks = _throw_or_return_empty(
+                    "NIRS channels have specified naming conventions."
+                    "Chromophore data must be labeled either hbo or hbr. "
+                    f"The failing channel is {info['chs'][pick]['ch_name']}",
+                    throw_errors)
+                break
 
-    _fnirs_check_bads(info)
+    # Reorder to be paired (naive sort okay here given validation above)
+    picks = picks[np.argsort([info['ch_names'][pick] for pick in picks])]
+
+    # Validate our paired ordering
+    for ii, jj in zip(picks[::2], picks[1::2]):
+        ch1_name = info['chs'][ii]['ch_name']
+        ch2_name = info['chs'][jj]['ch_name']
+        ch1_re = use_RE.match(ch1_name)
+        ch2_re = use_RE.match(ch2_name)
+        ch1_S, ch1_D, ch1_value = ch1_re.groups()[:3]
+        ch2_S, ch2_D, ch2_value = ch2_re.groups()[:3]
+        if len(picks_wave):
+            ch1_value, ch2_value = float(ch1_value), float(ch2_value)
+        if (ch1_S != ch2_S) or (ch1_D != ch2_D) or \
+           (ch1_value != pair_vals[0]) or (ch2_value != pair_vals[1]):
+            picks = _throw_or_return_empty(
+                'NIRS channels not ordered correctly. Channels must be '
+                'ordered as source detector pairs with alternating'
+                f' {error_word} {pair_vals[0]} & {pair_vals[1]}, but got '
+                f'S{ch1_S}_D{ch1_D} pair '
+                f'{repr(ch1_name)} and {repr(ch2_name)}',
+                throw_errors)
+            break
+
+    if check_bads:
+        for ii, jj in zip(picks[::2], picks[1::2]):
+            want = [info.ch_names[ii], info.ch_names[jj]]
+            got = list(set(info['bads']).intersection(want))
+            if len(got) == 1:
+                raise RuntimeError(
+                    f'NIRS bad labelling is not consistent, found {got} but '
+                    f'needed {want}')
     return picks
 
 
@@ -181,31 +226,33 @@ def _throw_or_return_empty(msg, throw_errors):
         return []
 
 
-def _validate_nirs_info(info, throw_errors=True):
+def _validate_nirs_info(info, *, throw_errors=True, fnirs=None, which=None,
+                        return_pairs=False, check_bads=True):
     """Apply all checks to fNIRS info. Works on all continuous wave types."""
-    freqs = np.unique(_channel_frequencies(info, nominal=True))
-    if freqs.size > 0:
-        picks = _check_channels_ordered(info, freqs, throw_errors=throw_errors)
-    else:
-        picks = _check_channels_ordered(info,
-                                        np.unique(_channel_chromophore(info)),
-                                        throw_errors=throw_errors)
-    return picks
-
-
-def _fnirs_check_bads(info):
-    """Check consistent labeling of bads across fnirs optodes."""
-    # For an optode pair, if one component (light frequency or chroma) is
-    # marked as bad then they all should be. This function checks that all
-    # optodes are marked bad consistently.
-    picks = _picks_to_idx(info, 'fnirs', exclude=[], allow_empty=True)
-    for ii in picks[::2]:
-        want = info.ch_names[ii:ii + 2]
-        got = list(set(info['bads']).intersection(want))
-        if len(got) == 1:
+    _validate_type(fnirs, (None, str), 'fnirs')
+    kinds = dict(
+        od='optical density',
+        cw_amplitude='continuous wave',
+        hbx='chromophore',
+    )
+    _check_option('fnirs', fnirs, (None,) + tuple(kinds))
+    if fnirs is not None:
+        kind = kinds[fnirs]
+        fnirs = ['hbo', 'hbr'] if fnirs == 'hbx' else f'fnirs_{fnirs}'
+        if not len(pick_types(info, fnirs=fnirs)):
             raise RuntimeError(
-                f'NIRS bad labelling is not consistent, found {got} but '
-                f'needed {want}')
+                f'{which} must operate on {kind} data, but none was found.')
+    freqs = np.unique(_channel_frequencies(info, throw_errors=throw_errors))
+    if freqs.size > 0:
+        pair_vals = freqs
+    else:
+        pair_vals = np.unique(_channel_chromophore(info))
+    out = _check_channels_ordered(
+        info, pair_vals, throw_errors=throw_errors,
+        check_bads=check_bads)
+    if return_pairs:
+        out = (out, pair_vals)
+    return out
 
 
 def _fnirs_spread_bads(info):
@@ -213,13 +260,15 @@ def _fnirs_spread_bads(info):
     # For an optode pair if any component (light frequency or chroma) is marked
     # as bad, then they all should be. This function will find any pairs marked
     # as bad and spread the bad marking to all components of the optode pair.
-    picks = _picks_to_idx(info, 'fnirs', exclude=[], allow_empty=True)
-    new_bads = list()
-    for ii in picks[::2]:
-        bad_opto = set(info['bads']).intersection(info.ch_names[ii:ii + 2])
-        if len(bad_opto) > 0:
-            new_bads.extend(info.ch_names[ii:ii + 2])
-    info['bads'] = new_bads
+    picks = _validate_nirs_info(info, check_bads=False)
+    new_bads = set(info['bads'])
+    for ii, jj in zip(picks[::2], picks[1::2]):
+        ch1_name, ch2_name = info.ch_names[ii], info.ch_names[jj]
+        if ch1_name in new_bads:
+            new_bads.add(ch2_name)
+        elif ch2_name in new_bads:
+            new_bads.add(ch1_name)
+    info['bads'] = sorted(new_bads)
 
     return info
 
@@ -259,3 +308,16 @@ def _optode_position(info, optode):
         loc_idx = range(6, 9)
 
     return info["chs"][idx]["loc"][loc_idx]
+
+
+def _reorder_nirx(raw):
+    # Maybe someday we should make this public like
+    # mne.preprocessing.nirs.reorder_standard(raw, order='nirx')
+    info = raw.info
+    picks = pick_types(info, fnirs=True, exclude=[])
+    prefixes = [info['ch_names'][pick].split()[0] for pick in picks]
+    nirs_names = [info['ch_names'][pick] for pick in picks]
+    nirs_sorted = sorted(nirs_names,
+                         key=lambda name: (prefixes.index(name.split()[0]),
+                                           name.split(maxsplit=1)[1]))
+    raw.reorder_channels(nirs_sorted)

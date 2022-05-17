@@ -11,8 +11,7 @@ import numpy as np
 from ...io import BaseRaw
 from ...io.constants import FIFF
 from ...utils import _validate_type, warn
-from ..nirs import source_detector_distances, _channel_frequencies,\
-    _check_channels_ordered, _channel_chromophore
+from ..nirs import source_detector_distances, _validate_nirs_info
 
 
 def beer_lambert_law(raw, ppf=6.):
@@ -35,8 +34,9 @@ def beer_lambert_law(raw, ppf=6.):
     _validate_type(raw, BaseRaw, 'raw')
     _validate_type(ppf, 'numeric', 'ppf')
     ppf = float(ppf)
-    freqs = np.unique(_channel_frequencies(raw.info, nominal=True))
-    picks = _check_channels_ordered(raw.info, freqs)
+    picks, freqs = _validate_nirs_info(
+        raw.info, fnirs='od', which='Beer-lambert',
+        return_pairs=True)
     abs_coef = _load_absorption(freqs)
     distances = source_detector_distances(raw.info)
     if (distances == 0).any():
@@ -66,8 +66,7 @@ def beer_lambert_law(raw, ppf=6.):
     raw.rename_channels(rename)
 
     # Validate the format of data after transformation is valid
-    chroma = np.unique(_channel_chromophore(raw.info))
-    _check_channels_ordered(raw.info, chroma)
+    _validate_nirs_info(raw.info, fnirs='hbx')
     return raw
 
 

@@ -9,8 +9,7 @@ import numpy as np
 from ...io import BaseRaw
 from ...io.constants import FIFF
 from ...utils import _validate_type, warn, verbose
-from ...io.pick import pick_types
-from ..nirs import _channel_frequencies, _check_channels_ordered
+from ..nirs import _validate_nirs_info
 
 
 @verbose
@@ -30,11 +29,7 @@ def optical_density(raw, *, verbose=None):
     """
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
-    picks = _check_channels_ordered(
-        raw.info, np.unique(_channel_frequencies(raw.info, nominal=True)))
-    if not len(pick_types(raw.info, fnirs='fnirs_cw_amplitude')):
-        raise RuntimeError(
-            'Optical density should be computed on continuous wave data.')
+    picks = _validate_nirs_info(raw.info, fnirs='cw_amplitude')
 
     # The devices measure light intensity. Negative light intensities should
     # not occur. If they do it is likely due to hardware or movement issues.
@@ -50,9 +45,9 @@ def optical_density(raw, *, verbose=None):
         for pi in picks:
             np.maximum(raw._data[pi], min_, out=raw._data[pi])
 
-    data_means = np.mean(raw.get_data(picks=picks), axis=1)
-    for ii, pi in enumerate(picks):
-        raw._data[pi] /= data_means[ii]
+    for pi in picks:
+        data_mean = np.mean(raw._data[pi])
+        raw._data[pi] /= data_mean
         np.log(raw._data[pi], out=raw._data[pi])
         raw._data[pi] *= -1
         raw.info['chs'][pi]['coil_type'] = FIFF.FIFFV_COIL_FNIRS_OD

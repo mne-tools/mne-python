@@ -8,7 +8,7 @@ import numpy as np
 
 from ...io import BaseRaw
 from ...utils import _validate_type, verbose
-from ..nirs import _channel_frequencies, _check_channels_ordered
+from ..nirs import _validate_nirs_info
 
 
 @verbose
@@ -41,13 +41,8 @@ def scalp_coupling_index(raw, l_freq=0.7, h_freq=1.5,
     .. footbibliography::
     """
     _validate_type(raw, BaseRaw, 'raw')
-
-    if 'fnirs_od' not in raw:
-        raise RuntimeError(
-            'Scalp coupling index should be run on optical density data.')
-
-    freqs = np.unique(_channel_frequencies(raw.info, nominal=True))
-    picks = _check_channels_ordered(raw.info, freqs)
+    picks = _validate_nirs_info(
+        raw.info, fnirs='od', which='Scalp coupling index')
 
     raw = raw.copy().pick(picks).load_data()
     zero_mask = np.std(raw._data, axis=-1) == 0

@@ -12,7 +12,8 @@ from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_snirf, read_raw_nirx
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing.nirs import (optical_density, beer_lambert_law,
-                                    short_channels, source_detector_distances)
+                                    short_channels, source_detector_distances,
+                                    _reorder_nirx)
 from mne.transforms import apply_trans, _get_trans
 from mne.io.constants import FIFF
 
@@ -93,23 +94,18 @@ def test_snirf_gowerlabs():
     assert len(raw.ch_names) == 216
     assert_allclose(raw.info['sfreq'], 10.0)
     # we don't force them to be sorted according to a naive split
-    # (but we do force them to be interleaved, which is tested by beer_lambert
-    # above)
     assert raw.ch_names != sorted(raw.ch_names)
-    # ... and this file does have a nice logical ordering already
+    # ... but this file does have a nice logical ordering already
+    print(raw.ch_names)
     assert raw.ch_names == sorted(
-        raw.ch_names,  # use a key which is (source int, detector int)
-        key=lambda name: (int(name.split()[0].split('_')[0][1:]),
-                          int(name.split()[0].split('_')[1][1:])))
-    prefixes = [name.split()[0] for name in raw.ch_names]
-    # TODO: This is actually not the order on disk -- we reorder to ravel as
-    # S-D then freq, but gowerlabs order is freq then S-D. So hopefully soon
-    # we can change these lines to check that the first half of prefixes
-    # matches the second half of prefixes, rather than every-other matching the
-    # other every-other
-    assert prefixes[::2] == prefixes[1::2]
-    prefixes = prefixes[::2]
-    assert prefixes == ['S1_D1', 'S1_D2', 'S1_D3', 'S1_D4', 'S1_D5', 'S1_D6', 'S1_D7', 'S1_D8', 'S1_D9', 'S1_D10', 'S1_D11', 'S1_D12', 'S2_D1', 'S2_D2', 'S2_D3', 'S2_D4', 'S2_D5', 'S2_D6', 'S2_D7', 'S2_D8', 'S2_D9', 'S2_D10', 'S2_D11', 'S2_D12', 'S3_D1', 'S3_D2', 'S3_D3', 'S3_D4', 'S3_D5', 'S3_D6', 'S3_D7', 'S3_D8', 'S3_D9', 'S3_D10', 'S3_D11', 'S3_D12', 'S4_D1', 'S4_D2', 'S4_D3', 'S4_D4', 'S4_D5', 'S4_D6', 'S4_D7', 'S4_D8', 'S4_D9', 'S4_D10', 'S4_D11', 'S4_D12', 'S5_D1', 'S5_D2', 'S5_D3', 'S5_D4', 'S5_D5', 'S5_D6', 'S5_D7', 'S5_D8', 'S5_D9', 'S5_D10', 'S5_D11', 'S5_D12', 'S6_D1', 'S6_D2', 'S6_D3', 'S6_D4', 'S6_D5', 'S6_D6', 'S6_D7', 'S6_D8', 'S6_D9', 'S6_D10', 'S6_D11', 'S6_D12', 'S7_D1', 'S7_D2', 'S7_D3', 'S7_D4', 'S7_D5', 'S7_D6', 'S7_D7', 'S7_D8', 'S7_D9', 'S7_D10', 'S7_D11', 'S7_D12', 'S8_D1', 'S8_D2', 'S8_D3', 'S8_D4', 'S8_D5', 'S8_D6', 'S8_D7', 'S8_D8', 'S8_D9', 'S8_D10', 'S8_D11', 'S8_D12', 'S9_D1', 'S9_D2', 'S9_D3', 'S9_D4', 'S9_D5', 'S9_D6', 'S9_D7', 'S9_D8', 'S9_D9', 'S9_D10', 'S9_D11', 'S9_D12']  # noqa: E501
+        raw.ch_names,
+        # use a key which is (src triplet, freq, src, freq, det)
+        key=lambda name: (
+            (int(name.split()[0].split('_')[0][1:]) - 1) // 3,
+            int(name.split()[1]),
+            int(name.split()[0].split('_')[0][1:]),
+            int(name.split()[0].split('_')[1][1:])
+        ))
 
 
 @requires_testing_data
@@ -122,13 +118,13 @@ def test_snirf_basic():
     assert raw.info['sfreq'] == 12.5
 
     # Test channel naming
-    assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D1 850",
-                                        "S1_D9 760", "S1_D9 850"]
-    assert raw.info['ch_names'][24:26] == ["S5_D13 760", "S5_D13 850"]
+    assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D9 760",
+                                        "S2_D3 760", "S2_D10 760"]
+    assert raw.info['ch_names'][24:26] == ['S5_D8 850', 'S5_D13 850']
 
     # Test frequency encoding
     assert raw.info['chs'][0]['loc'][9] == 760
-    assert raw.info['chs'][1]['loc'][9] == 850
+    assert raw.info['chs'][24]['loc'][9] == 850
 
     # Test source locations
     assert_allclose([-8.6765 * 1e-2, 0.0049 * 1e-2, -2.6167 * 1e-2],
@@ -159,6 +155,7 @@ def test_snirf_basic():
 def test_snirf_against_nirx():
     """Test against file snirf was created from."""
     raw = read_raw_snirf(sfnirs_homer_103_wShort, preload=True)
+    _reorder_nirx(raw)
     raw_orig = read_raw_nirx(sfnirs_homer_103_wShort_original, preload=True)
 
     # Check annotations are the same
@@ -225,13 +222,13 @@ def test_snirf_nirsport2():
     assert_almost_equal(raw.info['sfreq'], 7.6, decimal=1)
 
     # Test channel naming
-    assert raw.info['ch_names'][:4] == ['S1_D1 760', 'S1_D1 850',
-                                        'S1_D3 760', 'S1_D3 850']
-    assert raw.info['ch_names'][24:26] == ['S6_D4 760', 'S6_D4 850']
+    assert raw.info['ch_names'][:4] == ['S1_D1 760', 'S1_D3 760',
+                                        'S1_D9 760', 'S1_D16 760']
+    assert raw.info['ch_names'][24:26] == ['S8_D15 760', 'S8_D20 760']
 
     # Test frequency encoding
     assert raw.info['chs'][0]['loc'][9] == 760
-    assert raw.info['chs'][1]['loc'][9] == 850
+    assert raw.info['chs'][-1]['loc'][9] == 850
 
     assert sum(short_channels(raw.info)) == 16
 
@@ -257,6 +254,7 @@ def test_snirf_nirsport2_w_positions():
     """Test reading SNIRF files with known positions."""
     raw = read_raw_snirf(nirx_nirsport2_103_2, preload=True,
                          optode_frame="mri")
+    _reorder_nirx(raw)
 
     # Test data import
     assert raw._data.shape == (40, 128)

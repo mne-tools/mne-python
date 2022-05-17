@@ -24,10 +24,10 @@ from mne.channels import read_layout
 from mne.coreg import create_default_subject
 from mne.datasets import testing
 from mne.fixes import has_numba, _compare_version
-from mne.io import read_raw_fif, read_raw_ctf
+from mne.io import read_raw_fif, read_raw_ctf, read_raw_nirx, read_raw_snirf
 from mne.stats import cluster_level
 from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
-                       _check_qt_version, _TempDir)
+                       _check_qt_version, _TempDir, requires_h5py)
 
 # data from sample dataset
 from mne.viz._figure import use_browser_backend
@@ -47,6 +47,17 @@ fname_trans = op.join(s_path, 'sample_audvis_trunc-trans.fif')
 
 ctf_dir = op.join(test_path, 'CTF')
 fname_ctf_continuous = op.join(ctf_dir, 'testdata_ctf.ds')
+
+nirx_path = test_path / 'NIRx'
+snirf_path = test_path / 'SNIRF'
+nirsport2 = nirx_path / 'nirsport_v2' / 'aurora_recording _w_short_and_acc'
+nirsport2_snirf = (
+    snirf_path / 'NIRx' / 'NIRSport2' / '1.0.3' /
+    '2021-05-05_001.snirf')
+nirsport2_2021_9 = nirx_path / 'nirsport_v2' / 'aurora_2021_9'
+nirsport2_20219_snirf = (
+    snirf_path / 'NIRx' / 'NIRSport2' / '2021.9' /
+    '2021-10-01_002.snirf')
 
 # data from mne.io.tests.data
 base_dir = op.join(op.dirname(__file__), 'io', 'tests', 'data')
@@ -925,3 +936,16 @@ def pytest_runtest_call(item):
 
         item.runtest = run
     return
+
+
+@requires_h5py
+@testing.requires_testing_data
+@pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
+@pytest.fixture(params=(
+    [nirsport2, nirsport2_snirf],
+    [nirsport2_2021_9, nirsport2_20219_snirf],
+))
+def nirx_snirf(request):
+    """Return a (raw_nirx, raw_snirf) matched pair."""
+    return (read_raw_nirx(request.param[0], preload=True),
+            read_raw_snirf(request.param[1], preload=True))
