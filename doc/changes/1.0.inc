@@ -18,6 +18,12 @@
 
 .. _changes_1_0_3:
 
+Version 1.0.4 (xxxx-xx-xx)
+--------------------------
+- Reduce memory usage when loading an EDF file with ``preload=False`` (:gh:`10638` by `Clemens Brunner`_)
+
+.. _changes_1_0_3:
+
 Version 1.0.3 (2022-05-12)
 --------------------------
 - Fix bug in :meth:`raw.crop(start, stop) <mne.io.Raw.crop>` that would cause annotations to be erroneously shifted when ``start != 0`` and no measurement date was set. (:gh:`10491` by `Eric Larson`_)
