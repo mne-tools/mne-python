@@ -1464,7 +1464,7 @@ def fix_mag_coil_types(info, use_cal=False):
 
 def _get_T1T2_mag_inds(info, use_cal=False):
     """Find T1/T2 magnetometer coil types."""
-    picks = pick_types(info, meg='mag')
+    picks = pick_types(info, meg='mag', exclude=[])
     old_mag_inds = []
     # From email exchanges, systems with the larger T2 coil only use the cal
     # value of 2.09e-11. Newer T3 magnetometers use 4.13e-11 or 1.33e-10
