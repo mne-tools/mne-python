@@ -68,6 +68,8 @@ Enhancements
 
 - Added fNIRS support to :func:`mne.Info.get_montage` (:gh:`10611` by `Robert Luke`_)
 
+- Add :func:`mne.bem.distance_to_bem` to find depth of source positions (:gh:`10632` by :newcontrib:`Matt Courtemanche`_) 
+
 Bugs
 ~~~~
 - Make ``color`` parameter check in in :func:`mne.viz.plot_evoked_topo` consistent (:gh:`10217` by :newcontrib:`T. Wang` and `Stefan Appelhoff`_)
