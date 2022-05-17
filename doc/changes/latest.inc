@@ -23,6 +23,7 @@ Current (1.1.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- Add :func:`mne.bem.distance_to_bem` to find depth of source positions (:gh:`10632` by :newcontrib:`Matt Courtemanche`_) 
 
 - Add support for ahdr files in :func:`mne.io.read_raw_brainvision` (:gh:`10515` by :newcontrib:`Alessandro Tonin`)
 
@@ -67,8 +68,6 @@ Enhancements
 - :func:`mne.viz.plot_evoked` and :meth:`mne.Evoked.plot` gained a new parameter, ``highlight``, to visually highlight time periods of interest (:gh:`10614` by `Richard Höchenberger`_)
 
 - Added fNIRS support to :func:`mne.Info.get_montage` (:gh:`10611` by `Robert Luke`_)
-
-- Add :func:`mne.bem.distance_to_bem` to find depth of source positions (:gh:`10632` by :newcontrib:`Matt Courtemanche`_) 
 
 Bugs
 ~~~~
