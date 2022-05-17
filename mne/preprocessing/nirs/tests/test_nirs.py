@@ -16,7 +16,7 @@ from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx, RawArray
 from mne.preprocessing.nirs import (optical_density, beer_lambert_law,
                                     _fnirs_spread_bads, _validate_nirs_info,
-                                    _check_channels_ordered,
+                                    _check_channels_ordered, tddr,
                                     _channel_frequencies, _channel_chromophore,
                                     _fnirs_optode_names, _optode_position,
                                     scalp_coupling_index)
@@ -426,6 +426,7 @@ def test_order_agnostic(nirx_snirf):
     orders = dict()
     # continuous wave
     for key, r in raws.items():
+        assert set(r.get_channel_types()) == {'fnirs_cw_amplitude'}
         orders[key] = [
             r.ch_names.index(name) for name in raws['nirx'].ch_names]
         assert_array_equal(
@@ -438,14 +439,32 @@ def test_order_agnostic(nirx_snirf):
         raws[key] = r = optical_density(r)
         assert_allclose(
             raws['nirx'].get_data(), r.get_data(orders[key]), err_msg=key)
+        assert set(r.get_channel_types()) == {'fnirs_od'}
     # scalp-coupling index
     sci = dict()
     for key, r in raws.items():
         sci[key] = r = scalp_coupling_index(r)
-        assert_allclose(sci[key], r, err_msg=key)
+        assert_allclose(sci['nirx'], r[orders[key]], err_msg=key, rtol=0.01)
+    # TDDR (on optical)
+    tddrs = dict()
+    for key, r in raws.items():
+        tddrs[key] = r = tddr(r)
+        assert_allclose(
+            tddrs['nirx'].get_data(), r.get_data(orders[key]), err_msg=key,
+            atol=1e-4)
+        assert set(r.get_channel_types()) == {'fnirs_od'}
     # beer-lambert
     for key, r in raws.items():
         raws[key] = r = beer_lambert_law(r)
         assert_allclose(
             raws['nirx'].get_data(), r.get_data(orders[key]), err_msg=key,
             rtol=2e-7)
+        assert set(r.get_channel_types()) == {'hbo', 'hbr'}
+    # TDDR (on haemo)
+    tddrs = dict()
+    for key, r in raws.items():
+        tddrs[key] = r = tddr(r)
+        assert_allclose(
+            tddrs['nirx'].get_data(), r.get_data(orders[key]), err_msg=key,
+            atol=1e-9)
+        assert set(r.get_channel_types()) == {'hbo', 'hbr'}
