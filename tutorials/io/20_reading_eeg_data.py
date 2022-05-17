@@ -53,6 +53,11 @@ European data format (.edf)
 `EDF+ <http://www.edfplus.info/specs/edfplus.html>`_ files can be read using
 :func:`mne.io.read_raw_edf`. Both variants are 16-bit formats.
 
+Due to some `implementational detail <https://github.com/mne-tools/mne-python/issues/10635>`_, it is not advised to load files with
+different sampling frequencies using :func:`mne.io.read_raw_edf`.
+It is recommended to use an external library and load the data as a
+`RawArray` as for example denoted in `this gist<https://gist.github.com/skjerns/acc823981581c8e881109bec26ea0f6e>`__
+
 EDF+ files may contain annotation channels which can be used to store trigger
 and event information. These annotations are available in ``raw.annotations``.
 
