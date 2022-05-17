@@ -16,6 +16,12 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
+.. _changes_1_0_4:
+
+Version 1.0.4 (unreleased)
+--------------------------
+- Reduce memory usage when loading an EDF file with ``preload=False`` (:gh:`10638` by `Clemens Brunner`_)
+
 .. _changes_1_0_3:
 
 Version 1.0.3 (2022-05-12)
