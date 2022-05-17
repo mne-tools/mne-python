@@ -126,9 +126,9 @@ def _check_channels_ordered(info, pair_vals, throw_errors=True):
             f'info["chs"] structure. The encoded wavelengths are {all_freqs}.',
             throw_errors)
 
-    for ii in picks[::2]:
+    for ii, jj in zip(picks[::2], picks[1::2]):
         ch1_name_info = _S_D_F_RE.match(info['chs'][ii]['ch_name'])
-        ch2_name_info = _S_D_F_RE.match(info['chs'][ii + 1]['ch_name'])
+        ch2_name_info = _S_D_F_RE.match(info['chs'][jj]['ch_name'])
 
         if bool(ch2_name_info) & bool(ch1_name_info):
 
@@ -138,7 +138,7 @@ def _check_channels_ordered(info, pair_vals, throw_errors=True):
 
         else:
             ch1_name_info = _S_D_H_RE.match(info['chs'][ii]['ch_name'])
-            ch2_name_info = _S_D_H_RE.match(info['chs'][ii + 1]['ch_name'])
+            ch2_name_info = _S_D_H_RE.match(info['chs'][jj]['ch_name'])
 
             if bool(ch2_name_info) & bool(ch1_name_info):
 
@@ -152,7 +152,7 @@ def _check_channels_ordered(info, pair_vals, throw_errors=True):
                         "NIRS channels have specified naming conventions."
                         "Chromophore data must be labeled either hbo or hbr. "
                         f"Failing channels are {info['chs'][ii]['ch_name']}, "
-                        f"{info['chs'][ii + 1]['ch_name']}", throw_errors)
+                        f"{info['chs'][jj]['ch_name']}", throw_errors)
 
             else:
                 picks = _throw_or_return_empty(

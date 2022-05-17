@@ -49,17 +49,17 @@ def beer_lambert_law(raw, ppf=6.):
              'likely due to optode locations being stored in a '
              ' unit other than meters.')
     rename = dict()
-    for ii in picks[::2]:
+    for ii, jj in zip(picks[::2], picks[1::2]):
         EL = abs_coef * distances[ii] * ppf
         iEL = linalg.pinv(EL)
 
-        raw._data[[ii, ii + 1]] = iEL @ raw._data[[ii, ii + 1]] * 1e-3
+        raw._data[[ii, jj]] = iEL @ raw._data[[ii, jj]] * 1e-3
 
         # Update channel information
         coil_dict = dict(hbo=FIFF.FIFFV_COIL_FNIRS_HBO,
                          hbr=FIFF.FIFFV_COIL_FNIRS_HBR)
-        for ki, kind in enumerate(('hbo', 'hbr')):
-            ch = raw.info['chs'][ii + ki]
+        for ki, kind in zip((ii, jj), ('hbo', 'hbr')):
+            ch = raw.info['chs'][ki]
             ch.update(coil_type=coil_dict[kind], unit=FIFF.FIFF_UNIT_MOL)
             new_name = f'{ch["ch_name"].split(" ")[0]} {kind}'
             rename[ch['ch_name']] = new_name

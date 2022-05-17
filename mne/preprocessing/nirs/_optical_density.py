@@ -9,7 +9,7 @@ import numpy as np
 from ...io import BaseRaw
 from ...io.constants import FIFF
 from ...utils import _validate_type, warn, verbose
-from ...io.pick import _picks_to_idx
+from ...io.pick import pick_types
 from ..nirs import _channel_frequencies, _check_channels_ordered
 
 
@@ -30,10 +30,11 @@ def optical_density(raw, *, verbose=None):
     """
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
-    _check_channels_ordered(
+    picks = _check_channels_ordered(
         raw.info, np.unique(_channel_frequencies(raw.info, nominal=True)))
-
-    picks = _picks_to_idx(raw.info, 'fnirs_cw_amplitude')
+    if not len(pick_types(raw.info, fnirs='fnirs_cw_amplitude')):
+        raise RuntimeError(
+            'Optical density should be computed on continuous wave data.')
 
     # The devices measure light intensity. Negative light intensities should
     # not occur. If they do it is likely due to hardware or movement issues.

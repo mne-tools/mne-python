@@ -48,11 +48,12 @@ def temporal_derivative_distribution_repair(raw, *, verbose=None):
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
     _validate_nirs_info(raw.info)
+    picks = _check_channels_ordered(
+        raw.info, np.unique(_channel_frequencies(raw.info, nominal=True)))
 
-    picks = _picks_to_idx(raw.info, ['fnirs_od', 'hbo', 'hbr'], exclude=[])
     if not len(picks):
-        raise RuntimeError('TDDR should be run on optical density or \
-                            hemoglobin data.')
+        raise RuntimeError('TDDR should be run on optical density or '
+                           'hemoglobin data.')
     for pick in picks:
         raw._data[pick] = _TDDR(raw._data[pick], raw.info['sfreq'])
 

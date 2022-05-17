@@ -30,6 +30,8 @@ def test_optical_density():
     _validate_type(raw, BaseRaw, 'raw')
     assert 'fnirs_cw_amplitude' not in raw
     assert 'fnirs_od' in raw
+    with pytest.raises(RuntimeError, match='on continuous wave'):
+        optical_density(raw)
 
 
 @testing.requires_testing_data

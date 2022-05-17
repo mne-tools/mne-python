@@ -64,4 +64,5 @@ def scalp_coupling_index(raw, l_freq=0.7, h_freq=1.5,
         sci[ii] = c
         sci[ii + 1] = c
     sci[zero_mask] = 0
+    sci = sci[np.argsort(picks)]  # restore original order
     return sci
