@@ -100,7 +100,7 @@ Bugs
 
 - Fix bug in :func:`mne.viz.plot_evoked_image` that would cause incorrect sub-titles when using ``group_by`` (:gh:`10618` by `Reza Shoorangiz`_)
 
-- Reduce memory usage when loading an EDF file with `preload=False` (:gh:`10638` by `Clemens Brunner`_)
+- Reduce memory usage when loading an EDF file with ``preload=False`` (:gh:`10638` by `Clemens Brunner`_)
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
