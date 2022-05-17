@@ -2809,7 +2809,7 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     return fig
 
 
-def plot_ch_adjacency(info, adjacency, ch_names, kind='3d'):
+def plot_ch_adjacency(info, adjacency, ch_names, kind='3d', edit=False):
     """Plot channel adjacency.
 
     Parameters
@@ -2823,6 +2823,14 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='3d'):
         Names of succesive channels in the ``adjacency`` matix.
     kind : str
         How to plot the adjacency. Can be either ``'3d'`` or ``'2d'``.
+    edit : bool
+        Whether to allow interactive editing of the adjacency matrix via
+        clicking respective channel pairs. Once clicked, the channel is
+        "activated" and turns green. Clicking on another channel adds or
+        removes adjacency relation between the activated and newly clicked
+        channel (depending on whether the channels are already adjacent or
+        not); the newly clicked channel now becomes activated. Clicking on
+        an activated channel deactivates it.
 
     Returns
     -------
@@ -2840,14 +2848,18 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='3d'):
 
     _validate_type(info, Info, 'info')
 
+    if edit and kind == '3d':
+        raise ValueError('Editing a 3d adjacency plot is not supported.')
+
     if isinstance(adjacency, (sparse.coo_matrix, sparse.csr_matrix)):
-        # FIX: but in this case the adjacency matrix won't be
-        # modified in place...
         adjacency = adjacency.toarray()
-        if kind == '2d':
-            warnings.warn('When adjacency is passed as a sparse array, '
-                          "the modifications applied interactively won"
-                          "'t be reflected in the adjacency matrix.")
+        if edit and kind == '2d':
+            raise ValueError('When adjacency is passed as a sparse array, '
+                             "the modifications applied interactively won"
+                             "'t be reflected in the adjacency matrix. If you"
+                             " want to use edit mode, please turn the adja"
+                             "cency into a dense array (use ``.toarray()`` "
+                             "method) before passing it to plot_ch_adjacency.")
 
     # select relevant channels
     sel = pick_channels(info.ch_names, ch_names, ordered=True)
@@ -2897,7 +2909,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='3d'):
             ch_pair = tuple([ch_idx, ngb_idx])
             lines[ch_pair] = ax.plot(*this_pos.T, color='gray')[0]
 
-    if kind == '2d':
+    if edit:
         # allow interactivity in 2d plots
         highlighted = dict()
         this_onpick = partial(_onpick_ch_adjacency, axes=ax, positions=pos,
@@ -2912,7 +2924,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='3d'):
 def _onpick_ch_adjacency(event, axes=None, positions=None, highlighted=None,
                          line_dict=None, adjacency=None, node_size=None,
                          path_collection=None):
-    """Handles interactivity in plot_ch_adjacency."""
+    """Handle interactivity in plot_ch_adjacency."""
     node_ind = event.ind[0]
 
     if node_ind in highlighted:
