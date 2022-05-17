@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_allclose
 
+import mne
 from mne import (make_bem_model, read_bem_surfaces, write_bem_surfaces,
                  make_bem_solution, read_bem_solution, write_bem_solution,
                  make_sphere_model, Transform, Info, write_surface,
@@ -23,8 +24,9 @@ from mne.datasets import testing
 from mne.utils import catch_logging, check_version
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
-                     _check_surface_size, _bem_find_surface)
-from mne.surface import read_surface
+                     _check_surface_size, _bem_find_surface,
+                     make_scalp_surfaces)
+from mne.surface import read_surface, _get_ico_surface
 from mne.io import read_info
 
 fname_raw = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
@@ -419,3 +421,52 @@ def test_io_head_bem(tmp_path):
     assert head['id'] == head_defect['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD
     assert np.allclose(head['rr'], head_defect['rr'])
     assert np.allclose(head['tris'], head_defect['tris'])
+
+
+@pytest.mark.slowtest  # ~4 sec locally
+def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
+    """Test topology checks for make_scalp_surfaces."""
+    pytest.importorskip('pyvista')
+    subjects_dir = tmp_path
+    subject = 'test'
+    surf_dir = subjects_dir / subject / 'surf'
+    makedirs(surf_dir)
+    surf = _get_ico_surface(2)
+    surf['rr'] *= 100  # mm
+    write_surface(surf_dir / 'lh.seghead', surf['rr'], surf['tris'])
+
+    # make it so that decimation really messes up the mesh just by deleting
+    # the last N tris
+    def _decimate_surface(points, triangles, n_triangles):
+        assert len(triangles) >= n_triangles
+        return points, triangles[:n_triangles]
+
+    monkeypatch.setattr(mne.bem, 'decimate_surface', _decimate_surface)
+    # TODO: These two errors should probably have the same class...
+
+    # Not enough neighbors
+    monkeypatch.setattr(mne.bem, '_tri_levels', dict(sparse=315))
+    with pytest.raises(ValueError, match='.*have fewer than three.*'):
+        make_scalp_surfaces(subject, subjects_dir, force=False, verbose=True)
+    monkeypatch.setattr(mne.bem, '_tri_levels', dict(sparse=319))
+    # Incomplete surface (sum of solid angles)
+    with pytest.raises(RuntimeError, match='.*is not complete.*'):
+        make_scalp_surfaces(
+            subject, subjects_dir, force=False, verbose=True, overwrite=True)
+    bem_dir = subjects_dir / subject / 'bem'
+    sparse_path = (bem_dir / f'{subject}-head-sparse.fif')
+    assert not sparse_path.is_file()
+
+    # These are ignorable
+    monkeypatch.setattr(mne.bem, '_tri_levels', dict(sparse=315))
+    with pytest.warns(RuntimeWarning, match='.*have fewer than three.*'):
+        make_scalp_surfaces(
+            subject, subjects_dir, force=True, overwrite=True)
+    surf, = read_bem_surfaces(sparse_path, on_defects='ignore')
+    assert len(surf['tris']) == 315
+    monkeypatch.setattr(mne.bem, '_tri_levels', dict(sparse=319))
+    with pytest.warns(RuntimeWarning, match='.*is not complete.*'):
+        make_scalp_surfaces(
+            subject, subjects_dir, force=True, overwrite=True)
+    surf, = read_bem_surfaces(sparse_path, on_defects='ignore')
+    assert len(surf['tris']) == 319

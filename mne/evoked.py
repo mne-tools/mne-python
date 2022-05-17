@@ -15,7 +15,8 @@ from .baseline import rescale, _log_rescale, _check_baseline
 from .channels.channels import (UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
-from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
+from .defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                       _BORDER_DEFAULT)
 from .filter import detrend, FilterMixin, _check_fun
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
@@ -430,14 +431,16 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
              spatial_colors=False, zorder='unsorted', selectable=True,
-             noise_cov=None, time_unit='s', sphere=None, verbose=None):
+             noise_cov=None, time_unit='s', sphere=None, *, highlight=None,
+             verbose=None):
         return plot_evoked(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
             scalings=scalings, titles=titles, axes=axes, gfp=gfp,
             window_title=window_title, spatial_colors=spatial_colors,
             zorder=zorder, selectable=selectable, noise_cov=noise_cov,
-            time_unit=time_unit, sphere=sphere, verbose=verbose)
+            time_unit=time_unit, sphere=sphere, highlight=highlight,
+            verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_image)
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
@@ -482,8 +485,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                      time_unit='s', time_format=None,
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
-                     contours=6, image_interp='bilinear', average=None,
-                     axes=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
+                     contours=6, image_interp=_INTERPOLATION_DEFAULT,
+                     average=None, axes=None,
+                     extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
                      border=_BORDER_DEFAULT, nrows=1, ncols='auto'):
         return plot_evoked_topomap(
             self, times=times, ch_type=ch_type, vmin=vmin,
@@ -493,8 +497,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             time_format=time_format, proj=proj, show=show,
             show_names=show_names, title=title, mask=mask,
             mask_params=mask_params, outlines=outlines, contours=contours,
-            image_interp=image_interp, average=average,
-            axes=axes, extrapolate=extrapolate, sphere=sphere, border=border,
+            image_interp=image_interp, average=average, axes=axes,
+            extrapolate=extrapolate, sphere=sphere, border=border,
             nrows=nrows, ncols=ncols)
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
@@ -524,8 +528,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @fill_doc
     def animate_topomap(self, ch_type=None, times=None, frame_rate=None,
                         butterfly=False, blit=True, show=True, time_unit='s',
-                        sphere=None, *, extrapolate=_EXTRAPOLATE_DEFAULT,
-                        verbose=None):
+                        sphere=None, *, image_interp=_INTERPOLATION_DEFAULT,
+                        extrapolate=_EXTRAPOLATE_DEFAULT, verbose=None):
         """Make animation of evoked data as topomap timeseries.
 
         The animation can be paused/resumed with left mouse button.
@@ -562,6 +566,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. versionadded:: 0.16
         %(sphere_topomap_auto)s
+        %(image_interp_topomap)s
         %(extrapolate_topomap)s
 
             .. versionadded:: 0.22
@@ -581,7 +586,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return _topomap_animation(
             self, ch_type=ch_type, times=times, frame_rate=frame_rate,
             butterfly=butterfly, blit=blit, show=show, time_unit=time_unit,
-            sphere=sphere, extrapolate=extrapolate, verbose=verbose)
+            sphere=sphere, image_interp=image_interp,
+            extrapolate=extrapolate, verbose=verbose)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields.

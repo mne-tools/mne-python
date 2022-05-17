@@ -309,9 +309,10 @@ class IntracranialElectrodeLocator(QMainWindow):
         logger.info('Saving channel positions to `info`')
         if info is None:
             info = self._info
-        for name, ch in zip(info.ch_names, info['chs']):
-            ch['loc'][:3] = apply_trans(
-                self._mri_head_t, self._chs[name] / 1000)  # mm->m
+        with info._unlock():
+            for name, ch in zip(info.ch_names, info['chs']):
+                ch['loc'][:3] = apply_trans(
+                    self._mri_head_t, self._chs[name] / 1000)  # mm->m
 
     def _plot_images(self):
         """Use the MRI and CT to make plots."""

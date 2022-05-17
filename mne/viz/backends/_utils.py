@@ -180,6 +180,8 @@ def _qt_app_exec(app):
     if is_python_signal_handler:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
     try:
+        # Make IPython Console accessible again in Spyder
+        app.lastWindowClosed.connect(app.quit)
         app.exec_()
     finally:
         # reset the SIGINT exception handler

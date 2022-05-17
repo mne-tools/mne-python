@@ -233,14 +233,6 @@ average : bool, default True
     .. versionadded:: 0.13.0
 """
 
-docdict['average_topomap'] = """
-average : float | None
-    The time window around a given time to be used for averaging (seconds).
-    For example, 0.01 would translate into window that starts 5 ms before
-    and ends 5 ms after a given time point. Defaults to None, which means
-    no averaging.
-"""
-
 docdict['axes_psd_topo'] = """
 axes : list of Axes | None
     List of axes to plot consecutive topographies to. If ``None`` the axes
@@ -1427,8 +1419,10 @@ image_format : 'png' | 'svg' | 'gif' | None
 
 docdict['image_interp_topomap'] = """
 image_interp : str
-    The image interpolation to be used. All matplotlib options are
-    accepted as well as ``'voronoi'``.
+    The image interpolation to be used. Options are ``'cubic'`` (default)
+    to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+    ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+    ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
 """
 
 docdict['include_tmax'] = """
@@ -2363,9 +2357,7 @@ contours : int | array of float
     values for the contour thresholds (may sometimes be inaccurate, use
     array for accuracy). If an array, the values represent the levels for
     the contours. Defaults to 6.
-image_interp : str
-    The image interpolation to be used. All matplotlib options are
-    accepted.
+""" + docdict['image_interp_topomap'] + """
 axes : instance of Axes | list | None
     The axes to plot to. If list, the list must be a list of Axes of
     the same length as the number of projectors. If instance of Axes,

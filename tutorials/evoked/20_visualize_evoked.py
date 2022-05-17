@@ -85,6 +85,18 @@ evks['aud/left'].plot(exclude=[])
 evks['aud/left'].plot(picks='mag', spatial_colors=True, gfp=True)
 
 # %%
+# Interesting time periods can be highlighted via the ``highlight`` parameter.
+
+time_ranges_of_interest = [
+    (0.05, 0.14),
+    (0.22, 0.27)
+]
+evks['aud/left'].plot(
+    picks='mag', spatial_colors=True, gfp=True,
+    highlight=time_ranges_of_interest
+)
+
+# %%
 # Plotting scalp topographies
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -99,8 +111,17 @@ evks['aud/left'].plot_topomap(ch_type='mag', times=times, colorbar=True)
 
 # %%
 
-fig = evks['aud/left'].plot_topomap(ch_type='mag', times=0.09, average=0.1)
-fig.text(0.5, 0.05, 'average from 40-140 ms', ha='center')
+fig = evks['aud/left'].plot_topomap(ch_type='mag', times=times, average=0.1)
+
+# %%
+# It is also possible to pass different time durations to average over for each
+# time point. Passing a value of ``None`` will disable averaging for that
+# time point:
+
+averaging_durations = [0.01, 0.02, 0.03, None, None]
+fig = evks['aud/left'].plot_topomap(
+    ch_type='mag', times=times, average=averaging_durations
+)
 
 # %%
 # Additional examples of plotting scalp topographies can be found in

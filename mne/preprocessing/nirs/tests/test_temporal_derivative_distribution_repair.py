@@ -30,7 +30,7 @@ def test_temporal_derivative_distribution_repair(fname, tmp_path):
     # Add a baseline shift artifact about half way through data
     max_shift = np.max(np.diff(raw_od._data[0]))
     shift_amp = 5 * max_shift
-    raw_od._data[0, 0:30] = raw_od._data[0, 0:30] - (1.1 * shift_amp)
+    raw_od._data[0, 0:30] = raw_od._data[0, 0:30] - shift_amp
     # make one channel zero std
     raw_od._data[1] = 0.
     raw_od._data[2] = 1.
