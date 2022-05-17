@@ -187,6 +187,34 @@ def read_layout(kind, path=None, scale=True):
 
     Notes
     -----
+    Valid ``kind`` arguments are:
+
+    ====================
+    Kind
+    ====================
+    biosemi
+    CTF151
+    CTF275
+    CTF-275
+    EEG1005
+    EGI256
+    GeodesicHeadWeb-130
+    GeodesicHeadWeb-280
+    KIT-125
+    KIT-157
+    KIT-160
+    KIT-AD
+    KIT-AS-2008
+    KIT-UMD-3
+    magnesWH3600
+    Neuromag_122
+    Vectorview-all
+    Vectorview-grad
+    Vectorview-grad_norm
+    Vectorview-mag
+    ====================
+    Notes
+    -----
     Built-in layouts
     - biosemi
     - CTF151
