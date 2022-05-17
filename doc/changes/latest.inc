@@ -29,6 +29,8 @@ Enhancements
 
 - Add support for reading data from Gowerlabs devices to :func:`mne.io.read_raw_snirf` (:gh:`10555` by :newcontrib:`Samuel Powell` and `Robert Luke`_)
 
+- Add built-in sensor layout files for Geodesic Head Web 130 and 280 devices (:gh:`10627` by `Evan Hathaway`_)
+
 - Add ``mne-icalabel`` to :func:`mne.sys_info` (:gh:`10615` by `Adam Li`_)
 
 - Add support for ``overview_mode`` in :meth:`raw.plot() <mne.io.Raw.plot>` and related functions/methods (:gh:`10501` by `Eric Larson`_)
@@ -60,6 +62,8 @@ Enhancements
 - Add ``'nearest'`` as an option for the ``image_interp`` argument in :func:`mne.viz.plot_topomap` to plot a topomap without interpolation using a Voronoi parcelation (:gh:`10571` by `Alex Rockhill`_)
 
 - Add :func:`mne.preprocessing.interpolate_bridged_electrodes` to use the spatially smeared signal to get a better interpolation rather than dropping those channels (:gh:`10587` by `Alex Rockhill`_)
+
+- Add support for hemoglobin type fNIRS data to temporal derivative distribution repair (TDDR) :func:`mne.preprocessing.nirs.temporal_derivative_distribution_repair` (:gh:`10125` by `Johann Benerradi`_)
 
 - :func:`mne.viz.plot_evoked_topomap` and :meth:`mne.Evoked.plot_topomap` now display the time range the map was averaged over if ``average`` was passed (:gh:`10606` by `Richard Höchenberger`_)
 
@@ -100,6 +104,8 @@ Bugs
 - Fix issue with saving epochs once :func:`~mne.preprocessing.compute_current_source_density` has been used if a rejection threshold was used first (:gh:`10619` by `Alex Rockhill`_ and `Richard Höchenberger`_)
 
 - Fix bug in :func:`mne.viz.plot_evoked_image` that would cause incorrect sub-titles when using ``group_by`` (:gh:`10618` by `Reza Shoorangiz`_)
+
+- Reduce memory usage when loading an EDF file with ``preload=False`` (:gh:`10638` by `Clemens Brunner`_)
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
