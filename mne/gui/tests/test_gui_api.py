@@ -33,6 +33,8 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
     else:
         backend = 'qt'
     renderer = mne.viz.backends.renderer._get_renderer(size=(300, 300))
+
+    # theme
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         renderer._window_set_theme('/does/not/exist')
@@ -44,6 +46,16 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
     with mne.utils._record_warnings() as w:
         renderer._window_set_theme('dark')
     assert len(w) == n_warn
+
+    # window without 3d plotter
+    if backend == 'qt':
+        window = renderer._window_create()
+        widget = renderer._window_create()
+        central_layout = renderer._layout_create(orientation='grid')
+        renderer._layout_add_widget(central_layout, widget, row=0, col=0)
+        renderer._window_initialize(window=window,
+                                    central_layout=central_layout,
+                                    theme_support=False)
 
     from unittest.mock import Mock
     mock = Mock()

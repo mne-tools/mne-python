@@ -11,7 +11,7 @@ from IPython.display import display
 from ipywidgets import (Button, Dropdown, FloatSlider, BoundedFloatText, HBox,
                         IntSlider, IntText, Text, VBox, IntProgress, Play,
                         Checkbox, RadioButtons, HTML, Accordion, jsdlink,
-                        Layout, Select)
+                        Layout, Select, GridBox)
 
 from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
@@ -170,7 +170,8 @@ class _IpyLayout(_AbstractLayout):
     def _layout_initialize(self, max_width):
         self._layout_max_width = max_width
 
-    def _layout_add_widget(self, layout, widget, stretch=0):
+    def _layout_add_widget(self, layout, widget, stretch=0,
+                           *, row=None, col=None):
         widget.layout.margin = "2px 0px 2px 0px"
         if not isinstance(widget, Play):
             widget.layout.min_width = "0px"
@@ -188,6 +189,16 @@ class _IpyLayout(_AbstractLayout):
                 width = int(self._layout_max_width / len(children))
                 for child in children:
                     child.layout.width = f"{width}px"
+
+    def _layout_create(self, orientation='vertical'):
+        if orientation == 'vertical':
+            layout = VBox()
+        elif orientation == 'horizontal':
+            layout = HBox()
+        else:
+            assert orientation == 'grid'
+            layout = GridBox()
+        return layout
 
 
 class _IpyDock(_AbstractDock, _IpyLayout):
@@ -517,7 +528,8 @@ class _IpyBrainMplCanvas(_AbstractBrainMplCanvas, _IpyMplInterface):
 
 
 class _IpyWindow(_AbstractWindow):
-    def _window_initialize(self):
+    def _window_initialize(self, window=None, central_layout=None,
+                           theme_support=True):
         super()._window_initialize()
         self._window_load_icons()
 
@@ -579,6 +591,10 @@ class _IpyWindow(_AbstractWindow):
 
     def _window_set_theme(self, theme):
         pass
+
+    def _window_create(self):
+        pass
+        # XXX: this could be a VBox if _Renderer.show is refactored
 
 
 class _IpyWidgetList(_AbstractWidgetList):
