@@ -76,6 +76,12 @@ class _QtKeyPress():
             shortcut = _QtKeyPress._to_qt[shortcut]
         widget_callbacks[shortcut] = callback
 
+    def _keypress_trigger(self, shortcut):
+        widget_callbacks = _QtKeyPress._callbacks[self._widget_id]
+        if len(shortcut) > 1:  # special key
+            shortcut = _QtKeyPress._to_qt[shortcut]
+        widget_callbacks[shortcut]()
+
 
 class ComboBox(QComboBox):
     """Dropdown menu that emits a click when popped up."""
@@ -94,7 +100,7 @@ class ComboBox(QComboBox):
         super(ComboBox, self).showPopup()
 
 
-class _QtListView(_QtKeyPress):
+class _QtListView():
     def _list_view_initialize(self, items, idx, callback):
         list_view = QListView()
         list_view.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -1013,7 +1019,7 @@ class _QtAction(_AbstractAction):
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
                 _QtStatusBar, _QtWindow, _QtPlayback, _QtDialog,
-                _QtListView):
+                _QtKeyPress, _QtListView):
     _kind = 'qt'
 
     def __init__(self, *args, **kwargs):
