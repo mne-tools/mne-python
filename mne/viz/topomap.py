@@ -714,7 +714,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         be inferred from this Info object.
     vmin : float | callable | None
         The value specifying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data).
+        If None, and vmax is not None, -vmax is used. Else np.min(data).
         If callable, the output equals vmin(data). Defaults to None.
     vmax : float | callable | None
         The value specifying the upper bound of the color range.
