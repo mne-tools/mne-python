@@ -783,6 +783,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     data by default, i.e. 1. Therefore, we use the following colormap
     normalization ``cnorm`` and pass it as the the ``cnorm`` argument:
 
+    .. code-block:: python
+
         from matplotlib.colors import TwoSlopeNorm
         cnorm = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=3)
 
