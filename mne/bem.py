@@ -2221,7 +2221,7 @@ def distance_to_bem(pos, bem, trans=None, verbose=None):
 
     logger.info(
         'Computing distance to inner skull surface for ' +
-        f'{n} positions{_pl(n)}...'
+        f'{n} position{_pl(n)}...'
     )
 
     if bem['is_sphere']:
