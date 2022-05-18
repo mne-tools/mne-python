@@ -1458,7 +1458,7 @@ def fix_mag_coil_types(info, use_cal=False):
     for ii in old_mag_inds:
         info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T3
     logger.info('%d of %d magnetometer types replaced with T3.' %
-                (len(old_mag_inds), len(pick_types(info, meg='mag'))))
+                (len(old_mag_inds), len(pick_types(info, meg='mag', exclude=[]))))
     info._check_consistency()
 
 
