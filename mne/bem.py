@@ -2220,7 +2220,8 @@ def distance_to_bem(pos, bem, trans=None, verbose=None):
     distance = np.zeros((n,))
 
     logger.info(
-        f'Computing distance to inner skull surface for {n} positions...'
+        'Computing distance to inner skull surface for ' +
+        f'{n} positions{_pl(n)}...'
     )
 
     if bem['is_sphere']:
@@ -2230,9 +2231,9 @@ def distance_to_bem(pos, bem, trans=None, verbose=None):
             center = apply_trans(trans, center, move=True)
         radius = bem['layers'][0]['rad']
 
-        distance = radius - np.linalg.norm(
+        distance = np.abs(radius - np.linalg.norm(
             pos - center, axis=1
-        )
+        ))
 
     else:  # is BEM
         surface_points = bem['surfs'][0]['rr']
@@ -2242,9 +2243,7 @@ def distance_to_bem(pos, bem, trans=None, verbose=None):
                 trans, surface_points, move=True
             )
 
-        distance = np.min(np.linalg.norm(
-            surface_points[:, np.newaxis] - pos, axis=-1), axis=0
-        )
+        _, distance = _compute_nearest(surface_points, pos, return_dists=True)
 
     if ndim == 1:
         distance = distance[0]  # return just a float if one pos is passed
