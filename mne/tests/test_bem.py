@@ -510,5 +510,9 @@ def test_distance_to_bem(bem_type, n_pos):
         true_dist = true_dist[0]
 
     dist = distance_to_bem(pos, bem)
-    dist = np.squeeze(dist)
+    if n_pos == 1:
+        assert isinstance(dist, float)
+    else:
+        assert isinstance(dist, np.ndarray)
+
     assert np.allclose(dist, true_dist)

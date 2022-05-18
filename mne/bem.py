@@ -2242,4 +2242,7 @@ def distance_to_bem(pos, bem, trans=None, verbose=None):
             surface_points[:, np.newaxis] - pos, axis=-1), axis=0
         )
 
+    if ndim == 1:
+        distance = distance[0]  # return just a float if one pos is passed
+
     return distance
