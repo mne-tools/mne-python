@@ -2837,14 +2837,10 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='3d', edit=False):
     fig : matplotlib figure
         Figure.
     """
-    from functools import partial
     from scipy import sparse
     import matplotlib.pyplot as plt
 
     from . import plot_sensors
-    from ..io import BaseRaw
-    from ..epochs import BaseEpochs
-    from ..evoked import Evoked
 
     _validate_type(info, Info, 'info')
 
