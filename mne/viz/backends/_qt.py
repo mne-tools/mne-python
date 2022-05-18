@@ -50,7 +50,8 @@ class _QtKeyPress(_AbstractKeyPress):
         page_down=Qt.Key_PageDown,
     )
 
-    def _keypress_initialize(self, widget):
+    def _keypress_initialize(self, widget=None):
+        widget = self._window if widget is None else widget
         self._widget_id = _QtKeyPress._widget_id
         _QtKeyPress._widget_id += 1
         _QtKeyPress._callbacks[self._widget_id] = dict()

@@ -645,7 +645,7 @@ class _AbstractPlayback(ABC):
 
 class _AbstractKeyPress(ABC):
     @abstractmethod
-    def _keypress_initialize(self, widget):
+    def _keypress_initialize(self, widget=None):
         pass
 
     @abstractmethod

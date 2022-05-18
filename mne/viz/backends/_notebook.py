@@ -162,7 +162,7 @@ class _FilePicker:
 
 
 class _IpyKeyPress(_AbstractKeyPress):
-    def _keypress_initialize(self, widget):
+    def _keypress_initialize(self, widget=None):
         pass
 
     def _keypress_add(self, shortcut, callback):
