@@ -349,6 +349,15 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
         assert mock.call_args.args == (button,)
     # --- END: dialog ---
 
+    # --- BEGIN: keypress ---
+    renderer._keypress_initialize()
+    renderer._keypress_add('a', mock)
+    # keypress is not supported yet on notebook
+    if renderer._kind == 'qt':
+        with _check_widget_trigger(None, mock, '', '', get_value=False):
+            renderer._keypress_trigger('a')
+    # --- END: keypress ---
+
     renderer.show()
 
     renderer._window_close_connect(lambda: mock('first'), after=False)

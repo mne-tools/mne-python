@@ -643,6 +643,20 @@ class _AbstractPlayback(ABC):
         pass
 
 
+class _AbstractKeyPress(ABC):
+    @abstractmethod
+    def _keypress_initialize(self, widget):
+        pass
+
+    @abstractmethod
+    def _keypress_add(self, shortcut, callback):
+        pass
+
+    @abstractmethod
+    def _keypress_trigger(self, shortcut):
+        pass
+
+
 class _AbstractDialog(ABC):
     @abstractmethod
     def _dialog_create(self, title, text, info_text, callback, *,

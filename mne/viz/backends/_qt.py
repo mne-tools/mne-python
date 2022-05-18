@@ -28,10 +28,58 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
-                        _AbstractWidgetList, _AbstractAction, _AbstractDialog)
+                        _AbstractWidgetList, _AbstractAction, _AbstractDialog,
+                        _AbstractKeyPress)
 from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
                      _qt_detect_theme, _qt_raise_window)
 from ..utils import _check_option, safe_event, get_config
+
+
+class _QtKeyPress(_AbstractKeyPress):
+    _widget_id = 0
+    _callbacks = dict()
+    _to_qt = dict(
+        escape=Qt.Key_Escape,
+        up=Qt.Key_Up,
+        down=Qt.Key_Down,
+        left=Qt.Key_Left,
+        right=Qt.Key_Right,
+        comma=Qt.Key_Comma,
+        period=Qt.Key_Period,
+        page_up=Qt.Key_PageUp,
+        page_down=Qt.Key_PageDown,
+    )
+
+    def _keypress_initialize(self, widget):
+        self._widget_id = _QtKeyPress._widget_id
+        _QtKeyPress._widget_id += 1
+        _QtKeyPress._callbacks[self._widget_id] = dict()
+
+        def keyPressEvent(event):
+            text = event.text()
+            widget_callbacks = _QtKeyPress._callbacks[self._widget_id]
+            if text in widget_callbacks:
+                callback = widget_callbacks[text]
+                callback()
+            else:
+                key = event.key()
+                if key in widget_callbacks:
+                    callback = widget_callbacks[key]
+                    callback()
+
+        widget.keyPressEvent = keyPressEvent
+
+    def _keypress_add(self, shortcut, callback):
+        widget_callbacks = _QtKeyPress._callbacks[self._widget_id]
+        if len(shortcut) > 1:  # special key
+            shortcut = _QtKeyPress._to_qt[shortcut]
+        widget_callbacks[shortcut] = callback
+
+    def _keypress_trigger(self, shortcut):
+        widget_callbacks = _QtKeyPress._callbacks[self._widget_id]
+        if len(shortcut) > 1:  # special key
+            shortcut = _QtKeyPress._to_qt[shortcut]
+        widget_callbacks[shortcut]()
 
 
 class _QtDialog(_AbstractDialog):
@@ -812,7 +860,8 @@ class _QtAction(_AbstractAction):
 
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
-                _QtStatusBar, _QtWindow, _QtPlayback, _QtDialog):
+                _QtStatusBar, _QtWindow, _QtPlayback, _QtDialog,
+                _QtKeyPress):
     _kind = 'qt'
 
     def __init__(self, *args, **kwargs):

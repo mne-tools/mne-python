@@ -17,7 +17,8 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
-                        _AbstractWidgetList, _AbstractAction, _AbstractDialog)
+                        _AbstractWidgetList, _AbstractAction, _AbstractDialog,
+                        _AbstractKeyPress)
 from ._pyvista import _PyVistaRenderer, _close_all, _set_3d_view, _set_3d_title  # noqa: F401,E501, analysis:ignore
 
 
@@ -158,6 +159,17 @@ class _FilePicker:
             self._selected_dir, self._file_selector.value
         )
         self._filename.value = self._file_selector.value
+
+
+class _IpyKeyPress(_AbstractKeyPress):
+    def _keypress_initialize(self, widget):
+        pass
+
+    def _keypress_add(self, shortcut, callback):
+        pass
+
+    def _keypress_trigger(self, shortcut):
+        pass
 
 
 class _IpyDialog(_AbstractDialog):
@@ -671,7 +683,8 @@ class _IpyAction(_AbstractAction):
 
 
 class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
-                _IpyStatusBar, _IpyWindow, _IpyPlayback, _IpyDialog):
+                _IpyStatusBar, _IpyWindow, _IpyPlayback, _IpyDialog,
+                _IpyKeyPress):
     _kind = 'notebook'
 
     def __init__(self, *args, **kwargs):
