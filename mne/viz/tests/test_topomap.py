@@ -24,14 +24,15 @@ from mne.io import read_raw_fif, read_info, RawArray
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
 from mne.io.compensator import get_current_comp
-from mne.channels import read_layout, make_dig_montage, make_standard_montage
+from mne.channels import (read_layout, make_dig_montage, make_standard_montage,
+                          find_ch_adjacency)
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_arrowmap, plot_psds_topomap,
-                             plot_bridged_electrodes)
+                             plot_bridged_electrodes, plot_ch_adjacency)
 from mne.viz.utils import _find_peaks, _fake_click
 from mne.utils import requires_sklearn, check_version
 
@@ -728,3 +729,35 @@ def test_plot_bridged_electrodes():
 
     with pytest.raises(RuntimeError, match='Expected'):
         plot_bridged_electrodes(info, bridged_idx, np.zeros((5, 6, 7)))
+
+
+def test_plot_ch_adjacency():
+    xyz_pos = np.array([[-0.1, 0.1, 0.1], [0.1, 0.1, 0.1], [0., 0., 0.12],
+                        [-0.1, -0.1, 0.1], [0.1, -0.1, 0.1]])
+
+    info = create_info(list('abcde'), 23, ch_types='eeg')
+    montage = make_dig_montage(
+        ch_pos={ch: pos for ch, pos in zip(info.ch_names, xyz_pos)},
+        coord_frame='head')
+    info.set_montage(montage)
+
+    # construct adjacency
+    adj, ch_names = find_ch_adjacency(info, 'eeg')
+    adj = adj.toarray()
+
+    # plot adjacency
+    fig = plot_ch_adjacency(info, adj, ch_names, kind='2d')
+
+    # find channel positions
+    collection = fig.axes[0].collections[0]
+    pos = collection.get_offsets().data
+
+    # get adjacency lines
+    lines = fig.axes[0].lines[4:]  # (first four lines are head outlines)
+
+    # make sure lines match adjacency relations in the matrix
+    for line in lines:
+        x, y = line.get_data()
+        ch_idx = [np.where((pos == [[x[ix], y[ix]]]).all(axis=1))[0][0]
+                for ix in range(2)]
+        assert adj[ch_idx[0], ch_idx[1]]
