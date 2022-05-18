@@ -2195,7 +2195,7 @@ def distance_to_bem(pos, bem, trans=None, verbose=None):
 
     Parameters
     ----------
-    pos : array, shape (3,) | (n, 3)
+    pos : array, shape (..., 3)
         Position(s) in m, in head coordinates.
     bem : instance of ConductorModel
         Conductor model.
@@ -2204,9 +2204,13 @@ def distance_to_bem(pos, bem, trans=None, verbose=None):
 
     Returns
     -------
-    distances : float | array, shape (n,)
+    distances : float | array, shape (...)
         The computed distance(s). A float is returned if pos is
         an array of shape (3,) corresponding to a single position.
+
+    Notes
+    -----
+    .. versionadded:: 1.1
     """
     ndim = pos.ndim
     if ndim == 1:
