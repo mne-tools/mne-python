@@ -2820,7 +2820,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='3d', edit=False):
         Array of channels x channels shape. Defines which channels are adjacent
         to each other.
     ch_names : list of str
-        Names of succesive channels in the ``adjacency`` matix.
+        Names of successive channels in the ``adjacency`` matrix.
     kind : str
         How to plot the adjacency. Can be either ``'3d'`` or ``'2d'``.
     edit : bool
