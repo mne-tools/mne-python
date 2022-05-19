@@ -736,7 +736,7 @@ def test_plot_ch_adjacency():
     xyz_pos = np.array([[-0.1, 0.1, 0.1], [0.1, 0.1, 0.1], [0., 0., 0.12],
                         [-0.1, -0.1, 0.1], [0.1, -0.1, 0.1]])
 
-    info = create_info(list('abcde'), 23, ch_types='eeg')
+    info = create_info(list('abcde'), 23, ch_types='eeg', edit=True)
     montage = make_dig_montage(
         ch_pos={ch: pos for ch, pos in zip(info.ch_names, xyz_pos)},
         coord_frame='head')
@@ -762,3 +762,48 @@ def test_plot_ch_adjacency():
         ch_idx = [np.where((pos == [[x[ix], y[ix]]]).all(axis=1))[0][0]
                 for ix in range(2)]
         assert adj[ch_idx[0], ch_idx[1]]
+
+    # make sure additional point is generated after clicking a channel
+    _fake_click(fig, fig.axes[0], pos[0], xform='data')
+    collections = fig.axes[0].collections
+    assert len(collections) == 2
+
+    # make sure the point is green
+    green = matplotlib.colors.to_rgba('tab:green')
+    assert (collections[1].get_facecolor() == green).all()
+
+    # make sure adjacency entry is modified after second click on another node
+    assert adj[0, 1]
+    assert adj[1, 0]
+    n_lines_before = len(lines)
+    _fake_click(fig, fig.axes[0], pos[1], xform='data')
+
+    assert not adj[0, 1]
+    assert not adj[1, 0]
+
+    # and there is one line less
+    lines = fig.axes[0].lines[4:]
+    n_lines_after = len(lines)
+    assert n_lines_after == n_lines_before - 1
+
+    # make sure there is still one green point ...
+    collections = fig.axes[0].collections
+    assert len(collections) == 2
+    assert (collections[1].get_facecolor() == green).all()
+
+    # ... but its at a different location
+    point_pos = collections[1].get_offsets().data
+    assert (point_pos == pos[1]).all()
+
+    # check that clicking again removes the green selection point
+    _fake_click(fig, fig.axes[0], pos[1], xform='data')
+    collections = fig.axes[0].collections
+    assert len(collections) == 1
+
+    # clicking the points again adds a green line
+    _fake_click(fig, fig.axes[0], pos[1], xform='data')
+    _fake_click(fig, fig.axes[0], pos[0], xform='data')
+
+    lines = fig.axes[0].lines[4:]
+    assert len(lines) == n_lines_after + 1
+    assert lines[-1].get_color() == 'tab:green'
