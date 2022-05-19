@@ -2187,3 +2187,65 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
             incomplete=incomplete, extra=msg)
         write_bem_surfaces(dec_fname, dec_surf, overwrite=overwrite)
     logger.info('[done]')
+
+
+@verbose
+def distance_to_bem(pos, bem, trans=None, verbose=None):
+    """Calculate the distance of positions to inner skull surface.
+
+    Parameters
+    ----------
+    pos : array, shape (..., 3)
+        Position(s) in m, in head coordinates.
+    bem : instance of ConductorModel
+        Conductor model.
+    %(trans)s If None (default), assumes bem is in head coordinates.
+    %(verbose)s
+
+    Returns
+    -------
+    distances : float | array, shape (...)
+        The computed distance(s). A float is returned if pos is
+        an array of shape (3,) corresponding to a single position.
+
+    Notes
+    -----
+    .. versionadded:: 1.1
+    """
+    ndim = pos.ndim
+    if ndim == 1:
+        pos = pos[np.newaxis, :]
+
+    n = pos.shape[0]
+    distance = np.zeros((n,))
+
+    logger.info(
+        'Computing distance to inner skull surface for ' +
+        f'{n} position{_pl(n)}...'
+    )
+
+    if bem['is_sphere']:
+        center = bem['r0']
+
+        if trans:
+            center = apply_trans(trans, center, move=True)
+        radius = bem['layers'][0]['rad']
+
+        distance = np.abs(radius - np.linalg.norm(
+            pos - center, axis=1
+        ))
+
+    else:  # is BEM
+        surface_points = bem['surfs'][0]['rr']
+
+        if trans:
+            surface_points = apply_trans(
+                trans, surface_points, move=True
+            )
+
+        _, distance = _compute_nearest(surface_points, pos, return_dists=True)
+
+    if ndim == 1:
+        distance = distance[0]  # return just a float if one pos is passed
+
+    return distance

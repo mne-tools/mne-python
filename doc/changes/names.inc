@@ -446,4 +446,6 @@
 
 .. _Samuel Powell: https://github.com/samuelpowell
 
+.. _Matt Courtemanche: https://github.com/mjcourte
+
 .. _Matti Toivonen: https://github.com/mattitoi
