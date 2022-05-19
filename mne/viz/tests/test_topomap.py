@@ -736,7 +736,7 @@ def test_plot_ch_adjacency():
     xyz_pos = np.array([[-0.1, 0.1, 0.1], [0.1, 0.1, 0.1], [0., 0., 0.12],
                         [-0.1, -0.1, 0.1], [0.1, -0.1, 0.1]])
 
-    info = create_info(list('abcde'), 23, ch_types='eeg', edit=True)
+    info = create_info(list('abcde'), 23, ch_types='eeg')
     montage = make_dig_montage(
         ch_pos={ch: pos for ch, pos in zip(info.ch_names, xyz_pos)},
         coord_frame='head')
@@ -747,7 +747,7 @@ def test_plot_ch_adjacency():
     adj = adj.toarray()
 
     # plot adjacency
-    fig = plot_ch_adjacency(info, adj, ch_names, kind='2d')
+    fig = plot_ch_adjacency(info, adj, ch_names, kind='2d', edit=True)
 
     # find channel positions
     collection = fig.axes[0].collections[0]
