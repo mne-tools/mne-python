@@ -70,6 +70,9 @@ Enhancements
 
 Bugs
 ~~~~
+
+- Pick also bad channels when selecting T1T2 mag indices (:gh:`10639` by :newcontrib:`Matti Toivonen`_)
+
 - Make ``color`` parameter check in in :func:`mne.viz.plot_evoked_topo` consistent (:gh:`10217` by :newcontrib:`T. Wang` and `Stefan Appelhoff`_)
 
 - Fix bug in :func:`mne.io.read_raw_brainvision` when BrainVision data are acquired with the Brain Products "V-Amp" amplifier and disabled lowpass filter is marked with value ``0`` (:gh:`10517` by :newcontrib:`Alessandro Tonin`)
