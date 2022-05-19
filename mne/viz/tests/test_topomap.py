@@ -732,6 +732,7 @@ def test_plot_bridged_electrodes():
 
 
 def test_plot_ch_adjacency():
+    """Test plotting of adjacency matrix."""
     xyz_pos = np.array([[-0.1, 0.1, 0.1], [0.1, 0.1, 0.1], [0., 0., 0.12],
                         [-0.1, -0.1, 0.1], [0.1, -0.1, 0.1]])
 

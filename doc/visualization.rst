@@ -28,6 +28,7 @@ Visualization
    plot_chpi_snr
    plot_cov
    plot_channel_labels_circle
+   plot_ch_adjacency
    plot_csd
    plot_dipole_amplitudes
    plot_dipole_locations
