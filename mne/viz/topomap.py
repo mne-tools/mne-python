@@ -709,26 +709,27 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     pos : array, shape (n_chan, 2) | instance of Info
         Location information for the data points(/channels).
         If an array, for each data point, the x and y coordinates.
-        If an Info object, it must contain only one data type and
+        If an `~mne.Info` object, it must contain only one data type and
         exactly ``len(data)`` data channels, and the x/y coordinates will
-        be inferred from this Info object.
+        be inferred from the montage applied to the `~mne.Info` object.
     vmin : float | callable | None
         The value specifying the lower bound of the color range.
-        If None, and vmax is not None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data). Defaults to None.
+        If None, and vmax is None, the opposite of the maximum absolute value
+        ``-max(abs(data))`` is used. Else ``min(data)`` is used. If callable,
+        the output equals ``vmin(data)``. Defaults to None.
     vmax : float | callable | None
         The value specifying the upper bound of the color range.
-        If None, the maximum absolute value is used. If callable, the output
-        equals vmax(data). Defaults to None.
+        If None, the maximum value is used. If callable, the output
+        equals ``vmax(data)``. Defaults to None.
     cmap : matplotlib colormap | None
-        Colormap to use. If None, 'Reds' is used for all positive data,
-        otherwise defaults to 'RdBu_r'.
+        Colormap to use. If None, ``'Reds'`` is used for all positive data,
+        otherwise defaults to ``'RdBu_r'``.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True (default), circles
-        will be used.
+        format string (e.g., ``'r+'`` for red plusses). If True (default),
+        circles will be used.
     res : int
-        The resolution of the topomap image (n pixels along each side).
+        The resolution of the topomap image (number of pixels along each side).
     axes : instance of Axes | None
         The axes to plot to. If None, the current axes will be used.
     names : list | None
@@ -739,10 +740,10 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     %(mask_params_topomap)s
     %(outlines_topomap)s
     contours : int | array of float
-        The number of contour lines to draw. If 0, no contours will be drawn.
-        If an array, the values represent the levels for the contours. The
-        values are in µV for EEG, fT for magnetometers and fT/m for
-        gradiometers. Defaults to 6.
+        The number of contour lines to draw. If ``0``, no contours will be
+        drawn. If an array, the values represent the levels for the contours.
+        The values are in µV for EEG, fT for magnetometers and fT/m for
+        gradiometers. Defaults to ``6``.
     %(image_interp_topomap)s
     show : bool
         Show figure if True.
@@ -781,6 +782,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     3, and 0 should be white. However, white corresponds to the midpoint in the
     data by default, i.e. 1. Therefore, we use the following colormap
     normalization ``cnorm`` and pass it as the the ``cnorm`` argument:
+
+    .. code-block:: python
 
         from matplotlib.colors import TwoSlopeNorm
         cnorm = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=3)
