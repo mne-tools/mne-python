@@ -515,4 +515,4 @@ def test_distance_to_bem(bem_type, n_pos):
     else:
         assert isinstance(dist, np.ndarray)
 
-    assert_allclose(dist, true_dist)
+    assert_allclose(dist, true_dist, rtol=1e-6, atol=1e-6)
