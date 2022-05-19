@@ -1051,7 +1051,7 @@ def _onpick_sensor(event, fig, ax, pos, ch_names, show_names):
 
     # XXX: Bug in matplotlib won't allow setting the position of existing
     # text item, so we create a new one.
-    ax.texts.pop(0)
+    ax.texts[0].remove()
     if len(this_pos) == 3:
         ax.text(this_pos[0], this_pos[1], this_pos[2], ch_name)
     else:
