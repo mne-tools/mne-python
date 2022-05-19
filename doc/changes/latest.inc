@@ -71,7 +71,7 @@ Enhancements
 Bugs
 ~~~~
 
-- Pick also bad channels when selecting T1T2 mag indices (:gh:`10639` by :newcontrib:`Matti Toivonen`_)
+- Pick also bad channels when selecting T1T2 magnetometers in :func:`mne.preprocessing.maxwell_filter` (:gh:`10639` by :newcontrib:`Matti Toivonen`)
 
 - Make ``color`` parameter check in in :func:`mne.viz.plot_evoked_topo` consistent (:gh:`10217` by :newcontrib:`T. Wang` and `Stefan Appelhoff`_)
 
