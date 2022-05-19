@@ -760,7 +760,7 @@ def test_plot_ch_adjacency():
     for line in lines:
         x, y = line.get_data()
         ch_idx = [np.where((pos == [[x[ix], y[ix]]]).all(axis=1))[0][0]
-                for ix in range(2)]
+                  for ix in range(2)]
         assert adj[ch_idx[0], ch_idx[1]]
 
     # make sure additional point is generated after clicking a channel
