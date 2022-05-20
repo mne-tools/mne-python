@@ -779,7 +779,8 @@ def deactivate_proj(projs, copy=True, verbose=None):
 
 
 @verbose
-def make_eeg_average_ref_proj(info, activate=True, verbose=None):
+def make_eeg_average_ref_proj(info, activate=True, ch_dict=None,
+                              verbose=None):
     """Create an EEG average reference SSP projection vector.
 
     Parameters
@@ -801,8 +802,12 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
                            'one EEG reference to another.')
 
     logger.info("Adding average EEG reference projection.")
-    eeg_sel = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                         exclude='bads')
+
+    if ch_dict is not None:
+        eeg_sel = pick_types(info, **ch_dict, exclude='bads')
+    else:
+        eeg_sel = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                             exclude='bads')
     ch_names = info['ch_names']
     eeg_names = [ch_names[k] for k in eeg_sel]
     n_eeg = len(eeg_sel)

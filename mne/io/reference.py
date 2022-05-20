@@ -307,6 +307,12 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     from ..forward import Forward
     _check_can_reref(inst)
 
+    inst = inst.copy() if copy else inst
+    ch_type = _get_ch_type(inst, ch_type)
+    ch_dict = {**{type_: True for type_ in ch_type},
+               'meg': False, 'ref_meg': False}
+    ch_sel = [inst.ch_names[i] for i in pick_types(inst.info, **ch_dict)]
+
     if projection:  # average reference projector
         if ref_channels != 'average':
             raise ValueError('Setting projection=True is only supported for '
@@ -324,7 +330,8 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
                     inst.info['custom_ref_applied'] = \
                         FIFF.FIFFV_MNE_CUSTOM_REF_OFF
                 inst.add_proj(make_eeg_average_ref_proj(inst.info,
-                                                        activate=False))
+                                                        activate=False,
+                                                        ch_dict=ch_dict))
             except Exception:
                 with inst.info._unlock():
                     inst.info['custom_ref_applied'] = custom_ref_applied
@@ -337,12 +344,6 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
                             'apply_proj method to apply it.')
         return inst, None
     del projection  # not used anymore
-
-    inst = inst.copy() if copy else inst
-    ch_type = _get_ch_type(inst, ch_type)
-    ch_dict = {**{type_: True for type_ in ch_type},
-               'meg': False, 'ref_meg': False}
-    ch_sel = [inst.ch_names[i] for i in pick_types(inst.info, **ch_dict)]
 
     if ref_channels == 'REST':
         _validate_type(forward, Forward, 'forward when ref_channels="REST"')
