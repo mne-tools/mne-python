@@ -918,7 +918,13 @@ def _create_dock_widget(window, name, area, *, max_width=None):
 
 def _set_window_theme(window, theme):
     stylesheet = _qt_get_stylesheet(theme)
+    # The setStyleSheet() function triggers a PaletteChange event so we
+    # need to filter out the newly created one to avoid ending in an
+    # infinite loop.
+    event_filter = _DiscardEventFilter('PaletteChange')
+    window.installEventFilter(event_filter)
     window.setStyleSheet(stylesheet)
+    window.removeEventFilter(event_filter)
     if _qt_is_dark(window):
         QIcon.setThemeName('dark')
     else:
@@ -973,13 +979,7 @@ class _MNEMainWindow(MainWindow):
 
     def _filter_palette_change(self, ev):
         theme = get_config('MNE_3D_OPTION_THEME', 'auto')
-        # The setStyleSheet() function triggers a PaletteChange event so we
-        # need to filter out the newly created one to avoid ending in an
-        # infinite loop.
-        event_filter = _DiscardEventFilter('PaletteChange')
-        self.installEventFilter(event_filter)
         _set_window_theme(self, theme)
-        self.removeEventFilter(event_filter)
 
     def event(self, ev):
         """Catch system events."""
