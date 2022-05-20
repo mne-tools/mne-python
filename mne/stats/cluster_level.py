@@ -1115,6 +1115,16 @@ def permutation_cluster_test(
     H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
 
+    Notes
+    -----
+    For computing a ``threshold`` based on a p-value, use the conversion
+    from :meth:`scipy.stats.f.ppf`::
+
+        pval = 0.001  # arbitrary
+        dfn = n_conditions - 1  # degrees of freedom numerator
+        dfd = n_observations - n_conditions  # degrees of freedom denominator
+        thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)
+
     References
     ----------
     .. footbibliography::
@@ -1194,11 +1204,21 @@ def permutation_cluster_1samp_test(
     to perform permutations. This might not be suitable for the case where
     there is truly a single observation under test; see :ref:`disc-stats`.
 
-    If ``n_permutations >= 2 ** (n_samples - (tail == 0))``,
+    For computing a ``threshold`` based on a p-value, use the conversion
+    from :meth:`scipy.stats.t.ppf`::
+
+        pval = 0.001  # arbitrary
+        df = n_observations - 1  # degrees of freedom for the test
+        thresh = scipy.stats.t.ppf(1 - pval /  2, df)  # two-tailed
+
+    For a one-tailed test (``tail=1``), don't divide the p-value by 2.
+    For testing the lower tail (``tail=-1``), don't subtract pval from 1.
+
+    If ``n_permutations >= 2 ** (n_observations - (tail == 0))``,
     ``n_permutations`` and ``seed`` will be ignored since an exact test
     (full permutation test) will be performed.
 
-    If no initial clusters are found, i.e., all points in the true
+    If no initial clusters are found because all points in the true
     distribution are below the threshold, then ``clusters``, ``cluster_pv``,
     and ``H0`` will all be empty arrays.
 
@@ -1265,6 +1285,18 @@ def spatio_temporal_cluster_1samp_test(
         P-value for each cluster.
     H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
+
+    Notes
+    -----
+    For computing a ``threshold`` based on a p-value, use the conversion
+    from :meth:`scipy.stats.t.ppf`::
+
+        pval = 0.001  # arbitrary
+        df = n_observations - 1  # degrees of freedom for the test
+        thresh = scipy.stats.t.ppf(1 - pval /  2, df)  # two-tailed
+
+    For a one-tailed test (``tail=1``), don't divide the p-value by 2.
+    For testing the lower tail (``tail=-1``), don't subtract pval from 1.
 
     References
     ----------
@@ -1336,6 +1368,16 @@ def spatio_temporal_cluster_test(
         P-value for each cluster.
     H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
+
+    Notes
+    -----
+    For computing a ``threshold`` based on a p-value, use the conversion
+    from :meth:`scipy.stats.f.ppf`::
+
+        pval = 0.001  # arbitrary
+        dfn = n_conditions - 1  # degrees of freedom numerator
+        dfd = n_observations - n_conditions  # degrees of freedom denominator
+        thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)
 
     References
     ----------

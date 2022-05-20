@@ -3047,6 +3047,8 @@ thresh : None or float
 
 _threshold_clust_base = """
 threshold : float | dict | None
+    The so-called "cluster forming threshold" in the form of a test statistic
+    (note: this is not an alpha level / "p-value").
     If numeric, vertices with data values more extreme than ``threshold`` will
     be used to form clusters. If threshold is ``None``, {} will be chosen
     automatically that corresponds to a p-value of 0.05 for the given number of
@@ -3054,6 +3056,8 @@ threshold : float | dict | None
     :class:`dict` (with keys ``'start'`` and ``'step'``) then threshold-free
     cluster enhancement (TFCE) will be used (see the
     :ref:`TFCE example <tfce_example>` and :footcite:`SmithNichols2009`).
+    See notes for an example on how to compute a threshold based on
+    a particular p-value for one-tailed or two-tailed tests.
 """
 
 f_test = ('an F-threshold', 'an F-statistic')
