@@ -2868,7 +2868,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='2d', edit=False):
     n_channels = len(info.ch_names)
     if adjacency.shape[0] != n_channels:
         raise ValueError('``adjacency`` must have the same number of rows '
-                         'as the number of channels in ``inst``. Found '
+                         'as the number of channels in ``info``. Found '
                          f'{adjacency.shape[0]} channels for ``adjacency`` and'
                          f' {n_channels} for ``inst``.')
 
