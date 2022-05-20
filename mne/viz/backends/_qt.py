@@ -11,7 +11,7 @@ import weakref
 import pyvista
 from pyvistaqt.plotting import FileDialog, MainWindow
 
-from qtpy.QtCore import Qt, Signal, QLocale, QObject
+from qtpy.QtCore import Qt, Signal, QLocale, QObject, QEvent
 from qtpy.QtGui import (QIcon, QCursor, QBrush, QStandardItem,
                         QStandardItemModel, QColor)
 from qtpy.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
@@ -866,12 +866,7 @@ class _QtWindow(_AbstractWindow):
         else:
             default_theme = theme
         theme = get_config('MNE_3D_OPTION_THEME', default_theme)
-        stylesheet = _qt_get_stylesheet(theme)
-        self._window.setStyleSheet(stylesheet)
-        if _qt_is_dark(self._window):
-            QIcon.setThemeName('dark')
-        else:
-            QIcon.setThemeName('light')
+        _set_window_theme(self._window, theme)
 
     def _window_create(self):
         return _MNEMainWindow()
@@ -1055,6 +1050,15 @@ def _set_widget_tooltip(widget, tooltip):
         widget.setToolTip(tooltip)
 
 
+def _set_window_theme(window, theme):
+    stylesheet = _qt_get_stylesheet(theme)
+    window.setStyleSheet(stylesheet)
+    if _qt_is_dark(window):
+        QIcon.setThemeName('dark')
+    else:
+        QIcon.setThemeName('light')
+
+
 def _create_dock_widget(window, name, area, *, max_width=None):
     # create dock widget
     dock = QDockWidget(name)
@@ -1111,3 +1115,18 @@ class _MNEMainWindow(MainWindow):
     def __init__(self, parent=None, title=None, size=None):
         super().__init__(parent, title, size)
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
+        self._palette_lock = False  # prevent palette change loop
+
+    def _filter_palette_change(self, ev):
+        if self._palette_lock:
+            return
+        self._palette_lock = True
+        theme = get_config('MNE_3D_OPTION_THEME', 'auto')
+        _set_window_theme(self, theme)
+        self._palette_lock = False
+
+    def event(self, ev):
+        """Catch system events."""
+        if ev.type() == QEvent.PaletteChange:  # detect theme switches
+            self._filter_palette_change(ev)
+        return super().event(ev)
