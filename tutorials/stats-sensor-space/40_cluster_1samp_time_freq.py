@@ -22,8 +22,10 @@ Here, the unit of observation is epochs from a specific study subject.
 However, the same logic applies when the unit observation is
 a number of study subject each of whom contribute their own averaged
 data (i.e., an average of their epochs). This would then be considered
-an analysis as the "2nd level".
+an analysis at the "2nd level".
 
+For more information on cluster-based permutation testing in MNE-Python,
+see also: :ref:`tut-cluster-spatiotemporal-sensor`
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
@@ -144,7 +146,7 @@ assert adjacency.shape[0] == adjacency.shape[1] == \
 # -----------------
 # For forming clusters, we need to specify a critical test statistic threshold
 # beyond which data bins are considered statistically significant. Here, we
-# use a t-test and can make use of Scipy's perfent point function of the t
+# use a t-test and can make use of Scipy's percent point function of the t
 # distribution to get a t-value that corresponds to a specific alpha level
 # for significance. This threshold is often called the
 # "cluster forming threshold".
@@ -156,8 +158,8 @@ tail = 0
 # have a two-tailed test and need to look at both tails of the distribution.
 # As the degrees of freedom, we specify the number of observations
 # (here: epochs) minus 1.
-# Finally, we subtract 0.001 / 2 from 1, to get a positive critical
-# t-value (this is needed for MNE-Python internals)
+# Finally, we subtract 0.001 / 2 from 1, to get the criticalt-value
+# on the right tail (this is needed for MNE-Python internals)
 degrees_of_freedom = len(epochs) - 1
 t_thresh = scipy.stats.t.ppf(1 - 0.001 / 2, df=degrees_of_freedom)
 
