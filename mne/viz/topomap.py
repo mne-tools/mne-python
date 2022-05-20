@@ -2834,8 +2834,9 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='3d', edit=False):
 
     Returns
     -------
-    fig : matplotlib figure
-        Figure.
+    fig : Figure
+        The :class:`~matplotlib.figure.Figure` instance where the channel
+        adjacency is plotted.
     """
     from scipy import sparse
     import matplotlib.pyplot as plt
