@@ -19,7 +19,7 @@ def combine_adjacency(*structure):
     *structure : list
         The adjacency along each dimension. Each entry can be:
 
-        - ndarray or sparse matrix
+        - ndarray or scipy.sparse.spmatrix
             A square binary adjacency matrix for the given dimension.
             For example created by :func:`mne.channels.find_ch_adjacency`.
         - int

@@ -71,9 +71,10 @@ add_frames : int | None
 
 docdict['adjacency_clust'] = """
 adjacency : scipy.sparse.spmatrix | None | False
-    Defines adjacency between locations in the data, where "locations" can
-    be spatial vertices, frequency bins, etc. If ``False``, assumes no
-    adjacency (each location is treated as independent and unconnected).
+    Defines adjacency between locations in the data, where "locations" can be
+    spatial vertices, frequency bins, time points, etc. For spatial vertices,
+    see: :func:`mne.channels.find_ch_adjacency`. If ``False``, assumes
+    no adjacency (each location is treated as independent and unconnected).
     If ``None``, a regular lattice adjacency is assumed, connecting
     each {sp} location to its neighbor(s) along the last dimension
     of {{eachgrp}} ``{{x}}``{lastdim}.
@@ -1712,8 +1713,12 @@ match_case : bool
 docdict['max_step_clust'] = """
 max_step : int
     Maximum distance along the second dimension (typically this is the "time"
-    axis) between samples that are considered "connected". Only used
-    when ``connectivity`` has shape (n_vertices, n_vertices).
+    axis) between samples that are considered adjacent. Only used
+    when ``adjacency`` has shape (n_vertices, n_vertices), that is, when
+    adjacency is only specified for sensors (e.g., via
+    :func:`mne.channels.find_ch_adjacency`), and not via sensors **and**
+    further dimensions such as time points (e.g., via an additional call of
+    :func:`mne.stats.combine_adjacency`).
 """
 
 docdict['measure'] = """

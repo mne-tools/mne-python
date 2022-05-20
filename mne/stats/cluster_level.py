@@ -1068,7 +1068,8 @@ def permutation_cluster_test(
     should contain the data for one group of observations (e.g., 2D arrays for
     time series, 3D arrays for time-frequency power values). Permutations are
     generated with random partitions of the data. See
-    :footcite:`MarisOostenveld2007` for details.
+    :footcite:`MarisOostenveld2007` and :footcite:`Sassenhagen2019` for
+    details.
 
     Parameters
     ----------
@@ -1134,6 +1135,9 @@ def permutation_cluster_1samp_test(
         exclude=None, step_down_p=0, t_power=1, out_type='indices',
         check_disjoint=False, buffer_size=1000, verbose=None):
     """Non-parametric cluster-level paired t-test.
+
+    See :footcite:`MarisOostenveld2007` and :footcite:`Sassenhagen2019`
+    for details.
 
     Parameters
     ----------
@@ -1223,7 +1227,8 @@ def spatio_temporal_cluster_1samp_test(
     This function provides a convenient wrapper for
     :func:`mne.stats.permutation_cluster_1samp_test`, for use with data
     organized in the form (observations × time × space). See
-    :footcite:`MarisOostenveld2007` for details.
+    :footcite:`MarisOostenveld2007` and :footcite:`Sassenhagen2019`
+    for details.
 
     Parameters
     ----------
@@ -1291,7 +1296,8 @@ def spatio_temporal_cluster_test(
     This function provides a convenient wrapper for
     :func:`mne.stats.permutation_cluster_test`, for use with data
     organized in the form (observations × time × space).
-    See :footcite:`MarisOostenveld2007` for more information.
+    See :footcite:`MarisOostenveld2007` and :footcite:`Sassenhagen2019`
+    for more information.
 
     Parameters
     ----------
