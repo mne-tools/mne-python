@@ -449,3 +449,5 @@
 .. _Matt Courtemanche: https://github.com/mjcourte
 
 .. _Matti Toivonen: https://github.com/mattitoi
+
+.. _Moritz Gerster: https://github.com/moritz-gerster

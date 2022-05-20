@@ -23,7 +23,9 @@ Current (1.1.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- Add :func:`mne.bem.distance_to_bem` to find depth of source positions (:gh:`10632` by :newcontrib:`Matt Courtemanche`) 
+- Enable common average reference projection for ECOG, SEEG, and DBS data (:gh:`10632` by :newcontrib:`Moritz Gerster`)
+
+- Add :func:`mne.bem.distance_to_bem` to find depth of source positions (:gh:`10632` by :newcontrib:`Matt Courtemanche`)
 
 - Add support for ahdr files in :func:`mne.io.read_raw_brainvision` (:gh:`10515` by :newcontrib:`Alessandro Tonin`)
 
