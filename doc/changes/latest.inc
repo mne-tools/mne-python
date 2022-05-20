@@ -23,7 +23,7 @@ Current (1.1.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- Enable common average reference projection for ECOG, SEEG, and DBS data (:gh:`10632` by :newcontrib:`Moritz Gerster`)
+- Enable common average reference projection for ECOG, SEEG, and DBS data (:gh:`10656` by :newcontrib:`Moritz Gerster`)
 
 - Add :func:`mne.bem.distance_to_bem` to find depth of source positions (:gh:`10632` by :newcontrib:`Matt Courtemanche`)
 
