@@ -976,12 +976,9 @@ class _MNEMainWindow(MainWindow):
         super().__init__(parent, title, size)
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
 
-    def _filter_palette_change(self, ev):
-        theme = get_config('MNE_3D_OPTION_THEME', 'auto')
-        _set_window_theme(self, theme)
-
     def event(self, ev):
         """Catch system events."""
         if ev.type() == QEvent.PaletteChange:  # detect theme switches
-            self._filter_palette_change(ev)
+            theme = get_config('MNE_3D_OPTION_THEME', 'auto')
+            _set_window_theme(self, theme)
         return super().event(ev)
