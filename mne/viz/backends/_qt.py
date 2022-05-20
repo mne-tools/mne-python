@@ -956,7 +956,8 @@ class _EventFilter(QObject):
         if ev.type() == event_type:
             ev.accept()
             return True
-        return False
+        else:
+            return False
 
 
 # In theory we should be able to do this later (e.g., in _pyvista.py when
@@ -971,11 +972,12 @@ class _MNEMainWindow(MainWindow):
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
 
     def _filter_palette_change(self, ev):
-        # _setStyleSheet triggers a PaletteChange event so we need to filter
-        # out the newly created one to avoid ending in an infinite loop
+        theme = get_config('MNE_3D_OPTION_THEME', 'auto')
+        # The setStyleSheet() function triggers a PaletteChange event so we
+        # need to filter out the newly created one to avoid ending in an
+        # infinite loop.
         event_filter = _EventFilter('PaletteChange')
         self.installEventFilter(event_filter)
-        theme = get_config('MNE_3D_OPTION_THEME', 'auto')
         _set_window_theme(self, theme)
         self.removeEventFilter(event_filter)
 
