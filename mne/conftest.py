@@ -938,14 +938,13 @@ def pytest_runtest_call(item):
     return
 
 
-@requires_h5py
-@testing.requires_testing_data
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @pytest.fixture(params=(
-    [nirsport2, nirsport2_snirf],
-    [nirsport2_2021_9, nirsport2_20219_snirf],
+    [nirsport2, nirsport2_snirf, testing._pytest_param()],
+    [nirsport2_2021_9, nirsport2_20219_snirf, testing._pytest_param()],
 ))
 def nirx_snirf(request):
     """Return a (raw_nirx, raw_snirf) matched pair."""
+    pytest.importorskip('h5py')
     return (read_raw_nirx(request.param[0], preload=True),
             read_raw_snirf(request.param[1], preload=True))
