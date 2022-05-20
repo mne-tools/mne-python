@@ -743,8 +743,8 @@ def test_plot_ch_adjacency():
     info.set_montage(montage)
 
     # construct adjacency
-    adj, ch_names = find_ch_adjacency(info, 'eeg')
-    adj = adj.toarray()
+    adj_sparse, ch_names = find_ch_adjacency(info, 'eeg')
+    adj = adj_sparse.toarray()
 
     # plot adjacency
     fig = plot_ch_adjacency(info, adj, ch_names, kind='2d', edit=True)
@@ -807,3 +807,25 @@ def test_plot_ch_adjacency():
     lines = fig.axes[0].lines[4:]
     assert len(lines) == n_lines_after + 1
     assert lines[-1].get_color() == 'tab:green'
+
+    # smoke test for 3d option
+    fig = plot_ch_adjacency(info, adj, ch_names, kind='3d')
+
+    # test errors
+    # -----------
+    # interactive editing not possible for sparse arrays
+    msg = ("modifications applied interactively won't be reflected in the "
+           "adjacency matrix")
+    with pytest.raies(ValueError, match=msg):
+        plot_ch_adjacency(info, adj_sparse, ch_names, kind='2d', edit=True)
+
+    # number of channels in the adjacency matrix and info must match
+    msg = ("``adjacency`` must have the same number of rows as the number of "
+           "channels in ``info``")
+    with pytest.raies(ValueError, match=msg):
+        plot_ch_adjacency(info, adj_sparse, ch_names[:3], kind='2d')
+
+    # edition mode only available for 2d plot
+    msg = "Editing a 3d adjacency plot is not supported."
+    with pytest.raies(ValueError, match=msg):
+        plot_ch_adjacency(info, adj, ch_names, kind='3d', edit=True)
