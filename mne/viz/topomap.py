@@ -33,7 +33,7 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
-                    set_3d_axes_equal)
+                    _set_3d_axes_equal)
 from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
@@ -2876,7 +2876,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='3d', edit=False):
         with plt.rc_context({'toolbar': 'None'}):
             fig = plot_sensors(info, kind=kind, show=False)
         pos = np.array([x['loc'][:3] for x in info['chs']])
-        set_3d_axes_equal(fig.axes[0])
+        _set_3d_axes_equal(fig.axes[0])
     elif kind == '2d':
         import matplotlib as mpl
         with plt.rc_context({'toolbar': 'None'}):

@@ -2421,7 +2421,7 @@ def _handle_precompute(precompute):
     return precompute
 
 
-def set_3d_axes_equal(ax):
+def _set_3d_axes_equal(ax):
     """Make axes of 3D plot have equal scale on all dimensions.
 
     This way spheres appear as actual spheres, cubes as cubes, etc..
