@@ -68,8 +68,6 @@ def test_beer_lambert_unordered_errors():
     idx = raw_od.ch_names.index(ch_name)
     assert idx == 0
     raw_od.info['chs'][idx]['loc'][9] = 770
-    with pytest.raises(ValueError, match='does not match frequency encoded'):
-        beer_lambert_law(raw_od)
     raw_od.rename_channels({ch_name: ch_name.replace('760', '770')})
     assert raw_od.ch_names[0] == 'S1_D1 770'
     with pytest.raises(ValueError, match='Exactly two frequencies'):

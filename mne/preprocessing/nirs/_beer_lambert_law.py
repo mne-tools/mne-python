@@ -34,9 +34,10 @@ def beer_lambert_law(raw, ppf=6.):
     _validate_type(raw, BaseRaw, 'raw')
     _validate_type(ppf, 'numeric', 'ppf')
     ppf = float(ppf)
-    picks, freqs = _validate_nirs_info(
-        raw.info, fnirs='od', which='Beer-lambert',
-        return_pairs=True)
+    picks = _validate_nirs_info(raw.info, fnirs='od', which='Beer-lambert')
+    # This is the one place we *really* need the actual/accurate frequencies
+    freqs = np.array(
+        [raw.info['chs'][pick]['loc'][9] for pick in picks], float)
     abs_coef = _load_absorption(freqs)
     distances = source_detector_distances(raw.info)
     if (distances == 0).any():

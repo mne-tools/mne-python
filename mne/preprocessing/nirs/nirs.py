@@ -64,20 +64,11 @@ def _channel_frequencies(info, *, throw_errors=True):
     # Only valid for fNIRS data before conversion to haemoglobin
     picks = _picks_to_idx(info, ['fnirs_cw_amplitude', 'fnirs_od'],
                           exclude=[], allow_empty=True)
-    freqs = np.empty(picks.size, int)
+    freqs = list()
     for pick in picks:
-        freq_nom = float(_S_D_F_RE.match(info['ch_names'][pick]).groups()[2])
-        freq = info['chs'][pick]['loc'][9]
-        if not np.isclose(freq, freq_nom, atol=1.):
-            if throw_errors:
-                raise ValueError(
-                    f'Nominal channel frequency for channel '
-                    f'{repr(info["ch_names"][pick])} ({freq_nom}) does not '
-                    'match frequency encoded in the channel measurement '
-                    f'information ({freq})')
-            return freqs[:0]
-        freqs[pick] = round(freq)
-    return freqs
+        freqs.append(round(float(
+            _S_D_F_RE.match(info['ch_names'][pick]).groups()[2])))
+    return np.array(freqs, int)
 
 
 def _channel_chromophore(info):
@@ -227,7 +218,7 @@ def _throw_or_return_empty(msg, throw_errors):
 
 
 def _validate_nirs_info(info, *, throw_errors=True, fnirs=None, which=None,
-                        return_pairs=False, check_bads=True):
+                        check_bads=True, allow_empty=True):
     """Apply all checks to fNIRS info. Works on all continuous wave types."""
     _validate_type(fnirs, (None, str), 'fnirs')
     kinds = dict(
@@ -250,8 +241,6 @@ def _validate_nirs_info(info, *, throw_errors=True, fnirs=None, which=None,
     out = _check_channels_ordered(
         info, pair_vals, throw_errors=throw_errors,
         check_bads=check_bads)
-    if return_pairs:
-        out = (out, pair_vals)
     return out
 
 
