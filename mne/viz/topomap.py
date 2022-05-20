@@ -2818,7 +2818,8 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='3d', edit=False):
         Info object with channel locations.
     adjacency : array
         Array of channels x channels shape. Defines which channels are adjacent
-        to each other.
+        to each other. Note that if you edit adjacencies
+        (via ``edit=True``), this array will be modified in place.
     ch_names : list of str
         Names of successive channels in the ``adjacency`` matrix.
     kind : str
@@ -2830,7 +2831,8 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='3d', edit=False):
         removes adjacency relation between the activated and newly clicked
         channel (depending on whether the channels are already adjacent or
         not); the newly clicked channel now becomes activated. Clicking on
-        an activated channel deactivates it.
+        an activated channel deactivates it. Editing is currently only
+        supported for ``kind='2d'``.
 
     Returns
     -------

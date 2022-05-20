@@ -2436,7 +2436,7 @@ def set_3d_axes_equal(ax):
     Notes
     -----
     modified from:
-    http://stackoverflow.com/questions/13685386/matplotlib-equal-unit-length-with-equal-aspect-ratio-z-axis-is-not-equal-to
+    https://stackoverflow.com/q/13685386
 
     Should no longer be necessary for matplotlib >= 3.3.0:
     https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.3.0.html#axes3d-no-longer-distorts-the-3d-plot-to-match-the-2d-aspect-ratio
