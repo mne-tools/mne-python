@@ -81,7 +81,9 @@ adjacency : scipy.sparse.spmatrix | None | False
     If ``adjacency`` is a matrix, it is assumed to be symmetric (only the
     upper triangular half is used) and must be square with dimension equal to
     ``{{x}}.shape[-1]`` {parone} or ``{{x}}.shape[-1] * {{x}}.shape[-2]``
-    {partwo}.{memory}
+    {partwo} or (optionally)
+    ``{{x}}.shape[-1] * {{x}}.shape[-2] * {{x}}.shape[-3]``
+    {parthree}.{memory}
 """
 
 mem = (' If spatial adjacency is uniform in time, it is recommended to use '
@@ -90,9 +92,11 @@ mem = (' If spatial adjacency is uniform in time, it is recommended to use '
        'of temporal adjacency to consider when clustering.')
 comb = ' The function `mne.stats.combine_adjacency` may be useful for 4D data.'
 st = dict(sp='spatial', lastdim='', parone='(n_vertices)',
-          partwo='(n_times * n_vertices)', memory=mem)
+          partwo='(n_times * n_vertices)',
+          parthree='(n_times * n_freqs * n_vertices)', memory=mem)
 tf = dict(sp='', lastdim=' (or the last two dimensions if ``{x}`` is 2D)',
-          parone='(for 3D data)', partwo='(for 4D data)', memory=comb)
+          parone='(for 2D data)', partwo='(for 3D data)',
+          parthree='(for 4D data)', memory=comb)
 nogroups = dict(eachgrp='', x='X')
 groups = dict(eachgrp='each group ', x='X[k]')
 docdict['adjacency_clust_1'] = \

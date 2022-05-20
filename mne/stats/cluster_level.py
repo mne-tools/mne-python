@@ -1151,13 +1151,13 @@ def permutation_cluster_1samp_test(
 
     Parameters
     ----------
-    X : array, shape (n_observations, p[, q])
+    X : array, shape (n_observations, p[, q, r])
         The data to be clustered. The first dimension should correspond to the
         difference between paired samples (observations) in two conditions.
-        The subarrays ``X[k]`` can be 1D (e.g., time series) or 2D (e.g.,
-        time-frequency image) associated with the kth observation. For
-        spatiotemporal data, see also
-        :func:`mne.stats.spatio_temporal_cluster_1samp_test`.
+        The subarrays ``X[k]`` can be 1D (e.g., time series), 2D (e.g.,
+        time series over channels), or 3D (e.g., time-frequencies over
+        channels) associated with the kth observation. For spatiotemporal data,
+        see also :func:`mne.stats.spatio_temporal_cluster_1samp_test`.
     %(threshold_clust_t)s
     %(n_permutations_clust_all)s
     %(tail_clust)s
@@ -1246,7 +1246,8 @@ def spatio_temporal_cluster_1samp_test(
 
     This function provides a convenient wrapper for
     :func:`mne.stats.permutation_cluster_1samp_test`, for use with data
-    organized in the form (observations × time × space). See
+    organized in the form (observations × time × space), or optionally
+    (observations × time × frequencies × space). See
     :footcite:`MarisOostenveld2007` and :footcite:`Sassenhagen2019`
     for details.
 
@@ -1256,8 +1257,7 @@ def spatio_temporal_cluster_1samp_test(
         The data to be clustered. The first dimension should correspond to the
         difference between paired samples (observations) in two conditions.
         The second, and optionally third, dimensions correspond to the
-        time or time-frequency data. And, the last dimension should be spatial;
-        it is the dimension the adjacency parameter will be applied to.
+        time or time-frequency data. And, the last dimension should be spatial.
     %(threshold_clust_t)s
     %(n_permutations_clust_all)s
     %(tail_clust)s
@@ -1327,7 +1327,8 @@ def spatio_temporal_cluster_test(
 
     This function provides a convenient wrapper for
     :func:`mne.stats.permutation_cluster_test`, for use with data
-    organized in the form (observations × time × space).
+    organized in the form (observations × time × space), or optionally
+    (observations × time × frequencies × space).
     See :footcite:`MarisOostenveld2007` and :footcite:`Sassenhagen2019`
     for more information.
 
@@ -1338,9 +1339,8 @@ def spatio_temporal_cluster_test(
         observations for one group. The first dimension of each array is the
         number of observations from that group (and may vary between groups).
         The second, and optionally third, dimensions correspond to the
-        time or time-frequency data. And, the last dimension should be spatial;
-        it is the dimension the adjacency parameter will be applied to. All
-        dimensions except the first should match across all groups.
+        time or time-frequency data. And, the last dimension should be spatial.
+        All dimensions except the first should match across all groups.
     %(threshold_clust_f)s
     %(n_permutations_clust_int)s
     %(tail_clust)s
