@@ -30,13 +30,14 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
-                        _AbstractWidgetList, _AbstractAction, _AbstractDialog)
+                        _AbstractWidgetList, _AbstractAction, _AbstractDialog,
+                        _AbstractKeyPress)
 from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
                      _qt_detect_theme, _qt_raise_window)
 from ..utils import _check_option, safe_event, get_config
 
 
-class _QtKeyPress():
+class _QtKeyPress(_AbstractKeyPress):
     _widget_id = 0
     _callbacks = dict()
     _to_qt = dict(
