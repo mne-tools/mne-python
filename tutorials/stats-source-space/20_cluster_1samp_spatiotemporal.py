@@ -14,6 +14,8 @@ permutation test across space and time.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#
 # License: BSD-3-Clause
 
 # %%
@@ -29,8 +31,6 @@ from mne.stats import (spatio_temporal_cluster_1samp_test,
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample
 
-print(__doc__)
-
 # %%
 # Set parameters
 # --------------
@@ -44,7 +44,7 @@ src_fname = subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-ico-5-src.fif'
 tmin = -0.2
 tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
 
-#   Setup for reading the raw data
+# Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname)
 events = mne.read_events(event_fname)
 
@@ -62,8 +62,8 @@ event_id = 3  # L visual
 epochs2 = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                      baseline=(None, 0), reject=reject, preload=True)
 
-#    Equalize trial counts to eliminate bias (which would otherwise be
-#    introduced by the abs() performed below)
+# Equalize trial counts to eliminate bias (which would otherwise be
+# introduced by the abs() performed below)
 equalize_epoch_counts([epochs1, epochs2])
 
 # %%
@@ -77,7 +77,7 @@ method = "dSPM"  # use dSPM method (could also be MNE, sLORETA, or eLORETA)
 inverse_operator = read_inverse_operator(fname_inv)
 sample_vertices = [s['vertno'] for s in inverse_operator['src']]
 
-#    Let's average and compute inverse, resampling to speed things up
+# Let's average and compute inverse, resampling to speed things up
 evoked1 = epochs1.average()
 evoked1.resample(50, npad='auto')
 condition1 = apply_inverse(evoked1, inverse_operator, lambda2, method)
@@ -85,7 +85,7 @@ evoked2 = epochs2.average()
 evoked2.resample(50, npad='auto')
 condition2 = apply_inverse(evoked2, inverse_operator, lambda2, method)
 
-#    Let's only deal with t > 0, cropping to reduce multiple comparisons
+# Let's only deal with t > 0, cropping to reduce multiple comparisons
 condition1.crop(0, None)
 condition2.crop(0, None)
 tmin = condition1.tmin
@@ -96,19 +96,19 @@ tstep = condition1.tstep * 1000  # convert to milliseconds
 # ----------------------------------
 #
 # Normally you would read in estimates across several subjects and morph
-# them to the same cortical space (e.g. fsaverage). For example purposes,
+# them to the same cortical space (e.g., fsaverage). For example purposes,
 # we will simulate this by just having each "subject" have the same
 # response (just noisy in source space) here.
 #
 # .. note::
-#     Note that for 7 subjects with a two-sided statistical test, the minimum
-#     significance under a permutation test is only p = 1/(2 ** 6) = 0.015,
-#     which is large.
+#     Note that for 6 subjects with a two-sided statistical test, the minimum
+#     significance under a permutation test is only
+#     ``p = 1/(2 ** 6) = 0.015``, which is large.
 n_vertices_sample, n_times = condition1.data.shape
 n_subjects = 6
 print(f'Simulating data for {n_subjects} subjects.')
 
-#    Let's make sure our results replicate, so set the seed.
+# Let's make sure our results replicate, so set the seed.
 np.random.seed(0)
 X = randn(n_vertices_sample, n_times, n_subjects, 2) * 10
 X[:, :, :, 0] += condition1.data[:, :, np.newaxis]
@@ -131,7 +131,7 @@ morph_mat = mne.compute_source_morph(
 
 n_vertices_fsave = morph_mat.shape[0]
 
-#    We have to change the shape for the dot() to work properly
+# We have to change the shape for the dot() to work properly
 X = X.reshape(n_vertices_sample, n_times * n_subjects * 2)
 print('Morphing data.')
 X = morph_mat.dot(X)  # morph_mat is a sparse matrix
@@ -144,31 +144,50 @@ X = X.reshape(n_vertices_fsave, n_times, n_subjects, 2)
 X = np.abs(X)  # only magnitude
 X = X[:, :, :, 0] - X[:, :, :, 1]  # make paired contrast
 
+# %%
+# Find adjacencies
+# -----------------
+#
+# For cluster-based permutation testing, we must define adjacencies based
+# on which clusters can be found.
+#
+# Here, to use an algorithm optimized for spatio-temporal clustering, we
+# just pass the spatial adjacency matrix (instead of spatio-temporal).
+# But note that temporal clustering still takes place and can be
+# controlled via the ``max_step`` parameter in
+# :func:`mne.stats.spatio_temporal_cluster_1samp_test`.
+#
+# If we wanted to specify adjacencies for both space and time explicitly
+# we would have to use :func:`mne.stats.combine_adjacency`, however for
+# the present case, this is not needed.
+print('Computing adjacency.')
+adjacency = mne.spatial_src_adjacency(src)
 
 # %%
 # Compute statistic
 # -----------------
-#
-# To use an algorithm optimized for spatio-temporal clustering, we
-# just pass the spatial adjacency matrix (instead of spatio-temporal)
-print('Computing adjacency.')
-adjacency = mne.spatial_src_adjacency(src)
 
-#    Note that X needs to be a multi-dimensional array of shape
-#    samples (subjects) x time x space, so we permute dimensions
+# Note that X needs to be a multi-dimensional array of shape
+# observations (subjects) x time x space, so we permute dimensions
 X = np.transpose(X, [2, 1, 0])
 
-#    Now let's actually do the clustering. This can take a long time...
-#    Here we set the threshold quite high to reduce computation.
+# Here we set a cluster forming threshold based on a p-value for
+# the cluster based permutation test.
+# We use a two-tailed threshold, the "1 - p_threshold" is needed
+# because for two-tailed tests we must specify a positive threshold.
 p_threshold = 0.001
-t_threshold = -stats.distributions.t.ppf(p_threshold / 2., n_subjects - 1)
+df = n_subjects - 1  # degrees of freedom for the test
+t_threshold = stats.distributions.t.ppf(1 - p_threshold / 2, df=df)
+
+# Now let's actually do the clustering. This can take a long time...
 print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu = \
     spatio_temporal_cluster_1samp_test(X, adjacency=adjacency, n_jobs=None,
                                        threshold=t_threshold, buffer_size=None,
                                        verbose=True)
-#    Now select the clusters that are sig. at p < 0.05 (note that this value
-#    is multiple-comparisons corrected).
+
+# Now select the clusters that are statistically significant at p < 0.05
+# (note that this value is multiple-comparisons corrected).
 good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 
 # %%
@@ -176,18 +195,20 @@ good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 # ----------------------
 print('Visualizing clusters.')
 
-#    Now let's build a convenient representation of each cluster, where each
-#    cluster becomes a "time point" in the SourceEstimate
+# Now let's build a convenient representation of each cluster, where each
+# cluster becomes a "time point" in the SourceEstimate
 stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
                                              vertices=fsave_vertices,
                                              subject='fsaverage')
 
-#    Let's actually plot the first "time point" in the SourceEstimate, which
-#    shows all the clusters, weighted by duration.
+# Let's actually plot the first "time point" in the SourceEstimate, which
+# shows all the clusters, weighted by duration.
 
 # blue blobs are for condition A < condition B, red for A > B
 brain = stc_all_cluster_vis.plot(
     hemi='both', views='lateral', subjects_dir=subjects_dir,
     time_label='temporal extent (ms)', size=(800, 800),
     smoothing_steps=5, clim=dict(kind='value', pos_lims=[0, 1, 40]))
+
+# We could save this via the following:
 # brain.save_image('clusters.png')
