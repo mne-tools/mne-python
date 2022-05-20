@@ -946,6 +946,19 @@ def _testing_context(interactive):
         renderer.MNE_3D_BACKEND_INTERACTIVE = orig_interactive
 
 
+class _EventFilter(QObject):
+    def __init__(self, event_name):
+        super().__init__()
+        self._event_name = event_name
+
+    def eventFilter(self, obj, ev):
+        event_type = getattr(QEvent, self._event_name)
+        if ev.type() == event_type:
+            ev.accept()
+            return True
+        return False
+
+
 # In theory we should be able to do this later (e.g., in _pyvista.py when
 # initializing), but at least on Qt6 this has to be done earlier. So let's do
 # it immediately upon instantiation of the QMainWindow class.
@@ -956,15 +969,15 @@ class _MNEMainWindow(MainWindow):
     def __init__(self, parent=None, title=None, size=None):
         super().__init__(parent, title, size)
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
-        self._palette_lock = False  # prevent palette change loop
 
     def _filter_palette_change(self, ev):
-        if self._palette_lock:
-            return
-        self._palette_lock = True
+        # _setStyleSheet triggers a PaletteChange event so we need to filter
+        # out the newly created one to avoid ending in an infinite loop
+        event_filter = _EventFilter('PaletteChange')
+        self.installEventFilter(event_filter)
         theme = get_config('MNE_3D_OPTION_THEME', 'auto')
         _set_window_theme(self, theme)
-        self._palette_lock = False
+        self.removeEventFilter(event_filter)
 
     def event(self, ev):
         """Catch system events."""
