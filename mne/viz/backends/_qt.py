@@ -946,7 +946,7 @@ def _testing_context(interactive):
         renderer.MNE_3D_BACKEND_INTERACTIVE = orig_interactive
 
 
-class _EventFilter(QObject):
+class _DiscardEventFilter(QObject):
     def __init__(self, event_name):
         super().__init__()
         self._event_name = event_name
@@ -976,7 +976,7 @@ class _MNEMainWindow(MainWindow):
         # The setStyleSheet() function triggers a PaletteChange event so we
         # need to filter out the newly created one to avoid ending in an
         # infinite loop.
-        event_filter = _EventFilter('PaletteChange')
+        event_filter = _DiscardEventFilter('PaletteChange')
         self.installEventFilter(event_filter)
         _set_window_theme(self, theme)
         self.removeEventFilter(event_filter)
