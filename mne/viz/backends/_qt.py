@@ -955,11 +955,10 @@ def _testing_context(interactive):
 class _DiscardEventFilter(QObject):
     def __init__(self, event_name):
         super().__init__()
-        self._event_name = event_name
+        self._event_type = getattr(QEvent, event_name)
 
     def eventFilter(self, obj, ev):
-        event_type = getattr(QEvent, self._event_name)
-        if ev.type() == event_type:
+        if ev.type() == self._event_type:
             ev.accept()
             return True
         else:
