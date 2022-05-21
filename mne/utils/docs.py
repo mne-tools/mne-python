@@ -115,6 +115,14 @@ agg_fun : callable
     :func:`numpy.sum` if ``normalize=True``, else :func:`numpy.mean`.
 """
 
+docdict['align_view'] = """
+align : bool
+    If True, consider view arguments relative to canonical MRI
+    directions (closest to MNI for the subject) rather than native MRI
+    space. This helps when MRIs are not in standard orientation (e.g.,
+    have large rotations).
+"""
+
 docdict['allow_empty_eltc'] = """
 allow_empty : bool | str
     ``False`` (default) will emit an error if there are labels that have no

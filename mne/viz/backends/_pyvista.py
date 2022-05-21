@@ -663,6 +663,9 @@ class _PyVistaRenderer(_AbstractRenderer):
     def close(self):
         _close_3d_figure(figure=self.figure)
 
+    def get_camera(self):
+        return _get_3d_view(self.figure)
+
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint='auto', roll=None, reset_camera=True,
                    rigid=None, update=True):
@@ -985,6 +988,16 @@ def _get_camera_direction(focalpoint, position):
     theta = np.arccos(z / r)
     phi = np.arctan2(y, x)
     return r, theta, phi
+
+
+def _get_3d_view(figure):
+    position = np.array(figure.plotter.camera_position[0])
+    focalpoint = np.array(figure.plotter.camera_position[1])
+    _, theta, phi = _get_camera_direction(focalpoint, position)
+    azimuth, elevation = _rad2deg(phi), _rad2deg(theta)
+    return (figure.plotter.camera.GetRoll(),
+            figure.plotter.camera.GetDistance(),
+            azimuth, elevation, focalpoint)
 
 
 def _set_3d_view(figure, azimuth=None, elevation=None, focalpoint='auto',

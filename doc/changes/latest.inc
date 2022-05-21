@@ -73,6 +73,8 @@ Enhancements
 
 - Added fNIRS support to :func:`mne.Info.get_montage` (:gh:`10611` by `Robert Luke`_)
 
+- Add :meth:`mne.viz.Brain.get_view` to get the current camera parameters such that they can be passed to :meth:`mne.viz.Brain.show_view` (:gh:`X` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 

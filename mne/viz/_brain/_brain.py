@@ -3046,6 +3046,32 @@ class Brain(object):
         if self._block:
             _qt_app_exec(self._renderer.figure.store["app"])
 
+    def get_view(self, row=0, col=0):
+        """Get the camera orientation for a given subplot display.
+
+        Parameters
+        ----------
+        row : int
+            The row to use, default is the first one.
+        col : int
+            The column to check, the default is the first one.
+
+        Returns
+        -------
+        %(roll)s
+        %(distance)s
+        %(azimuth)s
+        %(elevation)s
+        %(focalpoint)s
+        """
+        _validate_type(row, ('int-like',), 'row')
+        _validate_type(col, ('int-like',), 'col')
+        for h in self._hemis:
+            for ri, ci, _ in self._iter_views(h):
+                if (row == ri) and (col == ci):
+                    return self._renderer.get_camera()
+        return (None,) * 5
+
     @fill_doc
     def show_view(self, view=None, roll=None, distance=None, *,
                   row=None, col=None, hemi=None, align=True,
@@ -3063,11 +3089,7 @@ class Brain(object):
             The column to set. Default all columns.
         hemi : str | None
             Which hemi to use for view lookup (when in "both" mode).
-        align : bool
-            If True, consider view arguments relative to canonical MRI
-            directions (closest to MNI for the subject) rather than native MRI
-            space. This helps when MRIs are not in standard orientation (e.g.,
-            have large rotations).
+        %(align_view)s
         %(azimuth)s
         %(elevation)s
         %(focalpoint)s
