@@ -2850,6 +2850,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='2d', edit=False):
     .. versionadded:: 1.1
     """
     from scipy import sparse
+    import matplotlib as mpl
     import matplotlib.pyplot as plt
 
     from . import plot_sensors
@@ -2884,22 +2885,34 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='2d', edit=False):
     if kind == '3d':
         with plt.rc_context({'toolbar': 'None'}):
             fig = plot_sensors(info, kind=kind, show=False)
-        pos = np.array([x['loc'][:3] for x in info['chs']])
         _set_3d_axes_equal(fig.axes[0])
     elif kind == '2d':
-        import matplotlib as mpl
         with plt.rc_context({'toolbar': 'None'}):
             fig = plot_sensors(info, kind='topomap', show=False)
         fig.axes[0].axis('equal')
-        path_collection = fig.axes[0].findobj(mpl.collections.PathCollection)
+
+    path_collection = fig.axes[0].findobj(mpl.collections.PathCollection)
+    path_collection[0].set_linewidths(0.)
+
+    if kind == '2d':
+        path_collection[0].set_alpha(0.7)
         pos = path_collection[0].get_offsets()
+
+        # make sure nodes are on top
         path_collection[0].set_zorder(10)
 
         # scale node size with number of connections
         n_connections = [np.sum(adjacency[i]) - 1
-                         for i in range(adjacency.shape[0])]
+                            for i in range(adjacency.shape[0])]
         node_size = [max(x, 3) ** 2.5 for x in n_connections]
         path_collection[0].set_sizes(node_size)
+    else:
+        # plotting channel positions via mne.viz.plot_sensors(info) and using
+        # the coordinates from info['chs'][ch_idx]['loc][:3] gives different
+        # positions. Also .get_offsets gives 2d projections even for 3d points
+        # so we use the private _offsets3d property...
+        pos = path_collection[0]._offsets3d
+        pos = np.stack([pos[0].data, pos[1].data, pos[2]], axis=1)
 
     ax = fig.axes[0]
     lines = dict()
