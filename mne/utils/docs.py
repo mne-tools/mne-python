@@ -1716,10 +1716,10 @@ match_case : bool
 
 docdict['max_step_clust'] = """
 max_step : int
-    Maximum distance along the second dimension (typically this is the "time"
-    axis) between samples that are considered adjacent. Only used
-    when ``adjacency`` has shape (n_vertices, n_vertices), that is, when
-    adjacency is only specified for sensors (e.g., via
+    Maximum distance between samples along the second axis of ``X`` to be
+    considered adjacent (typically the second axis is the "time" dimension).
+    Only used when ``adjacency`` has shape (n_vertices, n_vertices), that is,
+    when adjacency is only specified for sensors (e.g., via
     :func:`mne.channels.find_ch_adjacency`), and not via sensors **and**
     further dimensions such as time points (e.g., via an additional call of
     :func:`mne.stats.combine_adjacency`).
