@@ -3066,7 +3066,7 @@ class Brain(object):
         %(focalpoint)s
         """
         row = _ensure_int(row, 'row')
-        _validate_type(col, ('int-like',), 'col')
+        col = _ensure_int(col, 'col')
         for h in self._hemis:
             for ri, ci, _ in self._iter_views(h):
                 if (row == ri) and (col == ci):
