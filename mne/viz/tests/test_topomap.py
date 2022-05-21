@@ -747,7 +747,7 @@ def test_plot_ch_adjacency():
     adj = adj_sparse.toarray()
 
     # plot adjacency
-    fig = plot_ch_adjacency(info, adj, ch_names, kind='2d', edit=True)
+    fig = plot_ch_adjacency(info, adj_sparse, ch_names, kind='2d', edit=True)
 
     # find channel positions
     collection = fig.axes[0].collections[0]
@@ -813,12 +813,6 @@ def test_plot_ch_adjacency():
 
     # test errors
     # -----------
-    # interactive editing not possible for sparse arrays
-    msg = ("modifications applied interactively won't be reflected in the "
-           "adjacency matrix")
-    with pytest.raises(ValueError, match=msg):
-        plot_ch_adjacency(info, adj_sparse, ch_names, kind='2d', edit=True)
-
     # number of channels in the adjacency matrix and info must match
     msg = ("``adjacency`` must have the same number of rows as the number of "
            "channels in ``info``")
