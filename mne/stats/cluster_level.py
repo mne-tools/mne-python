@@ -1067,9 +1067,8 @@ def permutation_cluster_test(
     permutations and cluster-level correction. Each element of the list ``X``
     should contain the data for one group of observations (e.g., 2D arrays for
     time series, 3D arrays for time-frequency power values). Permutations are
-    generated with random partitions of the data. See
-    :footcite:`MarisOostenveld2007` and :footcite:`Sassenhagen2019` for
-    details.
+    generated with random partitions of the data. For details, see
+    :cite:p:`MarisOostenveld2007,Sassenhagen2019`.
 
     Parameters
     ----------
@@ -1146,8 +1145,7 @@ def permutation_cluster_1samp_test(
         check_disjoint=False, buffer_size=1000, verbose=None):
     """Non-parametric cluster-level paired t-test.
 
-    See :footcite:`MarisOostenveld2007` and :footcite:`Sassenhagen2019`
-    for details.
+    For details, see :cite:p:`MarisOostenveld2007,Sassenhagen2019`.
 
     Parameters
     ----------
@@ -1249,9 +1247,8 @@ def spatio_temporal_cluster_1samp_test(
     This function provides a convenient wrapper for
     :func:`mne.stats.permutation_cluster_1samp_test`, for use with data
     organized in the form (observations × time × space), or optionally
-    (observations × time × frequencies × space). See
-    :footcite:`MarisOostenveld2007` and :footcite:`Sassenhagen2019`
-    for details.
+    (observations × time × frequencies × space). For details, see
+    :cite:p:`MarisOostenveld2007,Sassenhagen2019`.
 
     Parameters
     ----------
@@ -1330,9 +1327,8 @@ def spatio_temporal_cluster_test(
     This function provides a convenient wrapper for
     :func:`mne.stats.permutation_cluster_test`, for use with data
     organized in the form (observations × time × space), or optionally
-    (observations × time × frequencies × space).
-    See :footcite:`MarisOostenveld2007` and :footcite:`Sassenhagen2019`
-    for more information.
+    (observations × time × frequencies × space). For more information,
+    see :cite:p:`MarisOostenveld2007,Sassenhagen2019`.
 
     Parameters
     ----------

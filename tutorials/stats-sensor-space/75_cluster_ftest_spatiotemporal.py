@@ -109,8 +109,8 @@ fig.tight_layout()
 # Then we generate a distribution from the data by shuffling our conditions
 # between our samples and recomputing our clusters and the test statistics.
 # We test for the significance of a given cluster by computing the probability
-# of observing a cluster of that size :footcite:`MarisOostenveld2007`
-# :footcite:`Sassenhagen2019`.
+# of observing a cluster of that size
+# :footcite:`MarisOostenveld2007,Sassenhagen2019`.
 
 # We are running an F test, so we look at the upper tail
 # see also: https://stats.stackexchange.com/a/73993
@@ -376,7 +376,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
 #
 # - What is the smallest p-value you can obtain, given the finite number of
 #   permutations? You can find the answers in the references
-#   :footcite:p:`MarisOostenveld2007,Sassenhagen2019`.
+#   :footcite:`MarisOostenveld2007,Sassenhagen2019`.
 #
 # References
 # ----------
