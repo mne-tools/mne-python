@@ -744,7 +744,6 @@ def test_plot_ch_adjacency():
 
     # construct adjacency
     adj_sparse, ch_names = find_ch_adjacency(info, 'eeg')
-    adj = adj_sparse.toarray()
 
     # plot adjacency
     fig = plot_ch_adjacency(info, adj_sparse, ch_names, kind='2d', edit=True)
@@ -761,7 +760,7 @@ def test_plot_ch_adjacency():
         x, y = line.get_data()
         ch_idx = [np.where((pos == [[x[ix], y[ix]]]).all(axis=1))[0][0]
                   for ix in range(2)]
-        assert adj[ch_idx[0], ch_idx[1]]
+        assert adj_sparse[ch_idx[0], ch_idx[1]]
 
     # make sure additional point is generated after clicking a channel
     _fake_click(fig, fig.axes[0], pos[0], xform='data')
@@ -773,13 +772,13 @@ def test_plot_ch_adjacency():
     assert (collections[1].get_facecolor() == green).all()
 
     # make sure adjacency entry is modified after second click on another node
-    assert adj[0, 1]
-    assert adj[1, 0]
+    assert adj_sparse[0, 1]
+    assert adj_sparse[1, 0]
     n_lines_before = len(lines)
     _fake_click(fig, fig.axes[0], pos[1], xform='data')
 
-    assert not adj[0, 1]
-    assert not adj[1, 0]
+    assert not adj_sparse[0, 1]
+    assert not adj_sparse[1, 0]
 
     # and there is one line less
     lines = fig.axes[0].lines[4:]
@@ -809,6 +808,7 @@ def test_plot_ch_adjacency():
     assert lines[-1].get_color() == 'tab:green'
 
     # smoke test for 3d option
+    adj = adj_sparse.toarray()
     fig = plot_ch_adjacency(info, adj, ch_names, kind='3d')
 
     # test errors
