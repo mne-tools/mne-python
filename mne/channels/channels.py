@@ -1199,6 +1199,7 @@ def read_ch_adjacency(fname, picks=None):
     See Also
     --------
     find_ch_adjacency
+    mne.viz.plot_ch_adjacency
 
     Notes
     -----
@@ -1309,6 +1310,7 @@ def find_ch_adjacency(info, ch_type):
     See Also
     --------
     read_ch_adjacency
+    mne.viz.plot_ch_adjacency
 
     Notes
     -----
