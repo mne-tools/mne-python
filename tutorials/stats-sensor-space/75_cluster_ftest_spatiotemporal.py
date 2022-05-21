@@ -77,7 +77,7 @@ epochs.equalize_event_counts(event_id)
 
 # Obtain the data as a 3D matrix and transpose it such that
 # the dimensions are as expected for the cluster permutation test:
-# n_epochs X n_times X n_channels
+# n_epochs × n_times × n_channels
 X = [epochs[k].get_data() for k in event_id]
 X = [np.transpose(x, (0, 2, 1)) for x in X]
 
@@ -117,7 +117,7 @@ fig.tight_layout()
 tail = 1
 
 # We want to set a critical test statistic (here: F), to determine when
-# clusters are being formed. Using Scipy's percent point function of the f
+# clusters are being formed. Using Scipy's percent point function of the F
 # distribution, we can conveniently select a threshold that corresponds to
 # some alpha level that we arbitrarily pick.
 alpha_cluster_forming = 0.001
@@ -153,8 +153,8 @@ good_cluster_inds = np.where(p_values < p_accept)[0]
 #           account. That is, at time point N, the time points N - 1 and
 #           N + 1 were considered as adjacent (this is also called "lattice
 #           adjacency"). This is only possbile because we ran the analysis on
-#           2D data (times X channels) per observation ... for 3D data per
-#           observation (e.g., times X frequencies X channels), we will need
+#           2D data (times × channels) per observation ... for 3D data per
+#           observation (e.g., times × frequencies × channels), we will need
 #           to use :func:`mne.stats.combine_adjacency`, as shown further
 #           below.
 #
@@ -277,7 +277,7 @@ tfr_adjacency = combine_adjacency(
 # threshold-free cluster enhancement may be used.
 # See :ref:`disc-stats` for a discussion.
 
-# This time we don't calculate a threshold based on the f-distribution.
+# This time we don't calculate a threshold based on the F distribution.
 # We might as well select an arbitrary threshold for cluster forming
 tfr_threshold = 15.0
 
@@ -376,7 +376,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
 #
 # - What is the smallest p-value you can obtain, given the finite number of
 #   permutations? You can find the answers in the references
-#   :footcite:`MarisOostenveld2007` :footcite:`Sassenhagen2019`.
+#   :footcite:p:`MarisOostenveld2007,Sassenhagen2019`.
 #
 # References
 # ----------

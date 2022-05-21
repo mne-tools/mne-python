@@ -148,12 +148,16 @@ X = X[:, :, :, 0] - X[:, :, :, 1]  # make paired contrast
 # Find adjacencies
 # -----------------
 #
-# For cluster-based permutation testing, we must define adjacencies based
-# on which clusters can be found.
+# For cluster-based permutation testing, we must define adjacency relations
+# that govern which points can become members of the same cluster. While
+# these relations are rather obvious for dimensions such as time or frequency
+# they require a bit more work for spatial dimension such as channels or
+# source vertices.
 #
 # Here, to use an algorithm optimized for spatio-temporal clustering, we
 # just pass the spatial adjacency matrix (instead of spatio-temporal).
-# But note that temporal clustering still takes place and can be
+# But note that clustering still takes place along the
+# temporal dimension and can be
 # controlled via the ``max_step`` parameter in
 # :func:`mne.stats.spatio_temporal_cluster_1samp_test`.
 #
@@ -168,7 +172,7 @@ adjacency = mne.spatial_src_adjacency(src)
 # -----------------
 
 # Note that X needs to be a multi-dimensional array of shape
-# observations (subjects) x time x space, so we permute dimensions
+# observations (subjects) × time × space, so we permute dimensions
 X = np.transpose(X, [2, 1, 0])
 
 # Here we set a cluster forming threshold based on a p-value for

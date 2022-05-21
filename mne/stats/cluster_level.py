@@ -1209,7 +1209,7 @@ def permutation_cluster_1samp_test(
 
         pval = 0.001  # arbitrary
         df = n_observations - 1  # degrees of freedom for the test
-        thresh = scipy.stats.t.ppf(1 - pval /  2, df)  # two-tailed
+        thresh = scipy.stats.t.ppf(1 - pval / 2, df)  # two-tailed
 
     For a one-tailed test (``tail=1``), don't divide the p-value by 2.
     For testing the lower tail (``tail=-1``), don't subtract pval from 1.

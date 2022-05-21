@@ -20,7 +20,7 @@ The procedure consists of:
 
 Here, the unit of observation is epochs from a specific study subject.
 However, the same logic applies when the unit observation is
-a number of study subject each of whom contribute their own averaged
+a number of study subjects each of whom contribute their own averaged
 data (i.e., an average of their epochs). This would then be considered
 an analysis at the "2nd level".
 
@@ -158,7 +158,7 @@ tail = 0
 # have a two-tailed test and need to look at both tails of the distribution.
 # As the degrees of freedom, we specify the number of observations
 # (here: epochs) minus 1.
-# Finally, we subtract 0.001 / 2 from 1, to get the criticalt-value
+# Finally, we subtract 0.001 / 2 from 1, to get the critical t-value
 # on the right tail (this is needed for MNE-Python internals)
 degrees_of_freedom = len(epochs) - 1
 t_thresh = scipy.stats.t.ppf(1 - 0.001 / 2, df=degrees_of_freedom)
