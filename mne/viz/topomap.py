@@ -2903,7 +2903,7 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='2d', edit=False):
 
         # scale node size with number of connections
         n_connections = [np.sum(adjacency[i]) - 1
-                            for i in range(adjacency.shape[0])]
+                         for i in range(adjacency.shape[0])]
         node_size = [max(x, 3) ** 2.5 for x in n_connections]
         path_collection[0].set_sizes(node_size)
     else:
