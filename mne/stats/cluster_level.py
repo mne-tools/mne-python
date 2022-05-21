@@ -1195,7 +1195,6 @@ def permutation_cluster_1samp_test(
     computes a 1-sample t-test (by default) and uses sign flipping (always)
     to perform permutations. This might not be suitable for the case where
     there is truly a single observation under test; see :ref:`disc-stats`.
-
     %(threshold_clust_t_notes)s
 
     If ``n_permutations`` exceeds the maximum number of possible permutations

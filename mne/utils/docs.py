@@ -3067,9 +3067,6 @@ threshold : float | dict | None
 f_test = ('an F-threshold', 'an F-statistic')
 docdict['threshold_clust_f'] = _threshold_clust_base.format(*f_test)
 
-t_test = ('a t-threshold', 'a t-statistic')
-docdict['threshold_clust_t'] = _threshold_clust_base.format(*t_test)
-
 docdict['threshold_clust_f_notes'] = """
 For computing a ``threshold`` based on a p-value, use the conversion
 from :meth:`scipy.stats.f.ppf`::
@@ -3079,6 +3076,9 @@ from :meth:`scipy.stats.f.ppf`::
     dfd = n_observations - n_conditions  # degrees of freedom denominator
     thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)
 """
+
+t_test = ('a t-threshold', 'a t-statistic')
+docdict['threshold_clust_t'] = _threshold_clust_base.format(*t_test)
 
 docdict['threshold_clust_t_notes'] = """
 For computing a ``threshold`` based on a p-value, use the conversion
