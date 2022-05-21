@@ -367,10 +367,10 @@ fig : matplotlib.figure.Figure | mne_qt_browser.figure.MNEQtBrowser
 docdict['buffer_size_clust'] = """
 buffer_size : int | None
     Block size to use when computing test statistics. This can significantly
-    reduce memory usage when n_jobs > 1 and memory sharing between processes is
-    enabled (see :func:`mne.set_cache_dir`), because ``X`` will be shared
-    between processes and each process only needs to allocate space for a small
-    block of locations at a time.
+    reduce memory usage when ``n_jobs > 1`` and memory sharing between
+    processes is enabled (see :func:`mne.set_cache_dir`), because ``X`` will be
+    shared between processes and each process only needs to allocate space for
+    a small block of locations at a time.
 """
 
 docdict['by_event_type'] = """
@@ -975,6 +975,13 @@ evoked : instance of Evoked | list of Evoked
     separate :class:`~mne.Evoked` object for each event type. The list has the
     same order as the event types as specified in the ``event_id``
     dictionary.
+"""
+
+docdict['exclude_clust'] = """
+exclude : bool array or None
+    Mask to apply to the data to exclude certain points from clustering
+    (e.g., medial wall vertices). Should be the same shape as ``X``.
+    If ``None``, no points are excluded.
 """
 
 docdict['exclude_frontal'] = """

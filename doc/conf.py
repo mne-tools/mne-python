@@ -244,7 +244,7 @@ numpydoc_xref_ignore = {
     'n_vertices', 'n_faces', 'n_channels', 'm', 'n', 'n_events', 'n_colors',
     'n_times', 'obj', 'n_chan', 'n_epochs', 'n_picks', 'n_ch_groups',
     'n_dipoles', 'n_ica_components', 'n_pos', 'n_node_names', 'n_tapers',
-    'n_signals', 'n_step', 'n_freqs', 'wsize', 'Tx', 'M', 'N', 'p', 'q',
+    'n_signals', 'n_step', 'n_freqs', 'wsize', 'Tx', 'M', 'N', 'p', 'q', 'r',
     'n_observations', 'n_regressors', 'n_cols', 'n_frequencies', 'n_tests',
     'n_samples', 'n_permutations', 'nchan', 'n_points', 'n_features',
     'n_parts', 'n_features_new', 'n_components', 'n_labels', 'n_events_in',

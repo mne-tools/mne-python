@@ -1072,7 +1072,7 @@ def permutation_cluster_test(
 
     Parameters
     ----------
-    X : list of array, shape (n_observations, p[, q])
+    X : list of array, shape (n_observations, p[, q][, r])
         The data to be clustered. Each array in ``X`` should contain the
         observations for one group. The first dimension of each array is the
         number of observations from that group; remaining dimensions comprise
@@ -1092,10 +1092,7 @@ def permutation_cluster_test(
     %(n_jobs)s
     %(seed)s
     %(max_step_clust)s
-    exclude : bool array or None
-        Mask to apply to the data to exclude certain points from clustering
-        (e.g., medial wall vertices). Should be the same shape as X. If None,
-        no points are excluded.
+    %(exclude_clust)s
     %(step_down_p_clust)s
     %(f_power_clust)s
     %(out_type_clust)s
@@ -1105,7 +1102,7 @@ def permutation_cluster_test(
 
     Returns
     -------
-    F_obs : array, shape (p[, q])
+    F_obs : array, shape (p[, q][, r])
         Statistic (F by default) observed for all variables.
     clusters : list
         List type defined by out_type above.
@@ -1143,7 +1140,7 @@ def permutation_cluster_1samp_test(
 
     Parameters
     ----------
-    X : array, shape (n_observations, p[, q])
+    X : array, shape (n_observations, p[, q][, r])
         The data to be clustered. The first dimension should correspond to the
         difference between paired samples (observations) in two conditions.
         The subarrays ``X[k]`` can be 1D (e.g., time series), 2D (e.g.,
@@ -1158,10 +1155,7 @@ def permutation_cluster_1samp_test(
     %(n_jobs)s
     %(seed)s
     %(max_step_clust)s
-    exclude : bool array or None
-        Mask to apply to the data to exclude certain points from clustering
-        (e.g., medial wall vertices). Should be the same shape as X. If None,
-        no points are excluded.
+    %(exclude_clust)s
     %(step_down_p_clust)s
     %(t_power_clust)s
     %(out_type_clust)s
@@ -1171,7 +1165,7 @@ def permutation_cluster_1samp_test(
 
     Returns
     -------
-    t_obs : array, shape (p[, q])
+    t_obs : array, shape (p[, q][, r])
         T-statistic observed for all variables.
     clusters : list
         List type defined by out_type above.
