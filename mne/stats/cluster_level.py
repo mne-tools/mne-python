@@ -1214,9 +1214,11 @@ def permutation_cluster_1samp_test(
     For a one-tailed test (``tail=1``), don't divide the p-value by 2.
     For testing the lower tail (``tail=-1``), don't subtract pval from 1.
 
-    If ``n_permutations >= 2 ** (n_observations - (tail == 0))``,
-    ``n_permutations`` and ``seed`` will be ignored since an exact test
-    (full permutation test) will be performed.
+    If ``n_permutations`` exceeds the maximum number of possible permutations
+    given the number of observations, then ``n_permutations`` and ``seed``
+    will be ignored since an exact test (full permutation test) will be
+    performed (this is the case when
+    ``n_permutations >= 2 ** (n_observations - (tail == 0))``).
 
     If no initial clusters are found because all points in the true
     distribution are below the threshold, then ``clusters``, ``cluster_pv``,
