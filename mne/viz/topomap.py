@@ -2839,6 +2839,15 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='2d', edit=False):
     fig : Figure
         The :class:`~matplotlib.figure.Figure` instance where the channel
         adjacency is plotted.
+
+    See Also
+    --------
+    find_ch_adjacency
+    read_ch_adjacency
+
+    Notes
+    -----
+    .. versionadded:: 1.1
     """
     from scipy import sparse
     import matplotlib.pyplot as plt
@@ -2934,6 +2943,7 @@ def _onpick_ch_adjacency(event, axes=None, positions=None, highlighted=None,
     else:
         # new node selected
         if len(highlighted) == 0:
+            # no highlighted nodes yet
             size = max(node_size[node_ind] * 2, 100)
             # add current node
             dots = axes.scatter(
@@ -2942,7 +2952,7 @@ def _onpick_ch_adjacency(event, axes=None, positions=None, highlighted=None,
             highlighted[node_ind] = dots
             axes.figure.canvas.draw()  # make sure it renders
         else:
-            # add or remove line
+            # one previously highlighted - add or remove line
             key = list(highlighted.keys())[0]
             both_nodes = [key, node_ind]
             both_nodes.sort()
