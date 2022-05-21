@@ -2856,19 +2856,11 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='2d', edit=False):
     from . import plot_sensors
 
     _validate_type(info, Info, 'info')
+    _validate_type(adjacency, (np.ndarray, sparse.csr_matrix), 'adjacency')
+    has_sparse = isinstance(adjacency, sparse.csr_matrix)
 
     if edit and kind == '3d':
         raise ValueError('Editing a 3d adjacency plot is not supported.')
-
-    if isinstance(adjacency, (sparse.coo_matrix, sparse.csr_matrix)):
-        adjacency = adjacency.toarray()
-        if edit and kind == '2d':
-            raise ValueError('When adjacency is passed as a sparse array, '
-                             "the modifications applied interactively won"
-                             "'t be reflected in the adjacency matrix. If you"
-                             " want to use edit mode, please turn the adja"
-                             "cency into a dense array (use ``.toarray()`` "
-                             "method) before passing it to plot_ch_adjacency.")
 
     # select relevant channels
     sel = pick_channels(info.ch_names, ch_names, ordered=True)
@@ -2919,7 +2911,12 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='2d', edit=False):
     n_channels = adjacency.shape[0]
     for ch_idx in range(n_channels):
         # make sure we don't repeat channels
-        ch_neighbours = np.where(adjacency[ch_idx, ch_idx + 1:])[0]
+        row = adjacency[ch_idx, ch_idx + 1:]
+        if has_sparse:
+            ch_neighbours = row.nonzero()[1]
+        else:
+            ch_neighbours = np.where(row)[0]
+
         if len(ch_neighbours) == 0:
             continue
 
@@ -2980,7 +2977,7 @@ def _onpick_ch_adjacency(event, axes=None, positions=None, highlighted=None,
                 del line_dict[both_nodes]
 
                 # clear adjacency matrix entry
-                adjacency[both_nodes, both_nodes[::-1]] = False
+                _set_adjacency(adjacency, both_nodes, False)
             else:
                 # add line
                 n_conn_change = +1
@@ -2990,7 +2987,7 @@ def _onpick_ch_adjacency(event, axes=None, positions=None, highlighted=None,
                 line_dict[both_nodes] = line
 
                 # modify adjacency matrix
-                adjacency[both_nodes, both_nodes[::-1]] = True
+                _set_adjacency(adjacency, both_nodes, True)
 
             # de-highlight previous
             highlighted[key].remove()
@@ -3010,3 +3007,11 @@ def _onpick_ch_adjacency(event, axes=None, positions=None, highlighted=None,
                 zorder=15)
             highlighted[node_ind] = dots
             axes.figure.canvas.draw()
+
+
+def _set_adjacency(adjacency, both_nodes, value):
+    """Set adjacency for given node pair, caching errors for sparse arrays."""
+    import warnings
+
+    with warnings.catch_warnings(record=True):
+        adjacency[both_nodes, both_nodes[::-1]] = value
