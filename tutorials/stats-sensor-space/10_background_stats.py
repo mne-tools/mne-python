@@ -125,9 +125,9 @@ def plot_t_p(t, p, title, mcc, axes=None):
         show = False
 
     # calculate critical t-value thresholds (2-tailed)
-    p_lims = [0.1, 0.001]
+    p_lims = np.array([0.1, 0.001])
     df = n_subjects - 1  # degrees of freedom
-    t_lims = stats.distributions.t.ppf([1 - lim for lim in p_lims] / 2, df=df)
+    t_lims = stats.distributions.t.ppf(1 - p_lims / 2, df=df)
     p_lims = [-np.log10(p) for p in p_lims]
 
     # t plot
