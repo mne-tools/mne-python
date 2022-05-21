@@ -1116,13 +1116,7 @@ def permutation_cluster_test(
 
     Notes
     -----
-    For computing a ``threshold`` based on a p-value, use the conversion
-    from :meth:`scipy.stats.f.ppf`::
-
-        pval = 0.001  # arbitrary
-        dfn = n_conditions - 1  # degrees of freedom numerator
-        dfd = n_observations - n_conditions  # degrees of freedom denominator
-        thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)
+    %(threshold_clust_f_notes)s
 
     References
     ----------
@@ -1202,15 +1196,7 @@ def permutation_cluster_1samp_test(
     to perform permutations. This might not be suitable for the case where
     there is truly a single observation under test; see :ref:`disc-stats`.
 
-    For computing a ``threshold`` based on a p-value, use the conversion
-    from :meth:`scipy.stats.t.ppf`::
-
-        pval = 0.001  # arbitrary
-        df = n_observations - 1  # degrees of freedom for the test
-        thresh = scipy.stats.t.ppf(1 - pval / 2, df)  # two-tailed
-
-    For a one-tailed test (``tail=1``), don't divide the p-value by 2.
-    For testing the lower tail (``tail=-1``), don't subtract pval from 1.
+    %(threshold_clust_t_notes)s
 
     If ``n_permutations`` exceeds the maximum number of possible permutations
     given the number of observations, then ``n_permutations`` and ``seed``
@@ -1287,15 +1273,7 @@ def spatio_temporal_cluster_1samp_test(
 
     Notes
     -----
-    For computing a ``threshold`` based on a p-value, use the conversion
-    from :meth:`scipy.stats.t.ppf`::
-
-        pval = 0.001  # arbitrary
-        df = n_observations - 1  # degrees of freedom for the test
-        thresh = scipy.stats.t.ppf(1 - pval /  2, df)  # two-tailed
-
-    For a one-tailed test (``tail=1``), don't divide the p-value by 2.
-    For testing the lower tail (``tail=-1``), don't subtract pval from 1.
+    %(threshold_clust_t_notes)s
 
     References
     ----------
@@ -1369,13 +1347,7 @@ def spatio_temporal_cluster_test(
 
     Notes
     -----
-    For computing a ``threshold`` based on a p-value, use the conversion
-    from :meth:`scipy.stats.f.ppf`::
-
-        pval = 0.001  # arbitrary
-        dfn = n_conditions - 1  # degrees of freedom numerator
-        dfd = n_observations - n_conditions  # degrees of freedom denominator
-        thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)
+    %(threshold_clust_f_notes)s
 
     References
     ----------

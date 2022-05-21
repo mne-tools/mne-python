@@ -3070,6 +3070,28 @@ docdict['threshold_clust_f'] = _threshold_clust_base.format(*f_test)
 t_test = ('a t-threshold', 'a t-statistic')
 docdict['threshold_clust_t'] = _threshold_clust_base.format(*t_test)
 
+docdict['threshold_clust_f_notes'] = """
+For computing a ``threshold`` based on a p-value, use the conversion
+from :meth:`scipy.stats.f.ppf`::
+
+    pval = 0.001  # arbitrary
+    dfn = n_conditions - 1  # degrees of freedom numerator
+    dfd = n_observations - n_conditions  # degrees of freedom denominator
+    thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)
+"""
+
+docdict['threshold_clust_t_notes'] = """
+For computing a ``threshold`` based on a p-value, use the conversion
+from :meth:`scipy.stats.t.ppf`::
+
+    pval = 0.001  # arbitrary
+    df = n_observations - 1  # degrees of freedom for the test
+    thresh = scipy.stats.t.ppf(1 - pval / 2, df)  # two-tailed
+
+For a one-tailed test (``tail=1``), don't divide the p-value by 2.
+For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
+"""
+
 docdict['time_format'] = """
 time_format : 'float' | 'clock'
     Style of time labels on the horizontal axis. If ``'float'``, labels will be
