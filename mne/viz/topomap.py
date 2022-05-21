@@ -2915,7 +2915,8 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='2d', edit=False):
         for ngb_idx in ch_neighbours:
             this_pos = pos[[ch_idx, ngb_idx], :]
             ch_pair = tuple([ch_idx, ngb_idx])
-            lines[ch_pair] = ax.plot(*this_pos.T, color='gray')[0]
+            lines[ch_pair] = ax.plot(*this_pos.T, color=(0.55, 0.55, 0.55),
+                                     lw=0.75)[0]
 
     if edit:
         # allow interactivity in 2d plots
