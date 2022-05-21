@@ -3046,6 +3046,7 @@ class Brain(object):
         if self._block:
             _qt_app_exec(self._renderer.figure.store["app"])
 
+    @fill_doc
     def get_view(self, row=0, col=0):
         """Get the camera orientation for a given subplot display.
 
