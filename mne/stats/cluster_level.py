@@ -1068,7 +1068,7 @@ def permutation_cluster_test(
     should contain the data for one group of observations (e.g., 2D arrays for
     time series, 3D arrays for time-frequency power values). Permutations are
     generated with random partitions of the data. For details, see
-    :cite:p:`MarisOostenveld2007,Sassenhagen2019`.
+    :footcite:p:`MarisOostenveld2007,Sassenhagen2019`.
 
     Parameters
     ----------
@@ -1139,11 +1139,11 @@ def permutation_cluster_1samp_test(
         check_disjoint=False, buffer_size=1000, verbose=None):
     """Non-parametric cluster-level paired t-test.
 
-    For details, see :cite:p:`MarisOostenveld2007,Sassenhagen2019`.
+    For details, see :footcite:p:`MarisOostenveld2007,Sassenhagen2019`.
 
     Parameters
     ----------
-    X : array, shape (n_observations, p[, q, r])
+    X : array, shape (n_observations, p[, q])
         The data to be clustered. The first dimension should correspond to the
         difference between paired samples (observations) in two conditions.
         The subarrays ``X[k]`` can be 1D (e.g., time series), 2D (e.g.,
@@ -1233,7 +1233,7 @@ def spatio_temporal_cluster_1samp_test(
     :func:`mne.stats.permutation_cluster_1samp_test`, for use with data
     organized in the form (observations × time × space), or optionally
     (observations × time × frequencies × space). For details, see
-    :cite:p:`MarisOostenveld2007,Sassenhagen2019`.
+    :footcite:p:`MarisOostenveld2007,Sassenhagen2019`.
 
     Parameters
     ----------
@@ -1305,7 +1305,7 @@ def spatio_temporal_cluster_test(
     :func:`mne.stats.permutation_cluster_test`, for use with data
     organized in the form (observations × time × space), or optionally
     (observations × time × frequencies × space). For more information,
-    see :cite:p:`MarisOostenveld2007,Sassenhagen2019`.
+    see :footcite:p:`MarisOostenveld2007,Sassenhagen2019`.
 
     Parameters
     ----------

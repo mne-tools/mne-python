@@ -107,7 +107,7 @@ noise_cov_baseline.plot(epochs.info, proj=True)
 # available. Unfortunately it is not easy to tell the effective number of
 # samples, hence, to choose the appropriate regularization.
 # In MNE-Python, regularization is done using advanced regularization methods
-# described in :cite:p:`EngemannGramfort2015`. For this the 'auto' option
+# described in :footcite:p:`EngemannGramfort2015`. For this the 'auto' option
 # can be used. With this option cross-validation will be used to learn the
 # optimal regularization:
 
@@ -177,7 +177,7 @@ evoked_meg.plot_white([noise_cov_baseline, noise_cov], time_unit='s')
 ##############################################################################
 # Based on the negative log-likelihood, the baseline covariance
 # seems more appropriate. Improper regularization can lead to overestimation of
-# source amplitudes, see :cite:p:`EngemannGramfort2015` for more
+# source amplitudes, see :footcite:p:`EngemannGramfort2015` for more
 # information and examples.
 
 # %%
