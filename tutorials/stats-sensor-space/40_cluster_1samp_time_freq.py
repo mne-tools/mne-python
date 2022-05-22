@@ -136,7 +136,8 @@ adjacency = mne.stats.combine_adjacency(
     sensor_adjacency, len(tfr_epochs.freqs), len(tfr_epochs.times))
 
 # The overall adjacency we end up with is a square matrix with each
-# dimension matching the data size (excluding observations)
+# dimension matching the data size (excluding observations) in an
+# "unrolled" format, so: len(channels × frequencies × times)
 assert adjacency.shape[0] == adjacency.shape[1] == \
     len(tfr_epochs.ch_names) * len(tfr_epochs.freqs) * len(tfr_epochs.times)
 
