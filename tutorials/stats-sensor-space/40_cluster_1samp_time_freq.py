@@ -165,7 +165,7 @@ tail = 0
 # In this example, we wish to set the threshold for including data bins in
 # the cluster forming process to the t-value corresponding to p=0.001 for the
 # given data.
-# 
+#
 # Because we conduct a two-tailed test, we divide the p-value by 2 (which means
 # we're making use of both tails of the distribution).
 # As the degrees of freedom, we specify the number of observations
