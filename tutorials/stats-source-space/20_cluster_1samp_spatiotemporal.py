@@ -190,9 +190,25 @@ T_obs, clusters, cluster_p_values, H0 = clu = \
                                        threshold=t_threshold, buffer_size=None,
                                        verbose=True)
 
-# Now select the clusters that are statistically significant at p < 0.05
-# (note that this value is multiple-comparisons corrected).
-good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
+# %%
+# Selecting "significant" clusters
+# --------------------------------
+# After performing the cluster-based permutationt test, you may wish to
+# select the observed clusters that can be considered statistically
+# significant under the permutation distribution. This can easily be
+# done using the code snippet below.
+#
+# However, it is crucial to be aware that a statistically significant
+# observed cluster does not directly translate into statistical
+# significance of the channels, time points, frequency bins, etc. that
+# form the cluster!
+#
+# For more information, see the `FieldTrip tutorial <ft_cluster_>`_.
+#
+# .. include:: ../../links.inc
+
+# Select the clusters that are statistically significant at p < 0.05
+good_clusters = clusters[np.where(cluster_p_values < 0.05)[0]]
 
 # %%
 # Visualize the clusters

@@ -190,13 +190,23 @@ T_obs, clusters, cluster_p_values, H0 = \
 # %%
 # View time-frequency plots
 # -------------------------
+# We now visualize the observed clusters that are statistically significant
+# under our permutation distribution.
+#
+# .. warning:: Talking about "significant clusters" can be convenient, but
+#              you must be aware of all associated caveats! For example, it
+#              is **invalid** to assume that a cluster at channels A and B
+#              over 0ms to 100ms means that there is a difference at these
+#              particular channels and time points. See the comprehensive
+#              `FieldTrip tutorial <ft_cluster_>`_ for more information.
+#
+# .. include:: ../../links.inc
 evoked_data = evoked.data
 times = 1e3 * evoked.times
 
 plt.figure()
 plt.subplots_adjust(0.12, 0.08, 0.96, 0.94, 0.2, 0.43)
 
-# Create new stats image with only significant clusters at alpha level 0.05
 T_obs_plot = np.nan * np.ones_like(T_obs)
 for c, p_val in zip(clusters, cluster_p_values):
     if p_val <= 0.05:

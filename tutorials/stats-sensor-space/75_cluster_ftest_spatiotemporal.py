@@ -19,7 +19,7 @@ a number of study subject each of whom contribute their own averaged
 data (i.e., an average of their epochs). This would then be considered
 an analysis at the "2nd level".
 
-See the `FieldTrip website`_ for a caveat regarding
+See the `FieldTrip tutorial <ft_cluster_>`_ for a caveat regarding
 the possible interpretation of "significant" clusters.
 
 For more information on cluster-based permutation testing in MNE-Python,
@@ -135,11 +135,6 @@ cluster_stats = spatio_temporal_cluster_test(X, n_permutations=1000,
                                              adjacency=adjacency)
 F_obs, clusters, p_values, _ = cluster_stats
 
-# We subselect clusters that we consider significant at an arbitrarily
-# picked alpha level: "p_accept":
-p_accept = 0.01
-good_cluster_inds = np.where(p_values < p_accept)[0]
-
 # %%
 # .. note:: Note how we only specified an adjacency for sensors! However,
 #           because we used :func:`mne.stats.spatio_temporal_cluster_test`,
@@ -159,6 +154,13 @@ good_cluster_inds = np.where(p_values < p_accept)[0]
 #
 # Visualize clusters
 # ------------------
+
+# We subselect clusters that we consider significant at an arbitrarily
+# picked alpha level: "p_accept".
+# NOTE: remember the caveats with respect to "significant" clusters that
+# we mentioned in the introduction of this tutorial!
+p_accept = 0.01
+good_cluster_inds = np.where(p_values < p_accept)[0]
 
 # configure variables for visualization
 colors = {"Aud": "crimson", "Vis": 'steelblue'}
@@ -376,6 +378,4 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
 # ----------
 # .. footbibliography::
 #
-# .. _fieldtrip website:
-#       http://www.fieldtriptoolbox.org/faq/
-#       how_not_to_interpret_results_from_a_cluster-based_permutation_test
+# .. include:: ../../links.inc
