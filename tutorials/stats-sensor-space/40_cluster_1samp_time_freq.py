@@ -19,7 +19,7 @@ The procedure consists of:
   - compute stats to see if ratio deviates from 1.
 
 Here, the unit of observation is epochs from a specific study subject.
-However, the same logic applies when the unit observation is
+However, the same logic applies when the unit of observation is
 a number of study subjects each of whom contribute their own averaged
 data (i.e., an average of their epochs). This would then be considered
 an analysis at the "2nd level".
@@ -108,7 +108,7 @@ epochs_power = tfr_epochs.data
 # "N + 1" and "N - 1" (forming a "grid" on the time-frequency plane).
 
 # find_ch_adjacency first attempts to find an existing "neighbor"
-# (adjacency) file for the present data to read.
+# (adjacency) file for given sensor layout.
 # If such a file doesn't exist, an adjacency matrix is computed on the fly,
 # using Delaunay triangulations.
 sensor_adjacency, ch_names = mne.channels.find_ch_adjacency(
@@ -144,18 +144,30 @@ assert adjacency.shape[0] == adjacency.shape[1] == \
 # %%
 # Compute statistic
 # -----------------
-# For forming clusters, we need to specify a critical test statistic threshold
-# beyond which data bins are considered statistically significant. Here, we
+# For forming clusters, we need to specify a critical test statistic threshold.
+# Only data bins exceeding this threshold will be used to form clusters.
+#
+# Here, we
 # use a t-test and can make use of Scipy's percent point function of the t
 # distribution to get a t-value that corresponds to a specific alpha level
 # for significance. This threshold is often called the
 # "cluster forming threshold".
+#
+# .. note::
+#    The choice of the threshold is more or less arbitrary. Choosing
+#    a t-value corresponding to p=0.05, p=0.01, or p=0.001 may often provide
+#    a good starting point. Depending on the specific dataset you are working
+#    with, you may need to adjust the threshold.
 
 # We want a two-tailed test
 tail = 0
 
-# We arbitrarily pick an alpha level of 0.001 and divide it by 2, because we
-# have a two-tailed test and need to look at both tails of the distribution.
+# In this example, we wish to set the threshold for including data bins in
+# the cluster forming process to the t-value corresponding to p=0.001 for the
+# given data.
+# 
+# Because we conduct a two-tailed test, we divide the p-value by 2 (which means
+# we're making use of both tails of the distribution).
 # As the degrees of freedom, we specify the number of observations
 # (here: epochs) minus 1.
 # Finally, we subtract 0.001 / 2 from 1, to get the critical t-value
@@ -164,8 +176,8 @@ degrees_of_freedom = len(epochs) - 1
 t_thresh = scipy.stats.t.ppf(1 - 0.001 / 2, df=degrees_of_freedom)
 
 # Set the number of permutations to run.
-# Warning: 50 is way too small for real-world analysis, but here we use this
-# for increased computation speed.
+# Warning: 50 is way too small for a real-world analysis (where values of 5000
+# or higher are used), but here we use it to increase the computation speed.
 n_permutations = 50
 
 # Run the analysis
