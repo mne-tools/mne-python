@@ -127,9 +127,8 @@ assert sensor_adjacency.shape == \
 
 # Now we need to prepare adjacency information for the time-frequency
 # plane. For that, we use "combine_adjacency", and pass dimensions
-# as in the data we want to test. Here:
-# observations × channels × frequencies × times
-# (for observations, no adjacency is specified)
+# as in the data we want to test (excluding observations). Here:
+# channels × frequencies × times
 assert epochs_power.data.shape == (
     len(epochs), len(tfr_epochs.ch_names),
     len(tfr_epochs.freqs), len(tfr_epochs.times))
