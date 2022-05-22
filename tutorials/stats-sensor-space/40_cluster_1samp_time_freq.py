@@ -117,7 +117,7 @@ sensor_adjacency, ch_names = mne.channels.find_ch_adjacency(
 # In this case, find_ch_adjacency finds an appropriate file and
 # reads it (see log output: "neuromag306planar").
 # However, we need to subselect the channels we are actually using
-use_idx = [ch_names.index(ch_name.replace(' ', ''))
+use_idx = [ch_names.index(ch_name)
            for ch_name in tfr_epochs.ch_names]
 sensor_adjacency = sensor_adjacency[use_idx][:, use_idx]
 
