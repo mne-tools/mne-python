@@ -1225,7 +1225,8 @@ def spatio_temporal_cluster_1samp_test(
 
     This function provides a convenient wrapper for
     :func:`mne.stats.permutation_cluster_1samp_test`, for use with data
-    organized in the form (observations × time × space), or optionally
+    organized in the form (observations × time × space),
+    (observations × frequencies × space), or optionally
     (observations × time × frequencies × space). For details, see
     :footcite:p:`MarisOostenveld2007,Sassenhagen2019`.
 
@@ -1297,7 +1298,8 @@ def spatio_temporal_cluster_test(
 
     This function provides a convenient wrapper for
     :func:`mne.stats.permutation_cluster_test`, for use with data
-    organized in the form (observations × time × space), or optionally
+    organized in the form (observations × time × space),
+    (observations × time × space), or optionally
     (observations × time × frequencies × space). For more information,
     see :footcite:p:`MarisOostenveld2007,Sassenhagen2019`.
 
