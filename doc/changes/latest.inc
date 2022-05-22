@@ -73,6 +73,8 @@ Enhancements
 
 - Added fNIRS support to :func:`mne.Info.get_montage` (:gh:`10611` by `Robert Luke`_)
 
+- Add :func:`mne.viz.plot_ch_adjacency` to visualize and manually edit the channel adjacency matrix (:gh:`10633` by `Mikołaj Magnuski`_)
+
 Bugs
 ~~~~
 

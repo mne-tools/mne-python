@@ -1199,6 +1199,7 @@ def read_ch_adjacency(fname, picks=None):
     See Also
     --------
     find_ch_adjacency
+    mne.viz.plot_ch_adjacency
 
     Notes
     -----
@@ -1234,6 +1235,13 @@ def read_ch_adjacency(fname, picks=None):
     # picking before constructing matrix is buggy
     adjacency = adjacency[picks][:, picks]
     ch_names = [ch_names[p] for p in picks]
+
+    # make sure MEG channel names contain space after "MEG"
+    for idx, ch_name in enumerate(ch_names):
+        if ch_name.startswith('MEG') and not ch_name[3] == ' ':
+            ch_name = ch_name.replace('MEG', 'MEG ')
+            ch_names[idx] = ch_name
+
     return adjacency, ch_names
 
 
@@ -1302,6 +1310,7 @@ def find_ch_adjacency(info, ch_type):
     See Also
     --------
     read_ch_adjacency
+    mne.viz.plot_ch_adjacency
 
     Notes
     -----
