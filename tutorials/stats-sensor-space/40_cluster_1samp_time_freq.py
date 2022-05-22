@@ -105,7 +105,7 @@ epochs_power = tfr_epochs.data
 # We first compute the sensor adjacency, and then combine that with a
 # "lattice" adjacency for the time-frequency plane, which assumes
 # that elements at index "N" are adjacent to elements at indices
-# "N+1" and "N-1" (forming a "grid" on the time-frequency plane).
+# "N + 1" and "N - 1" (forming a "grid" on the time-frequency plane).
 
 # find_ch_adjacency first attempts to find an existing "neighbor"
 # (adjacency) file for the present data to read.
