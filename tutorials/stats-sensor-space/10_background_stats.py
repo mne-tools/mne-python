@@ -43,7 +43,7 @@ from mne.stats import (ttest_1samp_no_p, bonferroni_correction, fdr_correction,
 # significance level :math:`\alpha`.
 # To think about what this means, let's follow the illustrative example from
 # :footcite:`RidgwayEtAl2012` and construct a toy dataset consisting of a
-# 40 x 40 square with a "signal" present in the center with white noise added
+# 40 × 40 square with a "signal" present in the center with white noise added
 # and a Gaussian smoothing kernel applied.
 
 width = 40
@@ -417,9 +417,9 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # which voxels are adjacent to each other. In our case this
 # is quite simple, as our data are aligned on a rectangular grid.
 #
-# Let's pretend that our data were smaller -- a 3 x 3 grid. Thinking about
+# Let's pretend that our data were smaller -- a 3 × 3 grid. Thinking about
 # each voxel as being connected to the other voxels it touches, we would
-# need a 9 x 9 adjacency matrix. The first row of this matrix contains the
+# need a 9 × 9 adjacency matrix. The first row of this matrix contains the
 # voxels in the flattened data that the first voxel touches. Since it touches
 # the second element in the first row and the first element in the second row
 # (and is also a neighbor to itself), this would be::

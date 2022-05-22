@@ -121,14 +121,14 @@ use_idx = [ch_names.index(ch_name.replace(' ', ''))
            for ch_name in tfr_epochs.ch_names]
 sensor_adjacency = sensor_adjacency[use_idx][:, use_idx]
 
-# Our sensor adjacency matrix is of shape n_chs X n_chs
+# Our sensor adjacency matrix is of shape n_chs × n_chs
 assert sensor_adjacency.shape == \
     (len(tfr_epochs.ch_names), len(tfr_epochs.ch_names))
 
 # Now we need to prepare adjacency information for the time-frequency
 # plane. For that, we use "combine_adjacency", and pass dimensions
 # as in the data we want to test. Here:
-# observations X channels X frequencies X times
+# observations × channels × frequencies × times
 # (for observations, no adjacency is specified)
 assert epochs_power.data.shape == (
     len(epochs), len(tfr_epochs.ch_names),

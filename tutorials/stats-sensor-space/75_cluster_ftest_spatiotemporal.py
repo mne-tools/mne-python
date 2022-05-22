@@ -264,7 +264,7 @@ X = [np.transpose(x, (0, 2, 3, 1)) for x in epochs_power]
 # times and with similar frequencies and at close sensor locations are
 # clustered together.
 
-# our data at each observation is of shape frequencies X times X channels
+# our data at each observation is of shape frequencies × times × channels
 tfr_adjacency = combine_adjacency(
     len(freqs), len(this_tfr.times), adjacency)
 
