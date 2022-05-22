@@ -98,7 +98,7 @@ epochs_power = tfr_epochs.data
 # %%
 # Define adjacency for statistics
 # -------------------------------
-# To compute a cluster-corrected value, we need a suitable definition
+# To perform a cluster-based permutation test, we need a suitable definition
 # for the adjacency of sensors, time points, and frequency bins.
 # These adjacencies will be used to form clusters.
 #
