@@ -208,7 +208,8 @@ T_obs, clusters, cluster_p_values, H0 = clu = \
 # .. include:: ../../links.inc
 
 # Select the clusters that are statistically significant at p < 0.05
-good_clusters = clusters[np.where(cluster_p_values < 0.05)[0]]
+good_clusters_idx = np.where(cluster_p_values < 0.05)[0]
+good_clusters = [clusters[idx] for idx in good_clusters_idx]
 
 # %%
 # Visualize the clusters
