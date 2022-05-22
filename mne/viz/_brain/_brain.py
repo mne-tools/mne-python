@@ -45,7 +45,7 @@ from ...transforms import (Transform, apply_trans, invert_transform,
                            _frame_to_str)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
-                      get_subjects_dir, _check_fname, _to_rgb)
+                      get_subjects_dir, _check_fname, _to_rgb, _ensure_int)
 
 
 _ARROW_MOVE = 10  # degrees per press
