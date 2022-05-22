@@ -100,7 +100,7 @@ epochs_power = tfr_epochs.data
 # -------------------------------
 # To perform a cluster-based permutation test, we need a suitable definition
 # for the adjacency of sensors, time points, and frequency bins.
-# These adjacencies will be used to form clusters.
+# The adjacency matrix will be used to form clusters.
 #
 # We first compute the sensor adjacency, and then combine that with a
 # "lattice" adjacency for the time-frequency plane, which assumes
@@ -109,7 +109,7 @@ epochs_power = tfr_epochs.data
 
 # find_ch_adjacency first attempts to find an existing "neighbor"
 # (adjacency) file for the present data to read.
-# If such a file doesn't exist, adjacencies are computed on the fly,
+# If such a file doesn't exist, an adjacency matrix is computed on the fly,
 # using Delaunay triangulations.
 sensor_adjacency, ch_names = mne.channels.find_ch_adjacency(
     tfr_epochs.info, 'grad')
@@ -121,7 +121,7 @@ use_idx = [ch_names.index(ch_name.replace(' ', ''))
            for ch_name in tfr_epochs.ch_names]
 sensor_adjacency = sensor_adjacency[use_idx][:, use_idx]
 
-# Our sensor adjacencies are of shape n_chs X n_chs
+# Our sensor adjacency matrix is of shape n_chs X n_chs
 assert sensor_adjacency.shape == \
     (len(tfr_epochs.ch_names), len(tfr_epochs.ch_names))
 

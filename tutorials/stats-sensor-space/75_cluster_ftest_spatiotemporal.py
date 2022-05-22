@@ -255,7 +255,7 @@ for condition in [epochs[k] for k in ('Aud/L', 'Vis/L')]:
 X = [np.transpose(x, (0, 2, 3, 1)) for x in epochs_power]
 
 # %%
-# Remember the note on adjacencies from above: For 3D data, as here,
+# Remember the note on the adjacency matrix from above: For 3D data, as here,
 # we must use :func:`mne.stats.combine_adjacency` to extend the
 # sensor-based adjacency to incorporate the time-frequency plane as well.
 #

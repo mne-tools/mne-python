@@ -145,8 +145,8 @@ X = np.abs(X)  # only magnitude
 X = X[:, :, :, 0] - X[:, :, :, 1]  # make paired contrast
 
 # %%
-# Find adjacencies
-# -----------------
+# Find adjacency matrix
+# ---------------------
 #
 # For cluster-based permutation testing, we must define adjacency relations
 # that govern which points can become members of the same cluster. While
@@ -161,9 +161,9 @@ X = X[:, :, :, 0] - X[:, :, :, 1]  # make paired contrast
 # controlled via the ``max_step`` parameter in
 # :func:`mne.stats.spatio_temporal_cluster_1samp_test`.
 #
-# If we wanted to specify adjacencies for both space and time explicitly
-# we would have to use :func:`mne.stats.combine_adjacency`, however for
-# the present case, this is not needed.
+# If we wanted to specify an adjacency matrix for both space and time
+# explicitly we would have to use :func:`mne.stats.combine_adjacency`,
+# however for the present case, this is not needed.
 print('Computing adjacency.')
 adjacency = mne.spatial_src_adjacency(src)
 
