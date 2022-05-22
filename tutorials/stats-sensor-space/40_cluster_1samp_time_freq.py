@@ -195,9 +195,17 @@ T_obs, clusters, cluster_p_values, H0 = \
 #
 # .. warning:: Talking about "significant clusters" can be convenient, but
 #              you must be aware of all associated caveats! For example, it
-#              is **invalid** to assume that a cluster at channels A and B
-#              over 0ms to 100ms means that there is a difference at these
-#              particular channels and time points. See the comprehensive
+#              is **invalid** to interpret the cluster p value as being
+#              spatially or temporally specific. A cluster with sufficiently
+#              low (for example < 0.05) p value at specific location does not
+#              allow you to say that the significant effect is at that
+#              particular location. The p value only tells you about the
+#              probability of obtaining similar or stronger/larger cluster
+#              anywhere in the data if there were no differences between the
+#              compared conditions. So it only allows you to draw conclusions
+#              about the differences in the data "in general", not at specific
+#              locations. See the comprehensive
+#              `FieldTrip tutorial <ft_cluster_>`_ for more information.
 #              `FieldTrip tutorial <ft_cluster_>`_ for more information.
 #
 # .. include:: ../../links.inc

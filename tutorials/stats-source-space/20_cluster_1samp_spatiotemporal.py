@@ -215,8 +215,10 @@ good_clusters = clusters[np.where(cluster_p_values < 0.05)[0]]
 # ----------------------
 print('Visualizing clusters.')
 
-# Now let's build a convenient representation of each cluster, where each
-# cluster becomes a "time point" in the SourceEstimate
+# Now let's build a convenient representation of our results, where consecutive
+# cluster spatial maps are stacked in the time dimension of a SourceEstimate
+# object. This way by moving through the time dimension we will be able to see
+# subsequent cluster maps.
 stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
                                              vertices=fsave_vertices,
                                              subject='fsaverage')
