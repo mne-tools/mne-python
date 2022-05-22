@@ -89,13 +89,7 @@ adjacency, ch_names = find_ch_adjacency(epochs.info, ch_type='mag')
 
 print(type(adjacency))  # it's a sparse matrix!
 
-fig, ax = plt.subplots(figsize=(5, 4))
-ax.imshow(adjacency.toarray(), cmap='gray', origin='lower',
-          interpolation='nearest')
-ax.set_xlabel('{} Magnetometers'.format(len(ch_names)))
-ax.set_ylabel('{} Magnetometers'.format(len(ch_names)))
-ax.set_title('Between-sensor adjacency')
-fig.tight_layout()
+mne.viz.plot_ch_adjacency(epochs.info, adjacency, ch_names)
 
 # %%
 # Compute permutation statistic

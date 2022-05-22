@@ -24,14 +24,15 @@ from mne.io import read_raw_fif, read_info, RawArray
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
 from mne.io.compensator import get_current_comp
-from mne.channels import read_layout, make_dig_montage, make_standard_montage
+from mne.channels import (read_layout, make_dig_montage, make_standard_montage,
+                          find_ch_adjacency)
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_arrowmap, plot_psds_topomap,
-                             plot_bridged_electrodes)
+                             plot_bridged_electrodes, plot_ch_adjacency)
 from mne.viz.utils import _find_peaks, _fake_click
 from mne.utils import requires_sklearn, check_version
 
@@ -728,3 +729,97 @@ def test_plot_bridged_electrodes():
 
     with pytest.raises(RuntimeError, match='Expected'):
         plot_bridged_electrodes(info, bridged_idx, np.zeros((5, 6, 7)))
+
+
+def test_plot_ch_adjacency():
+    """Test plotting of adjacency matrix."""
+    xyz_pos = np.array([[-0.1, 0.1, 0.1], [0.1, 0.1, 0.1], [0., 0., 0.12],
+                        [-0.1, -0.1, 0.1], [0.1, -0.1, 0.1]])
+
+    info = create_info(list('abcde'), 23, ch_types='eeg')
+    montage = make_dig_montage(
+        ch_pos={ch: pos for ch, pos in zip(info.ch_names, xyz_pos)},
+        coord_frame='head')
+    info.set_montage(montage)
+
+    # construct adjacency
+    adj_sparse, ch_names = find_ch_adjacency(info, 'eeg')
+
+    # plot adjacency
+    fig = plot_ch_adjacency(info, adj_sparse, ch_names, kind='2d', edit=True)
+
+    # find channel positions
+    collection = fig.axes[0].collections[0]
+    pos = collection.get_offsets().data
+
+    # get adjacency lines
+    lines = fig.axes[0].lines[4:]  # (first four lines are head outlines)
+
+    # make sure lines match adjacency relations in the matrix
+    for line in lines:
+        x, y = line.get_data()
+        ch_idx = [np.where((pos == [[x[ix], y[ix]]]).all(axis=1))[0][0]
+                  for ix in range(2)]
+        assert adj_sparse[ch_idx[0], ch_idx[1]]
+
+    # make sure additional point is generated after clicking a channel
+    _fake_click(fig, fig.axes[0], pos[0], xform='data')
+    collections = fig.axes[0].collections
+    assert len(collections) == 2
+
+    # make sure the point is green
+    green = matplotlib.colors.to_rgba('tab:green')
+    assert (collections[1].get_facecolor() == green).all()
+
+    # make sure adjacency entry is modified after second click on another node
+    assert adj_sparse[0, 1]
+    assert adj_sparse[1, 0]
+    n_lines_before = len(lines)
+    _fake_click(fig, fig.axes[0], pos[1], xform='data')
+
+    assert not adj_sparse[0, 1]
+    assert not adj_sparse[1, 0]
+
+    # and there is one line less
+    lines = fig.axes[0].lines[4:]
+    n_lines_after = len(lines)
+    assert n_lines_after == n_lines_before - 1
+
+    # make sure there is still one green point ...
+    collections = fig.axes[0].collections
+    assert len(collections) == 2
+    assert (collections[1].get_facecolor() == green).all()
+
+    # ... but its at a different location
+    point_pos = collections[1].get_offsets().data
+    assert (point_pos == pos[1]).all()
+
+    # check that clicking again removes the green selection point
+    _fake_click(fig, fig.axes[0], pos[1], xform='data')
+    collections = fig.axes[0].collections
+    assert len(collections) == 1
+
+    # clicking the points again adds a green line
+    _fake_click(fig, fig.axes[0], pos[1], xform='data')
+    _fake_click(fig, fig.axes[0], pos[0], xform='data')
+
+    lines = fig.axes[0].lines[4:]
+    assert len(lines) == n_lines_after + 1
+    assert lines[-1].get_color() == 'tab:green'
+
+    # smoke test for 3d option
+    adj = adj_sparse.toarray()
+    fig = plot_ch_adjacency(info, adj, ch_names, kind='3d')
+
+    # test errors
+    # -----------
+    # number of channels in the adjacency matrix and info must match
+    msg = ("``adjacency`` must have the same number of rows as the number of "
+           "channels in ``info``")
+    with pytest.raises(ValueError, match=msg):
+        plot_ch_adjacency(info, adj_sparse, ch_names[:3], kind='2d')
+
+    # edition mode only available for 2d plot
+    msg = "Editing a 3d adjacency plot is not supported."
+    with pytest.raises(ValueError, match=msg):
+        plot_ch_adjacency(info, adj, ch_names, kind='3d', edit=True)
