@@ -71,16 +71,19 @@ add_frames : int | None
 
 docdict['adjacency_clust'] = """
 adjacency : scipy.sparse.spmatrix | None | False
-    Defines adjacency between locations in the data, where "locations" can
-    be spatial vertices, frequency bins, etc. If ``False``, assumes no
-    adjacency (each location is treated as independent and unconnected).
+    Defines adjacency between locations in the data, where "locations" can be
+    spatial vertices, frequency bins, time points, etc. For spatial vertices,
+    see: :func:`mne.channels.find_ch_adjacency`. If ``False``, assumes
+    no adjacency (each location is treated as independent and unconnected).
     If ``None``, a regular lattice adjacency is assumed, connecting
     each {sp} location to its neighbor(s) along the last dimension
     of {{eachgrp}} ``{{x}}``{lastdim}.
     If ``adjacency`` is a matrix, it is assumed to be symmetric (only the
     upper triangular half is used) and must be square with dimension equal to
     ``{{x}}.shape[-1]`` {parone} or ``{{x}}.shape[-1] * {{x}}.shape[-2]``
-    {partwo}.{memory}
+    {partwo} or (optionally)
+    ``{{x}}.shape[-1] * {{x}}.shape[-2] * {{x}}.shape[-3]``
+    {parthree}.{memory}
 """
 
 mem = (' If spatial adjacency is uniform in time, it is recommended to use '
@@ -89,9 +92,11 @@ mem = (' If spatial adjacency is uniform in time, it is recommended to use '
        'of temporal adjacency to consider when clustering.')
 comb = ' The function `mne.stats.combine_adjacency` may be useful for 4D data.'
 st = dict(sp='spatial', lastdim='', parone='(n_vertices)',
-          partwo='(n_times * n_vertices)', memory=mem)
+          partwo='(n_times * n_vertices)',
+          parthree='(n_times * n_freqs * n_vertices)', memory=mem)
 tf = dict(sp='', lastdim=' (or the last two dimensions if ``{x}`` is 2D)',
-          parone='(for 3D data)', partwo='(for 4D data)', memory=comb)
+          parone='(for 2D data)', partwo='(for 3D data)',
+          parthree='(for 4D data)', memory=comb)
 nogroups = dict(eachgrp='', x='X')
 groups = dict(eachgrp='each group ', x='X[k]')
 docdict['adjacency_clust_1'] = \
@@ -370,10 +375,10 @@ fig : matplotlib.figure.Figure | mne_qt_browser.figure.MNEQtBrowser
 docdict['buffer_size_clust'] = """
 buffer_size : int | None
     Block size to use when computing test statistics. This can significantly
-    reduce memory usage when n_jobs > 1 and memory sharing between processes is
-    enabled (see :func:`mne.set_cache_dir`), because ``X`` will be shared
-    between processes and each process only needs to allocate space for a small
-    block of locations at a time.
+    reduce memory usage when ``n_jobs > 1`` and memory sharing between
+    processes is enabled (see :func:`mne.set_cache_dir`), because ``X`` will be
+    shared between processes and each process only needs to allocate space for
+    a small block of locations at a time.
 """
 
 docdict['by_event_type'] = """
@@ -969,6 +974,13 @@ evoked : instance of Evoked | list of Evoked
     separate :class:`~mne.Evoked` object for each event type. The list has the
     same order as the event types as specified in the ``event_id``
     dictionary.
+"""
+
+docdict['exclude_clust'] = """
+exclude : bool array or None
+    Mask to apply to the data to exclude certain points from clustering
+    (e.g., medial wall vertices). Should be the same shape as ``X``.
+    If ``None``, no points are excluded.
 """
 
 docdict['exclude_frontal'] = """
@@ -1714,9 +1726,13 @@ max_ori_out : None
 
 docdict['max_step_clust'] = """
 max_step : int
-    Maximum distance along the second dimension (typically this is the "time"
-    axis) between samples that are considered "connected". Only used
-    when ``connectivity`` has shape (n_vertices, n_vertices).
+    Maximum distance between samples along the second axis of ``X`` to be
+    considered adjacent (typically the second axis is the "time" dimension).
+    Only used when ``adjacency`` has shape (n_vertices, n_vertices), that is,
+    when adjacency is only specified for sensors (e.g., via
+    :func:`mne.channels.find_ch_adjacency`), and not via sensors **and**
+    further dimensions such as time points (e.g., via an additional call of
+    :func:`mne.stats.combine_adjacency`).
 """
 
 docdict['measure'] = """
@@ -3035,20 +3051,46 @@ thresh : None or float
 
 _threshold_clust_base = """
 threshold : float | dict | None
+    The so-called "cluster forming threshold" in the form of a test statistic
+    (note: this is not an alpha level / "p-value").
     If numeric, vertices with data values more extreme than ``threshold`` will
-    be used to form clusters. If threshold is ``None``, {} will be chosen
+    be used to form clusters. If ``None``, {} will be chosen
     automatically that corresponds to a p-value of 0.05 for the given number of
     observations (only valid when using {}). If ``threshold`` is a
     :class:`dict` (with keys ``'start'`` and ``'step'``) then threshold-free
     cluster enhancement (TFCE) will be used (see the
     :ref:`TFCE example <tfce_example>` and :footcite:`SmithNichols2009`).
+    See Notes for an example on how to compute a threshold based on
+    a particular p-value for one-tailed or two-tailed tests.
 """
 
 f_test = ('an F-threshold', 'an F-statistic')
 docdict['threshold_clust_f'] = _threshold_clust_base.format(*f_test)
 
+docdict['threshold_clust_f_notes'] = """
+For computing a ``threshold`` based on a p-value, use the conversion
+from :meth:`scipy.stats.rv_continuous.ppf`::
+
+    pval = 0.001  # arbitrary
+    dfn = n_conditions - 1  # degrees of freedom numerator
+    dfd = n_observations - n_conditions  # degrees of freedom denominator
+    thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)  # F distribution
+"""
+
 t_test = ('a t-threshold', 'a t-statistic')
 docdict['threshold_clust_t'] = _threshold_clust_base.format(*t_test)
+
+docdict['threshold_clust_t_notes'] = """
+For computing a ``threshold`` based on a p-value, use the conversion
+from :meth:`scipy.stats.rv_continuous.ppf`::
+
+    pval = 0.001  # arbitrary
+    df = n_observations - 1  # degrees of freedom for the test
+    thresh = scipy.stats.t.ppf(1 - pval / 2, df)  # two-tailed, t distribution
+
+For a one-tailed test (``tail=1``), don't divide the p-value by 2.
+For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
+"""
 
 docdict['time_format'] = """
 time_format : 'float' | 'clock'

@@ -128,7 +128,7 @@ viewer.figs[0].axes[0].annotate(
 # .. note::
 #     You may need to include an additional ``-cw256`` flag which can be added
 #     to the end of the recon-all command if your MR scan is not
-#     ``256 x 256 x 256`` voxels.
+#     ``256 × 256 × 256`` voxels.
 #
 # .. note::
 #     Using the ``-deface`` flag will create a defaced, anonymized T1 image
