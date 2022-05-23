@@ -570,23 +570,21 @@ First-time contributors
 
 Welcome to MNE-Python! We're very happy to have you here. 🤗 And to ensure you
 get proper credit for your work, please add a changelog entry with the
-following pattern **at the top** of the respective subsection (bugfix,
-new feature etc.):
+following pattern **at the top** of the respective subsection (bugs,
+enhancements, etc.):
 
 .. code-block:: rst
 
 
-  Bug
-  ---
+  Bugs
+  ----
 
-  .. |Your Name| replace:: **Your Name**
-
-  - Short description of the changes (:gh:`0000` **by new contributor** |Your Name|_)
+  - Short description of the changes (:gh:`0000` by :newcontrib:`Firstname Lastname`)
 
   - ...
 
 where ``0000`` must be replaced with the respective GitHub pull request (PR)
-number.
+number, and ``Firstname Lastname`` must be replaced with your full name.
 
 It is usually best to wait to add a line to the changelog until your PR is
 finalized, to avoid merge conflicts (since the changelog is updated with

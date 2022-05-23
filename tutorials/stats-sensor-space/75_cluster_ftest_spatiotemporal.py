@@ -13,12 +13,22 @@ the adjacency between sensors. This serves as a spatial prior
 to the clustering. Spatiotemporal clusters will then
 be visualized using custom matplotlib code.
 
-See the `FieldTrip website`_ for a caveat regarding
+Here, the unit of observation is epochs from a specific study subject.
+However, the same logic applies when the unit observation is
+a number of study subject each of whom contribute their own averaged
+data (i.e., an average of their epochs). This would then be considered
+an analysis at the "2nd level".
+
+See the `FieldTrip tutorial <ft_cluster_>`_ for a caveat regarding
 the possible interpretation of "significant" clusters.
+
+For more information on cluster-based permutation testing in MNE-Python,
+see also: :ref:`tut-cluster-one-samp-tfr`
 """
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Alex Rockhill <aprockhill@mailbox.org>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD-3-Clause
 
@@ -27,6 +37,7 @@ the possible interpretation of "significant" clusters.
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import scipy.stats
 
 import mne
 from mne.stats import spatio_temporal_cluster_test, combine_adjacency
@@ -34,8 +45,6 @@ from mne.datasets import sample
 from mne.channels import find_ch_adjacency
 from mne.viz import plot_compare_evokeds
 from mne.time_frequency import tfr_morlet
-
-print(__doc__)
 
 # %%
 # Set parameters
@@ -50,7 +59,7 @@ tmax = 0.5
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw.filter(1, 30, fir_design='firwin')
+raw.filter(1, 30)
 events = mne.read_events(event_fname)
 
 # %%
@@ -66,8 +75,11 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 epochs.drop_channels(['EOG 061'])
 epochs.equalize_event_counts(event_id)
 
-X = [epochs[k].get_data() for k in event_id]  # as 3D matrix
-X = [np.transpose(x, (0, 2, 1)) for x in X]  # transpose for clustering
+# Obtain the data as a 3D matrix and transpose it such that
+# the dimensions are as expected for the cluster permutation test:
+# n_epochs × n_times × n_channels
+X = [epochs[event_name].get_data() for event_name in event_id]
+X = [np.transpose(x, (0, 2, 1)) for x in X]
 
 
 # %%
@@ -91,32 +103,64 @@ mne.viz.plot_ch_adjacency(epochs.info, adjacency, ch_names)
 # Then we generate a distribution from the data by shuffling our conditions
 # between our samples and recomputing our clusters and the test statistics.
 # We test for the significance of a given cluster by computing the probability
-# of observing a cluster of that size. For more background read:
-# Maris/Oostenveld (2007), "Nonparametric statistical testing of EEG- and
-# MEG-data" Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
-# doi:10.1016/j.jneumeth.2007.03.024
+# of observing a cluster of that size
+# :footcite:`MarisOostenveld2007,Sassenhagen2019`.
 
+# We are running an F test, so we look at the upper tail
+# see also: https://stats.stackexchange.com/a/73993
+tail = 1
 
-# set cluster threshold
-threshold = 50.0  # very high, but the test is quite sensitive on this data
-# set family-wise p-value
-p_accept = 0.01
+# We want to set a critical test statistic (here: F), to determine when
+# clusters are being formed. Using Scipy's percent point function of the F
+# distribution, we can conveniently select a threshold that corresponds to
+# some alpha level that we arbitrarily pick.
+alpha_cluster_forming = 0.001
 
+# For an F test we need the degrees of freedom for the numerator
+# (number of conditions - 1) and the denominator (number of observations
+# - number of conditions):
+n_conditions = len(event_id)
+n_observations = len(X[0])
+dfn = n_conditions - 1
+dfd = n_observations - n_conditions
+
+# Note: we calculate 1 - alpha_cluster_forming to get the critical value
+# on the right tail
+f_thresh = scipy.stats.f.ppf(1 - alpha_cluster_forming, dfn=dfn, dfd=dfd)
+
+# run the cluster based permutation analysis
 cluster_stats = spatio_temporal_cluster_test(X, n_permutations=1000,
-                                             threshold=threshold, tail=1,
+                                             threshold=f_thresh, tail=tail,
                                              n_jobs=None, buffer_size=None,
                                              adjacency=adjacency)
-
 F_obs, clusters, p_values, _ = cluster_stats
-good_cluster_inds = np.where(p_values < p_accept)[0]
 
 # %%
-# Note. The same functions work with source estimate. The only differences
-# are the origin of the data, the size, and the adjacency definition.
+# .. note:: Note how we only specified an adjacency for sensors! However,
+#           because we used :func:`mne.stats.spatio_temporal_cluster_test`,
+#           an adjacency for time points was automatically taken into
+#           account. That is, at time point N, the time points N - 1 and
+#           N + 1 were considered as adjacent (this is also called "lattice
+#           adjacency"). This is only possbile because we ran the analysis on
+#           2D data (times × channels) per observation ... for 3D data per
+#           observation (e.g., times × frequencies × channels), we will need
+#           to use :func:`mne.stats.combine_adjacency`, as shown further
+#           below.
+#
+# Note also that the same functions work with source estimates.
+# The only differences are the origin of the data, the size,
+# and the adjacency definition.
 # It can be used for single trials or for groups of subjects.
 #
 # Visualize clusters
 # ------------------
+
+# We subselect clusters that we consider significant at an arbitrarily
+# picked alpha level: "p_accept".
+# NOTE: remember the caveats with respect to "significant" clusters that
+# we mentioned in the introduction of this tutorial!
+p_accept = 0.01
+good_cluster_inds = np.where(p_values < p_accept)[0]
 
 # configure variables for visualization
 colors = {"Aud": "crimson", "Vis": 'steelblue'}
@@ -203,15 +247,20 @@ for condition in [epochs[k] for k in ('Aud/L', 'Vis/L')]:
     this_tfr.apply_baseline(mode='ratio', baseline=(None, 0))
     epochs_power.append(this_tfr.data)
 
-# transpose again to (epochs, frequencies, times, vertices)
+# transpose again to (epochs, frequencies, times, channels)
 X = [np.transpose(x, (0, 2, 3, 1)) for x in epochs_power]
 
 # %%
-# Let's extend our adjacency definition to include the time-frequency
-# dimensions. Here, the integer inputs are converted into a lattice and
+# Remember the note on the adjacency matrix from above: For 3D data, as here,
+# we must use :func:`mne.stats.combine_adjacency` to extend the
+# sensor-based adjacency to incorporate the time-frequency plane as well.
+#
+# Here, the integer inputs are converted into a lattice and
 # combined with the sensor adjacency matrix so that data at similar
 # times and with similar frequencies and at close sensor locations are
 # clustered together.
+
+# our data at each observation is of shape frequencies × times × channels
 tfr_adjacency = combine_adjacency(
     len(freqs), len(this_tfr.times), adjacency)
 
@@ -219,23 +268,16 @@ tfr_adjacency = combine_adjacency(
 # Now we can run the cluster permutation test, but first we have to set a
 # threshold. This example decimates in time and uses few frequencies so we need
 # to increase the threshold from the default value in order to have
-# differentiated clusters (i.e. so that our algorithm doesn't just find one
+# differentiated clusters (i.e., so that our algorithm doesn't just find one
 # large cluster). For a more principled method of setting this parameter,
-# threshold-free cluster enhancement may be used or the p-value may be set with
-#
-# .. code-block:: python
-#
-#     from scipy import stats
-#     n_comparisons = len(X)  # L auditory vs L visual stimulus
-#     n_conditions = X[0].shape[0]  # 55 epochs per comparison
-#     threshold = stats.distributions.f.ppf(
-#         1 - p_accept, n_comparisons - 1, n_conditions - 1)
-#
+# threshold-free cluster enhancement may be used.
 # See :ref:`disc-stats` for a discussion.
 
+# This time we don't calculate a threshold based on the F distribution.
+# We might as well select an arbitrary threshold for cluster forming
 tfr_threshold = 15.0
 
-# run statistic
+# run cluster based permutation analysis
 cluster_stats = spatio_temporal_cluster_test(
     X, n_permutations=1000, threshold=tfr_threshold, tail=1, n_jobs=None,
     buffer_size=None, adjacency=tfr_adjacency)
@@ -292,6 +334,9 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     ax_topo.set_xlabel(
         'Averaged F-map ({:0.3f} - {:0.3f} s)'.format(*sig_times[[0, -1]]))
 
+    # remove the title that would otherwise say "0.000 s"
+    ax_topo.set_title("")
+
     # add new axis for spectrogram
     ax_spec = divider.append_axes('right', size='300%', pad=1.2)
     title = 'Cluster #{0}, {1} spectrogram'.format(i_clu + 1, len(ch_inds))
@@ -318,6 +363,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     # clean up viz
     mne.viz.tight_layout(fig=fig)
     fig.subplots_adjust(bottom=.05)
+    plt.show()
 
 
 # %%
@@ -325,10 +371,11 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
 # ----------
 #
 # - What is the smallest p-value you can obtain, given the finite number of
-#   permutations?
-# - use an F distribution to compute the threshold by traditional significance
-#   levels. Hint: take a look at :obj:`scipy.stats.f`
+#   permutations? You can find the answers in the references
+#   :footcite:`MarisOostenveld2007,Sassenhagen2019`.
 #
-# .. _fieldtrip website:
-#       http://www.fieldtriptoolbox.org/faq/
-#       how_not_to_interpret_results_from_a_cluster-based_permutation_test
+# References
+# ----------
+# .. footbibliography::
+#
+# .. include:: ../../links.inc

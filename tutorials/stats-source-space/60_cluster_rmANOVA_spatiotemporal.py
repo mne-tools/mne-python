@@ -143,7 +143,7 @@ X = X.reshape(n_vertices_fsave, n_times, n_subjects, 4)
 # Now we need to prepare the group matrix for the ANOVA statistic. To make the
 # clustering function work correctly with the ANOVA function X needs to be a
 # list of multi-dimensional arrays (one per condition) of shape: samples
-# (subjects) x time x space.
+# (subjects) × time × space.
 #
 # First we permute dimensions, then split the array into a list of conditions
 # and discard the empty dimension resulting from the split using numpy squeeze.
@@ -183,7 +183,7 @@ n_conditions = 4
 #
 # Inside the clustering function each condition will be passed as flattened
 # array, necessitated by the clustering procedure. The ANOVA however expects an
-# input array of dimensions: subjects X conditions X observations (optional).
+# input array of dimensions: subjects × conditions × observations (optional).
 #
 # The following function catches the list input and swaps the first and the
 # second dimension, and finally calls ANOVA.
