@@ -182,7 +182,7 @@ def _block_diag(A, n):
         The block size
     Returns
     -------
-    bd : sparse matrix
+    bd : scipy.sparse.spmatrix
         The block diagonal matrix
     """
     from scipy import sparse

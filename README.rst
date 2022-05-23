@@ -132,7 +132,7 @@ https://mne.discourse.group
 Licensing
 ^^^^^^^^^
 
-MNE-Python is **BSD-licenced** (3 clause):
+MNE-Python is **BSD-licenced** (BSD-3-Clause):
 
     This software is OSI Certified Open Source Software.
     OSI Certified is a certification mark of the Open Source Initiative.

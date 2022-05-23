@@ -75,7 +75,7 @@ print('Computing adjacency.')
 adjacency = spatial_src_adjacency(src)
 
 #    Note that X needs to be a list of multi-dimensional array of shape
-#    samples (subjects_k) x time x space, so we permute dimensions
+#    samples (subjects_k) × time × space, so we permute dimensions
 X1 = np.transpose(X1, [2, 1, 0])
 X2 = np.transpose(X2, [2, 1, 0])
 X = [X1, X2]

@@ -284,7 +284,7 @@ csp.plot_filters(epochs.info, scalings=1e-9)
 # epochs. The :class:`mne.decoding.SlidingEstimator` will take as input a
 # pair of features :math:`X` and targets :math:`y`, where :math:`X` has
 # more than 2 dimensions. For decoding over time the data :math:`X`
-# is the epochs data of shape n_epochs x n_channels x n_times. As the
+# is the epochs data of shape n_epochs × n_channels × n_times. As the
 # last dimension of :math:`X` is the time, an estimator will be fit
 # on every time instant.
 #
