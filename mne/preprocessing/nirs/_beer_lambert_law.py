@@ -67,7 +67,7 @@ def beer_lambert_law(raw, ppf=6.):
     raw.rename_channels(rename)
 
     # Validate the format of data after transformation is valid
-    _validate_nirs_info(raw.info, fnirs='hbx')
+    _validate_nirs_info(raw.info, fnirs='hb')
     return raw
 
 

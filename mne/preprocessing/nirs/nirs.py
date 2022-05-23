@@ -59,7 +59,7 @@ def short_channels(info, threshold=0.01):
     return source_detector_distances(info) < threshold
 
 
-def _channel_frequencies(info, *, throw_errors=True):
+def _channel_frequencies(info):
     """Return the light frequency for each channel."""
     # Only valid for fNIRS data before conversion to haemoglobin
     picks = _picks_to_idx(info, ['fnirs_cw_amplitude', 'fnirs_od'],
@@ -224,16 +224,16 @@ def _validate_nirs_info(info, *, throw_errors=True, fnirs=None, which=None,
     kinds = dict(
         od='optical density',
         cw_amplitude='continuous wave',
-        hbx='chromophore',
+        hb='chromophore',
     )
     _check_option('fnirs', fnirs, (None,) + tuple(kinds))
     if fnirs is not None:
         kind = kinds[fnirs]
-        fnirs = ['hbo', 'hbr'] if fnirs == 'hbx' else f'fnirs_{fnirs}'
+        fnirs = ['hbo', 'hbr'] if fnirs == 'hb' else f'fnirs_{fnirs}'
         if not len(pick_types(info, fnirs=fnirs)):
             raise RuntimeError(
                 f'{which} must operate on {kind} data, but none was found.')
-    freqs = np.unique(_channel_frequencies(info, throw_errors=throw_errors))
+    freqs = np.unique(_channel_frequencies(info))
     if freqs.size > 0:
         pair_vals = freqs
     else:
