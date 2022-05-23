@@ -308,7 +308,7 @@ class IntracranialElectrodeLocator(QMainWindow):
         """Save the location of the electrode contacts."""
         logger.info('Saving channel positions to `info`')
         if info is None:
-            info = self._info
+            info = self._info.copy()
         with info._unlock():
             for name, ch in zip(info.ch_names, info['chs']):
                 ch['loc'][:3] = apply_trans(
