@@ -75,6 +75,8 @@ Enhancements
 
 - Add :func:`mne.viz.plot_ch_adjacency` to visualize and manually edit the channel adjacency matrix (:gh:`10633` by `Mikołaj Magnuski`_)
 
+- Add :meth:`mne.viz.Brain.get_view` to get the current camera parameters such that they can be passed to :meth:`mne.viz.Brain.show_view` (:gh:`10661` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 
