@@ -516,8 +516,7 @@ def _convert_fnirs_to_head(trans, fro, to, src_locs, det_locs, ch_locs):
 
 
 def _determine_tri_idxs(trigger):
-    """Determine which indices in tri file represent
-    the frame index and description."""
+    """Determine tri file indexes for frame and description."""
     if len(trigger) == 12:
         # Aurora version 2021.9.6 or greater
         trigger_frame_idx = 7
