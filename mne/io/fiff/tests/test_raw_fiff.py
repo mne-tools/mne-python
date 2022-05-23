@@ -110,8 +110,7 @@ def test_fix_types():
     for fname, change in ((hp_fif_fname, True), (test_fif_fname, False),
                           (ctf_fname, False)):
         raw = read_raw_fif(fname)
-        raw.info["bads"] = bads
-        mag_picks = pick_types(raw.info, meg='mag', exclude=[])
+        mag_picks = pick_types(raw.info, meg='mag')
         other_picks = np.setdiff1d(np.arange(len(raw.ch_names)), mag_picks)
         # we don't actually have any files suffering from this problem, so
         # fake it
