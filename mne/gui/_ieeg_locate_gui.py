@@ -308,11 +308,13 @@ class IntracranialElectrodeLocator(QMainWindow):
         """Save the location of the electrode contacts."""
         logger.info('Saving channel positions to `info`')
         if info is None:
-            info = self._info.copy()
+            info = self._info
         with info._unlock():
             for name, ch in zip(info.ch_names, info['chs']):
-                ch['loc'][:3] = apply_trans(
+                loc = ch['loc'].copy()
+                loc[:3] = apply_trans(
                     self._mri_head_t, self._chs[name] / 1000)  # mm->m
+                ch['loc'] = loc
 
     def _plot_images(self):
         """Use the MRI and CT to make plots."""
