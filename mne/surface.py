@@ -2256,20 +2256,19 @@ class _Overlay(object):
 
         rng = self._rng
         assert rng is not None
-        scalars = _norm(self._scalars, rng)
+        scalars = self._norm(rng)
 
         colors = cmap(scalars)
         if self._opacity is not None:
             colors[:, 3] *= self._opacity
         return colors
 
-
-def _norm(x, rng):
-    if rng[0] == rng[1]:
-        factor = 1 if rng[0] == 0 else 1e-6 * rng[0]
-    else:
-        factor = rng[1] - rng[0]
-    return (x - rng[0]) / factor
+    def _norm(self, rng):
+        if rng[0] == rng[1]:
+            factor = 1 if rng[0] == 0 else 1e-6 * rng[0]
+        else:
+            factor = rng[1] - rng[0]
+        return (self._scalars - rng[0]) / factor
 
 
 class _LayeredMesh(object):
