@@ -33,7 +33,8 @@ from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
                             SourceSpaces, read_freesurfer_lut)
 
 from ..surface import (get_meg_helmet_surf, _read_mri_surface, _DistanceQuery,
-                       _project_onto_surface, _reorder_ccw, _CheckInside)
+                       _project_onto_surface, _reorder_ccw, _CheckInside,
+                       _LayeredMesh)
 from ..transforms import (apply_trans, rot_to_quat, combine_transforms,
                           _get_trans, _ensure_trans, Transform, rotation,
                           read_ras_mni_t, _print_coord_trans, _find_trans,
@@ -395,13 +396,30 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
             vmax = np.max(np.abs(data))
         vmax = float(vmax)
         alpha = alphas[ii]
-        renderer.surface(surface=surf, color=colors[ii],
-                         opacity=alpha)
-
-        # Now show our field pattern
-        renderer.surface(surface=surf, vmin=-vmax, vmax=vmax,
-                         scalars=data, colormap=colormap,
-                         polygon_offset=-1)
+        mesh = _LayeredMesh(
+            renderer=renderer,
+            vertices=surf['rr'],
+            triangles=surf['tris'],
+            normals=surf['nn'],
+        )
+        mesh.map()
+        color = _to_rgb(colors[ii], alpha=True)
+        cmap = np.array([(0, 0, 0, 0,), color])
+        ctable = np.round(cmap * 255).astype(np.uint8)
+        mesh.add_overlay(
+            scalars=np.ones(len(data)),
+            colormap=ctable,
+            rng=[0, 1],
+            opacity=alpha,
+            name='surf',
+        )
+        mesh.add_overlay(
+            scalars=data,
+            colormap=colormap,
+            rng=[-vmax, vmax],
+            opacity=1.,
+            name='field',
+        )
 
         # And the field lines on top
         if n_contours > 0:
