@@ -1,7 +1,7 @@
 # requirements for building docs
 sphinx!=4.1.0
 https://github.com/numpy/numpydoc/archive/main.zip
-https://github.com/pydata/pydata-sphinx-theme/archive/454918d43c9a9d10764aeccccfb1a7aca4918cfd.zip
+https://github.com/pydata/pydata-sphinx-theme/archive/734c99fd1acea0df971465b07f977f0b81606e3f.zip
 https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
 sphinxcontrib-bibtex>=2.1.2
 memory_profiler
