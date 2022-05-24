@@ -886,8 +886,7 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
 
 
 class _AbstractWindow(ABC):
-    def _window_initialize(self, window=None, central_layout=None,
-                           theme_support=True):
+    def _window_initialize(self, window=None, central_layout=None):
         self._icons = dict()
         self._window = None
         self._interactor = None

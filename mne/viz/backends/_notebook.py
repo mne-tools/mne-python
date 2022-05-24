@@ -540,8 +540,7 @@ class _IpyBrainMplCanvas(_AbstractBrainMplCanvas, _IpyMplInterface):
 
 
 class _IpyWindow(_AbstractWindow):
-    def _window_initialize(self, window=None, central_layout=None,
-                           theme_support=True):
+    def _window_initialize(self, window=None, central_layout=None):
         super()._window_initialize()
         self._window_load_icons()
 

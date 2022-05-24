@@ -54,8 +54,7 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
         central_layout = renderer._layout_create(orientation='grid')
         renderer._layout_add_widget(central_layout, widget, row=0, col=0)
         renderer._window_initialize(window=window,
-                                    central_layout=central_layout,
-                                    theme_support=False)
+                                    central_layout=central_layout)
 
     from unittest.mock import Mock
     mock = Mock()
