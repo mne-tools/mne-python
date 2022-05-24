@@ -413,6 +413,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
             opacity=alpha,
             name='surf',
         )
+        # Now show our field pattern
         mesh.add_overlay(
             scalars=data,
             colormap=colormap,
