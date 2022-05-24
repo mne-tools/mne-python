@@ -43,14 +43,6 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
     To use the "hat" adjustment method :footcite:`RidgwayEtAl2012`, a value
     of ``sigma=1e-3`` may be a reasonable choice.
 
-    You can use the conversion from ``scipy.stats.distributions.t.ppf``::
-
-        thresh = -scipy.stats.distributions.t.ppf(p_thresh, n_samples - 1) / 2.
-
-    to convert a desired p-value threshold to 2-tailed t-value threshold.
-    For one-tailed tests, ``thresh`` in the above should be multiplied by 2
-    (and for ``tail=-1``, multiplied by ``-1``).
-
     References
     ----------
     .. footbibliography::
@@ -144,12 +136,12 @@ def f_oneway(*args):
 
     1. The samples are independent
     2. Each sample is from a normally distributed population
-    3. The population standard deviations of the groups are all equal.  This
+    3. The population standard deviations of the groups are all equal. This
        property is known as homoscedasticity.
 
     If these assumptions are not true for a given set of data, it may still be
     possible to use the Kruskal-Wallis H-test (:func:`scipy.stats.kruskal`)
-    although with some loss of power
+    although with some loss of power.
 
     The algorithm is from Heiman :footcite:`Heiman2002`, pp.394-7.
 

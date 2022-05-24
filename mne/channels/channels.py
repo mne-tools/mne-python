@@ -1175,7 +1175,7 @@ def _recursive_flatten(cell, dtype):
 
 @fill_doc
 def read_ch_adjacency(fname, picks=None):
-    """Parse FieldTrip neighbors .mat file.
+    """Parse FieldTrip neighbors ``.mat`` file.
 
     More information on these neighbor definitions can be found on the related
     `FieldTrip documentation pages
@@ -1184,10 +1184,9 @@ def read_ch_adjacency(fname, picks=None):
     Parameters
     ----------
     fname : str
-        The file name. Example: 'neuromag306mag', 'neuromag306planar',
-        'ctf275', 'biosemi64', etc.
+        The file name. See "Notes" below for a list of valid arguments.
     %(picks_all)s
-        Picks Must match the template.
+        Picks must match the template.
 
     Returns
     -------
@@ -1198,29 +1197,100 @@ def read_ch_adjacency(fname, picks=None):
 
     See Also
     --------
+    mne.viz.plot_ch_adjacency
     find_ch_adjacency
+    mne.stats.combine_adjacency
 
     Notes
     -----
-    This function is closely related to :func:`find_ch_adjacency`. If you
-    don't know the correct file for the neighbor definitions,
-    :func:`find_ch_adjacency` can compute the adjacency matrix from 2d
-    sensor locations.
+    If you don't know the correct ``fname`` for the neighbor definitions,
+    of if the neighbor definition you need is not shipped by MNE-Python,
+    you may use :func:`find_ch_adjacency` to compute the
+    adjacency matrix based on your 2D sensor locations.
+
+    Note that depending on your use case, you may need to additionally use
+    :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
+    to pass to the eventual function.
+
+    Valid ``fname`` arguments are:
+
+    .. table::
+       :widths: auto
+
+       +----------------------+
+       | fname                |
+       +======================+
+       | biosemi16            |
+       +----------------------+
+       | biosemi32            |
+       +----------------------+
+       | biosemi64            |
+       +----------------------+
+       | bti148               |
+       +----------------------+
+       | bti248               |
+       +----------------------+
+       | bti248grad           |
+       +----------------------+
+       | ctf64                |
+       +----------------------+
+       | ctf151               |
+       +----------------------+
+       | ctf275               |
+       +----------------------+
+       | easycap32ch-avg      |
+       +----------------------+
+       | easycap64ch-avg      |
+       +----------------------+
+       | easycap128ch-avg     |
+       +----------------------+
+       | easycapM1            |
+       +----------------------+
+       | easycapM11           |
+       +----------------------+
+       | easycapM14           |
+       +----------------------+
+       | easycapM15           |
+       +----------------------+
+       | KIT-157              |
+       +----------------------+
+       | KIT-208              |
+       +----------------------+
+       | KIT-NYU-2019         |
+       +----------------------+
+       | KIT-UMD-1            |
+       +----------------------+
+       | KIT-UMD-2            |
+       +----------------------+
+       | KIT-UMD-3            |
+       +----------------------+
+       | KIT-UMD-4            |
+       +----------------------+
+       | neuromag306mag       |
+       +----------------------+
+       | neuromag306planar    |
+       +----------------------+
     """
     from scipy.io import loadmat
     if not op.isabs(fname):
         templates_dir = op.realpath(op.join(op.dirname(__file__),
                                             'data', 'neighbors'))
         templates = os.listdir(templates_dir)
+        orig_fname = fname
+        valid_fnames = []
         for f in templates:
             if f == fname:
                 break
             if f == fname + '_neighb.mat':
                 fname += '_neighb.mat'
                 break
+
+            # collect list of valid fnames
+            if f.endswith('_neighb.mat'):
+                valid_fnames.append(f.rstrip('_neighb.mat'))
         else:
-            raise ValueError('I do not know about this neighbor '
-                             'template: "{}"'.format(fname))
+            raise ValueError(f'"{orig_fname}" is not a valid ``fname``. '
+                             f'Try one of:\n\n{valid_fnames}')
 
         fname = op.join(templates_dir, fname)
 
@@ -1234,6 +1304,13 @@ def read_ch_adjacency(fname, picks=None):
     # picking before constructing matrix is buggy
     adjacency = adjacency[picks][:, picks]
     ch_names = [ch_names[p] for p in picks]
+
+    # make sure MEG channel names contain space after "MEG"
+    for idx, ch_name in enumerate(ch_names):
+        if ch_name.startswith('MEG') and not ch_name[3] == ' ':
+            ch_name = ch_name.replace('MEG', 'MEG ')
+            ch_names[idx] = ch_name
+
     return adjacency, ch_names
 
 
@@ -1251,7 +1328,7 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse matrix
+    ch_adjacency : scipy.sparse.spmatrix
         The adjacency matrix.
     """
     from scipy import sparse
@@ -1282,15 +1359,15 @@ def find_ch_adjacency(info, ch_type):
 
     This function tries to infer the appropriate adjacency matrix template
     for the given channels. If a template is not found, the adjacency matrix
-    is computed using Delaunay triangulation based on 2d sensor locations.
+    is computed using Delaunay triangulation based on 2D sensor locations.
 
     Parameters
     ----------
     %(info_not_none)s
     ch_type : str | None
         The channel type for computing the adjacency matrix. Currently
-        supports 'mag', 'grad', 'eeg' and None. If None, the info must contain
-        only one channel type.
+        supports ``'mag'``, ``'grad'``, ``'eeg'`` and ``None``.
+        If ``None``, the info must contain only one channel type.
 
     Returns
     -------
@@ -1301,7 +1378,9 @@ def find_ch_adjacency(info, ch_type):
 
     See Also
     --------
+    mne.viz.plot_ch_adjacency
     read_ch_adjacency
+    mne.stats.combine_adjacency
 
     Notes
     -----
@@ -1312,6 +1391,10 @@ def find_ch_adjacency(info, ch_type):
     is always computed for EEG data and never loaded from a template file. If
     you want to load a template for a given montage use
     :func:`read_ch_adjacency` directly.
+
+    Note that depending on your use case, you may need to additionally use
+    :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
+    to pass to the eventual function.
     """
     if ch_type is None:
         picks = channel_indices_by_type(info)
@@ -1355,7 +1438,7 @@ def find_ch_adjacency(info, ch_type):
         conn_name = KIT_NEIGHBORS.get(info['kit_system_id'])
 
     if conn_name is not None:
-        logger.info('Reading adjacency matrix for %s.' % conn_name)
+        logger.info(f'Reading adjacency matrix for {conn_name}.')
         return read_ch_adjacency(conn_name)
     logger.info('Could not find a adjacency matrix for the data. '
                 'Computing adjacency based on Delaunay triangulations.')
@@ -1375,7 +1458,7 @@ def _compute_ch_adjacency(info, ch_type):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1458,13 +1541,14 @@ def fix_mag_coil_types(info, use_cal=False):
     for ii in old_mag_inds:
         info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T3
     logger.info('%d of %d magnetometer types replaced with T3.' %
-                (len(old_mag_inds), len(pick_types(info, meg='mag'))))
+                (len(old_mag_inds),
+                 len(pick_types(info, meg='mag', exclude=[]))))
     info._check_consistency()
 
 
 def _get_T1T2_mag_inds(info, use_cal=False):
     """Find T1/T2 magnetometer coil types."""
-    picks = pick_types(info, meg='mag')
+    picks = pick_types(info, meg='mag', exclude=[])
     old_mag_inds = []
     # From email exchanges, systems with the larger T2 coil only use the cal
     # value of 2.09e-11. Newer T3 magnetometers use 4.13e-11 or 1.33e-10

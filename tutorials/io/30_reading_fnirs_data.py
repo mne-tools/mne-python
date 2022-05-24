@@ -25,15 +25,6 @@ frequency domain fNIRS).
              Manual modification of channel names and metadata
              is not recommended.
 
-.. note:: To provide a consistent interface across different measurement
-          devices and file types, MNE-Python uses a standard ordering of
-          channels. MNE-Python internally orders channels by ascending source
-          number. When there are multiple channels with the same source number,
-          they are ordered by ascending detector number. The ordering of
-          channels is done automatically when data is imported. Therefore,
-          the ordering of channels within MNE-Python may be different to what
-          was provided by the hardware vendor.
-
 .. _import-snirf:
 
 *****************
@@ -185,17 +176,6 @@ pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
 
 
 # %%
-#
-# .. warning:: The channels must be ordered in haemoglobin pairs, such that for
-#              a single channel all the types are in subsequent indices. The
-#              type order must be 'hbo' then 'hbr'.
-#              The data below is already in the correct order and may be
-#              used as a template for how data must be stored.
-#              If the order that your data is stored is different to the
-#              mandatory formatting, then you must first read the data with
-#              channel naming according to the data structure, then reorder
-#              the channels to match the required format.
-#
 # Next, we will load the example CSV file.
 
 data = pd.read_csv('fnirs.csv')

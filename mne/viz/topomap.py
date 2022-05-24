@@ -32,7 +32,8 @@ from ..utils import (_clean_names, _time_mask, verbose, logger, fill_doc,
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
-                    _validate_if_list_of_axes, _setup_cmap, _check_time_unit)
+                    _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
+                    _set_3d_axes_equal)
 from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
@@ -709,26 +710,27 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     pos : array, shape (n_chan, 2) | instance of Info
         Location information for the data points(/channels).
         If an array, for each data point, the x and y coordinates.
-        If an Info object, it must contain only one data type and
+        If an `~mne.Info` object, it must contain only one data type and
         exactly ``len(data)`` data channels, and the x/y coordinates will
-        be inferred from this Info object.
+        be inferred from the montage applied to the `~mne.Info` object.
     vmin : float | callable | None
         The value specifying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data). Defaults to None.
+        If None, and vmax is None, the opposite of the maximum absolute value
+        ``-max(abs(data))`` is used. Else ``min(data)`` is used. If callable,
+        the output equals ``vmin(data)``. Defaults to None.
     vmax : float | callable | None
         The value specifying the upper bound of the color range.
-        If None, the maximum absolute value is used. If callable, the output
-        equals vmax(data). Defaults to None.
+        If None, the maximum value is used. If callable, the output
+        equals ``vmax(data)``. Defaults to None.
     cmap : matplotlib colormap | None
-        Colormap to use. If None, 'Reds' is used for all positive data,
-        otherwise defaults to 'RdBu_r'.
+        Colormap to use. If None, ``'Reds'`` is used for all positive data,
+        otherwise defaults to ``'RdBu_r'``.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True (default), circles
-        will be used.
+        format string (e.g., ``'r+'`` for red plusses). If True (default),
+        circles will be used.
     res : int
-        The resolution of the topomap image (n pixels along each side).
+        The resolution of the topomap image (number of pixels along each side).
     axes : instance of Axes | None
         The axes to plot to. If None, the current axes will be used.
     names : list | None
@@ -739,10 +741,10 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     %(mask_params_topomap)s
     %(outlines_topomap)s
     contours : int | array of float
-        The number of contour lines to draw. If 0, no contours will be drawn.
-        If an array, the values represent the levels for the contours. The
-        values are in µV for EEG, fT for magnetometers and fT/m for
-        gradiometers. Defaults to 6.
+        The number of contour lines to draw. If ``0``, no contours will be
+        drawn. If an array, the values represent the levels for the contours.
+        The values are in µV for EEG, fT for magnetometers and fT/m for
+        gradiometers. Defaults to ``6``.
     %(image_interp_topomap)s
     show : bool
         Show figure if True.
@@ -781,6 +783,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     3, and 0 should be white. However, white corresponds to the midpoint in the
     data by default, i.e. 1. Therefore, we use the following colormap
     normalization ``cnorm`` and pass it as the the ``cnorm`` argument:
+
+    .. code-block:: python
 
         from matplotlib.colors import TwoSlopeNorm
         cnorm = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=3)
@@ -2806,3 +2810,211 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
         cax = fig.colorbar(im)
         cax.set_label(r'Electrical Distance ($\mu$$V^2$)')
     return fig
+
+
+def plot_ch_adjacency(info, adjacency, ch_names, kind='2d', edit=False):
+    """Plot channel adjacency.
+
+    Parameters
+    ----------
+    info : instance of Info
+        Info object with channel locations.
+    adjacency : array
+        Array of channels x channels shape. Defines which channels are adjacent
+        to each other. Note that if you edit adjacencies
+        (via ``edit=True``), this array will be modified in place.
+    ch_names : list of str
+        Names of successive channels in the ``adjacency`` matrix.
+    kind : str
+        How to plot the adjacency. Can be either ``'3d'`` or ``'2d'``.
+    edit : bool
+        Whether to allow interactive editing of the adjacency matrix via
+        clicking respective channel pairs. Once clicked, the channel is
+        "activated" and turns green. Clicking on another channel adds or
+        removes adjacency relation between the activated and newly clicked
+        channel (depending on whether the channels are already adjacent or
+        not); the newly clicked channel now becomes activated. Clicking on
+        an activated channel deactivates it. Editing is currently only
+        supported for ``kind='2d'``.
+
+    Returns
+    -------
+    fig : Figure
+        The :class:`~matplotlib.figure.Figure` instance where the channel
+        adjacency is plotted.
+
+    See Also
+    --------
+    mne.channels.find_ch_adjacency
+    mne.channels.read_ch_adjacency
+
+    Notes
+    -----
+    .. versionadded:: 1.1
+    """
+    from scipy import sparse
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+
+    from . import plot_sensors
+
+    _validate_type(info, Info, 'info')
+    _validate_type(adjacency, (np.ndarray, sparse.csr_matrix), 'adjacency')
+    has_sparse = isinstance(adjacency, sparse.csr_matrix)
+
+    if edit and kind == '3d':
+        raise ValueError('Editing a 3d adjacency plot is not supported.')
+
+    # select relevant channels
+    sel = pick_channels(info.ch_names, ch_names, ordered=True)
+    info = pick_info(info, sel)
+
+    # make sure adjacency is correct size wrt to inst:
+    n_channels = len(info.ch_names)
+    if adjacency.shape[0] != n_channels:
+        raise ValueError('``adjacency`` must have the same number of rows '
+                         'as the number of channels in ``info``. Found '
+                         f'{adjacency.shape[0]} channels for ``adjacency`` and'
+                         f' {n_channels} for ``inst``.')
+
+    if kind == '3d':
+        with plt.rc_context({'toolbar': 'None'}):
+            fig = plot_sensors(info, kind=kind, show=False)
+        _set_3d_axes_equal(fig.axes[0])
+    elif kind == '2d':
+        with plt.rc_context({'toolbar': 'None'}):
+            fig = plot_sensors(info, kind='topomap', show=False)
+        fig.axes[0].axis('equal')
+
+    path_collection = fig.axes[0].findobj(mpl.collections.PathCollection)
+    path_collection[0].set_linewidths(0.)
+
+    if kind == '2d':
+        path_collection[0].set_alpha(0.7)
+        pos = path_collection[0].get_offsets()
+
+        # make sure nodes are on top
+        path_collection[0].set_zorder(10)
+
+        # scale node size with number of connections
+        n_connections = [np.sum(adjacency[i]) - 1
+                         for i in range(adjacency.shape[0])]
+        node_size = [max(x, 3) ** 2.5 for x in n_connections]
+        path_collection[0].set_sizes(node_size)
+    else:
+        # plotting channel positions via mne.viz.plot_sensors(info) and using
+        # the coordinates from info['chs'][ch_idx]['loc][:3] gives different
+        # positions. Also .get_offsets gives 2d projections even for 3d points
+        # so we use the private _offsets3d property...
+        pos = path_collection[0]._offsets3d
+        pos = np.stack([pos[0].data, pos[1].data, pos[2]], axis=1)
+
+    ax = fig.axes[0]
+    lines = dict()
+    n_channels = adjacency.shape[0]
+    for ch_idx in range(n_channels):
+        # make sure we don't repeat channels
+        row = adjacency[ch_idx, ch_idx + 1:]
+        if has_sparse:
+            ch_neighbours = row.nonzero()[1]
+        else:
+            ch_neighbours = np.where(row)[0]
+
+        if len(ch_neighbours) == 0:
+            continue
+
+        ch_neighbours += ch_idx + 1
+
+        for ngb_idx in ch_neighbours:
+            this_pos = pos[[ch_idx, ngb_idx], :]
+            ch_pair = tuple([ch_idx, ngb_idx])
+            lines[ch_pair] = ax.plot(*this_pos.T, color=(0.55, 0.55, 0.55),
+                                     lw=0.75)[0]
+
+    if edit:
+        # allow interactivity in 2d plots
+        highlighted = dict()
+        this_onpick = partial(_onpick_ch_adjacency, axes=ax, positions=pos,
+                              highlighted=highlighted, line_dict=lines,
+                              adjacency=adjacency, node_size=node_size,
+                              path_collection=path_collection)
+        fig.canvas.mpl_connect('pick_event', this_onpick)
+
+    return fig
+
+
+def _onpick_ch_adjacency(event, axes=None, positions=None, highlighted=None,
+                         line_dict=None, adjacency=None, node_size=None,
+                         path_collection=None):
+    """Handle interactivity in plot_ch_adjacency."""
+    node_ind = event.ind[0]
+
+    if node_ind in highlighted:
+        # de-select node, change its color back to normal
+        highlighted[node_ind].remove()
+        del highlighted[node_ind]
+        axes.figure.canvas.draw()
+    else:
+        # new node selected
+        if len(highlighted) == 0:
+            # no highlighted nodes yet
+            size = max(node_size[node_ind] * 2, 100)
+            # add current node
+            dots = axes.scatter(
+                *positions[node_ind, :].T, color='tab:green', s=size,
+                zorder=15)
+            highlighted[node_ind] = dots
+            axes.figure.canvas.draw()  # make sure it renders
+        else:
+            # one previously highlighted - add or remove line
+            key = list(highlighted.keys())[0]
+            both_nodes = [key, node_ind]
+            both_nodes.sort()
+            both_nodes = tuple(both_nodes)
+
+            if both_nodes in line_dict.keys():
+                # remove line
+                n_conn_change = -1
+                line_dict[both_nodes].remove()
+                # remove line_dict entry
+                del line_dict[both_nodes]
+
+                # clear adjacency matrix entry
+                _set_adjacency(adjacency, both_nodes, False)
+            else:
+                # add line
+                n_conn_change = +1
+                selected_pos = positions[both_nodes, :]
+                line = axes.plot(*selected_pos.T, color='tab:green')[0]
+                # add line to line_dict
+                line_dict[both_nodes] = line
+
+                # modify adjacency matrix
+                _set_adjacency(adjacency, both_nodes, True)
+
+            # de-highlight previous
+            highlighted[key].remove()
+            del highlighted[key]
+
+            # update node sizes
+            n_connections = [np.sum(adjacency[idx]) - 1 + n_conn_change
+                             for idx in both_nodes]
+            for idx, n_conn in zip(both_nodes, n_connections):
+                node_size[idx] = max(n_conn, 3) ** 2.5
+            path_collection[0].set_sizes(node_size)
+
+            # highlight new node
+            size = max(node_size[node_ind] * 2, 100)
+            dots = axes.scatter(
+                *positions[node_ind, :].T, color='tab:green', s=size,
+                zorder=15)
+            highlighted[node_ind] = dots
+            axes.figure.canvas.draw()
+
+
+def _set_adjacency(adjacency, both_nodes, value):
+    """Set adjacency for given node pair, caching errors for sparse arrays."""
+    import warnings
+
+    with warnings.catch_warnings(record=True):
+        adjacency[both_nodes, both_nodes[::-1]] = value
