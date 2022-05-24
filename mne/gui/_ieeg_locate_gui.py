@@ -218,7 +218,8 @@ class IntracranialElectrodeLocator():
 
         self._renderer._window_initialize(
             window=self._window, central_layout=main_layout,
-            theme_support=False)
+            theme_support=True)
+        self._group_selector.set_style({"background-color": "transparent"})
 
     def show(self):
         """Display the window."""
