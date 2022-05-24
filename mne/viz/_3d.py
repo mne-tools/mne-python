@@ -33,8 +33,7 @@ from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
                             SourceSpaces, read_freesurfer_lut)
 
 from ..surface import (get_meg_helmet_surf, _read_mri_surface, _DistanceQuery,
-                       _project_onto_surface, _reorder_ccw, _CheckInside,
-                       _LayeredMesh)
+                       _project_onto_surface, _reorder_ccw, _CheckInside)
 from ..transforms import (apply_trans, rot_to_quat, combine_transforms,
                           _get_trans, _ensure_trans, Transform, rotation,
                           read_ras_mni_t, _print_coord_trans, _find_trans,
@@ -43,6 +42,7 @@ from ..transforms import (apply_trans, rot_to_quat, combine_transforms,
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl, get_config,
                      _ensure_int, _validate_type, _check_option, _to_rgb)
+from ._3d_overlay import _LayeredMesh
 from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
 from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces

@@ -30,6 +30,7 @@ from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
                      _generate_default_filename, _save_ndarray_img, safe_event)
 from .._3d import (_process_clim, _handle_time, _check_views,
                    _handle_sensor_types, _plot_sensors, _plot_forward)
+from .._3d_overlay import _LayeredMesh
 from ...defaults import _handle_default, DEFAULTS
 from ...fixes import _point_data, _cell_data
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
@@ -37,7 +38,7 @@ from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
 from ...io.pick import pick_types
 from ...io.meas_info import Info
 from ...surface import (mesh_edges, _mesh_borders, _marching_cubes,
-                        get_meg_helmet_surf, _LayeredMesh)
+                        get_meg_helmet_surf)
 from ...source_space import SourceSpaces
 from ...transforms import (Transform, apply_trans, invert_transform,
                            _get_trans, _get_transforms_to_coord_frame,
