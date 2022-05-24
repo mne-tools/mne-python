@@ -45,7 +45,7 @@ from ...transforms import (Transform, apply_trans, invert_transform,
                            _frame_to_str)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
-                      get_subjects_dir, _check_fname, _to_rgb)
+                      get_subjects_dir, _check_fname, _to_rgb, _ensure_int)
 
 
 _ARROW_MOVE = 10  # degrees per press
@@ -3047,6 +3047,33 @@ class Brain(object):
             _qt_app_exec(self._renderer.figure.store["app"])
 
     @fill_doc
+    def get_view(self, row=0, col=0):
+        """Get the camera orientation for a given subplot display.
+
+        Parameters
+        ----------
+        row : int
+            The row to use, default is the first one.
+        col : int
+            The column to check, the default is the first one.
+
+        Returns
+        -------
+        %(roll)s
+        %(distance)s
+        %(azimuth)s
+        %(elevation)s
+        %(focalpoint)s
+        """
+        row = _ensure_int(row, 'row')
+        col = _ensure_int(col, 'col')
+        for h in self._hemis:
+            for ri, ci, _ in self._iter_views(h):
+                if (row == ri) and (col == ci):
+                    return self._renderer.get_camera()
+        return (None,) * 5
+
+    @fill_doc
     def show_view(self, view=None, roll=None, distance=None, *,
                   row=None, col=None, hemi=None, align=True,
                   azimuth=None, elevation=None, focalpoint=None):
@@ -3063,11 +3090,7 @@ class Brain(object):
             The column to set. Default all columns.
         hemi : str | None
             Which hemi to use for view lookup (when in "both" mode).
-        align : bool
-            If True, consider view arguments relative to canonical MRI
-            directions (closest to MNI for the subject) rather than native MRI
-            space. This helps when MRIs are not in standard orientation (e.g.,
-            have large rotations).
+        %(align_view)s
         %(azimuth)s
         %(elevation)s
         %(focalpoint)s

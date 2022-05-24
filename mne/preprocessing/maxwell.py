@@ -2215,11 +2215,12 @@ def find_bad_channels_maxwell(
     .. versionadded:: 0.20
     """
     if h_freq is not None:
-        if raw.info.get('lowpass') and raw.info['lowpass'] < h_freq:
+        if raw.info.get('lowpass') and raw.info['lowpass'] <= h_freq:
+            freq_loc = 'below' if raw.info['lowpass'] < h_freq else 'equal to'
             msg = (f'The input data has already been low-pass filtered with a '
                    f'{raw.info["lowpass"]} Hz cutoff frequency, which is '
-                   f'below the requested cutoff of {h_freq} Hz. Not applying '
-                   f'low-pass filter.')
+                   f'{freq_loc} the requested cutoff of {h_freq} Hz. Not '
+                   f'applying low-pass filter.')
             logger.info(msg)
         else:
             logger.info(f'Applying low-pass filter with {h_freq} Hz cutoff '

@@ -8,7 +8,6 @@ import numpy as np
 
 from ...io import BaseRaw
 from ...utils import _validate_type, verbose
-from ...io.pick import _picks_to_idx
 from ..nirs import _validate_nirs_info
 
 
@@ -47,12 +46,11 @@ def temporal_derivative_distribution_repair(raw, *, verbose=None):
     """
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
-    _validate_nirs_info(raw.info)
+    picks = _validate_nirs_info(raw.info)
 
-    picks = _picks_to_idx(raw.info, ['fnirs_od', 'hbo', 'hbr'], exclude=[])
     if not len(picks):
-        raise RuntimeError('TDDR should be run on optical density or \
-                            hemoglobin data.')
+        raise RuntimeError('TDDR should be run on optical density or '
+                           'hemoglobin data.')
     for pick in picks:
         raw._data[pick] = _TDDR(raw._data[pick], raw.info['sfreq'])
 

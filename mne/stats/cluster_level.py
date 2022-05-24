@@ -1067,12 +1067,12 @@ def permutation_cluster_test(
     permutations and cluster-level correction. Each element of the list ``X``
     should contain the data for one group of observations (e.g., 2D arrays for
     time series, 3D arrays for time-frequency power values). Permutations are
-    generated with random partitions of the data. See
-    :footcite:`MarisOostenveld2007` for details.
+    generated with random partitions of the data. For details, see
+    :footcite:p:`MarisOostenveld2007,Sassenhagen2019`.
 
     Parameters
     ----------
-    X : list of array, shape (n_observations, p[, q])
+    X : list of array, shape (n_observations, p[, q][, r])
         The data to be clustered. Each array in ``X`` should contain the
         observations for one group. The first dimension of each array is the
         number of observations from that group; remaining dimensions comprise
@@ -1092,10 +1092,7 @@ def permutation_cluster_test(
     %(n_jobs)s
     %(seed)s
     %(max_step_clust)s
-    exclude : bool array or None
-        Mask to apply to the data to exclude certain points from clustering
-        (e.g., medial wall vertices). Should be the same shape as X. If None,
-        no points are excluded.
+    %(exclude_clust)s
     %(step_down_p_clust)s
     %(f_power_clust)s
     %(out_type_clust)s
@@ -1105,7 +1102,7 @@ def permutation_cluster_test(
 
     Returns
     -------
-    F_obs : array, shape (p[, q])
+    F_obs : array, shape (p[, q][, r])
         Statistic (F by default) observed for all variables.
     clusters : list
         List type defined by out_type above.
@@ -1113,6 +1110,10 @@ def permutation_cluster_test(
         P-value for each cluster.
     H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
+
+    Notes
+    -----
+    %(threshold_clust_f_notes)s
 
     References
     ----------
@@ -1135,15 +1136,17 @@ def permutation_cluster_1samp_test(
         check_disjoint=False, buffer_size=1000, verbose=None):
     """Non-parametric cluster-level paired t-test.
 
+    For details, see :footcite:p:`MarisOostenveld2007,Sassenhagen2019`.
+
     Parameters
     ----------
-    X : array, shape (n_observations, p[, q])
+    X : array, shape (n_observations, p[, q][, r])
         The data to be clustered. The first dimension should correspond to the
         difference between paired samples (observations) in two conditions.
-        The subarrays ``X[k]`` can be 1D (e.g., time series) or 2D (e.g.,
-        time-frequency image) associated with the kth observation. For
-        spatiotemporal data, see also
-        :func:`mne.stats.spatio_temporal_cluster_1samp_test`.
+        The subarrays ``X[k]`` can be 1D (e.g., time series), 2D (e.g.,
+        time series over channels), or 3D (e.g., time-frequencies over
+        channels) associated with the kth observation. For spatiotemporal data,
+        see also :func:`mne.stats.spatio_temporal_cluster_1samp_test`.
     %(threshold_clust_t)s
     %(n_permutations_clust_all)s
     %(tail_clust)s
@@ -1152,10 +1155,7 @@ def permutation_cluster_1samp_test(
     %(n_jobs)s
     %(seed)s
     %(max_step_clust)s
-    exclude : bool array or None
-        Mask to apply to the data to exclude certain points from clustering
-        (e.g., medial wall vertices). Should be the same shape as X. If None,
-        no points are excluded.
+    %(exclude_clust)s
     %(step_down_p_clust)s
     %(t_power_clust)s
     %(out_type_clust)s
@@ -1165,7 +1165,7 @@ def permutation_cluster_1samp_test(
 
     Returns
     -------
-    t_obs : array, shape (p[, q])
+    t_obs : array, shape (p[, q][, r])
         T-statistic observed for all variables.
     clusters : list
         List type defined by out_type above.
@@ -1189,12 +1189,15 @@ def permutation_cluster_1samp_test(
     computes a 1-sample t-test (by default) and uses sign flipping (always)
     to perform permutations. This might not be suitable for the case where
     there is truly a single observation under test; see :ref:`disc-stats`.
+    %(threshold_clust_t_notes)s
 
-    If ``n_permutations >= 2 ** (n_samples - (tail == 0))``,
-    ``n_permutations`` and ``seed`` will be ignored since an exact test
-    (full permutation test) will be performed.
+    If ``n_permutations`` exceeds the maximum number of possible permutations
+    given the number of observations, then ``n_permutations`` and ``seed``
+    will be ignored since an exact test (full permutation test) will be
+    performed (this is the case when
+    ``n_permutations >= 2 ** (n_observations - (tail == 0))``).
 
-    If no initial clusters are found, i.e., all points in the true
+    If no initial clusters are found because all points in the true
     distribution are below the threshold, then ``clusters``, ``cluster_pv``,
     and ``H0`` will all be empty arrays.
 
@@ -1222,8 +1225,10 @@ def spatio_temporal_cluster_1samp_test(
 
     This function provides a convenient wrapper for
     :func:`mne.stats.permutation_cluster_1samp_test`, for use with data
-    organized in the form (observations × time × space). See
-    :footcite:`MarisOostenveld2007` for details.
+    organized in the form (observations × time × space),
+    (observations × frequencies × space), or optionally
+    (observations × time × frequencies × space). For details, see
+    :footcite:p:`MarisOostenveld2007,Sassenhagen2019`.
 
     Parameters
     ----------
@@ -1231,8 +1236,7 @@ def spatio_temporal_cluster_1samp_test(
         The data to be clustered. The first dimension should correspond to the
         difference between paired samples (observations) in two conditions.
         The second, and optionally third, dimensions correspond to the
-        time or time-frequency data. And, the last dimension should be spatial;
-        it is the dimension the adjacency parameter will be applied to.
+        time or time-frequency data. And, the last dimension should be spatial.
     %(threshold_clust_t)s
     %(n_permutations_clust_all)s
     %(tail_clust)s
@@ -1260,6 +1264,10 @@ def spatio_temporal_cluster_1samp_test(
         P-value for each cluster.
     H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
+
+    Notes
+    -----
+    %(threshold_clust_t_notes)s
 
     References
     ----------
@@ -1290,8 +1298,10 @@ def spatio_temporal_cluster_test(
 
     This function provides a convenient wrapper for
     :func:`mne.stats.permutation_cluster_test`, for use with data
-    organized in the form (observations × time × space).
-    See :footcite:`MarisOostenveld2007` for more information.
+    organized in the form (observations × time × space),
+    (observations × time × space), or optionally
+    (observations × time × frequencies × space). For more information,
+    see :footcite:p:`MarisOostenveld2007,Sassenhagen2019`.
 
     Parameters
     ----------
@@ -1300,9 +1310,8 @@ def spatio_temporal_cluster_test(
         observations for one group. The first dimension of each array is the
         number of observations from that group (and may vary between groups).
         The second, and optionally third, dimensions correspond to the
-        time or time-frequency data. And, the last dimension should be spatial;
-        it is the dimension the adjacency parameter will be applied to. All
-        dimensions except the first should match across all groups.
+        time or time-frequency data. And, the last dimension should be spatial.
+        All dimensions except the first should match across all groups.
     %(threshold_clust_f)s
     %(n_permutations_clust_int)s
     %(tail_clust)s
@@ -1330,6 +1339,10 @@ def spatio_temporal_cluster_test(
         P-value for each cluster.
     H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
+
+    Notes
+    -----
+    %(threshold_clust_f_notes)s
 
     References
     ----------

@@ -16,7 +16,6 @@ from ..base import BaseRaw
 from ..utils import _mult_cal_one
 from ..constants import FIFF
 from ..meas_info import create_info, _format_dig_points
-from ..pick import pick_types
 from ...annotations import Annotations
 from ..._freesurfer import get_mni_fiducials
 from ...transforms import apply_trans, _get_trans
@@ -459,7 +458,6 @@ class RawNIRX(BaseRaw):
                 ch_names.append(list())
         annot = Annotations(onset, duration, description, ch_names=ch_names)
         self.set_annotations(annot)
-        self.pick(picks=_nirs_sort_idx(self.info))
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file.
@@ -512,21 +510,3 @@ def _convert_fnirs_to_head(trans, fro, to, src_locs, det_locs, ch_locs):
     det_locs = apply_trans(mri_head_t, det_locs)
     ch_locs = apply_trans(mri_head_t, ch_locs)
     return src_locs, det_locs, ch_locs, mri_head_t
-
-
-def _nirs_sort_idx(info):
-    # TODO: Remove any actual reordering that is done and just use this
-    # function to get picks to operate on in an ordered way. This should be
-    # done by refactoring mne.preprocessing.nirs.nirs._check_channels_ordered
-    # and this function to make sure the picks we obtain here are in the
-    # correct order.
-    nirs_picks = pick_types(info, fnirs=True, exclude=())
-    other_picks = np.setdiff1d(np.arange(info['nchan']), nirs_picks)
-    prefixes = [info['ch_names'][pick].split()[0] for pick in nirs_picks]
-    nirs_names = [info['ch_names'][pick] for pick in nirs_picks]
-    nirs_sorted = sorted(nirs_names,
-                         key=lambda name: (prefixes.index(name.split()[0]),
-                                           name.split(maxsplit=1)[1]))
-    nirs_picks = nirs_picks[
-        [nirs_names.index(name) for name in nirs_sorted]]
-    return np.concatenate((nirs_picks, other_picks))
