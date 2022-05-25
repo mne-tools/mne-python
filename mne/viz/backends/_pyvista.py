@@ -307,7 +307,10 @@ class _PyVistaRenderer(_AbstractRenderer):
         else:
             for renderer in self._all_renderers:
                 renderer.disable_parallel_projection()
-            getattr(self.plotter, f'enable_{interaction}_style')()
+            kwargs = dict()
+            if interaction == 'terrain':
+                kwargs['mouse_wheel_zooms'] = True
+            getattr(self.plotter, f'enable_{interaction}_style')(**kwargs)
 
     def legend(self, labels, border=False, size=0.1, face='triangle',
                loc='upper left'):
