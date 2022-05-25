@@ -25,9 +25,14 @@ Installing MNE-Python
         everything to get you started!
         +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-        .. rst-class:: btn btn-primary font-weight-bold shadow-sm mb-3
 
-            |cloud-download-alt| |ensp| :ref:`Download Installers <installers>`
+        .. button-ref:: installers
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold
+
+            |cloud-download-alt| |ensp| Download Installers
 
 
     .. grid-item-card::
@@ -49,9 +54,14 @@ Installing MNE-Python
         Follow our advanced setup instructions for ``pip`` and ``conda``!
         +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-        .. rst-class:: btn btn-primary font-weight-bold shadow-sm mb-3
+        .. button-ref:: manual-install
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold
 
-            |wrench| |ensp| :ref:`Setup Instructions <manual-install>`
+            |wrench| |ensp| Setup Instructions
+
 
 .. toctree::
     :hidden:
