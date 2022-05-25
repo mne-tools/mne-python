@@ -52,6 +52,7 @@ from mne.transforms import (
     _quat_to_affine,
     _compute_r2,
     _validate_pipeline,
+    _MatchedDisplacementFieldInterpolator,
 )
 
 data_path = testing.data_path(download=False)
@@ -630,3 +631,19 @@ def test_volume_registration():
         ],
         atol=0.001,
     )
+
+
+def test_displacement_field():
+    """Test that our matched point deformation works."""
+    to = np.array([[5, 4, 1], [6, 1, 0], [4, -1, 1], [3, 3, 0]], float)
+    fro = np.array([[0, 2, 2], [2, 2, 1], [2, 0, 2], [0, 0, 1]], float)
+    interp = _MatchedDisplacementFieldInterpolator(fro, to)
+    fro_t = interp(fro)
+    assert_allclose(to, fro_t, atol=1e-12)
+    # check midpoints (should all be decent)
+    for a in range(len(to)):
+        for b in range(a + 1, len(to)):
+            to_ = np.mean(to[[a, b]], axis=0)
+            fro_ = np.mean(fro[[a, b]], axis=0)
+            fro_t = interp(fro_)
+            assert_allclose(to_, fro_t, atol=1e-12)
