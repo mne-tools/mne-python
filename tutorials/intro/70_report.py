@@ -430,6 +430,35 @@ report.save('report_custom_figure.html', overwrite=True)
 plt.close(fig)
 
 # %%
+# Multiple figures can be grouped into a single section via the ``section``
+# parameter.
+
+fig_1, ax_1 = plt.subplots()
+ax_1.plot([1, 2, 3])
+
+fig_2, ax_2 = plt.subplots()
+ax_2.plot([3, 2, 1])
+
+section = 'Section example'
+
+report = mne.Report(title='Figure section example')
+report.add_figure(
+    fig=fig_1,
+    title='Figure 1',
+    section=section,
+    tags=('fig-1,')
+)
+report.add_figure(
+    fig=fig_2,
+    title='Figure 2',
+    section=section,
+    tags=('fig-2,')
+)
+report.save('report_custom_figure_sections.html', overwrite=True)
+plt.close(fig_1)
+plt.close(fig_2)
+
+# %%
 # The :meth:`mne.Report.add_figure` method can add multiple figures at once. In
 # this case, a slider will appear, allowing users to intuitively browse the
 # figures. To make this work, you need to provide a collection of figures,
