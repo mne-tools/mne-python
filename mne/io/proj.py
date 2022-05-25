@@ -788,9 +788,8 @@ def make_eeg_average_ref_proj(info, activate=True, ch_type=('eeg',),
     %(info_not_none)s
     activate : bool
         If True projections are activated.
-    ch_dict : dict
-        Dictionary of channel types to use for the average reference.
-        If None, only EEG channels will be referenced.
+    ch_type : list of str
+        Channel type to use for reference projection.
     %(verbose)s
 
     Returns
