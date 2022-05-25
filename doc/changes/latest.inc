@@ -79,6 +79,8 @@ Enhancements
 
 - Added support for Aurora version 2021.9.0.6 to :func:`mne.io.read_raw_nirx` (:gh:`10668` by `Robert Luke`_)
 
+- Add timeformat ``YYYY/MM/DD`` to :func:`mne.io.ctf.info._convert_time`  (:gh:`10674` by `Simon Kern`)
+
 Bugs
 ~~~~
 
