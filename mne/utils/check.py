@@ -330,11 +330,12 @@ def _soft_import(name, purpose, strict=True):
         functionality the package provides to MNE-Python.
     strict : bool
         Whether to raise an error if module import fails.
-    pip_name : str
-        The PyPI package name if it does not match the module name.
     """
-    # If PyPI package name matches import namespace
-    # pip_name = name if pip_name is None else pip_name
+    # so that error msg lines are aligned
+    def indent(x):
+        return x.rjust(len(x) + 14)
+
+    # Mapping import namespaces to their pypi package name
     pip_name = dict(
         sklearn='scikit-learn',
         EDFlib='EDFlib-Python',
@@ -350,9 +351,14 @@ def _soft_import(name, purpose, strict=True):
         return mod
     except (ImportError, ModuleNotFoundError):
         if strict:
-            raise RuntimeError(f'For {purpose} to work, the {name} module is '
-                               'needed, but it could not be imported. '
-                               f'pip install {pip_name} and try again.')
+            raise RuntimeError(
+                f'For {purpose} to work, the {name} module is needed, ' +
+                'but it could not be imported.\n' +
+                '\n'.join((indent('use the following installation method '
+                                  'appropriate for your environment:'),
+                           indent(f"'pip install {pip_name}'"),
+                           indent(f"'conda install -c conda-forge {pip_name}'")
+                           )))
         else:
             return False
 
