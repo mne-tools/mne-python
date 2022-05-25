@@ -10,8 +10,80 @@ all dependencies. They also provide many additional
 Python packages and tools, including the `Spyder`_ development environment.
 Got any questions? Let us know on the `MNE Forum`_!
 
+.. tab-set::
+
+    .. tab-item:: Linux
+        :name: linux
+        :class-content: text-center
+
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.0.3/MNE-Python-1.0.3_0-Linux.sh
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold
+
+            |cloud-download-alt| |ensp| Download for Linux
+
+        **Supported platforms:** Ubuntu 18.04 (Bionic Beaver) and newer
+
+        Run the installer in a terminal via:
+
+        .. code-block:: console
+
+            $ sh ./MNE-Python-1.0.3_0-Linux.sh
+
+
+    .. tab-item:: macOS
+        :name: mac
+        :class-content: text-center
+
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.0.3/MNE-Python-1.0.3_0-macOS_Intel.pkg
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold
+
+            |cloud-download-alt| |ensp| Download for macOS
+
+        **Supported platforms:**
+        macOS 10.15 (Catalina) and newer (Intel and Apple Silicon)
+
+
+    .. tab-item:: Windows
+        :name: windows
+        :class-content: text-center
+
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.0.3/MNE-Python-1.0.3_0-Windows.exe
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold
+
+            |cloud-download-alt| |ensp| Download for Windows
+
+        **Supported platforms:** Windows 10 and newer
+
 .. raw:: html
-    :file: installers_platform_selector.html
+
+    <script type="text/javascript">
+      var platform = "Linux";
+
+      if (navigator.userAgent.indexOf("Win") !== -1) {
+        platform = "Windows";
+      }
+      if (navigator.userAgent.indexOf("Mac") !== -1) {
+        platform = "Mac";
+      }
+
+      $(document).ready(function () {
+        var cardToShow = document.querySelector(
+          `#downloadAccordion #collapse${platform}`
+        );
+        $(cardToShow).collapse('show');
+      });
+    </script>
+
+
 
 First steps
 ^^^^^^^^^^^
@@ -57,6 +129,3 @@ interpreter.
 
 .. note::
    This information is currently not displayed on the Windows platform.
-
-
-.. |ensp| unicode:: U+2002 .. EN SPACE
