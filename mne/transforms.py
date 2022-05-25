@@ -2095,9 +2095,9 @@ class _MatchedDisplacementFieldInterpolator:
         assert fro.shape[1] == 3
 
         # Prealign using affine + uniform scaling
-        trans, scale = _fit_matched_points(fro, to, scale=True)
-        trans = _quat_to_affine(trans)
-        trans[:3, :3] *= scale
+        self._quat, self._scale = _fit_matched_points(fro, to, scale=True)
+        trans = _quat_to_affine(self._quat)
+        trans[:3, :3] *= self._scale
         self._affine = trans
         fro = apply_trans(trans, fro)
 
@@ -2114,6 +2114,8 @@ class _MatchedDisplacementFieldInterpolator:
     def __call__(self, x):
         assert x.ndim in (1, 2) and x.shape[-1] == 3
         singleton = x.ndim == 1
-        out = self._interp(apply_trans(self._affine, x))
+        x = apply_trans(self._affine, x)
+        out = self._interp(x)
+        self._last_deltas = np.linalg.norm(x - out, axis=1)
         out = out[0] if singleton else out
         return out

@@ -8,11 +8,13 @@
 # Many of the computations in this code were derived from Matti Hämäläinen's
 # C code.
 
+from collections import OrderedDict
 from copy import deepcopy
 from functools import partial, lru_cache
-from collections import OrderedDict
 from glob import glob
+import json
 from os import path as op
+from pathlib import Path
 import time
 import warnings
 
@@ -33,6 +35,9 @@ from .transforms import (
     _get_trans,
     apply_trans,
     Transform,
+    _fit_matched_points,
+    _MatchedDisplacementFieldInterpolator,
+    _angle_between_quats,
 )
 from .utils import (
     logger,
@@ -51,6 +56,8 @@ from .utils import (
     _pl,
     _import_nibabel,
 )
+
+_helmet_path = Path(__file__).parent / "data" / "helmets"
 
 
 ###############################################################################
@@ -205,10 +212,11 @@ def get_meg_helmet_surf(info, trans=None, *, verbose=None):
     system, have_helmet = _get_meg_system(info)
     if have_helmet:
         logger.info("Getting helmet for system %s" % system)
-        fname = op.join(op.split(__file__)[0], "data", "helmets", system + ".fif.gz")
+        fname = _helmet_path / f"{system}.fif.gz"
         surf = read_bem_surfaces(
             fname, False, FIFF.FIFFV_MNE_SURF_MEG_HELMET, verbose=False
         )
+        surf = _scale_helmet_to_sensors(system, surf, info)
     else:
         rr = np.array(
             [
@@ -245,6 +253,40 @@ def get_meg_helmet_surf(info, trans=None, *, verbose=None):
     transform_surface_to(surf, "head", dev_head_t)
     if trans is not None:
         transform_surface_to(surf, "mri", trans)
+    return surf
+
+
+def _scale_helmet_to_sensors(system, surf, info):
+    fname = _helmet_path / f"{system}_ch_pos.txt"
+    if not fname.is_file():
+        return surf
+    with open(fname) as fid:
+        ch_pos_from = json.load(fid)
+    # find correspondence
+    fro, to = list(), list()
+    for key, f_ in ch_pos_from.items():
+        t_ = [ch["loc"][:3] for ch in info["chs"] if ch["ch_name"].startswith(key)]
+        if not len(t_):
+            continue
+        fro.append(f_)
+        to.append(np.mean(t_, axis=0))
+    if len(fro) < 4:
+        logger.info("Using CAD helmet because fewer than 4 sensors found")
+        return surf
+    fro = np.array(fro, float)
+    to = np.array(to, float)
+    interp = _MatchedDisplacementFieldInterpolator(fro, to)
+    new_rr = interp(surf["rr"])
+    quat, sc = _fit_matched_points(surf["rr"], new_rr)
+    rot = np.rad2deg(_angle_between_quats(quat[:3]))
+    tr = 1000 * np.linalg.norm(quat[3:])
+    logger.info(f"    Deforming to match info using {len(fro)} matched points:")
+    logger.info(f"    1. Affine: {rot:0.1f}°, {tr:0.1f} mm, {sc:0.2f}× scale")
+    deltas = interp._last_deltas * 1000
+    mu, mx = np.mean(deltas), np.max(deltas)
+    logger.info(f"    2. Nonlinear displacement: " f"mean={mu:0.1f}, max={mx:0.1f} mm")
+    surf["rr"] = new_rr
+    complete_surface_info(surf, copy=False, verbose=False)
     return surf
 
 
