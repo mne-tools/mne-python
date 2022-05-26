@@ -19,7 +19,6 @@ import warnings
 import weakref
 
 import numpy as np
-from collections import OrderedDict
 
 from .colormap import calculate_lut
 from .surface import _Surface
@@ -31,6 +30,7 @@ from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
                      _generate_default_filename, _save_ndarray_img, safe_event)
 from .._3d import (_process_clim, _handle_time, _check_views,
                    _handle_sensor_types, _plot_sensors, _plot_forward)
+from .._3d_overlay import _LayeredMesh
 from ...defaults import _handle_default, DEFAULTS
 from ...fixes import _point_data, _cell_data
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
@@ -45,189 +45,10 @@ from ...transforms import (Transform, apply_trans, invert_transform,
                            _frame_to_str)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
-                      get_subjects_dir, _check_fname, _to_rgb)
+                      get_subjects_dir, _check_fname, _to_rgb, _ensure_int)
 
 
 _ARROW_MOVE = 10  # degrees per press
-
-
-class _Overlay(object):
-    def __init__(self, scalars, colormap, rng, opacity, name):
-        self._scalars = scalars
-        self._colormap = colormap
-        assert rng is not None
-        self._rng = rng
-        self._opacity = opacity
-        self._name = name
-
-    def to_colors(self):
-        from .._3d import _get_cmap
-        from matplotlib.colors import Colormap, ListedColormap
-
-        if isinstance(self._colormap, str):
-            cmap = _get_cmap(self._colormap)
-        elif isinstance(self._colormap, Colormap):
-            cmap = self._colormap
-        else:
-            cmap = ListedColormap(
-                self._colormap / 255., name=str(type(self._colormap)))
-        logger.debug(
-            f'Color mapping {repr(self._name)} with {cmap.name} '
-            f'colormap and range {self._rng}')
-
-        rng = self._rng
-        assert rng is not None
-        scalars = _norm(self._scalars, rng)
-
-        colors = cmap(scalars)
-        if self._opacity is not None:
-            colors[:, 3] *= self._opacity
-        return colors
-
-
-def _norm(x, rng):
-    if rng[0] == rng[1]:
-        factor = 1 if rng[0] == 0 else 1e-6 * rng[0]
-    else:
-        factor = rng[1] - rng[0]
-    return (x - rng[0]) / factor
-
-
-class _LayeredMesh(object):
-    def __init__(self, renderer, vertices, triangles, normals):
-        self._renderer = renderer
-        self._vertices = vertices
-        self._triangles = triangles
-        self._normals = normals
-
-        self._polydata = None
-        self._actor = None
-        self._is_mapped = False
-
-        self._current_colors = None
-        self._cached_colors = None
-        self._overlays = OrderedDict()
-
-        self._default_scalars = np.ones(vertices.shape)
-        self._default_scalars_name = 'Data'
-
-    def map(self):
-        kwargs = {
-            "color": None,
-            "pickable": True,
-            "rgba": True,
-        }
-        mesh_data = self._renderer.mesh(
-            x=self._vertices[:, 0],
-            y=self._vertices[:, 1],
-            z=self._vertices[:, 2],
-            triangles=self._triangles,
-            normals=self._normals,
-            scalars=self._default_scalars,
-            **kwargs
-        )
-        self._actor, self._polydata = mesh_data
-        self._is_mapped = True
-
-    def _compute_over(self, B, A):
-        assert A.ndim == B.ndim == 2
-        assert A.shape[1] == B.shape[1] == 4
-        A_w = A[:, 3:]  # * 1
-        B_w = B[:, 3:] * (1 - A_w)
-        C = A.copy()
-        C[:, :3] *= A_w
-        C[:, :3] += B[:, :3] * B_w
-        C[:, 3:] += B_w
-        C[:, :3] /= C[:, 3:]
-        return np.clip(C, 0, 1, out=C)
-
-    def _compose_overlays(self):
-        B = cache = None
-        for overlay in self._overlays.values():
-            A = overlay.to_colors()
-            if B is None:
-                B = A
-            else:
-                cache = B
-                B = self._compute_over(cache, A)
-        return B, cache
-
-    def add_overlay(self, scalars, colormap, rng, opacity, name):
-        overlay = _Overlay(
-            scalars=scalars,
-            colormap=colormap,
-            rng=rng,
-            opacity=opacity,
-            name=name,
-        )
-        self._overlays[name] = overlay
-        colors = overlay.to_colors()
-        if self._current_colors is None:
-            self._current_colors = colors
-        else:
-            # save previous colors to cache
-            self._cached_colors = self._current_colors
-            self._current_colors = self._compute_over(
-                self._cached_colors, colors)
-
-        # apply the texture
-        self._apply()
-
-    def remove_overlay(self, names):
-        to_update = False
-        if not isinstance(names, list):
-            names = [names]
-        for name in names:
-            if name in self._overlays:
-                del self._overlays[name]
-                to_update = True
-        if to_update:
-            self.update()
-
-    def _apply(self):
-        if self._current_colors is None or self._renderer is None:
-            return
-        self._renderer._set_mesh_scalars(
-            mesh=self._polydata,
-            scalars=self._current_colors,
-            name=self._default_scalars_name,
-        )
-
-    def update(self, colors=None):
-        if colors is not None and self._cached_colors is not None:
-            self._current_colors = self._compute_over(
-                self._cached_colors, colors)
-        else:
-            self._current_colors, self._cached_colors = \
-                self._compose_overlays()
-        self._apply()
-
-    def _clean(self):
-        mapper = self._actor.GetMapper()
-        mapper.SetLookupTable(None)
-        self._actor.SetMapper(None)
-        self._actor = None
-        self._polydata = None
-        self._renderer = None
-
-    def update_overlay(self, name, scalars=None, colormap=None,
-                       opacity=None, rng=None):
-        overlay = self._overlays.get(name, None)
-        if overlay is None:
-            return
-        if scalars is not None:
-            overlay._scalars = scalars
-        if colormap is not None:
-            overlay._colormap = colormap
-        if opacity is not None:
-            overlay._opacity = opacity
-        if rng is not None:
-            overlay._rng = rng
-        # partial update: use cache if possible
-        if name == list(self._overlays.keys())[-1]:
-            self.update(colors=overlay.to_colors())
-        else:  # full update
-            self.update()
 
 
 @fill_doc
@@ -3047,6 +2868,33 @@ class Brain(object):
             _qt_app_exec(self._renderer.figure.store["app"])
 
     @fill_doc
+    def get_view(self, row=0, col=0):
+        """Get the camera orientation for a given subplot display.
+
+        Parameters
+        ----------
+        row : int
+            The row to use, default is the first one.
+        col : int
+            The column to check, the default is the first one.
+
+        Returns
+        -------
+        %(roll)s
+        %(distance)s
+        %(azimuth)s
+        %(elevation)s
+        %(focalpoint)s
+        """
+        row = _ensure_int(row, 'row')
+        col = _ensure_int(col, 'col')
+        for h in self._hemis:
+            for ri, ci, _ in self._iter_views(h):
+                if (row == ri) and (col == ci):
+                    return self._renderer.get_camera()
+        return (None,) * 5
+
+    @fill_doc
     def show_view(self, view=None, roll=None, distance=None, *,
                   row=None, col=None, hemi=None, align=True,
                   azimuth=None, elevation=None, focalpoint=None):
@@ -3063,11 +2911,7 @@ class Brain(object):
             The column to set. Default all columns.
         hemi : str | None
             Which hemi to use for view lookup (when in "both" mode).
-        align : bool
-            If True, consider view arguments relative to canonical MRI
-            directions (closest to MNI for the subject) rather than native MRI
-            space. This helps when MRIs are not in standard orientation (e.g.,
-            have large rotations).
+        %(align_view)s
         %(azimuth)s
         %(elevation)s
         %(focalpoint)s

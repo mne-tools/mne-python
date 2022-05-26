@@ -18,7 +18,7 @@ from qtpy.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                             QSlider, QSpinBox, QVBoxLayout, QWidget,
                             QSizePolicy, QScrollArea, QStyle, QProgressBar,
                             QStyleOptionSlider, QLayout, QCheckBox,
-                            QButtonGroup, QRadioButton, QLineEdit,
+                            QButtonGroup, QRadioButton, QLineEdit, QGridLayout,
                             QFileDialog, QPushButton, QMessageBox)
 
 from ._pyvista import _PyVistaRenderer
@@ -140,12 +140,26 @@ class _QtLayout(_AbstractLayout):
     def _layout_initialize(self, max_width):
         pass
 
-    def _layout_add_widget(self, layout, widget, stretch=0):
+    def _layout_add_widget(self, layout, widget, stretch=0,
+                           *, row=None, col=None):
         """Add a widget to an existing layout."""
         if isinstance(widget, QLayout):
             layout.addLayout(widget)
         else:
-            layout.addWidget(widget, stretch)
+            if isinstance(layout, QGridLayout):
+                layout.addWidget(widget, row, col)
+            else:
+                layout.addWidget(widget, stretch)
+
+    def _layout_create(self, orientation='vertical'):
+        if orientation == 'vertical':
+            layout = QVBoxLayout()
+        elif orientation == 'horizontal':
+            layout = QHBoxLayout()
+        else:
+            assert orientation == 'grid'
+            layout = QGridLayout()
+        return layout
 
 
 class _QtDock(_AbstractDock, _QtLayout):
@@ -572,10 +586,19 @@ class _QtBrainMplCanvas(_AbstractBrainMplCanvas, _QtMplInterface):
 
 
 class _QtWindow(_AbstractWindow):
-    def _window_initialize(self):
+    def _window_initialize(self, window=None, central_layout=None):
         super()._window_initialize()
         self._interactor = self.figure.plotter.interactor
-        self._window = self.figure.plotter.app_window
+        if window is None:
+            self._window = self.figure.plotter.app_window
+        else:
+            self._window = window
+        if central_layout is not None:
+            central_widget = self._window.centralWidget()
+            if central_widget is None:
+                central_widget = QWidget()
+                self._window.setCentralWidget(central_widget)
+            central_widget.setLayout(central_layout)
         self._window_load_icons()
         self._window_set_theme()
         self._window.setLocale(QLocale(QLocale.Language.English))
@@ -729,6 +752,9 @@ class _QtWindow(_AbstractWindow):
             QIcon.setThemeName('dark')
         else:
             QIcon.setThemeName('light')
+
+    def _window_create(self):
+        return _MNEMainWindow()
 
 
 class _QtWidgetList(_AbstractWidgetList):

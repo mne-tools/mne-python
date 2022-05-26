@@ -14,13 +14,12 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import pick_types
 from mne.datasets.testing import data_path, requires_testing_data
-from mne.io import read_raw_nirx, read_raw_snirf
-from mne.utils import requires_h5py
+from mne.io import read_raw_nirx
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing import annotate_nan
 from mne.transforms import apply_trans, _get_trans
 from mne.preprocessing.nirs import source_detector_distances,\
-    short_channels
+    short_channels, _reorder_nirx
 from mne.io.constants import FIFF
 
 testing_path = data_path(download=False)
@@ -46,31 +45,19 @@ nirsport1_w_fullsat = op.join(
     testing_path, 'NIRx', 'nirsport_v1', 'nirx_15_3_recording_w_'
     'saturation_on_montage_channels')
 
-# NIRSport2 device using Aurora software and matching snirf file
+# NIRSport2 device using Aurora software
 nirsport2 = op.join(
     testing_path, 'NIRx', 'nirsport_v2', 'aurora_recording _w_short_and_acc')
-nirsport2_snirf = op.join(
-    testing_path, 'SNIRF', 'NIRx', 'NIRSport2', '1.0.3',
-    '2021-05-05_001.snirf')
-
 nirsport2_2021_9 = op.join(
     testing_path, 'NIRx', 'nirsport_v2', 'aurora_2021_9')
-snirf_nirsport2_20219 = op.join(
-    testing_path, 'SNIRF', 'NIRx', 'NIRSport2', '2021.9',
-    '2021-10-01_002.snirf')
+nirsport2_2021_9_6 = op.join(
+    testing_path, 'NIRx', 'nirsport_v2', 'aurora_2021_9_6')
 
 
-@requires_h5py
-@requires_testing_data
-@pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
-@pytest.mark.parametrize('fname_nirx, fname_snirf', (
-    [nirsport2, nirsport2_snirf],
-    [nirsport2_2021_9, snirf_nirsport2_20219],
-))
-def test_nirsport_v2_matches_snirf(fname_nirx, fname_snirf):
+def test_nirsport_v2_matches_snirf(nirx_snirf):
     """Test NIRSport2 raw files return same data as snirf."""
-    raw = read_raw_nirx(fname_nirx, preload=True)
-    raw_snirf = read_raw_snirf(fname_snirf, preload=True)
+    raw, raw_snirf = nirx_snirf
+    _reorder_nirx(raw_snirf)
     assert raw.ch_names == raw_snirf.ch_names
 
     assert_allclose(raw._data, raw_snirf._data)
@@ -538,6 +525,15 @@ def test_nirx_15_2():
     assert 'fnirs_od' not in raw
     picks = pick_types(raw.info, fnirs='fnirs_cw_amplitude')
     assert len(picks) > 0
+
+
+@requires_testing_data
+def test_nirx_aurora_2021_9_6():
+    """Test reading NIRX files."""
+    raw = read_raw_nirx(nirsport2_2021_9_6, preload=True)
+    assert len(raw.annotations) == 3
+    assert raw.annotations.description[0] == "1.0"
+    assert raw.annotations.description[2] == "3.0"
 
 
 @requires_testing_data

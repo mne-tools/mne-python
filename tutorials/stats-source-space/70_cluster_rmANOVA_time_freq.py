@@ -122,8 +122,8 @@ n_times = len(times)
 # are the first dimension and the conditions are the second dimension.
 data = np.swapaxes(np.asarray(epochs_power), 1, 0)
 
-# so we have replications x conditions x observations
-# where the time-frequency observations are freqs x times:
+# so we have replications × conditions × observations
+# where the time-frequency observations are freqs × times:
 print(data.shape)
 
 # %%
@@ -183,7 +183,7 @@ effects = 'A:B'
 # A stat_fun must deal with a variable number of input arguments.
 # Inside the clustering function each condition will be passed as flattened
 # array, necessitated by the clustering procedure. The ANOVA however expects an
-# input array of dimensions: subjects x conditions x observations (optional).
+# input array of dimensions: subjects × conditions × observations (optional).
 # The following function catches the list input and swaps the first and
 # the second dimension and finally calls the ANOVA function.
 

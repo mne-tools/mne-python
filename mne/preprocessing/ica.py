@@ -110,9 +110,13 @@ def get_score_funcs():
     score_funcs.update({n: _make_xy_sfunc(f)
                         for n, f in xy_arg_dist_funcs
                         if _get_args(f) == ['u', 'v']})
+    # In SciPy 1.9+, pearsonr has (u, v, *, alternative='two-sided'), so we
+    # should just look at the positional_only and positional_or_keyword entries
+    exclude = ('var_positional', 'var_keyword', 'keyword_only')
     score_funcs.update({n: _make_xy_sfunc(f, ndim_output=True)
                         for n, f in xy_arg_stats_funcs
-                        if _get_args(f) == ['x', 'y']})
+                        if _get_args(f, exclude=exclude) == ['x', 'y']})
+    assert 'pearsonr' in score_funcs
     return score_funcs
 
 

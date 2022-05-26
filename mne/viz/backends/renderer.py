@@ -169,9 +169,18 @@ def _get_3d_backend():
                     MNE_3D_BACKEND = name
                     break
             else:
+
                 raise RuntimeError(
-                    'Could not load any valid 3D backend:\n' +
-                    "\n".join(f'{key}: {val}' for key, val in errors.items()))
+                    'Could not load any valid 3D backend\n' +
+                    "\n".join(f'{key}: {val}' for key, val in errors.items()) +
+                    "\n".join(('\n\n install pyvistaqt, using pip or conda:',
+                               "'pip install pyvistaqt'",
+                               "'conda install -c conda-forge pyvistaqt'",
+                               '\n or install ipywidgets, ' +
+                               'if using a notebook backend',
+                               "'pip install ipywidgets'",
+                               "'conda install -c conda-forge ipywidgets'")))
+
         else:
             MNE_3D_BACKEND = _check_3d_backend_name(MNE_3D_BACKEND)
             _reload_backend(MNE_3D_BACKEND)

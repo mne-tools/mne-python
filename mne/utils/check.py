@@ -331,13 +331,34 @@ def _soft_import(name, purpose, strict=True):
     strict : bool
         Whether to raise an error if module import fails.
     """
+    # so that error msg lines are aligned
+    def indent(x):
+        return x.rjust(len(x) + 14)
+
+    # Mapping import namespaces to their pypi package name
+    pip_name = dict(
+        sklearn='scikit-learn',
+        EDFlib='EDFlib-Python',
+        mne_bids='mne-bids',
+        mne_nirs='mne-nirs',
+        mne_features='mne-features',
+        mne_qt_browser='mne-qt-browser',
+        mne_connectivity='mne-connectivity',
+        pyvista='pyvistaqt').get(name, name)
+
     try:
         mod = import_module(name)
         return mod
     except (ImportError, ModuleNotFoundError):
         if strict:
-            raise RuntimeError(f'For {purpose} to work, the {name} module is '
-                               'needed, but it could not be imported.')
+            raise RuntimeError(
+                f'For {purpose} to work, the {name} module is needed, ' +
+                'but it could not be imported.\n' +
+                '\n'.join((indent('use the following installation method '
+                                  'appropriate for your environment:'),
+                           indent(f"'pip install {pip_name}'"),
+                           indent(f"'conda install -c conda-forge {pip_name}'")
+                           )))
         else:
             return False
 

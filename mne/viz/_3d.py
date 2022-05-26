@@ -42,6 +42,7 @@ from ..transforms import (apply_trans, rot_to_quat, combine_transforms,
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl, get_config,
                      _ensure_int, _validate_type, _check_option, _to_rgb)
+from ._3d_overlay import _LayeredMesh
 from .utils import (mne_analyze_colormap, _get_color_list,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
 from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
@@ -395,13 +396,31 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
             vmax = np.max(np.abs(data))
         vmax = float(vmax)
         alpha = alphas[ii]
-        renderer.surface(surface=surf, color=colors[ii],
-                         opacity=alpha)
-
+        mesh = _LayeredMesh(
+            renderer=renderer,
+            vertices=surf['rr'],
+            triangles=surf['tris'],
+            normals=surf['nn'],
+        )
+        mesh.map()
+        color = _to_rgb(colors[ii], alpha=True)
+        cmap = np.array([(0, 0, 0, 0,), color])
+        ctable = np.round(cmap * 255).astype(np.uint8)
+        mesh.add_overlay(
+            scalars=np.ones(len(data)),
+            colormap=ctable,
+            rng=[0, 1],
+            opacity=alpha,
+            name='surf',
+        )
         # Now show our field pattern
-        renderer.surface(surface=surf, vmin=-vmax, vmax=vmax,
-                         scalars=data, colormap=colormap,
-                         polygon_offset=-1)
+        mesh.add_overlay(
+            scalars=data,
+            colormap=colormap,
+            rng=[-vmax, vmax],
+            opacity=1.,
+            name='field',
+        )
 
         # And the field lines on top
         if n_contours > 0:
