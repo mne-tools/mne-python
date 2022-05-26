@@ -326,7 +326,6 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         .. note::
            You can interactively cycle through topographic maps for different
            channel types by pressing :kbd:`T`.
-
     picks : str | list | slice | None
         Components to include. Slices and lists of integers will be interpreted
         as component indices. ``None`` (default) will use the first five
