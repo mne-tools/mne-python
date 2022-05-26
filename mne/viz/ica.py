@@ -316,6 +316,9 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     Properties include the topography, epochs image, ERP/ERF, power
     spectrum, and epoch variance.
 
+    .. note::
+       You can cycle between different channel types by pressing :kbd:`T`.
+
     Parameters
     ----------
     ica : instance of mne.preprocessing.ICA
@@ -343,7 +346,13 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         interval is calculated. To change this, use ``ci`` in ``ts_args`` in
         ``image_args`` (see below).
     log_scale : bool
-        Whether to use a log scale to plot the spectrum. Defaults to False.
+        Whether to use a logarithmic frequency axis to plot the spectrum.
+        Defaults to ``False``.
+
+        .. note::
+           You can interactively toggle this setting by pressing :kbd:`L`.
+
+        .. versionadded:: 1.1
     topomap_args : dict | None
         Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
         additional arguments. Defaults to None.
