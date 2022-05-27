@@ -47,4 +47,5 @@ dependencies:
 - pymatreader
 - eeglabio
 - edflib-python
-- pybv
+- pip:
+  - https://github.com/bids-standard/pybv/zipball/main
