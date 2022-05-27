@@ -14,10 +14,7 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
                add_ch_type=False, *, overwrite=False, verbose=None):
     """Export Raw to external formats.
 
-    Supported formats:
-        - EEGLAB (``.set``, uses :mod:`eeglabio`)
-        - EDF (``.edf``, uses
-          `EDFlib-Python <https://gitlab.com/Teuniz/EDFlib-Python>`_)
+    %(export_fmt_raw)s
 
     %(export_warning)s
 
@@ -26,7 +23,7 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
     %(fname_export_params)s
     raw : instance of Raw
         The raw instance to export.
-    %(fmt_export_params)s
+    %(export_fmt_raw_params)s
     %(physical_range_export_params)s
     %(add_ch_type_export_params)s
     %(overwrite)s
@@ -43,7 +40,7 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
     %(export_edf_note)s
     """
     fname = _check_fname(fname, overwrite=overwrite)
-    supported_export_formats = {  # format : extensions
+    supported_export_formats = {  # format : (extensions,)
         'eeglab': ('set',),
         'edf': ('edf',),
         'brainvision': ('eeg', 'vmrk', 'vhdr',)
@@ -62,15 +59,15 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
         from ._edf import _export_raw
         _export_raw(fname, raw, physical_range, add_ch_type)
     elif fmt == 'brainvision':
-        raise NotImplementedError('Export to BrainVision not implemented.')
+        from ._brainvision import _export_raw
+        _export_raw(fname, raw, overwrite)
 
 
 @verbose
 def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
     """Export Epochs to external formats.
 
-    Supported formats:
-        - EEGLAB (``.set``, uses :mod:`eeglabio`)
+    %(export_fmt_epochs)s
 
     %(export_warning)s
 
@@ -79,7 +76,7 @@ def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
     %(fname_export_params)s
     epochs : instance of Epochs
         The epochs to export.
-    %(fmt_export_params)s
+    %(export_fmt_epochs_params)s
     %(overwrite)s
 
         .. versionadded:: 0.24.1
@@ -95,8 +92,6 @@ def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
     fname = _check_fname(fname, overwrite=overwrite)
     supported_export_formats = {
         'eeglab': ('set',),
-        'edf': ('edf',),
-        'brainvision': ('eeg', 'vmrk', 'vhdr',)
     }
     fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
 
@@ -108,10 +103,6 @@ def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
     if fmt == 'eeglab':
         from ._eeglab import _export_epochs
         _export_epochs(fname, epochs)
-    elif fmt == 'edf':
-        raise NotImplementedError('Export to EDF format not implemented.')
-    elif fmt == 'brainvision':
-        raise NotImplementedError('Export to BrainVision not implemented.')
 
 
 @verbose
@@ -123,8 +114,7 @@ def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False,
     function is selected based on the inferred file format. For additional
     options, use the format-specific functions.
 
-    Supported formats:
-        - MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
+    %(export_fmt_evoked)s
 
     %(export_warning)s
 
@@ -135,10 +125,7 @@ def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False,
         The evoked dataset, or list of evoked datasets, to export to one file.
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
-    fmt : 'auto' | 'mff'
-        Format of the export. Defaults to ``'auto'``, which will infer the
-        format from the filename extension. See supported formats above for
-        more information.
+    %(export_fmt_evoked_params)s
     %(overwrite)s
 
         .. versionadded:: 0.24.1
@@ -158,9 +145,6 @@ def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False,
     fname = _check_fname(fname, overwrite=overwrite)
     supported_export_formats = {
         'mff': ('mff',),
-        'eeglab': ('set',),
-        'edf': ('edf',),
-        'brainvision': ('eeg', 'vmrk', 'vhdr',)
     }
     fmt = _infer_check_export_fmt(fmt, fname, supported_export_formats)
 
@@ -171,12 +155,6 @@ def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False,
 
     if fmt == 'mff':
         export_evokeds_mff(fname, evoked, overwrite=overwrite)
-    elif fmt == 'eeglab':
-        raise NotImplementedError('Export to EEGLAB not implemented.')
-    elif fmt == 'edf':
-        raise NotImplementedError('Export to EDF not implemented.')
-    elif fmt == 'brainvision':
-        raise NotImplementedError('Export to BrainVision not implemented.')
 
 
 def _infer_check_export_fmt(fmt, fname, supported_formats):

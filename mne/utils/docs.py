@@ -1022,6 +1022,45 @@ For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
 """
 
+docdict['export_fmt_epochs'] = """\
+Supported formats:
+    - EEGLAB (``.set``, uses :mod:`eeglabio`)
+"""
+
+docdict['export_fmt_epochs_params'] = """
+fmt : 'auto' | 'eeglab'
+    Format of the export. Defaults to ``'auto'``, which will infer the format
+    from the filename extension. See supported formats above for more
+    information.
+"""
+
+docdict['export_fmt_evoked'] = """\
+Supported formats:
+    - MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
+"""
+
+docdict['export_fmt_evoked_params'] = """
+fmt : 'auto' | 'mff'
+    Format of the export. Defaults to ``'auto'``, which will infer the
+    format from the filename extension. See supported formats above for
+    more information.
+"""
+
+docdict['export_fmt_raw'] = """\
+Supported formats:
+    - BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses :mod:`pybv`)
+    - EEGLAB (``.set``, uses :mod:`eeglabio`)
+    - EDF (``.edf``, uses
+        `EDFlib-Python <https://gitlab.com/Teuniz/EDFlib-Python>`_)
+"""
+
+docdict['export_fmt_raw_params'] = """
+fmt : 'auto' | 'brainvision' | 'eeglab' | 'edf'
+    Format of the export. Defaults to ``'auto'``, which will infer the format
+    from the filename extension. See supported formats above for more
+    information.
+"""
+
 docdict['export_warning'] = """\
 .. warning::
     Since we are exporting to external formats, there's no guarantee that all
@@ -1214,13 +1253,6 @@ fmid : float
     fmax if None).
 fmax : float
     Maximum value in colormap (uses real max if None).
-"""
-
-docdict['fmt_export_params'] = """
-fmt : 'auto' | 'eeglab' | 'edf'
-    Format of the export. Defaults to ``'auto'``, which will infer the format
-    from the filename extension. See supported formats above for more
-    information.
 """
 
 docdict['fname_epochs'] = """

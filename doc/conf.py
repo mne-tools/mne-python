@@ -161,6 +161,7 @@ intersphinx_mapping = {
     'dipy': ('https://dipy.org/documentation/latest/',
              'https://dipy.org/documentation/latest/objects.inv/'),
     'pooch': ('https://www.fatiando.org/pooch/latest/', None),
+    'pybv': ('https://pybv.readthedocs.io/en/latest/', None),
 }
 
 
