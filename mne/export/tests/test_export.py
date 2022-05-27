@@ -421,10 +421,12 @@ def test_export_to_mff_incompatible_sfreq():
 @pytest.mark.parametrize('fmt,ext', [
     ('EEGLAB', 'set'),
     ('EDF', 'edf'),
-    ('BrainVision', 'eeg')
+    ('BrainVision', 'vhdr'),
+    ('auto', 'vhdr')
 ])
 def test_export_evokeds_unsupported_format(fmt, ext):
     """Test exporting evoked dataset to non-supported formats."""
     evoked = read_evokeds(fname_evoked)
-    with pytest.raises(NotImplementedError, match=f'Export to {fmt} not imp'):
-        export_evokeds(f'output.{ext}', evoked)
+    errstr = fmt.lower() if fmt != "auto" else "vhdr"
+    with pytest.raises(ValueError, match=f"Format '{errstr}' is not .*"):
+        export_evokeds(f'output.{ext}', evoked, fmt=fmt)

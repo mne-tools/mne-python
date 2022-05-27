@@ -10,4 +10,8 @@ from pybv._export import _export_mne_raw  # noqa: E402
 
 def _export_raw(fname, raw, overwrite):
     """Export Raw object to BrainVision via pybv."""
+    ext = fname.stem
+    fname = str(fname)
+    if ext != ".vhdr":
+        fname = fname.replace(ext, ".vhdr")
     _export_mne_raw(raw=raw, fname=fname, overwrite=overwrite)
