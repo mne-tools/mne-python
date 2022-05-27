@@ -15,8 +15,9 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
     """Export Raw to external formats.
 
     Supported formats:
-        - EEGLAB (.set, uses :mod:`eeglabio`)
-        - EDF (.edf, uses ``EDFlib-Python``)
+        - EEGLAB (``.set``, uses :mod:`eeglabio`)
+        - EDF (``.edf``, uses
+          `EDFlib-Python <https://gitlab.com/Teuniz/EDFlib-Python>`_)
 
     %(export_warning)s
 
@@ -68,7 +69,8 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
 def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
     """Export Epochs to external formats.
 
-    Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
+    Supported formats:
+        - EEGLAB (``.set``, uses :mod:`eeglabio`)
 
     %(export_warning)s
 
@@ -121,8 +123,8 @@ def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False,
     function is selected based on the inferred file format. For additional
     options, use the format-specific functions.
 
-    Supported formats
-        MFF (mff, uses :func:`mne.export.export_evokeds_mff`)
+    Supported formats:
+        - MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
 
     %(export_warning)s
 
@@ -193,7 +195,7 @@ def _infer_check_export_fmt(fmt, fname, supported_formats):
         Name of the target export file, only used when fmt is auto.
     supported_formats : dict of str : tuple/list
         Dictionary containing supported formats (as keys) and each format's
-        corresponding file extensions in a tuple/list (e.g. 'eeglab': ('set',))
+        corresponding file extensions in a tuple (e.g., {'eeglab': ('set',)})
     """
     _validate_type(fmt, str, 'fmt')
     fmt = fmt.lower()
