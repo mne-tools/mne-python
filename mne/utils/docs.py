@@ -1022,11 +1022,6 @@ For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
 """
 
-docdict['export_fmt_support_epochs'] = """\
-Supported formats:
-    - EEGLAB (``.set``, uses :mod:`eeglabio`)
-"""
-
 _export_fmt_params_base = """
     Format of the export. Defaults to ``'auto'``, which will infer the format
         from the filename extension. See supported formats above for more
@@ -1036,13 +1031,22 @@ docdict['export_fmt_params_epochs'] = f"""
 fmt : 'auto' | 'eeglab'{_export_fmt_params_base}
 """
 
+docdict['export_fmt_params_evoked'] = f"""
+fmt : 'auto' | 'mff'{_export_fmt_params_base}
+"""
+
+docdict['export_fmt_params_raw'] = f"""
+fmt : 'auto' | 'brainvision' | 'eeglab' | 'edf'{_export_fmt_params_base}
+"""
+
+docdict['export_fmt_support_epochs'] = """\
+Supported formats:
+    - EEGLAB (``.set``, uses :mod:`eeglabio`)
+"""
+
 docdict['export_fmt_support_evoked'] = """\
 Supported formats:
     - MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
-"""
-
-docdict['export_fmt_params_evoked'] = f"""
-fmt : 'auto' | 'mff'{_export_fmt_params_base}
 """
 
 docdict['export_fmt_support_raw'] = """\
@@ -1051,10 +1055,6 @@ Supported formats:
     - EEGLAB (``.set``, uses :mod:`eeglabio`)
     - EDF (``.edf``, uses
         `EDFlib-Python <https://gitlab.com/Teuniz/EDFlib-Python>`_)
-"""
-
-docdict['export_fmt_params_raw'] = f"""
-fmt : 'auto' | 'brainvision' | 'eeglab' | 'edf'{_export_fmt_params_base}
 """
 
 docdict['export_warning'] = """\
