@@ -1940,14 +1940,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     def export(self, fname, fmt='auto', *, overwrite=False, verbose=None):
         """Export Epochs to external formats.
 
-        %(export_fmt_epochs)s
+        %(export_fmt_support_epochs)s
 
         %(export_warning)s
 
         Parameters
         ----------
         %(fname_export_params)s
-        %(export_fmt_epochs_params)s
+        %(export_fmt_params_epochs)s
         %(overwrite)s
 
             .. versionadded:: 0.24.1

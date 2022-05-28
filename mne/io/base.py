@@ -1533,14 +1533,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                add_ch_type=False, *, overwrite=False, verbose=None):
         """Export Raw to external formats.
 
-        %(export_fmt_raw)s
+        %(export_fmt_support_raw)s
 
         %(export_warning)s
 
         Parameters
         ----------
         %(fname_export_params)s
-        %(export_fmt_raw_params)s
+        %(export_fmt_params_raw)s
         %(physical_range_export_params)s
         %(add_ch_type_export_params)s
         %(overwrite)s

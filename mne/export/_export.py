@@ -14,7 +14,7 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
                add_ch_type=False, *, overwrite=False, verbose=None):
     """Export Raw to external formats.
 
-    %(export_fmt_raw)s
+    %(export_fmt_support_raw)s
 
     %(export_warning)s
 
@@ -23,7 +23,7 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
     %(fname_export_params)s
     raw : instance of Raw
         The raw instance to export.
-    %(export_fmt_raw_params)s
+    %(export_fmt_params_raw)s
     %(physical_range_export_params)s
     %(add_ch_type_export_params)s
     %(overwrite)s
@@ -67,7 +67,7 @@ def export_raw(fname, raw, fmt='auto', physical_range='auto',
 def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
     """Export Epochs to external formats.
 
-    %(export_fmt_epochs)s
+    %(export_fmt_support_epochs)s
 
     %(export_warning)s
 
@@ -76,7 +76,7 @@ def export_epochs(fname, epochs, fmt='auto', *, overwrite=False, verbose=None):
     %(fname_export_params)s
     epochs : instance of Epochs
         The epochs to export.
-    %(export_fmt_epochs_params)s
+    %(export_fmt_params_epochs)s
     %(overwrite)s
 
         .. versionadded:: 0.24.1
@@ -114,7 +114,7 @@ def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False,
     function is selected based on the inferred file format. For additional
     options, use the format-specific functions.
 
-    %(export_fmt_evoked)s
+    %(export_fmt_support_evoked)s
 
     %(export_warning)s
 
@@ -125,7 +125,7 @@ def export_evokeds(fname, evoked, fmt='auto', *, overwrite=False,
         The evoked dataset, or list of evoked datasets, to export to one file.
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
-    %(export_fmt_evoked_params)s
+    %(export_fmt_params_evoked)s
     %(overwrite)s
 
         .. versionadded:: 0.24.1
