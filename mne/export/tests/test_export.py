@@ -367,7 +367,7 @@ def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
     if do_history:
         export_evokeds_mff(export_fname, evoked, history=history)
     else:
-        export_evokeds(export_fname, evoked)
+        export_evokeds(export_fname, evoked, fmt=fmt)
     # Drop non-EEG channels
     evoked = [ave.drop_channels(['ECG', 'EMG']) for ave in evoked]
     evoked_exported = read_evokeds_mff(export_fname)
@@ -396,6 +396,10 @@ def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
                            overwrite=True)
     else:
         export_evokeds(export_fname, evoked, overwrite=True)
+
+    # test export from evoked directly
+    # XXX: this fails because "EvokedArray" has no export method?
+    # evoked[0].export(export_fname)
 
 
 @pytest.mark.filterwarnings('ignore::FutureWarning')
