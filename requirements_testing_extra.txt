@@ -4,5 +4,5 @@ nbclient
 sphinx-gallery
 eeglabio
 EDFlib-Python
-git+https://github.com/bids-standard/pybv.git@main
+pybv
 imageio-ffmpeg

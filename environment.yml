@@ -47,5 +47,4 @@ dependencies:
 - pymatreader
 - eeglabio
 - edflib-python
-- pip:
-  - git+https://github.com/bids-standard/pybv.git@main
+- pybv
