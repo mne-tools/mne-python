@@ -1111,7 +1111,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     Parameters
     ----------
     fname : path-like
-        The file name, which should end with ``-ave.fif`` or ``-ave.fif.gz``.
+        The filename, which should end with ``-ave.fif`` or ``-ave.fif.gz``.
     condition : int or str | list of int or str | None
         The index or list of indices of the evoked dataset to read. FIF files
         can contain multiple datasets. If None, all datasets are returned as a
