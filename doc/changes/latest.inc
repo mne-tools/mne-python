@@ -81,6 +81,8 @@ Enhancements
 
 - Add timeformat ``YYYY/MM/DD`` to ``mne.io.ctf.info._convert_time`` (:gh:`10674` by `Simon Kern`_)
 
+- Added BrainVision format (``.vhdr``, ``.vmrk``, ``.eeg``) to func:`mne.export.export_raw` (:gh:`10681` by `Stefan Appelhoff`_)
+
 Bugs
 ~~~~
 
