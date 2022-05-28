@@ -41,6 +41,23 @@ def test_export_raw_pybv(tmp_path):
              "io" / "tests" / "data" / "test_raw.fif")
     raw = read_raw_fif(fname, preload=True)
     raw.apply_proj()
+
+    # add some annotations
+    # XXX: This fails, I suspect the awful .first_samp to be an issue.
+    annots = Annotations(
+        onset=[3, 6, 9, 12, 14],  # seconds
+        duration=[1, 1, 0.5, 0.25, 9],  # seconds
+        description=[
+            "Stimulus/S  1",
+            "Stimulus/S2.50",
+            "Response/R101",
+            "Look at this",
+            "Comment/And at this",
+        ],
+        ch_names=[(), (), (), ("EEG 001",), ("EEG 001", "EEG 002")],
+    )
+    raw.set_annotations(annots)
+
     temp_fname = tmp_path / 'test.vhdr'
     with pytest.warns(RuntimeWarning, match="'short' format. Converting"):
         raw.export(temp_fname)
