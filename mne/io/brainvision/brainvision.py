@@ -340,7 +340,9 @@ _unit_dict = {'V': 1.,  # V stands for Volt
               'uV': 1e-6,
               'mV': 1e-3,
               'nV': 1e-9,
-              'C': 1,  # C stands for celsius
+              'C': 1,  # C stands for Celsius
+              '°C': 1,  # degrees Celsius
+              'n/a': 1,  # unit "not available" (or applicable)
               'µS': 1e-6,  # S stands for Siemens
               'uS': 1e-6,
               'ARU': 1,  # ARU is the unity for the breathing data
