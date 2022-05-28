@@ -19,9 +19,10 @@ from mne import (read_epochs_eeglab, Epochs, read_evokeds, read_evokeds_mff,
                  Annotations)
 from mne.datasets import testing, misc
 from mne.export import export_evokeds, export_evokeds_mff
-from mne.io import read_raw_fif, read_raw_eeglab, read_raw_edf
+from mne.io import read_raw_fif, read_raw_eeglab, read_raw_edf, read_raw_brainvision
 from mne.utils import (_check_eeglabio_installed, requires_version,
-                       object_diff, _check_edflib_installed, _resource_path)
+                       object_diff, _check_edflib_installed, _resource_path,
+                       _check_pybv_installed)
 from mne.tests.test_epochs import _get_data
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -30,6 +31,23 @@ fname_evoked = op.join(base_dir, 'test-ave.fif')
 data_path = testing.data_path(download=False)
 egi_evoked_fname = op.join(data_path, 'EGI', 'test_egi_evoked.mff')
 misc_path = misc.data_path(download=False)
+
+
+@pytest.mark.skipif(not _check_pybv_installed(strict=False),
+                    reason='pybv not installed')
+def test_export_raw_pybv(tmp_path):
+    """Test saving a Raw instance to BrainVision format via pybv."""
+    fname = (Path(__file__).parent.parent.parent /
+             "io" / "tests" / "data" / "test_raw.fif")
+    raw = read_raw_fif(fname, preload=True)
+    raw.apply_proj()
+    temp_fname = tmp_path / 'test.vhdr'
+    with pytest.warns(RuntimeWarning, match="'short' format. Converting"):
+        raw.export(temp_fname)
+    raw_read = read_raw_brainvision(temp_fname, preload=True)
+    assert raw.ch_names == raw_read.ch_names
+    assert_allclose(raw.times, raw_read.times)
+    assert_allclose(raw.get_data(), raw_read.get_data())
 
 
 @requires_version('pymatreader')
