@@ -300,6 +300,30 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         write_evokeds(fname, self, overwrite=overwrite)
 
+    @verbose
+    def export(self, fname, fmt='auto', *, overwrite=False, verbose=None):
+        """Export Evoked to external formats.
+
+        %(export_fmt_support_evoked)s
+
+        %(export_warning)s
+
+        Parameters
+        ----------
+        %(fname_export_params)s
+        %(export_fmt_params_evoked)s
+        %(overwrite)s
+        %(verbose)s
+
+        Notes
+        -----
+        .. versionadded:: 1.1
+
+        %(export_warning_note_evoked)s
+        """
+        from .export import export_evokeds
+        export_evokeds(fname, self, fmt, overwrite=overwrite, verbose=verbose)
+
     def __repr__(self):  # noqa: D105
         max_comment_length = 1000
         if len(self.comment) > max_comment_length:
