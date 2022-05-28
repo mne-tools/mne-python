@@ -48,4 +48,4 @@ dependencies:
 - eeglabio
 - edflib-python
 - pip:
-  - https://github.com/bids-standard/pybv/zipball/main
+  - git+https://github.com/bids-standard/pybv.git@main
