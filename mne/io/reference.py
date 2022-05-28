@@ -307,6 +307,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     from ..forward import Forward
     _check_can_reref(inst)
 
+    ch_type_orig = ch_type
     ch_type = _get_ch_type(inst, ch_type)
 
     if projection:  # average reference projector
@@ -321,13 +322,19 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
             # Creating an average reference may fail. In this case, make
             # sure that the custom_ref_applied flag is left untouched.
             custom_ref_applied = inst.info['custom_ref_applied']
+
+            if len(ch_type) > 1:
+                assert len(ch_type_orig) > 1  # only have 2 if 2 were passed
+                raise ValueError('Multiple channel types are not supported '
+                                 f'when using projection. Got {ch_type_orig}.')
+
             try:
                 with inst.info._unlock():
                     inst.info['custom_ref_applied'] = \
                         FIFF.FIFFV_MNE_CUSTOM_REF_OFF
                 inst.add_proj(make_eeg_average_ref_proj(inst.info,
                                                         activate=False,
-                                                        ch_type=ch_type))
+                                                        ch_type=ch_type[0]))
             except Exception:
                 with inst.info._unlock():
                     inst.info['custom_ref_applied'] = custom_ref_applied
