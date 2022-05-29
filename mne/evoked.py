@@ -679,16 +679,15 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         ch_type : str | None
-            The channel type to use. Defaults to None. If more than one sensor
-            Type is present in the data the channel type has to be explicitly
-            set.
+            The channel type to use. Defaults to None. If more than one channel
+            type is present in the data, this value **must** be provided.
         tmin : float | None
             The minimum point in time to be considered for peak getting.
             If None (default), the beginning of the data is used.
         tmax : float | None
             The maximum point in time to be considered for peak getting.
             If None (default), the end of the data is used.
-        mode : {'pos', 'neg', 'abs'}
+        mode : 'pos' | 'neg' | 'abs'
             How to deal with the sign of the data. If 'pos' only positive
             values will be considered. If 'neg' only negative values will
             be considered. If 'abs' absolute values will be considered.
@@ -722,17 +721,19 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         _check_option('ch_type', str(ch_type), supported)
 
         if ch_type is not None and ch_type not in types_used:
-            raise ValueError('Channel type `{ch_type}` not found in this '
-                             'evoked object.'.format(ch_type=ch_type))
+            raise ValueError(
+                f'Channel type "{ch_type}" not found in this evoked object.'
+            )
 
         elif len(types_used) > 1 and ch_type is None:
-            raise RuntimeError('More than one sensor type found. `ch_type` '
-                               'must not be `None`, pass a sensor type '
-                               'value instead')
+            raise RuntimeError(
+                'Multiple data channel types found. Please pass the "ch_type" '
+                'parameter.'
+            )
 
         if merge_grads:
             if ch_type != 'grad':
-                raise ValueError('Channel type must be grad for merge_grads')
+                raise ValueError('Channel type must be "grad" for merge_grads')
             elif mode == 'neg':
                 raise ValueError('Negative mode (mode=neg) does not make '
                                  'sense with merge_grads=True')
@@ -1537,14 +1538,20 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
     if tmax is None:
         tmax = times[-1]
 
-    if tmin < times.min():
-        raise ValueError('The tmin value is out of bounds. It must be '
-                         'within {} and {}'.format(times.min(), times.max()))
-    if tmax > times.max():
-        raise ValueError('The tmax value is out of bounds. It must be '
-                         'within {} and {}'.format(times.min(), times.max()))
-    if tmin > tmax:
-        raise ValueError('The tmin must be smaller or equal to tmax')
+    if tmin < times.min() or tmax > times.max():
+        if tmin < times.min():
+            param_name = 'tmin'
+            param_val = tmin
+        else:
+            param_name = 'tmax'
+            param_val = tmax
+
+        raise ValueError(
+            f'{param_name} ({param_val}) is out of bounds. It must be '
+            f'between {times.min()} and {times.max()}'
+        )
+    elif tmin > tmax:
+        raise ValueError(f'tmin ({tmin}) must be <= tmax ({tmax})')
 
     time_win = (times >= tmin) & (times <= tmax)
     mask = np.ones_like(data).astype(bool)

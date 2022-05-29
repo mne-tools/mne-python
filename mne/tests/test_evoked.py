@@ -486,22 +486,22 @@ def test_get_peak():
     """Test peak getter."""
     evoked = read_evokeds(fname, condition=0, proj=True)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='tmin.*must be <= tmax'):
         evoked.get_peak(ch_type='mag', tmin=1)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='tmax.*is out of bounds'):
         evoked.get_peak(ch_type='mag', tmax=0.9)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='tmin.*must be <= tmax'):
         evoked.get_peak(ch_type='mag', tmin=0.02, tmax=0.01)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Invalid.*'mode' parameter"):
         evoked.get_peak(ch_type='mag', mode='foo')
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError, match='Multiple data channel types'):
         evoked.get_peak(ch_type=None, mode='foo')
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='Channel type.*not found'):
         evoked.get_peak(ch_type='misc', mode='foo')
 
     ch_name, time_idx = evoked.get_peak(ch_type='mag')
@@ -515,8 +515,11 @@ def test_get_peak():
     assert_equal(ch_name, 'MEG 1421')
     assert_allclose(max_amp, 7.17057e-13, rtol=1e-5)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='must be "grad" for merge_grads'):
         evoked.get_peak(ch_type='mag', merge_grads=True)
+
+    with pytest.raises(ValueError, match='Negative mode.*does not make sense'):
+        evoked.get_peak(ch_type='grad', merge_grads=True, mode='neg')
 
     ch_name, time_idx = evoked.get_peak(ch_type='grad', merge_grads=True)
     assert_equal(ch_name, 'MEG 244X')
@@ -541,10 +544,10 @@ def test_get_peak():
     assert_equal(time_idx, 2)
     assert_allclose(max_amp, 2.)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='No negative values'):
         _get_peak(data + 1e3, times, mode='neg')
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='No positive values'):
         _get_peak(data - 1e3, times, mode='pos')
 
 
