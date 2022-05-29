@@ -1150,7 +1150,7 @@ def test_get_peak(kind, vector, n_times):
     with pytest.raises(ValueError, match='out of bounds'):
         stc.get_peak(tmax=90)
     with pytest.raises(ValueError,
-                       match='smaller or equal' if n_times > 1 else 'out of'):
+                       match='must be <=' if n_times > 1 else 'out of'):
         stc.get_peak(tmin=0.002, tmax=0.001)
 
     vert_idx, time_idx = stc.get_peak()
