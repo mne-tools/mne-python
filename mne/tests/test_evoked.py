@@ -544,11 +544,38 @@ def test_get_peak():
     assert_equal(time_idx, 2)
     assert_allclose(max_amp, 2.)
 
+    # Check behavior if `mode` doesn't match the available data
+    evoked_all_pos = evoked.copy().crop(0, 0.1).pick('EEG 001')
+    evoked_all_neg = evoked.copy().crop(0, 0.1).pick('EEG 001')
+
+    evoked_all_pos.data = np.abs(evoked_all_pos.data)   # all values positive
+    evoked_all_neg.data = -np.abs(evoked_all_neg.data)  # all negative
+
     with pytest.raises(ValueError, match='No negative values'):
-        _get_peak(data + 1e3, times, mode='neg')
+        evoked_all_pos.get_peak(mode='neg')
 
     with pytest.raises(ValueError, match='No positive values'):
-        _get_peak(data - 1e3, times, mode='pos')
+        evoked_all_neg.get_peak(mode='pos')
+
+    # Test interaction between `mode` and `tmin` / `tmax`
+    # For the test, create an Evoked where half of the values are negative
+    # and the rest is positive
+    evoked_neg_and_pos = evoked_all_neg.copy()
+    time_sep_neg_and_pos = 0.05
+    idx_time_sep_neg_and_pos = evoked_neg_and_pos.time_as_index(
+        time_sep_neg_and_pos
+    )[0]
+    evoked_neg_and_pos.data[:, idx_time_sep_neg_and_pos:] *= -1
+
+    with pytest.raises(ValueError, match='No positive values'):
+        evoked_neg_and_pos.get_peak(
+            mode='pos',
+            # subtract 1 time instant, otherwise were off-by-one
+            tmax=time_sep_neg_and_pos - 1 / evoked_neg_and_pos.info['sfreq']
+        )
+
+    with pytest.raises(ValueError, match='No negative values'):
+        evoked_neg_and_pos.get_peak(mode='neg', tmin=time_sep_neg_and_pos)
 
 
 def test_drop_channels_mixin():
