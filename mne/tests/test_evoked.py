@@ -485,13 +485,24 @@ def test_evoked_proj():
 def test_get_peak():
     """Test peak getter."""
     evoked = read_evokeds(fname, condition=0, proj=True)
-    pytest.raises(ValueError, evoked.get_peak, ch_type='mag', tmin=1)
-    pytest.raises(ValueError, evoked.get_peak, ch_type='mag', tmax=0.9)
-    pytest.raises(ValueError, evoked.get_peak, ch_type='mag', tmin=0.02,
-                  tmax=0.01)
-    pytest.raises(ValueError, evoked.get_peak, ch_type='mag', mode='foo')
-    pytest.raises(RuntimeError, evoked.get_peak, ch_type=None, mode='foo')
-    pytest.raises(ValueError, evoked.get_peak, ch_type='misc', mode='foo')
+
+    with pytest.raises(ValueError):
+        evoked.get_peak(ch_type='mag', tmin=1)
+
+    with pytest.raises(ValueError):
+        evoked.get_peak(ch_type='mag', tmax=0.9)
+
+    with pytest.raises(ValueError):
+        evoked.get_peak(ch_type='mag', tmin=0.02, tmax=0.01)
+
+    with pytest.raises(ValueError):
+        evoked.get_peak(ch_type='mag', mode='foo')
+
+    with pytest.raises(RuntimeError):
+        evoked.get_peak(ch_type=None, mode='foo')
+
+    with pytest.raises(ValueError):
+        evoked.get_peak(ch_type='misc', mode='foo')
 
     ch_name, time_idx = evoked.get_peak(ch_type='mag')
     assert (ch_name in evoked.ch_names)
@@ -504,8 +515,9 @@ def test_get_peak():
     assert_equal(ch_name, 'MEG 1421')
     assert_allclose(max_amp, 7.17057e-13, rtol=1e-5)
 
-    pytest.raises(ValueError, evoked.get_peak, ch_type='mag',
-                  merge_grads=True)
+    with pytest.raises(ValueError):
+        evoked.get_peak(ch_type='mag', merge_grads=True)
+
     ch_name, time_idx = evoked.get_peak(ch_type='grad', merge_grads=True)
     assert_equal(ch_name, 'MEG 244X')
 
@@ -529,8 +541,11 @@ def test_get_peak():
     assert_equal(time_idx, 2)
     assert_allclose(max_amp, 2.)
 
-    pytest.raises(ValueError, _get_peak, data + 1e3, times, mode='neg')
-    pytest.raises(ValueError, _get_peak, data - 1e3, times, mode='pos')
+    with pytest.raises(ValueError):
+        _get_peak(data + 1e3, times, mode='neg')
+
+    with pytest.raises(ValueError):
+        _get_peak(data - 1e3, times, mode='pos')
 
 
 def test_drop_channels_mixin():
