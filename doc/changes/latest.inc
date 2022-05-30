@@ -77,6 +77,10 @@ Enhancements
 
 - Add :meth:`mne.viz.Brain.get_view` to get the current camera parameters such that they can be passed to :meth:`mne.viz.Brain.show_view` (:gh:`10661` by `Alex Rockhill`_)
 
+- Added support for Aurora version 2021.9.0.6 to :func:`mne.io.read_raw_nirx` (:gh:`10668` by `Robert Luke`_)
+
+- Add timeformat ``YYYY/MM/DD`` to ``mne.io.ctf.info._convert_time`` (:gh:`10674` by `Simon Kern`_)
+
 Bugs
 ~~~~
 
@@ -117,6 +121,8 @@ Bugs
 - Reduce memory usage when loading an EDF file with ``preload=False`` (:gh:`10638` by `Clemens Brunner`_)
 
 - In :func:`mne.preprocessing.find_bad_channels_maxwell`, do not re-filter the data if a low-pass filter with the requested frequency has already been applied (:gh:`xxx` by `Richard Höchenberger`_)
+
+- :func:`mne.read_evokeds` now correctly expands ``~`` in the provided path to the user's home directory (:gh:`10685` by `Richard Höchenberger`_)
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~

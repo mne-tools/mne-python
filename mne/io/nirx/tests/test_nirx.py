@@ -50,6 +50,8 @@ nirsport2 = op.join(
     testing_path, 'NIRx', 'nirsport_v2', 'aurora_recording _w_short_and_acc')
 nirsport2_2021_9 = op.join(
     testing_path, 'NIRx', 'nirsport_v2', 'aurora_2021_9')
+nirsport2_2021_9_6 = op.join(
+    testing_path, 'NIRx', 'nirsport_v2', 'aurora_2021_9_6')
 
 
 def test_nirsport_v2_matches_snirf(nirx_snirf):
@@ -523,6 +525,15 @@ def test_nirx_15_2():
     assert 'fnirs_od' not in raw
     picks = pick_types(raw.info, fnirs='fnirs_cw_amplitude')
     assert len(picks) > 0
+
+
+@requires_testing_data
+def test_nirx_aurora_2021_9_6():
+    """Test reading NIRX files."""
+    raw = read_raw_nirx(nirsport2_2021_9_6, preload=True)
+    assert len(raw.annotations) == 3
+    assert raw.annotations.description[0] == "1.0"
+    assert raw.annotations.description[2] == "3.0"
 
 
 @requires_testing_data
