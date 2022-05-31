@@ -54,8 +54,6 @@ possible.
    `GitHub issues marked "easy"`_, pick one that looks interesting, and work
    through it while reading this guide!
 
-.. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
-
 
 Overview of contribution process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -933,7 +931,7 @@ common to many open-source software projects, so learning to follow them while
 working on MNE-Python will bear fruit when you contribute to other projects
 down the road. Here are the guidelines:
 
-- Search the `MNE-Python issues page`_ (both open and closed issues) in case
+- Search the `GitHub issues page`_ (both open and closed issues) in case
   someone else has already started work on the same bugfix or feature. If you
   don't find anything, `open a new issue`_ to discuss changes with maintainers
   before starting work on your proposed changes.
@@ -1005,8 +1003,7 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. MNE
 
-.. _MNE-Python GitHub: https://github.com/mne-tools/mne-python
-.. _MNE-Python issues page: https://github.com/mne-tools/mne-python/issues
+.. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
 .. _open a new issue: https://github.com/mne-tools/mne-python/issues/new/choose
 .. _This sample pull request: https://github.com/mne-tools/mne-python/pull/6230
 .. _our user forum: https://mne.discourse.group
@@ -1054,14 +1051,12 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. sphinx
 
-.. _sphinx-gallery: https://sphinx-gallery.github.io
 .. _reStructuredText: https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
 .. _intersphinx: https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
 .. _sphobjinv: https://sphobjinv.readthedocs.io/en/latest/
 
 .. linting
 
-.. _NumPy docstring style guidelines: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _PEP 8: https://www.python.org/dev/peps/pep-0008/
 .. _pyflakes: https://pypi.org/project/pyflakes
 .. _Flake8: http://flake8.pycqa.org/
