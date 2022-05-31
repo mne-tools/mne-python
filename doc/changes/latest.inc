@@ -120,7 +120,9 @@ Bugs
 
 - Reduce memory usage when loading an EDF file with ``preload=False`` (:gh:`10638` by `Clemens Brunner`_)
 
-- In :func:`mne.preprocessing.find_bad_channels_maxwell`, do not re-filter the data if a low-pass filter with the requested frequency has already been applied (:gh:`xxx` by `Richard Höchenberger`_)
+- In :func:`mne.preprocessing.find_bad_channels_maxwell`, do not re-filter the data if a low-pass filter with the requested frequency has already been applied (:gh:`10664` by `Richard Höchenberger`_)
+
+- Fix a problem in :meth:`mne.Evoked.get_peak`, where under certain circumstances the ``mode`` parameters ``'pos'`` and ``'neg'`` were not honored when ``tmin`` and/or ``tmax`` were passed as well (:gh:`10686` by `Richard Höchenberger`_)
 
 - :func:`mne.read_evokeds`, :func:`mne.channels.read_custom_montage`, :func:`mne.channels.read_dig_hpts`, :func:`mne.channels.read_dig_polhemus_isotrak`, and :func:`mne.channels.read_polhemus_fastscan` now correctly expand ``~`` in the provided path to the user's home directory (:gh:`10685`, :gh:`10688` by `Richard Höchenberger`_)
 

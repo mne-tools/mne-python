@@ -341,6 +341,7 @@ def test_export_epochs_eeglab(tmp_path, preload):
         epochs.export(Path(temp_fname), overwrite=True)
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @requires_version('mffpy', '0.5.7')
 @testing.requires_testing_data
 @pytest.mark.parametrize('fmt', ('auto', 'mff'))
@@ -397,6 +398,7 @@ def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
         export_evokeds(export_fname, evoked, overwrite=True)
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @requires_version('mffpy', '0.5.7')
 @testing.requires_testing_data
 def test_export_to_mff_no_device():
@@ -407,6 +409,7 @@ def test_export_to_mff_no_device():
         export_evokeds('output.mff', evoked)
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @requires_version('mffpy', '0.5.7')
 def test_export_to_mff_incompatible_sfreq():
     """Test non-whole number sampling frequency throws ValueError."""
