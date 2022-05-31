@@ -33,7 +33,7 @@ imageio-ffmpeg>=0.4.1
 traitlets
 pyvista>=0.32
 pyvistaqt>=0.4
-mffpy>=0.5.7
+mffpy>=0.5.7,<0.7.3
 ipywidgets
 ipyvtklink
 mne-qt-browser
