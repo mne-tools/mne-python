@@ -50,7 +50,6 @@
 
 .. _numpy: http://www.numpy.org
 .. _`numpy github`: http://github.com/numpy/numpy
-.. _`numpy style`: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _`numpy mailing list`: http://mail.scipy.org/mailman/listinfo/numpy-discussion
 
 
@@ -195,7 +194,7 @@
 
 .. _Sphinx documentation: https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
 .. _sphinx gallery documentation: https://sphinx-gallery.github.io
-.. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
+.. _NumPy docstring standard: https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard
 .. _Stack Overflow: https://stackoverflow.com/
 
 .. vim: ft=rst
