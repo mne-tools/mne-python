@@ -177,8 +177,6 @@ class Brain(object):
        +-------------------------------------+--------------+---------------+
        | :meth:`add_skull`                   |              | ✓             |
        +-------------------------------------+--------------+---------------+
-       | :meth:`add_stc`                     |              | ✓             |
-       +-------------------------------------+--------------+---------------+
        | :meth:`add_text`                    | ✓            | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`add_volume_labels`           |              | ✓             |
@@ -206,8 +204,6 @@ class Brain(object):
        | :meth:`remove_sensors`              |              | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`remove_skull`                |              | ✓             |
-       +-------------------------------------+--------------+---------------+
-       | :meth:`remove_stc`                  |              | ✓             |
        +-------------------------------------+--------------+---------------+
        | :meth:`remove_text`                 |              | ✓             |
        +-------------------------------------+--------------+---------------+
@@ -1940,111 +1936,6 @@ class Brain(object):
     def remove_data(self):
         """Remove rendered data from the mesh."""
         self._remove('data', render=True)
-
-    @verbose
-    def add_stc(self, stc, src=None, vmin=None, vmax=None, cmap=None,
-                cnorm=None, alpha='weighted',
-                time_label_size=None, scale_factor=None,
-                colorbar=True, verbose=None):
-        """Plot a source time course estimate on the brain.
-
-        Parameters
-        ----------
-        stc : instance of SourceEstimate
-            The source time course estimate to plot.
-        %(src_volume_options)s
-        %(vmin_vmax_topomap)s
-        %(cmap_topomap_simple)s
-        %(cnorm)s
-        alpha : 'weighted' | float in [0, 1]
-            If ``'weighted'`` the transparency will be weighted by the
-            source estimate values, else controls transparency uniformly.
-        colorbar : bool
-            Whether to add a colorbar to the figure. Can also be a tuple
-            to give the (row, col) index of where to put the colorbar.
-        time_label_size : int
-            Font size of the time label (default 14).
-        scale_factor : float | None (default)
-            The scale factor to use when displaying the data vectors.
-        colorbar_kwargs : bool | dict
-            If True (default) a colorbar will be added. Can also be a
-            dictionary of options to pass to
-            :meth:`pyvista.Plotter.add_scalar_bar`
-            (e.g., ``dict(title_font_size=10)``).
-        %(verbose)s
-        """
-        from ...source_estimate import (
-            SourceEstimate, VectorSourceEstimate, VolumeSourceEstimate,
-            MixedSourceEstimate)
-        if 'stc' in self._data:
-            self.remove_stc()
-        _validate_type(stc, SourceEstimate, 'stc')
-        _validate_type(scale_factor, ('numeric', None), 'scale_factor')
-        _validate_type(time_label_size, (None, 'numeric'), 'time_label_size')
-
-        self._data['scale_factor'] = scale_factor
-
-
-        self._data['stc_actor'] = stc
-
-        # 1) add the surfaces first
-        for _ in self._iter_views('vol'):
-            actor, _ = self._renderer.mesh(
-                *verts.T, triangles=triangles, color=color,
-                opacity=alpha, reset_camera=False, render=False)
-            self._add_actor('head', actor)
-
-        self._renderer._update()
-
-        actor = None
-        for _ in self._iter_views(hemi):
-            if hemi in ('lh', 'rh'):
-                actor = self._layered_meshes[hemi]._actor
-            else:
-                src_vol = src[2:] if src.kind == 'mixed' else src
-                actor, _ = self._add_volume_data(hemi, src_vol, volume_options)
-        assert actor is not None  # should have added one
-        self._add_actor('data', actor)
-
-        # 2) update time and smoothing properties
-        # set_data_smoothing calls "set_time_point" for us, which will set
-        # _current_time
-        self.set_time_interpolation(self.time_interpolation)
-        self.set_data_smoothing(self._data['smoothing_steps'])
-
-        # 3) add the other actors
-        if colorbar is True:
-            # bottom left by default
-            colorbar = (self._subplot_shape[0] - 1, 0)
-        for ri, ci, v in self._iter_views(hemi):
-            # Add the time label to the bottommost view
-            do = (ri, ci) == colorbar
-            if not self._time_label_added and time_label is not None and do:
-                time_actor = self._renderer.text2d(
-                    x_window=0.95, y_window=y_txt,
-                    color=self._fg_color,
-                    size=time_label_size,
-                    text=time_label(self._current_time),
-                    justification='right'
-                )
-                self._data['time_actor'] = time_actor
-                self._time_label_added = True
-            if colorbar and self._scalar_bar is None and do:
-                kwargs = dict(source=actor, n_labels=8, color=self._fg_color,
-                              bgcolor=self._brain_color[:3])
-                kwargs.update(colorbar_kwargs or {})
-                self._scalar_bar = self._renderer.scalarbar(**kwargs)
-            self._renderer.set_camera(
-                update=False, reset_camera=False, **views_dicts[hemi][v])
-
-        if colorbar or isinstance(colorbar, dict):
-            # use empty kwargs for legend = True
-            colorbar = colorbar if isinstance(colorbar, dict) else dict()
-            self._renderer.plotter.add_scalar_bar(mapper=None, **colorbar)
-
-    def remove_stc(self):
-        """Remove rendered data from the mesh."""
-        self._remove('stc_actor', render=True)
 
     def _iter_views(self, hemi):
         """Iterate over rows and columns that need to be added to."""
