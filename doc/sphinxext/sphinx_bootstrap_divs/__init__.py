@@ -67,60 +67,6 @@ def _assemble(node, directive):
 
 
 ###############################################################################
-# .. collapse::
-
-class CollapseNode(DivNode):
-    """Class for .. collapse:: directive."""
-
-    OPTION_KEYS = ('title', 'id_', 'extra', 'class')
-    ELEMENT = 'div'
-    BASECLASS = 'card'
-    HEADER_PRETITLE = """.. raw:: html
-
-    <h5 class="card-header">
-    <a data-toggle="collapse" href="#collapse_{id_}" role="button" aria-expanded="false" aria-controls="collapse_{id_}">"""
-    HEADER_POSTTITLE = """.. raw:: html
-
-    </a></h5>
-    <div id="collapse_{id_}" class="collapse{extra}">
-    <div class="card card-body">"""
-    FOOTER = """.. raw:: html
-
-    </div></div>"""
-    KNOWN_CLASSES = (
-        'default', 'primary', 'success', 'info', 'warning', 'danger')
-
-    @staticmethod
-    def _check_class(class_):
-        if class_ not in CollapseNode.KNOWN_CLASSES:
-            raise ValueError(':class: option %r must be one of %s'
-                             % (class_, CollapseNode.KNOWN_CLASSES))
-        return class_
-
-
-class CollapseDirective(SphinxDirective):
-    """Collapse directive."""
-
-    required_arguments = 1
-    optional_arguments = 0
-    final_argument_whitespace = True
-    option_spec = {'open': flag,
-                   'class': CollapseNode._check_class}
-    has_content = True
-
-    def run(self):
-        """Parse."""
-        self.assert_has_content()
-        title_text = _(self.arguments[0])
-        extra = _(' show' if 'open' in self.options else '')
-        class_ = {'class': self.options.get('class', 'default')}
-        id_ = nodes.make_id(title_text)
-        node = CollapseNode(title=title_text, id_=id_, extra=extra, **class_)
-        _assemble(node, self)
-        return [node]
-
-
-###############################################################################
 # .. details::
 
 class DetailsNode(DivNode):
@@ -164,7 +110,6 @@ class DetailsDirective(SphinxDirective):
 def setup(app):
     """Set up for Sphinx app."""
     directives = dict(
-        collapse=CollapseDirective,
         details=DetailsDirective,
     )
     for key, value in directives.items():
@@ -178,7 +123,7 @@ def setup(app):
     except AttributeError:
         app.add_javascript('bootstrap_divs.js')
     app.connect('build-finished', copy_asset_files)
-    for node in (CollapseNode, DetailsNode):
+    for node in (DetailsNode):
         app.add_node(node,
                      html=(node.visit_node, node.depart_node),
                      latex=(node.visit_node, node.depart_node),
