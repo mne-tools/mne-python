@@ -35,7 +35,7 @@ else
 	echo "pyvistaqt"
 	pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
 	echo "imageio-ffmpeg, xlrd, mffpy, python-picard"
-	pip install --progress-bar off --pre imageio-ffmpeg xlrd mffpy python-picard patsy
+	pip install --progress-bar off --pre imageio-ffmpeg xlrd "mffpy<0.7.3" python-picard patsy
 	if [ "$OSTYPE" == "darwin"* ]; then
 	  echo "pyobjc-framework-Cocoa"
 	  pip install --progress-bar off pyobjc-framework-Cocoa>=5.2.0

@@ -16,7 +16,7 @@ dependencies:
 - nibabel
 - nbformat
 - nbclient
-- mffpy>=0.5.7
+- mffpy>=0.5.7,<0.7.3
 - pooch
 - pip:
   - mne
