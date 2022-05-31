@@ -331,6 +331,7 @@ def test_io_egi_crop_no_preload():
     assert_allclose(raw._data, raw_preload._data)
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @requires_version('mffpy', '0.5.7')
 @requires_testing_data
 @pytest.mark.parametrize('idx, cond, tmax, signals, bads', [
@@ -393,6 +394,7 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     assert evoked_cond.info['device_info']['type'] == 'HydroCel GSN 256 1.0'
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @requires_version('mffpy', '0.5.7')
 @requires_testing_data
 def test_read_evokeds_mff_bad_input():
