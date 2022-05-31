@@ -11,9 +11,9 @@ Python packages and tools, including the `Spyder`_ development environment.
 Got any questions? Let us know on the `MNE Forum`_!
 
 .. tab-set::
+    :class: platform-selector-tabset
 
     .. tab-item:: Linux
-        :name: linux
         :class-content: text-center
 
         .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.0.3/MNE-Python-1.0.3_0-Linux.sh
@@ -34,7 +34,6 @@ Got any questions? Let us know on the `MNE Forum`_!
 
 
     .. tab-item:: macOS
-        :name: mac
         :class-content: text-center
 
         .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.0.3/MNE-Python-1.0.3_0-macOS_Intel.pkg
@@ -50,7 +49,6 @@ Got any questions? Let us know on the `MNE Forum`_!
 
 
     .. tab-item:: Windows
-        :name: windows
         :class-content: text-center
 
         .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.0.3/MNE-Python-1.0.3_0-Windows.exe
@@ -62,27 +60,6 @@ Got any questions? Let us know on the `MNE Forum`_!
             |cloud-download-alt| |ensp| Download for Windows
 
         **Supported platforms:** Windows 10 and newer
-
-.. raw:: html
-
-    <script type="text/javascript">
-      var platform = "Linux";
-
-      if (navigator.userAgent.indexOf("Win") !== -1) {
-        platform = "Windows";
-      }
-      if (navigator.userAgent.indexOf("Mac") !== -1) {
-        platform = "Mac";
-      }
-
-      $(document).ready(function () {
-        var cardToShow = document.querySelector(
-          `#downloadAccordion #collapse${platform}`
-        );
-        $(cardToShow).collapse('show');
-      });
-    </script>
-
 
 
 First steps
@@ -129,3 +106,28 @@ interpreter.
 
 .. note::
    This information is currently not displayed on the Windows platform.
+
+
+.. raw:: html
+
+    <script type="text/javascript">
+      var platform = "linux";
+      if (navigator.userAgent.indexOf("Win") !== -1) {
+        platform = "windows";
+      }
+      if (navigator.userAgent.indexOf("Mac") !== -1) {
+        platform = "macos";
+      }
+     $(document).ready(function(){
+         let all_tab_nodes = document.querySelectorAll(
+             '.platform-selector-tabset')[0].children;
+         let input_nodes = [...all_tab_nodes].filter(
+             child => child.nodeName === "INPUT");
+         let tab_label_nodes = [...document.querySelectorAll('.sd-tab-label')];
+         let correct_label = tab_label_nodes.filter(
+             label => label.textContent.trim().toLowerCase() === platform)[0];
+         let hash = correct_label.getAttribute('for');
+         let correct_input = input_nodes.filter(node => node.id === hash)[0];
+         correct_input.checked = true;
+     });
+     </script>
