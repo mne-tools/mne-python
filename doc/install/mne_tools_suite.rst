@@ -101,7 +101,7 @@ Help with installation is available through the `MNE Forum`_. See the
 .. _alphaCSC: https://alphacsc.github.io/
 .. _picard: https://pierreablin.github.io/picard/
 .. _pactools: https://pactools.github.io/
-.. _rsa: https://github.com/wmvanvliet/rsa
+.. _rsa: https://github.com/wmvanvliet/mne-rsa
 .. _microstate: https://github.com/wmvanvliet/mne_microstates
 .. _conpy: https://aaltoimaginglanguage.github.io/conpy/
 .. _eelbrain: https://eelbrain.readthedocs.io/en/stable/index.html

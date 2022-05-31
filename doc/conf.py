@@ -513,6 +513,7 @@ linkcheck_ignore = [  # will be compiled to regex
     'https://www.dtu.dk/english/service/phonebook/person.*',  # noqa Too slow
     'https://speakerdeck.com/dengemann/eeg-sensor-covariance-using-cross-validation',  # noqa Too slow
     'https://doi.org/10.1002/hbm.10024',  # noqa Too slow sometimes
+    'https://www.researchgate.net',  # noqa As of 2022/05/31 we get "403 Forbidden" errors, might have to do with https://stackoverflow.com/questions/72347165 but not worth the effort to fix
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
