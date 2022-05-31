@@ -222,7 +222,7 @@ class DigMontage(object):
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
             The filename to use. Should end in .fif or .fif.gz.
         %(overwrite)s
         %(verbose)s
@@ -649,7 +649,7 @@ def read_dig_hpts(fname, unit='mm'):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filepath of .hpts file.
     unit : 'm' | 'cm' | 'mm'
         Unit of the positions. Defaults to 'mm'.
@@ -713,6 +713,7 @@ def read_dig_hpts(fname, unit='mm'):
         ...
     """
     from ._standard_montage_utils import _str_names, _str
+    fname = _check_fname(fname, overwrite='read', must_exist=True)
     _scale = _check_unit_and_get_scaling(unit)
 
     out = np.genfromtxt(fname, comments='#',
@@ -1173,7 +1174,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filepath of Polhemus ISOTrak formatted file.
         File extension is expected to be '.hsp', '.elp' or '.eeg'.
     ch_names : None | list of str
@@ -1202,6 +1203,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     read_dig_localite
     """
     VALID_FILE_EXT = ('.hsp', '.elp', '.eeg')
+    fname = _check_fname(fname, overwrite='read', must_exist=True)
     _scale = _check_unit_and_get_scaling(unit)
 
     _, ext = op.splitext(fname)
@@ -1256,8 +1258,8 @@ def read_polhemus_fastscan(fname, unit='mm', on_header_missing='raise', *,
 
     Parameters
     ----------
-    fname : str
-        The filepath of .txt Polhemus FastSCAN file.
+    fname : path-like
+        The path of .txt Polhemus FastSCAN file.
     unit : 'm' | 'cm' | 'mm'
         Unit of the digitizer file. Polhemus FastSCAN systems data is usually
         exported in millimeters. Defaults to 'mm'.
@@ -1275,6 +1277,7 @@ def read_polhemus_fastscan(fname, unit='mm', on_header_missing='raise', *,
     make_dig_montage
     """
     VALID_FILE_EXT = ['.txt']
+    fname = _check_fname(fname, overwrite='read', must_exist=True)
     _scale = _check_unit_and_get_scaling(unit)
 
     _, ext = op.splitext(fname)
@@ -1304,7 +1307,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         File extension is expected to be:
         '.loc' or '.locs' or '.eloc' (for EEGLAB files),
         '.sfp' (BESA/EGI files), '.csd',
@@ -1357,6 +1360,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         'xyz': ('.csv', '.tsv', '.xyz'),
     }
 
+    fname = _check_fname(fname, overwrite='read', must_exist=True)
     _, ext = op.splitext(fname)
     _check_option('fname', ext, list(sum(SUPPORTED_FILE_EXT.values(), ())))
 
