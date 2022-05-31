@@ -713,18 +713,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         If an `~mne.Info` object, it must contain only one data type and
         exactly ``len(data)`` data channels, and the x/y coordinates will
         be inferred from the montage applied to the `~mne.Info` object.
-    vmin : float | callable | None
-        The value specifying the lower bound of the color range.
-        If None, and vmax is None, the opposite of the maximum absolute value
-        ``-max(abs(data))`` is used. Else ``min(data)`` is used. If callable,
-        the output equals ``vmin(data)``. Defaults to None.
-    vmax : float | callable | None
-        The value specifying the upper bound of the color range.
-        If None, the maximum value is used. If callable, the output
-        equals ``vmax(data)``. Defaults to None.
-    cmap : matplotlib colormap | None
-        Colormap to use. If None, ``'Reds'`` is used for all positive data,
-        otherwise defaults to ``'RdBu_r'``.
+    %(vmin_vmax_topomap)s
+    %(cmap_topomap_simple)s
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., ``'r+'`` for red plusses). If True (default),
@@ -758,10 +748,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     %(sphere_topomap)s
     %(border_topomap)s
     %(ch_type_topomap)s
-    cnorm : matplotlib.colors.Normalize | None
-        Colormap normalization, default None means linear normalization. If not
-        None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
-        details.
+    %(cnorm)s
 
         .. versionadded:: 0.24
 
@@ -1155,14 +1142,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         If None, then channels are chosen in the order given above.
     res : int
         The resolution of the topomap image (n pixels along each side).
-    vmin : float | callable | None
-        The value specifying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data). Defaults to None.
-    vmax : float | callable | None
-        The value specifying the upper bound of the color range.
-        If None, the maximum absolute value is used. If callable, the output
-        equals vmax(data). Defaults to None.
+    %(vmin_vmax_topomap)s
     cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
         Colormap to use. If tuple, the first value indicates the colormap to
         use and the second value is a boolean defining interactivity. In
@@ -1406,15 +1386,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
             by the standard deviation of the baseline power ('zlogratio')
 
         If None no baseline correction is applied.
-    vmin : float | callable | None
-        The value specifying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data) or in case
-        data contains only positive values 0. If callable, the output equals
-        vmin(data). Defaults to None.
-    vmax : float | callable | None
-        The value specifying the upper bound of the color range. If None, the
-        maximum value is used. If callable, the output equals vmax(data).
-        Defaults to None.
+    %(vmin_vmax_topomap)s
     cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
         Colormap to use. If tuple, the first value indicates the colormap to
         use and the second value is a boolean defining interactivity. In
@@ -2621,17 +2593,8 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
         to be the same as info_from.
     scale : float, default 3e-10
         To scale the arrows.
-    vmin : float | callable | None
-        The value specifying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data). Defaults to None.
-    vmax : float | callable | None
-        The value specifying the upper bound of the color range.
-        If None, the maximum absolute value is used. If callable, the output
-        equals vmax(data). Defaults to None.
-    cmap : matplotlib colormap | None
-        Colormap to use. If None, 'Reds' is used for all positive data,
-        otherwise defaults to 'RdBu_r'.
+    %(vmin_vmax_topomap)s
+    %(cmap_topomap_simple)s
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True (default), circles
