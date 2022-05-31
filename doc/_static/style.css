@@ -177,6 +177,11 @@ div.card {
     border-bottom-color: var(--pst-color-border-rgba);
     background-color: var(--pst-color-background-rgba);
 }
+/* ********************************************* sphinx-design compatibility */
+.sd-dropdown {
+    border: 1px solid var(--pst-color-border-rgba) !important;
+    box-shadow: 1px 1px 1px var(--pst-color-shadow);
+}
 .sd-card-header {
     border-bottom-color: var(--pst-color-border-rgba) !important;
     background-color: var(--pst-color-background-rgba) !important;
