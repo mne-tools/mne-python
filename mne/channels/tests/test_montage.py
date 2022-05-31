@@ -7,6 +7,7 @@ from contextlib import nullcontext
 from itertools import chain
 import os
 import os.path as op
+import shutil
 
 import pytest
 
@@ -589,9 +590,12 @@ def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmp_path):
     with pytest.raises(ValueError, match='not contain.*Polhemus FastSCAN'):
         _ = read_polhemus_fastscan(fname)
 
+    fname = tmp_path / 'faulty_FastSCAN.bar'
+    with open(fname, 'w') as fid:
+        fid.write(content)
     EXPECTED_ERR_MSG = "allowed value is '.txt', but got '.bar' instead"
     with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
-        _ = read_polhemus_fastscan(fname=tmp_path / 'foo.bar')
+        _ = read_polhemus_fastscan(fname=fname)
 
 
 def test_read_dig_polhemus_isotrak_hsp():
@@ -714,7 +718,9 @@ def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmp_path):
         )
 
     # Check fname extensions
-    fname = op.join(tmp_path, 'foo.bar')
+    fname = op.join(tmp_path, 'test.bar')
+    shutil.copyfile(isotrak_eeg, fname)
+
     with pytest.raises(
         ValueError,
         match="Allowed val.*'.hsp', '.elp', and '.eeg', but got '.bar' instead"
