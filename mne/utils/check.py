@@ -22,10 +22,11 @@ from ..fixes import _median_complex, _compare_version
 from ._logging import warn, logger, verbose
 
 
-def _ensure_int(x, name='unknown', must_be='an int'):
+def _ensure_int(x, name='unknown', must_be='an int', *, extra=''):
     """Ensure a variable is an integer."""
     # This is preferred over numbers.Integral, see:
     # https://github.com/scipy/scipy/pull/7351#issuecomment-299713159
+    extra = f' {extra}' if extra else extra
     try:
         # someone passing True/False is much more likely to be an error than
         # intentional usage
@@ -33,7 +34,7 @@ def _ensure_int(x, name='unknown', must_be='an int'):
             raise TypeError()
         x = int(operator.index(x))
     except TypeError:
-        raise TypeError('%s must be %s, got %s' % (name, must_be, type(x)))
+        raise TypeError(f'{name} must be {must_be}{extra}, got {type(x)}')
     return x
 
 
@@ -476,7 +477,8 @@ _multi = {
 }
 
 
-def _validate_type(item, types=None, item_name=None, type_name=None):
+def _validate_type(item, types=None, item_name=None, type_name=None, *,
+                   extra=''):
     """Validate that `item` is an instance of `types`.
 
     Parameters
@@ -494,9 +496,11 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
     type_name : str | None
         Possible types to show inside the error message that the checked item
         can be.
+    extra : str
+        Extra text to append to the warning.
     """
     if types == "int":
-        _ensure_int(item, name=item_name)
+        _ensure_int(item, name=item_name, extra=extra)
         return  # terminate prematurely
     elif types == "info":
         from mne.io import Info as types
@@ -507,6 +511,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
     check_types = sum(((type(None),) if type_ is None else (type_,)
                        if not isinstance(type_, str) else _multi[type_]
                        for type_ in types), ())
+    extra = f' {extra}' if extra else extra
     if not isinstance(item, check_types):
         if type_name is None:
             type_name = ['None' if cls_ is None else cls_.__name__
@@ -520,8 +525,9 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
                 type_name[-1] = 'or ' + type_name[-1]
                 type_name = ', '.join(type_name)
         _item_name = 'Item' if item_name is None else item_name
-        raise TypeError(f"{_item_name} must be an instance of {type_name}, "
-                        f"got {type(item)} instead.")
+        raise TypeError(
+            f"{_item_name} must be an instance of {type_name}{extra}, "
+            f"got {type(item)} instead.")
 
 
 def _path_like(item):
@@ -736,7 +742,7 @@ def _check_option(parameter, value, allowed_values, extra=''):
         return value
 
     # Prepare a nice error message for the user
-    extra = ' ' + extra if extra else extra
+    extra = f' {extra}' if extra else extra
     msg = ("Invalid value for the '{parameter}' parameter{extra}. "
            '{options}, but got {value!r} instead.')
     allowed_values = list(allowed_values)  # e.g., if a dict was given

@@ -20,6 +20,8 @@ from typing import Optional
 
 import numpy as np
 
+from ._dipole import (_check_concat_dipoles, _plot_dipole_mri_outlines,
+                      _plot_dipole_3d)
 from ..defaults import DEFAULTS
 from ..fixes import _crop_colorbar, _get_img_fdata
 from .._freesurfer import (_read_mri_info, _check_mri, _get_head_surface,
@@ -2869,14 +2871,13 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
                           mode='orthoview', coord_frame='mri', idx='gof',
                           show_all=True, ax=None, block=False, show=True,
-                          scale=5e-3, color=None, highlight_color='r',
-                          fig=None, verbose=None, title=None):
+                          scale=None, color=None, *, highlight_color='r',
+                          fig=None, title=None, head_source='seghead',
+                          surf='pial', verbose=None):
     """Plot dipole locations.
 
     If mode is set to 'arrow' or 'sphere', only the location of the first
     time point of each dipole is shown else use the show_all parameter.
-
-    The option mode='orthoview' was added in version 0.14.
 
     Parameters
     ----------
@@ -2891,13 +2892,26 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
         Can be ``None`` with mode set to ``'3d'``.
     %(subjects_dir)s
     mode : str
-        Can be ``'arrow'``, ``'sphere'`` or ``'orthoview'``.
+        Can be:
 
-        .. versionadded:: 0.19.0
+        ``'arrow'`` or ``'sphere'``
+            Plot in 3D mode using PyVista with the given glyph type.
+        ``'orthoview'``
+            Plot in matplotlib ``Axes3D`` using matplotlib with MRI slices
+            shown on the sides of a cube, with the dipole(s) shown as arrows.
+        ``'outlines'``
+            Plot in matplotlib ``Axes`` using a quiver for the dipoles in
+            three axes (axial, coronal, and sagittal views).
+
+        .. versionchanged:: 1.1
+           Added support for ``'outlines'``.
     coord_frame : str
-        Coordinate frame to use, 'head' or 'mri'. Defaults to 'mri'.
+        Coordinate frame to use: 'head' or 'mri'. Can also be 'mri_rotated'
+        when mode equals ``'outlines'``. Defaults to 'mri'.
 
         .. versionadded:: 0.14.0
+        .. versionchanged:: 1.1
+           Added support for ``'mri_rotated'``.
     idx : int | 'gof' | 'amplitude'
         Index of the initially plotted dipole. Can also be 'gof' to plot the
         dipole with highest goodness of fit value or 'amplitude' to plot the
@@ -2914,9 +2928,10 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
         Only used if ``mode='orthoview'``.
 
         .. versionadded:: 0.14.0
-    ax : instance of matplotlib Axes3D | None
+    ax : instance of matplotlib Axes3D | list of matplotlib Axes | None
         Axes to plot into. If None (default), axes will be created.
-        Only used if mode equals 'orthoview'.
+        If mode equals ``'orthoview'``, must be a single ``Axes3D``.
+        If mode equals ``'outlines'``, must be a list of three ``Axes``.
 
         .. versionadded:: 0.14.0
     block : bool
@@ -2929,11 +2944,14 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
         Show figure if True. Defaults to True.
         Only used if mode equals 'orthoview'.
     scale : float
-        The scale of the dipoles if ``mode`` is 'arrow' or 'sphere'.
+        The scale (size in meters) of the dipoles if ``mode`` is not
+        ``'orthoview'``. The default is 0.04 when mode is ``'outlines'`` and
+        0.005 otherwise.
     color : tuple
         The color of the dipoles.
         The default (None) will use ``'y'`` if mode is ``'orthoview'`` and
-        ``show_all`` is True, else 'r'.
+        ``show_all`` is True, else 'r'. Can also be a list of colors to use
+        when mode is ``'outlines'``.
 
         .. versionchanged:: 0.19.0
            Color is now passed in orthoview mode.
@@ -2945,12 +2963,25 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     fig : instance of Figure3D | None
         3D figure in which to plot the alignment.
         If ``None``, creates a new 600x600 pixel figure with black background.
+        Only used when mode is ``'arrow'`` or ``'sphere'``.
 
         .. versionadded:: 0.19.0
-    %(verbose)s
-    %(title_dipole_locs_fig)s
+    title : str | None
+        The title of the figure if ``mode='orthoview'`` (ignored for all other
+        modes). If ``None``, dipole number and its properties (amplitude,
+        orientation etc.) will be shown. Defaults to ``None``.
 
         .. versionadded:: 0.21.0
+    %(head_source)s
+        Only used when mode equals ``'outlines'``.
+
+        .. versionadded:: 1.1
+    surf : str | None
+        Brain surface to show outlines for, can be ``'white'``, ``'pial'``, or
+        ``None``. Only used when mode is ``'outlines'``.
+
+        .. versionadded:: 1.1
+    %(verbose)s
 
     Returns
     -------
@@ -2961,34 +2992,26 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     -----
     .. versionadded:: 0.9.0
     """
+    _validate_type(mode, str, 'mode')
+    _validate_type(coord_frame, str, 'coord_frame')
+    _check_option('mode', mode, ('orthoview', 'outlines', 'arrow', 'sphere'))
+    kwargs = dict(
+        trans=trans, subject=subject, subjects_dir=subjects_dir,
+        coord_frame=coord_frame, ax=ax, block=block, show=show, color=color,
+        title=title)
+    dipoles = _check_concat_dipoles(dipoles)
     if mode == 'orthoview':
         fig = _plot_dipole_mri_orthoview(
-            dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
-            coord_frame=coord_frame, idx=idx, show_all=show_all,
-            ax=ax, block=block, show=show, color=color,
-            highlight_color=highlight_color, title=title)
-    elif mode in ['arrow', 'sphere']:
-        from .backends.renderer import _get_renderer
-        color = (1., 0., 0.) if color is None else color
-        renderer = _get_renderer(fig=fig, size=(600, 600))
-        pos = dipoles.pos
-        ori = dipoles.ori
-        if coord_frame != 'head':
-            trans = _get_trans(trans, fro='head', to=coord_frame)[0]
-            pos = apply_trans(trans, pos)
-            ori = apply_trans(trans, ori)
-
-        renderer.sphere(center=pos, color=color, scale=scale)
-        if mode == 'arrow':
-            x, y, z = pos.T
-            u, v, w = ori.T
-            renderer.quiver3d(x, y, z, u, v, w, scale=3 * scale,
-                              color=color, mode='arrow')
-        renderer.show()
-        fig = renderer.scene()
+            dipoles, idx=idx, show_all=show_all,
+            highlight_color=highlight_color, **kwargs)
+    elif mode == 'outlines':
+        fig = _plot_dipole_mri_outlines(
+            dipoles, head_source=head_source, surf=surf, scale=scale, **kwargs)
     else:
-        raise ValueError('Mode must be "cone", "arrow" or orthoview", '
-                         'got %s.' % (mode,))
+        assert mode in ('arrow', 'sphere'), mode
+        fig = _plot_dipole_3d(
+            dipoles, trans=trans, coord_frame=coord_frame, color=color,
+            fig=fig, scale=scale, mode=mode)
 
     return fig
 
@@ -3063,15 +3086,11 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     """Plot dipoles on top of MRI slices in 3-D."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
-    from .. import Dipole
     if not has_nibabel():
         raise ImportError('This function requires nibabel.')
 
     _check_option('coord_frame', coord_frame, ['head', 'mri'])
 
-    if not isinstance(dipole, Dipole):
-        from ..dipole import _concatenate_dipoles
-        dipole = _concatenate_dipoles(dipole)
     if idx == 'gof':
         idx = np.argmax(dipole.gof)
     elif idx == 'amplitude':
@@ -3087,7 +3106,8 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     if ax is None:
         fig, ax = plt.subplots(1, subplot_kw=dict(projection='3d'))
     else:
-        _validate_type(ax, Axes3D, "ax", "Axes3D")
+        _validate_type(ax, Axes3D, "ax", "Axes3D",
+                       extra='when mode is "orthoview"')
         fig = ax.get_figure()
 
     gridx, gridy = np.meshgrid(np.linspace(-dd, dd, dims),

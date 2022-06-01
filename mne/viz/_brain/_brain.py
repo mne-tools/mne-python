@@ -34,15 +34,15 @@ from .._3d_overlay import _LayeredMesh
 from ...defaults import _handle_default, DEFAULTS
 from ...fixes import _point_data, _cell_data
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
-                            _get_head_surface, _get_skull_surface)
+                            _get_head_surface, _get_skull_surface,
+                            _estimate_talxfm_rigid)
 from ...io.pick import pick_types
 from ...io.meas_info import Info
 from ...surface import (mesh_edges, _mesh_borders, _marching_cubes,
                         get_meg_helmet_surf)
 from ...source_space import SourceSpaces
-from ...transforms import (Transform, apply_trans, invert_transform,
-                           _get_trans, _get_transforms_to_coord_frame,
-                           _frame_to_str)
+from ...transforms import (Transform, apply_trans, _frame_to_str,
+                           _get_trans, _get_transforms_to_coord_frame)
 from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
                       use_log_level, Bunch, _ReuseCycle, warn,
                       get_subjects_dir, _check_fname, _to_rgb, _ensure_int)
@@ -403,19 +403,14 @@ class Brain(object):
             self._renderer.set_interaction("rubber_band_2d")
 
     def _setup_canonical_rotation(self):
-        from ...coreg import fit_matched_points, _trans_from_params
         self._rigid = np.eye(4)
         try:
-            xfm = read_talxfm(self._subject_id, self._subjects_dir)
+            xfm = _estimate_talxfm_rigid(self._subject_id, self._subjects_dir)
         except Exception:
-            return
-        # XYZ+origin + halfway
-        pts_tal = np.concatenate([np.eye(4)[:, :3], np.eye(3) * 0.5])
-        pts_subj = apply_trans(invert_transform(xfm), pts_tal)
-        # we fit with scaling enabled, but then discard it (we just need
-        # the rigid-body components)
-        params = fit_matched_points(pts_subj, pts_tal, scale=3, out='params')
-        self._rigid[:] = _trans_from_params((True, True, False), params[:6])
+            logger.info('Could not estimate rigid Talairach alignment, '
+                        'using identity matrix')
+        else:
+            self._rigid[:] = xfm
 
     def setup_time_viewer(self, time_viewer=True, show_traces=True):
         """Configure the time viewer parameters.
