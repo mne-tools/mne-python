@@ -9,8 +9,10 @@ from mne import (vertex_to_mni, head_to_mni,
                  read_talxfm, read_freesurfer_lut,
                  get_volume_labels_from_aseg)
 from mne.datasets import testing
-from mne._freesurfer import _get_mgz_header, _check_subject_dir, read_lta
-from mne.transforms import apply_trans, _get_trans
+from mne._freesurfer import (_get_mgz_header, _check_subject_dir, read_lta,
+                             _estimate_talxfm_rigid)
+from mne.transforms import (apply_trans, _get_trans, rot_to_quat,
+                            _angle_between_quats)
 from mne.utils import requires_nibabel
 
 data_path = testing.data_path(download=False)
@@ -187,3 +189,16 @@ def test_read_freesurfer_lut(fname, tmp_path):
             fid.write(line)
     with pytest.raises(RuntimeError, match='formatted'):
         read_freesurfer_lut(fname)
+
+
+@testing.requires_testing_data
+def test_talxfm_rigid():
+    """Test that talxfm_rigid gives reasonable results."""
+    rigid = _estimate_talxfm_rigid('fsaverage', subjects_dir=subjects_dir)
+    assert_allclose(rigid, np.eye(4), atol=1e-6)
+    rigid = _estimate_talxfm_rigid('sample', subjects_dir=subjects_dir)
+    assert_allclose(np.linalg.norm(rigid[:3, :3], axis=1), 1., atol=1e-6)
+    move = 1000 * np.linalg.norm(rigid[:3, 3])
+    assert 30 < move < 70
+    ang = np.rad2deg(_angle_between_quats(rot_to_quat(rigid[:3, :3])))
+    assert 20 < ang < 25
