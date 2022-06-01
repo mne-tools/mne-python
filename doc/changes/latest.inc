@@ -79,6 +79,10 @@ Enhancements
 
 - Added support for Aurora version 2021.9.0.6 to :func:`mne.io.read_raw_nirx` (:gh:`10668` by `Robert Luke`_)
 
+- Added BrainVision format (``.vhdr``, ``.vmrk``, ``.eeg``) to :func:`mne.export.export_raw` (:gh:`10681` by `Stefan Appelhoff`_)
+
+- Added ``export`` method to :class:`mne.Evoked` (:gh:`10681` by `Stefan Appelhoff`_)
+
 - Add timeformat ``YYYY/MM/DD`` to ``mne.io.ctf.info._convert_time`` (:gh:`10674` by `Simon Kern`_)
 
 Bugs
