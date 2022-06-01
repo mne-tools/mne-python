@@ -26,8 +26,8 @@ from mne.utils import (_check_eeglabio_installed, requires_version,
                        _check_pybv_installed)
 from mne.tests.test_epochs import _get_data
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-fname_evoked = op.join(base_dir, 'test-ave.fif')
+fname_evoked = _resource_path('mne.io.tests.data', 'test-ave.fif')
+fname_raw = _resource_path('mne.io.tests.data', 'test_raw.fif')
 
 data_path = testing.data_path(download=False)
 egi_evoked_fname = op.join(data_path, 'EGI', 'test_egi_evoked.mff')
@@ -36,15 +36,19 @@ misc_path = misc.data_path(download=False)
 
 @pytest.mark.skipif(not _check_pybv_installed(strict=False),
                     reason='pybv not installed')
-def test_export_raw_pybv(tmp_path):
+@pytest.mark.parametrize(
+    ['meas_date', 'orig_time'], [
+        [None, None],
+        [datetime(2022, 12, 3, 19, 1, 10, 720100, tzinfo=timezone.utc), None],
+    ])
+def test_export_raw_pybv(tmp_path, meas_date, orig_time):
     """Test saving a Raw instance to BrainVision format via pybv."""
-    fname = (Path(__file__).parent.parent.parent /
-             "io" / "tests" / "data" / "test_raw.fif")
-    raw = read_raw_fif(fname, preload=True)
+    raw = read_raw_fif(fname_raw, preload=True)
     raw.apply_proj()
 
+    raw.set_meas_date(meas_date)
+
     # add some annotations
-    # XXX: This fails, I suspect the awful .first_samp to be an issue.
     annots = Annotations(
         onset=[3, 6, 9, 12, 14],  # seconds
         duration=[1, 1, 0.5, 0.25, 9],  # seconds
@@ -56,6 +60,7 @@ def test_export_raw_pybv(tmp_path):
             "Comment/And at this",
         ],
         ch_names=[(), (), (), ("EEG 001",), ("EEG 001", "EEG 002")],
+        orig_time=orig_time,
     )
     raw.set_annotations(annots)
 
@@ -73,9 +78,7 @@ def test_export_raw_pybv(tmp_path):
                     reason='eeglabio not installed')
 def test_export_raw_eeglab(tmp_path):
     """Test saving a Raw instance to EEGLAB's set format."""
-    fname = (Path(__file__).parent.parent.parent /
-             "io" / "tests" / "data" / "test_raw.fif")
-    raw = read_raw_fif(fname, preload=True)
+    raw = read_raw_fif(fname_raw, preload=True)
     raw.apply_proj()
     temp_fname = op.join(str(tmp_path), 'test.set')
     raw.export(temp_fname)
@@ -98,7 +101,7 @@ def test_export_raw_eeglab(tmp_path):
     raw.export(Path(temp_fname), overwrite=True)
 
     # test warning with unapplied projectors
-    raw = read_raw_fif(fname, preload=True)
+    raw = read_raw_fif(fname_raw, preload=True)
     with pytest.warns(RuntimeWarning,
                       match='Raw instance has unapplied projectors.'):
         raw.export(temp_fname, overwrite=True)
@@ -283,8 +286,7 @@ def test_rawarray_edf(tmp_path):
 def test_export_raw_edf(tmp_path, dataset, format):
     """Test saving a Raw instance to EDF format."""
     if dataset == 'test':
-        fname = _resource_path('mne.io.tests.data', 'test_raw.fif')
-        raw = read_raw_fif(fname)
+        raw = read_raw_fif(fname_raw)
     elif dataset == 'misc':
         fname = op.join(misc_path, 'ecog', 'sample_ecog_ieeg.fif')
         raw = read_raw_fif(fname)
