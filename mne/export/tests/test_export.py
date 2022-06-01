@@ -434,8 +434,7 @@ def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
         export_evokeds(export_fname, evoked, overwrite=True)
 
     # test export from evoked directly
-    # XXX: this fails because "EvokedArray" has no export method?
-    # evoked[0].export(export_fname)
+    evoked[0].export(export_fname, overwrite=True)
 
 
 @pytest.mark.filterwarnings('ignore::FutureWarning')
