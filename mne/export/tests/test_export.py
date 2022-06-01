@@ -19,7 +19,8 @@ from mne import (read_epochs_eeglab, Epochs, read_evokeds, read_evokeds_mff,
                  Annotations)
 from mne.datasets import testing, misc
 from mne.export import export_evokeds, export_evokeds_mff
-from mne.io import read_raw_fif, read_raw_eeglab, read_raw_edf, read_raw_brainvision
+from mne.io import (read_raw_fif, read_raw_eeglab, read_raw_edf,
+                    read_raw_brainvision)
 from mne.utils import (_check_eeglabio_installed, requires_version,
                        object_diff, _check_edflib_installed, _resource_path,
                        _check_pybv_installed)
