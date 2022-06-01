@@ -2256,7 +2256,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                      % (stc.vertices[0][loc_idx], dist))
         return loc_idx
 
-    ax_name = dict(x='X (saggital)', y='Y (coronal)', z='Z (axial)')
+    ax_name = dict(x='X (sagittal)', y='Y (coronal)', z='Z (axial)')
 
     def _click_to_cut_coords(event, params):
         """Get voxel coordinates from mouse click."""

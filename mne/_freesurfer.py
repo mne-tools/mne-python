@@ -100,7 +100,7 @@ def _mri_orientation(orientation):
     Parameters
     ----------
     orientation : str
-        Orientation that you want. Can be "axial", "saggital", or "coronal".
+        Orientation that you want. Can be "axial", "sagittal", or "coronal".
 
     Returns
     -------
