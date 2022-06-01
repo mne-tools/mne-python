@@ -3748,13 +3748,19 @@ class Report:
                 tags=tags
             )
 
+        # Special handling to deal with our tests, where we monkey-patch
+        # _BEM_VIEWS to save time
+        html_slider_axial = htmls['axial'] if 'axial' in htmls else ''
+        html_slider_sagittal = htmls['sagittal'] if 'sagittal' in htmls else ''
+        html_slider_coronal = htmls['coronal'] if 'coronal' in htmls else ''
+
         dom_id = self._get_dom_id()
         html = _html_bem_element(
             id=dom_id,
             div_klass='bem',
-            html_slider_axial=htmls['axial'],
-            html_slider_sagittal=htmls['sagittal'],
-            html_slider_coronal=htmls['coronal'],
+            html_slider_axial=html_slider_axial,
+            html_slider_sagittal=html_slider_sagittal,
+            html_slider_coronal=html_slider_coronal,
             tags=tags,
             title=section,
         )

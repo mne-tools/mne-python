@@ -153,12 +153,12 @@ def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     titles = [op.basename(x) for x in fnames if not x.endswith('-ave.fif')]
     titles.append(f'{op.basename(evoked_fname)}: {evoked.comment}')
 
-    content_names = [element.name for element in report._content]
+    _, _, content_titles, _ = report._content_as_html()
     for title in titles:
-        assert title in content_names
+        assert title in content_titles
         assert (''.join(report.html).find(title) != -1)
 
-    assert len(report._content) == len(fnames)
+    assert len(content_titles) == len(fnames)
 
     # Check saving functionality
     report.data_path = tempdir
@@ -170,8 +170,6 @@ def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     assert f'{op.basename(evoked_fname)}: {evoked.comment}' in html
     assert 'Topographies' in html
     assert 'Global field power' in html
-
-    assert len(report._content) == len(fnames)
 
     # Check saving same report to new filename
     report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
@@ -306,12 +304,12 @@ def test_render_non_fiff(tmp_path):
                         raw_butterfly=False)
 
     # Check correct paths and filenames
-    content_names = [element.name for element in report._content]
-    for fname in fnames_out:
+    _, _, content_titles, _ = report._content_as_html()
+    for fname in content_titles:
         assert (op.basename(fname) in
-                [op.basename(x) for x in content_names])
+                [op.basename(x) for x in content_titles])
 
-    assert len(report._content) == len(fnames_out)
+    assert len(content_titles) == len(fnames_out)
 
     report.data_path = tempdir
     fname = op.join(tempdir, 'report.html')
