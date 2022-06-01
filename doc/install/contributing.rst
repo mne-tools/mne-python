@@ -49,9 +49,6 @@ possible.
 
 .. dropdown:: Want an example to work through?
     :icon: rocket
-    :class-title: success
-    :class-container: success
-    :class-body: success
 
     Feel free to just read through the rest of the page, but if you find it
     easier to "learn by doing", take a look at our

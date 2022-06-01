@@ -42,9 +42,6 @@ MNE-Python and its dependencies. Typical output looks like this::
 
 .. dropdown:: If you get an error...
     :icon: alert-fill
-    :class-title: danger
-    :class-container: danger
-    :class-body: danger
 
     .. rubric:: If you see an error like:
 
