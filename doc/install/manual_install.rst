@@ -24,43 +24,10 @@ instead, a ``conda`` replacement that is **much** faster.
 
 Run in your terminal:
 
-.. note: this tab-set does not have an associated JS function to auto-open the
-         correct tab based on the browser's UserAgent string, because detecting
-         M1 / Apple Silicon via JS is... complicated:
-         https://stackoverflow.com/a/65412357
+.. code-block:: console
 
-.. tab-set::
-    :class: platform-selector-tabset
-
-    .. tab-item:: Linux, macOS (Intel), Windows
-
-        .. code-block:: console
-
-            $ conda install --channel=conda-forge --name=base mamba
-            $ mamba create --override-channels --channel=conda-forge --name=mne mne
-
-
-    .. tab-item:: macOS (M1 / Apple Silicon)
-
-        Not all MNE-Python dependencies are available natively for M1 systems
-        (Apple Silicon). Therefore, we need to explicitly request conda to
-        install the Intel-based packages (by default, it would try to download
-        all dependencies for Apple Silicon – and fail!). Those Intel binaries
-        will be automatically run through macOS's emulation layer, Rosetta.
-
-        The procedure consists of two main steps: First we create the
-        environment from Intel-based packages. Then, we configure the
-        environment to always use Intel packages even for future installations,
-        should you decide to install any additional packages into the same
-        conda environment.
-
-        .. code-block:: console
-
-            $ conda install --channel=conda-forge --name=base mamba
-            $ CONDA_SUBDIR=osx-64 mamba create --strict-channel-priority --channel=conda-forge --name=mne mne
-            $ conda activate mne
-            $ conda config --env --set subdir osx-64
-
+    $ conda install --channel=conda-forge --name=base mamba
+    $ mamba create --override-channels --channel=conda-forge --name=mne mne
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``) and install all
