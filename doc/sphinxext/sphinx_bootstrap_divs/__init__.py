@@ -123,7 +123,7 @@ def setup(app):
     except AttributeError:
         app.add_javascript('bootstrap_divs.js')
     app.connect('build-finished', copy_asset_files)
-    for node in (DetailsNode):
+    for node in (DetailsNode,):
         app.add_node(node,
                      html=(node.visit_node, node.depart_node),
                      latex=(node.visit_node, node.depart_node),
