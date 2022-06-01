@@ -574,6 +574,19 @@ cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
         2 topomaps.
 """
 
+docdict['cmap_topomap_simple'] = """
+cmap : matplotlib colormap | None
+    Colormap to use. If None, 'Reds' is used for all positive data,
+    otherwise defaults to 'RdBu_r'.
+"""
+
+docdict['cnorm'] = """
+cnorm : matplotlib.colors.Normalize | None
+    Colormap normalization, default None means linear normalization. If not
+    None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
+    details.
+"""
+
 docdict['color_matplotlib'] = """
 color : color
     A list of anything matplotlib accepts: string, RGB, hex, etc.
