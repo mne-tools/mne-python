@@ -37,11 +37,13 @@ misc_path = misc.data_path(download=False)
 @pytest.mark.skipif(not _check_pybv_installed(strict=False),
                     reason='pybv not installed')
 @pytest.mark.parametrize(
-    ['meas_date', 'orig_time'], [
-        [None, None],
-        [datetime(2022, 12, 3, 19, 1, 10, 720100, tzinfo=timezone.utc), None],
+    ['meas_date', 'orig_time', 'ext'], [
+        [None, None, '.vhdr'],
+        [datetime(2022, 12, 3, 19, 1, 10, 720100, tzinfo=timezone.utc),
+         None,
+         '.eeg'],
     ])
-def test_export_raw_pybv(tmp_path, meas_date, orig_time):
+def test_export_raw_pybv(tmp_path, meas_date, orig_time, ext):
     """Test saving a Raw instance to BrainVision format via pybv."""
     raw = read_raw_fif(fname_raw, preload=True)
     raw.apply_proj()
@@ -64,10 +66,10 @@ def test_export_raw_pybv(tmp_path, meas_date, orig_time):
     )
     raw.set_annotations(annots)
 
-    temp_fname = tmp_path / 'test.vhdr'
+    temp_fname = tmp_path / ('test' + ext)
     with pytest.warns(RuntimeWarning, match="'short' format. Converting"):
         raw.export(temp_fname)
-    raw_read = read_raw_brainvision(temp_fname, preload=True)
+    raw_read = read_raw_brainvision(str(temp_fname).replace('.eeg', '.vhdr'))
     assert raw.ch_names == raw_read.ch_names
     assert_allclose(raw.times, raw_read.times)
     assert_allclose(raw.get_data(), raw_read.get_data())
