@@ -123,7 +123,7 @@ def _plot_dipole_mri_outlines(dipoles, *, subject, trans, ax, subjects_dir,
                     linewidths=1, linestyles='-', colors='k', zorder=3,
                     alpha=0.25)
                 ax_.add_collection(segments)
-            h = ax_.tricontour(
+            _ = ax_.tricontour(
                 surf['rr'][:, idx[0]], surf['rr'][:, idx[1]],
                 surf['tris'], surf['rr'][:, miss],
                 levels=[level], colors='k', linewidths=1.0, linestyles=['-'],
