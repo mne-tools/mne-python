@@ -2873,7 +2873,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
                           show_all=True, ax=None, block=False, show=True,
                           scale=None, color=None, *, highlight_color='r',
                           fig=None, title=None, head_source='seghead',
-                          surf='pial', verbose=None):
+                          surf='pial', width=None, verbose=None):
     """Plot dipole locations.
 
     If mode is set to 'arrow' or 'sphere', only the location of the first
@@ -2898,10 +2898,12 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
             Plot in 3D mode using PyVista with the given glyph type.
         ``'orthoview'``
             Plot in matplotlib ``Axes3D`` using matplotlib with MRI slices
-            shown on the sides of a cube, with the dipole(s) shown as arrows.
+            shown on the sides of a cube, with the dipole(s) shown as arrows
+            extending outward from a dot (i.e., the arrows pivot on the tail).
         ``'outlines'``
-            Plot in matplotlib ``Axes`` using a quiver for the dipoles in
-            three axes (axial, coronal, and sagittal views).
+            Plot in matplotlib ``Axes`` using a quiver of arrows for the
+            dipoles in three axes (axial, coronal, and sagittal views),
+            with the arrow pivoting in the middle of the arrow.
 
         .. versionchanged:: 1.1
            Added support for ``'outlines'``.
@@ -2945,7 +2947,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
         Only used if mode equals 'orthoview'.
     scale : float
         The scale (size in meters) of the dipoles if ``mode`` is not
-        ``'orthoview'``. The default is 0.04 when mode is ``'outlines'`` and
+        ``'orthoview'``. The default is 0.03 when mode is ``'outlines'`` and
         0.005 otherwise.
     color : tuple
         The color of the dipoles.
@@ -2981,6 +2983,11 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
         ``None``. Only used when mode is ``'outlines'``.
 
         .. versionadded:: 1.1
+    width : float | None
+        Width of the matplotlib quiver arrow, see
+        :func:`matplotlib.axes.Axes.quiver`. If None (default), when mode is
+        ``'outlines'`` 0.015 will be used, and when mode is ``'orthoview'``
+        the matplotlib default is used.
     %(verbose)s
 
     Returns
@@ -2998,7 +3005,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     kwargs = dict(
         trans=trans, subject=subject, subjects_dir=subjects_dir,
         coord_frame=coord_frame, ax=ax, block=block, show=show, color=color,
-        title=title)
+        title=title, width=width)
     dipoles = _check_concat_dipoles(dipoles)
     if mode == 'orthoview':
         fig = _plot_dipole_mri_orthoview(
@@ -3082,7 +3089,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
 def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                                coord_frame='head', idx='gof', show_all=True,
                                ax=None, block=False, show=True, color=None,
-                               highlight_color='r', title=None):
+                               highlight_color='r', title=None, width=None):
     """Plot dipoles on top of MRI slices in 3-D."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -3117,7 +3124,7 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
               'ori': ori, 'coord_frame': coord_frame,
               'show_all': show_all, 'pos': pos,
               'color': color, 'highlight_color': highlight_color,
-              'title': title}
+              'title': title, 'width': width}
     _plot_dipole(**params)
     ax.view_init(elev=30, azim=-140)
 
@@ -3185,7 +3192,7 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir, coord_frame):
 
 
 def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
-                 show_all, pos, color, highlight_color, title):
+                 show_all, pos, color, highlight_color, title, width):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
     xidx, yidx, zidx = np.round(vox[idx]).astype(int)
@@ -3225,6 +3232,8 @@ def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
             np.repeat(xyz[idx, 1], len(zz)), zs=zz, zorder=1,
             linestyle='-', color=highlight_color)
     q_kwargs = dict(length=50, color=highlight_color, pivot='tail')
+    if width is not None:
+        q_kwargs['width'] = width
     ax.quiver(xyz[idx, 0], xyz[idx, 1], xyz[idx, 2], ori[0], ori[1], ori[2],
               **q_kwargs)
     dims = np.array([(len(data) / -2.), (len(data) / 2.)])

@@ -24,9 +24,10 @@ def _check_concat_dipoles(dipole):
 
 def _plot_dipole_mri_outlines(dipoles, *, subject, trans, ax, subjects_dir,
                               color, scale, coord_frame, show, block,
-                              head_source, title, surf):
+                              head_source, title, surf, width):
     from matplotlib.axes import Axes
-    from matplotlib.collections import LineCollection
+    from matplotlib.collections import LineCollection, PatchCollection
+    from matplotlib.patches import Circle
     from scipy.spatial import ConvexHull
     import matplotlib.pyplot as plt
     extra = 'when mode is "outlines"'
@@ -45,7 +46,8 @@ def _plot_dipole_mri_outlines(dipoles, *, subject, trans, ax, subjects_dir,
             _validate_type(a, Axes, f'ax[{ai}]', extra=extra)
     dipoles = _check_concat_dipoles(dipoles)
     color = 'r' if color is None else color
-    scale = 0.04 if scale is None else scale
+    scale = 0.03 if scale is None else scale
+    width = 0.015 if width is None else width
     fig = ax[0].figure
     surfs = dict()
     hemis = ('lh', 'rh')
@@ -102,8 +104,12 @@ def _plot_dipole_mri_outlines(dipoles, *, subject, trans, ax, subjects_dir,
             scale * ori[:, idx[0]], scale * ori[:, idx[1]],
             color=color, pivot='middle', zorder=5,
             scale_units='xy', angles='xy', scale=1.,
-            width=0.03, minshaft=0.5, headwidth=2.5, headlength=2.5,
+            width=width, minshaft=0.5, headwidth=2.5, headlength=2.5,
             headaxislength=2)
+        coll = PatchCollection(
+            [Circle((x, y), radius=scale * 1000 * width * 6)
+             for x, y in zip(pos[:, idx[0]], pos[:, idx[1]])],
+            linewidths=0., facecolors=color, zorder=6)
         for key, surf in surfs.items():
             try:
                 level = levels[key][name]
@@ -122,8 +128,10 @@ def _plot_dipole_mri_outlines(dipoles, *, subject, trans, ax, subjects_dir,
                 surf['tris'], surf['rr'][:, miss],
                 levels=[level], colors='k', linewidths=1.0, linestyles=['-'],
                 zorder=4, alpha=0.5)
-            for coll in h.collections:
-                coll.set_clip_on(False)
+            # TODO: this breaks the PatchCollection in MPL
+            # for coll in h.collections:
+            #     coll.set_clip_on(False)
+        ax_.add_collection(coll)
         ax_.set(
             title=name, xlim=lims[coords[0]], ylim=lims[coords[1]],
             xlabel=coords[0] + ' (mm)', ylabel=coords[1] + ' (mm)')
