@@ -20,7 +20,7 @@ Got any questions? Let us know on the `MNE Forum`_!
             :ref-type: ref
             :color: primary
             :shadow:
-            :class: font-weight-bold
+            :class: font-weight-bold mt-3
 
             |cloud-download-alt| |ensp| Download for Linux
 
@@ -40,7 +40,7 @@ Got any questions? Let us know on the `MNE Forum`_!
             :ref-type: ref
             :color: primary
             :shadow:
-            :class: font-weight-bold
+            :class: font-weight-bold mt-3
 
             |cloud-download-alt| |ensp| Download for macOS
 
@@ -55,7 +55,7 @@ Got any questions? Let us know on the `MNE Forum`_!
             :ref-type: ref
             :color: primary
             :shadow:
-            :class: font-weight-bold
+            :class: font-weight-bold mt-3
 
             |cloud-download-alt| |ensp| Download for Windows
 
