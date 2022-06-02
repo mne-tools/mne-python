@@ -2985,9 +2985,9 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
         .. versionadded:: 1.1
     width : float | None
         Width of the matplotlib quiver arrow, see
-        :func:`matplotlib.axes.Axes.quiver`. If None (default), when mode is
-        ``'outlines'`` 0.015 will be used, and when mode is ``'orthoview'``
-        the matplotlib default is used.
+        :meth:`matplotlib:matplotlib.axes.Axes.quiver`. If None (default),
+        when mode is ``'outlines'`` 0.015 will be used, and when mode is
+        ``'orthoview'`` the matplotlib default is used.
     %(verbose)s
 
     Returns
