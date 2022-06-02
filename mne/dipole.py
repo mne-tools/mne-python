@@ -193,12 +193,12 @@ class Dipole:
                        show_all=True, ax=None, block=False, show=True,
                        scale=None, color=None, *, highlight_color='r',
                        fig=None, title=None, head_source='seghead',
-                       surf='pial', verbose=None):
+                       surf='pial', width=None, verbose=None):
         return plot_dipole_locations(
             self, trans, subject, subjects_dir, mode, coord_frame, idx,
             show_all, ax, block, show, scale=scale, color=color,
             highlight_color=highlight_color, fig=fig, title=title,
-            head_source=head_source, surf=surf)
+            head_source=head_source, surf=surf, width=width)
 
     @verbose
     def to_mni(self, subject, trans, subjects_dir=None,
