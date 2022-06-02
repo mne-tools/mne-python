@@ -13,8 +13,8 @@ reference :footcite:`GramfortEtAl2013a`:
 
 .. footbibliography::
 
-.. collapse:: |quote-left| BibTeX for MNE-Python
-    :class: info
+.. dropdown:: BibTeX for MNE-Python
+    :icon: typography
 
     .. include:: ../references.bib
         :code: bibtex
@@ -31,8 +31,8 @@ software, please use :footcite:`GramfortEtAl2014`:
 .. footbibliography::
 
 
-.. collapse:: |quote-left| BibTeX for inverse algorithms / MNE-C
-    :class: info
+.. dropdown:: BibTeX for inverse algorithms / MNE-C
+    :icon: typography
 
     .. include:: ../references.bib
         :code: bibtex

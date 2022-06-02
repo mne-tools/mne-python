@@ -26,8 +26,8 @@ Run in your terminal:
 
 .. code-block:: console
 
-   $ conda install --channel=conda-forge --name=base mamba
-   $ mamba create --override-channels --channel=conda-forge --name=mne mne
+    $ conda install --channel=conda-forge --name=base mamba
+    $ mamba create --override-channels --channel=conda-forge --name=mne mne
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``) and install all
