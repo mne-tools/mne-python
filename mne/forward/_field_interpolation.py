@@ -419,9 +419,7 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
 
         .. versionadded:: 0.11
     %(n_jobs)s
-    head_source : str | list of str
-        Head source(s) to use. See the ``source`` option of
-        :func:`mne.get_head_surf` for more information.
+    %(head_source)s
 
         .. versionadded:: 1.1
     %(verbose)s

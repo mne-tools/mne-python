@@ -11,8 +11,6 @@ nine QuSpin SERF OPMs placed over the right-hand side somatomotor area. Here
 we demonstrate how to localize these custom OPM data in MNE.
 """
 
-# %%
-
 # sphinx_gallery_thumbnail_number = 4
 
 import os.path as op
