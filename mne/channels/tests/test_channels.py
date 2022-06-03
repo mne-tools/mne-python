@@ -456,6 +456,7 @@ def test_equalize_channels():
     assert epochs is epochs2
 
 
+def test_combine_channels():
     """Test channel combination on Raw, Epochs, and Evoked."""
     raw = read_raw_fif(raw_fname, preload=True)
     raw_ch_bad = read_raw_fif(raw_fname, preload=True)
