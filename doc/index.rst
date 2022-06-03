@@ -12,20 +12,14 @@ MNE-Python Homepage
 
 .. LOGO
 
-.. raw:: html
-
-    <script type="text/javascript">
-    var observer = new MutationObserver(function(mutations) {
-    const dark = document.documentElement.dataset.theme == 'dark';
-    document.getElementsByClassName('mainlogo')[0].src = dark ? '_static/mne_logo_dark.svg' : "_static/mne_logo.svg";
-    })
-    observer.observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
-    </script>
-    <link rel="preload" href="_static/mne_logo_dark.svg" as="image">
-
 .. image:: _static/mne_logo.svg
    :alt: MNE-Python
-   :class: logo, mainlogo
+   :class: logo, mainlogo, only-light
+   :align: center
+
+.. image:: _static/mne_logo_dark.svg
+   :alt: MNE-Python
+   :class: logo, mainlogo, only-dark
    :align: center
 
 .. rst-class:: h4 text-center font-weight-light my-4

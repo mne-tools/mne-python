@@ -92,9 +92,9 @@ extensions = [
     'mne_substitutions',
     'newcontrib_substitutions',
     'gen_names',
-    'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
     'sphinx_copybutton',
+    'sphinx_design',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -919,11 +919,11 @@ fixed_icons = (
     'book', 'code-branch', 'newspaper', 'question-circle', 'quote-left',
     # contrib guide:
     'bug', 'comment', 'hand-sparkles', 'magic', 'pencil-alt', 'remove-format',
-    'universal-access', 'discourse', 'python'
+    'universal-access', 'discourse', 'python',
 )
 other_icons = (
     'hand-paper', 'question', 'rocket', 'server', 'code', 'desktop',
-    'terminal'
+    'terminal', 'cloud-download-alt', 'wrench',
 )
 icons = dict()
 for icon in brand_icons + fixed_icons + other_icons:
@@ -946,6 +946,10 @@ prolog += '''
         <i class="fas fa-bug fa-stack-1x"></i>
         <i class="fas fa-ban fa-stack-2x"></i>
     </span>
+'''
+
+prolog += '''
+.. |ensp| unicode:: U+2002 .. EN SPACE
 '''
 
 # -- Dependency info ----------------------------------------------------------

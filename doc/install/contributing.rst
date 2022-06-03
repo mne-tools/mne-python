@@ -46,13 +46,14 @@ docstrings/tutorials/website, those kinds of contributions are made through
 how to set up your workflow to make contributing via GitHub as easy as
 possible.
 
-.. collapse:: |rocket| Want an example to work through?
-   :class: success
 
-   Feel free to just read through the rest of the page, but if you find it
-   easier to "learn by doing", take a look at our
-   `GitHub issues marked "easy"`_, pick one that looks interesting, and work
-   through it while reading this guide!
+.. dropdown:: Want an example to work through?
+    :icon: rocket
+
+    Feel free to just read through the rest of the page, but if you find it
+    easier to "learn by doing", take a look at our
+    `GitHub issues marked "easy"`_, pick one that looks interesting, and work
+    through it while reading this guide!
 
 
 Overview of contribution process
