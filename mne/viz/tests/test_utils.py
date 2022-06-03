@@ -9,14 +9,17 @@ from numpy.testing import assert_allclose
 import pytest
 import matplotlib.pyplot as plt
 
+from mne import create_info
 from mne.viz.utils import (compare_fiff, _fake_click, _compute_scalings,
                            _validate_if_list_of_axes, _get_color_list,
                            _setup_vmin_vmax, centers_to_edges,
-                           _make_event_color_dict, concatenate_images)
+                           _make_event_color_dict, concatenate_images,
+                           plot_sensors)
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.io import read_raw_fif
 from mne.event import read_events
 from mne.epochs import Epochs
+from mne.channels import make_dig_montage
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -197,3 +200,22 @@ def test_concatenate_images(a_w, a_h, b_w, b_h, axis):
     else:
         want_shape = (max(a_h, b_h), a_w + b_w, 3)
     assert img.shape == want_shape
+
+
+def test_plot_sensors_with_nan_positions():
+    import matplotlib as mpl
+
+    xyz_pos = np.array([[-0.1, 0.1, 0.1], [0.1, 0.1, 0.1], [0., 0., 0.12],
+                        [np.nan, np.nan, np.nan], [0.1, -0.1, 0.1]])
+
+    info = create_info(list('abcde'), 23, ch_types='eeg')
+    montage = make_dig_montage(
+        ch_pos={ch: pos for ch, pos in zip(info.ch_names, xyz_pos)},
+        coord_frame='head')
+    info.set_montage(montage)
+
+    for kind in ['topomap', '3d']:
+        fig = plot_sensors(info, kind=kind)
+        channels = fig.axes[0].findobj(mpl.collections.PathCollection)[0]
+        ch_pos = channels.get_offsets()
+        assert ch_pos.shape[0] == xyz_pos.shape[0] - 1
