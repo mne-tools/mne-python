@@ -763,7 +763,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
         locs3d = np.array([eeg_ch_locs[ch['ch_name']] for ch in chs])
 
     # Sometimes we can get nans
-    locs3d[~np.isfinite(locs3d)] = 0.
+    no_pos_chs = (~np.isfinite(locs3d)).any(axis=1)
 
     # Duplicate points cause all kinds of trouble during visualization
     dist = pdist(locs3d)
@@ -788,6 +788,10 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
         out += sphere[:2]
     else:
         out = _pol_to_cart(_cart_to_sph(locs3d))
+
+    # retain NaNs after transformations
+    if (no_pos_chs).any():
+        out[no_pos_chs, :] = np.nan
     return out
 
 
