@@ -1106,6 +1106,16 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
 
         pos, outlines = _get_pos_outlines(info, picks, sphere,
                                           to_sphere=to_sphere)
+
+        # avoid matplotlib warnings due to NaN positions - omit these channels
+        no_pos_chs = (~np.isfinite(pos)).any(axis=1)
+        if any(no_pos_chs):
+            good_idx = np.where(~no_pos_chs)[0]
+            pos = pos[good_idx]
+            ch_names = [ch_names[ch_idx] for ch_idx in good_idx]
+            colors = [colors[ch_idx] for ch_idx in good_idx]
+            edgecolors = [edgecolors[ch_idx] for ch_idx in good_idx]
+
         _draw_outlines(ax, outlines)
         pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, clip_on=False,
                          c=colors, edgecolors=edgecolors, s=pointsize,
