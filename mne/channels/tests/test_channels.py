@@ -456,7 +456,6 @@ def test_equalize_channels():
     assert epochs is epochs2
 
 
-def test_combine_channels():
     """Test channel combination on Raw, Epochs, and Evoked."""
     raw = read_raw_fif(raw_fname, preload=True)
     raw_ch_bad = read_raw_fif(raw_fname, preload=True)
@@ -469,7 +468,9 @@ def test_combine_channels():
     combine_channels(raw, good)
     combined_epochs = combine_channels(epochs, good)
     assert_array_equal(combined_epochs.events, epochs.events)
-    combine_channels(evoked, good)
+    assert epochs.baseline == combined_epochs.baseline
+    combined_evoked = combine_channels(evoked, good)
+    assert evoked.baseline == combined_evoked.baseline
     combine_channels(raw, good, drop_bad=True)
     combine_channels(raw_ch_bad, good, drop_bad=True)
 
