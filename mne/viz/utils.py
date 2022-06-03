@@ -1088,10 +1088,23 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
     else:
         fig = ax.get_figure()
 
+    def _remove_channels_without_positions(pos, ch_names, colors, edgecolors):
+        no_pos_chs = (~np.isfinite(pos)).any(axis=1)
+        if any(no_pos_chs):
+            good_idx = np.where(~no_pos_chs)[0]
+            pos = pos[good_idx]
+            ch_names = [ch_names[ch_idx] for ch_idx in good_idx]
+            colors = [colors[ch_idx] for ch_idx in good_idx]
+            edgecolors = [edgecolors[ch_idx] for ch_idx in good_idx]
+        return pos, ch_names, colors, edgecolors
+
     if kind == '3d':
         pointsize = 75 if pointsize is None else pointsize
         ax.text(0, 0, 0, '', zorder=1)
 
+        pos, ch_names, colors, edgecolors = (
+            _remove_channels_without_positions(
+                pos, ch_names, colors, edgecolors))
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors,
                    s=pointsize, edgecolor=edgecolors, linewidth=linewidth)
 
@@ -1106,15 +1119,9 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
 
         pos, outlines = _get_pos_outlines(info, picks, sphere,
                                           to_sphere=to_sphere)
-
-        # avoid matplotlib warnings due to NaN positions - omit these channels
-        no_pos_chs = (~np.isfinite(pos)).any(axis=1)
-        if any(no_pos_chs):
-            good_idx = np.where(~no_pos_chs)[0]
-            pos = pos[good_idx]
-            ch_names = [ch_names[ch_idx] for ch_idx in good_idx]
-            colors = [colors[ch_idx] for ch_idx in good_idx]
-            edgecolors = [edgecolors[ch_idx] for ch_idx in good_idx]
+        pos, ch_names, colors, edgecolors = (
+            _remove_channels_without_positions(
+                pos, ch_names, colors, edgecolors))
 
         _draw_outlines(ax, outlines)
         pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, clip_on=False,
