@@ -644,7 +644,7 @@ def test_plot_dipole_mri_outlines(surf, coord_frame, ax, title):
         assert isinstance(ax, str) and ax == 'mpl', ax
         _, ax = plt.subplots(3, 1)
         ax = list(ax)
-        with pytest.raises(ValueError, match='allowed value is 3'):
+        with pytest.raises(ValueError, match='but the length is 2'):
             dipoles.plot_locations(
                 trans, 'sample', subjects_dir, ax=ax[:2], mode='outlines')
     fig = dipoles.plot_locations(

@@ -8,7 +8,7 @@
 import os.path as op
 import numpy as np
 
-from .utils import plt_show
+from .utils import plt_show, _validate_if_list_of_axes
 from .._freesurfer import _get_head_surface, _estimate_talxfm_rigid
 from ..surface import read_surface
 from ..transforms import apply_trans, invert_transform, _get_trans
@@ -25,7 +25,6 @@ def _check_concat_dipoles(dipole):
 def _plot_dipole_mri_outlines(dipoles, *, subject, trans, ax, subjects_dir,
                               color, scale, coord_frame, show, block,
                               head_source, title, surf, width):
-    from matplotlib.axes import Axes
     from matplotlib.collections import LineCollection, PatchCollection
     from matplotlib.patches import Circle
     from scipy.spatial import ConvexHull
@@ -39,11 +38,7 @@ def _plot_dipole_mri_outlines(dipoles, *, subject, trans, ax, subjects_dir,
     if ax is None:
         _, ax = plt.subplots(
             1, 3, figsize=(7, 2.5), squeeze=True, constrained_layout=True)
-    else:
-        _validate_type(ax, (list, tuple), 'ax', extra=extra)
-        _check_option('len(ax)', len(ax), (3,), extra=extra)
-        for ai, a in enumerate(ax):
-            _validate_type(a, Axes, f'ax[{ai}]', extra=extra)
+    _validate_if_list_of_axes(ax, 3, name='ax')
     dipoles = _check_concat_dipoles(dipoles)
     color = 'r' if color is None else color
     scale = 0.03 if scale is None else scale

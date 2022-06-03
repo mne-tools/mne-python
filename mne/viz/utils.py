@@ -217,30 +217,27 @@ def _check_delayed_ssp(container):
         raise RuntimeError('No projs found in evoked.')
 
 
-def _validate_if_list_of_axes(axes, obligatory_len=None):
+def _validate_if_list_of_axes(axes, obligatory_len=None, name='axes'):
     """Validate whether input is a list/array of axes."""
     from matplotlib.axes import Axes
-    if obligatory_len is not None and not isinstance(obligatory_len, int):
-        raise ValueError('obligatory_len must be None or int, got %d',
-                         'instead' % type(obligatory_len))
-    if not isinstance(axes, (list, np.ndarray)):
-        raise ValueError('axes must be a list or numpy array of matplotlib '
-                         'axes objects, got %s instead.' % type(axes))
+    _validate_type(axes, (list, tuple, np.ndarray), name)
     if isinstance(axes, np.ndarray) and axes.ndim > 1:
-        raise ValueError('if input is a numpy array, it must be '
-                         'one-dimensional. The received numpy array has %d '
-                         'dimensions however. Try using ravel or flatten '
-                         'method of the array.' % axes.ndim)
-    is_correct_type = np.array([isinstance(x, Axes)
-                                for x in axes])
-    if not np.all(is_correct_type):
-        first_bad = np.where(np.logical_not(is_correct_type))[0][0]
-        raise ValueError('axes must be a list or numpy array of matplotlib '
-                         'axes objects while one of the list elements is '
-                         '%s.' % type(axes[first_bad]))
-    if obligatory_len is not None and not len(axes) == obligatory_len:
-        raise ValueError('axes must be a list/array of length %d, while the'
-                         ' length is %d' % (obligatory_len, len(axes)))
+        raise ValueError(
+            f'if {name} is a numpy array, it must be one-dimensional, but '
+            f'the received numpy array has {axes.ndim} dimensions. Try using '
+            'ravel or flatten method of the array.')
+    wrong_idx = np.where([not isinstance(x, Axes) for x in axes])[0]
+    if len(wrong_idx):
+        raise ValueError(
+            f'{name} must be an array-like of matplotlib axes objects, but '
+            f'{name}[{wrong_idx[0]}] is of type {type(axes[wrong_idx[0]])}')
+    if obligatory_len is not None:
+        obligatory_len = _ensure_int(obligatory_len, 'obligatory_len',
+                                     extra='if not None')
+        if len(axes) != obligatory_len:
+            raise ValueError(
+                f'{name} must be an array-like of length {obligatory_len}, '
+                f'but the length is {len(axes)}')
 
 
 def mne_analyze_colormap(limits=[5, 10, 15], format='vtk'):
