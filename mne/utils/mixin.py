@@ -254,8 +254,10 @@ class GetEpochsMixin(object):
                 self._check_metadata(metadata=md)
                 try:
                     # Try metadata
-                    vals = self.metadata.query(keys[0],
-                                               engine='python').index.values
+                    vals = self.metadata.reset_index().query(
+                        keys[0],
+                        engine='python'
+                    ).index.values
                 except Exception as exp:
                     msg += (' The epochs.metadata Pandas query did not '
                             'yield any results: %s' % (exp.args[0],))
