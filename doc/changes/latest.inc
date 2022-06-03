@@ -130,7 +130,7 @@ Bugs
 
 - :func:`mne.read_evokeds`, :func:`mne.channels.read_custom_montage`, :func:`mne.channels.read_dig_hpts`, :func:`mne.channels.read_dig_polhemus_isotrak`, and :func:`mne.channels.read_polhemus_fastscan` now correctly expand ``~`` in the provided path to the user's home directory (:gh:`10685`, :gh:`10688` by `Richard Höchenberger`_)
 
-- Fix bug in :func:`mne.io.read_raw_eeglab` and :func:`mne.io.read_epochs_eeglab`, where the presence of channels without position in the ``.set`` file caused positions incorrectly assigned to all further channels (:gh:`8754` by `Mikołaj Magnuski`_)
+- Fix bug in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab`, where the presence of channels without position in the ``.set`` file caused positions incorrectly assigned to all further channels (:gh:`8754` by `Mikołaj Magnuski`_)
 
 - Combining channels of :class:`mne.Epochs` or :class:`mne.Evoked` objects now properly retains baseline information (:gh:`10703` by `Clemens Brunner`_)
 
