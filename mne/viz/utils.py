@@ -228,7 +228,7 @@ def _validate_if_list_of_axes(axes, obligatory_len=None, name='axes'):
             'ravel or flatten method of the array.')
     wrong_idx = np.where([not isinstance(x, Axes) for x in axes])[0]
     if len(wrong_idx):
-        raise ValueError(
+        raise TypeError(
             f'{name} must be an array-like of matplotlib axes objects, but '
             f'{name}[{wrong_idx[0]}] is of type {type(axes[wrong_idx[0]])}')
     if obligatory_len is not None:
