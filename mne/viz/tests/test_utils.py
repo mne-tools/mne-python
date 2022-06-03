@@ -203,6 +203,7 @@ def test_concatenate_images(a_w, a_h, b_w, b_h, axis):
 
 
 def test_plot_sensors_with_nan_positions():
+    """Test plot_sensors when there are NaN positions."""
     import matplotlib as mpl
 
     xyz_pos = np.array([[-0.1, 0.1, 0.1], [0.1, 0.1, 0.1], [0., 0., 0.12],
