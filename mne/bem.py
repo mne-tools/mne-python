@@ -13,6 +13,7 @@ from functools import partial
 import glob
 import os
 import os.path as op
+from pathlib import Path
 import shutil
 from copy import deepcopy
 
@@ -33,7 +34,7 @@ from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
-                    _on_missing, _import_h5io_funcs, _ensure_int)
+                    _on_missing, _import_h5io_funcs, _ensure_int, deprecated)
 
 
 # ############################################################################
@@ -1687,6 +1688,9 @@ def _prepare_env(subject, subjects_dir):
     return env, mri_dir, bem_dir
 
 
+@deprecated('convert_flash_mris is deprecated and will be removed in 1.2. '
+            'To convert your dicom files to .nii or .mgz files, use dcm2nii '
+            'or mri_convert available in FreeSurfer.')
 @verbose
 def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
                        subjects_dir=None, verbose=None):
@@ -1841,7 +1845,8 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
 
 @verbose
 def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
-                   flash_path=None, copy=True, verbose=None):
+                   flash_path=None, copy=True, flash5_img=None,
+                   register=True, verbose=None):
     """Create 3-Layer BEM model from prepared flash MRI images.
 
     Parameters
@@ -1864,6 +1869,13 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
         .. versionadded:: 0.18
         .. versionchanged:: 1.1 Use copies instead of symlinks.
+    flash5_img : None | path-like | Nifti1Image
+        The path to the flash 5 MRI image. If None (default), the path
+        defaults to flash5.mgz within the flash_path folder.
+        XXX if NiFTI1Image, the image is written to the flash_path folder.
+    register : bool
+        Register the flash images with T1.mgz file. If False, we assume
+        that the flash images are already registered with T1.mgz.
     %(verbose)s
 
     See Also
@@ -1886,10 +1898,11 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
                                  cwd=tempdir)
 
     if flash_path is None:
-        flash_path = op.join(mri_dir, 'flash', 'parameter_maps')
+        flash_path = Path(mri_dir) / 'flash' / 'parameter_maps'
     else:
-        flash_path = op.abspath(flash_path)
+        flash_path = Path(flash_path).resolve()
     subjects_dir = env['SUBJECTS_DIR']
+    flash_path.mkdir(exist_ok=True, parents=True)
 
     logger.info('\nProcessing the flash MRI data to produce BEM meshes with '
                 'the following parameters:\n'
@@ -1898,19 +1911,27 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
                 'Result dir = %s\n' % (subjects_dir, subject,
                                        op.join(bem_dir, 'flash')))
     # Step 4 : Register with MPRAGE
-    logger.info("\n---- Registering flash 5 with MPRAGE ----")
-    flash5 = op.join(flash_path, 'flash5.mgz')
-    flash5_reg = op.join(flash_path, 'flash5_reg.mgz')
-    if not op.exists(flash5_reg):
-        if op.exists(op.join(mri_dir, 'T1.mgz')):
-            ref_volume = op.join(mri_dir, 'T1.mgz')
-        else:
-            ref_volume = op.join(mri_dir, 'T1')
-        cmd = ['fsl_rigid_register', '-r', ref_volume, '-i', flash5,
-               '-o', flash5_reg]
+    flash5 = flash_path / 'flash5.mgz'
+    if flash5_img is not None:
+        cmd = ['mri_convert', Path(flash5_img).resolve(), flash5]
         run_subprocess_env(cmd)
+
+    if register:
+        logger.info("\n---- Registering flash 5 with MPRAGE ----")
+        flash5_reg = op.join(flash_path, 'flash5_reg.mgz')
+        if not op.exists(flash5_reg):
+            if op.exists(op.join(mri_dir, 'T1.mgz')):
+                ref_volume = op.join(mri_dir, 'T1.mgz')
+            else:
+                ref_volume = op.join(mri_dir, 'T1')
+            cmd = ['fsl_rigid_register', '-r', ref_volume, '-i', flash5,
+                '-o', flash5_reg]
+            run_subprocess_env(cmd)
+        else:
+            logger.info("Registered flash 5 image is already there")
     else:
-        logger.info("Registered flash 5 image is already there")
+        flash5_reg = flash5
+
     # Step 5a : Convert flash5 into COR
     logger.info("\n---- Converting flash5 volume into COR format ----")
     flash5_dir = op.join(mri_dir, 'flash5')

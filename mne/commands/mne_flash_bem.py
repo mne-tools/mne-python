@@ -57,14 +57,20 @@ def run():
                       help="Subjects directory", default=None)
     parser.add_option("-3", "--noflash30", dest="noflash30",
                       action="store_true", default=False,
-                      help=("Skip the 30-degree flip angle data"),)
+                      help=("[DEPRECATED] Skip the 30-degree flip angle data"),)
+    parser.add_option("-5", "--flash5", dest="flash5", default=None,
+                      help=("Path to the flash5 image."),)
+    parser.add_option("-r", "--registered", dest="registered",
+                      action="store_true", default=False,
+                      help=("Set if the Flash MRI images have already "
+                            "been regisered with the T1.mgz file."))
     parser.add_option("-n", "--noconvert", dest="noconvert",
                       action="store_true", default=False,
-                      help=("Assume that the Flash MRI images have already "
+                      help=("[DEPRECATED] Assume that the Flash MRI images have already "
                             "been converted to mgz files"))
     parser.add_option("-u", "--unwarp", dest="unwarp",
                       action="store_true", default=False,
-                      help=("Run grad_unwarp with -unwarp <type> option on "
+                      help=("[DEPRECATED] Run grad_unwarp with -unwarp <type> option on "
                             "each of the converted data sets"))
     parser.add_option("-o", "--overwrite", dest="overwrite",
                       action="store_true", default=False,
@@ -85,8 +91,10 @@ def run():
 
     subject = options.subject
     subjects_dir = options.subjects_dir
+    flash5 = options.flash5
     flash30 = not options.noflash30
     convert = not options.noconvert
+    register = not options.registered
     unwarp = options.unwarp
     overwrite = options.overwrite
     show = options.show
@@ -97,12 +105,14 @@ def run():
         parser.print_help()
         raise RuntimeError('The subject argument must be set')
 
-    convert_flash_mris(subject=subject, subjects_dir=subjects_dir,
-                       flash30=flash30, convert=convert, unwarp=unwarp,
-                       verbose=True)
+    if convert:
+         convert_flash_mris(subject=subject, subjects_dir=subjects_dir,
+                            flash30=flash30, convert=convert, unwarp=unwarp,
+                            verbose=True)
     make_flash_bem(subject=subject, subjects_dir=subjects_dir,
                    overwrite=overwrite, show=show, flash_path=flash_path,
-                   copy=copy, verbose=True)
+                   copy=copy, register=register, flash5_img=flash5,
+                   verbose=True)
 
 
 mne.utils.run_command_if_main()
