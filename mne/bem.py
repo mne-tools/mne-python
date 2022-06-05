@@ -34,7 +34,8 @@ from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
-                    _on_missing, _import_h5io_funcs, _ensure_int, deprecated)
+                    _on_missing, _import_h5io_funcs, _ensure_int, deprecated,
+                    _path_like)
 
 
 # ############################################################################
@@ -1689,12 +1690,15 @@ def _prepare_env(subject, subjects_dir):
 
 
 @deprecated('convert_flash_mris is deprecated and will be removed in 1.2. '
-            'To convert your dicom files to .nii or .mgz files, use dcm2nii '
+            'To convert your dicom files to .nii or .mgz files, use dcm2niix '
             'or mri_convert available in FreeSurfer.')
 @verbose
 def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
                        subjects_dir=None, verbose=None):
     """Convert DICOM files for use with make_flash_bem.
+
+    DEPRECATED: To convert your dicom files to .nii or .mgz files, use dcm2niix
+    or mri_convert available in FreeSurfer.
 
     Parameters
     ----------
@@ -1870,9 +1874,10 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         .. versionadded:: 0.18
         .. versionchanged:: 1.1 Use copies instead of symlinks.
     flash5_img : None | path-like | Nifti1Image
-        The path to the flash 5 MRI image. If None (default), the path
-        defaults to flash5.mgz within the flash_path folder.
-        XXX if NiFTI1Image, the image is written to the flash_path folder.
+        The path to the (multi-echo) FLASH 5 MRI image or the image itself. If
+        None (default), the path defaults to flash5.mgz within the flash_path
+        folder or to mef05.mgz in the mri/flash folder. If not present the image is
+        copied or written to the flash_path folder as flash5.mgz.
     register : bool
         Register the flash images with T1.mgz file. If False, we assume
         that the flash images are already registered with T1.mgz.
@@ -1897,8 +1902,10 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
 
+    mri_dir = Path(mri_dir)
+    bem_dir = Path(bem_dir)
     if flash_path is None:
-        flash_path = Path(mri_dir) / 'flash' / 'parameter_maps'
+        flash_path = mri_dir / 'flash' / 'parameter_maps'
     else:
         flash_path = Path(flash_path).resolve()
     subjects_dir = env['SUBJECTS_DIR']
@@ -1909,21 +1916,33 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
                 'SUBJECTS_DIR = %s\n'
                 'SUBJECT = %s\n'
                 'Result dir = %s\n' % (subjects_dir, subject,
-                                       op.join(bem_dir, 'flash')))
+                                       bem_dir / 'flash'))
     # Step 4 : Register with MPRAGE
     flash5 = flash_path / 'flash5.mgz'
-    if flash5_img is not None:
+    mef05 = mri_dir / 'flash' / 'mef05.mgz'
+    if flash5_img is None and mef05.exists():
+        flash5_img = mef05
+
+    if _path_like(flash5_img):
+        logger.info(f"Copying flash 5 image {flash5_img} to {flash5}")
         cmd = ['mri_convert', Path(flash5_img).resolve(), flash5]
         run_subprocess_env(cmd)
+    elif flash5_img is None:
+        if not flash5.exists():
+            raise ValueError(f'Flash 5 image cannot be found at {flash5}.')
+    else:
+        logger.info(f"Writing flash 5 image at {flash5}")
+        import nibabel as nib
+        nib.save(flash5_img, flash5)
 
     if register:
-        logger.info("\n---- Registering flash 5 with MPRAGE ----")
-        flash5_reg = op.join(flash_path, 'flash5_reg.mgz')
-        if not op.exists(flash5_reg):
-            if op.exists(op.join(mri_dir, 'T1.mgz')):
-                ref_volume = op.join(mri_dir, 'T1.mgz')
+        logger.info("\n---- Registering flash 5 with T1 MPRAGE ----")
+        flash5_reg = flash_path / 'flash5_reg.mgz'
+        if not flash5_reg.exists():
+            if (mri_dir / 'T1.mgz').exists():
+                ref_volume = mri_dir / 'T1.mgz'
             else:
-                ref_volume = op.join(mri_dir, 'T1')
+                ref_volume = mri_dir / 'T1'
             cmd = ['fsl_rigid_register', '-r', ref_volume, '-i', flash5,
                 '-o', flash5_reg]
             run_subprocess_env(cmd)
@@ -1934,37 +1953,36 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
     # Step 5a : Convert flash5 into COR
     logger.info("\n---- Converting flash5 volume into COR format ----")
-    flash5_dir = op.join(mri_dir, 'flash5')
+    flash5_dir = mri_dir / 'flash5'
     shutil.rmtree(flash5_dir, ignore_errors=True)
-    os.makedirs(flash5_dir)
-    cmd = ['mri_convert', flash5_reg, op.join(mri_dir, 'flash5')]
+    flash5_dir.mkdir(exist_ok=True, parents=True)
+    cmd = ['mri_convert', flash5_reg, flash5_dir]
     run_subprocess_env(cmd)
     # Step 5b and c : Convert the mgz volumes into COR
     convert_T1 = False
-    T1_dir = op.join(mri_dir, 'T1')
-    if not op.isdir(T1_dir) or len(glob.glob(op.join(T1_dir, 'COR*'))) == 0:
+    T1_dir = mri_dir / 'T1'
+    if not T1_dir.is_dir() or next(T1_dir.glob('COR*')) is None:
         convert_T1 = True
     convert_brain = False
-    brain_dir = op.join(mri_dir, 'brain')
-    if not op.isdir(brain_dir) or \
-            len(glob.glob(op.join(brain_dir, 'COR*'))) == 0:
+    brain_dir = mri_dir / 'brain'
+    if not brain_dir.is_dir() or next(brain_dir.glob('COR*')) is None:
         convert_brain = True
     logger.info("\n---- Converting T1 volume into COR format ----")
     if convert_T1:
-        T1_fname = op.join(mri_dir, 'T1.mgz')
-        if not op.isfile(T1_fname):
+        T1_fname = mri_dir / 'T1.mgz'
+        if not T1_fname.is_file():
             raise RuntimeError("Both T1 mgz and T1 COR volumes missing.")
-        os.makedirs(T1_dir)
+        T1_dir.mkdir(exist_ok=True, parents=True)
         cmd = ['mri_convert', T1_fname, T1_dir]
         run_subprocess_env(cmd)
     else:
         logger.info("T1 volume is already in COR format")
     logger.info("\n---- Converting brain volume into COR format ----")
     if convert_brain:
-        brain_fname = op.join(mri_dir, 'brain.mgz')
-        if not op.isfile(brain_fname):
+        brain_fname = mri_dir / 'brain.mgz'
+        if not brain_fname.is_file():
             raise RuntimeError("Both brain mgz and brain COR volumes missing.")
-        os.makedirs(brain_dir)
+        brain_dir.mkdir(exist_ok=True, parents=True)
         cmd = ['mri_convert', brain_fname, brain_dir]
         run_subprocess_env(cmd)
     else:
@@ -1976,13 +1994,12 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     del tempdir  # ran our last subprocess; clean up directory
 
     logger.info("\n---- Converting the tri files into surf files ----")
-    flash_bem_dir = op.join(bem_dir, 'flash')
-    if not op.exists(flash_bem_dir):
-        os.makedirs(flash_bem_dir)
+    flash_bem_dir = bem_dir / 'flash'
+    flash_bem_dir.mkdir(exist_ok=True, parents=True)
     surfs = ['inner_skull', 'outer_skull', 'outer_skin']
     for surf in surfs:
-        out_fname = op.join(flash_bem_dir, surf + '.tri')
-        shutil.move(op.join(bem_dir, surf + '.tri'), out_fname)
+        out_fname = flash_bem_dir / (surf + '.tri')
+        shutil.move(bem_dir / (surf + '.tri'), out_fname)
         nodes, tris = read_tri(out_fname, swap=True)
         # Do not write volume info here because the tris are already in
         # standard Freesurfer coords
@@ -1991,8 +2008,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
     # Cleanup section
     logger.info("\n---- Cleaning up ----")
-    os.remove(op.join(bem_dir, 'inner_skull_tmp.tri'))
-    # os.chdir(mri_dir)
+    (bem_dir / 'inner_skull_tmp.tri').unlink()
     if convert_T1:
         shutil.rmtree(T1_dir)
         logger.info("Deleted the T1 COR volume")
@@ -2005,18 +2021,18 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     logger.info("\n---- Creating symbolic links ----")
     # os.chdir(bem_dir)
     for surf in surfs:
-        surf = op.join(bem_dir, surf + '.surf')
-        if not overwrite and op.exists(surf):
+        surf = bem_dir / (surf + '.surf')
+        if not overwrite and surf.exists():
             skip_symlink = True
         else:
-            if op.exists(surf):
-                os.remove(surf)
-            _symlink(op.join(flash_bem_dir, op.basename(surf)), surf, copy)
+            if surf.exists():
+                surf.unlink()
+            _symlink(flash_bem_dir / surf.name, surf, copy)
             skip_symlink = False
     if skip_symlink:
         logger.info("Unable to create all symbolic links to .surf files "
                     "in bem folder. Use --overwrite option to recreate them.")
-        dest = op.join(bem_dir, 'flash')
+        dest = bem_dir / 'flash'
     else:
         logger.info("Symbolic links to .surf files created in bem folder")
         dest = bem_dir
