@@ -1876,8 +1876,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     flash5_img : None | path-like | Nifti1Image
         The path to the (multi-echo) FLASH 5 MRI image or the image itself. If
         None (default), the path defaults to flash5.mgz within the flash_path
-        folder or to mef05.mgz in the mri/flash folder. If not present the image is
-        copied or written to the flash_path folder as flash5.mgz.
+        folder or to mef05.mgz in the mri/flash folder. If not present the
+        image is copied or written to the flash_path folder as flash5.mgz.
     register : bool
         Register the flash images with T1.mgz file. If False, we assume
         that the flash images are already registered with T1.mgz.
@@ -1944,7 +1944,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
             else:
                 ref_volume = mri_dir / 'T1'
             cmd = ['fsl_rigid_register', '-r', ref_volume, '-i', flash5,
-                '-o', flash5_reg]
+                   '-o', flash5_reg]
             run_subprocess_env(cmd)
         else:
             logger.info("Registered flash 5 image is already there")
