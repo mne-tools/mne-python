@@ -132,6 +132,8 @@ Bugs
 
 - Combining channels of :class:`mne.Epochs` or :class:`mne.Evoked` objects now properly retains baseline information (:gh:`10703` by `Clemens Brunner`_)
 
+- Channels with undefined position (``np.nan``) are now ignored when using :func:`mne.viz.plot_sensors` or :func:`mne.viz.plot_topomap` (:gh:`10706` by `Mikołaj Magnuski`_)
+
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - When creating BEM surfaces via :func:`mne.bem.make_watershed_bem` and :func:`mne.bem.make_flash_bem`, the ``copy`` parameter now defaults to ``True``. This means that instead of creating symbolic links inside the FreeSurfer subject's ``bem`` folder, we now create "actual" files. This should avoid troubles when sharing files across different operating systems and file systems (:gh:`10531` by `Richard Höchenberger`_)
