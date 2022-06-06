@@ -3157,14 +3157,15 @@ def test_metadata(tmp_path):
 
 @requires_pandas
 def test_metadata_query_bool():
-    """Test metadata query with boolean indexing."""
+    """Test metadata query with boolean indexing and NaNs gh #10705."""
     import mne
     import numpy as np
     import pandas as pd
     from random import choices
 
     n_epochs, n_chans, n_samples = 40, 3, 101
-    correct = pd.Series(choices([True, False, None], k=n_epochs), dtype="boolean")
+    correct = pd.Series(choices([True, False, None], k=n_epochs),
+                        dtype="boolean")
     metadata = pd.DataFrame({"correct": correct})
     rng = np.random.default_rng()
     epochs = mne.EpochsArray(
