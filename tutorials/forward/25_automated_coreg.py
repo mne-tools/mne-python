@@ -7,7 +7,9 @@ Using an automated approach to coregistration
 =============================================
 
 This example shows how to use the coregistration functions to perform an
-automated MEG-MRI coregistration via scripting.
+automated MEG-MRI coregistration via scripting. Generally the results of
+this approach are consistent with those obtained from manual
+coregistration :footcite:`HouckClaus2020`
 
 .. warning:: The quality of the coregistration depends heavily upon the
              quality of the head shape points (HSP) collected during subject
@@ -31,7 +33,7 @@ data_path = mne.datasets.sample.data_path()
 subjects_dir = data_path / 'subjects'
 subject = 'sample'
 
-fname_raw = data_path / 'MEG' / subject / f'{subject}_audvis_raw.fif'
+fname_raw = data_path + '/MEG/' + subject + f'/{subject}_audvis_raw.fif'
 info = read_info(fname_raw)
 plot_kwargs = dict(subject=subject, subjects_dir=subjects_dir,
                    surfaces="head-dense", dig=True, eeg=[],
@@ -107,3 +109,8 @@ print(
 #           matched to a subject's head digitization. When scaling is desired,
 #           a scaled surrogate MRI should be created using
 #           :func:`mne.scale_mri`.
+
+# %%
+# References
+# ----------
+# .. footbibliography::
