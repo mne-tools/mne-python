@@ -3155,6 +3155,29 @@ def test_metadata(tmp_path):
         assert len(epochs.metadata) == 1
 
 
+@requires_pandas
+def test_metadata_query_bool():
+    """Test metadata query with boolean indexing."""
+    import mne
+    import numpy as np
+    import pandas as pd
+    from random import choices
+
+    n_epochs, n_chans, n_samples = 40, 3, 101
+    correct = pd.Series(choices([True, False, None], k=n_epochs), dtype="boolean")
+    metadata = pd.DataFrame({"correct": correct})
+    rng = np.random.default_rng()
+    epochs = mne.EpochsArray(
+        data=rng.standard_normal(size=(n_epochs, n_chans, n_samples)),
+        info=mne.create_info(n_chans, 500, "eeg"),
+        metadata=metadata
+    )
+
+    assert len(epochs) > metadata.sum()["correct"]
+    epochs = epochs["correct"]
+    assert len(epochs) == metadata.sum()["correct"]
+
+
 def assert_metadata_equal(got, exp):
     """Assert metadata are equal."""
     if exp is None:
