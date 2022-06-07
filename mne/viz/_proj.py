@@ -191,9 +191,9 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
         for line in ba_ax.lines:
             line.set(lw=0.5, zorder=3)
         loff = len(ba_ax.lines)
-        with warnings.catch_warnings(record=True):  # tight_layout
-            this_evoked.copy().add_proj(these_projs).apply_proj().plot(
-                picks='all', axes=[ba_ax])
+        this_proj_evoked = this_evoked.copy().add_proj(these_projs)
+        this_proj_evoked.apply_proj()
+        _plot_evoked(this_proj_evoked, picks='all', axes=[ba_ax], **pe_kwargs)
         for line in ba_ax.lines[loff:]:
             line.set(lw=0.5, zorder=4, color='g')
         for t in list(ba_ax.texts):
