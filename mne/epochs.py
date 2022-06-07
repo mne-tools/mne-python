@@ -1400,6 +1400,20 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             End time of data to get in seconds.
         %(verbose)s
         """
+        # if called with 'out=False', the call came from drop_bad()
+        # if no reasons to drop, just declare epochs as good and return
+        if hasattr(self, 'reject_by_annotation'):
+            reject_by_annotation = self.reject_by_annotation
+        else:
+            reject_by_annotation = False
+        if (not out and
+            self.reject is None and
+            self.flat is None and
+            self._reject_time is None and
+            not reject_by_annotation
+        ):
+            self._bad_dropped = True
+            return None
         start, stop = self._handle_tmin_tmax(tmin, tmax)
 
         if item is None:
