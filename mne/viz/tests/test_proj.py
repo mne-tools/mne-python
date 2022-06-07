@@ -14,7 +14,6 @@ sample_dir = data_dir / 'MEG' / 'sample'
 evoked_fname = sample_dir / 'sample_audvis-ave.fif'
 
 
-@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_plot_projs_joint():
     """Test plot_projs_joint."""
