@@ -9,11 +9,11 @@ import warnings
 
 import numpy as np
 
-from .topomap import plot_projs_topomap
-from .utils import plt_show
+from .evoked import _plot_evoked
+from .topomap import _plot_projs_topomap
+from .utils import plt_show, _check_type_projs
 from ..defaults import DEFAULTS
 from ..io.pick import _picks_to_idx
-from ..io.proj import Projection
 from ..utils import _validate_type, warn, _pl, verbose
 
 
@@ -64,14 +64,12 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
     import matplotlib.pyplot as plt
     from ..evoked import Evoked
     _validate_type(evoked, Evoked, 'evoked')
-    _validate_type(projs, (list, tuple), 'projs')
     _validate_type(topomap_kwargs, (None, dict), 'topomap_kwargs')
+    projs = _check_type_projs(projs)
     topomap_kwargs = dict() if topomap_kwargs is None else topomap_kwargs
     if picks_trace is not None:
         picks_trace = _picks_to_idx(
             evoked.info, picks_trace, allow_empty=False)
-    for pi, p in enumerate(projs):
-        _validate_type(p, Projection, f'projs[{pi}]')
     info = evoked.info
     ch_types = evoked.get_channel_types(unique=True, only_data_chs=True)
     proj_by_type = dict()
@@ -113,6 +111,7 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
     type_titles = DEFAULTS['titles']
     last_ax = [None] * 2
     first_ax = dict()
+    pe_kwargs = dict(show=False, draw=False)
     for ch_type, these_projs in proj_by_type.items():
         ch_names = ch_names_by_type[ch_type]
         idx = np.where([np.in1d(ch_names, proj['data']['col_names']).all()
@@ -133,9 +132,8 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
         tr_ax = plt.subplot2grid(
             shape, (ri, n_col - cs_trace), colspan=cs_trace, fig=fig)
         # topomaps
-        with warnings.catch_warnings(record=True):
-            plot_projs_topomap(these_projs, info=info, show=False,
-                               axes=topo_axes, **topomap_kwargs)
+        _plot_projs_topomap(these_projs, info=info, show=False,
+                            axes=topo_axes, **topomap_kwargs)
         plt.setp(topo_axes, title='', xlabel='')
         unit = DEFAULTS['units'][ch_type]
         # traces
@@ -149,8 +147,7 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
             ch_traces = evoked.data[picks_trace]
             ch_traces -= np.mean(ch_traces, axis=1, keepdims=True)
             ch_traces /= np.abs(ch_traces).max()
-        with warnings.catch_warnings(record=True):  # tight_layout
-            this_evoked.plot(picks='all', axes=[tr_ax])
+        _plot_evoked(this_evoked, picks='all', axes=[tr_ax], **pe_kwargs)
         for line in tr_ax.lines:
             line.set(lw=0.5, zorder=3)
         for t in list(tr_ax.texts):
@@ -190,9 +187,7 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
         if key not in first_ax:
             first_ax[key] = tr_ax
         # Before and after traces
-        with warnings.catch_warnings(record=True):  # tight_layout
-            this_evoked.plot(
-                picks='all', axes=[ba_ax])
+        _plot_evoked(this_evoked, picks='all', axes=[ba_ax], **pe_kwargs)
         for line in ba_ax.lines:
             line.set(lw=0.5, zorder=3)
         loff = len(ba_ax.lines)

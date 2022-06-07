@@ -31,14 +31,14 @@ from ..defaults import _handle_default
 from ..fixes import _get_args
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
+from ..io.meas_info import create_info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT, _VALID_CHANNEL_TYPES,
                        pick_info, _picks_by_type, pick_channels_cov,
                        _contains_ch_type)
-from ..io.meas_info import create_info
+from ..io.proj import setup_proj, Projection
 from ..rank import compute_rank
-from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, _check_ch_locs, _check_option,
                      logger, fill_doc, _pl, _check_sphere, _ensure_int,
                      _validate_type, _to_rgb, warn)
@@ -2453,3 +2453,12 @@ def _set_3d_axes_equal(ax):
     ax.set_xlim3d([x_mean - plot_radius, x_mean + plot_radius])
     ax.set_ylim3d([y_mean - plot_radius, y_mean + plot_radius])
     ax.set_zlim3d([z_mean - plot_radius, z_mean + plot_radius])
+
+
+def _check_type_projs(projs):
+    _validate_type(projs, (list, tuple, Projection), 'projs')
+    if isinstance(projs, Projection):
+        projs = [projs]
+    for pi, p in enumerate(projs):
+        _validate_type(p, Projection, f'projs[{pi}]')
+    return projs
