@@ -58,6 +58,9 @@ stages:
         make flake
       displayName: make flake
     - bash: |
+        make codespell-error
+      displayName: make codespell
+    - bash: |
         make pydocstyle
       displayName: make pydocstyle
       condition: always()
