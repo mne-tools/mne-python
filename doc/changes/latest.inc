@@ -130,6 +130,8 @@ Bugs
 
 - Reduce memory usage when loading an EDF file with ``preload=False`` (:gh:`10638` by `Clemens Brunner`_)
 
+- Fix bug in :meth:`mne.io.Raw.get_channel_types` and related methods where ``unique=True`` would return a :class:`python:set` with arbitrary order rather than a :class:`python:list` that preserves the same order as ``inst.ch_names`` (:gh:`10720` by `Eric Larson`_)
+
 - In :func:`mne.preprocessing.find_bad_channels_maxwell`, do not re-filter the data if a low-pass filter with the requested frequency has already been applied (:gh:`10664` by `Richard Höchenberger`_)
 
 - Fix a problem in :meth:`mne.Evoked.get_peak`, where under certain circumstances the ``mode`` parameters ``'pos'`` and ``'neg'`` were not honored when ``tmin`` and/or ``tmax`` were passed as well (:gh:`10686` by `Richard Höchenberger`_)
