@@ -39,6 +39,8 @@ Enhancements
 
 - The ``pick_channels`` method gained a ``verbose`` parameter, allowing e.g. to suppress messages about removed projectors (:gh:`10544` by `Richard Höchenberger`_)
 
+- Add :func:`mne.viz.plot_projs_joint` for joint plotting of projectors and Evoked (:gh:`10720` by `Eric Larson`_)
+
 - The :func:`mne.make_forward_dipole` function can now take a list of dipoles to make a multi-dipole forward models (:gh:`10464` by `Marijn van Vliet`_)
 
 - Add ``mode='outlines'`` support to :meth:`mne.Dipole.plot_locations` and :func:`mne.viz.plot_dipole_locations` (:gh:`10699` by `Eric Larson`_)

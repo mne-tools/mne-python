@@ -56,6 +56,7 @@ Visualization
    plot_layout
    plot_montage
    plot_projs_topomap
+   plot_projs_joint
    plot_raw
    plot_raw_psd
    plot_sensors
