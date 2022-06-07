@@ -23,13 +23,13 @@ coregistration :footcite:`HouckClaus2020`.
 # License: BSD-3-Clause
 
 import numpy as np
-from pathlib import Path
 
 import mne
 from mne.coreg import Coregistration
 from mne.io import read_info
 
 data_path = Path(mne.datasets.sample.data_path())
+# data_path and all paths built from it are `pathlib.Path`_ objects
 subjects_dir = data_path / 'subjects'
 subject = 'sample'
 
@@ -109,6 +109,10 @@ print(
 #           matched to a subject's head digitization. When scaling is desired,
 #           a scaled surrogate MRI should be created using
 #           :func:`mne.scale_mri`.
+#
+# .. LINKS
+#
+# .. _`pathlib.Path`: https://docs.python.org/3/library/pathlib.html#correspondence-to-tools-in-the-os-module
 
 # %%
 # References
