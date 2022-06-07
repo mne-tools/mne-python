@@ -246,7 +246,7 @@ def test_render_report_extra(renderer_pyvistaqt, tmp_path, invisible_fig):
     assert op.isfile(fname)
     html = Path(fname).read_text(encoding='utf-8')
     # Projectors in Raw.info
-    assert 'SSP Projectors' in html
+    assert 'Projectors' in html
 
 
 def test_add_custom_css(tmp_path):
