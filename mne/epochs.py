@@ -1400,12 +1400,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             End time of data to get in seconds.
         %(verbose)s
         """
-        # if called with 'out=False', the call came from drop_bad()
-        # if no reasons to drop, just declare epochs as good and return
+        # might be BaseEpochs or Epochs. only the latter has the attribute
         if hasattr(self, 'reject_by_annotation'):
             reject_by_annotation = self.reject_by_annotation
         else:
             reject_by_annotation = False
+        # if called with 'out=False', the call came from drop_bad()
+        # if no reasons to drop, just declare epochs as good and return
         if (not out and
             self.reject is None and
             self.flat is None and
