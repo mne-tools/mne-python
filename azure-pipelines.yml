@@ -77,7 +77,7 @@ stages:
 
 - stage: Test
   condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
-  dependsOn: Check
+  dependsOn: ['Check', 'Style']
   variables:
     AZURE_CI: 'true'
   jobs:
