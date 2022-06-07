@@ -53,5 +53,6 @@ def test_plot_projs_joint():
     old_len = len(mag_trace_ax.lines)
     assert len(fig.axes) == 11  # 3x4
     fig = plot_projs_joint(
-        projs, evoked, picks_trace='MEG 0111', verbose='error')
+        projs, evoked, picks_trace='MEG 0111', topomap_kwargs=topomap_kwargs,
+        verbose='error')
     assert len(fig.axes[mag_trace_ax_idx].lines) == old_len + 1

@@ -29,6 +29,8 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
         The data to plot. Typically this is the evoked instance created from
         averaging the epochs used to create the projection.
     %(picks_plot_projs_joint_trace)s
+    topomap_kwargs : dict | None
+        Keyword arguments to pass to :func:`mne.viz.plot_projs_topomap`.
     %(verbose)s
 
     Returns
