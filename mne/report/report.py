@@ -41,7 +41,7 @@ from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
                      _path_like, use_log_level, _check_fname,
-                     _check_ch_locs, _import_h5io_funcs, _on_missing)
+                     _check_ch_locs, _import_h5io_funcs)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend,
                    Figure3D, use_browser_backend)
@@ -2799,7 +2799,7 @@ class Report:
             )
 
     def _add_projs(self, *, info, projs, title, image_format, tags, section,
-                   topomap_kwargs, replace, on_missing='raise'):
+                   topomap_kwargs, replace):
         if isinstance(info, Info):  # no-op
             pass
         elif hasattr(info, 'info'):  # try to get the file name
@@ -2821,22 +2821,14 @@ class Report:
             projs = read_proj(fname)
 
         if not projs:
-            _on_missing(
-                on_missing,
-                msg='No SSP projectors found',
-                error_klass=ValueError
-            )
-            return
+            raise ValueError('No SSP projectors found')
 
         if not _check_ch_locs(info=info):
-            _on_missing(
-                on_missing,
-                msg='The provided data does not contain digitization '
-                    'information (channel locations). However, this is '
-                    'required for rendering the projectors.',
-                error_klass=ValueError
+            raise ValueError(
+                'The provided data does not contain digitization '
+                'information (channel locations). However, this is '
+                'required for rendering the projectors.'
             )
-            return
 
         topomap_kwargs = self._validate_topomap_kwargs(topomap_kwargs)
         fig = plot_projs_topomap(
