@@ -64,7 +64,7 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
 
     This function can be used to re-reference the signal using a Laplacian
     (LAP) "reference-free" transformation.
-    
+
     Parameters
     ----------
     inst : instance of Raw, Epochs or Evoked
