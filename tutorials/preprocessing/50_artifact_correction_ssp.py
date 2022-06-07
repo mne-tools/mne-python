@@ -275,7 +275,8 @@ mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 # ideally here we would just do `picks_trace='ecg'`, but this dataset did not
 # have a dedicated ECG channel recorded, so we just pick a channel that was
 # very sensitive to the artifact
-mne.viz.plot_projs_joint(ecg_projs, ecg_evoked, picks_trace='MEG 0111')
+fig = mne.viz.plot_projs_joint(ecg_projs, ecg_evoked, picks_trace='MEG 0111')
+fig.suptitle('ECG projectors')
 
 # %%
 # Since no dedicated ECG sensor channel was detected in the
@@ -396,6 +397,11 @@ eog_projs, _ = compute_proj_eog(raw, n_grad=1, n_mag=1, n_eeg=1, reject=None,
 
 mne.viz.plot_projs_topomap(eog_projs, info=raw.info)
 
+# %%
+# And we can do a joint image:
+
+fig = mne.viz.plot_projs_joint(eog_projs, eog_evoked, 'eog')
+fig.suptitle('EOG projectors')
 # %%
 # And finally, we can make a joint visualization with our EOG evoked. We will
 # also make a bad choice here and select *two* EOG projectors for EEG and
