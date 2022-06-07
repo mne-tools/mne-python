@@ -10,6 +10,7 @@ import warnings
 import numpy as np
 
 from .topomap import plot_projs_topomap
+from .utils import plt_show
 from ..defaults import DEFAULTS
 from ..io.pick import _picks_to_idx
 from ..io.proj import Projection
@@ -18,7 +19,7 @@ from ..utils import _validate_type, warn, _pl, verbose
 
 @verbose
 def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
-                     verbose=None):
+                     show=True, verbose=None):
     """Plot projectors and evoked jointly.
 
     Parameters
@@ -31,6 +32,7 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
     %(picks_plot_projs_joint_trace)s
     topomap_kwargs : dict | None
         Keyword arguments to pass to :func:`mne.viz.plot_projs_topomap`.
+    %(show)s
     %(verbose)s
 
     Returns
@@ -212,4 +214,5 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
         ax.set(xlabel='Time (sec)')
     for title, ax in first_ax.items():
         ax.set(title=title)
+    plt_show(show)
     return fig

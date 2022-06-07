@@ -402,6 +402,7 @@ mne.viz.plot_projs_topomap(eog_projs, info=raw.info)
 
 fig = mne.viz.plot_projs_joint(eog_projs, eog_evoked, 'eog')
 fig.suptitle('EOG projectors')
+
 # %%
 # And finally, we can make a joint visualization with our EOG evoked. We will
 # also make a bad choice here and select *two* EOG projectors for EEG and
