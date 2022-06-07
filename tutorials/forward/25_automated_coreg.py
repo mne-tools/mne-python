@@ -28,7 +28,7 @@ import mne
 from mne.coreg import Coregistration
 from mne.io import read_info
 
-data_path = Path(mne.datasets.sample.data_path())
+data_path = mne.datasets.sample.data_path()
 # data_path and all paths built from it are `pathlib.Path`_ objects
 subjects_dir = data_path / 'subjects'
 subject = 'sample'
