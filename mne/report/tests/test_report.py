@@ -810,15 +810,18 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     for ch in evoked_no_ch_locs.info['chs']:
         ch['loc'][:3] = np.nan
 
-    with pytest.warns(RuntimeWarning, match='No EEG channel locations'):
+    with pytest.warns(
+        RuntimeWarning,
+        match='No EEG channel locations found, cannot create joint plot'
+    ):
         r.add_evokeds(
             evokeds=evoked_no_ch_locs, titles=['evoked no chan locs'],
-            tags=('evoked',), projs=True, n_time_points=1
+            tags=('evoked',), projs=False, n_time_points=1
         )
     assert 'Time course' not in r._content[-1].html
     assert 'Topographies' not in r._content[-1].html
     assert evoked.info['projs']  # only then the following test makes sense
-    assert 'SSP' not in r._content[-1].html
+    assert 'Projectors' not in r._content[-1].html
     assert 'Global field power' in r._content[-1].html
 
     # Drop locations from Info used for projs
@@ -826,7 +829,10 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     for ch in info_no_ch_locs['chs']:
         ch['loc'][:3] = np.nan
 
-    with pytest.warns(RuntimeWarning, match='No channel locations found'):
+    with pytest.raises(
+        ValueError,
+        match='does not contain.*channel locations'
+    ):
         r.add_projs(info=info_no_ch_locs, title='Projs no chan locs')
 
     # Drop locations from ICA

@@ -2794,7 +2794,8 @@ class Report:
             self._add_projs(
                 info=raw, projs=None, title='Projectors',
                 image_format=image_format, tags=tags,
-                topomap_kwargs=topomap_kwargs, section=section, replace=replace
+                topomap_kwargs=topomap_kwargs, section=section,
+                replace=replace
             )
 
     def _add_projs(self, *, info, projs, title, image_format, tags, section,
@@ -2831,8 +2832,8 @@ class Report:
             _on_missing(
                 on_missing,
                 msg='The provided data does not contain digitization '
-                    'information. However, this is required for rendering the '
-                    'projectors.',
+                    'information (channel locations). However, this is '
+                    'required for rendering the projectors.',
                 error_klass=ValueError
             )
             return
