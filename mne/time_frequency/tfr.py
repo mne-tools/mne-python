@@ -1306,10 +1306,7 @@ class AverageTFR(_BaseTFR):
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list.
-        cnorm : matplotlib.colors.Normalize | None
-            Colormap normalization, default None means linear normalization. If
-            not None, ``vmin`` and ``vmax`` arguments are ignored. See
-            :func:`mne.viz.plot_topomap` for more details.
+        %(cnorm)s
 
             .. versionadded:: 0.24
         %(verbose)s

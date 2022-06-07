@@ -574,6 +574,19 @@ cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
         2 topomaps.
 """
 
+docdict['cmap_topomap_simple'] = """
+cmap : matplotlib colormap | None
+    Colormap to use. If None, 'Reds' is used for all positive data,
+    otherwise defaults to 'RdBu_r'.
+"""
+
+docdict['cnorm'] = """
+cnorm : matplotlib.colors.Normalize | None
+    Colormap normalization, default None means linear normalization. If not
+    None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
+    details.
+"""
+
 docdict['color_matplotlib'] = """
 color : color
     A list of anything matplotlib accepts: string, RGB, hex, etc.
@@ -1022,6 +1035,42 @@ For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
 """
 
+_export_fmt_params_base = """Format of the export. Defaults to ``'auto'``, which will infer the format
+    from the filename extension. See supported formats above for more
+    information."""
+
+docdict['export_fmt_params_epochs'] = """
+fmt : 'auto' | 'eeglab'
+    {}
+""".format(_export_fmt_params_base)
+
+docdict['export_fmt_params_evoked'] = """
+fmt : 'auto' | 'mff'
+    {}
+""".format(_export_fmt_params_base)
+
+docdict['export_fmt_params_raw'] = """
+fmt : 'auto' | 'brainvision' | 'edf' | 'eeglab'
+    {}
+""".format(_export_fmt_params_base)
+
+docdict['export_fmt_support_epochs'] = """\
+Supported formats:
+    - EEGLAB (``.set``, uses :mod:`eeglabio`)
+"""
+
+docdict['export_fmt_support_evoked'] = """\
+Supported formats:
+    - MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
+"""
+
+docdict['export_fmt_support_raw'] = """\
+Supported formats:
+    - BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses `pybv <https://github.com/bids-standard/pybv>`_)
+    - EEGLAB (``.set``, uses :mod:`eeglabio`)
+    - EDF (``.edf``, uses `EDFlib-Python <https://gitlab.com/Teuniz/EDFlib-Python>`_)
+"""  # noqa: E501
+
 docdict['export_warning'] = """\
 .. warning::
     Since we are exporting to external formats, there's no guarantee that all
@@ -1216,13 +1265,6 @@ fmax : float
     Maximum value in colormap (uses real max if None).
 """
 
-docdict['fmt_export_params'] = """
-fmt : 'auto' | 'eeglab' | 'edf'
-    Format of the export. Defaults to ``'auto'``, which will infer the format
-    from the filename extension. See supported formats above for more
-    information.
-"""
-
 docdict['fname_epochs'] = """
 fname : path-like | file-like
     The epochs to load. If a filename, should end with ``-epo.fif`` or
@@ -1344,6 +1386,12 @@ head_pos : array | None
     If array, movement compensation will be performed.
     The array should be of shape (N, 10), holding the position
     parameters as returned by e.g. ``read_head_pos``.
+"""
+
+docdict['head_source'] = """
+head_source : str | list of str
+    Head source(s) to use. See the ``source`` option of
+    :func:`mne.get_head_surf` for more information.
 """
 
 docdict['hitachi_notes'] = """
@@ -3158,13 +3206,6 @@ docdict['time_viewer_brain_screenshot'] = """
 time_viewer : bool
     If True, include time viewer traces. Only used if
     ``time_viewer=True`` and ``separate_canvas=False``.
-"""
-
-docdict['title_dipole_locs_fig'] = """
-title : str | None
-    The title of the figure if ``mode='orthoview'`` (ignored for all other
-    modes). If ``None``, dipole number and its properties (amplitude,
-    orientation etc.) will be shown. Defaults to ``None``.
 """
 
 docdict['title_none'] = """

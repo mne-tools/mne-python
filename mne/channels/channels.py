@@ -1793,15 +1793,17 @@ def combine_channels(inst, groups, method='mean', keep_stim=False,
     new_data = np.swapaxes(new_data, 0, ch_axis)
     info = create_info(sfreq=inst.info['sfreq'], ch_names=new_ch_names,
                        ch_types=new_ch_types)
+    # create new instances and make sure to copy important attributes
     if isinstance(inst, BaseRaw):
         combined_inst = RawArray(new_data, info, first_samp=inst.first_samp)
     elif isinstance(inst, BaseEpochs):
         combined_inst = EpochsArray(new_data, info, events=inst.events,
-                                    tmin=inst.times[0])
+                                    tmin=inst.times[0], baseline=inst.baseline)
         if inst.metadata is not None:
             combined_inst.metadata = inst.metadata.copy()
     elif isinstance(inst, Evoked):
-        combined_inst = EvokedArray(new_data, info, tmin=inst.times[0])
+        combined_inst = EvokedArray(new_data, info, tmin=inst.times[0],
+                                    baseline=inst.baseline)
 
     return combined_inst
 

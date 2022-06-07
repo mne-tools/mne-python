@@ -723,7 +723,7 @@ def test_plot_raw_psd(raw, raw_orig):
     plt.close('all')
     # need 2, got 1
     ax = plt.axes()
-    with pytest.raises(ValueError, match='of length 2, while the length is 1'):
+    with pytest.raises(ValueError, match='of length 2.*the length is 1'):
         raw.plot_psd(ax=ax, average=True)
     plt.close('all')
     # topo psd

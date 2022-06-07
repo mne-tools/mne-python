@@ -15,6 +15,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 import pytest
 import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap
+from matplotlib.figure import Figure
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate,
@@ -627,6 +628,30 @@ def test_plot_dipole_mri_orthoview(coord_frame, idx, show_all, title):
     ax = fig.add_subplot(211)
     with pytest.raises(TypeError, match='instance of Axes3D'):
         dipoles.plot_locations(trans, 'sample', subjects_dir, ax=ax)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('surf, coord_frame, ax, title', [
+    pytest.param('white', 'mri', None, None, marks=pytest.mark.slowtest),
+    pytest.param(None, 'head', None, None, marks=pytest.mark.slowtest),
+    (None, 'mri_rotated', 'mpl', 'check'),
+])
+def test_plot_dipole_mri_outlines(surf, coord_frame, ax, title):
+    """Test mpl dipole plotting."""
+    dipoles = read_dipole(dip_fname)
+    trans = read_trans(trans_fname)
+    if ax is not None:
+        assert isinstance(ax, str) and ax == 'mpl', ax
+        _, ax = plt.subplots(3, 1)
+        ax = list(ax)
+        with pytest.raises(ValueError, match='but the length is 2'):
+            dipoles.plot_locations(
+                trans, 'sample', subjects_dir, ax=ax[:2], mode='outlines')
+    fig = dipoles.plot_locations(
+        trans=trans, subject='sample', subjects_dir=subjects_dir,
+        mode='outlines', coord_frame=coord_frame, surf=surf, ax=ax,
+        title=title)
+    assert isinstance(fig, Figure)
 
 
 @testing.requires_testing_data

@@ -41,6 +41,8 @@ Enhancements
 
 - The :func:`mne.make_forward_dipole` function can now take a list of dipoles to make a multi-dipole forward models (:gh:`10464` by `Marijn van Vliet`_)
 
+- Add ``mode='outlines'`` support to :meth:`mne.Dipole.plot_locations` and :func:`mne.viz.plot_dipole_locations` (:gh:`10699` by `Eric Larson`_)
+
 - Add :meth:`mne.preprocessing.ICA.find_bads_muscle` to find muscle-related ICA components with an example, :ref:`ex-muscle-ica` (:gh:`10534` by `Alex Rockhill`_)
 
 - Add example of Xfit-style ECD modeling using multiple dipoles (:gh:`10464` by `Marijn van Vliet`_)
@@ -79,6 +81,10 @@ Enhancements
 
 - Added support for Aurora version 2021.9.0.6 to :func:`mne.io.read_raw_nirx` (:gh:`10668` by `Robert Luke`_)
 
+- Added BrainVision format (``.vhdr``, ``.vmrk``, ``.eeg``) to :func:`mne.export.export_raw` (:gh:`10681` by `Stefan Appelhoff`_)
+
+- Added ``export`` method to :class:`mne.Evoked` (:gh:`10681` by `Stefan Appelhoff`_)
+
 - Add timeformat ``YYYY/MM/DD`` to ``mne.io.ctf.info._convert_time`` (:gh:`10674` by `Simon Kern`_)
 
 Bugs
@@ -106,6 +112,8 @@ Bugs
 
 - Retain epochs metadata when using :func:`mne.channels.combine_channels` (:gh:`10504` by `Clemens Brunner`_)
 
+- Fix epochs indexing with metadata containing boolean type and missing values (:gh:`10705` by `Clemens Brunner`_ and `Alex Gramfort`_)
+
 - Fix reading of fiducial locations in :func:`mne.io.read_raw_eeglab` (:gh:`10521` by `Alex Gramfort`_)
 
 - Prevent creation of montage with invalid ``[x, y, z]`` coordinates with :func:`mne.channels.make_dig_montage` (:gh:`10547` by `Mathieu Scheltienne`_)
@@ -125,6 +133,11 @@ Bugs
 - Fix a problem in :meth:`mne.Evoked.get_peak`, where under certain circumstances the ``mode`` parameters ``'pos'`` and ``'neg'`` were not honored when ``tmin`` and/or ``tmax`` were passed as well (:gh:`10686` by `Richard Höchenberger`_)
 
 - :func:`mne.read_evokeds`, :func:`mne.channels.read_custom_montage`, :func:`mne.channels.read_dig_hpts`, :func:`mne.channels.read_dig_polhemus_isotrak`, and :func:`mne.channels.read_polhemus_fastscan` now correctly expand ``~`` in the provided path to the user's home directory (:gh:`10685`, :gh:`10688` by `Richard Höchenberger`_)
+
+- Fix bug in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab`, where the presence of channels without position in the ``.set`` file caused positions incorrectly assigned to all further channels (:gh:`8754` by `Mikołaj Magnuski`_)
+
+- Combining channels of :class:`mne.Epochs` or :class:`mne.Evoked` objects now properly retains baseline information (:gh:`10703` by `Clemens Brunner`_)
+
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
