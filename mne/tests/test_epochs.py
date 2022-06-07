@@ -2969,7 +2969,7 @@ def test_default_values():
 @requires_pandas
 def test_metadata(tmp_path):
     """Test metadata support with pandas."""
-    from pandas import DataFrame
+    from pandas import DataFrame, Series, NA
 
     data = np.random.randn(10, 2, 2000)
     chs = ['a', 'b']
@@ -3154,29 +3154,22 @@ def test_metadata(tmp_path):
         assert len(epochs) == 1
         assert len(epochs.metadata) == 1
 
-
-@requires_pandas
-def test_metadata_query_bool():
-    """Test metadata query with boolean indexing and NaNs gh #10705."""
-    import mne
-    import numpy as np
-    import pandas as pd
-    from random import choices
-
-    n_epochs, n_chans, n_samples = 40, 3, 101
-    correct = pd.Series(choices([True, False, None], k=n_epochs),
-                        dtype="boolean")
-    metadata = pd.DataFrame({"correct": correct})
+    # gh-10705: support boolean columns
+    metadata = DataFrame(
+        {"A": Series([True, True, True, False, False, NA], dtype="boolean")}
+    )
     rng = np.random.default_rng()
     epochs = mne.EpochsArray(
-        data=rng.standard_normal(size=(n_epochs, n_chans, n_samples)),
-        info=mne.create_info(n_chans, 500, "eeg"),
+        data=rng.standard_normal(size=(6, 8, 500)),
+        info=mne.create_info(8, 250, "eeg"),
+        event_id={"A": 1},
         metadata=metadata
     )
 
-    assert len(epochs) > metadata.sum()["correct"]
-    epochs = epochs["correct"]
-    assert len(epochs) == metadata.sum()["correct"]
+    assert len(epochs["A"]) == 6  # epochs of event type A
+    assert len(epochs["A == True"]) == 3  # epochs for which column A == True
+    assert len(epochs["not A"]) == 2  # epochs for which column A == False
+    assert len(epochs["A.isna()"]) == 1  # epochs for NA in column A
 
 
 def assert_metadata_equal(got, exp):
