@@ -30,7 +30,7 @@ from mne.io import read_info
 
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = data_path / 'subjects'
+subjects_dir = data_path + '/subjects'
 subject = 'sample'
 
 fname_raw = data_path + '/MEG/' + subject + f'/{subject}_audvis_raw.fif'
