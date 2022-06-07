@@ -5,7 +5,6 @@
 # License: Simplified BSD
 
 from copy import deepcopy
-import warnings
 
 import numpy as np
 
