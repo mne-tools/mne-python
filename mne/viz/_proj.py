@@ -71,7 +71,7 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
             evoked.info, picks_trace, allow_empty=False)
     info = evoked.info
     ch_types = evoked.get_channel_types(unique=True, only_data_chs=True)
-    proj_by_type = dict()
+    proj_by_type = dict()  # will be set up like an enumerate key->[pi, proj]
     ch_names_by_type = dict()
     used = np.zeros(len(projs), int)
     for ch_type in ch_types:
@@ -83,7 +83,7 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
                 continue
             if ch_type not in proj_by_type:
                 proj_by_type[ch_type] = list()
-            proj_by_type[ch_type].append(deepcopy(proj))
+            proj_by_type[ch_type].append([pi, deepcopy(proj)])
             used[pi] += 1
     missing = (~used.astype(bool)).sum()
     if missing:
@@ -103,15 +103,24 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
     ri = 0
     # pick some sufficiently distinct colors (6 per proj type, e.g., ECG,
     # should be enough hopefully!)
+    # https://personal.sron.nl/~pault/data/colourschemes.pdf
+    # "Vibrant" color scheme
     proj_colors = [
-        '#CC3311', '#009988', '#0077BB', '#EE3377', '#EE7733', '#33BBEE']
-    trace_color = '#CCBB44'
-    need_legend = True
+        '#CC3311',  # red
+        '#009988',  # teal
+        '#0077BB',  # blue
+        '#EE3377',  # magenta
+        '#EE7733',  # orange
+        '#33BBEE',  # cyan
+    ]
+    trace_color = '#CCBB44'  # yellow
+    after_color, after_name = '#228833', 'green'
     type_titles = DEFAULTS['titles']
     last_ax = [None] * 2
     first_ax = dict()
     pe_kwargs = dict(show=False, draw=False)
     for ch_type, these_projs in proj_by_type.items():
+        these_idxs, these_projs = zip(*these_projs)
         ch_names = ch_names_by_type[ch_type]
         idx = np.where([np.in1d(ch_names, proj['data']['col_names']).all()
                         for proj in these_projs])[0]
@@ -133,7 +142,9 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
         # topomaps
         _plot_projs_topomap(these_projs, info=info, show=False,
                             axes=topo_axes, **topomap_kwargs)
-        plt.setp(topo_axes, title='', xlabel='')
+        for idx, proj, ax_ in zip(these_idxs, these_projs, topo_axes):
+            ax_.set_title('')  # could use proj['desc'] but it's long
+            ax_.set_xlabel(f'projs[{idx}]', fontsize='small')
         unit = DEFAULTS['units'][ch_type]
         # traces
         this_evoked = evoked.copy().pick_channels(ch_names)
@@ -158,7 +169,7 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
             hs.append(tr_ax.plot(
                 this_evoked.times, trace * scale,
                 color=proj_colors[ti % len(proj_colors)], zorder=5)[0])
-            labels.append(f'#{ti + 1}')
+            labels.append(f'projs[{these_idxs[ti]}]')
         traces /= np.abs(traces).max(1, keepdims=True)  # independently
         for ti, trace in enumerate(traces):
             tr_ax.plot(
@@ -174,13 +185,11 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
                 lw=3, zorder=4, alpha=0.75)[0])
             labels.append(str(trace_ch))
         tr_ax.set(title='', xlabel='', ylabel='')
-        if need_legend and count == max_proj_per_type:
-            # This will steal space from the subplots in a constrained layout
-            # https://matplotlib.org/3.5.0/tutorials/intermediate/constrainedlayout_guide.html#legends  # noqa: E501
-            tr_ax.legend(
-                hs, labels, loc='center left', borderaxespad=0.05,
-                title='Projector', bbox_to_anchor=[1.05, 0.5])
-            need_legend = False
+        # This will steal space from the subplots in a constrained layout
+        # https://matplotlib.org/3.5.0/tutorials/intermediate/constrainedlayout_guide.html#legends  # noqa: E501
+        tr_ax.legend(
+            hs, labels, loc='center left', borderaxespad=0.05,
+            bbox_to_anchor=[1.05, 0.5])
         last_ax[1] = tr_ax
         key = 'Projected time course'
         if key not in first_ax:
@@ -194,19 +203,19 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
         this_proj_evoked.apply_proj()
         _plot_evoked(this_proj_evoked, picks='all', axes=[ba_ax], **pe_kwargs)
         for line in ba_ax.lines[loff:]:
-            line.set(lw=0.5, zorder=4, color='g')
+            line.set(lw=0.5, zorder=4, color=after_color)
         for t in list(ba_ax.texts):
             t.remove()
         ba_ax.set(title='', xlabel='')
         ba_ax.set(ylabel=f'{type_titles[ch_type]}\n{unit}')
         last_ax[0] = ba_ax
-        key = 'Before and after'
+        key = f'Before (black) and after ({after_name})'
         if key not in first_ax:
             first_ax[key] = ba_ax
         ri += 1
     for ax in last_ax:
         ax.set(xlabel='Time (sec)')
     for title, ax in first_ax.items():
-        ax.set(title=title)
+        ax.set_title(title, fontsize='medium')
     plt_show(show)
     return fig
