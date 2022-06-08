@@ -1776,6 +1776,7 @@ class Report:
 
         return remove_idx
 
+    @fill_doc
     def _add_or_replace(
         self, *, name, section, dom_id, tags, html, replace=False
     ):
@@ -1875,7 +1876,7 @@ class Report:
         )
 
     @fill_doc
-    def add_sys_info(self, title, *, tags=('mne-sysinfo',), section=None):
+    def add_sys_info(self, title, *, tags=('mne-sysinfo',), replace=False):
         """Add a MNE-Python system information to the report.
 
         This is a convenience method that captures the output of
@@ -1886,7 +1887,7 @@ class Report:
         title : str
             The title to assign.
         %(tags_report)s
-        %(section_report)s
+        %(replace_report)s
 
         Notes
         -----
@@ -1898,7 +1899,10 @@ class Report:
             sys_info()
 
         info = f.getvalue()
-        self.add_code(code=info, title=title, language='shell', tags=tags)
+        self.add_code(
+            code=info, title=title, language='shell', tags=tags,
+            replace=replace
+        )
 
     def _add_image(
         self, *, img, title, caption, image_format, tags, section, replace,
@@ -2046,8 +2050,7 @@ class Report:
 
     @fill_doc
     def add_html(
-        self, html, title, *, tags=('custom-html',), section=None,
-        replace=False
+        self, html, title, *, tags=('custom-html',), replace=False
     ):
         """Add HTML content to the report.
 
@@ -2058,7 +2061,6 @@ class Report:
         title : str
             The title corresponding to ``html``.
         %(tags_report)s
-        %(section_report)s
         %(replace_report)s
 
         Notes
@@ -2074,7 +2076,7 @@ class Report:
         self._add_or_replace(
             dom_id=dom_id,
             name=title,
-            section=section,
+            section=None,
             tags=tags,
             html=html_element,
             replace=replace
