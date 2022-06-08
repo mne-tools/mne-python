@@ -17,7 +17,6 @@ evoked_fname = sample_dir / 'sample_audvis-ave.fif'
 @testing.requires_testing_data
 def test_plot_projs_joint():
     """Test plot_projs_joint."""
-    # TODO: Speed this up (~5 sec locally)
     evoked = read_evokeds(evoked_fname)[0].apply_baseline((None, 0))
     evoked.info['bads'] = []
     n_mag, n_grad, n_eeg = 9, 10, 11

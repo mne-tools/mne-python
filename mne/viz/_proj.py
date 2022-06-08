@@ -200,7 +200,10 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
             line.set(lw=0.5, zorder=3)
         loff = len(ba_ax.lines)
         this_proj_evoked = this_evoked.copy().add_proj(these_projs)
-        this_proj_evoked.apply_proj()
+        # with meg='combined' any existing mag projectors (those already part
+        # of evoked before we add_proj above) will have greatly
+        # reduced power, so we ignore the warning about this issue
+        this_proj_evoked.apply_proj(verbose='error')
         _plot_evoked(this_proj_evoked, picks='all', axes=[ba_ax], **pe_kwargs)
         for line in ba_ax.lines[loff:]:
             line.set(lw=0.5, zorder=4, color=after_color)
