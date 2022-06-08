@@ -2242,21 +2242,24 @@ docdict['pick_ori_novec'] = """
 pick_ori : None | "normal"
 """ + _pick_ori_novec
 
-picks_header = 'picks : str | list | slice | None'
-picks_intro = ('Channels to include. Slices and lists of integers will be '
-               'interpreted as channel indices.')
+_picks_types = 'str | list | slice | None'
+_picks_header = f'picks : {_picks_types}'
+_picks_desc = 'Channels to include.'
+_picks_int = ('Channels to include. Slices and lists of integers will be '
+              'interpreted as channel indices.')
+_picks_str = """In lists, channel *type* strings
+    (e.g., ``['meg', 'eeg']``) will pick channels of those
+    types, channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
+    will pick the given channels. Can also be the string values
+    "all" to pick all channels, or "data" to pick :term:`data channels`.
+    None (default) will pick')"""
 _reminder = ("Note that channels in ``info['bads']`` *will be included* if "
              "their {}indices are explicitly provided.")
 reminder = _reminder.format('names or ')
 reminder_nostr = _reminder.format('')
 noref = f'(excluding reference MEG channels). {reminder}'
-picks_base = f"""{picks_header}
-    {picks_intro} In lists, channel *type* strings
-    (e.g., ``['meg', 'eeg']``) will pick channels of those
-    types, channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
-    will pick the given channels. Can also be the string values
-    "all" to pick all channels, or "data" to pick :term:`data channels`.
-    None (default) will pick"""
+picks_base = f"""{_picks_header}
+    {_picks_desc} {_picks_int} {_picks_str}"""
 docdict['picks_all'] = f'{picks_base} all channels. {reminder}'
 docdict['picks_all_data'] = f'{picks_base} all data channels. {reminder}'
 docdict['picks_all_data_noref'] = f'{picks_base} all data channels {noref}'
@@ -2264,13 +2267,21 @@ docdict['picks_base'] = picks_base      # couple places (e.g., BaseEpochs)
 docdict['picks_good_data'] = f'{picks_base} good data channels. {reminder}'
 docdict['picks_good_data_noref'] = _reflow_param_docstring(
     f'{picks_base} good data channels {noref}')
-docdict['picks_header'] = picks_header  # these get reused as stubs in a
+docdict['picks_header'] = _picks_header  # these get reused as stubs in a
 docdict['picks_ica'] = """
 picks : int | list of int | slice | None
     Indices of the ICA components to visualize.
 """
 docdict['picks_nostr'] = f"""picks : list | slice | None
-    {picks_intro} None (default) will pick all channels. {reminder_nostr}"""
+    {_picks_desc} {_picks_int}
+    None (default) will pick all channels. {reminder_nostr}"""
+
+docdict['picks_plot_projs_joint_trace'] = f"""\
+picks_trace : {_picks_types}
+    Channels to show alongside the projected time courses. Typically
+    these are the ground-truth channels for an artifact (e.g., ``'eog'`` or
+    ``'ecg'``). {_picks_int} {_picks_str} no channels.
+"""
 
 docdict['picks_plot_psd_good_data'] = \
     f'{picks_base} good data channels. {reminder}'[:-2] + """

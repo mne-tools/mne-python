@@ -39,6 +39,8 @@ Enhancements
 
 - The ``pick_channels`` method gained a ``verbose`` parameter, allowing e.g. to suppress messages about removed projectors (:gh:`10544` by `Richard Höchenberger`_)
 
+- Add :func:`mne.viz.plot_projs_joint` for joint plotting of projectors and Evoked (:gh:`10720` by `Eric Larson`_)
+
 - The :func:`mne.make_forward_dipole` function can now take a list of dipoles to make a multi-dipole forward models (:gh:`10464` by `Marijn van Vliet`_)
 
 - Add ``mode='outlines'`` support to :meth:`mne.Dipole.plot_locations` and :func:`mne.viz.plot_dipole_locations` (:gh:`10699` by `Eric Larson`_)
@@ -129,6 +131,8 @@ Bugs
 - Fix bug in :func:`mne.viz.plot_evoked_image` that would cause incorrect sub-titles when using ``group_by`` (:gh:`10618` by `Reza Shoorangiz`_)
 
 - Reduce memory usage when loading an EDF file with ``preload=False`` (:gh:`10638` by `Clemens Brunner`_)
+
+- Fix bug in :meth:`mne.io.Raw.get_channel_types` and related methods where ``unique=True`` would return a :class:`python:set` with arbitrary order rather than a :class:`python:list` that preserves the same order as ``inst.ch_names`` (:gh:`10720` by `Eric Larson`_)
 
 - In :func:`mne.preprocessing.find_bad_channels_maxwell`, do not re-filter the data if a low-pass filter with the requested frequency has already been applied (:gh:`10664` by `Richard Höchenberger`_)
 
