@@ -89,6 +89,8 @@ Enhancements
 
 - Add timeformat ``YYYY/MM/DD`` to ``mne.io.ctf.info._convert_time`` (:gh:`10674` by `Simon Kern`_)
 
+- :meth:`mne.Report.add_figure` and :meth:`mne.Report.add_image` gained a new parameter, ``section``, allowing to put multiple figures or images into the same "content block". Previously, the only way to group figures and images was by means of a slider, which sometimes made content hard to discover. The slider remains available as an alternative. (:gh:`10694` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 

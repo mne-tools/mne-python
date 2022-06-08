@@ -2742,6 +2742,18 @@ sdr_morph : instance of dipy.align.DiffeomorphicMap
     (SDR) morph.
 """
 
+docdict['section_report'] = """
+section : str | None
+    The name of the section (or content block) to add the content to. This
+    feature is useful for grouping multiple related content elements
+    together under a single, collapsible section. Each content element will
+    retain its own title and functionality, but not appear separately in the
+    table of contents. Hence, using sections is a way to declutter the table
+    of contents, and to easy navigation of the report.
+
+    .. versionadded:: 1.1
+"""
+
 docdict['seed'] = """
 seed : None | int | instance of ~numpy.random.RandomState
     A seed for the NumPy random number generator (RNG). If ``None`` (default),
