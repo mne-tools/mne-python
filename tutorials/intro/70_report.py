@@ -446,13 +446,13 @@ report.add_figure(
     fig=fig_1,
     title='Figure 1',
     section=section,
-    tags=('fig-1,')
+    tags='fig-1'
 )
 report.add_figure(
     fig=fig_2,
     title='Figure 2',
     section=section,
-    tags=('fig-2,')
+    tags='fig-2'
 )
 report.save('report_custom_figure_sections.html', overwrite=True)
 plt.close(fig_1)
