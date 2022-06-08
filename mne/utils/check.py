@@ -899,27 +899,19 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
             # Calculate the center of the head sphere
             # Use 4 digpoints for each of the 3 axes to hopefully get a better
             # approximation than when using just 2 digpoints.
-            x = np.mean([
-                ch_pos['T7'][0],
-                ch_pos['T8'][0],
-                ch_pos['Fpz'][0],
-                ch_pos['Oz'][0]
-            ])
-            y = np.mean([
-                ch_pos['T7'][1],
-                ch_pos['T8'][1],
-                ch_pos['Fpz'][1],
-                ch_pos['Oz'][1]
-            ])
-            z = np.mean([
-                ch_pos['T7'][2],
-                ch_pos['T8'][2],
-                ch_pos['Fpz'][2],
-                ch_pos['Oz'][2]
-            ])
-            sphere = (x, y, z, radius)
+            sphere_locs = dict()
+            for idx, axis in enumerate(('X', 'Y', 'Z')):
+                sphere_locs[axis] = np.mean([
+                    ch_pos['T7'][idx],
+                    ch_pos['T8'][idx],
+                    ch_pos['Fpz'][idx],
+                    ch_pos['Oz'][idx]
+                ])
+            sphere = (
+                sphere_locs['X'], sphere_locs['Y'], sphere_locs['Z'], radius
+            )
             sphere_units = 'm'
-            del x, y, z, radius, montage, ch_pos
+            del sphere_locs, radius, montage, ch_pos
     elif isinstance(sphere, ConductorModel):
         if not sphere['is_sphere'] or len(sphere['layers']) == 0:
             raise ValueError('sphere, if a ConductorModel, must be spherical '
