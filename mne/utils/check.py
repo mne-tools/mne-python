@@ -868,7 +868,7 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
             montage = info.get_montage()
             if montage is None:
                 raise ValueError(
-                    'No montage was found on your data, but sphere="eeglab" '
+                    'No montage was set on your data, but sphere="eeglab" '
                     'can only work if digitization points for all EEG '
                     'channels are available. Consider calling set_montage() '
                     'to apply a montage.'
