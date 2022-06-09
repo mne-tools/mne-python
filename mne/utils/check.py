@@ -876,7 +876,10 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
 
             horizon_ch_names = ('Oz', 'Fpz', 'T7', 'T8')
 
-            if 'Fpz' not in ch_pos:
+            if 'FPz' in ch_pos:  # "fix" naming
+                ch_pos['Fpz'] = ch_pos['FPz']
+                del ch_pos['FPz']
+            elif 'Fpz' not in ch_pos:
                 if 'Oz' in ch_pos:
                     logger.info(
                         'Approximating Fpz location by mirroring Oz along '
