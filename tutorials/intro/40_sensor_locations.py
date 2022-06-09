@@ -85,10 +85,12 @@ fig = fig.gca().view_init(azim=70, elev=15)  # set view angle for tutorial 🧐
 # `raw.set_montage <mne.io.Raw.set_montage>`,
 # `epochs.set_montage <mne.Epochs.set_montage>`, or
 # `evoked.set_montage <mne.Evoked.set_montage>`. This will only work with
-# data whose EEG channel names correspond to those in the montage. You can then
-# visualize the sensor locations via
-# `raw.plot_sensors <mne.io.Raw.plot_sensors>`. Therefore, we're loading some
-# EEG data here, and not the usual MNE "sample" dataset.
+# data whose EEG channel names correspond to those in the montage.
+# (Therefore, we're loading some EEG data below, and not the usual MNE "sample"
+# dataset.)
+#
+# You can then visualize the sensor locations via the
+# `plot_sensors <mne.io.Raw.plot_sensors>` method.
 #
 # It is also possible to skip the manual montage loading step by passing the
 # montage name directly to the `~mne.io.Raw.set_montage` method.
