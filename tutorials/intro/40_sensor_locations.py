@@ -115,10 +115,10 @@ fig = ssvep_raw.plot_sensors(show_names=True)
 #    `plot_sensors <mne.io.Raw.plot_sensors>` contain fewer sensors than
 #    the what we got via
 #    `easycap_montage.plot <mne.channels.DigMontage.plot>`. This is because
-#    the montage contains all channels that specific EEG setup could
+#    the montage contains **all** channels that specific EEG setup could
 #    potentially have; but when applying that montage to an actual EEG dataset,
-#    the information on all sensors not actually present in the data is
-#    removed so you will only see the sensors that appear in the data.
+#    the location information on all sensors not actually present in the data
+#    is removed.
 #
 # Plotting 2D sensor locations like EEGLAB
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -127,7 +127,7 @@ fig = ssvep_raw.plot_sensors(show_names=True)
 #
 #    All MNE plotting functions for EEG topographies and sensor locations
 #    sport the ``sphere`` keyword argument, and therefore allow for adjustment
-#    of the way the sensors are projected onto the head surface.
+#    of the way the sensors are projected onto the head circle.
 #
 # In MNE-Python, by default the head center is calculated using
 # :term:`fiducial points <fiducial>`. This means that
