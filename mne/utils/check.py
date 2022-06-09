@@ -846,7 +846,7 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
                 pass
             else:
                 sphere = 'auto'
-    if isinstance(sphere, str):
+    elif isinstance(sphere, str):
         if sphere not in ('auto', 'eeglab'):
             raise ValueError(
                 f'sphere, if str, must be "auto" or "eeglab", got {sphere}'
@@ -858,10 +858,12 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
             sphere = tuple(r0) + (R,)
             sphere_units = 'm'
         elif sphere == 'eeglab':
-            montage = info.get_montage()
-            # We need digpoints for the 2D plane formed by
-            # Fpz<->Oz and T7<->T8, as this plane will be the horizon.
-            # We implement some special-handling in case Fpz is missing.
+            # We need coordinates for for the 2D plane formed by
+            # Fpz<->Oz and T7<->T8, as this plane will be the horizon (i.e. it
+            # will determine the location of the head circle).
+            #
+            # We implement some special-handling in case Fpz is missing, as
+            # this seems to be a quite common situation in numerous EEG labs.
             horizon_ch_names = ('Oz', 'Fpz', 'T7', 'T8')
             ch_pos = montage.get_positions()['ch_pos']
 
