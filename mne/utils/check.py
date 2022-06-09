@@ -864,8 +864,17 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
             #
             # We implement some special-handling in case Fpz is missing, as
             # this seems to be a quite common situation in numerous EEG labs.
-            horizon_ch_names = ('Oz', 'Fpz', 'T7', 'T8')
+            montage = info.get_montage()
+            if montage is None:
+                raise ValueError(
+                    'No montage was found on your data, but sphere="eeglab" '
+                    'can only work if digitization points for all EEG '
+                    'channels are available. Consider calling set_montage() '
+                    'to apply a montage.'
+                )
             ch_pos = montage.get_positions()['ch_pos']
+
+            horizon_ch_names = ('Oz', 'Fpz', 'T7', 'T8')
 
             if 'Fpz' not in ch_pos:
                 if 'Oz' in ch_pos:
