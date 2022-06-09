@@ -859,7 +859,7 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
             sphere = tuple(r0) + (R,)
             sphere_units = 'm'
         elif sphere == 'eeglab':
-            # We need coordinates for for the 2D plane formed by
+            # We need coordinates for the 2D plane formed by
             # Fpz<->Oz and T7<->T8, as this plane will be the horizon (i.e. it
             # will determine the location of the head circle).
             #
@@ -868,7 +868,7 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
             montage = info.get_montage()
             if montage is None:
                 raise ValueError(
-                    'No montage was found on your data, but sphere="eeglab" '
+                    'No montage was set on your data, but sphere="eeglab" '
                     'can only work if digitization points for all EEG '
                     'channels are available. Consider calling set_montage() '
                     'to apply a montage.'
