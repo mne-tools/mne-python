@@ -67,6 +67,11 @@ iframe.sg_report {
     display: block;
     border-style: solid;
 }
+/* Disable thumbnail tooltips on hover */
+.sphx-glr-thumbcontainer[tooltip]:hover::before,
+.sphx-glr-thumbcontainer[tooltip]:hover::after {
+    display: none;
+}
 
 /* ******************************** make HTML'd pandas dataframes scrollable */
 table.dataframe {
