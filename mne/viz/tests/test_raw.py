@@ -864,9 +864,13 @@ def test_plot_sensors(raw):
     raw_eeg.rename_channels({'Fpz': 'FPz'})
     raw_eeg.plot_sensors(sphere='eeglab')
 
-    # Should warn if Fpz/FPz is missing, but should still work
-    raw_eeg.drop_channels(['FPz'])
-    with pytest.warns(RuntimeWarning, match='Approximating Fpz location'):
+    # Should still work without Fpz/FPz, as long as we still have Oz
+    raw_eeg.drop_channels('FPz')
+    raw_eeg.plot_sensors(sphere='eeglab')
+
+    # Should raise if Oz is missing too, as we cannot reconstruct Fpz anymore
+    raw_eeg.drop_channels('Oz')
+    with pytest.raises(ValueError, match='could not find: Fpz'):
         raw_eeg.plot_sensors(sphere='eeglab')
 
     # Should raise if we don't have a montage

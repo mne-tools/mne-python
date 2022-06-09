@@ -875,13 +875,13 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
                 )
             ch_pos = montage.get_positions()['ch_pos']
 
-            horizon_ch_names = ('Oz', 'Fpz', 'T7', 'T8')
+            horizon_ch_names = ('Fpz', 'Oz', 'T7', 'T8')
 
             if 'FPz' in ch_pos:  # "fix" naming
                 ch_pos['Fpz'] = ch_pos['FPz']
                 del ch_pos['FPz']
             elif 'Fpz' not in ch_pos and 'Oz' in ch_pos:
-                warn(
+                logger.info(
                     'Approximating Fpz location by mirroring Oz along '
                     'the X and Y axes.'
                 )
