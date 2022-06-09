@@ -846,7 +846,8 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
                 pass
             else:
                 sphere = 'auto'
-    elif isinstance(sphere, str):
+
+    if isinstance(sphere, str):
         if sphere not in ('auto', 'eeglab'):
             raise ValueError(
                 f'sphere, if str, must be "auto" or "eeglab", got {sphere}'
@@ -881,7 +882,7 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
                 del ch_pos['FPz']
             elif 'Fpz' not in ch_pos:
                 if 'Oz' in ch_pos:
-                    logger.info(
+                    warn(
                         'Approximating Fpz location by mirroring Oz along '
                         'the X and Y axes.'
                     )
