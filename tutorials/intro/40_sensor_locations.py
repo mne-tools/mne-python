@@ -40,6 +40,11 @@ import mne
 #
 # Working with built-in montages
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# .. sidebar:: Computing sensor locations
+#
+#     If you are interested in how standard (idealized) EEG sensor positions
+#     are computed on a spherical head model, make sure to check out the
+#     `eeg_positions`_ repository.
 #
 # The 3D coordinates of MEG sensors are included in the raw recordings from MEG
 # systems. They are automatically stored in the ``info`` attribute of the
@@ -60,17 +65,20 @@ print(
 print('\n'.join(montages))
 
 # %%
-# .. sidebar:: Computing sensor locations
-#
-#     If you are interested in how standard (idealized) EEG sensor positions
-#     are computed on a spherical head model, make sure to check out the
-#     `eeg_positions`_ repository.
-#
 # These built-in EEG montages can be loaded with
 # `mne.channels.make_standard_montage`:
 
-ten_twenty_montage = mne.channels.make_standard_montage('standard_1020')
-print(ten_twenty_montage)
+easycap_montage = mne.channels.make_standard_montage('easycap-M1')
+print(easycap_montage)
+
+# %%
+# `Montage <mne.channels.DigMontage>` objects have a
+# `~mne.channels.DigMontage.plot` method for visualizing the sensor locations
+# in 2D or 3D:
+
+easycap_montage.plot()  # 2D
+fig = easycap_montage.plot(kind='3d', show=False)  # 3D
+fig = fig.gca().view_init(azim=70, elev=15)  # set view angle for tutorial 🧐
 
 # %%
 # Once loaded, a montage can be applied to data with the
@@ -78,79 +86,84 @@ print(ten_twenty_montage)
 # `raw.set_montage <mne.io.Raw.set_montage>`,
 # `epochs.set_montage <mne.Epochs.set_montage>`, or
 # `evoked.set_montage <mne.Evoked.set_montage>`. This will only work with
-# data whose EEG channel names correspond to those in the montage.
+# data whose EEG channel names correspond to those in the montage. You can then
+# visualize the sensor locations via
+# `raw.plot_sensors <mne.io.Raw.plot_sensors>`. Therefore, we're loading some
+# EEG data here, and not the usual MNE "sample" dataset.
+#
+# It is also possible to skip the manual montage loading step by passing the
+# montage name directly to the `~mne.io.Raw.set_montage` method.
 
 ssvep_data_path = mne.datasets.ssvep.data_path()
 ssvep_data_raw_path = (ssvep_data_path / 'sub-02' / 'ses-01' / 'eeg' /
                        'sub-02_ses-01_task-ssvep_eeg.vhdr')
 ssvep_raw = mne.io.read_raw_brainvision(ssvep_data_raw_path, verbose=False)
-ssvep_raw.set_montage(ten_twenty_montage)
+
+# Use a preloaded montage
+ssvep_raw.set_montage(easycap_montage)
+fig = ssvep_raw.plot_sensors(show_names=True)
+
+# Apply a standard montage directly, without preloading
+ssvep_raw.set_montage('easycap-M1')
+fig = ssvep_raw.plot_sensors(show_names=True)
 
 # %%
-# It is also possible to skip the manual montage loading step by passing the
-# montage name directly to the `~mne.io.Raw.set_montage` method:
+# .. note::
+#
+#    You may have noticed that the figures created via
+#    `plot_sensors <mne.io.Raw.plot_sensors>` contain fewer sensors than
+#    the what we got via
+#    `easycap_montage.plot <mne.channels.DigMontage.plot>`. This is because
+#    the montage contains all channels that specific EEG setup could
+#    potentially have; but when applying that montage to an actual EEG dataset,
+#    the information on all sensors not actually present in the data is
+#    removed so you will only see the sensors that appear in the data.
+#
+# Plotting 2D sensor locations like EEGLAB
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# .. sidebar:: The ``sphere`` keyword is available in many places!
+#
+#    All MNE plotting functions for EEG topographies and sensor locations
+#    sport the ``sphere`` keyword argument, and therefore allow for adjustment
+#    of the way the sensors are projected onto the head surface.
+#
+# In MNE-Python, by default the head center is calculated using
+# :term:`fiducial points <fiducial>`. This means that
+# the head circle represents the head circumference **at the nasion and ear
+# level,** and not where it is commonly measured in the 10–20 EEG system
+# (i.e., above the nasion at T4/T8, T3/T7, Oz, and Fz).
+#
+# If you prefer to draw the head circle using 10–20 conventions (which are also
+# used by EEGLAB), you can pass ``sphere='eeglab'``:
 
-ssvep_raw.set_montage('standard_1020')
+fig = ssvep_raw.plot_sensors(show_names=True, sphere='eeglab')
 
 # %%
-# `Montage <mne.channels.DigMontage>` objects have a
-# `~mne.channels.DigMontage.plot` method for visualizing the sensor locations
-# in 2D or 3D:
-
-fig = ten_twenty_montage.plot(kind='3d')
-fig.gca().view_init(azim=70, elev=15)  # set view angle
-ten_twenty_montage.plot(kind='topomap', show_names=False)
-
-# %%
+# Because the data we're using here doesn't contain an Fpz channel, its
+# putative location was approximated automatically.
+#
 # .. _control-chan-projection:
 #
-# Controlling channel projection (MNE vs EEGLAB)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# .. admonition: my title
-#    :name: note
-#
-#    To achieve topographic plots that look like the ones in EEGLAB, pass
-#    ``sphere='eeglab'``.
+# Manually controlling 2D channel projection
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Channel positions in 2D space are obtained by projecting their actual 3D
-# positions onto a sphere, then projecting the sphere onto a plane. Because the
-# ``'standard_1020'`` montage contains realistic (as opposed to idealized
-# spherical) channel positions, we will use a different montage to demonstrate
-# how channels are projected to 2D:
-
-biosemi_montage = mne.channels.make_standard_montage('biosemi64')
-biosemi_montage.plot(show_names=False)
-
-# %%
+# positions onto a sphere, then projecting the sphere onto a plane.
+#
 # By default, a sphere with origin at ``(0, 0, 0)`` (x, y, z coordinates) and
 # radius of ``0.095`` meters (9.5 cm) is used. You can use a different sphere
 # radius by passing a single value as the  ``sphere`` argument in any function
 # that plots channels in 2D (like `~mne.channels.DigMontage.plot` that we use
 # here, but also for example `mne.viz.plot_topomap`):
 
-biosemi_montage.plot(show_names=False, sphere=0.07)
+fig = easycap_montage.plot(sphere=0.07)
 
 # %%
 # To change not only the radius, but also the sphere origin, pass a
 # ``(x, y, z, radius)`` tuple as the ``sphere`` argument:
 
-biosemi_montage.plot(show_names=False, sphere=(0.03, 0.02, 0.01, 0.075))
-
-# %%
-# In MNE-Python, the head center and therefore the sphere center are calculated
-# using :term:`fiducial points <fiducial>`. This means that the head circle
-# represents the head circumference at the nasion and ear level, and not where
-# it is commonly measured in the 10–20 EEG system (above the nasion at T4/T8,
-# T3/T7, Oz, and Fz). Notice below that by default T7 and Oz are placed
-# *within* the head circle:
-
-biosemi_montage.plot()
-
-# %%
-# If you prefer to draw the head circle using 10–20 conventions (which are also
-# used by EEGLAB), pass ``sphere='eeglab'``
-
-biosemi_montage.plot(sphere='eeglab')
+fig = easycap_montage.plot(sphere=(0.03, 0.02, 0.01, 0.075))
 
 # %%
 # .. _reading-dig-montages:
