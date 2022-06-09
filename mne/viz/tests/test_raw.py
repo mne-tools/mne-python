@@ -874,7 +874,7 @@ def test_plot_sensors(raw):
     raw_eeg.set_montage(None)
     with raw_eeg.info._unlock():
         raw_eeg.info['chs'] = chs
-    with pytest.raises(ValueError, match='No montage was found'):
+    with pytest.raises(ValueError, match='No montage was set'):
         raw_eeg.plot_sensors(sphere='eeglab')
 
 
