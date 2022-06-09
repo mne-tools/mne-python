@@ -880,13 +880,13 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
             if 'FPz' in ch_pos:  # "fix" naming
                 ch_pos['Fpz'] = ch_pos['FPz']
                 del ch_pos['FPz']
-            elif 'Fpz' not in ch_pos:
-                if 'Oz' in ch_pos:
-                    warn(
-                        'Approximating Fpz location by mirroring Oz along '
-                        'the X and Y axes.'
-                    )
-                    ch_pos['Fpz'] = ch_pos['Oz'] * [-1, -1, 1]
+            elif 'Fpz' not in ch_pos and 'Oz' in ch_pos:
+                warn(
+                    'Approximating Fpz location by mirroring Oz along '
+                    'the X and Y axes.'
+                )
+                # This assumes Fpz and Oz have the same Z coordinate
+                ch_pos['Fpz'] = ch_pos['Oz'] * [-1, -1, 1]
 
             for ch_name in horizon_ch_names:
                 if ch_name not in ch_pos:
