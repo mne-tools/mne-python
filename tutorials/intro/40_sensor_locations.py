@@ -15,7 +15,6 @@ As usual we'll start by importing the modules we need and loading some
 
 # %%
 
-import os
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,11 +22,6 @@ import matplotlib.pyplot as plt
 # the following import is required for matplotlib < 3.2:
 from mpl_toolkits.mplot3d import Axes3D  # noqa
 import mne
-
-sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
-                        'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 
 # %%
 # About montages and layouts
@@ -55,7 +49,7 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 # ``mne-python`` directory in the :file:`mne/channels/data/montages` folder:
 
 montage_dir = Path(mne.__file__).parent / 'channels' / 'data' / 'montages'
-montage_files = sorted([
+montages = sorted([
     f.stem for f in montage_dir.glob('*')
 ])
 print(
@@ -63,7 +57,7 @@ print(
     'BUILT-IN MONTAGES\n'
     '================='
 )
-print('\n'.join(montage_files))
+print('\n'.join(montages))
 
 # %%
 # .. sidebar:: Computing sensor locations
@@ -73,8 +67,7 @@ print('\n'.join(montage_files))
 #     `eeg_positions`_ repository.
 #
 # These built-in EEG montages can be loaded with
-# `mne.channels.make_standard_montage` (note that you need to provide the
-# filename *without* its extension):
+# `mne.channels.make_standard_montage`:
 
 ten_twenty_montage = mne.channels.make_standard_montage('standard_1020')
 print(ten_twenty_montage)
@@ -82,15 +75,22 @@ print(ten_twenty_montage)
 # %%
 # Once loaded, a montage can be applied to data with the
 # `~mne.io.Raw.set_montage` method, for example
-# `raw.set_montage <mne.io.Raw.set_montage>`. It is also possible to skip the
-# loading step by passing the filename string directly to the
-# `~mne.io.Raw.set_montage` method. This will not work with our sample
-# data, because its channel names do not match the channel names in the
-# standard 10–20 montage. Therefore, we do not run the following commands here:
+# `raw.set_montage <mne.io.Raw.set_montage>`,
+# `epochs.set_montage <mne.Epochs.set_montage>`, or
+# `evoked.set_montage <mne.Evoked.set_montage>`. This will only work with
+# data whose EEG channel names correspond to those in the montage.
 
-# these will be equivalent:
-# raw_1020 = raw.copy().set_montage(ten_twenty_montage)
-# raw_1020 = raw.copy().set_montage('standard_1020')
+ssvep_data_path = mne.datasets.ssvep.data_path()
+ssvep_data_raw_path = (ssvep_data_path / 'sub-02' / 'ses-01' / 'eeg' /
+                       'sub-02_ses-01_task-ssvep_eeg.vhdr')
+ssvep_raw = mne.io.read_raw_brainvision(ssvep_data_raw_path, verbose=False)
+ssvep_raw.set_montage(ten_twenty_montage)
+
+# %%
+# It is also possible to skip the manual montage loading step by passing the
+# montage name directly to the `~mne.io.Raw.set_montage` method:
+
+ssvep_raw.set_montage('standard_1020')
 
 # %%
 # `Montage <mne.channels.DigMontage>` objects have a
@@ -106,6 +106,11 @@ ten_twenty_montage.plot(kind='topomap', show_names=False)
 #
 # Controlling channel projection (MNE vs EEGLAB)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# .. admonition: my title
+#    :name: note
+#
+#    To achieve topographic plots that look like the ones in EEGLAB, pass
+#    ``sphere='eeglab'``.
 #
 # Channel positions in 2D space are obtained by projecting their actual 3D
 # positions onto a sphere, then projecting the sphere onto a plane. Because the
@@ -143,17 +148,9 @@ biosemi_montage.plot()
 
 # %%
 # If you prefer to draw the head circle using 10–20 conventions (which are also
-# used by EEGLAB), you can move the sphere origin a few centimeters up along
-# the z dimension:
+# used by EEGLAB), pass ``sphere='eeglab'``
 
-biosemi_montage.plot(sphere=(0, 0, 0.035, 0.094))
-
-# %%
-# Alternatively, you can calculate the sphere origin from Oz, Fpz, T3/T7 or
-# T4/T8 channels. This is easier once the montage has been applied to the data
-# and channel positions are in the head space (see
-# :ref:`this example <ex-topomap-eeglab-style>`).
-
+biosemi_montage.plot(sphere='eeglab')
 
 # %%
 # .. _reading-dig-montages:
@@ -173,12 +170,19 @@ biosemi_montage.plot(sphere=(0, 0, 0.035, 0.094))
 # Matplotlib ``Axes`` object (so the channel positions can easily be added as a
 # subplot in a multi-panel figure):
 
+sample_data_folder = mne.datasets.sample.data_path()
+sample_data_raw_path = (sample_data_folder / 'MEG' / 'sample' /
+                        'sample_audvis_raw.fif')
+sample_raw = mne.io.read_raw_fif(
+    sample_data_raw_path, preload=False, verbose=False
+)
+
 # sphinx_gallery_thumbnail_number = 8
 fig = plt.figure()
 ax2d = fig.add_subplot(121)
 ax3d = fig.add_subplot(122, projection='3d')
-raw.plot_sensors(ch_type='eeg', axes=ax2d)
-raw.plot_sensors(ch_type='eeg', axes=ax3d, kind='3d')
+sample_raw.plot_sensors(ch_type='eeg', axes=ax2d)
+sample_raw.plot_sensors(ch_type='eeg', axes=ax3d, kind='3d')
 ax3d.view_init(azim=70, elev=15)
 
 # %%
@@ -212,9 +216,11 @@ ax3d.view_init(azim=70, elev=15)
 # surface rendering instead of matplotlib. This works by calling
 # `mne.viz.plot_alignment`:
 
-fig = mne.viz.plot_alignment(raw.info, dig=False, eeg=False,
-                             surfaces=[], meg=['helmet', 'sensors'],
-                             coord_frame='meg')
+fig = mne.viz.plot_alignment(
+    sample_raw.info, dig=False, eeg=False,
+    surfaces=[], meg=['helmet', 'sensors'],
+    coord_frame='meg'
+)
 mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
 
 # %%
@@ -233,26 +239,23 @@ mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
 # Similar to montages, many layout files are included with MNE-Python. They are
 # stored in the :file:`mne/channels/data/layouts` folder:
 
-layout_dir = os.path.join(os.path.dirname(mne.__file__),
-                          'channels', 'data', 'layouts')
-print('\nBUILT-IN LAYOUT FILES')
-print('=====================')
-print(sorted(os.listdir(layout_dir)))
+layout_dir = Path(mne.__file__).parent / 'channels' / 'data' / 'layouts'
+layouts = sorted([
+    f.stem for f in layout_dir.glob('*')
+])
+print(
+    '\n'
+    'BUILT-IN LAYOUTS\n'
+    '================'
+)
+print('\n'.join(layouts))
 
 # %%
-# The file formats (and therefore file extensions) of the built-in layout and
-# montage files vary considerably (because manufacturers like to use different
-# conventions). However, the montage and layout loading functions in MNE-Python
-# take the filename *without its extension* so you do not have to keep track of
-# which file format is used by which manufacturer.
-#
-# To load a layout file, use the `mne.channels.read_layout` function and
-# provide the filename *without* its file extension. You can then visualize the
-# layout using its `~mne.channels.Layout.plot` method or equivalently passing
-# the layout to `mne.viz.plot_layout`:
+# To load a layout file, use the `mne.channels.read_layout` function.
+# You can then visualize the layout using its
+# `~mne.channels.Layout.plot` method:
 
 biosemi_layout = mne.channels.read_layout('biosemi')
-biosemi_layout.plot()  # same result as mne.viz.plot_layout(biosemi_layout)
 
 # %%
 # Similar to the ``picks`` argument for selecting channels from `~mne.io.Raw`
@@ -272,7 +275,7 @@ biosemi_layout.plot(picks=midline)
 # create a `~mne.channels.Layout` object with either
 # `mne.channels.make_eeg_layout` or `mne.channels.find_layout`.
 
-layout_from_raw = mne.channels.make_eeg_layout(raw.info)
+layout_from_raw = mne.channels.make_eeg_layout(sample_raw.info)
 # same result as mne.channels.find_layout(raw.info, ch_type='eeg')
 layout_from_raw.plot()
 
