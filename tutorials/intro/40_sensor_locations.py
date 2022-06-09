@@ -100,11 +100,11 @@ ssvep_data_raw_path = (ssvep_data_path / 'sub-02' / 'ses-01' / 'eeg' /
                        'sub-02_ses-01_task-ssvep_eeg.vhdr')
 ssvep_raw = mne.io.read_raw_brainvision(ssvep_data_raw_path, verbose=False)
 
-# Use a preloaded montage
+# Use the preloaded montage
 ssvep_raw.set_montage(easycap_montage)
 fig = ssvep_raw.plot_sensors(show_names=True)
 
-# Apply a standard montage directly, without preloading
+# Apply a template montage directly, without preloading
 ssvep_raw.set_montage('easycap-M1')
 fig = ssvep_raw.plot_sensors(show_names=True)
 
