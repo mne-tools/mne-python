@@ -89,7 +89,9 @@ Enhancements
 
 - Add timeformat ``YYYY/MM/DD`` to ``mne.io.ctf.info._convert_time`` (:gh:`10674` by `Simon Kern`_)
 
-- :meth:`mne.Report.add_figure` and :meth:`mne.Report.add_image` gained a new parameter, ``section``, allowing to put multiple figures or images into the same "content block". Previously, the only way to group figures and images was by means of a slider, which sometimes made content hard to discover. The slider remains available as an alternative. (:gh:`10694` by `Richard Höchenberger`_)
+- :meth:`mne.Report.add_figure` and :meth:`mne.Report.add_image` gained a new parameter, ``section``, allowing to put multiple figures or images into the same "content block". Previously, the only way to group figures and images was by means of a slider, which sometimes made content hard to discover. The slider remains available as an alternative (:gh:`10694` by `Richard Höchenberger`_)
+
+- All functions and method that plot topographic maps for EEG (2D projections of the EEG sensor locations) now accept the parameter value ``sphere='eeglab'`` to lay out the sensors with respect to the head circle in a similar way to how EEGLAB does, i.e., T7/T8 and Fpz/Oz are placed directly on the circle for template montages (:gh:`10572` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
