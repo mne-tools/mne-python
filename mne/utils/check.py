@@ -859,7 +859,7 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
             sphere = tuple(r0) + (R,)
             sphere_units = 'm'
         elif sphere == 'eeglab':
-            # We need coordinates for for the 2D plane formed by
+            # We need coordinates for the 2D plane formed by
             # Fpz<->Oz and T7<->T8, as this plane will be the horizon (i.e. it
             # will determine the location of the head circle).
             #
