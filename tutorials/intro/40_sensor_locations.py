@@ -197,7 +197,7 @@ sample_raw = mne.io.read_raw_fif(
     sample_data_raw_path, preload=False, verbose=False
 )
 
-# sphinx_gallery_thumbnail_number = 8
+# sphinx_gallery_thumbnail_number = 9
 fig = plt.figure()
 ax2d = fig.add_subplot(121)
 ax3d = fig.add_subplot(122, projection='3d')
