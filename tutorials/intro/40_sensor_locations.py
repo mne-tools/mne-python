@@ -90,18 +90,18 @@ fig = fig.gca().view_init(azim=70, elev=15)  # set view angle for tutorial 🧐
 # %%
 # Once loaded, a montage can be applied to data with the
 # `~mne.io.Raw.set_montage` method, for example
-# `raw.set_montage <mne.io.Raw.set_montage>`,
-# `epochs.set_montage <mne.Epochs.set_montage>`, or
-# `evoked.set_montage <mne.Evoked.set_montage>`. This will only work with
+# `raw.set_montage() <mne.io.Raw.set_montage>`,
+# `epochs.set_montage() <mne.Epochs.set_montage>`, or
+# `evoked.set_montage() <mne.Evoked.set_montage>`. This will only work with
 # data whose EEG channel names correspond to those in the montage.
 # (Therefore, we're loading some EEG data below, and not the usual MNE "sample"
 # dataset.)
 #
 # You can then visualize the sensor locations via the
-# `plot_sensors <mne.io.Raw.plot_sensors>` method.
+# :meth:`~mne.io.Raw.plot_sensors` method.
 #
 # It is also possible to skip the manual montage loading step by passing the
-# montage name directly to the `~mne.io.Raw.set_montage` method.
+# montage name directly to the :meth:`~mne.io.Raw.set_montage` method.
 
 ssvep_data_path = mne.datasets.ssvep.data_path()
 ssvep_data_raw_path = os.path.join(ssvep_data_path, 'sub-02', 'ses-01', 'eeg',
@@ -120,9 +120,9 @@ fig = ssvep_raw.plot_sensors(show_names=True)
 # .. note::
 #
 #    You may have noticed that the figures created via
-#    `plot_sensors <mne.io.Raw.plot_sensors>` contain fewer sensors than
+#    :meth:`~mne.io.Raw.plot_sensors` contain fewer sensors than
 #    the what we got via
-#    `easycap_montage.plot <mne.channels.DigMontage.plot>`. This is because
+#    `easycap_montage.plot() <mne.channels.DigMontage.plot>`. This is because
 #    the montage contains **all** channels that specific EEG setup could
 #    potentially have; but when applying that montage to an actual EEG dataset,
 #    the location information on all sensors not actually present in the data
@@ -182,12 +182,12 @@ fig = easycap_montage.plot(sphere=(0.03, 0.02, 0.01, 0.075))
 #
 # In the sample data, the sensor positions are already available in the
 # ``info`` attribute of the `~mne.io.Raw` object (see the documentation of the
-# reading functions and `~mne.io.Raw.set_montage` for details on how that
+# reading functions and :meth:`~mne.io.Raw.set_montage` for details on how that
 # works). Therefore, we can plot sensor locations directly from the
-# `~mne.io.Raw` object using `~mne.io.Raw.plot_sensors`, which provides similar
-# functionality to `montage.plot() <mne.channels.DigMontage.plot>`. In
-# addition, `~mne.io.Raw.plot_sensors` supports channel selection by type,
-# color-coding channels in various ways (by default, channels listed in
+# `~mne.io.Raw` object using :meth:`~mne.io.Raw.plot_sensors`, which provides
+# similar functionality to `montage.plot() <mne.channels.DigMontage.plot>`. In
+# addition, :meth:`~mne.io.Raw.plot_sensors` supports channel selection by
+# type, color-coding channels in various ways (by default, channels listed in
 # ``raw.info['bads']`` will be plotted in red), and drawing in an existing
 # Matplotlib ``Axes`` object (so the channel positions can easily be added as a
 # subplot in a multi-panel figure):
@@ -216,19 +216,19 @@ ax3d.view_init(azim=70, elev=15)
 # you need to use different montage reading functions (see :ref:`dig-formats`).
 # The resulting `montage <mne.channels.DigMontage>` can then be added to
 # `~mne.io.Raw` objects by passing it as an argument to the
-# `~mne.io.Raw.set_montage` method (just as we did before with the name of the
-# predefined ``'standard_1020'`` montage). Once loaded, locations can be
-# plotted with the `~mne.channels.DigMontage.plot` and saved with the
-# `~mne.channels.DigMontage.save` methods of the
+# :meth:`~mne.io.Raw.set_montage` method (just as we did before with the name
+# of the predefined ``'standard_1020'`` montage). Once loaded, locations can be
+# plotted with the :meth:`~mne.channels.DigMontage.plot` method and saved with
+# the :meth:`~mne.channels.DigMontage.save` method of the
 # `montage <mne.channels.DigMontage>` object.
 #
 # .. note::
 #
-#     When setting a montage with `~mne.io.Raw.set_montage`, the measurement
-#     info is updated in two places (both ``chs`` and ``dig`` entries are
-#     updated) – see :ref:`tut-info-class` for more details. Note that ``dig``
-#     may contain HPI, fiducial, or head shape points in addition to electrode
-#     locations.
+#     When setting a montage with :meth:`~mne.io.Raw.set_montage`, the
+#     measurement info is updated in two places (both ``chs`` and ``dig``
+#     entries are updated) – see :ref:`tut-info-class` for more details. Note
+#     that ``dig`` may contain HPI, fiducial, or head shape points in addition
+#     to electrode locations.
 #
 #
 # Visualizing sensors in 3D surface renderings
@@ -236,7 +236,7 @@ ax3d.view_init(azim=70, elev=15)
 #
 # It is also possible to render an image of an MEG sensor helmet using 3D
 # surface rendering instead of matplotlib. This works by calling
-# `mne.viz.plot_alignment`:
+# :func:`mne.viz.plot_alignment`:
 
 fig = mne.viz.plot_alignment(
     sample_raw.info, dig=False, eeg=False,
@@ -246,12 +246,12 @@ fig = mne.viz.plot_alignment(
 mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
 
 # %%
-# Note that `~mne.viz.plot_alignment` requires an `~mne.Info` object, and can
-# also render MRI surfaces of the scalp, skull, and brain (by passing a dict
-# with keys like ``'head'``, ``'outer_skull'`` or ``'brain'`` to the
+# Note that :func:`~mne.viz.plot_alignment` requires an `~mne.Info` object, and
+# can also render MRI surfaces of the scalp, skull, and brain (by passing a
+# dict with keys like ``'head'``, ``'outer_skull'`` or ``'brain'`` to the
 # ``surfaces`` parameter). This makes the function useful for
 # :ref:`assessing coordinate frame transformations <tut-source-alignment>`.
-# For examples of various uses of `~mne.viz.plot_alignment`, see
+# For examples of various uses of :func:`~mne.viz.plot_alignment`, see
 # :ref:`plot_montage`, :ref:`ex-eeg-on-scalp`, and :ref:`ex-plot-meg-sensors`.
 #
 #
@@ -280,13 +280,13 @@ biosemi_layout = mne.channels.read_layout('biosemi')
 
 # %%
 # Similar to the ``picks`` argument for selecting channels from `~mne.io.Raw`
-# objects, the `~mne.channels.Layout.plot` method of `~mne.channels.Layout`
-# objects also has a ``picks`` argument. However, because layouts only contain
-# information about sensor name and location (not sensor type), the
-# `~mne.channels.Layout.plot` method only supports picking channels by index
-# (not by name or by type). In the following example, we find the desired
-# indices using `numpy.where`; selection by name or type is possible with
-# `mne.pick_channels` or `mne.pick_types`.
+# objects, the :meth:`~mne.channels.Layout.plot` method of
+# `~mne.channels.Layout` objects also has a ``picks`` argument. However,
+# because layouts only contain information about sensor name and location (not
+# sensor type), the :meth:`~mne.channels.Layout.plot` method only supports
+# picking channels by index (not by name or by type). In the following example,
+# we find the desired indices using :func:`numpy.where`; selection by name or
+# type is possible with :func:`mne.pick_channels` or :func:`mne.pick_types`.
 
 midline = np.where([name.endswith('z') for name in biosemi_layout.names])[0]
 biosemi_layout.plot(picks=midline)
@@ -294,7 +294,7 @@ biosemi_layout.plot(picks=midline)
 # %%
 # If you have a `~mne.io.Raw` object that contains sensor positions, you can
 # create a `~mne.channels.Layout` object with either
-# `mne.channels.make_eeg_layout` or `mne.channels.find_layout`.
+# :func:`mne.channels.make_eeg_layout` or :func:`mne.channels.find_layout`.
 
 layout_from_raw = mne.channels.make_eeg_layout(sample_raw.info)
 # same result as mne.channels.find_layout(raw.info, ch_type='eeg')
@@ -307,7 +307,8 @@ layout_from_raw.plot()
 #     locations are fixed in an MEG system (unlike in EEG, where sensor caps
 #     deform to fit snugly on a specific head). Therefore, MEG layouts are
 #     consistent (constant) for a given system and you can simply load them
-#     with `mne.channels.read_layout` or use `mne.channels.find_layout` with
+#     with :func:`mne.channels.read_layout` or use
+#     :func:`mne.channels.find_layout` with
 #     the ``ch_type`` parameter (as previously demonstrated for EEG).
 #
 # All `~mne.channels.Layout` objects have a `~mne.channels.Layout.save` method
