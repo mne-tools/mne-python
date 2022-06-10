@@ -13,7 +13,7 @@ As usual we'll start by importing the modules we need:
 
 # %%
 
-from pathlib import Path
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -61,10 +61,9 @@ import mne
 # included in MNE-Python; these files are stored in your ``mne-python``
 # directory in the :file:`mne/channels/data/montages` folder:
 
-montage_dir = Path(mne.__file__).parent / 'channels' / 'data' / 'montages'
-montages = sorted([
-    f.stem for f in montage_dir.glob('*')
-])
+montage_dir = os.path.join(os.path.dirname(mne.__file__),
+                           'channels', 'data', 'montages')
+montages = sorted(os.listdir(montage_dir))
 print(
     '\n'
     'BUILT-IN MONTAGES\n'
@@ -105,8 +104,8 @@ fig = fig.gca().view_init(azim=70, elev=15)  # set view angle for tutorial 🧐
 # montage name directly to the `~mne.io.Raw.set_montage` method.
 
 ssvep_data_path = mne.datasets.ssvep.data_path()
-ssvep_data_raw_path = (ssvep_data_path / 'sub-02' / 'ses-01' / 'eeg' /
-                       'sub-02_ses-01_task-ssvep_eeg.vhdr')
+ssvep_data_raw_path = os.path.join(ssvep_data_path, 'sub-02', 'ses-01', 'eeg',
+                                   'sub-02_ses-01_task-ssvep_eeg.vhdr')
 ssvep_raw = mne.io.read_raw_brainvision(ssvep_data_raw_path, verbose=False)
 
 # Use the preloaded montage
@@ -194,8 +193,8 @@ fig = easycap_montage.plot(sphere=(0.03, 0.02, 0.01, 0.075))
 # subplot in a multi-panel figure):
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_path = (sample_data_folder / 'MEG' / 'sample' /
-                        'sample_audvis_raw.fif')
+sample_data_raw_path = os.path.join(sample_data_folder, 'MEG', 'sample',
+                                    'sample_audvis_raw.fif')
 sample_raw = mne.io.read_raw_fif(
     sample_data_raw_path, preload=False, verbose=False
 )
@@ -262,10 +261,9 @@ mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
 # Similar to montages, many layout files are included with MNE-Python. They are
 # stored in the :file:`mne/channels/data/layouts` folder:
 
-layout_dir = Path(mne.__file__).parent / 'channels' / 'data' / 'layouts'
-layouts = sorted([
-    f.stem for f in layout_dir.glob('*')
-])
+layout_dir = os.path.join(os.path.dirname(mne.__file__),
+                          'channels', 'data', 'layouts')
+layouts = sorted(os.listdir(layout_dir))
 print(
     '\n'
     'BUILT-IN LAYOUTS\n'
