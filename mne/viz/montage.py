@@ -34,7 +34,6 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
     """
     from scipy.spatial.distance import cdist
     from ..channels import DigMontage, make_dig_montage
-    from ..io import RawArray
     from .. import create_info
 
     _check_option('kind', kind, ['topomap', '3d'])
