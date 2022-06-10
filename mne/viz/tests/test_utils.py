@@ -146,12 +146,12 @@ def test_validate_if_list_of_axes():
     _validate_if_list_of_axes(ax_flat, 4)
     pytest.raises(ValueError, _validate_if_list_of_axes, ax_flat, 5)
     pytest.raises(ValueError, _validate_if_list_of_axes, ax, 3)
-    pytest.raises(ValueError, _validate_if_list_of_axes, 'error')
-    pytest.raises(ValueError, _validate_if_list_of_axes, ['error'] * 2)
-    pytest.raises(ValueError, _validate_if_list_of_axes, ax[0])
+    pytest.raises(TypeError, _validate_if_list_of_axes, 'error')
+    pytest.raises(TypeError, _validate_if_list_of_axes, ['error'] * 2)
+    pytest.raises(TypeError, _validate_if_list_of_axes, ax[0])
     pytest.raises(ValueError, _validate_if_list_of_axes, ax, 3)
     ax_flat[2] = 23
-    pytest.raises(ValueError, _validate_if_list_of_axes, ax_flat)
+    pytest.raises(TypeError, _validate_if_list_of_axes, ax_flat)
     _validate_if_list_of_axes(ax, 4)
     plt.close('all')
 

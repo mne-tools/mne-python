@@ -62,6 +62,9 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     Transformation based on spherical spline surface Laplacian
     :footcite:`PerrinEtAl1987,PerrinEtAl1989,Cohen2014,KayserTenke2015`.
 
+    This function can be used to re-reference the signal using a Laplacian
+    (LAP) "reference-free" transformation.
+
     Parameters
     ----------
     inst : instance of Raw, Epochs or Evoked

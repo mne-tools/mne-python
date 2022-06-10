@@ -33,12 +33,11 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
-                    _set_3d_axes_equal)
+                    _set_3d_axes_equal, _check_type_projs)
 from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
-from ..io.proj import Projection
 
 
 _fnirs_types = ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')
@@ -309,13 +308,28 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
     -----
     .. versionadded:: 0.9.0
     """
+    fig = _plot_projs_topomap(
+        projs, info, cmap=cmap, sensors=sensors, colorbar=colorbar, res=res,
+        size=size, outlines=outlines, contours=contours,
+        image_interp=image_interp, axes=axes, vlim=vlim, sphere=sphere,
+        extrapolate=extrapolate, border=border)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        tight_layout(fig=fig)
+    plt_show(show)
+    return fig
+
+
+def _plot_projs_topomap(projs, info, cmap=None, sensors=True,
+                        colorbar=False, res=64, size=1, show=True,
+                        outlines='head', contours=6,
+                        image_interp=_INTERPOLATION_DEFAULT,
+                        axes=None, vlim=(None, None),
+                        sphere=None, extrapolate=_EXTRAPOLATE_DEFAULT,
+                        border=_BORDER_DEFAULT):
     import matplotlib.pyplot as plt
     sphere = _check_sphere(sphere, info)
-
-    # be forgiving if `projs` isn't a list
-    if isinstance(projs, Projection):
-        projs = [projs]
-
+    projs = _check_type_projs(projs)
     _validate_type(info, 'info', 'info')
 
     types, datas, poss, spheres, outliness, ch_typess = [], [], [], [], [], []
@@ -401,10 +415,6 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
             _add_colorbar(ax, im, cmap)
 
     fig = ax.get_figure()
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('ignore')
-        tight_layout(fig=fig)
-    plt_show(show)
     return fig
 
 

@@ -219,7 +219,7 @@ imshow_mri(data, t1, vox, dict(MRI=xyz_mri), 'MRI slice')
 # %%
 # Knowing these relationships and being mindful about transformations, we
 # can get from a point in any given space to any other space. Let's start out
-# by plotting the Nasion on a saggital MRI slice:
+# by plotting the Nasion on a sagittal MRI slice:
 
 fiducials = mne.coreg.get_mni_fiducials(subject, subjects_dir=subjects_dir)
 nasion_mri = [d for d in fiducials if d['ident'] == FIFF.FIFFV_POINT_NASION][0]

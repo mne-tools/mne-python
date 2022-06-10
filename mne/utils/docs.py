@@ -1388,6 +1388,12 @@ head_pos : array | None
     parameters as returned by e.g. ``read_head_pos``.
 """
 
+docdict['head_source'] = """
+head_source : str | list of str
+    Head source(s) to use. See the ``source`` option of
+    :func:`mne.get_head_surf` for more information.
+"""
+
 docdict['hitachi_notes'] = """
 Hitachi does not encode their channel positions, so you will need to
 create a suitable mapping using :func:`mne.channels.make_standard_montage`
@@ -2236,35 +2242,50 @@ docdict['pick_ori_novec'] = """
 pick_ori : None | "normal"
 """ + _pick_ori_novec
 
-picks_header = 'picks : str | list | slice | None'
-picks_intro = ('Channels to include. Slices and lists of integers will be '
-               'interpreted as channel indices.')
-_reminder = ("Note that channels in ``info['bads']`` *will be included* if "
-             "their {}indices are explicitly provided.")
-reminder = _reminder.format('names or ')
-reminder_nostr = _reminder.format('')
-noref = f'(excluding reference MEG channels). {reminder}'
-picks_base = f"""{picks_header}
-    {picks_intro} In lists, channel *type* strings
+_picks_types = 'str | list | slice | None'
+_picks_header = f'picks : {_picks_types}'
+_picks_desc = 'Channels to include.'
+_picks_int = ('Slices and lists of integers will be interpreted as channel '
+              'indices.')
+_picks_str = """In lists, channel *type* strings
     (e.g., ``['meg', 'eeg']``) will pick channels of those
     types, channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
     will pick the given channels. Can also be the string values
     "all" to pick all channels, or "data" to pick :term:`data channels`.
     None (default) will pick"""
-docdict['picks_all'] = f'{picks_base} all channels. {reminder}'
-docdict['picks_all_data'] = f'{picks_base} all data channels. {reminder}'
-docdict['picks_all_data_noref'] = f'{picks_base} all data channels {noref}'
-docdict['picks_base'] = picks_base      # couple places (e.g., BaseEpochs)
-docdict['picks_good_data'] = f'{picks_base} good data channels. {reminder}'
+_reminder = ("Note that channels in ``info['bads']`` *will be included* if "
+             "their {}indices are explicitly provided.")
+reminder = _reminder.format('names or ')
+reminder_nostr = _reminder.format('')
+noref = f'(excluding reference MEG channels). {reminder}'
+picks_base = f"""{_picks_header}
+    {_picks_desc} {_picks_int} {_picks_str}"""
+docdict['picks_all'] = _reflow_param_docstring(
+    f'{picks_base} all channels. {reminder}')
+docdict['picks_all_data'] = _reflow_param_docstring(
+    f'{picks_base} all data channels. {reminder}')
+docdict['picks_all_data_noref'] = _reflow_param_docstring(
+    f'{picks_base} all data channels {noref}')
+docdict['picks_base'] = _reflow_param_docstring(picks_base)
+docdict['picks_good_data'] = _reflow_param_docstring(
+    f'{picks_base} good data channels. {reminder}')
 docdict['picks_good_data_noref'] = _reflow_param_docstring(
     f'{picks_base} good data channels {noref}')
-docdict['picks_header'] = picks_header  # these get reused as stubs in a
+docdict['picks_header'] = _picks_header
 docdict['picks_ica'] = """
 picks : int | list of int | slice | None
     Indices of the ICA components to visualize.
 """
 docdict['picks_nostr'] = f"""picks : list | slice | None
-    {picks_intro} None (default) will pick all channels. {reminder_nostr}"""
+    {_picks_desc} {_picks_int}
+    None (default) will pick all channels. {reminder_nostr}"""
+
+docdict['picks_plot_projs_joint_trace'] = f"""\
+picks_trace : {_picks_types}
+    Channels to show alongside the projected time courses. Typically
+    these are the ground-truth channels for an artifact (e.g., ``'eog'`` or
+    ``'ecg'``). {_picks_int} {_picks_str} no channels.
+"""
 
 docdict['picks_plot_psd_good_data'] = \
     f'{picks_base} good data channels. {reminder}'[:-2] + """
@@ -2723,6 +2744,18 @@ docdict['sdr_morph'] = """
 sdr_morph : instance of dipy.align.DiffeomorphicMap
     The class that applies the the symmetric diffeomorphic registration
     (SDR) morph.
+"""
+
+docdict['section_report'] = """
+section : str | None
+    The name of the section (or content block) to add the content to. This
+    feature is useful for grouping multiple related content elements
+    together under a single, collapsible section. Each content element will
+    retain its own title and functionality, but not appear separately in the
+    table of contents. Hence, using sections is a way to declutter the table
+    of contents, and to easy navigation of the report.
+
+    .. versionadded:: 1.1
 """
 
 docdict['seed'] = """
@@ -3188,13 +3221,6 @@ docdict['time_viewer_brain_screenshot'] = """
 time_viewer : bool
     If True, include time viewer traces. Only used if
     ``time_viewer=True`` and ``separate_canvas=False``.
-"""
-
-docdict['title_dipole_locs_fig'] = """
-title : str | None
-    The title of the figure if ``mode='orthoview'`` (ignored for all other
-    modes). If ``None``, dipole number and its properties (amplitude,
-    orientation etc.) will be shown. Defaults to ``None``.
 """
 
 docdict['title_none'] = """

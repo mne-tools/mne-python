@@ -1204,4 +1204,7 @@ def _get_channel_types(info, picks=None, unique=False, only_data_chs=False):
     if only_data_chs:
         ch_types = [ch_type for ch_type in ch_types
                     if ch_type in _DATA_CH_TYPES_SPLIT]
-    return set(ch_types) if unique is True else ch_types
+    if unique:
+        # set does not preserve order but dict does, so let's just use it
+        ch_types = list({k: k for k in ch_types}.keys())
+    return ch_types
