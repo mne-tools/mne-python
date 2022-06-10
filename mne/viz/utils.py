@@ -937,7 +937,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     from .evoked import _rgb
     _check_option('kind', kind, ['topomap', '3d', 'select'])
     if not isinstance(info, Info):
-        raise TypeError('info must be an instance of Info not %s' % type(info))
+        raise TypeError(f'info must be an instance of Info not {type(info)}')
     ch_indices = channel_indices_by_type(info)
     allowed_types = _DATA_CH_TYPES_SPLIT
     if ch_type is None:
@@ -953,11 +953,11 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     elif ch_type in allowed_types:
         picks = ch_indices[ch_type]
     else:
-        raise ValueError("ch_type must be one of %s not %s!" % (allowed_types,
-                                                                ch_type))
+        raise ValueError(
+            f'ch_type must be one of {allowed_types} not {ch_type}!')
 
     if len(picks) == 0:
-        raise ValueError('Could not find any channels of type %s.' % ch_type)
+        raise ValueError(f'Could not find any channels of type {ch_type}.')
 
     if not _check_ch_locs(info=info, picks=picks):
         raise RuntimeError('No valid channel positions found')
