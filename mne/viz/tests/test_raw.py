@@ -4,6 +4,7 @@
 
 import itertools
 import os
+from copy import deepcopy
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -847,6 +848,38 @@ def test_plot_sensors(raw):
     raw.info['dev_head_t'] = None  # like empty room
     with pytest.warns(RuntimeWarning, match='identity'):
         raw.plot_sensors()
+
+    # Test plotting with sphere='eeglab'
+    info = create_info(
+        ch_names=['Fpz', 'Oz', 'T7', 'T8'],
+        sfreq=100,
+        ch_types='eeg'
+    )
+    data = 1e-6 * np.random.rand(4, 100)
+    raw_eeg = RawArray(data=data, info=info)
+    raw_eeg.set_montage('biosemi64')
+    raw_eeg.plot_sensors(sphere='eeglab')
+
+    # Should work with "FPz" as well
+    raw_eeg.rename_channels({'Fpz': 'FPz'})
+    raw_eeg.plot_sensors(sphere='eeglab')
+
+    # Should still work without Fpz/FPz, as long as we still have Oz
+    raw_eeg.drop_channels('FPz')
+    raw_eeg.plot_sensors(sphere='eeglab')
+
+    # Should raise if Oz is missing too, as we cannot reconstruct Fpz anymore
+    raw_eeg.drop_channels('Oz')
+    with pytest.raises(ValueError, match='could not find: Fpz'):
+        raw_eeg.plot_sensors(sphere='eeglab')
+
+    # Should raise if we don't have a montage
+    chs = deepcopy(raw_eeg.info['chs'])
+    raw_eeg.set_montage(None)
+    with raw_eeg.info._unlock():
+        raw_eeg.info['chs'] = chs
+    with pytest.raises(ValueError, match='No montage was set'):
+        raw_eeg.plot_sensors(sphere='eeglab')
 
 
 @pytest.mark.parametrize('cfg_value', (None, '0.1,0.1'))

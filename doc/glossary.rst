@@ -377,6 +377,12 @@ general neuroimaging concepts. If you think a term is missing, please consider
         prefixed with ``STI`` to distinguish them from other channel types. See
         :ref:`stim-channel-defined` for more details.
 
+    template montage
+        An idealized EEG :term:`montage`, often provided by the manufacturer
+        of the EEG system or cap. The electrode positions were not actually
+        measured on the participants' heads, but rather were calculated
+        assuming optimal theoretical placement on a sphere.
+
     tfr
         A time-frequency representation (TFR) is often a spectrogram (STFT) or
         scaleogram (wavelet) showing the frequency content as a function of

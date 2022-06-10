@@ -937,7 +937,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     from .evoked import _rgb
     _check_option('kind', kind, ['topomap', '3d', 'select'])
     if not isinstance(info, Info):
-        raise TypeError('info must be an instance of Info not %s' % type(info))
+        raise TypeError(f'info must be an instance of Info not {type(info)}')
     ch_indices = channel_indices_by_type(info)
     allowed_types = _DATA_CH_TYPES_SPLIT
     if ch_type is None:
@@ -953,11 +953,11 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     elif ch_type in allowed_types:
         picks = ch_indices[ch_type]
     else:
-        raise ValueError("ch_type must be one of %s not %s!" % (allowed_types,
-                                                                ch_type))
+        raise ValueError(
+            f'ch_type must be one of {allowed_types} not {ch_type}!')
 
     if len(picks) == 0:
-        raise ValueError('Could not find any channels of type %s.' % ch_type)
+        raise ValueError(f'Could not find any channels of type {ch_type}.')
 
     if not _check_ch_locs(info=info, picks=picks):
         raise RuntimeError('No valid channel positions found')
@@ -1133,6 +1133,16 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
                 ax.text(this_pos[0] + 0.0025, this_pos[1], ch_names[idx],
                         ha='left', va='center')
         connect_picker = (kind == 'select')
+        # make sure no names go off the edge of the canvas
+        xmin, ymin, xmax, ymax = fig.get_window_extent().bounds
+        renderer = fig.canvas.get_renderer()
+        extents = [x.get_window_extent(renderer=renderer) for x in ax.texts]
+        xmaxs = np.array([x.max[0] for x in extents])
+        bad_xmax_ixs = np.nonzero(xmaxs > xmax)[0]
+        if len(bad_xmax_ixs):
+            needed_space = (xmaxs[bad_xmax_ixs] - xmax).max() / xmax
+            fig.subplots_adjust(right=1 - 1.1 * needed_space)
+
     if connect_picker:
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
                          ch_names=ch_names, show_names=show_names)
