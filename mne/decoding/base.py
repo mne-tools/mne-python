@@ -7,7 +7,6 @@
 # License: BSD-3-Clause
 
 import numpy as np
-import time
 import datetime as dt
 import numbers
 from ..parallel import parallel_func
@@ -452,15 +451,6 @@ def _fit_and_score(estimator, X, y, scorer, train, test,
     from sklearn.utils.metaestimators import _safe_split
     from sklearn.utils.validation import _num_samples
 
-    if parameters is None:
-        msg = ''
-    else:
-        msg = ', '.join(
-            [f'{k}={v}' for k, v in parameters.items()]
-        )
-    msg = f'[CV] {msg} {(64 - len(msg)) * "."}'
-    logger.info(msg)
-
     # Adjust length of sample weights
     fit_params = fit_params if fit_params is not None else {}
     fit_params = _check_fit_params(X, fit_params, train)
@@ -503,17 +493,6 @@ def _fit_and_score(estimator, X, y, scorer, train, test,
         score_duration = dt.datetime.now() - start_time - fit_duration
         if return_train_score:
             train_score = _score(estimator, X_train, y_train, scorer)
-
-    total_duration = score_duration + fit_duration
-    # drop microsend precision
-    total_duration_sec = np.ceil(total_duration.total_seconds())
-    total_duration = dt.timedelta(seconds=total_duration_sec)
-    del total_duration_sec
-
-    msg = f'... score={test_score}'
-    msg = f'{msg}, total={total_duration}'
-    msg = f'[CV] {msg} {(64 - len(msg)) * "."}'
-    logger.info(msg)
 
     ret = [train_score, test_score] if return_train_score else [test_score]
 
