@@ -91,6 +91,8 @@ Enhancements
 
 - :meth:`mne.Report.add_figure` and :meth:`mne.Report.add_image` gained a new parameter, ``section``, allowing to put multiple figures or images into the same "content block". Previously, the only way to group figures and images was by means of a slider, which sometimes made content hard to discover. The slider remains available as an alternative. (:gh:`10694` by `Richard Höchenberger`_)
 
+- Add ``include`` option to :meth:`mne.io.read_raw_edf`, :meth:`mne.io.read_raw_bdf` and :meth:`mne.io.read_raw_gdf`. (:gh:`10734` by `Michiru Kaneda`_)
+
 Bugs
 ~~~~
 

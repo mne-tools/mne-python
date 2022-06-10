@@ -549,6 +549,19 @@ def test_exclude():
         assert ch not in raw.ch_names
 
 
+def test_include():
+    """Test include parameter."""
+    raw = read_raw_edf(edf_path, include=["I1", "I2"])
+    assert sorted(raw.ch_names) == ["I1", "I2"]
+
+    raw = read_raw_edf(edf_path, include="I1")
+    assert raw.ch_names == ["I1"]
+
+    # include takes priority over exclude
+    raw = read_raw_edf(edf_path, include=["I1", "I2"], exclude="I[1-4]")
+    assert sorted(raw.ch_names) == ["I1", "I2"]
+
+
 @testing.requires_testing_data
 def test_ch_types():
     """Test reading of channel types from EDF channel label."""
