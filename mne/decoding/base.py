@@ -11,7 +11,7 @@ import datetime as dt
 import numbers
 from ..parallel import parallel_func
 from ..fixes import BaseEstimator, is_classifier, _get_check_scoring
-from ..utils import logger, warn, verbose
+from ..utils import warn, verbose
 
 
 class LinearModel(BaseEstimator):
