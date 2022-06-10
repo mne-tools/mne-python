@@ -134,14 +134,14 @@ fig = ssvep_raw.plot_sensors(show_names=True)
 # .. sidebar:: The ``sphere`` keyword is available in many places!
 #
 #    All MNE plotting functions for EEG topographies and sensor locations
-#    sport the ``sphere`` keyword argument, and therefore allow for adjustment
-#    of the way the sensors are projected onto the head circle.
+#    support the ``sphere`` keyword argument, and therefore allow for
+#    adjustment of the way the sensors are projected onto the head circle.
 #
 # In MNE-Python, by default the head center is calculated using
 # :term:`fiducial points <fiducial>`. This means that
 # the head circle represents the head circumference **at the nasion and ear
 # level,** and not where it is commonly measured in the 10–20 EEG system
-# (i.e., above the nasion at T4/T8, T3/T7, Oz, and Fz).
+# (i.e., above the nasion at T4/T8, T3/T7, Oz, and Fpz).
 #
 # If you prefer to draw the head circle using 10–20 conventions (which are also
 # used by EEGLAB), you can pass ``sphere='eeglab'``:
