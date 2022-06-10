@@ -2897,35 +2897,36 @@ spatial_colors : bool
     Whether to use spatial colors. Only used when ``average=False``.
 """
 
-docdict['sphere_topomap'] = """
-sphere : float | array-like | instance of ConductorModel
-    The sphere parameters to use for the cartoon head.
-    Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
-    meters, or a single float to give the radius (origin assumed 0, 0, 0).
-    Can also be a spherical ConductorModel, which will use the origin and
-    radius. Can also be None (default) which is an alias for %s.
+_sphere_header = (
+    'sphere : float | array-like | instance of ConductorModel | None')
+_sphere_desc = (
+    'The sphere parameters to use for the head outline. Can be array-like of '
+    'shape (4,) to give the X/Y/Z origin and radius in meters, or a single '
+    'float to give just the radius (origin assumed 0, 0, 0). Can also be an '
+    'instance of a spherical :class:`~mne.bem.ConductorModel` to use the '
+    'origin and radius from that object.'
+)
+docdict['sphere_topomap'] = _reflow_param_docstring(f"""
+{_sphere_header}
+    {_sphere_desc} ``None`` (the default) is equivalent to (0, 0, 0, %s).
     Currently the head radius does not affect plotting.
 
     .. versionadded:: 0.20
-""" % (HEAD_SIZE_DEFAULT,)
+""" % (HEAD_SIZE_DEFAULT,))
 
-docdict['sphere_topomap_auto'] = """
-sphere : float | array-like | 'auto' | 'eeglab' | None
-    The sphere parameters to use for the cartoon head.
-    Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
-    meters, or a single float to give the radius (origin assumed 0, 0, 0).
-    Can also be a spherical ConductorModel, which will use the origin and
-    radius. Can be "auto" to use a digitization-based fit. If ``'eeglab'``,
-    assume that the EEG electrodes ``'Fpz'``, ``'Oz'``, ``'T7'``, and ``'T8'``
-    are all placed on the head circle. If ``'Fpz'`` is not present, it will
-    be approximated from the coordinates of ``'Oz'``.
-    Can also be None (default) to use 'auto' when enough extra digitization
-    points are available, and %s otherwise.
-    Currently the head radius does not affect plotting.
+docdict['sphere_topomap_auto'] = _reflow_param_docstring(f"""
+{_sphere_header} | 'auto' | 'eeglab'
+    {_sphere_desc} If ``'auto'`` the sphere is fit to digitization points.
+    If ``'eeglab'`` the head circle is defined by EEG electrodes ``'Fpz'``,
+    ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will
+    be approximated from the coordinates of ``'Oz'``). ``None`` (the default)
+    is equivalent to ``'auto'`` when enough extra digitization points are
+    available, and (0, 0, 0, %s) otherwise. Currently the head radius does not
+    affect plotting.
 
     .. versionadded:: 0.20
     .. versionchanged:: 1.1 Added ``'eeglab'`` option.
-""" % (HEAD_SIZE_DEFAULT,)
+""" % (HEAD_SIZE_DEFAULT,))
 
 docdict['split_naming'] = """
 split_naming : 'neuromag' | 'bids'
