@@ -20,6 +20,10 @@ from ..defaults import HEAD_SIZE_DEFAULT
 
 
 def _reflow_param_docstring(docstring, has_first_line=True, width=75):
+    """Reflow text to a nice width for terminals.
+
+    WARNING: does not handle gracefully things like .. versionadded::
+    """
     maxsplit = docstring.count('\n') - 1 if has_first_line else -1
     merged = ' '.join(line.strip() for line in
                       docstring.rsplit('\n', maxsplit=maxsplit))
@@ -2906,27 +2910,33 @@ _sphere_desc = (
     'instance of a spherical :class:`~mne.bem.ConductorModel` to use the '
     'origin and radius from that object.'
 )
-docdict['sphere_topomap'] = _reflow_param_docstring(f"""
-{_sphere_header}
-    {_sphere_desc} ``None`` (the default) is equivalent to (0, 0, 0, %s).
-    Currently the head radius does not affect plotting.
-
-    .. versionadded:: 0.20
-""" % (HEAD_SIZE_DEFAULT,))
-
-docdict['sphere_topomap_auto'] = _reflow_param_docstring(f"""
-{_sphere_header} | 'auto' | 'eeglab'
-    {_sphere_desc} If ``'auto'`` the sphere is fit to digitization points.
+_sphere_topo = _reflow_param_docstring(
+    f"""{_sphere_desc} ``None`` (the default) is equivalent to
+    (0, 0, 0, {HEAD_SIZE_DEFAULT}).
+    Currently the head radius does not affect plotting.""",
+    has_first_line=False)
+_sphere_topo_auto = _reflow_param_docstring(
+    f"""{_sphere_desc} If ``'auto'`` the sphere is fit to digitization points.
     If ``'eeglab'`` the head circle is defined by EEG electrodes ``'Fpz'``,
     ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will
     be approximated from the coordinates of ``'Oz'``). ``None`` (the default)
     is equivalent to ``'auto'`` when enough extra digitization points are
-    available, and (0, 0, 0, %s) otherwise. Currently the head radius does not
-    affect plotting.
+    available, and (0, 0, 0, {HEAD_SIZE_DEFAULT}) otherwise. Currently the head
+    radius does not affect plotting.""", has_first_line=False)
+docdict['sphere_topomap'] = f"""
+{_sphere_header}
+    {_sphere_topo}
+
+    .. versionadded:: 0.20
+"""
+
+docdict['sphere_topomap_auto'] = f"""\
+{_sphere_header} | 'auto' | 'eeglab'
+    {_sphere_topo_auto}
 
     .. versionadded:: 0.20
     .. versionchanged:: 1.1 Added ``'eeglab'`` option.
-""" % (HEAD_SIZE_DEFAULT,))
+"""
 
 docdict['split_naming'] = """
 split_naming : 'neuromag' | 'bids'
