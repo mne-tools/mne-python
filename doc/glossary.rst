@@ -369,6 +369,14 @@ general neuroimaging concepts. If you think a term is missing, please consider
         See :class:`SourceSpaces` for the class definition.
 
     stim channel
+        See :term:`trigger channel`.
+
+    template montage
+        An idealized EEG :term:`montage`, often provided by the manufacturer
+        of the EEG system or cap. The electrode positions were not actually
+        measured on the participants' heads, but rather were calculated
+        assuming optimal theoretical placement on a sphere.
+
     trigger channel
         A stim channel or trigger channel is a channel that encodes
         events during the recording. It is typically a channel that is always

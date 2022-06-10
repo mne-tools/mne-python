@@ -37,6 +37,14 @@ import mne
 # individual sensor subplots in a topoplot or for showing the *approximate*
 # relative arrangement of sensors as seen from above.
 #
+# .. note::
+#
+#    If you're working with EEG data exclusively, you'll want to use
+#    `Montages <mne.channels.DigMontage>`, not layouts. Idealized montages
+#    (e.g., those provided by the manufacturer, or the ones shipping with
+#    MNE-Python mentioned below) are typically referred to as
+#    :term:`template montages <template montage>`.
+#
 # Working with built-in montages
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # .. sidebar:: Computing sensor locations
@@ -48,9 +56,10 @@ import mne
 # The 3D coordinates of MEG sensors are included in the raw recordings from MEG
 # systems. They are automatically stored in the ``info`` attribute of the
 # `~mne.io.Raw` object upon loading. EEG electrode locations are much more
-# variable because of differences in head shape. Idealized montages for many
-# EEG systems are included in MNE-Python; these files are stored in your
-# ``mne-python`` directory in the :file:`mne/channels/data/montages` folder:
+# variable because of differences in head shape. Idealized montages
+# (":term:`template montages <template montage>`") for many EEG systems are
+# included in MNE-Python; these files are stored in your ``mne-python``
+# directory in the :file:`mne/channels/data/montages` folder:
 
 montage_dir = Path(mne.__file__).parent / 'channels' / 'data' / 'montages'
 montages = sorted([
