@@ -557,9 +557,10 @@ def test_include():
     raw = read_raw_edf(edf_path, include="I1")
     assert raw.ch_names == ["I1"]
 
-    # include takes priority over exclude
-    raw = read_raw_edf(edf_path, include=["I1", "I2"], exclude="I[1-4]")
-    assert sorted(raw.ch_names) == ["I1", "I2"]
+    with pytest.raises(ValueError) as e:
+        raw = read_raw_edf(edf_path, include=["I1", "I2"], exclude="I[1-4]")
+        assert str(e.value) == "'exclude' must be empty" \
+            "if 'include' is assigned."
 
 
 @testing.requires_testing_data

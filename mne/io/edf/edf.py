@@ -76,8 +76,8 @@ class RawEDF(BaseRaw):
         modified. If False, do not infer types and assume all channels are of
         type 'EEG'.
     include : list of str | str
-        Channel names to be picked. Channels in include are include even if
-        they are in exclude.
+        Channel names to be included. 'exclude' must be empty if include is
+        assigned.
 
         .. versionadded:: 0.24.1
     %(preload)s
@@ -190,8 +190,8 @@ class RawGDF(BaseRaw):
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
     include : list of str | str
-        Channel names to be picked. Channels in include are picked even if
-        they are in exclude.
+        Channel names to be included. 'exclude' must be empty if include is
+        assigned.
     %(preload)s
     %(verbose)s
 
@@ -371,8 +371,8 @@ def _read_header(fname, exclude, infer_types, include=None):
         modified. If False, do not infer types and assume all channels are of
         type 'EEG'.
     include : list of str | str
-        Channel names to be picked. Channels in include are picked even if
-        they are in exclude.
+        Channel names to be included. 'exclude' must be empty if include is
+        assigned.
 
     Returns
     -------
@@ -1238,6 +1238,9 @@ def _find_exclude_idx(ch_names, exclude, include=None):
     add (the index of) all "A" channels to the exclusion list.
     """
     if include:
+        if exclude:
+            raise ValueError(
+                "'exclude' must be empty if 'include' is assigned.")
         if isinstance(include, str):
             include = [include]
         return [idx for idx, ch in enumerate(ch_names) if ch not in include]
@@ -1295,8 +1298,8 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
         modified. If False, do not infer types and assume all channels are of
         type 'EEG'.
     include : list of str | str
-        Channel names to be picked. Channels in include are picked even if
-        they are in exclude.
+        Channel names to be included. 'exclude' must be empty if include is
+        assigned.
 
         .. versionadded:: 0.24.1
     %(preload)s
@@ -1401,8 +1404,8 @@ def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
         modified. If False, do not infer types and assume all channels are of
         type 'EEG'.
     include : list of str | str
-        Channel names to be picked. Channels in include are picked even if
-        they are in exclude.
+        Channel names to be included. 'exclude' must be empty if include is
+        assigned.
 
         .. versionadded:: 0.24.1
     %(preload)s
