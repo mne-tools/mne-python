@@ -1154,7 +1154,7 @@ t_power : float
 """
 
 docdict['fiducials'] = """
-fiducials : list | dict | str
+fiducials : list | dict | str
     The fiducials given in the MRI (surface RAS) coordinate
     system. If a dictionary is provided, it must contain the **keys**
     ``'lpa'``, ``'rpa'``, and ``'nasion'``, with **values** being the
@@ -1495,10 +1495,8 @@ image_interp : str
 
 docdict['include_tmax'] = """
 include_tmax : bool
-    If True (default), include tmax. If False, exclude tmax (similar to how
-    Python indexing typically works).
-
-    .. versionadded:: 0.19
+    If True (default), include ``tmax``. If False, exclude ``tmax`` (similar to
+    how Python indexing typically works).
 """
 
 _index_df_base = """
@@ -1982,7 +1980,7 @@ normalize : bool
 
 docdict['notes_tmax_included_by_default'] = """
 Unlike Python slices, MNE time intervals by default include **both**
-their end points; ``crop(tmin, tmax)`` returns the interval
+their end points; ``inst.method(tmin, tmax)`` returns the interval
 ``tmin <= t <= tmax``. Pass ``include_tmax=False`` to specify the half-open
 interval ``tmin <= t < tmax`` instead.
 """

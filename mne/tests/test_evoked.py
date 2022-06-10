@@ -49,7 +49,9 @@ def test_get_data():
                   evoked.data.shape[1] -
                   np.nonzero(evoked.times == 0)[0])
 
-    assert evoked.get_data(tmin=0, tmax=0).size == 0
+    assert evoked.get_data(tmin=0, tmax=0, include_tmax=True).size == 1
+    with pytest.raises(ValueError, match="No samples remain"):
+        evoked.get_data(tmin=0, tmax=0, include_tmax=False)
 
     with pytest.raises(TypeError, match='tmin .* float, None'):
         evoked.get_data(tmin=[1], tmax=1)
@@ -67,6 +69,30 @@ def test_get_data():
     # Convert to µV
     d3 = evoked.get_data(picks="eeg", units="µV")
     assert_array_equal(d1 * 1e6, d3)
+
+    # Check include_tmax
+    d1 = evoked.get_data(tmin=None, tmax=evoked.times[-1], include_tmax=True)
+    assert d1.shape == evoked.data.shape
+    d2 = evoked.get_data(tmin=None, tmax=evoked.times[-1], include_tmax=False)
+    assert d2.shape[1] == evoked.data.shape[1] - 1
+
+    # test selection with and without include_tmax
+    data = np.tile(np.arange(20).reshape((2, 10)), (3, 1,  1))
+    info = create_info(2, 1, 'eeg')
+    epochs = EpochsArray(data, info)
+    evoked = epochs.average()
+    # select sample at t=1, 2
+    for tmin, tmax in zip((0.9, 1, 0.9, 1), (2.5, 2.5, 3, 3)):
+        data_ = evoked.get_data(tmin=tmin, tmax=tmax, include_tmax=False)
+        assert data_.shape[-1] == 2
+        data_ = data_ % 10
+        assert np.allclose(np.tile([1., 2.], (2, 1)), data_)
+    # select sample at t=1, 2, 3
+    for tmin, tmax in zip((0.9, 1, 0.9, 1), (3, 3, 3.5, 3.5)):
+        data_ = evoked.get_data(tmin=tmin, tmax=tmax, include_tmax=True)
+        assert data_.shape[-1] == 3
+        data_ = data_ % 10
+        assert np.allclose(np.tile([1., 2., 3.], (2, 1)), data_)
 
 
 def test_decim():

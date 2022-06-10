@@ -252,13 +252,39 @@ def test_get_data():
                   epochs._data.shape[-1] -
                   np.nonzero(epochs.times == 0)[0])
 
-    assert epochs.get_data(tmin=0, tmax=0).size == 0
+    assert epochs.get_data(tmin=0, tmax=0).shape[-1] == 1
+    with pytest.raises(ValueError, match="No samples remain"):
+        epochs.get_data(tmin=0, tmax=0, include_tmax=False)
 
     with pytest.raises(TypeError, match='tmin .* float, None'):
         epochs.get_data(tmin=[1], tmax=1)
 
     with pytest.raises(TypeError, match='tmax .* float, None'):
         epochs.get_data(tmin=1, tmax=np.ones(5))
+
+    # test include_tmax
+    d1 = epochs.get_data(tmin=None, tmax=epochs.times[-1], include_tmax=True)
+    d2 = epochs.get_data(tmin=None, tmax=None, include_tmax=True)
+    d3 = epochs.get_data(tmin=None, tmax=epochs.times[-1], include_tmax=False)
+    assert d1.shape == d2.shape
+    assert d1.shape[-1] - 1 == d3.shape[-1]
+
+    # test selection with and without include_tmax
+    data = np.arange(60).reshape((3, 2, 10))
+    info = create_info(2, 1, 'eeg')
+    epochs = EpochsArray(data, info)
+    # select sample at t=1, 2
+    for tmin, tmax in zip((0.9, 1, 0.9, 1), (2.5, 2.5, 3, 3)):
+        data_ = epochs.get_data(tmin=tmin, tmax=tmax, include_tmax=False)
+        assert data_.shape[-1] == 2
+        data_ = data_ % 10
+        assert np.allclose(np.tile([1., 2.], (3, 2, 1)), data_)
+    # select sample at t=1, 2, 3
+    for tmin, tmax in zip((0.9, 1, 0.9, 1), (3, 3, 3.5, 3.5)):
+        data_ = epochs.get_data(tmin=tmin, tmax=tmax, include_tmax=True)
+        assert data_.shape[-1] == 3
+        data_ = data_ % 10
+        assert np.allclose(np.tile([1., 2., 3.], (3, 2, 1)), data_)
 
 
 def test_hierarchical():

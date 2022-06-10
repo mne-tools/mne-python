@@ -83,7 +83,8 @@ class TimeMixin(object):
             index = np.round(index)
         return index.astype(int)
 
-    def _handle_tmin_tmax(self, tmin, tmax):
+    @fill_doc
+    def _handle_tmin_tmax(self, tmin, tmax, include_tmax):
         """Convert seconds to index into data.
 
         Parameters
@@ -92,6 +93,7 @@ class TimeMixin(object):
             Start time of data to get in seconds.
         tmax : int | float | None
             End time of data to get in seconds.
+        %(include_tmax)s
 
         Returns
         -------
@@ -99,21 +101,17 @@ class TimeMixin(object):
             Integer index into data corresponding to tmin.
         stop : int
             Integer index into data corresponding to tmax.
-
         """
         _validate_type(tmin, types=('numeric', None), item_name='tmin',
                        type_name="int, float, None")
         _validate_type(tmax, types=('numeric', None), item_name='tmax',
                        type_name='int, float, None')
+        _validate_type(include_tmax, types=(bool, ), item_name='include_tmax',
+                       type_name='bool')
 
-        # handle tmin/tmax as start and stop indices into data array
-        n_times = self.times.size
-        start = 0 if tmin is None else self.time_as_index(tmin)[0]
-        stop = n_times if tmax is None else self.time_as_index(tmax)[0]
-
-        # truncate start/stop to the open interval [0, n_times]
-        start = min(max(0, start), n_times)
-        stop = min(max(0, stop), n_times)
+        start, stop = np.where(_time_mask(
+            self.times, tmin, tmax, sfreq=self.info['sfreq'],
+            include_tmax=include_tmax))[0][[0, -1]]
 
         return start, stop
 
@@ -835,7 +833,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @verbose
     def get_data(self, picks=None, start=0, stop=None,
                  reject_by_annotation=None, return_times=False, units=None,
-                 *, tmin=None, tmax=None, verbose=None):
+                 *, tmin=None, tmax=None, include_tmax=True, verbose=None):
         """Get data in the given range.
 
         Parameters
@@ -863,6 +861,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             ignored if the ``stop`` parameter is defined.
 
             .. versionadded:: 0.24.0
+        %(include_tmax)s
+
+            .. versionadded:: 1.1
         %(verbose)s
 
         Returns
@@ -875,6 +876,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Notes
         -----
+        %(notes_tmax_included_by_default)s
+
         .. versionadded:: 0.14.0
         """
         # validate types
@@ -894,7 +897,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         picks = np.atleast_1d(np.arange(self.info['nchan'])[picks])
 
         # handle start/tmin stop/tmax
-        tmin_start, tmax_stop = self._handle_tmin_tmax(tmin, tmax)
+        tmin_start, tmax_stop = self._handle_tmin_tmax(
+            tmin, tmax, include_tmax)
 
         # tmin/tmax are ignored if start/stop are defined to
         # something other than their defaults
@@ -1307,12 +1311,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(tmin_raw)s
         %(tmax_raw)s
         %(include_tmax)s
+
+            .. versionadded:: 0.19
         %(verbose)s
 
         Returns
         -------
         raw : instance of Raw
             The cropped raw object, modified in-place.
+
+        Notes
+        -----
+        %(notes_tmax_included_by_default)s
         """
         max_time = (self.n_times - 1) / self.info['sfreq']
         if tmax is None:

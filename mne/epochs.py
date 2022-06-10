@@ -1382,7 +1382,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     @verbose
     def _get_data(self, out=True, picks=None, item=None, *, units=None,
-                  tmin=None, tmax=None, verbose=None):
+                  tmin=None, tmax=None, include_tmax=True, verbose=None):
         """Load all data, dropping bad epochs along the way.
 
         Parameters
@@ -1398,9 +1398,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             Start time of data to get in seconds.
         tmax : int | float | None
             End time of data to get in seconds.
+        %(include_tmax)s
         %(verbose)s
         """
-        start, stop = self._handle_tmin_tmax(tmin, tmax)
+        start, stop = self._handle_tmin_tmax(tmin, tmax, include_tmax)
+        stop += 1  # because stop is used in slices
 
         if item is None:
             item = slice(None)
@@ -1547,7 +1549,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
     @fill_doc
     def get_data(self, picks=None, item=None, units=None, tmin=None,
-                 tmax=None):
+                 tmax=None, include_tmax=True):
         """Get all epochs as a 3D array.
 
         Parameters
@@ -1572,14 +1574,21 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             End time of data to get in seconds.
 
             .. versionadded:: 0.24.0
+        %(include_tmax)s
+
+            .. versionadded:: 1.1
 
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
+
+        Notes
+        -----
+        %(notes_tmax_included_by_default)s
         """
         return self._get_data(picks=picks, item=item, units=units, tmin=tmin,
-                              tmax=tmax)
+                              tmax=tmax, include_tmax=include_tmax)
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=None,

@@ -159,7 +159,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._data = data
 
     @fill_doc
-    def get_data(self, picks=None, units=None, tmin=None, tmax=None):
+    def get_data(self, picks=None, units=None, tmin=None, tmax=None,
+                 include_tmax=True):
         """Get evoked data as 2D array.
 
         Parameters
@@ -170,6 +171,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Start time of data to get in seconds.
         tmax : float | None
             End time of data to get in seconds.
+        %(include_tmax)s
+
+            .. versionadded:: 1.1
 
         Returns
         -------
@@ -178,13 +182,15 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Notes
         -----
+        %(notes_tmax_included_by_default)s
+
         .. versionadded:: 0.24
         """
         picks = _picks_to_idx(self.info, picks, "all", exclude=())
 
-        start, stop = self._handle_tmin_tmax(tmin, tmax)
+        start, stop = self._handle_tmin_tmax(tmin, tmax, include_tmax)
 
-        data = self.data[picks, start:stop]
+        data = self.data[picks, start:stop + 1]
 
         if units is not None:
             ch_factors = _get_ch_factors(self, units, picks)
