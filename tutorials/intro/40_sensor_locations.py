@@ -85,7 +85,7 @@ print(easycap_montage)
 
 easycap_montage.plot()  # 2D
 fig = easycap_montage.plot(kind='3d', show=False)  # 3D
-fig = fig.gca().view_init(azim=70, elev=15)  # set view angle for tutorial 🧐
+fig = fig.gca().view_init(azim=70, elev=15)  # set view angle for tutorial
 
 # %%
 # Once loaded, a montage can be applied to data with the
@@ -120,13 +120,12 @@ fig = ssvep_raw.plot_sensors(show_names=True)
 # .. note::
 #
 #    You may have noticed that the figures created via
-#    :meth:`~mne.io.Raw.plot_sensors` contain fewer sensors than
-#    the what we got via
+#    :meth:`~mne.io.Raw.plot_sensors` contain fewer sensors than the result of
 #    `easycap_montage.plot() <mne.channels.DigMontage.plot>`. This is because
-#    the montage contains **all** channels that specific EEG setup could
-#    potentially have; but when applying that montage to an actual EEG dataset,
-#    the location information on all sensors not actually present in the data
-#    is removed.
+#    the montage contains *all channels defined for that EEG system*; but not
+#    all recordings will necessarily use all possible channels. Thus when
+#    applying a montage to an actual EEG dataset, information about sensors
+#    that are not actually present in the data is removed.
 #
 # Plotting 2D sensor locations like EEGLAB
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -159,14 +158,14 @@ fig = ssvep_raw.plot_sensors(show_names=True, sphere='eeglab')
 #
 # Channel positions in 2D space are obtained by projecting their actual 3D
 # positions onto a sphere, then projecting the sphere onto a plane.
-#
 # By default, a sphere with origin at ``(0, 0, 0)`` (x, y, z coordinates) and
 # radius of ``0.095`` meters (9.5 cm) is used. You can use a different sphere
 # radius by passing a single value as the  ``sphere`` argument in any function
 # that plots channels in 2D (like `~mne.channels.DigMontage.plot` that we use
 # here, but also for example `mne.viz.plot_topomap`):
 
-fig = easycap_montage.plot(sphere=0.07)
+fig1 = easycap_montage.plot()  # default radius of 0.095
+fig2 = easycap_montage.plot(sphere=0.07)
 
 # %%
 # To change not only the radius, but also the sphere origin, pass a
