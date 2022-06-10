@@ -254,8 +254,7 @@ def _decimate_points(pts, res=10):
     zax = np.arange(zmin, zmax, res)
 
     # find voxels containing one or more point
-    H, _ = np.histogramdd(pts, bins=(xax, yax, zax), normed=False)
-    X, Y, Z = pts.T
+    H, _ = np.histogramdd(pts, bins=(xax, yax, zax), density=False)
     xbins, ybins, zbins = np.nonzero(H)
     x = xax[xbins]
     y = yax[ybins]
