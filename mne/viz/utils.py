@@ -2331,8 +2331,8 @@ def _figure_agg(**kwargs):
 def _ndarray_to_fig(img, dpi=100):
     """Convert to MPL figure, adapted from matplotlib.image.imsave."""
     figsize = np.array(img.shape[:2][::-1]) / dpi
-    fig = _figure_agg(dpi=dpi, figsize=figsize, frameon=False)
-    ax = fig.add_axes([0, 0, 1, 1])
+    fig = _figure_agg(dpi=dpi, figsize=figsize)
+    ax = fig.add_axes([0, 0, 1, 1], frame_on=False)
     ax.imshow(img)
     return fig
 

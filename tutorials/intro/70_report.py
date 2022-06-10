@@ -459,10 +459,10 @@ plt.close(fig_1)
 plt.close(fig_2)
 
 # %%
-# The :meth:`mne.Report.add_figure` method can add multiple figures at once. In
-# this case, a slider will appear, allowing users to intuitively browse the
-# figures. To make this work, you need to provide a collection of figures,
-# a title, and optionally a collection of captions.
+# The :meth:`mne.Report.add_figure` method can also add multiple figures at
+# once. In this case, a slider will appear, allowing users to intuitively
+# browse the figures. To make this work, you need to provide a collection o
+# figures, a title, and optionally a collection of captions.
 #
 # In the following example, we will read the MNE logo as a Matplotlib figure
 # and rotate it with different angles. Each rotated figure and its respective
