@@ -1133,6 +1133,15 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
                 ax.text(this_pos[0] + 0.0025, this_pos[1], ch_names[idx],
                         ha='left', va='center')
         connect_picker = (kind == 'select')
+        # make sure no names go off the edge of the canvas
+        xmin, ymin, xmax, ymax = fig.get_window_extent().bounds
+        renderer = fig.canvas.get_renderer()
+        extents = [x.get_window_extent(renderer=renderer) for x in ax.texts]
+        xmaxs = np.array([x.max[0] for x in extents])
+        bad_xmax_ixs = np.nonzero(xmaxs > xmax)[0]
+        needed_space = (xmaxs[bad_xmax_ixs] - xmax).max() / xmax
+        fig.subplots_adjust(right=1 - 1.1 * needed_space)
+
     if connect_picker:
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
                          ch_names=ch_names, show_names=show_names)
