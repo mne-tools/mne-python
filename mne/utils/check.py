@@ -874,7 +874,6 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
                     'to apply a montage.'
                 )
             ch_pos = montage.get_positions()['ch_pos']
-
             horizon_ch_names = ('Fpz', 'Oz', 'T7', 'T8')
 
             if 'FPz' in ch_pos:  # "fix" naming
@@ -903,7 +902,7 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
                         )
                     raise ValueError(msg)
 
-            #  Calculate the radius from: T7<->T8, Fpz<->Oz
+            # Calculate the radius from: T7<->T8, Fpz<->Oz
             radius = np.abs([
                 ch_pos['T7'][0],   # X axis
                 ch_pos['T8'][0],   # X axis
