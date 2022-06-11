@@ -155,7 +155,7 @@ def test_documented():
     montage_names = [f.stem for f in montage_files]
 
     assert len(montage_names) == len(_BUILTIN_STANDARD_MONTAGES)
-    assert set(montage_names) ==  set(
+    assert set(montage_names) == set(
         [m.name for m in _BUILTIN_STANDARD_MONTAGES]
     )
 

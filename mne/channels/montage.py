@@ -177,7 +177,7 @@ def _check_get_coord_frame(dig):
 
 
 def get_builtin_montages(*, descriptions=False):
-    """"Get a list of all standard montages shipping with MNE-Python.
+    """Get a list of all standard montages shipping with MNE-Python.
 
     The names of the montages can be passed to :func:`make_standard_montage`.
 
