@@ -1561,8 +1561,15 @@ def test_read_dig_hpts():
 
 def test_get_builtin_montages():
     """Test help function to obtain builtin montages."""
-    EXPECTED_NUM = 26
-    assert len(get_builtin_montages()) == EXPECTED_NUM
+    EXPECTED_COUNT = 26
+
+    montages = get_builtin_montages()
+    assert len(montages) == EXPECTED_COUNT
+
+    montages_with_descriptions = get_builtin_montages(descriptions=True)
+    assert len(montages_with_descriptions) == EXPECTED_COUNT
+    for montage_with_description in montages_with_descriptions:
+        assert len(montage_with_description) == 2
 
 
 @testing.requires_testing_data
