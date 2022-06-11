@@ -214,11 +214,16 @@ class MontageMixin(object):
         Returns
         -------
         inst : instance of Raw | Epochs | Evoked
-            The instance.
+            The instance, modified in-place.
+
+        See Also
+        --------
+        make_standard_montage
+        make_dig_montage
+        read_custom_montage
 
         Notes
         -----
-        Operates in place.
 
         .. warning::
             Only %(montage_types)s channels can have their positions set using

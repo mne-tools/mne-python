@@ -1646,7 +1646,6 @@ def make_standard_montage(kind, head_size='auto'):
 
     See Also
     --------
-    DigMontage
     make_dig_montage
     read_custom_montage
 
@@ -1655,7 +1654,7 @@ def make_standard_montage(kind, head_size='auto'):
     Individualized (digitized) electrode positions should be read in using
     :func:`read_dig_captrak`, :func:`read_dig_dat`, :func:`read_dig_egi`,
     :func:`read_dig_fif`, :func:`read_dig_polhemus_isotrak`,
-    :func:`read_dig_hpts` or made with :func:`make_dig_montage`.
+    :func:`read_dig_hpts`, or manually made with :func:`make_dig_montage`.
 
     .. versionadded:: 0.19.0
     """
