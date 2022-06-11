@@ -176,7 +176,7 @@ def _check_get_coord_frame(dig):
     return _frame_to_str[dig_coord_frames.pop()] if dig_coord_frames else None
 
 
-def get_builtin_montages(descriptions=False):
+def get_builtin_montages(*, descriptions=False):
     """"Get a list of all standard montages shipping with MNE-Python.
 
     The names of the montages can be passed to :func:`make_standard_montage`.
