@@ -1854,11 +1854,16 @@ mode : None | 'mean' | 'max' | 'svd'
 
 docdict['montage'] = """
 montage : None | str | DigMontage
-    A montage containing channel positions. If str or DigMontage is
-    specified, the channel info will be updated with the channel
-    positions. Default is None. For valid :class:`str` values see documentation
-    of :func:`mne.channels.make_standard_montage`. See also the documentation
-    of :class:`mne.channels.DigMontage` for more information.
+    A montage containing channel positions. If a string or
+    :class:`~mne.channels.DigMontage` is
+    specified, the existing channel information will be updated with the
+    channel positions from the montage. Valid strings are the names of the
+    built-in montages that ship with MNE-Python; you can list those via
+    :func:`mne.channels.get_builtin_montages`.
+    You may also want to consult the documentation of
+    :class:`mne.channels.DigMontage` for additional information.
+    If ``None`` (default), the channel positions will be removed from the
+    :class:`~mne.Info`.
 """
 
 docdict['montage_types'] = """EEG/sEEG/ECoG/DBS/fNIRS"""
