@@ -1857,7 +1857,7 @@ montage : None | str | DigMontage
     A montage containing channel positions. If a string or
     :class:`~mne.channels.DigMontage` is
     specified, the existing channel information will be updated with the
-    channel positions in from montage. Valid strings are the names of the
+    channel positions from the montage. Valid strings are the names of the
     built-in montages that ship with MNE-Python; you can list those via
     :func:`mne.channels.get_builtin_montages`.
     You may also want to consult the documentation of
