@@ -63,7 +63,7 @@ import mne
 
 builtin_montages = mne.channels.get_builtin_montages(descriptions=True)
 for montage_name, montage_description in builtin_montages:
-    print(f'🧠 {montage_name}: {montage_description}')
+    print(f'{montage_name}: {montage_description}')
 
 # %%
 # These built-in EEG montages can be loaded with
