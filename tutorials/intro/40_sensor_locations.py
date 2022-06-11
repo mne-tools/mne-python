@@ -58,17 +58,12 @@ import mne
 # `~mne.io.Raw` object upon loading. EEG electrode locations are much more
 # variable because of differences in head shape. Idealized montages
 # (":term:`template montages <template montage>`") for many EEG systems are
-# included in MNE-Python; these files are stored in your ``mne-python``
-# directory in the :file:`mne/channels/data/montages` folder:
+# included in MNE-Python, and you can get an overview of them by using
+# :func:`mne.channels.get_builtin_montages`:
 
-montage_dir = Path(mne.__file__).parent / 'channels' / 'data' / 'montages'
-montages = sorted(path.name for path in montage_dir.iterdir())
-print(
-    '\n'
-    'BUILT-IN MONTAGES\n'
-    '================='
-)
-print('\n'.join(montages))
+builtin_montages = mne.channels.get_builtin_montages(descriptions=True)
+for montage_name, montage_description in builtin_montages:
+    print(f'🧠 {montage_name}: {montage_description}')
 
 # %%
 # These built-in EEG montages can be loaded with
