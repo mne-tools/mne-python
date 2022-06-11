@@ -5,7 +5,7 @@
 
 from contextlib import nullcontext
 from itertools import chain
-import os
+from pathlib import Path
 import os.path as op
 import shutil
 
@@ -29,7 +29,9 @@ from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_dig_polhemus_isotrak, compute_native_head_t,
                           read_polhemus_fastscan, read_dig_localite,
                           read_dig_hpts)
-from mne.channels.montage import transform_to_head, _check_get_coord_frame
+from mne.channels.montage import (
+    transform_to_head, _check_get_coord_frame, _BUILTIN_STANDARD_MONTAGES
+)
 from mne.utils import assert_dig_allclose, _record_warnings
 from mne.bem import _fit_sphere
 from mne.io.constants import FIFF
@@ -148,27 +150,14 @@ def test_fiducials():
 
 def test_documented():
     """Test that standard montages are documented."""
-    docs = make_standard_montage.__doc__
-    lines = [line[4:] for line in docs.splitlines()]
-    start = stop = None
-    for li, line in enumerate(lines):
-        if line.startswith('====') and li < len(lines) - 2 and \
-                lines[li + 1].startswith('Kind') and\
-                lines[li + 2].startswith('===='):
-            start = li + 3
-        elif start is not None and li > start and line.startswith('===='):
-            stop = li
-            break
-    assert (start is not None)
-    assert (stop is not None)
-    kinds = [line.split(' ')[0] for line in lines[start:stop]]
-    kinds = [kind for kind in kinds if kind != '']
-    montages = os.listdir(op.join(op.dirname(_mne_file), 'channels', 'data',
-                                  'montages'))
-    montages = sorted(op.splitext(m)[0] for m in montages)
-    assert_equal(len(set(montages)), len(montages))
-    assert_equal(len(set(kinds)), len(kinds), err_msg=str(sorted(kinds)))
-    assert_equal(set(montages), set(kinds))
+    montage_dir = Path(_mne_file).parent / 'channels' / 'data' / 'montages'
+    montage_files = Path(montage_dir).glob('*')
+    montage_names = [f.stem for f in montage_files]
+
+    assert len(montage_names) == len(_BUILTIN_STANDARD_MONTAGES)
+    assert set(montage_names) ==  set(
+        [m.name for m in _BUILTIN_STANDARD_MONTAGES]
+    )
 
 
 @pytest.mark.parametrize('reader, file_content, expected_dig, ext, warning', [
