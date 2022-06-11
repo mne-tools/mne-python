@@ -224,7 +224,6 @@ class MontageMixin(object):
 
         Notes
         -----
-
         .. warning::
             Only %(montage_types)s channels can have their positions set using
             a montage. Other channel types (e.g., MEG channels) should have
