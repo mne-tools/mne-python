@@ -93,7 +93,7 @@ Enhancements
 
 - All functions and methods that plot topographic maps for EEG (2D projections of the EEG sensor locations) now accept the parameter value ``sphere='eeglab'`` to lay out the sensors with respect to the head circle in a similar way to how EEGLAB does, i.e., T7/T8 and Fpz/Oz are placed directly on the circle for template montages (:gh:`10572` by `Richard Höchenberger`_)
 
-- :func:`mne.channels.get_builtin_montages` gaines a new parameter, ``descriptions``, which allows to retrieve the descriptions of the montages in addition to their names (:gh:`10373` by `Richard Höchenberger`_)
+- :func:`mne.channels.get_builtin_montages` gained a new parameter, ``descriptions``, which allows to retrieve the descriptions of the montages in addition to their names (:gh:`10373` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~

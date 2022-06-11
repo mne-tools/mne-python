@@ -187,7 +187,8 @@ def get_builtin_montages(*, descriptions=False):
         Whether to return not only the montage names, but also their
         corresponding descriptions. If ``True``, a list of tuples is returned,
         where the first tuple element is the montage name and the second is
-        the montage description.
+        the montage description. If ``False`` (default), only the names are
+        returned.
 
         .. versionadded:: 1.1
 
