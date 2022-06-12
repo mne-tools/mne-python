@@ -223,7 +223,6 @@ class CoregistrationUI(HasTraits):
             splash=splash,
             fullscreen=fullscreen,
         )
-        self._renderer.enable_depth_peeling()
         self._renderer._window_close_connect(self._clean)
         self._renderer._window_close_connect(self._close_callback, after=False)
         self._renderer.set_interaction(interaction)
