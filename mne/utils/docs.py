@@ -1303,7 +1303,8 @@ forward : instance of Forward | None
 
 docdict['fullscreen'] = """
 fullscreen : bool
-    Whether to start in fullscreen or windowed mode (``False``, default).
+    Whether to start in fullscreen (``True``) or windowed mode
+    (``False``, default).
 """
 
 applyfun_fun_base = """
