@@ -1646,6 +1646,7 @@ def make_standard_montage(kind, head_size='auto'):
 
     See Also
     --------
+    get_builtin_montages
     make_dig_montage
     read_custom_montage
 
