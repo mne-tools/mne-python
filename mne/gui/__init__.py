@@ -16,7 +16,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
                    trans=None, scrollable=True, *,
                    orient_to_surface=True, scale_by_distance=True,
                    mark_inside=True, interaction=None, scale=None,
-                   advanced_rendering=None, head_inside=True, *,
+                   advanced_rendering=None, head_inside=True,
                    fullscreen=False, verbose=None):
     """Coregister an MRI with a subject's head shape.
 
