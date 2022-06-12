@@ -102,7 +102,7 @@ class CoregistrationUI(HasTraits):
     %(fullscreen)s
 
         .. versionadded:: 1.1
-    %(scene_interaction)s
+    %(interaction_scene)s
         Defaults to ``'terrain'``.
 
         .. versionadded:: 1.0
