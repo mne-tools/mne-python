@@ -994,6 +994,16 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     mask_params = _handle_default('mask_params', mask_params)
 
+    # ignore channels without position (nan):
+    no_pos_chs = (~np.isfinite(pos)).any(axis=1)
+    if (no_pos_chs).any():
+        pos = pos[~no_pos_chs]
+        data = data[~no_pos_chs]
+        if mask is not None:
+            mask = mask[~no_pos_chs]
+        if names is not None:
+            names = [names[idx] for idx in np.where(~no_pos_chs)[0]]
+
     # find mask limits and setup interpolation
     extent, Xi, Yi, interp = _setup_interp(
         pos, res, image_interp, extrapolate, outlines, border)

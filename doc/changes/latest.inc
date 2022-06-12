@@ -148,7 +148,10 @@ Bugs
 
 - Combining channels of :class:`mne.Epochs` or :class:`mne.Evoked` objects now properly retains baseline information (:gh:`10703` by `Clemens Brunner`_)
 
+- Channels with undefined position (``np.nan``) are now ignored when using :func:`mne.viz.plot_sensors` or :func:`mne.viz.plot_topomap` (:gh:`10706` by `Mikołaj Magnuski`_)
+
 - In :class:`mne.Report`, some figures would have an undesired border added to the edges; this has now been resolved (:gh:`10730` by `Richard Höchenberger`_)
+
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
