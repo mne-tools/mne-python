@@ -218,9 +218,9 @@ class MontageMixin(object):
 
         See Also
         --------
-        make_standard_montage
-        make_dig_montage
-        read_custom_montage
+        mne.channels.make_standard_montage
+        mne.channels.make_dig_montage
+        mne.channels.read_custom_montage
 
         Notes
         -----
