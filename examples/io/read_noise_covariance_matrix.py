@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-read-noise-cov:
+
 =========================================
 Reading/Writing a noise covariance matrix
 =========================================

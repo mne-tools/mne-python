@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-read-stc:
+
 ===================
 Reading an STC file
 ===================
@@ -20,7 +23,8 @@ from mne.datasets import sample
 print(__doc__)
 
 data_path = sample.data_path()
-fname = data_path + '/MEG/sample/sample_audvis-meg'
+meg_path = data_path / 'MEG' / 'sample'
+fname = meg_path / 'sample_audvis-meg'
 
 stc = mne.read_source_estimate(fname)
 

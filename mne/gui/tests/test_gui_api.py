@@ -5,22 +5,56 @@
 import sys
 import pytest
 
+from mne.utils import _check_qt_version
+
 # This will skip all tests in this scope
 pytestmark = pytest.mark.skipif(
     sys.platform.startswith('win'), reason='nbexec does not work on Windows')
 
 
-def test_gui_api(renderer_notebook, nbexec):
+def test_gui_api(renderer_notebook, nbexec, n_warn=0):
     """Test GUI API."""
     import contextlib
     import mne
+    import warnings
+    try:
+        # Function
+        n_warn  # noqa
+    except Exception:
+        # Notebook standalone mode
+        n_warn = 0
     # nbexec does not expose renderer_notebook so I use a
     # temporary variable to synchronize the tests
     try:
         assert mne.MNE_PYVISTAQT_BACKEND_TEST
     except AttributeError:
         mne.viz.set_3d_backend('notebook')
+        backend = 'notebook'
+    else:
+        backend = 'qt'
     renderer = mne.viz.backends.renderer._get_renderer(size=(300, 300))
+
+    # theme
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        renderer._window_set_theme('/does/not/exist')
+    if backend == 'qt':
+        assert len(w) == 1
+        assert 'not found' in str(w[0].message), str(w[0].message)
+    else:
+        assert len(w) == 0
+    with mne.utils._record_warnings() as w:
+        renderer._window_set_theme('dark')
+    assert len(w) == n_warn
+
+    # window without 3d plotter
+    if backend == 'qt':
+        window = renderer._window_create()
+        widget = renderer._window_create()
+        central_layout = renderer._layout_create(orientation='grid')
+        renderer._layout_add_widget(central_layout, widget, row=0, col=0)
+        renderer._window_initialize(window=window,
+                                    central_layout=central_layout)
 
     from unittest.mock import Mock
     mock = Mock()
@@ -134,7 +168,7 @@ def test_gui_api(renderer_notebook, nbexec):
         rng=['foo', 'bar'],
         callback=mock,
     )
-    with _check_widget_trigger(widget, mock, 'foo', 'bar', get_value=False):
+    with _check_widget_trigger(widget, mock, None, None, get_value=False):
         widget.set_value(1, 'bar')
     assert widget.get_value(0) == 'foo'
     assert widget.get_value(1) == 'bar'
@@ -149,6 +183,7 @@ def test_gui_api(renderer_notebook, nbexec):
     )
     with _check_widget_trigger(widget, mock, 'foo', 'bar'):
         widget.set_value('bar')
+    widget.set_style(dict(border="2px solid #ff0000"))
 
     # file button
     renderer._dock_add_file_button(
@@ -168,7 +203,6 @@ def test_gui_api(renderer_notebook, nbexec):
         name='',
         desc='',
         func=mock,
-        input_text_widget=False,
     )
     widget = renderer._dock_add_file_button(
         name='',
@@ -176,15 +210,13 @@ def test_gui_api(renderer_notebook, nbexec):
         func=mock,
         save=True
     )
-    widget.set_value(0, 'foo')  # modify the text field (not interactive)
-    assert widget.get_value(0) == 'foo'
     # XXX: the internal file dialogs may hang without signals
-    # widget.set_value(1, 'bar')
     widget.set_enabled(False)
 
     renderer._dock_initialize(name='', area='right')
     renderer._dock_named_layout(name='')
-    renderer._dock_add_group_box(name='')
+    for collapse in (None, True, False):
+        renderer._dock_add_group_box(name='', collapse=collapse)
     renderer._dock_add_stretch()
     renderer._dock_add_layout()
     renderer._dock_finalize()
@@ -197,7 +229,6 @@ def test_gui_api(renderer_notebook, nbexec):
         name="default",
         window=None,
     )
-    renderer._tool_bar_load_icons()
 
     # button
     assert 'reset' not in renderer.actions
@@ -233,7 +264,7 @@ def test_gui_api(renderer_notebook, nbexec):
         func=mock,
         shortcut=None,
     )
-    assert 'help' in renderer.actions
+    renderer.actions['help'].trigger()
 
     # play button
     assert 'play' not in renderer.actions
@@ -244,10 +275,6 @@ def test_gui_api(renderer_notebook, nbexec):
         shortcut=None,
     )
     assert 'play' in renderer.actions
-
-    # theme
-    renderer._tool_bar_set_theme(theme='auto')
-    renderer._tool_bar_set_theme(theme='dark')
     # --- END: tool bar ---
 
     # --- BEGIN: menu bar ---
@@ -298,12 +325,66 @@ def test_gui_api(renderer_notebook, nbexec):
     assert widget.get_tooltip() == 'bar'
     # --- END: tooltips ---
 
+    # --- BEGIN: dialog ---
+    # dialogs are not supported yet on notebook
+    if renderer._kind == 'qt':
+        # warning
+        buttons = ["Save", "Cancel"]
+        widget = renderer._dialog_create(
+            title='',
+            text='',
+            info_text='',
+            callback=mock,
+            buttons=buttons,
+            modal=False,
+        )
+        widget.show()
+        for button in buttons:
+            with _check_widget_trigger(None, mock, '', '', get_value=False):
+                widget.trigger(button=button)
+            assert mock.call_args.args == (button,)
+
+        # buttons list empty means OK button (default)
+        button = 'Ok'
+        widget = renderer._dialog_create(
+            title='',
+            text='',
+            info_text='',
+            callback=mock,
+            icon='NoIcon',
+            modal=False,
+        )
+        widget.show()
+        with _check_widget_trigger(None, mock, '', '', get_value=False):
+            widget.trigger(button=button)
+        assert mock.call_args.args == (button,)
+    # --- END: dialog ---
+
+    # --- BEGIN: keypress ---
+    renderer._keypress_initialize()
+    renderer._keypress_add('a', mock)
+    # keypress is not supported yet on notebook
+    if renderer._kind == 'qt':
+        with _check_widget_trigger(None, mock, '', '', get_value=False):
+            renderer._keypress_trigger('a')
+    # --- END: keypress ---
+
     renderer.show()
+
+    renderer._window_close_connect(lambda: mock('first'), after=False)
+    renderer._window_close_connect(lambda: mock('last'))
+    old_call_count = mock.call_count
     renderer.close()
+    if renderer._kind == 'qt':
+        assert mock.call_count == old_call_count + 2
+        assert mock.call_args_list[-1].args == ('last',)
+        assert mock.call_args_list[-2].args == ('first',)
 
 
 def test_gui_api_qt(renderer_interactive_pyvistaqt):
     """Test GUI API with the Qt backend."""
     import mne
     mne.MNE_PYVISTAQT_BACKEND_TEST = True
-    test_gui_api(None, None)
+    _, api = _check_qt_version(return_api=True)
+    n_warn = int(api in ('PySide6', 'PyQt6'))
+    test_gui_api(None, None, n_warn=n_warn)

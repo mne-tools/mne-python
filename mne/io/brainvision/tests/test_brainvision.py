@@ -53,6 +53,10 @@ vhdr_mixed_lowpass_s_path = op.join(data_dir, 'test_mixed_lowpass_s.vhdr')
 data_path = testing.data_path(download=False)
 neuroone_vhdr = op.join(data_path, 'Brainvision', 'test_NO.vhdr')
 
+# AHDR exported with VAmp
+data_path = testing.data_path(download=False)
+vamp_ahdr = op.join(data_path, 'Brainvision', 'test_VAmp.ahdr')
+
 # Test for nanovolts as unit
 vhdr_units_path = op.join(data_dir, 'test_units.vhdr')
 
@@ -792,3 +796,16 @@ def test_parse_impedance():
         raw = read_raw_brainvision(vhdr_mixed_lowpass_path,
                                    eog=['HEOG', 'VEOG'], misc=['ECG'])
     assert object_diff(expected_impedances, raw.impedances) == ''
+
+
+@testing.requires_testing_data
+def test_ahdr_format():
+    """Test case for parsing data in ahdr format."""
+    expected_num_channels = 6
+    expected_hp = 0.0
+    expected_lp = 250.0
+
+    raw = read_raw_brainvision(vamp_ahdr)
+    assert raw.info['nchan'] == expected_num_channels
+    assert raw.info['highpass'] == expected_hp
+    assert raw.info['lowpass'] == expected_lp

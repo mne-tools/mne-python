@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-tfr-erds:
+
 ===============================
 Compute and visualize ERDS maps
 ===============================
@@ -106,7 +109,7 @@ for event in event_ids:
         if ch != 0:
             ax.set_ylabel("")
             ax.set_yticklabels("")
-    fig.colorbar(axes[0].images[-1], cax=axes[-1])
+    fig.colorbar(axes[0].images[-1], cax=axes[-1]).ax.set_yscale("linear")
     fig.suptitle(f"ERDS ({event})")
     plt.show()
 
@@ -173,8 +176,7 @@ g = sns.FacetGrid(df_mean, col='condition', col_order=['hands', 'feet'],
 g = (g.map(sns.violinplot, 'channel', 'value', 'band', n_boot=10,
            palette='deep', order=['C3', 'Cz', 'C4'],
            hue_order=freq_bands_of_interest,
-           linewidth=0.5)
-      .add_legend(ncol=4, loc='lower center'))
+           linewidth=0.5).add_legend(ncol=4, loc='lower center'))
 
 g.map(plt.axhline, **axline_kw)
 g.set_axis_labels("", "ERDS (%)")

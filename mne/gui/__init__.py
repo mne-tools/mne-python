@@ -13,7 +13,7 @@ from ..utils import verbose, get_config, warn
 def coregistration(tabbed=False, split=True, width=None, inst=None,
                    subject=None, subjects_dir=None, guess_mri_subject=None,
                    height=None, head_opacity=None, head_high_res=None,
-                   trans=None, scrollable=True, project_eeg=None,
+                   trans=None, scrollable=True, *,
                    orient_to_surface=True, scale_by_distance=True,
                    mark_inside=True, interaction=None, scale=None,
                    advanced_rendering=None, head_inside=True, *,
@@ -63,10 +63,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         The transform file to use.
     scrollable : bool
         Make the coregistration panel vertically scrollable (default True).
-    project_eeg : bool | None
-        Deprecated. Use :func:`mne.viz.plot_alignment` to see projected EEG electrodes.
-
-        .. versionadded:: 0.16
     orient_to_surface : bool | None
         If True (default), orient EEG electrode and head shape points
         to the head surface.
@@ -82,7 +78,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         different color.
 
         .. versionadded:: 0.16
-    %(scene_interaction_None)s
+    %(interaction_scene_none)s
         Defaults to ``'terrain'``.
 
         .. versionadded:: 0.16
@@ -106,7 +102,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         .. versionadded:: 0.23
     %(fullscreen)s
 
-        .. versionadded:: 1.0
+        .. versionadded:: 1.1
     %(verbose)s
 
     Returns
@@ -143,14 +139,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         if to_raise:
             warn(f"The parameter {key} is not supported with"
                   " the pyvistaqt 3d backend. It will be ignored.")
-    deprecated_params = {
-        'project_eeg': project_eeg,
-    }
-    for key, val in deprecated_params.items():
-        if val is not None:
-            warn(f'{key} is deprecated and will be removed in 1.1.',
-                 DeprecationWarning)
-    config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
+    config = get_config()
     if guess_mri_subject is None:
         guess_mri_subject = config.get(
             'MNE_COREG_GUESS_MRI_SUBJECT', 'true') == 'true'
@@ -233,7 +222,7 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
         The graphical user interface (GUI) window.
     """
     from ._ieeg_locate_gui import IntracranialElectrodeLocator
-    from PyQt5.QtWidgets import QApplication
+    from qtpy.QtWidgets import QApplication
     # get application
     app = QApplication.instance()
     if app is None:
@@ -254,7 +243,7 @@ class _LocateScraper(object):
     def __call__(self, block, block_vars, gallery_conf):
         from ._ieeg_locate_gui import IntracranialElectrodeLocator
         from sphinx_gallery.scrapers import figure_rst
-        from PyQt5 import QtGui
+        from qtpy import QtGui
         for gui in block_vars['example_globals'].values():
             if (isinstance(gui, IntracranialElectrodeLocator) and
                     not getattr(gui, '_scraped', False) and

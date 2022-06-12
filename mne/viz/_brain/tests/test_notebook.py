@@ -20,11 +20,12 @@ pytestmark = pytest.mark.skipif(
 def test_notebook_alignment(renderer_notebook, brain_gc, nbexec):
     """Test plot alignment in a notebook."""
     import mne
-    data_path = mne.datasets.testing.data_path()
-    raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
-    subjects_dir = data_path + '/subjects'
+    with mne.utils.modified_env(_MNE_FAKE_HOME_DIR=None):
+        data_path = mne.datasets.testing.data_path(download=False)
+    raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_trunc_raw.fif'
+    subjects_dir = data_path / 'subjects'
     subject = 'sample'
-    trans = data_path + '/MEG/sample/sample_audvis_trunc-trans.fif'
+    trans = data_path / 'MEG' / 'sample' / 'sample_audvis_trunc-trans.fif'
     info = mne.io.read_info(raw_fname)
     mne.viz.set_3d_backend('notebook')
     fig = mne.viz.plot_alignment(
@@ -46,7 +47,8 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
     import matplotlib.pyplot as plt
     import mne
     from mne.datasets import testing
-    data_path = testing.data_path()
+    with mne.utils.modified_env(_MNE_FAKE_HOME_DIR=None):
+        data_path = testing.data_path(download=False)
     sample_dir = os.path.join(data_path, 'MEG', 'sample')
     subjects_dir = os.path.join(data_path, 'subjects')
     fname_stc = os.path.join(sample_dir, 'sample_audvis_trunc-meg')
@@ -86,8 +88,9 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
         # play is not a button widget, it does not have a click() method
         number_of_buttons = 1
         for action in brain._renderer.actions.values():
-            if isinstance(action, Button):
-                action.click()
+            widget = action._action
+            if isinstance(widget, Button):
+                widget.click()
                 number_of_buttons += 1
         assert number_of_buttons == total_number_of_buttons
         assert os.path.isfile(movie_path)
@@ -119,8 +122,9 @@ def test_notebook_button_counts(renderer_notebook, brain_gc, nbexec):
         '_field' not in k for k in rend.actions.keys())
     number_of_buttons = 0
     for action in rend.actions.values():
-        if isinstance(action, Button):
-            action.click()
+        widget = action._action
+        if isinstance(widget, Button):
+            widget.click()
             number_of_buttons += 1
     assert number_of_buttons == total_number_of_buttons
     assert fig.display is not None

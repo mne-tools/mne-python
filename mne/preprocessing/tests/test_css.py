@@ -7,7 +7,7 @@ from mne import pick_types, read_evokeds
 from mne.datasets import testing
 
 data_path = testing.data_path(download=False)
-fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
+fname_evoked = data_path / 'MEG' / 'sample' / 'sample_audvis-ave.fif'
 
 
 @testing.requires_testing_data

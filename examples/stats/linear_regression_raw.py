@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-linear-regression-raw:
+
 ========================================
 Regression on continuous data (rER[P/F])
 ========================================
@@ -31,7 +34,8 @@ from mne.stats.regression import linear_regression_raw
 
 # Load and preprocess data
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname)
 raw.pick_types(meg='grad', stim=True, eeg=False).load_data()
 raw.filter(1, None, fir_design='firwin')  # high-pass

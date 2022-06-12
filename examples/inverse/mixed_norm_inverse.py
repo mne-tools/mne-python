@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-mixed-norm-inverse:
+
 ================================================================
 Compute sparse inverse solution with mixed norm: MxNE and irMxNE
 ================================================================
@@ -29,10 +32,11 @@ from mne.viz import (plot_sparse_source_estimates,
 print(__doc__)
 
 data_path = sample.data_path()
-fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-ave_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
-cov_fname = data_path + '/MEG/sample/sample_audvis-shrunk-cov.fif'
-subjects_dir = data_path + '/subjects'
+meg_path = data_path / 'MEG' / 'sample'
+fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+ave_fname = meg_path / 'sample_audvis-ave.fif'
+cov_fname = meg_path / 'sample_audvis-shrunk-cov.fif'
+subjects_dir = data_path / 'subjects'
 
 # Read noise covariance matrix
 cov = mne.read_cov(cov_fname)
@@ -115,7 +119,8 @@ morph = mne.compute_source_morph(stc, subject_from='sample',
                                  subject_to='fsaverage', spacing=None,
                                  sparse=True, subjects_dir=subjects_dir)
 stc_fsaverage = morph.apply(stc)
-src_fsaverage_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
+src_fsaverage_fname = (
+    subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-ico-5-src.fif')
 src_fsaverage = mne.read_source_spaces(src_fsaverage_fname)
 
 plot_sparse_source_estimates(src_fsaverage, stc_fsaverage, bgcolor=(1, 1, 1),

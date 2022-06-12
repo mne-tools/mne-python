@@ -2,6 +2,7 @@
 """
 .. _tut-configure-mne:
 
+======================
 Configuring MNE-Python
 ======================
 

@@ -13,8 +13,7 @@ from .base import BaseEstimator
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper
-from ..utils import (fill_doc, _check_option, _validate_type, verbose,
-                     _VerboseDep)
+from ..utils import fill_doc, _check_option, _validate_type, verbose
 from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
                        _picks_to_idx)
 from ..cov import _check_scalings_user
@@ -330,7 +329,7 @@ class Vectorizer(TransformerMixin):
 
 
 @fill_doc
-class PSDEstimator(TransformerMixin, _VerboseDep):
+class PSDEstimator(TransformerMixin):
     """Compute power spectral density (PSD) using a multi-taper method.
 
     Parameters
@@ -361,7 +360,7 @@ class PSDEstimator(TransformerMixin, _VerboseDep):
 
     @verbose
     def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
-                 adaptive=False, low_bias=True, n_jobs=1,
+                 adaptive=False, low_bias=True, n_jobs=None,
                  normalization='length', *, verbose=None):  # noqa: D102
         self.sfreq = sfreq
         self.fmin = fmin
@@ -418,7 +417,7 @@ class PSDEstimator(TransformerMixin, _VerboseDep):
 
 
 @fill_doc
-class FilterEstimator(TransformerMixin, _VerboseDep):
+class FilterEstimator(TransformerMixin):
     """Estimator to filter RtEpochs.
 
     Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -470,9 +469,9 @@ class FilterEstimator(TransformerMixin, _VerboseDep):
     """
 
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='auto',
-                 l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
-                 method='fir', iir_params=None, fir_design='firwin', *,
-                 verbose=None):  # noqa: D102
+                 l_trans_bandwidth='auto', h_trans_bandwidth='auto',
+                 n_jobs=None, method='fir', iir_params=None,
+                 fir_design='firwin', *, verbose=None):  # noqa: D102
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -770,7 +769,7 @@ class TemporalFilter(TransformerMixin):
     @verbose
     def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
                  filter_length='auto', l_trans_bandwidth='auto',
-                 h_trans_bandwidth='auto', n_jobs=1, method='fir',
+                 h_trans_bandwidth='auto', n_jobs=None, method='fir',
                  iir_params=None, fir_window='hamming', fir_design='firwin',
                  *, verbose=None):  # noqa: D102
         self.l_freq = l_freq

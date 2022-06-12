@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-sim-source:
+
 ==============================
 Generate simulated source data
 ==============================

@@ -18,8 +18,8 @@ import string
 
 import numpy as np
 
-from .pick import (channel_type, pick_channels, pick_info,
-                   get_channel_type_constants, pick_types)
+from .pick import (channel_type, _get_channel_types,
+                   get_channel_type_constants, pick_types, _contains_ch_type)
 from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
 from .tree import dir_tree_find
@@ -34,13 +34,14 @@ from .write import (start_and_end_file, start_block, end_block,
                     write_julian, write_float_matrix, write_id, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import (invert_transform, Transform, _coord_frame_name,
-                          _ensure_trans)
+                          _ensure_trans, _frame_to_str)
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
-                     _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric, deprecated,
-                     _check_option, _on_missing, _check_on_missing, fill_doc)
+                     _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric,
+                     _check_option, _on_missing, _check_on_missing, fill_doc,
+                     _check_fname)
 from ._digitization import (_format_dig_points, _dig_kind_proper, DigPoint,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
-from ._digitization import write_dig
+from ._digitization import write_dig, _get_data_as_dict_from_dig
 from .compensator import get_current_comp
 from ..defaults import _handle_default
 
@@ -146,7 +147,56 @@ def _unique_channel_names(ch_names, max_length=None, verbose=None):
 
 
 class MontageMixin(object):
-    """Mixin for Montage setting."""
+    """Mixin for Montage getting and setting."""
+
+    @fill_doc
+    def get_montage(self):
+        """Get a DigMontage from instance.
+
+        Returns
+        -------
+        %(montage)s
+        """
+        from ..channels.montage import make_dig_montage
+        info = self if isinstance(self, Info) else self.info
+        if info['dig'] is None:
+            return None
+        # obtain coord_frame, and landmark coords
+        # (nasion, lpa, rpa, hsp, hpi) from DigPoints
+        montage_bunch = _get_data_as_dict_from_dig(info['dig'])
+        coord_frame = _frame_to_str.get(montage_bunch.coord_frame)
+
+        # get the channel names and chs data structure
+        ch_names, chs = info['ch_names'], info['chs']
+        picks = pick_types(info, meg=False, eeg=True, seeg=True,
+                           ecog=True, dbs=True, fnirs=True, exclude=[])
+
+        # channel positions from dig do not match ch_names one to one,
+        # so use loc[:3] instead
+        ch_pos = {ch_names[ii]: chs[ii]['loc'][:3] for ii in picks}
+
+        # fNIRS uses multiple channels for the same sensors, we use
+        # a private function to format these for dig montage.
+        fnirs_picks = pick_types(info, fnirs=True, exclude=[])
+        if len(ch_pos) == len(fnirs_picks):
+            ch_pos = _get_fnirs_ch_pos(info)
+        elif len(fnirs_picks) > 0:
+            raise ValueError("MNE does not support getting the montage "
+                             "for a mix of fNIRS and other data types. "
+                             "Please raise a GitHub issue if you "
+                             "require this feature.")
+
+        # create montage
+        montage = make_dig_montage(
+            ch_pos=ch_pos,
+            coord_frame=coord_frame,
+            nasion=montage_bunch.nasion,
+            lpa=montage_bunch.lpa,
+            rpa=montage_bunch.rpa,
+            hsp=montage_bunch.hsp,
+            hpi=montage_bunch.hpi,
+        )
+        return montage
 
     @verbose
     def set_montage(self, montage, match_case=True, match_alias=False,
@@ -183,6 +233,68 @@ class MontageMixin(object):
         info = self if isinstance(self, Info) else self.info
         _set_montage(info, montage, match_case, match_alias, on_missing)
         return self
+
+
+class ContainsMixin(object):
+    """Mixin class for Raw, Evoked, Epochs and Info."""
+
+    def __contains__(self, ch_type):
+        """Check channel type membership.
+
+        Parameters
+        ----------
+        ch_type : str
+            Channel type to check for. Can be e.g. 'meg', 'eeg', 'stim', etc.
+
+        Returns
+        -------
+        in : bool
+            Whether or not the instance contains the given channel type.
+
+        Examples
+        --------
+        Channel type membership can be tested as::
+
+            >>> 'meg' in inst  # doctest: +SKIP
+            True
+            >>> 'seeg' in inst  # doctest: +SKIP
+            False
+
+        """
+        info = self if isinstance(self, Info) else self.info
+        if ch_type == 'meg':
+            has_ch_type = (_contains_ch_type(info, 'mag') or
+                           _contains_ch_type(info, 'grad'))
+        else:
+            has_ch_type = _contains_ch_type(info, ch_type)
+        return has_ch_type
+
+    @property
+    def compensation_grade(self):
+        """The current gradient compensation grade."""
+        info = self if isinstance(self, Info) else self.info
+        return get_current_comp(info)
+
+    @fill_doc
+    def get_channel_types(self, picks=None, unique=False, only_data_chs=False):
+        """Get a list of channel type for each channel.
+
+        Parameters
+        ----------
+        %(picks_all)s
+        unique : bool
+            Whether to return only unique channel types. Default is ``False``.
+        only_data_chs : bool
+            Whether to ignore non-data channels. Default is ``False``.
+
+        Returns
+        -------
+        channel_types : list
+            The channel types.
+        """
+        info = self if isinstance(self, Info) else self.info
+        return _get_channel_types(info, picks=picks, unique=unique,
+                                  only_data_chs=only_data_chs)
 
 
 def _format_trans(obj, key):
@@ -252,7 +364,7 @@ def _check_helium_info(helium_info):
     return helium_info
 
 
-class Info(dict, MontageMixin):
+class Info(dict, MontageMixin, ContainsMixin):
     """Measurement information.
 
     This data structure behaves like a dictionary. It contains all metadata
@@ -622,7 +734,7 @@ class Info(dict, MontageMixin):
         smartshield : dict
             MaxShield information. This dictionary is (always?) empty,
             but its presence implies that MaxShield was used during
-            acquisiton.
+            acquisition.
 
     * ``subject_info`` dict:
 
@@ -732,7 +844,7 @@ class Info(dict, MontageMixin):
             self['chs'] = _dict_unpack(self['chs'], _CH_CAST)
         for pi, proj in enumerate(self.get('projs', [])):
             if not isinstance(proj, Projection):
-                self['projs'][pi] = Projection(proj)
+                self['projs'][pi] = Projection(**proj)
         # Old files could have meas_date as tuple instead of datetime
         try:
             meas_date = self['meas_date']
@@ -975,6 +1087,12 @@ class Info(dict, MontageMixin):
                 if self.get(key) is not None:
                     self[key] = float(self[key])
 
+        for pi, proj in enumerate(self.get('projs', [])):
+            _validate_type(proj, Projection, f'info["projs"][{pi}]')
+            for key in ('kind', 'active', 'desc', 'data', 'explained_var'):
+                if key not in proj:
+                    raise RuntimeError(f'Projection incomplete, missing {key}')
+
         # Ensure info['chs'] has immutable entries (copies much faster)
         for ci, ch in enumerate(self['chs']):
             _check_ch_keys(ch, ci)
@@ -1006,33 +1124,6 @@ class Info(dict, MontageMixin):
         with self._unlock():
             self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
             self['nchan'] = len(self['chs'])
-
-    @deprecated('use inst.pick_channels instead.')
-    def pick_channels(self, ch_names, ordered=False):
-        """Pick channels from this Info object.
-
-        Parameters
-        ----------
-        ch_names : list of str
-            List of channels to keep. All other channels are dropped.
-        ordered : bool
-            If True (default False), ensure that the order of the channels
-            matches the order of ``ch_names``.
-
-        Returns
-        -------
-        info : instance of Info.
-            The modified Info object.
-
-        Notes
-        -----
-        Operates in-place.
-
-        .. versionadded:: 0.20.0
-        """
-        sel = pick_channels(self.ch_names, ch_names, exclude=[],
-                            ordered=ordered)
-        return pick_info(self, sel, copy=False, verbose=False)
 
     @property
     def ch_names(self):
@@ -1163,7 +1254,7 @@ def read_fiducials(fname, verbose=None):
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The filename to read.
     %(verbose)s
 
@@ -1175,6 +1266,11 @@ def read_fiducials(fname, verbose=None):
         The coordinate frame of the points (one of
         ``mne.io.constants.FIFF.FIFFV_COORD_...``).
     """
+    fname = _check_fname(
+        fname=fname,
+        overwrite='read',
+        must_exist=True
+    )
     fid, tree, _ = fiff_open(fname)
     with fid:
         isotrak = dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)
@@ -2487,7 +2583,8 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     Parameters
     ----------
     %(info_not_none)s
-    %(anonymize_info_parameters)s
+    %(daysback_anonymize_info)s
+    %(keep_his_anonymize_info)s
     %(verbose)s
 
     Returns
@@ -2817,3 +2914,19 @@ def _ensure_infos_match(info1, info2, name, *, on_mismatch='raise'):
                f"runs to a common head position.")
         _on_missing(on_missing=on_mismatch, msg=msg,
                     name='on_mismatch')
+
+
+def _get_fnirs_ch_pos(info):
+    """Return positions of each fNIRS optode.
+
+    fNIRS uses two types of optodes, sources and detectors.
+    There can be multiple connections between each source
+    and detector at different wavelengths. This function
+    returns the location of each source and detector.
+    """
+    from ..preprocessing.nirs import _fnirs_optode_names, _optode_position
+    srcs, dets = _fnirs_optode_names(info)
+    ch_pos = {}
+    for optode in [*srcs, *dets]:
+        ch_pos[optode] = _optode_position(info, optode)
+    return ch_pos

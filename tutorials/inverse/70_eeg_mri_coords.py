@@ -2,11 +2,12 @@
 """
 .. _tut-eeg-mri-coords:
 
+===========================================================
 EEG source localization given electrode locations on an MRI
 ===========================================================
 
-This tutorial explains how to compute the forward operator from EEG data
-when the electrodes are in MRI voxel coordinates.
+This tutorial explains how to compute the forward operator from EEG data when
+the electrodes are in MRI voxel coordinates.
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
@@ -79,8 +80,8 @@ plot_glass_brain(img_mni, cmap='hot_black_bone', threshold=0., black_bg=True,
 # :func:`mne.channels.read_custom_montage`, making note of the fact that
 # we stored our locations in Freesurfer surface RAS (MRI) coordinates.
 #
-# .. collapse:: |question| What if my electrodes are in MRI voxels?
-#     :class: info
+# .. dropdown:: What if my electrodes are in MRI voxels?
+#     :icon: question
 #
 #     If you have voxel coordinates in MRI voxels, you can transform these to
 #     FreeSurfer surface RAS (called "mri" in MNE) coordinates using the

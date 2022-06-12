@@ -2,6 +2,7 @@
 """
 .. _tut-projectors-background:
 
+========================================
 Background on projectors and projections
 ========================================
 
@@ -344,7 +345,8 @@ print(first_projector['active'])
 
 mags = raw.copy().crop(tmax=2).pick_types(meg='mag')
 for proj in (False, True):
-    fig = mags.plot(butterfly=True, proj=proj)
+    with mne.viz.use_browser_backend('matplotlib'):
+        fig = mags.plot(butterfly=True, proj=proj)
     fig.subplots_adjust(top=0.9)
     fig.suptitle('proj={}'.format(proj), size='xx-large', weight='bold')
 
@@ -413,7 +415,8 @@ raw.add_proj(ecg_projs)
 
 mags_ecg = raw.copy().crop(tmax=2).pick_types(meg='mag')
 for data, title in zip([mags, mags_ecg], ['Without', 'With']):
-    fig = data.plot(butterfly=True, proj=True)
+    with mne.viz.use_browser_backend('matplotlib'):
+        fig = data.plot(butterfly=True, proj=True)
     fig.subplots_adjust(top=0.9)
     fig.suptitle('{} ECG projector'.format(title), size='xx-large',
                  weight='bold')

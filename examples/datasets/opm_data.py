@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-opm-somatosensory:
 
@@ -6,11 +7,9 @@ Optically pumped magnetometer (OPM) data
 
 In this dataset, electrical median nerve stimulation was delivered to the
 left wrist of the subject. Somatosensory evoked fields were measured using
-nine QuSpin SERF OPMs placed over the right-hand side somatomotor area.
-Here we demonstrate how to localize these custom OPM data in MNE.
+nine QuSpin SERF OPMs placed over the right-hand side somatomotor area. Here
+we demonstrate how to localize these custom OPM data in MNE.
 """
-
-# %%
 
 # sphinx_gallery_thumbnail_number = 4
 
@@ -75,7 +74,7 @@ trans = mne.transforms.Transform('head', 'mri')  # identity transformation
 # with mne.use_coil_def(coil_def_fname):
 #     fwd = mne.make_forward_solution(
 #         raw.info, trans, src, bem, eeg=False, mindist=5.0,
-#         n_jobs=1, verbose=True)
+#         n_jobs=None, verbose=True)
 
 fwd = mne.read_forward_solution(fwd_fname)
 # use fixed orientation here just to save memory later

@@ -1,4 +1,8 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-mne-helmet:
+
+=============================
 Plot the MNE brain and helmet
 =============================
 

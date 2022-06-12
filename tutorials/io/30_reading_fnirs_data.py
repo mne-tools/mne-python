@@ -25,7 +25,6 @@ frequency domain fNIRS).
              Manual modification of channel names and metadata
              is not recommended.
 
-
 .. _import-snirf:
 
 *****************
@@ -40,6 +39,8 @@ The Shared Near Infrared Spectroscopy Format
 is designed by the fNIRS community in an effort to facilitate
 sharing and analysis of fNIRS data. And is the official format of the
 Society for functional near-infrared spectroscopy (SfNIRS).
+The manufacturers Gowerlabs, NIRx, Kernel, and Cortivision
+export data in the SNIRF format, and these files can be imported in to MNE.
 SNIRF is the preferred format for reading data in to MNE-Python.
 Data stored in the SNIRF format can be read in
 using :func:`mne.io.read_raw_snirf`.
@@ -66,6 +67,7 @@ NIRx     ICBM-152 MNI        mri
 Kernel   ICBM 2009b          mri
 =======  ==================  =================
 
+The coordinate system is automatically detected for Gowerlabs SNIRF files.
 
 
 ***********************
@@ -153,7 +155,7 @@ MNE-Python due to the lack of standardisation of the file format (the
 naming and ordering of channels, the type and scaling of data, and
 specification of sensor positions varies between each vendor). You will likely
 have to adapt this depending on the system from which your CSV originated.
-"""  # noqa:E501
+"""
 
 # %%
 
@@ -174,17 +176,6 @@ pd.DataFrame(np.random.normal(size=(16, 100))).to_csv("fnirs.csv")
 
 
 # %%
-#
-# .. warning:: The channels must be ordered in haemoglobin pairs, such that for
-#              a single channel all the types are in subsequent indices. The
-#              type order must be 'hbo' then 'hbr'.
-#              The data below is already in the correct order and may be
-#              used as a template for how data must be stored.
-#              If the order that your data is stored is different to the
-#              mandatory formatting, then you must first read the data with
-#              channel naming according to the data structure, then reorder
-#              the channels to match the required format.
-#
 # Next, we will load the example CSV file.
 
 data = pd.read_csv('fnirs.csv')
@@ -267,5 +258,4 @@ brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,
                       alpha=0.5, cortex='low_contrast')
 brain.add_head()
 brain.add_sensors(raw.info, trans='fsaverage')
-brain.enable_depth_peeling()
 brain.show_view(azimuth=90, elevation=90, distance=500)

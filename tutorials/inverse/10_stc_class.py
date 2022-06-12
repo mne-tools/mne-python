@@ -1,11 +1,13 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-source-estimate-class:
 
-The :class:`SourceEstimate <mne.SourceEstimate>` data structure
-===============================================================
+=================================
+The SourceEstimate data structure
+=================================
 
-
-Source estimates, commonly referred to as STC (Source Time Courses),
+Source estimates, commonly referred to as
+:term:`STC (Source Time Courses) <stc>`,
 are obtained from source localization methods.
 Source localization method solve the so-called 'inverse problem'.
 MNE provides different methods for solving it:

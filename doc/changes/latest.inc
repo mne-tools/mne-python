@@ -18,186 +18,144 @@
 
 .. _current:
 
-Current (1.0.dev0)
--------------------
+Current (1.1.dev0)
+------------------
 
 Enhancements
 ~~~~~~~~~~~~
+- Add :func:`mne.bem.distance_to_bem` to find depth of source positions (:gh:`10632` by :newcontrib:`Matt Courtemanche`)
 
-- Speed up :func:`mne.preprocessing.annotate_muscle_zscore`, :func:`mne.preprocessing.annotate_movement`, and :func:`mne.preprocessing.annotate_nan` through better annotation creation (:gh:`10089` by :newcontrib:`Senwen Deng`)
+- Add support for ahdr files in :func:`mne.io.read_raw_brainvision` (:gh:`10515` by :newcontrib:`Alessandro Tonin`)
 
-- Fix some unused variables in time_frequency_erds.py example (:gh:`10076` by :newcontrib:`Jan Zerfowski`)
+- Add support for reading data from Gowerlabs devices to :func:`mne.io.read_raw_snirf` (:gh:`10555` by :newcontrib:`Samuel Powell` and `Robert Luke`_)
 
-- Add show local maxima toggling button to :func:`mne.gui.locate_ieeg` (:gh:`9952` by `Alex Rockhill`_)
+- Add built-in sensor layout files for Geodesic Head Web 130 and 280 devices (:gh:`10627` by `Evan Hathaway`_)
 
-- Improve docstring of :class:`mne.Info` and add attributes that were not covered (:gh:`9922` by `Mathieu Scheltienne`_)
+- Add ``mne-icalabel`` to :func:`mne.sys_info` (:gh:`10615` by `Adam Li`_)
 
-- Add an alternate, manual procedure for aligning a CT to an MR procedure to :ref:`tut-ieeg-localize` (:gh:`9978` by `Alex Rockhill`_)
+- Add support for ``overview_mode`` in :meth:`raw.plot() <mne.io.Raw.plot>` and related functions/methods (:gh:`10501` by `Eric Larson`_)
 
-- Improve docstring of export functions :func:`mne.export.export_raw`, :func:`mne.export.export_epochs`, :func:`mne.export.export_evokeds`, :func:`mne.export.export_evokeds_mff` and issue a warning when there are unapplied projectors (:gh:`9994` by `Mathieu Scheltienne`_)
+- Add :meth:`mne.io.Raw.crop_by_annotations` method to get chunks of Raw data based on :class:`mne.Annotations`. (:gh:`10460` by `Alex Gramfort`_)
 
-- Add support for reading haemoglobin fNIRS data to :func:`mne.io.read_raw_snirf` (:gh:`9929` by `Robert Luke`_)
+- The ``pick_channels`` method gained a ``verbose`` parameter, allowing e.g. to suppress messages about removed projectors (:gh:`10544` by `Richard Höchenberger`_)
 
-- Add ``fill_hole_size`` keyword argument to :func:`mne.viz.Brain.add_volume_labels` to close holes in the mesh (:gh:`10024` by `Alex Rockhill`_)
+- Add :func:`mne.viz.plot_projs_joint` for joint plotting of projectors and Evoked (:gh:`10720` by `Eric Larson`_)
 
-- Changed :class:`mne.Epochs` and :class:`mne.Evoked` to have a more concise ``__repr__`` to improve interactive MNE usage in Python Interactive Console, IDEs, and debuggers when many events are handled. (:gh:`10042` by `Jan Sosulski`_)
+- The :func:`mne.make_forward_dipole` function can now take a list of dipoles to make a multi-dipole forward models (:gh:`10464` by `Marijn van Vliet`_)
 
-- Improve docstring of ``events`` arguments and cross-referencing to :term:`events` (:gh:`10056` by `Mathieu Scheltienne`_)
+- Add ``mode='outlines'`` support to :meth:`mne.Dipole.plot_locations` and :func:`mne.viz.plot_dipole_locations` (:gh:`10699` by `Eric Larson`_)
 
-- Speed up repeated surface-smoothing operation (e.g., in repeated calls to :meth:`stc.plot() <mne.SourceEstimate.plot>`) (:gh:`10077` by `Eric Larson`_)
+- Add :meth:`mne.preprocessing.ICA.find_bads_muscle` to find muscle-related ICA components with an example, :ref:`ex-muscle-ica` (:gh:`10534` by `Alex Rockhill`_)
 
-- Add ``verbose`` parameter to :func:`mne.io.Raw.load_bad_channels` and log information on how bad channels are updated (:gh:`10102` by `Stefan Appelhoff`_)
+- Add example of Xfit-style ECD modeling using multiple dipoles (:gh:`10464` by `Marijn van Vliet`_)
 
-- Add ``infer_type`` argument to :func:`mne.io.read_raw_edf` and :func:`mne.io.read_raw_bdf` to automatically infer channel types from channel labels (:gh:`10058` by `Clemens Brunner`_)
+- Add ``head_source`` argument to :func:`mne.make_field_map` to allow selecting which head source to use (:gh:`10568` by `Eric Larson`_)
 
-- Reduce the time it takes to generate a :class:`mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.preprocessing.ICA` figure if a ``scalings`` parameter is provided (:gh:`10109` by `Richard Höchenberger`_ and `Eric Larson`_)
+- Add support for ``n_jobs=None`` to support :func:`joblib:joblib.parallel_backend` for more precise control over parallelization (:gh:`10567` by `Eric Larson`_)
 
-- :meth:`mne.Report.add_raw` gained a new ``scalings`` parameter to provide custom data scalings for the butterfly plots (:gh:`10109` by `Richard Höchenberger`_)
+- It is now possible to compute inverse solutions with restricted source orientations using discrete forward models (:gh:`10464` by `Marijn van Vliet`_)
 
-- The ``butterfly`` parameter of :meth:`mne.Report.add_raw` now also accepts numbers to specify how many segments to plot (:gh:`10115` by `Richard Höchenberger`_)
+- The new function :func:`mne.preprocessing.maxwell_filter_prepare_emptyroom` simplifies the preconditioning of an empty-room recording for our Maxwell filtering operations (:gh:`10533` by `Richard Höchenberger`_ and `Eric Larson`_)
 
-- The ``psd`` parameter of :meth:`mne.Report.add_epochs` now also accepts numbers to specify the signal duration used for PSD calculation (:gh:`10119` by `Richard Höchenberger`_)
+- Add keyboard shortcuts to toggle :meth:`mne.preprocessing.ICA.plot_properties` topomap channel types ('t') and power spectral density log-scale ('l') (:gh:`10557` by `Alex Rockhill`_)
 
-- Drastically speed up butterfly plot generation in :meth:`mne.Report.add_raw`. We now don't plot annotations anymore; however, we feel that the speed improvements justify this change, also considering the annotations were of limited use in the displayed one-second time slices anyway (:gh:`10114`, :gh:`10116` by `Richard Höchenberger`_)
+- Add ``--mri``, and ``--threshold`` options to :ref:`mne make_scalp_surfaces` to improve head surface mesh extraction (:gh:`10591` by `Eric Larson`_)
 
-- In :class:`mne.Report`, limit the width of automatically generated figures to a maximum of 850 pixels (450 pixels for :class:`mne.SourceEstimate` plots), and the resolution to 100 DPI to reduce file size, memory consumption, and – in some cases like :meth:`mne.Report.add_stc` – processing time (:gh:`10126`, :gh:`10129`, :gh:`10135`, :gh:`10142` by `Richard Höchenberger`_)
+- Add :func:`mne.preprocessing.compute_bridged_electrodes` to detect EEG electrodes with shared spatial sources due to a conductive medium connecting two or more electrodes, add :ref:`ex-eeg-bridging` for an example and :func:`mne.viz.plot_bridged_electrodes` to help visualize (:gh:`10571` by `Alex Rockhill`_)
 
-- :class:`~mne.Epochs` metadata tables are now included in :class:`mne.Report` (:gh:`10166` by `Richard Höchenberger`_)
+- Add ``'nearest'`` as an option for the ``image_interp`` argument in :func:`mne.viz.plot_topomap` to plot a topomap without interpolation using a Voronoi parcelation (:gh:`10571` by `Alex Rockhill`_)
 
-- :func:`mne.get_head_surf` and :func:`mne.dig_mri_distances` gained a new parameter, ``on_defects``, controlling how to handle surfaces with topological defects (:gh:`10175` by `Richard Höchenberger`_)
+- Add :func:`mne.preprocessing.interpolate_bridged_electrodes` to use the spatially smeared signal to get a better interpolation rather than dropping those channels (:gh:`10587` by `Alex Rockhill`_)
 
-- :meth:`mne.Report.add_epochs` gained a new parameter, ``drop_log_ignore``, to control which drop reasons to omit when creating the drop log plot (:gh:`10182` by `Richard Höchenberger`_)
+- Add support for hemoglobin type fNIRS data to temporal derivative distribution repair (TDDR) :func:`mne.preprocessing.nirs.temporal_derivative_distribution_repair` (:gh:`10125` by `Johann Benerradi`_)
 
-- :meth:`mne.Epochs.plot_drop_log` now also includes the absolute number of epochs dropped in the title (:gh:`10186` by `Richard Höchenberger`_)
+- :func:`mne.viz.plot_evoked_topomap` and :meth:`mne.Evoked.plot_topomap` now display the time range the map was averaged over if ``average`` was passed (:gh:`10606` by `Richard Höchenberger`_)
 
-- Add a button to show the maximum intensity projection in :func:`mne.gui.locate_ieeg` (:gh:`10185` by `Alex Rockhill`_)
+- :func:`mne.viz.plot_evoked_topomap` and :meth:`mne.Evoked.plot_topomap` can now average the topographic maps across different time periods for each time point. To do this, pass a list of periods via the ``average`` parameter (:gh:`10610` by `Richard Höchenberger`_)
 
-- Annotations from a :class:`~mne.io.Raw` object are now preserved by the :class:`~mne.Epochs` constructor and are supported when saving Epochs (:gh:`9969` and :gh:`10019` by `Adam Li`_)
+- :func:`mne.viz.plot_evoked` and :meth:`mne.Evoked.plot` gained a new parameter, ``highlight``, to visually highlight time periods of interest (:gh:`10614` by `Richard Höchenberger`_)
 
-- Add a checkbox to show and hide the MEG helmet in the coregistration GUI (:gh:`10200` by `Guillaume Favelier`_)
+- Added fNIRS support to :func:`mne.Info.get_montage` (:gh:`10611` by `Robert Luke`_)
 
-- The coregistration GUI (instantiated via :func:`mne.gui.coregistration`) gained a new attribute, ``coreg``, to access the :class:`mne.coreg.Coregistration` instance used by the GUI (:gh:`10255` by `Richard Höchenberger`_)
+- Add :func:`mne.viz.plot_ch_adjacency` to visualize and manually edit the channel adjacency matrix (:gh:`10633` by `Mikołaj Magnuski`_)
 
-- Add marching cubes display of head if :func:`mne.bem.make_scalp_surfaces` has not computed or the recon-all hasn't finished (:gh:`10202` by `Alex Rockhill`_)
+- Add :meth:`mne.viz.Brain.get_view` to get the current camera parameters such that they can be passed to :meth:`mne.viz.Brain.show_view` (:gh:`10661` by `Alex Rockhill`_)
 
-- The default interaction style of :func:`mne.gui.coregistration` and :func:`mne.viz.plot_alignment` has been changed to ``'terrain'``, which keeps one axis fixed and should make interactions with the 3D scene more predictable (:gh:`9972`, :gh:`10206` by `Richard Höchenberger`_)
+- Added support for Aurora version 2021.9.0.6 to :func:`mne.io.read_raw_nirx` (:gh:`10668` by `Robert Luke`_)
 
-- :func:`mne.gui.coregistration` now uses the proper widget style for push buttons, making for a more native feel of the application (:gh:`10220` by `Richard Höchenberger`_ and `Guillaume Favelier`_)
+- Added BrainVision format (``.vhdr``, ``.vmrk``, ``.eeg``) to :func:`mne.export.export_raw` (:gh:`10681` by `Stefan Appelhoff`_)
+
+- Added ``export`` method to :class:`mne.Evoked` (:gh:`10681` by `Stefan Appelhoff`_)
+
+- Add timeformat ``YYYY/MM/DD`` to ``mne.io.ctf.info._convert_time`` (:gh:`10674` by `Simon Kern`_)
+
+- :meth:`mne.Report.add_figure` and :meth:`mne.Report.add_image` gained a new parameter, ``section``, allowing to put multiple figures or images into the same "content block". Previously, the only way to group figures and images was by means of a slider, which sometimes made content hard to discover. The slider remains available as an alternative (:gh:`10694` by `Richard Höchenberger`_)
+
+- All functions and methods that plot topographic maps for EEG (2D projections of the EEG sensor locations) now accept the parameter value ``sphere='eeglab'`` to lay out the sensors with respect to the head circle in a similar way to how EEGLAB does, i.e., T7/T8 and Fpz/Oz are placed directly on the circle for template montages (:gh:`10572` by `Richard Höchenberger`_)
+
+- :func:`mne.channels.get_builtin_montages` gained a new parameter, ``descriptions``, which allows to retrieve the descriptions of the montages in addition to their names (:gh:`10373` by `Richard Höchenberger`_)
 
 - :func:`mne.gui.coregistration` gained a new parameter, ``fullscreen``, to start the GUI in fullscreen mode (:gh:`10284` by `Richard Höchenberger`_)
-
-- :class:`mne.coreg.Coregistration`, :func:`mne.scale_bem`, and :func:`mne.scale_mri` gained a new parameter, ``on_defects``, controlling how to handle topological defects (:gh:`10230`, :gh:`10249` by `Richard Höchenberger`_)
-
-- :class:`mne.coreg.Coregistration` gained a new attribute, ``fiducials``, allowing for convenient retrieval of the MRI fiducial points (:gh:`10243`, by `Richard Höchenberger`_)
-
-- Added plotting points to represent contacts on the max intensity projection plot for :func:`mne.gui.locate_ieeg` (:gh:`10212` by `Alex Rockhill`_)
-
-- Add lines in 3D and on the maximum intensity projection when more than two electrode contacts are selected to aid in identifying that contact for :func:`mne.gui.locate_ieeg` (:gh:`10212` by `Alex Rockhill`_)
-
-- Add a ``block`` parameter to :class:`mne.viz.Brain` and the UI of :class:`mne.coreg.Coregistration` to prevent the windows from closing immediately when running in a non-interactive Python session (:gh:`10222` by `Guillaume Favelier`_)
-
-- All methods of :class:`mne.Report` with a ``tags`` parameter now also accept a single tag passed as a string (previously, you needed to pass a tuple of strings, even for a single tag) (:gh:`10183`, by `Richard Höchenberger`_)
-
-- :meth:`mne.Report.add_trans` has gained a new parameter, ``alpha``, to control the level of opacity of the rendered head (:gh:`10247`, by `Richard Höchenberger`_)
-
-- The new convenience function :func:`mne.event.match_event_names` allows for straightforward checking if a specific event name or a group of events is present in a collection of event names (:gh:`10233` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
 
-- Teach :func:`mne.io.read_raw_bti` to use its ``eog_ch`` parameter (:gh:`10093` by :newcontrib:`Adina Wagner`)
+- Pick also bad channels when selecting T1T2 magnetometers in :func:`mne.preprocessing.maxwell_filter` (:gh:`10639` by :newcontrib:`Matti Toivonen`)
 
-- Fix default of :func:`mne.io.Raw.plot` to be ``use_opengl=None``, which will act like False unless ``MNE_BROWSER_USE_OPENGL=true`` is set in the user configuration (:gh:`9957` by `Eric Larson`_)
+- Make ``color`` parameter check in in :func:`mne.viz.plot_evoked_topo` consistent (:gh:`10217` by :newcontrib:`T. Wang` and `Stefan Appelhoff`_)
 
-- Fix bug with :class:`mne.Report` where figures were saved with ``bbox_inches='tight'``, which led to inconsistent sizes in sliders (:gh:`9966` by `Eric Larson`_)
+- Fix bug in :func:`mne.io.read_raw_brainvision` when BrainVision data are acquired with the Brain Products "V-Amp" amplifier and disabled lowpass filter is marked with value ``0`` (:gh:`10517` by :newcontrib:`Alessandro Tonin`)
 
-- When opening a saved report and saving it to a different filename again, don't change ``Report.fname`` to avoid a regression when using :func:`~mne.open_report` as a context manager (:gh:`9998` by `Marijn van Vliet`_)
+- Fix bug in :func:`mne.pick_types` and related methods where ``csd=True`` was not passed handled properly (:gh:`10470` by :newcontrib:`Matthias Dold`)
 
-- Fix bug in :func:`mne.make_forward_solution` where sensor-sphere geometry check was incorrect (:gh:`9968` by `Eric Larson`_)
+- Fix bug where plots produced using the ``'qt'`` / ``mne_qt_browser`` backend could not be added using :meth:`mne.Report.add_figure` (:gh:`10485` by `Eric Larson`_)
 
-- Use single char alphanumeric suffix when renaming long channel names (over 15-characters) when writing to FIF format. (:gh:`10002` by `Luke Bloy`_)
+- Fix bug where ``theme`` was not handled properly in :meth:`mne.io.Raw.plot` (:gh:`10487`, :gh:`10500` by `Mathieu Scheltienne`_ and `Eric Larson`_)
 
-- Add argument ``overwrite`` to :func:`mne.export.export_raw`, :func:`mne.export.export_epochs`, :func:`mne.export.export_evokeds` and :func:`mne.export.export_evokeds_mff` (:gh:`9975` by `Mathieu Scheltienne`_)
+- Fix bug in :meth:`raw.crop(start, stop) <mne.io.Raw.crop>` that would cause annotations to be erroneously shifted when ``start != 0`` and no measurement date was set. (:gh:`10491` by `Eric Larson`_)
 
-- :func:`mne.gui.coregistration` and the ``mne coreg`` command didn't respect the ``interaction`` parameter (:gh:`9972` by `Richard Höchenberger`_)
+- Fix bug in :func:`mne.io.read_raw_bti` where unknown electrode locations were not handled properly (:gh:`10662` by `Eric Larson`_)
 
-- Fix incorrect projection of source space onto white matter surface instead of pial in :ref:`tut-working-with-ecog` (:gh:`9980` by `Alex Rockhill`_)
+- Rendering issues with recent MESA releases can be avoided by setting the new environment variable``MNE_3D_OPTION_MULTI_SAMPLES=1`` or using :func:`mne.viz.set_3d_options` (:gh:`10513` by `Eric Larson`_)
 
-- Fix channel type support when reading from EEGLAB ``.set`` format with :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` (:gh:`9990` by `Mathieu Scheltienne`_)
+- Fix behavior for the ``pyvista`` 3D renderer's ``quiver3D`` function so that default arguments plot a glyph in ``arrow`` mode (:gh:`10493` by `Alex Rockhill`_)
 
-- Fix suboptimal alignment using :func:`mne.transforms.compute_volume_registration` (:gh:`9991` by `Alex Rockhill`_)
+- Retain epochs metadata when using :func:`mne.channels.combine_channels` (:gh:`10504` by `Clemens Brunner`_)
 
-- Only warn if header is missing in BrainVision files instead of raising an error (:gh:`10001` by `Clemens Brunner`_)
+- Fix epochs indexing with metadata containing boolean type and missing values (:gh:`10705` by `Clemens Brunner`_ and `Alex Gramfort`_)
 
-- Add argument ``overwrite`` to `mne.preprocessing.ICA.save` to check for existing file (:gh:`10004` by `Mathieu Scheltienne`_)
+- Fix reading of fiducial locations in :func:`mne.io.read_raw_eeglab` (:gh:`10521` by `Alex Gramfort`_)
 
-- :class:`mne.Report` now raises an exception if invalid tags were passed (:gh:`9970` by `Richard Höchenberger`_)
+- Prevent creation of montage with invalid ``[x, y, z]`` coordinates with :func:`mne.channels.make_dig_montage` (:gh:`10547` by `Mathieu Scheltienne`_)
 
-- Fix bug in :func:`mne.get_montage_volume_labels` that set the maximum number of voxels to be included too low causing unwanted capping of the included voxel labels (:gh:`10021` by `Alex Rockhill`_)
+- Fix bug in coregistration GUI that prevented it from starting up if only a high-resolution head model was available (:gh:`10543` by `Richard Höchenberger`_)
 
-- Fix annotation cropping and I/O roundtrip when there is no measurement date available (:gh:`10040` by `Mathieu Scheltienne`_ and `Alex Gramfort`_).
+- Fix bug in the :class:`mne.viz.Brain` tool bar that prevented the buttons to call the corresponding feature (:gh:`10560` by `Guillaume Favelier`_)
 
-- :func:`~mne.sys_info` output now contains the installed version of ``pooch``, too; this output had been accidentally removed previously (:gh:`10047` by `Richard Höchenberger`_)
+- Fix issue with saving epochs once :func:`~mne.preprocessing.compute_current_source_density` has been used if a rejection threshold was used first (:gh:`10619` by `Alex Rockhill`_ and `Richard Höchenberger`_)
 
-- Fix automatic channel type detection from channel labels in :func:`mne.io.read_raw_edf` and :func:`mne.io.read_raw_bdf` (and disable this functionality from :func:`mne.io.read_raw_gdf`) (:gh:`10058` by `Clemens Brunner`_)
+- Fix bug in :func:`mne.viz.plot_evoked_image` that would cause incorrect sub-titles when using ``group_by`` (:gh:`10618` by `Reza Shoorangiz`_)
 
-- Fix :func:`~mne.stats.permutation_cluster_1samp_test` to properly handle 2-dimensional data in combination with TFCE (:gh:`10073` by `Richard Höchenberger`_)
+- Reduce memory usage when loading an EDF file with ``preload=False`` (:gh:`10638` by `Clemens Brunner`_)
 
-- Fix channel grouping error when using "butterfly mode" with :meth:`mne.io.Raw.plot` (:gh:`10087` by `Daniel McCloy`_)
+- Fix bug in :meth:`mne.io.Raw.get_channel_types` and related methods where ``unique=True`` would return a :class:`python:set` with arbitrary order rather than a :class:`python:list` that preserves the same order as ``inst.ch_names`` (:gh:`10720` by `Eric Larson`_)
 
-- Fix inconsistent behavior of ``mne.preprocessing.annotate_*`` functions by making them all return :class:`mne.Annotations` objects with the ``orig_time`` attribute set to ``raw.info["meas_time"]`` (:gh:`10067` and :gh:`10118` by `Stefan Appelhoff`_, `Eric Larson`_, and `Alex Gramfort`_)
+- In :func:`mne.preprocessing.find_bad_channels_maxwell`, do not re-filter the data if a low-pass filter with the requested frequency has already been applied (:gh:`10664` by `Richard Höchenberger`_)
 
-- Fix bug that appears during automatic calculation of the colormap of `mne.viz.Brain` when data values of ``fmin`` and ``fmax`` are too close (:gh:`10074` by `Guillaume Favelier`_)
+- Fix a problem in :meth:`mne.Evoked.get_peak`, where under certain circumstances the ``mode`` parameters ``'pos'`` and ``'neg'`` were not honored when ``tmin`` and/or ``tmax`` were passed as well (:gh:`10686` by `Richard Höchenberger`_)
 
-- We now display a scrollbar in the tags dropdown of a `~mne.Report` if many tags have been added, granting access to all tags instead of "hiding" them below the bottom of the page (:gh:`10082` by `Richard Höchenberger`_)
+- :func:`mne.read_evokeds`, :func:`mne.channels.read_custom_montage`, :func:`mne.channels.read_dig_hpts`, :func:`mne.channels.read_dig_polhemus_isotrak`, and :func:`mne.channels.read_polhemus_fastscan` now correctly expand ``~`` in the provided path to the user's home directory (:gh:`10685`, :gh:`10688` by `Richard Höchenberger`_)
 
-- Creating :class:`mne.Epochs` now provides clearer logging (less ambiguous, no duplicates) when the ``preload`` and/or ``metadata`` parameters are set (:gh:`10112` by `Stefan Appelhoff`_)
+- Fix bug in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab`, where the presence of channels without position in the ``.set`` file caused positions incorrectly assigned to all further channels (:gh:`8754` by `Mikołaj Magnuski`_)
 
-- Fix bug with :class:`mne.Epochs` where save-load round-trip with FIF would cause :meth:`mne.Epochs.apply_baseline` to no longer work (:gh:`10177` by `Eric Larson`_)
+- Combining channels of :class:`mne.Epochs` or :class:`mne.Evoked` objects now properly retains baseline information (:gh:`10703` by `Clemens Brunner`_)
 
-- Fix functions by adding missing ``overwrite`` parameters: :func:`mne.write_events`, :func:`mne.write_cov`, :func:`mne.write_evokeds`, :meth:`mne.SourceEstimate.save`, :func:`mne.minimum_norm.write_inverse_operator`, :func:`mne.write_proj`, and related methods (:gh:`10127` by `Eric Larson`_)
+- In :class:`mne.Report`, some figures would have an undesired border added to the edges; this has now been resolved (:gh:`10730` by `Richard Höchenberger`_)
 
-- Fix bug with :func:`mne.transforms.compute_volume_registration` and :func:`mne.compute_source_morph` (volumetric) where the smoothing factors were not scaled based on ``zooms`` (:gh:`10132` by `Eric Larson`_)
+API and behavior changes
+~~~~~~~~~~~~~~~~~~~~~~~~
+- When creating BEM surfaces via :func:`mne.bem.make_watershed_bem` and :func:`mne.bem.make_flash_bem`, the ``copy`` parameter now defaults to ``True``. This means that instead of creating symbolic links inside the FreeSurfer subject's ``bem`` folder, we now create "actual" files. This should avoid troubles when sharing files across different operating systems and file systems (:gh:`10531` by `Richard Höchenberger`_)
 
-- Remove repeated logging output when overwriting an existing `~mne.io.Raw` file (:gh:`10095` by `Richard Höchenberger`_ and `Stefan Appelhoff`_)
+- The ordering of channels returned by :func:`mne.io.read_raw_nirx` is now ordered by channel name, rather than the order provided by the manufacturer. This enables consistent ordering of channels across different file types (:gh:`10555` by `Robert Luke`_)
 
-- In the plots generated by :meth:`mne.Report.add_stc`, we now only add 5 labels to the color bar to reduce the chance of overlap, which could previously cause the labels to become unreadable (:gh:`10135` by `Richard Höchenberger`_)
-
-- :meth:`mne.Report.add_trans` now allows you to add sensor alignment plots for head surfaces that have topological defects (:gh:`10175` by `Richard Höchenberger`_)
-
-- :meth:`mne.Report.add_trans` now also works if no digitization points are present in the data (:gh:`10176` by `Jeff Stout`_)
-
-- Argument ``verbose`` is now respected by dataset fetching (:gh:`10210` by `Mathieu Scheltienne`_)
-
-- Fix bug with :func:`mne.io.read_raw_hitachi` where empty ``Comment`` descriptions were not handled properly (:gh:`10235` by `Eric Larson`_)
-
-- Fix bug with input validation of low-level filtering functions (:gh:`10267` by `Eric Larson`_)
-
-- :func:`mne.gui.coregistration` now works with surfaces containing topological defects (:gh:`10230`, by `Richard Höchenberger`_)
-
-- Fix bug with :func:`mne.io.read_raw_nirx` being unable to read measurement dates recorded on systems with German (de_DE), French (fr_FR), and Italian (it_IT) locales (:gh:`10277` by `Eric Larson`_)
-
-- :func:`mne.read_trans` now correctly expands ``~`` in the provided path to the user's home directory (:gh:`10265`, by `Richard Höchenberger`_)
-
-API changes
-~~~~~~~~~~~
-- ``mne.Info.pick_channels`` has been deprecated. Use ``inst.pick_channels`` to pick channels from :class:`~mne.io.Raw`, :class:`~mne.Epochs`, and :class:`~mne.Evoked`. Use :func:`mne.pick_info` to pick channels from :class:`mne.Info` (:gh:`10039` by `Mathieu Scheltienne`_)
-
-- Argument ``event_list`` has been deprecated in favor of ``events`` in :func:`mne.write_events` (:gh:`10056` by `Mathieu Scheltienne`_)
-
-- ``mne.preprocessing.annotate_flat`` has been deprecated in favor of :func`mne.preprocessing.annotate_amplitude`, that covers both minimum and maximum peak-to-peak variation. (:gh:`10143` by `Mathieu Scheltienne`_)
-
-- The ``verbose`` attribute of classes (e.g., :class:`mne.io.Raw`, `mne.Epochs`, etc.) has been deprecated. Explicitly pass ``verbose`` to methods as necessary instead. (:gh:`10267` by `Eric Larson`_)
-
-Dependencies
-~~~~~~~~~~~~
-Numerous external dependencies that used to be bundled with MNE-Python are now
-not shipped with the package anymore and will instead be retrieved
-automatically from their official sources when you install MNE-Python. This
-simplifies MNE-Python maintenance and keeps the package smaller. The following
-new dependencies have been added:
-
-- `Jinja2`_ (replaces ``Tempita``, which is not maintained anymore; :gh:`10211` by `Richard Höchenberger`_)
-
-
-.. _Jinja2: https://jinja.palletsprojects.com/
+- For :func:`mne.viz.plot_topomap`, :func:`mne.viz.plot_evoked_topomap`, :func:`mne.viz.plot_arrowmap`, :func:`mne.viz.plot_ica_components`, :meth:`mne.Covariance.plot_topomap`, :meth:`mne.Evoked.plot_topomap`, :meth:`mne.Evoked.animate_topomap`, :meth:`mne.decoding.CSP.plot_patterns`, :meth:`mne.Projection.plot_topomap` and :meth:`mne.preprocessing.ICA.plot_components` the topomap image interpolation was previously a cubic interpolation but now can be ``'linear'`` and ``'nearest'`` as well. Unless ``image_interp='nearest'`` is passed mne uses a subsequent matplotlib bilinear interpolation to make the interpolated image smoother. Previously, ``'image_interp'`` controlled this second interpolation step and, for the first interpolation, the only option was cubic. To simplify, ``image_interp`` is now responsible for the main interpolation and the subsequent matplotlib image interpolation is bilinear but can be changed afterward using ``im.set_interpolation`` (:gh:`10617` by `Alex Rockhill`_)

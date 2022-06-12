@@ -19,8 +19,8 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne import pick_types, find_events, events_from_annotations
 
 data_path = testing.data_path(download=False)
-gdf1_path = op.join(data_path, 'GDF', 'test_gdf_1.25')
-gdf2_path = op.join(data_path, 'GDF', 'test_gdf_2.20')
+gdf1_path = str(op.join(data_path, 'GDF', 'test_gdf_1.25'))
+gdf2_path = str(op.join(data_path, 'GDF', 'test_gdf_2.20'))
 gdf_1ch_path = op.join(data_path, 'GDF', 'test_1ch.gdf')
 
 

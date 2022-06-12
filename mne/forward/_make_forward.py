@@ -22,8 +22,7 @@ from ..io.constants import FIFF, FWD
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
                           Transform, invert_transform)
-from ..utils import logger, verbose, warn, _pl
-from ..parallel import check_n_jobs
+from ..utils import logger, verbose, warn, _pl, _validate_type
 from ..source_space import (_ensure_src, _filter_source_spaces,
                             _make_discrete_source_space, _complete_vol_src)
 from ..source_estimate import VolSourceEstimate
@@ -233,12 +232,11 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False,
     if allow_none and bem is None:
         return None
     logger.info('')
-    if isinstance(bem, str):
+    _validate_type(bem, ('path-like', ConductorModel), bem)
+    if not isinstance(bem, ConductorModel):
         logger.info('Setting up the BEM model using %s...\n' % bem_extra)
         bem = read_bem_solution(bem)
     else:
-        if not isinstance(bem, ConductorModel):
-            raise TypeError('bem must be a string or ConductorModel')
         bem = bem.copy()
     if bem['is_sphere']:
         logger.info('Using the sphere model.\n')
@@ -531,7 +529,7 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
 
 @verbose
 def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
-                          mindist=0.0, ignore_ref=False, n_jobs=1,
+                          mindist=0.0, ignore_ref=False, n_jobs=None, *,
                           verbose=None):
     """Calculate a forward solution for a subject.
 
@@ -594,7 +592,6 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
         info = read_info(info, verbose=False)
     else:
         info_extra = 'instance of Info'
-    n_jobs = check_n_jobs(n_jobs)
 
     # Report the setup
     logger.info('Source space          : %s' % src)
@@ -641,7 +638,8 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
 
 
 @verbose
-def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
+def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *,
+                        verbose=None):
     """Convert dipole object to source estimate and calculate forward operator.
 
     The instance of Dipole is converted to a discrete source space,
@@ -657,10 +655,7 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
 
     Parameters
     ----------
-    dipole : instance of Dipole
-        Dipole object containing position, orientation and amplitude of
-        one or more dipoles. Multiple simultaneous dipoles may be defined by
-        assigning them identical times.
+    %(dipole)s
     bem : str | dict
         The BEM filename (str) or a loaded sphere model (dict).
     info : instance of Info
@@ -689,6 +684,10 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     -----
     .. versionadded:: 0.12.0
     """
+    if isinstance(dipole, list):
+        from ..dipole import _concatenate_dipoles  # To avoid circular import
+        dipole = _concatenate_dipoles(dipole)
+
     # Make copies to avoid mangling original dipole
     times = dipole.times.copy()
     pos = dipole.pos.copy()

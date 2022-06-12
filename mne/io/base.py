@@ -24,11 +24,10 @@ from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
 from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx,
                    channel_type)
-from .meas_info import write_meas_info, _ensure_infos_match
+from .meas_info import write_meas_info, _ensure_infos_match, ContainsMixin
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
-from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
-                                 SetChannelsMixin, InterpolationMixin,
-                                 _unit2human)
+from ..channels.channels import (UpdateChannelsMixin, SetChannelsMixin,
+                                 InterpolationMixin, _unit2human)
 from .compensator import set_current_comp, make_compensator
 from .write import (start_and_end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
@@ -47,7 +46,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format, _arange_div, _VerboseDep)
+                     _check_time_format, _arange_div)
 from ..defaults import _handle_default
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
@@ -121,8 +120,7 @@ class TimeMixin(object):
 
 @fill_doc
 class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
-              InterpolationMixin, TimeMixin, SizeMixin, FilterMixin,
-              _VerboseDep):
+              InterpolationMixin, TimeMixin, SizeMixin, FilterMixin):
     """Base class for Raw data.
 
     Parameters
@@ -282,6 +280,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._projector = None
         self._dtype_ = dtype
         self.set_annotations(None)
+        self._cropped_samp = first_samps[0]
         # If we have True or a string, actually do the preloading
         if load_from_disk:
             self._preload_data(preload)
@@ -581,7 +580,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         See :term:`first_samp`.
         """
-        return self._first_samps[0]
+        return self._cropped_samp
 
     @property
     def first_time(self):
@@ -660,8 +659,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         annotations : instance of mne.Annotations | None
             Annotations to set. If None, the annotations is defined
             but empty.
-        emit_warning : bool
-            Whether to emit warnings when cropping or omitting annotations.
+        %(emit_warning)s
+            The default is True.
         %(on_missing_ch_names)s
         %(verbose)s
 
@@ -975,7 +974,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return data
 
     @verbose
-    def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
+    def apply_function(self, fun, picks=None, dtype=None, n_jobs=None,
                        channel_wise=True, verbose=None, **kwargs):
         """Apply a function to a subset of channels.
 
@@ -983,15 +982,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(applyfun_fun)s
+        %(fun_applyfun)s
         %(picks_all_data_noref)s
-        %(applyfun_dtype)s
+        %(dtype_applyfun)s
         %(n_jobs)s
-        %(applyfun_chwise)s
+        %(channel_wise_applyfun)s
 
             .. versionadded:: 0.18
         %(verbose)s
-        %(kwarg_fun)s
+        %(kwargs_fun)s
 
         Returns
         -------
@@ -1009,6 +1008,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self._data = self._data.astype(dtype)
 
         if channel_wise:
+            parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
             if n_jobs == 1:
                 # modify data inplace to save memory
                 for idx in picks:
@@ -1016,7 +1016,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                                     **kwargs)
             else:
                 # use parallel function
-                parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
                 data_picks_new = parallel(
                     p_fun(fun, data_in[p], **kwargs) for p in picks)
                 for pp, p in enumerate(picks):
@@ -1030,19 +1029,21 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     # Need a separate method because the default pad is different for raw
     @copy_doc(FilterMixin.filter)
     def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
-               l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
+               l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=None,
                method='fir', iir_params=None, phase='zero',
                fir_window='hamming', fir_design='firwin',
                skip_by_annotation=('edge', 'bad_acq_skip'),
                pad='reflect_limited', verbose=None):  # noqa: D102
         return super().filter(
             l_freq, h_freq, picks, filter_length, l_trans_bandwidth,
-            h_trans_bandwidth, n_jobs, method, iir_params, phase,
-            fir_window, fir_design, skip_by_annotation, pad, verbose)
+            h_trans_bandwidth, n_jobs=n_jobs, method=method,
+            iir_params=iir_params, phase=phase, fir_window=fir_window,
+            fir_design=fir_design, skip_by_annotation=skip_by_annotation,
+            pad=pad, verbose=verbose)
 
     @verbose
     def notch_filter(self, freqs, picks=None, filter_length='auto',
-                     notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
+                     notch_widths=None, trans_bandwidth=1.0, n_jobs=None,
                      method='fir', iir_params=None, mt_bandwidth=None,
                      p_value=0.05, phase='zero', fir_window='hamming',
                      fir_design='firwin', pad='reflect_limited', verbose=None):
@@ -1052,32 +1053,33 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         freqs : float | array of float | None
             Specific frequencies to filter out from data, e.g.,
-            np.arange(60, 241, 60) in the US or np.arange(50, 251, 50) in
-            Europe. None can only be used with the mode 'spectrum_fit',
-            where an F test is used to find sinusoidal components.
+            ``np.arange(60, 241, 60)`` in the US or ``np.arange(50, 251, 50)``
+            in Europe. ``None`` can only be used with the mode
+            ``'spectrum_fit'``, where an F test is used to find sinusoidal
+            components.
         %(picks_all_data)s
         %(filter_length_notch)s
         notch_widths : float | array of float | None
             Width of each stop band (centred at each freq in freqs) in Hz.
-            If None, freqs / 200 is used.
+            If None, ``freqs / 200`` is used.
         trans_bandwidth : float
             Width of the transition band in Hz.
             Only used for ``method='fir'``.
-        %(n_jobs-fir)s
-        %(method-fir)s
+        %(n_jobs_fir)s
+        %(method_fir)s
         %(iir_params)s
         mt_bandwidth : float | None
             The bandwidth of the multitaper windowing function in Hz.
             Only used in 'spectrum_fit' mode.
         p_value : float
             P-value to use in F-test thresholding to determine significant
-            sinusoidal components to remove when method='spectrum_fit' and
-            freqs=None. Note that this will be Bonferroni corrected for the
+            sinusoidal components to remove when ``method='spectrum_fit'`` and
+            ``freqs=None``. Note that this will be Bonferroni corrected for the
             number of frequencies, so large p-values may be justified.
         %(phase)s
         %(fir_window)s
         %(fir_design)s
-        %(pad-fir)s
+        %(pad_fir)s
             The default is ``'reflect_limited'``.
 
             .. versionadded:: 0.15
@@ -1121,7 +1123,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', stim_picks=None,
-                 n_jobs=1, events=None, pad='reflect_limited',
+                 n_jobs=None, events=None, pad='reflect_limited',
                  verbose=None):  # lgtm
         """Resample all channels.
 
@@ -1150,14 +1152,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         sfreq : float
             New sample rate to use.
         %(npad)s
-        %(window-resample)s
+        %(window_resample)s
         stim_picks : list of int | None
             Stim channels. These channels are simply subsampled or
             supersampled (without applying any filtering). This reduces
             resampling artifacts in stim channels, but may lead to missing
             triggers. If None, stim channels are automatically chosen using
             :func:`mne.pick_types`.
-        %(n_jobs-cuda)s
+        %(n_jobs_cuda)s
         events : 2D array, shape (n_events, 3) | None
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data. NB: The input events are not
@@ -1250,7 +1252,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                         resamp = resample(data_chunk, **kwargs)
                     new_data[ci, this_sl] = resamp
 
-        self._first_samps = (self._first_samps * ratio).astype(int)
+        self._cropped_samp = int(np.round(self._cropped_samp * ratio))
+        self._first_samps = np.round(self._first_samps * ratio).astype(int)
         self._last_samps = (np.array(self._first_samps) + n_news - 1)
         self._raw_lengths[ri] = list(n_news)
         assert np.array_equal(n_news, self._last_samps - self._first_samps + 1)
@@ -1286,8 +1289,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             )
             return self, events
 
-    @fill_doc
-    def crop(self, tmin=0.0, tmax=None, include_tmax=True):
+    @verbose
+    def crop(self, tmin=0.0, tmax=None, include_tmax=True, *, verbose=None):
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
@@ -1301,9 +1304,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(raw_tmin)s
-        %(raw_tmax)s
+        %(tmin_raw)s
+        %(tmax_raw)s
         %(include_tmax)s
+        %(verbose)s
 
         Returns
         -------
@@ -1332,6 +1336,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         keepers = np.logical_and(np.less(smin, cumul_lens[1:]),
                                  np.greater_equal(smax, cumul_lens[:-1]))
         keepers = np.where(keepers)[0]
+        # if we drop file(s) from the beginning, we need to keep track of
+        # how many samples we dropped relative to that one
+        self._cropped_samp += smin
         self._first_samps = np.atleast_1d(self._first_samps[keepers])
         # Adjust first_samp of first used file!
         self._first_samps[0] += smin - cumul_lens[keepers[0]]
@@ -1346,12 +1353,50 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             # slice and copy to avoid the reference to large array
             self._data = self._data[:, smin:smax + 1].copy()
 
-        if self.annotations.orig_time is None:
-            self.annotations.onset -= tmin
+        annotations = self.annotations
         # now call setter to filter out annotations outside of interval
-        self.set_annotations(self.annotations, False)
+        if annotations.orig_time is None:
+            assert self.info['meas_date'] is None
+            # When self.info['meas_date'] is None (which is guaranteed if
+            # self.annotations.orig_time is None), when we do the
+            # self.set_annotations, it's assumed that the annotations onset
+            # are relative to first_time, so we have to subtract it, then
+            # set_annotations will put it back.
+            annotations.onset -= self.first_time
+        self.set_annotations(annotations, False)
 
         return self
+
+    @verbose
+    def crop_by_annotations(self, annotations=None, *, verbose=None):
+        """Get crops of raw data file for selected annotations.
+
+        Parameters
+        ----------
+        annotations : instance of Annotations | None
+            The annotations to use for cropping the raw file. If None,
+            the annotations from the instance are used.
+        %(verbose)s
+
+        Returns
+        -------
+        raws : list
+            The cropped raw objects.
+        """
+        if annotations is None:
+            annotations = self.annotations
+
+        raws = []
+        for annot in annotations:
+            onset = annot["onset"] - self.first_time
+            # be careful about near-zero errors (crop is very picky about this,
+            # e.g., -1e-8 is an error)
+            if -self.info['sfreq'] / 2 < onset < 0:
+                onset = 0
+            raw_crop = self.copy().crop(onset, onset + annot["duration"])
+            raws.append(raw_crop)
+
+        return raws
 
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=None,
@@ -1372,8 +1417,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             or ``_ieeg.fif`` (common intracranial EEG data). You may also
             append an additional ``.gz`` suffix to enable gzip compression.
         %(picks_all)s
-        %(raw_tmin)s
-        %(raw_tmax)s
+        %(tmin_raw)s
+        %(tmax_raw)s
         buffer_size_sec : float | None
             Size of data chunks in seconds. If None (default), the buffer
             size of the original file is used.
@@ -1488,16 +1533,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                add_ch_type=False, *, overwrite=False, verbose=None):
         """Export Raw to external formats.
 
-        Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
+        %(export_fmt_support_raw)s
 
         %(export_warning)s
 
         Parameters
         ----------
-        %(export_params_fname)s
-        %(export_params_fmt)s
-        %(export_params_physical_range)s
-        %(export_params_add_ch_type)s
+        %(fname_export_params)s
+        %(export_fmt_params_raw)s
+        %(physical_range_export_params)s
+        %(add_ch_type_export_params)s
         %(overwrite)s
 
             .. versionadded:: 0.24.1
@@ -1539,7 +1584,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, time_format='float',
-             precompute='auto', use_opengl=None, verbose=None):
+             precompute=None, use_opengl=None, *, theme=None,
+             overview_mode=None, verbose=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
@@ -1548,6 +1594,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                         event_id=event_id, show_scrollbars=show_scrollbars,
                         show_scalebars=show_scalebars, time_format=time_format,
                         precompute=precompute, use_opengl=use_opengl,
+                        theme=theme, overview_mode=overview_mode,
                         verbose=verbose)
 
     @verbose
@@ -1556,7 +1603,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  n_fft=None, n_overlap=0, reject_by_annotation=True,
                  picks=None, ax=None, color='black', xscale='linear',
                  area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
-                 show=True, n_jobs=1, average=False, line_alpha=None,
+                 show=True, n_jobs=None, average=False, line_alpha=None,
                  spatial_colors=True, sphere=None, window='hamming',
                  exclude='bads', verbose=None):
         return plot_raw_psd(self, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
@@ -1573,7 +1620,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, block=False, n_jobs=1, axes=None,
+                      show=True, block=False, n_jobs=None, axes=None,
                       verbose=None):
         return plot_raw_psd_topo(self, tmin=tmin, tmax=tmax, fmin=fmin,
                                  fmax=fmax, proj=proj, n_fft=n_fft,
@@ -1732,7 +1779,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             annotations = _combine_annotations(
                 annotations, r.annotations, n_samples,
                 self.first_samp, r.first_samp,
-                self.info['sfreq'], self.info['meas_date'])
+                self.info['sfreq'])
             edge_samps.append(sum(self._last_samps) -
                               sum(self._first_samps) + (ri + 1))
             self._first_samps = np.r_[self._first_samps, r._first_samps]
@@ -1741,6 +1788,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
         assert annotations.orig_time == self.info['meas_date']
+        # The above _combine_annotations gets everything synchronized to
+        # first_samp. set_annotations (with no absolute time reference) assumes
+        # that the annotations being set are relative to first_samp, and will
+        # add it back on. So here we have to remove it:
+        if annotations.orig_time is None:
+            annotations.onset -= self.first_samp / self.info['sfreq']
         self.set_annotations(annotations)
         for edge_samp in edge_samps:
             onset = _sync_onset(self, (edge_samp) / self.info['sfreq'], True)
@@ -1856,10 +1909,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         %(picks_all)s
-        %(df_index_raw)s
+        %(index_df_raw)s
             Defaults to ``None``.
-        %(df_scalings)s
-        %(df_copy)s
+        %(scalings_df)s
+        %(copy_df)s
         start : int | None
             Starting sample index for creating the DataFrame from a temporal
             span of the Raw object. ``None`` (the default) uses the first
@@ -1867,8 +1920,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         stop : int | None
             Ending sample index for creating the DataFrame from a temporal span
             of the Raw object. ``None`` (the default) uses the last sample.
-        %(df_longform_raw)s
-        %(df_time_format_raw)s
+        %(long_format_df_raw)s
+        %(time_format_df_raw)s
 
             .. versionadded:: 0.20
         %(verbose)s
@@ -2522,7 +2575,7 @@ def concatenate_raws(raws, preload=None, events_list=None, *,
     %(preload_concatenate)s
     events_list : None | list
         The events to concatenate. Defaults to ``None``.
-    %(on_info_mismatch)s
+    %(on_mismatch_info)s
     %(verbose)s
 
     Returns

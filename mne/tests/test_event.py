@@ -216,7 +216,7 @@ def test_find_events():
     assert_array_equal(events11, events22)
 
     # Reset some data for ease of comparison
-    raw._first_samps[0] = 0
+    raw._cropped_samp = 0
     with raw.info._unlock():
         raw.info['sfreq'] = 1000
 
@@ -381,12 +381,12 @@ def test_find_events():
     # test initial_event argument
     info = create_info(['MYSTI'], 1000, 'stim')
     data = np.zeros((1, 1000))
-    raw = RawArray(data, info)
+    raw = RawArray(data, info, first_samp=7)
     data[0, :10] = 100
     data[0, 30:40] = 200
-    assert_array_equal(find_events(raw, 'MYSTI'), [[30, 0, 200]])
+    assert_array_equal(find_events(raw, 'MYSTI'), [[37, 0, 200]])
     assert_array_equal(find_events(raw, 'MYSTI', initial_event=True),
-                       [[0, 0, 100], [30, 0, 200]])
+                       [[7, 0, 100], [37, 0, 200]])
 
     # test error message for raw without stim channels
     raw = read_raw_fif(raw_fname, preload=True)

@@ -6,11 +6,11 @@ import numpy as np
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..time_frequency.tfr import _compute_tfr, _check_tfr_param
-from ..utils import fill_doc, _check_option, verbose, _VerboseDep
+from ..utils import fill_doc, _check_option, verbose
 
 
 @fill_doc
-class TimeFrequency(TransformerMixin, BaseEstimator, _VerboseDep):
+class TimeFrequency(TransformerMixin, BaseEstimator):
     """Time frequency transformer.
 
     Time-frequency transform of times series along the last axis.
@@ -62,7 +62,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator, _VerboseDep):
     @verbose
     def __init__(self, freqs, sfreq=1.0, method='morlet', n_cycles=7.0,
                  time_bandwidth=None, use_fft=True, decim=1, output='complex',
-                 n_jobs=1, *, verbose=None):  # noqa: D102
+                 n_jobs=None, *, verbose=None):  # noqa: D102
         freqs, sfreq, _, n_cycles, time_bandwidth, decim = \
             _check_tfr_param(freqs, sfreq, method, True, n_cycles,
                              time_bandwidth, use_fft, decim, output)

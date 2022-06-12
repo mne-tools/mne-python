@@ -6,19 +6,20 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
+import weakref
 
 import pyvista
-from pyvistaqt.plotting import FileDialog
+from pyvistaqt.plotting import FileDialog, MainWindow
 
-from PyQt5.QtCore import Qt, pyqtSignal, QLocale
-from PyQt5.QtGui import QIcon, QImage, QPixmap, QCursor
-from PyQt5.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
-                             QHBoxLayout, QLabel, QToolButton, QMenuBar,
-                             QSlider, QSpinBox, QVBoxLayout, QWidget,
-                             QSizePolicy, QScrollArea, QStyle, QProgressBar,
-                             QStyleOptionSlider, QLayout, QCheckBox,
-                             QButtonGroup, QRadioButton, QLineEdit,
-                             QFileDialog, QPushButton)
+from qtpy.QtCore import Qt, Signal, QLocale, QObject
+from qtpy.QtGui import QIcon, QCursor
+from qtpy.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
+                            QHBoxLayout, QLabel, QToolButton, QMenuBar,
+                            QSlider, QSpinBox, QVBoxLayout, QWidget,
+                            QSizePolicy, QScrollArea, QStyle, QProgressBar,
+                            QStyleOptionSlider, QLayout, QCheckBox,
+                            QButtonGroup, QRadioButton, QLineEdit, QGridLayout,
+                            QFileDialog, QPushButton, QMessageBox)
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
@@ -27,31 +28,147 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractStatusBar, _AbstractLayout, _AbstractWidget,
                         _AbstractWindow, _AbstractMplCanvas, _AbstractPlayback,
                         _AbstractBrainMplCanvas, _AbstractMplInterface,
-                        _AbstractWidgetList, _AbstractAction)
-from ._utils import _init_qt_resources, _qt_disable_paint
-from ..utils import logger, _check_option
+                        _AbstractWidgetList, _AbstractAction, _AbstractDialog,
+                        _AbstractKeyPress)
+from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
+                     _qt_detect_theme, _qt_raise_window)
+from ..utils import _check_option, safe_event, get_config
+
+
+class _QtKeyPress(_AbstractKeyPress):
+    _widget_id = 0
+    _callbacks = dict()
+    _to_qt = dict(
+        escape=Qt.Key_Escape,
+        up=Qt.Key_Up,
+        down=Qt.Key_Down,
+        left=Qt.Key_Left,
+        right=Qt.Key_Right,
+        comma=Qt.Key_Comma,
+        period=Qt.Key_Period,
+        page_up=Qt.Key_PageUp,
+        page_down=Qt.Key_PageDown,
+    )
+
+    def _keypress_initialize(self, widget=None):
+        widget = self._window if widget is None else widget
+        self._widget_id = _QtKeyPress._widget_id
+        _QtKeyPress._widget_id += 1
+        _QtKeyPress._callbacks[self._widget_id] = dict()
+
+        def keyPressEvent(event):
+            text = event.text()
+            widget_callbacks = _QtKeyPress._callbacks[self._widget_id]
+            if text in widget_callbacks:
+                callback = widget_callbacks[text]
+                callback()
+            else:
+                key = event.key()
+                if key in widget_callbacks:
+                    callback = widget_callbacks[key]
+                    callback()
+
+        widget.keyPressEvent = keyPressEvent
+
+    def _keypress_add(self, shortcut, callback):
+        widget_callbacks = _QtKeyPress._callbacks[self._widget_id]
+        if len(shortcut) > 1:  # special key
+            shortcut = _QtKeyPress._to_qt[shortcut]
+        widget_callbacks[shortcut] = callback
+
+    def _keypress_trigger(self, shortcut):
+        widget_callbacks = _QtKeyPress._callbacks[self._widget_id]
+        if len(shortcut) > 1:  # special key
+            shortcut = _QtKeyPress._to_qt[shortcut]
+        widget_callbacks[shortcut]()
+
+
+class _QtDialog(_AbstractDialog):
+    # from QMessageBox.StandardButtons
+    supported_button_names = [
+        "Ok", "Open", "Save", "Cancel", "Close", "Discard", "Apply",
+        "Reset", "RestoreDefaults", "Help", "SaveAll", "Yes",
+        "YesToAll", "No", "NoToAll", "Abort", "Retry", "Ignore"
+    ]
+    # from QMessageBox.Icon
+    supported_icon_names = [
+        "NoIcon", "Question", "Information", "Warning", "Critical"
+    ]
+
+    def _dialog_create(self, title, text, info_text, callback, *,
+                       icon='Warning', buttons=[], modal=True, window=None):
+        window = self._window if window is None else window
+        widget = QMessageBox(window)
+        widget.setWindowTitle(title)
+        widget.setText(text)
+        # icon is one of _QtDialog.supported_icon_names
+        icon_id = getattr(QMessageBox, icon)
+        widget.setIcon(icon_id)
+        widget.setInformativeText(info_text)
+
+        if not buttons:
+            buttons = ["Ok"]
+
+        button_ids = list()
+        for button in buttons:
+            # button is one of _QtDialog.supported_button_names
+            button_id = getattr(QMessageBox, button)
+            button_ids.append(button_id)
+        standard_buttons = default_button = button_ids[0]
+        for button_id in button_ids[1:]:
+            standard_buttons |= button_id
+        widget.setStandardButtons(standard_buttons)
+        widget.setDefaultButton(default_button)
+
+        @safe_event
+        def func(button):
+            button_id = widget.standardButton(button)
+            for button_name in _QtDialog.supported_button_names:
+                if button_id == getattr(QMessageBox, button_name):
+                    widget.setCursor(QCursor(Qt.WaitCursor))
+                    try:
+                        callback(button_name)
+                    finally:
+                        widget.unsetCursor()
+                        break
+
+        widget.buttonClicked.connect(func)
+        return _QtDialogWidget(widget, modal)
 
 
 class _QtLayout(_AbstractLayout):
     def _layout_initialize(self, max_width):
         pass
 
-    def _layout_add_widget(self, layout, widget, stretch=0):
+    def _layout_add_widget(self, layout, widget, stretch=0,
+                           *, row=None, col=None):
         """Add a widget to an existing layout."""
         if isinstance(widget, QLayout):
             layout.addLayout(widget)
         else:
-            layout.addWidget(widget, stretch)
+            if isinstance(layout, QGridLayout):
+                layout.addWidget(widget, row, col)
+            else:
+                layout.addWidget(widget, stretch)
+
+    def _layout_create(self, orientation='vertical'):
+        if orientation == 'vertical':
+            layout = QVBoxLayout()
+        elif orientation == 'horizontal':
+            layout = QHBoxLayout()
+        else:
+            assert orientation == 'grid'
+            layout = QGridLayout()
+        return layout
 
 
 class _QtDock(_AbstractDock, _QtLayout):
     def _dock_initialize(self, window=None, name="Controls",
                          area="left", max_width=None):
         window = self._window if window is None else window
-        qt_area = Qt.LeftDockWidgetArea if area == "left" \
-            else Qt.RightDockWidgetArea
+        qt_area = getattr(Qt, f'{area.capitalize()}DockWidgetArea')
         self._dock, self._dock_layout = _create_dock_widget(
-            self._window, name, qt_area, max_width=max_width
+            window, name, qt_area, max_width=max_width
         )
         if area == "left":
             window.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
@@ -91,7 +208,8 @@ class _QtDock(_AbstractDock, _QtLayout):
         return _QtWidget(widget)
 
     def _dock_add_button(
-        self, name, callback, *, style='pushbutton', tooltip=None, layout=None
+        self, name, callback, *, style='pushbutton', icon=None, tooltip=None,
+        layout=None
     ):
         _check_option(
             parameter='style',
@@ -107,6 +225,8 @@ class _QtDock(_AbstractDock, _QtLayout):
             widget.setStyleSheet(
                 'QPushButton:pressed {color: none;}'
             )
+        if icon is not None:
+            widget.setIcon(self._icons[icon])
 
         _set_widget_tooltip(widget, tooltip)
         widget.clicked.connect(callback)
@@ -137,7 +257,10 @@ class _QtDock(_AbstractDock, _QtLayout):
         widget.setMinimum(cast(rng[0]))
         widget.setMaximum(cast(rng[1]))
         widget.setValue(cast(value))
-        widget.valueChanged.connect(callback)
+        if double:
+            widget.floatValueChanged.connect(callback)
+        else:
+            widget.valueChanged.connect(callback)
         self._layout_add_widget(layout, widget)
         return _QtWidget(widget)
 
@@ -205,7 +328,7 @@ class _QtDock(_AbstractDock, _QtLayout):
         self._layout_add_widget(layout, group_layout)
         return _QtWidgetList(group)
 
-    def _dock_add_group_box(self, name, *, layout=None):
+    def _dock_add_group_box(self, name, *, collapse=None, layout=None):
         layout = self._dock_layout if layout is None else layout
         hlayout = QVBoxLayout()
         widget = QGroupBox(name)
@@ -225,24 +348,9 @@ class _QtDock(_AbstractDock, _QtLayout):
 
     def _dock_add_file_button(
         self, name, desc, func, *, filter=None, initial_directory=None,
-        value=None, save=False,
-        is_directory=False, input_text_widget=True,
-        placeholder="Type a file name", tooltip=None, layout=None
+        save=False, is_directory=False, icon=False, tooltip=None, layout=None
     ):
         layout = self._dock_layout if layout is None else layout
-        if input_text_widget:
-            hlayout = self._dock_add_layout(vertical=False)
-            text_widget = self._dock_add_text(
-                name=f"{name}_field",
-                value=value,
-                placeholder=placeholder,
-                layout=hlayout,
-            )
-
-            def sync_text_widget(s):
-                text_widget.set_value(s)
-        else:
-            hlayout = layout
 
         def callback():
             if is_directory:
@@ -263,27 +371,26 @@ class _QtDock(_AbstractDock, _QtLayout):
             # handle the cancel button
             if len(name) == 0:
                 return
-            if input_text_widget:
-                sync_text_widget(name)
             func(name)
 
+        if icon:
+            kwargs = dict(style='toolbutton', icon='folder')
+        else:
+            kwargs = dict()
         button_widget = self._dock_add_button(
             name=desc,
             callback=callback,
             tooltip=tooltip,
-            layout=hlayout,
+            layout=layout,
+            **kwargs
         )
-        if input_text_widget:
-            self._layout_add_widget(layout, hlayout)
-            return _QtWidgetList([text_widget, button_widget])
-        else:
-            return button_widget  # It's already a _QtWidget instance
+        return button_widget  # It's already a _QtWidget instance
 
 
 class QFloatSlider(QSlider):
     """Slider that handles float values."""
 
-    valueChanged = pyqtSignal(float)
+    floatValueChanged = Signal(float)
 
     def __init__(self, ori, parent=None):
         """Initialize the slider."""
@@ -298,7 +405,7 @@ class QFloatSlider(QSlider):
         super().valueChanged.connect(self._convert)
 
     def _convert(self, value):
-        self.valueChanged.emit(value / self._precision)
+        self.floatValueChanged.emit(value / self._precision)
 
     def minimum(self):
         """Get the minimum."""
@@ -354,21 +461,6 @@ class QFloatSlider(QSlider):
 
 
 class _QtToolBar(_AbstractToolBar, _QtLayout):
-    def _tool_bar_load_icons(self):
-        _init_qt_resources()
-        self.icons = dict()
-        self.icons["help"] = QIcon(":/help.svg")
-        self.icons["play"] = QIcon(":/play.svg")
-        self.icons["pause"] = QIcon(":/pause.svg")
-        self.icons["reset"] = QIcon(":/reset.svg")
-        self.icons["scale"] = QIcon(":/scale.svg")
-        self.icons["clear"] = QIcon(":/clear.svg")
-        self.icons["movie"] = QIcon(":/movie.svg")
-        self.icons["restore"] = QIcon(":/restore.svg")
-        self.icons["screenshot"] = QIcon(":/screenshot.svg")
-        self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
-        self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
-
     def _tool_bar_initialize(self, name="default", window=None):
         self.actions = dict()
         window = self._window if window is None else window
@@ -378,13 +470,14 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_add_button(self, name, desc, func, *, icon_name=None,
                              shortcut=None):
         icon_name = name if icon_name is None else icon_name
-        icon = self.icons[icon_name]
-        self.actions[name] = self._tool_bar.addAction(icon, desc, func)
+        icon = self._icons[icon_name]
+        self.actions[name] = _QtAction(self._tool_bar.addAction(
+            icon, desc, func))
         if shortcut is not None:
-            self.actions[name].setShortcut(shortcut)
+            self.actions[name].set_shortcut(shortcut)
 
     def _tool_bar_update_button_icon(self, name, icon_name):
-        self.actions[name].setIcon(self.icons[icon_name])
+        self.actions[name].set_icon(self._icons[icon_name])
 
     def _tool_bar_add_text(self, name, value, placeholder):
         pass
@@ -395,9 +488,14 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
         self._tool_bar.addWidget(spacer)
 
     def _tool_bar_add_file_button(self, name, desc, func, *, shortcut=None):
-        def callback():
+        weakself = weakref.ref(self)
+
+        def callback(weakself=weakself):
+            weakself = weakself()
+            if weakself is None:
+                return
             return FileDialog(
-                self.plotter.app_window,
+                weakself._window,
                 callback=func,
             )
 
@@ -411,17 +509,6 @@ class _QtToolBar(_AbstractToolBar, _QtLayout):
     def _tool_bar_add_play_button(self, name, desc, func, *, shortcut=None):
         self._tool_bar_add_button(
             name=name, desc=desc, func=func, icon_name=None, shortcut=shortcut)
-
-    def _tool_bar_set_theme(self, theme):
-        if theme == 'auto':
-            theme = _detect_theme()
-
-        if theme == 'dark':
-            for icon_key in self.icons:
-                icon = self.icons[icon_key]
-                image = icon.pixmap(80).toImage()
-                image.invertPixels(mode=QImage.InvertRgb)
-                self.icons[icon_key] = QIcon(QPixmap.fromImage(image))
 
 
 class _QtMenuBar(_AbstractMenuBar):
@@ -447,20 +534,19 @@ class _QtStatusBar(_AbstractStatusBar, _QtLayout):
     def _status_bar_initialize(self, window=None):
         window = self._window if window is None else window
         self._status_bar = window.statusBar()
-        self._status_bar_layout = self._status_bar.layout()
 
     def _status_bar_add_label(self, value, *, stretch=0):
         widget = QLabel(value)
-        self._layout_add_widget(self._status_bar_layout, widget, stretch)
+        self._layout_add_widget(self._status_bar.layout(), widget, stretch)
         return _QtWidget(widget)
 
     def _status_bar_add_progress_bar(self, stretch=0):
         widget = QProgressBar()
-        self._layout_add_widget(self._status_bar_layout, widget, stretch)
+        self._layout_add_widget(self._status_bar.layout(), widget, stretch)
         return _QtWidget(widget)
 
     def _status_bar_update(self):
-        self._status_bar_layout.update()
+        self._status_bar.layout().update()
 
 
 class _QtPlayback(_AbstractPlayback):
@@ -471,7 +557,7 @@ class _QtPlayback(_AbstractPlayback):
 
 class _QtMplInterface(_AbstractMplInterface):
     def _mpl_initialize(self):
-        from PyQt5 import QtWidgets
+        from qtpy import QtWidgets
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
         self.canvas = FigureCanvasQTAgg(self.fig)
         FigureCanvasQTAgg.setSizePolicy(
@@ -500,21 +586,82 @@ class _QtBrainMplCanvas(_AbstractBrainMplCanvas, _QtMplInterface):
 
 
 class _QtWindow(_AbstractWindow):
-    def _window_initialize(self, *, fullscreen=False):
+    def _window_initialize(
+        self, *, window=None, central_layout=None, fullscreen=False
+    ):
         super()._window_initialize()
-        self._window = self.figure.plotter.app_window
+        self._interactor = self.figure.plotter.interactor
+        if window is None:
+            self._window = self.figure.plotter.app_window
+        else:
+            self._window = window
+
         if fullscreen:
             self._window.setWindowState(Qt.WindowFullScreen)
+
+        if central_layout is not None:
+            central_widget = self._window.centralWidget()
+            if central_widget is None:
+                central_widget = QWidget()
+                self._window.setCentralWidget(central_widget)
+            central_widget.setLayout(central_layout)
+        self._window_load_icons()
+        self._window_set_theme()
         self._window.setLocale(QLocale(QLocale.Language.English))
         self._window.signal_close.connect(self._window_clean)
-        self._interactor = self.figure.plotter.interactor
+        self._window_before_close_callbacks = list()
+        self._window_after_close_callbacks = list()
+
+        # patch closeEvent
+        def closeEvent(event):
+            # functions to call before closing
+            accept_close_event = True
+            for callback in self._window_before_close_callbacks:
+                ret = callback()
+                # check if one of the callbacks ignores the close event
+                if isinstance(ret, bool) and not ret:
+                    accept_close_event = False
+
+            if accept_close_event:
+                self._window.signal_close.emit()
+                event.accept()
+            else:
+                event.ignore()
+
+            # functions to call after closing
+            for callback in self._window_after_close_callbacks:
+                callback()
+        self._window.closeEvent = closeEvent
+
+    def _window_load_icons(self):
+        self._icons["help"] = QIcon.fromTheme("help")
+        self._icons["play"] = QIcon.fromTheme("play")
+        self._icons["pause"] = QIcon.fromTheme("pause")
+        self._icons["reset"] = QIcon.fromTheme("reset")
+        self._icons["scale"] = QIcon.fromTheme("scale")
+        self._icons["clear"] = QIcon.fromTheme("clear")
+        self._icons["movie"] = QIcon.fromTheme("movie")
+        self._icons["restore"] = QIcon.fromTheme("restore")
+        self._icons["screenshot"] = QIcon.fromTheme("screenshot")
+        self._icons["visibility_on"] = QIcon.fromTheme("visibility_on")
+        self._icons["visibility_off"] = QIcon.fromTheme("visibility_off")
+        self._icons["folder"] = QIcon.fromTheme("folder")
 
     def _window_clean(self):
-        self.figure.plotter = None
+        self.figure._plotter = None
         self._interactor = None
 
-    def _window_close_connect(self, func):
-        self._window.signal_close.connect(func)
+    def _window_close_connect(self, func, *, after=True):
+        if after:
+            self._window_after_close_callbacks.append(func)
+        else:
+            self._window_before_close_callbacks.append(func)
+
+    def _window_close_disconnect(self, after=True):
+        if after:
+            self._window_after_close_callbacks.clear()
+        else:
+            self._window_before_close_callbacks.clear()
 
     def _window_get_dpi(self):
         return self._window.windowHandle().screen().logicalDotsPerInch()
@@ -544,10 +691,11 @@ class _QtWindow(_AbstractWindow):
         dock_layout.addWidget(canvas)
 
     def _window_get_cursor(self):
-        return self._interactor.cursor()
+        return self._window.cursor()
 
     def _window_set_cursor(self, cursor):
         self._interactor.setCursor(cursor)
+        self._window.setCursor(cursor)
 
     def _window_new_cursor(self, name):
         return QCursor(getattr(Qt, name))
@@ -598,26 +746,21 @@ class _QtWindow(_AbstractWindow):
             self._process_events()
             self._process_events()
 
-    def _window_set_theme(self, theme):
-        if theme == 'auto':
-            theme = _detect_theme()
-
-        if theme == 'dark':
-            try:
-                import qdarkstyle
-            except ModuleNotFoundError:
-                logger.info('For Dark-Mode "qdarkstyle" has to be installed! '
-                            'You can install it with `pip install qdarkstyle`')
-                stylesheet = None
-            else:
-                stylesheet = qdarkstyle.load_stylesheet()
-        elif theme != 'light':
-            with open(theme, 'r') as file:
-                stylesheet = file.read()
+    def _window_set_theme(self, theme=None):
+        if theme is None:
+            default_theme = _qt_detect_theme()
         else:
-            stylesheet = None
-
+            default_theme = theme
+        theme = get_config('MNE_3D_OPTION_THEME', default_theme)
+        stylesheet = _qt_get_stylesheet(theme)
         self._window.setStyleSheet(stylesheet)
+        if _qt_is_dark(self._window):
+            QIcon.setThemeName('dark')
+        else:
+            QIcon.setThemeName('light')
+
+    def _window_create(self):
+        return _MNEMainWindow()
 
 
 class _QtWidgetList(_AbstractWidgetList):
@@ -668,7 +811,7 @@ class _QtWidget(_AbstractWidget):
         elif hasattr(self._widget, "currentText"):
             return self._widget.currentText()
         elif hasattr(self._widget, "checkState"):
-            return bool(self._widget.checkState())
+            return self._widget.checkState() != Qt.Unchecked
         else:
             assert hasattr(self._widget, "text")
             return self._widget.text()
@@ -701,14 +844,57 @@ class _QtWidget(_AbstractWidget):
         assert hasattr(self._widget, 'setToolTip')
         self._widget.setToolTip(tooltip)
 
+    def set_style(self, style):
+        stylesheet = ""
+        for key, val in style.items():
+            stylesheet = stylesheet + f"{key}:{val};"
+        self._widget.setStyleSheet(stylesheet)
+
+
+class _QtDialogCommunicator(QObject):
+    signal_show = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+
+class _QtDialogWidget(_QtWidget):
+    def __init__(self, widget, modal):
+        super().__init__(widget)
+        self._modal = modal
+        self._communicator = _QtDialogCommunicator()
+        self._communicator.signal_show.connect(self.show)
+
+    def trigger(self, button):
+        button_id = getattr(QMessageBox, button)
+        for current_button in self._widget.buttons():
+            if self._widget.standardButton(current_button) == button_id:
+                current_button.click()
+
+    def show(self, thread=False):
+        if thread:
+            self._communicator.signal_show.emit()
+        else:
+            if self._modal:
+                self._widget.exec()
+            else:
+                self._widget.show()
+
 
 class _QtAction(_AbstractAction):
     def trigger(self):
         self._action.trigger()
 
+    def set_icon(self, icon):
+        self._action.setIcon(icon)
+
+    def set_shortcut(self, shortcut):
+        self._action.setShortcut(shortcut)
+
 
 class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
-                _QtStatusBar, _QtWindow, _QtPlayback):
+                _QtStatusBar, _QtWindow, _QtPlayback, _QtDialog,
+                _QtKeyPress):
     _kind = 'qt'
 
     def __init__(self, *args, **kwargs):
@@ -725,7 +911,17 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
         for plotter in self._all_plotters:
             plotter.updateGeometry()
             plotter._render()
+        # Ideally we would just put a `splash.finish(plotter.window())` in the
+        # same place that we initialize this (_init_qt_app call). However,
+        # the window show event is triggered (closing the splash screen) well
+        # before the window actually appears for complex scenes like the coreg
+        # GUI. Therefore, we close after all these events have been processed
+        # here.
         self._process_events()
+        splash = getattr(self.figure, 'splash', False)
+        if splash:
+            splash.close()
+        _qt_raise_window(self.plotter.app_window)
 
 
 def _set_widget_tooltip(widget, tooltip):
@@ -758,14 +954,6 @@ def _create_dock_widget(window, name, area, *, max_width=None):
     return dock, dock_layout
 
 
-def _detect_theme():
-    try:
-        import darkdetect
-        return darkdetect.theme().lower()
-    except Exception:
-        return 'light'
-
-
 @contextmanager
 def _testing_context(interactive):
     from . import renderer
@@ -785,3 +973,15 @@ def _testing_context(interactive):
         pyvista.OFF_SCREEN = orig_offscreen
         renderer.MNE_3D_BACKEND_TESTING = orig_testing
         renderer.MNE_3D_BACKEND_INTERACTIVE = orig_interactive
+
+
+# In theory we should be able to do this later (e.g., in _pyvista.py when
+# initializing), but at least on Qt6 this has to be done earlier. So let's do
+# it immediately upon instantiation of the QMainWindow class.
+# TODO: This should eventually allow us to handle
+# https://github.com/mne-tools/mne-python/issues/9182
+
+class _MNEMainWindow(MainWindow):
+    def __init__(self, parent=None, title=None, size=None):
+        super().__init__(parent, title, size)
+        self.setAttribute(Qt.WA_ShowWithoutActivating, True)

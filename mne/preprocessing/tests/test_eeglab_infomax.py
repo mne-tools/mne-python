@@ -14,11 +14,12 @@ from mne.utils import random_permutation
 from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), 'data')
+testing_path = testing.data_path(download=False)
 
 
 def generate_data_for_comparing_against_eeglab_infomax(ch_type, random_state):
     """Generate data."""
-    data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
+    data_dir = op.join(testing_path, 'MEG', 'sample')
     raw_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 
     raw = read_raw_fif(raw_fname, preload=True)

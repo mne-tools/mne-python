@@ -2,6 +2,7 @@
 """
 .. _tut-info-class:
 
+=======================
 The Info data structure
 =======================
 

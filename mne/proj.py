@@ -6,6 +6,7 @@ import numpy as np
 
 from .epochs import Epochs
 from .utils import check_fname, logger, verbose, _check_option, _check_fname
+from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.pick import pick_types, pick_types_forward
 from .io.proj import (Projection, _has_eeg_average_ref_proj, _read_proj,
@@ -134,15 +135,16 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
                              data=u[np.newaxis, :], nrow=1, ncol=u.size)
             this_desc = "%s-%s-PCA-%02d" % (desc, desc_prefix, k + 1)
             logger.info("Adding projection: %s" % this_desc)
-            proj = Projection(active=False, data=proj_data,
-                              desc=this_desc, kind=1, explained_var=var)
+            proj = Projection(
+                active=False, data=proj_data, desc=this_desc,
+                kind=FIFF.FIFFV_PROJ_ITEM_FIELD, explained_var=var)
             projs.append(proj)
 
     return projs
 
 
 @verbose
-def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
+def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=None,
                         desc_prefix=None, meg='separate', verbose=None):
     """Compute SSP (signal-space projection) vectors on epoched data.
 
@@ -198,7 +200,7 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
 
 def _compute_cov_epochs(epochs, n_jobs):
     """Compute epochs covariance."""
-    parallel, p_fun, _ = parallel_func(np.dot, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(np.dot, n_jobs)
     data = parallel(p_fun(e, e.T) for e in epochs)
     n_epochs = len(data)
     if n_epochs == 0:
@@ -259,8 +261,8 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, desc_prefix=None,
 
 @verbose
 def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
-                     n_eeg=0, reject=None, flat=None, n_jobs=1, meg='separate',
-                     verbose=None):
+                     n_eeg=0, reject=None, flat=None, n_jobs=None,
+                     meg='separate', verbose=None):
     """Compute SSP (signal-space projection) vectors on continuous data.
 
     %(compute_ssp)s

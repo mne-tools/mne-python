@@ -19,10 +19,11 @@ import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
-from mne import Epochs, read_events, read_evokeds, read_cov, pick_channels_cov
+from mne import (Epochs, read_events, read_evokeds, read_cov,
+                 pick_channels_cov, create_info)
 from mne.report import report as report_mod
 from mne.report.report import CONTENT_ORDER
-from mne.io import read_raw_fif, read_info
+from mne.io import read_raw_fif, read_info, RawArray
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper, report
 from mne.utils import (requires_nibabel, Bunch, requires_version,
@@ -152,12 +153,12 @@ def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     titles = [op.basename(x) for x in fnames if not x.endswith('-ave.fif')]
     titles.append(f'{op.basename(evoked_fname)}: {evoked.comment}')
 
-    content_names = [element.name for element in report._content]
+    _, _, content_titles, _ = report._content_as_html()
     for title in titles:
-        assert title in content_names
+        assert title in content_titles
         assert (''.join(report.html).find(title) != -1)
 
-    assert len(report._content) == len(fnames)
+    assert len(content_titles) == len(fnames)
 
     # Check saving functionality
     report.data_path = tempdir
@@ -169,8 +170,6 @@ def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     assert f'{op.basename(evoked_fname)}: {evoked.comment}' in html
     assert 'Topographies' in html
     assert 'Global field power' in html
-
-    assert len(report._content) == len(fnames)
 
     # Check saving same report to new filename
     report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
@@ -207,6 +206,23 @@ def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
 
     with pytest.raises(TypeError, match='It seems you passed a path'):
         report.add_figure(fig='foo', title='title')
+    with pytest.raises(TypeError, match='.*MNEQtBrowser.*Figure3D.*got.*'):
+        report.add_figure(fig=1., title='title')
+
+
+def test_render_mne_qt_browser(tmp_path, browser_backend):
+    """Test adding a mne_qt_browser (and matplotlib) raw plot."""
+    report = Report()
+    info = create_info(1, 1000., 'eeg')
+    data = np.zeros((1, 1000))
+    raw = RawArray(data, info)
+    fig = raw.plot()
+    name = fig.__class__.__name__
+    if browser_backend.name == 'matplotlib':
+        assert 'MNEBrowseFigure' in name
+    else:
+        assert 'MNEQtBrowser' in name or 'PyQtGraphBrowser' in name
+    report.add_figure(fig, title='raw')
 
 
 @testing.requires_testing_data
@@ -230,7 +246,7 @@ def test_render_report_extra(renderer_pyvistaqt, tmp_path, invisible_fig):
     assert op.isfile(fname)
     html = Path(fname).read_text(encoding='utf-8')
     # Projectors in Raw.info
-    assert 'SSP Projectors' in html
+    assert 'Projectors' in html
 
 
 def test_add_custom_css(tmp_path):
@@ -288,12 +304,12 @@ def test_render_non_fiff(tmp_path):
                         raw_butterfly=False)
 
     # Check correct paths and filenames
-    content_names = [element.name for element in report._content]
-    for fname in fnames_out:
+    _, _, content_titles, _ = report._content_as_html()
+    for fname in content_titles:
         assert (op.basename(fname) in
-                [op.basename(x) for x in content_names])
+                [op.basename(x) for x in content_titles])
 
-    assert len(report._content) == len(fnames_out)
+    assert len(content_titles) == len(fnames_out)
 
     report.data_path = tempdir
     fname = op.join(tempdir, 'report.html')
@@ -356,16 +372,22 @@ def test_report_raw_psd_and_date(tmp_path):
 @testing.requires_testing_data
 def test_render_add_sections(renderer, tmp_path):
     """Test adding figures/images to section."""
+    from pyvista.plotting import plotting
     tempdir = str(tmp_path)
     report = Report(subjects_dir=subjects_dir)
     # Check add_figure functionality
+    plt.close('all')
+    assert len(plt.get_fignums()) == 0
     fig = plt.plot([1, 2], [1, 2])[0].figure
+    assert len(plt.get_fignums()) == 1
 
     report.add_figure(fig=fig, title='evoked response', image_format='svg')
     assert 'caption' not in report._content[-1].html
+    assert len(plt.get_fignums()) == 1
 
     report.add_figure(fig=fig, title='evoked with caption', caption='descr')
     assert 'caption' in report._content[-1].html
+    assert len(plt.get_fignums()) == 1
 
     # Check add_image with png
     img_fname = op.join(tempdir, 'testimage.png')
@@ -377,10 +399,14 @@ def test_render_add_sections(renderer, tmp_path):
 
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
+    n_before = len(plotting._ALL_PLOTTERS)
     fig = plot_alignment(evoked.info, trans_fname, subject='sample',
                          subjects_dir=subjects_dir)
+    n_after = n_before + 1
+    assert n_after == len(plotting._ALL_PLOTTERS)
 
     report.add_figure(fig=fig, title='random image')
+    assert n_after == len(plotting._ALL_PLOTTERS)  # not closed
     assert (repr(report))
     fname = op.join(str(tmp_path), 'test.html')
     report.save(fname, open_browser=False)
@@ -709,7 +735,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     )
     epochs_with_metadata = Epochs(
         raw=raw, events=metadata_events, event_id=metadata_event_id,
-        baseline=None,  metadata=metadata
+        baseline=None, metadata=metadata
     )
     evokeds = read_evokeds(evoked_fname)
     evoked = evokeds[0].pick('eeg')
@@ -751,7 +777,7 @@ def test_manual_report_2d(tmp_path, invisible_fig):
         match='requested to calculate PSD on a duration'
     ):
         r.add_epochs(
-            epochs=epochs_with_metadata, title='my epochs 2',  psd=100000000,
+            epochs=epochs_with_metadata, title='my epochs 2', psd=100000000,
             projs=False
         )
 
@@ -784,15 +810,18 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     for ch in evoked_no_ch_locs.info['chs']:
         ch['loc'][:3] = np.nan
 
-    with pytest.warns(RuntimeWarning, match='No EEG channel locations'):
+    with pytest.warns(
+        RuntimeWarning,
+        match='No EEG channel locations found, cannot create joint plot'
+    ):
         r.add_evokeds(
             evokeds=evoked_no_ch_locs, titles=['evoked no chan locs'],
-            tags=('evoked',), projs=True, n_time_points=1
+            tags=('evoked',), projs=False, n_time_points=1
         )
     assert 'Time course' not in r._content[-1].html
     assert 'Topographies' not in r._content[-1].html
     assert evoked.info['projs']  # only then the following test makes sense
-    assert 'SSP' not in r._content[-1].html
+    assert 'Projectors' not in r._content[-1].html
     assert 'Global field power' in r._content[-1].html
 
     # Drop locations from Info used for projs
@@ -800,7 +829,10 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     for ch in info_no_ch_locs['chs']:
         ch['loc'][:3] = np.nan
 
-    with pytest.warns(RuntimeWarning, match='No channel locations found'):
+    with pytest.raises(
+        ValueError,
+        match='does not contain.*channel locations'
+    ):
         r.add_projs(info=info_no_ch_locs, title='Projs no chan locs')
 
     # Drop locations from ICA

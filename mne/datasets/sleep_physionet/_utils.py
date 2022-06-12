@@ -65,7 +65,7 @@ def _data_path(path=None, verbose=None):
 
     Returns
     -------
-    path : list of str
+    path : list of Path
         Local path to the given data file. This path is contained inside a list
         of length one, for compatibility.
 

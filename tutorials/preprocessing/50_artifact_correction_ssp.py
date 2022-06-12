@@ -2,6 +2,7 @@
 """
 .. _tut-artifact-ssp:
 
+============================
 Repairing artifacts with SSP
 ============================
 
@@ -119,7 +120,6 @@ for average in (False, True):
 # smoothness. Note that for the function to know the types of channels in a
 # projector, you must also provide the corresponding `~mne.Info` object:
 
-# sphinx_gallery_thumbnail_number = 3
 empty_room_projs = mne.compute_proj_raw(empty_room_raw, n_grad=3, n_mag=3)
 mne.viz.plot_projs_topomap(empty_room_projs, colorbar=True, vlim='joint',
                            info=empty_room_raw.info)
@@ -155,7 +155,8 @@ mags = mne.pick_types(raw.info, meg='mag')
 for title, projs in [('system', system_projs),
                      ('subject-specific', empty_room_projs[3:])]:
     raw.add_proj(projs, remove_existing=True)
-    fig = raw.plot(proj=True, order=mags, duration=1, n_channels=2)
+    with mne.viz.use_browser_backend('matplotlib'):
+        fig = raw.plot(proj=True, order=mags, duration=1, n_channels=2)
     fig.subplots_adjust(top=0.9)  # make room for title
     fig.suptitle('{} projectors'.format(title), size='xx-large', weight='bold')
 
@@ -255,6 +256,29 @@ print(ecg_projs)
 mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 
 # %%
+# Moreover, because these projectors were created using epochs chosen
+# specifically because they contain time-locked artifacts, we can do a
+# joint plot of the projectors and their effect on the time-averaged epochs.
+# This figure has three columns:
+#
+# 1. The left shows the data traces before (black) and after (green)
+#    projection. We can see that the ECG artifact is well suppressed by one
+#    projector per channel type.
+# 2. The center shows the topomaps associated with the projectors, in this case
+#    just a single topography for our one projector per channel type.
+# 3. The right again shows the data traces (black), but this time with those
+#    traces also projected onto the first projector for each channel type (red)
+#    plus one surrogate ground truth for an ECG channel (MEG 0111).
+
+# sphinx_gallery_thumbnail_number = 17
+
+# ideally here we would just do `picks_trace='ecg'`, but this dataset did not
+# have a dedicated ECG channel recorded, so we just pick a channel that was
+# very sensitive to the artifact
+fig = mne.viz.plot_projs_joint(ecg_projs, ecg_evoked, picks_trace='MEG 0111')
+fig.suptitle('ECG projectors')
+
+# %%
 # Since no dedicated ECG sensor channel was detected in the
 # `~mne.io.Raw` object, by default
 # `~mne.preprocessing.compute_proj_ecg` used the magnetometers to
@@ -296,7 +320,8 @@ mne.viz.plot_projs_topomap(ecg_projs, info=raw.info)
 raw.del_proj()
 for title, proj in [('Without', empty_room_projs), ('With', ecg_projs)]:
     raw.add_proj(proj, remove_existing=False)
-    fig = raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
+    with mne.viz.use_browser_backend('matplotlib'):
+        fig = raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
     fig.subplots_adjust(top=0.9)  # make room for title
     fig.suptitle('{} ECG projectors'.format(title), size='xx-large',
                  weight='bold')
@@ -348,7 +373,7 @@ for title, proj in [('Without', empty_room_projs), ('With', ecg_projs)]:
 # seen above the large deflections in frontal EEG channels in the raw data;
 # here is how the ocular artifacts manifests across all the sensors:
 
-eog_evoked = create_eog_epochs(raw).average()
+eog_evoked = create_eog_epochs(raw).average(picks='all')
 eog_evoked.apply_baseline((None, None))
 eog_evoked.plot_joint()
 
@@ -373,6 +398,33 @@ eog_projs, _ = compute_proj_eog(raw, n_grad=1, n_mag=1, n_eeg=1, reject=None,
 mne.viz.plot_projs_topomap(eog_projs, info=raw.info)
 
 # %%
+# And we can do a joint image:
+
+fig = mne.viz.plot_projs_joint(eog_projs, eog_evoked, 'eog')
+fig.suptitle('EOG projectors')
+
+# %%
+# And finally, we can make a joint visualization with our EOG evoked. We will
+# also make a bad choice here and select *two* EOG projectors for EEG and
+# magnetometers, and we will see them show up as noise in the plot. Even though
+# the projected time course (left column) looks perhaps okay, problems show
+# up in the center (topomaps) and right plots (projection of channel data
+# onto the projection vector):
+#
+# 1. The second magnetometer topomap has a bilateral auditory field pattern.
+# 2. The uniformly-scaled projected temporal time course (solid lines) show
+#    that, while the first projector trace (red) has a large EOG-like
+#    amplitude, the second projector trace (blue-green) is much smaller.
+# 3. The re-normalized projected temporal time courses show that the
+#    second PCA trace is very noisy relative to the EOG channel data (yellow).
+
+eog_projs_bad, _ = compute_proj_eog(
+    raw, n_grad=1, n_mag=2, n_eeg=2, reject=None,
+    no_proj=True)
+fig = mne.viz.plot_projs_joint(eog_projs_bad, eog_evoked, picks_trace='eog')
+fig.suptitle('Too many EOG projectors')
+
+# %%
 # Now we repeat the plot from above (with empty room and ECG projectors) and
 # compare it to a plot with empty room, ECG, and EOG projectors, to see how
 # well the ocular artifacts have been repaired:
@@ -380,7 +432,8 @@ mne.viz.plot_projs_topomap(eog_projs, info=raw.info)
 for title in ('Without', 'With'):
     if title == 'With':
         raw.add_proj(eog_projs)
-    fig = raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
+    with mne.viz.use_browser_backend('matplotlib'):
+        fig = raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
     fig.subplots_adjust(top=0.9)  # make room for title
     fig.suptitle('{} EOG projectors'.format(title), size='xx-large',
                  weight='bold')

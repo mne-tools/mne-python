@@ -59,3 +59,4 @@ Forward Modeling
    make_flash_bem
    make_scalp_surfaces
    convert_flash_mris
+   distance_to_bem

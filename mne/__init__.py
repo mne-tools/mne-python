@@ -46,7 +46,7 @@ from .event import (read_events, write_events, find_events, merge_events,
                     find_stim_steps, AcqParserFIF)
 from ._freesurfer import (head_to_mni, head_to_mri, read_talxfm,
                           get_volume_labels_from_aseg, read_freesurfer_lut,
-                          vertex_to_mni)
+                          vertex_to_mni, read_lta)
 from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       average_forward_solutions, Forward,
                       write_forward_solution, make_forward_solution,

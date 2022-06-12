@@ -15,11 +15,12 @@ from mne.preprocessing.nirs import optical_density, beer_lambert_law
 from mne.utils import _validate_type, requires_version
 from mne.datasets import testing
 
-fname_nirx_15_0 = op.join(data_path(download=False),
+testing_path = data_path(download=False)
+fname_nirx_15_0 = op.join(testing_path,
                           'NIRx', 'nirscout', 'nirx_15_0_recording')
-fname_nirx_15_2 = op.join(data_path(download=False),
+fname_nirx_15_2 = op.join(testing_path,
                           'NIRx', 'nirscout', 'nirx_15_2_recording')
-fname_nirx_15_2_short = op.join(data_path(download=False),
+fname_nirx_15_2_short = op.join(testing_path,
                                 'NIRx', 'nirscout',
                                 'nirx_15_2_recording_w_short')
 
@@ -62,13 +63,14 @@ def test_beer_lambert_unordered_errors():
     # Test that an error is thrown if channel naming frequency doesn't match
     # what is stored in loc[9], which should hold the light frequency too.
     raw_od = optical_density(raw)
-    raw_od.rename_channels({'S2_D2 760': 'S2_D2 770'})
-    with pytest.raises(ValueError, match='not ordered'):
-        beer_lambert_law(raw_od)
-
-    # Test that an error is thrown if inconsistent frequencies used in data
-    raw_od.info['chs'][2]['loc'][9] = 770.0
-    with pytest.raises(ValueError, match='with alternating frequencies'):
+    ch_name = raw.ch_names[0]
+    assert ch_name == 'S1_D1 760'
+    idx = raw_od.ch_names.index(ch_name)
+    assert idx == 0
+    raw_od.info['chs'][idx]['loc'][9] = 770
+    raw_od.rename_channels({ch_name: ch_name.replace('760', '770')})
+    assert raw_od.ch_names[0] == 'S1_D1 770'
+    with pytest.raises(ValueError, match='Exactly two frequencies'):
         beer_lambert_law(raw_od)
 
 
@@ -82,7 +84,7 @@ def test_beer_lambert_v_matlab():
     raw = beer_lambert_law(raw, ppf=0.121)
     raw._data *= 1e6  # Scale to uM for comparison to MATLAB
 
-    matlab_fname = op.join(data_path(download=False),
+    matlab_fname = op.join(testing_path,
                            'NIRx', 'nirscout', 'validation',
                            'nirx_15_0_recording_bl.mat')
     matlab_data = read_mat(matlab_fname)

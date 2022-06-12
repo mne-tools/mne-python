@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-perm-test:
+
 =================================
 Permutation T-test on sensor data
 =================================
@@ -26,8 +29,9 @@ print(__doc__)
 # %%
 # Set parameters
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
 event_id = 1
 tmin = -0.2
 tmax = 0.5
@@ -48,7 +52,7 @@ temporal_mask = np.logical_and(0.04 <= times, times <= 0.06)
 data = np.mean(data[:, :, temporal_mask], axis=2)
 
 n_permutations = 50000
-T0, p_values, H0 = permutation_t_test(data, n_permutations, n_jobs=1)
+T0, p_values, H0 = permutation_t_test(data, n_permutations, n_jobs=None)
 
 significant_sensors = picks[p_values <= 0.05]
 significant_sensors_names = [raw.ch_names[k] for k in significant_sensors]

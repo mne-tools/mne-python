@@ -770,7 +770,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
     ad_to_tesla = ad_to_volt / amp_gain * channel_gain
     conv_factor = np.where(is_meg, ad_to_tesla, ad_to_volt)
     # XXX this is a bit of a hack. Should probably do this more cleanly at
-    # some point... the 2 ** (adc_stored - 14) was emperically determined using
+    # some point... the 2 ** (adc_stored - 14) was empirically determined using
     # the test files with known amplitudes. The conv_factors need to be
     # replaced by these values otherwise we're off by a factor off 5000.0
     # for the EEG data.

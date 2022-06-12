@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-shift-evoked:
+
 ==================================
 Shifting time-scale in evoked data
 ==================================
@@ -18,8 +21,8 @@ from mne.datasets import sample
 print(__doc__)
 
 data_path = sample.data_path()
-
-fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
+meg_path = data_path / 'MEG' / 'sample'
+fname = meg_path / 'sample_audvis-ave.fif'
 
 # Reading evoked data
 condition = 'Left Auditory'

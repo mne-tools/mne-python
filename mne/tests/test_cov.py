@@ -257,7 +257,11 @@ def test_io_cov(tmp_path):
         read_cov(cov_badname)
 
 
-@pytest.mark.parametrize('method', (None, 'empirical', 'shrunk'))
+@pytest.mark.parametrize('method', [
+    None,
+    'empirical',
+    pytest.param('shrunk', marks=pytest.mark.slowtest),
+])
 def test_cov_estimation_on_raw(method, tmp_path):
     """Test estimation from raw (typically empty room)."""
     if method == 'shrunk':
@@ -569,12 +573,12 @@ def test_compute_covariance_auto_reg(rank):
     covs = compute_covariance(epochs, method='auto',
                               method_params=method_params,
                               return_estimators=True, rank=rank)
-    # make sure regularization produces structured differencess
+    # make sure regularization produces structured differences
     diag_mask = np.eye(len(epochs.ch_names)).astype(bool)
     off_diag_mask = np.invert(diag_mask)
     for cov_a, cov_b in itt.combinations(covs, 2):
         if (cov_a['method'] == 'diagonal_fixed' and
-                # here we have diagnoal or no regularization.
+                # here we have diagonal or no regularization.
                 cov_b['method'] == 'empirical' and rank == 'full'):
 
             assert not np.any(cov_a['data'][diag_mask] ==

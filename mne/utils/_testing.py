@@ -76,11 +76,14 @@ def requires_dipy():
         from dipy.align.reslice import reslice  # noqa, analysis:ignore
         from dipy.align.imaffine import AffineMap  # noqa, analysis:ignore
         from dipy.align.imwarp import DiffeomorphicMap  # noqa, analysis:ignore
-    except Exception:
+    except Exception as exc:
         have = False
+        why = str(exc)
     else:
+        why = ''
         have = True
-    return pytest.mark.skipif(not have, reason='Requires dipy >= 0.10.1')
+    return pytest.mark.skipif(
+        not have, reason=f'Requires dipy >= 0.10.1, got: {why}')
 
 
 def requires_version(library, min_version='0.0'):
@@ -88,7 +91,7 @@ def requires_version(library, min_version='0.0'):
     import pytest
     reason = f'Requires {library}'
     if min_version != '0.0':
-        reason += ' version >= {min_version}'
+        reason += f' version >= {min_version}'
     return pytest.mark.skipif(not check_version(library, min_version),
                               reason=reason)
 
@@ -150,7 +153,6 @@ run_subprocess([%r, '--version'])
 requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
                                call=_n2ft_call)
 
-requires_vtk = partial(requires_module, name='vtk')
 requires_good_network = partial(
     requires_module, name='good network connection',
     call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
@@ -449,6 +451,9 @@ def modified_env(**d):
     **kwargs : dict
         The key/value pairs of environment variables to replace.
     """
+    warn('modified_env is deprecated and will be removed in 1.1. In tests, '
+         'use monkeypatch from pytest instead. In subprocess calls, pass '
+         'modified environments directly.', DeprecationWarning)
     orig_env = dict()
     for key, val in d.items():
         orig_env[key] = os.getenv(key)

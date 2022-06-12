@@ -37,6 +37,7 @@ somato_fname = op.join(
     brainstorm.bst_raw.data_path(download=False), 'MEG', 'bst_raw',
     'subj001_somatosensory_20111109_01_AUX-f.ds'
 )
+spm_path = spm_face.data_path(download=False)
 
 block_sizes = {
     ctf_fname_continuous: 12000,
@@ -269,8 +270,7 @@ def test_rawctf_clean_names():
 @spm_face.requires_spm_data
 def test_read_spm_ctf():
     """Test CTF reader with omitted samples."""
-    data_path = spm_face.data_path()
-    raw_fname = op.join(data_path, 'MEG', 'spm',
+    raw_fname = op.join(spm_path, 'MEG', 'spm',
                         'SPM_CTF_MEG_example_faces1_3D.ds')
     raw = read_raw_ctf(raw_fname)
     extras = raw._raw_extras[0]

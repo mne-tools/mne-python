@@ -46,15 +46,14 @@ docstrings/tutorials/website, those kinds of contributions are made through
 how to set up your workflow to make contributing via GitHub as easy as
 possible.
 
-.. collapse:: |rocket| Want an example to work through?
-   :class: success
 
-   Feel free to just read through the rest of the page, but if you find it
-   easier to "learn by doing", take a look at our
-   `GitHub issues marked "easy"`_, pick one that looks interesting, and work
-   through it while reading this guide!
+.. dropdown:: Want an example to work through?
+    :icon: rocket
 
-.. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
+    Feel free to just read through the rest of the page, but if you find it
+    easier to "learn by doing", take a look at our
+    `GitHub issues marked "easy"`_, pick one that looks interesting, and work
+    through it while reading this guide!
 
 
 Overview of contribution process
@@ -262,7 +261,7 @@ Now we'll remove the *stable* version of MNE-Python and replace it with the
 the correct environment first (``conda activate mnedev``), and then do::
 
     $ cd $INSTALL_LOCATION/mne-python    # make sure we're in the right folder
-    $ pip uninstall -y mne
+    $ conda remove --force mne  # the --force avoids dependency checking
     $ pip install -e .
 
 The command ``pip install -e .`` installs a python module into the current
@@ -570,23 +569,21 @@ First-time contributors
 
 Welcome to MNE-Python! We're very happy to have you here. 🤗 And to ensure you
 get proper credit for your work, please add a changelog entry with the
-following pattern **at the top** of the respective subsection (bugfix,
-new feature etc.):
+following pattern **at the top** of the respective subsection (bugs,
+enhancements, etc.):
 
 .. code-block:: rst
 
 
-  Bug
-  ---
+  Bugs
+  ----
 
-  .. |Your Name| replace:: **Your Name**
-
-  - Short description of the changes (:gh:`0000` **by new contributor** |Your Name|_)
+  - Short description of the changes (:gh:`0000` by :newcontrib:`Firstname Lastname`)
 
   - ...
 
 where ``0000`` must be replaced with the respective GitHub pull request (PR)
-number.
+number, and ``Firstname Lastname`` must be replaced with your full name.
 
 It is usually best to wait to add a line to the changelog until your PR is
 finalized, to avoid merge conflicts (since the changelog is updated with
@@ -815,7 +812,7 @@ method :meth:`mne.Epochs.plot` internally calls the function
 All visualization functions must accept a boolean ``show`` parameter and
 typically return a :class:`matplotlib.figure.Figure` (or a list of
 :class:`~matplotlib.figure.Figure` objects). 3D visualization functions return
-a PyVista renderer, :class:`surfer.Brain`, or other return type
+a :class:`mne.viz.Figure3D`, :class:`mne.viz.Brain`, or other return type
 as appropriate.
 
 Visualization functions should default to the colormap ``RdBu_r`` for signed
@@ -935,7 +932,7 @@ common to many open-source software projects, so learning to follow them while
 working on MNE-Python will bear fruit when you contribute to other projects
 down the road. Here are the guidelines:
 
-- Search the `MNE-Python issues page`_ (both open and closed issues) in case
+- Search the `GitHub issues page`_ (both open and closed issues) in case
   someone else has already started work on the same bugfix or feature. If you
   don't find anything, `open a new issue`_ to discuss changes with maintainers
   before starting work on your proposed changes.
@@ -1007,8 +1004,7 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. MNE
 
-.. _MNE-Python GitHub: https://github.com/mne-tools/mne-python
-.. _MNE-Python issues page: https://github.com/mne-tools/mne-python/issues
+.. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
 .. _open a new issue: https://github.com/mne-tools/mne-python/issues/new/choose
 .. _This sample pull request: https://github.com/mne-tools/mne-python/pull/6230
 .. _our user forum: https://mne.discourse.group
@@ -1056,14 +1052,12 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. sphinx
 
-.. _sphinx-gallery: https://sphinx-gallery.github.io
 .. _reStructuredText: https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
 .. _intersphinx: https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
 .. _sphobjinv: https://sphobjinv.readthedocs.io/en/latest/
 
 .. linting
 
-.. _NumPy docstring style guidelines: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _PEP 8: https://www.python.org/dev/peps/pep-0008/
 .. _pyflakes: https://pypi.org/project/pyflakes
 .. _Flake8: http://flake8.pycqa.org/

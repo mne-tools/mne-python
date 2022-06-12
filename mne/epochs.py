@@ -27,7 +27,7 @@ from .io.write import (start_and_end_file, start_block, end_block,
                        write_complex_double_matrix, write_id, write_string,
                        _get_split_size, _NEXT_FILE_BUFFER, INT32_MAX)
 from .io.meas_info import (read_meas_info, write_meas_info, _merge_info,
-                           _ensure_infos_match)
+                           _ensure_infos_match, ContainsMixin)
 from .io.open import fiff_open, _get_next_fname
 from .io.tree import dir_tree_find
 from .io.tag import read_tag, read_tag_info
@@ -41,7 +41,7 @@ from .io.base import BaseRaw, TimeMixin, _get_ch_factors
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale, _check_baseline
-from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
+from .channels.channels import (UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import detrend, FilterMixin, _check_fun
 from .parallel import parallel_func
@@ -62,7 +62,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_pandas_index_arguments, _convert_times,
                     _scale_dataframe_data, _check_time_format, object_size,
                     _on_missing, _validate_type, _ensure_events,
-                    _path_like, _VerboseDep)
+                    _path_like)
 from .utils.docs import fill_doc
 from .annotations import (_write_annotations, _read_annotations_fif,
                           EpochAnnotationsMixin)
@@ -340,8 +340,7 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 @fill_doc
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin,
-                 _VerboseDep):
+                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin):
     """Abstract base class for `~mne.Epochs`-type classes.
 
     .. warning:: This class provides basic functionality and should never be
@@ -359,15 +358,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     %(baseline_epochs)s
         Defaults to ``(None, 0)``, i.e. beginning of the the data until
         time point zero.
-    %(epochs_raw)s
+    %(raw_epochs)s
     %(picks_all)s
     %(reject_epochs)s
     %(flat)s
     %(decim)s
     %(epochs_reject_tmin_tmax)s
-    %(epochs_detrend)s
+    %(detrend_epochs)s
     %(proj_epochs)s
-    %(epochs_on_missing)s
+    %(on_missing_epochs)s
     preload_at_end : bool
         %(epochs_preload)s
     selection : iterable | None
@@ -378,8 +377,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         be ignored.
     filename : str | None
         The filename (if the epochs are read from disk).
-    %(epochs_metadata)s
-    %(epochs_event_repeated)s
+    %(metadata_epochs)s
+    %(event_repeated_epochs)s
     %(verbose)s
     raw_sfreq : float
         The original Raw object sampling rate. If None, then it is set to
@@ -658,7 +657,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Parameters
         ----------
         %(decim)s
-        %(decim_offset)s
+        %(offset_decim)s
         %(verbose)s
 
         Returns
@@ -1002,7 +1001,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Returns
         -------
-        %(by_event_type_returns_average)s
+        %(evoked_by_event_type_returns)s
 
         Notes
         -----
@@ -1046,7 +1045,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Returns
         -------
-        %(by_event_type_returns_stderr)s
+        %(std_err_by_event_type_returns)s
         """
         return self.average(picks=picks, method="std",
                             by_event_type=by_event_type)
@@ -1162,7 +1161,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
              title=None, events=None, event_color=None,
              order=None, show=True, block=False, decim='auto', noise_cov=None,
              butterfly=False, show_scrollbars=True, show_scalebars=True,
-             epoch_colors=None, event_id=None, group_by='type'):
+             epoch_colors=None, event_id=None, group_by='type',
+             precompute=None, use_opengl=None, *, theme=None,
+             overview_mode=None):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, events=events, event_color=event_color,
@@ -1171,14 +1172,16 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                            show_scrollbars=show_scrollbars,
                            show_scalebars=show_scalebars,
                            epoch_colors=epoch_colors, event_id=event_id,
-                           group_by=group_by)
+                           group_by=group_by, precompute=precompute,
+                           use_opengl=use_opengl, theme=theme,
+                           overview_mode=overview_mode)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                  proj=False, bandwidth=None, adaptive=False, low_bias=True,
                  normalization='length', picks=None, ax=None, color='black',
                  xscale='linear', area_mode='std', area_alpha=0.33,
-                 dB=True, estimate='auto', show=True, n_jobs=1,
+                 dB=True, estimate='auto', show=True, n_jobs=None,
                  average=False, line_alpha=None, spatial_colors=True,
                  sphere=None, exclude='bads', verbose=None):
         return plot_epochs_psd(self, fmin=fmin, fmax=fmax, tmin=tmin,
@@ -1197,7 +1200,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                          tmax=None, proj=False, bandwidth=None, adaptive=False,
                          low_bias=True, normalization='length', ch_type=None,
                          cmap=None, agg_fun=None, dB=True,
-                         n_jobs=1, normalize=False, cbar_fmt='auto',
+                         n_jobs=None, normalize=False, cbar_fmt='auto',
                          outlines='head', axes=None, show=True,
                          sphere=None, vlim=(None, None), verbose=None):
         return plot_epochs_psd_topomap(
@@ -1579,7 +1582,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                               tmax=tmax)
 
     @verbose
-    def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
+    def apply_function(self, fun, picks=None, dtype=None, n_jobs=None,
                        channel_wise=True, verbose=None, **kwargs):
         """Apply a function to a subset of channels.
 
@@ -1587,13 +1590,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Parameters
         ----------
-        %(applyfun_fun)s
+        %(fun_applyfun)s
         %(picks_all_data_noref)s
-        %(applyfun_dtype)s
+        %(dtype_applyfun)s
         %(n_jobs)s
-        %(applyfun_chwise_epo)s
+        %(channel_wise_applyfun_epo)s
         %(verbose)s
-        %(kwarg_fun)s
+        %(kwargs_fun)s
 
         Returns
         -------
@@ -1611,6 +1614,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             self._data = self._data.astype(dtype)
 
         if channel_wise:
+            parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
             if n_jobs == 1:
                 _fun = partial(_check_fun, fun, **kwargs)
                 # modify data inplace to save memory
@@ -1619,7 +1623,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                         _fun, -1, data_in[:, idx, :])
             else:
                 # use parallel function
-                parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
                 data_picks_new = parallel(p_fun(
                     fun, data_in[:, p, :], **kwargs) for p in picks)
                 for pp, p in enumerate(picks):
@@ -1937,14 +1940,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     def export(self, fname, fmt='auto', *, overwrite=False, verbose=None):
         """Export Epochs to external formats.
 
-        Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
+        %(export_fmt_support_epochs)s
 
         %(export_warning)s
 
         Parameters
         ----------
-        %(export_params_fname)s
-        %(export_params_fmt)s
+        %(fname_export_params)s
+        %(export_fmt_params_epochs)s
         %(overwrite)s
 
             .. versionadded:: 0.24.1
@@ -2114,13 +2117,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Parameters
         ----------
         %(picks_all)s
-        %(df_index_epo)s
+        %(index_df_epo)s
             Valid string values are 'time', 'epoch', and 'condition'.
             Defaults to ``None``.
-        %(df_scalings)s
-        %(df_copy)s
-        %(df_longform_epo)s
-        %(df_time_format)s
+        %(scalings_df)s
+        %(copy_df)s
+        %(long_format_df_epo)s
+        %(time_format_df)s
 
             .. versionadded:: 0.20
         %(verbose)s
@@ -2526,7 +2529,7 @@ class Epochs(BaseEpochs):
 
     Parameters
     ----------
-    %(epochs_raw)s
+    %(raw_epochs)s
     %(events_epochs)s
     %(event_id)s
     %(epochs_tmin_tmax)s
@@ -2541,11 +2544,11 @@ class Epochs(BaseEpochs):
     %(proj_epochs)s
     %(decim)s
     %(epochs_reject_tmin_tmax)s
-    %(epochs_detrend)s
-    %(epochs_on_missing)s
+    %(detrend_epochs)s
+    %(on_missing_epochs)s
     %(reject_by_annotation_epochs)s
-    %(epochs_metadata)s
-    %(epochs_event_repeated)s
+    %(metadata_epochs)s
+    %(event_repeated_epochs)s
     %(verbose)s
 
     Attributes
@@ -3170,7 +3173,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
 
     Parameters
     ----------
-    %(epochs_fname)s
+    %(fname_epochs)s
     %(proj_epochs)s
     preload : bool
         If True, read all epochs from disk immediately. If ``False``, epochs
@@ -3208,7 +3211,7 @@ class EpochsFIF(BaseEpochs):
 
     Parameters
     ----------
-    %(epochs_fname)s
+    %(fname_epochs)s
     %(proj_epochs)s
     preload : bool
         If True, read all epochs from disk immediately. If False, epochs will
@@ -3605,7 +3608,7 @@ def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
         Epochs sets, such that they are easy to distinguish after the
         concatenation.
         If False, the event times are unaltered during the concatenation.
-    %(on_info_mismatch)s
+    %(on_mismatch_info)s
     %(verbose)s
 
         .. versionadded:: 0.24
@@ -3635,24 +3638,24 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     ----------
     epochs : instance of Epochs
         The epochs to operate on.
-    %(maxwell_pos)s
+    %(head_pos_maxwell)s
     orig_sfreq : float | None
         The original sample frequency of the data (that matches the
         event sample numbers in ``epochs.events``). Can be ``None``
         if data have not been decimated or resampled.
     %(picks_all_data)s
-    %(maxwell_origin)s
+    %(origin_maxwell)s
     weight_all : bool
         If True, all channels are weighted by the SSS basis weights.
         If False, only MEG channels are weighted, other channels
         receive uniform weight per epoch.
-    %(maxwell_int)s
-    %(maxwell_ext)s
-    %(maxwell_dest)s
-    %(maxwell_ref)s
+    %(int_order_maxwell)s
+    %(ext_order_maxwell)s
+    %(destination_maxwell_dest)s
+    %(ignore_ref_maxwell)s
     return_mapping : bool
         If True, return the mapping matrix.
-    %(maxwell_mag)s
+    %(mag_scale_maxwell)s
 
         .. versionadded:: 0.13
     %(verbose)s

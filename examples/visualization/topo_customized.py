@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-topo-custom:
+
 ========================================
 Plot custom topographies for MEG sensors
 ========================================
@@ -29,7 +32,8 @@ from mne.datasets import sample
 print(__doc__)
 
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
 
 raw = io.read_raw_fif(raw_fname, preload=True)
 raw.filter(1, 20, fir_design='firwin')

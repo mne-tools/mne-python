@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-strf:
+
 =====================================================================
 Spectro-temporal receptive field (STRF) estimation on continuous data
 =====================================================================
@@ -45,7 +47,7 @@ rng = np.random.RandomState(1337)  # To make this example reproducible
 
 # Read in audio that's been recorded in epochs.
 path_audio = mne.datasets.mtrf.data_path()
-data = loadmat(path_audio + '/speech_data.mat')
+data = loadmat(str(path_audio / 'speech_data.mat'))
 audio = data['spectrogram'].T
 sfreq = float(data['Fs'][0, 0])
 n_decim = 2

@@ -1,13 +1,15 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-forward:
 
+==================================
 Head model and forward computation
 ==================================
 
 The aim of this tutorial is to be a getting started for forward computation.
 
-For more extensive details and presentation of the general
-concepts for forward modeling, see :ref:`ch_forward`.
+For more extensive details and presentation of the general concepts for forward
+modeling, see :ref:`ch_forward`.
 """
 
 # %%
@@ -205,7 +207,7 @@ bem = mne.make_bem_solution(model)
 # parameter.
 
 fwd = mne.make_forward_solution(raw_fname, trans=trans, src=src, bem=bem,
-                                meg=True, eeg=False, mindist=5.0, n_jobs=1,
+                                meg=True, eeg=False, mindist=5.0, n_jobs=None,
                                 verbose=True)
 print(fwd)
 

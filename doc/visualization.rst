@@ -15,6 +15,7 @@ Visualization
 
    Brain
    ClickableImage
+   Figure3D
    add_background_image
    centers_to_edges
    compare_fiff
@@ -23,9 +24,11 @@ Visualization
    mne_analyze_colormap
    plot_bem
    plot_brain_colorbar
+   plot_bridged_electrodes
    plot_chpi_snr
    plot_cov
    plot_channel_labels_circle
+   plot_ch_adjacency
    plot_csd
    plot_dipole_amplitudes
    plot_dipole_locations
@@ -53,6 +56,7 @@ Visualization
    plot_layout
    plot_montage
    plot_projs_topomap
+   plot_projs_joint
    plot_raw
    plot_raw_psd
    plot_sensors

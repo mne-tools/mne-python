@@ -53,10 +53,12 @@ mri_transforms_dirname = os.path.join(subject_dirname, 'mri', 'transforms')
 surf_dirname = os.path.join(subject_dirname, 'surf')
 bem_fname = os.path.join(bem_dirname, "{subject}-{name}.fif")
 head_bem_fname = pformat(bem_fname, name='head')
+head_sparse_fname = pformat(bem_fname, name='head-sparse')
 fid_fname = pformat(bem_fname, name='fiducials')
 fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
 src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
 _head_fnames = (os.path.join(bem_dirname, 'outer_skin.surf'),
+                head_sparse_fname,
                 head_bem_fname)
 _high_res_head_fnames = (os.path.join(bem_dirname, '{subject}-head-dense.fif'),
                          os.path.join(surf_dirname, 'lh.seghead'),
@@ -252,8 +254,7 @@ def _decimate_points(pts, res=10):
     zax = np.arange(zmin, zmax, res)
 
     # find voxels containing one or more point
-    H, _ = np.histogramdd(pts, bins=(xax, yax, zax), normed=False)
-    X, Y, Z = pts.T
+    H, _ = np.histogramdd(pts, bins=(xax, yax, zax), density=False)
     xbins, ybins, zbins = np.nonzero(H)
     x = xax[xbins]
     y = yax[ybins]
@@ -295,21 +296,7 @@ def _decimate_points(pts, res=10):
 
 
 def _trans_from_params(param_info, params):
-    """Convert transformation parameters into a transformation matrix.
-
-    Parameters
-    ----------
-    param_info : tuple,  len = 3
-        Tuple describing the parameters in x (do_translate, do_rotate,
-        do_scale).
-    params : tuple
-        The transformation parameters.
-
-    Returns
-    -------
-    trans : array, shape = (4, 4)
-        Transformation matrix.
-    """
+    """Convert transformation parameters into a transformation matrix."""
     do_rotate, do_translate, do_scale = param_info
     i = 0
     trans = []
@@ -1085,7 +1072,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
 
 @verbose
 def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
-                       subjects_dir=None, n_jobs=1, verbose=None):
+                       subjects_dir=None, n_jobs=None, verbose=None):
     """Scale a source space for an mri created with scale_mri().
 
     Parameters
@@ -1423,11 +1410,11 @@ class Coregistration(object):
         if low_res_path is None:
             # This should be very rare!
             warn('No low-resolution head found, decimating high resolution '
-                 'mesh (%d vertices): %s' % (len(self._bem_high_res.surf.rr),
+                 'mesh (%d vertices): %s' % (len(self._bem_high_res['rr']),
                                              high_res_path,))
             # Create one from the high res one, which we know we have
-            rr, tris = decimate_surface(self._bem_high_res.surf.rr,
-                                        self._bem_high_res.surf.tris,
+            rr, tris = decimate_surface(self._bem_high_res['rr'],
+                                        self._bem_high_res['tris'],
                                         n_triangles=5120)
             # directly set the attributes of bem_low_res
             self._bem_low_res = complete_surface_info(
@@ -1484,8 +1471,8 @@ class Coregistration(object):
         self.fiducials = dig_montage
 
     def _update_params(self, rot=None, tra=None, sca=None,
-                       force_update_omitted=False):
-        if force_update_omitted:
+                       force_update=False):
+        if force_update and tra is None:
             tra = self._translation
         rot_changed = False
         if rot is not None:
@@ -1578,7 +1565,7 @@ class Coregistration(object):
             The modified Coregistration object.
         """
         self._grow_hair = value
-        self._update_params(self._rotation, self._translation, self._scale)
+        self._update_params(force_update=True)
         return self
 
     def set_rotation(self, rot):
@@ -1933,11 +1920,11 @@ class Coregistration(object):
                 self._update_params(rot=est[:3], tra=est[3:6], sca=est[6:9])
             angle, move, scale = self._changes
             self._log_dig_mri_distance(f'  ICP {iteration + 1:2d} ')
+            if callback is not None:
+                callback(iteration, n_iterations)
             if angle <= self._icp_angle and move <= self._icp_distance and \
                     all(scale <= self._icp_scale):
                 break
-            if callback is not None:
-                callback(iteration, n_iterations)
         self._log_dig_mri_distance('End      ')
         return self
 
@@ -1976,7 +1963,7 @@ class Coregistration(object):
                     "distance >= %.3f m.", n_excluded, distance)
         # set the filter
         self._extra_points_filter = mask
-        self._update_params(force_update_omitted=True)
+        self._update_params(force_update=True)
         return self
 
     def compute_dig_mri_distances(self):

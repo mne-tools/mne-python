@@ -15,6 +15,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 import pytest
 import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap
+from matplotlib.figure import Figure
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate,
@@ -30,7 +31,7 @@ from mne.io.constants import FIFF
 from mne.minimum_norm import apply_inverse
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
-                     plot_alignment,
+                     plot_alignment, Figure3D,
                      plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
@@ -139,9 +140,10 @@ def test_plot_sparse_source_estimates(renderer_interactive, brain_gc):
     stc_data[1, 4] = 2.
     vertices = [vertices[inds], np.empty(0, dtype=np.int64)]
     stc = SourceEstimate(stc_data, vertices, 1, 1)
-    plot_sparse_source_estimates(
+    out = plot_sparse_source_estimates(
         sample_src, stc, bgcolor=(1, 1, 1), opacity=0.5,
         high_resolution=False)
+    assert isinstance(out, Figure3D)
 
 
 @testing.requires_testing_data
@@ -151,16 +153,17 @@ def test_plot_evoked_field(renderer):
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
-    for t in ['meg', None]:
+    for t, n_contours in zip(['meg', None], [21, 0]):
         with pytest.warns(RuntimeWarning, match='projection'):
             maps = make_field_map(evoked, trans_fname, subject='sample',
-                                  subjects_dir=subjects_dir, n_jobs=1,
+                                  subjects_dir=subjects_dir, n_jobs=None,
                                   ch_type=t)
-        evoked.plot_field(maps, time=0.1)
+        evoked.plot_field(maps, time=0.1, n_contours=n_contours)
 
 
 def _assert_n_actors(fig, renderer, n_actors):
     __tracebackhide__ = True
+    assert isinstance(fig, Figure3D)
     assert len(fig.plotter.renderer.actors) == n_actors
 
 
@@ -191,6 +194,7 @@ def test_plot_alignment_meg(renderer, system):
     fig = plot_alignment(
         this_info, read_trans(trans_fname), subject='sample',
         subjects_dir=subjects_dir, meg=meg, eeg=False)
+    assert isinstance(fig, Figure3D)
     # count the number of objects: should be n_meg_ch + 1 (helmet) + 1 (head)
     use_info = pick_info(this_info, pick_types(
         this_info, meg=True, eeg=False, ref_meg='ref' in meg, exclude=()))
@@ -239,20 +243,25 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
     # mixed source space
     mixed_src = mixed_fwd_cov_evoked[0]['src']
     assert mixed_src.kind == 'mixed'
-    plot_alignment(info, meg=['helmet', 'sensors'], dig=True,
-                   coord_frame='head', trans=Path(trans_fname),
-                   subject='sample', mri_fiducials=fiducials_path,
-                   subjects_dir=subjects_dir, src=mixed_src)
+    fig = plot_alignment(
+        info, meg=['helmet', 'sensors'], dig=True,
+        coord_frame='head', trans=Path(trans_fname),
+        subject='sample', mri_fiducials=fiducials_path,
+        subjects_dir=subjects_dir, src=mixed_src)
+    assert isinstance(fig, Figure3D)
     renderer.backend._close_all()
     # no-head version
     renderer.backend._close_all()
     # trans required
-    with pytest.raises(ValueError, match='transformation matrix is required'):
+    with pytest.raises(ValueError, match='transformation matrix.*in head'):
         plot_alignment(info, trans=None, src=src_fname)
-    with pytest.raises(ValueError, match='transformation matrix is required'):
+    with pytest.raises(ValueError, match='transformation matrix.*in head'):
         plot_alignment(info, trans=None, mri_fiducials=True)
-    with pytest.raises(ValueError, match='transformation matrix is required'):
+    with pytest.raises(ValueError, match='transformation matrix.*in head'):
         plot_alignment(info, trans=None, surfaces=['brain'])
+    assert mixed_src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+    with pytest.raises(ValueError, match='head-coordinate source space in mr'):
+        plot_alignment(trans=None, src=mixed_src, coord_frame='mri')
     # all coord frames
     plot_alignment(info)  # works: surfaces='auto' default
     for coord_frame in ('meg', 'head', 'mri'):
@@ -289,7 +298,7 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
                    eeg='projected', meg='helmet', bem=sphere, dig=True,
                    surfaces=['brain', 'inner_skull', 'outer_skull',
                              'outer_skin'])
-    plot_alignment(info, subject='sample', meg='helmet',
+    plot_alignment(info, trans_fname, subject='sample', meg='helmet',
                    subjects_dir=subjects_dir, eeg='projected', bem=sphere,
                    surfaces=['head', 'brain'], src=sample_src)
     # no trans okay, no mri surfaces
@@ -414,7 +423,7 @@ def test_plot_alignment_basic(tmp_path, renderer, mixed_fwd_cov_evoked):
                    trans=trans_fname, fwd=fwd,
                    surfaces='white', coord_frame='head')
     fwd['coord_frame'] = FIFF.FIFFV_COORD_MRI  # check required to get to MRI
-    with pytest.raises(ValueError, match='transformation matrix is required'):
+    with pytest.raises(ValueError, match='transformation matrix.*in head coo'):
         plot_alignment(info, trans=None, fwd=fwd)
     # surfaces as dict
     plot_alignment(subject='sample', coord_frame='head',
@@ -622,15 +631,40 @@ def test_plot_dipole_mri_orthoview(coord_frame, idx, show_all, title):
 
 
 @testing.requires_testing_data
+@pytest.mark.parametrize('surf, coord_frame, ax, title', [
+    pytest.param('white', 'mri', None, None, marks=pytest.mark.slowtest),
+    pytest.param(None, 'head', None, None, marks=pytest.mark.slowtest),
+    (None, 'mri_rotated', 'mpl', 'check'),
+])
+def test_plot_dipole_mri_outlines(surf, coord_frame, ax, title):
+    """Test mpl dipole plotting."""
+    dipoles = read_dipole(dip_fname)
+    trans = read_trans(trans_fname)
+    if ax is not None:
+        assert isinstance(ax, str) and ax == 'mpl', ax
+        _, ax = plt.subplots(3, 1)
+        ax = list(ax)
+        with pytest.raises(ValueError, match='but the length is 2'):
+            dipoles.plot_locations(
+                trans, 'sample', subjects_dir, ax=ax[:2], mode='outlines')
+    fig = dipoles.plot_locations(
+        trans=trans, subject='sample', subjects_dir=subjects_dir,
+        mode='outlines', coord_frame=coord_frame, surf=surf, ax=ax,
+        title=title)
+    assert isinstance(fig, Figure)
+
+
+@testing.requires_testing_data
 def test_plot_dipole_orientations(renderer):
     """Test dipole plotting in 3d."""
     dipoles = read_dipole(dip_fname)
     trans = read_trans(trans_fname)
     for coord_frame, mode in zip(['head', 'mri'],
                                  ['arrow', 'sphere']):
-        dipoles.plot_locations(trans=trans, subject='sample',
-                               subjects_dir=subjects_dir,
-                               mode=mode, coord_frame=coord_frame)
+        fig = dipoles.plot_locations(
+            trans=trans, subject='sample', subjects_dir=subjects_dir,
+            mode=mode, coord_frame=coord_frame)
+        assert isinstance(fig, Figure3D)
     renderer.backend._close_all()
 
 

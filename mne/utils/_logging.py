@@ -292,16 +292,25 @@ class catch_logging(object):
     stdout when complete.
     """
 
+    def __init__(self, verbose=None):
+        self.verbose = verbose
+
     def __enter__(self):  # noqa: D105
+        if self.verbose is not None:
+            self._ctx = use_log_level(self.verbose)
+        else:
+            self._ctx = contextlib.nullcontext()
         self._data = ClosingStringIO()
         self._lh = logging.StreamHandler(self._data)
         self._lh.setFormatter(logging.Formatter('%(message)s'))
         self._lh._mne_file_like = True  # monkey patch for warn() use
         _remove_close_handlers(logger)
         logger.addHandler(self._lh)
+        self._ctx.__enter__()
         return self._data
 
     def __exit__(self, *args):  # noqa: D105
+        self._ctx.__exit__(*args)
         logger.removeHandler(self._lh)
         set_log_file(None)
 
@@ -476,20 +485,3 @@ def _frame_info(n):
         return ['unknown']
     finally:
         del frame
-
-
-class _VerboseDep:
-    @property
-    def verbose(self):
-        warn('The verbose class attribute has been deprecated in 1.0 and will '
-             'be removed in 1.1, pass verbose to methods as required to '
-             'change log levels instead', DeprecationWarning)
-        return None
-
-    @verbose.setter
-    def verbose(self, v):
-        warn('The verbose class attribute has been deprecated in 1.0 and will '
-             f'be removed in 1.1, the value {repr(v)} will be ignored. Pass '
-             'verbose to methods as required or use the '
-             'mne.utils.use_log_level context manager to change log levels '
-             'instead', DeprecationWarning)

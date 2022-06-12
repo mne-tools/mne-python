@@ -14,6 +14,7 @@ import numpy as np
 from .base import BaseEstimator
 from .mixin import TransformerMixin
 from ..cov import _regularized_covariance
+from ..defaults import _INTERPOLATION_DEFAULT
 from ..fixes import pinv
 from ..utils import fill_doc, _check_option, _validate_type, copy_doc
 
@@ -62,7 +63,7 @@ class CSP(TransformerMixin, BaseEstimator):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
     component_order : 'mutual_info' | 'alternate' (default 'mutual_info')
@@ -242,7 +243,7 @@ class CSP(TransformerMixin, BaseEstimator):
                       size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
                       show=True, show_names=False, title=None, mask=None,
                       mask_params=None, outlines='head', contours=6,
-                      image_interp='bilinear', average=None,
+                      image_interp=_INTERPOLATION_DEFAULT, average=None,
                       sphere=None):
         """Plot topographic patterns of components.
 
@@ -312,24 +313,22 @@ class CSP(TransformerMixin, BaseEstimator):
             only significant sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
-        %(patterns_topomap_mask)s
-        %(topomap_mask_params)s
-        %(topomap_outlines)s
+        %(mask_patterns_topomap)s
+        %(mask_params_topomap)s
+        %(outlines_topomap)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
             suitable values for the contour thresholds (may sometimes be
             inaccurate, use array for accuracy). If an array, the values
             represent the levels for the contours. Defaults to 6.
-        image_interp : str
-            The image interpolation to be used.
-            All matplotlib options are accepted.
+        %(image_interp_topomap)s
         average : float | None
             The time window around a given time to be used for averaging
             (seconds). For example, 0.01 would translate into window that
             starts 5 ms before and ends 5 ms after a given time point.
             Defaults to None, which means no averaging.
-        %(topomap_sphere_auto)s
+        %(sphere_topomap_auto)s
 
         Returns
         -------
@@ -364,7 +363,7 @@ class CSP(TransformerMixin, BaseEstimator):
                      size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None):
+                     image_interp=_INTERPOLATION_DEFAULT, average=None):
         """Plot topographic filters of components.
 
         The filters are used to extract discriminant neural sources from
@@ -442,16 +441,14 @@ class CSP(TransformerMixin, BaseEstimator):
 
                 dict(marker='o', markerfacecolor='w', markeredgecolor='k',
                      linewidth=0, markersize=4)
-        %(topomap_outlines)s
+        %(outlines_topomap)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
             suitable values for the contour thresholds (may sometimes be
             inaccurate, use array for accuracy). If an array, the values
             represent the levels for the contours. Defaults to 6.
-        image_interp : str
-            The image interpolation to be used.
-            All matplotlib options are accepted.
+        %(image_interp_topomap)s
         average : float | None
             The time window around a given time to be used for averaging
             (seconds). For example, 0.01 would translate into window that
@@ -706,7 +703,7 @@ class SPoC(CSP):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
 

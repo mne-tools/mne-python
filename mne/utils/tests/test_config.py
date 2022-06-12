@@ -86,9 +86,9 @@ def test_sys_info():
     assert ('numpy:' in out)
 
     if platform.system() == 'Darwin':
-        assert 'Platform:       macOS-' in out
+        assert 'Platform:         macOS-' in out
     elif platform.system() == 'Linux':
-        assert 'Platform:       Linux' in out
+        assert 'Platform:         Linux' in out
 
 
 def test_get_subjects_dir(tmp_path, monkeypatch):

@@ -1,62 +1,80 @@
-.. include:: ../links.inc
-
+.. _install:
 .. _quick-start:
 
-Quick start
-===========
+Installing MNE-Python
+======================
 
-MNE-Python requires Python version |min_python_version| or higher. If you've
-never worked with Python before, skip ahead to the last paragraph of this page.
-For users already familiar with Python:
 
-- If you only need MNE-Python's computational functions, only hard dependencies
-  will be included when running:
+.. when https://github.com/executablebooks/sphinx-design/issues/66 is fixed,
+   prepend |cloud-download-alt| |ensp| to the "Download installers" button text
+   and |wrench| |ensp| to the "Setup instructions" button text
 
-  .. code-block:: console
+.. grid:: 2
 
-      $ pip install mne
+    .. grid-item-card::
+        :text-align: center
 
-- If you plan to use MNE-Python's functions that use HDF5-based I/O (e.g.,
-  :func:`mne.io.read_raw_eeglab`, :meth:`mne.SourceMorph.save`, etc.),
-  you should run:
+        .. rst-class:: font-weight-bold mb-0
 
-  .. code-block:: console
+            Standalone installers
 
-      $ pip install mne[hdf5]
+        .. rst-class:: card-subtitle text-muted mt-0
 
-  This will pull in additional dependencies pymatreader_, h5io_, and h5py_.
+            For Beginners
 
-- If you need MNE-Python's 3D rendering capabilities (e.g., plotting estimated
-  source activity on a cortical surface) it is a good idea to install
-  MNE-Python into its own virtual environment. To do this with
-  `conda <anaconda_>`_:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. image:: ../_static/mne_installer_macOS.png
+           :alt: MNE-Python Installer
 
-  .. code-block:: console
+        **New to Python?** Use our standalone installers that include
+        everything to get you started!
+        +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-      $ conda create --name=mne --channel=conda-forge mne
-      $ #                   ↑↑↑                       ↑↑↑
-      $ #             environment name            package name
 
-  This will create a new ``conda`` environment called ``mne`` and install all
-  dependencies into it. If you need to convert structural MRI scans into models
-  of the scalp, inner/outer skull, and cortical surfaces you also need
-  :doc:`FreeSurfer <freesurfer>`.
+        .. button-ref:: installers
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold
 
-For users unfamiliar with Python, the :ref:`standard_instructions` page has
-detailed instructions for different
-operating systems, and there are instructions for :ref:`install-python`
-if you don't already have it. The :ref:`advanced_setup` page has additional
-tips and tricks for special situations (servers, notebooks, CUDA, installing
-the development version, etc). The :ref:`contributing` has additional
-installation instructions for (future) contributors to MNE-Python (e.g, extra
-dependencies for running our tests and building our docs).
+            Download Installers
+
+
+    .. grid-item-card::
+        :text-align: center
+
+        .. rst-class:: font-weight-bold mb-0
+
+            Install via ``pip`` or ``conda``
+
+        .. rst-class:: card-subtitle text-muted mt-0
+
+            For Advanced Users
+
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. image:: ../_static/mne_installer_console.png
+           :alt: Terminal Window
+
+        **Already familiar with Python?**
+        Follow our advanced setup instructions for ``pip`` and ``conda``!
+        +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        .. button-ref:: manual-install
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold
+
+            Setup Instructions
+
 
 .. toctree::
     :hidden:
 
-    pre_install
-    install_python
-    mne_python
+    installers
+    manual_install
+    advanced
+    check_installation
     updating
     freesurfer
-    advanced
+    mne_tools_suite

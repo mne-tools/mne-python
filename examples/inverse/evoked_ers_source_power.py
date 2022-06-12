@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-source-loc-methods:
+
 =====================================================================
 Compute evoked ERS source power using DICS, LCMV beamformer, and dSPM
 =====================================================================

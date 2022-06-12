@@ -1,7 +1,5 @@
 # simple makefile to simplify repetetive build env management tasks under posix
 
-# caution: testing won't work on windows, see README
-
 PYTHON ?= python
 PYTESTS ?= py.test
 CTAGS ?= ctags
@@ -73,7 +71,7 @@ test-no-sample-with-coverage: in testing_data
 	$(PYTESTS) --cov=mne --cov-report html:coverage
 
 test-doc: sample_data testing_data
-	$(PYTESTS) --doctest-modules --doctest-ignore-import-errors --doctest-glob='*.rst' ./doc/ --ignore=./doc/auto_examples --ignore=./doc/auto_tutorials --ignore=./doc/_build --fulltrace
+	$(PYTESTS) --doctest-modules --doctest-ignore-import-errors --doctest-glob='*.rst' ./doc/ --ignore=./doc/auto_examples --ignore=./doc/auto_tutorials --ignore=./doc/_build --ignore=./doc/conf.py --ignore=doc/sphinxext --fulltrace
 
 test-coverage: testing_data
 	rm -rf coverage .coverage

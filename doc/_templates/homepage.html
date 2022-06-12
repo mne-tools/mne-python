@@ -5,7 +5,7 @@
       <div class="col-12 col-sm-6 col-lg-4 my-2">
         <div class="card frontpage-gallery">
           <a href="{{ item.url }}">
-            <img class="card-img" src="{{ item.img if item.img.startswith('http') else pathto('_images/' + item.img, 1) }}" alt="{{ item.alt }}">
+            <img class="card-img institution" src="{{ item.img if item.img.startswith('http') else pathto('_images/' + item.img, 1) }}" alt="{{ item.alt }}">
             <div class="card-img-overlay px-3 py-1">
               <p class="lead mb-1 fadeout">{{ item.title }}</p>
               <p class="card-text fadeout">{{ item.text }}</p>
@@ -23,7 +23,7 @@
     {% for item in funders -%}
       <div class="card my-1 mx-2 border-light" style="{{ 'width: ' + item.size + 'rem;' }}">
         <a href="{{ pathto('funding.html', 1) }}">
-            <img class="card-img" src="{{ pathto('_static/funding/' + item.img, 1) }}" title="{{ item.title }}" alt="{{ item.title }}">
+            <img class="card-img institution" src="{{ pathto('_static/funding/' + item.img, 1) }}" title="{{ item.title }}" alt="{{ item.title }}">
         </a>
       </div>
     {% endfor %}
@@ -36,7 +36,7 @@
     {% for inst in institutions -%}
       <div class="card my-1 mx-2 border-light" style="{{ 'width: ' + inst.size + 'rem;' }}">
         <a href="{{ inst.url }}">
-          <img class="card-img" src="{{ pathto('_static/institution_logos/' + inst.img, 1) }}" title="{{ inst.name }}" alt="{{ inst.name }}"/>
+          <img class="card-img institution" src="{{ pathto('_static/institution_logos/' + inst.img, 1) }}" title="{{ inst.name }}" alt="{{ inst.name }}"/>
         </a>
       </div>
     {% endfor %}

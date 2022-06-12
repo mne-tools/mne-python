@@ -2,7 +2,8 @@
 
 from .topomap import (plot_evoked_topomap, plot_projs_topomap, plot_arrowmap,
                       plot_ica_components, plot_tfr_topomap, plot_topomap,
-                      plot_epochs_psd_topomap, plot_layout)
+                      plot_epochs_psd_topomap, plot_layout,
+                      plot_bridged_electrodes, plot_ch_adjacency)
 from .topo import plot_topo_image_epochs, iter_topography
 from .utils import (tight_layout, mne_analyze_colormap, compare_fiff,
                     ClickableImage, add_background_image, plot_sensors,
@@ -26,11 +27,13 @@ from .raw import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from .ica import (plot_ica_scores, plot_ica_sources, plot_ica_overlay,
                   _plot_sources, plot_ica_properties)
 from .montage import plot_montage
+from .backends._abstract import Figure3D
 from .backends.renderer import (set_3d_backend, get_3d_backend, use_3d_backend,
                                 set_3d_view, set_3d_title, create_3d_figure,
                                 close_3d_figure, close_all_3d_figures,
                                 get_brain_class)
-from . import backends
+from . import backends, _scraper
 from ._brain import Brain
 from ._figure import (get_browser_backend, set_browser_backend,
                       use_browser_backend)
+from ._proj import plot_projs_joint

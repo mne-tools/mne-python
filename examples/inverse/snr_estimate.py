@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _ex-snr-estimate:
+
 ==================================
 Estimate data SNR using an inverse
 ==================================

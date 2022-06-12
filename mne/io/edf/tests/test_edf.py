@@ -287,7 +287,7 @@ def test_read_raw_edf_stim_channel_input_parameters():
     _MSG = "`read_raw_edf` is not supposed to trigger a deprecation warning"
     with _record_warnings() as recwarn:
         read_raw_edf(edf_path)
-    assert all([w.category != DeprecationWarning for w in recwarn]), _MSG
+    assert all(w.category != DeprecationWarning for w in recwarn), _MSG
 
     for invalid_stim_parameter in ['EDF Annotations', 'BDF Annotations']:
         with pytest.raises(ValueError,

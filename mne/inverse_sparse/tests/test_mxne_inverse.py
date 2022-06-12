@@ -205,13 +205,13 @@ def test_mxne_vol_sphere():
                                     bem=sphere, eeg=False, meg=True)
 
     alpha = 80.
-    pytest.raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,
-                  loose=0.0, return_residual=False,
-                  maxit=3, tol=1e-8, active_set_size=10)
 
-    pytest.raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,
-                  loose=0.2, return_residual=False,
-                  maxit=3, tol=1e-8, active_set_size=10)
+    # Computing inverse with restricted orientations should also work, since
+    # we have a discrete source space.
+    stc = mixed_norm(evoked_l21, fwd, cov, alpha, loose=0.2,
+                     return_residual=False, maxit=3, tol=1e-8,
+                     active_set_size=10)
+    assert_array_almost_equal(stc.times, evoked_l21.times, 5)
 
     # irMxNE tests
     with catch_logging() as log:
@@ -393,8 +393,9 @@ def test_mxne_inverse_sure():
         info['projs'] = []
     noise_cov = mne.make_ad_hoc_cov(info)
     label_names = ['Aud-lh', 'Aud-rh']
-    labels = [mne.read_label(data_path + '/MEG/sample/labels/%s.label' % ln)
-              for ln in label_names]
+    labels = [
+        mne.read_label(data_path / 'MEG' / 'sample' / 'labels' / f'{ln}.label')
+        for ln in label_names]
     fname_fwd = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
     forward = mne.read_forward_solution(fname_fwd)

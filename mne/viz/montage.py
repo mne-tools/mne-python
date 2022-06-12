@@ -17,13 +17,14 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
         The montage to visualize.
     scale_factor : float
         Determines the size of the points.
-    show_names : bool
-        Whether to show the channel names.
+    show_names : bool | list
+        Whether to display all channel names. If a list, only the channel
+        names in the list are shown. Defaults to True.
     kind : str
         Whether to plot the montage as '3d' or 'topomap' (default).
     show : bool
         Show figure if True.
-    %(topomap_sphere_auto)s
+    %(sphere_topomap_auto)s
     %(verbose)s
 
     Returns
@@ -33,7 +34,6 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
     """
     from scipy.spatial.distance import cdist
     from ..channels import DigMontage, make_dig_montage
-    from ..io import RawArray
     from .. import create_info
 
     _check_option('kind', kind, ['topomap', '3d'])
@@ -67,8 +67,7 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
         montage = make_dig_montage(ch_pos=ch_pos, **fid)
 
     info = create_info(ch_names, sfreq=256, ch_types="eeg")
-    raw = RawArray(np.zeros((len(ch_names), 1)), info, copy=None)
-    raw.set_montage(montage, on_missing='ignore')
+    info.set_montage(montage, on_missing='ignore')
     fig = plot_sensors(info, kind=kind, show_names=show_names, show=show,
                        title=title, sphere=sphere)
     collection = fig.axes[0].collections[0]

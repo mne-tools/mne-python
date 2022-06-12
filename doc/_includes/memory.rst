@@ -20,7 +20,7 @@ raw reading functions. For example::
     from mne import io
     from mne.datasets import sample
     data_path = sample.data_path()
-    raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+    raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_filt-0-40_raw.fif'
     raw = io.read_raw_fif(raw_fname, preload=False)
 
 .. note:: Filtering, resampling and dropping or selecting channels does not

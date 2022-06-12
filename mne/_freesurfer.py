@@ -100,7 +100,7 @@ def _mri_orientation(orientation):
     Parameters
     ----------
     orientation : str
-        Orientation that you want. Can be "axial", "saggital", or "coronal".
+        Orientation that you want. Can be "axial", "sagittal", or "coronal".
 
     Returns
     -------
@@ -464,6 +464,28 @@ def _ensure_image_in_surface_RAS(image, subject, subjects_dir):
 
 
 @verbose
+def read_lta(fname, verbose=None):
+    """Read a Freesurfer linear transform array file.
+
+    Parameters
+    ----------
+    fname : str | None
+        The transform filename.
+    %(verbose)s
+
+    Returns
+    -------
+    affine : ndarray
+        The affine transformation described by the lta file.
+    """
+    _validate_type(fname, ('path-like', None), 'fname')
+    _check_fname(fname, 'read', must_exist=True)
+    with open(fname, 'r') as fid:
+        affine = np.loadtxt(fid.readlines()[5:9])
+    return affine
+
+
+@verbose
 def read_talxfm(subject, subjects_dir=None, verbose=None):
     """Compute MRI-to-MNI transform from FreeSurfer talairach.xfm file.
 
@@ -661,9 +683,12 @@ def _get_head_surface(surf, subject, subjects_dir, bem=None, verbose=None):
         try_fnames = [op.join(subject_dir, 'bem', f'{subject}-head-dense.fif'),
                       op.join(subject_dir, 'surf', 'lh.seghead')]
     else:
-        try_fnames = [op.join(subject_dir, 'bem', 'outer_skin.surf'),
-                      op.join(subject_dir, 'bem', 'flash', 'outer_skin.surf'),
-                      op.join(subject_dir, 'bem', f'{subject}-head.fif')]
+        try_fnames = [
+            op.join(subject_dir, 'bem', 'outer_skin.surf'),
+            op.join(subject_dir, 'bem', 'flash', 'outer_skin.surf'),
+            op.join(subject_dir, 'bem', f'{subject}-head-sparse.fif'),
+            op.join(subject_dir, 'bem', f'{subject}-head.fif'),
+        ]
     for fname in try_fnames:
         if op.exists(fname):
             logger.info(f'Using {op.basename(fname)} for head surface.')
@@ -713,3 +738,16 @@ def _get_skull_surface(surf, subject, subjects_dir, bem=None, verbose=None):
                          overwrite='read', must_exist=True,
                          name=f'{surf} skull surface')
     return _read_mri_surface(fname)
+
+
+def _estimate_talxfm_rigid(subject, subjects_dir):
+    from .coreg import fit_matched_points, _trans_from_params
+    xfm = read_talxfm(subject, subjects_dir)
+    # XYZ+origin + halfway
+    pts_tal = np.concatenate([np.eye(4)[:, :3], np.eye(3) * 0.5])
+    pts_subj = apply_trans(invert_transform(xfm), pts_tal)
+    # we fit with scaling enabled, but then discard it (we just need
+    # the rigid-body components)
+    params = fit_matched_points(pts_subj, pts_tal, scale=3, out='params')
+    rigid = _trans_from_params((True, True, False), params[:6])
+    return rigid

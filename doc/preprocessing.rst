@@ -76,6 +76,7 @@ Projections:
    annotate_nan
    compute_average_dev_head_t
    compute_current_source_density
+   compute_bridged_electrodes
    compute_fine_calibration
    compute_maxwell_basis
    compute_proj_ecg
@@ -90,8 +91,10 @@ Projections:
    ica_find_ecg_events
    ica_find_eog_events
    infomax
+   interpolate_bridged_electrodes
    equalize_bads
    maxwell_filter
+   maxwell_filter_prepare_emptyroom
    oversampled_temporal_projection
    peak_finder
    read_ica

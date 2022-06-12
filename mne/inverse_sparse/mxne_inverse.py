@@ -348,7 +348,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations. Ignored if
         solver is 'cd'.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
     %(pick_ori)s
@@ -614,7 +614,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         * l1_ratio. 0 means no time regularization a.k.a. MxNE.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
     %(pick_ori)s

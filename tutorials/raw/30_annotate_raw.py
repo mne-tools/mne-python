@@ -2,6 +2,7 @@
 """
 .. _tut-annotate-raw:
 
+==========================
 Annotating continuous data
 ==========================
 
@@ -129,20 +130,32 @@ fig = raw.plot(start=2, duration=6)
 # Annotations can also be added to a `~mne.io.Raw` object interactively
 # by clicking-and-dragging the mouse in the plot window. To do this, you must
 # first enter "annotation mode" by pressing :kbd:`a` while the plot window is
-# focused; this will bring up the annotation controls window:
+# focused; this will bring up the annotation controls:
 
-fig.canvas.key_press_event('a')
+fig = raw.plot(start=2, duration=6)
+fig.fake_keypress('a')
 
 # %%
-# The colored rings are clickable, and determine which existing label will be
+# The drop-down-menu on the left determines which existing label will be
 # created by the next click-and-drag operation in the main plot window. New
-# annotation descriptions can be added by typing the new description,
-# clicking the :guilabel:`Add label` button; the new description will be added
-# to the list of descriptions and automatically selected.
+# annotation descriptions can be added by clicking the :guilabel:`Add
+# description` button; the new description will be added to the list of
+# descriptions and automatically selected.
+# The following functions relate to which description is currently selected in
+# the drop-down-menu:
+# With :guilabel:`Remove description` you can remove description
+# including the annotations.
+# With :guilabel:`Edit description` you can edit
+# the description of either only one annotation (the one currently selected)
+# or all annotations of a description.
+# With :guilabel:`Set Visible` you can show or hide descriptions.
 #
 # During interactive annotation it is also possible to adjust the start and end
 # times of existing annotations, by clicking-and-dragging on the left or right
-# edges of the highlighting rectangle corresponding to that annotation.
+# edges of the highlighting rectangle corresponding to that annotation. When
+# an annotation is selected (the background of the label at the bottom changes
+# to darker) the values for start and stop are visible in two spinboxes and
+# can also be edited there.
 #
 # .. warning::
 #

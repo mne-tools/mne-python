@@ -14,14 +14,14 @@ from mne.datasets import (testing, fetch_infant_template, fetch_phantom,
 from mne.datasets._fsaverage.base import _set_montage_coreg_path
 from mne.datasets._infant import base as infant_base
 from mne.datasets._phantom import base as phantom_base
-from mne.datasets.utils import _manifest_check_download
+from mne.datasets.utils import _manifest_check_download, _mne_path
 
 from mne.utils import (requires_good_network,
                        get_subjects_dir, ArgvSetter, _pl, use_log_level,
                        catch_logging, hashfunc)
 
 
-subjects_dir = op.join(testing.data_path(download=False), 'subjects')
+subjects_dir = testing.data_path(download=False) / 'subjects'
 
 
 def test_datasets_basic(tmp_path, monkeypatch):
@@ -36,7 +36,7 @@ def test_datasets_basic(tmp_path, monkeypatch):
             dataset = getattr(datasets.brainstorm, dname)
         else:
             dataset = getattr(datasets, dname)
-        if dataset.data_path(download=False) != '':
+        if str(dataset.data_path(download=False)) != '.':
             assert isinstance(dataset.get_version(), str)
             assert datasets.has_dataset(dname)
         else:
@@ -44,11 +44,17 @@ def test_datasets_basic(tmp_path, monkeypatch):
             assert not datasets.has_dataset(dname)
         print('%s: %s' % (dname, datasets.has_dataset(dname)))
     tempdir = str(tmp_path)
+    # Explicitly test one that isn't preset (given the config)
+    monkeypatch.setenv('MNE_DATASETS_SAMPLE_PATH', tempdir)
+    dataset = datasets.sample
+    assert str(dataset.data_path(download=False)) == '.'
+    assert dataset.get_version() != ''
+    assert dataset.get_version() is None
     # don't let it read from the config file to get the directory,
     # force it to look for the default
     monkeypatch.setenv('_MNE_FAKE_HOME_DIR', tempdir)
     monkeypatch.delenv('SUBJECTS_DIR', raising=False)
-    assert (datasets.utils._get_path(None, 'foo', 'bar') ==
+    assert (str(datasets.utils._get_path(None, 'foo', 'bar')) ==
             op.join(tempdir, 'mne_data'))
     assert get_subjects_dir(None) is None
     _set_montage_coreg_path()
@@ -259,4 +265,16 @@ def test_fetch_uncompressed_file(tmp_path):
         folder_name=op.join(tmp_path, 'foo'),
         hash=None)
     fetch_dataset(dataset_dict, path=None, force_update=True)
-    assert op.isfile(op.join(tmp_path, 'foo', 'LICENSE.foo'))
+    assert (tmp_path / 'foo' / 'LICENSE.foo').is_file()
+
+
+def test_mne_path():
+    """Test our Path wrapping."""
+    path = _mne_path("")
+    assert str(path) == '.'
+    with pytest.deprecated_call(match=r'pathlib\.Path object'):
+        assert path + 'me' == f'.{op.sep}me'
+    assert str(path / 'me') == 'me'
+    assert str('me' / path) == 'me'
+    with pytest.raises(TypeError, match='can only concatenate str'):
+        'me' + path  # our paths were absolute, so this should raise an error

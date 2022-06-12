@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-iterative-reweighted-tf-mxne:
+
 ==============================================================================
 Compute iterative reweighted TF-MxNE with multiscale time-frequency dictionary
 ==============================================================================

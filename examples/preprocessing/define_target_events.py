@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-tag-events:
+
 ============================================================
 Define target events based on time lag, plot evoked response
 ============================================================
@@ -31,8 +34,9 @@ data_path = sample.data_path()
 
 # %%
 # Set parameters
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
 
 #   Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname)

@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
 """
-===========================================================================
+.. _tut-erp-stats:
+
+===========================================================
 Visualising statistical significance thresholds on EEG data
-===========================================================================
+===========================================================
 
 MNE-Python provides a range of tools for statistical hypothesis testing
 and the visualisation of the results. Here, we show a few options for
@@ -26,7 +29,7 @@ from mne.stats import spatio_temporal_cluster_test
 np.random.seed(0)
 
 # Load the data
-path = mne.datasets.kiloword.data_path() + '/kword_metadata-epo.fif'
+path = mne.datasets.kiloword.data_path() / 'kword_metadata-epo.fif'
 epochs = mne.read_epochs(path)
 # These data are quite smooth, so to speed up processing we'll (unsafely!) just
 # decimate them

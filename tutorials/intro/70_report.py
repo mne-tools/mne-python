@@ -1,22 +1,25 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-report:
 
-Getting started with :class:`mne.Report`
-========================================
+===============================
+Getting started with mne.Report
+===============================
 
-`mne.Report` is a way to create interactive HTML summaries of your data. These
-reports can show many different visualizations for one or multiple
+:class:`mne.Report` is a way to create interactive HTML summaries of your data.
+These reports can show many different visualizations for one or multiple
 participants. A common use case is creating diagnostic summaries to check data
 quality at different stages in the processing pipeline. The report can show
 things like plots of data before and after each preprocessing step, epoch
 rejection statistics, MRI slices with overlaid BEM shells, all the way up to
 plots of estimated cortical activity.
 
-Compared to a Jupyter notebook, `mne.Report` is easier to deploy (the HTML
-pages it generates are self-contained and do not require a running Python
+Compared to a Jupyter notebook, :class:`mne.Report` is easier to deploy (the
+HTML pages it generates are self-contained and do not require a running Python
 environment) but less flexible (you can't change code and re-run something
 directly within the browser). This tutorial covers the basics of building a
-`~mne.Report`. As usual, we'll start by importing the modules and data we need:
+:class:`~mne.Report`. As usual, we'll start by importing the modules and data
+we need:
 """
 
 # %%
@@ -275,7 +278,7 @@ report.add_ica(
     inst=raw,
     eog_evoked=eog_epochs.average(),
     eog_scores=eog_scores,
-    n_jobs=1  # could be increased!
+    n_jobs=None  # could be increased!
 )
 report.save('report_ica.html', overwrite=True)
 
@@ -424,12 +427,42 @@ report.add_figure(
     image_format='PNG'
 )
 report.save('report_custom_figure.html', overwrite=True)
+plt.close(fig)
 
 # %%
-# The :meth:`mne.Report.add_figure` method can add multiple figures at once. In
-# this case, a slider will appear, allowing users to intuitively browse the
-# figures. To make this work, you need to provide a collection of figures,
-# a title, and optionally a collection of captions.
+# Multiple figures can be grouped into a single section via the ``section``
+# parameter.
+
+fig_1, ax_1 = plt.subplots()
+ax_1.plot([1, 2, 3])
+
+fig_2, ax_2 = plt.subplots()
+ax_2.plot([3, 2, 1])
+
+section = 'Section example'
+
+report = mne.Report(title='Figure section example')
+report.add_figure(
+    fig=fig_1,
+    title='Figure 1',
+    section=section,
+    tags='fig-1'
+)
+report.add_figure(
+    fig=fig_2,
+    title='Figure 2',
+    section=section,
+    tags='fig-2'
+)
+report.save('report_custom_figure_sections.html', overwrite=True)
+plt.close(fig_1)
+plt.close(fig_2)
+
+# %%
+# The :meth:`mne.Report.add_figure` method can also add multiple figures at
+# once. In this case, a slider will appear, allowing users to intuitively
+# browse the figures. To make this work, you need to provide a collection o
+# figures, a title, and optionally a collection of captions.
 #
 # In the following example, we will read the MNE logo as a Matplotlib figure
 # and rotate it with different angles. Each rotated figure and its respective
@@ -455,9 +488,17 @@ for angle in rotation_angles:
     figs.append(fig)
     captions.append(f'Rotation angle: {round(angle, 1)}°')
 
+# can also be a MNEQtBrowser instance
+figs.append(raw.plot())
+captions.append('... plus a raw data plot')
+
 report = mne.Report(title='Multiple figures example')
 report.add_figure(fig=figs, title='Fun with figures! 🥳', caption=captions)
 report.save('report_custom_figures.html', overwrite=True)
+for fig in figs[:-1]:
+    plt.close(fig)
+figs[-1].close()
+del figs
 
 # %%
 # Adding image files
@@ -645,3 +686,29 @@ report.parse_folder(
     data_path, pattern=pattern, render_bem=False, n_time_points_evokeds=5
 )
 report.save('report_parse_folder_cov.html', overwrite=True)
+
+# %%
+#
+# Adding custom HTML (e.g., a description text)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# The :meth:`~mne.Report.add_html` method allows you to add custom HTML to
+# your report. This feature can be very convenient to add short descriptions,
+# lists, or reminders to your report (among many other things you can think
+# of encoding in HTML).
+
+report = mne.Report(title='Report on hypothesis 1')
+
+my_html = """
+<p>We have the following hypothesis:</p>
+<ol>
+<li>There is a difference between images showing man-made vs. natural
+environments</li>
+<li>This difference manifests itself most strongly in the amplitude of the
+N1 ERP component</li>
+</ol>
+<p>Below we show several plots and tests of the data.</p>
+"""
+
+report.add_html(title='Hypothesis', html=my_html)
+report.save('report_add_html.html')

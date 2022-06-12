@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
 """
-======================================================
+.. _ex-movement-detect:
+
+=====================================================
 Annotate movement artifacts and reestimate dev_head_t
-======================================================
+=====================================================
 
 Periods, where the participant moved considerably, are contaminated by low
 amplitude artifacts. When averaging the magnetic fields, the more spread the
@@ -13,7 +16,6 @@ This example uses the continuous head position indicators (cHPI) times series
 to annotate periods of head movement, then the device to head transformation
 matrix is estimated from the artifact-free segments. The new head position will
 be more representative of the actual head position during the recording.
-
 """
 # Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>
@@ -79,5 +81,6 @@ raw.plot(n_channels=100, duration=20)
 # and plot it:
 new_dev_head_t = compute_average_dev_head_t(raw, head_pos)
 raw.info['dev_head_t'] = new_dev_head_t
-mne.viz.plot_alignment(raw.info, show_axes=True, subject=subject,
-                       trans=trans_fname, subjects_dir=subjects_dir)
+fig = mne.viz.plot_alignment(raw.info, show_axes=True, subject=subject,
+                             trans=trans_fname, subjects_dir=subjects_dir)
+mne.viz.set_3d_view(fig, azimuth=90, elevation=60)
