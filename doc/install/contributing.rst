@@ -185,7 +185,7 @@ Once you have git installed and configured, and before creating your local copy
 of the codebase, go to the `MNE-Python GitHub`_ page and create a `fork`_ into
 your GitHub user account.
 
-.. image:: https://help.github.com/assets/images/help/repository/fork_button.jpg
+.. image:: https://docs.github.com/assets/cb-28613/images/help/repository/fork_button.png
 
 This will create a copy of the MNE-Python codebase inside your GitHub user
 account (this is called "your fork"). Changes you make to MNE-Python will
