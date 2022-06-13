@@ -300,7 +300,8 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
             one = np.zeros((len(orig_sel), d_eidx - d_sidx), dtype=data.dtype)
             for ii, ci in enumerate(read_sel):
                 # This now has size (n_chunks_read, n_samp[ci])
-                ch_data = many_chunk[:, ch_offsets[ci]:ch_offsets[ci + 1]]
+                ch_data = many_chunk[:,
+                                     ch_offsets[ci]:ch_offsets[ci + 1]].copy()
 
                 if ci in tal_idx:
                     tal_data.append(ch_data)
