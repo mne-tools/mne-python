@@ -2726,9 +2726,10 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     %(info_not_none)s
     bridged_idx : list of tuple
         The indices of channels marked as bridged with each bridged
-        pair stored as a tuple.
+        pair stored as a tuple. See notes for additional information.
     ed_matrix : ndarray of float, shape (n_channels, n_channels)
         The electrical distance matrix for each pair of EEG electrodes.
+        See notes for additional information.
     title : str
         A title to add to the plot.
     topomap_args : dict | None
@@ -2738,6 +2739,11 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     -------
     fig : instance of matplotlib.figure.Figure
         The topoplot figure handle.
+
+    Notes
+    -----
+    See also :func:`mne.preprocessing.compute_bridged_electrodes` to determine
+    ``bridged_idx`` and ``ed_matrix``.
     """
     import matplotlib.pyplot as plt
     if topomap_args is None:
