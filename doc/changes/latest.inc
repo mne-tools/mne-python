@@ -95,7 +95,7 @@ Enhancements
 
 - :func:`mne.channels.get_builtin_montages` gained a new parameter, ``descriptions``, which allows to retrieve the descriptions of the montages in addition to their names (:gh:`10373` by `Richard Höchenberger`_)
 
-- The built-in FieldTrip channel adjacency matrices, which can be read via :func:`~mne.channels.read_ch_adjacency`, have been synchronized with FieldTrip again. This means that numerous new adjacencies have been added, most notably probably those for standard 10-05 and 10-20 montages (:gh:`xxx` by `Richard Höchenberger`_)
+- The built-in FieldTrip channel adjacency matrices, which can be read via :func:`~mne.channels.read_ch_adjacency`, have been synchronized with FieldTrip again. This means that numerous new adjacencies have been added, most notably those for standard 10-05 and 10-20 montages (:gh:`10749` by `Richard Höchenberger`_)
 
 Bugs
 ~~~~
@@ -152,7 +152,7 @@ Bugs
 
 - In :class:`mne.Report`, some figures would have an undesired border added to the edges; this has now been resolved (:gh:`10730` by `Richard Höchenberger`_)
 
-- The built-in FieldTrip channel adjacency matrix for ``easycapM1`` had a bug, where the channel ``PO8`` was incorrectly labeled as ``PO6`` This has been resolved by updating the adjacency matrix to the latest version provided by FieldTrip (:gh:`xxx` by `Richard Höchenberger`_)
+- The built-in FieldTrip channel adjacency matrix for ``easycapM1`` had a bug, where the channel ``PO8`` was incorrectly labeled as ``PO6`` This has been resolved by updating the adjacency matrix to the latest version provided by FieldTrip (:gh:`10749` by `Richard Höchenberger`_)
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
