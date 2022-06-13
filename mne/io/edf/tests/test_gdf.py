@@ -144,8 +144,3 @@ def test_gdf_include():
     """Test reading GDF data with include."""
     raw = read_raw_gdf(gdf1_path + '.gdf', include=('FP1', 'O1'))
     assert sorted(raw.ch_names) == ['01', 'FP1']
-    raw = read_raw_gdf(gdf1_path + '.gdf', include='FP1')
-    assert raw.ch_names == ['FP1']
-    raw = read_raw_gdf(gdf1_path + '.gdf', include=('FP1', 'O1'),
-                       exclude=['FP1'])
-    assert sorted(raw.ch_names) == sorted(['FP1', '01'])

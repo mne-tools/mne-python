@@ -75,11 +75,13 @@ class RawEDF(BaseRaw):
         For unknown prefixes, the type will be 'EEG' and the name will not be
         modified. If False, do not infer types and assume all channels are of
         type 'EEG'.
-    include : list of str | str
-        Channel names to be included. 'exclude' must be empty if include is
-        assigned.
 
         .. versionadded:: 0.24.1
+    include : list of str | str
+        Channel names to be included. A str is interpreted as a regular
+        expression. 'exclude' must be empty if include is assigned.
+
+        .. versionadded:: 1.1
     %(preload)s
     %(verbose)s
 
@@ -129,8 +131,8 @@ class RawEDF(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, eog=None, misc=None, stim_channel='auto',
-                 exclude=(), infer_types=False, preload=False, verbose=None,
-                 include=None):
+                 exclude=(), infer_types=False, preload=False, include=None,
+                 verbose=None):
         logger.info('Extracting EDF parameters from {}...'.format(input_fname))
         input_fname = os.path.abspath(input_fname)
         info, edf_info, orig_units = _get_info(input_fname, stim_channel, eog,
@@ -189,9 +191,13 @@ class RawGDF(BaseRaw):
     exclude : list of str
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling.
+
+        .. versionadded:: 0.24.1
     include : list of str | str
-        Channel names to be included. 'exclude' must be empty if include is
-        assigned.
+        Channel names to be included. A str is interpreted as a regular
+        expression. 'exclude' must be empty if include is assigned.
+
+        .. versionadded:: 1.1
     %(preload)s
     %(verbose)s
 
@@ -209,8 +215,8 @@ class RawGDF(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, eog=None, misc=None,
-                 stim_channel='auto', exclude=(), preload=False, verbose=None,
-                 include=None):
+                 stim_channel='auto', exclude=(), preload=False, include=None,
+                 verbose=None):
         logger.info('Extracting EDF parameters from {}...'.format(input_fname))
         input_fname = os.path.abspath(input_fname)
         info, edf_info, orig_units = _get_info(input_fname, stim_channel, eog,
@@ -371,8 +377,8 @@ def _read_header(fname, exclude, infer_types, include=None):
         modified. If False, do not infer types and assume all channels are of
         type 'EEG'.
     include : list of str | str
-        Channel names to be included. 'exclude' must be empty if include is
-        assigned.
+        Channel names to be included. A str is interpreted as a regular
+        expression. 'exclude' must be empty if include is assigned.
 
     Returns
     -------
@@ -1237,12 +1243,19 @@ def _find_exclude_idx(ch_names, exclude, include=None):
     If there are several channels called "A" and we want to exclude "A", then
     add (the index of) all "A" channels to the exclusion list.
     """
-    if include:
+    if include:  # find other than include channels
         if exclude:
             raise ValueError(
-                "'exclude' must be empty if 'include' is assigned.")
-        if isinstance(include, str):
-            include = [include]
+                "'exclude' must be empty if 'include' is assigned. "
+                f"Got {exclude}.")
+        if isinstance(include, str):  # regex for channel names
+            indices_include = []
+            for idx, ch in enumerate(ch_names):
+                if re.match(include, ch):
+                    indices_include.append(idx)
+            indices = np.setdiff1d(np.arange(len(ch_names)), indices_include)
+            return indices
+        # list of channel names
         return [idx for idx, ch in enumerate(ch_names) if ch not in include]
 
     if isinstance(exclude, str):  # regex for channel names
@@ -1297,11 +1310,13 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
         For unknown prefixes, the type will be 'EEG' and the name will not be
         modified. If False, do not infer types and assume all channels are of
         type 'EEG'.
-    include : list of str | str
-        Channel names to be included. 'exclude' must be empty if include is
-        assigned.
 
         .. versionadded:: 0.24.1
+    include : list of str | str
+        Channel names to be included. A str is interpreted as a regular
+        expression. 'exclude' must be empty if include is assigned.
+
+        .. versionadded:: 1.1
     %(preload)s
     %(verbose)s
 
@@ -1364,14 +1379,14 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
         raise NotImplementedError(f'Only EDF files are supported, got {ext}.')
     return RawEDF(input_fname=input_fname, eog=eog, misc=misc,
                   stim_channel=stim_channel, exclude=exclude,
-                  infer_types=infer_types, preload=preload, verbose=verbose,
-                  include=include)
+                  infer_types=infer_types, preload=preload, include=include,
+                  verbose=verbose)
 
 
 @fill_doc
 def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
-                 exclude=(), infer_types=False, preload=False, verbose=None,
-                 include=None):
+                 exclude=(), infer_types=False, preload=False, include=None,
+                 verbose=None):
     """Reader function for BDF files.
 
     Parameters
@@ -1403,11 +1418,13 @@ def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
         For unknown prefixes, the type will be 'EEG' and the name will not be
         modified. If False, do not infer types and assume all channels are of
         type 'EEG'.
-    include : list of str | str
-        Channel names to be included. 'exclude' must be empty if include is
-        assigned.
 
         .. versionadded:: 0.24.1
+    include : list of str | str
+        Channel names to be included. A str is interpreted as a regular
+        expression. 'exclude' must be empty if include is assigned.
+
+        .. versionadded:: 1.1
     %(preload)s
     %(verbose)s
 
@@ -1463,8 +1480,8 @@ def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
         raise NotImplementedError(f'Only BDF files are supported, got {ext}.')
     return RawEDF(input_fname=input_fname, eog=eog, misc=misc,
                   stim_channel=stim_channel, exclude=exclude,
-                  infer_types=infer_types, preload=preload, verbose=verbose,
-                  include=include)
+                  infer_types=infer_types, preload=preload, include=include,
+                  verbose=verbose)
 
 
 @fill_doc

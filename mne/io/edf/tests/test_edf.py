@@ -554,8 +554,8 @@ def test_include():
     raw = read_raw_edf(edf_path, include=["I1", "I2"])
     assert sorted(raw.ch_names) == ["I1", "I2"]
 
-    raw = read_raw_edf(edf_path, include="I1")
-    assert raw.ch_names == ["I1"]
+    raw = read_raw_edf(edf_path, include="I[1-4]")
+    assert sorted(raw.ch_names) == ["I1", "I2", "I3", "I4"]
 
     with pytest.raises(ValueError) as e:
         raw = read_raw_edf(edf_path, include=["I1", "I2"], exclude="I[1-4]")
