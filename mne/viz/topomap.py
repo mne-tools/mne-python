@@ -2744,9 +2744,10 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
         topomap_args = dict()
     else:
         topomap_args = topomap_args.copy()  # don't change original
+    picks = pick_types(info, eeg=True)
     topomap_args.setdefault('image_interp', 'nearest')
     topomap_args.setdefault('cmap', 'summer_r')
-    topomap_args.setdefault('names', info.ch_names)
+    topomap_args.setdefault('names', pick_info(info, picks).ch_names)
     topomap_args.setdefault('show_names', True)
     topomap_args.setdefault('contours', False)
     if 'axes' not in topomap_args:
@@ -2759,7 +2760,6 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
         'colorbar' in topomap_args else True
     # use sphere to find positions
     sphere = topomap_args['sphere'] if 'sphere' in topomap_args else None
-    picks = pick_types(info, eeg=True)
     if ed_matrix.shape[1:] != (picks.size, picks.size):
         raise RuntimeError(
             f'Expected {(ed_matrix.shape[0], picks.size, picks.size)} '
@@ -2770,13 +2770,13 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     for epo_idx in range(ed_matrix.shape[0]):
         ed_matrix[epo_idx][tril_idx] = ed_matrix[epo_idx].T[tril_idx]
     elec_dists = np.median(np.nanmin(ed_matrix, axis=1), axis=0)
-    pos = _find_topomap_coords(info, picks, sphere=sphere)
-    im, cn = plot_topomap(elec_dists, info, **topomap_args)
+    im, cn = plot_topomap(elec_dists, pick_info(info, picks), **topomap_args)
     fig = im.figure if fig is None else fig
     # add bridged connections
     for idx0, idx1 in bridged_idx:
-        im.axes.plot([pos[idx0][0], pos[idx1][0]],
-                     [pos[idx0][1], pos[idx1][1]], color='r')
+        pos = _find_topomap_coords(info, [idx0, idx1], sphere=sphere)
+        im.axes.plot([pos[0, 0], pos[1, 0]],
+                     [pos[0, 1], pos[1, 1]], color='r')
     if title is not None:
         im.axes.set_title(title)
     if colorbar:
