@@ -300,8 +300,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames,
             one = np.zeros((len(orig_sel), d_eidx - d_sidx), dtype=data.dtype)
             for ii, ci in enumerate(read_sel):
                 # This now has size (n_chunks_read, n_samp[ci])
-                ch_data = many_chunk[:,
-                                     ch_offsets[ci]:ch_offsets[ci + 1]].copy()
+                ch_data = many_chunk[:, ch_offsets[ci]:ch_offsets[ci + 1]]
 
                 if ci in tal_idx:
                     tal_data.append(ch_data)
@@ -573,6 +572,9 @@ def _parse_prefilter_string(prefiltering):
 def _edf_str(x):
     return x.decode('latin-1').split('\x00')[0]
 
+def _edf_str_num(x):
+    return _edf_str(x).replace(",",".")
+
 
 def _read_edf_header(fname, exclude, infer_types):
     """Read header information from EDF+ or BDF file."""
@@ -709,13 +711,13 @@ def _read_edf_header(fname, exclude, infer_types):
         orig_units = dict(zip(ch_names, units))
 
         physical_min = np.array(
-            [float(_edf_str(fid.read(8))) for ch in channels])[sel]
+            [float(_edf_str_num(fid.read(8))) for ch in channels])[sel]
         physical_max = np.array(
-            [float(_edf_str(fid.read(8))) for ch in channels])[sel]
+            [float(_edf_str_num(fid.read(8))) for ch in channels])[sel]
         digital_min = np.array(
-            [float(_edf_str(fid.read(8))) for ch in channels])[sel]
+            [float(_edf_str_num(fid.read(8))) for ch in channels])[sel]
         digital_max = np.array(
-            [float(_edf_str(fid.read(8))) for ch in channels])[sel]
+            [float(_edf_str_num(fid.read(8))) for ch in channels])[sel]
         prefiltering = [_edf_str(fid.read(80)).strip() for ch in channels][:-1]
         highpass, lowpass = _parse_prefilter_string(prefiltering)
 
