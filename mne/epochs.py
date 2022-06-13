@@ -1405,8 +1405,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         if not out:
             # make sure first and last epoch not out of bounds of raw
             in_bounds = self.preload or (
-                    self._get_epoch_from_raw(idx=0) is not None and
-                    self._get_epoch_from_raw(idx=-1) is not None)
+                self._get_epoch_from_raw(idx=0) is not None and
+                self._get_epoch_from_raw(idx=-1) is not None)
             # might be BaseEpochs or Epochs, only the latter has the attribute
             reject_by_annotation = getattr(self, 'reject_by_annotation', False)
             if (self.reject is None and self.flat is None and in_bounds and
