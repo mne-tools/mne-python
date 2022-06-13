@@ -1277,8 +1277,8 @@ def _find_tal_idx(ch_names):
 
 @fill_doc
 def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
-                 exclude=(), infer_types=False, preload=False,
-                 verbose=None, include=None):
+                 exclude=(), infer_types=False, include=None, preload=False,
+                 verbose=None):
     """Reader function for EDF or EDF+ files.
 
     Parameters
@@ -1385,7 +1385,7 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
 
 @fill_doc
 def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
-                 exclude=(), infer_types=False, preload=False, include=None,
+                 exclude=(), infer_types=False, include=None, preload=False,
                  verbose=None):
     """Reader function for BDF files.
 
@@ -1486,7 +1486,7 @@ def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
 
 @fill_doc
 def read_raw_gdf(input_fname, eog=None, misc=None, stim_channel='auto',
-                 exclude=(), preload=False, verbose=None):
+                 exclude=(), include=None, preload=False, verbose=None):
     """Reader function for GDF files.
 
     Parameters
@@ -1510,6 +1510,9 @@ def read_raw_gdf(input_fname, eog=None, misc=None, stim_channel='auto',
         Channel names to exclude. This can help when reading data with
         different sampling rates to avoid unnecessary resampling. A str is
         interpreted as a regular expression.
+    include : list of str | str
+        Channel names to be included. A str is interpreted as a regular
+        expression. 'exclude' must be empty if include is assigned.
     %(preload)s
     %(verbose)s
 
@@ -1535,7 +1538,7 @@ def read_raw_gdf(input_fname, eog=None, misc=None, stim_channel='auto',
         raise NotImplementedError(f'Only BDF files are supported, got {ext}.')
     return RawGDF(input_fname=input_fname, eog=eog, misc=misc,
                   stim_channel=stim_channel, exclude=exclude, preload=preload,
-                  verbose=verbose)
+                  include=include, verbose=verbose)
 
 
 def _read_annotations_edf(annotations):
