@@ -17,7 +17,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
                    orient_to_surface=True, scale_by_distance=True,
                    mark_inside=True, interaction=None, scale=None,
                    advanced_rendering=None, head_inside=True,
-                   fullscreen=False, verbose=None):
+                   fullscreen=None, verbose=None):
     """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with:
@@ -101,6 +101,8 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
         .. versionadded:: 0.23
     %(fullscreen)s
+        Default is None, which uses ``MNE_COREG_FULLSCREEN`` config value
+        (which defaults to False).
 
         .. versionadded:: 1.1
     %(verbose)s
@@ -174,6 +176,8 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         mark_inside = config.get('MNE_COREG_MARK_INSIDE', '') == 'true'
     if scale is None:
         scale = config.get('MNE_COREG_SCENE_SCALE', 0.16)
+    if fullscreen is None:
+        fullscreen = config.get('MNE_COREG_FULLSCREEN', '') == 'true'
     head_opacity = float(head_opacity)
     head_inside = bool(head_inside)
     width = int(width)

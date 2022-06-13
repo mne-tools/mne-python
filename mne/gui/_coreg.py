@@ -100,6 +100,7 @@ class CoregistrationUI(HasTraits):
         Whether to halt program execution until the GUI has been closed
         (``True``) or not (``False``, default).
     %(fullscreen)s
+        The default is False.
 
         .. versionadded:: 1.1
     %(interaction_scene)s
