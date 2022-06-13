@@ -102,6 +102,10 @@ def verbose(function: _FuncT) -> _FuncT:
     except TypeError:  # nothing to add
         pass
 
+    try:
+        use_function = profile(function)
+    except Exception:
+        use_function = function
     # Anything using verbose should have `verbose=None` in the signature.
     # This code path will raise an error if this is not the case.
     body = """\
@@ -117,7 +121,7 @@ def %(name)s(%(signature)s):\n
     else:
         return _function_(%(shortsignature)s)"""
     evaldict = dict(
-        _use_log_level_=use_log_level, _function_=function)
+        _use_log_level_=use_log_level, _function_=use_function)
     fm = FunctionMaker(function, None, None, None, None, function.__module__)
     attrs = dict(__wrapped__=function, __qualname__=function.__qualname__,
                  __globals__=function.__globals__)
