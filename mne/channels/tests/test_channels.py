@@ -324,18 +324,12 @@ def test_adjacency_matches_ft(tmp_path):
         hash_ft = hashlib.sha256()
 
         with open(builtin_neighbors_dir / fname, 'rb') as f:
-            while True:
-                data = f.read()
-                if not data:
-                    break
-                hash_mne.update(data)
+            data = f.read()
+            hash_mne.update(data)
 
         with open(ft_neighbors_dir / fname, 'rb') as f:
-            while True:
-                data = f.read()
-                if not data:
-                    break
-                hash_ft.update(data)
+            data = f.read()
+            hash_ft.update(data)
 
         if hash_mne.hexdigest() != hash_ft.hexdigest():
             raise ValueError(
