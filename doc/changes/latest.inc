@@ -150,7 +150,7 @@ Bugs
 
 - In :class:`mne.Report`, some figures would have an undesired border added to the edges; this has now been resolved (:gh:`10730` by `Richard Höchenberger`_)
 
-- Automatically selects EEG channels when plotting bridged electrodes with :func:`mne.viz.plot_bridged_electrodes` (:gh:`10753` by `Mathieu Scheltienne`_)
+- Fix selection of EEG channels when plotting bridged electrodes with :func:`mne.viz.plot_bridged_electrodes` (:gh:`10753` by `Mathieu Scheltienne`_)
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
