@@ -235,6 +235,11 @@ coords, faces = mne.read_surface(conv_dir / 'sample-head.obj')
 #     as the *Target* and the *Group* that you created before as the
 #     *Vertex Group*. You can then use the *Offset* parameter to adjust the
 #     distance.
+#
+# .. note:: If nothing happens, the normals of the inner skull surface
+#           may be inverted. To fix this select all the vertices or faces
+#           of the inner skull and go to Mesh>Normals>Flip in the toolbar.
+#
 # ⑨ Apply
 #     In *Object Mode* click on the down-pointing arrow of the *Shrinkwrap*
 #     modifier and click on *Apply*.
