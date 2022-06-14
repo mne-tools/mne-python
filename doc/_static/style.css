@@ -10,7 +10,9 @@
 
 html[data-theme="light"] {
     --mne-color-github: #000;
-    --mne-color-discourse: #231e20;
+    --mne-color-discourse: #000;
+    --mne-color-discord: #5865F2;
+    --mne-color-twitter: #55acee;
     --pst-color-border-rgba: rgba(0, 0, 0, 0.125);
     --pst-color-background-rgba: rgba(0, 0, 0, 0.03);
     --pst-color-info-rgba: #007bff18;
@@ -18,7 +20,9 @@ html[data-theme="light"] {
 }
 html[data-theme="dark"] {
     --mne-color-github: #fff;
-    --mne-color-discourse: #d1c498;
+    --mne-color-discourse: #FFF9AE;  /* color taken from their logo SVG */
+    --mne-color-discord: #fff;
+    --mne-color-twitter: #55acee;
     --pst-color-border-rgba: rgba(201, 201, 201, 0.25);
     --pst-color-background-rgba: rgba(255, 255, 255, 0.08);
     --pst-color-info-rgba: #407dbf18;
@@ -198,19 +202,31 @@ div.card {
 p.btn a {
     color: unset;
 }
+/* remove this when
+   https://github.com/pydata/pydata-sphinx-theme/issues/733 is addressed
+   ↓↓↓↓↓↓↓↓↓ */
+.sd-btn-primary {
+    background-color: var(--pst-color-link) !important;
+    border-color: var(--pst-color-link) !important
+}
+.sd-btn-primary:hover {
+    background-color: var(--pst-color-link-hover) !important;
+    border-color: var(--pst-color-link-hover) !important
+}
+
 /* ****************************************************** navbar quick links */
 
-i.fa-github-square:before {
-    color: rgb(var(--mne-color-github));
+#navbar-icon-links i.fa-github-square::before {
+    color: var(--mne-color-github);
 }
-i.fa-twitter-square:before {
-    color: #55acee;
+#navbar-icon-links i.fa-twitter-square::before {
+    color: var(--mne-color-twitter);
 }
-i.fa-discourse:before {
-    color: rgb(var(--mne-color-discourse));
+#navbar-icon-links i.fa-discourse::before {
+    color: var(--mne-color-discourse);
 }
-i.fa-discord:before {
-    color: #7289da;  /* 99aab5 is also in-brand for discord */
+#navbar-icon-links i.fa-discord::before {
+    color: var(--mne-color-discord);
 }
 /* *********************************************************** contrib guide */
 ul.icon-bullets {
