@@ -103,7 +103,7 @@ def verbose(function: _FuncT) -> _FuncT:
         pass
 
     try:
-        use_function = profile(function)
+        use_function = profile(function)  # noqa: F821
     except Exception:
         use_function = function
     # Anything using verbose should have `verbose=None` in the signature.

@@ -14,6 +14,8 @@ from pytest import console_main
 def main():
     prof = line_profiler.LineProfiler()
     builtins.__dict__['profile'] = prof
+    min_time = 1.  # seconds, for a given function to be included
+    min_percent = 1.  # per line within a function
 
     # Make sure the script's directory is on sys.path instead of just
     # kernprof.py's.
@@ -30,11 +32,11 @@ def main():
         lstats = prof.get_stats()
         stats = lstats.timings
         unit = lstats.unit
+        min_time = min_time / unit
         stream = sys.stdout
         stream.write('Determining timing results...\n')
         total_times = list()
         keys = list()
-        min_time = 1. / unit
         for key, val in stats.items():
             total_time = sum(t[2] for t in val) if len(val) else 0.
             if total_time >= min_time:
@@ -72,29 +74,26 @@ def main():
                 sublines = inspect.getblock(all_lines[start_lineno - 1:])
             else:
                 stream.write('\n')
-                stream.write(f'Could not find file {filename}\n')
-                stream.write('Are you sure you are running this program from the same directory\n')
-                stream.write('that you ran the profiler from?\n')
-                stream.write("Continuing without the function's contents.\n")
+                stream.write(f'Could not find file {filename} to add lines\n')
                 # Fake empty lines so we can see the timings, if not the code.
                 nlines = max(linenos) - min(min(linenos), start_lineno) + 1
                 sublines = [''] * nlines
             for lineno, nhits, time in timings:
                 d[lineno] = (nhits,
-                            '%5.1f' % (time * scalar),
-                            '%5.1f' % (float(time) * scalar / nhits),
-                            '%5.1f' % (100 * time / total_time) )
+                             f'{time * scalar:5.1f}',
+                             f'{float(time) * scalar / nhits:5.1f}',
+                             f'{100 * time / total_time:5.1f}')
             linenos = range(start_lineno, start_lineno + len(sublines))
             empty = ('', '', '', '')
             header = template % ('Line #', 'Hits', 'Time', 'Per Hit', '% Time',
-                                'Line Contents')
+                                 'Line Contents')
             stream.write(header)
             stream.write('\n')
             for lineno, line in zip(linenos, sublines):
                 nhits, time, per_hit, percent = d.get(lineno, empty)
-                txt = template % (lineno, nhits, time, per_hit, percent,
-                                line.rstrip('\n').rstrip('\r'))
-                if percent and float(percent) > 1:
+                if percent and float(percent) >= min_percent:
+                    txt = template % (lineno, nhits, time, per_hit, percent,
+                                      line.rstrip('\r\n'))
                     stream.write(txt)
                     stream.write('\n')
             stream.write('\n')
