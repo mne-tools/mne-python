@@ -1079,8 +1079,8 @@ def test_shielding_factor(tmp_path):
     with get_n_projected() as counts:
         with _record_warnings():  # SVD convergence on arm64
             raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname_3d,
-                                    cross_talk=ctc_fname, st_duration=1.,
-                                    coord_frame='meg', regularize='in')
+                                     cross_talk=ctc_fname, st_duration=1.,
+                                     coord_frame='meg', regularize='in')
     # Our 3D cal has worse defaults for this ERM than the 1D file
     _assert_shielding(raw_sss, erm_power, 57, 58)
     assert counts[0] == 3
