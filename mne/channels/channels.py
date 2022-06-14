@@ -1539,7 +1539,7 @@ def read_ch_adjacency(fname, picks=None):
     else:  # built-in FieldTrip neighbors
         ch_adj_name = fname
         del fname
-        if ch_adj_name.endswith('_neighb.mat'):  # backward-compat:
+        if ch_adj_name.endswith('_neighb.mat'):  # backward-compat
             ch_adj_name = ch_adj_name.replace('_neighb.mat', '')
 
         if ch_adj_name not in get_builtin_ch_adjacencies():
