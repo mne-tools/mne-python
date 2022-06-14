@@ -94,9 +94,9 @@ mne.write_surface(conv_dir / 'outer_skull.obj', coords, faces, overwrite=True)
 #
 # You can now edit the surfaces any way you like. See the
 # `Beginner Blender Tutorial Series
-# <https://www.youtube.com/playlist?list=PLxLGgWrla12dEW5mjO09kR2_TzPqDTXdw>`_
+# <https://www.youtube.com/watch?v=nIoXOplUvAw&list=PLjEaoINr3zgFX8ZsChQVQsuDSjEqdWMAD&index=1&t=0s>`_
 # to learn how to use Blender. Specifically, `part 2
-# <http://www.youtube.com/watch?v=RaT-uG5wgUw&t=5m30s>`_ will teach you how to
+# <https://youtu.be/imdYIdv8F4w?t=712>`_ will teach you how to
 # use the basic editing tools you need to fix the surface.
 #
 # .. image:: ../../_static/blender_import_obj/blender_import_obj2.jpg
