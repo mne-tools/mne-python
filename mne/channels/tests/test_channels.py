@@ -15,9 +15,12 @@ from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 
 from mne.channels import (rename_channels, read_ch_adjacency, combine_channels,
                           find_ch_adjacency, make_1020_channel_selections,
-                          read_custom_montage, equalize_channels)
-from mne.channels.channels import (_ch_neighbor_adjacency,
-                                   _compute_ch_adjacency)
+                          read_custom_montage, equalize_channels,
+                          get_builtin_ch_adjacencies)
+from mne.channels.channels import (
+    _ch_neighbor_adjacency, _compute_ch_adjacency,
+    _BUILTIN_CHANNEL_ADJACENCIES
+)
 from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
                     read_raw_eeglab, read_raw_kit, RawArray)
 from mne.io.constants import FIFF
@@ -180,6 +183,14 @@ def test_set_channel_types():
     pytest.raises(ValueError, raw.set_channel_types, ch_types)
 
 
+def test_get_builtin_ch_adjacencies():
+    """Test retrieving the names of all built-in FieldTrip neighbors."""
+    names = get_builtin_ch_adjacencies()
+    assert names
+    assert len(names) == len(set(names))  # no duplicates
+    assert len(names) == len(_BUILTIN_CHANNEL_ADJACENCIES)
+
+
 def test_read_ch_adjacency(tmp_path):
     """Test reading channel adjacency templates."""
     tempdir = str(tmp_path)
@@ -256,6 +267,11 @@ def test_read_ch_adjacency(tmp_path):
     mat_fname = op.join(tempdir, 'test_error_mat.mat')
     savemat(mat_fname, mat, oned_as='row')
     pytest.raises(ValueError, read_ch_adjacency, mat_fname)
+
+    # Try reading all built-in FieldTrip neighbors
+    for name in get_builtin_ch_adjacencies():
+        ch_adjacency, ch_names = read_ch_adjacency(name)
+        assert_equal(ch_adjacency.shape[0], len(ch_names))
 
 
 def test_get_set_sensor_positions():
