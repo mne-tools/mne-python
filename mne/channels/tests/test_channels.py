@@ -4,9 +4,10 @@
 # License: BSD-3-Clause
 
 import os.path as op
-
+from pathlib import Path
 from copy import deepcopy
 from functools import partial
+import hashlib
 
 import pytest
 import numpy as np
@@ -28,6 +29,7 @@ from mne import (pick_types, pick_channels, EpochsArray, EvokedArray,
                  make_ad_hoc_cov, create_info, read_events, Epochs)
 from mne.datasets import testing
 from mne.utils import requires_pandas, requires_version
+from mne.parallel import parallel_func
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
@@ -272,6 +274,74 @@ def test_read_ch_adjacency(tmp_path):
     for name in get_builtin_ch_adjacencies():
         ch_adjacency, ch_names = read_ch_adjacency(name)
         assert_equal(ch_adjacency.shape[0], len(ch_names))
+
+
+@pytest.mark.slowtest
+def test_adjacency_matches_ft(tmp_path):
+    import pooch
+    import requests
+    pooch.get_logger().setLevel('ERROR')  # reduce verbosity
+
+    builtin_neighbors_dir = Path(__file__).parents[1] / 'data' / 'neighbors'
+    ft_neighbors_dir = tmp_path
+
+    # Download the known neighbors from FieldTrip
+    #
+    # The entire FT repository is larger than a GB, so we'll just download
+    # the few files we need.
+    def _download_ft_neighbor(neighbor):
+        fname = neighbor.fname
+        try:
+            pooch.retrieve(
+                url=f'https://github.com/fieldtrip/fieldtrip/raw/master/'
+                    f'template/neighbours/{fname}',
+                known_hash=None,
+                fname=fname,
+                path=tmp_path,
+            )
+        except requests.HTTPError as e:
+            if e.response.status_code == 404:
+                print(f'{fname} only ships with MNE-Python, but not '
+                    f'with FieldTrip')
+            else:
+                raise
+
+    parallel, p_fun, _ = parallel_func(
+        func=_download_ft_neighbor, n_jobs=-1
+    )
+    parallel(
+        p_fun(neighbor)
+        for neighbor in _BUILTIN_CHANNEL_ADJACENCIES
+    )
+
+    # The actual test begins here.
+    for adj in _BUILTIN_CHANNEL_ADJACENCIES:
+        fname = adj.fname
+        if not (ft_neighbors_dir / fname).exists():
+            continue  # only exists in MNE, not FT
+
+        hash_mne = hashlib.sha256()
+        hash_ft = hashlib.sha256()
+
+        with open(builtin_neighbors_dir / fname, 'rb') as f:
+            while True:
+                data = f.read()
+                if not data:
+                    break
+                hash_mne.update(data)
+
+        with open(ft_neighbors_dir / fname, 'rb') as f:
+            while True:
+                data = f.read()
+                if not data:
+                    break
+                hash_ft.update(data)
+
+        if hash_mne.hexdigest() != hash_ft.hexdigest():
+            raise ValueError(
+                f'Hash mismatch between built-in and FieldTrip neighbors '
+                f'for {fname}'
+            )
 
 
 def test_get_set_sensor_positions():

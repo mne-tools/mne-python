@@ -432,52 +432,6 @@ jobs:
             destination: linkcheck
 
 
-    ft_neighbors_check:
-      parameters:
-        scheduled:
-          type: string
-          default: "false"
-      docker:
-        - image: circleci/python:3.9.2-buster
-      steps:
-        - restore_cache:
-            keys:
-              - source-cache
-        - checkout
-        - run:
-            name: Set BASH_ENV
-            command: |
-              set -e
-              echo "set -e" >> $BASH_ENV
-              echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
-        - run:
-            name: Check-skip
-            command: |
-              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
-              if [[ "$COMMIT_MESSAGE" != *"[circle ft_neighbors_check]"* ]] && [ "<< parameters.scheduled >>" != "true" ]; then
-                echo "Skip detected, exiting job ${CIRCLE_JOB}."
-                circleci-agent step halt;
-              fi
-        - restore_cache:
-            keys:
-              - pip-cache
-        - run:
-            name: Get Python running
-            command: |
-              ./tools/circleci_dependencies.sh
-        - run:
-            name: Check installation
-            command: |
-              mne sys_info -pd
-        - run:
-            name: Check out FieldTrip
-            command: |
-              git clone https://github.com/fieldtrip/fieldtrip.git
-        - run:
-            name: Check neighbors definitions
-            command: |
-              FT_NEIGHBORS_DIR=fieldtrip/templae/neighbours python tools/f_neighbors_comparison.py
-
     deploy:
       machine:
         image: ubuntu-2004:202111-01
@@ -546,8 +500,6 @@ workflows:
           name: build_docs
       - linkcheck:
           name: linkcheck
-      - ft_neighbors_check:
-          name: ft_neighbors_check
       - deploy:
           name: deploy
           requires:
@@ -581,9 +533,6 @@ workflows:
     jobs:
       - linkcheck:
           name: linkcheck_weekly
-          scheduled: "true"
-      - ft_neighbors_check:
-          name: ft_neighbors_check_weekly
           scheduled: "true"
     triggers:
       - schedule:
