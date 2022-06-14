@@ -5,6 +5,7 @@
 #
 # License: Simplified BSD
 
+import sys
 from colorsys import rgb_to_hls
 from contextlib import nullcontext
 
@@ -71,13 +72,15 @@ def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
     if return_early:
         return  # we could add a ton of conditionals below, but KISS
     is_dark = _qt_is_dark(fig)
-    if theme == 'dark':
-        assert is_dark, theme
-    elif theme == 'light':
-        assert not is_dark, theme
-    else:
-        got_dark = darkdetect.theme().lower() == 'dark'
-        assert is_dark is got_dark
+    # on Darwin these checks get complicated, so don't bother for now
+    if sys.platform != 'darwin':
+        if theme == 'dark':
+            assert is_dark, theme
+        elif theme == 'light':
+            assert not is_dark, theme
+        else:
+            got_dark = darkdetect.theme().lower() == 'dark'
+            assert is_dark is got_dark
 
     def assert_correct_darkness(widget, want_dark):
         __tracebackhide__ = True  # noqa
