@@ -221,33 +221,31 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                     U[k] = last_K_X[k + 1].ravel() - last_K_X[k].ravel()
                 C = U @ U.T
                 one_vec = np.ones(K)
-
-                try:
-                    z = np.linalg.solve(C, one_vec)
-                except np.linalg.LinAlgError:
-                    # Matrix C is not always expected to be non-singular. If C
-                    # is singular, acceleration is not used at this iteration
-                    # and the solver proceeds with the non-sped-up code.
+                # at least on ARM64 we can't rely on np.linalg.solve to
+                # reliably raise LinAlgError here, so use SVD instead
+                u, s, _ = np.linalg.svd(C, hermitian=True)
+                if s[-1] <= 1e-6 * s[0]:
                     logger.debug("Iteration %d: LinAlg Error" % (i + 1))
-                else:
-                    c = z / z.sum()
-                    X_acc = np.sum(
-                        last_K_X[:-1] * c[:, None, None], axis=0
+                    continue
+                z = ((u * 1 / s) @ u.T).sum(0)
+                c = z / z.sum()
+                X_acc = np.sum(
+                    last_K_X[:-1] * c[:, None, None], axis=0
+                )
+                _grp_norm2_acc = groups_norm2(X_acc, n_orient)
+                active_set_acc = _grp_norm2_acc != 0
+                if n_orient > 1:
+                    active_set_acc = np.kron(
+                        active_set_acc, np.ones(n_orient, dtype=bool)
                     )
-                    _grp_norm2_acc = groups_norm2(X_acc, n_orient)
-                    active_set_acc = _grp_norm2_acc != 0
-                    if n_orient > 1:
-                        active_set_acc = np.kron(
-                            active_set_acc, np.ones(n_orient, dtype=bool)
-                        )
-                    p_obj = _primal_l21(M, G, X[active_set], active_set, alpha,
-                                        n_orient)[0]
-                    p_obj_acc = _primal_l21(M, G, X_acc[active_set_acc],
-                                            active_set_acc, alpha, n_orient)[0]
-                    if p_obj_acc < p_obj:
-                        X = X_acc
-                        active_set = active_set_acc
-                        R = M - G[:, active_set] @ X[active_set]
+                p_obj = _primal_l21(M, G, X[active_set], active_set, alpha,
+                                    n_orient)[0]
+                p_obj_acc = _primal_l21(M, G, X_acc[active_set_acc],
+                                        active_set_acc, alpha, n_orient)[0]
+                if p_obj_acc < p_obj:
+                    X = X_acc
+                    active_set = active_set_acc
+                    R = M - G[:, active_set] @ X[active_set]
 
     X = X[active_set]
 
