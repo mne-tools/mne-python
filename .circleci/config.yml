@@ -476,7 +476,7 @@ jobs:
         - run:
             name: Check neighbors definitions
             command: |
-              FT_NEIGHBORS_DIR=fieldtrip/templae/neighbours python ./tools/f_neighbors_comparison.py
+              FT_NEIGHBORS_DIR=fieldtrip/templae/neighbours python tools/f_neighbors_comparison.py
 
     deploy:
       machine:
