@@ -162,6 +162,8 @@ def pytest_configure(config):
     ignore:.*Matplotlib is currently using agg.*:
     # qdarkstyle
     ignore:.*Setting theme=.*:RuntimeWarning
+    # scikit-learn using this arg
+    ignore:.*The 'sym_pos' keyword is deprecated.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
