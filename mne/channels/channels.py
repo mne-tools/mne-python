@@ -16,7 +16,6 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from copy import deepcopy
 from functools import partial
-from typing import Literal
 
 import numpy as np
 
@@ -1181,7 +1180,7 @@ class _BuiltinChannelAdjacency:
     description: str
     fname: str
     hash: str
-    hash_type: Literal['sha256']
+    hash_type: str
 
 
 _BUILTIN_CHANNEL_ADJACENCIES = [
