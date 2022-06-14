@@ -302,7 +302,7 @@ def test_adjacency_matches_ft(tmp_path):
         except requests.HTTPError as e:
             if e.response.status_code == 404:
                 print(f'{fname} only ships with MNE-Python, but not '
-                    f'with FieldTrip')
+                      f'with FieldTrip')
             else:
                 raise
 
