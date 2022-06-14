@@ -1179,8 +1179,6 @@ class _BuiltinChannelAdjacency:
     name: str
     description: str
     fname: str
-    hash: str
-    hash_type: str
 
 
 _BUILTIN_CHANNEL_ADJACENCIES = [
@@ -1188,274 +1186,196 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
         name='biosemi16',
         description='',
         fname='biosemi16_neighb.mat',
-        hash='dc0af231e39bdb73b932a1dc3d6b5436e98a2ee3e43110df614f8df45e30e9c1',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='biosemi32',
         description='',
         fname='biosemi32_neighb.mat',
-        hash='645baeac4b4328baf9ebfcfb257c4f34e3385776604012953e5ab7279d0e5cfe',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='biosemi64',
         description='',
         fname='biosemi64_neighb.mat',
-        hash='734d357ef96f0bf62d4f878d05fa57a91ba4414ce9f725066cc4545bcd0ff32f',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='bti148',
         description='',
         fname='bti148_neighb.mat',
-        hash='e315fb8dcf74d6b75cc1727900c0fa42ad0395a64170da1febec508cd5bd3550',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='bti248',
         description='',
         fname='bti248_neighb.mat',
-        hash='66b5dec44a2d96ab648a891641a6a4f73bff3d73c74d94247df531c8c5b4db64',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='bti248grad',
         description='',
         fname='bti248grad_neighb.mat',
-        hash='015179015d4728df0bad311d4626b729823e499724f8633bdecfb368fe594b7e',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='ctf64',
         description='',
         fname='ctf64_neighb.mat',
-        hash='7f592fa3577b8972cdb8484028fe93c4adc2b827d9cea28330f220f072ddbba9',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='ctf151',
         description='',
         fname='ctf151_neighb.mat',
-        hash='62809428ce1d62d8fe1976593b89c69ded54fa69031484d879ade4d1ad740a07',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='ctf275',
         description='',
         fname='ctf275_neighb.mat',
-        hash='45d3d3a689168ea18d8330c3b848d564402ff6875407e23468338e0c114d3ad8',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='easycap32ch-avg',
         description='',
         fname='easycap32ch-avg_neighb.mat',
-        hash='3396960a97f51ebdbcd375961bcfe87b6336bc0c2cad50d56d2bce44d3d658e8',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='easycap64ch-avg',
         description='',
         fname='easycap64ch-avg_neighb.mat',
-        hash='6c7ab5b05ef2e0b2ced0687ebd8618b154173b7017c43cccf39fc265509272f7',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='easycap128ch-avg',
         description='',
         fname='easycap128ch-avg_neighb.mat',
-        hash='408b71a6909e47aeaaa749d9c7e48833c609316ba418d74e486aee8275aa3d6f',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='easycapM1',
         description='',
         fname='easycapM1_neighb.mat',
-        hash='03d508f6979205f74612f292e58b3807a04904e639ff7bca04bda4d085104aec',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='easycapM11',
         description='',
         fname='easycapM11_neighb.mat',
-        hash='a54b4998f9d5e540fec78b4886215d29c5ed216861cb15debaf015ad650769ef',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='easycapM14',
         description='',
         fname='easycapM14_neighb.mat',
-        hash='fcc034f9f22c39835c18a5d11bbf8ef7a94858282bdbc60867e26c10bc87af85',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='easycapM15',
         description='',
         fname='easycapM15_neighb.mat',
-        hash='5001d61314d75adc6ae8f0021f8af144eb7aa41dcc96a0744c900140892ab426',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='KIT-157',
         description='',
         fname='KIT-157_neighb.mat',
-        hash='ce0cd637db12a0343d69d818f29906a9289dca721b7fc566797d63c98ba883e4',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='KIT-208',
         description='',
         fname='KIT-208_neighb.mat',
-        hash='ae2d0e3453e04778ec66715c4b25dc17e0e16d4939ab1e8c7b9965b08abd4bf3',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='KIT-NYU-2019',
         description='',
         fname='KIT-NYU-2019_neighb.mat',
-        hash='a6dd435d48225dd20f38b6f8d8df6906b6882425f1094f848a83fb3680008469',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='KIT-UMD-1',
         description='',
         fname='KIT-UMD-1_neighb.mat',
-        hash='e044bc312c38044442831856394e25472ee7e526b52b5eafc613174927aec914',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='KIT-UMD-2',
         description='',
         fname='KIT-UMD-2_neighb.mat',
-        hash='f743c5b3bcfdfc2ccc5272910930d5eecfd87442de426570aebf53175abc4cc9',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='KIT-UMD-3',
         description='',
         fname='KIT-UMD-3_neighb.mat',
-        hash='b22d3d0c8510100759373cbd42919e22ea05f648438f82be1c20920aa59ea416',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='KIT-UMD-4',
         description='',
         fname='KIT-UMD-4_neighb.mat',
-        hash='7104d7b428b9f9ca74d4f1ef07df298367a77429c79e31331da753503b6dde68',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='neuromag306mag',
         description='',
         fname='neuromag306mag_neighb.mat',
-        hash='3fce6e084249f77764c9362489cc02688cea552c649b13ac68baed454d63da94',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='neuromag306planar',
         description='',
         fname='neuromag306planar_neighb.mat',
-        hash='1203ff15f5cc5353ac476c68bff81f32dda6142f4652a936296b93ea4c390172',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='neuromag122cmb',
         description='',
         fname='neuromag122cmb_neighb.mat',
-        hash='5474f97940a9901f757ff98a1252f987f5bc5a7544c537e1f37cda29118f639f',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='neuromag306cmb',
         description='',
         fname='neuromag306cmb_neighb.mat',
-        hash='a1b7bca0007407dec0e67ad0e8839832e70a44eed3770bc9344a0d33cd7cff81',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='ecog256',
         description='',
         fname='ecog256_neighb.mat',
-        hash='6120320c8880f7e2722eb2f87d7520f36ed6f9b7e5e36284346bcf3db724ed61',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='ecog256bipolar',
         description='',
         fname='ecog256bipolar_neighb.mat',
-        hash='fc7316001e5f9ec86fd9a54b7a44fd52e5a97b85bb4c58556974029cf25cb16b',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='eeg1010_neighb',
         description='',
         fname='eeg1010_neighb.mat',
-        hash='c7216b3b1c4613529cdc3efc202a5e262369ecd520ffe7a0c3ef473e074af290',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='elec1005',
         description='',
         fname='elec1005_neighb.mat',
-        hash='f2206dbc5f8e1a89af1fb8307a181ba84f044ab5e08180b2e8d88df7694fe79d',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='elec1010',
         description='',
         fname='elec1010_neighb.mat',
-        hash='b6f3b2ce07cc45b6ff5258cdd28e7c6001888a2e129270e14ef55b7c15cc736c',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='elec1020',
         description='',
         fname='elec1020_neighb.mat',
-        hash='2a3107ea76754047ff5b39f6fe92da0e9ceb10ddd94f3f2e1ccf976bceed8bcd',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='itab28',
         description='',
         fname='itab28_neighb.mat',
-        hash='36585da508d6c2046bda819bc70378c88a58ad1e68f63c591600db6c0a6a2e85',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='itab153',
         description='',
         fname='itab153_neighb.mat',
-        hash='6889e3637a507f9d2803aeabafd5edff7250c4f9c9ff60738914a5e6f764798b',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='language29ch-avg',
         description='',
         fname='language29ch-avg_neighb.mat',
-        hash='c2c5df577385d8dfd82475c74628a22fd5c975adcfc9183e5418d6a8ed9ac28e',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='mpi_59_channels',
         description='',
         fname='mpi_59_channels_neighb.mat',
-        hash='a3c209dcafb1002ddcd834db681cf2af2f1f8a130789ecad3ec2154aa4fd321a',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='yokogawa160',
         description='',
         fname='yokogawa160_neighb.mat',
-        hash='4e79d681c4a1a6de65ca5f65f8732e762bccb9e4c47fc2ccb6b3bdffdf8bd296',  # noqa: E501
-        hash_type='sha256',
     ),
     _BuiltinChannelAdjacency(
         name='yokogawa440',
         description='',
         fname='yokogawa440_neighb.mat',
-        hash='2e38783d91e60172273ec8f74d41e869c04cf2ad6b64a084b6236c045f5f5b4b',  # noqa: E501
-        hash_type='sha256',
     ),
 ]
 
