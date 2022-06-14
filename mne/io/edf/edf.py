@@ -573,8 +573,9 @@ def _parse_prefilter_string(prefiltering):
 def _edf_str(x):
     return x.decode('latin-1').split('\x00')[0]
 
+
 def _edf_str_num(x):
-    return _edf_str(x).replace(",",".")
+    return _edf_str(x).replace(",", ".")
 
 
 def _read_edf_header(fname, exclude, infer_types):
