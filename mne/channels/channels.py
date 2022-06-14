@@ -1553,7 +1553,7 @@ def read_ch_adjacency(fname, picks=None):
                   if a.name == ch_adj_name][0]
         fname = ch_adj.fname
         templates_dir = Path(__file__).resolve().parent / 'data' / 'neighbors'
-        fname = _check_fname(
+        fname = _check_fname(  # only needed to convert to a string
             fname=templates_dir / fname,
             overwrite='read',
             must_exist=True
