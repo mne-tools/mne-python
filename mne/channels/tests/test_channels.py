@@ -284,6 +284,7 @@ def test_adjacency_matches_ft(tmp_path):
 
     builtin_neighbors_dir = Path(__file__).parents[1] / 'data' / 'neighbors'
     ft_neighbors_dir = tmp_path
+    del tmp_path
 
     # Download the known neighbors from FieldTrip
     #
@@ -297,7 +298,7 @@ def test_adjacency_matches_ft(tmp_path):
                     f'template/neighbours/{fname}',
                 known_hash=None,
                 fname=fname,
-                path=tmp_path,
+                path=ft_neighbors_dir,
             )
         except requests.HTTPError as e:
             if e.response.status_code == 404:
