@@ -4,6 +4,7 @@ Datasets Overview
 #################
 
 .. sidebar:: Contributing datasets to MNE-Python
+    :class: sd-card sd-shadow-sm
 
     Do not hesitate to contact MNE-Python developers on the
     `MNE Forum <https://mne.discourse.group>`_ to discuss the possibility of
