@@ -1459,12 +1459,12 @@ def get_builtin_ch_adjacencies(*, descriptions=False):
     if descriptions:
         return sorted(
             [(m.name, m.description) for m in _BUILTIN_CHANNEL_ADJACENCIES],
-             key=lambda x: x[0].casefold()  # only sort based on name
+            key=lambda x: x[0].casefold()  # only sort based on name
         )
     else:
         return sorted(
             [m.name for m in _BUILTIN_CHANNEL_ADJACENCIES],
-             key=str.casefold
+            key=str.casefold
         )
 
 
