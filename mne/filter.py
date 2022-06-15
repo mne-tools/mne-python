@@ -308,7 +308,7 @@ def _firwin_design(N, freq, gain, window, sfreq):
                                  % (N, transition * sfreq / 2., this_N))
             # Construct a lowpass
             this_h = firwin(this_N, (prev_freq + this_freq) / 2.,
-                            window=window, pass_zero=True, nyq=freq[-1])
+                            window=window, pass_zero=True, fs=freq[-1] * 2)
             assert this_h.shape == (this_N,)
             offset = (N - this_N) // 2
             if this_gain == 0:

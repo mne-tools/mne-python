@@ -94,6 +94,7 @@ Configuring git
 ~~~~~~~~~~~~~~~
 
 .. sidebar:: Git GUI alternative
+    :class: sd-card sd-shadow-sm
 
     `GitHub desktop`_ is a GUI alternative to command line git that some users
     appreciate; it is available for |windows| Windows and |apple| MacOS.
@@ -155,15 +156,16 @@ into a terminal and you should see ::
 If you don't see this or something similar:
 
 .. sidebar:: If you get:
+    :class: sd-card sd-shadow-sm
 
-   *bash: conda: command not found*
+    *bash: conda: command not found*
 
-   you need to add
+    you need to add
 
-   - :file:`{path_to_Anaconda}`
-   - :file:`{path_to_Anaconda}\\Scripts`
+    - :file:`{path_to_Anaconda}`
+    - :file:`{path_to_Anaconda}\\Scripts`
 
-   to Windows-PATH.
+    to Windows-PATH.
 
 - For Linux/MacOS, get `GNU Make`_
 - For Windows, you can install make for git BASH (which comes with `git for Windows`_):
@@ -185,7 +187,7 @@ Once you have git installed and configured, and before creating your local copy
 of the codebase, go to the `MNE-Python GitHub`_ page and create a `fork`_ into
 your GitHub user account.
 
-.. image:: https://help.github.com/assets/images/help/repository/fork_button.jpg
+.. image:: https://docs.github.com/assets/cb-28613/images/help/repository/fork_button.png
 
 This will create a copy of the MNE-Python codebase inside your GitHub user
 account (this is called "your fork"). Changes you make to MNE-Python will
@@ -203,6 +205,7 @@ Creating the virtual environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: Supported Python environments
+    :class: sd-card sd-shadow-sm
 
     We strongly recommend the `Anaconda`_ or `Miniconda`_ environment managers
     for Python. Other setups are possible but are not officially supported by
@@ -340,6 +343,7 @@ feature, you should first synchronize your local ``main`` branch with the
     $ git checkout -b new-feature-x  # create local branch "new-feature-x" and check it out
 
 .. sidebar:: Alternative
+    :class: sd-card sd-shadow-sm
 
     You can save some typing by using ``git pull upstream/main`` to replace
     the ``fetch`` and ``merge`` lines above.
@@ -826,6 +830,7 @@ Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: pytest flags
+    :class: sd-card sd-shadow-sm
 
     The ``-x`` flag exits the pytest run when any test fails; this can speed
     up debugging when running all tests in a file or module.

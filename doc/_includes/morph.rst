@@ -24,11 +24,12 @@ Why morphing?
 ~~~~~~~~~~~~~
 
 .. sidebar:: Morphing examples in MNE-Python
+    :class: sd-card sd-shadow-sm
 
-   Examples of morphing in MNE-Python include :ref:`this tutorial
-   <tut-mne-fixed-free>` on surface source estimation or these examples on
-   :ref:`surface <ex-morph-surface>` and :ref:`volumetric <ex-morph-volume>`
-   source estimation.
+    Examples of morphing in MNE-Python include :ref:`this tutorial
+    <tut-mne-fixed-free>` on surface source estimation or these examples on
+    :ref:`surface <ex-morph-surface>` and :ref:`volumetric <ex-morph-volume>`
+    source estimation.
 
 Modern neuroimaging techniques, such as source reconstruction or fMRI analyses,
 make use of advanced mathematical models and hardware to map brain activity
