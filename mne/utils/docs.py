@@ -1301,6 +1301,12 @@ forward : instance of Forward | None
     .. versionadded:: 0.21
 """
 
+docdict['fullscreen'] = """
+fullscreen : bool
+    Whether to start in fullscreen (``True``) or windowed mode
+    (``False``).
+"""
+
 applyfun_fun_base = """
 fun : callable
     A function to be applied to the channels. The first argument of
