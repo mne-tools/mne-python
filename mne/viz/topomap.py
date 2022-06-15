@@ -2727,8 +2727,12 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     bridged_idx : list of tuple
         The indices of channels marked as bridged with each bridged
         pair stored as a tuple.
-    ed_matrix : ndarray of float, shape (n_channels, n_channels)
+        Can be generated via
+        :func:`mne.preprocessing.compute_bridged_electrodes`.
+    ed_matrix : array of float, shape (n_channels, n_channels)
         The electrical distance matrix for each pair of EEG electrodes.
+        Can be generated via
+        :func:`mne.preprocessing.compute_bridged_electrodes`.
     title : str
         A title to add to the plot.
     topomap_args : dict | None
@@ -2738,17 +2742,24 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     -------
     fig : instance of matplotlib.figure.Figure
         The topoplot figure handle.
+
+    See Also
+    --------
+    mne.preprocessing.compute_bridged_electrodes
     """
     import matplotlib.pyplot as plt
     if topomap_args is None:
         topomap_args = dict()
     else:
         topomap_args = topomap_args.copy()  # don't change original
+    picks = pick_types(info, eeg=True)
     topomap_args.setdefault('image_interp', 'nearest')
     topomap_args.setdefault('cmap', 'summer_r')
-    topomap_args.setdefault('names', info.ch_names)
+    topomap_args.setdefault('names', pick_info(info, picks).ch_names)
     topomap_args.setdefault('show_names', True)
     topomap_args.setdefault('contours', False)
+    sphere = topomap_args['sphere'] if 'sphere' in topomap_args \
+        else _check_sphere(None)
     if 'axes' not in topomap_args:
         fig, ax = plt.subplots()
         topomap_args['axes'] = ax
@@ -2757,9 +2768,6 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     # handle colorbar here instead of in plot_topomap
     colorbar = topomap_args.pop('colorbar') if \
         'colorbar' in topomap_args else True
-    # use sphere to find positions
-    sphere = topomap_args['sphere'] if 'sphere' in topomap_args else None
-    picks = pick_types(info, eeg=True)
     if ed_matrix.shape[1:] != (picks.size, picks.size):
         raise RuntimeError(
             f'Expected {(ed_matrix.shape[0], picks.size, picks.size)} '
@@ -2770,13 +2778,13 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     for epo_idx in range(ed_matrix.shape[0]):
         ed_matrix[epo_idx][tril_idx] = ed_matrix[epo_idx].T[tril_idx]
     elec_dists = np.median(np.nanmin(ed_matrix, axis=1), axis=0)
-    pos = _find_topomap_coords(info, picks, sphere=sphere)
-    im, cn = plot_topomap(elec_dists, info, **topomap_args)
+    im, cn = plot_topomap(elec_dists, pick_info(info, picks), **topomap_args)
     fig = im.figure if fig is None else fig
     # add bridged connections
     for idx0, idx1 in bridged_idx:
-        im.axes.plot([pos[idx0][0], pos[idx1][0]],
-                     [pos[idx0][1], pos[idx1][1]], color='r')
+        pos = _find_topomap_coords(info, [idx0, idx1], sphere=sphere)
+        im.axes.plot([pos[0, 0], pos[1, 0]],
+                     [pos[0, 1], pos[1, 1]], color='r')
     if title is not None:
         im.axes.set_title(title)
     if colorbar:

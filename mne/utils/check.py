@@ -826,7 +826,7 @@ def _check_qt_version(*, return_api=False):
             if not _compare_version(version, '>=', '5.10'):
                 warn(f'macOS users should use {api} >= 5.10 for GUIs, '
                      f'got {version}. Please upgrade e.g. with:\n\n'
-                     f'    pip install "{api}>=5.10,<5.14"\n')
+                     f'    pip install "{api}>=5.10"\n')
     if return_api:
         return version, api
     else:
