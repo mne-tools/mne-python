@@ -540,7 +540,9 @@ class _IpyBrainMplCanvas(_AbstractBrainMplCanvas, _IpyMplInterface):
 
 
 class _IpyWindow(_AbstractWindow):
-    def _window_initialize(self, window=None, central_layout=None):
+    def _window_initialize(
+        self, *, window=None, central_layout=None, fullscreen=False
+    ):
         super()._window_initialize()
         self._window_load_icons()
 
@@ -709,8 +711,9 @@ class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
         self._status_bar = None
         self._file_picker = _FilePicker(rows=10)
         kwargs["notebook"] = True
+        fullscreen = kwargs.pop('fullscreen', False)
         super().__init__(*args, **kwargs)
-        self._window_initialize()
+        self._window_initialize(fullscreen=fullscreen)
 
     def _update(self):
         if self.figure.display is not None:

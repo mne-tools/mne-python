@@ -249,6 +249,11 @@ def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
     # Coregistration instance should survive
     assert isinstance(coreg.coreg, Coregistration)
 
+    # Fullscreen mode
+    coreg = coregistration(
+        subject='sample', subjects_dir=subjects_dir, fullscreen=True
+    )
+
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
