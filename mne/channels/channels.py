@@ -1451,7 +1451,6 @@ def get_builtin_ch_adjacencies(*, descriptions=False):
 
         If ``descriptions=True``, a list of tuples ``(name, description)``.
 
-
     Notes
     -----
     .. versionadded:: 1.1
