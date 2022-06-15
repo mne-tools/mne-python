@@ -1419,7 +1419,7 @@ def read_ch_adjacency(fname, picks=None):
 
         .. note::
             You can retrieve the names of all
-            built-in FieldTrip channel adjacencies via
+            built-in channel adjacencies via
             :func:`mne.channels.get_builtin_ch_adjacencies`.
     %(picks_all)s
         Picks must match the template.
