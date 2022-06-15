@@ -440,10 +440,21 @@ print(mini_adjacency[0])
 # for computing adjacency matrices, for example:
 #
 # * :func:`mne.channels.find_ch_adjacency`
-# * :func:`mne.channels.read_ch_adjacency`
 # * :func:`mne.stats.combine_adjacency`
 #
 # See the :ref:`Statistics API <api_reference_statistics>` for a full list.
+#
+# MNE also ships with numerous built-in channel adjacencies matrixes from the
+# FieldTrip project (called "neighbors" there). You can get an overview of
+# them by using :func:`mne.channels.get_builtin_ch_adjacencies`:
+
+builtin_ch_adj = mne.channels.get_builtin_ch_adjacencies(descriptions=True)
+for adj_name, adj_description in builtin_ch_adj:
+    print(f'{adj_name}: {adj_description}')
+
+# %%
+# These built-in channel adjacency matrices can be loaded via
+# :func:`mne.channels.read_ch_adjacency`.
 #
 # Standard clustering
 # ~~~~~~~~~~~~~~~~~~~
