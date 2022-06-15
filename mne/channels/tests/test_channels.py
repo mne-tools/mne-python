@@ -276,21 +276,15 @@ def test_read_ch_adjacency(tmp_path):
         assert_equal(ch_adjacency.shape[0], len(ch_names))
 
 
-@pytest.mark.slowtest
-def test_adjacency_matches_ft(tmp_path):
+def _download_ft_neighbors(target_dir):
+    """Download the known neighbors from FieldTrip."""
     import pooch
     import requests
     pooch.get_logger().setLevel('ERROR')  # reduce verbosity
 
-    builtin_neighbors_dir = Path(__file__).parents[1] / 'data' / 'neighbors'
-    ft_neighbors_dir = tmp_path
-    del tmp_path
-
-    # Download the known neighbors from FieldTrip
-    #
     # The entire FT repository is larger than a GB, so we'll just download
     # the few files we need.
-    def _download_ft_neighbor(neighbor):
+    def _download_one_ft_neighbor(neighbor):
         fname = neighbor.fname
         try:
             pooch.retrieve(
@@ -298,7 +292,7 @@ def test_adjacency_matches_ft(tmp_path):
                     f'template/neighbours/{fname}',
                 known_hash=None,
                 fname=fname,
-                path=ft_neighbors_dir,
+                path=target_dir,
             )
         except requests.HTTPError as e:
             if e.response.status_code == 404:
@@ -308,14 +302,22 @@ def test_adjacency_matches_ft(tmp_path):
                 raise
 
     parallel, p_fun, _ = parallel_func(
-        func=_download_ft_neighbor, n_jobs=-1
+        func=_download_one_ft_neighbor, n_jobs=-1
     )
     parallel(
         p_fun(neighbor)
         for neighbor in _BUILTIN_CHANNEL_ADJACENCIES
     )
 
-    # The actual test begins here.
+
+@pytest.mark.slowtest
+def test_adjacency_matches_ft(tmp_path):
+    builtin_neighbors_dir = Path(__file__).parents[1] / 'data' / 'neighbors'
+    ft_neighbors_dir = tmp_path
+    del tmp_path
+
+    _download_ft_neighbors(target_dir=ft_neighbors_dir)
+
     for adj in _BUILTIN_CHANNEL_ADJACENCIES:
         fname = adj.fname
         if not (ft_neighbors_dir / fname).exists():
