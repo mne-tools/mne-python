@@ -33,12 +33,11 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
-                    _set_3d_axes_equal)
+                    _set_3d_axes_equal, _check_type_projs)
 from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
-from ..io.proj import Projection
 
 
 _fnirs_types = ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')
@@ -309,13 +308,28 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
     -----
     .. versionadded:: 0.9.0
     """
+    fig = _plot_projs_topomap(
+        projs, info, cmap=cmap, sensors=sensors, colorbar=colorbar, res=res,
+        size=size, outlines=outlines, contours=contours,
+        image_interp=image_interp, axes=axes, vlim=vlim, sphere=sphere,
+        extrapolate=extrapolate, border=border)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        tight_layout(fig=fig)
+    plt_show(show)
+    return fig
+
+
+def _plot_projs_topomap(projs, info, cmap=None, sensors=True,
+                        colorbar=False, res=64, size=1, show=True,
+                        outlines='head', contours=6,
+                        image_interp=_INTERPOLATION_DEFAULT,
+                        axes=None, vlim=(None, None),
+                        sphere=None, extrapolate=_EXTRAPOLATE_DEFAULT,
+                        border=_BORDER_DEFAULT):
     import matplotlib.pyplot as plt
     sphere = _check_sphere(sphere, info)
-
-    # be forgiving if `projs` isn't a list
-    if isinstance(projs, Projection):
-        projs = [projs]
-
+    projs = _check_type_projs(projs)
     _validate_type(info, 'info', 'info')
 
     types, datas, poss, spheres, outliness, ch_typess = [], [], [], [], [], []
@@ -401,10 +415,6 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
             _add_colorbar(ax, im, cmap)
 
     fig = ax.get_figure()
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('ignore')
-        tight_layout(fig=fig)
-    plt_show(show)
     return fig
 
 
@@ -2717,8 +2727,12 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     bridged_idx : list of tuple
         The indices of channels marked as bridged with each bridged
         pair stored as a tuple.
-    ed_matrix : ndarray of float, shape (n_channels, n_channels)
+        Can be generated via
+        :func:`mne.preprocessing.compute_bridged_electrodes`.
+    ed_matrix : array of float, shape (n_channels, n_channels)
         The electrical distance matrix for each pair of EEG electrodes.
+        Can be generated via
+        :func:`mne.preprocessing.compute_bridged_electrodes`.
     title : str
         A title to add to the plot.
     topomap_args : dict | None
@@ -2728,17 +2742,24 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     -------
     fig : instance of matplotlib.figure.Figure
         The topoplot figure handle.
+
+    See Also
+    --------
+    mne.preprocessing.compute_bridged_electrodes
     """
     import matplotlib.pyplot as plt
     if topomap_args is None:
         topomap_args = dict()
     else:
         topomap_args = topomap_args.copy()  # don't change original
+    picks = pick_types(info, eeg=True)
     topomap_args.setdefault('image_interp', 'nearest')
     topomap_args.setdefault('cmap', 'summer_r')
-    topomap_args.setdefault('names', info.ch_names)
+    topomap_args.setdefault('names', pick_info(info, picks).ch_names)
     topomap_args.setdefault('show_names', True)
     topomap_args.setdefault('contours', False)
+    sphere = topomap_args['sphere'] if 'sphere' in topomap_args \
+        else _check_sphere(None)
     if 'axes' not in topomap_args:
         fig, ax = plt.subplots()
         topomap_args['axes'] = ax
@@ -2747,9 +2768,6 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     # handle colorbar here instead of in plot_topomap
     colorbar = topomap_args.pop('colorbar') if \
         'colorbar' in topomap_args else True
-    # use sphere to find positions
-    sphere = topomap_args['sphere'] if 'sphere' in topomap_args else None
-    picks = pick_types(info, eeg=True)
     if ed_matrix.shape[1:] != (picks.size, picks.size):
         raise RuntimeError(
             f'Expected {(ed_matrix.shape[0], picks.size, picks.size)} '
@@ -2760,13 +2778,13 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     for epo_idx in range(ed_matrix.shape[0]):
         ed_matrix[epo_idx][tril_idx] = ed_matrix[epo_idx].T[tril_idx]
     elec_dists = np.median(np.nanmin(ed_matrix, axis=1), axis=0)
-    pos = _find_topomap_coords(info, picks, sphere=sphere)
-    im, cn = plot_topomap(elec_dists, info, **topomap_args)
+    im, cn = plot_topomap(elec_dists, pick_info(info, picks), **topomap_args)
     fig = im.figure if fig is None else fig
     # add bridged connections
     for idx0, idx1 in bridged_idx:
-        im.axes.plot([pos[idx0][0], pos[idx1][0]],
-                     [pos[idx0][1], pos[idx1][1]], color='r')
+        pos = _find_topomap_coords(info, [idx0, idx1], sphere=sphere)
+        im.axes.plot([pos[0, 0], pos[1, 0]],
+                     [pos[0, 1], pos[1, 1]], color='r')
     if title is not None:
         im.axes.set_title(title)
     if colorbar:

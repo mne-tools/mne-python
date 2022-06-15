@@ -20,6 +20,10 @@ from ..defaults import HEAD_SIZE_DEFAULT
 
 
 def _reflow_param_docstring(docstring, has_first_line=True, width=75):
+    """Reflow text to a nice width for terminals.
+
+    WARNING: does not handle gracefully things like .. versionadded::
+    """
     maxsplit = docstring.count('\n') - 1 if has_first_line else -1
     merged = ' '.join(line.strip() for line in
                       docstring.rsplit('\n', maxsplit=maxsplit))
@@ -1850,11 +1854,14 @@ mode : None | 'mean' | 'max' | 'svd'
 
 docdict['montage'] = """
 montage : None | str | DigMontage
-    A montage containing channel positions. If str or DigMontage is
-    specified, the channel info will be updated with the channel
-    positions. Default is None. For valid :class:`str` values see documentation
-    of :func:`mne.channels.make_standard_montage`. See also the documentation
-    of :class:`mne.channels.DigMontage` for more information.
+    A montage containing channel positions. If a string or
+    :class:`~mne.channels.DigMontage` is
+    specified, the existing channel information will be updated with the
+    channel positions from the montage. Valid strings are the names of the
+    built-in montages that ship with MNE-Python; you can list those via
+    :func:`mne.channels.get_builtin_montages`.
+    If ``None`` (default), the channel positions will be removed from the
+    :class:`~mne.Info`.
 """
 
 docdict['montage_types'] = """EEG/sEEG/ECoG/DBS/fNIRS"""
@@ -2242,35 +2249,50 @@ docdict['pick_ori_novec'] = """
 pick_ori : None | "normal"
 """ + _pick_ori_novec
 
-picks_header = 'picks : str | list | slice | None'
-picks_intro = ('Channels to include. Slices and lists of integers will be '
-               'interpreted as channel indices.')
-_reminder = ("Note that channels in ``info['bads']`` *will be included* if "
-             "their {}indices are explicitly provided.")
-reminder = _reminder.format('names or ')
-reminder_nostr = _reminder.format('')
-noref = f'(excluding reference MEG channels). {reminder}'
-picks_base = f"""{picks_header}
-    {picks_intro} In lists, channel *type* strings
+_picks_types = 'str | list | slice | None'
+_picks_header = f'picks : {_picks_types}'
+_picks_desc = 'Channels to include.'
+_picks_int = ('Slices and lists of integers will be interpreted as channel '
+              'indices.')
+_picks_str = """In lists, channel *type* strings
     (e.g., ``['meg', 'eeg']``) will pick channels of those
     types, channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
     will pick the given channels. Can also be the string values
     "all" to pick all channels, or "data" to pick :term:`data channels`.
     None (default) will pick"""
-docdict['picks_all'] = f'{picks_base} all channels. {reminder}'
-docdict['picks_all_data'] = f'{picks_base} all data channels. {reminder}'
-docdict['picks_all_data_noref'] = f'{picks_base} all data channels {noref}'
-docdict['picks_base'] = picks_base      # couple places (e.g., BaseEpochs)
-docdict['picks_good_data'] = f'{picks_base} good data channels. {reminder}'
+_reminder = ("Note that channels in ``info['bads']`` *will be included* if "
+             "their {}indices are explicitly provided.")
+reminder = _reminder.format('names or ')
+reminder_nostr = _reminder.format('')
+noref = f'(excluding reference MEG channels). {reminder}'
+picks_base = f"""{_picks_header}
+    {_picks_desc} {_picks_int} {_picks_str}"""
+docdict['picks_all'] = _reflow_param_docstring(
+    f'{picks_base} all channels. {reminder}')
+docdict['picks_all_data'] = _reflow_param_docstring(
+    f'{picks_base} all data channels. {reminder}')
+docdict['picks_all_data_noref'] = _reflow_param_docstring(
+    f'{picks_base} all data channels {noref}')
+docdict['picks_base'] = _reflow_param_docstring(picks_base)
+docdict['picks_good_data'] = _reflow_param_docstring(
+    f'{picks_base} good data channels. {reminder}')
 docdict['picks_good_data_noref'] = _reflow_param_docstring(
     f'{picks_base} good data channels {noref}')
-docdict['picks_header'] = picks_header  # these get reused as stubs in a
+docdict['picks_header'] = _picks_header
 docdict['picks_ica'] = """
 picks : int | list of int | slice | None
     Indices of the ICA components to visualize.
 """
 docdict['picks_nostr'] = f"""picks : list | slice | None
-    {picks_intro} None (default) will pick all channels. {reminder_nostr}"""
+    {_picks_desc} {_picks_int}
+    None (default) will pick all channels. {reminder_nostr}"""
+
+docdict['picks_plot_projs_joint_trace'] = f"""\
+picks_trace : {_picks_types}
+    Channels to show alongside the projected time courses. Typically
+    these are the ground-truth channels for an artifact (e.g., ``'eog'`` or
+    ``'ecg'``). {_picks_int} {_picks_str} no channels.
+"""
 
 docdict['picks_plot_psd_good_data'] = \
     f'{picks_base} good data channels. {reminder}'[:-2] + """
@@ -2731,6 +2753,18 @@ sdr_morph : instance of dipy.align.DiffeomorphicMap
     (SDR) morph.
 """
 
+docdict['section_report'] = """
+section : str | None
+    The name of the section (or content block) to add the content to. This
+    feature is useful for grouping multiple related content elements
+    together under a single, collapsible section. Each content element will
+    retain its own title and functionality, but not appear separately in the
+    table of contents. Hence, using sections is a way to declutter the table
+    of contents, and to easy navigation of the report.
+
+    .. versionadded:: 1.1
+"""
+
 docdict['seed'] = """
 seed : None | int | instance of ~numpy.random.RandomState
     A seed for the NumPy random number generator (RNG). If ``None`` (default),
@@ -2874,31 +2908,42 @@ spatial_colors : bool
     Whether to use spatial colors. Only used when ``average=False``.
 """
 
-docdict['sphere_topomap'] = """
-sphere : float | array-like | instance of ConductorModel
-    The sphere parameters to use for the cartoon head.
-    Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
-    meters, or a single float to give the radius (origin assumed 0, 0, 0).
-    Can also be a spherical ConductorModel, which will use the origin and
-    radius. Can also be None (default) which is an alias for %s.
-    Currently the head radius does not affect plotting.
+_sphere_header = (
+    'sphere : float | array-like | instance of ConductorModel | None')
+_sphere_desc = (
+    'The sphere parameters to use for the head outline. Can be array-like of '
+    'shape (4,) to give the X/Y/Z origin and radius in meters, or a single '
+    'float to give just the radius (origin assumed 0, 0, 0). Can also be an '
+    'instance of a spherical :class:`~mne.bem.ConductorModel` to use the '
+    'origin and radius from that object.'
+)
+_sphere_topo = _reflow_param_docstring(
+    f"""{_sphere_desc} ``None`` (the default) is equivalent to
+    (0, 0, 0, {HEAD_SIZE_DEFAULT}).
+    Currently the head radius does not affect plotting.""",
+    has_first_line=False)
+_sphere_topo_auto = _reflow_param_docstring(
+    f"""{_sphere_desc} If ``'auto'`` the sphere is fit to digitization points.
+    If ``'eeglab'`` the head circle is defined by EEG electrodes ``'Fpz'``,
+    ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will
+    be approximated from the coordinates of ``'Oz'``). ``None`` (the default)
+    is equivalent to ``'auto'`` when enough extra digitization points are
+    available, and (0, 0, 0, {HEAD_SIZE_DEFAULT}) otherwise. Currently the head
+    radius does not affect plotting.""", has_first_line=False)
+docdict['sphere_topomap'] = f"""
+{_sphere_header}
+    {_sphere_topo}
 
     .. versionadded:: 0.20
-""" % (HEAD_SIZE_DEFAULT,)
+"""
 
-docdict['sphere_topomap_auto'] = """
-sphere : float | array-like | str | None
-    The sphere parameters to use for the cartoon head.
-    Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
-    meters, or a single float to give the radius (origin assumed 0, 0, 0).
-    Can also be a spherical ConductorModel, which will use the origin and
-    radius. Can be "auto" to use a digitization-based fit.
-    Can also be None (default) to use 'auto' when enough extra digitization
-    points are available, and %s otherwise.
-    Currently the head radius does not affect plotting.
+docdict['sphere_topomap_auto'] = f"""\
+{_sphere_header} | 'auto' | 'eeglab'
+    {_sphere_topo_auto}
 
     .. versionadded:: 0.20
-""" % (HEAD_SIZE_DEFAULT,)
+    .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+"""
 
 docdict['split_naming'] = """
 split_naming : 'neuromag' | 'bids'

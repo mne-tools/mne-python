@@ -381,7 +381,8 @@ def test_warp_montage_volume():
             montage, CT, reg_affine, sdr_morph, 'sample', thresh=11.)
     with pytest.raises(ValueError, match='subject folder is incorrect'):
         warp_montage_volume(
-            montage, CT, reg_affine, sdr_morph, subject_from='foo')
+            montage, CT, reg_affine, sdr_morph, subject_from='foo',
+            subjects_dir_from=subjects_dir)
     CT_unaligned = nib.Nifti1Image(CT_data, template_brain.affine)
     with pytest.raises(RuntimeError, match='not aligned to Freesurfer'):
         warp_montage_volume(montage, CT_unaligned, reg_affine,

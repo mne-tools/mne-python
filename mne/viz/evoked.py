@@ -193,17 +193,19 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
     _draw_outlines(ax, outlines)
 
 
-def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
-                 units, scalings, titles, axes, plot_type, cmap=None,
+def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
+                 ylim=None, proj=False, xlim='tight', hline=None,
+                 units=None, scalings=None, titles=None, axes=None,
+                 plot_type='butterfly', cmap=None,
                  gfp=False, window_title=None, spatial_colors=False,
                  selectable=True, zorder='unsorted',
                  noise_cov=None, colorbar=True, mask=None, mask_style=None,
                  mask_cmap=None, mask_alpha=.25, time_unit='s',
                  show_names=False, group_by=None, sphere=None, *,
-                 highlight=None):
+                 highlight=None, draw=True):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
-    Extra param is:
+    Extra params are:
 
     plot_type : str, value ('butterfly' | 'image')
         The type of graph to plot: 'butterfly' plots each channel as a line
@@ -211,6 +213,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         color depicts the amplitude of each channel at a given time point
         (x axis: time, y axis: channel). In 'image' mode, the plot is not
         interactive.
+    draw : bool
+        If True, draw at the end.
     """
     import matplotlib.pyplot as plt
 
@@ -247,7 +251,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                          mask_style=mask_style, mask_cmap=mask_cmap,
                          mask_alpha=mask_alpha, time_unit=time_unit,
                          show_names=show_names,
-                         sphere=sphere)
+                         sphere=sphere, draw=False)
             if remove_xlabels and not _is_last_row(ax):
                 ax.set_xticklabels([])
                 ax.set_xlabel("")
@@ -384,7 +388,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         _draw_proj_checkbox(None, params)
 
     plt.setp(fig.axes[:len(ch_types_used) - 1], xlabel='')
-    fig.canvas.draw()  # for axes plots update axes.
+    if draw:
+        fig.canvas.draw()  # for axes plots update axes.
     plt_show(show)
     return fig
 
@@ -1508,7 +1513,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                        proj=False, hline=None, units=None, scalings=None,
                        titles=None, gfp=False, window_title=None,
                        spatial_colors=True, zorder='std',
-                       sphere=None)
+                       sphere=None, draw=False)
     ts_args_def.update(ts_args)
     _plot_evoked(evoked, axes=ts_ax, show=False, plot_type='butterfly',
                  exclude=[], **ts_args_def)
@@ -2299,8 +2304,8 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     picks, picked_types = _picks_to_idx(info, picks, return_kind=True)
     # some things that depend on picks:
     ch_names = np.array(one_evoked.ch_names)[picks].tolist()
-    ch_types = list(_get_channel_types(info, picks=picks, unique=True)
-                    .intersection(_DATA_CH_TYPES_SPLIT + ('misc',)))  # miscICA
+    ch_types = [t for t in _get_channel_types(info, picks=picks, unique=True)
+                if t in _DATA_CH_TYPES_SPLIT + ('misc',)]  # miscICA
     picks_by_type = channel_indices_by_type(info, picks)
     # discard picks from non-data channels (e.g., ref_meg)
     good_picks = sum([picks_by_type[ch_type] for ch_type in ch_types], [])
