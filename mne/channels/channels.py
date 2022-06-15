@@ -1428,26 +1428,44 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
 
 
 @fill_doc
-def get_builtin_ch_adjacencies():
+def get_builtin_ch_adjacencies(*, descriptions=False):
     """Get a list of all FieldTrip neighbor definitions shipping with MNE.
 
     The names of the these neighbor definitions can be passed to
     :func:`read_ch_adjacency`.
 
+    Parameters
+    ----------
+    descriptions : bool
+        Whether to return not only the neighbor definition names, but also
+        their corresponding descriptions. If ``True``, a list of tuples is
+        returned, where the first tuple element is the neighbor definition name
+        and the second is the description. If ``False`` (default), only the
+        names are returned.
+
     Returns
     -------
-    neighbor_name : list of str
-        The names of all builtin FieldTrip neighbor definitions that can
-        be loaded directly via :func:`read_ch_adjacency`.
+    neighbor_name : list of str | list of tuple
+        If ``descriptions=False``, the names of all builtin FieldTrip neighbor
+        definitions that can be loaded directly via :func:`read_ch_adjacency`.
+
+        If ``descriptions=True``, a list of tuples ``(name, description)``.
+
 
     Notes
     -----
     .. versionadded:: 1.1
     """
-    return sorted(
-        [m.name for m in _BUILTIN_CHANNEL_ADJACENCIES],
-        key=str.casefold
-    )
+    if descriptions:
+        return sorted(
+            [(m.name, m.description) for m in _BUILTIN_CHANNEL_ADJACENCIES],
+             key=lambda x: x[0].casefold()  # only sort based on name
+        )
+    else:
+        return sorted(
+            [m.name for m in _BUILTIN_CHANNEL_ADJACENCIES],
+             key=str.casefold
+        )
 
 
 @fill_doc

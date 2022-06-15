@@ -192,6 +192,10 @@ def test_get_builtin_ch_adjacencies():
     assert len(names) == len(set(names))  # no duplicates
     assert len(names) == len(_BUILTIN_CHANNEL_ADJACENCIES)
 
+    names_and_descriptions = get_builtin_ch_adjacencies(descriptions=True)
+    for name_and_description in names_and_descriptions:
+        assert len(name_and_description) == 2
+
 
 def test_read_ch_adjacency(tmp_path):
     """Test reading channel adjacency templates."""
