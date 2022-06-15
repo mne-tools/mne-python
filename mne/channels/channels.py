@@ -1330,25 +1330,25 @@ _BUILTIN_CHANNEL_ADJACENCIES = [
     ),
     _BuiltinChannelAdjacency(
         name='neuromag306mag',
-        description='Neuromag306, only magnetometer',
+        description='Neuromag306, only magnetometers',
         fname='neuromag306mag_neighb.mat',
         source_url=_ft_neighbor_url_t.substitute(fname='neuromag306mag_neighb.mat'),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name='neuromag306planar',
-        description='Neuromag306, only planar gradiometer',
+        description='Neuromag306, only planar gradiometers',
         fname='neuromag306planar_neighb.mat',
         source_url=_ft_neighbor_url_t.substitute(fname='neuromag306planar_neighb.mat'),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name='neuromag122cmb',
-        description='',
+        description='Neuromag122, only combined planar gradiometers',
         fname='neuromag122cmb_neighb.mat',
         source_url=_ft_neighbor_url_t.substitute(fname='neuromag122cmb_neighb.mat'),  # noqa: E501
     ),
     _BuiltinChannelAdjacency(
         name='neuromag306cmb',
-        description='',
+        description='Neuromag306, only combined planar gradiometers',
         fname='neuromag306cmb_neighb.mat',
         source_url=_ft_neighbor_url_t.substitute(fname='neuromag306cmb_neighb.mat'),  # noqa: E501
     ),
