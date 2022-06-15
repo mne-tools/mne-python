@@ -312,6 +312,7 @@ def _download_ft_neighbors(target_dir):
 
 @pytest.mark.slowtest
 def test_adjacency_matches_ft(tmp_path):
+    """Test correspondence of built-in adjacency matrices with FT repo."""
     builtin_neighbors_dir = Path(__file__).parents[1] / 'data' / 'neighbors'
     ft_neighbors_dir = tmp_path
     del tmp_path
