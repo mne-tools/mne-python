@@ -22,11 +22,12 @@ from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
 from mne.io.proj import make_eeg_average_ref_proj, Projection
 from mne.io import read_raw_fif, read_info, RawArray
 from mne.io.constants import FIFF
-from mne.io.pick import pick_info, channel_indices_by_type
+from mne.io.pick import pick_info, channel_indices_by_type, _picks_to_idx
 from mne.io.compensator import get_current_comp
 from mne.channels import (read_layout, make_dig_montage, make_standard_montage,
                           find_ch_adjacency)
 from mne.datasets import testing
+from mne.preprocessing import compute_bridged_electrodes
 from mne.time_frequency.tfr import AverageTFR
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
@@ -729,6 +730,13 @@ def test_plot_bridged_electrodes():
 
     with pytest.raises(RuntimeError, match='Expected'):
         plot_bridged_electrodes(info, bridged_idx, np.zeros((5, 6, 7)))
+
+    # test with multiple channel types
+    raw = read_raw_fif(raw_fname, preload=True)
+    picks = _picks_to_idx(raw.info, "eeg")
+    raw._data[picks[0]] = raw._data[picks[1]]  # artificially bridge electrodes
+    bridged_idx, ed_matrix = compute_bridged_electrodes(raw)
+    plot_bridged_electrodes(raw.info, bridged_idx, ed_matrix)
 
 
 def test_plot_ch_adjacency():
