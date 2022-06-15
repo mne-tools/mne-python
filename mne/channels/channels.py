@@ -1395,7 +1395,7 @@ def get_builtin_ch_adjacencies():
 
     Notes
     -----
-    .. versionadded:: 1.2
+    .. versionadded:: 1.1
     """
     return sorted(
         [m.name for m in _BUILTIN_CHANNEL_ADJACENCIES],
