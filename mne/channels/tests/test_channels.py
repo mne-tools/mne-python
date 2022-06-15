@@ -20,7 +20,7 @@ from mne.channels import (rename_channels, read_ch_adjacency, combine_channels,
                           get_builtin_ch_adjacencies)
 from mne.channels.channels import (
     _ch_neighbor_adjacency, _compute_ch_adjacency,
-    _BUILTIN_CHANNEL_ADJACENCIES
+    _BUILTIN_CHANNEL_ADJACENCIES, _BuiltinChannelAdjacency
 )
 from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
                     read_raw_eeglab, read_raw_kit, RawArray)
@@ -279,27 +279,22 @@ def test_read_ch_adjacency(tmp_path):
 def _download_ft_neighbors(target_dir):
     """Download the known neighbors from FieldTrip."""
     import pooch
-    import requests
     pooch.get_logger().setLevel('ERROR')  # reduce verbosity
 
     # The entire FT repository is larger than a GB, so we'll just download
     # the few files we need.
-    def _download_one_ft_neighbor(neighbor):
+    def _download_one_ft_neighbor(
+        neighbor: _BuiltinChannelAdjacency
+    ):
         fname = neighbor.fname
-        try:
-            pooch.retrieve(
-                url=f'https://github.com/fieldtrip/fieldtrip/raw/master/'
-                    f'template/neighbours/{fname}',
-                known_hash=None,
-                fname=fname,
-                path=target_dir,
-            )
-        except requests.HTTPError as e:
-            if e.response.status_code == 404:
-                print(f'{fname} only ships with MNE-Python, but not '
-                      f'with FieldTrip')
-            else:
-                raise
+        url = neighbor.source_url
+
+        pooch.retrieve(
+            url=url,
+            known_hash=None,
+            fname=fname,
+            path=target_dir,
+        )
 
     parallel, p_fun, _ = parallel_func(
         func=_download_one_ft_neighbor, n_jobs=-1
@@ -307,6 +302,7 @@ def _download_ft_neighbors(target_dir):
     parallel(
         p_fun(neighbor)
         for neighbor in _BUILTIN_CHANNEL_ADJACENCIES
+        if neighbor.source_url is not None
     )
 
 
