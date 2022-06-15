@@ -444,7 +444,7 @@ print(mini_adjacency[0])
 #
 # See the :ref:`Statistics API <api_reference_statistics>` for a full list.
 #
-# MNE also ships with numerous built-in channel adjacencies matrixes from the
+# MNE also ships with numerous built-in channel adjacency matrices from the
 # FieldTrip project (called "neighbors" there). You can get an overview of
 # them by using :func:`mne.channels.get_builtin_ch_adjacencies`:
 
