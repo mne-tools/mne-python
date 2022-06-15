@@ -94,9 +94,9 @@ mne.write_surface(conv_dir / 'outer_skull.obj', coords, faces, overwrite=True)
 #
 # You can now edit the surfaces any way you like. See the
 # `Beginner Blender Tutorial Series
-# <https://www.youtube.com/playlist?list=PLxLGgWrla12dEW5mjO09kR2_TzPqDTXdw>`_
+# <https://www.youtube.com/watch?v=nIoXOplUvAw&list=PLjEaoINr3zgFX8ZsChQVQsuDSjEqdWMAD&index=1&t=0s>`_
 # to learn how to use Blender. Specifically, `part 2
-# <http://www.youtube.com/watch?v=RaT-uG5wgUw&t=5m30s>`_ will teach you how to
+# <https://youtu.be/imdYIdv8F4w?t=712>`_ will teach you how to
 # use the basic editing tools you need to fix the surface.
 #
 # .. image:: ../../_static/blender_import_obj/blender_import_obj2.jpg
@@ -235,6 +235,11 @@ coords, faces = mne.read_surface(conv_dir / 'sample-head.obj')
 #     as the *Target* and the *Group* that you created before as the
 #     *Vertex Group*. You can then use the *Offset* parameter to adjust the
 #     distance.
+#
+# .. note:: If nothing happens, the normals of the inner skull surface
+#           may be inverted. To fix this select all the vertices or faces
+#           of the inner skull and go to Mesh>Normals>Flip in the toolbar.
+#
 # ⑨ Apply
 #     In *Object Mode* click on the down-pointing arrow of the *Shrinkwrap*
 #     modifier and click on *Apply*.
