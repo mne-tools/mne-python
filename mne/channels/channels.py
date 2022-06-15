@@ -1563,8 +1563,9 @@ def find_ch_adjacency(info, ch_type):
     See Also
     --------
     mne.viz.plot_ch_adjacency
-    read_ch_adjacency
     mne.stats.combine_adjacency
+    get_builtin_ch_adjacencies
+    read_ch_adjacency
 
     Notes
     -----

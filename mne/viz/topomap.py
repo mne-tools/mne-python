@@ -2826,8 +2826,9 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='2d', edit=False):
 
     See Also
     --------
-    mne.channels.find_ch_adjacency
+    mne.channels.get_builtin_ch_adjacencies
     mne.channels.read_ch_adjacency
+    mne.channels.find_ch_adjacency
 
     Notes
     -----
