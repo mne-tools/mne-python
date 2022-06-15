@@ -1405,7 +1405,7 @@ def get_builtin_ch_adjacencies():
 
 @fill_doc
 def read_ch_adjacency(fname, picks=None):
-    """Read a FieldTrip neighbors ``.mat`` file, or one that ships with MNE.
+    """Read a channel adjacency ("neighbors") file that ships with MNE.
 
     More information on these neighbor definitions can be found on the related
     `FieldTrip documentation pages
