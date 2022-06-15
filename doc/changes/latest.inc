@@ -95,6 +95,8 @@ Enhancements
 
 - :func:`mne.channels.get_builtin_montages` gained a new parameter, ``descriptions``, which allows to retrieve the descriptions of the montages in addition to their names (:gh:`10373` by `Richard Höchenberger`_)
 
+- Add ``include`` option to :meth:`mne.io.read_raw_edf`, :meth:`mne.io.read_raw_bdf` and :meth:`mne.io.read_raw_gdf`. (:gh:`10734` by `Michiru Kaneda`_)
+
 - :func:`mne.gui.coregistration` gained a new parameter, ``fullscreen``, to start the GUI in fullscreen mode (:gh:`10284` by `Richard Höchenberger`_)
 
 Bugs
