@@ -222,6 +222,8 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                 C = U @ U.T
                 # at least on ARM64 we can't rely on np.linalg.solve to
                 # reliably raise LinAlgError here, so use SVD instead
+                # equivalent to:
+                # z = np.linalg.solve(C, np.ones(K))
                 u, s, _ = np.linalg.svd(C, hermitian=True)
                 if s[-1] <= 1e-6 * s[0]:
                     logger.debug("Iteration %d: LinAlg Error" % (i + 1))
