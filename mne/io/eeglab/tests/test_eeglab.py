@@ -382,8 +382,8 @@ def one_chanpos_fname(tmp_path_factory):
     })
 
     with _record_warnings():  # savemat
-       io.savemat(file_name=fname, mdict=file_conent, appendmat=False,
-                  oned_as='row')
+        io.savemat(file_name=fname, mdict=file_conent, appendmat=False,
+                   oned_as='row')
 
     return fname
 
