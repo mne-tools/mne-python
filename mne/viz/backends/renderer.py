@@ -7,8 +7,6 @@
 #
 # License: Simplified BSD
 
-import sys
-import os
 from contextlib import contextmanager
 import importlib
 
