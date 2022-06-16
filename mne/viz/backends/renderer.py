@@ -125,10 +125,6 @@ def set_3d_backend(backend_name, verbose=None):
     if MNE_3D_BACKEND != backend_name:
         _reload_backend(backend_name)
         MNE_3D_BACKEND = backend_name
-
-    # Qt5 macOS 11 compatibility
-    if sys.platform == 'darwin' and 'QT_MAC_WANTS_LAYER' not in os.environ:
-        os.environ['QT_MAC_WANTS_LAYER'] = '1'
     return old_backend_name
 
 
