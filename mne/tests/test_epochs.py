@@ -509,6 +509,15 @@ def test_reject():
             assert_equal(epochs.drop_log[4][0], 'BAD')
         raw.set_annotations(None)
 
+        # rejection with all None / False arguments: no loading / dropping
+        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=[0],
+                        reject=None, flat=None, reject_by_annotation=False,
+                        reject_tmin=None, reject_tmax=None)
+        with catch_logging() as log:
+            epochs.drop_bad(verbose='debug')
+        log = log.getvalue()
+        assert 'is a noop' in log
+
 
 def test_reject_by_annotations_reject_tmin_reject_tmax():
     """Test reject_by_annotations with reject_tmin and reject_tmax defined."""

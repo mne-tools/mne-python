@@ -95,8 +95,16 @@ Enhancements
 
 - :func:`mne.channels.get_builtin_montages` gained a new parameter, ``descriptions``, which allows to retrieve the descriptions of the montages in addition to their names (:gh:`10373` by `Richard Höchenberger`_)
 
+- Add ``include`` option to :meth:`mne.io.read_raw_edf`, :meth:`mne.io.read_raw_bdf` and :meth:`mne.io.read_raw_gdf`. (:gh:`10734` by `Michiru Kaneda`_)
+
+- :func:`mne.gui.coregistration` gained a new parameter, ``fullscreen``, to start the GUI in fullscreen mode (:gh:`10284` by `Richard Höchenberger`_)
+
+- The built-in FieldTrip channel adjacency matrices, which can be read via :func:`~mne.channels.read_ch_adjacency`, have been synchronized with FieldTrip again. This means that numerous new adjacencies have been added, most notably those for standard 10-05 and 10-20 montages (:gh:`10749` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
+
+- Fix bug in :func:`mne.Epochs.drop_bad` where data was loaded although no rejection had to be performed (:gh:`10718` by :newcontrib:`Lukas Gemein`)
 
 - Pick also bad channels when selecting T1T2 magnetometers in :func:`mne.preprocessing.maxwell_filter` (:gh:`10639` by :newcontrib:`Matti Toivonen`)
 
@@ -151,6 +159,10 @@ Bugs
 - In :class:`mne.Report`, some figures would have an undesired border added to the edges; this has now been resolved (:gh:`10730` by `Richard Höchenberger`_)
 
 - Fix selection of EEG channels and selected sphere when plotting bridged electrodes with :func:`mne.viz.plot_bridged_electrodes` (:gh:`10753` by `Mathieu Scheltienne`_)
+
+- Fix broken links in :ref:`tut-fix-meshes` (:gh:`10765` by `Alex Rockhill`_)
+
+- The built-in FieldTrip channel adjacency matrix for ``easycapM1`` had a bug, where the channel ``PO8`` was incorrectly labeled as ``PO6`` This has been resolved by updating the adjacency matrix to the latest version provided by FieldTrip (:gh:`10749` by `Richard Höchenberger`_)
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~

@@ -4,9 +4,10 @@
 # License: BSD-3-Clause
 
 import os.path as op
-
+from pathlib import Path
 from copy import deepcopy
 from functools import partial
+import hashlib
 
 import pytest
 import numpy as np
@@ -15,9 +16,12 @@ from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 
 from mne.channels import (rename_channels, read_ch_adjacency, combine_channels,
                           find_ch_adjacency, make_1020_channel_selections,
-                          read_custom_montage, equalize_channels)
-from mne.channels.channels import (_ch_neighbor_adjacency,
-                                   _compute_ch_adjacency)
+                          read_custom_montage, equalize_channels,
+                          get_builtin_ch_adjacencies)
+from mne.channels.channels import (
+    _ch_neighbor_adjacency, _compute_ch_adjacency,
+    _BUILTIN_CHANNEL_ADJACENCIES, _BuiltinChannelAdjacency
+)
 from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
                     read_raw_eeglab, read_raw_kit, RawArray)
 from mne.io.constants import FIFF
@@ -25,6 +29,7 @@ from mne import (pick_types, pick_channels, EpochsArray, EvokedArray,
                  make_ad_hoc_cov, create_info, read_events, Epochs)
 from mne.datasets import testing
 from mne.utils import requires_pandas, requires_version
+from mne.parallel import parallel_func
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
@@ -180,6 +185,18 @@ def test_set_channel_types():
     pytest.raises(ValueError, raw.set_channel_types, ch_types)
 
 
+def test_get_builtin_ch_adjacencies():
+    """Test retrieving the names of all built-in FieldTrip neighbors."""
+    names = get_builtin_ch_adjacencies()
+    assert names
+    assert len(names) == len(set(names))  # no duplicates
+    assert len(names) == len(_BUILTIN_CHANNEL_ADJACENCIES)
+
+    names_and_descriptions = get_builtin_ch_adjacencies(descriptions=True)
+    for name_and_description in names_and_descriptions:
+        assert len(name_and_description) == 2
+
+
 def test_read_ch_adjacency(tmp_path):
     """Test reading channel adjacency templates."""
     tempdir = str(tmp_path)
@@ -256,6 +273,73 @@ def test_read_ch_adjacency(tmp_path):
     mat_fname = op.join(tempdir, 'test_error_mat.mat')
     savemat(mat_fname, mat, oned_as='row')
     pytest.raises(ValueError, read_ch_adjacency, mat_fname)
+
+    # Try reading all built-in FieldTrip neighbors
+    for name in get_builtin_ch_adjacencies():
+        ch_adjacency, ch_names = read_ch_adjacency(name)
+        assert_equal(ch_adjacency.shape[0], len(ch_names))
+
+
+def _download_ft_neighbors(target_dir):
+    """Download the known neighbors from FieldTrip."""
+    import pooch
+    pooch.get_logger().setLevel('ERROR')  # reduce verbosity
+
+    # The entire FT repository is larger than a GB, so we'll just download
+    # the few files we need.
+    def _download_one_ft_neighbor(
+        neighbor: _BuiltinChannelAdjacency
+    ):
+        fname = neighbor.fname
+        url = neighbor.source_url
+
+        pooch.retrieve(
+            url=url,
+            known_hash=None,
+            fname=fname,
+            path=target_dir,
+        )
+
+    parallel, p_fun, _ = parallel_func(
+        func=_download_one_ft_neighbor, n_jobs=-1
+    )
+    parallel(
+        p_fun(neighbor)
+        for neighbor in _BUILTIN_CHANNEL_ADJACENCIES
+        if neighbor.source_url is not None
+    )
+
+
+@pytest.mark.slowtest
+def test_adjacency_matches_ft(tmp_path):
+    """Test correspondence of built-in adjacency matrices with FT repo."""
+    builtin_neighbors_dir = Path(__file__).parents[1] / 'data' / 'neighbors'
+    ft_neighbors_dir = tmp_path
+    del tmp_path
+
+    _download_ft_neighbors(target_dir=ft_neighbors_dir)
+
+    for adj in _BUILTIN_CHANNEL_ADJACENCIES:
+        fname = adj.fname
+        if not (ft_neighbors_dir / fname).exists():
+            continue  # only exists in MNE, not FT
+
+        hash_mne = hashlib.sha256()
+        hash_ft = hashlib.sha256()
+
+        with open(builtin_neighbors_dir / fname, 'rb') as f:
+            data = f.read()
+            hash_mne.update(data)
+
+        with open(ft_neighbors_dir / fname, 'rb') as f:
+            data = f.read()
+            hash_ft.update(data)
+
+        if hash_mne.hexdigest() != hash_ft.hexdigest():
+            raise ValueError(
+                f'Hash mismatch between built-in and FieldTrip neighbors '
+                f'for {fname}'
+            )
 
 
 def test_get_set_sensor_positions():

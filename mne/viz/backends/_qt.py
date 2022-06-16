@@ -586,13 +586,19 @@ class _QtBrainMplCanvas(_AbstractBrainMplCanvas, _QtMplInterface):
 
 
 class _QtWindow(_AbstractWindow):
-    def _window_initialize(self, window=None, central_layout=None):
+    def _window_initialize(
+        self, *, window=None, central_layout=None, fullscreen=False
+    ):
         super()._window_initialize()
         self._interactor = self.figure.plotter.interactor
         if window is None:
             self._window = self.figure.plotter.app_window
         else:
             self._window = window
+
+        if fullscreen:
+            self._window.setWindowState(Qt.WindowFullScreen)
+
         if central_layout is not None:
             central_widget = self._window.centralWidget()
             if central_widget is None:
@@ -892,8 +898,9 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
     _kind = 'qt'
 
     def __init__(self, *args, **kwargs):
+        fullscreen = kwargs.pop('fullscreen', False)
         super().__init__(*args, **kwargs)
-        self._window_initialize()
+        self._window_initialize(fullscreen=fullscreen)
 
     def show(self):
         super().show()
