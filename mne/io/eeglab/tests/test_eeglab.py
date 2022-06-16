@@ -20,7 +20,7 @@ from mne.io import read_raw_eeglab
 from mne.io.eeglab.eeglab import _get_montage_information, _dol_to_lod
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
-from mne.utils import Bunch, _record_warnings
+from mne.utils import Bunch
 from mne.annotations import events_from_annotations, read_annotations
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
@@ -46,6 +46,9 @@ montage_path = op.join(base_dir, 'test_chans.locs')
 
 
 pymatreader = pytest.importorskip('pymatreader')  # module-level
+# https://gitlab.com/obob/pymatreader/-/issues/13
+filt_warn = pytest.mark.filterwarnings(  # scipy.io.savemat + pymatreader
+    'ignore:.*returning scalar instead.*:FutureWarning')
 
 
 @testing.requires_testing_data
@@ -101,6 +104,7 @@ def test_io_set_raw(fname):
 
 
 @testing.requires_testing_data
+@filt_warn
 def test_io_set_raw_more(tmp_path):
     """Test importing EEGLAB .set files."""
     tmp_path = str(tmp_path)
@@ -222,12 +226,12 @@ def test_io_set_raw_more(tmp_path):
     # test reading channel names but not positions when there is no X (only Z)
     # field in the EEG.chanlocs structure
     nopos_fname = op.join(tmp_path, 'test_no_chanpos.set')
-    contents = {'EEG': {'trials': eeg.trials, 'srate': eeg.srate, 'nbchan': 3,
+    io.savemat(nopos_fname,
+               {'EEG': {'trials': eeg.trials, 'srate': eeg.srate, 'nbchan': 3,
                         'data': np.random.random((3, 2)), 'epoch': eeg.epoch,
                         'event': eeg.epoch, 'chanlocs': nopos_chanlocs,
-                        'times': eeg.times[:2], 'pnts': 2}}
-    with _record_warnings():  # sometimes get savemat errors
-        io.savemat(nopos_fname, contents, appendmat=False, oned_as='row')
+                        'times': eeg.times[:2], 'pnts': 2}},
+               appendmat=False, oned_as='row')
     # load the file
     raw = read_raw_eeglab(input_fname=nopos_fname, preload=True)
 
@@ -277,6 +281,7 @@ def test_io_set_epochs_events(tmp_path):
 
 
 @testing.requires_testing_data
+@filt_warn
 def test_degenerate(tmp_path):
     """Test some degenerate conditions."""
     # test if .dat file raises an error
@@ -352,6 +357,7 @@ def _assert_array_allclose_nan(left, right):
 
 
 @pytest.fixture(scope='session')
+@filt_warn
 def one_chanpos_fname(tmp_path_factory):
     """Test file with 3 channels to exercise EEGLAB reader.
 
