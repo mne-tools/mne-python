@@ -17,6 +17,7 @@ def test_gui_api(renderer_notebook, nbexec, n_warn=0):
     import contextlib
     import mne
     import warnings
+    import sys
     try:
         # Function
         n_warn  # noqa

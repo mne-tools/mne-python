@@ -20,7 +20,7 @@ from mne.io import read_raw_eeglab
 from mne.io.eeglab.eeglab import _get_montage_information, _dol_to_lod
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
-from mne.utils import Bunch
+from mne.utils import Bunch, _record_warnings
 from mne.annotations import events_from_annotations, read_annotations
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
@@ -222,12 +222,12 @@ def test_io_set_raw_more(tmp_path):
     # test reading channel names but not positions when there is no X (only Z)
     # field in the EEG.chanlocs structure
     nopos_fname = op.join(tmp_path, 'test_no_chanpos.set')
-    io.savemat(nopos_fname,
-               {'EEG': {'trials': eeg.trials, 'srate': eeg.srate, 'nbchan': 3,
+    contents = {'EEG': {'trials': eeg.trials, 'srate': eeg.srate, 'nbchan': 3,
                         'data': np.random.random((3, 2)), 'epoch': eeg.epoch,
                         'event': eeg.epoch, 'chanlocs': nopos_chanlocs,
-                        'times': eeg.times[:2], 'pnts': 2}},
-               appendmat=False, oned_as='row')
+                        'times': eeg.times[:2], 'pnts': 2}}
+    with _record_warnings():  # sometimes get savemat errors
+        io.savemat(nopos_fname, contents, appendmat=False, oned_as='row')
     # load the file
     raw = read_raw_eeglab(input_fname=nopos_fname, preload=True)
 
