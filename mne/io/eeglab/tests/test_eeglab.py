@@ -20,7 +20,7 @@ from mne.io import read_raw_eeglab
 from mne.io.eeglab.eeglab import _get_montage_information, _dol_to_lod
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
-from mne.utils import Bunch
+from mne.utils import Bunch, _record_warnings
 from mne.annotations import events_from_annotations, read_annotations
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
@@ -357,7 +357,6 @@ def _assert_array_allclose_nan(left, right):
 
 
 @pytest.fixture(scope='session')
-@filt_warn
 def one_chanpos_fname(tmp_path_factory):
     """Test file with 3 channels to exercise EEGLAB reader.
 
@@ -382,8 +381,9 @@ def one_chanpos_fname(tmp_path_factory):
         )
     })
 
-    io.savemat(file_name=fname, mdict=file_conent, appendmat=False,
-               oned_as='row')
+    with _record_warnings():  # savemat
+        io.savemat(file_name=fname, mdict=file_conent, appendmat=False,
+                oned_as='row')
 
     return fname
 
