@@ -107,8 +107,7 @@ class MNEFigure(Figure):
     def _keypress(self, event):
         """Handle keypress events."""
         if event.key == self.mne.close_key:
-            from matplotlib.pyplot import close
-            close(self)
+            plt.close(self)
         elif event.key == 'f11':  # full screen
             self.canvas.manager.full_screen_toggle()
 
@@ -184,8 +183,7 @@ class MNEAnnotationFigure(MNEFigure):
         text = self.label.get_text()
         key = event.key
         if key == self.mne.close_key:
-            from matplotlib.pyplot import close
-            close(self)
+            plt.close(self)
         elif key == 'backspace':
             text = text[:-1]
         elif key == 'enter':
@@ -253,11 +251,10 @@ class MNESelectionFigure(MNEFigure):
 
     def _close(self, event):
         """Handle close events."""
-        from matplotlib.pyplot import close
         self.mne.parent_fig.mne.child_figs.remove(self)
         self.mne.fig_selection = None
         # selection fig & main fig tightly integrated; closing one closes both
-        close(self.mne.parent_fig)
+        plt.close(self.mne.parent_fig)
 
     def _keypress(self, event):
         """Handle keypress events."""
@@ -823,8 +820,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             self._create_help_fig()
             plt_show(fig=self.mne.fig_help)
         else:
-            from matplotlib.pyplot import close
-            close(self.mne.fig_help)
+            plt.close(self.mne.fig_help)
 
     def _get_help_text(self):
         """Generate help dialog text; `None`-valued entries removed later."""
@@ -1105,8 +1101,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         if self.mne.fig_annotation is None and not self.mne.is_epochs:
             self._create_annotation_fig()
         else:
-            from matplotlib.pyplot import close
-            close(self.mne.fig_annotation)
+            plt.close(self.mne.fig_annotation)
 
     def _compute_annotation_figsize(self, n_labels):
         """Adapt size of Annotation UI to accommodate the number of buttons.
@@ -1416,8 +1411,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         if self.mne.fig_proj is None:
             self._create_proj_fig()
         else:
-            from matplotlib.pyplot import close
-            close(self.mne.fig_proj)
+            plt.close(self.mne.fig_proj)
 
     def _toggle_proj_checkbox(self, event, toggle_all=False):
         """Perform operations when proj boxes clicked."""
@@ -1450,8 +1444,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             if self.mne.fig_histogram is None:
                 self._create_epoch_histogram()
             else:
-                from matplotlib.pyplot import close
-                close(self.mne.fig_histogram)
+                plt.close(self.mne.fig_histogram)
 
     def _toggle_bad_channel(self, idx):
         """Mark/unmark bad channels; `idx` is index of *visible* channels."""
@@ -2057,11 +2050,10 @@ def _get_n_figs():
 def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     """Instantiate a new figure."""
     from matplotlib import rc_context
-    from matplotlib.pyplot import figure
     title = kwargs.pop('window_title', None)  # extract title before init
     rc = dict() if toolbar else dict(toolbar='none')
     with rc_context(rc=rc):
-        fig = figure(FigureClass=FigureClass, **kwargs)
+        fig = plt.figure(FigureClass=FigureClass, **kwargs)
     if title is not None:
         _set_window_title(fig, title)
     # add event callbacks
