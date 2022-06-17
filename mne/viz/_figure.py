@@ -394,6 +394,8 @@ class BrowserBase(ABC):
 
     def _close(self, event):
         """Handle close events (via keypress or window [x])."""
+        from matplotlib.pyplot import close
+
         logger.debug(f'Closing {self.mne.instance_type} browser...')
         # write out bad epochs (after converting epoch numbers to indices)
         if self.mne.instance_type == 'epochs':
@@ -420,7 +422,7 @@ class BrowserBase(ABC):
         # Clean up child figures (don't pop(), child figs remove themselves)
         while len(self.mne.child_figs):
             fig = self.mne.child_figs[-1]
-            self._close_event(fig)
+            close(fig)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # CHILD FIGURES

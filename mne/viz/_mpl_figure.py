@@ -103,6 +103,7 @@ class MNEFigure(Figure):
 
     def _close(self, event):
         """Handle close events."""
+        logger.debug(f'Closing {self!r}')
         # remove references from parent fig to child fig
         is_child = getattr(self.mne, 'parent_fig', None) is not None
         is_named = getattr(self.mne, 'fig_name', None) is not None
