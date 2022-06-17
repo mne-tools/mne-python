@@ -63,12 +63,14 @@ from .utils import (DraggableLine, _events_off, _fake_click,
                     _validate_if_list_of_axes, plt_show)
 
 name = 'matplotlib'
-with plt.ion():
-    BACKEND = get_backend()
-    #   this  ↑↑↑↑↑↑↑↑↑↑↑↑↑  does weird things:
-    #   https://github.com/matplotlib/matplotlib/issues/23298
-    #   but wrapping it in ion() context makes it go away.
-    #   Moving this bit to a separate function in ../../fixes.py doesn't work.
+plt.ion()
+BACKEND = get_backend()
+#   This  ↑↑↑↑↑↑↑↑↑↑↑↑↑  does weird things:
+#   https://github.com/matplotlib/matplotlib/issues/23298
+#   but wrapping it in ion() context makes it go away (can't actually use
+#   `with plt.ion()` as context manager, though, for compat reasons).
+#   Moving this bit to a separate function in ../../fixes.py doesn't work.
+plt.ioff()
 
 # CONSTANTS (inches)
 ANNOTATION_FIG_PAD = 0.1
