@@ -47,15 +47,14 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
-from mne import channel_indices_by_type, pick_types
-from mne.annotations import _sync_onset
-from mne.defaults import _handle_default
-from mne.io.pick import (_DATA_CH_TYPES_SPLIT, _DATA_CH_TYPES_ORDER_DEFAULT,
-                         _VALID_CHANNEL_TYPES, _picks_to_idx,
-                         _FNIRS_CH_TYPES_SPLIT)
-from mne.time_frequency import psd_welch, psd_multitaper
-from mne.utils import (logger, _check_option, _check_sphere, Bunch,
-                       _click_ch_name)
+from .. import channel_indices_by_type, pick_types
+from ..annotations import _sync_onset
+from ..defaults import _handle_default
+from ..io.pick import (_DATA_CH_TYPES_ORDER_DEFAULT, _DATA_CH_TYPES_SPLIT,
+                       _FNIRS_CH_TYPES_SPLIT, _VALID_CHANNEL_TYPES,
+                       _picks_to_idx)
+from ..time_frequency import psd_multitaper, psd_welch
+from ..utils import Bunch, _check_option, _check_sphere, _click_ch_name, logger
 from . import plot_sensors
 from ._figure import BrowserBase
 from .utils import (_events_off, DraggableLine, plt_show, _prop_kw,
