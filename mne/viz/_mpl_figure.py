@@ -2052,6 +2052,7 @@ class MNELineFigure(MNEFigure):
 
 
 def _close_all():
+    """Close all figures (only used in our tests)."""
     plt.close('all')
 
 
