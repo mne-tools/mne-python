@@ -76,6 +76,11 @@ mne.write_surface(conv_dir / 'outer_skull.obj', coords, faces, overwrite=True)
 # Editing in Blender
 # ^^^^^^^^^^^^^^^^^^
 #
+# See the following video tutorial for how to import, edit and export
+# surfaces in Blender (step-by-step instructions are also below):
+#
+# ..  youtube:: JBIaX7VaTZk
+#
 # We can now open Blender and import the surfaces. Go to *File > Import >
 # Wavefront (.obj)*. Navigate to the ``conv`` folder and select the file you
 # want to import. Make sure to select the *Keep Vert Order* option. You can
