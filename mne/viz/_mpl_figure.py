@@ -36,15 +36,15 @@ matplotlib.figure.Figure
 #
 # License: Simplified BSD
 
-from collections import OrderedDict
-from contextlib import contextmanager
-from functools import partial
 import datetime
 import platform
 import warnings
+from collections import OrderedDict
+from contextlib import contextmanager
+from functools import partial
 
+import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
 from .. import channel_indices_by_type, pick_types
@@ -57,9 +57,9 @@ from ..time_frequency import psd_multitaper, psd_welch
 from ..utils import Bunch, _check_option, _check_sphere, _click_ch_name, logger
 from . import plot_sensors
 from ._figure import BrowserBase
-from .utils import (_events_off, DraggableLine, plt_show, _prop_kw,
-                    _merge_annotations, _set_window_title,
-                    _validate_if_list_of_axes, _fake_click, _plot_psd)
+from .utils import (DraggableLine, _events_off, _fake_click,
+                    _merge_annotations, _plot_psd, _prop_kw, _set_window_title,
+                    _validate_if_list_of_axes, plt_show)
 
 name = 'matplotlib'
 
@@ -75,6 +75,7 @@ class MNEFigure(Figure):
 
     def __init__(self, **kwargs):
         from matplotlib import rcParams
+
         # figsize is the only kwarg we pass to matplotlib Figure()
         figsize = kwargs.pop('figsize', None)
         super().__init__(figsize=figsize)
@@ -315,13 +316,13 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def __init__(self, inst, figsize, ica=None,
                  xlabel='Time (s)', **kwargs):
         from matplotlib.colors import to_rgba_array
-        from matplotlib.ticker import (FixedLocator, FixedFormatter,
-                                       FuncFormatter, NullFormatter)
         from matplotlib.patches import Rectangle
-        from matplotlib.widgets import Button
+        from matplotlib.ticker import (FixedFormatter, FixedLocator,
+                                       FuncFormatter, NullFormatter)
         from matplotlib.transforms import blended_transform_factory
-        from mpl_toolkits.axes_grid1.axes_size import Fixed
+        from matplotlib.widgets import Button
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+        from mpl_toolkits.axes_grid1.axes_size import Fixed
 
         self.backend_name = 'matplotlib'
 
@@ -523,7 +524,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         if not self.mne.draggable_annotations:
             self._remove_annotation_hover_line()
             return
-        from matplotlib.patheffects import Stroke, Normal
+        from matplotlib.patheffects import Normal, Stroke
         for coll in self.mne.annotations:
             if coll.contains(event)[0]:
                 path = coll.get_paths()
@@ -898,9 +899,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _create_annotation_fig(self):
         """Create the annotation dialog window."""
-        from matplotlib.widgets import Button, SpanSelector, CheckButtons
-        from mpl_toolkits.axes_grid1.axes_size import Fixed
+        from matplotlib.widgets import Button, CheckButtons, SpanSelector
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+        from mpl_toolkits.axes_grid1.axes_size import Fixed
+
         # make figure
         labels = np.array(sorted(set(self.mne.inst.annotations.description)))
         radio_button_h = self._compute_annotation_figsize(len(labels))
@@ -1017,7 +1019,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _update_annotation_fig(self):
         """Draw or redraw the radio buttons and annotation labels."""
-        from matplotlib.widgets import RadioButtons, CheckButtons
+        from matplotlib.widgets import CheckButtons, RadioButtons
+
         # define shorthand variables
         fig = self.mne.fig_annotation
         ax = fig.mne.radio_ax
@@ -1241,8 +1244,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def _create_selection_fig(self):
         """Create channel selection dialog window."""
         from matplotlib.colors import to_rgb
-        from matplotlib.widgets import RadioButtons
         from matplotlib.gridspec import GridSpec
+        from matplotlib.widgets import RadioButtons
+
         # make figure
         fig = self._new_child_figure(figsize=(3, 7),
                                      FigureClass=MNESelectionFigure,
@@ -1714,6 +1718,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         """Draw (or redraw) the channel data."""
         from matplotlib.colors import to_rgba_array
         from matplotlib.patches import Rectangle
+
         # clear scalebars
         if self.mne.scalebars_visible:
             self._hide_scalebars()
@@ -1869,8 +1874,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _draw_event_lines(self):
         """Draw the event lines and their labels."""
-        from matplotlib.colors import to_rgba_array
         from matplotlib.collections import LineCollection
+        from matplotlib.colors import to_rgba_array
         if self.mne.event_nums is not None:
             mask = np.logical_and(self.mne.event_times >= self.mne.times[0],
                                   self.mne.event_times <= self.mne.times[-1])
@@ -2063,6 +2068,7 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
 def _line_figure(inst, axes=None, picks=None, **kwargs):
     """Instantiate a new line figure."""
     from matplotlib.axes import Axes
+
     # if picks is None, only show data channels
     allowed_ch_types = (_DATA_CH_TYPES_SPLIT if picks is None else
                         _VALID_CHANNEL_TYPES)
@@ -2093,6 +2099,7 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
     """Instantiate a new power spectral density figure."""
     from .. import BaseEpochs
     from ..io import BaseRaw
+
     # triage kwargs for different PSD methods (raw→welch, epochs→multitaper)
     welch_kwargs = ('n_fft', 'n_overlap', 'reject_by_annotation')
     multitaper_kwargs = ('bandwidth', 'adaptive', 'low_bias', 'normalization')
