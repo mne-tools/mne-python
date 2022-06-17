@@ -45,6 +45,7 @@ from functools import partial
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import get_backend
 from matplotlib.figure import Figure
 
 from .. import channel_indices_by_type, pick_types
@@ -62,6 +63,12 @@ from .utils import (DraggableLine, _events_off, _fake_click,
                     _validate_if_list_of_axes, plt_show)
 
 name = 'matplotlib'
+with plt.ion():
+    BACKEND = get_backend()
+    #   this  ↑↑↑↑↑↑↑↑↑↑↑↑↑  does weird things:
+    #   https://github.com/matplotlib/matplotlib/issues/23298
+    #   but wrapping it in ion() context makes it go away.
+    #   Moving this bit to a separate function in ../../fixes.py doesn't work.
 
 # CONSTANTS (inches)
 ANNOTATION_FIG_PAD = 0.1
@@ -2058,6 +2065,8 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     rc = dict() if toolbar else dict(toolbar='none')
     with rc_context(rc=rc):
         fig = plt.figure(FigureClass=FigureClass, **kwargs)
+    # BACKEND defined globally at the top of this file
+    fig.mne.backend = BACKEND
     if title is not None:
         _set_window_title(fig, title)
     # add event callbacks
