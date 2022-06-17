@@ -555,8 +555,7 @@ class BrowserBase(ABC):
         return fig
 
     def _close_event(self, fig):
-        # This method is a fix for mpl issue #18609, which still seems to
-        # be a problem with matplotlib==3.4.
+        """Look at _close_event in mne.fixes.py for why this exists."""
         pass
 
     def fake_keypress(self, key, fig=None):  # noqa: D400

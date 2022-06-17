@@ -1950,14 +1950,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self.canvas.draw_idle()
 
     # workaround: plt.close() doesn't spawn close_event on Agg backend
-    # (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)
+    # (check MPL github issue #18609; scheduled to be fixed by MPL 3.6)
     def _close_event(self, fig=None):
         """Force calling of the MPL figure close event."""
+        from ..fixes import _close_event
         fig = fig or self
-        try:
-            fig.canvas.close_event()
-        except ValueError:  # old mpl with Qt
-            pass  # pragma: no cover
+        _close_event(fig)
 
     def _fake_keypress(self, key, fig=None):
         fig = fig or self
