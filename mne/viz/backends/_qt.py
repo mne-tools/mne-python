@@ -6,12 +6,15 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
+import os
+import platform
+import sys
 import weakref
 
 import pyvista
 from pyvistaqt.plotting import FileDialog, MainWindow
 
-from qtpy.QtCore import Qt, Signal, QLocale, QObject
+from qtpy.QtCore import Qt, Signal, QLocale, QObject, QLibraryInfo
 from qtpy.QtGui import QIcon, QCursor
 from qtpy.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                             QHBoxLayout, QLabel, QToolButton, QMenuBar,
@@ -32,7 +35,15 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractKeyPress)
 from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
                      _qt_detect_theme, _qt_raise_window)
-from ..utils import _check_option, safe_event, get_config
+from ..utils import safe_event
+from ...utils import _check_option, get_config
+from ...fixes import _compare_version
+
+# Adapted from matplotlib
+if (sys.platform == 'darwin' and
+        _compare_version(platform.mac_ver()[0], '>=', '10.16') and
+        QLibraryInfo.version().segments() <= [5, 15, 2]):
+    os.environ.setdefault("QT_MAC_WANTS_LAYER", "1")
 
 
 class _QtKeyPress(_AbstractKeyPress):

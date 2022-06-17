@@ -698,7 +698,8 @@ def test_extract_label_time_course(kind, vector):
             with pytest.raises(ValueError, match='when using a vector'):
                 extract_label_time_course(stcs, labels, src, mode=mode)
             continue
-        label_tc = extract_label_time_course(stcs, labels, src, mode=mode)
+        with _record_warnings():  # SVD convergence on arm64
+            label_tc = extract_label_time_course(stcs, labels, src, mode=mode)
         label_tc_method = [stc.extract_label_time_course(labels, src,
                                                          mode=mode)
                            for stc in stcs]
