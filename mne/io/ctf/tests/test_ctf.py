@@ -405,6 +405,7 @@ def _bad_res4_grad_comp(dsdir):
     return res
 
 
+@testing.requires_testing_data
 def test_missing_res4(tmp_path):
     """Test that res4 missing is handled gracefully."""
     use_ds = tmp_path / ctf_fname_continuous
