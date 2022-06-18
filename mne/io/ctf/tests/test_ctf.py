@@ -26,7 +26,7 @@ from mne.utils import (_clean_names, catch_logging, _stamp_to_dt,
 from mne.datasets import testing, spm_face, brainstorm
 from mne.io.constants import FIFF
 
-ctf_dir = op.join(testing.data_path(download=False), 'CTF')
+ctf_dir = testing.data_path(download=False) / 'CTF'
 ctf_fname_continuous = 'testdata_ctf.ds'
 ctf_fname_1_trial = 'testdata_ctf_short.ds'
 ctf_fname_2_trials = 'testdata_ctf_pseudocontinuous.ds'
@@ -403,6 +403,17 @@ def _bad_res4_grad_comp(dsdir):
             ch['grad_order_no'] = 1
             break
     return res
+
+
+def test_missing_res4(tmp_path):
+    """Test that res4 missing is handled gracefully."""
+    use_ds = tmp_path / ctf_fname_continuous
+    shutil.copytree(ctf_dir / ctf_fname_continuous,
+                    tmp_path / ctf_fname_continuous)
+    read_raw_ctf(use_ds)
+    os.remove(use_ds / (ctf_fname_continuous[:-2] + 'meg4'))
+    with pytest.raises(IOError, match='could not find the following'):
+        read_raw_ctf(use_ds)
 
 
 @testing.requires_testing_data
