@@ -21,7 +21,7 @@ This function assumes that the Freesurfer segmentation of the subject
 has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
 should be, as usual, in the subject's mri directory.
 
-"""
+"""  # noqa E501
 # Authors: Lorenzo De Santis
 #          Alexandre Gramfort
 
@@ -29,7 +29,7 @@ import mne
 from mne.bem import convert_flash_mris, make_flash_bem
 
 
-def vararg_callback(option, opt_str, value, parser):
+def _vararg_callback(option, opt_str, value, parser):
     assert value is None
     value = []
 
@@ -56,12 +56,12 @@ def run():
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
                       help="Subjects directory", default=None)
     parser.add_option("-3", "--flash30", "--noflash30", dest="flash30",
-                      action="callback", callback=vararg_callback,
+                      action="callback", callback=_vararg_callback,
                       help=("The 30-degree flip angle data. If no argument do "
                             "not use flash30. If arguments are given, them as "
                             "file names."))
     parser.add_option("-5", "--flash5", dest="flash5",
-                      action="callback", callback=vararg_callback,
+                      action="callback", callback=_vararg_callback,
                       help=("Path to the multiecho flash 5 images. "
                             "Can be one file or one per echo."),)
     parser.add_option("-r", "--registered", dest="registered",

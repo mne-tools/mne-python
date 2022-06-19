@@ -286,8 +286,11 @@ def test_flash_bem(tmp_path):
     flash_path = op.join(mridata_path_new, 'flash')
     for kind in (5, 30):
         in_fname = op.join(mridata_path, 'flash', 'mef%02d.mgz' % kind)
-        in_fname_echo = op.join(mridata_path, 'flash', 'mef%02d_001.mgz' % kind)
-        shutil.copyfile(in_fname, op.join(flash_path, op.basename(in_fname_echo)))
+        in_fname_echo = op.join(
+            mridata_path, 'flash', 'mef%02d_001.mgz' % kind
+        )
+        shutil.copyfile(in_fname,
+                        op.join(flash_path, op.basename(in_fname_echo)))
     # Test mne flash_bem with --noconvert option
     # (since there are no DICOM Flash images in dataset)
     for s in ('outer_skin', 'outer_skull', 'inner_skull'):

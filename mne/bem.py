@@ -34,7 +34,7 @@ from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
-                    _on_missing, _import_h5io_funcs, _ensure_int, deprecated,
+                    _on_missing, _import_h5io_funcs, _ensure_int,
                     _path_like)
 
 
@@ -1884,7 +1884,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         if len(files) == 0:
             raise ValueError('No suitable source files found (%s)' % template)
         cmd = (['mri_average', '-noconform'] +
-                files + [pm_dir / 'flash5.mgz'])
+               files + [pm_dir / 'flash5.mgz'])
         run_subprocess_env(cmd)
         (pm_dir / 'flash5_reg.mgz').unlink(missing_ok=True)
     del tempdir  # finally done running subprocesses
