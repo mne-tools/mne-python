@@ -57,20 +57,21 @@ def run():
                       help="Subjects directory", default=None)
     parser.add_option("-3", "--noflash30", dest="noflash30",
                       action="store_true", default=False,
-                      help=("[DEPRECATED] Skip the 30-degree flip angle data"))
+                      help=(" Skip the 30-degree flip angle data"))
     parser.add_option("-5", "--flash5", dest="flash5", default=None,
-                      help=("Path to the flash5 image."),)
+                      help=("Path to the flash5 image synthesized from the "
+                            "multiecho data."),)
     parser.add_option("-r", "--registered", dest="registered",
                       action="store_true", default=False,
                       help=("Set if the Flash MRI images have already "
-                            "been regisered with the T1.mgz file."))
+                            "been registered with the T1.mgz file."))
     parser.add_option("-n", "--noconvert", dest="noconvert",
                       action="store_true", default=False,
-                      help=("[DEPRECATED] Assume that the Flash MRI images "
+                      help=("[DEPRECATED] Assume that the Flash MRI images "
                             "have already been converted to mgz files"))
     parser.add_option("-u", "--unwarp", dest="unwarp",
                       action="store_true", default=False,
-                      help=("[DEPRECATED] Run grad_unwarp with -unwarp <type> "
+                      help=("Run grad_unwarp with -unwarp <type> "
                             "option on each of the converted data sets"))
     parser.add_option("-o", "--overwrite", dest="overwrite",
                       action="store_true", default=False,
@@ -83,8 +84,8 @@ def run():
                       action="store_true")
     parser.add_option("-p", "--flash-path", dest="flash_path",
                       default=None,
-                      help="The directory containing flash05.mgz and "
-                      "flash30.mgz files (defaults to "
+                      help="The directory containing flash5.mgz "
+                      "files (defaults to "
                       "$SUBJECTS_DIR/$SUBJECT/mri/flash/parameter_maps")
 
     options, args = parser.parse_args()
@@ -105,10 +106,9 @@ def run():
         parser.print_help()
         raise RuntimeError('The subject argument must be set')
 
-    if convert:
-        convert_flash_mris(subject=subject, subjects_dir=subjects_dir,
-                           flash30=flash30, convert=convert, unwarp=unwarp,
-                           verbose=True)
+    convert_flash_mris(subject=subject, subjects_dir=subjects_dir,
+                       flash30=flash30, convert=convert, unwarp=unwarp,
+                       verbose=True)
     make_flash_bem(subject=subject, subjects_dir=subjects_dir,
                    overwrite=overwrite, show=show, flash_path=flash_path,
                    copy=copy, register=register, flash5_img=flash5,

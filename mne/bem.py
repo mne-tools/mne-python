@@ -1689,55 +1689,86 @@ def _prepare_env(subject, subjects_dir):
     return env, mri_dir, bem_dir
 
 
-@deprecated('convert_flash_mris is deprecated and will be removed in 1.2. '
-            'To convert your dicom files to .nii or .mgz files, use dcm2niix '
-            'or mri_convert available in FreeSurfer.')
+def _write_echos(mri_dir, flash_echos, angle):
+    import nibabel as nib
+    from nibabel.spatialimages import SpatialImage
+    from nilearn.image import new_img_like
+    if _path_like(flash_echos):
+        flash_echos = nib.load(flash_echos)
+    if isinstance(flash_echos, SpatialImage):
+        flash_echo_imgs = []
+        data = np.asanyarray(flash_echos.dataobj)
+        affine = flash_echos.affine
+        # assert data.ndim == 4
+        if data.ndim == 3:
+            data = data[..., np.newaxis]
+        for echo_idx in range(data.shape[3]):
+            this_echo_img = flash_echos.__class__(
+                data[..., echo_idx], affine=affine,
+                header=deepcopy(flash_echos.header)
+            )
+            # this_echo_img = new_img_like(
+            #     flash_echos, data[..., echo_idx], affine=affine,
+            #     copy_header=True
+            # )
+            flash_echo_imgs.append(this_echo_img)
+        flash_echos = flash_echo_imgs
+        del flash_echo_imgs
+    for idx, flash_echo in enumerate(flash_echos, 1):
+        if _path_like(flash_echo):
+            flash_echo = nib.load(flash_echo)
+        nib.save(flash_echo,
+                 op.join(mri_dir, 'flash', f'mef{angle}_{idx:03d}.mgz'))
+
+
 @verbose
 def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
-                       subjects_dir=None, verbose=None):
-    """Convert DICOM files for use with make_flash_bem.
+                       subjects_dir=None, flash5=True, verbose=None):
+    """Synthetize the flash 5 files for use with make_flash_bem.
 
-    DEPRECATED: To convert your dicom files to .nii or .mgz files, use dcm2niix
-    or mri_convert available in FreeSurfer.
+    This function aims to produce a synthesized flash 5 MRI from
+    multiecho flash (MEF) MRI data. This function can use MEF data
+    with 5 or 30 flip angles. If flash5_echos (and flash30_echos) are
+    not provided it will assume that the different echos are available
+    in the mri/flash folder of the subject with the following naming
+    convention "mef<angle>_<echo>.mgz", e.g. "mef05_001.mgz".
 
     Parameters
     ----------
     subject : str
         Subject name.
-    flash30 : bool
-        Use 30-degree flip angle data.
+    flash30 : bool | list of SpatialImage or path-like | SpatialImage
+            | path-like
+        If False do not use 30-degree flip angle data.
+        The list of flash 5 echos to use. If True it will look for files
+        named mef30*.mgz in the subject's mri/flash directory and if not False
+        the list of flash 5 echos images will be written to the mri/flash
+        folder with convention mef05_<echo>.mgz. If a SpatialImage object
+        each frame of the image will be interpreted as an echo.
     convert : bool
         Assume that the Flash MRI images have already been converted
         to mgz files.
+
+        DEPRECATED: This option is deprecated and will be removed in 1.2.
+        Set it explicitly to False to silence the deprecation warning
+        and use the flash5_echos and flash30_echos parameters to specify
+        the images to use.
     unwarp : bool
         Run grad_unwarp with -unwarp option on each of the converted
         data sets. It requires FreeSurfer's MATLAB toolbox to be properly
         installed.
     %(subjects_dir)s
+    flash5 : list of SpatialImage or path-like | SpatialImage | path-like
+            | True
+        The list of flash 5 echos to use. If True it will look for files
+        named mef05*.mgz in the subject's mri/flash directory and if not None
+        the list of flash 5 echos images will be written to the mri/flash
+        folder with convention mef05_<echo>.mgz. If a SpatialImage object
+        each frame of the image will be interpreted as an echo.
     %(verbose)s
 
     Notes
     -----
-    Before running this script do the following:
-    (unless convert=False is specified)
-
-    1. Copy all of your FLASH images in a single directory <source> and
-        create a directory <dest> to hold the output of mne_organize_dicom
-    2. cd to <dest> and run
-        $ mne_organize_dicom <source>
-        to create an appropriate directory structure
-    3. Create symbolic links to make flash05 and flash30 point to the
-        appropriate series:
-        $ ln -s <FLASH 5 series dir> flash05
-        $ ln -s <FLASH 30 series dir> flash30
-        Some partition formats (e.g. FAT32) do not support symbolic links.
-        In this case, copy the file to the appropriate series:
-        $ cp <FLASH 5 series dir> flash05
-        $ cp <FLASH 30 series dir> flash30
-    4. cd to the directory where flash05 and flash30 links are
-    5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
-    6. Run this script
-
     This function assumes that the Freesurfer segmentation of the subject
     has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
     should be, as usual, in the subject's mri directory.
@@ -1750,7 +1781,19 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     if not op.exists(op.join(mri_dir, 'flash', 'parameter_maps')):
         os.makedirs(op.join(mri_dir, 'flash', 'parameter_maps'))
     echos_done = 0
+
+    if convert and not isinstance(flash5, bool):
+        raise ValueError("When passing flash5 images, convert must be False.")
+    if convert and not isinstance(flash30, bool):
+        raise ValueError("When passing flash30 images, convert must be False.")
+
     if convert:
+        warn("The convert parameter is deprecated and will be removed in "
+             "1.2. You can now pass the Flash 5 and 30 echos as nibabel "
+             "images to the function via the flash5_echos and flash30_echos"
+             "parameters.",
+             DeprecationWarning)
+
         logger.info("\n---- Converting Flash images ----")
         echos = ['001', '002', '003', '004', '005', '006', '007', '008']
         if flash30:
@@ -1786,10 +1829,16 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
                     cmd = ['mri_convert', sample_file, dest_file]
                     run_subprocess_env(cmd)
                     echos_done += 1
+    else:
+        if not isinstance(flash5, bool):
+            _write_echos(mri_dir, flash5, angle='05')
+        if not isinstance(flash30, bool):
+            _write_echos(mri_dir, flash30, angle='30')
+
     # Step 1b : Run grad_unwarp on converted files
     flash_dir = op.join(mri_dir, "flash")
     template = op.join(flash_dir, "mef*.mgz")
-    files = glob.glob(template)
+    files = sorted(glob.glob(template))
     if len(files) == 0:
         raise ValueError('No suitable source files found (%s)' % template)
     if unwarp:
@@ -1810,7 +1859,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     if flash30:
         logger.info("\n---- Creating the parameter maps ----")
         if unwarp:
-            files = glob.glob(op.join(flash_dir, "mef05*u.mgz"))
+            files = sorted(glob.glob(op.join(flash_dir, "mef05*u.mgz")))
         if len(os.listdir(pm_dir)) == 0:
             cmd = (['mri_ms_fitparms'] +
                    files +
@@ -1834,7 +1883,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         logger.info("\n---- Averaging flash5 echoes ----")
         template = op.join(flash_dir,
                            "mef05*u.mgz" if unwarp else "mef05*.mgz")
-        files = glob.glob(template)
+        files = sorted(glob.glob(template))
         if len(files) == 0:
             raise ValueError('No suitable source files found (%s)' % template)
         cmd = (['mri_average', '-noconform'] +
@@ -1874,13 +1923,17 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         .. versionadded:: 0.18
         .. versionchanged:: 1.1 Use copies instead of symlinks.
     flash5_img : None | path-like | Nifti1Image
-        The path to the (multi-echo) FLASH 5 MRI image or the image itself. If
+        The path to the synthesized flash 5 MRI image or the image itself. If
         None (default), the path defaults to flash5.mgz within the flash_path
-        folder or to mef05.mgz in the mri/flash folder. If not present the
-        image is copied or written to the flash_path folder as flash5.mgz.
+        folder. If not present the image is copied or written to the
+        flash_path folder as flash5.mgz.
+
+        .. versionadded:: 1.1.0
     register : bool
-        Register the flash images with T1.mgz file. If False, we assume
-        that the flash images are already registered with T1.mgz.
+        Register the flash 5 image with T1.mgz file. If False, we assume
+        that the images are already coregistered.
+
+        .. versionadded:: 1.1.0
     %(verbose)s
 
     See Also
@@ -1892,8 +1945,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     This program assumes that FreeSurfer is installed and sourced properly.
 
     This function extracts the BEM surfaces (outer skull, inner skull, and
-    outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
-    degrees, in mgz format.
+    outer skin) from a FLASH 5 MRI image synthesized from multiecho FLASH
+    images acquired with spin angles of 5 and 30 degrees.
     """
     from .viz.misc import plot_bem
 
@@ -1919,9 +1972,6 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
                                        bem_dir / 'flash'))
     # Step 4 : Register with MPRAGE
     flash5 = flash_path / 'flash5.mgz'
-    mef05 = mri_dir / 'flash' / 'mef05.mgz'
-    if flash5_img is None and mef05.exists():
-        flash5_img = mef05
 
     if _path_like(flash5_img):
         logger.info(f"Copying flash 5 image {flash5_img} to {flash5}")
