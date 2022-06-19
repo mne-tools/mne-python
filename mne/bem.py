@@ -1692,14 +1692,12 @@ def _prepare_env(subject, subjects_dir):
 def _write_echos(mri_dir, flash_echos, angle):
     import nibabel as nib
     from nibabel.spatialimages import SpatialImage
-    from nilearn.image import new_img_like
     if _path_like(flash_echos):
         flash_echos = nib.load(flash_echos)
     if isinstance(flash_echos, SpatialImage):
         flash_echo_imgs = []
         data = np.asanyarray(flash_echos.dataobj)
         affine = flash_echos.affine
-        # assert data.ndim == 4
         if data.ndim == 3:
             data = data[..., np.newaxis]
         for echo_idx in range(data.shape[3]):
@@ -1707,10 +1705,6 @@ def _write_echos(mri_dir, flash_echos, angle):
                 data[..., echo_idx], affine=affine,
                 header=deepcopy(flash_echos.header)
             )
-            # this_echo_img = new_img_like(
-            #     flash_echos, data[..., echo_idx], affine=affine,
-            #     copy_header=True
-            # )
             flash_echo_imgs.append(this_echo_img)
         flash_echos = flash_echo_imgs
         del flash_echo_imgs
@@ -1767,6 +1761,11 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         each frame of the image will be interpreted as an echo.
     %(verbose)s
 
+    Returns
+    -------
+    flash5_img : path-like
+        The path the synthesized flash 5 MRI.
+
     Notes
     -----
     This function assumes that the Freesurfer segmentation of the subject
@@ -1777,9 +1776,12 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
+
+    mri_dir = Path(mri_dir)
     # Step 1a : Data conversion to mgz format
-    if not op.exists(op.join(mri_dir, 'flash', 'parameter_maps')):
-        os.makedirs(op.join(mri_dir, 'flash', 'parameter_maps'))
+    flash_dir = mri_dir / "flash"
+    pm_dir = flash_dir / 'parameter_maps'
+    pm_dir.mkdir(parents=True, exist_ok=True)
     echos_done = 0
 
     if convert and not isinstance(flash5, bool):
@@ -1836,8 +1838,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
             _write_echos(mri_dir, flash30, angle='30')
 
     # Step 1b : Run grad_unwarp on converted files
-    flash_dir = op.join(mri_dir, "flash")
-    template = op.join(flash_dir, "mef*.mgz")
+    template = op.join(flash_dir, "mef*_*.mgz")
     files = sorted(glob.glob(template))
     if len(files) == 0:
         raise ValueError('No suitable source files found (%s)' % template)
@@ -1849,7 +1850,6 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
                    'true']
             run_subprocess_env(cmd)
     # Clear parameter maps if some of the data were reconverted
-    pm_dir = op.join(flash_dir, 'parameter_maps')
     if echos_done > 0 and op.exists(pm_dir):
         shutil.rmtree(pm_dir)
         logger.info("\nParameter maps directory cleared")
@@ -1861,9 +1861,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         if unwarp:
             files = sorted(glob.glob(op.join(flash_dir, "mef05*u.mgz")))
         if len(os.listdir(pm_dir)) == 0:
-            cmd = (['mri_ms_fitparms'] +
-                   files +
-                   [op.join(flash_dir, 'parameter_maps')])
+            cmd = (['mri_ms_fitparms'] + files + [str(pm_dir)])
             run_subprocess_env(cmd)
         else:
             logger.info("Parameter maps were already computed")
@@ -1871,29 +1869,27 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         logger.info("\n---- Synthesizing flash 5 images ----")
         if not op.exists(op.join(pm_dir, 'flash5.mgz')):
             cmd = ['mri_synthesize', '20', '5', '5',
-                   op.join(pm_dir, 'T1.mgz'),
-                   op.join(pm_dir, 'PD.mgz'),
-                   op.join(pm_dir, 'flash5.mgz')
+                   (pm_dir / 'T1.mgz'),
+                   (pm_dir / 'PD.mgz'),
+                   (pm_dir / 'flash5.mgz')
                    ]
             run_subprocess_env(cmd)
-            os.remove(op.join(pm_dir, 'flash5_reg.mgz'))
+            (pm_dir / 'flash5_reg.mgz').unlink()
         else:
             logger.info("Synthesized flash 5 volume is already there")
     else:
         logger.info("\n---- Averaging flash5 echoes ----")
-        template = op.join(flash_dir,
-                           "mef05*u.mgz" if unwarp else "mef05*.mgz")
-        files = sorted(glob.glob(template))
+        template = "mef05*u.mgz" if unwarp else "mef05*.mgz"
+        files = sorted(flash_dir.glob(template))
         if len(files) == 0:
             raise ValueError('No suitable source files found (%s)' % template)
         cmd = (['mri_average', '-noconform'] +
-               files +
-               [op.join(pm_dir, 'flash5.mgz')])
+                files + [pm_dir / 'flash5.mgz'])
         run_subprocess_env(cmd)
-        if op.exists(op.join(pm_dir, 'flash5_reg.mgz')):
-            os.remove(op.join(pm_dir, 'flash5_reg.mgz'))
+        (pm_dir / 'flash5_reg.mgz').unlink(missing_ok=True)
     del tempdir  # finally done running subprocesses
-    assert op.isfile(op.join(pm_dir, 'flash5.mgz'))
+    assert (pm_dir / 'flash5.mgz').exists()
+    return pm_dir / 'flash5.mgz'
 
 
 @verbose
@@ -1912,10 +1908,13 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         Show surfaces to visually inspect all three BEM surfaces (recommended).
     %(subjects_dir)s
     flash_path : str | None
+        [DEPRECATED] Use the flash5_img parameter instead.
+
         Path to the flash images. If None (default), mri/flash/parameter_maps
         within the subject reconstruction is used.
 
         .. versionadded:: 0.13.0
+        .. versionchanged:: 1.1 Deprecated
     copy : bool
         If True (default), use copies instead of symlinks for surfaces
         (if they do not already exist).
@@ -1960,6 +1959,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     if flash_path is None:
         flash_path = mri_dir / 'flash' / 'parameter_maps'
     else:
+        warn("The flash_path parameter is deprecated and will be removed "
+             "in version 1.1. Use the flash5_img parameter instead.")
         flash_path = Path(flash_path).resolve()
     subjects_dir = env['SUBJECTS_DIR']
     flash_path.mkdir(exist_ok=True, parents=True)

@@ -6,6 +6,8 @@ Examples
 .. code-block:: console
 
     $ mne flash_bem --subject=sample
+    $ mne flash_bem -s sample -n --registered -5 sample/mri/mef05.mgz -3 sample/mri/mef30.mgz
+    $ mne flash_bem -s sample -n --registered -5 sample/mri/flash/mef05_*.mgz -3 sample/mri/flash/mef30_*.mgz
 
 Notes
 -----
@@ -14,35 +16,33 @@ sourced properly.
 
 This function extracts the BEM surfaces (outer skull, inner skull, and
 outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
-degrees. The multiecho FLASH data are inputted in DICOM format.
+degrees. The multiecho FLASH data can be input as .mgz or .nii files.
 This function assumes that the Freesurfer segmentation of the subject
 has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
 should be, as usual, in the subject's mri directory.
 
-Before running this script do the following:
-(unless the --noconvert option is specified)
-
-1. Copy all of your FLASH images in a single directory <source> and
-   create a directory <dest> to hold the output of mne_organize_dicom
-2. cd to <dest> and run
-   $ mne_organize_dicom <source>
-   to create an appropriate directory structure
-3. Create symbolic links to make flash05 and flash30 point to the
-   appropriate series:
-   $ ln -s <FLASH 5 series dir> flash05
-   $ ln -s <FLASH 30 series dir> flash30
-   Some partition formats (e.g. FAT32) do not support symbolic links.
-   In this case, copy the file to the appropriate series:
-   $ cp <FLASH 5 series dir> flash05
-   $ cp <FLASH 30 series dir> flash30
-4. cd to the directory where flash05 and flash30 links are
-5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
-6. Run this script
 """
 # Authors: Lorenzo De Santis
+#          Alexandre Gramfort
 
 import mne
 from mne.bem import convert_flash_mris, make_flash_bem
+
+
+def vararg_callback(option, opt_str, value, parser):
+    assert value is None
+    value = []
+
+    for arg in parser.rargs:
+        # stop on --foo like options
+        if arg[:2] == "--" and len(arg) > 2:
+            break
+        if arg[:1] == "-" and len(arg) > 1:
+            break
+        value.append(arg)
+
+    del parser.rargs[:len(value)]
+    setattr(parser.values, option.dest, value)
 
 
 def run():
@@ -55,12 +55,15 @@ def run():
                       help="Subject name", default=None)
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
                       help="Subjects directory", default=None)
-    parser.add_option("-3", "--noflash30", dest="noflash30",
-                      action="store_true", default=False,
-                      help=(" Skip the 30-degree flip angle data"))
-    parser.add_option("-5", "--flash5", dest="flash5", default=None,
-                      help=("Path to the flash5 image synthesized from the "
-                            "multiecho data."),)
+    parser.add_option("-3", "--flash30", "--noflash30", dest="flash30",
+                      action="callback", callback=vararg_callback,
+                      help=("The 30-degree flip angle data. If no argument do "
+                            "not use flash30. If arguments are given, them as "
+                            "file names."))
+    parser.add_option("-5", "--flash5", dest="flash5",
+                      action="callback", callback=vararg_callback,
+                      help=("Path to the multiecho flash 5 images. "
+                            "Can be one file or one per echo."),)
     parser.add_option("-r", "--registered", dest="registered",
                       action="store_true", default=False,
                       help=("Set if the Flash MRI images have already "
@@ -84,16 +87,20 @@ def run():
                       action="store_true")
     parser.add_option("-p", "--flash-path", dest="flash_path",
                       default=None,
-                      help="The directory containing flash5.mgz "
+                      help="[DEPRECATED] The directory containing flash5.mgz "
                       "files (defaults to "
                       "$SUBJECTS_DIR/$SUBJECT/mri/flash/parameter_maps")
 
-    options, args = parser.parse_args()
+    options, _ = parser.parse_args()
 
     subject = options.subject
     subjects_dir = options.subjects_dir
     flash5 = options.flash5
-    flash30 = not options.noflash30
+    if flash5 is None or len(flash5) == 0:
+        flash5 = True
+    flash30 = options.flash30
+    if flash30 is None or len(flash30) == 0:
+        flash30 = False
     convert = not options.noconvert
     register = not options.registered
     unwarp = options.unwarp
@@ -106,12 +113,13 @@ def run():
         parser.print_help()
         raise RuntimeError('The subject argument must be set')
 
-    convert_flash_mris(subject=subject, subjects_dir=subjects_dir,
-                       flash30=flash30, convert=convert, unwarp=unwarp,
-                       verbose=True)
+    flash5_img = convert_flash_mris(
+        subject=subject, subjects_dir=subjects_dir, flash5=flash5,
+        flash30=flash30, convert=convert, unwarp=unwarp, verbose=True
+    )
     make_flash_bem(subject=subject, subjects_dir=subjects_dir,
                    overwrite=overwrite, show=show, flash_path=flash_path,
-                   copy=copy, register=register, flash5_img=flash5,
+                   copy=copy, register=register, flash5_img=flash5_img,
                    verbose=True)
 
 
