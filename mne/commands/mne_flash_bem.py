@@ -99,7 +99,9 @@ def run():
     if flash5 is None or len(flash5) == 0:
         flash5 = True
     flash30 = options.flash30
-    if flash30 is None or len(flash30) == 0:
+    if flash30 is None:
+        flash30 = True
+    elif len(flash30) == 0:
         flash30 = False
     convert = not options.noconvert
     register = not options.registered

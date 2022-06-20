@@ -1722,10 +1722,11 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
 
     This function aims to produce a synthesized flash 5 MRI from
     multiecho flash (MEF) MRI data. This function can use MEF data
-    with 5 or 30 flip angles. If flash5_echos (and flash30_echos) are
-    not provided it will assume that the different echos are available
+    with 5 or 30 flip angles. If flash5 (and flash30) images are not
+    explicitely provided, it will assume that the different echos are available
     in the mri/flash folder of the subject with the following naming
-    convention "mef<angle>_<echo>.mgz", e.g. "mef05_001.mgz".
+    convention "mef<angle>_<echo>.mgz", e.g. "mef05_001.mgz"
+    or "mef30_001.mgz".
 
     Parameters
     ----------
@@ -1735,7 +1736,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
             | path-like
         If False do not use 30-degree flip angle data.
         The list of flash 5 echos to use. If True it will look for files
-        named mef30*.mgz in the subject's mri/flash directory and if not False
+        named mef30_*.mgz in the subject's mri/flash directory and if not False
         the list of flash 5 echos images will be written to the mri/flash
         folder with convention mef05_<echo>.mgz. If a SpatialImage object
         each frame of the image will be interpreted as an echo.
@@ -1755,7 +1756,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     flash5 : list of SpatialImage or path-like | SpatialImage | path-like
             | True
         The list of flash 5 echos to use. If True it will look for files
-        named mef05*.mgz in the subject's mri/flash directory and if not None
+        named mef05_*.mgz in the subject's mri/flash directory and if not None
         the list of flash 5 echos images will be written to the mri/flash
         folder with convention mef05_<echo>.mgz. If a SpatialImage object
         each frame of the image will be interpreted as an echo.
@@ -1822,8 +1823,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
                     raise RuntimeError("Directory %s is missing."
                                        % op.join('flash' + flash, echo))
                 sample_file = glob.glob(op.join('flash' + flash, echo, '*'))[0]
-                dest_file = op.join(mri_dir, 'flash',
-                                    'mef' + flash + '_' + echo + '.mgz')
+                dest_file = op.join(mri_dir, 'flash', f'mef{flash}_{echo}.mgz')
                 # do not redo if already present
                 if op.isfile(dest_file):
                     logger.info("The file %s is already there")
@@ -1850,16 +1850,16 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
                    'true']
             run_subprocess_env(cmd)
     # Clear parameter maps if some of the data were reconverted
-    if echos_done > 0 and op.exists(pm_dir):
+    if echos_done > 0 and pm_dir.exists():
         shutil.rmtree(pm_dir)
         logger.info("\nParameter maps directory cleared")
-    if not op.exists(pm_dir):
-        os.makedirs(pm_dir)
+    if not pm_dir.exists():
+        pm_dir.mkdir(parents=True, exist_ok=True)
     # Step 2 : Create the parameter maps
     if flash30:
         logger.info("\n---- Creating the parameter maps ----")
         if unwarp:
-            files = sorted(glob.glob(op.join(flash_dir, "mef05*u.mgz")))
+            files = sorted(glob.glob(op.join(flash_dir, "mef05_*u.mgz")))
         if len(os.listdir(pm_dir)) == 0:
             cmd = (['mri_ms_fitparms'] + files + [str(pm_dir)])
             run_subprocess_env(cmd)
@@ -1867,7 +1867,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
             logger.info("Parameter maps were already computed")
         # Step 3 : Synthesize the flash 5 images
         logger.info("\n---- Synthesizing flash 5 images ----")
-        if not op.exists(op.join(pm_dir, 'flash5.mgz')):
+        if not (pm_dir / 'flash5.mgz').exists():
             cmd = ['mri_synthesize', '20', '5', '5',
                    (pm_dir / 'T1.mgz'),
                    (pm_dir / 'PD.mgz'),
@@ -1879,12 +1879,11 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
             logger.info("Synthesized flash 5 volume is already there")
     else:
         logger.info("\n---- Averaging flash5 echoes ----")
-        template = "mef05*u.mgz" if unwarp else "mef05*.mgz"
+        template = "mef05_*u.mgz" if unwarp else "mef05_*.mgz"
         files = sorted(flash_dir.glob(template))
         if len(files) == 0:
             raise ValueError('No suitable source files found (%s)' % template)
-        cmd = (['mri_average', '-noconform'] +
-               files + [pm_dir / 'flash5.mgz'])
+        cmd = (['mri_average', '-noconform'] + files + [pm_dir / 'flash5.mgz'])
         run_subprocess_env(cmd)
         (pm_dir / 'flash5_reg.mgz').unlink(missing_ok=True)
     del tempdir  # finally done running subprocesses
