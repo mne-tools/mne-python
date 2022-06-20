@@ -101,6 +101,8 @@ Enhancements
 
 - The built-in FieldTrip channel adjacency matrices, which can be read via :func:`~mne.channels.read_ch_adjacency`, have been synchronized with FieldTrip again. This means that numerous new adjacencies have been added, most notably those for standard 10-05 and 10-20 montages (:gh:`10749` by `Richard Höchenberger`_)
 
+- :meth:`mne.Evoked.plot_field` gained a new parameter, ``interaction``, to control the rotation axes when interacting with the head (:gh:`10788` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
 
@@ -165,6 +167,8 @@ Bugs
 - The built-in FieldTrip channel adjacency matrix for ``easycapM1`` had a bug, where the channel ``PO8`` was incorrectly labeled as ``PO6`` This has been resolved by updating the adjacency matrix to the latest version provided by FieldTrip (:gh:`10749` by `Richard Höchenberger`_)
 
 - Add a YouTube video tutorial for editing Freesurfer surfaces in Blender to :ref:`tut-fix-meshes` (:gh:`10778` by `Alex Rockhill`_)
+
+- The default interaction style of :meth:`mne.Evoked.plot_field` has been changed such that if behaves like :func:`~mne.viz.plot_alignment` when trying to rotate the head (:gh:`10788` by `Richard Höchenberger`_)
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
