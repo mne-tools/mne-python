@@ -1723,7 +1723,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     This function aims to produce a synthesized flash 5 MRI from
     multiecho flash (MEF) MRI data. This function can use MEF data
     with 5 or 30 flip angles. If flash5 (and flash30) images are not
-    explicitely provided, it will assume that the different echos are available
+    explicitly provided, it will assume that the different echos are available
     in the mri/flash folder of the subject with the following naming
     convention "mef<angle>_<echo>.mgz", e.g. "mef05_001.mgz"
     or "mef30_001.mgz".
