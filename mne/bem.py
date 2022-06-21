@@ -1732,8 +1732,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     ----------
     subject : str
         Subject name.
-    flash30 : bool | list of SpatialImage or path-like | SpatialImage
-            | path-like
+    flash30 : bool | list of SpatialImage or path-like | SpatialImage | path-like
         If False do not use 30-degree flip angle data.
         The list of flash 5 echos to use. If True it will look for files
         named mef30_*.mgz in the subject's mri/flash directory and if not False
@@ -1753,8 +1752,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         data sets. It requires FreeSurfer's MATLAB toolbox to be properly
         installed.
     %(subjects_dir)s
-    flash5 : list of SpatialImage or path-like | SpatialImage | path-like
-            | True
+    flash5 : list of SpatialImage or path-like | SpatialImage | path-like | True
         The list of flash 5 echos to use. If True it will look for files
         named mef05_*.mgz in the subject's mri/flash directory and if not None
         the list of flash 5 echos images will be written to the mri/flash
@@ -1772,7 +1770,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     This function assumes that the Freesurfer segmentation of the subject
     has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
     should be, as usual, in the subject's mri directory.
-    """
+    """  # noqa: E501
     env, mri_dir = _prepare_env(subject, subjects_dir)[:2]
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
