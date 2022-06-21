@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: ./tools/setup_xvfb.sh
         name: 'Setup xvfb'
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
         name: 'Setup python'
