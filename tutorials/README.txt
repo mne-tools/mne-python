@@ -13,5 +13,5 @@ probably skip around to just the topics they need without too much trouble.
 
 .. note::
     If tutorial-scripts contain plots and are run locally, using the
-    interactive interactive flag with ``python -i tutorial_script.py``
+    interactive flag with ``python -i tutorial_script.py``
     keeps them open.
