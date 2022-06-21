@@ -63,6 +63,6 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/github_actions_test.sh
         name: 'Run tests'
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v3
         if: success()
         name: 'Upload coverage to CodeCov'
