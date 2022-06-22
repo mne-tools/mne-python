@@ -4,8 +4,6 @@
 #
 # License: BSD-3-Clause
 
-import os
-
 from ..utils import verbose, get_config, warn
 
 
@@ -17,14 +15,16 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
                    orient_to_surface=True, scale_by_distance=True,
                    mark_inside=True, interaction=None, scale=None,
                    advanced_rendering=None, head_inside=True,
-                   fullscreen=None, verbose=None):
+                   fullscreen=None, show=True, block=False, verbose=None):
     """Coregister an MRI with a subject's head shape.
 
-    The recommended way to use the GUI is through bash with:
+    The GUI can be launched through the command line interface:
 
     .. code-block::  bash
 
         $ mne coreg
+
+    or using a python interpreter as shown in :ref:`tut-source-alignment`.
 
     Parameters
     ----------
@@ -105,6 +105,10 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         (which defaults to False).
 
         .. versionadded:: 1.1
+    show : bool
+        Show the GUI if True.
+    block : bool
+        Whether to halt program execution until the figure is closed.
     %(verbose)s
 
     Returns
@@ -140,7 +144,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
             to_raise = val is not None
         if to_raise:
             warn(f"The parameter {key} is not supported with"
-                  " the pyvistaqt 3d backend. It will be ignored.")
+                 " the pyvistaqt 3d backend. It will be ignored.")
     config = get_config()
     if guess_mri_subject is None:
         guess_mri_subject = config.get(
@@ -186,7 +190,8 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
     from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
     from ._coreg import CoregistrationUI
-    show = block = not MNE_3D_BACKEND_TESTING
+    if MNE_3D_BACKEND_TESTING:
+        show = block = False
     return CoregistrationUI(
         info_file=inst, subject=subject, subjects_dir=subjects_dir,
         head_resolution=head_high_res, head_opacity=head_opacity,
@@ -238,41 +243,46 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     return gui
 
 
-class _LocateScraper(object):
-    """Scrape locate_ieeg outputs."""
+class _GUIScraper(object):
+    """Scrape GUI outputs."""
 
     def __repr__(self):
-        return '<LocateScraper>'
+        return '<GUIScraper>'
 
     def __call__(self, block, block_vars, gallery_conf):
         from ._ieeg_locate_gui import IntracranialElectrodeLocator
+        from ._coreg import CoregistrationUI
         from sphinx_gallery.scrapers import figure_rst
         from qtpy import QtGui
         for gui in block_vars['example_globals'].values():
-            if (isinstance(gui, IntracranialElectrodeLocator) and
+            if (isinstance(gui, (IntracranialElectrodeLocator,
+                                 CoregistrationUI)) and
                     not getattr(gui, '_scraped', False) and
                     gallery_conf['builder_name'] == 'html'):
                 gui._scraped = True  # monkey-patch but it's easy enough
                 img_fname = next(block_vars['image_path_iterator'])
-                # gui is QWindow
+                # TODO fix in window refactor
+                window = gui if hasattr(gui, 'grab') else gui._renderer._window
+                # window is QWindow
                 # https://doc.qt.io/qt-5/qwidget.html#grab
-                pixmap = gui.grab()
-                # Now the tricky part: we need to get the 3D renderer, extract
-                # the image from it, and put it in the correct place in the
-                # pixmap. The easiest way to do this is actually to save the
-                # 3D image first, then load it using QPixmap and Qt geometry.
-                plotter = gui._renderer.plotter
-                plotter.screenshot(img_fname)
-                sub_pixmap = QtGui.QPixmap(img_fname)
-                # https://doc.qt.io/qt-5/qwidget.html#mapTo
-                # https://doc.qt.io/qt-5/qpainter.html#drawPixmap-1
-                QtGui.QPainter(pixmap).drawPixmap(
-                    plotter.mapTo(gui, plotter.rect().topLeft()),
-                    sub_pixmap)
+                pixmap = window.grab()
+                if hasattr(gui, '_renderer'):  # if no renderer, no need
+                    # Now the tricky part: we need to get the 3D renderer,
+                    # extract the image from it, and put it in the correct
+                    # place in the pixmap. The easiest way to do this is
+                    # actually to save the 3D image first, then load it
+                    # using QPixmap and Qt geometry.
+                    plotter = gui._renderer.plotter
+                    plotter.screenshot(img_fname)
+                    sub_pixmap = QtGui.QPixmap(img_fname)
+                    # https://doc.qt.io/qt-5/qwidget.html#mapTo
+                    # https://doc.qt.io/qt-5/qpainter.html#drawPixmap-1
+                    QtGui.QPainter(pixmap).drawPixmap(
+                        plotter.mapTo(window, plotter.rect().topLeft()),
+                        sub_pixmap)
                 # https://doc.qt.io/qt-5/qpixmap.html#save
                 pixmap.save(img_fname)
-                gui._renderer.close()  # TODO should be triggered by close...
                 gui.close()
                 return figure_rst(
-                    [img_fname], gallery_conf['src_dir'], 'iEEG GUI')
+                    [img_fname], gallery_conf['src_dir'], 'GUI')
         return ''

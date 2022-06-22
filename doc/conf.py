@@ -386,7 +386,7 @@ else:
             import pyvista
         pyvista.OFF_SCREEN = False
         scrapers += (
-            mne.gui._LocateScraper(),
+            mne.gui._GUIScraper(),
             mne.viz._brain._BrainScraper(),
             'pyvista',
         )
