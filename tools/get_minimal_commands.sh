@@ -21,7 +21,7 @@ if [ "${CIRCLECI}" == "true" ]; then
 fi;
 if [ "${CI_OS_NAME}" != "osx" ]; then
 	if [ ! -d "${PWD}/minimal_cmds" ]; then
-		curl -L https://osf.io/g7dzs/download?version=2 | tar xz
+		curl -L https://osf.io/g7dzs/download?version=5 | tar xz
 	else
 		echo "Minimal commands already downloaded"
 	fi;
@@ -45,7 +45,7 @@ if [ "${CI_OS_NAME}" != "osx" ]; then
 	fi;
 else
 	if [ ! -d "${PWD}/minimal_cmds" ]; then
-		curl -L https://osf.io/rjcz4/download?version=5 | tar xz
+		curl -L https://osf.io/rjcz4/download?version=2 | tar xz
 	else
 		echo "Minimal commands already downloaded"
 	fi;
