@@ -204,7 +204,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
 @verbose
 def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
-                groups=None, verbose=None):
+                groups=None, show=True, block=False, verbose=None):
     """Locate intracranial electrode contacts.
 
     Parameters
@@ -223,6 +223,10 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
         like ``LAMY`` precedes a numeric index like ``7``. If the channels
         are formatted improperly, group plotting will work incorrectly.
         Group assignments can be adjusted in the GUI.
+    show : bool
+        Show the GUI if True.
+    block : bool
+        Whether to halt program execution until the figure is closed.
     %(verbose)s
 
     Returns
@@ -230,6 +234,7 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     gui : instance of IntracranialElectrodeLocator
         The graphical user interface (GUI) window.
     """
+    from ..viz.backends._utils import _qt_app_exec
     from ._ieeg_locate_gui import IntracranialElectrodeLocator
     from qtpy.QtWidgets import QApplication
     # get application
@@ -239,7 +244,10 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     gui = IntracranialElectrodeLocator(
         info, trans, aligned_ct, subject=subject,
         subjects_dir=subjects_dir, groups=groups, verbose=verbose)
-    gui.show()
+    if show:
+        gui.show()
+    if block:
+        _qt_app_exec(app)
     return gui
 
 

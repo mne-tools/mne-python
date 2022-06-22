@@ -348,12 +348,13 @@ subj_trans = mne.coreg.estimate_head_mri_t(
 
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
 
+# you may want to add `block=True` to halt execution until you have interacted
+# with the GUI to find the channel positions, that way the raw object can
+# be used later in the script (e.g. saved with channel positions)
 gui = mne.gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
                           subject='sample_seeg',
                           subjects_dir=op.join(misc_path, 'seeg'))
 # The `raw` object is modified to contain the channel locations
-# after closing the GUI and can now be saved
-# gui.close()  # typically you close when done
 
 # %%
 # Let's do a quick sidebar and show what this looks like for ECoG as well.

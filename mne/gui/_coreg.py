@@ -1823,6 +1823,8 @@ class CoregistrationUI(HasTraits):
         self._surfaces.clear()
         self._defaults.clear()
         self._head_geo = None
+        self._check_inside = None
+        self._nearest = None
         self._redraw = None
 
     def close(self):

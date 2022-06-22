@@ -257,7 +257,8 @@ def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_coreg_gui_scraper(tmp_path):
+def test_coreg_gui_scraper(tmp_path, renderer_interactive_pyvistaqt):
+    """Test the scrapper for the coregistration GUI."""
     from mne.gui import coregistration
     coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
                            trans=fname_trans)
