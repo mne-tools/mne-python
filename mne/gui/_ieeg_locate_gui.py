@@ -1113,5 +1113,4 @@ class IntracranialElectrodeLocator(QMainWindow):
     def closeEvent(self, event):
         """Clean up upon closing the window."""
         self._renderer.plotter.close()
-        self._renderer.close()
         self.close()

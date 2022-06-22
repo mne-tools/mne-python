@@ -288,6 +288,10 @@ class _GUIScraper(object):
                         sub_pixmap)
                 # https://doc.qt.io/qt-5/qpixmap.html#save
                 pixmap.save(img_fname)
+                try:  # for compatibility with both GUIs, will be refactored
+                    gui._renderer.close()  # TODO should be triggered by close
+                except Exception:
+                    pass
                 gui.close()
                 return figure_rst(
                     [img_fname], gallery_conf['src_dir'], 'GUI')
