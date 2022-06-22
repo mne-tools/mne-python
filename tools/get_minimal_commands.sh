@@ -66,3 +66,4 @@ else
 fi
 popd > /dev/null
 mne_process_raw --version
+mri_average --version
