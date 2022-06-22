@@ -27,6 +27,7 @@ from ..coreg import (Coregistration, _is_mri_subject, scale_mri, bem_fname,
 from ..viz._3d import (_plot_head_surface, _plot_head_fiducials,
                        _plot_head_shape_points, _plot_mri_fiducials,
                        _plot_hpi_coils, _plot_sensors, _plot_helmet)
+from ..viz.utils import safe_event
 from ..transforms import (read_trans, write_trans, _ensure_trans, _get_trans,
                           rotation_angles, _get_transforms_to_coord_frame)
 from ..utils import (get_subjects_dir, check_fname, _check_fname, fill_doc,
@@ -1827,9 +1828,11 @@ class CoregistrationUI(HasTraits):
         self._nearest = None
         self._redraw = None
 
+    @safe_event
     def close(self):
         """Close interface and cleanup data structure."""
-        self._renderer.close()
+        if self._renderer is not None:
+            self._renderer.close()
 
     def _close_dialog_callback(self, button_name):
         from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
