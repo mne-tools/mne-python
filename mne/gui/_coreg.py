@@ -144,8 +144,8 @@ class CoregistrationUI(HasTraits):
                  sensor_opacity=None, trans=None, size=None, bgcolor=None,
                  show=True, block=False, fullscreen=False,
                  interaction='terrain', verbose=None):
-        from ..viz.backends.renderer import _get_renderer
-        from ..viz.backends._utils import _qt_app_exec
+        from ..viz.backends.renderer import _get_window, _get_renderer
+        from ..viz.backends._utils import _init_mne_qtapp, _qt_app_exec
 
         def _get_default(var, val):
             return var if var is not None else val
@@ -219,7 +219,13 @@ class CoregistrationUI(HasTraits):
 
         # setup the window
         splash = 'Initializing coregistration GUI...' if show else False
+        out = _init_mne_qtapp(splash=splash)
+        app = out[0] if splash else out
+        window = _get_window()
+        window._window_initialize()
+        self._window = window._window_create()
         self._renderer = _get_renderer(
+            window=self._window,
             size=self._defaults["size"],
             bgcolor=self._defaults["bgcolor"],
             splash=splash,
@@ -312,7 +318,7 @@ class CoregistrationUI(HasTraits):
         self._mri_fids_modified = False
         self._mri_scale_modified = False
         if block and self._renderer._kind != 'notebook':
-            _qt_app_exec(self._renderer.figure.store["app"])
+            _qt_app_exec(app)
 
     def _set_subjects_dir(self, subjects_dir):
         if subjects_dir is None or not subjects_dir:

@@ -240,7 +240,10 @@ class Brain(object):
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', silhouette=False, theme=None,
                  show=True, block=False):
-        from ..backends.renderer import backend, _get_renderer
+        from ..backends.renderer import _get_backend
+        from ..backends._utils import _qt_app_exec
+
+        self._backend = _get_backend()
 
         if hemi is None:
             hemi = 'vol'
@@ -254,7 +257,7 @@ class Brain(object):
                                           ('vertical', 'horizontal'))
 
         if figure is not None and not isinstance(figure, int):
-            backend._check_3d_figure(figure)
+            self._backend._check_3d_figure(figure)
         if title is None:
             self._title = subject_id
         else:
@@ -282,7 +285,6 @@ class Brain(object):
 
         self.time_viewer = False
         self._hash = time.time_ns()
-        self._block = block
         self._hemi = hemi
         self._units = units
         self._alpha = float(alpha)
@@ -335,12 +337,16 @@ class Brain(object):
         offset = None if (not offset or hemi != 'both') else 0.0
         logger.debug(f'Hemi offset: {offset}')
         _validate_type(theme, (str, None), 'theme')
-        self._renderer = _get_renderer(name=self._title, size=size,
-                                       bgcolor=self._bg_color,
-                                       shape=shape,
-                                       fig=figure)
-        self._renderer._window_close_connect(self._clean)
-        self._renderer._window_set_theme(theme)
+        self._backend = _get_backend()
+        self._window = self._backend._Window(size=size)
+        self._central_layout = self._backend._VBoxLayout()
+        self._renderer = self._backend._Renderer(
+            name=self._title, size=size, bgcolor=self._bg_color,
+            shape=shape, fig=figure)
+        self._central_layout._add_widget(self._renderer.plotter)
+        self._window._set_central_layout(self._central_layout)
+        self._window._close_connect(self._clean)
+        self._window._set_theme(theme)
         self.plotter = self._renderer.plotter
 
         self._setup_canonical_rotation()
@@ -402,6 +408,9 @@ class Brain(object):
         if surf == 'flat':
             self._renderer.set_interaction("rubber_band_2d")
 
+        if block:
+            _qt_app_exec(self._window._app)
+
     def _setup_canonical_rotation(self):
         self._rigid = np.eye(4)
         try:
@@ -440,7 +449,6 @@ class Brain(object):
         'Left': Decrease camera azimuth angle
         'Right': Increase camera azimuth angle
         """
-        from ..backends._utils import _qt_app_exec
         if self.time_viewer:
             return
         if not self._data:
@@ -523,7 +531,6 @@ class Brain(object):
         self._configure_help()
         # show everything at the end
         self.toggle_interface()
-        self._renderer.show()
 
         # sizes could change, update views
         for hemi in ('lh', 'rh'):
@@ -535,13 +542,11 @@ class Brain(object):
         # finally, show the MplCanvas
         if self.show_traces:
             self.mpl_canvas.show()
-        if self._block:
-            _qt_app_exec(self._renderer.figure.store["app"])
 
     @safe_event
     def _clean(self):
         # resolve the reference cycle
-        self._renderer._window_close_disconnect()
+        self._window._close_disconnect()
         self.clear_glyphs()
         self.remove_annotations()
         # clear init actors
@@ -1197,10 +1202,10 @@ class Brain(object):
         self.plotter.add_key_event("s", self.apply_auto_scaling)
         self.plotter.add_key_event("r", self.restore_user_scaling)
         self.plotter.add_key_event("c", self.clear_glyphs)
-        self.plotter.add_key_event("n", partial(self._shift_time,
-                                   op=lambda x, y: x + y))
-        self.plotter.add_key_event("b", partial(self._shift_time,
-                                   op=lambda x, y: x - y))
+        self.plotter.add_key_event(
+            "n", partial(self._shift_time, op=lambda x, y: x + y))
+        self.plotter.add_key_event(
+            "b", partial(self._shift_time, op=lambda x, y: x - y))
         for key, func, sign in (("Left", self._rotate_azimuth, 1),
                                 ("Right", self._rotate_azimuth, -1),
                                 ("Up", self._rotate_elevation, 1),
@@ -2859,10 +2864,7 @@ class Brain(object):
 
     def show(self):
         """Display the window."""
-        from ..backends._utils import _qt_app_exec
-        self._renderer.show()
-        if self._block:
-            _qt_app_exec(self._renderer.figure.store["app"])
+        self._window._show()
 
     @fill_doc
     def get_view(self, row=0, col=0):
