@@ -211,8 +211,8 @@ class IntracranialElectrodeLocator(QMainWindow):
         self._ch_list.setFocus()  # always focus on list
 
         if show:
-            self._renderer.show()
             self.show()
+            self._renderer.show()
 
     def _load_image_data(self, ct):
         """Get MRI and CT data to display and transforms to/from vox/RAS."""

@@ -381,7 +381,7 @@ mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
                     subjects_dir=op.join(misc_path, 'ecog'))
 
 # %%
-# for ECoG, we typically want to account for "brain shift" or shrinking of the
+# For ECoG, we typically want to account for "brain shift" or shrinking of the
 # brain away from the skull/dura due to changes in pressure during the
 # craniotomy
 # Note: this requires the BEM surfaces to have been computed e.g. using
