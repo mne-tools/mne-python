@@ -6,19 +6,19 @@ import itertools
 import os
 from copy import deepcopy
 
-import numpy as np
-from numpy.testing import assert_allclose
-import pytest
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
+from numpy.testing import assert_allclose
 
-from mne import pick_types, Annotations, create_info
+from mne import Annotations, create_info, pick_types
 from mne.annotations import _sync_onset
 from mne.datasets import testing
 from mne.io import RawArray
-from mne.utils import get_config, set_config, _dt_to_stamp, _record_warnings
-from mne.viz.utils import _fake_click
+from mne.utils import _dt_to_stamp, _record_warnings, get_config, set_config
 from mne.viz import plot_raw, plot_sensors
+from mne.viz.utils import _fake_click
 
 
 def _annotation_helper(raw, browse_backend, events=False):
