@@ -320,12 +320,14 @@ renderer.show()
 # * Click ``Save As...`` (lower right corner of the panel), set the filename
 #   and read it with :func:`mne.read_trans`.
 #
-# For more information, see step by step instructions
-# `in these slides
-# <https://www.slideshare.net/mne-python/mnepython-coregistration>`_.
-# Uncomment the following line to align the data yourself.
+# For more information, see this video:
+#
+# .. youtube:: w8r_0pRoRwQ
+#
+# .. note::
+#     Coregistration can also be automated as shown in :ref:`tut-auto-coreg`.
 
-# mne.gui.coregistration(subject='sample', subjects_dir=subjects_dir)
+mne.gui.coregistration(subject='sample', subjects_dir=subjects_dir)
 
 # %%
 # .. _tut-source-alignment-without-mri:
