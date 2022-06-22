@@ -319,7 +319,9 @@ subj_trans = mne.coreg.estimate_head_mri_t(
 #           useful for finding the brain structures nearby each contact and
 #           plotting the results.
 #
-# To operate the GUI:
+# See the following video on how to operate the GUI or follow the steps below:
+#
+# .. youtube:: 8JWDJhXq0VY
 #
 # - Click in each image to navigate to each electrode contact
 # - Select the contact name in the right panel
