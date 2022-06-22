@@ -56,7 +56,7 @@ jobs:
       - shell: bash -el {0}
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         name: Run tests with no testing data
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data

@@ -46,7 +46,7 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/get_testing_version.sh
         name: 'Get testing version'
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
