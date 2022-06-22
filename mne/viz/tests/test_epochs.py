@@ -98,8 +98,8 @@ def test_plot_epochs_scale_bar(epochs, browser_backend):
     fig = epochs.plot()
     texts = fig._get_scale_bar_texts()
     # mag & grad in this instance
-    assert len(texts) == 2
-    wants = ('800.0 fT/cm', '2000.0 fT')
+    assert len(texts) == 4
+    wants = ('800.0 fT/cm', '0.55 sec', '2000.0 fT', '0.55 sec')
     assert texts == wants
 
 
