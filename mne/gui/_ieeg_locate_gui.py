@@ -212,7 +212,6 @@ class IntracranialElectrodeLocator(QMainWindow):
 
         if show:
             self.show()
-            self._renderer.show()
 
     def _load_image_data(self, ct):
         """Get MRI and CT data to display and transforms to/from vox/RAS."""
@@ -1114,4 +1113,5 @@ class IntracranialElectrodeLocator(QMainWindow):
     def closeEvent(self, event):
         """Clean up upon closing the window."""
         self._renderer.plotter.close()
+        self._renderer.close()
         self.close()
