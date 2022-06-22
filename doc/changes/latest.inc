@@ -172,6 +172,8 @@ Bugs
 
 - Add a video on how to operate the intracranial electrode contact location GUI in :ref:`tut-ieeg-localize` (:gh:`10800` by `Alex Rockhill`_)
 
+- Add a video on how to operate the coregistration GUI in :ref:`tut-source-alignment` (:gh:`10802` by `Alex Rockhill`_)
+
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - When creating BEM surfaces via :func:`mne.bem.make_watershed_bem` and :func:`mne.bem.make_flash_bem`, the ``copy`` parameter now defaults to ``True``. This means that instead of creating symbolic links inside the FreeSurfer subject's ``bem`` folder, we now create "actual" files. This should avoid troubles when sharing files across different operating systems and file systems (:gh:`10531` by `Richard Höchenberger`_)
