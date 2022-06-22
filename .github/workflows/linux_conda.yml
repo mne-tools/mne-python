@@ -69,7 +69,7 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/github_actions_test.sh
         name: 'Run tests'
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v3
         if: success()
         name: 'Upload coverage to CodeCov'
 
@@ -112,6 +112,6 @@ jobs:
       - shell: bash -el {0}
         run: pytest --tb=short -m "not pgtest" --cov=mne --cov-report=xml --cov-report=html -vv mne/viz
         name: 'Run viz tests'
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v3
         if: success()
         name: 'Upload coverage to CodeCov'
