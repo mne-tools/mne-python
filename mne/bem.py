@@ -1891,7 +1891,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
 
 @verbose
 def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
-                   flash_path=None, copy=True, flash5_img=None,
+                   flash_path=None, copy=True, *, flash5_img=None,
                    register=True, verbose=None):
     """Create 3-Layer BEM model from prepared flash MRI images.
 
