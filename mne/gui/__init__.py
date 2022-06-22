@@ -242,8 +242,8 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     if app is None:
         app = QApplication(["Intracranial Electrode Locator"])
     gui = IntracranialElectrodeLocator(
-        info, trans, aligned_ct, subject=subject,
-        subjects_dir=subjects_dir, groups=groups, show=show, verbose=verbose)
+        info, trans, aligned_ct, subject=subject, subjects_dir=subjects_dir,
+        groups=groups, show=show, verbose=verbose)
     if block:
         _qt_app_exec(app)
     return gui

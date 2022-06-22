@@ -351,9 +351,9 @@ raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
 # you may want to add `block=True` to halt execution until you have interacted
 # with the GUI to find the channel positions, that way the raw object can
 # be used later in the script (e.g. saved with channel positions)
-gui = mne.gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
-                          subject='sample_seeg',
-                          subjects_dir=op.join(misc_path, 'seeg'))
+mne.gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
+                    subject='sample_seeg',
+                    subjects_dir=op.join(misc_path, 'seeg'))
 # The `raw` object is modified to contain the channel locations
 
 # %%
@@ -376,9 +376,9 @@ raw_ecog = mne.io.read_raw(op.join(misc_path, 'ecog', 'sample_ecog_ieeg.fif'))
 # use estimated `trans` which was used when the locations were found previously
 subj_trans_ecog = mne.coreg.estimate_head_mri_t(
     'sample_ecog', op.join(misc_path, 'ecog'))
-gui = mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
-                          subject='sample_ecog',
-                          subjects_dir=op.join(misc_path, 'ecog'))
+mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
+                    subject='sample_ecog',
+                    subjects_dir=op.join(misc_path, 'ecog'))
 
 # %%
 # for ECoG, we typically want to account for "brain shift" or shrinking of the
