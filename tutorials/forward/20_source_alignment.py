@@ -301,6 +301,10 @@ renderer.show()
 # * To set the MRI fiducials, make sure ``Lock Fiducials`` is toggled off.
 # * Set the landmarks by clicking the radio button (LPA, Nasion, RPA) and then
 #   clicking the corresponding point in the image.
+#
+# .. note::
+#    The position of each fiducial used is the center of the octohedron icon.
+#
 # * After doing this for all the landmarks, toggle ``Lock Fiducials`` radio
 #   button and optionally pressing ``Save MRI Fid.`` which will save to a
 #   default location in the ``bem`` folder of the Freesurfer subject directory.
