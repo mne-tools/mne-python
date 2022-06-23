@@ -1195,7 +1195,7 @@ class Info(dict, MontageMixin, ContainsMixin):
             meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
 
         projs = self.get('projs')
-        if projs is not None and projs:
+        if projs:
             projs = [
                 f'{p["desc"]} : {"on" if p["active"] else "off"}'
                 for p in self['projs']
