@@ -124,7 +124,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
     Step by step instructions for the coregistrations are shown below:
 
-    .. youtube:: w8r_0pRoRwQ
+    .. youtube:: uK4n5g6DBcg
     """
     unsupported_params = {
         'tabbed': (tabbed, False),

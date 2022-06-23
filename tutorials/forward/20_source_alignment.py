@@ -322,7 +322,7 @@ renderer.show()
 #
 # For more information, see this video:
 #
-# .. youtube:: w8r_0pRoRwQ
+# .. youtube:: uK4n5g6DBcg
 #
 # .. note::
 #     Coregistration can also be automated as shown in :ref:`tut-auto-coreg`.
