@@ -5,41 +5,58 @@
     --pst-font-family-base: 'Source Sans Pro', var(--pst-font-family-base-system);
     --pst-font-family-heading: var(--pst-font-family-base);
     --pst-font-family-monospace: 'Source Code Pro', var(--pst-font-family-monospace-system);
+    /* colors that aren't responsive to light/dark mode */
+    --mne-color-discord: #5865F2;
+    --mne-color-twitter: #55acee;
 }
 
 html[data-theme="light"] {
+    /* topbar logo links */
     --mne-color-github: #000;
     --mne-color-discourse: #000;
-    --mne-color-discord: #5865F2;
-    --mne-color-twitter: #55acee;
-    --pst-color-border-rgba: rgba(0, 0, 0, 0.125);
-    --pst-color-background-rgba: rgba(0, 0, 0, 0.03);
-    --pst-color-primary-rgba: rgba(69, 157, 185, 0.2);
-    --pst-color-secondary-rgba: rgba(238, 144, 64, 0.2);
+    /* code block copy button */
     --copybtn-opacity: 0.75;
+    /* card header bg color */
+    --mne-color-header: rgba(0, 0, 0, 0.05);
+    /* pydata-sphinx-theme overrides */
+    --pst-color-primary: #0033ff;
+    --pst-color-primary-text: #fff;
+    --pst-color-primary-highlight: #001a80;
+    --pst-color-secondary: #ff3300;
+    --pst-color-secondary-text: #fff;
+    --pst-color-secondary-highlight: #801a00;
+    --pst-color-border: #ccc;
+    --pst-color-background: #fff;
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
-    --sg-download-a-border-color: var(--pst-color-border-rgba);
+    --sg-download-a-border-color: var(--pst-color-border);
     --sg-download-a-color: #fff;
     --sg-download-a-hover-background-color: var(--pst-color-secondary);
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
 }
 html[data-theme="dark"] {
-    --mne-color-github: #fff;
-    --mne-color-discourse: #FFF9AE;  /* color taken from their logo SVG */
-    --mne-color-discord: #fff;
-    --mne-color-twitter: #55acee;
-    --pst-color-border-rgba: rgba(201, 201, 201, 0.25);
-    --pst-color-background-rgba: rgba(255, 255, 255, 0.08);
-    --pst-color-primary-rgba: rgba(69, 157, 185, 0.3);
-    --pst-color-secondary-rgba: rgba(238, 144, 64, 0.3);
+    /* topbar logo links */
+    --mne-color-github: rgb(240, 246, 252);  /* from their logo SVG */
+    --mne-color-discourse: #FFF9AE;  /* from their logo SVG */
+    /* code block copy button */
     --copybtn-opacity: 0.25;
+    /* card header bg color */
+    --mne-color-header: rgba(255, 255, 255, 0.2);
+    /* pydata-sphinx-theme overrides */
+    --pst-color-primary: #0099ff;
+    --pst-color-primary-text: #fff;
+    --pst-color-primary-highlight: #80ccff;
+    --pst-color-secondary: #ff9900;
+    --pst-color-secondary-text: #fff;
+    --pst-color-secondary-highlight: #ffcc80;
+    --pst-color-border: #333;
+    --pst-color-background: #000;
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
-    --sg-download-a-border-color: var(--pst-color-border-rgba);
+    --sg-download-a-border-color: var(--pst-color-border);
     --sg-download-a-color: #fff;
     --sg-download-a-hover-background-color: var(--pst-color-secondary);
     --sg-download-a-hover-box-shadow-1: none;
@@ -109,7 +126,7 @@ div[id^="examples-using-"] h2 {
 /* ******************************************* in-text sidebar callout boxes */
 div.sidebar,
 aside.sidebar {
-    background-color: var(--pst-color-primary-rgba);
+    background-color: var(--pst-color-primary);
     border-color: rgb(var(--pst-color-info));
 }
 
@@ -188,41 +205,29 @@ div.card img.institution {
     background-color: #fffe;
 }
 div.card {
-    border: 1px solid var(--pst-color-border-rgba);
+    border: 1px solid var(--pst-color-border);
     background-color: rgb(var(--pst-color-background));
 }
 .card-header {
-    border-bottom-color: var(--pst-color-border-rgba);
-    background-color: var(--pst-color-background-rgba);
+    border-bottom-color: var(--pst-color-border);
+    background-color: var(--mne-color-header);
 }
 /* ********************************************* sphinx-design compatibility */
 .sd-dropdown {
-    border: 1px solid var(--pst-color-border-rgba) !important;
+    border: 1px solid var(--pst-color-border) !important;
     box-shadow: 1px 1px 1px var(--pst-color-shadow);
 }
 .sd-card-header {
-    border-bottom: 1px solid var(--pst-color-border-rgba) !important;
-    background-color: var(--pst-color-background-rgba) !important;
+    border-bottom: 1px solid var(--pst-color-border) !important;
+    background-color: var(--mne-color-header) !important;
 }
 .sd-card-footer {
-    border-top: 1px solid var(--pst-color-border-rgba) !important;
-    background-color: var(--pst-color-background-rgba) !important;
+    border-top: 1px solid var(--pst-color-border) !important;
+    background-color: var(--pst-color-background) !important;
 }
 p.btn a {
     color: unset;
 }
-/* remove this when
-   https://github.com/pydata/pydata-sphinx-theme/issues/733 is addressed
-   ↓↓↓↓↓↓↓↓↓ */
-.sd-btn-primary {
-    background-color: var(--pst-color-link) !important;
-    border-color: var(--pst-color-link) !important
-}
-.sd-btn-primary:hover {
-    background-color: var(--pst-color-link-hover) !important;
-    border-color: var(--pst-color-link-hover) !important
-}
-
 /* ****************************************************** navbar quick links */
 
 #navbar-icon-links i.fa-github-square::before {
