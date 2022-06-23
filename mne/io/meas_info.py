@@ -1195,11 +1195,14 @@ class Info(dict, MontageMixin, ContainsMixin):
             meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
 
         projs = self.get('projs')
-        if projs is not None and projs:
-            projs = [
-                f'{p["desc"]} : {"on" if p["active"] else "off"}'
-                for p in self['projs']
-            ]
+        if projs is not None:
+            if projs:
+                projs = [
+                    f'{p["desc"]} : {"on" if p["active"] else "off"}'
+                    for p in self['projs']
+                ]
+            else:
+                projs = None
 
         info_template = repr_templates_env.get_template('info.html.jinja')
         return html + info_template.render(
