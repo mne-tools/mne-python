@@ -298,26 +298,20 @@ renderer.show()
 # You can try creating the head↔MRI transform yourself using
 # :func:`mne.gui.coregistration`.
 #
-# * First you must load the digitization data from the raw file
-#   (``Head Shape Source``). The MRI data is already loaded if you provide the
-#   ``subject`` and ``subjects_dir``. Toggle ``Always Show Head Points`` to see
-#   the digitization points.
-# * To set the landmarks, toggle ``Edit`` radio button in ``MRI Fiducials``.
+# * To set the MRI fiducials, make sure ``Lock Fiducials`` is toggled off.
 # * Set the landmarks by clicking the radio button (LPA, Nasion, RPA) and then
 #   clicking the corresponding point in the image.
-# * After doing this for all the landmarks, toggle ``Lock`` radio button. You
-#   can omit outlier points, so that they don't interfere with the finetuning.
-#
-#   .. note:: You can save the fiducials to a file and pass
-#             ``mri_fiducials=True`` to plot them in
-#             :func:`mne.viz.plot_alignment`. The fiducials are saved to the
-#             subject's bem folder by default.
-# * Click ``Fit Head Shape``. This will align the digitization points to the
+# * After doing this for all the landmarks, toggle ``Lock Fiducials`` radio
+#   button and optionally pressing ``Save MRI Fid.`` which will save to a
+#   default location in the ``bem`` folder of the Freesurfer subject directory.
+# * Then you can load the digitization data from the raw file
+#   (``Path to info``).
+# * Click ``Fit ICP``. This will align the digitization points to the
 #   head surface. Sometimes the fitting algorithm doesn't find the correct
 #   alignment immediately. You can try first fitting using LPA/RPA or fiducials
 #   and then align according to the digitization. You can also finetune
 #   manually with the controls on the right side of the panel.
-# * Click ``Save As...`` (lower right corner of the panel), set the filename
+# * Click ``Save`` (lower right corner of the panel), set the filename
 #   and read it with :func:`mne.read_trans`.
 #
 # For more information, see this video:
