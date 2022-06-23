@@ -172,7 +172,7 @@ Bugs
 
 - Add a video on how to operate the intracranial electrode contact location GUI in :ref:`tut-ieeg-localize` (:gh:`10800` by `Alex Rockhill`_)
 
-- Correctly report projections in :meth:`mne.io.meas_info.Info._repr_html_` (:gh:`10471` by `Clemens Brunner`_)
+- Correctly report the number of available projections when printing measurement info in a Jupyter notebook (:gh:`10471` by `Clemens Brunner`_)
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
