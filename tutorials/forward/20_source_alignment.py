@@ -303,7 +303,7 @@ renderer.show()
 #   clicking the corresponding point in the image.
 #
 # .. note::
-#    The position of each fiducial used is the center of the octohedron icon.
+#    The position of each fiducial used is the center of the octahedron icon.
 #
 # * After doing this for all the landmarks, toggle ``Lock Fiducials`` radio
 #   button and optionally pressing ``Save MRI Fid.`` which will save to a
