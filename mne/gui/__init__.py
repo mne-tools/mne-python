@@ -122,11 +122,9 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     which means that the default will be read from the MNE-Python
     configuration file (which gets saved when exiting).
 
-    Step by step instructions for the coregistrations can be accessed as
-    slides, `for subjects with structural MRI
-    <https://www.slideshare.net/mne-python/mnepython-coregistration>`_ and `for
-    subjects for which no MRI is available
-    <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
+    Step by step instructions for the coregistrations are shown below:
+
+    .. youtube:: w8r_0pRoRwQ
     """
     unsupported_params = {
         'tabbed': (tabbed, False),
