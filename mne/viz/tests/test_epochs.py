@@ -98,10 +98,10 @@ def test_plot_epochs_scale_bar(epochs, browser_backend):
     fig = epochs.plot()
     texts = fig._get_scale_bar_texts()
     # mag & grad in this instance
-    if browser_backend.__name__ == 'mne_qt_browser._pg_figure':
+    if browser_backend.name == 'pyqtgraph':
         assert len(texts) == 2
         wants = ('800.0 fT/cm', '2000.0 fT')
-    elif browser_backend.__name__ == 'mne.viz._mpl_figure':
+    elif browser_backend.name == 'matplotlib':
         assert len(texts) == 4
         wants = ('800.0 fT/cm', '0.55 sec', '2000.0 fT', '0.55 sec')
     assert texts == wants
