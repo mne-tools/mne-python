@@ -164,7 +164,7 @@ def pytest_configure(config):
     ignore:.*Setting theme=.*:RuntimeWarning
     # scikit-learn using this arg
     ignore:.*The 'sym_pos' keyword is deprecated.*:DeprecationWarning
-    ignore:.*nodes\.Node\.traverse() is obsoleted by Node\.findall().*:PendingDeprecationWarning
+    ignore:.*nodes\.Node\.traverse() is obsoleted by Node\.findall().*
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
