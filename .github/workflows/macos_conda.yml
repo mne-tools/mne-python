@@ -32,13 +32,16 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           environment-file: ${{ env.CONDA_ENV }}
         name: 'Setup conda'
+      - shell: bash -el {0}
+        run: |
+          ./tools/github_actions_dependencies.sh
+        name: 'Install dependencies'
       # https://github.com/mne-tools/mne-python/issues/10805
       # https://github.com/mne-tools/mne-python/runs/7042965701?check_suite_focus=true
       #- shell: bash -el {0}
       #  run: |
-      #    ./tools/github_actions_dependencies.sh
       #    source tools/get_minimal_commands.sh
-      #  name: 'Install dependencies'
+      #  name: 'Install minimal commands'
       #- shell: bash -el {0}
       #  run: mne_surf2bem --version
       #  name: 'Check minimal commands'
