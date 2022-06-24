@@ -21,6 +21,10 @@ from ..viz.utils import _plot_psd, plt_show
 from . import psd_array_multitaper, psd_array_welch
 
 
+def _identity_function(x):
+    return x
+
+
 class ToSpectrumMixin():
     """Mixin class providing spectral methods to sensor-space containers."""
 
@@ -417,21 +421,19 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         (picks_list, units_list, scalings_list, titles_list
          ) = _split_picks_by_type(self, picks, units, scalings, titles)
         # handle unaggregated multitaper
-        ch_axis = self._dims.index('channel')
         if hasattr(self, '_mt_weights'):
             logger.info('Aggregating multitaper estimates before plotting...')
-            psd_list = [_psd_from_mt(self._data.take(_p, axis=ch_axis),
-                                     self._mt_weights) for _p in picks_list]
+            _f = partial(_psd_from_mt, weights=self._mt_weights)
         # handle unaggregated Welch
         elif 'segment' in self._dims:
             logger.info(
                 'Aggregating Welch estimates (median) before plotting...')
             seg_axis = self._dims.index('segment')
-            psd_list = [
-                np.nanmedian(self._data.take(_p, axis=ch_axis), axis=seg_axis)
-                for _p in picks_list]
+            _f = partial(np.nanmedian, axis=seg_axis)
         else:  # "normal" cases
-            psd_list = [self._data.take(_p, axis=ch_axis) for _p in picks_list]
+            _f = _identity_function
+        ch_axis = self._dims.index('channel')
+        psd_list = [_f(self._data.take(_p, axis=ch_axis)) for _p in picks_list]
         # handle epochs
         if 'epoch' in self._dims:
             # XXX TODO FIXME look up how to properly aggregate across repeated
