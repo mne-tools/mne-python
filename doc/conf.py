@@ -453,7 +453,7 @@ sphinx_gallery_conf = {
     'reset_modules': ('matplotlib', Resetter()),  # called w/each script
     'reset_modules_order': 'both',
     'image_scrapers': scrapers,
-    'show_memory': not sys.platform.startswith('win'),
+    'show_memory': not sys.platform.startswith(('win', 'darwin')),
     'line_numbers': False,  # messes with style
     'within_subsection_order': FileNameSortKey,
     'capture_repr': ('_repr_html_',),
