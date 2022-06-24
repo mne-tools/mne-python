@@ -437,11 +437,19 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         psd_list = [_f(self._data.take(_p, axis=ch_axis)) for _p in picks_list]
         # handle epochs
         if 'epoch' in self._dims:
-            # XXX TODO FIXME look up how to properly aggregate across repeated
-            # measures (epochs) and non-repeated measures (channels) when
-            # calculating stddev or a CI.
-            # epoch axis should always be the first axis
+            # XXX TODO FIXME decide how to properly aggregate across repeated
+            # measures (epochs) and non-repeated but correlated measures
+            # (channels) when calculating stddev or a CI. For across-channel
+            # aggregation, doi:10.1007/s10162-012-0321-8 used hotellings T**2
+            # with a correction factor that estimated data rank using monte
+            # carlo simulations; seems like we could use our own data rank
+            # estimation methods to similar effect. Their exact approach used
+            # complex spectra though, here we've already converted to power;
+            # not sure if that makes an important difference? Anyway that
+            # aggregation would need to happen in the _plot_psd function
+            # though, not here... for now we just average like we always did.
             logger.info('Averaging across epochs...')
+            # epoch axis should always be the first axis
             psd_list = [_p.mean(axis=0) for _p in psd_list]
         # initialize figure
         fig, axes = _line_figure(self, ax, picks=picks)
