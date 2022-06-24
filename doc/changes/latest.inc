@@ -176,6 +176,9 @@ Bugs
 
 - Add ``show`` and ``block`` arguments to :func:`mne.gui.coregistration` and :func:`mne.gui.locate_ieeg` to pop up the GUIs and halt execution of subsequent code respectively (:gh:`10802` by `Alex Rockhill`_)
 
+- Correctly report the number of available projections when printing measurement info in a Jupyter notebook (:gh:`10471` by `Clemens Brunner`_)
+
+
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - When creating BEM surfaces via :func:`mne.bem.make_watershed_bem` and :func:`mne.bem.make_flash_bem`, the ``copy`` parameter now defaults to ``True``. This means that instead of creating symbolic links inside the FreeSurfer subject's ``bem`` folder, we now create "actual" files. This should avoid troubles when sharing files across different operating systems and file systems (:gh:`10531` by `Richard Höchenberger`_)
