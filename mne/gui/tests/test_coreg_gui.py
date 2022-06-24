@@ -257,6 +257,26 @@ def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
+def test_coreg_gui_scraper(tmp_path, renderer_interactive_pyvistaqt):
+    """Test the scrapper for the coregistration GUI."""
+    from mne.gui import coregistration
+    coreg = coregistration(subject='sample', subjects_dir=subjects_dir,
+                           trans=fname_trans)
+    (tmp_path / '_images').mkdir()
+    image_path = str(tmp_path / '_images' / 'temp.png')
+    gallery_conf = dict(builder_name='html', src_dir=str(tmp_path))
+    block_vars = dict(
+        example_globals=dict(gui=coreg),
+        image_path_iterator=iter([image_path]))
+    assert not op.isfile(image_path)
+    assert not getattr(coreg, '_scraped', False)
+    mne.gui._GUIScraper()(None, block_vars, gallery_conf)
+    assert op.isfile(image_path)
+    assert coreg._scraped
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
 def test_coreg_gui_notebook(renderer_notebook, nbexec):
     """Test the coregistration UI in a notebook."""
     import os

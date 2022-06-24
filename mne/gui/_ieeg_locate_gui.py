@@ -113,7 +113,7 @@ class IntracranialElectrodeLocator(QMainWindow):
     )
 
     def __init__(self, info, trans, aligned_ct, subject=None,
-                 subjects_dir=None, groups=None, verbose=None):
+                 subjects_dir=None, groups=None, show=True, verbose=None):
         """GUI for locating intracranial electrodes.
 
         .. note:: Images will be displayed using orientation information
@@ -209,6 +209,9 @@ class IntracranialElectrodeLocator(QMainWindow):
         # ready for user
         self._move_cursors_to_pos()
         self._ch_list.setFocus()  # always focus on list
+
+        if show:
+            self.show()
 
     def _load_image_data(self, ct):
         """Get MRI and CT data to display and transforms to/from vox/RAS."""

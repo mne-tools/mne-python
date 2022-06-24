@@ -120,7 +120,7 @@ def test_locate_scraper(_locate_ieeg, _fake_CT_coords, tmp_path):
         image_path_iterator=iter([image_path]))
     assert not op.isfile(image_path)
     assert not getattr(gui, '_scraped', False)
-    mne.gui._LocateScraper()(None, block_vars, gallery_conf)
+    mne.gui._GUIScraper()(None, block_vars, gallery_conf)
     assert op.isfile(image_path)
     assert gui._scraped
 
