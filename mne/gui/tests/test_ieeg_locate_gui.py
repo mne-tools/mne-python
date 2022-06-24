@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-clause
@@ -11,8 +12,7 @@ import pytest
 import mne
 from mne.datasets import testing
 from mne.transforms import apply_trans
-from mne.utils import (requires_nibabel, requires_version, catch_logging,
-                       use_log_level)
+from mne.utils import requires_nibabel, requires_version, use_log_level
 from mne.viz.utils import _fake_click
 
 data_path = testing.data_path(download=False)
@@ -60,7 +60,6 @@ def _fake_CT_coords(skull_size=5, contact_size=2):
     return ct, coords
 
 
-@requires_nibabel()
 @pytest.fixture
 def _locate_ieeg(renderer_interactive_pyvistaqt):
     # Use a fixture to create these classes so we can ensure that they
@@ -89,11 +88,7 @@ def test_ieeg_elec_locate_gui_io(_locate_ieeg):
     trans = mne.transforms.Transform('head', 'mri')
     with pytest.raises(ValueError,
                        match='No channels found in `info` to locate'):
-        _locate_ieeg(info, aligned_ct, subject, subjects_dir)
-    info = mne.create_info(['test'], 1000, ['seeg'])
-    with pytest.raises(ValueError, match='CT is not aligned to MRI'):
-        _locate_ieeg(info, trans, aligned_ct, subject=subject,
-                     subjects_dir=subjects_dir)
+        _locate_ieeg(info, trans, aligned_ct, subject, subjects_dir)
 
 
 @requires_version('sphinx_gallery')
@@ -140,15 +135,6 @@ def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
     aligned_ct, coords = _fake_CT_coords
     trans = mne.read_trans(fname_trans)
 
-    # test no seghead, fsaverage doesn't have seghead
-    with pytest.warns(RuntimeWarning, match='`seghead` not found'):
-        with catch_logging() as log:
-            _locate_ieeg(raw.info, trans, aligned_ct, subject='fsaverage',
-                         subjects_dir=subjects_dir, verbose=True)
-    log = log.getvalue()
-    assert 'Using marching cubes' in log
-
-    # test functions
     with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
         gui = _locate_ieeg(raw.info, trans, aligned_ct,
                            subject=subject, subjects_dir=subjects_dir,
