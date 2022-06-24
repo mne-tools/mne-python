@@ -272,11 +272,12 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         from .. import BaseEpochs, Evoked
         from ..io import BaseRaw
 
-        if BaseRaw in self._inst_type.__bases__:
+        parent_classes = self._inst_type.__bases__
+        if BaseRaw in parent_classes:
             inst_type = 'Raw'
-        elif isinstance(self._inst_type, BaseEpochs):
+        elif BaseEpochs in parent_classes:
             inst_type = 'Epochs'
-        elif isinstance(self._inst_type, Evoked):
+        elif Evoked in parent_classes:
             inst_type = 'Evoked'
         else:
             raise RuntimeError(
