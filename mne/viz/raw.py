@@ -493,9 +493,10 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
         from ..channels.layout import find_layout
         layout = find_layout(raw.info)
 
-    psds, freqs = psd_welch(raw, tmin=tmin, tmax=tmax, fmin=fmin,
-                            fmax=fmax, proj=proj, n_fft=n_fft,
-                            n_overlap=n_overlap, n_jobs=n_jobs)
+    spectrum = raw.compute_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
+                               proj=proj, n_fft=n_fft, n_overlap=n_overlap,
+                               n_jobs=n_jobs)
+    psds, freqs = spectrum.get_data(), spectrum.freqs
     if dB:
         psds = 10 * np.log10(psds)
         y_label = 'dB'
