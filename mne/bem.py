@@ -1991,8 +1991,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
                 ref_volume = mri_dir / 'T1.mgz'
             else:
                 ref_volume = mri_dir / 'T1'
-            cmd = ['fsl_rigid_register', '-r', ref_volume, '-i', flash5,
-                   '-o', flash5_reg]
+            cmd = ['fsl_rigid_register', '-r', str(ref_volume), '-i',
+                   str(flash5), '-o', str(flash5_reg)]
             run_subprocess_env(cmd)
         else:
             logger.info("Registered flash 5 image is already there")
