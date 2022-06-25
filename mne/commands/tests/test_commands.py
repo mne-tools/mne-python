@@ -295,22 +295,33 @@ def test_flash_bem(tmp_path):
     for s in ('outer_skin', 'outer_skull', 'inner_skull'):
         assert not op.isfile(subject_path_new / 'bem' / f'{s}.surf')
 
-    # # First test without flash30
-    # with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n', '-r', '-3'),
-    #                 disable_stdout=False, disable_stderr=False):
-    #     mne_flash_bem.run()
+    # First test without flash30
+    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n', '-r', '-3'),
+                    disable_stdout=False, disable_stderr=False):
+        mne_flash_bem.run()
+    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
+        surf_path = subject_path_new / 'bem' / f'{s}.surf'
+        assert surf_path.exists()
+        surf_path.unlink()  # cleanup
+    shutil.rmtree(flash_path / "parameter_maps")  # remove old files
 
     # Test with flash30 default locations
     with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n', '-r'),
                     disable_stdout=False, disable_stderr=False):
         mne_flash_bem.run()
+    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
+        surf_path = subject_path_new / 'bem' / f'{s}.surf'
+        assert surf_path.exists()
+        surf_path.unlink()  # cleanup
+    shutil.rmtree(flash_path / "parameter_maps")  # remove old files
 
-    # # Test with flash5 and flash30
-    # with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n',
-    #                  '-3', str(mridata_path / "flash" / 'mef30.mgz'),
-    #                  '-5', str(mridata_path / "flash" / 'mef05.mgz')),
-    #                 disable_stdout=False, disable_stderr=False):
-    #     mne_flash_bem.run()
+    # Test with flash5 and flash30
+    shutil.rmtree(flash_path)  # first remove old files
+    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n',
+                     '-3', str(mridata_path / "flash" / 'mef30.mgz'),
+                     '-5', str(mridata_path / "flash" / 'mef05.mgz')),
+                    disable_stdout=False, disable_stderr=False):
+        mne_flash_bem.run()
 
     kwargs = dict(rtol=1e-5, atol=1e-5)
     for s in ('outer_skin', 'outer_skull', 'inner_skull'):
