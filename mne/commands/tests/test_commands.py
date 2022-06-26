@@ -3,6 +3,7 @@ import glob
 import os
 from os import path as op
 import shutil
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -11,7 +12,7 @@ from numpy.testing import assert_equal, assert_allclose
 import mne
 from mne import (concatenate_raws, read_bem_surfaces, read_surface,
                  read_source_spaces, read_bem_solution)
-from mne.bem import ConductorModel
+from mne.bem import ConductorModel, convert_flash_mris
 from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
                           mne_coreg, mne_kit2fiff,
@@ -272,26 +273,52 @@ def test_flash_bem(tmp_path):
     """Test mne flash_bem."""
     check_usage(mne_flash_bem, force_help=True)
     # Copy necessary files to tempdir
-    tempdir = str(tmp_path)
-    mridata_path = op.join(subjects_dir, 'sample', 'mri')
-    subject_path_new = op.join(tempdir, 'sample')
-    mridata_path_new = op.join(subject_path_new, 'mri')
-    os.makedirs(op.join(mridata_path_new, 'flash'))
-    os.makedirs(op.join(subject_path_new, 'bem'))
+    tempdir = Path(str(tmp_path))
+    mridata_path = Path(subjects_dir) / 'sample' / 'mri'
+    subject_path_new = tempdir / 'sample'
+    mridata_path_new = subject_path_new / 'mri'
+    flash_path = mridata_path_new / 'flash'
+    flash_path.mkdir(parents=True, exist_ok=True)
+    bem_path = mridata_path_new / 'bem'
+    bem_path.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(op.join(mridata_path, 'T1.mgz'),
                     op.join(mridata_path_new, 'T1.mgz'))
     shutil.copyfile(op.join(mridata_path, 'brain.mgz'),
                     op.join(mridata_path_new, 'brain.mgz'))
     # Copy the available mri/flash/mef*.mgz files from the dataset
-    flash_path = op.join(mridata_path_new, 'flash')
     for kind in (5, 30):
-        in_fname = op.join(mridata_path, 'flash', 'mef%02d.mgz' % kind)
-        shutil.copyfile(in_fname, op.join(flash_path, op.basename(in_fname)))
+        in_fname = mridata_path / "flash" / f'mef{kind:02d}.mgz'
+        in_fname_echo = flash_path / f'mef{kind:02d}_001.mgz'
+        shutil.copyfile(in_fname, flash_path / in_fname_echo.name)
     # Test mne flash_bem with --noconvert option
     # (since there are no DICOM Flash images in dataset)
     for s in ('outer_skin', 'outer_skull', 'inner_skull'):
-        assert not op.isfile(op.join(subject_path_new, 'bem', '%s.surf' % s))
-    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n'),
+        assert not op.isfile(subject_path_new / 'bem' / f'{s}.surf')
+
+    # First test without flash30
+    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n', '-r', '-3'),
+                    disable_stdout=False, disable_stderr=False):
+        mne_flash_bem.run()
+    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
+        surf_path = subject_path_new / 'bem' / f'{s}.surf'
+        assert surf_path.exists()
+        surf_path.unlink()  # cleanup
+    shutil.rmtree(flash_path / "parameter_maps")  # remove old files
+
+    # Test synthesize flash5 with MEF flash5 and flash30 default locations
+    flash5_img = convert_flash_mris(
+        subject="sample", subjects_dir=tempdir, convert=False,
+        unwarp=False
+    )
+    assert flash5_img == (flash_path / "parameter_maps" / "flash5.mgz")
+    assert flash5_img.exists()
+    shutil.rmtree(flash_path / "parameter_maps")  # remove old files
+
+    # Test with flash5 and flash30
+    shutil.rmtree(flash_path)  # first remove old files
+    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n',
+                     '-3', str(mridata_path / "flash" / 'mef30.mgz'),
+                     '-5', str(mridata_path / "flash" / 'mef05.mgz')),
                     disable_stdout=False, disable_stderr=False):
         mne_flash_bem.run()
 

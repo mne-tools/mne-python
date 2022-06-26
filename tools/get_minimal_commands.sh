@@ -21,7 +21,9 @@ if [ "${CIRCLECI}" == "true" ]; then
 fi;
 if [ "${CI_OS_NAME}" != "osx" ]; then
 	if [ ! -d "${PWD}/minimal_cmds" ]; then
-		curl -L https://osf.io/g7dzs/download | tar xz
+		curl -L https://osf.io/g7dzs/download?version=5 | tar xz
+	else
+		echo "Minimal commands already downloaded"
 	fi;
 	export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH
 	export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin"
@@ -43,7 +45,9 @@ if [ "${CI_OS_NAME}" != "osx" ]; then
 	fi;
 else
 	if [ ! -d "${PWD}/minimal_cmds" ]; then
-		curl -L https://osf.io/rjcz4/download | tar xz
+		curl -L https://osf.io/rjcz4/download?version=2 | tar xz
+	else
+		echo "Minimal commands already downloaded"
 	fi;
 	export DYLD_LIBRARY_PATH=${MNE_ROOT}/lib:$DYLD_LIBRARY_PATH
 	if [ "${GITHUB_ACTIONS}" == "true" ]; then
@@ -63,3 +67,4 @@ else
 fi
 popd > /dev/null
 mne_process_raw --version
+mri_average --version
