@@ -1400,6 +1400,20 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             End time of data to get in seconds.
         %(verbose)s
         """
+        # if called with 'out=False', the call came from 'drop_bad()'
+        # if no reasons to drop, just declare epochs as good and return
+        if not out:
+            # make sure first and last epoch not out of bounds of raw
+            in_bounds = self.preload or (
+                self._get_epoch_from_raw(idx=0) is not None and
+                self._get_epoch_from_raw(idx=-1) is not None)
+            # might be BaseEpochs or Epochs, only the latter has the attribute
+            reject_by_annotation = getattr(self, 'reject_by_annotation', False)
+            if (self.reject is None and self.flat is None and in_bounds and
+                    self._reject_time is None and not reject_by_annotation):
+                logger.debug('_get_data is a noop, returning')
+                self._bad_dropped = True
+                return None
         start, stop = self._handle_tmin_tmax(tmin, tmax)
 
         if item is None:
@@ -1940,14 +1954,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     def export(self, fname, fmt='auto', *, overwrite=False, verbose=None):
         """Export Epochs to external formats.
 
-        Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
+        %(export_fmt_support_epochs)s
 
         %(export_warning)s
 
         Parameters
         ----------
         %(fname_export_params)s
-        %(fmt_export_params)s
+        %(export_fmt_params_epochs)s
         %(overwrite)s
 
             .. versionadded:: 0.24.1

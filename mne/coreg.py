@@ -254,8 +254,7 @@ def _decimate_points(pts, res=10):
     zax = np.arange(zmin, zmax, res)
 
     # find voxels containing one or more point
-    H, _ = np.histogramdd(pts, bins=(xax, yax, zax), normed=False)
-    X, Y, Z = pts.T
+    H, _ = np.histogramdd(pts, bins=(xax, yax, zax), density=False)
     xbins, ybins, zbins = np.nonzero(H)
     x = xax[xbins]
     y = yax[ybins]
@@ -297,21 +296,7 @@ def _decimate_points(pts, res=10):
 
 
 def _trans_from_params(param_info, params):
-    """Convert transformation parameters into a transformation matrix.
-
-    Parameters
-    ----------
-    param_info : tuple,  len = 3
-        Tuple describing the parameters in x (do_translate, do_rotate,
-        do_scale).
-    params : tuple
-        The transformation parameters.
-
-    Returns
-    -------
-    trans : array, shape = (4, 4)
-        Transformation matrix.
-    """
+    """Convert transformation parameters into a transformation matrix."""
     do_rotate, do_translate, do_scale = param_info
     i = 0
     trans = []

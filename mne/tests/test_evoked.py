@@ -485,13 +485,24 @@ def test_evoked_proj():
 def test_get_peak():
     """Test peak getter."""
     evoked = read_evokeds(fname, condition=0, proj=True)
-    pytest.raises(ValueError, evoked.get_peak, ch_type='mag', tmin=1)
-    pytest.raises(ValueError, evoked.get_peak, ch_type='mag', tmax=0.9)
-    pytest.raises(ValueError, evoked.get_peak, ch_type='mag', tmin=0.02,
-                  tmax=0.01)
-    pytest.raises(ValueError, evoked.get_peak, ch_type='mag', mode='foo')
-    pytest.raises(RuntimeError, evoked.get_peak, ch_type=None, mode='foo')
-    pytest.raises(ValueError, evoked.get_peak, ch_type='misc', mode='foo')
+
+    with pytest.raises(ValueError, match='tmin.*must be <= tmax'):
+        evoked.get_peak(ch_type='mag', tmin=1)
+
+    with pytest.raises(ValueError, match='tmax.*is out of bounds'):
+        evoked.get_peak(ch_type='mag', tmax=0.9)
+
+    with pytest.raises(ValueError, match='tmin.*must be <= tmax'):
+        evoked.get_peak(ch_type='mag', tmin=0.02, tmax=0.01)
+
+    with pytest.raises(ValueError, match="Invalid.*'mode' parameter"):
+        evoked.get_peak(ch_type='mag', mode='foo')
+
+    with pytest.raises(RuntimeError, match='Multiple data channel types'):
+        evoked.get_peak(ch_type=None, mode='foo')
+
+    with pytest.raises(ValueError, match='Channel type.*not found'):
+        evoked.get_peak(ch_type='misc', mode='foo')
 
     ch_name, time_idx = evoked.get_peak(ch_type='mag')
     assert (ch_name in evoked.ch_names)
@@ -504,8 +515,12 @@ def test_get_peak():
     assert_equal(ch_name, 'MEG 1421')
     assert_allclose(max_amp, 7.17057e-13, rtol=1e-5)
 
-    pytest.raises(ValueError, evoked.get_peak, ch_type='mag',
-                  merge_grads=True)
+    with pytest.raises(ValueError, match='must be "grad" for merge_grads'):
+        evoked.get_peak(ch_type='mag', merge_grads=True)
+
+    with pytest.raises(ValueError, match='Negative mode.*does not make sense'):
+        evoked.get_peak(ch_type='grad', merge_grads=True, mode='neg')
+
     ch_name, time_idx = evoked.get_peak(ch_type='grad', merge_grads=True)
     assert_equal(ch_name, 'MEG 244X')
 
@@ -529,8 +544,38 @@ def test_get_peak():
     assert_equal(time_idx, 2)
     assert_allclose(max_amp, 2.)
 
-    pytest.raises(ValueError, _get_peak, data + 1e3, times, mode='neg')
-    pytest.raises(ValueError, _get_peak, data - 1e3, times, mode='pos')
+    # Check behavior if `mode` doesn't match the available data
+    evoked_all_pos = evoked.copy().crop(0, 0.1).pick('EEG 001')
+    evoked_all_neg = evoked.copy().crop(0, 0.1).pick('EEG 001')
+
+    evoked_all_pos.data = np.abs(evoked_all_pos.data)   # all values positive
+    evoked_all_neg.data = -np.abs(evoked_all_neg.data)  # all negative
+
+    with pytest.raises(ValueError, match='No negative values'):
+        evoked_all_pos.get_peak(mode='neg')
+
+    with pytest.raises(ValueError, match='No positive values'):
+        evoked_all_neg.get_peak(mode='pos')
+
+    # Test interaction between `mode` and `tmin` / `tmax`
+    # For the test, create an Evoked where half of the values are negative
+    # and the rest is positive
+    evoked_neg_and_pos = evoked_all_neg.copy()
+    time_sep_neg_and_pos = 0.05
+    idx_time_sep_neg_and_pos = evoked_neg_and_pos.time_as_index(
+        time_sep_neg_and_pos
+    )[0]
+    evoked_neg_and_pos.data[:, idx_time_sep_neg_and_pos:] *= -1
+
+    with pytest.raises(ValueError, match='No positive values'):
+        evoked_neg_and_pos.get_peak(
+            mode='pos',
+            # subtract 1 time instant, otherwise were off-by-one
+            tmax=time_sep_neg_and_pos - 1 / evoked_neg_and_pos.info['sfreq']
+        )
+
+    with pytest.raises(ValueError, match='No negative values'):
+        evoked_neg_and_pos.get_peak(mode='neg', tmin=time_sep_neg_and_pos)
 
 
 def test_drop_channels_mixin():

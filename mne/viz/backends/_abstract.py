@@ -670,7 +670,12 @@ class _AbstractLayout(ABC):
         pass
 
     @abstractmethod
-    def _layout_add_widget(self, layout, widget, stretch=0):
+    def _layout_add_widget(self, layout, widget, stretch=0,
+                           *, row=None, col=None):
+        pass
+
+    @abstractmethod
+    def _layout_create(self, orientation='vertical'):
         pass
 
 
@@ -881,7 +886,9 @@ class _AbstractBrainMplCanvas(_AbstractMplCanvas):
 
 
 class _AbstractWindow(ABC):
-    def _window_initialize(self):
+    def _window_initialize(
+        self, *, window=None, central_layout=None, fullscreen=False
+    ):
         self._icons = dict()
         self._window = None
         self._interactor = None
@@ -948,6 +955,10 @@ class _AbstractWindow(ABC):
 
     @abstractmethod
     def _window_set_theme(self, theme):
+        pass
+
+    @abstractmethod
+    def _window_create(self):
         pass
 
 

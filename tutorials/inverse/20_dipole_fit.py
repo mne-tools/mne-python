@@ -50,6 +50,16 @@ dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 dip.plot_locations(fname_trans, 'sample', subjects_dir, mode='orthoview')
 
 # %%
+# We can also plot the result using outlines of the head and brain.
+
+# sphinx_gallery_thumbnail_number = 2
+
+color = ['k'] * len(dip)
+color[np.argmax(dip.gof)] = 'r'
+dip.plot_locations(fname_trans, 'sample', subjects_dir, mode='outlines',
+                   color=color)
+
+# %%
 # Plot the result in 3D brain with the MRI image using Nilearn
 # In MRI coordinates and in MNI coordinates (template brain)
 

@@ -87,7 +87,7 @@ I agree to the following:
 # respective repos, and make a new release of the dataset on GitHub. Then
 # update the checksum in the MNE_DATASETS dict below, and change version
 # here:                  ↓↓↓↓↓         ↓↓↓
-RELEASES = dict(testing='0.135', misc='0.23')
+RELEASES = dict(testing='0.136', misc='0.23')
 TESTING_VERSIONED = f'mne-testing-data-{RELEASES["testing"]}'
 MISC_VERSIONED = f'mne-misc-data-{RELEASES["misc"]}'
 
@@ -110,10 +110,14 @@ MNE_DATASETS = dict()
 
 # Testing and misc are at the top as they're updated most often
 MNE_DATASETS['testing'] = dict(
-    archive_name=f'{TESTING_VERSIONED}.tar.gz',  # 'mne-testing-data',
-    hash='md5:db40791e786fa776e8717cf50b43b0ec',
-    url=('https://codeload.github.com/mne-tools/mne-testing-data/'
-         f'tar.gz/{RELEASES["testing"]}'),
+    # TODO: Revert this once GH allows us to download again
+    # archive_name=f'{TESTING_VERSIONED}.tar.gz',
+    # hash='md5:30c0b518f3bf5264f04e42b543c3a92a',
+    # url=('https://codeload.github.com/mne-tools/mne-testing-data/'
+    #      f'tar.gz/{RELEASES["testing"]}'),
+    archive_name='mne-testing-data.tar.gz',
+    hash='md5:c805a5fed8ca46f723e7eec828d90824',
+    url='https://osf.io/dqfgy/download?version=1',  # 0.136
     folder_name='MNE-testing-data',
     config_key='MNE_DATASETS_TESTING_PATH',
 )

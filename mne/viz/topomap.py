@@ -32,12 +32,12 @@ from ..utils import (_clean_names, _time_mask, verbose, logger, fill_doc,
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
-                    _validate_if_list_of_axes, _setup_cmap, _check_time_unit)
+                    _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
+                    _set_3d_axes_equal, _check_type_projs)
 from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
-from ..io.proj import Projection
 
 
 _fnirs_types = ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')
@@ -308,13 +308,28 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
     -----
     .. versionadded:: 0.9.0
     """
+    fig = _plot_projs_topomap(
+        projs, info, cmap=cmap, sensors=sensors, colorbar=colorbar, res=res,
+        size=size, outlines=outlines, contours=contours,
+        image_interp=image_interp, axes=axes, vlim=vlim, sphere=sphere,
+        extrapolate=extrapolate, border=border)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        tight_layout(fig=fig)
+    plt_show(show)
+    return fig
+
+
+def _plot_projs_topomap(projs, info, cmap=None, sensors=True,
+                        colorbar=False, res=64, size=1, show=True,
+                        outlines='head', contours=6,
+                        image_interp=_INTERPOLATION_DEFAULT,
+                        axes=None, vlim=(None, None),
+                        sphere=None, extrapolate=_EXTRAPOLATE_DEFAULT,
+                        border=_BORDER_DEFAULT):
     import matplotlib.pyplot as plt
     sphere = _check_sphere(sphere, info)
-
-    # be forgiving if `projs` isn't a list
-    if isinstance(projs, Projection):
-        projs = [projs]
-
+    projs = _check_type_projs(projs)
     _validate_type(info, 'info', 'info')
 
     types, datas, poss, spheres, outliness, ch_typess = [], [], [], [], [], []
@@ -400,10 +415,6 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
             _add_colorbar(ax, im, cmap)
 
     fig = ax.get_figure()
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('ignore')
-        tight_layout(fig=fig)
-    plt_show(show)
     return fig
 
 
@@ -712,18 +723,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         If an `~mne.Info` object, it must contain only one data type and
         exactly ``len(data)`` data channels, and the x/y coordinates will
         be inferred from the montage applied to the `~mne.Info` object.
-    vmin : float | callable | None
-        The value specifying the lower bound of the color range.
-        If None, and vmax is None, the opposite of the maximum absolute value
-        ``-max(abs(data))`` is used. Else ``min(data)`` is used. If callable,
-        the output equals ``vmin(data)``. Defaults to None.
-    vmax : float | callable | None
-        The value specifying the upper bound of the color range.
-        If None, the maximum value is used. If callable, the output
-        equals ``vmax(data)``. Defaults to None.
-    cmap : matplotlib colormap | None
-        Colormap to use. If None, ``'Reds'`` is used for all positive data,
-        otherwise defaults to ``'RdBu_r'``.
+    %(vmin_vmax_topomap)s
+    %(cmap_topomap_simple)s
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., ``'r+'`` for red plusses). If True (default),
@@ -757,10 +758,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     %(sphere_topomap)s
     %(border_topomap)s
     %(ch_type_topomap)s
-    cnorm : matplotlib.colors.Normalize | None
-        Colormap normalization, default None means linear normalization. If not
-        None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
-        details.
+    %(cnorm)s
 
         .. versionadded:: 0.24
 
@@ -1154,14 +1152,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         If None, then channels are chosen in the order given above.
     res : int
         The resolution of the topomap image (n pixels along each side).
-    vmin : float | callable | None
-        The value specifying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data). Defaults to None.
-    vmax : float | callable | None
-        The value specifying the upper bound of the color range.
-        If None, the maximum absolute value is used. If callable, the output
-        equals vmax(data). Defaults to None.
+    %(vmin_vmax_topomap)s
     cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
         Colormap to use. If tuple, the first value indicates the colormap to
         use and the second value is a boolean defining interactivity. In
@@ -1405,15 +1396,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
             by the standard deviation of the baseline power ('zlogratio')
 
         If None no baseline correction is applied.
-    vmin : float | callable | None
-        The value specifying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data) or in case
-        data contains only positive values 0. If callable, the output equals
-        vmin(data). Defaults to None.
-    vmax : float | callable | None
-        The value specifying the upper bound of the color range. If None, the
-        maximum value is used. If callable, the output equals vmax(data).
-        Defaults to None.
+    %(vmin_vmax_topomap)s
     cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
         Colormap to use. If tuple, the first value indicates the colormap to
         use and the second value is a boolean defining interactivity. In
@@ -2620,17 +2603,8 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
         to be the same as info_from.
     scale : float, default 3e-10
         To scale the arrows.
-    vmin : float | callable | None
-        The value specifying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data). Defaults to None.
-    vmax : float | callable | None
-        The value specifying the upper bound of the color range.
-        If None, the maximum absolute value is used. If callable, the output
-        equals vmax(data). Defaults to None.
-    cmap : matplotlib colormap | None
-        Colormap to use. If None, 'Reds' is used for all positive data,
-        otherwise defaults to 'RdBu_r'.
+    %(vmin_vmax_topomap)s
+    %(cmap_topomap_simple)s
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True (default), circles
@@ -2753,8 +2727,12 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     bridged_idx : list of tuple
         The indices of channels marked as bridged with each bridged
         pair stored as a tuple.
-    ed_matrix : ndarray of float, shape (n_channels, n_channels)
+        Can be generated via
+        :func:`mne.preprocessing.compute_bridged_electrodes`.
+    ed_matrix : array of float, shape (n_channels, n_channels)
         The electrical distance matrix for each pair of EEG electrodes.
+        Can be generated via
+        :func:`mne.preprocessing.compute_bridged_electrodes`.
     title : str
         A title to add to the plot.
     topomap_args : dict | None
@@ -2764,17 +2742,24 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     -------
     fig : instance of matplotlib.figure.Figure
         The topoplot figure handle.
+
+    See Also
+    --------
+    mne.preprocessing.compute_bridged_electrodes
     """
     import matplotlib.pyplot as plt
     if topomap_args is None:
         topomap_args = dict()
     else:
         topomap_args = topomap_args.copy()  # don't change original
+    picks = pick_types(info, eeg=True)
     topomap_args.setdefault('image_interp', 'nearest')
     topomap_args.setdefault('cmap', 'summer_r')
-    topomap_args.setdefault('names', info.ch_names)
+    topomap_args.setdefault('names', pick_info(info, picks).ch_names)
     topomap_args.setdefault('show_names', True)
     topomap_args.setdefault('contours', False)
+    sphere = topomap_args['sphere'] if 'sphere' in topomap_args \
+        else _check_sphere(None)
     if 'axes' not in topomap_args:
         fig, ax = plt.subplots()
         topomap_args['axes'] = ax
@@ -2783,9 +2768,6 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     # handle colorbar here instead of in plot_topomap
     colorbar = topomap_args.pop('colorbar') if \
         'colorbar' in topomap_args else True
-    # use sphere to find positions
-    sphere = topomap_args['sphere'] if 'sphere' in topomap_args else None
-    picks = pick_types(info, eeg=True)
     if ed_matrix.shape[1:] != (picks.size, picks.size):
         raise RuntimeError(
             f'Expected {(ed_matrix.shape[0], picks.size, picks.size)} '
@@ -2796,16 +2778,225 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     for epo_idx in range(ed_matrix.shape[0]):
         ed_matrix[epo_idx][tril_idx] = ed_matrix[epo_idx].T[tril_idx]
     elec_dists = np.median(np.nanmin(ed_matrix, axis=1), axis=0)
-    pos = _find_topomap_coords(info, picks, sphere=sphere)
-    im, cn = plot_topomap(elec_dists, info, **topomap_args)
+    im, cn = plot_topomap(elec_dists, pick_info(info, picks), **topomap_args)
     fig = im.figure if fig is None else fig
     # add bridged connections
     for idx0, idx1 in bridged_idx:
-        im.axes.plot([pos[idx0][0], pos[idx1][0]],
-                     [pos[idx0][1], pos[idx1][1]], color='r')
+        pos = _find_topomap_coords(info, [idx0, idx1], sphere=sphere)
+        im.axes.plot([pos[0, 0], pos[1, 0]],
+                     [pos[0, 1], pos[1, 1]], color='r')
     if title is not None:
         im.axes.set_title(title)
     if colorbar:
         cax = fig.colorbar(im)
         cax.set_label(r'Electrical Distance ($\mu$$V^2$)')
     return fig
+
+
+def plot_ch_adjacency(info, adjacency, ch_names, kind='2d', edit=False):
+    """Plot channel adjacency.
+
+    Parameters
+    ----------
+    info : instance of Info
+        Info object with channel locations.
+    adjacency : array
+        Array of channels x channels shape. Defines which channels are adjacent
+        to each other. Note that if you edit adjacencies
+        (via ``edit=True``), this array will be modified in place.
+    ch_names : list of str
+        Names of successive channels in the ``adjacency`` matrix.
+    kind : str
+        How to plot the adjacency. Can be either ``'3d'`` or ``'2d'``.
+    edit : bool
+        Whether to allow interactive editing of the adjacency matrix via
+        clicking respective channel pairs. Once clicked, the channel is
+        "activated" and turns green. Clicking on another channel adds or
+        removes adjacency relation between the activated and newly clicked
+        channel (depending on whether the channels are already adjacent or
+        not); the newly clicked channel now becomes activated. Clicking on
+        an activated channel deactivates it. Editing is currently only
+        supported for ``kind='2d'``.
+
+    Returns
+    -------
+    fig : Figure
+        The :class:`~matplotlib.figure.Figure` instance where the channel
+        adjacency is plotted.
+
+    See Also
+    --------
+    mne.channels.get_builtin_ch_adjacencies
+    mne.channels.read_ch_adjacency
+    mne.channels.find_ch_adjacency
+
+    Notes
+    -----
+    .. versionadded:: 1.1
+    """
+    from scipy import sparse
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+
+    from . import plot_sensors
+
+    _validate_type(info, Info, 'info')
+    _validate_type(adjacency, (np.ndarray, sparse.csr_matrix), 'adjacency')
+    has_sparse = isinstance(adjacency, sparse.csr_matrix)
+
+    if edit and kind == '3d':
+        raise ValueError('Editing a 3d adjacency plot is not supported.')
+
+    # select relevant channels
+    sel = pick_channels(info.ch_names, ch_names, ordered=True)
+    info = pick_info(info, sel)
+
+    # make sure adjacency is correct size wrt to inst:
+    n_channels = len(info.ch_names)
+    if adjacency.shape[0] != n_channels:
+        raise ValueError('``adjacency`` must have the same number of rows '
+                         'as the number of channels in ``info``. Found '
+                         f'{adjacency.shape[0]} channels for ``adjacency`` and'
+                         f' {n_channels} for ``inst``.')
+
+    if kind == '3d':
+        with plt.rc_context({'toolbar': 'None'}):
+            fig = plot_sensors(info, kind=kind, show=False)
+        _set_3d_axes_equal(fig.axes[0])
+    elif kind == '2d':
+        with plt.rc_context({'toolbar': 'None'}):
+            fig = plot_sensors(info, kind='topomap', show=False)
+        fig.axes[0].axis('equal')
+
+    path_collection = fig.axes[0].findobj(mpl.collections.PathCollection)
+    path_collection[0].set_linewidths(0.)
+
+    if kind == '2d':
+        path_collection[0].set_alpha(0.7)
+        pos = path_collection[0].get_offsets()
+
+        # make sure nodes are on top
+        path_collection[0].set_zorder(10)
+
+        # scale node size with number of connections
+        n_connections = [np.sum(adjacency[i]) - 1
+                         for i in range(adjacency.shape[0])]
+        node_size = [max(x, 3) ** 2.5 for x in n_connections]
+        path_collection[0].set_sizes(node_size)
+    else:
+        # plotting channel positions via mne.viz.plot_sensors(info) and using
+        # the coordinates from info['chs'][ch_idx]['loc][:3] gives different
+        # positions. Also .get_offsets gives 2d projections even for 3d points
+        # so we use the private _offsets3d property...
+        pos = path_collection[0]._offsets3d
+        pos = np.stack([pos[0].data, pos[1].data, pos[2]], axis=1)
+
+    ax = fig.axes[0]
+    lines = dict()
+    n_channels = adjacency.shape[0]
+    for ch_idx in range(n_channels):
+        # make sure we don't repeat channels
+        row = adjacency[ch_idx, ch_idx + 1:]
+        if has_sparse:
+            ch_neighbours = row.nonzero()[1]
+        else:
+            ch_neighbours = np.where(row)[0]
+
+        if len(ch_neighbours) == 0:
+            continue
+
+        ch_neighbours += ch_idx + 1
+
+        for ngb_idx in ch_neighbours:
+            this_pos = pos[[ch_idx, ngb_idx], :]
+            ch_pair = tuple([ch_idx, ngb_idx])
+            lines[ch_pair] = ax.plot(*this_pos.T, color=(0.55, 0.55, 0.55),
+                                     lw=0.75)[0]
+
+    if edit:
+        # allow interactivity in 2d plots
+        highlighted = dict()
+        this_onpick = partial(_onpick_ch_adjacency, axes=ax, positions=pos,
+                              highlighted=highlighted, line_dict=lines,
+                              adjacency=adjacency, node_size=node_size,
+                              path_collection=path_collection)
+        fig.canvas.mpl_connect('pick_event', this_onpick)
+
+    return fig
+
+
+def _onpick_ch_adjacency(event, axes=None, positions=None, highlighted=None,
+                         line_dict=None, adjacency=None, node_size=None,
+                         path_collection=None):
+    """Handle interactivity in plot_ch_adjacency."""
+    node_ind = event.ind[0]
+
+    if node_ind in highlighted:
+        # de-select node, change its color back to normal
+        highlighted[node_ind].remove()
+        del highlighted[node_ind]
+        axes.figure.canvas.draw()
+    else:
+        # new node selected
+        if len(highlighted) == 0:
+            # no highlighted nodes yet
+            size = max(node_size[node_ind] * 2, 100)
+            # add current node
+            dots = axes.scatter(
+                *positions[node_ind, :].T, color='tab:green', s=size,
+                zorder=15)
+            highlighted[node_ind] = dots
+            axes.figure.canvas.draw()  # make sure it renders
+        else:
+            # one previously highlighted - add or remove line
+            key = list(highlighted.keys())[0]
+            both_nodes = [key, node_ind]
+            both_nodes.sort()
+            both_nodes = tuple(both_nodes)
+
+            if both_nodes in line_dict.keys():
+                # remove line
+                n_conn_change = -1
+                line_dict[both_nodes].remove()
+                # remove line_dict entry
+                del line_dict[both_nodes]
+
+                # clear adjacency matrix entry
+                _set_adjacency(adjacency, both_nodes, False)
+            else:
+                # add line
+                n_conn_change = +1
+                selected_pos = positions[both_nodes, :]
+                line = axes.plot(*selected_pos.T, color='tab:green')[0]
+                # add line to line_dict
+                line_dict[both_nodes] = line
+
+                # modify adjacency matrix
+                _set_adjacency(adjacency, both_nodes, True)
+
+            # de-highlight previous
+            highlighted[key].remove()
+            del highlighted[key]
+
+            # update node sizes
+            n_connections = [np.sum(adjacency[idx]) - 1 + n_conn_change
+                             for idx in both_nodes]
+            for idx, n_conn in zip(both_nodes, n_connections):
+                node_size[idx] = max(n_conn, 3) ** 2.5
+            path_collection[0].set_sizes(node_size)
+
+            # highlight new node
+            size = max(node_size[node_ind] * 2, 100)
+            dots = axes.scatter(
+                *positions[node_ind, :].T, color='tab:green', s=size,
+                zorder=15)
+            highlighted[node_ind] = dots
+            axes.figure.canvas.draw()
+
+
+def _set_adjacency(adjacency, both_nodes, value):
+    """Set adjacency for given node pair, caching errors for sparse arrays."""
+    import warnings
+
+    with warnings.catch_warnings(record=True):
+        adjacency[both_nodes, both_nodes[::-1]] = value

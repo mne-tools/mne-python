@@ -92,9 +92,10 @@ extensions = [
     'mne_substitutions',
     'newcontrib_substitutions',
     'gen_names',
-    'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
     'sphinx_copybutton',
+    'sphinx_design',
+    'sphinxcontrib.youtube'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -143,7 +144,7 @@ intersphinx_mapping = {
     'numba': ('https://numba.pydata.org/numba-doc/latest', None),
     'joblib': ('https://joblib.readthedocs.io/en/latest', None),
     'nibabel': ('https://nipy.org/nibabel', None),
-    'nilearn': ('http://nilearn.github.io', None),
+    'nilearn': ('http://nilearn.github.io/stable', None),
     'nitime': ('https://nipy.org/nitime/', None),
     'surfer': ('https://pysurfer.github.io/', None),
     'mne_bids': ('https://mne.tools/mne-bids/stable', None),
@@ -161,6 +162,7 @@ intersphinx_mapping = {
     'dipy': ('https://dipy.org/documentation/latest/',
              'https://dipy.org/documentation/latest/objects.inv/'),
     'pooch': ('https://www.fatiando.org/pooch/latest/', None),
+    'pybv': ('https://pybv.readthedocs.io/en/latest/', None),
 }
 
 
@@ -244,7 +246,7 @@ numpydoc_xref_ignore = {
     'n_vertices', 'n_faces', 'n_channels', 'm', 'n', 'n_events', 'n_colors',
     'n_times', 'obj', 'n_chan', 'n_epochs', 'n_picks', 'n_ch_groups',
     'n_dipoles', 'n_ica_components', 'n_pos', 'n_node_names', 'n_tapers',
-    'n_signals', 'n_step', 'n_freqs', 'wsize', 'Tx', 'M', 'N', 'p', 'q',
+    'n_signals', 'n_step', 'n_freqs', 'wsize', 'Tx', 'M', 'N', 'p', 'q', 'r',
     'n_observations', 'n_regressors', 'n_cols', 'n_frequencies', 'n_tests',
     'n_samples', 'n_permutations', 'nchan', 'n_points', 'n_features',
     'n_parts', 'n_features_new', 'n_components', 'n_labels', 'n_events_in',
@@ -384,7 +386,7 @@ else:
             import pyvista
         pyvista.OFF_SCREEN = False
         scrapers += (
-            mne.gui._LocateScraper(),
+            mne.gui._GUIScraper(),
             mne.viz._brain._BrainScraper(),
             'pyvista',
         )
@@ -451,7 +453,7 @@ sphinx_gallery_conf = {
     'reset_modules': ('matplotlib', Resetter()),  # called w/each script
     'reset_modules_order': 'both',
     'image_scrapers': scrapers,
-    'show_memory': not sys.platform.startswith('win'),
+    'show_memory': not sys.platform.startswith(('win', 'darwin')),
     'line_numbers': False,  # messes with style
     'within_subsection_order': FileNameSortKey,
     'capture_repr': ('_repr_html_',),
@@ -513,6 +515,7 @@ linkcheck_ignore = [  # will be compiled to regex
     'https://www.dtu.dk/english/service/phonebook/person.*',  # noqa Too slow
     'https://speakerdeck.com/dengemann/eeg-sensor-covariance-using-cross-validation',  # noqa Too slow
     'https://doi.org/10.1002/hbm.10024',  # noqa Too slow sometimes
+    'https://www.researchgate.net',  # noqa As of 2022/05/31 we get "403 Forbidden" errors, might have to do with https://stackoverflow.com/questions/72347165 but not worth the effort to fix
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -917,11 +920,11 @@ fixed_icons = (
     'book', 'code-branch', 'newspaper', 'question-circle', 'quote-left',
     # contrib guide:
     'bug', 'comment', 'hand-sparkles', 'magic', 'pencil-alt', 'remove-format',
-    'universal-access', 'discourse', 'python'
+    'universal-access', 'discourse', 'python',
 )
 other_icons = (
     'hand-paper', 'question', 'rocket', 'server', 'code', 'desktop',
-    'terminal'
+    'terminal', 'cloud-download-alt', 'wrench',
 )
 icons = dict()
 for icon in brand_icons + fixed_icons + other_icons:
@@ -944,6 +947,10 @@ prolog += '''
         <i class="fas fa-bug fa-stack-1x"></i>
         <i class="fas fa-ban fa-stack-2x"></i>
     </span>
+'''
+
+prolog += '''
+.. |ensp| unicode:: U+2002 .. EN SPACE
 '''
 
 # -- Dependency info ----------------------------------------------------------

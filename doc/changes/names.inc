@@ -50,7 +50,7 @@
 
 .. _Olaf Hauk: http://www.neuroscience.cam.ac.uk/directory/profile.php?olafhauk
 
-.. _Lukas Breuer: http://www.researchgate.net/profile/Lukas_Breuer
+.. _Lukas Breuer: https://www.researchgate.net/profile/Lukas-Breuer-2
 
 .. _Alan Leggitt: https://github.com/leggitta
 
@@ -70,7 +70,7 @@
 
 .. _Mark Wronkiewicz: https://ml.jpl.nasa.gov/people/wronkiewicz/wronkiewicz.html
 
-.. _Sébastien Marti: http://www.researchgate.net/profile/Sebastien_Marti
+.. _Sébastien Marti: https://www.researchgate.net/profile/Sebastien-Marti
 
 .. _Chris Bailey: https://github.com/cjayb
 
@@ -449,3 +449,7 @@
 .. _Matt Courtemanche: https://github.com/mjcourte
 
 .. _Matti Toivonen: https://github.com/mattitoi
+
+.. _Simon Kern: https://github.com/skjerns
+
+.. _Lukas Gemein: https://github.com/gemeinl

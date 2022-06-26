@@ -46,15 +46,14 @@ docstrings/tutorials/website, those kinds of contributions are made through
 how to set up your workflow to make contributing via GitHub as easy as
 possible.
 
-.. collapse:: |rocket| Want an example to work through?
-   :class: success
 
-   Feel free to just read through the rest of the page, but if you find it
-   easier to "learn by doing", take a look at our
-   `GitHub issues marked "easy"`_, pick one that looks interesting, and work
-   through it while reading this guide!
+.. dropdown:: Want an example to work through?
+    :icon: rocket
 
-.. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
+    Feel free to just read through the rest of the page, but if you find it
+    easier to "learn by doing", take a look at our
+    `GitHub issues marked "easy"`_, pick one that looks interesting, and work
+    through it while reading this guide!
 
 
 Overview of contribution process
@@ -95,6 +94,7 @@ Configuring git
 ~~~~~~~~~~~~~~~
 
 .. sidebar:: Git GUI alternative
+    :class: sd-card sd-shadow-sm
 
     `GitHub desktop`_ is a GUI alternative to command line git that some users
     appreciate; it is available for |windows| Windows and |apple| MacOS.
@@ -156,15 +156,16 @@ into a terminal and you should see ::
 If you don't see this or something similar:
 
 .. sidebar:: If you get:
+    :class: sd-card sd-shadow-sm
 
-   *bash: conda: command not found*
+    *bash: conda: command not found*
 
-   you need to add
+    you need to add
 
-   - :file:`{path_to_Anaconda}`
-   - :file:`{path_to_Anaconda}\\Scripts`
+    - :file:`{path_to_Anaconda}`
+    - :file:`{path_to_Anaconda}\\Scripts`
 
-   to Windows-PATH.
+    to Windows-PATH.
 
 - For Linux/MacOS, get `GNU Make`_
 - For Windows, you can install make for git BASH (which comes with `git for Windows`_):
@@ -186,7 +187,7 @@ Once you have git installed and configured, and before creating your local copy
 of the codebase, go to the `MNE-Python GitHub`_ page and create a `fork`_ into
 your GitHub user account.
 
-.. image:: https://help.github.com/assets/images/help/repository/fork_button.jpg
+.. image:: https://docs.github.com/assets/cb-28613/images/help/repository/fork_button.png
 
 This will create a copy of the MNE-Python codebase inside your GitHub user
 account (this is called "your fork"). Changes you make to MNE-Python will
@@ -204,6 +205,7 @@ Creating the virtual environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: Supported Python environments
+    :class: sd-card sd-shadow-sm
 
     We strongly recommend the `Anaconda`_ or `Miniconda`_ environment managers
     for Python. Other setups are possible but are not officially supported by
@@ -341,6 +343,7 @@ feature, you should first synchronize your local ``main`` branch with the
     $ git checkout -b new-feature-x  # create local branch "new-feature-x" and check it out
 
 .. sidebar:: Alternative
+    :class: sd-card sd-shadow-sm
 
     You can save some typing by using ``git pull upstream/main`` to replace
     the ``fetch`` and ``merge`` lines above.
@@ -570,23 +573,21 @@ First-time contributors
 
 Welcome to MNE-Python! We're very happy to have you here. 🤗 And to ensure you
 get proper credit for your work, please add a changelog entry with the
-following pattern **at the top** of the respective subsection (bugfix,
-new feature etc.):
+following pattern **at the top** of the respective subsection (bugs,
+enhancements, etc.):
 
 .. code-block:: rst
 
 
-  Bug
-  ---
+  Bugs
+  ----
 
-  .. |Your Name| replace:: **Your Name**
-
-  - Short description of the changes (:gh:`0000` **by new contributor** |Your Name|_)
+  - Short description of the changes (:gh:`0000` by :newcontrib:`Firstname Lastname`)
 
   - ...
 
 where ``0000`` must be replaced with the respective GitHub pull request (PR)
-number.
+number, and ``Firstname Lastname`` must be replaced with your full name.
 
 It is usually best to wait to add a line to the changelog until your PR is
 finalized, to avoid merge conflicts (since the changelog is updated with
@@ -829,6 +830,7 @@ Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: pytest flags
+    :class: sd-card sd-shadow-sm
 
     The ``-x`` flag exits the pytest run when any test fails; this can speed
     up debugging when running all tests in a file or module.
@@ -935,7 +937,7 @@ common to many open-source software projects, so learning to follow them while
 working on MNE-Python will bear fruit when you contribute to other projects
 down the road. Here are the guidelines:
 
-- Search the `MNE-Python issues page`_ (both open and closed issues) in case
+- Search the `GitHub issues page`_ (both open and closed issues) in case
   someone else has already started work on the same bugfix or feature. If you
   don't find anything, `open a new issue`_ to discuss changes with maintainers
   before starting work on your proposed changes.
@@ -1007,8 +1009,7 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. MNE
 
-.. _MNE-Python GitHub: https://github.com/mne-tools/mne-python
-.. _MNE-Python issues page: https://github.com/mne-tools/mne-python/issues
+.. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
 .. _open a new issue: https://github.com/mne-tools/mne-python/issues/new/choose
 .. _This sample pull request: https://github.com/mne-tools/mne-python/pull/6230
 .. _our user forum: https://mne.discourse.group
@@ -1056,14 +1057,12 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. sphinx
 
-.. _sphinx-gallery: https://sphinx-gallery.github.io
 .. _reStructuredText: https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
 .. _intersphinx: https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
 .. _sphobjinv: https://sphobjinv.readthedocs.io/en/latest/
 
 .. linting
 
-.. _NumPy docstring style guidelines: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _PEP 8: https://www.python.org/dev/peps/pep-0008/
 .. _pyflakes: https://pypi.org/project/pyflakes
 .. _Flake8: http://flake8.pycqa.org/

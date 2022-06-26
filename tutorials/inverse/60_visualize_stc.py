@@ -204,4 +204,5 @@ dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 
 ##############################################################################
 # Finally, we can visualize the dipole.
+
 dip.plot_locations(fname_trans, 'sample', subjects_dir)

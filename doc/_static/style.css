@@ -5,24 +5,45 @@
     --pst-font-family-base: 'Source Sans Pro', var(--pst-font-family-base-system);
     --pst-font-family-heading: var(--pst-font-family-base);
     --pst-font-family-monospace: 'Source Code Pro', var(--pst-font-family-monospace-system);
-
 }
 
 html[data-theme="light"] {
     --mne-color-github: #000;
-    --mne-color-discourse: #231e20;
+    --mne-color-discourse: #000;
+    --mne-color-discord: #5865F2;
+    --mne-color-twitter: #55acee;
     --pst-color-border-rgba: rgba(0, 0, 0, 0.125);
     --pst-color-background-rgba: rgba(0, 0, 0, 0.03);
-    --pst-color-info-rgba: #007bff18;
+    --pst-color-primary-rgba: rgba(69, 157, 185, 0.2);
+    --pst-color-secondary-rgba: rgba(238, 144, 64, 0.2);
     --copybtn-opacity: 0.75;
+    /* sphinx-gallery overrides */
+    --sg-download-a-background-color: var(--pst-color-primary);
+    --sg-download-a-background-image: unset;
+    --sg-download-a-border-color: var(--pst-color-border-rgba);
+    --sg-download-a-color: #fff;
+    --sg-download-a-hover-background-color: var(--pst-color-secondary);
+    --sg-download-a-hover-box-shadow-1: none;
+    --sg-download-a-hover-box-shadow-2: none;
 }
 html[data-theme="dark"] {
     --mne-color-github: #fff;
-    --mne-color-discourse: #d1c498;
+    --mne-color-discourse: #FFF9AE;  /* color taken from their logo SVG */
+    --mne-color-discord: #fff;
+    --mne-color-twitter: #55acee;
     --pst-color-border-rgba: rgba(201, 201, 201, 0.25);
     --pst-color-background-rgba: rgba(255, 255, 255, 0.08);
-    --pst-color-info-rgba: #407dbf18;
+    --pst-color-primary-rgba: rgba(69, 157, 185, 0.3);
+    --pst-color-secondary-rgba: rgba(238, 144, 64, 0.3);
     --copybtn-opacity: 0.25;
+    /* sphinx-gallery overrides */
+    --sg-download-a-background-color: var(--pst-color-primary);
+    --sg-download-a-background-image: unset;
+    --sg-download-a-border-color: var(--pst-color-border-rgba);
+    --sg-download-a-color: #fff;
+    --sg-download-a-hover-background-color: var(--pst-color-secondary);
+    --sg-download-a-hover-box-shadow-1: none;
+    --sg-download-a-hover-box-shadow-2: none;
 }
 
 /* ************************************************************ Sphinx fixes */
@@ -55,9 +76,9 @@ p.sphx-glr-signature {
 }
 /* script/notebook download buttons */
 .sphx-glr-download a.download {
-    background-image: none;
-    background-color: var(--pst-color-info-rgba);
-    border-color: rgb(var(--pst-color-info));
+    /* ↓↓↓↓↓↓↓ these two rules copied from sphinx-design */
+    box-shadow: 0 .125rem .25rem var(--sd-color-shadow) !important;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
 /* Report embedding */
 iframe.sg_report {
@@ -66,6 +87,11 @@ iframe.sg_report {
     margin: 20px auto;
     display: block;
     border-style: solid;
+}
+/* Disable thumbnail tooltips on hover */
+.sphx-glr-thumbcontainer[tooltip]:hover::before,
+.sphx-glr-thumbcontainer[tooltip]:hover::after {
+    display: none;
 }
 
 /* ******************************** make HTML'd pandas dataframes scrollable */
@@ -83,16 +109,8 @@ div[id^="examples-using-"] h2 {
 /* ******************************************* in-text sidebar callout boxes */
 div.sidebar,
 aside.sidebar {
-    margin: 0 0 0.5em 1em;
-    padding: 7px;
-    width: 40%;
-    float: right;
-    clear: right;
-    overflow-x: auto;
-    /* above copied from div.sidebar in basic.css; below are our overrides */
-    background-color: var(--pst-color-info-rgba);
-    border: 1px solid rgb(var(--pst-color-info));
-    border-radius: 4px;
+    background-color: var(--pst-color-primary-rgba);
+    border-color: rgb(var(--pst-color-info));
 }
 
 /* **************************************************************** homepage */
@@ -177,20 +195,47 @@ div.card {
     border-bottom-color: var(--pst-color-border-rgba);
     background-color: var(--pst-color-background-rgba);
 }
+/* ********************************************* sphinx-design compatibility */
+.sd-dropdown {
+    border: 1px solid var(--pst-color-border-rgba) !important;
+    box-shadow: 1px 1px 1px var(--pst-color-shadow);
+}
+.sd-card-header {
+    border-bottom: 1px solid var(--pst-color-border-rgba) !important;
+    background-color: var(--pst-color-background-rgba) !important;
+}
+.sd-card-footer {
+    border-top: 1px solid var(--pst-color-border-rgba) !important;
+    background-color: var(--pst-color-background-rgba) !important;
+}
+p.btn a {
+    color: unset;
+}
+/* remove this when
+   https://github.com/pydata/pydata-sphinx-theme/issues/733 is addressed
+   ↓↓↓↓↓↓↓↓↓ */
+.sd-btn-primary {
+    background-color: var(--pst-color-link) !important;
+    border-color: var(--pst-color-link) !important
+}
+.sd-btn-primary:hover {
+    background-color: var(--pst-color-link-hover) !important;
+    border-color: var(--pst-color-link-hover) !important
+}
 
 /* ****************************************************** navbar quick links */
 
-i.fa-github-square:before {
-    color: rgb(var(--mne-color-github));
+#navbar-icon-links i.fa-github-square::before {
+    color: var(--mne-color-github);
 }
-i.fa-twitter-square:before {
-    color: #55acee;
+#navbar-icon-links i.fa-twitter-square::before {
+    color: var(--mne-color-twitter);
 }
-i.fa-discourse:before {
-    color: rgb(var(--mne-color-discourse));
+#navbar-icon-links i.fa-discourse::before {
+    color: var(--mne-color-discourse);
 }
-i.fa-discord:before {
-    color: #7289da;  /* 99aab5 is also in-brand for discord */
+#navbar-icon-links i.fa-discord::before {
+    color: var(--mne-color-discord);
 }
 /* *********************************************************** contrib guide */
 ul.icon-bullets {

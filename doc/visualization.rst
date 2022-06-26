@@ -28,6 +28,7 @@ Visualization
    plot_chpi_snr
    plot_cov
    plot_channel_labels_circle
+   plot_ch_adjacency
    plot_csd
    plot_dipole_amplitudes
    plot_dipole_locations
@@ -55,6 +56,7 @@ Visualization
    plot_layout
    plot_montage
    plot_projs_topomap
+   plot_projs_joint
    plot_raw
    plot_raw_psd
    plot_sensors

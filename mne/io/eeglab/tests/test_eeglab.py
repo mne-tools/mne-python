@@ -20,7 +20,7 @@ from mne.io import read_raw_eeglab
 from mne.io.eeglab.eeglab import _get_montage_information, _dol_to_lod
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
-from mne.utils import Bunch
+from mne.utils import Bunch, _record_warnings
 from mne.annotations import events_from_annotations, read_annotations
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
@@ -46,6 +46,9 @@ montage_path = op.join(base_dir, 'test_chans.locs')
 
 
 pymatreader = pytest.importorskip('pymatreader')  # module-level
+# https://gitlab.com/obob/pymatreader/-/issues/13
+filt_warn = pytest.mark.filterwarnings(  # scipy.io.savemat + pymatreader
+    'ignore:.*returning scalar instead.*:FutureWarning')
 
 
 @testing.requires_testing_data
@@ -101,6 +104,7 @@ def test_io_set_raw(fname):
 
 
 @testing.requires_testing_data
+@filt_warn
 def test_io_set_raw_more(tmp_path):
     """Test importing EEGLAB .set files."""
     tmp_path = str(tmp_path)
@@ -277,6 +281,7 @@ def test_io_set_epochs_events(tmp_path):
 
 
 @testing.requires_testing_data
+@filt_warn
 def test_degenerate(tmp_path):
     """Test some degenerate conditions."""
     # test if .dat file raises an error
@@ -370,14 +375,15 @@ def one_chanpos_fname(tmp_path_factory):
         'data': np.empty([3, 3]),
         'chanlocs': np.array(
             [(b'F3', 1., 4., 7.),
-             (b'unknown', 2., 5., 8.),
-             (b'FPz', np.nan, np.nan, np.nan)],
+             (b'unknown', np.nan, np.nan, np.nan),
+             (b'FPz', 2., 5., 8.)],
             dtype=[('labels', 'S10'), ('X', 'f8'), ('Y', 'f8'), ('Z', 'f8')]
         )
     })
 
-    io.savemat(file_name=fname, mdict=file_conent, appendmat=False,
-               oned_as='row')
+    with _record_warnings():  # savemat
+        io.savemat(file_name=fname, mdict=file_conent, appendmat=False,
+                   oned_as='row')
 
     return fname
 
@@ -388,8 +394,8 @@ def test_position_information(one_chanpos_fname):
     nan = np.nan
     EXPECTED_LOCATIONS_FROM_FILE = np.array([
         [-4.,  1.,  7.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],
-        [-5.,  2.,  8.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
+        [-5.,  2.,  8.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],
     ])
 
     EXPECTED_LOCATIONS_FROM_MONTAGE = np.array([
@@ -410,9 +416,6 @@ def test_position_information(one_chanpos_fname):
         input_fname=one_chanpos_fname,
         preload=True,
     ).set_montage(None)  # Flush the montage builtin within input_fname
-
-    _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
-                               EXPECTED_LOCATIONS_FROM_MONTAGE)
 
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
                                EXPECTED_LOCATIONS_FROM_MONTAGE)

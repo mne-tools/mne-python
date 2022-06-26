@@ -10,8 +10,57 @@ all dependencies. They also provide many additional
 Python packages and tools, including the `Spyder`_ development environment.
 Got any questions? Let us know on the `MNE Forum`_!
 
-.. raw:: html
-    :file: installers_platform_selector.html
+.. tab-set::
+    :class: platform-selector-tabset
+
+    .. tab-item:: Linux
+        :class-content: text-center
+
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.0.3/MNE-Python-1.0.3_0-Linux.sh
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold mt-3
+
+            |cloud-download-alt| |ensp| Download for Linux
+
+        **Supported platforms:** Ubuntu 18.04 (Bionic Beaver) and newer
+
+        Run the installer in a terminal via:
+
+        .. code-block:: console
+
+            $ sh ./MNE-Python-1.0.3_0-Linux.sh
+
+
+    .. tab-item:: macOS
+        :class-content: text-center
+
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.0.3/MNE-Python-1.0.3_0-macOS_Intel.pkg
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold mt-3
+
+            |cloud-download-alt| |ensp| Download for macOS
+
+        **Supported platforms:**
+        macOS 10.15 (Catalina) and newer (Intel and Apple Silicon)
+
+
+    .. tab-item:: Windows
+        :class-content: text-center
+
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.0.3/MNE-Python-1.0.3_0-Windows.exe
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold mt-3
+
+            |cloud-download-alt| |ensp| Download for Windows
+
+        **Supported platforms:** Windows 10 and newer
+
 
 First steps
 ^^^^^^^^^^^
@@ -59,4 +108,26 @@ interpreter.
    This information is currently not displayed on the Windows platform.
 
 
-.. |ensp| unicode:: U+2002 .. EN SPACE
+.. raw:: html
+
+    <script type="text/javascript">
+      var platform = "linux";
+      if (navigator.userAgent.indexOf("Win") !== -1) {
+        platform = "windows";
+      }
+      if (navigator.userAgent.indexOf("Mac") !== -1) {
+        platform = "macos";
+      }
+     $(document).ready(function(){
+         let all_tab_nodes = document.querySelectorAll(
+             '.platform-selector-tabset')[0].children;
+         let input_nodes = [...all_tab_nodes].filter(
+             child => child.nodeName === "INPUT");
+         let tab_label_nodes = [...document.querySelectorAll('.sd-tab-label')];
+         let correct_label = tab_label_nodes.filter(
+             label => label.textContent.trim().toLowerCase() === platform)[0];
+         let hash = correct_label.getAttribute('for');
+         let correct_input = input_nodes.filter(node => node.id === hash)[0];
+         correct_input.checked = true;
+     });
+     </script>

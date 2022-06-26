@@ -11,10 +11,8 @@
 
 .. mne
 
-.. _`mne-python`: http://mne.tools/mne-python-intro
-.. _`mne-python GitHub`: https://github.com/mne-tools/mne-python
-.. _`mne-python sample dataset`: https://s3.amazonaws.com/mne-python/datasets/MNE-sample-data-processed.tar.gz
-.. _`mne command line utilities`: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/
+.. _`MNE-Python`: http://mne.tools/mne-python-intro
+.. _`MNE-Python GitHub`: https://github.com/mne-tools/mne-python
 .. _`mne-scripts`: https://github.com/mne-tools/mne-scripts/
 .. _`MNE-C manual`: https://mne.tools/mne-c-manual/MNE-manual-2.7.3.pdf
 .. _`GitHub issues page`: https://github.com/mne-tools/mne-python/issues/
@@ -50,7 +48,6 @@
 
 .. _numpy: http://www.numpy.org
 .. _`numpy github`: http://github.com/numpy/numpy
-.. _`numpy style`: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _`numpy mailing list`: http://mail.scipy.org/mailman/listinfo/numpy-discussion
 
 
@@ -194,8 +191,8 @@
 .. _NVIDIA proprietary drivers: https://www.geforce.com/drivers
 
 .. _Sphinx documentation: https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
-.. _sphinx gallery documentation: https://sphinx-gallery.github.io
-.. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
+.. _sphinx-gallery: https://sphinx-gallery.github.io
+.. _NumPy docstring style guidelines: https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard
 .. _Stack Overflow: https://stackoverflow.com/
 
 .. vim: ft=rst

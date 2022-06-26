@@ -402,6 +402,17 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     assert_allclose(cam.GetFocalPoint(), view_args["focalpoint"])
     assert_allclose(cam.GetDistance(), view_args["distance"])
     assert_allclose(cam.GetRoll(), previous_roll + view_args["roll"])
+
+    # test get_view
+    azimuth, elevation = 180., 90.
+    view_args.update(azimuth=azimuth, elevation=elevation)
+    brain.show_view(**view_args)
+    roll, distance, azimuth, elevation, focalpoint = brain.get_view()
+    assert_allclose(cam.GetRoll(), roll)
+    assert_allclose(cam.GetDistance(), distance)
+    assert_allclose(view_args['azimuth'] % 360, azimuth % 360)
+    assert_allclose(view_args['elevation'] % 180, elevation % 180)
+    assert_allclose(view_args['focalpoint'], focalpoint)
     del view_args
 
     # image and screenshot
@@ -412,13 +423,13 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     fp = np.array(
         brain._renderer.figure.plotter.renderer.ComputeVisiblePropBounds())
     fp = (fp[1::2] + fp[::2]) * 0.5
-    azimuth, elevation = 180., 90.
     for view_args in (dict(azimuth=azimuth, elevation=elevation,
                            focalpoint='auto'),
                       dict(view='lateral', hemi='lh')):
         brain.show_view(**view_args)
-        assert_allclose(brain._renderer.figure._azimuth, azimuth)
-        assert_allclose(brain._renderer.figure._elevation, elevation)
+        assert_allclose(brain._renderer.figure._azimuth % 360, azimuth % 360)
+        assert_allclose(
+            brain._renderer.figure._elevation % 180, elevation % 180)
         assert_allclose(cam.GetFocalPoint(), fp)
     del view_args
     img = brain.screenshot(mode='rgba')

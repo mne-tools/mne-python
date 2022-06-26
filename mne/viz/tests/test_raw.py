@@ -4,20 +4,21 @@
 
 import itertools
 import os
+from copy import deepcopy
 
-import numpy as np
-from numpy.testing import assert_allclose
-import pytest
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
+from numpy.testing import assert_allclose
 
-from mne import pick_types, Annotations, create_info
+from mne import Annotations, create_info, pick_types
 from mne.annotations import _sync_onset
 from mne.datasets import testing
 from mne.io import RawArray
-from mne.utils import get_config, set_config, _dt_to_stamp, _record_warnings
-from mne.viz.utils import _fake_click
+from mne.utils import _dt_to_stamp, _record_warnings, get_config, set_config
 from mne.viz import plot_raw, plot_sensors
+from mne.viz.utils import _fake_click
 
 
 def _annotation_helper(raw, browse_backend, events=False):
@@ -193,34 +194,46 @@ def _proj_click_all(fig, browse_backend):
         ssp_fig.toggle_all()
 
 
+def _spawn_child_fig(fig, attr, browse_backend, key):
+    # starting state
+    n_figs = browse_backend._get_n_figs()
+    n_children = len(fig.mne.child_figs)
+    # spawn the child fig
+    fig._fake_keypress(key)
+    # make sure the figure was actually spawned
+    assert len(fig.mne.child_figs) == n_children + 1
+    assert browse_backend._get_n_figs() == n_figs + 1
+    # make sure the parent fig knows the child fig's name
+    child_fig = getattr(fig.mne, attr)
+    assert child_fig is not None
+    return child_fig
+
+
+def _destroy_child_fig(fig, child_fig, attr, browse_backend, key, key_target):
+    # starting state
+    n_figs = browse_backend._get_n_figs()
+    n_children = len(fig.mne.child_figs)
+    # destroy child fig (_close_event is MPL agg backend workaround)
+    fig._fake_keypress(key, fig=key_target)
+    fig._close_event(child_fig)
+    # make sure the figure was actually destroyed
+    assert len(fig.mne.child_figs) == n_children - 1
+    assert browse_backend._get_n_figs() == n_figs - 1
+    assert getattr(fig.mne, attr) is None
+
+
 def _child_fig_helper(fig, key, attr, browse_backend):
     # Spawn and close child figs of raw.plot()
-    num_figs = browse_backend._get_n_figs()
     assert getattr(fig.mne, attr) is None
-    # spawn
-    fig._fake_keypress(key)
-    assert len(fig.mne.child_figs) == 1
-    assert browse_backend._get_n_figs() == num_figs + 1
-    child_fig = getattr(fig.mne, attr)
-    assert child_fig is not None
-    # close via main window toggle
-    fig._fake_keypress(key)
-    fig._close_event(child_fig)
-    assert len(fig.mne.child_figs) == 0
-    assert browse_backend._get_n_figs() == num_figs
-    assert getattr(fig.mne, attr) is None
-    # spawn again
-    fig._fake_keypress(key)
-    assert len(fig.mne.child_figs) == 1
-    assert browse_backend._get_n_figs() == num_figs + 1
-    child_fig = getattr(fig.mne, attr)
-    assert child_fig is not None
-    # close via child window
-    fig._fake_keypress(child_fig.mne.close_key, fig=child_fig)
-    fig._close_event(child_fig)
-    assert len(fig.mne.child_figs) == 0
-    assert browse_backend._get_n_figs() == num_figs
-    assert getattr(fig.mne, attr) is None
+    # spawn, then close via main window toggle
+    child_fig = _spawn_child_fig(fig, attr, browse_backend, key)
+    _destroy_child_fig(fig, child_fig, attr, browse_backend, key,
+                       key_target=fig)
+    # spawn again, then close via child window's close key
+    child_fig = _spawn_child_fig(fig, attr, browse_backend, key)
+    _destroy_child_fig(fig, child_fig, attr, browse_backend,
+                       key=child_fig.mne.close_key,
+                       key_target=child_fig)
 
 
 def test_scale_bar(browser_backend):
@@ -381,18 +394,15 @@ def test_plot_raw_child_figures(raw, browser_backend):
     ismpl = browser_backend.name == 'matplotlib'
     with raw.info._unlock():
         raw.info['lowpass'] = 10.  # allow heavy decim during plotting
-    browser_backend._close_all()  # make sure we start clean
+    # make sure we start clean
     assert browser_backend._get_n_figs() == 0
     fig = raw.plot()
     assert browser_backend._get_n_figs() == 1
     # test child fig toggles
     _child_fig_helper(fig, '?', 'fig_help', browser_backend)
     _child_fig_helper(fig, 'j', 'fig_proj', browser_backend)
-    # In Qt, this is a dock-widget instead of a separated window.
-    if ismpl:
+    if ismpl:  # in mne-qt-browser, annotation is a dock-widget, not a window
         _child_fig_helper(fig, 'a', 'fig_annotation', browser_backend)
-    assert len(fig.mne.child_figs) == 0  # make sure the helper cleaned up
-    assert browser_backend._get_n_figs() == 1
     # test right-click → channel location popup
     fig._redraw()
     fig._click_ch_name(ch_index=2, button=3)
@@ -401,18 +411,30 @@ def test_plot_raw_child_figures(raw, browser_backend):
     fig._fake_keypress('escape', fig=fig.mne.child_figs[0])
     if ismpl:
         fig._close_event(fig.mne.child_figs[0])
+    assert len(fig.mne.child_figs) == 0
     assert browser_backend._get_n_figs() == 1
     # test right-click on non-data channel
     ix = raw.get_channel_types().index('ias')  # find the shielding channel
     trace_ix = fig.mne.ch_order.tolist().index(ix)  # get its plotting position
-    assert len(fig.mne.child_figs) == 0
-    assert browser_backend._get_n_figs() == 1
     fig._redraw()
     fig._click_ch_name(ch_index=trace_ix, button=3)  # should be no-op
     assert len(fig.mne.child_figs) == 0
     assert browser_backend._get_n_figs() == 1
     # test resize of main window
     fig._resize_by_factor(0.5)
+
+
+def test_orphaned_annot_fig(raw, browser_backend):
+    """Test that annotation window is not orphaned (GH #10454)."""
+    if browser_backend.name != 'matplotlib':
+        return
+    assert browser_backend._get_n_figs() == 0
+    fig = raw.plot()
+    _spawn_child_fig(fig, 'fig_annotation', browser_backend, 'a')
+    fig._fake_keypress(key=fig.mne.close_key)
+    fig._close_event()
+    assert len(fig.mne.child_figs) == 0
+    assert browser_backend._get_n_figs() == 0
 
 
 def _monkeypatch_fig(fig, browser_backend):
@@ -723,7 +745,7 @@ def test_plot_raw_psd(raw, raw_orig):
     plt.close('all')
     # need 2, got 1
     ax = plt.axes()
-    with pytest.raises(ValueError, match='of length 2, while the length is 1'):
+    with pytest.raises(ValueError, match='of length 2.*the length is 1'):
         raw.plot_psd(ax=ax, average=True)
     plt.close('all')
     # topo psd
@@ -847,6 +869,38 @@ def test_plot_sensors(raw):
     raw.info['dev_head_t'] = None  # like empty room
     with pytest.warns(RuntimeWarning, match='identity'):
         raw.plot_sensors()
+
+    # Test plotting with sphere='eeglab'
+    info = create_info(
+        ch_names=['Fpz', 'Oz', 'T7', 'T8'],
+        sfreq=100,
+        ch_types='eeg'
+    )
+    data = 1e-6 * np.random.rand(4, 100)
+    raw_eeg = RawArray(data=data, info=info)
+    raw_eeg.set_montage('biosemi64')
+    raw_eeg.plot_sensors(sphere='eeglab')
+
+    # Should work with "FPz" as well
+    raw_eeg.rename_channels({'Fpz': 'FPz'})
+    raw_eeg.plot_sensors(sphere='eeglab')
+
+    # Should still work without Fpz/FPz, as long as we still have Oz
+    raw_eeg.drop_channels('FPz')
+    raw_eeg.plot_sensors(sphere='eeglab')
+
+    # Should raise if Oz is missing too, as we cannot reconstruct Fpz anymore
+    raw_eeg.drop_channels('Oz')
+    with pytest.raises(ValueError, match='could not find: Fpz'):
+        raw_eeg.plot_sensors(sphere='eeglab')
+
+    # Should raise if we don't have a montage
+    chs = deepcopy(raw_eeg.info['chs'])
+    raw_eeg.set_montage(None)
+    with raw_eeg.info._unlock():
+        raw_eeg.info['chs'] = chs
+    with pytest.raises(ValueError, match='No montage was set'):
+        raw_eeg.plot_sensors(sphere='eeglab')
 
 
 @pytest.mark.parametrize('cfg_value', (None, '0.1,0.1'))
