@@ -12,7 +12,7 @@ from numpy.testing import assert_equal, assert_allclose
 import mne
 from mne import (concatenate_raws, read_bem_surfaces, read_surface,
                  read_source_spaces, read_bem_solution)
-from mne.bem import ConductorModel
+from mne.bem import ConductorModel, convert_flash_mris
 from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
                           mne_coreg, mne_kit2fiff,
@@ -305,14 +305,13 @@ def test_flash_bem(tmp_path):
         surf_path.unlink()  # cleanup
     shutil.rmtree(flash_path / "parameter_maps")  # remove old files
 
-    # Test with flash30 default locations
-    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n', '-r'),
-                    disable_stdout=False, disable_stderr=False):
-        mne_flash_bem.run()
-    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
-        surf_path = subject_path_new / 'bem' / f'{s}.surf'
-        assert surf_path.exists()
-        surf_path.unlink()  # cleanup
+    # Test synthesize flash5 with MEF flash5 and flash30 default locations
+    flash5_img = convert_flash_mris(
+        subject="sample", subjects_dir=tempdir, convert=False,
+        unwarp=False
+    )
+    assert flash5_img == (flash_path / "parameter_maps" / "flash5.mgz")
+    assert flash5_img.exists()
     shutil.rmtree(flash_path / "parameter_maps")  # remove old files
 
     # Test with flash5 and flash30
