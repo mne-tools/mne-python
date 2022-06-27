@@ -34,14 +34,17 @@ meg_path = data_path / 'MEG' / 'sample'
 raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname)
 
+
+
+
 # %%
 # Compute empty-room covariance
 # -----------------------------
 # First we compute an empty-room covariance, which captures noise from the
 # sensors and environment.
 
-raw_empty_room_fname = op.join(
-    data_path, 'MEG', 'sample', 'ernoise_raw.fif')
+raw_empty_room_fname = (
+    data_path/ 'MEG'/ 'sample'/ 'ernoise_raw.fif')
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
 raw_empty_room.crop(0, 30)  # cropped just for speed
 raw_empty_room.info['bads'] = ['MEG 2443']
