@@ -1519,3 +1519,88 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1.0, tmin=0,
     data_summary[:, 0] = np.sum(data_summary, axis=1)
 
     return klass(data_summary, vertices, tmin, tstep, subject)
+
+
+@verbose
+def group_level_cluster_test(data, *, cluster_forming_threshold=None, 
+                             cluster_significance_p_value=0.05, 
+                             n_permutations=1000, tail=None, adjacency=None,
+                             n_jobs=None, random_seed=None, verbose=None):
+    """Non-parametric cluster-level test for spatio-temporal(-spectral) data
+    
+    Parameters
+    ----------
+    data : dict
+        keys are condition names, values are :class:`~mne.Evoked` or
+        :class:`~mne.time_frequency.AverageTFR`
+    """
+    # XXX add support for AverageTFR
+    # XXX check for consistent input size across conditions
+    
+    from .. import combine_evoked
+    
+    _validate_type(data, types=dict, item_name='data')
+    if len(data) == 0 or len(data) > 2:
+        raise ValueError('Data must contain one or two elements.' 
+                         f'Got {len(data)}.')
+    
+    # rename tail
+    if tail is None:
+        tail = 0
+    elif tail == 'left':
+        tail = -1 # XXX check dimensions
+    elif tail == 'right':
+        tail = 1 # XXX check dimensions
+
+    
+    # if data has two entries, compute the difference
+    if len(data) == 2:
+        evoked_diff = []
+        for evoked1, evoked2 in zip(*data.values()):
+            evoked_diff.append(
+                combine_evoked([evoked1, evoked2], weights=[1, -1])
+            )
+        data = {'diff' : evoked_diff}
+        del evoked_diff, evoked1, evoked2
+    
+    # data now has only one entry
+    # now we extract a numpy array 
+    data_array = [e.data for e in list(data.values())[0]]
+    data_array = np.asarray(data_array)
+    
+    # spatio_temporal_cluster_1samp_test expects spatial dimension last
+    # expected dimensions: observations (difference) x time 
+    # (x frequency) x sensors / vertices
+    
+    data_array = np.transpose(data_array, [0, 2, 1])
+    
+    # now feed the data to the actual stats function
+    results = spatio_temporal_cluster_1samp_test(
+                data_array,
+                threshold=cluster_forming_threshold,
+                n_permutations=n_permutations, 
+                tail=tail,
+                adjacency=adjacency)
+    
+    T_values, clusters, cluster_p_values, _ = results
+    
+    significant_clusters_idx = np.where(
+        cluster_p_values < cluster_significance_p_value)[0]
+
+    significant_clusters = clusters[significant_clusters_idx]
+    
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots()
+    ax.imshow(T_values)
+    
+    return results
+    
+    
+    
+    
+            
+        
+        
+        
+    
+
