@@ -46,9 +46,6 @@ montage_path = op.join(base_dir, 'test_chans.locs')
 
 
 pymatreader = pytest.importorskip('pymatreader')  # module-level
-# https://gitlab.com/obob/pymatreader/-/issues/13
-filt_warn = pytest.mark.filterwarnings(  # scipy.io.savemat + pymatreader
-    'ignore:.*returning scalar instead.*:FutureWarning')
 
 
 @testing.requires_testing_data
@@ -104,7 +101,6 @@ def test_io_set_raw(fname):
 
 
 @testing.requires_testing_data
-@filt_warn
 def test_io_set_raw_more(tmp_path):
     """Test importing EEGLAB .set files."""
     tmp_path = str(tmp_path)
@@ -281,7 +277,6 @@ def test_io_set_epochs_events(tmp_path):
 
 
 @testing.requires_testing_data
-@filt_warn
 def test_degenerate(tmp_path):
     """Test some degenerate conditions."""
     # test if .dat file raises an error
@@ -381,9 +376,8 @@ def one_chanpos_fname(tmp_path_factory):
         )
     })
 
-    with _record_warnings():  # savemat
-        io.savemat(file_name=fname, mdict=file_conent, appendmat=False,
-                   oned_as='row')
+    io.savemat(file_name=fname, mdict=file_conent, appendmat=False,
+               oned_as='row')
 
     return fname
 
