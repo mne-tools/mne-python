@@ -17,7 +17,7 @@ baseline covariance matrices.
 # License: BSD-3-Clause
 
 # %%
-import os.path as op
+from pathlib import Path
 
 import numpy as np
 import mne
@@ -35,11 +35,13 @@ print(__doc__)
 data_path = somato.data_path()
 subject = '01'
 task = 'somato'
-raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
-                    'sub-{}_task-{}_meg.fif'.format(subject, task))
+raw_fname = (data_path / 'sub-{}'.format(subject) / 'meg' /
+             'sub-{}_task-{}_meg.fif'.format(subject, task))
+
 
 # crop to 5 minutes to save memory
 raw = mne.io.read_raw_fif(raw_fname).crop(0, 300)
+breakpoint()
 
 # We are interested in the beta band (12-30 Hz)
 raw.load_data().filter(12, 30)
