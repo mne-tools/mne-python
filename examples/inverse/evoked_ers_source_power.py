@@ -54,9 +54,9 @@ epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, picks=picks,
                     preload=True, decim=3)
 
 # Read forward operator and point to freesurfer subject directory
-fname_fwd = op.join(data_path, 'derivatives', 'sub-{}'.format(subject),
-                    'sub-{}_task-{}-fwd.fif'.format(subject, task))
-subjects_dir = op.join(data_path, 'derivatives', 'freesurfer', 'subjects')
+fname_fwd = (data_path / 'derivatives' / 'sub-{}'.format(subject) /
+             'sub-{}_task-{}-fwd.fif'.format(subject, task))
+subjects_dir = (data_path / 'derivatives' / 'freesurfer' / 'subjects')
 
 fwd = mne.read_forward_solution(fname_fwd)
 
