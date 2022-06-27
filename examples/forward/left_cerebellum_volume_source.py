@@ -25,9 +25,11 @@ from mne.datasets import sample
 print(__doc__)
 
 data_path = sample.data_path()
-subjects_dir = op.join(data_path, 'subjects')
+subjects_dir = (data_path / 'subjects')
+#subjects_dir = op.join(data_path, 'subjects')
 subject = 'sample'
-aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+aseg_fname = (sujects_dir / 'sample' / 'mri' / 'aseg.mgz')
+#aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
 
 # %%
 # Setup the source spaces
