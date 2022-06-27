@@ -101,6 +101,8 @@ def pytest_configure(config):
     ignore:Passing unrecognized arguments to super.*:DeprecationWarning
     # notebook tests
     ignore:There is no current event loop:DeprecationWarning
+    # old NumPy/SciPy checks
+    ignore:numpy\.ufunc size changed.*:RuntimeWarning
     # TODO: This is indicative of a problem
     ignore:.*Matplotlib is currently using agg.*:
     # qdarkstyle
