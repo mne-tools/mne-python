@@ -41,7 +41,6 @@ raw_fname = (data_path / 'sub-{}'.format(subject) / 'meg' /
 
 # crop to 5 minutes to save memory
 raw = mne.io.read_raw_fif(raw_fname).crop(0, 300)
-breakpoint()
 
 # We are interested in the beta band (12-30 Hz)
 raw.load_data().filter(12, 30)
