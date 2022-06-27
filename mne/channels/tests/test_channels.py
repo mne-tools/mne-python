@@ -282,7 +282,6 @@ def test_read_ch_adjacency(tmp_path):
 
 def _download_ft_neighbors(target_dir):
     """Download the known neighbors from FieldTrip."""
-
     # The entire FT repository is larger than a GB, so we'll just download
     # the few files we need.
     def _download_one_ft_neighbor(
