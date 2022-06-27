@@ -10,6 +10,7 @@ import numpy as np
 
 from ..utils import logger, verbose, check_random_state, random_permutation
 
+from scipy import special
 
 @verbose
 def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
@@ -189,7 +190,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
 
             else:
                 # logistic ICA weights update
-                y = 1.0 / (1.0 + np.exp(-u))
+                y = special.expit(u)
                 weights += l_rate * np.dot(weights,
                                            BI + np.dot(u.T, (1.0 - 2.0 * y)))
 
