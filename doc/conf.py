@@ -835,6 +835,8 @@ def reset_warnings(gallery_conf, fname):
         'invalid version and will not be supported',  # pyxdf
         'distutils Version classes are deprecated',  # seaborn and neo
         '`np.object` is a deprecated alias for the builtin `object`',  # pyxdf
+        # nilearn, should be fixed in > 0.9.1
+        'In future, it will be an error for \'np.bool_\' scalars to',
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
