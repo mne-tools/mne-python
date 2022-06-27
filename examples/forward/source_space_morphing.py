@@ -31,7 +31,7 @@ fname_trans = (
 fname_bem = (
     subjects_dir / 'sample' / 'bem' / 'sample-5120-bem-sol.fif')
 fname_src_fs = (
-    subjects_dir / 'fsaverage' / 'bem'/ 'fsaverage-ico-5-src.fif')
+    subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-ico-5-src.fif')
 raw_fname = (data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif')
 
 # Get relevant channel information
