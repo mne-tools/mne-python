@@ -95,21 +95,23 @@ def pytest_configure(config):
     #   we should remove them from here.
     # - This list should also be considered alongside reset_warnings in
     #   doc/conf.py.
+    if os.getenv('MNE_IGNORE_WARNINGS_IN_TESTS', '') != 'true':
+        first_kind = 'error'
+    else:
+        first_kind = 'always'
     warning_lines = r"""
-    error::
+    {0}::
     # matplotlib->traitlets (notebook)
     ignore:Passing unrecognized arguments to super.*:DeprecationWarning
     # notebook tests
     ignore:There is no current event loop:DeprecationWarning
-    # old NumPy/SciPy checks
-    ignore:numpy\.ufunc size changed.*:RuntimeWarning
     # TODO: This is indicative of a problem
     ignore:.*Matplotlib is currently using agg.*:
     # qdarkstyle
     ignore:.*Setting theme=.*:RuntimeWarning
     # scikit-learn using this arg
     ignore:.*The 'sym_pos' keyword is deprecated.*:DeprecationWarning
-    """  # noqa: E501
+    """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
         if warning_line and not warning_line.startswith('#'):
