@@ -30,11 +30,11 @@ subjects_dir = (data_path / 'subjects')
 bem_dir = (subjects_dir / subject / 'bem')
 
 # Set file names
-fname_mixed_src = (bem_dir / '%s-oct-6-mixed-src.fif' % subject)
+fname_mixed_src = (bem_dir / f'{subject}-oct-6-mixed-src.fif')
 fname_aseg = (subjects_dir / subject / 'mri' / 'aseg.mgz')
 
-fname_model = (bem_dir / '%s-5120-bem.fif' % subject)
-fname_bem = (bem_dir / '%s-5120-bem-sol.fif' % subject)
+fname_model = (bem_dir / f'{subject}-5120-bem.fif')
+fname_bem = (bem_dir / f'{subject}-5120-bem-sol.fif')
 
 fname_evoked = data_dir + '/sample_audvis-ave.fif'
 fname_trans = data_dir + '/sample_audvis_raw-trans.fif'
@@ -91,7 +91,7 @@ src.plot(subjects_dir=subjects_dir)
 #
 # We can also export source positions to NIfTI file and visualize it again:
 
-nii_fname = (bem_dir / '%s-mixed-src.nii' % subject)
+nii_fname = (bem_dir / f'{subject}-mixed-src.nii')
 src.export_volume(nii_fname, mri_resolution=True, overwrite=True)
 plotting.plot_img(nii_fname, cmap='nipy_spectral')
 
