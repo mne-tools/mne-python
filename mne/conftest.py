@@ -106,6 +106,7 @@ def pytest_configure(config):
     # notebook tests
     ignore:There is no current event loop:DeprecationWarning
     ignore:unclosed <socket\.socket:ResourceWarning
+    ignore:unclosed event loop <:ResourceWarning
     # ignore if joblib is missing
     ignore:joblib not installed.*:RuntimeWarning
     # TODO: This is indicative of a problem
