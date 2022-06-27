@@ -38,7 +38,6 @@ task = 'somato'
 raw_fname = (data_path / 'sub-{}'.format(subject) / 'meg' /
              'sub-{}_task-{}_meg.fif'.format(subject, task))
 
-
 # crop to 5 minutes to save memory
 raw = mne.io.read_raw_fif(raw_fname).crop(0, 300)
 
