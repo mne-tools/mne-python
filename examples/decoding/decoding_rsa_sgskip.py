@@ -78,7 +78,7 @@ event_id['0/human bodypart/human/not-face/animal/natural']
 ##############################################################################
 # Read MEG data
 n_runs = 4  # 4 for full data (use less to speed up computations)
-fname = (data_path /'sample_subject_%i_tsss_mc.fif')
+fname = (data_path / 'sample_subject_%i_tsss_mc.fif')
 raws = [read_raw_fif(fname % block, verbose='error')
         for block in range(n_runs)]  # ignore filename warnings
 raw = concatenate_raws(raws)
