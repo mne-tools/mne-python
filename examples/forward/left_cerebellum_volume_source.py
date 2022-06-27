@@ -55,7 +55,7 @@ fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
 mne.viz.set_3d_view(fig, azimuth=180, elevation=90,
                     distance=0.30, focalpoint=(-0.03, -0.01, 0.03))
 
-
+#AF changed today
 # %%
 # You can export source positions to a NIfTI file::
 #
