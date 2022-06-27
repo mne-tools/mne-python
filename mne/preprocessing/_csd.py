@@ -12,7 +12,6 @@
 # License: Relicensed under BSD-3-Clause and adapted with
 #          permission from authors of original GPL code
 
-import warnings
 import numpy as np
 
 from .. import pick_types
