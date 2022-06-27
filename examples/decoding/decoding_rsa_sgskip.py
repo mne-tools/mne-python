@@ -30,7 +30,6 @@ images of faces and body parts.
 
 # %%
 
-
 import numpy as np
 from pandas import read_csv
 import matplotlib.pyplot as plt
@@ -53,8 +52,6 @@ data_path = visual_92_categories.data_path()
 
 # Define stimulus - trigger mapping
 fname = (data_path / 'visual_stimuli.csv')
-
-
 conds = read_csv(fname)
 print(conds.head(5))
 
@@ -81,9 +78,7 @@ event_id['0/human bodypart/human/not-face/animal/natural']
 ##############################################################################
 # Read MEG data
 n_runs = 4  # 4 for full data (use less to speed up computations)
-
 fname = (data_path /'sample_subject_%i_tsss_mc.fif')
-
 raws = [read_raw_fif(fname % block, verbose='error')
         for block in range(n_runs)]  # ignore filename warnings
 raw = concatenate_raws(raws)
