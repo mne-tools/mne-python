@@ -25,14 +25,14 @@ between subjects.
 import mne
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = (data_path / 'subjects')
+subjects_dir = data_path / 'subjects'
 fname_trans = (
     data_path / 'MEG' / 'sample' / 'sample_audvis_raw-trans.fif')
 fname_bem = (
     subjects_dir / 'sample' / 'bem' / 'sample-5120-bem-sol.fif')
 fname_src_fs = (
     subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-ico-5-src.fif')
-raw_fname = (data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif')
+raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
 
 # Get relevant channel information
 info = mne.io.read_info(raw_fname)
