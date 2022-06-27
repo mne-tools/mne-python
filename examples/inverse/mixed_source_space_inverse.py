@@ -15,7 +15,6 @@ dataset.
 
 # %%
 
-import os.path as op
 import matplotlib.pyplot as plt
 
 from nilearn import plotting
@@ -26,9 +25,9 @@ from mne.minimum_norm import make_inverse_operator, apply_inverse
 # Set dir
 data_path = mne.datasets.sample.data_path()
 subject = 'sample'
-data_dir = (data_path / 'MEG'/ subject)
+data_dir = (data_path / 'MEG' / subject)
 subjects_dir = (data_path / 'subjects')
-bem_dir = (subjects_dir/ subject / 'bem')
+bem_dir = (subjects_dir / subject / 'bem')
 
 # Set file names
 fname_mixed_src = (bem_dir / '%s-oct-6-mixed-src.fif' % subject)
