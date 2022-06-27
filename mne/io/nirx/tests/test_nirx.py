@@ -261,7 +261,7 @@ def test_nirx_dat_warn(tmp_path):
     os.rename(tmp_path / "data" / "NIRS-2019-08-23_001.dat",
               tmp_path / "data" / "NIRS-2019-08-23_001.tmp")
     fname = tmp_path / "data" / "NIRS-2019-08-23_001.hdr"
-    with pytest.raises(RuntimeWarning, match='A single dat'):
+    with pytest.warns(RuntimeWarning, match='A single dat'):
         read_raw_nirx(fname, preload=True)
 
 

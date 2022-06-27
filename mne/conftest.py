@@ -105,6 +105,7 @@ def pytest_configure(config):
     ignore:Passing unrecognized arguments to super.*:DeprecationWarning
     # notebook tests
     ignore:There is no current event loop:DeprecationWarning
+    ignore:unclosed <socket\.socket:ResourceWarning
     # ignore if joblib is missing
     ignore:joblib not installed.*:RuntimeWarning
     # TODO: This is indicative of a problem
