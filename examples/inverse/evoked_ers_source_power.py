@@ -17,7 +17,6 @@ baseline covariance matrices.
 # License: BSD-3-Clause
 
 # %%
-from pathlib import Path
 
 import numpy as np
 import mne
@@ -56,7 +55,7 @@ epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, picks=picks,
 # Read forward operator and point to freesurfer subject directory
 fname_fwd = (data_path / 'derivatives' / 'sub-{}'.format(subject) /
              'sub-{}_task-{}-fwd.fif'.format(subject, task))
-subjects_dir = (data_path / 'derivatives' / 'freesurfer' / 'subjects')
+subjects_dir = data_path / 'derivatives' / 'freesurfer' / 'subjects'
 
 fwd = mne.read_forward_solution(fname_fwd)
 
