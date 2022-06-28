@@ -394,6 +394,8 @@ class BrowserBase(ABC):
 
     def _close(self, event):
         """Handle close events (via keypress or window [x])."""
+        from matplotlib.pyplot import close
+
         logger.debug(f'Closing {self.mne.instance_type} browser...')
         # write out bad epochs (after converting epoch numbers to indices)
         if self.mne.instance_type == 'epochs':
@@ -420,6 +422,7 @@ class BrowserBase(ABC):
         # Clean up child figures (don't pop(), child figs remove themselves)
         while len(self.mne.child_figs):
             fig = self.mne.child_figs[-1]
+            close(fig)
             self._close_event(fig)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -555,8 +558,7 @@ class BrowserBase(ABC):
         return fig
 
     def _close_event(self, fig):
-        # This method is a fix for mpl issue #18609, which still seems to
-        # be a problem with matplotlib==3.4.
+        """Look at _close_event in mne.fixes.py for why this exists."""
         pass
 
     def fake_keypress(self, key, fig=None):  # noqa: D400

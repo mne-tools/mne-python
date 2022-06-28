@@ -1,0 +1,8 @@
+{% extends "section.html.jinja" %}
+{% block html_content %}
+<div class="row">
+  {{ html_slider_axial | safe }}
+  {{ html_slider_sagittal | safe }}
+  {{ html_slider_coronal | safe }}
+</div>
+{% endblock html_content %}

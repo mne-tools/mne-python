@@ -12,7 +12,8 @@ from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_snirf, read_raw_nirx
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing.nirs import (optical_density, beer_lambert_law,
-                                    short_channels, source_detector_distances)
+                                    short_channels, source_detector_distances,
+                                    _reorder_nirx)
 from mne.transforms import apply_trans, _get_trans
 from mne.io.constants import FIFF
 
@@ -92,6 +93,19 @@ def test_snirf_gowerlabs():
     assert raw.info['dig'][0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
     assert len(raw.ch_names) == 216
     assert_allclose(raw.info['sfreq'], 10.0)
+    # we don't force them to be sorted according to a naive split
+    assert raw.ch_names != sorted(raw.ch_names)
+    # ... but this file does have a nice logical ordering already
+    print(raw.ch_names)
+    assert raw.ch_names == sorted(
+        raw.ch_names,
+        # use a key which is (src triplet, freq, src, freq, det)
+        key=lambda name: (
+            (int(name.split()[0].split('_')[0][1:]) - 1) // 3,
+            int(name.split()[1]),
+            int(name.split()[0].split('_')[0][1:]),
+            int(name.split()[0].split('_')[1][1:])
+        ))
 
 
 @requires_testing_data
@@ -104,12 +118,13 @@ def test_snirf_basic():
     assert raw.info['sfreq'] == 12.5
 
     # Test channel naming
-    assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D1 850",
-                                        "S1_D9 760", "S1_D9 850"]
+    assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D9 760",
+                                        "S2_D3 760", "S2_D10 760"]
+    assert raw.info['ch_names'][24:26] == ['S5_D8 850', 'S5_D13 850']
 
     # Test frequency encoding
     assert raw.info['chs'][0]['loc'][9] == 760
-    assert raw.info['chs'][1]['loc'][9] == 850
+    assert raw.info['chs'][24]['loc'][9] == 850
 
     # Test source locations
     assert_allclose([-8.6765 * 1e-2, 0.0049 * 1e-2, -2.6167 * 1e-2],
@@ -140,6 +155,7 @@ def test_snirf_basic():
 def test_snirf_against_nirx():
     """Test against file snirf was created from."""
     raw = read_raw_snirf(sfnirs_homer_103_wShort, preload=True)
+    _reorder_nirx(raw)
     raw_orig = read_raw_nirx(sfnirs_homer_103_wShort_original, preload=True)
 
     # Check annotations are the same
@@ -206,13 +222,13 @@ def test_snirf_nirsport2():
     assert_almost_equal(raw.info['sfreq'], 7.6, decimal=1)
 
     # Test channel naming
-    assert raw.info['ch_names'][:4] == ['S10_D3 760', 'S10_D3 850',
-                                        'S10_D9 760', 'S10_D9 850']
-    assert raw.info['ch_names'][24:26] == ['S15_D11 760', 'S15_D11 850']
+    assert raw.info['ch_names'][:4] == ['S1_D1 760', 'S1_D3 760',
+                                        'S1_D9 760', 'S1_D16 760']
+    assert raw.info['ch_names'][24:26] == ['S8_D15 760', 'S8_D20 760']
 
     # Test frequency encoding
     assert raw.info['chs'][0]['loc'][9] == 760
-    assert raw.info['chs'][1]['loc'][9] == 850
+    assert raw.info['chs'][-1]['loc'][9] == 850
 
     assert sum(short_channels(raw.info)) == 16
 
@@ -238,6 +254,7 @@ def test_snirf_nirsport2_w_positions():
     """Test reading SNIRF files with known positions."""
     raw = read_raw_snirf(nirx_nirsport2_103_2, preload=True,
                          optode_frame="mri")
+    _reorder_nirx(raw)
 
     # Test data import
     assert raw._data.shape == (40, 128)
@@ -246,7 +263,7 @@ def test_snirf_nirsport2_w_positions():
     # Test channel naming
     assert raw.info['ch_names'][:4] == ['S1_D1 760', 'S1_D1 850',
                                         'S1_D6 760', 'S1_D6 850']
-    assert raw.info['ch_names'][24:26] == ['S6_D14 760', 'S6_D14 850']
+    assert raw.info['ch_names'][24:26] == ['S6_D4 760', 'S6_D4 850']
 
     # Test frequency encoding
     assert raw.info['chs'][0]['loc'][9] == 760
@@ -281,6 +298,10 @@ def test_snirf_nirsport2_w_positions():
     assert raw.info['ch_names'][2][3:5] == 'D6'
     assert_allclose(
         mni_locs[2], [-0.0841, -0.0138, 0.0248], atol=allowed_dist_error)
+
+    assert raw.info['ch_names'][34][3:5] == 'D5'
+    assert_allclose(
+        mni_locs[34], [0.0845, -0.0451, -0.0123], atol=allowed_dist_error)
 
     # Test location of sensors
     # The locations of sensors can be seen in the second

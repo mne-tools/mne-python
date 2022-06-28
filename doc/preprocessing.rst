@@ -49,6 +49,7 @@ Projections:
    make_eeg_layout
    make_grid_layout
    find_ch_adjacency
+   get_builtin_ch_adjacencies
    read_ch_adjacency
    equalize_channels
    rename_channels

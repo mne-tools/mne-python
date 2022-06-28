@@ -300,6 +300,30 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         write_evokeds(fname, self, overwrite=overwrite)
 
+    @verbose
+    def export(self, fname, fmt='auto', *, overwrite=False, verbose=None):
+        """Export Evoked to external formats.
+
+        %(export_fmt_support_evoked)s
+
+        %(export_warning)s
+
+        Parameters
+        ----------
+        %(fname_export_params)s
+        %(export_fmt_params_evoked)s
+        %(overwrite)s
+        %(verbose)s
+
+        Notes
+        -----
+        .. versionadded:: 1.1
+
+        %(export_warning_note_evoked)s
+        """
+        from .export import export_evokeds
+        export_evokeds(fname, self, fmt, overwrite=overwrite, verbose=verbose)
+
     def __repr__(self):  # noqa: D105
         max_comment_length = 1000
         if len(self.comment) > max_comment_length:
@@ -504,11 +528,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
                    n_jobs=None, fig=None, vmax=None, n_contours=21,
-                   verbose=None):
+                   *, interaction='terrain', verbose=None):
         return plot_evoked_field(self, surf_maps, time=time,
                                  time_label=time_label, n_jobs=n_jobs,
                                  fig=fig, vmax=vmax, n_contours=n_contours,
-                                 verbose=verbose)
+                                 interaction=interaction, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_white)
     def plot_white(self, noise_cov, show=True, rank=None, time_unit='s',
@@ -679,16 +703,15 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         ch_type : str | None
-            The channel type to use. Defaults to None. If more than one sensor
-            Type is present in the data the channel type has to be explicitly
-            set.
+            The channel type to use. Defaults to None. If more than one channel
+            type is present in the data, this value **must** be provided.
         tmin : float | None
             The minimum point in time to be considered for peak getting.
             If None (default), the beginning of the data is used.
         tmax : float | None
             The maximum point in time to be considered for peak getting.
             If None (default), the end of the data is used.
-        mode : {'pos', 'neg', 'abs'}
+        mode : 'pos' | 'neg' | 'abs'
             How to deal with the sign of the data. If 'pos' only positive
             values will be considered. If 'neg' only negative values will
             be considered. If 'abs' absolute values will be considered.
@@ -722,17 +745,19 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         _check_option('ch_type', str(ch_type), supported)
 
         if ch_type is not None and ch_type not in types_used:
-            raise ValueError('Channel type `{ch_type}` not found in this '
-                             'evoked object.'.format(ch_type=ch_type))
+            raise ValueError(
+                f'Channel type "{ch_type}" not found in this evoked object.'
+            )
 
         elif len(types_used) > 1 and ch_type is None:
-            raise RuntimeError('More than one sensor type found. `ch_type` '
-                               'must not be `None`, pass a sensor type '
-                               'value instead')
+            raise RuntimeError(
+                'Multiple data channel types found. Please pass the "ch_type" '
+                'parameter.'
+            )
 
         if merge_grads:
             if ch_type != 'grad':
-                raise ValueError('Channel type must be grad for merge_grads')
+                raise ValueError('Channel type must be "grad" for merge_grads')
             elif mode == 'neg':
                 raise ValueError('Negative mode (mode=neg) does not make '
                                  'sense with merge_grads=True')
@@ -1110,8 +1135,8 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
 
     Parameters
     ----------
-    fname : str
-        The file name, which should end with -ave.fif or -ave.fif.gz.
+    fname : path-like
+        The filename, which should end with ``-ave.fif`` or ``-ave.fif.gz``.
     condition : int or str | list of int or str | None
         The index or list of indices of the evoked dataset to read. FIF files
         can contain multiple datasets. If None, all datasets are returned as a
@@ -1159,6 +1184,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         saving, this will be reflected in their ``baseline`` attribute after
         reading.
     """
+    fname = _check_fname(fname, overwrite='read', must_exist=True)
     check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz',
                                   '_ave.fif', '_ave.fif.gz'))
     logger.info('Reading %s ...' % fname)
@@ -1537,14 +1563,20 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
     if tmax is None:
         tmax = times[-1]
 
-    if tmin < times.min():
-        raise ValueError('The tmin value is out of bounds. It must be '
-                         'within {} and {}'.format(times.min(), times.max()))
-    if tmax > times.max():
-        raise ValueError('The tmax value is out of bounds. It must be '
-                         'within {} and {}'.format(times.min(), times.max()))
-    if tmin > tmax:
-        raise ValueError('The tmin must be smaller or equal to tmax')
+    if tmin < times.min() or tmax > times.max():
+        if tmin < times.min():
+            param_name = 'tmin'
+            param_val = tmin
+        else:
+            param_name = 'tmax'
+            param_val = tmax
+
+        raise ValueError(
+            f'{param_name} ({param_val}) is out of bounds. It must be '
+            f'between {times.min()} and {times.max()}'
+        )
+    elif tmin > tmax:
+        raise ValueError(f'tmin ({tmin}) must be <= tmax ({tmax})')
 
     time_win = (times >= tmin) & (times <= tmax)
     mask = np.ones_like(data).astype(bool)
@@ -1552,11 +1584,11 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
 
     maxfun = np.argmax
     if mode == 'pos':
-        if not np.any(data > 0):
+        if not np.any(data[~mask] > 0):
             raise ValueError('No positive values encountered. Cannot '
                              'operate in pos mode.')
     elif mode == 'neg':
-        if not np.any(data < 0):
+        if not np.any(data[~mask] < 0):
             raise ValueError('No negative values encountered. Cannot '
                              'operate in neg mode.')
         maxfun = np.argmin

@@ -36,6 +36,8 @@ def test_plot_montage():
     plt.close('all')
     m.plot(kind='topomap', show_names=True)
     plt.close('all')
+    m.plot(sphere='eeglab')
+    plt.close('all')
 
     N_HSP, N_HPI = 2, 1
     montage = make_dig_montage(nasion=[1, 1, 1], lpa=[2, 2, 2], rpa=[3, 3, 3],

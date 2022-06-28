@@ -318,7 +318,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
         x_mt[idx] = rfft(sig[..., np.newaxis, :] * dpss, n=n_fft)
     # Adjust DC and maybe Nyquist, depending on one-sided transform
     x_mt[..., 0] /= np.sqrt(2.)
-    if x.shape[1] % 2 == 0:
+    if n_fft % 2 == 0:
         x_mt[..., -1] /= np.sqrt(2.)
     return x_mt, freqs
 

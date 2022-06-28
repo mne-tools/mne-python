@@ -300,8 +300,8 @@ fig.show()
 # Extract SNR values at the stimulation frequency
 # -----------------------------------------------
 #
-# Our processing yielded a large array of many SNR values for each trial x
-# channel x frequency-bin of the PSD array.
+# Our processing yielded a large array of many SNR values for each trial ×
+# channel × frequency-bin of the PSD array.
 #
 # For statistical analysis we obviously need to define specific subsets of this
 # array. First of all, we are only interested in SNR at the stimulation

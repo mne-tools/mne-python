@@ -16,6 +16,7 @@ from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
+from .fixes import _safe_svd
 from ._freesurfer import (_import_nibabel, _get_mri_info_data,
                           _get_atlas_values, read_freesurfer_lut)
 from .io.constants import FIFF
@@ -2809,8 +2810,7 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
 
 
 def _pca_flip(flip, data):
-    from scipy import linalg
-    U, s, V = linalg.svd(data, full_matrices=False)
+    U, s, V = _safe_svd(data, full_matrices=False)
     # determine sign-flip
     sign = np.sign(np.dot(U[:, 0], flip))
     # use average power in label for scaling

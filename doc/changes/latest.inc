@@ -23,10 +23,13 @@ Current (1.1.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- Add :func:`mne.bem.distance_to_bem` to find depth of source positions (:gh:`10632` by :newcontrib:`Matt Courtemanche`)
 
 - Add support for ahdr files in :func:`mne.io.read_raw_brainvision` (:gh:`10515` by :newcontrib:`Alessandro Tonin`)
 
 - Add support for reading data from Gowerlabs devices to :func:`mne.io.read_raw_snirf` (:gh:`10555` by :newcontrib:`Samuel Powell` and `Robert Luke`_)
+
+- Add built-in sensor layout files for Geodesic Head Web 130 and 280 devices (:gh:`10627` by `Evan Hathaway`_)
 
 - Add ``mne-icalabel`` to :func:`mne.sys_info` (:gh:`10615` by `Adam Li`_)
 
@@ -36,7 +39,11 @@ Enhancements
 
 - The ``pick_channels`` method gained a ``verbose`` parameter, allowing e.g. to suppress messages about removed projectors (:gh:`10544` by `Richard Höchenberger`_)
 
+- Add :func:`mne.viz.plot_projs_joint` for joint plotting of projectors and Evoked (:gh:`10720` by `Eric Larson`_)
+
 - The :func:`mne.make_forward_dipole` function can now take a list of dipoles to make a multi-dipole forward models (:gh:`10464` by `Marijn van Vliet`_)
+
+- Add ``mode='outlines'`` support to :meth:`mne.Dipole.plot_locations` and :func:`mne.viz.plot_dipole_locations` (:gh:`10699` by `Eric Larson`_)
 
 - Add :meth:`mne.preprocessing.ICA.find_bads_muscle` to find muscle-related ICA components with an example, :ref:`ex-muscle-ica` (:gh:`10534` by `Alex Rockhill`_)
 
@@ -60,6 +67,8 @@ Enhancements
 
 - Add :func:`mne.preprocessing.interpolate_bridged_electrodes` to use the spatially smeared signal to get a better interpolation rather than dropping those channels (:gh:`10587` by `Alex Rockhill`_)
 
+- Add support for hemoglobin type fNIRS data to temporal derivative distribution repair (TDDR) :func:`mne.preprocessing.nirs.temporal_derivative_distribution_repair` (:gh:`10125` by `Johann Benerradi`_)
+
 - :func:`mne.viz.plot_evoked_topomap` and :meth:`mne.Evoked.plot_topomap` now display the time range the map was averaged over if ``average`` was passed (:gh:`10606` by `Richard Höchenberger`_)
 
 - :func:`mne.viz.plot_evoked_topomap` and :meth:`mne.Evoked.plot_topomap` can now average the topographic maps across different time periods for each time point. To do this, pass a list of periods via the ``average`` parameter (:gh:`10610` by `Richard Höchenberger`_)
@@ -68,8 +77,39 @@ Enhancements
 
 - Added fNIRS support to :func:`mne.Info.get_montage` (:gh:`10611` by `Robert Luke`_)
 
+- Add :func:`mne.viz.plot_ch_adjacency` to visualize and manually edit the channel adjacency matrix (:gh:`10633` by `Mikołaj Magnuski`_)
+
+- Add :meth:`mne.viz.Brain.get_view` to get the current camera parameters such that they can be passed to :meth:`mne.viz.Brain.show_view` (:gh:`10661` by `Alex Rockhill`_)
+
+- Added support for Aurora version 2021.9.0.6 to :func:`mne.io.read_raw_nirx` (:gh:`10668` by `Robert Luke`_)
+
+- Added BrainVision format (``.vhdr``, ``.vmrk``, ``.eeg``) to :func:`mne.export.export_raw` (:gh:`10681` by `Stefan Appelhoff`_)
+
+- Added ``export`` method to :class:`mne.Evoked` (:gh:`10681` by `Stefan Appelhoff`_)
+
+- Add timeformat ``YYYY/MM/DD`` to ``mne.io.ctf.info._convert_time`` (:gh:`10674` by `Simon Kern`_)
+
+- :meth:`mne.Report.add_figure` and :meth:`mne.Report.add_image` gained a new parameter, ``section``, allowing to put multiple figures or images into the same "content block". Previously, the only way to group figures and images was by means of a slider, which sometimes made content hard to discover. The slider remains available as an alternative (:gh:`10694` by `Richard Höchenberger`_)
+
+- All functions and methods that plot topographic maps for EEG (2D projections of the EEG sensor locations) now accept the parameter value ``sphere='eeglab'`` to lay out the sensors with respect to the head circle in a similar way to how EEGLAB does, i.e., T7/T8 and Fpz/Oz are placed directly on the circle for template montages (:gh:`10572` by `Richard Höchenberger`_)
+
+- :func:`mne.channels.get_builtin_montages` gained a new parameter, ``descriptions``, which allows to retrieve the descriptions of the montages in addition to their names (:gh:`10373` by `Richard Höchenberger`_)
+
+- Add ``include`` option to :meth:`mne.io.read_raw_edf`, :meth:`mne.io.read_raw_bdf` and :meth:`mne.io.read_raw_gdf`. (:gh:`10734` by `Michiru Kaneda`_)
+
+- :func:`mne.gui.coregistration` gained a new parameter, ``fullscreen``, to start the GUI in fullscreen mode (:gh:`10284` by `Richard Höchenberger`_)
+
+- The built-in FieldTrip channel adjacency matrices, which can be read via :func:`~mne.channels.read_ch_adjacency`, have been synchronized with FieldTrip again. This means that numerous new adjacencies have been added, most notably those for standard 10-05 and 10-20 montages (:gh:`10749` by `Richard Höchenberger`_)
+
+- :meth:`mne.Evoked.plot_field` gained a new parameter, ``interaction``, to control the rotation axes when interacting with the head (:gh:`10788` by `Richard Höchenberger`_)
+
 Bugs
 ~~~~
+
+- Fix bug in :func:`mne.Epochs.drop_bad` where data was loaded although no rejection had to be performed (:gh:`10718` by :newcontrib:`Lukas Gemein`)
+
+- Pick also bad channels when selecting T1T2 magnetometers in :func:`mne.preprocessing.maxwell_filter` (:gh:`10639` by :newcontrib:`Matti Toivonen`)
+
 - Make ``color`` parameter check in in :func:`mne.viz.plot_evoked_topo` consistent (:gh:`10217` by :newcontrib:`T. Wang` and `Stefan Appelhoff`_)
 
 - Fix bug in :func:`mne.io.read_raw_brainvision` when BrainVision data are acquired with the Brain Products "V-Amp" amplifier and disabled lowpass filter is marked with value ``0`` (:gh:`10517` by :newcontrib:`Alessandro Tonin`)
@@ -82,11 +122,15 @@ Bugs
 
 - Fix bug in :meth:`raw.crop(start, stop) <mne.io.Raw.crop>` that would cause annotations to be erroneously shifted when ``start != 0`` and no measurement date was set. (:gh:`10491` by `Eric Larson`_)
 
+- Fix bug in :func:`mne.io.read_raw_bti` where unknown electrode locations were not handled properly (:gh:`10662` by `Eric Larson`_)
+
 - Rendering issues with recent MESA releases can be avoided by setting the new environment variable``MNE_3D_OPTION_MULTI_SAMPLES=1`` or using :func:`mne.viz.set_3d_options` (:gh:`10513` by `Eric Larson`_)
 
 - Fix behavior for the ``pyvista`` 3D renderer's ``quiver3D`` function so that default arguments plot a glyph in ``arrow`` mode (:gh:`10493` by `Alex Rockhill`_)
 
 - Retain epochs metadata when using :func:`mne.channels.combine_channels` (:gh:`10504` by `Clemens Brunner`_)
+
+- Fix epochs indexing with metadata containing boolean type and missing values (:gh:`10705` by `Clemens Brunner`_ and `Alex Gramfort`_)
 
 - Fix reading of fiducial locations in :func:`mne.io.read_raw_eeglab` (:gh:`10521` by `Alex Gramfort`_)
 
@@ -100,6 +144,41 @@ Bugs
 
 - Fix bug in :func:`mne.viz.plot_evoked_image` that would cause incorrect sub-titles when using ``group_by`` (:gh:`10618` by `Reza Shoorangiz`_)
 
+- Reduce memory usage when loading an EDF file with ``preload=False`` (:gh:`10638` by `Clemens Brunner`_)
+
+- Fix bug in :meth:`mne.io.Raw.get_channel_types` and related methods where ``unique=True`` would return a :class:`python:set` with arbitrary order rather than a :class:`python:list` that preserves the same order as ``inst.ch_names`` (:gh:`10720` by `Eric Larson`_)
+
+- In :func:`mne.preprocessing.find_bad_channels_maxwell`, do not re-filter the data if a low-pass filter with the requested frequency has already been applied (:gh:`10664` by `Richard Höchenberger`_)
+
+- Fix a problem in :meth:`mne.Evoked.get_peak`, where under certain circumstances the ``mode`` parameters ``'pos'`` and ``'neg'`` were not honored when ``tmin`` and/or ``tmax`` were passed as well (:gh:`10686` by `Richard Höchenberger`_)
+
+- :func:`mne.read_evokeds`, :func:`mne.channels.read_custom_montage`, :func:`mne.channels.read_dig_hpts`, :func:`mne.channels.read_dig_polhemus_isotrak`, and :func:`mne.channels.read_polhemus_fastscan` now correctly expand ``~`` in the provided path to the user's home directory (:gh:`10685`, :gh:`10688` by `Richard Höchenberger`_)
+
+- Fix bug in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab`, where the presence of channels without position in the ``.set`` file caused positions incorrectly assigned to all further channels (:gh:`8754` by `Mikołaj Magnuski`_)
+
+- Combining channels of :class:`mne.Epochs` or :class:`mne.Evoked` objects now properly retains baseline information (:gh:`10703` by `Clemens Brunner`_)
+
+- In :class:`mne.Report`, some figures would have an undesired border added to the edges; this has now been resolved (:gh:`10730` by `Richard Höchenberger`_)
+
+- Fix selection of EEG channels and selected sphere when plotting bridged electrodes with :func:`mne.viz.plot_bridged_electrodes` (:gh:`10753` by `Mathieu Scheltienne`_)
+
+- Fix broken links in :ref:`tut-fix-meshes` (:gh:`10765` by `Alex Rockhill`_)
+
+- The built-in FieldTrip channel adjacency matrix for ``easycapM1`` had a bug, where the channel ``PO8`` was incorrectly labeled as ``PO6`` This has been resolved by updating the adjacency matrix to the latest version provided by FieldTrip (:gh:`10749` by `Richard Höchenberger`_)
+
+- Add a YouTube video tutorial for editing Freesurfer surfaces in Blender to :ref:`tut-fix-meshes` (:gh:`10778` by `Alex Rockhill`_)
+
+- The default interaction style of :meth:`mne.Evoked.plot_field` has been changed such that if behaves like :func:`~mne.viz.plot_alignment` when trying to rotate the head (:gh:`10788` by `Richard Höchenberger`_)
+
+- Add a video on how to operate the intracranial electrode contact location GUI in :ref:`tut-ieeg-localize` (:gh:`10800` by `Alex Rockhill`_)
+
+- Add a video on how to operate the coregistration GUI in :ref:`tut-source-alignment` (:gh:`10802` by `Alex Rockhill`_)
+
+- Add ``show`` and ``block`` arguments to :func:`mne.gui.coregistration` and :func:`mne.gui.locate_ieeg` to pop up the GUIs and halt execution of subsequent code respectively (:gh:`10802` by `Alex Rockhill`_)
+
+- Correctly report the number of available projections when printing measurement info in a Jupyter notebook (:gh:`10471` by `Clemens Brunner`_)
+
+
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - When creating BEM surfaces via :func:`mne.bem.make_watershed_bem` and :func:`mne.bem.make_flash_bem`, the ``copy`` parameter now defaults to ``True``. This means that instead of creating symbolic links inside the FreeSurfer subject's ``bem`` folder, we now create "actual" files. This should avoid troubles when sharing files across different operating systems and file systems (:gh:`10531` by `Richard Höchenberger`_)
@@ -107,3 +186,5 @@ API and behavior changes
 - The ordering of channels returned by :func:`mne.io.read_raw_nirx` is now ordered by channel name, rather than the order provided by the manufacturer. This enables consistent ordering of channels across different file types (:gh:`10555` by `Robert Luke`_)
 
 - For :func:`mne.viz.plot_topomap`, :func:`mne.viz.plot_evoked_topomap`, :func:`mne.viz.plot_arrowmap`, :func:`mne.viz.plot_ica_components`, :meth:`mne.Covariance.plot_topomap`, :meth:`mne.Evoked.plot_topomap`, :meth:`mne.Evoked.animate_topomap`, :meth:`mne.decoding.CSP.plot_patterns`, :meth:`mne.Projection.plot_topomap` and :meth:`mne.preprocessing.ICA.plot_components` the topomap image interpolation was previously a cubic interpolation but now can be ``'linear'`` and ``'nearest'`` as well. Unless ``image_interp='nearest'`` is passed mne uses a subsequent matplotlib bilinear interpolation to make the interpolated image smoother. Previously, ``'image_interp'`` controlled this second interpolation step and, for the first interpolation, the only option was cubic. To simplify, ``image_interp`` is now responsible for the main interpolation and the subsequent matplotlib image interpolation is bilinear but can be changed afterward using ``im.set_interpolation`` (:gh:`10617` by `Alex Rockhill`_)
+
+- The FLASH BEM surface generation via :func:`mne.bem.make_flash_bem` or the :ref:`mne flash_bem` command has now been clarified in terms of expected inputs. In :func:`mne.bem.convert_flash_mris` the ``convert`` parameter is now deprecated and the ``flash5`` and ``flash30`` now accept list of file names or nibabel images. One breaking change is that now the flash files are looked for as mef05_*.mgz and mef30_*.mgz in mri/flash folder (:gh:`10715` by `Alex Gramfort`_)

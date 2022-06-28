@@ -92,9 +92,10 @@ extensions = [
     'mne_substitutions',
     'newcontrib_substitutions',
     'gen_names',
-    'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
     'sphinx_copybutton',
+    'sphinx_design',
+    'sphinxcontrib.youtube'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -143,7 +144,7 @@ intersphinx_mapping = {
     'numba': ('https://numba.pydata.org/numba-doc/latest', None),
     'joblib': ('https://joblib.readthedocs.io/en/latest', None),
     'nibabel': ('https://nipy.org/nibabel', None),
-    'nilearn': ('http://nilearn.github.io', None),
+    'nilearn': ('http://nilearn.github.io/stable', None),
     'nitime': ('https://nipy.org/nitime/', None),
     'surfer': ('https://pysurfer.github.io/', None),
     'mne_bids': ('https://mne.tools/mne-bids/stable', None),
@@ -161,6 +162,7 @@ intersphinx_mapping = {
     'dipy': ('https://dipy.org/documentation/latest/',
              'https://dipy.org/documentation/latest/objects.inv/'),
     'pooch': ('https://www.fatiando.org/pooch/latest/', None),
+    'pybv': ('https://pybv.readthedocs.io/en/latest/', None),
 }
 
 
@@ -244,7 +246,7 @@ numpydoc_xref_ignore = {
     'n_vertices', 'n_faces', 'n_channels', 'm', 'n', 'n_events', 'n_colors',
     'n_times', 'obj', 'n_chan', 'n_epochs', 'n_picks', 'n_ch_groups',
     'n_dipoles', 'n_ica_components', 'n_pos', 'n_node_names', 'n_tapers',
-    'n_signals', 'n_step', 'n_freqs', 'wsize', 'Tx', 'M', 'N', 'p', 'q',
+    'n_signals', 'n_step', 'n_freqs', 'wsize', 'Tx', 'M', 'N', 'p', 'q', 'r',
     'n_observations', 'n_regressors', 'n_cols', 'n_frequencies', 'n_tests',
     'n_samples', 'n_permutations', 'nchan', 'n_points', 'n_features',
     'n_parts', 'n_features_new', 'n_components', 'n_labels', 'n_events_in',
@@ -322,6 +324,7 @@ class Resetter(object):
         # turn it off here (otherwise the build can be very slow)
         plt.ioff()
         plt.rcParams['animation.embed_limit'] = 30.
+        plt.rcParams['figure.raise_window'] = False
         # neo holds on to an exception, which in turn holds a stack frame,
         # which will keep alive the global vars during SG execution
         try:
@@ -384,7 +387,7 @@ else:
             import pyvista
         pyvista.OFF_SCREEN = False
         scrapers += (
-            mne.gui._LocateScraper(),
+            mne.gui._GUIScraper(),
             mne.viz._brain._BrainScraper(),
             'pyvista',
         )
@@ -451,7 +454,7 @@ sphinx_gallery_conf = {
     'reset_modules': ('matplotlib', Resetter()),  # called w/each script
     'reset_modules_order': 'both',
     'image_scrapers': scrapers,
-    'show_memory': not sys.platform.startswith('win'),
+    'show_memory': not sys.platform.startswith(('win', 'darwin')),
     'line_numbers': False,  # messes with style
     'within_subsection_order': FileNameSortKey,
     'capture_repr': ('_repr_html_',),
@@ -513,6 +516,7 @@ linkcheck_ignore = [  # will be compiled to regex
     'https://www.dtu.dk/english/service/phonebook/person.*',  # noqa Too slow
     'https://speakerdeck.com/dengemann/eeg-sensor-covariance-using-cross-validation',  # noqa Too slow
     'https://doi.org/10.1002/hbm.10024',  # noqa Too slow sometimes
+    'https://www.researchgate.net',  # noqa As of 2022/05/31 we get "403 Forbidden" errors, might have to do with https://stackoverflow.com/questions/72347165 but not worth the effort to fix
 ]
 linkcheck_anchors = False  # saves a bit of time
 linkcheck_timeout = 15  # some can be quite slow
@@ -823,78 +827,24 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings('always', '.*DigMontage is only a subset of.*')
     warnings.filterwarnings(  # xhemi morph (should probably update sample)
         'always', '.*does not exist, creating it and saving it.*')
-    warnings.filterwarnings('default', module='sphinx')  # internal warnings
-    warnings.filterwarnings(
-        'always', '.*converting a masked element to nan.*')  # matplotlib?
+    # internal warnings
+    warnings.filterwarnings('default', module='sphinx')
     # allow these warnings, but don't show them
-    warnings.filterwarnings(
-        'ignore', '.*OpenSSL\\.rand is deprecated.*')
-    warnings.filterwarnings('ignore', '.*is currently using agg.*')
-    warnings.filterwarnings(  # SciPy-related warning (maybe 1.2.0 will fix it)
-        'ignore', '.*the matrix subclass is not the recommended.*')
-    warnings.filterwarnings(  # some joblib warning
-        'ignore', '.*semaphore_tracker: process died unexpectedly.*')
-    warnings.filterwarnings(  # needed until SciPy 1.2.0 is released
-        'ignore', '.*will be interpreted as an array index.*', module='scipy')
-    warnings.filterwarnings(
-        'ignore', '.*invalid escape sequence.*', lineno=90)  # quantities
-    warnings.filterwarnings(
-        'ignore', '.*invalid escape sequence.*', lineno=14)  # mne-connectivity
-    warnings.filterwarnings(
-        'ignore', '.*invalid escape sequence.*', lineno=281)  # mne-conn
-    warnings.filterwarnings(
-        'ignore', '.*"is not" with a literal.*', module='nilearn')
-    warnings.filterwarnings(  # scikit-learn FastICA whiten=True deprecation
-        'ignore', r'.*From version 1\.3 whiten.*')
-    warnings.filterwarnings(  # seaborn -> pandas
-        'ignore', '.*iteritems is deprecated and will be.*')
-    warnings.filterwarnings(  # PyOpenGL for macOS
-        'ignore', '.*PyOpenGL was not found.*')
-    warnings.filterwarnings(  # macOS Epochs
-        'ignore', '.*Plotting epochs on MacOS.*')
-    for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
-                'Using or importing the ABCs from',  # internal modules on 3.7
-                r"it will be an error for 'np\.bool_'",  # ndimage
-                "DocumenterBridge requires a state object",  # sphinx dev
-                "'U' mode is deprecated",  # sphinx io
-                r"joblib is deprecated in 0\.21",  # nilearn
-                'The usage of `cmp` is deprecated and will',  # sklearn/pytest
-                'scipy.* is deprecated and will be removed in',  # dipy
-                r'Converting `np\.character` to a dtype is deprecated',  # vtk
-                r'sphinx\.util\.smartypants is deprecated',
-                'is a deprecated alias for the builtin',  # NumPy
-                'the old name will be removed',  # Jinja, via sphinx
-                r'Passing a schema to Validator\.iter_errors',  # jsonschema
-                "default value of type 'dict' in an Any trait will",  # traits
-                'rcParams is deprecated',  # PyVista rcParams -> global_theme
-                'to mean no clipping',
-                r'the `scipy\.ndimage.*` namespace is deprecated',  # Dipy
-                '`np.MachAr` is deprecated',  # Numba
-                'distutils Version classes are deprecated',  # pydata-sphinx-th
-                'The module matplotlib.tight_layout is deprecated',  # nilearn
-                ):
+    for key in (
+        'The module matplotlib.tight_layout is deprecated',  # nilearn
+        'invalid version and will not be supported',  # pyxdf
+        'distutils Version classes are deprecated',  # seaborn and neo
+        '`np.object` is a deprecated alias for the builtin `object`',  # pyxdf
+        # nilearn, should be fixed in > 0.9.1
+        'In future, it will be an error for \'np.bool_\' scalars to',
+    ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
-    warnings.filterwarnings(  # deal with bootstrap-theme bug
-        'ignore', message=".*modify script_files in the theme.*",
-        category=Warning)
-    warnings.filterwarnings(  # nilearn
-        'ignore', message=r'The sklearn.* module is.*', category=FutureWarning)
-    warnings.filterwarnings(  # nilearn
-        'ignore', message=r'Fetchers from the nilea.*', category=FutureWarning)
-    warnings.filterwarnings(  # deal with other modules having bad imports
-        'ignore', message=".*ufunc size changed.*", category=RuntimeWarning)
-    warnings.filterwarnings(  # realtime
-        'ignore', message=".*unclosed file.*", category=ResourceWarning)
-    warnings.filterwarnings('ignore', message='Exception ignored in.*')
-    # allow this ImportWarning, but don't show it
+    # xarray/netcdf4
     warnings.filterwarnings(
-        'ignore', message="can't resolve package from", category=ImportWarning)
-    warnings.filterwarnings(
-        'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
-    warnings.filterwarnings(
-        'ignore', message=r'numpy\.ndarray size changed.*',
+        'ignore', message=r'numpy\.ndarray size changed, may indicate.*',
         category=RuntimeWarning)
+    # qdarkstyle
     warnings.filterwarnings(
         'ignore', message=r'.*Setting theme=.*6 in qdarkstyle.*',
         category=RuntimeWarning)
@@ -917,11 +867,11 @@ fixed_icons = (
     'book', 'code-branch', 'newspaper', 'question-circle', 'quote-left',
     # contrib guide:
     'bug', 'comment', 'hand-sparkles', 'magic', 'pencil-alt', 'remove-format',
-    'universal-access', 'discourse', 'python'
+    'universal-access', 'discourse', 'python',
 )
 other_icons = (
     'hand-paper', 'question', 'rocket', 'server', 'code', 'desktop',
-    'terminal'
+    'terminal', 'cloud-download-alt', 'wrench',
 )
 icons = dict()
 for icon in brand_icons + fixed_icons + other_icons:
@@ -944,6 +894,10 @@ prolog += '''
         <i class="fas fa-bug fa-stack-1x"></i>
         <i class="fas fa-ban fa-stack-2x"></i>
     </span>
+'''
+
+prolog += '''
+.. |ensp| unicode:: U+2002 .. EN SPACE
 '''
 
 # -- Dependency info ----------------------------------------------------------

@@ -9,12 +9,15 @@
 # License: BSD-3-Clause
 
 
-import os
 import os.path as op
+from pathlib import Path
 import sys
 from collections import OrderedDict
+from dataclasses import dataclass
 from copy import deepcopy
 from functools import partial
+import string
+from typing import Union
 
 import numpy as np
 
@@ -1173,9 +1176,300 @@ def _recursive_flatten(cell, dtype):
     return cell
 
 
+@dataclass
+class _BuiltinChannelAdjacency:
+    name: str
+    description: str
+    fname: str
+    source_url: Union[str, None]
+
+
+_ft_neighbor_url_t = string.Template(
+    'https://github.com/fieldtrip/fieldtrip/raw/master/'
+    'template/neighbours/$fname'
+)
+
+_BUILTIN_CHANNEL_ADJACENCIES = [
+    _BuiltinChannelAdjacency(
+        name='biosemi16',
+        description='Biosemi 16-electrode cap',
+        fname='biosemi16_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='biosemi16_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='biosemi32',
+        description='Biosemi 32-electrode cap',
+        fname='biosemi32_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='biosemi32_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='biosemi64',
+        description='Biosemi 64-electrode cap',
+        fname='biosemi64_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='biosemi64_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='bti148',
+        description='BTI 148-channel system',
+        fname='bti148_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='bti148_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='bti248',
+        description='BTI 248-channel system',
+        fname='bti248_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='bti248_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='bti248grad',
+        description='BTI 248 gradiometer system',
+        fname='bti248grad_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='bti248grad_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='ctf64',
+        description='CTF 64 axial gradiometer',
+        fname='ctf64_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='ctf64_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='ctf151',
+        description='CTF 151 axial gradiometer',
+        fname='ctf151_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='ctf151_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='ctf275',
+        description='CTF 275 axial gradiometer',
+        fname='ctf275_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='ctf275_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='easycap32ch-avg',
+        description='',
+        fname='easycap32ch-avg_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='easycap32ch-avg_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='easycap64ch-avg',
+        description='',
+        fname='easycap64ch-avg_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='easycap64ch-avg_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='easycap128ch-avg',
+        description='',
+        fname='easycap128ch-avg_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='easycap128ch-avg_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='easycapM1',
+        description='Easycap M1',
+        fname='easycapM1_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='easycapM1_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='easycapM11',
+        description='Easycap M11',
+        fname='easycapM11_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='easycapM11_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='easycapM14',
+        description='Easycap M14',
+        fname='easycapM14_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='easycapM14_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='easycapM15',
+        description='Easycap M15',
+        fname='easycapM15_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='easycapM15_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='KIT-157',
+        description='',
+        fname='KIT-157_neighb.mat',
+        source_url=None,
+    ),
+    _BuiltinChannelAdjacency(
+        name='KIT-208',
+        description='',
+        fname='KIT-208_neighb.mat',
+        source_url=None,
+    ),
+    _BuiltinChannelAdjacency(
+        name='KIT-NYU-2019',
+        description='',
+        fname='KIT-NYU-2019_neighb.mat',
+        source_url=None,
+    ),
+    _BuiltinChannelAdjacency(
+        name='KIT-UMD-1',
+        description='',
+        fname='KIT-UMD-1_neighb.mat',
+        source_url=None,
+    ),
+    _BuiltinChannelAdjacency(
+        name='KIT-UMD-2',
+        description='',
+        fname='KIT-UMD-2_neighb.mat',
+        source_url=None,
+    ),
+    _BuiltinChannelAdjacency(
+        name='KIT-UMD-3',
+        description='',
+        fname='KIT-UMD-3_neighb.mat',
+        source_url=None,
+    ),
+    _BuiltinChannelAdjacency(
+        name='KIT-UMD-4',
+        description='',
+        fname='KIT-UMD-4_neighb.mat',
+        source_url=None,
+    ),
+    _BuiltinChannelAdjacency(
+        name='neuromag306mag',
+        description='Neuromag306, only magnetometers',
+        fname='neuromag306mag_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='neuromag306mag_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='neuromag306planar',
+        description='Neuromag306, only planar gradiometers',
+        fname='neuromag306planar_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='neuromag306planar_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='neuromag122cmb',
+        description='Neuromag122, only combined planar gradiometers',
+        fname='neuromag122cmb_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='neuromag122cmb_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='neuromag306cmb',
+        description='Neuromag306, only combined planar gradiometers',
+        fname='neuromag306cmb_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='neuromag306cmb_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='ecog256',
+        description='ECOG 256channels, average referenced',
+        fname='ecog256_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='ecog256_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='ecog256bipolar',
+        description='ECOG 256channels, bipolar referenced',
+        fname='ecog256bipolar_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='ecog256bipolar_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='eeg1010_neighb',
+        description='',
+        fname='eeg1010_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='eeg1010_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='elec1005',
+        description='Standard 10-05 system',
+        fname='elec1005_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='elec1005_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='elec1010',
+        description='Standard 10-10 system',
+        fname='elec1010_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='elec1010_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='elec1020',
+        description='Standard 10-20 system',
+        fname='elec1020_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='elec1020_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='itab28',
+        description='ITAB 28-channel system',
+        fname='itab28_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='itab28_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='itab153',
+        description='ITAB 153-channel system',
+        fname='itab153_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='itab153_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='language29ch-avg',
+        description='MPI for Psycholinguistic: Averaged 29-channel cap',
+        fname='language29ch-avg_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='language29ch-avg_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='mpi_59_channels',
+        description='MPI for Psycholinguistic: 59-channel cap',
+        fname='mpi_59_channels_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='mpi_59_channels_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='yokogawa160',
+        description='',
+        fname='yokogawa160_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='yokogawa160_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='yokogawa440',
+        description='',
+        fname='yokogawa440_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='yokogawa440_neighb.mat'),  # noqa: E501
+    ),
+]
+
+
+@fill_doc
+def get_builtin_ch_adjacencies(*, descriptions=False):
+    """Get a list of all FieldTrip neighbor definitions shipping with MNE.
+
+    The names of the these neighbor definitions can be passed to
+    :func:`read_ch_adjacency`.
+
+    Parameters
+    ----------
+    descriptions : bool
+        Whether to return not only the neighbor definition names, but also
+        their corresponding descriptions. If ``True``, a list of tuples is
+        returned, where the first tuple element is the neighbor definition name
+        and the second is the description. If ``False`` (default), only the
+        names are returned.
+
+    Returns
+    -------
+    neighbor_name : list of str | list of tuple
+        If ``descriptions=False``, the names of all builtin FieldTrip neighbor
+        definitions that can be loaded directly via :func:`read_ch_adjacency`.
+
+        If ``descriptions=True``, a list of tuples ``(name, description)``.
+
+    Notes
+    -----
+    .. versionadded:: 1.1
+    """
+    if descriptions:
+        return sorted(
+            [(m.name, m.description) for m in _BUILTIN_CHANNEL_ADJACENCIES],
+            key=lambda x: x[0].casefold()  # only sort based on name
+        )
+    else:
+        return sorted(
+            [m.name for m in _BUILTIN_CHANNEL_ADJACENCIES],
+            key=str.casefold
+        )
+
+
 @fill_doc
 def read_ch_adjacency(fname, picks=None):
-    """Parse FieldTrip neighbors .mat file.
+    """Read a channel adjacency ("neighbors") file that ships with MNE.
 
     More information on these neighbor definitions can be found on the related
     `FieldTrip documentation pages
@@ -1184,10 +1478,15 @@ def read_ch_adjacency(fname, picks=None):
     Parameters
     ----------
     fname : str
-        The file name. Example: 'neuromag306mag', 'neuromag306planar',
-        'ctf275', 'biosemi64', etc.
+        The path to the file to load, or the name of a channel adjacency
+        matrix that ships with MNE-Python.
+
+        .. note::
+            You can retrieve the names of all
+            built-in channel adjacencies via
+            :func:`mne.channels.get_builtin_ch_adjacencies`.
     %(picks_all)s
-        Picks Must match the template.
+        Picks must match the template.
 
     Returns
     -------
@@ -1198,31 +1497,50 @@ def read_ch_adjacency(fname, picks=None):
 
     See Also
     --------
+    get_builtin_ch_adjacencies
+    mne.viz.plot_ch_adjacency
     find_ch_adjacency
+    mne.stats.combine_adjacency
 
     Notes
     -----
-    This function is closely related to :func:`find_ch_adjacency`. If you
-    don't know the correct file for the neighbor definitions,
-    :func:`find_ch_adjacency` can compute the adjacency matrix from 2d
-    sensor locations.
+    If the neighbor definition you need is not shipped by MNE-Python,
+    you may use :func:`find_ch_adjacency` to compute the
+    adjacency matrix based on your 2D sensor locations.
+
+    Note that depending on your use case, you may need to additionally use
+    :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
+    to pass to the eventual function.
     """
     from scipy.io import loadmat
-    if not op.isabs(fname):
-        templates_dir = op.realpath(op.join(op.dirname(__file__),
-                                            'data', 'neighbors'))
-        templates = os.listdir(templates_dir)
-        for f in templates:
-            if f == fname:
-                break
-            if f == fname + '_neighb.mat':
-                fname += '_neighb.mat'
-                break
-        else:
-            raise ValueError('I do not know about this neighbor '
-                             'template: "{}"'.format(fname))
+    if op.isabs(fname):
+        fname = _check_fname(
+            fname=fname,
+            overwrite='read',
+            must_exist=True
+        )
+    else:  # built-in FieldTrip neighbors
+        ch_adj_name = fname
+        del fname
+        if ch_adj_name.endswith('_neighb.mat'):  # backward-compat
+            ch_adj_name = ch_adj_name.replace('_neighb.mat', '')
 
-        fname = op.join(templates_dir, fname)
+        if ch_adj_name not in get_builtin_ch_adjacencies():
+            raise ValueError(
+                f'No built-in channel adjacency matrix found with name: '
+                f'{ch_adj_name}. Valid names are: '
+                f'{", ".join(get_builtin_ch_adjacencies())}'
+            )
+
+        ch_adj = [a for a in _BUILTIN_CHANNEL_ADJACENCIES
+                  if a.name == ch_adj_name][0]
+        fname = ch_adj.fname
+        templates_dir = Path(__file__).resolve().parent / 'data' / 'neighbors'
+        fname = _check_fname(  # only needed to convert to a string
+            fname=templates_dir / fname,
+            overwrite='read',
+            must_exist=True
+        )
 
     nb = loadmat(fname)['neighbours']
     ch_names = _recursive_flatten(nb['label'], str)
@@ -1234,6 +1552,13 @@ def read_ch_adjacency(fname, picks=None):
     # picking before constructing matrix is buggy
     adjacency = adjacency[picks][:, picks]
     ch_names = [ch_names[p] for p in picks]
+
+    # make sure MEG channel names contain space after "MEG"
+    for idx, ch_name in enumerate(ch_names):
+        if ch_name.startswith('MEG') and not ch_name[3] == ' ':
+            ch_name = ch_name.replace('MEG', 'MEG ')
+            ch_names[idx] = ch_name
+
     return adjacency, ch_names
 
 
@@ -1251,7 +1576,7 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse matrix
+    ch_adjacency : scipy.sparse.spmatrix
         The adjacency matrix.
     """
     from scipy import sparse
@@ -1282,15 +1607,15 @@ def find_ch_adjacency(info, ch_type):
 
     This function tries to infer the appropriate adjacency matrix template
     for the given channels. If a template is not found, the adjacency matrix
-    is computed using Delaunay triangulation based on 2d sensor locations.
+    is computed using Delaunay triangulation based on 2D sensor locations.
 
     Parameters
     ----------
     %(info_not_none)s
     ch_type : str | None
         The channel type for computing the adjacency matrix. Currently
-        supports 'mag', 'grad', 'eeg' and None. If None, the info must contain
-        only one channel type.
+        supports ``'mag'``, ``'grad'``, ``'eeg'`` and ``None``.
+        If ``None``, the info must contain only one channel type.
 
     Returns
     -------
@@ -1301,6 +1626,9 @@ def find_ch_adjacency(info, ch_type):
 
     See Also
     --------
+    mne.viz.plot_ch_adjacency
+    mne.stats.combine_adjacency
+    get_builtin_ch_adjacencies
     read_ch_adjacency
 
     Notes
@@ -1312,6 +1640,10 @@ def find_ch_adjacency(info, ch_type):
     is always computed for EEG data and never loaded from a template file. If
     you want to load a template for a given montage use
     :func:`read_ch_adjacency` directly.
+
+    Note that depending on your use case, you may need to additionally use
+    :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
+    to pass to the eventual function.
     """
     if ch_type is None:
         picks = channel_indices_by_type(info)
@@ -1355,7 +1687,7 @@ def find_ch_adjacency(info, ch_type):
         conn_name = KIT_NEIGHBORS.get(info['kit_system_id'])
 
     if conn_name is not None:
-        logger.info('Reading adjacency matrix for %s.' % conn_name)
+        logger.info(f'Reading adjacency matrix for {conn_name}.')
         return read_ch_adjacency(conn_name)
     logger.info('Could not find a adjacency matrix for the data. '
                 'Computing adjacency based on Delaunay triangulations.')
@@ -1375,7 +1707,7 @@ def _compute_ch_adjacency(info, ch_type):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1458,13 +1790,14 @@ def fix_mag_coil_types(info, use_cal=False):
     for ii in old_mag_inds:
         info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T3
     logger.info('%d of %d magnetometer types replaced with T3.' %
-                (len(old_mag_inds), len(pick_types(info, meg='mag'))))
+                (len(old_mag_inds),
+                 len(pick_types(info, meg='mag', exclude=[]))))
     info._check_consistency()
 
 
 def _get_T1T2_mag_inds(info, use_cal=False):
     """Find T1/T2 magnetometer coil types."""
-    picks = pick_types(info, meg='mag')
+    picks = pick_types(info, meg='mag', exclude=[])
     old_mag_inds = []
     # From email exchanges, systems with the larger T2 coil only use the cal
     # value of 2.09e-11. Newer T3 magnetometers use 4.13e-11 or 1.33e-10
@@ -1709,15 +2042,17 @@ def combine_channels(inst, groups, method='mean', keep_stim=False,
     new_data = np.swapaxes(new_data, 0, ch_axis)
     info = create_info(sfreq=inst.info['sfreq'], ch_names=new_ch_names,
                        ch_types=new_ch_types)
+    # create new instances and make sure to copy important attributes
     if isinstance(inst, BaseRaw):
         combined_inst = RawArray(new_data, info, first_samp=inst.first_samp)
     elif isinstance(inst, BaseEpochs):
         combined_inst = EpochsArray(new_data, info, events=inst.events,
-                                    tmin=inst.times[0])
+                                    tmin=inst.times[0], baseline=inst.baseline)
         if inst.metadata is not None:
             combined_inst.metadata = inst.metadata.copy()
     elif isinstance(inst, Evoked):
-        combined_inst = EvokedArray(new_data, info, tmin=inst.times[0])
+        combined_inst = EvokedArray(new_data, info, tmin=inst.times[0],
+                                    baseline=inst.baseline)
 
     return combined_inst
 

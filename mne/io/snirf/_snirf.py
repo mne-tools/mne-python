@@ -409,11 +409,6 @@ class RawSNIRF(BaseRaw):
                         annot.append(data[:, 0], 1.0, desc.decode('UTF-8'))
             self.set_annotations(annot, emit_warning=False)
 
-            # MNE requires channels are paired as alternating wavelengths
-            if len(_validate_nirs_info(self.info, throw_errors=False)) == 0:
-                sort_idx = np.argsort(self.ch_names)
-                self.pick(picks=sort_idx)
-
         # Validate that the fNIRS info is correctly formatted
         _validate_nirs_info(self.info)
 

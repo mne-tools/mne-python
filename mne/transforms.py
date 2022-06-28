@@ -1281,11 +1281,12 @@ def _quat_to_affine(quat):
     return affine
 
 
-def _angle_between_quats(x, y):
+def _angle_between_quats(x, y=None):
     """Compute the ang between two quaternions w/3-element representations."""
     # z = conj(x) * y
     # conjugate just negates all but the first element in a 4-element quat,
     # so it's just a negative for us
+    y = np.zeros(3) if y is None else y
     z = _quat_mult(-x, y)
     z0 = _quat_real(z)
     return 2 * np.arctan2(np.linalg.norm(z, axis=-1), z0)

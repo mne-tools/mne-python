@@ -24,7 +24,7 @@ from mne.channels import read_layout
 from mne.coreg import create_default_subject
 from mne.datasets import testing
 from mne.fixes import has_numba, _compare_version
-from mne.io import read_raw_fif, read_raw_ctf
+from mne.io import read_raw_fif, read_raw_ctf, read_raw_nirx, read_raw_snirf
 from mne.stats import cluster_level
 from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
                        _check_qt_version, _TempDir)
@@ -48,6 +48,17 @@ fname_trans = op.join(s_path, 'sample_audvis_trunc-trans.fif')
 ctf_dir = op.join(test_path, 'CTF')
 fname_ctf_continuous = op.join(ctf_dir, 'testdata_ctf.ds')
 
+nirx_path = test_path / 'NIRx'
+snirf_path = test_path / 'SNIRF'
+nirsport2 = nirx_path / 'nirsport_v2' / 'aurora_recording _w_short_and_acc'
+nirsport2_snirf = (
+    snirf_path / 'NIRx' / 'NIRSport2' / '1.0.3' /
+    '2021-05-05_001.snirf')
+nirsport2_2021_9 = nirx_path / 'nirsport_v2' / 'aurora_2021_9'
+nirsport2_20219_snirf = (
+    snirf_path / 'NIRx' / 'NIRSport2' / '2021.9' /
+    '2021-10-01_002.snirf')
+
 # data from mne.io.tests.data
 base_dir = op.join(op.dirname(__file__), 'io', 'tests', 'data')
 fname_raw_io = op.join(base_dir, 'test_raw.fif')
@@ -57,7 +68,10 @@ fname_evoked_io = op.join(base_dir, 'test-ave.fif')
 event_id, tmin, tmax = 1, -0.1, 1.0
 vv_layout = read_layout('Vectorview-all')
 
-collect_ignore = ['export/_eeglab.py', 'export/_edf.py']
+collect_ignore = [
+    'export/_brainvision.py',
+    'export/_eeglab.py',
+    'export/_edf.py']
 
 
 def pytest_configure(config):
@@ -81,74 +95,31 @@ def pytest_configure(config):
     #   we should remove them from here.
     # - This list should also be considered alongside reset_warnings in
     #   doc/conf.py.
+    if os.getenv('MNE_IGNORE_WARNINGS_IN_TESTS', '') != 'true':
+        first_kind = 'error'
+    else:
+        first_kind = 'always'
     warning_lines = r"""
-    error::
-    ignore:.*deprecated and ignored since IPython.*:DeprecationWarning
-    ignore::ImportWarning
-    ignore:the matrix subclass:PendingDeprecationWarning
-    ignore:numpy.dtype size changed:RuntimeWarning
-    ignore:.*takes no parameters:DeprecationWarning
-    ignore:joblib not installed:RuntimeWarning
-    ignore:Using a non-tuple sequence for multidimensional indexing:FutureWarning
-    ignore:using a non-integer number instead of an integer will result in an error:DeprecationWarning
-    ignore:Importing from numpy.testing.decorators is deprecated:DeprecationWarning
-    ignore:np.loads is deprecated, use pickle.loads instead:DeprecationWarning
-    ignore:The oldnumeric module will be dropped:DeprecationWarning
-    ignore:Collection picker None could not be converted to float:UserWarning
-    ignore:covariance is not positive-semidefinite:RuntimeWarning
-    ignore:Can only plot ICA components:RuntimeWarning
-    ignore:Matplotlib is building the font cache using fc-list:UserWarning
-    ignore:Using or importing the ABCs from 'collections':DeprecationWarning
-    ignore:`formatargspec` is deprecated:DeprecationWarning
-    # This is only necessary until sklearn updates their wheels for NumPy 1.16
-    ignore:numpy.ufunc size changed:RuntimeWarning
-    ignore:.*mne-realtime.*:DeprecationWarning
-    ignore:.*imp.*:DeprecationWarning
-    ignore:Exception creating Regex for oneOf.*:SyntaxWarning
-    ignore:scipy\.gradient is deprecated.*:DeprecationWarning
-    ignore:The sklearn.*module.*deprecated.*:FutureWarning
-    ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
-    ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning
-    ignore:.*`np.bool` is a deprecated alias.*:DeprecationWarning
-    ignore:.*`np.int` is a deprecated alias.*:DeprecationWarning
-    ignore:.*`np.float` is a deprecated alias.*:DeprecationWarning
-    ignore:.*`np.object` is a deprecated alias.*:DeprecationWarning
-    ignore:.*`np.long` is a deprecated alias:DeprecationWarning
-    ignore:.*Converting `np\.character` to a dtype is deprecated.*:DeprecationWarning
-    ignore:.*sphinx\.util\.smartypants is deprecated.*:
-    ignore:.*pandas\.util\.testing is deprecated.*:
-    ignore:.*tostring.*is deprecated.*:DeprecationWarning
-    ignore:.*QDesktopWidget\.availableGeometry.*:DeprecationWarning
-    ignore:Unable to enable faulthandler.*:UserWarning
-    ignore:Fetchers from the nilearn.*:FutureWarning
-    ignore:SelectableGroups dict interface is deprecated\. Use select\.:DeprecationWarning
-    always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
-    ignore:.*rcParams is deprecated.*global_theme.*:DeprecationWarning
-    ignore:.*distutils\.sysconfig module is deprecated.*:DeprecationWarning
-    ignore:.*numpy\.dual is deprecated.*:DeprecationWarning
-    ignore:.*`np.typeDict` is a deprecated.*:DeprecationWarning
-    ignore:.*Creating an ndarray from ragged.*:numpy.VisibleDeprecationWarning
-    ignore:^Please use.*scipy\..*:DeprecationWarning
-    ignore:.*Passing a schema to Validator.*:DeprecationWarning
-    ignore:.*Found the following unknown channel type.*:RuntimeWarning
-    ignore:.*np\.MachAr.*:DeprecationWarning
-    ignore:.*Passing unrecognized arguments to super.*:DeprecationWarning
-    ignore:.*numpy.ndarray size changed.*:
-    ignore:.*There is no current event loop.*:DeprecationWarning
-    # present in nilearn v 0.8.1, fixed in nilearn main
-    ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
-    ignore:.*pandas\.Int64Index is deprecated.*:FutureWarning
-    always::ResourceWarning
-    # Jupyter notebook stuff
-    ignore:.*unclosed context <zmq\.asyncio\.*:ResourceWarning
-    ignore:.*unclosed event loop <.*:ResourceWarning
-    # https://github.com/dipy/dipy/pull/2558
-    ignore:.*starting_affine overwritten by centre_of_mass transform.*:
+    {0}::
+    # matplotlib->traitlets (notebook)
+    ignore:Passing unrecognized arguments to super.*:DeprecationWarning
+    # notebook tests
+    ignore:There is no current event loop:DeprecationWarning
+    ignore:unclosed <socket\.socket:ResourceWarning
+    ignore:unclosed event loop <:ResourceWarning
+    # ignore if joblib is missing
+    ignore:joblib not installed.*:RuntimeWarning
     # TODO: This is indicative of a problem
     ignore:.*Matplotlib is currently using agg.*:
     # qdarkstyle
     ignore:.*Setting theme=.*:RuntimeWarning
-    """  # noqa: E501
+    # scikit-learn using this arg
+    ignore:.*The 'sym_pos' keyword is deprecated.*:DeprecationWarning
+    # Should be removable by 2022/07/08, SciPy savemat issue
+    ignore:.*elementwise comparison failed; returning scalar in.*:FutureWarning
+    # numba with NumPy dev
+    ignore:`np.MachAr` is deprecated.*:DeprecationWarning
+    """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
         if warning_line and not warning_line.startswith('#'):
@@ -925,3 +896,15 @@ def pytest_runtest_call(item):
 
         item.runtest = run
     return
+
+
+@pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
+@pytest.fixture(params=(
+    [nirsport2, nirsport2_snirf, testing._pytest_param()],
+    [nirsport2_2021_9, nirsport2_20219_snirf, testing._pytest_param()],
+))
+def nirx_snirf(request):
+    """Return a (raw_nirx, raw_snirf) matched pair."""
+    pytest.importorskip('h5py')
+    return (read_raw_nirx(request.param[0], preload=True),
+            read_raw_snirf(request.param[1], preload=True))

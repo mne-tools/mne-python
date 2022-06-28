@@ -36,6 +36,7 @@ There is also a growing ecosystem of other Python packages that work alongside
 MNE-Python, including packages for:
 
 .. sidebar:: Something missing?
+    :class: sd-card sd-shadow-sm
 
     If you know of a package that is related but not listed here, feel free to
     :ref:`make a pull request <contributing>` to add it to this list.
@@ -101,7 +102,7 @@ Help with installation is available through the `MNE Forum`_. See the
 .. _alphaCSC: https://alphacsc.github.io/
 .. _picard: https://pierreablin.github.io/picard/
 .. _pactools: https://pactools.github.io/
-.. _rsa: https://github.com/wmvanvliet/rsa
+.. _rsa: https://github.com/wmvanvliet/mne-rsa
 .. _microstate: https://github.com/wmvanvliet/mne_microstates
 .. _conpy: https://aaltoimaginglanguage.github.io/conpy/
 .. _eelbrain: https://eelbrain.readthedocs.io/en/stable/index.html

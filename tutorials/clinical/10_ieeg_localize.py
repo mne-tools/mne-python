@@ -133,7 +133,7 @@ viewer.figs[0].axes[0].annotate(
 # .. note::
 #     You may need to include an additional ``-cw256`` flag which can be added
 #     to the end of the recon-all command if your MR scan is not
-#     ``256 x 256 x 256`` voxels.
+#     ``256 × 256 × 256`` voxels.
 #
 # .. note::
 #     Using the ``-deface`` flag will create a defaced, anonymized T1 image
@@ -319,7 +319,9 @@ subj_trans = mne.coreg.estimate_head_mri_t(
 #           useful for finding the brain structures nearby each contact and
 #           plotting the results.
 #
-# To operate the GUI:
+# See the following video on how to operate the GUI or follow the steps below:
+#
+# .. youtube:: 8JWDJhXq0VY
 #
 # - Click in each image to navigate to each electrode contact
 # - Select the contact name in the right panel
@@ -346,12 +348,13 @@ subj_trans = mne.coreg.estimate_head_mri_t(
 
 raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
 
-gui = mne.gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
-                          subject='sample_seeg',
-                          subjects_dir=op.join(misc_path, 'seeg'))
+# you may want to add `block=True` to halt execution until you have interacted
+# with the GUI to find the channel positions, that way the raw object can
+# be used later in the script (e.g. saved with channel positions)
+mne.gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
+                    subject='sample_seeg',
+                    subjects_dir=op.join(misc_path, 'seeg'))
 # The `raw` object is modified to contain the channel locations
-# after closing the GUI and can now be saved
-# gui.close()  # typically you close when done
 
 # %%
 # Let's do a quick sidebar and show what this looks like for ECoG as well.
@@ -373,12 +376,12 @@ raw_ecog = mne.io.read_raw(op.join(misc_path, 'ecog', 'sample_ecog_ieeg.fif'))
 # use estimated `trans` which was used when the locations were found previously
 subj_trans_ecog = mne.coreg.estimate_head_mri_t(
     'sample_ecog', op.join(misc_path, 'ecog'))
-gui = mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
-                          subject='sample_ecog',
-                          subjects_dir=op.join(misc_path, 'ecog'))
+mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
+                    subject='sample_ecog',
+                    subjects_dir=op.join(misc_path, 'ecog'))
 
 # %%
-# for ECoG, we typically want to account for "brain shift" or shrinking of the
+# For ECoG, we typically want to account for "brain shift" or shrinking of the
 # brain away from the skull/dura due to changes in pressure during the
 # craniotomy
 # Note: this requires the BEM surfaces to have been computed e.g. using

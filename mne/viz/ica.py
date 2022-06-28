@@ -322,6 +322,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         The ICA solution.
     inst : instance of Epochs or Raw
         The data to use in plotting properties.
+
+        .. note::
+           You can interactively cycle through topographic maps for different
+           channel types by pressing :kbd:`T`.
     picks : str | list | slice | None
         Components to include. Slices and lists of integers will be interpreted
         as component indices. ``None`` (default) will use the first five
@@ -343,7 +347,13 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         interval is calculated. To change this, use ``ci`` in ``ts_args`` in
         ``image_args`` (see below).
     log_scale : bool
-        Whether to use a log scale to plot the spectrum. Defaults to False.
+        Whether to use a logarithmic frequency axis to plot the spectrum.
+        Defaults to ``False``.
+
+        .. note::
+           You can interactively toggle this setting by pressing :kbd:`L`.
+
+        .. versionadded:: 1.1
     topomap_args : dict | None
         Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
         additional arguments. Defaults to None.

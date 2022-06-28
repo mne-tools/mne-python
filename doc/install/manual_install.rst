@@ -22,10 +22,12 @@ minutes) to resolve on some systems via the default ``conda`` solver. We
 therefore highly recommend using `mamba <https://mamba.readthedocs.io/>`__
 instead, a ``conda`` replacement that is **much** faster.
 
-Run in your terminal …
+Run in your terminal:
 
-.. raw:: html
-    :file: manual_install_platform_selector.html
+.. code-block:: console
+
+    $ conda install --channel=conda-forge --name=base mamba
+    $ mamba create --override-channels --channel=conda-forge --name=mne mne
 
 This will create a new ``conda`` environment called ``mne`` (you can adjust
 this by passing a different name via ``--name``) and install all

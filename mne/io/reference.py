@@ -280,6 +280,10 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     This function will re-reference the data according to the desired
     reference.
 
+    Note that it is also possible to re-reference the signal using a
+    Laplacian (LAP) "reference-free" transformation using the
+    :func:`.compute_current_source_density` function.
+
     Parameters
     ----------
     inst : instance of Raw | Epochs | Evoked
