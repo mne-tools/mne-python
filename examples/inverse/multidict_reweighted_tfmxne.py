@@ -41,8 +41,10 @@ print(__doc__)
 data_path = somato.data_path()
 subject = '01'
 task = 'somato'
-raw_fname = data_path / 'sub-{}'.format(subject) / 'meg' / 'sub-{}_task-{}_meg.fif'.format(subject, task)
-fwd_fname = data_path / 'derivatives' / 'sub-{}'.format(subject) / 'sub-{}_task-{}-fwd.fif'.format(subject, task)
+raw_fname = (data_path / 'sub-{}'.format(subject) / 'meg' /
+             'sub-{}_task-{}_meg.fif'.format(subject, task))
+fwd_fname = (data_path / 'derivatives' / 'sub-{}'.format(subject) /
+             'sub-{}_task-{}-fwd.fif'.format(subject, task))
 
 # Read evoked
 raw = mne.io.read_raw_fif(raw_fname)
