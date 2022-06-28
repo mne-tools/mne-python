@@ -29,8 +29,6 @@ source estimate.
 # License: BSD-3-Clause
 
 # %%
-import os
-
 import mne
 from mne.datasets import sample
 
@@ -45,7 +43,7 @@ subjects_dir = data_path / 'subjects'
 fname_src = subjects_dir / 'sample' / 'bem' / 'sample-oct-6-src.fif'
 fname_fwd = sample_dir / 'sample_audvis-meg-oct-6-fwd.fif'
 fname_fsaverage_src = (subjects_dir / 'fsaverage' / 'bem' /
-                        'fsaverage-ico-5-src.fif')
+                       'fsaverage-ico-5-src.fif')
 
 fname_stc = sample_dir / 'sample_audvis-meg'
 
