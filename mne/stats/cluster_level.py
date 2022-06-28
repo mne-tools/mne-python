@@ -1521,9 +1521,25 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1.0, tmin=0,
     return klass(data_summary, vertices, tmin, tstep, subject)
 
 
+class ClusterTestResult:
+    """Container for cluster permutation test results."""
+    def __init__(self, T_values, clusters, cluster_p_values, times, ch_names):
+        self.T_values = T_values
+        self.clusters = clusters
+        self.cluster_p_values = cluster_p_values
+        self.times = times
+        self.ch_names = ch_names
+        
+    def plot_T_values(self):
+        import matplotlib.pyplot as plt
+        fig, ax = plt.subplots()
+        ax.imshow(self.T_values)
+        
+        # add topographies for each cluster
+        
+
 @verbose
 def group_level_cluster_test(data, *, cluster_forming_threshold=None, 
-                             cluster_significance_p_value=0.05, 
                              n_permutations=1000, tail=None, adjacency=None,
                              n_jobs=None, random_seed=None, verbose=None):
     """Non-parametric cluster-level test for spatio-temporal(-spectral) data
@@ -1575,25 +1591,30 @@ def group_level_cluster_test(data, *, cluster_forming_threshold=None,
     data_array = np.transpose(data_array, [0, 2, 1])
     
     # now feed the data to the actual stats function
-    results = spatio_temporal_cluster_1samp_test(
+    result = spatio_temporal_cluster_1samp_test(
                 data_array,
                 threshold=cluster_forming_threshold,
                 n_permutations=n_permutations, 
                 tail=tail,
-                adjacency=adjacency)
+                adjacency=adjacency,
+                n_jobs=n_jobs)
     
-    T_values, clusters, cluster_p_values, _ = results
+    T_values, clusters, cluster_p_values, _ = result
+    del result
     
-    significant_clusters_idx = np.where(
-        cluster_p_values < cluster_significance_p_value)[0]
-
-    significant_clusters = clusters[significant_clusters_idx]
+    # significant_clusters_idx = np.where(
+    #     cluster_p_values < cluster_significance_p_value)[0]
+    # significant_clusters = clusters[significant_clusters_idx]
     
-    import matplotlib.pyplot as plt
-    fig, ax = plt.subplots()
-    ax.imshow(T_values)
+    result = ClusterTestResult(
+        T_values=T_values,
+        clusters=clusters,
+        cluster_p_values=cluster_p_values,
+        times=list(data.values())[0][0].times,
+        ch_names=list(data.values())[0][0].ch_names,
+    )
     
-    return results
+    return result
     
     
     
