@@ -138,9 +138,12 @@ def test_io_egi_mff():
     # The ref here is redundant, but we don't currently have a way in
     # DigMontage to mark that a given channel is actually the ref so...
     assert len(raw.info['dig']) == 133  # 129 eeg + 1 ref + 3 cardinal points
-    assert raw.info['dig'][0]['ident'] == 1  # EEG channel E1
-    assert raw.info['dig'][3]['ident'] == 0  # Reference channel
+    assert raw.info['dig'][0]['ident'] == FIFF.FIFFV_POINT_LPA  # EEG channel LPA
+    assert raw.info['dig'][0]['kind'] == FIFF.FIFFV_POINT_CARDINAL
+    #assert raw.info['dig'][3]['ident'] == 0  # Reference channel
+    assert raw.info['dig'][3]['kind'] == FIFF.FIFFV_POINT_EEG
     assert raw.info['dig'][-1]['ident'] == 129  # Reference channel
+    
     ref_loc = raw.info['dig'][3]['r']
     eeg_picks = pick_types(raw.info, eeg=True)
     assert len(eeg_picks) == 129
