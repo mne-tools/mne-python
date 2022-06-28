@@ -180,7 +180,7 @@ def _proj_click(idx, fig, browse_backend):
         # (also see comment in test_plot_raw_selection).
         ssp_fig._proj_changed(not fig.mne.projs_on[idx], idx)
         # Update Checkbox
-        ssp_fig.checkboxes[idx].setChecked(fig.mne.projs_on[idx])
+        ssp_fig.checkboxes[idx].setChecked(bool(fig.mne.projs_on[idx]))
 
 
 def _proj_click_all(fig, browse_backend):
