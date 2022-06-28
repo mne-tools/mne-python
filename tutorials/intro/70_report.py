@@ -711,4 +711,4 @@ N1 ERP component</li>
 """
 
 report.add_html(title='Hypothesis', html=my_html)
-report.save('report_add_html.html')
+report.save('report_add_html.html', overwrite=True)
