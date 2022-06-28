@@ -264,7 +264,7 @@ def test_watershed_bem(tmp_path):
         assert_allclose(vol_info['cras'], Pxyz_c, **kwargs)
 
 
-@pytest.mark.timeout(120)  # took ~70 sec locally
+@pytest.mark.timeout(180)  # took ~70 sec locally
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
 @requires_freesurfer

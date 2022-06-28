@@ -2797,7 +2797,7 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None,
 
     # get vertex position in same coordinates as for sensors below
     src_pos = np.vstack([
-        apply_trans(src_trans, s['rr'][s['inuse'].astype(np.bool)])
+        apply_trans(src_trans, s['rr'][s['inuse'].astype(bool)])
         for s in src
     ])
 
