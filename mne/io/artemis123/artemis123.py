@@ -326,7 +326,7 @@ class RawArtemis123(BaseRaw):
 
         super(RawArtemis123, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[header_info],
-            last_samps=last_samps, orig_format=np.float32,
+            last_samps=last_samps, orig_format="single",
             verbose=verbose)
 
         if add_head_trans:
