@@ -8,9 +8,10 @@ import math
 
 import numpy as np
 
+from scipy import special
+
 from ..utils import logger, verbose, check_random_state, random_permutation
 
-from scipy import special
 
 
 @verbose
