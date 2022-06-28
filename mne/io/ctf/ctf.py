@@ -122,14 +122,19 @@ class RawCTF(BaseRaw):
         fnames = list()
         last_samps = list()
         raw_extras = list()
+        missing_names = list()
+        no_samps = list()
         while(True):
             suffix = 'meg4' if len(fnames) == 0 else ('%d_meg4' % len(fnames))
-            meg4_name = _make_ctf_name(directory, suffix, raise_error=False)
-            if meg4_name is None:
+            meg4_name, found = _make_ctf_name(
+                directory, suffix, raise_error=False)
+            if not found:
+                missing_names.append(os.path.relpath(meg4_name, directory))
                 break
             # check how much data is in the file
             sample_info = _get_sample_info(meg4_name, res4, system_clock)
             if sample_info['n_samp'] == 0:
+                no_samps.append(os.path.relpath(meg4_name, directory))
                 break
             if len(fnames) == 0:
                 buffer_size_sec = sample_info['block_size'] / info['sfreq']
@@ -139,6 +144,11 @@ class RawCTF(BaseRaw):
             last_samps.append(sample_info['n_samp'] - 1)
             raw_extras.append(sample_info)
             first_samps = [0] * len(last_samps)
+        if len(fnames) == 0:
+            raise IOError(
+                f'Could not find any data, could not find the following '
+                f'file(s): {missing_names}, and the following file(s) had no '
+                f'valid samples: {no_samps}')
         super(RawCTF, self).__init__(
             info, preload, first_samps=first_samps,
             last_samps=last_samps, filenames=fnames,

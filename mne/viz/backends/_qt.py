@@ -6,12 +6,15 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
+import os
+import platform
+import sys
 import weakref
 
 import pyvista
 from pyvistaqt.plotting import FileDialog, MainWindow
 
-from qtpy.QtCore import Qt, Signal, QLocale, QObject
+from qtpy.QtCore import Qt, Signal, QLocale, QObject, QLibraryInfo
 from qtpy.QtGui import QIcon, QCursor
 from qtpy.QtWidgets import (QComboBox, QDockWidget, QDoubleSpinBox, QGroupBox,
                             QHBoxLayout, QLabel, QToolButton, QMenuBar,
@@ -32,7 +35,15 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractKeyPress)
 from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
                      _qt_detect_theme, _qt_raise_window)
-from ..utils import _check_option, safe_event, get_config
+from ..utils import safe_event
+from ...utils import _check_option, get_config
+from ...fixes import _compare_version
+
+# Adapted from matplotlib
+if (sys.platform == 'darwin' and
+        _compare_version(platform.mac_ver()[0], '>=', '10.16') and
+        QLibraryInfo.version().segments() <= [5, 15, 2]):
+    os.environ.setdefault("QT_MAC_WANTS_LAYER", "1")
 
 
 class _QtKeyPress(_AbstractKeyPress):
@@ -586,13 +597,19 @@ class _QtBrainMplCanvas(_AbstractBrainMplCanvas, _QtMplInterface):
 
 
 class _QtWindow(_AbstractWindow):
-    def _window_initialize(self, window=None, central_layout=None):
+    def _window_initialize(
+        self, *, window=None, central_layout=None, fullscreen=False
+    ):
         super()._window_initialize()
         self._interactor = self.figure.plotter.interactor
         if window is None:
             self._window = self.figure.plotter.app_window
         else:
             self._window = window
+
+        if fullscreen:
+            self._window.setWindowState(Qt.WindowFullScreen)
+
         if central_layout is not None:
             central_widget = self._window.centralWidget()
             if central_widget is None:
@@ -892,8 +909,9 @@ class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
     _kind = 'qt'
 
     def __init__(self, *args, **kwargs):
+        fullscreen = kwargs.pop('fullscreen', False)
         super().__init__(*args, **kwargs)
-        self._window_initialize()
+        self._window_initialize(fullscreen=fullscreen)
 
     def show(self):
         super().show()

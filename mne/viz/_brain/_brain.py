@@ -545,7 +545,7 @@ class Brain(object):
         self.clear_glyphs()
         self.remove_annotations()
         # clear init actors
-        for hemi in self._hemis:
+        for hemi in self._layered_meshes:
             self._layered_meshes[hemi]._clean()
         self._clear_callbacks()
         self._clear_widgets()
@@ -1961,9 +1961,11 @@ class Brain(object):
     def remove_annotations(self):
         """Remove all annotations from the image."""
         for hemi in self._hemis:
-            mesh = self._layered_meshes[hemi]
-            mesh.remove_overlay(self._annots[hemi])
-            self._annots[hemi].clear()
+            if hemi in self._layered_meshes:
+                mesh = self._layered_meshes[hemi]
+                mesh.remove_overlay(self._annots[hemi])
+            if hemi in self._annots:
+                self._annots[hemi].clear()
         self._renderer._update()
 
     def _add_volume_data(self, hemi, src, volume_options):

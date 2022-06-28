@@ -261,7 +261,7 @@ plot_ideal_filter(freq, gain, ax, title=title, flim=flim)
 # gradual slope through the transition region, but a *much* cleaner time
 # domain signal. Here again for the 1 s filter:
 
-h = signal.firwin2(n, freq, gain, nyq=nyq)
+h = signal.firwin2(n, freq, gain, fs=sfreq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (1.0 s)',
             compensate=True, **kwargs)
 
@@ -273,7 +273,7 @@ plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (1.0 s)',
 # sphinx_gallery_thumbnail_number = 7
 
 n = int(round(sfreq * 0.5)) + 1
-h = signal.firwin2(n, freq, gain, nyq=nyq)
+h = signal.firwin2(n, freq, gain, fs=sfreq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (0.5 s)',
             compensate=True, **kwargs)
 
@@ -282,7 +282,7 @@ plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (0.5 s)',
 # our effective stop frequency gets pushed out past 60 Hz:
 
 n = int(round(sfreq * 0.2)) + 1
-h = signal.firwin2(n, freq, gain, nyq=nyq)
+h = signal.firwin2(n, freq, gain, fs=sfreq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (0.2 s)',
             compensate=True, **kwargs)
 
@@ -293,7 +293,7 @@ plot_filter(h, sfreq, freq, gain, 'Windowed 10 Hz transition (0.2 s)',
 trans_bandwidth = 25
 f_s = f_p + trans_bandwidth
 freq = [0, f_p, f_s, nyq]
-h = signal.firwin2(n, freq, gain, nyq=nyq)
+h = signal.firwin2(n, freq, gain, fs=sfreq)
 plot_filter(h, sfreq, freq, gain, 'Windowed 50 Hz transition (0.2 s)',
             compensate=True, **kwargs)
 

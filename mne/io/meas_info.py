@@ -214,12 +214,16 @@ class MontageMixin(object):
         Returns
         -------
         inst : instance of Raw | Epochs | Evoked
-            The instance.
+            The instance, modified in-place.
+
+        See Also
+        --------
+        mne.channels.make_standard_montage
+        mne.channels.make_dig_montage
+        mne.channels.read_custom_montage
 
         Notes
         -----
-        Operates in place.
-
         .. warning::
             Only %(montage_types)s channels can have their positions set using
             a montage. Other channel types (e.g., MEG channels) should have
@@ -1186,14 +1190,12 @@ class Info(dict, MontageMixin, ContainsMixin):
         # repr).
 
         # meas date
-        if 'meas_date' in self and self['meas_date'] is not None:
-            meas_date = self['meas_date'].strftime(
-                "%B %d, %Y  %H:%M:%S"
-            ) + ' GMT'
-        else:
-            meas_date = None
+        meas_date = self.get('meas_date')
+        if meas_date is not None:
+            meas_date = meas_date.strftime("%B %d, %Y  %H:%M:%S") + ' GMT'
 
-        if 'projs' in self and self['projs']:
+        projs = self.get('projs')
+        if projs:
             projs = [
                 f'{p["desc"]} : {"on" if p["active"] else "off"}'
                 for p in self['projs']
@@ -1201,39 +1203,22 @@ class Info(dict, MontageMixin, ContainsMixin):
         else:
             projs = None
 
-        if 'subject_info' in self:
-            subject_info = self['subject_info']
-        else:
-            subject_info = None
-
-        if 'lowpass' in self:
-            lowpass = self['lowpass']
-        else:
-            lowpass = None
-
-        if 'highpass' in self:
-            highpass = self['highpass']
-        else:
-            highpass = None
-
-        if 'sfreq' in self:
-            sfreq = self['sfreq']
-        else:
-            sfreq = None
-
-        if 'experimenter' in self:
-            experimenter = self['experimenter']
-        else:
-            experimenter = None
-
         info_template = repr_templates_env.get_template('info.html.jinja')
-        html += info_template.render(
-            caption=caption, meas_date=meas_date, ecg=ecg,
-            eog=eog, good_channels=good_channels, bad_channels=bad_channels,
-            projs=projs, subject_info=subject_info, lowpass=lowpass,
-            highpass=highpass, sfreq=sfreq, experimenter=experimenter
+        return html + info_template.render(
+            caption=caption,
+            meas_date=meas_date,
+            projs=projs,
+            ecg=ecg,
+            eog=eog,
+            good_channels=good_channels,
+            bad_channels=bad_channels,
+            dig=self.get('dig'),
+            subject_info=self.get('subject_info'),
+            lowpass=self.get('lowpass'),
+            highpass=self.get('highpass'),
+            sfreq=self.get('sfreq'),
+            experimenter=self.get('experimenter'),
         )
-        return html
 
 
 def _simplify_info(info):

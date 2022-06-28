@@ -22,8 +22,8 @@ _cardinal_dict = dict(nasion=FIFF.FIFFV_POINT_NASION,
 def _read_eeg(directory):
     """Read the .eeg file."""
     # Missing file is ok
-    fname = _make_ctf_name(directory, 'eeg', raise_error=False)
-    if fname is None:
+    fname, found = _make_ctf_name(directory, 'eeg', raise_error=False)
+    if not found:
         logger.info('    Separate EEG position data file not present.')
         return
     eeg = dict(labels=list(), kinds=list(), ids=list(), rr=list(), np=0,

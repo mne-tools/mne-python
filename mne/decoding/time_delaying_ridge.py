@@ -212,7 +212,7 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
         # Note: we must use overwrite_a=False in order to be able to
         #       use the fall-back solution below in case a LinAlgError
         #       is raised
-        w = linalg.solve(mat, x_y, sym_pos=True, overwrite_a=False)
+        w = linalg.solve(mat, x_y, overwrite_a=False, assume_a='pos')
     except np.linalg.LinAlgError:
         warn('Singular matrix in solving dual problem. Using '
              'least-squares solution instead.')
