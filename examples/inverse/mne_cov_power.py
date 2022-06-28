@@ -106,7 +106,6 @@ data_cov.plot_topomap(evoked.info, 'grad', noise_cov=noise_cov,
 # Read the forward solution and compute the inverse operator
 fname_fwd = meg_path / 'sample_audvis-meg-oct-6-fwd.fif'
 fwd = mne.read_forward_solution(fname_fwd)
-
 # make an MEG inverse operator
 info = evoked.info
 inverse_operator = make_inverse_operator(info, fwd, noise_cov,
