@@ -104,8 +104,24 @@ class RawEyelink(BaseRaw):
             ParseEyeLinkAsc_(fname)
 
         # transpose to correct sfreq
-        samples = df_samples['tSample'].apply(lambda x: x*sfreq/1000.)
-        first_sample = samples.min()
+        #samples = df_samples['tSample'].apply(lambda x: x*sfreq/1000.)
+        #first_sample = samples.min()
+
+        # clean out misread data
+        # tSample > 0
+        df_samples = df_samples[df_samples.tSample > 0]
+        # also clean out rows where number of nans doesnt fit!
+        # tbd
+
+        # fix epoched recording by making it contiuous
+        df_samples['tSample'] = df_samples['tSample'].astype(int)
+        df_samples.index = df_samples.tSample
+
+        tmin = df_msg['time'].min()
+        tmax = df_samples.tail()['tSample'].max()
+
+        samples_new = list(range(tmin, tmax+1))
+        df_samples = df_samples.reindex(samples_new)
 
         # get data for selected channels
         try:
