@@ -6,6 +6,7 @@ import math
 import os.path as op
 import re
 from xml.dom.minidom import parse
+import xml.etree.ElementTree as ET
 
 import numpy as np
 
@@ -254,6 +255,26 @@ def _get_eeg_calibration_info(filepath, egi_info):
     return cals
 
 
+def _get_ch_names(fname):
+    montage_fname = op.join(fname, "coordinates.xml")
+
+    namespaces = {"": "http://www.egi.com/coordinates_mff"}
+    tree = ET.parse(montage_fname)
+    root = tree.getroot()
+    sensors = root.findall(".//sensorLayout/sensors/sensor", namespaces)
+    ch_names = []
+    for sensor in sensors:
+        name = sensor.find("name", namespaces).text
+        number = sensor.find("number", namespaces).text
+        name = f"E{number}" if name is None else name
+        ch_names.append(name)
+        ch_names = [name for name in ch_names
+                    if name not in
+                    ['Nasion',
+                     'Left periauricular point','Right periauricular point']]
+    return ch_names
+
+
 def _read_locs(filepath, chs, egi_info):
     """Read channel locations."""
     from ...channels.montage import make_dig_montage
@@ -465,6 +486,8 @@ class RawMff(BaseRaw):
         # First: EEG
         ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
+        
+        ch_names = _get_ch_names(input_fname)
 
         # Second: Stim
         ch_names.extend(list(egi_info['event_codes']))
@@ -861,6 +884,8 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     # averaged MFF is the time of the averaging, not true record time.
     ch_names = [channel_naming % (i + 1) for i in
                 range(mff.num_channels['EEG'])]
+    ch_names = _get_ch_names(fname)
+    
     ch_names.extend(egi_info['pns_names'])
     info = create_info(ch_names, mff.sampling_rates['EEG'], ch_types)
     with info._unlock():
