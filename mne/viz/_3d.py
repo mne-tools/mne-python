@@ -3008,6 +3008,8 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     _validate_type(mode, str, 'mode')
     _validate_type(coord_frame, str, 'coord_frame')
     _check_option('mode', mode, ('orthoview', 'outlines', 'arrow', 'sphere'))
+    if mode in ('orthoview', 'outlines'):
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     kwargs = dict(
         trans=trans, subject=subject, subjects_dir=subjects_dir,
         coord_frame=coord_frame, ax=ax, block=block, show=show, color=color,
