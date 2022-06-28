@@ -20,6 +20,7 @@ from ..utils import (split_list, logger, verbose, ProgressBar, warn, _pl,
 from ..source_estimate import (SourceEstimate, VolSourceEstimate,
                                MixedSourceEstimate)
 from ..source_space import SourceSpaces
+from ..viz import plot_topomap
 
 
 def _get_buddies_fallback(r, s, neighbors, indices=None):
@@ -1556,13 +1557,72 @@ class ClusterTestResult:
         self.times = times
         self.ch_names = ch_names
 
-    def plot_T_values(self):
+    def plot_T_values(self, cluster_selection_threshold=1, info=None):
         import matplotlib.pyplot as plt
+        import matplotlib.colors as colors
+        # mask T-values outside of significant clusters with nans
+        T_values_sig_clusters = np.nan * np.ones_like(self.T_values)
+        for cluster, p_val in zip(self.clusters, self.cluster_p_values):
+            if p_val <= cluster_selection_threshold:
+                T_values_sig_clusters[cluster] = self.T_values[cluster]               
+        del cluster, p_val      
+
         _, ax = plt.subplots()
-        ax.imshow(self.T_values)
+        extent = (self.times[0], self.times[-1], len(self.ch_names)-1, 0)
 
-        # XXX add topographies for each cluster
+        ax.imshow(self.T_values.T, extent=extent, aspect='auto',
+                        cmap='RdBu', alpha = 0.5, norm=colors.CenteredNorm())
+        img = ax.imshow(T_values_sig_clusters.T, extent=extent, aspect='auto',
+                        cmap='RdBu', norm=colors.CenteredNorm())
+        # XXX as we center both maps based on the data, 
+        # the resulting scales might not match
 
+        # add colorbar
+        cbar = plt.colorbar(ax=ax, shrink=0.75, orientation='vertical',
+                            mappable=img)
+        # XXX colorbar should be rescaled to be symmetrical
+
+        ax.set_title('T values thresholded at p = ' + str(cluster_selection_threshold))
+        ax.set_xlabel('time (s)')
+        ax.set_ylabel('channels')
+
+        if not info==None: 
+            # XXX add topographies for each cluster
+            significant_clusters_idx = np.where(
+                                self.cluster_p_values < cluster_selection_threshold)
+            
+            clu_idx = 0 
+            # XXX select 1 cluster for now, need to make this a loop and put all
+            # plots in one figure
+
+            cluster = self.clusters[significant_clusters_idx[0][clu_idx]]
+
+            time_inds, space_inds = np.squeeze(cluster)
+            ch_inds = np.unique(space_inds)
+            time_inds = np.unique(time_inds)
+
+            # create spatial mask
+            mask = np.zeros((len(self.ch_names), 1), dtype=bool)
+            mask[ch_inds, :] = True
+
+            # extract data from significant times and avg over time
+            plot_data = self.T_values[time_inds,:]
+            plot_data = plot_data.mean(axis = 0)
+
+            _, ax = plt.subplots()
+           
+            plot_topomap(plot_data, info, axes=ax,
+                                mask=mask)  
+            # XXX can we get the positions from the adjaceny to not pass
+            # the info here?
+            
+            ax.set_title("sig. cluster {0}: {1:.2f} - {2:.2f} ".
+            format(clu_idx, self.times[time_inds[0]], self.times[time_inds[-1]]))
+            # XXX title does not show with inline plotting
+
+        
+        else: 
+            print('Got no info, so no topography is plotted.')
 
 @verbose
 def group_level_cluster_test(
