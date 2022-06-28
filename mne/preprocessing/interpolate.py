@@ -93,6 +93,10 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
     -------
     inst : instance of Epochs, Evoked, or Raw
         The modified data object.
+
+    See Also
+    --------
+    mne.preprocessing.compute_bridged_electrodes
     """
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked))
     montage = inst.get_montage()

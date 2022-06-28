@@ -12,7 +12,6 @@
 # License: Relicensed under BSD-3-Clause and adapted with
 #          permission from authors of original GPL code
 
-import warnings
 import numpy as np
 
 from .. import pick_types
@@ -288,9 +287,7 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
 
     # kernel density estimation
     kde = gaussian_kde(ed_flat[ed_flat < lm_cutoff])
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            'ignore', 'invalid value encountered in true_divide')
+    with np.errstate(invalid='ignore'):
         local_minimum = float(minimize_scalar(
             lambda x: kde(x) if x < lm_cutoff and x > 0 else np.inf).x)
     logger.info(f'Local minimum {local_minimum} found')

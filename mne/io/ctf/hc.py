@@ -64,8 +64,8 @@ def _read_one_coil_point(fid):
 
 def _read_hc(directory):
     """Read the hc file to get the HPI info and to prepare for coord trans."""
-    fname = _make_ctf_name(directory, 'hc', raise_error=False)
-    if fname is None:
+    fname, found = _make_ctf_name(directory, 'hc', raise_error=False)
+    if not found:
         logger.info('    hc data not present')
         return None
     s = list()
