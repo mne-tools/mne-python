@@ -36,10 +36,10 @@ fname_aseg = subjects_dir / subject / 'mri' / 'aseg.mgz'
 fname_model = bem_dir / f'{subject}-5120-bem.fif'
 fname_bem = bem_dir / f'{subject}-5120-bem-sol.fif'
 
-fname_evoked = data_dir / '/sample_audvis-ave.fif'
-fname_trans = data_dir / '/sample_audvis_raw-trans.fif'
-fname_fwd = data_dir / '/sample_audvis-meg-oct-6-mixed-fwd.fif'
-fname_cov = data_dir / '/sample_audvis-shrunk-cov.fif'
+fname_evoked = data_dir / f'{subject}_audvis-ave.fif'
+fname_trans = data_dir / f'{subject}_audvis_raw-trans.fif'
+fname_fwd = data_dir / f'{subject}_audvis-meg-oct-6-mixed-fwd.fif'
+fname_cov = data_dir / f'{subject}_audvis-shrunk-cov.fif'
 
 # %%
 # Set up our source space
