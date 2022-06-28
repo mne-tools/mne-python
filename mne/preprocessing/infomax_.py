@@ -13,7 +13,6 @@ from scipy import special
 from ..utils import logger, verbose, check_random_state, random_permutation
 
 
-
 @verbose
 def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             anneal_deg=60., anneal_step=0.9, extended=True, n_subgauss=1,
