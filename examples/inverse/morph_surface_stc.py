@@ -40,12 +40,12 @@ print(__doc__)
 # Setup paths
 
 data_path = sample.data_path()
-sample_dir = data_path / 'MEG', 'sample'
+sample_dir = data_path / 'MEG' / 'sample'
 subjects_dir = data_path / 'subjects'
 fname_src = subjects_dir / 'sample' / 'bem' / 'sample-oct-6-src.fif'
 fname_fwd = sample_dir / 'sample_audvis-meg-oct-6-fwd.fif'
-fname_fsaverage_src = subjects_dir / 'fsaverage' / 'bem' /
-                        'fsaverage-ico-5-src.fif'
+fname_fsaverage_src = (subjects_dir / 'fsaverage' / 'bem' /
+                        'fsaverage-ico-5-src.fif')
 
 fname_stc = sample_dir / 'sample_audvis-meg'
 
