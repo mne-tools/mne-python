@@ -1522,44 +1522,88 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1.0, tmin=0,
 
 
 class ClusterTestResult:
-    """Container for cluster permutation test results."""
-    def __init__(self, T_values, clusters, cluster_p_values, times, ch_names):
+    def __init__(
+        self,
+        *,
+        T_values,
+        clusters,
+        cluster_p_values,
+        times,
+        ch_names,
+    ):
+        """Container for cluster permutation test results.
+
+        .. note::
+           This class is typically instantiated through
+           :func:`group_level_cluster_test`. Do not instantiate directly.
+
+        Parameters
+        ----------
+        T_values : ndarray, shape (n_channels, n_times)
+            The T-values of each spatio-temporal node.
+        clusters : _type_
+            _description_
+        cluster_p_values : _type_
+            _description_
+        times : ndarray
+            The time points.
+        ch_names : list of str
+            The channel names.
+        """
         self.T_values = T_values
         self.clusters = clusters
         self.cluster_p_values = cluster_p_values
         self.times = times
         self.ch_names = ch_names
-        
+
     def plot_T_values(self):
         import matplotlib.pyplot as plt
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
         ax.imshow(self.T_values)
-        
-        # add topographies for each cluster
-        
+
+        # XXX add topographies for each cluster
+
 
 @verbose
-def group_level_cluster_test(data, *, cluster_forming_threshold=None, 
-                             n_permutations=1000, tail=None, adjacency=None,
-                             n_jobs=None, random_seed=None, verbose=None):
+def group_level_cluster_test(
+    data,
+    *,
+    cluster_forming_threshold=None,
+    n_permutations=5000,
+    tail=None,
+    adjacency,
+    seed=None,
+    n_jobs=None,
+    verbose=None
+):
     """Non-parametric cluster-level test for spatio-temporal(-spectral) data
-    
+
     Parameters
     ----------
     data : dict
         keys are condition names, values are :class:`~mne.Evoked` or
         :class:`~mne.time_frequency.AverageTFR`
+    cluster_forming_threshold : float | None
+        ...
+    %(n_permutations_clust_all)s
+    tail : 'left' | 'right' | None
+        Whether to perform a one-sided test on the left or right tail, or a
+        two sided test. If ``None`` (default), a two sided test is performed.
+    adjacency : scipy.sparse.spmatrix
+        ...
+    %(seed)s
+    %(n_jobs)s
+    %(verbose)s
     """
     # XXX add support for AverageTFR
     # XXX check for consistent input size across conditions
-    
     from .. import combine_evoked
-    
+
     _validate_type(data, types=dict, item_name='data')
     if len(data) == 0 or len(data) > 2:
-        raise ValueError('Data must contain one or two elements.' 
+        raise ValueError('Data must contain one or two elements.'
                          f'Got {len(data)}.')
-    
+
     # rename tail
     if tail is None:
         tail = 0
@@ -1568,7 +1612,6 @@ def group_level_cluster_test(data, *, cluster_forming_threshold=None,
     elif tail == 'right':
         tail = 1 # XXX check dimensions
 
-    
     # if data has two entries, compute the difference
     if len(data) == 2:
         evoked_diff = []
@@ -1578,34 +1621,36 @@ def group_level_cluster_test(data, *, cluster_forming_threshold=None,
             )
         data = {'diff' : evoked_diff}
         del evoked_diff, evoked1, evoked2
-    
+
     # data now has only one entry
-    # now we extract a numpy array 
+    # now we extract a numpy array
     data_array = [e.data for e in list(data.values())[0]]
     data_array = np.asarray(data_array)
-    
+
     # spatio_temporal_cluster_1samp_test expects spatial dimension last
-    # expected dimensions: observations (difference) x time 
+    # expected dimensions: observations (difference) x time
     # (x frequency) x sensors / vertices
-    
     data_array = np.transpose(data_array, [0, 2, 1])
-    
+
     # now feed the data to the actual stats function
     result = spatio_temporal_cluster_1samp_test(
-                data_array,
-                threshold=cluster_forming_threshold,
-                n_permutations=n_permutations, 
-                tail=tail,
-                adjacency=adjacency,
-                n_jobs=n_jobs)
-    
+        data_array,
+        threshold=cluster_forming_threshold,
+        n_permutations=n_permutations,
+        tail=tail,
+        adjacency=adjacency,
+        seed=seed,
+        n_jobs=n_jobs,
+        verbose=verbose,
+    )
+
     T_values, clusters, cluster_p_values, _ = result
     del result
-    
+
     # significant_clusters_idx = np.where(
     #     cluster_p_values < cluster_significance_p_value)[0]
     # significant_clusters = clusters[significant_clusters_idx]
-    
+
     result = ClusterTestResult(
         T_values=T_values,
         clusters=clusters,
@@ -1613,15 +1658,4 @@ def group_level_cluster_test(data, *, cluster_forming_threshold=None,
         times=list(data.values())[0][0].times,
         ch_names=list(data.values())[0][0].ch_names,
     )
-    
     return result
-    
-    
-    
-    
-            
-        
-        
-        
-    
-

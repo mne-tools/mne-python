@@ -39,7 +39,8 @@ Non-parametric (clustering) resampling methods:
 .. autosummary::
    :toctree: generated/
 
-   combine_adjacency
+   group_level_cluster_test
+   ClusterTestResult
    permutation_cluster_test
    permutation_cluster_1samp_test
    permutation_t_test
@@ -64,3 +65,4 @@ Compute ``adjacency`` matrices for cluster-level statistics:
    spatio_temporal_src_adjacency
    spatio_temporal_tris_adjacency
    spatio_temporal_dist_adjacency
+   stats.combine_adjacency
