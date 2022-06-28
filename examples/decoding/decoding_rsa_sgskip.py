@@ -80,7 +80,7 @@ event_id['0/human bodypart/human/not-face/animal/natural']
 # Read MEG data
 n_runs = 4  # 4 for full data (use less to speed up computations)
 fname = op.join(data_path, 'sample_subject_%i_tsss_mc.fif')
-raws = [read_raw_fif(fname % block, verbose='error')
+raws = [read_raw_fif(fname % block, verbose='error', on_split_missing='ignore')
         for block in range(n_runs)]  # ignore filename warnings
 raw = concatenate_raws(raws)
 
