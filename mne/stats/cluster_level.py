@@ -1531,6 +1531,7 @@ class ClusterTestResult:
         cluster_p_values,
         times,
         info,
+        tail,
     ):
         """Container for cluster permutation test results.
 
@@ -1543,18 +1544,22 @@ class ClusterTestResult:
         T_values : ndarray, shape (n_channels, n_times)
             The T-values of each spatio-temporal node.
         clusters : _type_
-            _description_
+            ...
         cluster_p_values : _type_
-            _description_
+            ...
         times : ndarray, shape (n_times,)
             The time points.
         info : Info
+            ...
+        tail : 'left' | 'right' | None
+            ...
         """
         self.T_values = T_values
         self.clusters = clusters
         self.cluster_p_values = cluster_p_values
         self.times = times
         self.info = info
+        self.tail = tail
 
     def plot_T_values(
         self,
@@ -1596,6 +1601,7 @@ class ClusterTestResult:
         # [ ] sub-set Evokeds for specified ch_type
         # [ ] demand ch_type parameter if multiple ch_types are present in the
         #     data
+        # [ ] add nice (HTML) repr
         img = ax.imshow(
             self.T_values.T, extent=extent, aspect='auto',
             cmap='RdBu_r', norm=colors.CenteredNorm(), interpolation='none',
@@ -1647,6 +1653,12 @@ class ClusterTestResult:
             fontweight='bold'
         )
 
+        if self.tail in ('left', 'right'):
+            vmin, vmax = self.T_values.min(), self.T_values.max()
+        else:
+            vmax = np.abs(self.T_values).max()
+            vmin = -vmax
+
         for cluster_number, cluster_idx in enumerate(significant_clusters_idx):
             cluster = self.clusters[cluster_idx]
 
@@ -1673,6 +1685,8 @@ class ClusterTestResult:
                 axes=ax,
                 mask=mask,
                 cmap='RdBu_r',
+                vmin=vmin,
+                vmax=vmax,
                 show=False,
             )
 
@@ -1770,5 +1784,6 @@ def group_level_cluster_test(
         cluster_p_values=cluster_p_values,
         times=list(data.values())[0][0].times,
         info=list(data.values())[0][0].info,
+        tail=tail,
     )
     return result
