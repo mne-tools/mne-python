@@ -10,7 +10,7 @@ from ...utils import logger, verbose, fill_doc, warn
 
 
 @fill_doc
-def read_raw_eyelink(fname, preload=False, verbose=None):
+def read_raw_eyelink(fname, interpolate_missing=True, preload=False, verbose=None):
     """Reader for an XXX file.
 
     Parameters
@@ -29,7 +29,7 @@ def read_raw_eyelink(fname, preload=False, verbose=None):
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawEyelink(fname, preload, verbose)
+    return RawEyelink(fname, interpolate_missing, preload, verbose)
 
 
 @fill_doc
@@ -49,7 +49,7 @@ class RawEyelink(BaseRaw):
     """
 
     @verbose
-    def __init__(self, fname, preload=False, verbose=None):
+    def __init__(self, fname, interpolate_missing=True, preload=False, verbose=None):
         logger.info('Loading {}'.format(fname))
 
         # load data
@@ -66,7 +66,8 @@ class RawEyelink(BaseRaw):
                     sfreq=sfreq,
                     eye=eye,
                     pos=pos,
-                    pupil=pupil)
+                    pupil=pupil,
+                    interpolate_missing=interpolate_missing)
         elif ftype == 'edf':
             raise NotImplementedError('Eyelink .edf files not supported, yet')
         else:
@@ -83,7 +84,7 @@ class RawEyelink(BaseRaw):
         self.set_annotations(annot)
 
     def _parse_eyelink_asc(self, fname, sfreq, eye='BINO', pos=True,
-                           pupil=True):
+                           pupil=True, interpolate_missing=True):
         from .ParseEyeLinkAscFiles_ import ParseEyeLinkAsc_
         import datetime as dt
 
@@ -149,6 +150,14 @@ class RawEyelink(BaseRaw):
 
         # mod_factor = 2 if (pos and not pupil) else 3 if (pos and pupil) else1
         # (df_samples.isna().sum(axis=1) % mod_factor) != 0
+
+        # interpolate missing samples for gaze position and pupil data
+        # this has to happen before making the data continuous
+        if interpolate_missing:
+            for k in ch_names:
+                df_samples[k] = df_samples[k].interpolate()
+        # section needs work! annotate interpolated segments as bad?
+        # make it optional?
 
         # transpose to correct sfreq
         # samples = df_samples['tSample'].apply(lambda x: x*sfreq/1000.)
