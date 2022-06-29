@@ -5,6 +5,7 @@
 from ..base import BaseRaw
 from ..meas_info import create_info
 
+from ...annotations import Annotations
 from ...utils import logger, verbose, fill_doc
 
 @fill_doc
@@ -58,7 +59,7 @@ class RawEyelink(BaseRaw):
             pos = True
             pupil = True
 
-            info, data, first_sample = self._parse_eyelink_asc(
+            info, data, first_sample, annot = self._parse_eyelink_asc(
                 fname,
                 sfreq=sfreq,
                 eye=eye,
@@ -74,6 +75,9 @@ class RawEyelink(BaseRaw):
         # create mne object
         super(RawEyelink, self).__init__(  # or just super().__init__( ?
             info, preload=data, filenames=[fname], verbose=verbose)
+
+        # set annotiations
+        self.set_annotations(annot)
 
     def _parse_eyelink_asc(self, fname, sfreq=1000., eye='BINO', pos=True,
                            pupil=True):
@@ -136,4 +140,13 @@ class RawEyelink(BaseRaw):
             raise ValueError(
                 "provided eye={} parameter doesn't match the data".format(eye))
 
-        return info, data, first_sample
+        # make annotations
+        onset = df_msg['time'].astype(float).to_numpy()
+        duration = (df_msg['time'] * 0).astype(float).to_numpy()
+        description = (df_msg['text']).to_numpy()
+        annot = Annotations(onset, duration, description, ch_names=None)
+
+        first_sample = tmin
+
+        return info, data, first_sample, annot
+
