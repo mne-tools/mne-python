@@ -1598,15 +1598,15 @@ class ClusterTestResult:
         #     data
         img = ax.imshow(
             self.T_values.T, extent=extent, aspect='auto',
-            cmap='RdBu', norm=colors.CenteredNorm()
+            cmap='RdBu', norm=colors.CenteredNorm(), interpolation='none',
         )
         ax.imshow(
             self.T_values.T, extent=extent, aspect='auto',
-            cmap='gray', norm=colors.CenteredNorm()
+            cmap='gray', norm=colors.CenteredNorm(), interpolation='none',
         )
         ax.imshow(
             T_values_sig_clusters.T, extent=extent, aspect='auto',
-            cmap='RdBu', norm=colors.CenteredNorm()
+            cmap='RdBu', norm=colors.CenteredNorm(), interpolation='none',
         )
         # Add vertical line at time point zero
         if any(self.times < 0) and any(self.times > 0):
