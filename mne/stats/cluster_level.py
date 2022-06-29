@@ -1564,34 +1564,46 @@ class ClusterTestResult:
         T_values_sig_clusters = np.nan * np.ones_like(self.T_values)
         for cluster, p_val in zip(self.clusters, self.cluster_p_values):
             if p_val <= cluster_selection_threshold:
-                T_values_sig_clusters[cluster] = self.T_values[cluster]               
-        del cluster, p_val      
+                T_values_sig_clusters[cluster] = self.T_values[cluster]
+        del cluster, p_val
 
         _, ax = plt.subplots()
         extent = (self.times[0], self.times[-1], len(self.ch_names)-1, 0)
 
-        ax.imshow(self.T_values.T, extent=extent, aspect='auto',
-                        cmap='RdBu', alpha = 0.5, norm=colors.CenteredNorm())
-        img = ax.imshow(T_values_sig_clusters.T, extent=extent, aspect='auto',
-                        cmap='RdBu', norm=colors.CenteredNorm())
-        # XXX as we center both maps based on the data, 
-        # the resulting scales might not match
-
+        # This seems highly inefficient, but is doing the job for us:
+        # 1. Plot all T-values with RdBu colors; the plotted values is what
+        #    we're going to build our colorbar from
+        # 2. Overplot with gray
+        # 3. Overplot with singificant clusters in RdBu
+        img = ax.imshow(
+            self.T_values.T, extent=extent, aspect='auto',
+            cmap='RdBu', norm=colors.CenteredNorm()
+        )
+        ax.imshow(
+            self.T_values.T, extent=extent, aspect='auto',
+            cmap='gray', norm=colors.CenteredNorm()
+        )
+        ax.imshow(
+            T_values_sig_clusters.T, extent=extent, aspect='auto',
+            cmap='RdBu', norm=colors.CenteredNorm()
+        )
         # add colorbar
-        cbar = plt.colorbar(ax=ax, shrink=0.75, orientation='vertical',
-                            mappable=img)
-        # XXX colorbar should be rescaled to be symmetrical
+        plt.colorbar(
+            ax=ax, shrink=0.75, orientation='vertical', mappable=img
+        )
+        # Axis labels and title
+        ax.set_title(
+            f'T-values thresholded at $p={cluster_selection_threshold}$'
+        )
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Channel Index')
 
-        ax.set_title('T values thresholded at p = ' + str(cluster_selection_threshold))
-        ax.set_xlabel('time (s)')
-        ax.set_ylabel('channels')
-
-        if not info==None: 
+        if not info==None:
             # XXX add topographies for each cluster
             significant_clusters_idx = np.where(
                                 self.cluster_p_values < cluster_selection_threshold)
-            
-            clu_idx = 0 
+
+            clu_idx = 0
             # XXX select 1 cluster for now, need to make this a loop and put all
             # plots in one figure
 
@@ -1610,18 +1622,14 @@ class ClusterTestResult:
             plot_data = plot_data.mean(axis = 0)
 
             _, ax = plt.subplots()
-           
             plot_topomap(plot_data, info, axes=ax,
-                                mask=mask)  
+                                mask=mask)
             # XXX can we get the positions from the adjaceny to not pass
             # the info here?
-            
             ax.set_title("sig. cluster {0}: {1:.2f} - {2:.2f} ".
             format(clu_idx, self.times[time_inds[0]], self.times[time_inds[-1]]))
             # XXX title does not show with inline plotting
-
-        
-        else: 
+        else:
             print('Got no info, so no topography is plotted.')
 
 @verbose
