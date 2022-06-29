@@ -83,7 +83,7 @@ bundles to the ``Applications`` folder on macOS.
 
 
 .. note::
-   ⏳ Depending on your system, it may take a little while for these
+   |hourglass| |ensp| Depending on your system, it may take a little while for these
    applications to start, especially on the very first run – which may take
    particularly long on Apple Silicon-based computers. Subsequent runs should
    usually be much faster.
