@@ -19,7 +19,7 @@
 <!-- funders -->
 <div class="container my-4">
   <p class="h4 text-center font-weight-light">Funders</p>
-  <div class="d-flex flex-wrap flex-row justify-content-center align-items-center">
+  <div id="funder-logos" class="d-flex flex-wrap flex-row justify-content-center align-items-center">
     {% for item in funders -%}
       <div class="card my-1 mx-2 border-light" style="{{ 'width: ' + item.size + 'rem;' }}">
         <a href="{{ pathto('funding.html', 1) }}">
@@ -32,7 +32,7 @@
 <!-- institutions -->
 <div class="container my-4">
   <p class="h4 text-center font-weight-light">Supporting institutions</p>
-  <div class="d-flex flex-wrap flex-row justify-content-center align-items-center">
+  <div id="institution-logos" class="d-flex flex-wrap flex-row justify-content-center align-items-center">
     {% for inst in institutions -%}
       <div class="card my-1 mx-2 border-light" style="{{ 'width: ' + inst.size + 'rem;' }}">
         <a href="{{ inst.url }}">

@@ -8,6 +8,9 @@
     /* colors that aren't responsive to light/dark mode */
     --mne-color-discord: #5865F2;
     --mne-color-twitter: #55acee;
+    --mne-color-primary: #007bff;
+    --mne-color-primary-text: #fff;
+    --mne-color-primary-highlight: #0069d9;
 }
 
 html[data-theme="light"] {
@@ -19,12 +22,10 @@ html[data-theme="light"] {
     /* card header bg color */
     --mne-color-header: rgba(0, 0, 0, 0.05);
     /* pydata-sphinx-theme overrides */
-    --pst-color-primary: #0033ff;
-    --pst-color-primary-text: #fff;
-    --pst-color-primary-highlight: #001a80;
-    --pst-color-secondary: #ff3300;
-    --pst-color-secondary-text: #fff;
-    --pst-color-secondary-highlight: #801a00;
+    --pst-color-primary: var(--mne-color-primary);
+    --pst-color-primary-text: var(--mne-color-primary-text);
+    --pst-color-primary-highlight: var(--mne-color-primary-highlight);
+    --pst-color-info: var(--pst-color-primary);
     --pst-color-border: #ccc;
     --pst-color-background: #fff;
     /* sphinx-gallery overrides */
@@ -32,7 +33,7 @@ html[data-theme="light"] {
     --sg-download-a-background-image: unset;
     --sg-download-a-border-color: var(--pst-color-border);
     --sg-download-a-color: #fff;
-    --sg-download-a-hover-background-color: var(--pst-color-secondary);
+    --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
 }
@@ -45,22 +46,24 @@ html[data-theme="dark"] {
     /* card header bg color */
     --mne-color-header: rgba(255, 255, 255, 0.2);
     /* pydata-sphinx-theme overrides */
-    --pst-color-primary: #0099ff;
-    --pst-color-primary-text: #fff;
-    --pst-color-primary-highlight: #80ccff;
-    --pst-color-secondary: #ff9900;
-    --pst-color-secondary-text: #fff;
-    --pst-color-secondary-highlight: #ffcc80;
+    --pst-color-primary: var(--mne-color-primary);
+    --pst-color-primary-text: var(--mne-color-primary-text);
+    --pst-color-primary-highlight: var(--mne-color-primary-highlight);
+    --pst-color-info: var(--pst-color-primary);
     --pst-color-border: #333;
     --pst-color-background: #000;
+    --pst-color-link: #80bdff;
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
     --sg-download-a-border-color: var(--pst-color-border);
     --sg-download-a-color: #fff;
-    --sg-download-a-hover-background-color: var(--pst-color-secondary);
+    --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
+}
+h1, h2, h3, h4, h5, h6 {
+    color: var(--pst-color-text-base);
 }
 
 /* ************************************************************ Sphinx fixes */
@@ -137,11 +140,13 @@ img.logo {
 }
 
 /* ************************************* homepage quick links & funders list */
-ul.quicklinks {
+ul.quicklinks a {
     font-weight: 600;
+    color: var(--pst-color-text-base);
 }
 ul.quicklinks a:hover {
     text-decoration: none;
+    color: var(--pst-color-secondary);
 }
 ul.funders li {
     margin-left: 36px;
@@ -201,8 +206,10 @@ div.frontpage-gallery:hover .fadeout {
     opacity: 0.0;
     transition: 200ms linear;
 }
+div#funder-logos,
+div#institution-logos,
 div.card img.institution {
-    background-color: #fffe;
+    background-color: #fff;
 }
 div.card {
     border: 1px solid var(--pst-color-border);
@@ -241,6 +248,32 @@ p.btn a {
 }
 #navbar-icon-links i.fa-discord::before {
     color: var(--mne-color-discord);
+}
+/* ************************************ bootstrap overrides for nav elements */
+/* topbar nav */
+.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:focus,
+.bd-header.navbar-light#navbar-main .navbar-nav > .active > .nav-link {
+    color: var(--pst-color-link);
+}
+/* topbar nav hover */
+.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:hover {
+    color: var(--pst-color-secondary);
+}
+/* sidebar nav */
+nav.bd-links .active > a,
+nav.bd-links .active:hover > a {
+    color: var(--pst-color-link);
+}
+/* sidebar nav hover */
+nav.bd-links li > a:hover {
+    color: var(--pst-color-secondary);
+}
+/* sphinx-design tabs */
+html .bd-content .sd-tab-set > label:hover,
+.bd-content .sd-tab-set > input:not(:checked) + label:hover {
+    opacity: unset;
+    color: var(--pst-color-secondary);
+    border-color: var(--pst-color-secondary);
 }
 /* *********************************************************** contrib guide */
 ul.icon-bullets {
