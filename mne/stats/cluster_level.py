@@ -1597,7 +1597,8 @@ class ClusterTestResult:
         )
         # add colorbar
         plt.colorbar(
-            ax=ax, shrink=0.75, orientation='vertical', mappable=img
+            ax=ax, shrink=0.75, orientation='vertical', mappable=img,
+            label='T-value'
         )
         # Axis labels and title
         ax.set_title(
