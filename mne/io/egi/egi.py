@@ -258,8 +258,8 @@ class RawEGI(BaseRaw):
         info['chs'] = chs
         info._unlocked = False
         info._update_redundant()
-        orig_format = egi_info['orig_format'] \
-            if egi_info['orig_format'] != "float" else "single"
+        orig_format = egi_info["orig_format"] \
+            if egi_info["orig_format"] != "float" else "single"
         super(RawEGI, self).__init__(
             info, preload, orig_format=orig_format,
             filenames=[input_fname], last_samps=[egi_info['n_samples'] - 1],
