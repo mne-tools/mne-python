@@ -93,7 +93,7 @@ src.plot(subjects_dir=subjects_dir)
 
 nii_fname = bem_dir / f'{subject}-mixed-src.nii'
 src.export_volume(nii_fname, mri_resolution=True, overwrite=True)
-plotting.plot_img(nii_fname, cmap='nipy_spectral')
+plotting.plot_img(str(nii_fname), cmap='nipy_spectral')
 
 # %%
 # Compute the fwd matrix
