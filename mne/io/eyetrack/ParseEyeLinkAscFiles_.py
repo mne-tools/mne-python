@@ -40,7 +40,7 @@ def ParseEyeLinkAsc_(elFilename):
     t = time.time()
     with open(elFilename, "r+") as f:
         fileTxt0 = (line.rstrip() for line in f)
-        #fileTxt0 = [line for line in fileTxt0 if line]  # Non-blank lines in
+        # fileTxt0 = [line for line in fileTxt0 if line]  # Non-blank lines in
         # a list
         fileTxt0 = [line for line in fileTxt0]  # lines in a list
         fileTxt0 = np.array(fileTxt0)
@@ -51,7 +51,7 @@ def ParseEyeLinkAsc_(elFilename):
     print('Sorting lines...')
     nLines = len(fileTxt0)
     lineType = np.array(['OTHER'] * nLines, dtype='object')
-    #iStartRec = None
+    # iStartRec = None
     iStartRec = []  # DW: make a list of all rec-starts
     t = time.time()
     for iLine in range(nLines):
@@ -68,7 +68,7 @@ def ParseEyeLinkAsc_(elFilename):
         else:
             lineType[iLine] = fileTxt0[iLine].split()[0]
         # TODO: Find more general way of determining if recording has started
-        #if '!CAL' in fileTxt0[iLine]:
+        # if '!CAL' in fileTxt0[iLine]:
         #    iStartRec = iLine + 1
         if 'START' in fileTxt0[iLine]:
             # DW: more general way of determining if recording has started..
@@ -151,7 +151,7 @@ def ParseEyeLinkAsc_(elFilename):
     # Import samples
     print('Parsing samples...')
     t = time.time()
-    #iNotSample = np.nonzero(np.logical_or(
+    # iNotSample = np.nonzero(np.logical_or(
     #    lineType != 'SAMPLE', np.arange(nLines) < iStartRec))[0]
     iNotSample = np.nonzero(  # DW: try this, to get ALL data
         np.logical_or(

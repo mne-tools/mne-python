@@ -138,8 +138,8 @@ class RawEyelink(BaseRaw):
             ParseEyeLinkAsc_(fname)
 
         # transpose to correct sfreq
-        #samples = df_samples['tSample'].apply(lambda x: x*sfreq/1000.)
-        #first_sample = samples.min()
+        # samples = df_samples['tSample'].apply(lambda x: x*sfreq/1000.)
+        # first_sample = samples.min()
 
         # clean out misread data
         # assert tSample > 0
@@ -147,11 +147,11 @@ class RawEyelink(BaseRaw):
         # clean out rows with duplicate sampletime, as these are prob errors
         # tbd
         # also clean out rows where number of nans doesnt fit!
-        #nan_lines = df_samples.isna().any(axis=1)
-        #tmp = df_samples[nan_lines]
+        # nan_lines = df_samples.isna().any(axis=1)
+        # tmp = df_samples[nan_lines]
 
-        #mod_factor = 2 if (pos and not pupil) else 3 if (pos and pupil) else 1
-        #(df_samples.isna().sum(axis=1) % mod_factor) != 0
+        # mod_factor = 2 if (pos and not pupil) else 3 if (pos and pupil) else1
+        # (df_samples.isna().sum(axis=1) % mod_factor) != 0
 
         # fix epoched recording by making it contiuous
         df_samples['tSample'] = df_samples['tSample'].astype(int)
@@ -160,7 +160,7 @@ class RawEyelink(BaseRaw):
         tmin = df_msg['time'].min()
         tmax = df_samples.tail()['tSample'].max()
 
-        samples_new = list(range(tmin, tmax+1))
+        samples_new = list(range(tmin, tmax + 1))
         df_samples = df_samples.reindex(samples_new)
 
         # get data for selected channels
