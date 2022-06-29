@@ -6,7 +6,8 @@ from ..base import BaseRaw
 from ..meas_info import create_info
 
 from ...annotations import Annotations
-from ...utils import logger, verbose, fill_doc
+from ...utils import logger, verbose, fill_doc, warn
+
 
 @fill_doc
 def read_raw_eyelink(fname, preload=False, verbose=None):
@@ -59,12 +60,13 @@ class RawEyelink(BaseRaw):
             pos = True
             pupil = True
 
-            info, data, first_sample, annot = self._parse_eyelink_asc(
-                fname,
-                sfreq=sfreq,
-                eye=eye,
-                pos=pos,
-                pupil=pupil)
+            info, data, first_sample, annot, meas_date = \
+                self._parse_eyelink_asc(
+                    fname,
+                    sfreq=sfreq,
+                    eye=eye,
+                    pos=pos,
+                    pupil=pupil)
         elif ftype == 'edf':
             raise NotImplementedError('Eyelink .edf files not supported, yet')
         else:
@@ -75,14 +77,42 @@ class RawEyelink(BaseRaw):
         # create mne object
         super(RawEyelink, self).__init__(  # or just super().__init__( ?
             info, preload=data, filenames=[fname], verbose=verbose)
-
+        # set meas_date
+        self.set_meas_date(meas_date)
         # set annotiations
         self.set_annotations(annot)
 
     def _parse_eyelink_asc(self, fname, sfreq=1000., eye='BINO', pos=True,
                            pupil=True):
         from .ParseEyeLinkAscFiles_ import ParseEyeLinkAsc_
+        import datetime as dt
 
+        # read the header
+        with open(fname, 'r') as f:
+            d_header = []
+            for l in f.readlines()[:100]:  # restrict to first 100 lines
+                d_header.append(l) if ('**' in l) else None
+
+        for l in d_header:
+            if 'DATE:' in l:
+                datetime_str = l.strip('\n').split('DATE: ')[-1]
+            # we can get more, e.g. camera settings
+            if 'CAMERA:' in l:
+                cam = l.strip('\n').split('CAMERA: ')[-1]
+
+        meas_date = None
+        if 'datetime_str' in locals():
+            meas_date = dt.datetime.strptime(datetime_str,
+                                             '%a %b %d %H:%M:%S %Y')
+            meas_date = meas_date.replace(tzinfo=dt.timezone.utc)
+
+        if meas_date is None:
+            warn("Extraction of measurement date from asc file failed. "
+                 "Please report this as a github issue. "
+                 "The date is being set to January 1st, 2000, ")
+            meas_date = dt.datetime(2000, 1, 1, 0, 0, 0,
+                                    tzinfo=dt.timezone.utc)
+        # set parameter
         ch_names = []
         if pos:
             ch_names.append('X')
@@ -141,12 +171,13 @@ class RawEyelink(BaseRaw):
                 "provided eye={} parameter doesn't match the data".format(eye))
 
         # make annotations
-        onset = df_msg['time'].astype(float).to_numpy()
-        duration = (df_msg['time'] * 0).astype(float).to_numpy()
-        description = (df_msg['text']).to_numpy()
-        annot = Annotations(onset, duration, description, ch_names=None)
+        # transpose to [s] relative to tmin
+        onset = list((df_msg['time'] - tmin) / sfreq)
+        duration = [0] * len(onset)
+        description = list(df_msg['text'])
+        annot = Annotations(onset, duration, description,
+                            orig_time=0., ch_names=None)
 
         first_sample = tmin
 
-        return info, data, first_sample, annot
-
+        return info, data, first_sample, annot, meas_date
