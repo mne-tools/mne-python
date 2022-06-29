@@ -583,7 +583,8 @@ html_theme_options = {
     'use_edit_page_button': False,
     'navigation_with_keys': False,
     'show_toc_level': 1,
-    'navbar_end': ['theme-switcher', 'version-switcher', 'navbar-icon-links'],
+    'navbar_end': ['search-button', 'theme-switcher', 'version-switcher',
+                   'navbar-icon-links'],
     'footer_items': ['copyright'],
     'google_analytics_id': 'UA-37225609-1',
     'switcher': {
@@ -622,7 +623,7 @@ html_extra_path = [
 
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {
-    'index': ['search-field.html', 'sidebar-quicklinks.html'],
+    'index': ['sidebar-quicklinks.html'],
 }
 
 # If true, links to the reST sources are added to the pages.
