@@ -20,11 +20,10 @@ artifacts of this kind are much more pronounced in EEG than they are in MEG.
 
 # %%
 
-import os.path as op
 import mne
 
 data_path = mne.datasets.sample.data_path()
-raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname)
 raw.crop(tmin=100, tmax=130)  # take 30 seconds for speed
 

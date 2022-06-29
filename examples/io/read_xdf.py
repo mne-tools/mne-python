@@ -18,15 +18,13 @@ recording is of a short parallel auditory response (pABR) experiment
 
 # %%
 
-import os.path as op
-
 import pyxdf
 
 import mne
 from mne.datasets import misc
 
-fname = op.join(
-    misc.data_path(), 'xdf',
+fname = (
+    misc.data_path() / 'xdf' /
     'sub-P001_ses-S004_task-Default_run-001_eeg_a2.xdf')
 streams, header = pyxdf.load_xdf(fname)
 data = streams[0]["time_series"].T
