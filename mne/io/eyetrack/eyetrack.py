@@ -55,7 +55,7 @@ class RawEyelink(BaseRaw):
         # load data
         ftype = fname.split('.')[-1]
         if ftype == 'asc':
-            sfreq = 1000
+            sfreq = 500
             eye = 'BINO'
             pos = True
             pupil = True
@@ -82,12 +82,12 @@ class RawEyelink(BaseRaw):
         # set annotiations
         self.set_annotations(annot)
 
-    def _parse_eyelink_asc(self, fname, sfreq=1000., eye='BINO', pos=True,
+    def _parse_eyelink_asc(self, fname, sfreq, eye='BINO', pos=True,
                            pupil=True):
         from .ParseEyeLinkAscFiles_ import ParseEyeLinkAsc_
         import datetime as dt
 
-        # read the header
+        # read the header (to extract relevant information)
         with open(fname, 'r') as f:
             d_header = []
             for l in f.readlines()[:100]:  # restrict to first 100 lines
@@ -112,6 +112,7 @@ class RawEyelink(BaseRaw):
                  "The date is being set to January 1st, 2000, ")
             meas_date = dt.datetime(2000, 1, 1, 0, 0, 0,
                                     tzinfo=dt.timezone.utc)
+
         # set parameter
         ch_names = []
         if pos:
@@ -137,10 +138,6 @@ class RawEyelink(BaseRaw):
         df_recalibration, df_msg, df_fix, df_sacc, df_blink, df_samples = \
             ParseEyeLinkAsc_(fname)
 
-        # transpose to correct sfreq
-        # samples = df_samples['tSample'].apply(lambda x: x*sfreq/1000.)
-        # first_sample = samples.min()
-
         # clean out misread data
         # assert tSample > 0
         df_samples = df_samples[df_samples.tSample > 0]
@@ -153,14 +150,26 @@ class RawEyelink(BaseRaw):
         # mod_factor = 2 if (pos and not pupil) else 3 if (pos and pupil) else1
         # (df_samples.isna().sum(axis=1) % mod_factor) != 0
 
+        # transpose to correct sfreq
+        # samples = df_samples['tSample'].apply(lambda x: x*sfreq/1000.)
+        # first_sample = samples.min()
+        shiftfun = lambda a, b: a + b - (a % b) if (a % b != 0) else a
+
+        sinterval = int(1000 / sfreq)  # d btw samples in ms
+        #df_samples['tSample'] = df_samples['tSample'].apply(
+        #    lambda x: x + sinterval - (x % sinterval) if (x % sinterval != 0)
+        #    else x)  # shift samples forward
+        df_samples['tSample'] = df_samples['tSample'].apply(
+            lambda x: shiftfun(x, sinterval))
+
         # fix epoched recording by making it contiuous
         df_samples['tSample'] = df_samples['tSample'].astype(int)
         df_samples.index = df_samples.tSample
 
-        tmin = df_msg['time'].min()
+        tmin = shiftfun(df_msg['time'].min(), sinterval)
         tmax = df_samples.tail()['tSample'].max()
 
-        samples_new = list(range(tmin, tmax + 1))
+        samples_new = list(range(tmin, tmax + 1, sinterval))
         df_samples = df_samples.reindex(samples_new)
 
         # get data for selected channels
@@ -172,12 +181,12 @@ class RawEyelink(BaseRaw):
 
         # make annotations
         # transpose to [s] relative to tmin
-        onset = list((df_msg['time'] - tmin) / sfreq)
+        onset = list((df_msg['time'] - tmin) / 1000)  # data comes in ms
         duration = [0] * len(onset)
         description = list(df_msg['text'])
         annot = Annotations(onset, duration, description,
                             orig_time=None, ch_names=None)
 
-        first_sample = tmin
+        first_sample = int(tmin / sfreq)  # good enough
 
         return info, data, first_sample, annot, meas_date
