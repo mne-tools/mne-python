@@ -176,7 +176,7 @@ class RawEyelink(BaseRaw):
         duration = [0] * len(onset)
         description = list(df_msg['text'])
         annot = Annotations(onset, duration, description,
-                            orig_time=0., ch_names=None)
+                            orig_time=None, ch_names=None)
 
         first_sample = tmin
 
