@@ -1583,6 +1583,19 @@ class ClusterTestResult:
         #    we're going to build our colorbar from
         # 2. Overplot with gray
         # 3. Overplot with singificant clusters in RdBu
+        #
+        # XXX colors seem to change depending on zoom level?!?!?!!??!?!!!!!!???
+        #
+        # Todo:
+        # - vertical line indicating time point zero
+        # - add information on thresholds, n_permutations etc to results class
+        # - add pandas dataframe export
+        # - plot topos for all significant clusters into a single figure
+        # - if adjacency is None, call find_adjacency for the specified ch_type
+        # - check that all evokeds have the same ch_names, times, etc.
+        # - ggf Evokeds sub-setten fuer den specified ch_type
+        # - demand ch_type parameter if multiple ch_types are present in the
+        #   data
         img = ax.imshow(
             self.T_values.T, extent=extent, aspect='auto',
             cmap='RdBu', norm=colors.CenteredNorm()
@@ -1605,37 +1618,60 @@ class ClusterTestResult:
             f'T-values thresholded at $p={cluster_selection_threshold}$'
         )
         ax.set_xlabel('Time (s)')
-        ax.set_ylabel('Channel Index')
+        ax.set_ylabel('Channel index')
 
-        # XXX add topographies for each cluster
         significant_clusters_idx = np.where(
-                            self.cluster_p_values < cluster_selection_threshold)
+            self.cluster_p_values < cluster_selection_threshold
+        )[0]
 
-        clu_idx = 0
-        # XXX select 1 cluster for now, need to make this a loop and put all
-        # plots in one figure
+        if significant_clusters_idx.size == 0:
+            logger.info(
+                'No significant clusters in the data; not plotting '
+                'topographies.'
+            )
+        elif significant_clusters_idx.size > 5:
+            logger.warn(
+                'More than 5 significant clusters found; plotting '
+                'topographies for the first 5.'
+            )
+            significant_clusters_idx = significant_clusters_idx[:5]
 
-        cluster = self.clusters[significant_clusters_idx[0][clu_idx]]
+        fig, axes = plt.subplots(nrows=1, ncols=len(significant_clusters_idx))
+        fig.suptitle(
+            'T-value topographies for significant clusters',
+            fontweight='bold'
+        )
 
-        time_inds, space_inds = np.squeeze(cluster)
-        ch_inds = np.unique(space_inds)
-        time_inds = np.unique(time_inds)
+        for cluster_number, cluster_idx in enumerate(significant_clusters_idx):
+            cluster = self.clusters[cluster_idx]
 
-        # create spatial mask
-        mask = np.zeros((len(self.info['ch_names']), 1), dtype=bool)
-        mask[ch_inds, :] = True
+            time_inds, space_inds = np.squeeze(cluster)
+            ch_inds = np.unique(space_inds)
+            time_inds = np.unique(time_inds)
 
-        # extract data from significant times and avg over time
-        plot_data = self.T_values[time_inds,:]
-        plot_data = plot_data.mean(axis = 0)
+            # create spatial mask
+            mask = np.zeros((len(self.info['ch_names']), 1), dtype=bool)
+            mask[ch_inds, :] = True
 
-        _, ax = plt.subplots()
-        plot_topomap(plot_data, self.info, axes=ax, mask=mask)
-        # XXX can we get the positions from the adjaceny to not pass
-        # the info here?
-        ax.set_title("sig. cluster {0}: {1:.2f} - {2:.2f} ".
-        format(clu_idx, self.times[time_inds[0]], self.times[time_inds[-1]]))
-        # XXX title does not show with inline plotting
+            # extract data from significant times and avg over time
+            plot_data = self.T_values[time_inds, :].mean(axis=0)
+
+            ax = axes[cluster_number]
+            ax.set_title(
+                f'Cluster #{cluster_number + 1}\n'
+                f'{round(self.times[time_inds[0]], 3):.3f} – '
+                f'{round(self.times[time_inds[-1]], 3):.3f} sec'
+            )
+            plot_topomap(
+                data=plot_data,
+                pos=self.info,
+                axes=ax,
+                mask=mask,
+                show=False,
+            )
+
+        fig.tight_layout()
+
 
 @verbose
 def group_level_cluster_test(
@@ -1644,7 +1680,7 @@ def group_level_cluster_test(
     cluster_forming_threshold=None,
     n_permutations=5000,
     tail=None,
-    adjacency,
+    adjacency=None,
     seed=None,
     n_jobs=None,
     verbose=None
@@ -1656,14 +1692,16 @@ def group_level_cluster_test(
     data : dict
         keys are condition names, values are :class:`~mne.Evoked` or
         :class:`~mne.time_frequency.AverageTFR`
+    ch_type : str
+        ...
+    adjacency : scipy.sparse.spmatrix | None
+        ...
     cluster_forming_threshold : float | None
         ...
     %(n_permutations_clust_all)s
     tail : 'left' | 'right' | None
         Whether to perform a one-sided test on the left or right tail, or a
         two sided test. If ``None`` (default), a two sided test is performed.
-    adjacency : scipy.sparse.spmatrix
-        ...
     %(seed)s
     %(n_jobs)s
     %(verbose)s
@@ -1719,10 +1757,6 @@ def group_level_cluster_test(
 
     T_values, clusters, cluster_p_values, _ = result
     del result
-
-    # significant_clusters_idx = np.where(
-    #     cluster_p_values < cluster_significance_p_value)[0]
-    # significant_clusters = clusters[significant_clusters_idx]
 
     result = ClusterTestResult(
         T_values=T_values,
