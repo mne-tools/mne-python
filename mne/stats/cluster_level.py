@@ -1587,15 +1587,15 @@ class ClusterTestResult:
         # XXX colors seem to change depending on zoom level?!?!?!!??!?!!!!!!???
         #
         # Todo:
-        # - vertical line indicating time point zero
-        # - add information on thresholds, n_permutations etc to results class
-        # - add pandas dataframe export
-        # - plot topos for all significant clusters into a single figure
-        # - if adjacency is None, call find_adjacency for the specified ch_type
-        # - check that all evokeds have the same ch_names, times, etc.
-        # - ggf Evokeds sub-setten fuer den specified ch_type
-        # - demand ch_type parameter if multiple ch_types are present in the
-        #   data
+        # [x] vertical line indicating time point zero
+        # [ ] add information on thresholds, n_permutations etc to results class
+        # [ ] add pandas dataframe export
+        # [x] plot topos for all significant clusters into a single figure
+        # [ ] if adjacency is None, call find_adjacency for the specified ch_type
+        # [ ] check that all evokeds have the same ch_names, times, etc.
+        # [ ] sub-set Evokeds for specified ch_type
+        # [ ] demand ch_type parameter if multiple ch_types are present in the
+        #     data
         img = ax.imshow(
             self.T_values.T, extent=extent, aspect='auto',
             cmap='RdBu', norm=colors.CenteredNorm()
@@ -1608,6 +1608,10 @@ class ClusterTestResult:
             T_values_sig_clusters.T, extent=extent, aspect='auto',
             cmap='RdBu', norm=colors.CenteredNorm()
         )
+        # Add vertical line at time point zero
+        if any(self.times < 0) and any(self.times > 0):
+            ax.axvline(0, color='black', linestyle='--', lw=0.75)
+
         # add colorbar
         plt.colorbar(
             ax=ax, shrink=0.75, orientation='vertical', mappable=img,
@@ -1620,6 +1624,7 @@ class ClusterTestResult:
         ax.set_xlabel('Time (s)')
         ax.set_ylabel('Channel index')
 
+        # Plot topographies for significant clusters
         significant_clusters_idx = np.where(
             self.cluster_p_values < cluster_selection_threshold
         )[0]
