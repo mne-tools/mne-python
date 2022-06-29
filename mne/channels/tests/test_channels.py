@@ -282,14 +282,14 @@ def test_read_ch_adjacency(tmp_path):
 
 def _download_ft_neighbors(target_dir):
     """Download the known neighbors from FieldTrip."""
-    import pooch
-    pooch.get_logger().setLevel('ERROR')  # reduce verbosity
-
     # The entire FT repository is larger than a GB, so we'll just download
     # the few files we need.
     def _download_one_ft_neighbor(
         neighbor: _BuiltinChannelAdjacency
     ):
+        # Log level setting must happen inside the job to work properly
+        import pooch
+        pooch.get_logger().setLevel('ERROR')  # reduce verbosity
         fname = neighbor.fname
         url = neighbor.source_url
 

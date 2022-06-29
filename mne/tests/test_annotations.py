@@ -569,7 +569,8 @@ def test_annotation_concat():
     assert_equal(len(c), 6)
 
     # c should have updated channel names
-    assert_array_equal(c.ch_names, [('1',), ('2',), (), (), ('3',), ()])
+    want_names = np.array([('1',), ('2',), (), (), ('3',), ()], dtype='O')
+    assert_array_equal(c.ch_names, want_names)
 
     # test += operator (modifies a in place)
     a += b
