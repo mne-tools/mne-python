@@ -1551,7 +1551,7 @@ class ClusterTestResult:
             The time points.
         info : Info
             ...
-        tail : 'left' | 'right' | None
+        tail : 'left' | 'right' | 'both'
             ...
         """
         self.T_values = T_values
@@ -1655,7 +1655,7 @@ class ClusterTestResult:
 
         if self.tail in ('left', 'right'):
             vmin, vmax = self.T_values.min(), self.T_values.max()
-        else:
+        else:  # 'both'
             vmax = np.abs(self.T_values).max()
             vmin = -vmax
 
@@ -1693,13 +1693,19 @@ class ClusterTestResult:
         fig.tight_layout()
 
 
+_tail_str_to_int_map = {
+    'left': -1,
+    'right': 1,
+    'both': 0,
+}
+
 @verbose
 def group_level_cluster_test(
     data,
     *,
     cluster_forming_threshold=None,
     n_permutations=5000,
-    tail=None,
+    tail='both',
     adjacency=None,
     seed=None,
     n_jobs=None,
@@ -1719,9 +1725,9 @@ def group_level_cluster_test(
     cluster_forming_threshold : float | None
         ...
     %(n_permutations_clust_all)s
-    tail : 'left' | 'right' | None
+    tail : 'left' | 'right' | 'both'
         Whether to perform a one-sided test on the left or right tail, or a
-        two sided test. If ``None`` (default), a two sided test is performed.
+        two sided test. If ``'both'`` (default), a two sided test is performed.
     %(seed)s
     %(n_jobs)s
     %(verbose)s
@@ -1734,14 +1740,6 @@ def group_level_cluster_test(
     if len(data) == 0 or len(data) > 2:
         raise ValueError('Data must contain one or two elements.'
                          f'Got {len(data)}.')
-
-    # rename tail
-    if tail is None:
-        tail = 0
-    elif tail == 'left':
-        tail = -1 # XXX check dimensions
-    elif tail == 'right':
-        tail = 1 # XXX check dimensions
 
     # if data has two entries, compute the difference
     if len(data) == 2:
@@ -1768,7 +1766,7 @@ def group_level_cluster_test(
         data_array,
         threshold=cluster_forming_threshold,
         n_permutations=n_permutations,
-        tail=tail,
+        tail=_tail_str_to_int_map[tail],
         adjacency=adjacency,
         seed=seed,
         n_jobs=n_jobs,
