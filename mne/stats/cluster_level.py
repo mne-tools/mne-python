@@ -1530,7 +1530,7 @@ class ClusterTestResult:
         clusters,
         cluster_p_values,
         times,
-        ch_names,
+        info,
     ):
         """Container for cluster permutation test results.
 
@@ -1546,18 +1546,21 @@ class ClusterTestResult:
             _description_
         cluster_p_values : _type_
             _description_
-        times : ndarray
+        times : ndarray, shape (n_times,)
             The time points.
-        ch_names : list of str
-            The channel names.
+        info : Info
         """
         self.T_values = T_values
         self.clusters = clusters
         self.cluster_p_values = cluster_p_values
         self.times = times
-        self.ch_names = ch_names
+        self.info = info
 
-    def plot_T_values(self, cluster_selection_threshold=1, info=None):
+    def plot_T_values(
+        self,
+        *,
+        cluster_selection_threshold=1,
+    ):
         import matplotlib.pyplot as plt
         import matplotlib.colors as colors
         # mask T-values outside of significant clusters with nans
@@ -1568,7 +1571,12 @@ class ClusterTestResult:
         del cluster, p_val
 
         _, ax = plt.subplots()
-        extent = (self.times[0], self.times[-1], len(self.ch_names)-1, 0)
+        extent = (
+            self.times[0],   # left
+            self.times[-1],  # right
+            len(self.info['ch_names']) - 1,  # bottom
+            0  # top
+        )
 
         # This seems highly inefficient, but is doing the job for us:
         # 1. Plot all T-values with RdBu colors; the plotted values is what
@@ -1598,39 +1606,35 @@ class ClusterTestResult:
         ax.set_xlabel('Time (s)')
         ax.set_ylabel('Channel Index')
 
-        if not info==None:
-            # XXX add topographies for each cluster
-            significant_clusters_idx = np.where(
-                                self.cluster_p_values < cluster_selection_threshold)
+        # XXX add topographies for each cluster
+        significant_clusters_idx = np.where(
+                            self.cluster_p_values < cluster_selection_threshold)
 
-            clu_idx = 0
-            # XXX select 1 cluster for now, need to make this a loop and put all
-            # plots in one figure
+        clu_idx = 0
+        # XXX select 1 cluster for now, need to make this a loop and put all
+        # plots in one figure
 
-            cluster = self.clusters[significant_clusters_idx[0][clu_idx]]
+        cluster = self.clusters[significant_clusters_idx[0][clu_idx]]
 
-            time_inds, space_inds = np.squeeze(cluster)
-            ch_inds = np.unique(space_inds)
-            time_inds = np.unique(time_inds)
+        time_inds, space_inds = np.squeeze(cluster)
+        ch_inds = np.unique(space_inds)
+        time_inds = np.unique(time_inds)
 
-            # create spatial mask
-            mask = np.zeros((len(self.ch_names), 1), dtype=bool)
-            mask[ch_inds, :] = True
+        # create spatial mask
+        mask = np.zeros((len(self.info['ch_names']), 1), dtype=bool)
+        mask[ch_inds, :] = True
 
-            # extract data from significant times and avg over time
-            plot_data = self.T_values[time_inds,:]
-            plot_data = plot_data.mean(axis = 0)
+        # extract data from significant times and avg over time
+        plot_data = self.T_values[time_inds,:]
+        plot_data = plot_data.mean(axis = 0)
 
-            _, ax = plt.subplots()
-            plot_topomap(plot_data, info, axes=ax,
-                                mask=mask)
-            # XXX can we get the positions from the adjaceny to not pass
-            # the info here?
-            ax.set_title("sig. cluster {0}: {1:.2f} - {2:.2f} ".
-            format(clu_idx, self.times[time_inds[0]], self.times[time_inds[-1]]))
-            # XXX title does not show with inline plotting
-        else:
-            print('Got no info, so no topography is plotted.')
+        _, ax = plt.subplots()
+        plot_topomap(plot_data, self.info, axes=ax, mask=mask)
+        # XXX can we get the positions from the adjaceny to not pass
+        # the info here?
+        ax.set_title("sig. cluster {0}: {1:.2f} - {2:.2f} ".
+        format(clu_idx, self.times[time_inds[0]], self.times[time_inds[-1]]))
+        # XXX title does not show with inline plotting
 
 @verbose
 def group_level_cluster_test(
@@ -1724,6 +1728,6 @@ def group_level_cluster_test(
         clusters=clusters,
         cluster_p_values=cluster_p_values,
         times=list(data.values())[0][0].times,
-        ch_names=list(data.values())[0][0].ch_names,
+        info=list(data.values())[0][0].info,
     )
     return result
