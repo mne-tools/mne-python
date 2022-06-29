@@ -271,7 +271,7 @@ def _get_ch_names(fname):
         ch_names = [name for name in ch_names
                     if name not in
                     ['Nasion',
-                     'Left periauricular point','Right periauricular point']]
+                     'Left periauricular point', 'Right periauricular point']]
     return ch_names
 
 
@@ -484,9 +484,6 @@ class RawMff(BaseRaw):
         info['device_info'] = dict(type=egi_info['device'])
 
         # First: EEG
-        ch_names = [channel_naming % (i + 1) for i in
-                    range(egi_info['n_channels'])]
-        
         ch_names = _get_ch_names(input_fname)
         assert len(ch_names) == egi_info['n_channels'], 'test failed'
 
@@ -883,10 +880,8 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     # Load metadata into info object
     # Exclude info['meas_date'] because record time info in
     # averaged MFF is the time of the averaging, not true record time.
-    ch_names = [channel_naming % (i + 1) for i in
-                range(mff.num_channels['EEG'])]
     ch_names = _get_ch_names(fname)
-    
+
     ch_names.extend(egi_info['pns_names'])
     info = create_info(ch_names, mff.sampling_rates['EEG'], ch_types)
     with info._unlock():
