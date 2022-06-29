@@ -305,8 +305,8 @@ def _read_locs(filepath, chs, egi_info):
             nlr[dig_ident_map[name]] = loc
         else:
             if name in reference_names:
+                # add location to channel entry
                 ch_pos['EEG000'] = loc
-            # add location to channel entry
             id_ = np.flatnonzero(numbers == nr)
             if len(id_) == 0:
                 hsp.append(loc)
@@ -488,6 +488,7 @@ class RawMff(BaseRaw):
                     range(egi_info['n_channels'])]
         
         ch_names = _get_ch_names(input_fname)
+        assert len(ch_names) == egi_info['n_channels'], 'test failed'
 
         # Second: Stim
         ch_names.extend(list(egi_info['event_codes']))

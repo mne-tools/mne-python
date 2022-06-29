@@ -137,14 +137,14 @@ def test_io_egi_mff():
     assert raw.info['sfreq'] == 1000.
     # The ref here is redundant, but we don't currently have a way in
     # DigMontage to mark that a given channel is actually the ref so...
+    # ['dig'][130] is a duplicate of ['dig'][129], the ref chan
     assert len(raw.info['dig']) == 133  # 129 eeg + 1 ref + 3 cardinal points
     assert raw.info['dig'][0]['ident'] == FIFF.FIFFV_POINT_LPA  # EEG channel LPA
     assert raw.info['dig'][0]['kind'] == FIFF.FIFFV_POINT_CARDINAL
-    #assert raw.info['dig'][3]['ident'] == 0  # Reference channel
     assert raw.info['dig'][3]['kind'] == FIFF.FIFFV_POINT_EEG
-    assert raw.info['dig'][-1]['ident'] == 129  # Reference channel
+    assert raw.info['dig'][-2]['ident'] == 129  # Ref chan
     
-    ref_loc = raw.info['dig'][3]['r']
+    ref_loc = raw.info['dig'][-2]['r']
     eeg_picks = pick_types(raw.info, eeg=True)
     assert len(eeg_picks) == 129
     for i in eeg_picks:
@@ -154,7 +154,7 @@ def test_io_egi_mff():
     assert raw.info['device_info']['type'] == 'HydroCel GSN 128 1.0'
 
     assert 'eeg' in raw
-    eeg_chan = [c for c in raw.ch_names if 'EEG' in c]
+    eeg_chan = [c for c in raw.ch_names if 'E' in c] # i.e. 'E1, 'E2' ..'VREF'
     assert len(eeg_chan) == 129
     assert 'STI 014' in raw.ch_names
 
