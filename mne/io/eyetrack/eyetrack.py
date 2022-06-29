@@ -108,10 +108,16 @@ class RawEyelink(BaseRaw):
         #first_sample = samples.min()
 
         # clean out misread data
-        # tSample > 0
+        # assert tSample > 0
         df_samples = df_samples[df_samples.tSample > 0]
-        # also clean out rows where number of nans doesnt fit!
+        # clean out rows with duplicate sampletime, as these are prob errors
         # tbd
+        # also clean out rows where number of nans doesnt fit!
+        #nan_lines = df_samples.isna().any(axis=1)
+        #tmp = df_samples[nan_lines]
+
+        #mod_factor = 2 if (pos and not pupil) else 3 if (pos and pupil) else 1
+        #(df_samples.isna().sum(axis=1) % mod_factor) != 0
 
         # fix epoched recording by making it contiuous
         df_samples['tSample'] = df_samples['tSample'].astype(int)
