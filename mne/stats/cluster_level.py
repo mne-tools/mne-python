@@ -1598,12 +1598,15 @@ class ClusterTestResult:
         if self.tail == 'left':
             vmin = self.T_values.min()
             vmax = 0
+            cmap = 'Reds_r'
         elif self.tail == 'right':
             vmin = 0
             vmax = self.T_values.max()
+            cmap = 'Reds'
         else:  # 'both'
             vmax = np.abs(self.T_values).max()
             vmin = -vmax
+            cmap = 'RdBu_r'
 
         ax.imshow(
             self.T_values.T, extent=extent, aspect='auto',
@@ -1611,7 +1614,7 @@ class ClusterTestResult:
         )
         img = ax.imshow(
             T_values_sig_clusters.T, extent=extent, aspect='auto',
-            cmap='RdBu_r', vmin=vmin, vmax=vmax, interpolation='none',
+            cmap=cmap, vmin=vmin, vmax=vmax, interpolation='none',
         )
         # Add vertical line at time point zero
         if any(self.times < 0) and any(self.times > 0):
@@ -1677,7 +1680,7 @@ class ClusterTestResult:
                 pos=self.info,
                 axes=ax,
                 mask=mask,
-                cmap='RdBu_r',
+                cmap=cmap,
                 vmin=vmin,
                 vmax=vmax,
                 show=False,
