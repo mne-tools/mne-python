@@ -1530,6 +1530,7 @@ class ClusterTestResult:
         clusters,
         cluster_p_values,
         n_permutations,
+        cluster_forming_threshold,
         test_kind,
         n_observations,
         times,
@@ -1553,6 +1554,8 @@ class ClusterTestResult:
             ...
         n_permutations : int
             ...
+        cluster_forming_threshold : float
+            ...
         test_kind : 't-test' | 'F-test'
             ...
         n_observations : int
@@ -1575,6 +1578,7 @@ class ClusterTestResult:
         self.n_permutations = n_permutations
         self.test_kind = test_kind
         self.n_observations = n_observations
+        self.cluster_forming_threshold = cluster_forming_threshold
         self.ch_type = ch_type
 
     def to_data_frame(self):
@@ -1588,17 +1592,40 @@ class ClusterTestResult:
         import pandas as pd
 
         columns = [
-            'cluster_idx', 'ch_type', 't_min', 't_max', 'ch_names',
+            'ch_type', 't_min', 't_max', 'ch_names',
             'cluster_p_value',
             'n_permutations', 'cluster_forming_threshold', 'tail',
             'test_kind', 'n_observations'
         ]
+        index = pd.RangeIndex(len(self.clusters), name='cluster_idx')
 
         df = pd.DataFrame(
             columns=columns,
+            index=index,
         )
-        for cluster in self.clusters:
-            pass
+        for cluster_idx, cluster in enumerate(self.clusters):
+            # Cluster time range
+            time_indices = cluster[0]
+            t_min = self.times[time_indices[0]]
+            t_max = self.times[time_indices[-1]]
+
+            # Cluster channel names
+            channel_indices = cluster[1]
+            ch_names = [self.info['ch_names'][i] for i in channel_indices]
+
+            # Cluster p-value
+            p_val = self.cluster_p_values[cluster_idx]
+
+            df.loc[cluster_idx, 't_min'] = t_min
+            df.loc[cluster_idx, 't_max'] = t_max
+            df.loc[cluster_idx, 'ch_names'] = ', '.join(ch_names)
+            df.loc[cluster_idx, 'cluster_p_value'] = p_val
+
+        df['n_permutations'] = self.n_permutations
+        df['tail'] = self.tail
+        df['test_kind'] = self.test_kind
+        df['n_observations'] = self.n_observations
+        df['cluster_forming_threshold'] =  self.cluster_forming_threshold
 
         return df
 
@@ -1790,11 +1817,10 @@ def group_level_cluster_test(
         raise ValueError('Data must contain one or two elements.'
                          f'Got {len(data)}.')
 
-
     if ch_type is None:
-        evoked = list(data.values())[0]
+        evoked = list(data.values())[0][0]
         evoked.pick_types(meg=True, eeg=True, fnirs=True, ecog=True)
-        ch_types = set(evoked.get_ch_types())
+        ch_types = set(evoked.get_channel_types())
         if len(ch_types) > 1:
             raise ValueError(
                 'Multiple channel types found in data. Please specify '
@@ -1853,6 +1879,7 @@ def group_level_cluster_test(
         times=list(data.values())[0][0].times,
         info=list(data.values())[0][0].info,
         tail=tail,
+        cluster_forming_threshold=cluster_forming_threshold,
         n_permutations=n_permutations,
         n_observations=len(data_array),
         test_kind=test_kind,
