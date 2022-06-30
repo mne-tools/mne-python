@@ -1,6 +1,7 @@
 from itertools import product
 import os
 import os.path as op
+from pathlib import Path
 
 import pytest
 import numpy as np
@@ -237,6 +238,9 @@ def test_make_forward_solution():
     with pytest.raises(RuntimeError, match='homogeneous.*1-layer.*EEG'):
         make_forward_solution(fname_raw, fname_trans, fname_src,
                               fname_bem_meg)
+    # make sure everything can be path-like (gh #10872)
+    _ = make_forward_solution(Path(fname_raw), Path(fname_trans),
+                              Path(fname_src), Path(fname_bem), mindist=5.)
 
 
 @testing.requires_testing_data
