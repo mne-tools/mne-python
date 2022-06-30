@@ -1529,7 +1529,11 @@ class ClusterTestResult:
         T_values,
         clusters,
         cluster_p_values,
+        n_permutations,
+        test_kind,
+        n_observations,
         times,
+        ch_type,
         info,
         tail,
     ):
@@ -1547,8 +1551,16 @@ class ClusterTestResult:
             ...
         cluster_p_values : _type_
             ...
+        n_permutations : int
+            ...
+        test_kind : 't-test' | 'F-test'
+            ...
+        n_observations : int
+            ...
         times : ndarray, shape (n_times,)
             The time points.
+        ch_type : ...
+            ...
         info : Info
             ...
         tail : 'left' | 'right' | 'both'
@@ -1560,6 +1572,35 @@ class ClusterTestResult:
         self.times = times
         self.info = info
         self.tail = tail
+        self.n_permutations = n_permutations
+        self.test_kind = test_kind
+        self.n_observations = n_observations
+        self.ch_type = ch_type
+
+    def to_data_frame(self):
+        """Convert to a Pandas DataFrame.
+
+        Returns
+        -------
+        df : DataFrame
+            The dataframe.
+        """
+        import pandas as pd
+
+        columns = [
+            'cluster_idx', 'ch_type', 't_min', 't_max', 'ch_names',
+            'cluster_p_value',
+            'n_permutations', 'cluster_forming_threshold', 'tail',
+            'test_kind', 'n_observations'
+        ]
+
+        df = pd.DataFrame(
+            columns=columns,
+        )
+        for cluster in self.clusters:
+            pass
+
+        return df
 
     def plot_T_values(
         self,
@@ -1594,11 +1635,13 @@ class ClusterTestResult:
         # [ ] demand ch_type parameter if multiple ch_types are present in the
         #     data
         # [ ] add nice (HTML) repr
+        # [ ] add colorbar to topoplots
 
+        # XXX Triple-check that cmaps work as expected for all tails
         if self.tail == 'left':
             vmin = self.T_values.min()
             vmax = 0
-            cmap = 'Reds_r'
+            cmap = 'Blues_r'
             cmap_gray = 'Greys_r'
         elif self.tail == 'right':
             vmin = 0
@@ -1645,6 +1688,7 @@ class ClusterTestResult:
                 'No significant clusters in the data; not plotting '
                 'topographies.'
             )
+            return
         elif significant_clusters_idx.size > 5:
             logger.warn(
                 'More than 5 significant clusters found; plotting '
@@ -1653,6 +1697,11 @@ class ClusterTestResult:
             significant_clusters_idx = significant_clusters_idx[:5]
 
         fig, axes = plt.subplots(nrows=1, ncols=len(significant_clusters_idx))
+
+        # Special-case for only 1 sign. cluster
+        if significant_clusters_idx.size == 1:
+            axes = [axes]
+
         fig.suptitle(
             'T-value topographies for significant clusters',
             fontweight='bold'
@@ -1702,6 +1751,7 @@ _tail_str_to_int_map = {
 def group_level_cluster_test(
     data,
     *,
+    ch_type=None,
     cluster_forming_threshold=None,
     n_permutations=5000,
     tail='both',
@@ -1740,10 +1790,26 @@ def group_level_cluster_test(
         raise ValueError('Data must contain one or two elements.'
                          f'Got {len(data)}.')
 
+
+    if ch_type is None:
+        evoked = list(data.values())[0]
+        evoked.pick_types(meg=True, eeg=True, fnirs=True, ecog=True)
+        ch_types = set(evoked.get_ch_types())
+        if len(ch_types) > 1:
+            raise ValueError(
+                'Multiple channel types found in data. Please specify '
+                'ch_type.'
+            )
+        ch_type = list(ch_types)[0]
+        del ch_types
+
     # if data has two entries, compute the difference
     if len(data) == 2:
         evoked_diff = []
         for evoked1, evoked2 in zip(*data.values()):
+            evoked1.pick(ch_type)
+            evoked2.pick(ch_type)
+
             evoked_diff.append(
                 combine_evoked([evoked1, evoked2], weights=[1, -1])
             )
@@ -1775,6 +1841,11 @@ def group_level_cluster_test(
     T_values, clusters, cluster_p_values, _ = result
     del result
 
+    if len(data) <= 2:
+        test_kind = 't-test'
+    else:
+        raise NotImplementedError('F-test not implemented yet.')
+
     result = ClusterTestResult(
         T_values=T_values,
         clusters=clusters,
@@ -1782,5 +1853,9 @@ def group_level_cluster_test(
         times=list(data.values())[0][0].times,
         info=list(data.values())[0][0].info,
         tail=tail,
+        n_permutations=n_permutations,
+        n_observations=len(data_array),
+        test_kind=test_kind,
+        ch_type=ch_type,
     )
     return result
