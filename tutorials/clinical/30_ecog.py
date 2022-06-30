@@ -34,8 +34,6 @@ Please note that this tutorial requires 3D plotting dependencies (see
 
 # %%
 
-import os.path as op
-
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.cm import get_cmap
@@ -49,7 +47,7 @@ print(__doc__)
 # paths to mne datasets - sample ECoG and FreeSurfer subject
 bids_root = mne.datasets.epilepsy_ecog.data_path()
 sample_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(sample_path, 'subjects')
+subjects_dir = sample_path / 'subjects'
 
 # %%
 # Load in data and perform basic preprocessing
@@ -181,8 +179,8 @@ for i, pos in enumerate(xy_pts):
 
 xyz_pts = np.array([dig['r'] for dig in evoked.info['dig']])
 
-src = mne.read_source_spaces(
-    op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
+src = mne.read_source_spaces(subjects_dir / 'fsaverage' / 'bem' /
+                             'fsaverage-ico-5-src.fif')
 stc = mne.stc_near_sensors(gamma_power_t, trans='fsaverage',
                            subject='fsaverage', subjects_dir=subjects_dir,
                            src=src, surface='pial', mode='nearest',
