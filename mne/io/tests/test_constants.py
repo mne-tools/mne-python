@@ -20,7 +20,7 @@ from mne.utils import requires_good_network
 
 
 # https://github.com/mne-tools/fiff-constants/commits/master
-REPO = 'dominikwelke:add-eyetracking'
+REPO = 'dominikwelke'
 COMMIT = '3da188c2e0d391bed1e4dd023eb07c909c273218'
 
 # These are oddities that we won't address:
