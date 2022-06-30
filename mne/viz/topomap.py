@@ -28,7 +28,7 @@ from ..io.pick import (pick_types, _picks_by_type, pick_info, pick_channels,
                        _MEG_CH_TYPES_SPLIT)
 from ..utils import (_clean_names, _time_mask, verbose, logger, fill_doc,
                      _validate_type, _check_sphere, _check_option, _is_numeric,
-                     warn, check_version)
+                     warn)
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
