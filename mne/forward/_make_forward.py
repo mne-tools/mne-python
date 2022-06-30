@@ -537,10 +537,10 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
     ----------
     %(info_str)s
     %(trans)s
-    src : str | instance of SourceSpaces
+    src : path-like | instance of SourceSpaces
         If string, should be a source space filename. Can also be an
         instance of loaded or generated SourceSpaces.
-    bem : dict | str
+    bem : path-like | dict
         Filename of the BEM (e.g., "sample-5120-5120-5120-bem-sol.fif") to
         use, or a loaded sphere model (dict).
     meg : bool
