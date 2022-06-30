@@ -123,9 +123,6 @@ exclude_trees = ['_build']
 # documents.
 default_role = "py:obj"
 
-# The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'default'
-
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['mne.']
 
