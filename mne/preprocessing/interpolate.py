@@ -4,6 +4,7 @@
 
 from itertools import chain
 import numpy as np
+import pandas as pd
 
 from ..utils import _validate_type
 from ..io import BaseRaw, RawArray
@@ -152,4 +153,42 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
     inst.drop_channels(list(virtual_chs.keys()))
 
     inst.info['bads'] = bads_orig
+    return inst
+
+
+def interpolate_nan(inst, method='linear', limit=100):
+    """ Interpolate missing (NaN) samples
+
+    Using pandas' interpolate method.
+
+    Parameters
+    ----------
+    inst : instance of Epochs, Evoked, or Raw
+        The data object with samples that are to be interpolated.
+    method : str
+        Interpolation technique to use.
+        see https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.
+        interpolate.html
+    limit : int
+        Maximum number of consecutive NaN to fill. Must be greater than 0.
+
+
+    Returns
+    -------
+    inst : instance of Epochs, Evoked, or Raw
+        The modified data object.
+
+    See Also
+    --------
+    -
+
+    """
+    data = inst.get_data()
+    if len(data.shape) < 3:
+        data = pd.DataFrame(data)
+        data.interpolate(method=method, limit=limit, axis=1, inplace=True)
+        inst._data = data.to_numpy()
+    else:
+        raise NotImplementedError("nan interpolation only implemented for 2-"
+                                  "dimensional data, so far.")
     return inst

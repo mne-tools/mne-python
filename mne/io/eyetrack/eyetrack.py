@@ -55,6 +55,7 @@ class RawEyelink(BaseRaw):
     def __init__(self, fname, preload=False, verbose=None,
                  annotate_missing=True, interpolate_missing=True):
         from ...preprocessing import annotate_nan
+        from ...preprocessing.interpolate import interpolate_nan
 
         logger.info('Loading {}'.format(fname))
 
@@ -72,8 +73,7 @@ class RawEyelink(BaseRaw):
                     sfreq=sfreq,
                     eye=eye,
                     pos=pos,
-                    pupil=pupil,
-                    interpolate_missing=interpolate_missing)
+                    pupil=pupil)
         elif ftype == 'edf':
             raise NotImplementedError('Eyelink .edf files not supported, yet')
         else:
@@ -92,9 +92,12 @@ class RawEyelink(BaseRaw):
         if annotate_missing:
             annot_bad = annotate_nan(self)
             self.set_annotations(annot_bad)
+        # interpolate missing data
+        if interpolate_missing:
+            self = interpolate_nan(self)
 
     def _parse_eyelink_asc(self, fname, sfreq, eye='BINO', pos=True,
-                           pupil=True, interpolate_missing=True):
+                           pupil=True):
         from .ParseEyeLinkAscFiles_ import ParseEyeLinkAsc_
         import datetime as dt
 
@@ -160,14 +163,6 @@ class RawEyelink(BaseRaw):
 
         # mod_factor = 2 if (pos and not pupil) else 3 if (pos and pupil) else1
         # (df_samples.isna().sum(axis=1) % mod_factor) != 0
-
-        # interpolate missing samples for gaze position and pupil data
-        # this has to happen before making the data continuous
-        if interpolate_missing:
-            for k in ch_names:
-                df_samples[k] = df_samples[k].interpolate()
-        # section needs work! annotate interpolated segments as bad?
-        # make it optional?
 
         # transpose to correct sfreq
         # samples = df_samples['tSample'].apply(lambda x: x*sfreq/1000.)
