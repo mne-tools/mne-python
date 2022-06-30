@@ -871,7 +871,7 @@ fixed_icons = (
 )
 other_icons = (
     'hand-paper', 'question', 'rocket', 'server', 'code', 'desktop',
-    'terminal', 'cloud-download-alt', 'wrench',
+    'terminal', 'cloud-download-alt', 'wrench', 'hourglass'
 )
 icons = dict()
 for icon in brand_icons + fixed_icons + other_icons:
