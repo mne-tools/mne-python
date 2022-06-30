@@ -129,6 +129,7 @@ def test_io_egi_mff():
     """Test importing EGI MFF simple binary files."""
     raw = read_raw_egi(egi_mff_fname, include=None)
     assert ('RawMff' in repr(raw))
+    assert raw.orig_format == "single"
     include = ['DIN1', 'DIN2', 'DIN3', 'DIN4', 'DIN5', 'DIN7']
     raw = _test_raw_reader(read_raw_egi, input_fname=egi_mff_fname,
                            include=include, channel_naming='EEG %03d',
@@ -198,7 +199,7 @@ def test_io_egi():
                            )
 
     assert 'eeg' in raw
-
+    assert raw.orig_format == "single"
     eeg_chan = [c for c in raw.ch_names if c.startswith('E')]
     assert len(eeg_chan) == 256
     picks = pick_types(raw.info, eeg=True)

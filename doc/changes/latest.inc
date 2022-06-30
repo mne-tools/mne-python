@@ -182,6 +182,8 @@ Bugs
 
 - Correctly report the number of available projections when printing measurement info in a Jupyter notebook (:gh:`10471` by `Clemens Brunner`_)
 
+- Fix value set in ``raw.orig_format`` for readers of BrainVision (ASCII format), EGI and Artemis123 files (:gh:`10851` by `Mathieu Scheltienne`_)
+
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
