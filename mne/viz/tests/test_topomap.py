@@ -687,7 +687,7 @@ def test_plot_topomap_cnorm():
         from matplotlib.colors import TwoSlopeNorm
     else:
         from matplotlib.colors import DivergingNorm as TwoSlopeNorm
-    from matplotlib.colors import CenteredNorm
+    from matplotlib.colors import PowerNorm
 
     rng = np.random.default_rng(42)
     v = rng.uniform(low=-1, high=2.5, size=64)
@@ -711,7 +711,7 @@ def test_plot_topomap_cnorm():
         plot_topomap(v, info, vmax=10, cnorm=cnorm)
 
     # try another subclass of mpl.colors.Normalize
-    plot_topomap(v, info, cnorm=CenteredNorm())
+    plot_topomap(v, info, cnorm=PowerNorm(0.5))
 
 
 def test_plot_bridged_electrodes():
