@@ -1583,14 +1583,6 @@ class ClusterTestResult:
             0  # top
         )
 
-        # This seems highly inefficient, but is doing the job for us:
-        # 1. Plot all T-values with RdBu colors; the plotted values is what
-        #    we're going to build our colorbar from
-        # 2. Overplot with gray
-        # 3. Overplot with singificant clusters in RdBu
-        #
-        # XXX colors seem to change depending on zoom level?!?!?!!??!?!!!!!!???
-        #
         # Todo:
         # [x] vertical line indicating time point zero
         # [ ] add information on thresholds, n_permutations etc to results class
@@ -1602,17 +1594,20 @@ class ClusterTestResult:
         # [ ] demand ch_type parameter if multiple ch_types are present in the
         #     data
         # [ ] add nice (HTML) repr
+
+        if self.tail in ('left', 'right'):
+            vmin, vmax = self.T_values.min(), self.T_values.max()
+        else:  # 'both'
+            vmax = np.abs(self.T_values).max()
+            vmin = -vmax
+
+        ax.imshow(
+            self.T_values.T, extent=extent, aspect='auto',
+            cmap='gray', vmin=vmin, vmax=vmax, interpolation='none',
+        )
         img = ax.imshow(
-            self.T_values.T, extent=extent, aspect='auto',
-            cmap='RdBu_r', norm=colors.CenteredNorm(), interpolation='none',
-        )
-        ax.imshow(
-            self.T_values.T, extent=extent, aspect='auto',
-            cmap='gray', norm=colors.CenteredNorm(), interpolation='none',
-        )
-        ax.imshow(
             T_values_sig_clusters.T, extent=extent, aspect='auto',
-            cmap='RdBu_r', norm=colors.CenteredNorm(), interpolation='none',
+            cmap='RdBu_r', vmin=vmin, vmax=vmax, interpolation='none',
         )
         # Add vertical line at time point zero
         if any(self.times < 0) and any(self.times > 0):
@@ -1652,12 +1647,6 @@ class ClusterTestResult:
             'T-value topographies for significant clusters',
             fontweight='bold'
         )
-
-        if self.tail in ('left', 'right'):
-            vmin, vmax = self.T_values.min(), self.T_values.max()
-        else:  # 'both'
-            vmax = np.abs(self.T_values).max()
-            vmin = -vmax
 
         for cluster_number, cluster_idx in enumerate(significant_clusters_idx):
             cluster = self.clusters[cluster_idx]
