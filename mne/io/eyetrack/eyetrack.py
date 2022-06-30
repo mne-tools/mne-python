@@ -10,7 +10,8 @@ from ...utils import logger, verbose, fill_doc, warn
 
 
 @fill_doc
-def read_raw_eyelink(fname, interpolate_missing=True, preload=False, verbose=None):
+def read_raw_eyelink(fname, preload=False, verbose=None,
+                     annotate_missing=True, interpolate_missing=True):
     """Reader for an XXX file.
 
     Parameters
@@ -29,7 +30,9 @@ def read_raw_eyelink(fname, interpolate_missing=True, preload=False, verbose=Non
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawEyelink(fname, interpolate_missing, preload, verbose)
+    return RawEyelink(fname, preload=preload, verbose=verbose,
+                      annotate_missing=annotate_missing,
+                      interpolate_missing=interpolate_missing)
 
 
 @fill_doc
@@ -49,7 +52,10 @@ class RawEyelink(BaseRaw):
     """
 
     @verbose
-    def __init__(self, fname, interpolate_missing=True, preload=False, verbose=None):
+    def __init__(self, fname, preload=False, verbose=None,
+                 annotate_missing=True, interpolate_missing=True):
+        from ...preprocessing import annotate_nan
+
         logger.info('Loading {}'.format(fname))
 
         # load data
@@ -82,6 +88,10 @@ class RawEyelink(BaseRaw):
         self.set_meas_date(meas_date)
         # set annotiations
         self.set_annotations(annot)
+        # annotate missing data
+        if annotate_missing:
+            annot_bad = annotate_nan(self)
+            self.set_annotations(annot_bad)
 
     def _parse_eyelink_asc(self, fname, sfreq, eye='BINO', pos=True,
                            pupil=True, interpolate_missing=True):

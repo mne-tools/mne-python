@@ -5,7 +5,7 @@ from mne.datasets.testing import data_path, requires_testing_data
 fname = '/Users/dominik.welke/Work/11_datasets/random_eyetrack/edf/' \
         'sub-00_task-aeAHA_eye_mu.asc'
 
-raw = read_raw_eyelink(fname, interpolate_missing=True)
+raw = read_raw_eyelink(fname, interpolate_missing=True, annotate_missing=True)
 
 print(raw)
 
@@ -17,7 +17,7 @@ def test_eyelink_asc():
     fname = '/Users/dominik.welke/Work/11_datasets/random_eyetrack/edf/' \
             'sub-00_task-aeAHA_eye_mini.asc'
 
-    raw = read_raw_eyelink(fname)
+    raw = read_raw_eyelink(fname, interpolate_missing=False)
 
     print(raw)
 
