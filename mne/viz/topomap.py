@@ -793,11 +793,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     for more details on colormap normalization.
     """
     sphere = _check_sphere(sphere)
-    if check_version("matplotlib", "3.2.0"):
-        from matplotlib.colors import TwoSlopeNorm
-    else:
-        from matplotlib.colors import DivergingNorm as TwoSlopeNorm
-    _validate_type(cnorm, (TwoSlopeNorm, None), 'cnorm')
+    from matplotlib.colors import Normalize
+    _validate_type(cnorm, (Normalize, None), 'cnorm')
     if cnorm is not None:
         if vmin is not None:
             warn(f"vmin={cnorm.vmin} is implicitly defined by cnorm, ignoring "
