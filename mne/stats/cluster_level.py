@@ -1595,8 +1595,12 @@ class ClusterTestResult:
         #     data
         # [ ] add nice (HTML) repr
 
-        if self.tail in ('left', 'right'):
-            vmin, vmax = self.T_values.min(), self.T_values.max()
+        if self.tail == 'left':
+            vmin = self.T_values.min()
+            vmax = 0
+        elif self.tail == 'right':
+            vmin = 0
+            vmax = self.T_values.max()
         else:  # 'both'
             vmax = np.abs(self.T_values).max()
             vmin = -vmax
