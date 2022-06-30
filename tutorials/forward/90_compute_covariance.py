@@ -16,8 +16,6 @@ minimum-norm inverse solution. For more information, see
 
 # %%
 
-import os.path as op
-
 import mne
 from mne.datasets import sample
 
@@ -28,10 +26,10 @@ from mne.datasets import sample
 # inverse solution. For more information, see :ref:`minimum_norm_estimates`.
 
 data_path = sample.data_path()
-raw_empty_room_fname = op.join(
-    data_path, 'MEG', 'sample', 'ernoise_raw.fif')
+raw_empty_room_fname = (data_path / 'MEG' / 'sample' /
+                        'ernoise_raw.fif')
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
-raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname)
 raw.set_eeg_reference('average', projection=True)
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
