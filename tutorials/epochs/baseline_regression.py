@@ -34,7 +34,7 @@ raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
 
 #define epoch length
 
-tmin, tmax = -0.200, 0.500
+tmin, tmax = None, 0.500
 
 # %% load the raw data for one subject
 
