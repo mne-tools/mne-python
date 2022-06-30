@@ -546,8 +546,8 @@ def _get_info(fname, stim_channel, eog, misc, exclude, infer_types, preload):
     # physical dimension in µV
     edf_info['offsets'] = (
         edf_info['physical_min'] - edf_info['digital_min'] * edf_info['cal'])
-    #del edf_info['physical_min']
-    #del edf_info['digital_min']
+    del edf_info['physical_min']
+    del edf_info['digital_min']
 
     if edf_info['subtype'] == 'bdf':
         edf_info['cal'][stim_channel_idxs] = 1
