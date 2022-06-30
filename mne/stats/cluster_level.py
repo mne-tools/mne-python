@@ -1599,18 +1599,21 @@ class ClusterTestResult:
             vmin = self.T_values.min()
             vmax = 0
             cmap = 'Reds_r'
+            cmap_gray = 'Greys_r'
         elif self.tail == 'right':
             vmin = 0
             vmax = self.T_values.max()
             cmap = 'Reds'
+            cmap_gray = 'Greys'
         else:  # 'both'
             vmax = np.abs(self.T_values).max()
             vmin = -vmax
             cmap = 'RdBu_r'
+            cmap_gray = 'gray'
 
         ax.imshow(
             self.T_values.T, extent=extent, aspect='auto',
-            cmap='gray', vmin=vmin, vmax=vmax, interpolation='none',
+            cmap=cmap_gray, vmin=vmin, vmax=vmax, interpolation='none',
         )
         img = ax.imshow(
             T_values_sig_clusters.T, extent=extent, aspect='auto',
