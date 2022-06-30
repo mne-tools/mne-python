@@ -2,8 +2,11 @@
 #
 # License: BSD-3-Clause
 
+import numpy as np
+
 from ..base import BaseRaw
 from ..meas_info import create_info
+from ..constants import FIFF
 
 from ...annotations import Annotations
 from ...utils import logger, verbose, fill_doc, warn
@@ -144,9 +147,21 @@ class RawEyelink(BaseRaw):
         ch_names.sort()
 
         n_chan = len(ch_names)
-        ch_types = ['misc'] * n_chan  # ch_types = ['eyetrack'] * n_chan
+        ch_types = ['eyetrack'] * n_chan  # ch_types = ['eyetrack'] * n_chan
 
         info = create_info(ch_names, sfreq, ch_types)
+
+        # set correct channel type and location
+        loc = np.array([np.nan, np.nan, np.nan, np.nan, np.nan, np.nan,
+                        np.nan, np.nan, np.nan, np.nan, np.nan, np.nan])
+        for i_ch, ch_name in enumerate(ch_names):
+            coil_type = (FIFF.FIFFV_COIL_EYETRACK_PUPIL if ('Pupil' in ch_name)
+                         else FIFF.FIFFV_COIL_EYETRACK_POSX if ('X' in ch_name)
+                         else FIFF.FIFFV_COIL_EYETRACK_POSY if ('Y' in ch_name)
+                         else np.nan)
+            loc[3] = 0 if ('L' in ch_name) else 1
+            info['chs'][i_ch]['coil_type'] = coil_type
+            info['chs'][i_ch]['loc'] = loc.copy()
 
         # load data
         df_recalibration, df_msg, df_fix, df_sacc, df_blink, df_samples = \
