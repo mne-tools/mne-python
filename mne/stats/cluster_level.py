@@ -1897,4 +1897,6 @@ def group_level_cluster_test(
         test_kind=test_kind,
         ch_type=ch_type,
     )
+    # XXX if cluster_forming_threshold was not set (None), it will be marked as None
+    # but should get the default from spatio_temporal_cluster_1samp_test
     return result
