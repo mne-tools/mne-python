@@ -889,10 +889,10 @@ you expect).
    If you are using a *Windows command shell*, to use the pattern approach,
    use the following two lines:
 
-   .. code-block:: python
+   .. code-block:: doscon
 
-      set PATTERN=<REGEX_TO_SELECT_MY_TUTORIAL>
-      make html_dev-pattern
+      > set PATTERN=<REGEX_TO_SELECT_MY_TUTORIAL>
+      > make html_dev-pattern
 
     If you are on Windows but using the `git BASH`_ shell, use the same two
     commands but replace ``set`` with ``export``.
