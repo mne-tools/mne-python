@@ -33,8 +33,7 @@ print(__doc__)
 
 dipole_number = 1
 data_path = bst_phantom_elekta.data_path()
-raw = read_raw_fif(
-    (data_path / 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif'))
+raw = read_raw_fif(data_path / 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif')
 raw.crop(40., 50.).load_data()
 order = list(range(160, 170))
 raw.copy().filter(0., 40.).plot(order=order, n_channels=10)
