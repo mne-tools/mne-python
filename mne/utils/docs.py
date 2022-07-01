@@ -1301,6 +1301,12 @@ forward : instance of Forward | None
     .. versionadded:: 0.21
 """
 
+docdict['fullscreen'] = """
+fullscreen : bool
+    Whether to start in fullscreen (``True``) or windowed mode
+    (``False``).
+"""
+
 applyfun_fun_base = """
 fun : callable
     A function to be applied to the channels. The first argument of
@@ -1541,9 +1547,10 @@ info : mne.Info
 """
 
 docdict['info_str'] = f"""
-info : mne.Info | str
-    {_info_base} If ``str``, then it should be a filepath to a file with
-    measurement information (e.g. :class:`mne.io.Raw`).
+info : mne.Info | path-like
+    {_info_base} If ``path-like``, it should be a :class:`str` or
+    :class:`pathlib.Path` to a file with measurement information
+    (e.g. :class:`mne.io.Raw`).
 """
 
 docdict['int_order_maxwell'] = """
@@ -3300,14 +3307,14 @@ If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
     during coregistration. Can also be ``'fsaverage'`` to use the built-in
     fsaverage transformation."""
 
-docdict['trans'] = """
-trans : str | dict | instance of Transform | None
-    %s
+docdict['trans'] = f"""
+trans : path-like | dict | instance of Transform | None
+    {_trans_base}
     If trans is None, an identity matrix is assumed.
 
     .. versionchanged:: 0.19
        Support for 'fsaverage' argument.
-""" % (_trans_base,)
+"""
 
 docdict['trans_not_none'] = """
 trans : str | dict | instance of Transform

@@ -1019,14 +1019,19 @@ else:
 
 
 ###############################################################################
-# workaround: plt.close() doesn't spawn close_event on Agg backend
-# (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)
+# Matplotlib
 
+# workaround: plt.close() doesn't spawn close_event on Agg backend
+# https://github.com/matplotlib/matplotlib/issues/18609
+# scheduled to be fixed by MPL 3.6
 def _close_event(fig):
     """Force calling of the MPL figure close event."""
+    from .utils import logger
     try:
         fig.canvas.close_event()
+        logger.debug(f'Called {fig!r}.canvas.close_event()')
     except ValueError:  # old mpl with Qt
+        logger.debug(f'Calling {fig!r}.canvas.close_event() failed')
         pass  # pragma: no cover
 
 

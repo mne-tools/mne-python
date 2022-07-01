@@ -294,6 +294,7 @@ def test_ascii(tmp_path, data_sep):
         return
 
     raw = read_raw_brainvision(ascii_vhdr_path)
+    assert isinstance(raw.orig_format, str)
     data_new, times_new = raw[:]
     assert_allclose(data_new, data, atol=1e-15)
     assert_allclose(times_new, times)

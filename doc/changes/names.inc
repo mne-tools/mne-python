@@ -451,3 +451,8 @@
 .. _Matti Toivonen: https://github.com/mattitoi
 
 .. _Simon Kern: https://github.com/skjerns
+
+.. _Jordan Drew: https://github.com/jadrew43
+
+.. _Lukas Gemein: https://github.com/gemeinl
+

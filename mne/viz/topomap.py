@@ -28,7 +28,7 @@ from ..io.pick import (pick_types, _picks_by_type, pick_info, pick_channels,
                        _MEG_CH_TYPES_SPLIT)
 from ..utils import (_clean_names, _time_mask, verbose, logger, fill_doc,
                      _validate_type, _check_sphere, _check_option, _is_numeric,
-                     warn, check_version)
+                     warn)
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
@@ -793,11 +793,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     for more details on colormap normalization.
     """
     sphere = _check_sphere(sphere)
-    if check_version("matplotlib", "3.2.0"):
-        from matplotlib.colors import TwoSlopeNorm
-    else:
-        from matplotlib.colors import DivergingNorm as TwoSlopeNorm
-    _validate_type(cnorm, (TwoSlopeNorm, None), 'cnorm')
+    from matplotlib.colors import Normalize
+    _validate_type(cnorm, (Normalize, None), 'cnorm')
     if cnorm is not None:
         if vmin is not None:
             warn(f"vmin={cnorm.vmin} is implicitly defined by cnorm, ignoring "
@@ -2826,8 +2823,9 @@ def plot_ch_adjacency(info, adjacency, ch_names, kind='2d', edit=False):
 
     See Also
     --------
-    mne.channels.find_ch_adjacency
+    mne.channels.get_builtin_ch_adjacencies
     mne.channels.read_ch_adjacency
+    mne.channels.find_ch_adjacency
 
     Notes
     -----

@@ -306,7 +306,7 @@ def _set_aspect_equal(ax):
 @verbose
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                       n_jobs=None, fig=None, vmax=None, n_contours=21,
-                      verbose=None):
+                      *, interaction='terrain', verbose=None):
     """Plot MEG/EEG fields on head surface and helmet in 3D.
 
     Parameters
@@ -334,6 +334,10 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         The number of contours.
 
         .. versionadded:: 0.21
+    %(interaction_scene)s
+        Defaults to ``'terrain'``.
+
+        .. versionadded:: 1.1
     %(verbose)s
 
     Returns
@@ -346,6 +350,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     types = [t for t in ['eeg', 'grad', 'mag'] if t in evoked]
     _validate_type(vmax, (None, 'numeric'), 'vmax')
     n_contours = _ensure_int(n_contours, 'n_contours')
+    _check_option('interaction', interaction, ['trackball', 'terrain'])
 
     time_idx = None
     if time is None:
@@ -365,6 +370,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
     renderer = _get_renderer(fig, bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    renderer.set_interaction(interaction)
 
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
@@ -3002,6 +3008,8 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     _validate_type(mode, str, 'mode')
     _validate_type(coord_frame, str, 'coord_frame')
     _check_option('mode', mode, ('orthoview', 'outlines', 'arrow', 'sphere'))
+    if mode in ('orthoview', 'outlines'):
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     kwargs = dict(
         trans=trans, subject=subject, subjects_dir=subjects_dir,
         coord_frame=coord_frame, ax=ax, block=block, show=show, color=color,
