@@ -96,8 +96,7 @@ def get_channel_type_constants(include_defaults=False):
                          unit=FIFF.FIFF_UNIT_V_M2,
                          coil_type=FIFF.FIFFV_COIL_EEG_CSD),
                 eyetrack=dict(kind=FIFF.FIFFV_EYETRACK_CH,
-                              coil_types=[FIFF.FIFFV_COIL_EYETRACK_POSX,
-                                          FIFF.FIFFV_COIL_EYETRACK_POSY,
+                              coil_types=[FIFF.FIFFV_COIL_EYETRACK_POS,
                                           FIFF.FIFFV_COIL_EYETRACK_PUPIL])
                 )
     if include_defaults:

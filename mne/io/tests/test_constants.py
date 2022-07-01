@@ -55,6 +55,8 @@ _missing_coil_def = (
     303,    # fNIRS optical density
     304,    # fNIRS frequency domain AC amplitude
     305,    # fNIRS frequency domain phase
+    400,    # Eye-tracking gaze position
+    401,    # Eye-tracking pupil size
     1000,   # For testing the MCG software
     2001,   # Generic axial gradiometer
     3011,   # VV prototype wirewound planar sensor
