@@ -10,7 +10,7 @@ from ...evoked import EvokedArray
 @fill_doc
 @verbose
 def read_evoked_besa(fname, head_size=0.095, verbose=None):
-    """Reader function for BESA .avr files.
+    """Reader function for BESA .avr or .mul files.
 
     When a .elp sidecar file is present, it will be used to determine electrode
     positions.
@@ -18,7 +18,7 @@ def read_evoked_besa(fname, head_size=0.095, verbose=None):
     Parameters
     ----------
     fname : str | Path
-        Path to the .avr file.
+        Path to the .avr or .mul file.
     head_size : float | None
         Scale electrode positions to fit the given head radius (in meters). Set
         to ``None`` to keep the electrode positions as defined in the .elp
@@ -28,10 +28,20 @@ def read_evoked_besa(fname, head_size=0.095, verbose=None):
     Returns
     -------
     ev : Evoked
-        The evoked data in the .avr file.
+        The evoked data in the .avr or .mul file.
     """
     fname = Path(fname)
+    if fname.suffix == '.avr':
+        return _read_evoked_besa_avr(fname, head_size, verbose)
+    elif fname.suffix == '.mul':
+        return _read_evoked_besa_mul(fname, head_size, verbose)
+    else:
+        raise ValueError('Filename must end in either .avr or .mul')
+    
 
+@verbose
+def _read_evoked_besa_avr(fname, head_size=0.095, verbose=None):
+    """Reader function for BESA .avr files."""
     with open(fname) as f:
         header = f.readline().strip()
 
@@ -43,20 +53,7 @@ def read_evoked_besa(fname, head_size=0.095, verbose=None):
         if new_style:
             ch_names = f.readline().strip().split()
 
-    # The header line looks like:
-    # Npts= 200  TSB= -100  DI= 5  SB= 1.00  SC= 500.0
-    name_val_pairs = header.split('  ')
-    fields = dict(tuple(pair.split('= ')) for pair in name_val_pairs)
-
-    # Attempt to convert string values to a proper numerical type.
-    for name, val in fields.items():
-        try:
-            fields[name] = int(val)
-        except ValueError:
-            try:
-                fields[name] = float(val)
-            except ValueError:
-                pass  # Keep as string value
+    fields = _parse_header(header)
 
     # Read in the data matrix
     data = np.loadtxt(fname, skiprows=2 if new_style else 1, ndmin=2)
@@ -112,3 +109,42 @@ def read_evoked_besa(fname, head_size=0.095, verbose=None):
     if montage:
         ev.set_montage(montage, verbose=verbose)
     return ev
+
+
+@verbose
+def _read_evoked_besa_mul(fname, head_pos=0.095, verbose=None):
+    """Reader function for BESA .mul files."""
+    pass
+
+
+def _parse_header(header):
+    """Parse an .avr or .mul header string into name/val pairs.
+
+    The header line looks like:
+        Npts= 256   TSB= 0.000 DI= 4.000000 SB= 1.000 SC= 200.0 Nchan= 27
+    No consistent use of separation chars, so parsing this is a bit iffy.
+
+    Parameters
+    ----------
+    header : str
+        The first line of the file.
+
+    Returns
+    -------
+    fields : dict
+        The parsed header fields
+    """
+    parts = header.split()  # Splits on one or more spaces
+    name_val_pairs = zip(parts[::2], parts[1::2])
+    fields = dict((name.replace('=', ''), val) for name, val in name_val_pairs)
+
+    # Attempt to convert string values to a proper numerical type.
+    for name, val in fields.items():
+        try:
+            fields[name] = int(val)
+        except ValueError:
+            try:
+                fields[name] = float(val)
+            except ValueError:
+                pass  # Keep as string value
+    return fields
