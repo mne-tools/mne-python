@@ -161,6 +161,8 @@ class RawEyelink(BaseRaw):
         for i_ch, ch_name in enumerate(ch_names):
             coil_type = (FIFF.FIFFV_COIL_EYETRACK_PUPIL if ('Pupil' in ch_name)
                          else FIFF.FIFFV_COIL_EYETRACK_POS)
+            unit = (FIFF.FIFF_UNIT_UNITLESS if ('Pupil' in ch_name)
+                    else FIFF.FIFF_UNIT_PX)
 
             loc[3] = (-1 if ('L' in ch_name) else
                       1 if ('R' in ch_name) else
@@ -170,6 +172,7 @@ class RawEyelink(BaseRaw):
                       np.nan)
             info['chs'][i_ch]['coil_type'] = coil_type
             info['chs'][i_ch]['loc'] = loc.copy()
+            info['chs'][i_ch]['unit'] = unit
 
         # load data
         df_recalibration, df_msg, df_fix, df_sacc, df_blink, df_samples = \
