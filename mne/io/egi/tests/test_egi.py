@@ -136,12 +136,11 @@ def test_io_egi_mff():
                            test_scaling=False,  # XXX probably some bug
                            )
     assert raw.info['sfreq'] == 1000.
-    # The ref here is redundant, but we don't currently have a way in
-    # DigMontage to mark that a given channel is actually the ref so...
-    assert len(raw.info['dig']) == 133  # 129 eeg + 1 ref + 3 cardinal points
-    assert raw.info['dig'][0]['ident'] == 1  # EEG channel E1
-    assert raw.info['dig'][3]['ident'] == 0  # Reference channel
-    assert raw.info['dig'][-1]['ident'] == 129  # Reference channel
+    assert len(raw.info['dig']) == 132  # 3 cardinal points + 129 eeg (one is ref)
+    assert raw.info['dig'][0]['ident'] == FIFF.FIFFV_POINT_LPA
+    assert raw.info['dig'][0]['kind'] == FIFF.FIFFV_POINT_CARDINAL
+    assert raw.info['dig'][3]['kind'] == FIFF.FIFFV_POINT_EEG
+    assert raw.info['dig'][-1]['ident'] == 129
     assert raw.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
     ref_loc = raw.info['dig'][3]['r']
     eeg_picks = pick_types(raw.info, eeg=True)
