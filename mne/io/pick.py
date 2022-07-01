@@ -150,6 +150,7 @@ _first_rule = {
     FIFF.FIFFV_GOODNESS_FIT: 'gof',
     FIFF.FIFFV_ECOG_CH: 'ecog',
     FIFF.FIFFV_FNIRS_CH: 'fnirs',
+    FIFF.FIFFV_EYETRACK_CH: 'eyetrack',
 }
 # How to reduce our categories in channel_type (originally)
 _second_rules = {
@@ -190,7 +191,7 @@ def channel_type(info, idx):
 
             {'grad', 'mag', 'eeg', 'csd', 'stim', 'eog', 'emg', 'ecg',
              'ref_meg', 'resp', 'exci', 'ias', 'syst', 'misc', 'seeg', 'dbs',
-              'bio', 'chpi', 'dipole', 'gof', 'ecog', 'hbo', 'hbr'}
+              'bio', 'chpi', 'dipole', 'gof', 'ecog', 'hbo', 'hbr', 'eyetrack'}
     """
     # This is faster than the original _channel_type_old now in test_pick.py
     # because it uses (at most!) two dict lookups plus one conditional
@@ -375,7 +376,8 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False, seeg=False, dipole=False,
                gof=False, bio=False, ecog=False, fnirs=False, csd=False,
-               dbs=False, include=(), exclude='bads', selection=None):
+               dbs=False, eyetrack=False,
+               include=(), exclude='bads', selection=None):
     """Pick channels by type and names.
 
     Parameters
@@ -431,6 +433,8 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
         Current source density channels.
     dbs : bool
         Deep brain stimulation channels.
+    eyetrack :
+        Eye-tracking channels.
     include : list of str
         List of additional channels to include. If empty do not include any.
     exclude : list of str | str
@@ -459,7 +463,7 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
                    len(info['comps']) > 0 and meg is not False)
 
     for param in (eeg, stim, eog, ecg, emg, misc, resp, chpi, exci,
-                  ias, syst, seeg, dipole, gof, bio, ecog, csd, dbs):
+                  ias, syst, seeg, dipole, gof, bio, ecog, csd, dbs, eyetrack):
         if not isinstance(param, bool):
             w = ('Parameters for all channel types (with the exception of '
                  '"meg", "ref_meg" and "fnirs") must be of type bool, not {}.')
@@ -468,7 +472,7 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
     param_dict = dict(eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
                       misc=misc, resp=resp, chpi=chpi, exci=exci,
                       ias=ias, syst=syst, seeg=seeg, dbs=dbs, dipole=dipole,
-                      gof=gof, bio=bio, ecog=ecog, csd=csd)
+                      gof=gof, bio=bio, ecog=ecog, csd=csd, eyetrack=eyetrack)
     # avoid triage if possible
     if isinstance(meg, bool):
         for key in ('grad', 'mag'):
@@ -971,7 +975,7 @@ _PICK_TYPES_DATA_DICT = dict(
     meg=True, eeg=True, csd=True, stim=False, eog=False, ecg=False, emg=False,
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
     seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True,
-    dbs=True)
+    dbs=True, eyetrack=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT) + ['ref_meg'])
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
 _FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_cw_amplitude',
@@ -979,11 +983,11 @@ _FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_cw_amplitude',
 _DATA_CH_TYPES_ORDER_DEFAULT = (
     'mag', 'grad', 'eeg', 'csd', 'eog', 'ecg', 'resp', 'emg', 'ref_meg',
     'misc', 'stim', 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio', 'ecog',
-    'dbs') + _FNIRS_CH_TYPES_SPLIT + ('whitened',)
+    'dbs') + _FNIRS_CH_TYPES_SPLIT + ('whitened', 'eyetrack',)
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = (
     'eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'resp', 'emg', 'dipole', 'gof',
-    'bio', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT + ('misc', 'csd')
+    'bio', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT + ('misc', 'csd', 'eyetrack')
 _DATA_CH_TYPES_SPLIT = (
     'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT
 
