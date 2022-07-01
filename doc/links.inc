@@ -132,7 +132,10 @@
 .. _git: https://git-scm.com/
 .. _github: https://github.com
 .. _GitHub Help: https://help.github.com
+.. _GitHub learning lab: https://lab.github.com/
 .. _pro git book: https://git-scm.com/book/
+.. _git bash: https://gitforwindows.org/
+.. _git for Windows: https://gitforwindows.org/
 .. _git clone: http://schacon.github.com/git/git-clone.html
 .. _git checkout: https://schacon.github.io/git/git-checkout.html
 .. _git commit: https://schacon.github.io/git/git-commit.html

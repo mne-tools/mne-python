@@ -886,12 +886,16 @@ all the documentation and additionally execute just your example or tutorial
 you expect).
 
 .. note::
-   On Windows, to use the pattern approach, use the following two lines:
+   If you are using a *Windows command shell*, to use the pattern approach,
+   use the following two lines:
 
    .. code-block:: python
 
-      set PATTERN={<REGEX_TO_SELECT_MY_TUTORIAL>}
+      set PATTERN=<REGEX_TO_SELECT_MY_TUTORIAL>
       make html_dev-pattern
+
+    If you are on Windows but using the `git BASH`_ shell, use the same two
+    commands but replace ``set`` with ``export``.
 
 After either of these commands completes, ``make show`` will open the
 locally-rendered documentation site in your browser. Additional ``make``
@@ -1017,7 +1021,6 @@ it can serve as a useful example of what to expect from the PR review process.
 .. git installation
 
 .. _the .dmg installer: https://git-scm.com/download/mac
-.. _git for Windows: https://gitforwindows.org/
 .. _official Linux instructions: https://git-scm.com/download/linux
 .. _more detailed instructions and alternatives: https://www.atlassian.com/git/tutorials/install-git
 .. _Windows subsystem for Linux: https://docs.microsoft.com/en-us/windows/wsl/about
@@ -1027,8 +1030,6 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. github help pages
 
-.. _GitHub Help: https://help.github.com
-.. _GitHub learning lab: https://lab.github.com/
 .. _fork: https://help.github.com/en/articles/fork-a-repo
 .. _clone: https://help.github.com/en/articles/cloning-a-repository
 .. _push: https://help.github.com/en/articles/pushing-to-a-remote
