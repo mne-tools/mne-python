@@ -522,13 +522,17 @@ class RawMff(BaseRaw):
             info.set_montage(mon, on_missing='ignore')
 
         ref_idx = np.flatnonzero(np.in1d(mon.ch_names, REFERENCE_NAMES))
-        ref_coords = info['chs'][int(ref_idx)]['loc'][:3]
-        for chan in info['chs']:
-            is_eeg = chan['kind'] == FIFF.FIFFV_EEG_CH
-            is_not_ref = chan['ch_name'] not in REFERENCE_NAMES
-            if is_eeg and is_not_ref:
-                chan['loc'][3:6] = ref_coords
+        if len(ref_idx):
+            ref_coords = info['chs'][int(ref_idx)]['loc'][:3]
+            for chan in info['chs']:
+                is_eeg = chan['kind'] == FIFF.FIFFV_EEG_CH
+                is_not_ref = chan['ch_name'] not in REFERENCE_NAMES
+                if is_eeg and is_not_ref:
+                    chan['loc'][3:6] = ref_coords
 
+            # Cz ref was applied during acquisition, this will mark as already set.
+            with info._unlock():
+                info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
         file_bin = op.join(input_fname, egi_info['eeg_fname'])
         egi_info['egi_events'] = egi_events
 
