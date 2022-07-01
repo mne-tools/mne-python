@@ -14,7 +14,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 import pytest
 from scipy import io as sio
 
-from mne import find_events, pick_types
+from mne import find_events, pick_types, pick_channels
 from mne.io import read_raw_egi, read_evokeds_mff, read_raw_fif
 from mne.io.constants import FIFF
 from mne.io.egi.egi import _combine_triggers
@@ -142,9 +142,13 @@ def test_io_egi_mff():
     assert raw.info['dig'][3]['kind'] == FIFF.FIFFV_POINT_EEG
     assert raw.info['dig'][-1]['ident'] == 129
     assert raw.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
-    ref_loc = raw.info['dig'][3]['r']
+    ref_loc = raw.info['dig'][-1]['r']
     eeg_picks = pick_types(raw.info, eeg=True)
     assert len(eeg_picks) == 129
+    # ref channel doesnt store its own loc as ref location
+    # so don't test it
+    ref_pick = pick_channels(raw.info['ch_names'], ['VREF'])
+    eeg_picks = np.setdiff1d(eeg_picks, ref_pick)
     for i in eeg_picks:
         loc = raw.info['chs'][i]['loc']
         assert loc[:3].any(), loc[:3]
@@ -152,8 +156,9 @@ def test_io_egi_mff():
     assert raw.info['device_info']['type'] == 'HydroCel GSN 128 1.0'
 
     assert 'eeg' in raw
+    # test our custom channel naming logic functionality
     eeg_chan = [c for c in raw.ch_names if 'EEG' in c]
-    assert len(eeg_chan) == 129
+    assert len(eeg_chan) == 128  # VREF will not match in comprehension
     assert 'STI 014' in raw.ch_names
 
     events = find_events(raw, stim_channel='STI 014')
