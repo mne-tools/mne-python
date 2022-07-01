@@ -22,7 +22,7 @@ from ..io.constants import FIFF, FWD
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
                           Transform, invert_transform)
-from ..utils import logger, verbose, warn, _pl, _validate_type
+from ..utils import logger, verbose, warn, _pl, _validate_type, _check_fname
 from ..source_space import (_ensure_src, _filter_source_spaces,
                             _make_discrete_source_space, _complete_vol_src)
 from ..source_estimate import VolSourceEstimate
@@ -537,10 +537,10 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
     ----------
     %(info_str)s
     %(trans)s
-    src : str | instance of SourceSpaces
+    src : path-like | instance of SourceSpaces
         If string, should be a source space filename. Can also be an
         instance of loaded or generated SourceSpaces.
-    bem : dict | str
+    bem : path-like | dict
         Filename of the BEM (e.g., "sample-5120-5120-5120-bem-sol.fif") to
         use, or a loaded sphere model (dict).
     meg : bool
@@ -585,10 +585,11 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
         bem_extra = 'instance of ConductorModel'
     else:
         bem_extra = bem
-    if not isinstance(info, (Info, str)):
-        raise TypeError('info should be an instance of Info or string')
-    if isinstance(info, str):
+    _validate_type(info, ('path-like', Info), 'info')
+    if not isinstance(info, Info):
         info_extra = op.split(info)[1]
+        info = _check_fname(info, must_exist=True, overwrite='read',
+                            name='info')
         info = read_info(info, verbose=False)
     else:
         info_extra = 'instance of Info'
