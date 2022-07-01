@@ -21,6 +21,8 @@ from ...annotations import Annotations
 from ...utils import verbose, logger, warn, _check_option, _check_fname
 from ...evoked import EvokedArray
 
+REFERENCE_NAMES = ('VREF', 'Vertex Reference')
+
 
 def _read_mff_header(filepath):
     """Read mff header."""
@@ -254,13 +256,14 @@ def _get_eeg_calibration_info(filepath, egi_info):
     return cals
 
 
-def _read_locs(filepath, chs, egi_info):
+def _read_locs(filepath, egi_info, channel_naming):
     """Read channel locations."""
     from ...channels.montage import make_dig_montage
     fname = op.join(filepath, 'coordinates.xml')
     if not op.exists(fname):
-        return chs, None
-    reference_names = ('VREF', 'Vertex Reference')
+        logger.warn(
+            'File coordinates.xml not found, not setting channel locations')
+        return None, None
     dig_ident_map = {
         'Left periauricular point': 'lpa',
         'Right periauricular point': 'rpa',
@@ -272,9 +275,12 @@ def _read_locs(filepath, chs, egi_info):
     ch_pos = OrderedDict()
     hsp = list()
     nlr = dict()
+    ch_names = list()
     for sensor in sensors:
         name_element = sensor.getElementsByTagName('name')[0].firstChild
-        name = '' if name_element is None else name_element.data
+        num_element = sensor.getElementsByTagName('number')[0].firstChild
+        name = (channel_naming % int(num_element.data) if name_element is None
+                else name_element.data)
         nr = sensor.getElementsByTagName('number')[0].firstChild.data.encode()
         coords = [float(sensor.getElementsByTagName(coord)[0].firstChild.data)
                   for coord in 'xyz']
@@ -283,16 +289,17 @@ def _read_locs(filepath, chs, egi_info):
         if name in dig_ident_map:
             nlr[dig_ident_map[name]] = loc
         else:
-            if name in reference_names:
-                ch_pos['EEG000'] = loc
-            # add location to channel entry
+            # id_ is the index of the channel in egi_info['numbers']
             id_ = np.flatnonzero(numbers == nr)
+            # if it's not in egi_info['numbers'], it's a headshape point
             if len(id_) == 0:
                 hsp.append(loc)
+            # HSP, must be a data or reference channel
             else:
-                ch_pos[chs[id_[0]]['ch_name']] = loc
+                ch_names.append(name)
+                ch_pos[name] = loc
     mon = make_dig_montage(ch_pos=ch_pos, hsp=hsp, **nlr)
-    return chs, mon
+    return mon, ch_names
 
 
 def _add_pns_channel_info(chs, egi_info, ch_names):
@@ -462,10 +469,22 @@ class RawMff(BaseRaw):
         info['utc_offset'] = egi_info['utc_offset']
         info['device_info'] = dict(type=egi_info['device'])
 
-        # First: EEG
-        ch_names = [channel_naming % (i + 1) for i in
-                    range(egi_info['n_channels'])]
+        # read in the montage, if it exists
+        mon, ch_names = _read_locs(input_fname, egi_info, channel_naming)
 
+        # First: EEG
+        _auto_ch_names = [channel_naming % (i + 1) for i in
+                          range(egi_info['n_channels'])]
+        if ch_names is None:
+            ch_names = _auto_ch_names
+        else:
+            missing_ch_name_mask = [len(name) == 0 for name in ch_names]
+            if any(missing_ch_name_mask):
+                logger.info(
+                    'some channel names were missing from  coordinates.xml; '
+                    'falling back to auto-naming for those channels')
+            ch_names = np.where([len(name) == 0 for name in ch_names],
+                                _auto_ch_names, ch_names).tolist()
         # Second: Stim
         ch_names.extend(list(egi_info['event_codes']))
         if egi_info['new_trigger'] is not None:
@@ -482,7 +501,11 @@ class RawMff(BaseRaw):
         ch_coil = FIFF.FIFFV_COIL_EEG
         ch_kind = FIFF.FIFFV_EEG_CH
         chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
-        chs, mon = _read_locs(input_fname, chs, egi_info)
+        # TODO: propogate the VREF channel location to entries 3,4,5 of
+        #       each EEG channel in `chs`
+        # TODO: try using `set_eeg_reference` func with ref=[].
+        #       if that fails, use info._unlock() to set
+        #       custom_ref_applied manually
         sti_ch_idx = [i for i, name in enumerate(ch_names) if
                       name.startswith('STI') or name in event_codes]
         for idx in sti_ch_idx:

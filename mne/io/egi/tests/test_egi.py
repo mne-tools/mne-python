@@ -142,6 +142,7 @@ def test_io_egi_mff():
     assert raw.info['dig'][0]['ident'] == 1  # EEG channel E1
     assert raw.info['dig'][3]['ident'] == 0  # Reference channel
     assert raw.info['dig'][-1]['ident'] == 129  # Reference channel
+    assert raw.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
     ref_loc = raw.info['dig'][3]['r']
     eeg_picks = pick_types(raw.info, eeg=True)
     assert len(eeg_picks) == 129
