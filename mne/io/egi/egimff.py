@@ -299,7 +299,7 @@ def _read_locs(filepath, egi_info, channel_naming):
                 ch_names.append(name)
                 ch_pos[name] = loc
     mon = make_dig_montage(ch_pos=ch_pos, hsp=hsp, **nlr)
-    return mon, ch_names
+    return ch_names, mon
 
 
 def _add_pns_channel_info(chs, egi_info, ch_names):
@@ -470,7 +470,7 @@ class RawMff(BaseRaw):
         info['device_info'] = dict(type=egi_info['device'])
 
         # read in the montage, if it exists
-        mon, ch_names = _read_locs(input_fname, egi_info, channel_naming)
+        ch_names, mon = _read_locs(input_fname, egi_info, channel_naming)
 
         # First: EEG
         _auto_ch_names = [channel_naming % (i + 1) for i in
@@ -501,8 +501,7 @@ class RawMff(BaseRaw):
         ch_coil = FIFF.FIFFV_COIL_EEG
         ch_kind = FIFF.FIFFV_EEG_CH
         chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
-        # TODO: propogate the VREF channel location to entries 3,4,5 of
-        #       each EEG channel in `chs`
+
         # TODO: try using `set_eeg_reference` func with ref=[].
         #       if that fails, use info._unlock() to set
         #       custom_ref_applied manually
@@ -518,8 +517,18 @@ class RawMff(BaseRaw):
         info['chs'] = chs
         info._unlocked = False
         info._update_redundant()
+
         if mon is not None:
             info.set_montage(mon, on_missing='ignore')
+
+        ref_idx = np.flatnonzero(np.in1d(mon.ch_names, REFERENCE_NAMES))
+        ref_coords = info['chs'][int(ref_idx)]['loc'][:3]
+        for chan in info['chs']:
+            is_eeg = chan['kind'] == FIFF.FIFFV_EEG_CH
+            is_not_ref = chan['ch_name'] not in REFERENCE_NAMES
+            if is_eeg and is_not_ref:
+                chan['loc'][3:6] = ref_coords
+
         file_bin = op.join(input_fname, egi_info['eeg_fname'])
         egi_info['egi_events'] = egi_events
 
@@ -898,7 +907,7 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     ch_coil = FIFF.FIFFV_COIL_EEG
     ch_kind = FIFF.FIFFV_EEG_CH
     chs = _create_chs(ch_names, cals, ch_coil, ch_kind, (), (), (), ())
-    chs, mon = _read_locs(fname, chs, egi_info)
+    _, mon = _read_locs(fname, chs, egi_info)
     # Update PNS channel info
     chs = _add_pns_channel_info(chs, egi_info, ch_names)
     with info._unlock():
