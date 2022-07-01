@@ -1581,8 +1581,16 @@ class ClusterTestResult:
         self.cluster_forming_threshold = cluster_forming_threshold
         self.ch_type = ch_type
 
-    def to_data_frame(self):
+    def to_data_frame(self,
+        *,
+        cluster_selection_threshold=1,
+        ):
         """Convert to a Pandas DataFrame.
+        
+        Parameters
+        ----------
+        cluster_selection_threshold : float
+            Only add clusters below this threshold to the data frame.
 
         Returns
         -------
@@ -1627,6 +1635,9 @@ class ClusterTestResult:
         df['n_observations'] = self.n_observations
         df['cluster_forming_threshold'] =  self.cluster_forming_threshold
 
+        # filter clusters below the set cluster selection threshold
+        df = df[df['cluster_p_value'] <= cluster_selection_threshold]
+        
         return df
 
     def plot_T_values(
