@@ -502,9 +502,6 @@ class RawMff(BaseRaw):
         ch_kind = FIFF.FIFFV_EEG_CH
         chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
 
-        # TODO: try using `set_eeg_reference` func with ref=[].
-        #       if that fails, use info._unlock() to set
-        #       custom_ref_applied manually
         sti_ch_idx = [i for i, name in enumerate(ch_names) if
                       name.startswith('STI') or name in event_codes]
         for idx in sti_ch_idx:
