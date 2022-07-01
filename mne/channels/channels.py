@@ -592,8 +592,9 @@ class UpdateChannelsMixin(object):
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False,
-                   ecog=False, fnirs=False, csd=False, dbs=False, include=(),
-                   exclude='bads', selection=None, verbose=None):
+                   ecog=False, fnirs=False, csd=False, dbs=False,
+                   eyetrack=False,
+                   include=(), exclude='bads', selection=None, verbose=None):
         """Pick some channels by type and names.
 
         Parameters
@@ -648,6 +649,8 @@ class UpdateChannelsMixin(object):
             EEG-CSD channels.
         dbs : bool
             Deep brain stimulation channels.
+        eyetrack : bool
+            Eye-tracking channels.
         include : list of str
             List of additional channels to include. If empty do not include
             any.
@@ -675,8 +678,8 @@ class UpdateChannelsMixin(object):
             self.info, meg=meg, eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
-            ecog=ecog, fnirs=fnirs, csd=csd, dbs=dbs, include=include,
-            exclude=exclude, selection=selection)
+            ecog=ecog, fnirs=fnirs, csd=csd, dbs=dbs, eyetrack=eyetrack,
+            include=include, exclude=exclude, selection=selection)
 
         self._pick_drop_channels(idx)
 

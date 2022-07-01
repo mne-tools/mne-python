@@ -433,7 +433,7 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
         Current source density channels.
     dbs : bool
         Deep brain stimulation channels.
-    eyetrack :
+    eyetrack : bool
         Eye-tracking channels.
     include : list of str
         List of additional channels to include. If empty do not include any.
