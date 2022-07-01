@@ -1629,6 +1629,7 @@ class ClusterTestResult:
             df.loc[cluster_idx, 'ch_names'] = ', '.join(ch_names)
             df.loc[cluster_idx, 'cluster_p_value'] = p_val
 
+        df['ch_type'] = self.ch_type
         df['n_permutations'] = self.n_permutations
         df['tail'] = self.tail
         df['test_kind'] = self.test_kind
@@ -1664,8 +1665,8 @@ class ClusterTestResult:
 
         # Todo:
         # [x] vertical line indicating time point zero
-        # [ ] add information on thresholds, n_permutations etc to results class
-        # [ ] add pandas dataframe export
+        # [x] add information on thresholds, n_permutations etc to results class
+        # [x] add pandas dataframe export
         # [x] plot topos for all significant clusters into a single figure
         # [ ] if adjacency is None, call find_adjacency for the specified ch_type
         # [ ] check that all evokeds have the same ch_names, times, etc.
