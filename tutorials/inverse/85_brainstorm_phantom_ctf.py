@@ -22,7 +22,6 @@ References
 
 # %%
 
-import os.path as op
 import warnings
 
 import numpy as np
@@ -42,9 +41,9 @@ data_path = bst_phantom_ctf.data_path(verbose=True)
 # Switch to these to use the higher-SNR data:
 # raw_path = op.join(data_path, 'phantom_200uA_20150709_01.ds')
 # dip_freq = 7.
-raw_path = op.join(data_path, 'phantom_20uA_20150603_03.ds')
+raw_path = data_path / 'phantom_20uA_20150603_03.ds'
 dip_freq = 23.
-erm_path = op.join(data_path, 'emptyroom_20150709_01.ds')
+erm_path = data_path / 'emptyroom_20150709_01.ds'
 raw = read_raw_ctf(raw_path, preload=True)
 
 # %%
