@@ -14,7 +14,8 @@ from ...utils import logger, verbose, fill_doc, warn
 
 @fill_doc
 def read_raw_eyelink(fname, preload=False, verbose=None,
-                     annotate_missing=True, interpolate_missing=True):
+                     annotate_missing=False, interpolate_missing=False,
+                     read_eye_events=True):
     """Reader for an XXX file.
 
     Parameters
@@ -35,7 +36,8 @@ def read_raw_eyelink(fname, preload=False, verbose=None,
     """
     return RawEyelink(fname, preload=preload, verbose=verbose,
                       annotate_missing=annotate_missing,
-                      interpolate_missing=interpolate_missing)
+                      interpolate_missing=interpolate_missing,
+                      read_eye_events=read_eye_events)
 
 
 @fill_doc
@@ -56,7 +58,8 @@ class RawEyelink(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None,
-                 annotate_missing=True, interpolate_missing=True):
+                 annotate_missing=True, interpolate_missing=True,
+                 read_eye_events=True):
         from ...preprocessing import annotate_nan
         from ...preprocessing.interpolate import interpolate_nan
 
@@ -76,7 +79,8 @@ class RawEyelink(BaseRaw):
                     sfreq=sfreq,
                     eye=eye,
                     pos=pos,
-                    pupil=pupil)
+                    pupil=pupil,
+                    read_eye_events=read_eye_events)
         elif ftype == 'edf':
             raise NotImplementedError('Eyelink .edf files not supported, yet')
         else:
@@ -94,13 +98,13 @@ class RawEyelink(BaseRaw):
         # annotate missing data
         if annotate_missing:
             annot_bad = annotate_nan(self)
-            self.set_annotations(annot_bad)
+            self.set_annotations(self.annotations.__add__(annot_bad))
         # interpolate missing data
         if interpolate_missing:
             self = interpolate_nan(self)
 
     def _parse_eyelink_asc(self, fname, sfreq, eye='BINO', pos=True,
-                           pupil=True):
+                           pupil=True, read_eye_events=True):
         from .ParseEyeLinkAscFiles_ import ParseEyeLinkAsc_
         import datetime as dt
 
@@ -189,9 +193,6 @@ class RawEyelink(BaseRaw):
         shiftfun = lambda a, b: a + b - (a % b) if (a % b != 0) else a
 
         sinterval = int(1000 / sfreq)  # d btw samples in ms
-        #df_samples['tSample'] = df_samples['tSample'].apply(
-        #    lambda x: x + sinterval - (x % sinterval) if (x % sinterval != 0)
-        #    else x)  # shift samples forward
         df_samples['tSample'] = df_samples['tSample'].apply(
             lambda x: shiftfun(x, sinterval))
 
@@ -214,11 +215,25 @@ class RawEyelink(BaseRaw):
 
         # make annotations
         # transpose to [s] relative to tmin
-        onset = list((df_msg['time'] - tmin) / 1000)  # data comes in ms
-        duration = [0] * len(onset)
-        description = list(df_msg['text'])
-        annot = Annotations(onset, duration, description,
+        onset_msg = list((df_msg['time'] - tmin) / 1000)  # data comes in ms
+        duration_msg = [0] * len(onset_msg)
+        description_msg = list(df_msg['text'])
+        annot = Annotations(onset_msg, duration_msg, description_msg,
                             orig_time=None, ch_names=None)
+
+        if read_eye_events:
+            # add blinks
+            onset_blink = list((df_blink['tStart'] - tmin) / 1000)
+            duration_blink = list(df_blink['duration'] / 1000)
+            description_blink = list(list('Blink - ' + df_blink['eye']))
+            annot.append(onset_blink, duration_blink, description_blink,
+                         ch_names=None)
+            # add saccades
+            onset_sacc = list((df_sacc['tStart'] - tmin) / 1000)
+            duration_sacc = list(df_sacc['duration'] / 1000)
+            description_sacc = list('Saccade - ' + df_sacc['eye'])
+            annot.append(onset_sacc, duration_sacc, description_sacc,
+                         ch_names=None)
 
         first_sample = int(tmin / sfreq)  # good enough
 
