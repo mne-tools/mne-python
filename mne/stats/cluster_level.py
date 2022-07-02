@@ -1690,6 +1690,20 @@ class ClusterTestResult:
         *,
         cluster_selection_threshold=1,
     ):
+        """_summary_
+
+        Parameters
+        ----------
+        cluster_selection_threshold : int, optional
+            _description_, by default 1
+
+        Returns
+        -------
+        figs
+            A list of figures. The first element is a heatmap of T-values;
+            the second contains to topographic plots of the T-values for
+            significant clusters, if any.
+        """
         import matplotlib.pyplot as plt
         # mask T-values outside of significant clusters with nans
         T_values_sig_clusters = np.nan * np.ones_like(self.T_values)
@@ -1731,7 +1745,8 @@ class ClusterTestResult:
             cmap = 'RdBu_r'
             cmap_gray = 'gray'
 
-        _, ax = plt.subplots()
+        figs = []
+        fig, ax = plt.subplots()
         extent = (
             self.times[0],   # left
             self.times[-1],  # right
@@ -1767,6 +1782,7 @@ class ClusterTestResult:
         )
         ax.set_xlabel('Time (s)')
         ax.set_ylabel('Channel index')
+        figs.append(fig)
 
         # Plot topographies for significant clusters
         significant_clusters_idx = np.where(
@@ -1778,7 +1794,7 @@ class ClusterTestResult:
                 'No significant clusters in the data; not plotting '
                 'topographies.'
             )
-            return
+            return figs
         elif significant_clusters_idx.size > 5:
             logger.warn(
                 'More than 5 significant clusters found; plotting '
@@ -1838,7 +1854,9 @@ class ClusterTestResult:
             label='T-value'
         )
         plt.subplots_adjust(top=0.85)
-        return fig
+        figs.append(fig)
+
+        return figs
 
 
 _tail_str_to_int_map = {
