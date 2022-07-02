@@ -1687,7 +1687,7 @@ class ClusterTestResult:
         # [x] demand ch_type parameter if multiple ch_types are present in the
         #     data
         # [ ] add nice (HTML) repr
-        # [ ] add colorbar to topoplots
+        # [x] add colorbar to topoplots
 
         # XXX Triple-check that cmaps work as expected for all tails
         if self.tail == 'left':
@@ -1748,19 +1748,21 @@ class ClusterTestResult:
             )
             significant_clusters_idx = significant_clusters_idx[:5]
 
-        fig, axes = plt.subplots(nrows=1, ncols=len(significant_clusters_idx))
-
-        # Special-case for only 1 sign. cluster
-        if significant_clusters_idx.size == 1:
-            axes = [axes]
-        assert isinstance(axes, list)
+        fig = plt.figure(constrained_layout=False)
+        gs = fig.add_gridspec(
+            ncols=len(significant_clusters_idx),
+            nrows=2,  # 1 for topomaps, 1 for colorbar
+            height_ratios=[10, 1],
+            hspace=0.05,
+            wspace=0.1,
+        )
 
         fig.suptitle(
             'T-value topographies for significant clusters',
             fontweight='bold'
         )
 
-        for cluster_number, cluster_idx in enumerate(significant_clusters_idx):
+        for plot_number, cluster_idx in enumerate(significant_clusters_idx):
             cluster = self.clusters[cluster_idx]
 
             time_inds, space_inds = np.squeeze(cluster)
@@ -1774,9 +1776,9 @@ class ClusterTestResult:
             # extract data from significant times and avg over time
             plot_data = self.T_values[time_inds, :].mean(axis=0)
 
-            ax = axes[cluster_number]
+            ax = fig.add_subplot(gs[0, plot_number])
             ax.set_title(
-                f'Cluster #{cluster_number + 1}\n'
+                f'Cluster #{plot_number + 1}\n'
                 f'{round(self.times[time_inds[0]], 3):.3f} – '
                 f'{round(self.times[time_inds[-1]], 3):.3f} sec'
             )
@@ -1791,7 +1793,14 @@ class ClusterTestResult:
                 show=False,
             )
 
-        fig.tight_layout()
+        # add colorbar
+        colorbar_ax = fig.add_subplot(gs[1, :])
+        plt.colorbar(
+            cax=colorbar_ax, orientation='horizontal', mappable=img,
+            label='T-value'
+        )
+        plt.subplots_adjust(top=0.85)
+        return fig
 
 
 _tail_str_to_int_map = {
