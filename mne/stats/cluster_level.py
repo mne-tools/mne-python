@@ -1021,21 +1021,30 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     return t_obs, clusters, cluster_pv, H0
 
 
+def _gen_default_cluster_forming_threshold_t(*, n_samples, tail):
+    from scipy.stats import t
+
+    p_thresh = 0.05 / (1 + (tail == 0))
+    threshold = -t.ppf(p_thresh, n_samples - 1)
+    if np.sign(tail) < 0:
+        threshold = -threshold
+    logger.info("Using a threshold of {:.6f}".format(threshold))
+    return threshold
+
+
 def _check_fun(X, stat_fun, threshold, tail=0, kind='within'):
     """Check the stat_fun and threshold values."""
     from scipy import stats
     if kind == 'within':
-        ppf = stats.t.ppf
         if threshold is None:
             if stat_fun is not None and stat_fun is not ttest_1samp_no_p:
                 warn('Automatic threshold is only valid for stat_fun=None '
                      '(or ttest_1samp_no_p), got %s' % (stat_fun,))
-            p_thresh = 0.05 / (1 + (tail == 0))
             n_samples = len(X)
-            threshold = -ppf(p_thresh, n_samples - 1)
-            if np.sign(tail) < 0:
-                threshold = -threshold
-            logger.info("Using a threshold of {:.6f}".format(threshold))
+            threshold = _gen_default_cluster_forming_threshold_t(
+                n_samples=n_samples,
+                tail=tail
+            )
         stat_fun = ttest_1samp_no_p if stat_fun is None else stat_fun
     else:
         assert kind == 'between'
@@ -1888,6 +1897,13 @@ def group_level_cluster_test(
     else:
         raise NotImplementedError('F-test not implemented yet.')
 
+
+    if cluster_forming_threshold is None:
+        cluster_forming_threshold = _gen_default_cluster_forming_threshold_t(
+            n_samples=len(data_array),
+            tail=_tail_str_to_int_map[tail],
+        )
+
     result = ClusterTestResult(
         T_values=T_values,
         clusters=clusters,
@@ -1901,6 +1917,5 @@ def group_level_cluster_test(
         test_kind=test_kind,
         ch_type=ch_type,
     )
-    # XXX if cluster_forming_threshold was not set (None), it will be marked as None
-    # but should get the default from spatio_temporal_cluster_1samp_test
+
     return result
