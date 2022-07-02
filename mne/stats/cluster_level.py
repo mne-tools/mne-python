@@ -1613,13 +1613,17 @@ class ClusterTestResult:
         )
         for cluster_idx, cluster in enumerate(self.clusters):
             # Cluster time range
-            time_indices = cluster[0]
-            t_min = self.times[time_indices[0]]
-            t_max = self.times[time_indices[-1]]
+            unique_time_indices = sorted(
+                set(cluster[0])
+            )
+            t_min = self.times[unique_time_indices[0]]
+            t_max = self.times[unique_time_indices[-1]]
 
             # Cluster channel names
-            channel_indices = cluster[1]
-            ch_names = [self.info['ch_names'][i] for i in channel_indices]
+            unique_channel_indices = cluster[1]
+            ch_names = sorted(
+                set([self.info['ch_names'][i] for i in unique_channel_indices])
+            )
 
             # Cluster p-value
             p_val = self.cluster_p_values[cluster_idx]
