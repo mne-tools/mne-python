@@ -1680,7 +1680,7 @@ class ClusterTestResult:
         df['cluster_forming_threshold'] =  self.cluster_forming_threshold
 
         # filter clusters below the set cluster selection threshold
-        df = df[df['cluster_p_value'] <= cluster_selection_threshold]
+        df = df[df['cluster_p_value'] < cluster_selection_threshold]
 
         return df
 
