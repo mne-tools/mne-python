@@ -1590,6 +1590,21 @@ class ClusterTestResult:
         self.cluster_forming_threshold = cluster_forming_threshold
         self.ch_type = ch_type
 
+    def __repr__(self):
+        s = (
+            f'<ClusterTestResult |\n'
+            f' n_clusters={len(self.clusters)},\n'
+            f' ch_type="{self.ch_type}",\n'
+            f' n_observations={self.n_observations},\n'
+            f' n_permutations={self.n_permutations},\n'
+            f' cluster_forming_threshold='
+            f'{self.cluster_forming_threshold:.6f},\n'
+            f' test_kind="{self.test_kind}",\n'
+            f' tail="{self.tail}"\n'
+            f'>'
+        )
+        return s
+
     def to_data_frame(self,
         *,
         cluster_selection_threshold=1,
@@ -1679,7 +1694,7 @@ class ClusterTestResult:
         # [x] demand ch_type parameter if multiple ch_types are present in the
         #     data
         # [x] add colorbar to topoplots
-        # [ ] add repr
+        # [x] add repr
         # [ ] add HTML repr
 
         # XXX Triple-check that cmaps work as expected for all tails
