@@ -1,0 +1,30 @@
+<table class="table table-hover table-striped table-sm table-responsive small">
+    <tr>
+        <th>Number of clusters</th>
+        <td>{{ n_clusters }}</td>
+    </tr>
+    <tr>
+        <th>Channel type</th>
+        <td>{{ ch_type }}</td>
+    </tr>
+    <tr>
+        <th>Number of observations</th>
+        <td>{{ n_observations }}</td>
+    </tr>
+    <tr>
+        <th>Number of permutations</th>
+        <td>{{ n_permutations }}</td>
+    </tr>
+    <tr>
+        <th>Cluster-forming threshold</th>
+        <td>{{ '%0.6f' % cluster_forming_threshold|float }}</td>
+    </tr>
+    <tr>
+        <th>Statistical test</th>
+        <td>{{ test_kind }}</td>
+    </tr>
+    <tr>
+        <th>Tail(s) of test distribution</th>
+        <td>{{ tail }}</td>
+    </tr>
+</table>

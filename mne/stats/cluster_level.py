@@ -1605,6 +1605,21 @@ class ClusterTestResult:
         )
         return s
 
+    def _repr_html_(self):
+        from ..html_templates import repr_templates_env
+
+        t = repr_templates_env.get_template('clustertestresult.html.jinja')
+        t = t.render(
+            n_clusters=len(self.clusters),
+            ch_type=self.ch_type,
+            n_observations=self.n_observations,
+            n_permutations=self.n_permutations,
+            cluster_forming_threshold=self.cluster_forming_threshold,
+            test_kind=self.test_kind,
+            tail=self.tail,
+        )
+        return t
+
     def to_data_frame(self,
         *,
         cluster_selection_threshold=1,
@@ -1695,7 +1710,7 @@ class ClusterTestResult:
         #     data
         # [x] add colorbar to topoplots
         # [x] add repr
-        # [ ] add HTML repr
+        # [x] add HTML repr
 
         # XXX Triple-check that cmaps work as expected for all tails
         if self.tail == 'left':
