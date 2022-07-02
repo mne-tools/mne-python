@@ -1678,8 +1678,9 @@ class ClusterTestResult:
         # [x] sub-set Evokeds for specified ch_type
         # [x] demand ch_type parameter if multiple ch_types are present in the
         #     data
-        # [ ] add nice (HTML) repr
         # [x] add colorbar to topoplots
+        # [ ] add repr
+        # [ ] add HTML repr
 
         # XXX Triple-check that cmaps work as expected for all tails
         if self.tail == 'left':
