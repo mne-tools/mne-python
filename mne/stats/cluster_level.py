@@ -1668,14 +1668,6 @@ class ClusterTestResult:
                 T_values_sig_clusters[cluster] = self.T_values[cluster]
         del cluster, p_val
 
-        _, ax = plt.subplots()
-        extent = (
-            self.times[0],   # left
-            self.times[-1],  # right
-            len(self.info['ch_names']) - 1,  # bottom
-            0  # top
-        )
-
         # Todo:
         # [x] vertical line indicating time point zero
         # [x] add information on thresholds, n_permutations etc to results class
@@ -1706,11 +1698,24 @@ class ClusterTestResult:
             cmap = 'RdBu_r'
             cmap_gray = 'gray'
 
+        _, ax = plt.subplots()
+        extent = (
+            self.times[0],   # left
+            self.times[-1],  # right
+            len(self.info['ch_names']) - 1,  # bottom
+            0  # top
+        )
         ax.imshow(
             self.T_values.T, extent=extent, aspect='auto',
             cmap=cmap_gray, vmin=vmin, vmax=vmax, interpolation='none',
         )
-        img = ax.imshow(
+        # We store the image object in a variable so we can later use it as a
+        # mappable to create colorbars. Note that we do not have to use an
+        # image that contains ALL t-values (we're only plotting the significant
+        # values here); we simply need an object that contains the correct
+        # mapping, which is ensured thanks to the fact that we pass the pre-
+        # calculated vmin and vmax here together with the correct cmap.
+        t_value_image = ax.imshow(
             T_values_sig_clusters.T, extent=extent, aspect='auto',
             cmap=cmap, vmin=vmin, vmax=vmax, interpolation='none',
         )
@@ -1720,7 +1725,7 @@ class ClusterTestResult:
 
         # add colorbar
         plt.colorbar(
-            ax=ax, shrink=0.75, orientation='vertical', mappable=img,
+            ax=ax, shrink=0.75, orientation='vertical', mappable=t_value_image,
             label='T-value'
         )
         # Axis labels and title
@@ -1796,7 +1801,7 @@ class ClusterTestResult:
         # add colorbar
         colorbar_ax = fig.add_subplot(gs[1, :])
         plt.colorbar(
-            cax=colorbar_ax, orientation='horizontal', mappable=img,
+            cax=colorbar_ax, orientation='horizontal', mappable=t_value_image,
             label='T-value'
         )
         plt.subplots_adjust(top=0.85)
