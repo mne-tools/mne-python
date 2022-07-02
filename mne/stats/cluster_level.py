@@ -1784,7 +1784,7 @@ class ClusterTestResult:
         ax.set_ylabel('Channel index')
         figs.append(fig)
 
-        # Plot topographies for significant clusters
+        # Find significant clusters.
         significant_clusters_idx = np.where(
             self.cluster_p_values < cluster_selection_threshold
         )[0]
@@ -1802,6 +1802,7 @@ class ClusterTestResult:
             )
             significant_clusters_idx = significant_clusters_idx[:5]
 
+        # Plot topographies for significant clusters
         fig = plt.figure(constrained_layout=False)
         gs = fig.add_gridspec(
             ncols=len(significant_clusters_idx),
