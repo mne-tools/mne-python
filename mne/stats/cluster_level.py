@@ -1600,7 +1600,7 @@ class ClusterTestResult:
         import pandas as pd
 
         columns = [
-            'ch_type', 't_min', 't_max', 'ch_names',
+            'ch_type', 't_start', 't_stop', 'ch_names',
             'cluster_p_value',
             'n_permutations', 'cluster_forming_threshold', 'tail',
             'test_kind', 'n_observations'
@@ -1616,8 +1616,8 @@ class ClusterTestResult:
             unique_time_indices = sorted(
                 set(cluster[0])
             )
-            t_min = self.times[unique_time_indices[0]]
-            t_max = self.times[unique_time_indices[-1]]
+            t_start = self.times[unique_time_indices[0]]
+            t_stop = self.times[unique_time_indices[-1]]
 
             # Cluster channel names
             unique_channel_indices = cluster[1]
@@ -1628,8 +1628,8 @@ class ClusterTestResult:
             # Cluster p-value
             p_val = self.cluster_p_values[cluster_idx]
 
-            df.loc[cluster_idx, 't_min'] = t_min
-            df.loc[cluster_idx, 't_max'] = t_max
+            df.loc[cluster_idx, 't_start'] = t_start
+            df.loc[cluster_idx, 't_stop'] = t_stop
             df.loc[cluster_idx, 'ch_names'] = ', '.join(ch_names)
             df.loc[cluster_idx, 'cluster_p_value'] = p_val
 
