@@ -1620,7 +1620,8 @@ class ClusterTestResult:
         )
         return t
 
-    def to_data_frame(self,
+    def to_data_frame(
+        self,
         *,
         cluster_selection_threshold=1,
     ):
@@ -1690,7 +1691,6 @@ class ClusterTestResult:
         cluster_selection_threshold=1,
     ):
         import matplotlib.pyplot as plt
-        import matplotlib.colors as colors
         # mask T-values outside of significant clusters with nans
         T_values_sig_clusters = np.nan * np.ones_like(self.T_values)
         for cluster, p_val in zip(self.clusters, self.cluster_p_values):
@@ -1700,10 +1700,12 @@ class ClusterTestResult:
 
         # Todo:
         # [x] vertical line indicating time point zero
-        # [x] add information on thresholds, n_permutations etc to results class
+        # [x] add information on thresholds, n_permutations etc to results
+        #     class
         # [x] add pandas dataframe export
         # [x] plot topos for all significant clusters into a single figure
-        # [ ] if adjacency is None, call find_adjacency for the specified ch_type
+        # [ ] if adjacency is None, call find_adjacency for the specified
+        #     ch_type
         # [ ] check that all evokeds have the same ch_names, times, etc.
         # [x] sub-set Evokeds for specified ch_type
         # [x] demand ch_type parameter if multiple ch_types are present in the
@@ -1845,6 +1847,7 @@ _tail_str_to_int_map = {
     'both': 0,
 }
 
+
 @verbose
 def group_level_cluster_test(
     data,
@@ -1910,7 +1913,7 @@ def group_level_cluster_test(
             evoked_diff.append(
                 combine_evoked([evoked1, evoked2], weights=[1, -1])
             )
-        data = {'diff' : evoked_diff}
+        data = {'diff': evoked_diff}
         del evoked_diff, evoked1, evoked2
 
     # data now has only one entry
@@ -1942,7 +1945,6 @@ def group_level_cluster_test(
         test_kind = 't-test'
     else:
         raise NotImplementedError('F-test not implemented yet.')
-
 
     if cluster_forming_threshold is None:
         cluster_forming_threshold = _gen_default_cluster_forming_threshold_t(
