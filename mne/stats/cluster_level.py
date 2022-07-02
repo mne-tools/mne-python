@@ -1683,8 +1683,8 @@ class ClusterTestResult:
         # [x] plot topos for all significant clusters into a single figure
         # [ ] if adjacency is None, call find_adjacency for the specified ch_type
         # [ ] check that all evokeds have the same ch_names, times, etc.
-        # [ ] sub-set Evokeds for specified ch_type
-        # [ ] demand ch_type parameter if multiple ch_types are present in the
+        # [x] sub-set Evokeds for specified ch_type
+        # [x] demand ch_type parameter if multiple ch_types are present in the
         #     data
         # [ ] add nice (HTML) repr
         # [ ] add colorbar to topoplots
@@ -1753,6 +1753,7 @@ class ClusterTestResult:
         # Special-case for only 1 sign. cluster
         if significant_clusters_idx.size == 1:
             axes = [axes]
+        assert isinstance(axes, list)
 
         fig.suptitle(
             'T-value topographies for significant clusters',
