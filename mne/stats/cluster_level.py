@@ -1584,9 +1584,9 @@ class ClusterTestResult:
     def to_data_frame(self,
         *,
         cluster_selection_threshold=1,
-        ):
+    ):
         """Convert to a Pandas DataFrame.
-        
+
         Parameters
         ----------
         cluster_selection_threshold : float
@@ -1642,7 +1642,7 @@ class ClusterTestResult:
 
         # filter clusters below the set cluster selection threshold
         df = df[df['cluster_p_value'] <= cluster_selection_threshold]
-        
+
         return df
 
     def plot_T_values(
