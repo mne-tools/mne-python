@@ -32,7 +32,7 @@ def read_evoked_besa(fname, verbose=None):
         return _read_evoked_besa_mul(fname, verbose)
     else:
         raise ValueError('Filename must end in either .avr or .mul')
-    
+
 
 @verbose
 def _read_evoked_besa_avr(fname, verbose):
@@ -61,7 +61,7 @@ def _read_evoked_besa_avr(fname, verbose):
                 f'the .avr file ({len(ch_names)}) and the number of rows '
                 f'in the data matrix ({len(data)}).')
     else:
-        # Detemine channel names from the .elp sidecar file
+        # Determine channel names from the .elp sidecar file
         if ch_types is not None:
             ch_names = list(ch_types.keys())
             if len(ch_names) != len(data):
@@ -76,10 +76,9 @@ def _read_evoked_besa_avr(fname, verbose):
     # Consolidate channel types
     if ch_types is None:
         logger.info('Marking all channels as EEG.')
-        ch_types = {ch_name: 'eeg' for ch_name in ch_names}
+        ch_types = ['eeg'] * len(ch_names)
     else:
-        # Only retain the types of the channels actually present in the data.
-        ch_types = {ch: ch_types[ch] for ch in ch_names}
+        ch_types = [ch_types[ch] for ch in ch_names]
 
     # Go over all the header fields and make sure they are all defined to
     # something sensible.
@@ -136,10 +135,9 @@ def _read_evoked_besa_mul(fname, verbose):
     ch_types = _read_elp_sidecar(fname)
     if ch_types is None:
         logger.info('Marking all channels as EEG.')
-        ch_types = {ch_name: 'eeg' for ch_name in ch_names}
+        ch_types = ['eeg'] * len(ch_names)
     else:
-        # Only retain the types of the channels actually present in the data.
-        ch_types = {ch: ch_types[ch] for ch in ch_names}
+        ch_types = [ch_types[ch] for ch in ch_names]
 
     # Go over all the header fields and make sure they are all defined to
     # something sensible.
@@ -171,7 +169,6 @@ def _read_evoked_besa_mul(fname, verbose):
         fields['SegmentName'] = ''
 
     # Build the Evoked object based on the header fields.
-    print(ch_types)
     info = create_info(ch_names, sfreq=1000 / fields['SamplingInterval[ms]'],
                        ch_types=ch_types)
     return EvokedArray(data / fields['Bins/uV'] / 1E6, info,
