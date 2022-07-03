@@ -1720,7 +1720,7 @@ class ClusterTestResult:
         # [x] plot topos for all significant clusters into a single figure
         # [ ] if adjacency is None, call find_adjacency for the specified
         #     ch_type
-        # [ ] check that all evokeds have the same ch_names, times, etc.
+        # [x] check that all evokeds have the same ch_names, times, etc.
         # [x] sub-set Evokeds for specified ch_type
         # [x] demand ch_type parameter if multiple ch_types are present in the
         #     data
@@ -1922,21 +1922,53 @@ def group_level_cluster_test(
         ch_type = list(ch_types)[0]
         del ch_types
 
-    # if data has two entries, compute the difference
+    # Pick channel types.
+    # XXX This creates an unnecessary copy of the data if no picking is needed.
+    for condition, evokeds in data.items():
+        data[condition] = [
+            e.copy().pick(ch_type)
+            for e in evokeds
+        ]
+    del condition, evokeds
+
+    # Ensure times and channels match across evokeds.
+    all_evokeds = []
+    for evokeds in data.values():
+        all_evokeds.extend(evokeds)
+
+    times = all_evokeds[0].times
+    ch_names = all_evokeds[0].ch_names
+
+    for evoked in all_evokeds[1:]:
+        if not np.array_equal(evoked.times, times):
+            raise ValueError(
+                'All evokeds must have the same times.'
+            )
+        if not np.array_equal(evoked.ch_names, ch_names):
+            raise ValueError(
+                'All evokeds must have the same ch_names, and in the same '
+                'order.'
+            )
+
+    del all_evokeds, evokeds, times, ch_names
+
+    # If two conditions were provided, calculate the difference – we will
+    # later perform a one-sample t-test against zero.
     if len(data) == 2:
         evoked_diff = []
         for evoked1, evoked2 in zip(*data.values()):
-            evoked1.pick(ch_type)
-            evoked2.pick(ch_type)
-
-            evoked_diff.append(
-                combine_evoked([evoked1, evoked2], weights=[1, -1])
+            diff = combine_evoked(
+                [evoked1, evoked2],
+                weights=[1, -1]
             )
-        data = {'diff': evoked_diff}
-        del evoked_diff, evoked1, evoked2
+            evoked_diff.append(diff)
 
-    # data now has only one entry
-    # now we extract a numpy array
+        data = {'diff': evoked_diff}
+        del diff, evoked_diff, evoked1, evoked2
+
+
+    # data now is a dictionary with only a single key
+    # We can now extract the evoked data as a NumPy array.
     data_array = [e.data for e in list(data.values())[0]]
     data_array = np.asarray(data_array)
 
