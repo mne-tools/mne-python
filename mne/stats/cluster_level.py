@@ -1903,7 +1903,7 @@ def group_level_cluster_test(
     """
     # XXX add support for AverageTFR
     # XXX check for consistent input size across conditions
-    from .. import combine_evoked
+    from .. import combine_evoked  # avoid circular import
 
     _validate_type(data, types=dict, item_name='data')
     if len(data) == 0 or len(data) > 2:
@@ -1965,6 +1965,9 @@ def group_level_cluster_test(
     else:
         raise NotImplementedError('F-test not implemented yet.')
 
+    # If clussuter_forming_threshold was not passed, calculate it the same
+    # way that spatio_temporal_cluster_1samp_test() does, so we can store it
+    # in the result.
     if cluster_forming_threshold is None:
         cluster_forming_threshold = _gen_default_cluster_forming_threshold_t(
             n_samples=len(data_array),
