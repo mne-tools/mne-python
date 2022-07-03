@@ -1727,8 +1727,16 @@ class ClusterTestResult:
         # [x] add colorbar to topoplots
         # [x] add repr
         # [x] add HTML repr
+        # [ ] create lineplot for single-channel data, with horizontal line
+        #     for cluster forming threshold
+        # [ ] add picks parameter to plot_T_values(); this should create 1
+        #     line plot per matching channel. For >5, only plot the first 5.
+        # [ ] the gray cmap is not correct, as it is monotonically
+        #     in-/decreasing. Instead, we need a diverging colormap for the
+        #     tail='both' case, and need to ensure that higher T-values ->
+        #     darker colors for the other cases. For 'both', we need to
+        #     merge two existing colormaps.
 
-        # XXX Triple-check that cmaps work as expected for all tails
         if self.tail == 'left':
             vmin = self.T_values.min()
             vmax = 0
