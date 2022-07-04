@@ -107,6 +107,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug in :func:`mne.io.read_raw_edf` to allow reading in all Hypnodyne ZMax EDFs to be read in without issues (:gh:`10754` by :newcontrib:`Frederik Weber`)
 
 - Fix bug in :func:`mne.Epochs.drop_bad` where data was loaded although no rejection had to be performed (:gh:`10718` by :newcontrib:`Lukas Gemein`)
 
