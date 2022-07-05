@@ -10,6 +10,7 @@
 
 from copy import deepcopy
 from contextlib import contextmanager
+from pathlib import Path
 import os
 import os.path as op
 
@@ -443,8 +444,10 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
 
+    info_trans = str(trans) if isinstance(trans, Path) else trans
     info = Info(chs=info['chs'], comps=info['comps'],
-                dev_head_t=info['dev_head_t'], mri_file=trans, mri_id=mri_id,
+                dev_head_t=info['dev_head_t'], mri_file=info_trans,
+                mri_id=mri_id,
                 meas_file=info_extra, meas_id=None, working_dir=os.getcwd(),
                 command_line=cmd, bads=info['bads'], mri_head_t=mri_head_t)
     info._update_redundant()
