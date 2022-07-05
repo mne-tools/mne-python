@@ -1623,13 +1623,13 @@ class ClusterTestResult:
     def to_data_frame(
         self,
         *,
-        cluster_selection_threshold=1,
+        p_thresh=1,
     ):
         """Convert to a Pandas DataFrame.
 
         Parameters
         ----------
-        cluster_selection_threshold : float
+        p_thresh : float
             Only add clusters below this threshold to the data frame.
 
         Returns
@@ -1681,20 +1681,20 @@ class ClusterTestResult:
         df['cluster_forming_threshold'] =  self.cluster_forming_threshold
 
         # filter clusters below the set cluster selection threshold
-        df = df[df['cluster_p_value'] < cluster_selection_threshold]
+        df = df[df['cluster_p_value'] < p_thresh]
 
         return df
 
     def plot_stats(
         self,
         *,
-        cluster_selection_threshold=1,
+        p_thresh=1,
     ):
         """_summary_
 
         Parameters
         ----------
-        cluster_selection_threshold : int, optional
+        p_thresh : int, optional
             _description_, by default 1
 
         Returns
@@ -1708,7 +1708,7 @@ class ClusterTestResult:
         # mask T-values outside of significant clusters with nans
         T_values_sig_clusters = np.nan * np.ones_like(self.T_values)
         for cluster, p_val in zip(self.clusters, self.cluster_p_values):
-            if p_val <= cluster_selection_threshold:
+            if p_val <= p_thresh:
                 T_values_sig_clusters[cluster] = self.T_values[cluster]
         del cluster, p_val
 
@@ -1789,7 +1789,7 @@ class ClusterTestResult:
         )
         # Axis labels and title
         ax.set_title(
-            f'T-values thresholded at $p={cluster_selection_threshold}$'
+            f'T-values thresholded at $p={p_thresh}$'
         )
         ax.set_xlabel('Time (s)')
         ax.set_ylabel('Channel index')
@@ -1797,7 +1797,7 @@ class ClusterTestResult:
 
         # Find significant clusters.
         significant_clusters_idx = np.where(
-            self.cluster_p_values < cluster_selection_threshold
+            self.cluster_p_values < p_thresh
         )[0]
 
         if significant_clusters_idx.size == 0:
