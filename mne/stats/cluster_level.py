@@ -1685,7 +1685,7 @@ class ClusterTestResult:
 
         return df
 
-    def plot_T_values(
+    def plot_stats(
         self,
         *,
         cluster_selection_threshold=1,
@@ -1761,9 +1761,12 @@ class ClusterTestResult:
             len(self.info['ch_names']) - 1,  # bottom
             0  # top
         )
+
+        t_gray = self.T_values.T.copy()
+        t_gray[t_gray <= 2] = np.nan
         ax.imshow(
-            self.T_values.T, extent=extent, aspect='auto',
-            cmap=cmap_gray, vmin=vmin, vmax=vmax, interpolation='none',
+            t_gray, extent=extent, aspect='auto',
+            cmap='binary', vmin=0, vmax=vmax, interpolation='none',
         )
         # We store the image object in a variable so we can later use it as a
         # mappable to create colorbars. Note that we do not have to use an
