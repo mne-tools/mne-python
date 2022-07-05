@@ -894,8 +894,8 @@ you expect).
       > set PATTERN=<REGEX_TO_SELECT_MY_TUTORIAL>
       > make html_dev-pattern
 
-    If you are on Windows but using the `git BASH`_ shell, use the same two
-    commands but replace ``set`` with ``export``.
+   If you are on Windows but using the `git BASH`_ shell, use the same two
+   commands but replace ``set`` with ``export``.
 
 After either of these commands completes, ``make show`` will open the
 locally-rendered documentation site in your browser. Additional ``make``
