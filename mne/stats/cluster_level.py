@@ -21,6 +21,7 @@ from ..source_estimate import (SourceEstimate, VolSourceEstimate,
                                MixedSourceEstimate)
 from ..source_space import SourceSpaces
 from ..viz import plot_topomap
+from ..channels import find_ch_adjacency
 
 
 def _get_buddies_fallback(r, s, neighbors, indices=None):
@@ -1718,7 +1719,7 @@ class ClusterTestResult:
         #     class
         # [x] add pandas dataframe export
         # [x] plot topos for all significant clusters into a single figure
-        # [ ] if adjacency is None, call find_adjacency for the specified
+        # [x] if adjacency is None, call find_adjacency for the specified
         #     ch_type
         # [x] check that all evokeds have the same ch_names, times, etc.
         # [x] sub-set Evokeds for specified ch_type
@@ -1901,7 +1902,8 @@ def group_level_cluster_test(
     ch_type : str
         ...
     adjacency : scipy.sparse.spmatrix | None
-        ...
+        ... If ``None``, tries to determine the channel adjacency from the
+        data.
     cluster_forming_threshold : float | None
         ...
     %(n_permutations_clust_all)s
@@ -1987,6 +1989,12 @@ def group_level_cluster_test(
     # expected dimensions: observations (difference) x time
     # (x frequency) x sensors / vertices
     data_array = np.transpose(data_array, [0, 2, 1])
+
+    if adjacency is None:
+        adjacency, _ = find_ch_adjacency(
+            info=list(data.values())[0][0].info,
+            ch_type=ch_type
+        )
 
     # now feed the data to the actual stats function
     result = spatio_temporal_cluster_1samp_test(
