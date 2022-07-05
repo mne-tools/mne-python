@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-arrowmap:
+
 =============================================
 Plotting topographic arrowmaps of evoked data
 =============================================

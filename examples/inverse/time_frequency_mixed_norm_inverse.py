@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-tfr-mixed-norm:
+
 =============================================
 Compute MxNE with time-frequency sparse prior
 =============================================

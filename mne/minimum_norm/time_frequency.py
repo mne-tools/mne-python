@@ -65,7 +65,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                               lambda2=1.0 / 9.0, method="dSPM", nave=1,
                               n_cycles=5, df=1, use_fft=False, decim=1,
                               baseline=None, baseline_mode='logratio',
-                              pca=True, n_jobs=1, prepared=False,
+                              pca=True, n_jobs=None, prepared=False,
                               method_params=None, use_cps=True, verbose=None):
     """Compute source space induced power in given frequency bands.
 
@@ -265,7 +265,7 @@ def _single_epoch_tfr(data, is_free_ori, K, Ws, use_fft, decim, shape,
 def _source_induced_power(epochs, inverse_operator, freqs, label=None,
                           lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
                           decim=1, use_fft=False, pca=True, pick_ori="normal",
-                          n_jobs=1, with_plv=True, zero_mean=False,
+                          n_jobs=None, with_plv=True, zero_mean=False,
                           prepared=False, method_params=None, use_cps=True,
                           verbose=None):
     """Aux function for source induced power."""
@@ -278,14 +278,13 @@ def _source_induced_power(epochs, inverse_operator, freqs, label=None,
 
     inv = inverse_operator
     parallel, my_compute_source_tfrs, n_jobs = parallel_func(
-        _compute_pow_plv, n_jobs)
+        _compute_pow_plv, n_jobs, max_jobs=len(epochs_data))
     Fs = epochs.info['sfreq']  # sampling in Hz
 
     logger.info('Computing source power ...')
 
     Ws = morlet(Fs, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
 
-    n_jobs = min(n_jobs, len(epochs_data))
     out = parallel(my_compute_source_tfrs(data=data, K=K, sel=sel, Ws=Ws,
                                           source_ori=inv['source_ori'],
                                           use_fft=use_fft, Vh=Vh,
@@ -313,7 +312,7 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
                          lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
                          decim=1, use_fft=False, pick_ori=None,
                          baseline=None, baseline_mode='logratio', pca=True,
-                         n_jobs=1, zero_mean=False, prepared=False,
+                         n_jobs=None, zero_mean=False, prepared=False,
                          method_params=None, use_cps=True, verbose=None):
     """Compute induced power and phase lock.
 
@@ -412,8 +411,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        n_fft=2048, overlap=0.5, pick_ori=None, label=None,
                        nave=1, pca=True, prepared=False, method_params=None,
                        inv_split=None, bandwidth='hann', adaptive=False,
-                       low_bias=False, n_jobs=1, return_sensor=False, dB=False,
-                       verbose=None):
+                       low_bias=False, n_jobs=None, return_sensor=False,
+                       dB=False, *, verbose=None):
     """Compute source power spectral density (PSD).
 
     Parameters
@@ -560,7 +559,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                                method="dSPM", fmin=0., fmax=200.,
                                pick_ori=None, label=None, nave=1,
                                pca=True, inv_split=None, bandwidth=4.,
-                               adaptive=False, low_bias=True, n_jobs=1,
+                               adaptive=False, low_bias=True, n_jobs=None,
                                prepared=False, method_params=None,
                                return_sensor=False, use_cps=True):
     """Generate compute_source_psd_epochs."""
@@ -696,7 +695,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               pick_ori=None, label=None, nave=1,
                               pca=True, inv_split=None, bandwidth=4.,
                               adaptive=False, low_bias=True,
-                              return_generator=False, n_jobs=1,
+                              return_generator=False, n_jobs=None,
                               prepared=False, method_params=None,
                               return_sensor=False, use_cps=True, verbose=None):
     """Compute source power spectral density (PSD) from Epochs.

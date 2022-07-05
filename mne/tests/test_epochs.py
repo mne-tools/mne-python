@@ -509,6 +509,15 @@ def test_reject():
             assert_equal(epochs.drop_log[4][0], 'BAD')
         raw.set_annotations(None)
 
+        # rejection with all None / False arguments: no loading / dropping
+        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=[0],
+                        reject=None, flat=None, reject_by_annotation=False,
+                        reject_tmin=None, reject_tmax=None)
+        with catch_logging() as log:
+            epochs.drop_bad(verbose='debug')
+        log = log.getvalue()
+        assert 'is a noop' in log
+
 
 def test_reject_by_annotations_reject_tmin_reject_tmax():
     """Test reject_by_annotations with reject_tmin and reject_tmax defined."""
@@ -1845,7 +1854,7 @@ def test_resample():
 
     # use parallel
     epochs = epochs_o.copy()
-    epochs.resample(sfreq_normal * 2, n_jobs=1, npad=0)
+    epochs.resample(sfreq_normal * 2, n_jobs=None, npad=0)
     assert (np.allclose(data_up, epochs._data, rtol=1e-8, atol=1e-16))
 
     # test copy flag
@@ -2969,7 +2978,7 @@ def test_default_values():
 @requires_pandas
 def test_metadata(tmp_path):
     """Test metadata support with pandas."""
-    from pandas import DataFrame
+    from pandas import DataFrame, Series, NA
 
     data = np.random.randn(10, 2, 2000)
     chs = ['a', 'b']
@@ -3153,6 +3162,23 @@ def test_metadata(tmp_path):
         epochs.drop_bad()
         assert len(epochs) == 1
         assert len(epochs.metadata) == 1
+
+    # gh-10705: support boolean columns
+    metadata = DataFrame(
+        {"A": Series([True, True, True, False, False, NA], dtype="boolean")}
+    )
+    rng = np.random.default_rng()
+    epochs = mne.EpochsArray(
+        data=rng.standard_normal(size=(6, 8, 500)),
+        info=mne.create_info(8, 250, "eeg"),
+        event_id={"A": 1},
+        metadata=metadata
+    )
+
+    assert len(epochs["A"]) == 6  # epochs of event type A
+    assert len(epochs["A == True"]) == 3  # epochs for which column A == True
+    assert len(epochs["not A"]) == 2  # epochs for which column A == False
+    assert len(epochs["A.isna()"]) == 1  # epochs for NA in column A
 
 
 def assert_metadata_equal(got, exp):

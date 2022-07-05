@@ -1,9 +1,13 @@
+# -*- coding: utf-8 -*-
 """
+.. _tut-lcmv-beamformer:
+
+==============================================
 Source reconstruction using an LCMV beamformer
 ==============================================
 
-This tutorial gives an overview of the beamformer method
-and shows how to reconstruct source activity using an LCMV beamformer.
+This tutorial gives an overview of the beamformer method and shows how to
+reconstruct source activity using an LCMV beamformer.
 """
 # Authors: Britta Westner <britta.wstnr@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -191,8 +195,8 @@ del forward
 # :func:`~mne.beamformer.apply_lcmv_epochs`, and
 # :func:`~mne.beamformer.apply_lcmv_cov`.
 
-stc = apply_lcmv(evoked, filters, max_ori_out='signed')
-stc_vec = apply_lcmv(evoked, filters_vec, max_ori_out='signed')
+stc = apply_lcmv(evoked, filters)
+stc_vec = apply_lcmv(evoked, filters_vec)
 del filters, filters_vec
 
 # %%

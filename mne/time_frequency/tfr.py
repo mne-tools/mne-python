@@ -27,11 +27,11 @@ from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      _check_pandas_index_arguments, _check_time_format,
                      _convert_times, _build_data_frame, warn,
                      _import_h5io_funcs)
-from ..channels.channels import ContainsMixin, UpdateChannelsMixin
+from ..channels.channels import UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
                        _get_channel_types)
-from ..io.meas_info import Info
+from ..io.meas_info import Info, ContainsMixin
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _connection_line, _prepare_joint_axes,
                          _setup_vmin_vmax, _set_title_multiple_electrodes)
@@ -273,7 +273,7 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
 
 def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
                  n_cycles=7.0, zero_mean=None, time_bandwidth=None,
-                 use_fft=True, decim=1, output='complex', n_jobs=1,
+                 use_fft=True, decim=1, output='complex', n_jobs=None,
                  verbose=None):
     """Compute time-frequency transforms.
 
@@ -392,7 +392,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     # Parallel computation
     all_Ws = sum([list(W) for W in Ws], list())
     _get_nfft(all_Ws, epoch_data, use_fft)
-    parallel, my_cwt, _ = parallel_func(_time_frequency_loop, n_jobs)
+    parallel, my_cwt, n_jobs = parallel_func(_time_frequency_loop, n_jobs)
 
     # Parallelization is applied across channels.
     tfrs = parallel(
@@ -689,7 +689,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
 
 @verbose
 def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
-               n_jobs=1, picks=None, zero_mean=True, average=True,
+               n_jobs=None, picks=None, zero_mean=True, average=True,
                output='power', verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
@@ -725,7 +725,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         Make sure the wavelet has a mean of zero.
 
         .. versionadded:: 0.13.0
-    %(tfr_average)s
+    %(average_tfr)s
     output : str
         Can be "power" (default) or "complex". If "complex", then
         average must be False.
@@ -758,7 +758,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 @verbose
 def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
                      zero_mean=False, use_fft=True, decim=1, output='complex',
-                     n_jobs=1, verbose=None):
+                     n_jobs=None, verbose=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
     Same computation as `~mne.time_frequency.tfr_morlet`, but operates on
@@ -833,7 +833,7 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
 @verbose
 def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                    use_fft=True, return_itc=True, decim=1,
-                   n_jobs=1, picks=None, average=True, verbose=None):
+                   n_jobs=None, picks=None, average=True, verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
     Same computation as `~mne.time_frequency.tfr_array_multitaper`, but
@@ -870,7 +870,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         .. note:: Decimation may create aliasing artifacts.
     %(n_jobs)s
     %(picks_good_data)s
-    %(tfr_average)s
+    %(average_tfr)s
     %(verbose)s
 
     Returns
@@ -1047,13 +1047,13 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         Parameters
         ----------
         %(picks_all)s
-        %(df_index_epo)s
+        %(index_df_epo)s
             Valid string values are ``'time'``, ``'freq'``, ``'epoch'``, and
             ``'condition'`` for ``EpochsTFR`` and ``'time'`` and ``'freq'``
             for ``AverageTFR``.
             Defaults to ``None``.
-        %(df_longform_epo)s
-        %(df_time_format)s
+        %(long_format_df_epo)s
+        %(time_format_df)s
 
             .. versionadded:: 0.23
         %(verbose)s
@@ -1306,10 +1306,7 @@ class AverageTFR(_BaseTFR):
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list.
-        cnorm : matplotlib.colors.Normalize | None
-            Colormap normalization, default None means linear normalization. If
-            not None, ``vmin`` and ``vmax`` arguments are ignored. See
-            :func:`mne.viz.plot_topomap` for more details.
+        %(cnorm)s
 
             .. versionadded:: 0.24
         %(verbose)s
@@ -2010,7 +2007,7 @@ class AverageTFR(_BaseTFR):
             The axes to plot to. If None the axes is defined automatically.
         show : bool
             Call pyplot.show() at the end.
-        %(topomap_outlines)s
+        %(outlines_topomap)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
@@ -2018,7 +2015,7 @@ class AverageTFR(_BaseTFR):
             inaccurate, use array for accuracy). If an array, the values
             represent the levels for the contours. If colorbar=True, the ticks
             in colorbar correspond to the contour levels. Defaults to 6.
-        %(topomap_sphere_auto)s
+        %(sphere_topomap_auto)s
 
         Returns
         -------

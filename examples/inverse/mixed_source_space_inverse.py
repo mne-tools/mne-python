@@ -1,10 +1,13 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-mixed-source-space-inverse:
+
 =====================================================================
 Compute MNE inverse solution on evoked data with a mixed source space
 =====================================================================
 
-Create a mixed source space and compute an MNE inverse solution on an evoked
-dataset.
+Create a mixed source space and compute an MNE inverse solution on an
+evoked dataset.
 """
 # Author: Annalisa Pascarella <a.pascarella@iac.cnr.it>
 #
@@ -99,7 +102,7 @@ plotting.plot_img(nii_fname, cmap='nipy_spectral')
 fwd = mne.make_forward_solution(
     fname_evoked, fname_trans, src, fname_bem,
     mindist=5.0,  # ignore sources<=5mm from innerskull
-    meg=True, eeg=False, n_jobs=1)
+    meg=True, eeg=False, n_jobs=None)
 del src  # save memory
 
 leadfield = fwd['sol']['data']

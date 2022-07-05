@@ -1,11 +1,13 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-source-estimate-class:
 
-The :class:`SourceEstimate <mne.SourceEstimate>` data structure
-===============================================================
+=================================
+The SourceEstimate data structure
+=================================
 
-
-Source estimates, commonly referred to as STC (Source Time Courses),
+Source estimates, commonly referred to as
+:term:`STC (Source Time Courses) <stc>`,
 are obtained from source localization methods.
 Source localization method solve the so-called 'inverse problem'.
 MNE provides different methods for solving it:
@@ -53,8 +55,6 @@ is. We first set up the environment and load some data:
 
 # %%
 
-import os
-
 from mne import read_source_estimate
 from mne.datasets import sample
 
@@ -62,10 +62,10 @@ print(__doc__)
 
 # Paths to example data
 sample_dir_raw = sample.data_path()
-sample_dir = os.path.join(sample_dir_raw, 'MEG', 'sample')
-subjects_dir = os.path.join(sample_dir_raw, 'subjects')
+sample_dir = sample_dir_raw / 'MEG' / 'sample'
+subjects_dir = sample_dir_raw / 'subjects'
 
-fname_stc = os.path.join(sample_dir, 'sample_audvis-meg')
+fname_stc = sample_dir / 'sample_audvis-meg'
 
 # %%
 # Load and inspect example data

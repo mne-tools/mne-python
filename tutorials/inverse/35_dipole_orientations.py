@@ -2,6 +2,7 @@
 """
 .. _tut-dipole-orientations:
 
+==================================================================
 The role of dipole orientations in distributed source localization
 ==================================================================
 
@@ -16,8 +17,8 @@ See :ref:`inverse_orientation_constraints` for related information.
 """
 
 # %%
-# Loading data
-# ------------
+# Load data
+# ---------
 # Load everything we need to perform source localization on the sample dataset.
 
 import mne
@@ -44,7 +45,6 @@ trans_fname = meg_path / 'sample_audvis_raw-trans.fif'
 # :func:`mne.setup_source_space` function. Dipoles are placed along fixed
 # intervals on the cortex, determined by the ``spacing`` parameter. The source
 # space does not define the orientation for these dipoles.
-
 
 lh = fwd['src'][0]  # Visualize the left hemisphere
 verts = lh['rr']  # The vertices of the source space

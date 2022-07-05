@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-epochs-image:
+
 =========================================
 Visualize channel over epochs as an image
 =========================================

@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-tag-events:
+
 ============================================================
 Define target events based on time lag, plot evoked response
 ============================================================

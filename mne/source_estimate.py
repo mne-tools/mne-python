@@ -16,6 +16,7 @@ from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
+from .fixes import _safe_svd
 from ._freesurfer import (_import_nibabel, _get_mri_info_data,
                           _get_atlas_values, read_freesurfer_lut)
 from .io.constants import FIFF
@@ -32,8 +33,7 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _check_stc_units, _check_pandas_installed,
                     _check_pandas_index_arguments, _convert_times, _ensure_int,
                     _build_data_frame, _check_time_format, _path_like,
-                    sizeof_fmt, object_size, _check_fname, _import_h5io_funcs,
-                    _VerboseDep)
+                    sizeof_fmt, object_size, _check_fname, _import_h5io_funcs)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import TimeMixin
@@ -447,7 +447,7 @@ def _verify_source_estimate_compat(a, b):
                          'names, %r and %r' % (a.subject, b.subject))
 
 
-class _BaseSourceEstimate(TimeMixin, _VerboseDep):
+class _BaseSourceEstimate(TimeMixin):
 
     _data_ndim = 2
 
@@ -560,15 +560,15 @@ class _BaseSourceEstimate(TimeMixin, _VerboseDep):
 
         Parameters
         ----------
-        %(eltc_labels)s
-        %(eltc_src)s
-        %(eltc_mode)s
-        %(eltc_allow_empty)s
+        %(labels_eltc)s
+        %(src_eltc)s
+        %(mode_eltc)s
+        %(allow_empty_eltc)s
         %(verbose)s
 
         Returns
         -------
-        %(eltc_returns)s
+        %(label_tc_el_returns)s
 
         See Also
         --------
@@ -706,7 +706,7 @@ class _BaseSourceEstimate(TimeMixin, _VerboseDep):
         return self  # return self for chaining methods
 
     @verbose
-    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
+    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=None,
                  verbose=None):
         """Resample data.
 
@@ -1212,11 +1212,11 @@ class _BaseSourceEstimate(TimeMixin, _VerboseDep):
 
         Parameters
         ----------
-        %(df_index_evk)s
+        %(index_df_evk)s
             Defaults to ``None``.
-        %(df_scalings)s
-        %(df_longform_stc)s
-        %(df_time_format)s
+        %(scalings_df)s
+        %(long_format_df_stc)s
+        %(time_format_df)s
 
             .. versionadded:: 0.20
         %(verbose)s
@@ -1296,13 +1296,9 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
         vertices of right hemisphere.
-    tmin : scalar
-        Time point of the first sample in data.
-    tstep : scalar
-        Time step between successive samples in data.
-    subject : str | None
-        The subject name. While not necessary, it is safer to set the
-        subject parameter to avoid analysis errors.
+    %(tmin)s
+    %(tstep)s
+    %(subject_optional)s
     %(verbose)s
 
     Attributes
@@ -1552,13 +1548,9 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
         vertices of right hemisphere.
-    tmin : scalar
-        Time point of the first sample in data.
-    tstep : scalar
-        Time step between successive samples in data.
-    subject : str | None
-        The subject name. While not necessary, it is safer to set the
-        subject parameter to avoid analysis errors.
+    %(tmin)s
+    %(tstep)s
+    %(subject_optional)s
     %(verbose)s
 
     Attributes
@@ -1983,16 +1975,16 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        %(eltc_labels)s
-        %(eltc_src)s
-        %(eltc_mode)s
-        %(eltc_allow_empty)s
-        %(eltc_mri_resolution)s
+        %(labels_eltc)s
+        %(src_eltc)s
+        %(mode_eltc)s
+        %(allow_empty_eltc)s
+        %(mri_resolution_eltc)s
         %(verbose)s
 
         Returns
         -------
-        %(eltc_returns)s
+        %(label_tc_el_returns)s
 
         See Also
         --------
@@ -2147,15 +2139,10 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
         space data corresponds to ``np.dot(kernel, sens_data)``.
-    vertices : array of shape (n_dipoles,)
-        The indices of the dipoles in the source space.
-    tmin : scalar
-        Time point of the first sample in data.
-    tstep : scalar
-        Time step between successive samples in data.
-    subject : str | None
-        The subject name. While not necessary, it is safer to set the
-        subject parameter to avoid analysis errors.
+    %(vertices_volume)s
+    %(tmin)s
+    %(tstep)s
+    %(subject_optional)s
     %(verbose)s
 
     Attributes
@@ -2164,8 +2151,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertices : array of shape (n_dipoles,)
-        The indices of the dipoles in the source space.
+    %(vertices_volume)s
     data : array of shape (n_dipoles, n_times)
         The data in source space.
     shape : tuple
@@ -2237,15 +2223,10 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate,
     data : array of shape (n_dipoles, 3, n_times)
         The data in source space. Each dipole contains three vectors that
         denote the dipole strength in X, Y and Z directions over time.
-    vertices : array of shape (n_dipoles,)
-        The indices of the dipoles in the source space.
-    tmin : scalar
-        Time point of the first sample in data.
-    tstep : scalar
-        Time step between successive samples in data.
-    subject : str | None
-        The subject name. While not necessary, it is safer to set the
-        subject parameter to avoid analysis errors.
+    %(vertices_volume)s
+    %(tmin)s
+    %(tstep)s
+    %(subject_optional)s
     %(verbose)s
 
     Attributes
@@ -2254,8 +2235,7 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate,
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertices : array of shape (n_dipoles,)
-        The indices of the dipoles in the source space.
+    %(vertices_volume)s
     data : array of shape (n_dipoles, n_times)
         The data in source space.
     shape : tuple
@@ -2321,13 +2301,9 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
         vertices of right hemisphere.
-    tmin : float
-        Time point of the first sample in data.
-    tstep : float
-        Time step between successive samples in data.
-    subject : str | None
-        The subject name. While not necessary, it is safer to set the
-        subject parameter to avoid analysis errors.
+    %(tmin)s
+    %(tstep)s
+    %(subject_optional)s
     %(verbose)s
 
     Attributes
@@ -2423,13 +2399,9 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
     vertices : list of array
         Vertex numbers corresponding to the data. The list contains arrays
         with one array per source space.
-    tmin : scalar
-        Time point of the first sample in data.
-    tstep : scalar
-        Time step between successive samples in data.
-    subject : str | None
-        The subject name. While not necessary, it is safer to set the
-        subject parameter to avoid analysis errors.
+    %(tmin)s
+    %(tstep)s
+    %(subject_optional)s
     %(verbose)s
 
     Attributes
@@ -2471,13 +2443,9 @@ class MixedVectorSourceEstimate(_BaseVectorSourceEstimate,
         denote the dipole strength in X, Y and Z directions over time.
     vertices : list of array, shape (n_src,)
         Vertex numbers corresponding to the data.
-    tmin : scalar
-        Time point of the first sample in data.
-    tstep : scalar
-        Time step between successive samples in data.
-    subject : str | None
-        The subject name. While not necessary, it is safer to set the
-        subject parameter to avoid analysis errors.
+    %(tmin)s
+    %(tstep)s
+    %(subject_optional)s
     %(verbose)s
 
     Attributes
@@ -2842,8 +2810,7 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
 
 
 def _pca_flip(flip, data):
-    from scipy import linalg
-    U, s, V = linalg.svd(data, full_matrices=False)
+    U, s, V = _safe_svd(data, full_matrices=False)
     # determine sign-flip
     sign = np.sign(np.dot(U[:, 0], flip))
     # use average power in label for scaling
@@ -3188,18 +3155,18 @@ def extract_label_time_course(stcs, labels, src, mode='auto',
     ----------
     stcs : SourceEstimate | list (or generator) of SourceEstimate
         The source estimates from which to extract the time course.
-    %(eltc_labels)s
-    %(eltc_src)s
-    %(eltc_mode)s
-    %(eltc_allow_empty)s
+    %(labels_eltc)s
+    %(src_eltc)s
+    %(mode_eltc)s
+    %(allow_empty_eltc)s
     return_generator : bool
         If True, a generator instead of a list is returned.
-    %(eltc_mri_resolution)s
+    %(mri_resolution_eltc)s
     %(verbose)s
 
     Returns
     -------
-    %(eltc_returns)s
+    %(label_tc_el_returns)s
 
     Notes
     -----

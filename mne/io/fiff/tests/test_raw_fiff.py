@@ -107,10 +107,14 @@ def test_acq_skip(tmp_path):
 
 def test_fix_types():
     """Test fixing of channel types."""
-    for fname, change in ((hp_fif_fname, True), (test_fif_fname, False),
-                          (ctf_fname, False)):
+    for fname, change, bads in (
+        (hp_fif_fname, True, ["MEG0111"]),
+        (test_fif_fname, False, []),
+        (ctf_fname, False, [])
+    ):
         raw = read_raw_fif(fname)
-        mag_picks = pick_types(raw.info, meg='mag')
+        raw.info["bads"] = bads
+        mag_picks = pick_types(raw.info, meg='mag', exclude=[])
         other_picks = np.setdiff1d(np.arange(len(raw.ch_names)), mag_picks)
         # we don't actually have any files suffering from this problem, so
         # fake it
@@ -1106,7 +1110,7 @@ def test_resample(tmp_path, preload, n, npad):
     assert raw_resamp.get_data().shape[1] == raw_resamp.n_times
     assert raw.get_data().shape[0] == raw_resamp._data.shape[0]
     # test non-parallel on downsample
-    raw_resamp.resample(sfreq, n_jobs=1, npad=npad)
+    raw_resamp.resample(sfreq, n_jobs=None, npad=npad)
     assert raw_resamp.info['sfreq'] == sfreq
     assert raw.get_data().shape == raw_resamp._data.shape
     assert raw.first_samp == raw_resamp.first_samp

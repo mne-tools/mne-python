@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-psd-inverse:
+
 =====================================================================
 Compute Power Spectral Density of inverse solution from single epochs
 =====================================================================

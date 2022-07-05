@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-rap-music:
+
 ================================
 Compute Rap-Music on evoked data
 ================================

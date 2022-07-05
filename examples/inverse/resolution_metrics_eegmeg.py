@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-res-metrics-meeg:
+
 ==============================================================
 Compute spatial resolution metrics to compare MEG with EEG+MEG
 ==============================================================

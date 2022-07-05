@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-read-stc:
+
 ===================
 Reading an STC file
 ===================

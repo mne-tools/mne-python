@@ -18,6 +18,7 @@ import numpy as np
 from numpy.testing import (assert_allclose, assert_array_almost_equal,
                            assert_array_equal, assert_array_less)
 
+import mne
 from mne import concatenate_raws, create_info, Annotations, pick_types
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray, BaseRaw, Info, _writing_info_hdf5
@@ -30,6 +31,9 @@ from mne.io._digitization import DigPoint
 from mne.io.proj import Projection
 from mne.io.utils import _mult_cal_one
 from mne.io.constants import FIFF
+
+raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
+                    'data', 'test_raw.fif')
 
 
 def assert_named_constants(info):
@@ -493,8 +497,6 @@ def _test_concat(reader, *args):
 @testing.requires_testing_data
 def test_time_as_index():
     """Test indexing of raw times."""
-    raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                        'data', 'test_raw.fif')
     raw = read_raw_fif(raw_fname)
 
     # Test original (non-rounding) indexing behavior
@@ -504,6 +506,37 @@ def test_time_as_index():
     # Test new (rounding) indexing behavior
     new_inds = raw.time_as_index(raw.times, use_rounding=True)
     assert_array_equal(new_inds, np.arange(len(raw.times)))
+
+
+@pytest.mark.parametrize('meas_date', [None, "orig"])
+@pytest.mark.parametrize('first_samp', [0, 10000])
+def test_crop_by_annotations(meas_date, first_samp):
+    """Test crop by annotations of raw."""
+    raw = read_raw_fif(raw_fname)
+
+    if meas_date is None:
+        raw.set_meas_date(None)
+
+    raw = mne.io.RawArray(raw.get_data(), raw.info, first_samp=first_samp)
+
+    onset = np.array([0, 1.5], float)
+    if meas_date is not None:
+        onset += raw.first_time
+    annot = mne.Annotations(
+        onset=onset,
+        duration=[1, 0.5],
+        description=["a", "b"],
+        orig_time=raw.info['meas_date'])
+
+    raw.set_annotations(annot)
+    raws = raw.crop_by_annotations()
+    assert len(raws) == 2
+    assert len(raws[0].annotations) == 1
+    assert raws[0].times[-1] == pytest.approx(annot[:1].duration[0], rel=1e-3)
+    assert raws[0].annotations.description[0] == annot.description[0]
+    assert len(raws[1].annotations) == 1
+    assert raws[1].times[-1] == pytest.approx(annot[1:2].duration[0], rel=5e-3)
+    assert raws[1].annotations.description[0] == annot.description[1]
 
 
 @pytest.mark.parametrize('offset, origin', [

@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-artifact-sss:
 
+===================================================
 Signal-space separation (SSS) and Maxwell filtering
 ===================================================
 

@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-topo-compare:
+
 =================================================
 Compare evoked responses for different conditions
 =================================================

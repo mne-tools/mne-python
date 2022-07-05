@@ -35,7 +35,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              proj=True, group_by='type', butterfly=False, decim='auto',
              noise_cov=None, event_id=None, show_scrollbars=True,
              show_scalebars=True, time_format='float',
-             precompute=None, use_opengl=None, verbose=None):
+             precompute=None, use_opengl=None, *, theme=None,
+             overview_mode=None, verbose=None):
     """Plot raw data.
 
     Parameters
@@ -125,7 +126,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Individual projectors can be enabled/disabled interactively (see
         Notes). This argument only affects the plot; use ``raw.apply_proj()``
         to modify the data stored in the Raw object.
-    %(browse_group_by)s
+    %(group_by_browse)s
     butterfly : bool
         Whether to start in butterfly mode. Defaults to False.
     decim : int | 'auto'
@@ -159,12 +160,17 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     %(time_format)s
     %(precompute)s
     %(use_opengl)s
+    %(theme_pg)s
+
+        .. versionadded:: 1.0
+    %(overview_mode)s
+
+        .. versionadded:: 1.1
     %(verbose)s
 
     Returns
     -------
-    fig : matplotlib.figure.Figure | ``PyQt5.QtWidgets.QMainWindow``
-        Browser instance.
+    %(browser)s
 
     Notes
     -----
@@ -348,7 +354,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   bgcolor=bgcolor,
                   # Qt-specific
                   precompute=precompute,
-                  use_opengl=use_opengl)
+                  use_opengl=use_opengl,
+                  theme=theme,
+                  overview_mode=overview_mode,
+                  )
 
     fig = _get_browser(show=show, block=block, **params)
 
@@ -360,7 +369,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
                  n_fft=None, n_overlap=0, reject_by_annotation=True,
                  picks=None, ax=None, color='black', xscale='linear',
                  area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
-                 show=True, n_jobs=1, average=False, line_alpha=None,
+                 show=True, n_jobs=None, average=False, line_alpha=None,
                  spatial_colors=True, sphere=None, window='hamming',
                  exclude='bads', verbose=None):
     """%(plot_psd_doc)s.
@@ -387,22 +396,22 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
     %(reject_by_annotation_raw)s
-    %(plot_psd_picks_good_data)s
+    %(picks_plot_psd_good_data)s
     ax : instance of Axes | None
         Axes to plot into. If None, axes will be created.
-    %(plot_psd_color)s
-    %(plot_psd_xscale)s
-    %(plot_psd_area_mode)s
-    %(plot_psd_area_alpha)s
-    %(plot_psd_dB)s
-    %(plot_psd_estimate)s
+    %(color_plot_psd)s
+    %(xscale_plot_psd)s
+    %(area_mode_plot_psd)s
+    %(area_alpha_plot_psd)s
+    %(dB_plot_psd)s
+    %(estimate_plot_psd)s
     %(show)s
     %(n_jobs)s
-    %(plot_psd_average)s
-    %(plot_psd_line_alpha)s
-    %(plot_psd_spatial_colors)s
-    %(topomap_sphere_auto)s
-    %(window-psd)s
+    %(average_plot_psd)s
+    %(line_alpha_plot_psd)s
+    %(spatial_colors_plot_psd)s
+    %(sphere_topomap_auto)s
+    %(window_psd)s
 
         .. versionadded:: 0.22.0
     exclude : list of str | 'bads'
@@ -442,7 +451,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
 def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, block=False, n_jobs=1, axes=None,
+                      show=True, block=False, n_jobs=None, axes=None,
                       verbose=None):
     """Plot channel-wise frequency spectra as topography.
 

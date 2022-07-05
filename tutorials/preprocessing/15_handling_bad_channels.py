@@ -2,8 +2,9 @@
 """
 .. _tut-bad-channels:
 
+=====================
 Handling bad channels
-==========================
+=====================
 
 This tutorial covers manual marking of bad channels and reconstructing bad
 channels based on good signals at other sensors.

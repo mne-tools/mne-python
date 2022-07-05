@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-eeg-fsaverage-source-modeling:
 
+========================================
 EEG forward operator with a template MRI
 ========================================
 
@@ -74,7 +76,7 @@ mne.viz.plot_alignment(
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 fwd = mne.make_forward_solution(raw.info, trans=trans, src=src,
-                                bem=bem, eeg=True, mindist=5.0, n_jobs=1)
+                                bem=bem, eeg=True, mindist=5.0, n_jobs=None)
 print(fwd)
 
 ##############################################################################

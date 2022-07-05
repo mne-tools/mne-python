@@ -10,7 +10,8 @@ from math import log
 
 import numpy as np
 
-from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT, DEFAULTS
+from .defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                       _BORDER_DEFAULT, DEFAULTS)
 from .io.write import start_and_end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _check_projs, _needs_eeg_average_ref_proj,
@@ -36,7 +37,7 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     warn, copy_function_doc_to_method_doc, _pl,
                     _undo_scaling_cov, _scaled_array, _validate_type,
                     _check_option, eigh, fill_doc, _on_missing,
-                    _check_on_missing, _check_fname, _VerboseDep)
+                    _check_on_missing, _check_fname)
 from . import viz
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
@@ -64,7 +65,7 @@ def _get_tslice(epochs, tmin, tmax):
 
 
 @fill_doc
-class Covariance(dict, _VerboseDep):
+class Covariance(dict):
     """Noise covariance matrix.
 
     .. warning:: This class should not be instantiated directly, but
@@ -257,38 +258,37 @@ class Covariance(dict, _VerboseDep):
                      size=1, cbar_fmt="%3.1f",
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
-                     contours=6, image_interp='bilinear',
+                     contours=6, image_interp=_INTERPOLATION_DEFAULT,
                      axes=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
-                     border=_BORDER_DEFAULT,
-                     noise_cov=None, verbose=None):
+                     border=_BORDER_DEFAULT, noise_cov=None, verbose=None):
         """Plot a topomap of the covariance diagonal.
 
         Parameters
         ----------
         %(info_not_none)s
-        %(topomap_ch_type)s
-        %(topomap_vmin_vmax)s
-        %(topomap_cmap)s
-        %(topomap_sensors)s
-        %(topomap_colorbar)s
-        %(topomap_scalings)s
-        %(topomap_units)s
-        %(topomap_res)s
-        %(topomap_size)s
-        %(topomap_cbar_fmt)s
-        %(plot_proj)s
+        %(ch_type_topomap)s
+        %(vmin_vmax_topomap)s
+        %(cmap_topomap)s
+        %(sensors_topomap)s
+        %(colorbar_topomap)s
+        %(scalings_topomap)s
+        %(units_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cbar_fmt_topomap)s
+        %(proj_plot)s
         %(show)s
-        %(topomap_show_names)s
-        %(title_None)s
-        %(topomap_mask)s
-        %(topomap_mask_params)s
-        %(topomap_outlines)s
-        %(topomap_contours)s
-        %(topomap_image_interp)s
-        %(topomap_axes)s
-        %(topomap_extrapolate)s
-        %(topomap_sphere_auto)s
-        %(topomap_border)s
+        %(show_names_topomap)s
+        %(title_none)s
+        %(mask_topomap)s
+        %(mask_params_topomap)s
+        %(outlines_topomap)s
+        %(contours_topomap)s
+        %(image_interp_topomap)s
+        %(axes_topomap)s
+        %(extrapolate_topomap)s
+        %(sphere_topomap_auto)s
+        %(border_topomap)s
         noise_cov : instance of Covariance | None
             If not None, whiten the instance with ``noise_cov`` before
             plotting.
@@ -439,9 +439,9 @@ def _check_n_samples(n_samples, n_chan):
 @verbose
 def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
                            flat=None, picks=None, method='empirical',
-                           method_params=None, cv=3, scalings=None, n_jobs=1,
-                           return_estimators=False, reject_by_annotation=True,
-                           rank=None, verbose=None):
+                           method_params=None, cv=3, scalings=None,
+                           n_jobs=None, return_estimators=False,
+                           reject_by_annotation=True, rank=None, verbose=None):
     """Estimate noise covariance matrix from a continuous segment of raw data.
 
     It is typically useful to estimate a noise covariance from empty room
@@ -514,7 +514,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     %(reject_by_annotation_epochs)s
 
         .. versionadded:: 0.14
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
 
@@ -678,8 +678,9 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
 @verbose
 def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                        projs=None, method='empirical', method_params=None,
-                       cv=3, scalings=None, n_jobs=1, return_estimators=False,
-                       on_mismatch='raise', rank=None, verbose=None):
+                       cv=3, scalings=None, n_jobs=None,
+                       return_estimators=False, on_mismatch='raise',
+                       rank=None, verbose=None):
     """Estimate noise covariance matrix from epochs.
 
     The noise covariance is typically estimated on pre-stimulus periods
@@ -766,7 +767,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         unstable results in covariance calculation, e.g. when data
         have been processed with Maxwell filtering but not transformed
         to the same head position.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
 
@@ -1428,7 +1429,7 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
     ch_names : list | None
         The channel names to be considered. Can be None to use
         ``info['ch_names']``.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
            Support for 'info' mode.
@@ -1593,7 +1594,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         Regularization factor for EEG-CSD signals.
     dbs : float (default 0.1)
         Regularization factor for DBS signals.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
 
@@ -1748,7 +1749,7 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None,
     scalings = _handle_default('scalings_cov_rank', None)
     cov = _compute_covariance_auto(
         data.T, method=method, method_params=method_params,
-        info=info, cv=None, n_jobs=1, stop_early=True,
+        info=info, cv=None, n_jobs=None, stop_early=True,
         picks_list=picks_list, scalings=scalings,
         rank=rank)[reg]['data']
     return cov
@@ -1768,7 +1769,7 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
     %(info)s Can be None if ``noise_cov`` has already been
         prepared with :func:`prepare_noise_cov`.
     %(picks_good_data_noref)s
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
            Support for 'info' mode.
@@ -1880,7 +1881,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
     %(picks_good_data)s
     diag : bool (default False)
         If True, whiten using only the diagonal of the covariance.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
            Support for 'info' mode.

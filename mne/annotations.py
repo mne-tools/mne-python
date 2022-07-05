@@ -111,11 +111,11 @@ class Annotations(object):
         starting time of annotation acquisition. If None (default),
         starting time is determined from beginning of raw data acquisition.
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
-        the annotations with raw data if their acquisiton is started at the
+        the annotations with raw data if their acquisition is started at the
         same time. If it is a string, it should conform to the ISO8601 format.
         More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
         the ISO8601 format where the delimiter between date and time is ' '.
-    %(annot_ch_names)s
+    %(ch_names_annot)s
 
         .. versionadded:: 0.23
 
@@ -231,6 +231,14 @@ class Annotations(object):
              e                        +------+
          orig_time                 onset[0]'
 
+    .. warning::
+       This means that when ``raw.info['meas_date'] is None``, doing
+       ``raw.set_annotations(raw.annotations)`` will not alter ``raw`` if and
+       only if ``raw.first_samp == 0``. When it's non-zero,
+       ``raw.set_annotations`` will assume that the "new" annotations refer to
+       the original data (with ``first_samp==0``), and will be re-referenced to
+       the new time offset!
+
     **Specific annotation**
 
     ``BAD_ACQ_SKIP`` annotation leads to specific reading/writing file
@@ -338,7 +346,7 @@ class Annotations(object):
         description : str | array-like
             Description for the annotation. To reject epochs, use description
             starting with keyword 'bad'.
-        %(annot_ch_names)s
+        %(ch_names_annot)s
 
             .. versionadded:: 0.23
 
@@ -488,7 +496,8 @@ class Annotations(object):
         self.ch_names = self.ch_names[order]
 
     @verbose
-    def crop(self, tmin=None, tmax=None, emit_warning=False, verbose=None):
+    def crop(self, tmin=None, tmax=None, emit_warning=False,
+             use_orig_time=True, verbose=None):
         """Remove all annotation that are outside of [tmin, tmax].
 
         The method operates inplace.
@@ -502,6 +511,9 @@ class Annotations(object):
         emit_warning : bool
             Whether to emit warnings when limiting or omitting annotations.
             Defaults to False.
+        use_orig_time : bool
+            Whether to use orig_time as an offset.
+            Defaults to True.
         %(verbose)s
 
         Returns
@@ -511,24 +523,26 @@ class Annotations(object):
         """
         if len(self) == 0:
             return self  # no annotations, nothing to do
-        if self.orig_time is None:
+        if not use_orig_time or self.orig_time is None:
             offset = _handle_meas_date(0)
         else:
             offset = self.orig_time
         if tmin is None:
-            tmin = timedelta(self.onset.min()) + offset
+            tmin = timedelta(seconds=self.onset.min()) + offset
         if tmax is None:
-            tmax = timedelta((self.onset + self.duration).max()) + offset
+            tmax = timedelta(
+                seconds=(self.onset + self.duration).max()) + offset
         for key, val in [('tmin', tmin), ('tmax', tmax)]:
             _validate_type(val, ('numeric', _datetime), key,
                            'numeric, datetime, or None')
-        if tmin > tmax:
-            raise ValueError('tmax should be greater than or equal to tmin '
-                             '(%s < %s).' % (tmax, tmin))
-        logger.debug('Cropping annotations to: %s - %s' % (tmin, tmax))
         absolute_tmin = _handle_meas_date(tmin)
         absolute_tmax = _handle_meas_date(tmax)
         del tmin, tmax
+        if absolute_tmin > absolute_tmax:
+            raise ValueError('tmax should be greater than or equal to tmin '
+                             '(%s < %s).' % (absolute_tmin, absolute_tmax))
+        logger.debug('Cropping annotations %s - %s' % (absolute_tmin,
+                                                       absolute_tmax))
 
         onsets, durations, descriptions, ch_names = [], [], [], []
         out_of_bounds, clip_left_elem, clip_right_elem = [], [], []
@@ -1037,8 +1051,8 @@ def _write_annotations_txt(fname, annot):
 def read_annotations(fname, sfreq='auto', uint16_codec=None):
     r"""Read annotations from a file.
 
-    This function reads a .fif, .fif.gz, .vmrk, .edf, .txt, .csv .cnt, .cef,
-    or .set file and makes an :class:`mne.Annotations` object.
+    This function reads a .fif, .fif.gz, .vmrk, .amrk, .edf, .txt, .csv, .cnt,
+     .cef, or .set file and makes an :class:`mne.Annotations` object.
 
     Parameters
     ----------
@@ -1046,13 +1060,14 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
         The filename.
     sfreq : float | 'auto'
         The sampling frequency in the file. This parameter is necessary for
-        \*.vmrk and \*.cef files as Annotations are expressed in seconds and
-        \*.vmrk/\*.cef files are in samples. For any other file format,
-        ``sfreq`` is omitted. If set to 'auto' then the ``sfreq`` is taken
-        from the respective info file of the same name with according file
-        extension (\*.vhdr for brainvision; \*.dap for Curry 7; \*.cdt.dpa for
-        Curry 8). So data.vmrk looks for sfreq in data.vhdr, data.cef looks in
-        data.dap and data.cdt.cef looks in data.cdt.dpa.
+        \*.vmrk, \*.amrk, and \*.cef files as Annotations are expressed in
+        seconds and \*.vmrk/\*.amrk/\*.cef files are in samples. For any other
+        file format, ``sfreq`` is omitted. If set to 'auto' then the ``sfreq``
+        is taken from the respective info file of the same name with according
+        file extension (\*.vhdr/\*.ahdr for brainvision; \*.dap for Curry 7;
+        \*.cdt.dpa for Curry 8). So data.vmrk/amrk looks for sfreq in
+        data.vhdr/ahdr, data.cef looks in data.dap and data.cdt.cef looks in
+        data.cdt.dpa.
     uint16_codec : str | None
         This parameter is only used in EEGLAB (\*.set) and omitted otherwise.
         If your \*.set file contains non-ascii characters, sometimes reading
@@ -1096,7 +1111,7 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
                                   description=description, orig_time=orig_time,
                                   ch_names=ch_names)
 
-    elif name.endswith('vmrk'):
+    elif name.endswith(('vmrk', 'amrk')):
         annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
 
     elif name.endswith('csv'):
@@ -1181,7 +1196,7 @@ def _read_brainstorm_annotations(fname, orig_time=None):
         starting time of annotation acquisition. If None (default),
         starting time is determined from beginning of raw data acquisition.
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
-        the annotations with raw data if their acquisiton is started at the
+        the annotations with raw data if their acquisition is started at the
         same time.
 
     Returns

@@ -47,6 +47,7 @@ no_info_warning = {'expected_warning': RuntimeWarning,
                    'match': NOINFO_WARNING}
 
 pymatreader = pytest.importorskip('pymatreader')  # module-level
+testing_path = mne.datasets.testing.data_path(download=False)
 
 
 @pytest.mark.slowtest
@@ -233,7 +234,7 @@ def test_create_events():
 @pytest.mark.parametrize('version', all_versions)
 def test_one_channel_elec_bug(version):
     """Test if loading data having only one elec in the elec field works."""
-    fname = os.path.join(mne.datasets.testing.data_path(), 'fieldtrip',
+    fname = os.path.join(testing_path, 'fieldtrip',
                          'one_channel_elec_bug_data_%s.mat' % (version, ))
 
     with pytest.warns(**no_info_warning):
@@ -287,9 +288,7 @@ def test_with_missing_channels():
 @pytest.mark.filterwarnings('ignore: Cannot guess the correct type')
 def test_throw_error_on_non_uniform_time_field():
     """Test if an error is thrown when time fields are not uniform."""
-    fname = os.path.join(mne.datasets.testing.data_path(),
-                         'fieldtrip',
-                         'not_uniform_time.mat')
+    fname = os.path.join(testing_path, 'fieldtrip', 'not_uniform_time.mat')
 
     with pytest.raises(RuntimeError, match='Loading data with non-uniform '
                                            'times per epoch is not supported'):
@@ -300,9 +299,7 @@ def test_throw_error_on_non_uniform_time_field():
 @pytest.mark.filterwarnings('ignore: Importing FieldTrip data without an info')
 def test_throw_error_when_importing_old_ft_version_data():
     """Test if an error is thrown if the data was saved with an old version."""
-    fname = os.path.join(mne.datasets.testing.data_path(),
-                         'fieldtrip',
-                         'old_version.mat')
+    fname = os.path.join(testing_path, 'fieldtrip', 'old_version.mat')
 
     with pytest.raises(RuntimeError, match='This file was created with '
                                            'an old version of FieldTrip. You '

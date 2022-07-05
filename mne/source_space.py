@@ -23,7 +23,7 @@ from .io.write import (start_block, end_block, write_int,
                        write_float_matrix, write_int_matrix,
                        write_coord_trans, start_and_end_file, write_id)
 from .io.pick import channel_type, _picks_to_idx
-from .bem import read_bem_surfaces
+from .bem import read_bem_surfaces, ConductorModel
 from .fixes import _get_img_fdata
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, _get_surf_neighbors,
@@ -38,7 +38,7 @@ from .utils import (get_subjects_dir, check_fname, logger, verbose, fill_doc,
                     _check_fname, _path_like, _check_sphere,
                     _validate_type, _check_option, _is_numeric, _pl, _suggest,
                     object_size, sizeof_fmt)
-from .parallel import parallel_func, check_n_jobs
+from .parallel import parallel_func
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
                          _coord_frame_name, Transform, _str_to_frame,
@@ -630,6 +630,7 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     write_source_spaces, setup_source_space, setup_volume_source_space
     """
     # be more permissive on read than write (fwd/inv can contain src)
+    fname = _check_fname(fname, overwrite='read', must_exist=True)
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz',
                                         '_src.fif', '_src.fif.gz',
                                         '-fwd.fif', '-fwd.fif.gz',
@@ -1198,7 +1199,7 @@ def _check_spacing(spacing, verbose=None):
 
 @verbose
 def setup_source_space(subject, spacing='oct6', surface='white',
-                       subjects_dir=None, add_dist=True, n_jobs=1,
+                       subjects_dir=None, add_dist=True, n_jobs=None, *,
                        verbose=None):
     """Set up bilateral hemisphere surface-based source space with subsampling.
 
@@ -1372,10 +1373,10 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         Only used if ``bem`` and ``surface`` are both None. Can also be a
         spherical ConductorModel, which will use the origin and radius.
         None (the default) uses a head-digitization fit.
-    bem : str | None | ConductorModel
+    bem : path-like | None | ConductorModel
         Define source space bounds using a BEM file (specifically the inner
         skull surface) or a ConductorModel for a 1-layer of 3-layers BEM.
-    surface : str | dict | None
+    surface : path-like | dict | None
         Define source space bounds using a FreeSurfer surface file. Can
         also be a dictionary with entries ``'rr'`` and ``'tris'``, such as
         those returned by :func:`mne.read_surface`.
@@ -1453,6 +1454,14 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     subjects_dir = get_subjects_dir(subjects_dir)
     _validate_type(
         volume_label, (str, list, tuple, dict, None), 'volume_label')
+    _validate_type(bem, ('path-like', ConductorModel, None), 'bem')
+    _validate_type(surface, ('path-like', dict, None), 'surface')
+    if bem is not None and not isinstance(bem, ConductorModel):
+        bem = _check_fname(bem, overwrite='read', must_exist=True,
+                           name='bem filename')
+    if surface is not None and not isinstance(surface, dict):
+        surface = _check_fname(surface, overwrite='read', must_exist=True,
+                               name='surface filename')
 
     if bem is not None and surface is not None:
         raise ValueError('Only one of "bem" and "surface" should be '
@@ -1488,7 +1497,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
             # let's make sure we have geom info
             complete_surface_info(surface, copy=False, verbose=False)
             surf_extra = 'dict()'
-        elif isinstance(surface, str):
+        else:
             if not op.isfile(surface):
                 raise IOError('surface file "%s" not found' % surface)
             surf_extra = surface
@@ -1665,8 +1674,8 @@ def _make_discrete_source_space(pos, coord_frame='mri'):
 
 
 def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
-                              volume_labels=None, do_neighbors=True, n_jobs=1,
-                              vol_info={}, single_volume=False):
+                              volume_labels=None, do_neighbors=True,
+                              n_jobs=None, vol_info={}, single_volume=False):
     """Make a source space which covers the volume bounded by surf."""
     # Figure out the grid size in the MRI coordinate frame
     if 'rr' in surf:
@@ -2099,7 +2108,7 @@ def _pts_in_hull(pts, hull, tolerance=1e-12):
 
 
 @verbose
-def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
+def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=None,
                           verbose=None):
     """Remove all source space points closer than a given limit (in mm)."""
     if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD and mri_head_t is None:
@@ -2230,7 +2239,8 @@ _DIST_WARN_LIMIT = 10242  # warn for anything larger than ICO-5
 
 
 @verbose
-def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
+def add_source_space_distances(src, dist_limit=np.inf, n_jobs=None, *,
+                               verbose=None):
     """Compute inter-source distances along the cortical surface.
 
     This function will also try to add patch info for the source space.
@@ -2271,7 +2281,6 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     """
     from scipy.sparse import csr_matrix
     from scipy.sparse.csgraph import dijkstra
-    n_jobs = check_n_jobs(n_jobs)
     src = _ensure_src(src)
     dist_limit = float(dist_limit)
     if dist_limit < 0:
@@ -2287,7 +2296,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         raise RuntimeError('Currently all source spaces must be of surface '
                            'type')
 
-    parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(_do_src_distances, n_jobs)
     min_dists = list()
     min_idxs = list()
     msg = 'patch information' if patch_only else 'source space distances'
@@ -2797,7 +2806,7 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None,
 
     # get vertex position in same coordinates as for sensors below
     src_pos = np.vstack([
-        apply_trans(src_trans, s['rr'][s['inuse'].astype(np.bool)])
+        apply_trans(src_trans, s['rr'][s['inuse'].astype(bool)])
         for s in src
     ])
 
@@ -2821,3 +2830,40 @@ def compute_distance_to_sensors(src, info, picks=None, trans=None,
     depths = cdist(src_pos, sensor_pos)
 
     return depths
+
+
+def get_decimated_surfaces(src):
+    """Get the decimated surfaces from a source space.
+
+    Parameters
+    ----------
+    src : instance of SourceSpaces | path-like
+        The source space with decimated surfaces.
+
+    Returns
+    -------
+    surfaces : list of dict
+        The decimated surfaces present in the source space. Each dict
+        which contains 'rr' and 'tris' keys for vertices positions and
+        triangle indices.
+
+    Notes
+    -----
+    .. versionadded:: 1.0
+    """
+    src = _ensure_src(src)
+    surfaces = []
+    for s in src:
+        if s['type'] != 'surf':
+            continue
+        rr = s['rr']
+        use_tris = s['use_tris']
+        vertno = s['vertno']
+        ss = {}
+        ss['rr'] = rr[vertno]
+        reindex = np.full(len(rr), -1, int)
+        reindex[vertno] = np.arange(len(vertno))
+        ss['tris'] = reindex[use_tris]
+        assert (ss['tris'] >= 0).all()
+        surfaces.append(ss)
+    return surfaces

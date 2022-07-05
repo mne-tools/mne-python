@@ -332,7 +332,7 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper,
     ('MNE', 89, 92, dict(limit_depth_chs='whiten'), 0.2),  # sparse default
     ('dSPM', 85, 87, 0.8, 0.2),
     ('sLORETA', 100, 100, 0.8, 0.2),
-    ('eLORETA', 99, 100, None, 0.2),
+    pytest.param('eLORETA', 99, 100, None, 0.2, marks=pytest.mark.slowtest),
     pytest.param('eLORETA', 99, 100, 0.8, 0.2, marks=pytest.mark.slowtest),
     pytest.param('eLORETA', 99, 100, 0.8, 0.001, marks=pytest.mark.slowtest),
 ])
@@ -829,6 +829,26 @@ def test_inverse_operator_volume(evoked, tmp_path):
     assert_allclose(np.linalg.norm(stc_vec.data, axis=1), stc.data)
     with pytest.raises(RuntimeError, match='surface or discrete'):
         apply_inverse(evoked, inv_vol, pick_ori='normal')
+
+
+@pytest.mark.slowtest
+def test_inverse_operator_discrete(evoked, tmp_path):
+    """Test MNE inverse computation on discrete source space."""
+    # Make discrete source space
+    src = mne.setup_volume_source_space(
+        pos=dict(rr=[[0, 0, 0.1], [0, -0.01, 0.05]],
+                 nn=[[0, 1, 0], [1, 0, 0]]),
+        bem=fname_bem)
+
+    # Perform inverse
+    fwd = mne.make_forward_solution(
+        evoked.info, mne.Transform('head', 'mri'), src, fname_bem)
+    inv = make_inverse_operator(
+        evoked.info, fwd, make_ad_hoc_cov(evoked.info), loose=0, fixed=True,
+        depth=0)
+    stc = apply_inverse(evoked, inv)
+    assert (isinstance(stc, VolSourceEstimate))
+    assert stc.data.shape == (2, len(evoked.times))
 
 
 @pytest.mark.slowtest

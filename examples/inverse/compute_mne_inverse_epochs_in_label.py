@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-dSPM-epochs:
+
 ==================================================
 Compute MNE-dSPM inverse solution on single epochs
 ==================================================

@@ -721,8 +721,8 @@ def _cart_to_sph(cart):
     sph_pts : ndarray, shape (n_points, 3)
         Array containing points in spherical coordinates (rad, azimuth, polar)
     """
-    assert cart.ndim == 2 and cart.shape[1] == 3
     cart = np.atleast_2d(cart)
+    assert cart.ndim == 2 and cart.shape[1] == 3
     out = np.empty((len(cart), 3))
     out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
     norm = np.where(out[:, 0] > 0, out[:, 0], 1)  # protect against / 0
@@ -746,8 +746,8 @@ def _sph_to_cart(sph_pts):
         Array containing points in Cartesian coordinates (x, y, z)
 
     """
-    assert sph_pts.ndim == 2 and sph_pts.shape[1] == 3
     sph_pts = np.atleast_2d(sph_pts)
+    assert sph_pts.ndim == 2 and sph_pts.shape[1] == 3
     cart_pts = np.empty((len(sph_pts), 3))
     cart_pts[:, 2] = sph_pts[:, 0] * np.cos(sph_pts[:, 2])
     xy = sph_pts[:, 0] * np.sin(sph_pts[:, 2])
@@ -1281,11 +1281,12 @@ def _quat_to_affine(quat):
     return affine
 
 
-def _angle_between_quats(x, y):
+def _angle_between_quats(x, y=None):
     """Compute the ang between two quaternions w/3-element representations."""
     # z = conj(x) * y
     # conjugate just negates all but the first element in a 4-element quat,
     # so it's just a negative for us
+    y = np.zeros(3) if y is None else y
     z = _quat_mult(-x, y)
     z0 = _quat_real(z)
     return 2 * np.arctan2(np.linalg.norm(z, axis=-1), z0)
@@ -1744,7 +1745,8 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
 
 @verbose
 def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
-                              interpolation='linear', verbose=None):
+                              interpolation='linear', cval=0.,
+                              verbose=None):
     """Apply volume registration.
 
     Uses registration parameters computed by
@@ -1759,6 +1761,10 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     interpolation : str
         Interpolation to be used during the interpolation.
         Can be "linear" (default) or "nearest".
+    cval : float | str
+        The constant value to assume exists outside the bounds of the
+        ``moving`` image domain. Can be a string percentage like ``'1%%'``
+        to use the given percentile of image data as the constant value.
     %(verbose)s
 
     Returns
@@ -1780,8 +1786,19 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     _validate_type(reg_affine, np.ndarray, 'reg_affine')
     _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
     _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
+    _validate_type(cval, ('numeric', str), 'cval')
+    perc = None
+    if isinstance(cval, str):
+        if not cval.endswith('%'):
+            raise ValueError(f'cval must end with % if str, got {cval}')
+        perc = float(cval[:-1])
     logger.info('Applying affine registration ...')
-    moving, moving_affine = np.asarray(moving.dataobj), moving.affine
+    moving_affine = moving.affine
+    moving = np.asarray(moving.dataobj, dtype=float)
+    if perc is not None:
+        cval = np.percentile(moving, perc)
+        logger.info(f'Using a lower bound at the {perc} percentile: {cval}')
+    moving -= cval
     static, static_affine = np.asarray(static.dataobj), static.affine
     affine_map = AffineMap(reg_affine,
                            static.shape, static_affine,
@@ -1793,6 +1810,7 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
             reg_data, interpolation=interpolation,
             image_world2grid=np.linalg.inv(static_affine),
             out_shape=static.shape, out_grid2world=static_affine)
+    reg_data += cval
     reg_img = SpatialImage(reg_data, static_affine)
     logger.info('[done]')
     return reg_img

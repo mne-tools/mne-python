@@ -144,7 +144,7 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix,
 
 
 @verbose
-def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
+def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=None,
                         desc_prefix=None, meg='separate', verbose=None):
     """Compute SSP (signal-space projection) vectors on epoched data.
 
@@ -200,7 +200,7 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
 
 def _compute_cov_epochs(epochs, n_jobs):
     """Compute epochs covariance."""
-    parallel, p_fun, _ = parallel_func(np.dot, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(np.dot, n_jobs)
     data = parallel(p_fun(e, e.T) for e in epochs)
     n_epochs = len(data)
     if n_epochs == 0:
@@ -261,8 +261,8 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, desc_prefix=None,
 
 @verbose
 def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
-                     n_eeg=0, reject=None, flat=None, n_jobs=1, meg='separate',
-                     verbose=None):
+                     n_eeg=0, reject=None, flat=None, n_jobs=None,
+                     meg='separate', verbose=None):
     """Compute SSP (signal-space projection) vectors on continuous data.
 
     %(compute_ssp)s

@@ -3,14 +3,16 @@ import glob
 import os
 from os import path as op
 import shutil
+from pathlib import Path
 
 import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_allclose
 
+import mne
 from mne import (concatenate_raws, read_bem_surfaces, read_surface,
                  read_source_spaces, read_bem_solution)
-from mne.bem import ConductorModel
+from mne.bem import ConductorModel, convert_flash_mris
 from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
                           mne_coreg, mne_kit2fiff,
@@ -22,14 +24,17 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_prepare_bem_model, mne_sys_info)
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_info
-from mne.utils import (requires_mne, requires_vtk, requires_freesurfer,
+from mne.utils import (requires_mne, requires_freesurfer,
                        requires_nibabel, ArgvSetter,
                        _stamp_to_dt, _record_warnings)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
-subjects_dir = op.join(testing.data_path(download=False), 'subjects')
+testing_path = testing.data_path(download=False)
+subjects_dir = op.join(testing_path, 'subjects')
+bem_model_fname = op.join(testing_path, 'subjects',
+                          'sample', 'bem', 'sample-320-320-320-bem.fif')
 
 
 def check_usage(module, force_help=False):
@@ -128,11 +133,13 @@ def test_kit2fiff():
     check_usage(mne_kit2fiff, force_help=True)
 
 
-@pytest.mark.slowtest  # slow on Travis OSX
-@requires_vtk
+@pytest.mark.slowtest
+@pytest.mark.ultraslowtest
 @testing.requires_testing_data
 def test_make_scalp_surfaces(tmp_path, monkeypatch):
     """Test mne make_scalp_surfaces."""
+    pytest.importorskip('nibabel')
+    pytest.importorskip('pyvista')
     check_usage(mne_make_scalp_surfaces)
     has = 'SUBJECTS_DIR' in os.environ
     # Copy necessary files to avoid FreeSurfer call
@@ -143,16 +150,18 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     os.mkdir(surf_path_new)
     subj_dir = op.join(tempdir, 'sample', 'bem')
     os.mkdir(subj_dir)
-    shutil.copy(op.join(surf_path, 'lh.seghead'), surf_path_new)
 
     cmd = ('-s', 'sample', '--subjects-dir', tempdir)
-    monkeypatch.setenv('_MNE_TESTING_SCALP', 'true')
+    monkeypatch.setattr(
+        mne.bem, 'decimate_surface',
+        lambda points, triangles, n_triangles: (points, triangles))
     dense_fname = op.join(subj_dir, 'sample-head-dense.fif')
     medium_fname = op.join(subj_dir, 'sample-head-medium.fif')
     with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
         monkeypatch.delenv('FREESURFER_HOME', None)
         with pytest.raises(RuntimeError, match='The FreeSurfer environ'):
             mne_make_scalp_surfaces.run()
+        shutil.copy(op.join(surf_path, 'lh.seghead'), surf_path_new)
         monkeypatch.setenv('FREESURFER_HOME', tempdir)
         mne_make_scalp_surfaces.run()
         assert op.isfile(dense_fname)
@@ -190,6 +199,7 @@ def test_maxfilter():
 @testing.requires_testing_data
 def test_report(tmp_path):
     """Test mne report."""
+    pytest.importorskip('nibabel')
     check_usage(mne_report)
     tempdir = str(tmp_path)
     use_fname = op.join(tempdir, op.basename(raw_fname))
@@ -254,7 +264,7 @@ def test_watershed_bem(tmp_path):
         assert_allclose(vol_info['cras'], Pxyz_c, **kwargs)
 
 
-@pytest.mark.timeout(120)  # took ~70 sec locally
+@pytest.mark.timeout(180)  # took ~70 sec locally
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
 @requires_freesurfer
@@ -263,26 +273,52 @@ def test_flash_bem(tmp_path):
     """Test mne flash_bem."""
     check_usage(mne_flash_bem, force_help=True)
     # Copy necessary files to tempdir
-    tempdir = str(tmp_path)
-    mridata_path = op.join(subjects_dir, 'sample', 'mri')
-    subject_path_new = op.join(tempdir, 'sample')
-    mridata_path_new = op.join(subject_path_new, 'mri')
-    os.makedirs(op.join(mridata_path_new, 'flash'))
-    os.makedirs(op.join(subject_path_new, 'bem'))
+    tempdir = Path(str(tmp_path))
+    mridata_path = Path(subjects_dir) / 'sample' / 'mri'
+    subject_path_new = tempdir / 'sample'
+    mridata_path_new = subject_path_new / 'mri'
+    flash_path = mridata_path_new / 'flash'
+    flash_path.mkdir(parents=True, exist_ok=True)
+    bem_path = mridata_path_new / 'bem'
+    bem_path.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(op.join(mridata_path, 'T1.mgz'),
                     op.join(mridata_path_new, 'T1.mgz'))
     shutil.copyfile(op.join(mridata_path, 'brain.mgz'),
                     op.join(mridata_path_new, 'brain.mgz'))
     # Copy the available mri/flash/mef*.mgz files from the dataset
-    flash_path = op.join(mridata_path_new, 'flash')
     for kind in (5, 30):
-        in_fname = op.join(mridata_path, 'flash', 'mef%02d.mgz' % kind)
-        shutil.copyfile(in_fname, op.join(flash_path, op.basename(in_fname)))
+        in_fname = mridata_path / "flash" / f'mef{kind:02d}.mgz'
+        in_fname_echo = flash_path / f'mef{kind:02d}_001.mgz'
+        shutil.copyfile(in_fname, flash_path / in_fname_echo.name)
     # Test mne flash_bem with --noconvert option
     # (since there are no DICOM Flash images in dataset)
     for s in ('outer_skin', 'outer_skull', 'inner_skull'):
-        assert not op.isfile(op.join(subject_path_new, 'bem', '%s.surf' % s))
-    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n'),
+        assert not op.isfile(subject_path_new / 'bem' / f'{s}.surf')
+
+    # First test without flash30
+    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n', '-r', '-3'),
+                    disable_stdout=False, disable_stderr=False):
+        mne_flash_bem.run()
+    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
+        surf_path = subject_path_new / 'bem' / f'{s}.surf'
+        assert surf_path.exists()
+        surf_path.unlink()  # cleanup
+    shutil.rmtree(flash_path / "parameter_maps")  # remove old files
+
+    # Test synthesize flash5 with MEF flash5 and flash30 default locations
+    flash5_img = convert_flash_mris(
+        subject="sample", subjects_dir=tempdir, convert=False,
+        unwarp=False
+    )
+    assert flash5_img == (flash_path / "parameter_maps" / "flash5.mgz")
+    assert flash5_img.exists()
+    shutil.rmtree(flash_path / "parameter_maps")  # remove old files
+
+    # Test with flash5 and flash30
+    shutil.rmtree(flash_path)  # first remove old files
+    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n',
+                     '-3', str(mridata_path / "flash" / 'mef30.mgz'),
+                     '-5', str(mridata_path / "flash" / 'mef05.mgz')),
                     disable_stdout=False, disable_stderr=False):
         mne_flash_bem.run()
 
@@ -305,7 +341,6 @@ def test_setup_source_space(tmp_path):
     """Test mne setup_source_space."""
     check_usage(mne_setup_source_space, force_help=True)
     # Using the sample dataset
-    subjects_dir = op.join(testing.data_path(download=False), 'subjects')
     use_fname = op.join(tmp_path, "sources-src.fif")
     # Test  command
     with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
@@ -335,7 +370,6 @@ def test_setup_forward_model(tmp_path):
     """Test mne setup_forward_model."""
     check_usage(mne_setup_forward_model, force_help=True)
     # Using the sample dataset
-    subjects_dir = op.join(testing.data_path(download=False), 'subjects')
     use_fname = op.join(tmp_path, "model-bem.fif")
     # Test  command
     with ArgvSetter(('--model', use_fname, '-d', subjects_dir, '--homog',
@@ -353,8 +387,6 @@ def test_mne_prepare_bem_model(tmp_path):
     """Test mne setup_source_space."""
     check_usage(mne_prepare_bem_model, force_help=True)
     # Using the sample dataset
-    bem_model_fname = op.join(testing.data_path(download=False), 'subjects',
-                              'sample', 'bem', 'sample-320-320-320-bem.fif')
     bem_solution_fname = op.join(tmp_path, "bem_solution-bem-sol.fif")
     # Test  command
     with ArgvSetter(('--bem', bem_model_fname, '--sol', bem_solution_fname,

@@ -19,7 +19,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 from mne import (read_source_estimate, read_evokeds, read_cov,
                  read_forward_solution, pick_types_forward,
                  SourceEstimate, MixedSourceEstimate, write_surface,
-                 VolSourceEstimate, vertex_to_mni)
+                 VolSourceEstimate, vertex_to_mni, Dipole)
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces,
                               setup_volume_source_space)
@@ -192,7 +192,7 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     with pytest.raises(ValueError, match='interaction'):
         Brain(hemi=hemi, surf=surf, interaction='foo', **kwargs)
     with pytest.raises(FileNotFoundError, match=r'lh\.whatever'):
-        Brain(subject_id, 'lh', 'whatever')
+        Brain(hemi='lh', surf='whatever', **kwargs)
     with pytest.raises(ValueError, match='`surf` cannot be seghead'):
         Brain(hemi='lh', surf='seghead', **kwargs)
     with pytest.raises(ValueError, match='RGB argument'):
@@ -343,6 +343,30 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     with pytest.raises(RuntimeError, match='must be "meg", "head" or "mri"'):
         brain.add_sensors(info, trans=fname_trans)
 
+    # add dipole
+    dip = Dipole(times=[0], pos=[[-0.06439933, 0.00733009, 0.06280205]],
+                 amplitude=[3e-8], ori=[[0, 1, 0]], gof=50)
+    brain.add_dipole(dip, fname_trans, colors='blue', scales=5, alpha=0.5)
+    brain.remove_dipole()
+
+    with pytest.raises(ValueError, match='The number of colors'):
+        brain.add_dipole(dip, fname_trans, colors=['red', 'blue'])
+
+    with pytest.raises(ValueError, match='The number of scales'):
+        brain.add_dipole(dip, fname_trans, scales=[1, 2])
+
+    fwd = read_forward_solution(fname_fwd)
+    brain.add_forward(fwd, fname_trans, alpha=0.5, scale=10)
+    brain.remove_forward()
+
+    # fake incorrect coordinate frame
+    fwd['coord_frame'] = 99
+    with pytest.raises(RuntimeError, match='must be "head" or "mri"'):
+        brain.add_forward(fwd, fname_trans)
+    fwd['coord_frame'] = 2003
+    with pytest.raises(RuntimeError, match='must be "head" or "mri"'):
+        brain.add_forward(fwd, fname_trans)
+
     # add text
     brain.add_text(x=0, y=0, text='foo')
     with pytest.raises(ValueError, match='already exists'):
@@ -378,6 +402,17 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     assert_allclose(cam.GetFocalPoint(), view_args["focalpoint"])
     assert_allclose(cam.GetDistance(), view_args["distance"])
     assert_allclose(cam.GetRoll(), previous_roll + view_args["roll"])
+
+    # test get_view
+    azimuth, elevation = 180., 90.
+    view_args.update(azimuth=azimuth, elevation=elevation)
+    brain.show_view(**view_args)
+    roll, distance, azimuth, elevation, focalpoint = brain.get_view()
+    assert_allclose(cam.GetRoll(), roll)
+    assert_allclose(cam.GetDistance(), distance)
+    assert_allclose(view_args['azimuth'] % 360, azimuth % 360)
+    assert_allclose(view_args['elevation'] % 180, elevation % 180)
+    assert_allclose(view_args['focalpoint'], focalpoint)
     del view_args
 
     # image and screenshot
@@ -388,13 +423,13 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     fp = np.array(
         brain._renderer.figure.plotter.renderer.ComputeVisiblePropBounds())
     fp = (fp[1::2] + fp[::2]) * 0.5
-    azimuth, elevation = 180., 90.
     for view_args in (dict(azimuth=azimuth, elevation=elevation,
                            focalpoint='auto'),
                       dict(view='lateral', hemi='lh')):
         brain.show_view(**view_args)
-        assert_allclose(brain._renderer.figure._azimuth, azimuth)
-        assert_allclose(brain._renderer.figure._elevation, elevation)
+        assert_allclose(brain._renderer.figure._azimuth % 360, azimuth % 360)
+        assert_allclose(
+            brain._renderer.figure._elevation % 180, elevation % 180)
         assert_allclose(cam.GetFocalPoint(), fp)
     del view_args
     img = brain.screenshot(mode='rgba')
@@ -812,6 +847,35 @@ something
         assert img.shape[1] == screenshot.shape[1]  # same width
         assert img.shape[0] > screenshot.shape[0]  # larger height
         assert img.shape[:2] == screenshot_all.shape[:2]
+
+
+@testing.requires_testing_data
+def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
+    """Test a simple scraping example."""
+    pytest.importorskip('sphinx_gallery')
+    stc = read_source_estimate(fname_stc, subject='sample')
+    size = (600, 300)
+    brain = stc.plot(subjects_dir=subjects_dir,
+                     time_viewer=True, show_traces=True,
+                     hemi='split', size=size, views='lat')
+    fnames = [str(tmp_path / f'temp_{ii}.png') for ii in range(2)]
+    block_vars = dict(image_path_iterator=iter(fnames),
+                      example_globals=dict(brain=brain))
+    block = ('code', '', 1)
+    gallery_conf = dict(src_dir=str(tmp_path), compress_images=[])
+    scraper = _BrainScraper()
+    rst = scraper(block, block_vars, gallery_conf)
+    assert brain.plotter is None  # closed
+    assert brain._cleaned
+    del brain
+    fname = fnames[0]
+    assert op.basename(fname) in rst
+    assert op.isfile(fname)
+    img = image.imread(fname)
+    w = img.shape[1]
+    w0 = size[0]
+    assert np.isclose(w, w0, atol=10) or \
+        np.isclose(w, w0 * 2, atol=10), f'w ∉ {{{w0}, {2 * w0}}}'  # HiDPI
 
 
 @testing.requires_testing_data

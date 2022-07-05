@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 """
-.. _tut-dec-st-source:
+.. _ex-dec-st-source:
 
 ==========================
 Decoding source space data
@@ -92,7 +93,7 @@ clf = make_pipeline(StandardScaler(),  # z-score normalization
 time_decod = SlidingEstimator(clf, scoring='roc_auc')
 
 # Run cross-validated decoding analyses:
-scores = cross_val_multiscore(time_decod, X, y, cv=5, n_jobs=1)
+scores = cross_val_multiscore(time_decod, X, y, cv=5, n_jobs=None)
 
 # Plot average decoding scores of 5 splits
 fig, ax = plt.subplots(1)

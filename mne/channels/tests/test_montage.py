@@ -5,8 +5,9 @@
 
 from contextlib import nullcontext
 from itertools import chain
-import os
+from pathlib import Path
 import os.path as op
+import shutil
 
 import pytest
 
@@ -28,7 +29,9 @@ from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_dig_polhemus_isotrak, compute_native_head_t,
                           read_polhemus_fastscan, read_dig_localite,
                           read_dig_hpts)
-from mne.channels.montage import transform_to_head, _check_get_coord_frame
+from mne.channels.montage import (
+    transform_to_head, _check_get_coord_frame, _BUILTIN_STANDARD_MONTAGES
+)
 from mne.utils import assert_dig_allclose, _record_warnings
 from mne.bem import _fit_sphere
 from mne.io.constants import FIFF
@@ -41,7 +44,7 @@ from mne.viz._3d import _fiducial_coords
 
 from mne.io.kit import read_mrk
 from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
-                    read_fiducials, __file__ as _MNE_IO_FILE)
+                    read_fiducials, __file__ as _MNE_IO_FILE, read_raw_nirx)
 
 from mne.io import RawArray
 from mne.datasets import testing
@@ -63,6 +66,8 @@ bdf_fname1 = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 bdf_fname2 = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 egi_fname1 = op.join(data_path, 'EGI', 'test_egi.mff')
 cnt_fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
+fnirs_dname = op.join(data_path, 'NIRx', 'nirscout',
+                      'nirx_15_2_recording_w_short')
 subjects_dir = op.join(data_path, 'subjects')
 
 io_dir = op.dirname(_MNE_IO_FILE)
@@ -145,27 +150,14 @@ def test_fiducials():
 
 def test_documented():
     """Test that standard montages are documented."""
-    docs = make_standard_montage.__doc__
-    lines = [line[4:] for line in docs.splitlines()]
-    start = stop = None
-    for li, line in enumerate(lines):
-        if line.startswith('====') and li < len(lines) - 2 and \
-                lines[li + 1].startswith('Kind') and\
-                lines[li + 2].startswith('===='):
-            start = li + 3
-        elif start is not None and li > start and line.startswith('===='):
-            stop = li
-            break
-    assert (start is not None)
-    assert (stop is not None)
-    kinds = [line.split(' ')[0] for line in lines[start:stop]]
-    kinds = [kind for kind in kinds if kind != '']
-    montages = os.listdir(op.join(op.dirname(_mne_file), 'channels', 'data',
-                                  'montages'))
-    montages = sorted(op.splitext(m)[0] for m in montages)
-    assert_equal(len(set(montages)), len(montages))
-    assert_equal(len(set(kinds)), len(kinds), err_msg=str(sorted(kinds)))
-    assert_equal(set(montages), set(kinds))
+    montage_dir = Path(_mne_file).parent / 'channels' / 'data' / 'montages'
+    montage_files = Path(montage_dir).glob('*')
+    montage_names = [f.stem for f in montage_files]
+
+    assert len(montage_names) == len(_BUILTIN_STANDARD_MONTAGES)
+    assert set(montage_names) == set(
+        [m.name for m in _BUILTIN_STANDARD_MONTAGES]
+    )
 
 
 @pytest.mark.parametrize('reader, file_content, expected_dig, ext, warning', [
@@ -587,9 +579,12 @@ def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmp_path):
     with pytest.raises(ValueError, match='not contain.*Polhemus FastSCAN'):
         _ = read_polhemus_fastscan(fname)
 
+    fname = tmp_path / 'faulty_FastSCAN.bar'
+    with open(fname, 'w') as fid:
+        fid.write(content)
     EXPECTED_ERR_MSG = "allowed value is '.txt', but got '.bar' instead"
     with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
-        _ = read_polhemus_fastscan(fname=tmp_path / 'foo.bar')
+        _ = read_polhemus_fastscan(fname=fname)
 
 
 def test_read_dig_polhemus_isotrak_hsp():
@@ -712,7 +707,9 @@ def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmp_path):
         )
 
     # Check fname extensions
-    fname = op.join(tmp_path, 'foo.bar')
+    fname = op.join(tmp_path, 'test.bar')
+    shutil.copyfile(isotrak_eeg, fname)
+
     with pytest.raises(
         ValueError,
         match="Allowed val.*'.hsp', '.elp', and '.eeg', but got '.bar' instead"
@@ -1564,8 +1561,15 @@ def test_read_dig_hpts():
 
 def test_get_builtin_montages():
     """Test help function to obtain builtin montages."""
-    EXPECTED_NUM = 26
-    assert len(get_builtin_montages()) == EXPECTED_NUM
+    EXPECTED_COUNT = 26
+
+    montages = get_builtin_montages()
+    assert len(montages) == EXPECTED_COUNT
+
+    montages_with_descriptions = get_builtin_montages(descriptions=True)
+    assert len(montages_with_descriptions) == EXPECTED_COUNT
+    for montage_with_description in montages_with_descriptions:
+        assert len(montage_with_description) == 2
 
 
 @testing.requires_testing_data
@@ -1654,3 +1658,39 @@ def test_read_dig_localite(tmp_path):
     s = '<DigMontage | 0 extras (headshape), 0 HPIs, 3 fiducials, 15 channels>'
     assert repr(montage) == s
     assert montage.ch_names == [f'ch{i:02}' for i in range(1, 16)]
+
+
+def test_make_wrong_dig_montage():
+    """Test that a montage with non numeric is not possible."""
+    make_dig_montage(ch_pos={'A1': ['0', '0', '0']})  # converted to floats
+    with pytest.raises(ValueError, match="could not convert string to float"):
+        make_dig_montage(ch_pos={'A1': ['a', 'b', 'c']})
+    with pytest.raises(TypeError, match="instance of ndarray, list, or tuple"):
+        make_dig_montage(ch_pos={'A1': 5})
+
+
+@testing.requires_testing_data
+def test_fnirs_montage():
+    """Ensure fNIRS montages can be get and set."""
+    raw = read_raw_nirx(fnirs_dname)
+    info_orig = raw.copy().info
+    mtg = raw.get_montage()
+
+    num_sources = np.sum(["S" in optode for optode in mtg.ch_names])
+    num_detectors = np.sum(["D" in optode for optode in mtg.ch_names])
+    assert num_sources == 5
+    assert num_detectors == 13
+
+    # Make a change to the montage before setting
+    raw.info['chs'][2]['loc'][:3] = [1., 2, 3]
+    # Set montage back to original
+    raw.set_montage(mtg)
+
+    for ch in range(len(raw.ch_names)):
+        assert_array_equal(info_orig['chs'][ch]['loc'],
+                           raw.info['chs'][ch]['loc'])
+
+    # Mixed channel types not supported yet
+    raw.set_channel_types({ch_name: 'eeg' for ch_name in raw.ch_names[-2:]})
+    with pytest.raises(ValueError, match='mix of fNIRS'):
+        raw.get_montage()

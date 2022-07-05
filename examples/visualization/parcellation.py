@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _ex-parcellation:
+
 ============================
 Plot a cortical parcellation
 ============================

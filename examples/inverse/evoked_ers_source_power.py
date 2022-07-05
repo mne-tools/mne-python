@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-source-loc-methods:
+
 =====================================================================
 Compute evoked ERS source power using DICS, LCMV beamformer, and dSPM
 =====================================================================
@@ -14,7 +17,6 @@ baseline covariance matrices.
 # License: BSD-3-Clause
 
 # %%
-import os.path as op
 
 import numpy as np
 import mne
@@ -32,8 +34,8 @@ print(__doc__)
 data_path = somato.data_path()
 subject = '01'
 task = 'somato'
-raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
-                    'sub-{}_task-{}_meg.fif'.format(subject, task))
+raw_fname = (data_path / 'sub-{}'.format(subject) / 'meg' /
+             'sub-{}_task-{}_meg.fif'.format(subject, task))
 
 # crop to 5 minutes to save memory
 raw = mne.io.read_raw_fif(raw_fname).crop(0, 300)
@@ -51,9 +53,9 @@ epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, picks=picks,
                     preload=True, decim=3)
 
 # Read forward operator and point to freesurfer subject directory
-fname_fwd = op.join(data_path, 'derivatives', 'sub-{}'.format(subject),
-                    'sub-{}_task-{}-fwd.fif'.format(subject, task))
-subjects_dir = op.join(data_path, 'derivatives', 'freesurfer', 'subjects')
+fname_fwd = (data_path / 'derivatives' / 'sub-{}'.format(subject) /
+             'sub-{}_task-{}-fwd.fif'.format(subject, task))
+subjects_dir = data_path / 'derivatives' / 'freesurfer' / 'subjects'
 
 fwd = mne.read_forward_solution(fname_fwd)
 

@@ -74,19 +74,19 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
         Forward Operator.
     src : Source Space
         Source space used to compute resolution matrix.
-    %(pctf_idx)s
+    %(idx_pctf)s
     func : str ('psf' | 'ctf')
         Whether to produce PSFs or CTFs. Defaults to psf.
-    %(pctf_mode)s
-    %(pctf_n_comp)s
-    %(pctf_norm)s
-    %(pctf_return_pca_vars)s
+    %(mode_pctf)s
+    %(n_comp_pctf_n)s
+    %(norm_pctf)s
+    %(return_pca_vars_pctf)s
     %(verbose)s
 
     Returns
     -------
-    %(pctf_stcs)s
-    %(pctf_pca_vars)s
+    %(stcs_pctf)s
+    %(pca_vars_pctf)s
     """
     # check for consistencies in input parameters
     _check_get_psf_ctf_params(mode, n_comp, return_pca_vars)
@@ -247,17 +247,17 @@ def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
         Forward Operator.
     src : instance of SourceSpaces
         Source space used to compute resolution matrix.
-    %(pctf_idx)s
-    %(pctf_mode)s
-    %(pctf_n_comp)s
-    %(pctf_norm)s
-    %(pctf_return_pca_vars)s
+    %(idx_pctf)s
+    %(mode_pctf)s
+    %(n_comp_pctf_n)s
+    %(norm_pctf)s
+    %(return_pca_vars_pctf)s
     %(verbose)s
 
     Returns
     -------
-    %(pctf_stcs)s
-    %(pctf_pca_vars)s
+    %(stcs_pctf)s
+    %(pca_vars_pctf)s
     """
     return _get_psf_ctf(resmat, src, idx, func='psf', mode=mode, n_comp=n_comp,
                         norm=norm, return_pca_vars=return_pca_vars)
@@ -274,17 +274,17 @@ def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
         Forward Operator.
     src : instance of SourceSpaces
         Source space used to compute resolution matrix.
-    %(pctf_idx)s
-    %(pctf_mode)s
-    %(pctf_n_comp)s
-    %(pctf_norm)s
-    %(pctf_return_pca_vars)s
+    %(idx_pctf)s
+    %(mode_pctf)s
+    %(n_comp_pctf_n)s
+    %(norm_pctf)s
+    %(return_pca_vars_pctf)s
     %(verbose)s
 
     Returns
     -------
-    %(pctf_stcs)s
-    %(pctf_pca_vars)s
+    %(stcs_pctf)s
+    %(pca_vars_pctf)s
     """
     return _get_psf_ctf(resmat, src, idx, func='ctf', mode=mode, n_comp=n_comp,
                         norm=norm, return_pca_vars=return_pca_vars)

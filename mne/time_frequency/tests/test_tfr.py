@@ -964,7 +964,7 @@ def test_getitem_epochsTFR():
         # With 0.5 s time windows, this gives 8 Hz smoothing
         kwargs = dict(freqs=freqs, n_cycles=n_cycles, use_fft=True,
                       time_bandwidth=time_bandwidth, return_itc=False,
-                      average=False, n_jobs=1)
+                      average=False, n_jobs=None)
         power = tfr_multitaper(epochs, **kwargs)
 
         # Check that power and epochs metadata is the same

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-brainstorm-elekta-phantom:
 
@@ -18,7 +19,6 @@ tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and
 
 # %%
 
-import os.path as op
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -36,7 +36,7 @@ print(__doc__)
 # are read to construct instances of :class:`mne.io.Raw`.
 data_path = bst_phantom_elekta.data_path(verbose=True)
 
-raw_fname = op.join(data_path, 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif')
+raw_fname = data_path / 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif'
 raw = read_raw_fif(raw_fname)
 
 # %%
@@ -114,7 +114,7 @@ for ii in event_id:
     data.append(evoked.data[:, 0])
 evoked = mne.EvokedArray(np.array(data).T, evoked.info, tmin=0.)
 del epochs
-dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=1)
+dip, residual = fit_dipole(evoked, cov, sphere, n_jobs=None)
 
 # %%
 # Do a quick visualization of how much variance we explained, putting the

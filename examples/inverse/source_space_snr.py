@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-===============================
+.. _ex-source-space-snr:
+
+==========================
 Computing source space SNR
-===============================
+==========================
 
 This example shows how to compute and plot source space SNR as in
 :footcite:`GoldenholzEtAl2009`.

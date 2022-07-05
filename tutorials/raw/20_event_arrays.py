@@ -2,6 +2,7 @@
 """
 .. _tut-event-arrays:
 
+===================
 Working with events
 ===================
 

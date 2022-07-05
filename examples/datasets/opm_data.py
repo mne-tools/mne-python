@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-opm-somatosensory:
 
@@ -10,23 +11,19 @@ nine QuSpin SERF OPMs placed over the right-hand side somatomotor area. Here
 we demonstrate how to localize these custom OPM data in MNE.
 """
 
-# %%
-
 # sphinx_gallery_thumbnail_number = 4
-
-import os.path as op
 
 import numpy as np
 import mne
 
 data_path = mne.datasets.opm.data_path()
 subject = 'OPM_sample'
-subjects_dir = op.join(data_path, 'subjects')
-raw_fname = op.join(data_path, 'MEG', 'OPM', 'OPM_SEF_raw.fif')
-bem_fname = op.join(subjects_dir, subject, 'bem',
-                    subject + '-5120-5120-5120-bem-sol.fif')
-fwd_fname = op.join(data_path, 'MEG', 'OPM', 'OPM_sample-fwd.fif')
-coil_def_fname = op.join(data_path, 'MEG', 'OPM', 'coil_def.dat')
+subjects_dir = data_path / 'subjects'
+raw_fname = data_path / 'MEG' / 'OPM' / 'OPM_SEF_raw.fif'
+bem_fname = (subjects_dir / subject / 'bem' /
+             f'{subject}-5120-5120-5120-bem-sol.fif')
+fwd_fname = data_path / 'MEG' / 'OPM' / 'OPM_sample-fwd.fif'
+coil_def_fname = data_path / 'MEG' / 'OPM' / 'coil_def.dat'
 
 # %%
 # Prepare data for localization
@@ -75,7 +72,7 @@ trans = mne.transforms.Transform('head', 'mri')  # identity transformation
 # with mne.use_coil_def(coil_def_fname):
 #     fwd = mne.make_forward_solution(
 #         raw.info, trans, src, bem, eeg=False, mindist=5.0,
-#         n_jobs=1, verbose=True)
+#         n_jobs=None, verbose=True)
 
 fwd = mne.read_forward_solution(fwd_fname)
 # use fixed orientation here just to save memory later

@@ -26,7 +26,7 @@ from mne.utils import (_clean_names, catch_logging, _stamp_to_dt,
 from mne.datasets import testing, spm_face, brainstorm
 from mne.io.constants import FIFF
 
-ctf_dir = op.join(testing.data_path(download=False), 'CTF')
+ctf_dir = testing.data_path(download=False) / 'CTF'
 ctf_fname_continuous = 'testdata_ctf.ds'
 ctf_fname_1_trial = 'testdata_ctf_short.ds'
 ctf_fname_2_trials = 'testdata_ctf_pseudocontinuous.ds'
@@ -37,6 +37,7 @@ somato_fname = op.join(
     brainstorm.bst_raw.data_path(download=False), 'MEG', 'bst_raw',
     'subj001_somatosensory_20111109_01_AUX-f.ds'
 )
+spm_path = spm_face.data_path(download=False)
 
 block_sizes = {
     ctf_fname_continuous: 12000,
@@ -269,8 +270,7 @@ def test_rawctf_clean_names():
 @spm_face.requires_spm_data
 def test_read_spm_ctf():
     """Test CTF reader with omitted samples."""
-    data_path = spm_face.data_path()
-    raw_fname = op.join(data_path, 'MEG', 'spm',
+    raw_fname = op.join(spm_path, 'MEG', 'spm',
                         'SPM_CTF_MEG_example_faces1_3D.ds')
     raw = read_raw_ctf(raw_fname)
     extras = raw._raw_extras[0]
@@ -403,6 +403,18 @@ def _bad_res4_grad_comp(dsdir):
             ch['grad_order_no'] = 1
             break
     return res
+
+
+@testing.requires_testing_data
+def test_missing_res4(tmp_path):
+    """Test that res4 missing is handled gracefully."""
+    use_ds = tmp_path / ctf_fname_continuous
+    shutil.copytree(ctf_dir / ctf_fname_continuous,
+                    tmp_path / ctf_fname_continuous)
+    read_raw_ctf(use_ds)
+    os.remove(use_ds / (ctf_fname_continuous[:-2] + 'meg4'))
+    with pytest.raises(IOError, match='could not find the following'):
+        read_raw_ctf(use_ds)
 
 
 @testing.requires_testing_data

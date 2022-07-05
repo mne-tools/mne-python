@@ -2,6 +2,7 @@
 """
 .. _tut-artifact-regression:
 
+===================================
 Repairing artifacts with regression
 ===================================
 

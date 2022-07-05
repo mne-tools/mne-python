@@ -12,11 +12,9 @@ at which the fix is no longer needed.
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD
 
-import functools
 import inspect
 from math import log
 import os
-from pathlib import Path
 import warnings
 
 import numpy as np
@@ -72,10 +70,15 @@ def _median_complex(data, axis):
 
 
 # helpers to get function arguments
-def _get_args(function, varargs=False):
+def _get_args(function, varargs=False, *,
+              exclude=('var_positional', 'var_keyword')):
     params = inspect.signature(function).parameters
-    args = [key for key, param in params.items()
-            if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)]
+    # As of Python 3.10:
+    # https://docs.python.org/3/library/inspect.html#inspect.Parameter.kind
+    # POSITIONAL_ONLY, POSITIONAL_OR_KEYWORD, VAR_POSITIONAL, KEYWORD_ONLY,
+    # VAR_KEYWORD
+    exclude = set(getattr(inspect.Parameter, ex.upper()) for ex in exclude)
+    args = [key for key, param in params.items() if param.kind not in exclude]
     if varargs:
         varargs = [param.name for param in params.values()
                    if param.kind == param.VAR_POSITIONAL]
@@ -1016,14 +1019,19 @@ else:
 
 
 ###############################################################################
-# workaround: plt.close() doesn't spawn close_event on Agg backend
-# (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)
+# Matplotlib
 
+# workaround: plt.close() doesn't spawn close_event on Agg backend
+# https://github.com/matplotlib/matplotlib/issues/18609
+# scheduled to be fixed by MPL 3.6
 def _close_event(fig):
     """Force calling of the MPL figure close event."""
+    from .utils import logger
     try:
         fig.canvas.close_event()
+        logger.debug(f'Called {fig!r}.canvas.close_event()')
     except ValueError:  # old mpl with Qt
+        logger.debug(f'Calling {fig!r}.canvas.close_event() failed')
         pass  # pragma: no cover
 
 

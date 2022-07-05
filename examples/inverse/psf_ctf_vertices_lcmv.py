@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _ex-psf-ctf-lcmv:
+
 =================================================
 Compute cross-talk functions for LCMV beamformers
 =================================================

@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _tut-cluster-tfr:
+
 =========================================================================
 Non-parametric between conditions cluster statistic on single trial power
 =========================================================================
@@ -97,7 +100,7 @@ epochs_power_2 = tfr_epochs_2.data[:, 0, :, :]  # only 1 channel as 3D matrix
 # Compute statistic
 # -----------------
 threshold = 6.0
-T_obs, clusters, cluster_p_values, H0 = \
+F_obs, clusters, cluster_p_values, H0 = \
     permutation_cluster_test([epochs_power_1, epochs_power_2], out_type='mask',
                              n_permutations=100, threshold=threshold, tail=0)
 
@@ -106,33 +109,39 @@ T_obs, clusters, cluster_p_values, H0 = \
 # -------------------------
 
 times = 1e3 * epochs_condition_1.times  # change unit to ms
-evoked_condition_1 = epochs_condition_1.average()
-evoked_condition_2 = epochs_condition_2.average()
 
-plt.figure()
-plt.subplots_adjust(0.12, 0.08, 0.96, 0.94, 0.2, 0.43)
+fig, (ax, ax2) = plt.subplots(2, 1, figsize=(6, 4))
+fig.subplots_adjust(0.12, 0.08, 0.96, 0.94, 0.2, 0.43)
 
-plt.subplot(2, 1, 1)
+# Compute the difference in evoked to determine which was greater since
+# we used a 1-way ANOVA which tested for a difference in population means
+evoked_power_1 = epochs_power_1.mean(axis=0)
+evoked_power_2 = epochs_power_2.mean(axis=0)
+evoked_power_contrast = evoked_power_1 - evoked_power_2
+signs = np.sign(evoked_power_contrast)
+
 # Create new stats image with only significant clusters
-T_obs_plot = np.nan * np.ones_like(T_obs)
+F_obs_plot = np.nan * np.ones_like(F_obs)
 for c, p_val in zip(clusters, cluster_p_values):
     if p_val <= 0.05:
-        T_obs_plot[c] = T_obs[c]
+        F_obs_plot[c] = F_obs[c] * signs[c]
 
-plt.imshow(T_obs,
-           extent=[times[0], times[-1], freqs[0], freqs[-1]],
-           aspect='auto', origin='lower', cmap='gray')
-plt.imshow(T_obs_plot,
-           extent=[times[0], times[-1], freqs[0], freqs[-1]],
-           aspect='auto', origin='lower', cmap='RdBu_r')
+ax.imshow(F_obs,
+          extent=[times[0], times[-1], freqs[0], freqs[-1]],
+          aspect='auto', origin='lower', cmap='gray')
+max_F = np.nanmax(abs(F_obs_plot))
+ax.imshow(F_obs_plot,
+          extent=[times[0], times[-1], freqs[0], freqs[-1]],
+          aspect='auto', origin='lower', cmap='RdBu_r',
+          vmin=-max_F, vmax=max_F)
 
-plt.xlabel('Time (ms)')
-plt.ylabel('Frequency (Hz)')
-plt.title('Induced power (%s)' % ch_name)
+ax.set_xlabel('Time (ms)')
+ax.set_ylabel('Frequency (Hz)')
+ax.set_title(f'Induced power ({ch_name})')
 
-ax2 = plt.subplot(2, 1, 2)
+# plot evoked
+evoked_condition_1 = epochs_condition_1.average()
+evoked_condition_2 = epochs_condition_2.average()
 evoked_contrast = mne.combine_evoked([evoked_condition_1, evoked_condition_2],
                                      weights=[1, -1])
 evoked_contrast.plot(axes=ax2, time_unit='s')
-
-plt.show()

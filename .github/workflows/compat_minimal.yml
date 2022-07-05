@@ -13,8 +13,7 @@ on:
 jobs:
   # Minimal (runs with and without testing data)
   job:
-    timeout-minutes: 90
-    name: 'py3.7'
+    name: 'minimal 3.7'
     runs-on: ubuntu-20.04
     defaults:
       run:
@@ -31,7 +30,7 @@ jobs:
       PYTHONUNBUFFERED: '1'
       PYTHON_VERSION: '3.7'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - run: ./tools/setup_xvfb.sh
@@ -57,7 +56,7 @@ jobs:
       - shell: bash -el {0}
         run: MNE_SKIP_TESTING_DATASET_TESTS=true pytest -m "not (ultraslowtest or pgtest)" --tb=short --cov=mne --cov-report xml -vv -rfE mne/
         name: Run tests with no testing data
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
@@ -71,6 +70,6 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/github_actions_test.sh
         name: 'Run tests'
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v3
         if: success()
         name: 'Upload coverage to CodeCov'

@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-gamma-map:
+
 ===============================================================================
 Compute a sparse inverse solution using the Gamma-MAP empirical Bayesian method
 ===============================================================================

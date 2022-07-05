@@ -855,7 +855,7 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
         if ch_cfg.get('dev', dict()).get('transform', None) is not None:
             ch['loc'] = _coil_trans_to_loc(ch_cfg['dev']['transform'])
         else:
-            ch['loc'] = None
+            ch['loc'] = np.full(12, np.nan)
         if pdf_fname is not None:
             if info['data_format'] <= 2:  # see DTYPES, implies integer
                 ch['cal'] = ch['scale'] * ch['upb'] / float(ch['gain'])

@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-functional-label:
+
 =================================================
 Generate a functional label from source estimates
 =================================================

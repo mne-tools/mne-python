@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _tut-cluster-rm-anova-spatiotemporal:
+
 ======================================================================
 Repeated measures ANOVA on source data with spatio-temporal clustering
 ======================================================================
@@ -140,7 +143,7 @@ X = X.reshape(n_vertices_fsave, n_times, n_subjects, 4)
 # Now we need to prepare the group matrix for the ANOVA statistic. To make the
 # clustering function work correctly with the ANOVA function X needs to be a
 # list of multi-dimensional arrays (one per condition) of shape: samples
-# (subjects) x time x space.
+# (subjects) × time × space.
 #
 # First we permute dimensions, then split the array into a list of conditions
 # and discard the empty dimension resulting from the split using numpy squeeze.
@@ -180,7 +183,7 @@ n_conditions = 4
 #
 # Inside the clustering function each condition will be passed as flattened
 # array, necessitated by the clustering procedure. The ANOVA however expects an
-# input array of dimensions: subjects X conditions X observations (optional).
+# input array of dimensions: subjects × conditions × observations (optional).
 #
 # The following function catches the list input and swaps the first and the
 # second dimension, and finally calls ANOVA.
@@ -216,8 +219,8 @@ f_thresh = f_threshold_mway_rm(n_subjects, factor_levels, effects, pthresh)
 n_permutations = 50  # ... run way fewer permutations (reduces sensitivity)
 
 print('Clustering.')
-T_obs, clusters, cluster_p_values, H0 = clu = \
-    spatio_temporal_cluster_test(X, adjacency=adjacency, n_jobs=1,
+F_obs, clusters, cluster_p_values, H0 = clu = \
+    spatio_temporal_cluster_test(X, adjacency=adjacency, n_jobs=None,
                                  threshold=f_thresh, stat_fun=stat_fun,
                                  n_permutations=n_permutations,
                                  buffer_size=None)

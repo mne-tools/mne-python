@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-visualize-epochs:
 
+========================
 Visualizing epoched data
 ========================
 
@@ -14,20 +16,19 @@ sample data, and cropping it to save memory:
 
 # %%
 
-import os
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
+                        'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False).crop(tmax=120)
 
 # %%
 # To create the `~mne.Epochs` data structure, we'll extract the event
 # IDs stored in the :term:`stim channel`, map those integer event IDs to more
 # descriptive condition labels using an event dictionary, and pass those to the
-# `~mne.Epochs` constructor, along with the `~mne.io.Raw` data
-# and the desired temporal limits of our epochs, ``tmin`` and ``tmax`` (for a
+# `~mne.Epochs` constructor, along with the `~mne.io.Raw` data and the
+# desired temporal limits of our epochs, ``tmin`` and ``tmax`` (for a
 # detailed explanation of these steps, see :ref:`tut-epochs-class`).
 
 events = mne.find_events(raw, stim_channel='STI 014')
@@ -87,8 +88,8 @@ epochs['face'].plot(events=catch_trials_and_buttonpresses, event_id=event_dict,
 # channels, so before we continue let's load ECG projectors from disk and apply
 # them to the data:
 
-ecg_proj_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                             'sample_audvis_ecg-proj.fif')
+ecg_proj_file = (sample_data_folder / 'MEG' / 'sample' /
+                 'sample_audvis_ecg-proj.fif')
 ecg_projs = mne.read_proj(ecg_proj_file)
 epochs.add_proj(ecg_projs)
 epochs.apply_proj()

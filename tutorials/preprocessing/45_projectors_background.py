@@ -2,6 +2,7 @@
 """
 .. _tut-projectors-background:
 
+========================================
 Background on projectors and projections
 ========================================
 

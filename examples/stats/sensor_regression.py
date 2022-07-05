@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
 """
-============================================================================
+.. _ex-sensor-regression:
+
+=========================================================================
 Analysing continuous features with binning and regression in sensor space
-============================================================================
+=========================================================================
 
 Predict single trial activity from a continuous variable.
 A single-trial regression is performed in each sensor and timepoint

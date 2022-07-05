@@ -31,7 +31,6 @@ from ..source_estimate import _BaseSourceEstimate
 from ..surface import _CheckInside
 from ..utils import (logger, verbose, check_random_state, _pl, _validate_type,
                      _check_preload)
-from ..parallel import check_n_jobs
 from .source import SourceSimulator
 
 
@@ -126,7 +125,7 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
 
 @verbose
 def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
-                 mindist=1.0, interp='cos2', n_jobs=1, use_cps=True,
+                 mindist=1.0, interp='cos2', n_jobs=None, use_cps=True,
                  forward=None, first_samp=0, max_iter=10000, verbose=None):
     u"""Simulate raw data.
 
@@ -247,7 +246,6 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         event_ch = pick_channels(info['ch_names'],
                                  _get_stim_channel(None, info))[0]
 
-    n_jobs = check_n_jobs(n_jobs)
     if forward is not None:
         if any(x is not None for x in (trans, src, bem, head_pos)):
             raise ValueError('If forward is not None then trans, src, bem, '
@@ -332,7 +330,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
 
 
 @verbose
-def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
+def add_eog(raw, head_pos=None, interp='cos2', n_jobs=None, random_state=None,
             verbose=None):
     """Add blink noise to raw data.
 
@@ -386,7 +384,7 @@ def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
 
 
 @verbose
-def add_ecg(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
+def add_ecg(raw, head_pos=None, interp='cos2', n_jobs=None, random_state=None,
             verbose=None):
     """Add ECG noise to raw data.
 
@@ -529,7 +527,7 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
 
 
 @verbose
-def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
+def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=None, verbose=None):
     """Add cHPI activations to raw data.
 
     Parameters

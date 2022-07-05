@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-inverse-source-power:
 
@@ -19,7 +20,6 @@ synchronization (ERS) of beta band activity in the
 # License: BSD-3-Clause
 
 # %%
-import os.path as op
 
 import numpy as np
 import mne
@@ -34,8 +34,8 @@ print(__doc__)
 data_path = somato.data_path()
 subject = '01'
 task = 'somato'
-raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
-                    'sub-{}_task-{}_meg.fif'.format(subject, task))
+raw_fname = (data_path / f'sub-{subject}' / 'meg' /
+             f'sub-{subject}_task-{task}_meg.fif')
 
 # Use a shorter segment of raw just for speed here
 raw = mne.io.read_raw_fif(raw_fname)
@@ -48,9 +48,10 @@ epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, preload=True)
 del raw
 
 # Paths to forward operator and FreeSurfer subject directory
-fname_fwd = op.join(data_path, 'derivatives', 'sub-{}'.format(subject),
-                    'sub-{}_task-{}-fwd.fif'.format(subject, task))
-subjects_dir = op.join(data_path, 'derivatives', 'freesurfer', 'subjects')
+fname_fwd = (data_path / 'derivatives' / f'sub-{subject}' /
+             f'sub-{subject}_task-{task}-fwd.fif')
+
+subjects_dir = data_path / 'derivatives' / 'freesurfer' / 'subjects'
 
 # %%
 # We are interested in the beta band. Define a range of frequencies, using a

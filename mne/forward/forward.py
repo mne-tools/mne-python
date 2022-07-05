@@ -182,7 +182,7 @@ def _block_diag(A, n):
         The block size
     Returns
     -------
-    bd : sparse matrix
+    bd : scipy.sparse.spmatrix
         The block diagonal matrix
     """
     from scipy import sparse
@@ -1025,10 +1025,10 @@ def _triage_loose(src, loose, fixed='auto'):
     del fixed
 
     for key, this_loose in loose.items():
-        if key != 'surface' and this_loose != 1:
+        if key not in ('surface', 'discrete') and this_loose != 1:
             raise ValueError(
-                'loose parameter has to be 1 or "auto" for non-surface '
-                f'source spaces, got loose["{key}"] = {this_loose}')
+                'loose parameter has to be 1 or "auto" for non-surface/'
+                f'discrete source spaces, got loose["{key}"] = {this_loose}')
         if not 0 <= this_loose <= 1:
             raise ValueError(
                 f'loose ({key}) must be between 0 and 1, got {this_loose}')
@@ -1148,7 +1148,7 @@ def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
         ``limit_depth_chs='whiten'``.
 
         .. versionadded:: 0.18
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
     %(verbose)s

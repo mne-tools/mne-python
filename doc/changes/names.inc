@@ -50,7 +50,7 @@
 
 .. _Olaf Hauk: http://www.neuroscience.cam.ac.uk/directory/profile.php?olafhauk
 
-.. _Lukas Breuer: http://www.researchgate.net/profile/Lukas_Breuer
+.. _Lukas Breuer: https://www.researchgate.net/profile/Lukas-Breuer-2
 
 .. _Alan Leggitt: https://github.com/leggitta
 
@@ -70,7 +70,7 @@
 
 .. _Mark Wronkiewicz: https://ml.jpl.nasa.gov/people/wronkiewicz/wronkiewicz.html
 
-.. _Sébastien Marti: http://www.researchgate.net/profile/Sebastien_Marti
+.. _Sébastien Marti: https://www.researchgate.net/profile/Sebastien-Marti
 
 .. _Chris Bailey: https://github.com/cjayb
 
@@ -132,13 +132,13 @@
 
 .. _Annalisa Pascarella: http://www.iac.rm.cnr.it/~pasca/
 
-.. _Luke Bloy: https://imaging.research.chop.edu/people/dr-luke-bloy
+.. _Luke Bloy: https://www.research.chop.edu/imaging/team
 
 .. _Leonardo Barbosa: https://github.com/noreun
 
 .. _Erkka Heinila: https://github.com/Teekuningas
 
-.. _Andrea Brovelli: http://andrea-brovelli.net
+.. _Andrea Brovelli: https://andrea-brovelli.net
 
 .. _Richard Höchenberger: https://github.com/hoechenberger
 
@@ -161,6 +161,8 @@
 .. _Stefan Repplinger: https://github.com/stfnrpplngr
 
 .. _Okba Bekhelifi: https://github.com/okbalefthanded
+
+.. _Matthias Eberlein: https://github.com/MatthiasEb
 
 .. _Nicolas Barascud: https://github.com/nbara
 
@@ -424,4 +426,34 @@
 
 .. _Senwen Deng: https://snwn.de
 
+.. _Alessandro Tonin: https://wysscenter.ch/team/alessandro-tonin
+
 .. _Michiru Kaneda: https://github.com/rcmdnk
+
+.. _Scott Huberty:  https://orcid.org/0000-0003-2637-031X
+
+.. _Etienne de Montalivet: https://github.com/etiennedemontalivet
+
+.. _Federico Zamberlan: https://github.com/fzamberlan
+
+.. _John Veillette: https://psychology.uchicago.edu/directory/john-veillette
+
+.. _Nikolai Chapochnikov: https://github.com/chapochn
+
+.. _Matthias Dold: https://matthiasdold.de
+
+.. _T. Wang: https://github.com/twang5
+
+.. _Samuel Powell: https://github.com/samuelpowell
+
+.. _Matt Courtemanche: https://github.com/mjcourte
+
+.. _Matti Toivonen: https://github.com/mattitoi
+
+.. _Simon Kern: https://github.com/skjerns
+
+.. _Jordan Drew: https://github.com/jadrew43
+
+.. _Lukas Gemein: https://github.com/gemeinl
+
+.. _Frederik Weber: https://github.com/Frederik-D-Weber

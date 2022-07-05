@@ -2,6 +2,7 @@
 """
 .. _tut-visualize-raw:
 
+=========================================
 Built-in plotting methods for Raw objects
 =========================================
 

@@ -15,6 +15,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 import pytest
 import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap
+from matplotlib.figure import Figure
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate,
@@ -152,12 +153,12 @@ def test_plot_evoked_field(renderer):
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
-    for t in ['meg', None]:
+    for t, n_contours in zip(['meg', None], [21, 0]):
         with pytest.warns(RuntimeWarning, match='projection'):
             maps = make_field_map(evoked, trans_fname, subject='sample',
-                                  subjects_dir=subjects_dir, n_jobs=1,
+                                  subjects_dir=subjects_dir, n_jobs=None,
                                   ch_type=t)
-        evoked.plot_field(maps, time=0.1)
+        evoked.plot_field(maps, time=0.1, n_contours=n_contours)
 
 
 def _assert_n_actors(fig, renderer, n_actors):
@@ -627,6 +628,30 @@ def test_plot_dipole_mri_orthoview(coord_frame, idx, show_all, title):
     ax = fig.add_subplot(211)
     with pytest.raises(TypeError, match='instance of Axes3D'):
         dipoles.plot_locations(trans, 'sample', subjects_dir, ax=ax)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('surf, coord_frame, ax, title', [
+    pytest.param('white', 'mri', None, None, marks=pytest.mark.slowtest),
+    pytest.param(None, 'head', None, None, marks=pytest.mark.slowtest),
+    (None, 'mri_rotated', 'mpl', 'check'),
+])
+def test_plot_dipole_mri_outlines(surf, coord_frame, ax, title):
+    """Test mpl dipole plotting."""
+    dipoles = read_dipole(dip_fname)
+    trans = read_trans(trans_fname)
+    if ax is not None:
+        assert isinstance(ax, str) and ax == 'mpl', ax
+        _, ax = plt.subplots(3, 1)
+        ax = list(ax)
+        with pytest.raises(ValueError, match='but the length is 2'):
+            dipoles.plot_locations(
+                trans, 'sample', subjects_dir, ax=ax[:2], mode='outlines')
+    fig = dipoles.plot_locations(
+        trans=trans, subject='sample', subjects_dir=subjects_dir,
+        mode='outlines', coord_frame=coord_frame, surf=surf, ax=ax,
+        title=title)
+    assert isinstance(fig, Figure)
 
 
 @testing.requires_testing_data

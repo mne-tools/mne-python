@@ -61,8 +61,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         .. versionadded:: 0.20
     label : Label | None
         Restricts the solution to a given label.
-    %(bf_pick_ori)s
-    %(rank_None)s
+    %(pick_ori_bf)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
     %(weight_norm)s
@@ -75,9 +75,9 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         matrices to compute real filters.
 
         .. versionchanged:: 0.23
-            Version 0.23 deprecated ``False`` as default for ``real_filter``.
-            With version 0.24, ``True`` is the new default.
-    %(bf_inversion)s
+            Version 0.23 an earlier used ``real_filter=False`` as the default,
+            as of version 0.24 ``True`` is the default.
+    %(inversion_bf)s
 
         .. versionchanged:: 0.21
            Default changed to ``'matrix'``.

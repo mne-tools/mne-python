@@ -33,6 +33,7 @@ epochs_fname_onefile_mat = op.join(base_dir, 'test_epochs_onefile.set')
 raw_mat_fnames = [raw_fname_mat, raw_fname_onefile_mat]
 epochs_mat_fnames = [epochs_fname_mat, epochs_fname_onefile_mat]
 raw_fname_chanloc = op.join(base_dir, 'test_raw_chanloc.set')
+raw_fname_chanloc_fids = op.join(base_dir, 'test_raw_chanloc_fids.set')
 raw_fname_2021 = op.join(base_dir, 'test_raw_2021.set')
 raw_fname_h5 = op.join(base_dir, 'test_raw_h5.set')
 raw_fname_onefile_h5 = op.join(base_dir, 'test_raw_onefile_h5.set')
@@ -333,7 +334,6 @@ def test_eeglab_read_annotations():
 @testing.requires_testing_data
 def test_eeglab_event_from_annot():
     """Test all forms of obtaining annotations."""
-    base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
     raw_fname_mat = op.join(base_dir, 'test_raw.set')
     raw_fname = raw_fname_mat
     event_id = {'rt': 1, 'square': 2}
@@ -370,8 +370,8 @@ def one_chanpos_fname(tmp_path_factory):
         'data': np.empty([3, 3]),
         'chanlocs': np.array(
             [(b'F3', 1., 4., 7.),
-             (b'unknown', 2., 5., 8.),
-             (b'FPz', np.nan, np.nan, np.nan)],
+             (b'unknown', np.nan, np.nan, np.nan),
+             (b'FPz', 2., 5., 8.)],
             dtype=[('labels', 'S10'), ('X', 'f8'), ('Y', 'f8'), ('Z', 'f8')]
         )
     })
@@ -388,8 +388,8 @@ def test_position_information(one_chanpos_fname):
     nan = np.nan
     EXPECTED_LOCATIONS_FROM_FILE = np.array([
         [-4.,  1.,  7.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],
-        [-5.,  2.,  8.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
+        [-5.,  2.,  8.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],
     ])
 
     EXPECTED_LOCATIONS_FROM_MONTAGE = np.array([
@@ -410,9 +410,6 @@ def test_position_information(one_chanpos_fname):
         input_fname=one_chanpos_fname,
         preload=True,
     ).set_montage(None)  # Flush the montage builtin within input_fname
-
-    _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
-                               EXPECTED_LOCATIONS_FROM_MONTAGE)
 
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
                                EXPECTED_LOCATIONS_FROM_MONTAGE)
@@ -455,3 +452,17 @@ def test_get_montage_info_with_ch_type():
     with pytest.warns(RuntimeWarning, match='Unknown types found'):
         ch_names, ch_types, montage = \
             _get_montage_information(mat['EEG'], False)
+
+
+@testing.requires_testing_data
+def test_fidsposition_information():
+    """Test reading file with 3 fiducial locations."""
+    raw = read_raw_eeglab(raw_fname_chanloc_fids)
+    montage = raw.get_montage()
+    pos = montage.get_positions()
+    assert pos['nasion'] is not None
+    assert pos['lpa'] is not None
+    assert pos['rpa'] is not None
+    assert len(pos['nasion']) == 3
+    assert len(pos['lpa']) == 3
+    assert len(pos['rpa']) == 3

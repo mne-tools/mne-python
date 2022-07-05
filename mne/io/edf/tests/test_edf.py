@@ -287,7 +287,7 @@ def test_read_raw_edf_stim_channel_input_parameters():
     _MSG = "`read_raw_edf` is not supposed to trigger a deprecation warning"
     with _record_warnings() as recwarn:
         read_raw_edf(edf_path)
-    assert all([w.category != DeprecationWarning for w in recwarn]), _MSG
+    assert all(w.category != DeprecationWarning for w in recwarn), _MSG
 
     for invalid_stim_parameter in ['EDF Annotations', 'BDF Annotations']:
         with pytest.raises(ValueError,
@@ -547,6 +547,20 @@ def test_exclude():
     raw = read_raw_edf(edf_path, exclude="I[1-4]")
     for ch in exclude:
         assert ch not in raw.ch_names
+
+
+def test_include():
+    """Test include parameter."""
+    raw = read_raw_edf(edf_path, include=["I1", "I2"])
+    assert sorted(raw.ch_names) == ["I1", "I2"]
+
+    raw = read_raw_edf(edf_path, include="I[1-4]")
+    assert sorted(raw.ch_names) == ["I1", "I2", "I3", "I4"]
+
+    with pytest.raises(ValueError) as e:
+        raw = read_raw_edf(edf_path, include=["I1", "I2"], exclude="I[1-4]")
+        assert str(e.value) == "'exclude' must be empty" \
+            "if 'include' is assigned."
 
 
 @testing.requires_testing_data

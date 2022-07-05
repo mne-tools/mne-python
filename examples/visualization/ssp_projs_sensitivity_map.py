@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-ssp-proj:
+
 ==================================
 Sensitivity map of SSP projections
 ==================================

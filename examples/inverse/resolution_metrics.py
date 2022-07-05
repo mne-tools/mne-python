@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
 """
-==============================================================
+.. _ex-res-metrics:
+
+==================================================
 Compute spatial resolution metrics in source space
-==============================================================
+==================================================
 
 Compute peak localisation error and spatial deviation for the point-spread
 functions of dSPM and MNE. Plot their distributions and difference of

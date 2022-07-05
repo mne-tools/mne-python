@@ -98,8 +98,12 @@ def test_plot_epochs_scale_bar(epochs, browser_backend):
     fig = epochs.plot()
     texts = fig._get_scale_bar_texts()
     # mag & grad in this instance
-    assert len(texts) == 2
-    wants = ('800.0 fT/cm', '2000.0 fT')
+    if browser_backend.name == 'pyqtgraph':
+        assert len(texts) == 2
+        wants = ('800.0 fT/cm', '2000.0 fT')
+    elif browser_backend.name == 'matplotlib':
+        assert len(texts) == 4
+        wants = ('800.0 fT/cm', '0.55 sec', '2000.0 fT', '0.55 sec')
     assert texts == wants
 
 
@@ -167,7 +171,7 @@ def test_plot_epochs_keypresses(epochs_full, browser_backend):
     # test keys
     keys = ('pagedown', 'down', 'up', 'down', 'right', 'left', '-', '+', '=',
             'd', 'd', 'pageup', 'home', 'shift+right', 'end', 'shift+left',
-            'z', 'z', 's', 's', 'f11', '?', 'h', 'j', 'b')
+            'z', 'z', 's', 's', '?', 'h', 'j', 'b')
     for key in keys * 2:  # test twice → once in normal, once in butterfly view
         fig._fake_keypress(key)
     fig._fake_click([x, y], xform='data', button=3)  # remove vlines
@@ -364,9 +368,10 @@ def test_plot_epochs_ctf(raw_ctf, browser_backend):
 
     # test butterfly
     fig = epochs.plot(butterfly=True)
+    # leave fullscreen testing to Raw / _figure abstraction (too annoying here)
     keys = ('b', 'b', 'pagedown', 'down', 'up', 'down', 'right', 'left', '-',
             '+', '=', 'd', 'd', 'pageup', 'home', 'end', 'z', 'z', 's', 's',
-            'f11', '?', 'h', 'j')
+            '?', 'h', 'j')
     for key in keys:
         fig._fake_keypress(key)
     fig._fake_scroll(0.5, 0.5, -0.5)  # scroll down

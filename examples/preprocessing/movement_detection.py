@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-movement-detect:
 
-======================================================
+=====================================================
 Annotate movement artifacts and reestimate dev_head_t
-======================================================
+=====================================================
 
 Periods, where the participant moved considerably, are contaminated by low
 amplitude artifacts. When averaging the magnetic fields, the more spread the
@@ -22,8 +23,6 @@ be more representative of the actual head position during the recording.
 
 # %%
 
-import os.path as op
-
 import mne
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
@@ -31,13 +30,12 @@ from mne.preprocessing import annotate_movement, compute_average_dev_head_t
 
 # Load data
 data_path = bst_auditory.data_path()
-data_path_MEG = op.join(data_path, 'MEG')
+data_path_MEG = data_path / 'MEG'
 subject = 'bst_auditory'
-subjects_dir = op.join(data_path, 'subjects')
-trans_fname = op.join(data_path, 'MEG', 'bst_auditory',
-                      'bst_auditory-trans.fif')
-raw_fname1 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_01.ds')
-raw_fname2 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_02.ds')
+subjects_dir = data_path / 'subjects'
+trans_fname = data_path / 'MEG' / 'bst_auditory' / 'bst_auditory-trans.fif'
+raw_fname1 = data_path_MEG / 'bst_auditory' / 'S01_AEF_20131218_01.ds'
+raw_fname2 = data_path_MEG / 'bst_auditory' / 'S01_AEF_20131218_02.ds'
 # read and concatenate two files, ignoring device<->head mismatch
 raw = read_raw_ctf(raw_fname1, preload=False)
 mne.io.concatenate_raws(

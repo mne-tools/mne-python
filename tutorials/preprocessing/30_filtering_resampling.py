@@ -2,6 +2,7 @@
 """
 .. _tut-filter-resample:
 
+=============================
 Filtering and resampling data
 =============================
 

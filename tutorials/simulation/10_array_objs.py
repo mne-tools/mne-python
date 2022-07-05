@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-creating-data-structures:
 
+================================================
 Creating MNE-Python data structures from scratch
 ================================================
 

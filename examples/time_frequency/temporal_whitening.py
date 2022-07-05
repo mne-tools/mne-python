@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-temporal-whitening:
+
 ================================
 Temporal whitening with AR model
 ================================
