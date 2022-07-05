@@ -455,3 +455,5 @@
 .. _Jordan Drew: https://github.com/jadrew43
 
 .. _Lukas Gemein: https://github.com/gemeinl
+
+.. _Frederik Weber: https://github.com/Frederik-D-Weber
