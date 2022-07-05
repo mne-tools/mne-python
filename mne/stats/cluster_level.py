@@ -1706,6 +1706,7 @@ class ClusterTestResult:
             significant clusters, if any.
         """
         import matplotlib.pyplot as plt
+
         # mask T-values outside of significant clusters with nans
         T_values_sig_clusters = np.nan * np.ones_like(self.T_values)
         for cluster, p_val in zip(self.clusters, self.cluster_p_values):
@@ -1730,9 +1731,9 @@ class ClusterTestResult:
         # [x] add HTML repr
         # [ ] create lineplot for single-channel data, with horizontal line
         #     for cluster forming threshold
-        # [ ] add picks parameter to plot_T_values(); this should create 1
+        # [ ] add picks parameter to plot_stats(); this should create 1
         #     line plot per matching channel. For >5, only plot the first 5.
-        # [ ] the gray cmap is not correct, as it is monotonically
+        # [x] the gray cmap is not correct, as it is monotonically
         #     in-/decreasing. Instead, we need a diverging colormap for the
         #     tail='both' case, and need to ensure that higher T-values ->
         #     darker colors for the other cases. For 'both', we need to
@@ -1752,7 +1753,25 @@ class ClusterTestResult:
             vmax = np.abs(self.T_values).max()
             vmin = -vmax
             cmap = 'RdBu_r'
-            cmap_gray = 'gray'
+
+            # For gray, we need to combine two existing colormaps, as there is
+            # no diverging colormap with gray/black at both endpoints.
+            from matplotlib.cm import gray, gray_r
+            from matplotlib.colors import ListedColormap
+
+            black_to_white = gray(
+                np.linspace(start=0, stop=1, endpoint=False, num=128)
+            )
+            white_to_black = gray_r(
+                np.linspace(start=0, stop=1, endpoint=False, num=128)
+            )
+            black_to_white_to_black = np.vstack(
+                (black_to_white, white_to_black)
+            )
+            diverging_gray_cmap = ListedColormap(
+                black_to_white_to_black, name='DivergingGray'
+            )
+            cmap_gray = diverging_gray_cmap
 
         figs = []
         fig, ax = plt.subplots()
@@ -1764,10 +1783,9 @@ class ClusterTestResult:
         )
 
         t_gray = self.T_values.T.copy()
-        t_gray[t_gray <= 2] = np.nan
         ax.imshow(
             t_gray, extent=extent, aspect='auto',
-            cmap='binary', vmin=0, vmax=vmax, interpolation='none',
+            cmap=cmap_gray, vmin=vmin, vmax=vmax, interpolation='none',
         )
         # We store the image object in a variable so we can later use it as a
         # mappable to create colorbars. Note that we do not have to use an
