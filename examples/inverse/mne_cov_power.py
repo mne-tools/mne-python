@@ -19,7 +19,6 @@ References
 #
 # License: BSD-3-Clause
 
-
 # %%
 
 import numpy as np
@@ -40,7 +39,7 @@ raw = mne.io.read_raw_fif(raw_fname)
 # First we compute an empty-room covariance, which captures noise from the
 # sensors and environment.
 
-raw_empty_room_fname = (data_path / 'MEG' / 'sample' / 'ernoise_raw.fif')
+raw_empty_room_fname = data_path / 'MEG' / 'sample' / 'ernoise_raw.fif'
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
 raw_empty_room.crop(0, 30)  # cropped just for speed
 raw_empty_room.info['bads'] = ['MEG 2443']
