@@ -546,8 +546,8 @@ class CSP(TransformerMixin, BaseEstimator):
         for jj in range(eigen_vectors.shape[1]):
             aa, bb = 0, 0
             for (cov, prob) in zip(covs, class_probas):
-                tmp = np.dot(np.dot(eigen_vectors[:, jj].T, cov),
-                             eigen_vectors[:, jj])
+                tmp = np.linalg.multi_dot([eigen_vectors[:, jj].T, cov,
+                             eigen_vectors[:, jj]])
                 aa += prob * np.log(np.sqrt(tmp))
                 bb += prob * (tmp ** 2 - 1)
             mi = - (aa + (3.0 / 16) * (bb ** 2))
@@ -560,8 +560,8 @@ class CSP(TransformerMixin, BaseEstimator):
         mean_cov = np.average(covs, axis=0, weights=sample_weights)
 
         for ii in range(eigen_vectors.shape[1]):
-            tmp = np.dot(np.dot(eigen_vectors[:, ii].T, mean_cov),
-                         eigen_vectors[:, ii])
+            tmp = np.linalg.multi_dot([eigen_vectors[:, ii].T, mean_cov,
+                         eigen_vectors[:, ii]])
             eigen_vectors[:, ii] /= np.sqrt(tmp)
         return eigen_vectors
 
