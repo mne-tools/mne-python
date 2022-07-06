@@ -895,11 +895,9 @@ class ICA(ContainsMixin):
         if self.pca_mean_ is not None:
             data -= self.pca_mean_[:, None]
 
-        # Apply unmixing
-        pca_data = np.dot(self.unmixing_matrix_,
-                          self.pca_components_[:self.n_components_])
-        # Apply PCA
-        sources = np.dot(pca_data, data)
+        # Apply unmixing and PCA
+        sources = np.linalg.multi_dot([self.unmixing_matrix_,
+                          self.pca_components_[:self.n_components_], data])
         return sources
 
     def _transform_raw(self, raw, start, stop, reject_by_annotation=False):
