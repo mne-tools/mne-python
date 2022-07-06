@@ -779,7 +779,7 @@ def deactivate_proj(projs, copy=True, verbose=None):
 
 
 @verbose
-def make_eeg_average_ref_proj(info, activate=True, ch_type=('eeg',),
+def make_eeg_average_ref_proj(info, activate=True, ch_type='eeg',
                               verbose=None):
     """Create an EEG average reference SSP projection vector.
 
@@ -788,8 +788,9 @@ def make_eeg_average_ref_proj(info, activate=True, ch_type=('eeg',),
     %(info_not_none)s
     activate : bool
         If True projections are activated.
-    ch_type : list of str
-        Channel type to use for reference projection.
+    ch_type : str
+        The channel type to use for reference projection.
+        Valid types are 'eeg', 'ecog', 'seeg' and 'dbs'.
     %(verbose)s
 
     Returns
@@ -803,24 +804,27 @@ def make_eeg_average_ref_proj(info, activate=True, ch_type=('eeg',),
                            'mne.io.set_eeg_reference function to move from '
                            'one EEG reference to another.')
 
-    logger.info("Adding average EEG reference projection.")
+    if ch_type not in ('eeg', 'seeg', 'ecog', 'dbs'):
+        raise ValueError("ch_type should be 'eeg', 'seeg', 'ecog' or 'dbs'. "
+                         "Got %s." % ch_type)
 
-    ch_dict = {**{type_: True for type_ in ch_type},
-               'meg': False, 'ref_meg': False}
-    eeg_sel = pick_types(info, **ch_dict, exclude='bads')
+    logger.info(f"Adding average {ch_type.upper()} reference projection.")
+
+    ch_dict = {ch_type: True, 'meg': False, 'ref_meg': False}
+    ch_sel = pick_types(info, **ch_dict, exclude='bads')
     ch_names = info['ch_names']
-    eeg_names = [ch_names[k] for k in eeg_sel]
-    n_eeg = len(eeg_sel)
-    if n_eeg == 0:
-        raise ValueError('Cannot create EEG average reference projector '
-                         '(no EEG data found)')
-    vec = np.ones((1, n_eeg))
-    vec /= np.sqrt(n_eeg)
+    ch_names = [ch_names[k] for k in ch_sel]
+    n_chs = len(ch_sel)
+    if n_chs == 0:
+        raise ValueError(f'Cannot create {ch_type.upper()} average reference '
+                         f'projector (no {ch_type.upper()} data found)')
+    vec = np.ones((1, n_chs))
+    vec /= np.sqrt(n_chs)
     explained_var = None
-    eeg_proj_data = dict(col_names=eeg_names, row_names=None,
-                         data=vec, nrow=1, ncol=n_eeg)
+    eeg_proj_data = dict(col_names=ch_names, row_names=None,
+                         data=vec, nrow=1, ncol=n_chs)
     eeg_proj = Projection(active=activate, data=eeg_proj_data,
-                          desc='Average EEG reference',
+                          desc=f'Average {ch_type.upper()} reference',
                           kind=FIFF.FIFFV_PROJ_ITEM_EEG_AVREF,
                           explained_var=explained_var)
     return eeg_proj

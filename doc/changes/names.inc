@@ -451,3 +451,5 @@
 .. _Matti Toivonen: https://github.com/mattitoi
 
 .. _Moritz Gerster: https://github.com/moritz-gerster
+
+.. _Simon Kern: https://github.com/skjerns
