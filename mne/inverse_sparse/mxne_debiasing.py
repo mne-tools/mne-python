@@ -42,7 +42,7 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
     CCT = np.dot(C, C.T)
     L0 = np.inf
     for _ in range(max_iter):
-        Y = np.dot(np.dot(ATA, B), CCT)
+        Y = np.linalg.multi_dot([ATA, B, CCT])
         L = np.linalg.norm(Y, 'fro')
 
         if abs(L - L0) < tol:
