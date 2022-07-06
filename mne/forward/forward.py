@@ -115,9 +115,9 @@ class Forward(dict):
         source_rr : ndarray, shape (n_sources, 3)
             The source locations.
         source_nn : ndarray, shape (n_sources, 3)
-            The source normals. Will be all +Z (``(0, 0, 1.)``) for volume source
-            spaces. For surface source spaces, these are normal to the cortical
-            surface.
+            The source normals. Will be all +Z (``(0, 0, 1.)``) for volume
+            source spaces. For surface source spaces, these are normal to the
+            cortical surface.
         surf_ori : int
             Whether ``sol`` is surface-oriented with the surface normal in the
             Z component (``FIFF.FIFFV_MNE_FIXED_ORI``) or +Z in the given
