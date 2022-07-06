@@ -62,7 +62,7 @@ class SourceSpaces(list):
     .. warning::
         This class should not be created or modified by the end user. Use
         :func:`mne.setup_source_space`, :func:`mne.setup_volume_source_space`,
-        or :func:`mne.read_source_spaces` to create a :class:`SourceSpaces`.
+        or :func:`mne.read_source_spaces` to create :class:`SourceSpaces`.
 
     Parameters
     ----------
