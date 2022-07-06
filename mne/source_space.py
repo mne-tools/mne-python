@@ -151,15 +151,15 @@ class SourceSpaces(list):
         dist_limit : float
             The maximum distance allowed for inclusion in ``nearest``.
         pinfo : dict
-            Information about the patch of cortex represented by a vertex in the
-            subsampled surface.
+            Information about the patch of cortex represented by a vertex in
+            the subsampled surface.
         patch_inds : list of ndarray
-            For each vertex in the subsampled surface, the indices of the vertices
-            in the dense surface that it represents (i.e., is closest to of all
-            subsampled indices).
+            For each vertex in the subsampled surface, the indices of the
+            vertices in the dense surface that it represents (i.e., is closest
+            to of all subsampled indices).
         nearest : ndarray, shape (np,)
-            For each vertex on the dense surface, this gives the vertex index on
-            the subsampled surface that it's closest to.
+            For each vertex on the dense surface, this gives the vertex index
+            on the subsampled surface that it's closest to.
         nearest_dist : ndarray, shape (np,)
             The distances corresponding to ``nearest``.
 
