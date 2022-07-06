@@ -8,8 +8,13 @@ Regression-based baseline correction
 
 Traditional baseline correction simply adds or subtracts a scalar amount from every
 timepoint in an epoch, such that the mean value during the defined baseline period
-is zero.  This can be bad because [...] :footcite:`Alday2019`. Here we demonstrate
-the alternative regression-based method recommended in that publication, where the
+is zero. Two difficulties are usually discussed in traditional baseline correction:
+ - which baseline time window to choose
+ - no baseline differences between conditions 
+The method introduced by :footcite:`Alday2019`, allows to address the second part.
+ By including the baseline interval as a regressor in a general linear model,
+ we allow the data to determine the amount of baseline correction needed.
+We demonstrate the alternative regression-based method recommended, where the
 *strength of the effect* of the baseline period is allowed to vary across each
 timepoint of the epoch.
 
