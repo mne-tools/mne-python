@@ -99,8 +99,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
         U, S, _ = linalg.svd(CM, full_matrices=False)
         S = S[np.newaxis, :]
         del CM
-        CMinv = np.dot(U / (S + eps), U.T)
-        CMinvG = np.dot(CMinv, G)
+        CMinvG = np.linalg.multi_dot([U / (S + eps), U.T, G])
         A = np.dot(CMinvG.T, M)  # mult. w. Diag(gamma) in gamma update
 
         if update_mode == 1:
