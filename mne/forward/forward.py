@@ -54,12 +54,77 @@ from ..label import Label
 class Forward(dict):
     """Forward class to represent info from forward solution.
 
+    Like :class:`mne.Info`, this data structure behaves like a dictionary.
+    It contains all metadata necessary for a forward solution.
+
+    .. warning::
+        This class should not be modified or created by users.
+        Forward objects should be obtained using
+        :func:`mne.make_forward_solution` or :func:`mne.read_forward_solution`.
+
     Attributes
     ----------
     ch_names : list of str
-        List of channels' names.
+        A convenience wrapper accessible as ``fwd.ch_names`` which wraps
+        ``fwd['info']['ch_names']``.
 
-        .. versionadded:: 0.20.0
+    See Also
+    --------
+    mne.make_forward_solution
+    mne.read_forward_solution
+
+    Notes
+    -----
+    Forward data is accessible via string keys using standard
+    :class:`python:dict` access (e.g., ``fwd['nsource'] == 4096``):
+
+        source_ori : int
+            The source orientation, either ``FIFF.FIFFV_MNE_FIXED_ORI`` or
+            ``FIFF.FIFFV_MNE_FREE_ORI``.
+        coord_frame : int
+            The coordinate frame of the forward solution, usually
+            ``FIFF.FIFFV_COORD_HEAD``.
+        nsource : int
+            The number of source locations.
+        nchan : int
+            The number of channels.
+        sol : dict
+            The forward solution, with entries:
+
+            ``'data'`` : ndarray, shape (n_channels, nsource * n_ori)
+                The forward solution data. The shape will be
+                ``(n_channels, nsource)`` for a fixed-orientation forward and
+                ``(n_channels, nsource * 3)`` for a free-orientation forward.
+            ``'row_names'`` : list of str
+                The channel names.
+        mri_head_t : instance of Transform
+            The mri<->head transformation that was used.
+        info : instance of :class:`~mne.Info`
+            The measurement information (with contents reduced compared to that
+            of the original data).
+        src : instance of :class:`~mne.SourceSpaces`
+            The source space used during forward computation. This can differ
+            from the original source space as:
+
+            1. Source points are removed due to proximity to (or existing
+               outside)
+               the inner skull surface.
+            2. The source space will be converted to the ``coord_frame`` of the
+               forward solution, which typically means it gets converted from
+               MRI to head coordinates.
+        source_rr : ndarray, shape (n_sources, 3)
+            The source locations.
+        source_nn : ndarray, shape (n_sources, 3)
+            The source normals. Will be all +Z (``(0, 0, 1.)``) for volume source
+            spaces. For surface source spaces, these are normal to the cortical
+            surface.
+        surf_ori : int
+            Whether ``sol`` is surface-oriented with the surface normal in the
+            Z component (``FIFF.FIFFV_MNE_FIXED_ORI``) or +Z in the given
+            ``coord_frame`` in the Z component (``FIFF.FIFFV_MNE_FREE_ORI``).
+
+    Forward objects also have some attributes that are accessible via ``.``
+    access, like ``fwd.ch_names``.
     """
 
     def copy(self):
