@@ -182,8 +182,8 @@ class SourceSpaces(list):
             The transformation from MRI surface RAS (``FIFF.FIFFV_COORD_MRI``)
             to MRI scanner RAS (``FIFF.FIFFV_MNE_COORD_RAS``).
         src_mri_t : instance of :class:`~mne.transforms.Transform`
-            The transformation from subsampled source space voxel to MRI surface
-            RAS.
+            The transformation from subsampled source space voxel to MRI
+            surface RAS.
         vox_mri_t : instance of :class:`~mne.transforms.Transform`
             The transformation from the original MRI voxel
             (``FIFF.FIFFV_MNE_COORD_MRI_VOXEL``) space to MRI surface RAS.
