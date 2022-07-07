@@ -1,7 +1,0 @@
-BESA Generic Data
-nChannels=33
-sRate=200.00
-nSamples=2380
-format=float
-file=simulation.dat
-EventFile=simulation.evt
