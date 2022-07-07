@@ -1,6 +1,4 @@
-"""
-Test reading BESA fileformats.
-"""
+"""Test reading BESA fileformats."""
 import inspect
 import pytest
 from pathlib import Path
@@ -20,7 +18,8 @@ montage = read_custom_montage(data_dir / 'simulation.elp')
 @pytest.mark.filterwarnings("ignore:Fiducial point nasion not found")
 @pytest.mark.parametrize('fname', (avr_file, avr_file_oldstyle, mul_file))
 def test_read_evoked_besa(fname):
-    ev = read_evoked_besa(avr_file)
+    """Test reading MESA .avr and .mul files."""
+    ev = read_evoked_besa(fname)
     assert len(ev.ch_names) == len(ev.data) == 33
     assert ev.info['sfreq'] == 200
     assert ev.tmin == -0.1
