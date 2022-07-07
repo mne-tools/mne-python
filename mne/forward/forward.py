@@ -98,7 +98,7 @@ class Forward(dict):
             ``'row_names'`` : list of str
                 The channel names.
         mri_head_t : instance of Transform
-            The mri<->head transformation that was used.
+            The mri ↔ head transformation that was used.
         info : instance of :class:`~mne.Info`
             The measurement information (with contents reduced compared to that
             of the original data).

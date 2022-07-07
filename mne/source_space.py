@@ -96,7 +96,6 @@ class SourceSpaces(list):
     created with a list-of-atlas-labels. A mixed source space consists of both
     surface and volumetric source spaces in a single SourceSpaces object.
 
-    Each element in the SourceSpaces list (e.g., ``src[0]``) is a dictionary.
     Each of those dictionaries can be accessed using standard Python
     :class:`python:dict` access using the string keys listed below (e.g.,
     ``src[0]['type'] == 'surf'``). The relevant key/value pairs depend on
@@ -135,7 +134,7 @@ class SourceSpaces(list):
 
     Surface source spaces created using :func:`mne.setup_source_space` can have
     the following additional entries (which will be missing, or have values of
-    None or 0 for volumetric source spaces):
+    ``None`` or ``0`` for volumetric source spaces):
 
         ntri : int
             Number of triangles in the dense surface triangulation.
@@ -167,7 +166,7 @@ class SourceSpaces(list):
 
     Volume source spaces created using :func:`mne.setup_volume_source_space`
     can have the following additional entries (which will be missing, or
-    have values of None or 0 for surface source spaces):
+    have values of ``None`` or ``0`` for surface source spaces):
 
         mri_width, mri_height, mri_depth : int
             The MRI dimensions (in voxels).
