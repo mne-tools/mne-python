@@ -196,12 +196,11 @@ plt.show()
 
 fig = mne.viz.plot_compare_evokeds({'auditory': regbaseline_aud,
                                     'visual': regbaseline_vis},
-                                   invert_y=True,
                                    picks=ch,
                                    title="baseline correction "
                                          "based on regression",
                                    show_sensors=False,
-                                   colors=dict(auditory="k", visual="r"),
+                                   colors=dict(auditory="b", visual="r"),
                                    truncate_yaxis=False)
 
 # let's look at the topography of the contrast auditory-visual evoked response
