@@ -981,7 +981,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
 
         with ProgressBar(
             iterable=range(len(orders)),
-            mesg=f'Permuting {len(clusters)} clusters{extra}'
+            mesg=f'Permuting{extra}'
         ) as progress_bar:
             H0 = parallel(
                 my_do_perm_func(X_full, slices, threshold, tail, adjacency,
