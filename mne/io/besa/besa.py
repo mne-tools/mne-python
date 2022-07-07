@@ -125,11 +125,11 @@ def _read_evoked_besa_mul(fname, verbose):
     fields = _parse_header(header)
     data = np.loadtxt(fname, skiprows=2, ndmin=2)
 
-    if len(ch_names) != len(data):
+    if len(ch_names) != data.shape[1]:
         raise RuntimeError('Mismatch between the number of channel names '
                            f'defined in the .mul file ({len(ch_names)}) '
-                           'and the number of rows in the data matrix '
-                           f'({len(data)}).')
+                           'and the number of columns in the data matrix '
+                           f'({data.shape[1]}).')
 
     # Consolidate channel types
     ch_types = _read_elp_sidecar(fname)
@@ -171,7 +171,7 @@ def _read_evoked_besa_mul(fname, verbose):
     # Build the Evoked object based on the header fields.
     info = create_info(ch_names, sfreq=1000 / fields['SamplingInterval[ms]'],
                        ch_types=ch_types)
-    return EvokedArray(data / fields['Bins/uV'] / 1E6, info,
+    return EvokedArray(data.T / fields['Bins/uV'] / 1E6, info,
                        tmin=fields['BeginSweep[ms]'] / 1000,
                        comment=fields['SegmentName'], verbose=verbose)
 
