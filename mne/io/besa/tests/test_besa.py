@@ -2,7 +2,6 @@
 Test reading BESA fileformats.
 """
 import inspect
-import numpy as np
 import pytest
 from pathlib import Path
 
@@ -72,5 +71,5 @@ def test_read_evoked_besa_mul_incomplete(tmp_path):
     # The SamplingInterval[ms] field (sample frequency) must exist
     with open(f'{tmp_path}/missing.mul', 'w') as f:
         f.write('TimePoints= 1 Channels= 1\nCH1\n0\n')
-    with pytest.raises(RuntimeError, match=r'No "SamplingInterval\[ms\]" field'):
+    with pytest.raises(RuntimeError, match=r'No "SamplingInterval\[ms\]"'):
         ev = read_evoked_besa(f'{tmp_path}/missing.mul')
