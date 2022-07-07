@@ -905,7 +905,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         partitions = _get_partitions_from_adjacency(adjacency, n_times)
     else:
         partitions = None
-    logger.info('Running initial clustering')
+    logger.info('Running initial clustering …')
     out = _find_clusters(t_obs, threshold, tail, adjacency,
                          max_step=max_step, include=include,
                          partitions=partitions, t_power=t_power,
@@ -919,7 +919,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     if isinstance(threshold, dict):
         t_obs = cluster_stats.reshape(t_obs.shape) * np.sign(t_obs)
 
-    logger.info('Found %d clusters' % len(clusters))
+    logger.debug(f'Found {len(clusters)} clusters')
 
     # convert clusters to old format
     if adjacency is not None and adjacency is not False:
@@ -978,8 +978,11 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                 this_include = include
         else:
             this_include = step_down_include
-        logger.info('Permuting %d times%s...' % (len(orders), extra))
-        with ProgressBar(len(orders)) as progress_bar:
+
+        with ProgressBar(
+            iterable=range(len(orders)),
+            mesg=f'Permuting {len(clusters)} clusters{extra}'
+        ) as progress_bar:
             H0 = parallel(
                 my_do_perm_func(X_full, slices, threshold, tail, adjacency,
                                 stat_fun, max_step, this_include, partitions,
@@ -995,7 +998,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
             orig = abs(cluster_stats).max()
         H0.insert(0, [orig])
         H0 = np.concatenate(H0)
-        logger.info('Computing cluster p-values')
+        logger.debug('Computing cluster p-values')
         cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
 
         # figure out how many new ones will be removed for step-down
@@ -1014,7 +1017,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                         'cluster%s to exclude from subsequent iterations'
                         % (n_step_downs, n_removed, a_text,
                            _pl(n_removed)))
-    logger.info('Done.')
+
     # The clusters should have the same shape as the samples
     clusters = _reshape_clusters(clusters, sample_shape)
     return t_obs, clusters, cluster_pv, H0
