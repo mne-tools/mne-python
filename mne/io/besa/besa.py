@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from pathlib import Path
 import numpy as np
 
@@ -213,7 +214,7 @@ def _read_elp_sidecar(fname):
 
     Returns
     -------
-    ch_type : dict | None
+    ch_type : OrderedDict | None
         If the sidecar file exists, return a dictionary mapping channel names
         to channel types. Otherwise returns ``None``.
     """
@@ -224,7 +225,7 @@ def _read_elp_sidecar(fname):
         return None
 
     logger.info(f'Reading electrode names and types from {fname_elp}')
-    ch_types = dict()
+    ch_types = OrderedDict()
     with open(fname_elp) as f:
         lines = f.readlines()
         if len(lines[0].split()) > 3:
