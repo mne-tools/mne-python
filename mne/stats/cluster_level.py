@@ -919,7 +919,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     if isinstance(threshold, dict):
         t_obs = cluster_stats.reshape(t_obs.shape) * np.sign(t_obs)
 
-    logger.debug(f'Found {len(clusters)} clusters')
+    logger.info(f'Found {len(clusters)} cluster{_pl(clusters)}')
 
     # convert clusters to old format
     if adjacency is not None and adjacency is not False:
