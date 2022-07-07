@@ -208,7 +208,7 @@ def _read_elp_sidecar(fname):
     Parameters
     ----------
     fname : Path
-        The path of the .avr or .mul file. The corrsponding .elp file will be
+        The path of the .avr or .mul file. The corresponding .elp file will be
         derived from this path.
 
     Returns
