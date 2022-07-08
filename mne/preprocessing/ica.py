@@ -897,7 +897,7 @@ class ICA(ContainsMixin):
 
         # Apply unmixing and PCA
         sources = np.linalg.multi_dot([self.unmixing_matrix_,
-                                      self.pca_components_[:self.n_components_], 
+                                      self.pca_components_[:self.n_components_],
                                       data])
         return sources
 
