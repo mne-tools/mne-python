@@ -22,8 +22,8 @@ We demonstrate the alternative regression-based method recommended, where the
 *strength of the effect* of the baseline period is allowed to vary across each
 timepoint of the epoch.
 
-(adapted from code by Phillip Alday: https://osf.io/85bjq)
 """
+
 # Authors: Carina Forster
 # Email: carinaforster0611@gmail.com
 #
@@ -45,7 +45,6 @@ baseline_tmin, baseline_tmax = None, 0
 
 # we select a single channel of interest
 # we combine both hemispheres and therefore select a central electrode
-# https://mne.tools/stable/auto_tutorials/intro/10_overview.html#sphx-glr-auto-tutorials-intro-10-overview-py
 
 ch = "EEG 021"
 
@@ -109,11 +108,11 @@ del raw_filtered
 # we average over all epochs and subtract the condition specific baseline
 # for both events of interest
 
-auditory_baseline = (epochs[epochs.events[:, 2] == 1].copy()
+trad_aud = (epochs[epochs.events[:, 2] == 1].copy()
                      .average()
                      .apply_baseline((baseline_tmin, baseline_tmax)))
 
-visual_baseline = (epochs[epochs.events[:, 2] == 2].copy()
+trad_vis = (epochs[epochs.events[:, 2] == 2].copy()
                    .average()
                    .apply_baseline((baseline_tmin, baseline_tmax)))
 
@@ -122,8 +121,8 @@ visual_baseline = (epochs[epochs.events[:, 2] == 2].copy()
 # here we choose a baseline window of 200 miliseconds
 # feel free to try out different baseline windows
 
-fig = mne.viz.plot_compare_evokeds({"auditory": auditory_baseline,
-                                   "visual": visual_baseline},
+fig = mne.viz.plot_compare_evokeds({"auditory": trad_aud,
+                                   "visual": trad_vis},
                                    picks=[ch],
                                    title="traditional baseline correction",
                                    show_sensors=False, legend=True,
@@ -132,16 +131,6 @@ fig = mne.viz.plot_compare_evokeds({"auditory": auditory_baseline,
 
 # we can see that there is a lot going on in the baseline and the baseline
 # activity seems to differ between conditions
-
-# Next we subtract the visual evoked response from the auditory evoked
-# response and plot the difference topography of the poststimulus window
-
-diff = mne.combine_evoked([auditory_baseline, visual_baseline], [1, -1])
-
-diff.plot_topomap(times=[0., 0.05, 0.1, 0.2, 0.3, 0.4], ch_type='eeg')
-
-# we can see that the biggest difference is around 300 miliseconds with a
-# dipole in central channels
 
 # %% regression-based baseline correction
 
@@ -158,8 +147,8 @@ baseline_epochs = epochs.copy().pick_channels([ch]).crop(baseline_tmin,
 epoch_data = baseline_epochs.get_data()
 
 # here we take the mean over the last axis (time samples), get rid of the 0
-# dimension and multiply the data with 1000 000 to get micro volt for fitting
-# purposes
+# dimension and multiply the data with 1e6 to convert to micro volt for fitting
+# purposes (very small values are not ideal for a regression model)
 
 baseline = epoch_data.mean(axis=-1).squeeze() * 1e6
 
@@ -179,23 +168,23 @@ design_matrix = np.stack([epochs.events[:, 2] == 1, epochs.events[:, 2] == 2,
 # we add the epochs for both conditions, the design matrix and the names for
 # the regressors included in the model
 
-regmodel = mne.stats.linear_regression(epochs, design_matrix,
+reg_model = mne.stats.linear_regression(epochs, design_matrix,
                                        names=["auditory", "visual",
                                               "baseline",
                                               "baseline:visual"])
 
 # after fitting is done, we can extract the beta values for each condition
 
-regbaseline_aud = regmodel['auditory'].beta
-regbaseline_vis = regmodel['visual'].beta
+reg_aud = reg_model['auditory'].beta
+reg_vis = reg_model['visual'].beta
 
-# %% plot regression output
+# %% plot evoked data baseline corrected with a regression approach
 
-plt.plot(regmodel['baseline'].beta.pick_channels([ch]).get_data().squeeze())
-plt.show()
+# let's plot the evoked signals for both conditions baseline
+# corrected with the regression approach suggested by Alday et al.
 
-fig = mne.viz.plot_compare_evokeds({'auditory': regbaseline_aud,
-                                    'visual': regbaseline_vis},
+fig = mne.viz.plot_compare_evokeds({'auditory': reg_aud,
+                                    'visual': reg_vis},
                                    picks=ch,
                                    title="baseline correction "
                                          "based on regression",
@@ -203,10 +192,91 @@ fig = mne.viz.plot_compare_evokeds({'auditory': regbaseline_aud,
                                    colors=dict(auditory="b", visual="r"),
                                    truncate_yaxis=False)
 
-# let's look at the topography of the contrast auditory-visual evoked response
+# %% baseline correction approaches on sensor topography
 
-regressed_diff = mne.combine_evoked([regbaseline_aud, regbaseline_vis],
+# Finally, let's compare the topographies for the traditional and regression
+# approach
+
+# here we calculate the difference between both conditions for the traditional
+# and the regression approach
+
+diff_traditional = mne.combine_evoked([trad_aud, trad_vis],
+                                      [1, -1])
+
+diff_regression = mne.combine_evoked([reg_aud, reg_vis],
                                     [1, -1])
 
-regressed_diff.plot_topomap(times=[0., 0.05, 0.1, 0.2, 0.3, 0.4],
-                            ch_type='eeg')
+# %% topography of auditory-visual contrast with traditional baseline
+# correction
+
+diff_traditional.plot_topomap(times=[0.1, 0.2, 0.3, 0.4],
+                              ch_type='eeg', title="traditional "
+                                                   "baseline correction")
+# %% topography of auditory-visual contrast with regression-based baseline
+# correction
+
+diff_regression.plot_topomap(times=[0.1, 0.2, 0.3, 0.4],
+                            ch_type='eeg', title="regression-based"
+                                                 " baseline correction")
+
+# we can see that the biggest difference is around 300 ms after stimulus onset
+# with a strong dipole in central channels, this difference is much less
+# pronounced in the regression-based baseline correction topo
+
+# %% compare both approaches
+
+# let's compare the traditional with the regression approach
+# therefore we plot the difference between the auditory and the
+# visual condition with traditional and regression-based baseline correction
+
+fig = mne.viz.plot_compare_evokeds({'traditional': diff_traditional,
+                                    'regression': diff_regression},
+                                   picks=ch,
+                                   title="difference evoked potential",
+                                   show_sensors=False,
+                                   colors=dict(traditional="magenta",
+                                               regression="orange"),
+                                   truncate_yaxis=False)
+
+# %% Plot baseline regressor
+
+# Eventually, we can check the impact of the baseline and interaction
+# regressor over time
+
+reg_baseline = reg_model['baseline'].beta
+reg_interaction = reg_model['baseline:visual'].beta
+
+# we choose the beta values for the central channel we selected
+# therefore we extract the channel index
+
+ch_index = raw.info.ch_names.index(ch)
+
+# let's plot them
+# Creates two subplots and unpacks the output array immediately
+
+plt.plot(reg_baseline.times, reg_baseline.get_data()[ch_index], color='darkgreen')
+plt.xlabel('Time (s)')
+plt.ylabel('Volt')
+plt.title('"baseline" beta values over time')
+
+# we can see that the baseline beta values are decreasing over time,
+# therefore early evoked potentials are "more" baseline corrected than late
+# potentials
+
+# %% Plot interaction regressor
+
+# Next we plot the interaction beta values over time
+
+plt.plot(reg_interaction.times, reg_interaction.get_data()[ch_index], color='darkblue')
+plt.xlabel('Time (s)')
+plt.ylabel('Volt')
+plt.title('"interaction" beta values over time')
+plt.show()
+
+# the interaction beta weights are rather small with a strong, negative peak
+# around 500 ms poststimulus
+
+# %%
+# References
+# ==========
+# .. footbibliography::
