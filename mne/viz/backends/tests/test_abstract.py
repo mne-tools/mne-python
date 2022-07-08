@@ -113,7 +113,7 @@ def test_widget_abstraction_pyvistaqt():
 
 @pytest.mark.slowtest
 def test_widget_abstraction_notebook(nbexec):
-    """Test the GUI widgets abstraction in notebook"""
+    """Test the GUI widgets abstraction in notebook."""
     from mne.viz import set_3d_backend
     from mne.viz.backends.renderer import _get_backend
     from mne.viz.backends.tests.test_abstract import _setup_app
