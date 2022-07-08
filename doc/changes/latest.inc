@@ -143,6 +143,8 @@ Bugs
 
 - Fix bug in coregistration GUI that prevented it from starting up if only a high-resolution head model was available (:gh:`10543` by `Richard Höchenberger`_)
 
+- Fix bug with :class:`mne.Epochs.add_reference_channels` where attributes were not updated properly so subsequent `~mne.Epochs.pick_types` calls were broken (:gh:`10912` by `Eric Larson`_)
+- 
 - Fix bug in the :class:`mne.viz.Brain` tool bar that prevented the buttons to call the corresponding feature (:gh:`10560` by `Guillaume Favelier`_)
 
 - Fix issue with saving epochs once :func:`~mne.preprocessing.compute_current_source_density` has been used if a rejection threshold was used first (:gh:`10619` by `Alex Rockhill`_ and `Richard Höchenberger`_)
