@@ -271,7 +271,7 @@ def test_ajd():
     A /= np.atleast_2d(np.sqrt(np.sum(A ** 2, 1))).T
     covmats = np.empty((n_times, n_channels, n_channels))
     for i in range(n_times):
-        covmats[i] = np.linalg.multi_dot([A, np.diag(diags[i]), A.T])
+        np.linalg.multi_dot([A, np.diag(diags[i]), A.T], out=covmats[i])
     V, D = _ajd_pham(covmats)
     # Results obtained with original matlab implementation
     V_matlab = [[-3.507280775058041, -5.498189967306344, 7.720624541198574],
