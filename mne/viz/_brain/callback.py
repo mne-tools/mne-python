@@ -4,10 +4,6 @@
 #
 # License: Simplified BSD
 
-import weakref
-
-from ...utils import logger
-
 
 class TimeCallBack(object):
     """Callback to update the time."""
@@ -34,44 +30,6 @@ class TimeCallBack(object):
             self.callback()
         if self.widget is not None and update_widget:
             self.widget.set_value(int(value))
-
-
-class UpdateColorbarScale(object):
-    """Class to update the values of the colorbar sliders."""
-
-    def __init__(self, brain, factor):
-        self.brain = brain
-        self.factor = factor
-        self.widget = None
-        self.widgets = {key: None for key in self.brain.keys}
-
-    def __call__(self):
-        """Update the colorbar sliders."""
-        self.brain._update_fscale(self.factor)
-        for key in self.brain.keys:
-            if self.widgets[key] is not None:
-                self.widgets[key].set_value(self.brain._data[key])
-
-
-class UpdateLUT(object):
-    """Update the LUT."""
-
-    def __init__(self, brain=None):
-        self.brain = weakref.ref(brain)
-        self.widgets = {key: list() for key in brain.keys}
-
-    def __call__(self, fmin=None, fmid=None, fmax=None):
-        """Update the colorbar sliders."""
-        brain = self.brain()
-        if brain is None:
-            return
-        brain.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
-        with brain._no_lut_update(f'UpdateLUT {fmin} {fmid} {fmax}'):
-            for key in ('fmin', 'fmid', 'fmax'):
-                value = brain._data[key]
-                logger.debug(f'Updating {key} = {value}')
-                for widget in self.widgets[key]:
-                    widget.set_value(value)
 
 
 class ShowView(object):

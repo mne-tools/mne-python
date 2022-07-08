@@ -2074,8 +2074,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
     if time_viewer:
         brain.setup_time_viewer(time_viewer=time_viewer,
                                 show_traces=show_traces)
-    else:
-        brain.show()
+    brain.show()
 
     return brain
 

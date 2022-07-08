@@ -108,6 +108,12 @@ class _Widget(Widget, _AbstractWidget, metaclass=_BaseWidget):
     def _set_theme(self, theme):
         pass
 
+    def _set_size(self, width=None, height=None):
+        if width:
+            self.layout.width = width
+        if height:
+            self.layout.height = height
+
 
 class _Label(_Widget, _AbstractLabel, Label, metaclass=_BaseWidget):
 
@@ -134,17 +140,19 @@ class _Text(_AbstractText, _Widget, Text, metaclass=_BaseWidget):
 
 class _Button(_Widget, _AbstractButton, Button, metaclass=_BaseWidget):
 
-    def __init__(self, value, callback):
+    def __init__(self, value, callback, icon=None):
         _Widget.__init__(self)
         _AbstractButton.__init__(value=value, callback=callback)
         Button.__init__(self, description=value, **_BASE_KWARGS)
         self.on_click(lambda x: callback())
+        if icon:
+            self.icon = _ICON_LUT[icon]
 
     def _click(self):
         self.click()
 
     def _set_icon(self, icon):
-        self.icon = icon
+        self.icon = _ICON_LUT[icon]
 
 
 class _Slider(_Widget, _AbstractSlider, IntSlider, metaclass=_BaseWidget):
@@ -180,7 +188,10 @@ class _ProgressBar(_AbstractProgressBar, _Widget, IntProgress,
         IntProgress.__init__(self, max=count, **_BASE_KWARGS)
 
     def _increment(self):
+        if self.value + 1 > self.max:
+            return
         self.value += 1
+        return self.value
 
 
 class _CheckBox(_Widget, _AbstractCheckBox, Checkbox, metaclass=_BaseWidget):
@@ -414,7 +425,7 @@ class _FileButton(_AbstractFileButton, _Widget, Button,
                   metaclass=_BaseWidget):
 
     def __init__(self, callback, content_filter=None, initial_directory=None,
-                 save=False, is_directory=False, window=None):
+                 save=False, is_directory=False, icon='folder', window=None):
         _AbstractFileButton.__init__(
             callback=callback, content_filter=content_filter,
             initial_directory=initial_directory, save=save,
@@ -439,7 +450,7 @@ class _FileButton(_AbstractFileButton, _Widget, Button,
 
         Button.__init__(self, **_BASE_KWARGS)
         self.on_click(fp_callback)
-        self.icon = 'folder'
+        self.icon = _ICON_LUT[icon]
 
 
 class _PlayMenu(_AbstractPlayMenu, _Widget, VBox, metaclass=_BaseWidget):
@@ -462,7 +473,7 @@ class _PlayMenu(_AbstractPlayMenu, _Widget, VBox, metaclass=_BaseWidget):
 
 class _Dialog(_AbstractDialog, _Widget, VBox, metaclass=_BaseWidget):
 
-    def __init__(self, title, text, info_text, callback,
+    def __init__(self, title, text, info_text=None, callback=None,
                  icon='warning', buttons=None, window=None):
         _AbstractDialog.__init__(
             self, title=title, text=text, info_text=info_text,
@@ -477,10 +488,13 @@ class _Dialog(_AbstractDialog, _Widget, VBox, metaclass=_BaseWidget):
         title_label._set_style(dict(fontsize='28'))
         text_label = _Label(text)
         text_label._set_style(dict(fontsize='18'))
-        info_text_label = _Label(info_text)
-        info_text_label._set_style(dict(fontsize='12'))
+        self.children = (title_label, text_label)
+        if info_text:
+            info_text_label = _Label(info_text)
+            info_text_label._set_style(dict(fontsize='12'))
+            self.children += (info_text_label,)
 
-        self.icon = icon
+        self.icon = _ICON_LUT(icon)
 
         if buttons is None:
             buttons = ['Ok']
@@ -492,13 +506,14 @@ class _Dialog(_AbstractDialog, _Widget, VBox, metaclass=_BaseWidget):
                 if window is not None:
                     clear_output()
                     window._show()
-                callback(button)
+                if callback:
+                    callback(button)
 
             button_widget = Button(description=button)
             button_widget.on_click(callback_with_show)
             hbox.children += (button_widget,)
 
-        self.children = (title_label, text_label, info_text_label, hbox)
+        self.children += (hbox,)
         display(self)
 
 
@@ -593,6 +608,12 @@ class _MplCanvas(_AbstractMplCanvas, _Widget, HBox, metaclass=_BaseWidget):
         plt.ion()
         self.children = (self.fig.canvas,)
 
+    def _set_size(self, width=None, height=None):
+        if width:
+            self.layout.width = width
+        if height:
+            self.layout.height = height
+
 
 class _Window(_AbstractWindow, _Widget, VBox, metaclass=_BaseWidget):
 
@@ -627,7 +648,7 @@ class _Window(_AbstractWindow, _Widget, VBox, metaclass=_BaseWidget):
     def _new_cursor(self, name):
         pass
 
-    def _show(self):
+    def _show(self, block=False):
         display(self)
 
 

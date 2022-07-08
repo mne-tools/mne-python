@@ -17,8 +17,8 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas
 
 from qtpy.QtCore import Qt, QLocale, QLibraryInfo, QTimer
 from qtpy.QtGui import QIcon, QCursor
-from qtpy.QtWidgets import (QComboBox, QGroupBox, QHBoxLayout,
-                            QLabel, QSlider, QSpinBox, QVBoxLayout, QWidget,
+from qtpy.QtWidgets import (QComboBox, QGroupBox, QHBoxLayout, QLabel,
+                            QSlider, QDoubleSpinBox, QVBoxLayout, QWidget,
                             QSizePolicy, QProgressBar, QScrollArea,
                             QLayout, QCheckBox, QButtonGroup, QRadioButton,
                             QLineEdit, QGridLayout, QFileDialog, QPushButton,
@@ -36,7 +36,8 @@ from ._abstract import (_AbstractWindow, _AbstractHBoxLayout,
                         _AbstractGroupBox, _AbstractText, _AbstractFileButton,
                         _AbstractPlayMenu, _AbstractProgressBar)
 from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
-                     _qt_detect_theme, _qt_raise_window, _init_mne_qtapp)
+                     _qt_detect_theme, _qt_raise_window, _init_mne_qtapp,
+                     _qt_app_exec)
 from ...utils import get_config
 from ...fixes import _compare_version
 
@@ -138,6 +139,14 @@ class _Widget(_AbstractWidget, QWidget, metaclass=_BaseWidget):
         else:
             QIcon.setThemeName('light')
 
+    def _set_size(self, width=None, height=None):
+        if width:
+            self.setMinimumWidth(width)
+            self.setMaximumWidth(width)
+        if height:
+            self.setMinimumHeight(height)
+            self.setMaximumHeight(height)
+
 
 class _Label(QLabel, _AbstractLabel, _Widget, metaclass=_BaseWidget):
 
@@ -167,12 +176,14 @@ class _Text(QLineEdit, _AbstractText, _Widget, metaclass=_BaseWidget):
 
 class _Button(QPushButton, _AbstractButton, _Widget, metaclass=_BaseWidget):
 
-    def __init__(self, value, callback):
+    def __init__(self, value, callback, icon=None):
         _AbstractButton.__init__(value=value, callback=callback)
         _Widget.__init__(self)
         QPushButton.__init__(self)
         self.setText(value)
         self.released.connect(callback)
+        if icon:
+            self.setIcon(QIcon.fromTheme(icon))
 
     def _click(self):
         self.click()
@@ -213,7 +224,10 @@ class _ProgressBar(QProgressBar, _AbstractProgressBar, _Widget,
         self.setMaximum(count)
 
     def _increment(self):
+        if self.value() + 1 > self.maximum():
+            return
         self.setValue(self.value() + 1)
+        return self.value()
 
 
 class _CheckBox(QCheckBox, _AbstractCheckBox, _Widget, metaclass=_BaseWidget):
@@ -232,20 +246,20 @@ class _CheckBox(QCheckBox, _AbstractCheckBox, _Widget, metaclass=_BaseWidget):
         return self.checkState() != Qt.Unchecked
 
 
-class _SpinBox(QSpinBox, _AbstractSpinBox, _Widget, metaclass=_BaseWidget):
+class _SpinBox(QDoubleSpinBox, _AbstractSpinBox, _Widget,
+               metaclass=_BaseWidget):
 
     def __init__(self, value, rng, callback, step=None):
         _AbstractSpinBox.__init__(value=value, rng=rng, callback=callback,
                                   step=step)
         _Widget.__init__(self)
-        QSpinBox.__init__(self)
+        QDoubleSpinBox.__init__(self)
         self.setAlignment(Qt.AlignCenter)
         self.setMinimum(rng[0])
         self.setMaximum(rng[1])
         self.setKeyboardTracking(False)
         if step is None:
-            inc = (rng[1] - rng[0]) / 20.
-            self.setSingleStep(inc)
+            self.setSingleStep((rng[1] - rng[0]) / 20.)
         else:
             self.setSingleStep(step)
         self.setValue(value)
@@ -308,9 +322,9 @@ class _GroupBox(QGroupBox, _AbstractGroupBox, _Widget, metaclass=_BaseWidget):
         _AbstractGroupBox.__init__(name=name, items=items)
         _Widget.__init__(self)
         QGroupBox.__init__(self, name)
-        self._layout = QVBoxLayout()
+        self._layout = _VBoxLayout()
         for item in items:
-            self._layout.addWidget(item)
+            self._layout._add_widget(item)
         self.setLayout(self._layout)
 
 
@@ -318,7 +332,7 @@ class _FileButton(_Button, _AbstractFileButton, _Widget,
                   metaclass=_BaseWidget):
 
     def __init__(self, callback, content_filter=None, initial_directory=None,
-                 save=False, is_directory=False, window=None):
+                 save=False, is_directory=False, icon='folder', window=None):
         _AbstractFileButton.__init__(
             callback=callback, content_filter=content_filter,
             initial_directory=initial_directory, save=save,
@@ -328,22 +342,23 @@ class _FileButton(_Button, _AbstractFileButton, _Widget,
         def fp_callback():
             if is_directory:
                 name = QFileDialog.getExistingDirectory(
-                    directory=initial_directory
+                    parent=window, directory=initial_directory
                 )
             elif save:
                 name = QFileDialog.getSaveFileName(
-                    directory=initial_directory, filter=content_filter)
+                    parent=window, directory=initial_directory,
+                    filter=content_filter)
             else:
                 name = QFileDialog.getOpenFileName(
-                    directory=initial_directory, filter=content_filter)
+                    parent=window, directory=initial_directory,
+                    filter=content_filter)
             name = name[0] if isinstance(name, tuple) else name
             # handle the cancel button
             if len(name) == 0:
                 return
             callback(name)
 
-        _Button.__init__(self, '', callback=fp_callback)
-        self._set_icon('folder')
+        _Button.__init__(self, '', callback=fp_callback, icon=icon)
 
 
 class _PlayMenu(QVBoxLayout, _AbstractPlayMenu, _Widget,
@@ -403,7 +418,7 @@ class _PlayMenu(QVBoxLayout, _AbstractPlayMenu, _Widget,
 
 class _Dialog(QMessageBox, _AbstractDialog, _Widget, metaclass=_BaseWidget):
 
-    def __init__(self, title, text, info_text, callback,
+    def __init__(self, title, text, info_text=None, callback=None,
                  icon='warning', buttons=None, window=None):
         _AbstractDialog.__init__(
             self, title=title, text=text, info_text=info_text,
@@ -415,7 +430,8 @@ class _Dialog(QMessageBox, _AbstractDialog, _Widget, metaclass=_BaseWidget):
         # icon is one of _Dialog.supported_icon_names
         if icon is not None:
             self.setIcon(getattr(QMessageBox, icon.title()))
-        self.setInformativeText(info_text)
+        if info_text:
+            self.setInformativeText(info_text)
 
         if buttons is None:
             buttons = ['Ok']
@@ -430,7 +446,9 @@ class _Dialog(QMessageBox, _AbstractDialog, _Widget, metaclass=_BaseWidget):
             standard_buttons |= button_id
         self.setStandardButtons(standard_buttons)
         self.setDefaultButton(default_button)
-        self.buttonClicked.connect(lambda button: callback(button.text()))
+        if callback:
+            self.buttonClicked.connect(lambda button: callback(button.text()))
+        _qt_raise_window(self)
         self._show()
 
 
@@ -458,15 +476,16 @@ class _HBoxLayout(QHBoxLayout, _AbstractHBoxLayout, _Widget,
                 _ScrollArea(scroll[0], scroll[1], self._scroll_widget))
             self._scroll_widget.setLayout(self)
 
-        if height is not None:
-            self.setMinimumHeight(height)
-            self.setMaximumHeight(height)
+        self._height = height
 
     def _add_widget(self, widget):
         """Add a widget to an existing layout."""
         if isinstance(widget, QLayout):
             self.addLayout(widget)
         else:
+            if self._height is not None:
+                widget.setMinimumHeight(self._height)
+                widget.setMaximumHeight(self._height)
             self.addWidget(widget)
 
     def _add_stretch(self, amount=1):
@@ -488,15 +507,16 @@ class _VBoxLayout(QVBoxLayout, _AbstractVBoxLayout, _Widget,
                 _ScrollArea(scroll[0], scroll[1], self._scroll_widget))
             self._scroll_widget.setLayout(self)
 
-        if width is not None:
-            self.setMinimumWidth(width)
-            self.setMaximumWidth(width)
+        self._width = width
 
     def _add_widget(self, widget):
         """Add a widget to an existing layout."""
         if isinstance(widget, QLayout):
             self.addLayout(widget)
         else:
+            if self._width is not None:
+                widget.setMinimumWidth(self._width)
+                widget.setMaximumWidth(self._width)
             self.addWidget(widget)
 
     def _add_stretch(self, amount=1):
@@ -535,11 +555,19 @@ class _MplCanvas(FigureCanvas, _AbstractMplCanvas, metaclass=_BaseCanvas):
         _AbstractMplCanvas.__init__(
             self, width=width, height=height, dpi=dpi)
         self.fig = Figure(figsize=(width, height), dpi=dpi)
-        self.ax = self.fig.add_subplot(111)
+        self.ax = self.fig.add_subplot(111, position=[0.15, 0.15, 0.75, 0.75])
         FigureCanvas.__init__(self, self.fig)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMinimumWidth(width)
         self.setMinimumHeight(height)
+
+    def _set_size(self, width=None, height=None):
+        if width:
+            self.setMinimumWidth(width)
+            self.setMaximumWidth(width)
+        if height:
+            self.setMinimumHeight(height)
+            self.setMaximumHeight(height)
 
 
 # %%
@@ -633,9 +661,11 @@ class _Window(_AbstractWindow, _MNEMainWindow, _Widget, metaclass=_BaseWidget):
     def _clean(self):
         self._app = None
 
-    def _show(self):
+    def _show(self, block=False):
         _qt_raise_window(self)
         _Widget._show(self)
+        if block:
+            _qt_app_exec(self._app)
 
 
 class _Renderer(_PyVistaRenderer):

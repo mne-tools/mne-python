@@ -545,6 +545,10 @@ class _AbstractWidget(ABC):
     def _set_theme(self, theme):
         pass
 
+    @abstractmethod
+    def _set_size(self, width=None, height=None):
+        pass
+
 
 class _AbstractLabel(_AbstractWidget):
 
@@ -563,7 +567,7 @@ class _AbstractText(_AbstractWidget):
 class _AbstractButton(_AbstractWidget):
 
     @abstractclassmethod
-    def __init__(self, value, callback):
+    def __init__(self, value, callback, icon=None):
         pass
 
     @abstractmethod
@@ -676,7 +680,7 @@ class _AbstractFileButton(_AbstractWidget):
 
     @abstractclassmethod
     def __init__(self, callback, content_filter=None, initial_directory=None,
-                 save=False, is_directory=False, window=None):
+                 save=False, is_directory=False, icon='folder', window=None):
         pass
 
 
@@ -702,7 +706,7 @@ class _AbstractDialog(_AbstractWidget):
     supported_icon_names = ['question', 'information', 'warning', 'critical']
 
     @abstractmethod
-    def __init__(self, title, text, info_text, callback,
+    def __init__(self, title, text, info_text=None, callback=None,
                  icon='Warning', buttons=None, window=None):
         pass
 
@@ -783,6 +787,10 @@ class _AbstractWindow(ABC):
     def _close_disconnect(self, after=True):
         pass
 
+    @abstractmethod
+    def _show(self, block=False):
+        pass
+
 
 # -------------------
 # Matplotlib Canvases
@@ -817,6 +825,9 @@ class _AbstractMplCanvas(ABC):
         self.ax.clear()
         self.fig.clear()
         self.manager = None
+
+    def _set_size(self, width=None, height=None):
+        pass
 
 
 class _AbstractBrainMplCanvas(_AbstractMplCanvas):

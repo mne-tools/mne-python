@@ -23,8 +23,7 @@ import numpy as np
 from .colormap import calculate_lut
 from .surface import _Surface
 from .view import views_dicts, _lh_views_dict
-from .callback import (ShowView, TimeCallBack, SmartCallBack,
-                       UpdateLUT, UpdateColorbarScale)
+from .callback import ShowView, TimeCallBack, SmartCallBack
 
 from ..utils import (_show_help_fig, _get_color_list, concatenate_images,
                      _generate_default_filename, _save_ndarray_img, safe_event)
@@ -49,6 +48,7 @@ from ...utils import (_check_option, logger, verbose, fill_doc, _validate_type,
 
 
 _ARROW_MOVE = 10  # degrees per press
+_SLIDER_RES = 1000  # steps in a slider
 
 
 @fill_doc
@@ -112,12 +112,12 @@ class Brain(object):
     offset : bool | str
         If True, shifts the right- or left-most x coordinate of the left and
         right surfaces, respectively, to be at zero. This is useful for viewing
-        inflated surface where hemispheres typically overlap. Can be "auto"
+        inflated surface where hemispheres typically overlap. Can be 'auto'
         (default) use True with inflated surfaces and False otherwise
         (Default: 'auto'). Only used when ``hemi='both'``.
 
         .. versionchanged:: 0.23
-           Default changed to "auto".
+           Default changed to 'auto'.
     show_toolbar : bool
         If True, toolbars will be shown for each view.
     offscreen : bool
@@ -125,7 +125,7 @@ class Brain(object):
         mostly for generating images or screenshots, but can be buggy.
         Use at your own risk.
     interaction : str
-        Can be "trackball" (default) or "terrain", i.e. a turntable-style
+        Can be 'trackball' (default) or 'terrain', i.e. a turntable-style
         camera.
     units : str
         Can be 'm' or 'mm' (default).
@@ -150,8 +150,8 @@ class Brain(object):
 
     Notes
     -----
-    This table shows the capabilities of each Brain backend ("✓" for full
-    support, and "-" for partial support):
+    This table shows the capabilities of each Brain backend ('✓' for full
+    support, and '-' for partial support):
 
     .. table::
        :widths: auto
@@ -234,14 +234,13 @@ class Brain(object):
     """
 
     def __init__(self, subject_id, hemi='both', surf='pial', title=None,
-                 cortex="classic", alpha=1.0, size=800, background="black",
+                 cortex='classic', alpha=1.0, size=800, background='black',
                  foreground=None, figure=None, subjects_dir=None,
                  views='auto', offset='auto', show_toolbar=False,
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', silhouette=False, theme=None,
                  show=True, block=False):
         from ..backends.renderer import _get_backend
-        from ..backends._utils import _qt_app_exec
 
         self._backend = _get_backend()
 
@@ -338,6 +337,7 @@ class Brain(object):
         logger.debug(f'Hemi offset: {offset}')
         _validate_type(theme, (str, None), 'theme')
         self._backend = _get_backend()
+        self._size = size
         self._window = self._backend._Window(size=size)
         self._central_layout = self._backend._VBoxLayout()
         self._renderer = self._backend._Renderer(
@@ -373,8 +373,8 @@ class Brain(object):
                     mesh.map()  # send to GPU
                     mesh.add_overlay(
                         scalars=self.geo[h].bin_curv,
-                        colormap=geo_kwargs["colormap"],
-                        rng=[geo_kwargs["vmin"], geo_kwargs["vmax"]],
+                        colormap=geo_kwargs['colormap'],
+                        rng=[geo_kwargs['vmin'], geo_kwargs['vmax']],
                         opacity=alpha,
                         name='curv',
                     )
@@ -388,28 +388,27 @@ class Brain(object):
                     mesh = self._layered_meshes[h]
                     self._renderer._silhouette(
                         mesh=mesh._polydata,
-                        color=self._silhouette["color"],
-                        line_width=self._silhouette["line_width"],
-                        alpha=self._silhouette["alpha"],
-                        decimate=self._silhouette["decimate"],
+                        color=self._silhouette['color'],
+                        line_width=self._silhouette['line_width'],
+                        alpha=self._silhouette['alpha'],
+                        decimate=self._silhouette['decimate'],
                     )
                 self._renderer.set_camera(update=False, reset_camera=False,
                                           **views_dicts[h][v])
 
         self.interaction = interaction
         self._closed = False
-        if show:
-            self.show()
+
         # update the views once the geometry is all set
         for h in self._hemis:
             for ri, ci, v in self._iter_views(h):
                 self.show_view(v, row=ri, col=ci, hemi=h)
 
         if surf == 'flat':
-            self._renderer.set_interaction("rubber_band_2d")
+            self._renderer.set_interaction('rubber_band_2d')
 
-        if block:
-            _qt_app_exec(self._window._app)
+        if show:
+            self.show(block)
 
     def _setup_canonical_rotation(self):
         self._rigid = np.eye(4)
@@ -452,7 +451,7 @@ class Brain(object):
         if self.time_viewer:
             return
         if not self._data:
-            raise ValueError("No data to visualize. See ``add_data``.")
+            raise ValueError('No data to visualize. See ``add_data``.')
         self.time_viewer = time_viewer
         self.orientation = list(_lh_views_dict.keys())
         self.default_smoothing_range = [-1, 15]
@@ -464,10 +463,10 @@ class Brain(object):
         self.default_scaling_range = [0.2, 2.0]
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.01
-        self.default_status_bar_msg = "Press ? for help"
+        self.default_status_bar_msg = 'Press ? for help'
         self.default_label_extract_modes = {
-            "stc": ["mean", "max"],
-            "src": ["mean_flip", "pca_flip", "auto"],
+            'stc': ['mean', 'max'],
+            'src': ['mean_flip', 'pca_flip', 'auto'],
         }
         self.default_trace_modes = ('vertex', 'label')
         self.annot = None
@@ -476,7 +475,7 @@ class Brain(object):
         self.act_data_smooth = {key: (None, None) for key in all_keys}
         self.color_list = _get_color_list()
         # remove grey for better contrast on the brain
-        self.color_list.remove("#7f7f7f")
+        self.color_list.remove('#7f7f7f')
         self.color_cycle = _ReuseCycle(self.color_list)
         self.mpl_canvas = None
         self.help_canvas = None
@@ -517,20 +516,34 @@ class Brain(object):
                 self.interactor_fraction = show_traces
             self.traces_mode = 'vertex'
             self.separate_canvas = False
-        del show_traces
 
+        # pyvista plotter configuration
         self._configure_time_label()
         self._configure_scalar_bar()
         self._configure_shortcuts()
         self._configure_picking()
-        self._configure_tool_bar()
-        self._configure_dock()
+
+        # qt GUI configuration
+        self._central_layout = self._backend._VBoxLayout()
+        self._central_layout._add_widget(self._configure_toolbar())
+        vbox = self._backend._VBoxLayout()
+        vbox._add_widget(self._renderer.plotter)
+        # do not show trace mode for volumes
+        if show_traces and not (self._data.get('src', None) is not None and
+                                self._data['src'].kind == 'volume'):
+            self.mpl_canvas = self._configure_mplcanvas()
+            vbox._add_widget(self.mpl_canvas)
+        hbox = self._backend._HBoxLayout()
+        hbox._add_widget(self._configure_dock())
+        hbox._add_widget(vbox)
+        self._central_layout._add_widget(hbox)
+        """
         self._configure_menu()
         self._configure_status_bar()
         self._configure_playback()
-        self._configure_help()
         # show everything at the end
-        self.toggle_interface()
+        self.toggle_interface()"""
+        self._window._set_central_layout(self._central_layout)
 
         # sizes could change, update views
         for hemi in ('lh', 'rh'):
@@ -539,9 +552,10 @@ class Brain(object):
         self._renderer._process_events()
 
         self._renderer._update()
-        # finally, show the MplCanvas
+        # finally, draw the MplCanvas
         if self.show_traces:
-            self.mpl_canvas.show()
+            self.mpl_canvas.fig.tight_layout()
+            self.mpl_canvas.draw()
 
     @safe_event
     def _clean(self):
@@ -598,11 +612,11 @@ class Brain(object):
             if self.visibility:
                 self._renderer._dock_show()
                 self._renderer._tool_bar_update_button_icon(
-                    name="visibility", icon_name="visibility_on")
+                    name='visibility', icon_name='visibility_on')
             else:
                 self._renderer._dock_hide()
                 self._renderer._tool_bar_update_button_icon(
-                    name="visibility", icon_name="visibility_off")
+                    name='visibility', icon_name='visibility_off')
 
         self._renderer._update()
 
@@ -632,10 +646,10 @@ class Brain(object):
         # update tool bar icon
         if self.playback:
             self._renderer._tool_bar_update_button_icon(
-                name="play", icon_name="pause")
+                name='play', icon_name='pause')
         else:
             self._renderer._tool_bar_update_button_icon(
-                name="play", icon_name="play")
+                name='play', icon_name='play')
 
         if self.playback:
             time_data = self._data['time']
@@ -649,8 +663,8 @@ class Brain(object):
         self.reset_view()
         max_time = len(self._data['time']) - 1
         if max_time > 0:
-            self.callbacks["time"](
-                self._data["initial_time_idx"],
+            self.callbacks['time'](
+                self._data['initial_time_idx'],
                 update_widget=True,
             )
         self._renderer._update()
@@ -687,7 +701,7 @@ class Brain(object):
         # interpolation mode, it just finds where we are (in time) in
         # terms of the time indices
         idx = np.interp(time_point, time_data, times)
-        self.callbacks["time"](idx, update_widget=True)
+        self.callbacks['time'](idx, update_widget=True)
         if time_point == max_time:
             self.toggle_playback(value=False)
 
@@ -705,77 +719,71 @@ class Brain(object):
             self._scalar_bar.SetWidth(0.05)
             self._scalar_bar.SetPosition(0.02, 0.2)
 
-    def _configure_dock_time_widget(self, layout=None):
+    def _configure_playback_widget(self):
         len_time = len(self._data['time']) - 1
-        if len_time < 1:
-            return
-        layout = self._renderer.dock_layout if layout is None else layout
-        hlayout = self._renderer._dock_add_layout(vertical=False)
-        self.widgets["min_time"] = self._renderer._dock_add_label(
-            value="-", layout=hlayout)
-        self._renderer._dock_add_stretch(hlayout)
-        self.widgets["current_time"] = self._renderer._dock_add_label(
-            value="x", layout=hlayout)
-        self._renderer._dock_add_stretch(hlayout)
-        self.widgets["max_time"] = self._renderer._dock_add_label(
-            value="+", layout=hlayout)
-        self._renderer._layout_add_widget(layout, hlayout)
-        min_time = float(self._data['time'][0])
-        max_time = float(self._data['time'][-1])
-        self.widgets["min_time"].set_value(f"{min_time: .3f}")
-        self.widgets["max_time"].set_value(f"{max_time: .3f}")
-        self.widgets["current_time"].set_value(f"{self._current_time: .3f}")
-
-    def _configure_dock_playback_widget(self, name):
-        layout = self._renderer._dock_add_group_box(name)
-        len_time = len(self._data['time']) - 1
-
+        groupbox_widgets = list()
         # Time widget
         if len_time < 1:
-            self.callbacks["time"] = None
-            self.widgets["time"] = None
+            self.callbacks['time'] = None
+            self.widgets['time'] = None
         else:
-            self.callbacks["time"] = TimeCallBack(
+            self.callbacks['time'] = TimeCallBack(
                 brain=self,
                 callback=self.plot_time_line,
             )
-            self.widgets["time"] = self._renderer._dock_add_slider(
-                name="Time (s)",
+            self.widgets['time_label'] = self._backend._Label(
+                value='Time (s)', center=True)
+            groupbox_widgets.append(self.widgets['time_label'])
+            self.widgets['time'] = self._backend._Slider(
                 value=self._data['time_idx'],
                 rng=[0, len_time],
-                double=True,
-                callback=self.callbacks["time"],
-                compact=False,
-                layout=layout,
+                callback=self.callbacks['time']
             )
-            self.callbacks["time"].widget = self.widgets["time"]
+            groupbox_widgets.append(self.widgets['time'])
+            self.callbacks['time'].widget = self.widgets['time']
 
         # Time labels
         if len_time < 1:
-            self.widgets["min_time"] = None
-            self.widgets["max_time"] = None
-            self.widgets["current_time"] = None
+            self.widgets['min_time'] = None
+            self.widgets['max_time'] = None
+            self.widgets['current_time'] = None
         else:
-            self._configure_dock_time_widget(layout)
-            self.callbacks["time"].label = self.widgets["current_time"]
+            min_time = float(self._data['time'][0])
+            max_time = float(self._data['time'][-1])
+            label_hbox = self._backend._HBoxLayout()
+            self.widgets['min_time'] = \
+                self._backend._Label(value=f'{min_time: .3f}')
+            label_hbox._add_widget(self.widgets['min_time'])
+            label_hbox._add_stretch()
+            self.widgets['current_time'] = \
+                self._backend._Label(value=f'{self._current_time: .3f}')
+            label_hbox._add_widget(self.widgets['current_time'])
+            label_hbox._add_stretch()
+            self.widgets['max_time'] = \
+                self._backend._Label(value=f'{max_time: .3f}')
+            label_hbox._add_widget(self.widgets['max_time'])
+            self.callbacks['time'].label = self.widgets['current_time']
+            groupbox_widgets.append(label_hbox)
 
         # Playback speed widget
         if len_time < 1:
-            self.callbacks["playback_speed"] = None
-            self.widgets["playback_speed"] = None
+            self.callbacks['playback_speed'] = None
+            self.widgets['playback_speed'] = None
         else:
-            self.callbacks["playback_speed"] = SmartCallBack(
+            hbox = self._backend._HBoxLayout()
+            self.callbacks['playback_speed'] = SmartCallBack(
                 callback=self.set_playback_speed,
             )
-            self.widgets["playback_speed"] = self._renderer._dock_add_spin_box(
-                name="Speed",
+            hbox._add_widget(self._backend._Label(value='Speed'))
+            self.widgets['playback_speed'] = self._backend._SpinBox(
                 value=self.default_playback_speed_value,
                 rng=self.default_playback_speed_range,
-                callback=self.callbacks["playback_speed"],
-                layout=layout,
+                callback=self.callbacks['playback_speed']
             )
-            self.callbacks["playback_speed"].widget = \
-                self.widgets["playback_speed"]
+            hbox._add_widget(self.widgets['playback_speed'])
+            self.callbacks['playback_speed'].widget = \
+                self.widgets['playback_speed']
+            groupbox_widgets.append(hbox)
 
         # Time label
         current_time = self._current_time
@@ -788,10 +796,10 @@ class Brain(object):
         if self.time_actor is not None:
             self.time_actor.SetInput(current_time)
         del current_time
+        return self._backend._GroupBox('Playback', groupbox_widgets)
 
-    def _configure_dock_orientation_widget(self, name):
-        layout = self._renderer._dock_add_group_box(name)
-        # Renderer widget
+    def _configure_orientation_widget(self):
+        ori_items = list()
         rends = [str(i) for i in range(len(self._renderer._all_renderers))]
         if len(rends) > 1:
             def select_renderer(idx):
@@ -799,18 +807,15 @@ class Brain(object):
                 loc = self._renderer._index_to_loc(idx)
                 self.plotter.subplot(*loc)
 
-            self.callbacks["renderer"] = SmartCallBack(
-                callback=select_renderer,
-            )
-            self.widgets["renderer"] = self._renderer._dock_add_combo_box(
-                name="Renderer",
-                value="0",
+            self.callbacks['renderer'] = SmartCallBack(
+                callback=select_renderer)
+            self.widgets['renderer'] = self._backend._ComboBox(
+                value='0',
                 rng=rends,
-                callback=self.callbacks["renderer"],
-                layout=layout,
+                callback=self.callbacks['renderer']
             )
-            self.callbacks["renderer"].widget = \
-                self.widgets["renderer"]
+            self.callbacks['renderer'].widget = self.widgets['renderer']
+            ori_items.append(self.widgets['renderer'])
 
         # Use 'lh' as a reference for orientation for 'both'
         if self._hemi == 'both':
@@ -826,95 +831,61 @@ class Brain(object):
                 else:
                     _data = dict(default=v, hemi=hemi, row=ri, col=ci)
                 orientation_data[idx] = _data
-        self.callbacks["orientation"] = ShowView(
+        self.callbacks['orientation'] = ShowView(
             brain=self,
             data=orientation_data,
         )
-        self.widgets["orientation"] = self._renderer._dock_add_combo_box(
-            name=None,
+        self.widgets['orientation'] = self._backend._ComboBox(
             value=self.orientation[0],
-            rng=self.orientation,
-            callback=self.callbacks["orientation"],
-            layout=layout,
+            items=self.orientation,
+            callback=self.callbacks['orientation']
         )
+        ori_items.append(self.widgets['orientation'])
+        return self._backend._GroupBox('Orientation', ori_items)
 
-    def _configure_dock_colormap_widget(self, name):
-        layout = self._renderer._dock_add_group_box(name)
-        self._renderer._dock_add_label(
-            value="min / mid / max",
-            align=True,
-            layout=layout,
-        )
-        up = UpdateLUT(brain=self)
+    def _configure_colormap_widget(self):
+        vbox = self._backend._VBoxLayout()
+        vbox._add_widget(self._backend._Label(
+            value='min / mid / max', center=True))
+        rng = _get_range(self)
+
         for key in self.keys:
-            hlayout = self._renderer._dock_add_layout(vertical=False)
-            rng = _get_range(self)
-            self.callbacks[key] = lambda value, key=key: up(**{key: value})
-            self.widgets[key] = self._renderer._dock_add_slider(
-                name=None,
+            hbox = self._backend._HBoxLayout()
+            self.widgets[key] = self._backend._Slider(
+                value=_to_slider_int(self._data[key], rng),
+                rng=[0, _SLIDER_RES],
+                callback=lambda value, key=key:
+                    self.update_lut(**{key: _from_slider_int(value, rng)})
+            )
+            hbox._add_widget(self.widgets[key])
+            self.widgets[f'entry_{key}'] = self._backend._SpinBox(
                 value=self._data[key],
                 rng=rng,
-                callback=self.callbacks[key],
-                double=True,
-                layout=hlayout,
+                callback=lambda value, key=key: self.update_lut(**{key: value})
             )
-            self.widgets[f"entry_{key}"] = self._renderer._dock_add_spin_box(
-                name=None,
-                value=self._data[key],
-                callback=self.callbacks[key],
-                rng=rng,
-                layout=hlayout,
-            )
-            up.widgets[key] = [self.widgets[key], self.widgets[f"entry_{key}"]]
-            self._renderer._layout_add_widget(layout, hlayout)
+            hbox._add_widget(self.widgets[f'entry_{key}'])
+            vbox._add_widget(hbox)
 
         # reset / minus / plus
-        hlayout = self._renderer._dock_add_layout(vertical=False)
-        self._renderer._dock_add_label(
-            value="Rescale",
-            align=True,
-            layout=hlayout,
-        )
-        self.widgets["reset"] = self._renderer._dock_add_button(
-            name="↺",
-            callback=self.restore_user_scaling,
-            layout=hlayout,
-            style='toolbutton',
-        )
-        for key, char, val in (("fminus", "➖", 1.2 ** -0.25),
-                               ("fplus", "➕", 1.2 ** 0.25)):
-            self.callbacks[key] = UpdateColorbarScale(
-                brain=self,
-                factor=val,
-            )
-            self.widgets[key] = self._renderer._dock_add_button(
-                name=char,
-                callback=self.callbacks[key],
-                layout=hlayout,
-                style='toolbutton',
-            )
-        self._renderer._layout_add_widget(layout, hlayout)
+        hbox = self._backend._HBoxLayout()
+        hbox._add_widget(self._backend._Label(value='Rescale', center=True))
+        self.widgets['reset'] = self._backend._Button(
+            value='↺', callback=self.restore_user_scaling)
+        hbox._add_widget(self.widgets['reset'])
+        for key, char, val in (('fminus', '-', 1.2 ** -0.25),
+                               ('fplus', '+', 1.2 ** 0.25)):
+            self.widgets[key] = self._backend._Button(
+                value=char, callback=lambda val=val: self._update_fscale(val))
+            hbox._add_widget(self.widgets[key])
+        vbox._add_widget(hbox)
+        return self._backend._GroupBox('Color Limits', [vbox])
 
-        # register colorbar slider representations
-        widgets = {key: self.widgets[key] for key in self.keys}
-        for name in ("fmin", "fmid", "fmax", "fminus", "fplus"):
-            self.callbacks[name].widgets = widgets
-
-    def _configure_dock_trace_widget(self, name):
+    def _configure_trace_widget(self):
         if not self.show_traces:
             return
-        # do not show trace mode for volumes
-        if (self._data.get('src', None) is not None and
-                self._data['src'].kind == 'volume'):
-            self._configure_vertex_time_course()
-            return
-
-        layout = self._renderer._dock_add_group_box(name)
-        weakself = weakref.ref(self)
 
         # setup candidate annots
-        def _set_annot(annot, weakself=weakself):
-            self = weakself()
+        def _set_annot(annot):
             if self is None:
                 return
             self.clear_glyphs()
@@ -931,8 +902,7 @@ class Brain(object):
             self._renderer._update()
 
         # setup label extraction parameters
-        def _set_label_mode(mode, weakself=weakself):
-            self = weakself()
+        def _set_label_mode(mode):
             if self is None:
                 return
             if self.traces_mode != 'label':
@@ -945,8 +915,8 @@ class Brain(object):
                     label = self._annotation_labels[hemi][label_id]
                     vertex_id = label.vertices[0]
                     self._add_label_glyph(hemi, None, vertex_id)
-            self.mpl_canvas.axes.relim()
-            self.mpl_canvas.axes.autoscale_view()
+            self.mpl_canvas.ax.relim()
+            self.mpl_canvas.ax.autoscale_view()
             self.mpl_canvas.update_plot()
             self._renderer._update()
 
@@ -956,53 +926,58 @@ class Brain(object):
         cands = _read_annot_cands(dir_name, raise_error=False)
         cands = cands + ['None']
         self.annot = cands[0]
-        stc = self._data["stc"]
+        stc = self._data['stc']
         modes = _get_allowed_label_modes(stc)
-        if self._data["src"] is None:
+        if self._data['src'] is None:
             modes = [m for m in modes if m not in
-                     self.default_label_extract_modes["src"]]
+                     self.default_label_extract_modes['src']]
         self.label_extract_mode = modes[-1]
         if self.traces_mode == 'vertex':
             _set_annot('None')
         else:
             _set_annot(self.annot)
-        self.widgets["annotation"] = self._renderer._dock_add_combo_box(
-            name="Annotation",
+        annot_hbox = self._backend._HBoxLayout()
+        annot_hbox._add_widget(self._backend._Label('Annotation'))
+        self.widgets['annotation'] = self._backend._ComboBox(
             value=self.annot,
-            rng=cands,
-            callback=_set_annot,
-            layout=layout,
+            items=cands,
+            callback=_set_annot
         )
-        self.widgets["extract_mode"] = self._renderer._dock_add_combo_box(
-            name="Extract mode",
+        annot_hbox._add_widget(self.widgets['annotation'])
+        extract_hbox = self._backend._HBoxLayout()
+        extract_hbox._add_widget(self._backend._Label('Extract mode'))
+        self.widgets['extract_mode'] = self._backend._ComboBox(
             value=self.label_extract_mode,
-            rng=modes,
-            callback=_set_label_mode,
-            layout=layout,
+            items=modes,
+            callback=_set_label_mode
         )
+        extract_hbox._add_widget(self.widgets['extract_mode'])
+        return self._backend._GroupBox('Trace', [annot_hbox, extract_hbox])
 
     def _configure_dock(self):
-        self._renderer._dock_initialize()
-        self._configure_dock_playback_widget(name="Playback")
-        self._configure_dock_orientation_widget(name="Orientation")
-        self._configure_dock_colormap_widget(name="Color Limits")
-        self._configure_dock_trace_widget(name="Trace")
+        dock = self._backend._VBoxLayout(width=250)
+        dock._add_widget(self._configure_playback_widget())
+        dock._add_widget(self._configure_orientation_widget())
+        dock._add_widget(self._configure_colormap_widget())
+        dock._add_widget(self._configure_trace_widget())
 
         # Smoothing widget
-        self.callbacks["smoothing"] = SmartCallBack(
-            callback=self.set_data_smoothing,
-        )
-        self.widgets["smoothing"] = self._renderer._dock_add_spin_box(
-            name="Smoothing",
+        hbox = self._backend._HBoxLayout()
+        hbox._add_widget(self._backend._Label('Smoothing'))
+        self.callbacks['smoothing'] = SmartCallBack(
+            callback=self.set_data_smoothing)
+        self.widgets['smoothing'] = self._backend._SpinBox(
             value=self._data['smoothing_steps'],
             rng=self.default_smoothing_range,
-            callback=self.callbacks["smoothing"],
-            double=False
+            step=1,
+            callback=lambda x: self.callbacks['smoothing'](int(x))
         )
-        self.callbacks["smoothing"].widget = \
-            self.widgets["smoothing"]
+        hbox._add_widget(self.widgets['smoothing'])
+        dock._add_widget(hbox)
+        self.callbacks['smoothing'].widget = \
+            self.widgets['smoothing']
 
-        self._renderer._dock_finalize()
+        return dock
 
     def _configure_playback(self):
         self._renderer._playback_initialize(
@@ -1010,37 +985,37 @@ class Brain(object):
             timeout=self.refresh_rate_ms,
             value=self._data['time_idx'],
             rng=[0, len(self._data['time']) - 1],
-            time_widget=self.widgets["time"],
-            play_widget=self.widgets["play"],
+            time_widget=self.widgets['time'],
+            play_widget=self.widgets['play'],
         )
 
     def _configure_mplcanvas(self):
         # Get the fractional components for the brain and mpl
-        self.mpl_canvas = self._renderer._window_get_mplcanvas(
-            brain=self,
-            interactor_fraction=self.interactor_fraction,
-            show_traces=self.show_traces,
-            separate_canvas=self.separate_canvas
-        )
+        mpl_canvas = self._backend._MplCanvas(width=8, height=4, dpi=128)
         xlim = [np.min(self._data['time']),
                 np.max(self._data['time'])]
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=UserWarning)
-            self.mpl_canvas.axes.set(xlim=xlim)
-        if not self.separate_canvas:
-            self._renderer._window_adjust_mplcanvas_layout()
-        self.mpl_canvas.set_color(
-            bg_color=self._bg_color,
-            fg_color=self._fg_color,
-        )
+            warnings.filterwarnings('ignore', category=UserWarning)
+            mpl_canvas.ax.set(xlim=xlim)
+        mpl_canvas.ax.set_facecolor(self._bg_color)
+        mpl_canvas.ax.xaxis.label.set_color(self._fg_color)
+        mpl_canvas.ax.yaxis.label.set_color(self._fg_color)
+        mpl_canvas.ax.spines['top'].set_color(self._fg_color)
+        mpl_canvas.ax.spines['bottom'].set_color(self._fg_color)
+        mpl_canvas.ax.spines['left'].set_color(self._fg_color)
+        mpl_canvas.ax.spines['right'].set_color(self._fg_color)
+        mpl_canvas.ax.tick_params(axis='both', colors=self._fg_color)
+        mpl_canvas.ax.tick_params(axis='both', labelsize=4)
+        mpl_canvas.fig.patch.set_facecolor(self._bg_color)
+        mpl_canvas.ax.set_xlabel('Time (s)', fontsize=4)
+        mpl_canvas.ax.set_ylabel('Activation (AU)', fontsize=4)
+        mpl_canvas._set_size(height=self._size[1] / 3)
+        return mpl_canvas
 
     def _configure_vertex_time_course(self):
         if not self.show_traces:
             return
-        if self.mpl_canvas is None:
-            self._configure_mplcanvas()
-        else:
-            self.clear_glyphs()
+        self.clear_glyphs()
 
         # plot RMS of the activation
         y = np.concatenate(list(v[0] for v in self.act_data_smooth.values()
@@ -1048,7 +1023,7 @@ class Brain(object):
         rms = np.linalg.norm(y, axis=0) / np.sqrt(len(y))
         del y
 
-        self.rms, = self.mpl_canvas.axes.plot(
+        self.rms, = self.mpl_canvas.ax.plot(
             self._data['time'], rms,
             lw=3, label='RMS', zorder=3, color=self._fg_color,
             alpha=0.5, ls=':')
@@ -1110,8 +1085,8 @@ class Brain(object):
             self._on_pick
         )
 
-    def _configure_tool_bar(self):
-        self._renderer._tool_bar_initialize(name="Toolbar")
+    def _configure_toolbar(self):
+        toolbar = self._backend._HBoxLayout(height=25)
         weakself = weakref.ref(self)
 
         def save_image(filename, weakself=weakself):
@@ -1120,11 +1095,8 @@ class Brain(object):
                 return
             self.save_image(filename)
 
-        self._renderer._tool_bar_add_file_button(
-            name="screenshot",
-            desc="Take a screenshot",
-            func=save_image,
-        )
+        toolbar._add_widget(self._backend._FileButton(
+            callback=save_image, icon='screenshot', window=self._window))
 
         def save_movie(filename, weakself=weakself):
             self = weakself()
@@ -1134,49 +1106,35 @@ class Brain(object):
                 filename=filename,
                 time_dilation=(1. / self.playback_speed))
 
-        self._renderer._tool_bar_add_file_button(
-            name="movie",
-            desc="Save movie...",
-            func=save_movie,
-            shortcut="ctrl+shift+s",
-        )
-        self._renderer._tool_bar_add_button(
-            name="visibility",
-            desc="Toggle Controls",
-            func=self.toggle_interface,
-            icon_name="visibility_on"
-        )
-        self.widgets["play"] = self._renderer._tool_bar_add_play_button(
-            name="play",
-            desc="Play/Pause",
-            func=self.toggle_playback,
-            shortcut=" ",
-        )
-        self._renderer._tool_bar_add_button(
-            name="reset",
-            desc="Reset",
-            func=self.reset,
-        )
-        self._renderer._tool_bar_add_button(
-            name="scale",
-            desc="Auto-Scale",
-            func=self.apply_auto_scaling,
-        )
-        self._renderer._tool_bar_add_button(
-            name="clear",
-            desc="Clear traces",
-            func=self.clear_glyphs,
-        )
-        self._renderer._tool_bar_add_spacer()
-        self._renderer._tool_bar_add_button(
-            name="help",
-            desc="Help",
-            func=self.help,
-            shortcut="?",
-        )
+        toolbar._add_widget(self._backend._FileButton(
+            callback=save_movie, icon='movie', window=self._window))
+        # shortcut='ctrl+shift+s',
+
+        toolbar._add_widget(self._backend._Button(
+            value='', callback=self.toggle_interface, icon='visibility_on'))
+
+        toolbar._add_widget(self._backend._Button(
+            value='', callback=self.toggle_playback, icon='play'))
+        # shortcut=' '
+
+        toolbar._add_widget(self._backend._Button(
+            value='', callback=self.reset, icon='reset'))
+
+        toolbar._add_widget(self._backend._Button(
+            value='', callback=self.apply_auto_scaling, icon='scale'))
+
+        toolbar._add_widget(self._backend._Button(
+            value='', callback=self.clear_glyphs, icon='clear'))
+
+        toolbar._add_stretch(10)
+
+        toolbar._add_widget(self._backend._Button(
+            value='', callback=self.help, icon='help'))
+        # shortcut='?',
+        return toolbar
 
     def _shift_time(self, op):
-        self.callbacks["time"](
+        self.callbacks['time'](
             value=(op(self._current_time, self.playback_speed)),
             time_as_index=False,
             update_widget=True,
@@ -1198,30 +1156,30 @@ class Brain(object):
         # First, we remove the default bindings:
         self._clear_callbacks()
         # Then, we add our own:
-        self.plotter.add_key_event("i", self.toggle_interface)
-        self.plotter.add_key_event("s", self.apply_auto_scaling)
-        self.plotter.add_key_event("r", self.restore_user_scaling)
-        self.plotter.add_key_event("c", self.clear_glyphs)
+        self.plotter.add_key_event('i', self.toggle_interface)
+        self.plotter.add_key_event('s', self.apply_auto_scaling)
+        self.plotter.add_key_event('r', self.restore_user_scaling)
+        self.plotter.add_key_event('c', self.clear_glyphs)
         self.plotter.add_key_event(
-            "n", partial(self._shift_time, op=lambda x, y: x + y))
+            'n', partial(self._shift_time, op=lambda x, y: x + y))
         self.plotter.add_key_event(
-            "b", partial(self._shift_time, op=lambda x, y: x - y))
-        for key, func, sign in (("Left", self._rotate_azimuth, 1),
-                                ("Right", self._rotate_azimuth, -1),
-                                ("Up", self._rotate_elevation, 1),
-                                ("Down", self._rotate_elevation, -1)):
+            'b', partial(self._shift_time, op=lambda x, y: x - y))
+        for key, func, sign in (('Left', self._rotate_azimuth, 1),
+                                ('Right', self._rotate_azimuth, -1),
+                                ('Up', self._rotate_elevation, 1),
+                                ('Down', self._rotate_elevation, -1)):
             self.plotter.add_key_event(key, partial(func, sign * _ARROW_MOVE))
 
     def _configure_menu(self):
         self._renderer._menu_initialize()
         self._renderer._menu_add_submenu(
-            name="help",
-            desc="Help",
+            name='help',
+            desc='Help',
         )
         self._renderer._menu_add_button(
-            menu_name="help",
-            name="help",
-            desc="Show MNE key bindings\t?",
+            menu_name='help',
+            name='help',
+            desc='Show MNE key bindings\t?',
             func=self.help,
         )
 
@@ -1284,7 +1242,7 @@ class Brain(object):
                 mesh = found_sphere
 
         # 2) Remove sphere if it's what we have
-        if hasattr(mesh, "_is_glyph"):
+        if hasattr(mesh, '_is_glyph'):
             self._remove_vertex_glyph(mesh)
             return
 
@@ -1301,7 +1259,7 @@ class Brain(object):
         if hemi == 'vol':
             # VTK will give us the point closest to the viewer in the vol.
             # We want to pick the point with the maximum value along the
-            # camera-to-click array, which fortunately we can get "just"
+            # camera-to-click array, which fortunately we can get 'just'
             # by inspecting the points that are sufficiently close to the
             # ray.
             grid = mesh = self._data[hemi]['grid']
@@ -1525,21 +1483,22 @@ class Brain(object):
             mni = ' MNI: ' + ', '.join('%5.1f' % m for m in mni)
         else:
             mni = ''
-        label = "{}:{}{}".format(hemi_str, str(vertex_id).ljust(6), mni)
+        label = '{}:{}{}'.format(hemi_str, str(vertex_id).ljust(6), mni)
         act_data, smooth = self.act_data_smooth[hemi]
         if smooth is not None:
             act_data = smooth[vertex_id].dot(act_data)[0]
         else:
             act_data = act_data[vertex_id].copy()
-        line = self.mpl_canvas.plot(
+        line = self.mpl_canvas.ax.plot(
             time,
             act_data,
             label=label,
             lw=1.,
             color=color,
-            zorder=4,
-            update=update,
+            zorder=4
         )
+        if update:
+            self.mpl_canvas.draw()
         return line
 
     def plot_time_line(self, update=True):
@@ -1555,19 +1514,19 @@ class Brain(object):
         if isinstance(self.show_traces, bool) and self.show_traces:
             # add time information
             current_time = self._current_time
-            if not hasattr(self, "time_line"):
-                self.time_line = self.mpl_canvas.plot_time_line(
+            if not hasattr(self, 'time_line'):
+                self.time_line = self.mpl_canvas.ax.axvline(
                     x=current_time,
                     label='time',
                     color=self._fg_color,
                     lw=1,
-                    update=update,
                 )
             self.time_line.set_xdata(current_time)
             if update:
-                self.mpl_canvas.update_plot()
+                self.mpl_canvas.draw()
 
-    def _configure_help(self):
+    def help(self):
+        """Display the help window."""
         pairs = [
             ('?', 'Display help window'),
             ('i', 'Toggle interface'),
@@ -1582,22 +1541,8 @@ class Brain(object):
             ('Left', 'Decrease camera azimuth angle'),
             ('Right', 'Increase camera azimuth angle'),
         ]
-        text1, text2 = zip(*pairs)
-        text1 = '\n'.join(text1)
-        text2 = '\n'.join(text2)
-        self.help_canvas = self._renderer._window_get_simple_canvas(
-            width=5, height=2, dpi=80)
-        _show_help_fig(
-            col1=text1,
-            col2=text2,
-            fig_help=self.help_canvas.fig,
-            ax=self.help_canvas.axes,
-            show=False,
-        )
-
-    def help(self):
-        """Display the help window."""
-        self.help_canvas.show()
+        text = '\n'.join([':\t'.join([k, v]) + '\n' for k, v in pairs])
+        self._backend._Dialog(title='Help', text=text)
 
     def _clear_callbacks(self):
         if not hasattr(self, 'callbacks'):
@@ -1609,7 +1554,7 @@ class Brain(object):
                     setattr(callback, key, None)
         self.callbacks.clear()
         # Remove the default key binding
-        if getattr(self, "iren", None) is not None:
+        if getattr(self, 'iren', None) is not None:
             self.plotter.iren.clear_key_event_callbacks()
 
     def _clear_widgets(self):
@@ -1638,13 +1583,13 @@ class Brain(object):
         """Return the colormap corresponding to the cortex."""
         from .._3d import _get_cmap
         from matplotlib.colors import ListedColormap
-        colormap_map = dict(classic=dict(colormap="Greys",
+        colormap_map = dict(classic=dict(colormap='Greys',
                                          vmin=-1, vmax=2),
-                            high_contrast=dict(colormap="Greys",
+                            high_contrast=dict(colormap='Greys',
                                                vmin=-.1, vmax=1.3),
-                            low_contrast=dict(colormap="Greys",
+                            low_contrast=dict(colormap='Greys',
                                               vmin=-5, vmax=5),
-                            bone=dict(colormap="bone_r",
+                            bone=dict(colormap='bone_r',
                                       vmin=-.2, vmax=2),
                             )
         _validate_type(cortex, (str, dict, list, tuple), 'cortex')
@@ -1691,9 +1636,9 @@ class Brain(object):
 
     @verbose
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
-                 thresh=None, center=None, transparent=False, colormap="auto",
+                 thresh=None, center=None, transparent=False, colormap='auto',
                  alpha=1, vertices=None, smoothing_steps=None, time=None,
-                 time_label="auto", colorbar=True,
+                 time_label='auto', colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
                  clim=None, src=None, volume_options=0.4, colorbar_kwargs=None,
@@ -1718,7 +1663,7 @@ class Brain(object):
             (3 values per vertex corresponding to X/Y/Z surface RAS),
             then ``array`` must be have all 3 dimensions.
             If vectors with no time dimension are desired, consider using a
-            singleton (e.g., ``np.newaxis``) to create a "time" dimension
+            singleton (e.g., ``np.newaxis``) to create a 'time' dimension
             and pass ``time_label=None`` (vector values are not supported).
         %(fmin_fmid_fmax)s
         %(thresh)s
@@ -1727,9 +1672,9 @@ class Brain(object):
         colormap : str, list of color, or array
             Name of matplotlib colormap to use, a list of matplotlib colors,
             or a custom look up table (an n x 4 array coded with RBGA values
-            between 0 and 255), the default "auto" chooses a default divergent
-            colormap, if "center" is given (currently "icefire"), otherwise a
-            default sequential colormap (currently "rocket").
+            between 0 and 255), the default 'auto' chooses a default divergent
+            colormap, if 'center' is given (currently 'icefire'), otherwise a
+            default sequential colormap (currently 'rocket').
         alpha : float in [0, 1]
             Alpha level to control opacity of the overlay.
         vertices : numpy array
@@ -1751,7 +1696,7 @@ class Brain(object):
             be thrown.
         remove_existing : bool
             Not supported yet.
-            Remove surface added by previous "add_data" call. Useful for
+            Remove surface added by previous 'add_data' call. Useful for
             conserving memory when displaying different data in a loop.
         time_label_size : int
             Font size of the time label (default 14).
@@ -1775,7 +1720,7 @@ class Brain(object):
         Notes
         -----
         If the data is defined for a subset of vertices (specified
-        by the "vertices" parameter), a smoothing method is used to interpolate
+        by the 'vertices' parameter), a smoothing method is used to interpolate
         the data onto the high resolution surface. If the data is defined for
         subsampled version of the surface, smoothing_steps can be set to None,
         in which case only as many smoothing steps are applied until the whole
@@ -1818,16 +1763,16 @@ class Brain(object):
                     raise ValueError('time has shape %s, but need shape %s '
                                      '(array.shape[-1])' %
                                      (time.shape, (array.shape[-1],)))
-            self._data["time"] = time
+            self._data['time'] = time
 
             if self._n_times is None:
                 self._times = time
             elif len(time) != self._n_times:
-                raise ValueError("New n_times is different from previous "
-                                 "n_times")
+                raise ValueError('New n_times is different from previous '
+                                 'n_times')
             elif not np.array_equal(time, self._times):
-                raise ValueError("Not all time values are consistent with "
-                                 "previously set times.")
+                raise ValueError('Not all time values are consistent with '
+                                 'previously set times.')
 
             # initial time
             if initial_time is None:
@@ -1900,7 +1845,7 @@ class Brain(object):
         self._add_actor('data', actor)
 
         # 2) update time and smoothing properties
-        # set_data_smoothing calls "set_time_point" for us, which will set
+        # set_data_smoothing calls 'set_time_point' for us, which will set
         # _current_time
         self.set_time_interpolation(self.time_interpolation)
         self.set_data_smoothing(self._data['smoothing_steps'])
@@ -2000,7 +1945,7 @@ class Brain(object):
         if len(extra_keys):
             raise ValueError(
                 f'volume_options got unknown keys {sorted(extra_keys)}')
-        blending = _check_option('volume_options["blending"]',
+        blending = _check_option("volume_options['blending']",
                                  volume_options['blending'],
                                  ('composite', 'mip'))
         alpha = volume_options['alpha']
@@ -2093,11 +2038,11 @@ class Brain(object):
         ----------
         label : str | instance of Label
             Label filepath or name. Can also be an instance of
-            an object with attributes "hemi", "vertices", "name", and
-            optionally "color" and "values" (if scalar_thresh is not None).
+            an object with attributes 'hemi', 'vertices', 'name', and
+            optionally 'color' and 'values' (if scalar_thresh is not None).
         color : matplotlib-style color | None
             Anything matplotlib accepts: string, RGB, hex, etc. (default
-            "crimson").
+            'crimson').
         alpha : float in [0, 1]
             Alpha level to control opacity.
         scalar_thresh : None | float
@@ -2128,7 +2073,7 @@ class Brain(object):
         from ...label import read_label
         if isinstance(label, str):
             if color is None:
-                color = "crimson"
+                color = 'crimson'
 
             if os.path.isfile(label):
                 filepath = label
@@ -2138,7 +2083,7 @@ class Brain(object):
             else:
                 hemi = self._check_hemi(hemi)
                 label_name = label
-                label_fname = ".".join([hemi, label_name, 'label'])
+                label_fname = '.'.join([hemi, label_name, 'label'])
                 if subdir is None:
                     filepath = op.join(self._subjects_dir, self._subject_id,
                                        'label', label_fname)
@@ -2165,7 +2110,7 @@ class Brain(object):
                     if hasattr(label, 'color') and label.color is not None:
                         color = label.color
                     else:
-                        color = "crimson"
+                        color = 'crimson'
 
                 if scalar_thresh is not None:
                     scalars = label.values
@@ -2182,8 +2127,8 @@ class Brain(object):
 
         if self.time_viewer and self.show_traces \
                 and self.traces_mode == 'label':
-            stc = self._data["stc"]
-            src = self._data["src"]
+            stc = self._data['stc']
+            src = self._data['src']
             tc = stc.extract_label_time_course(label, src=src,
                                                mode=self.label_extract_mode)
             tc = tc[0] if tc.ndim == 2 else tc[0, 0, :]
@@ -2498,7 +2443,7 @@ class Brain(object):
 
     @fill_doc
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
-                 scale_factor=1, color="white", alpha=1, name=None,
+                 scale_factor=1, color='white', alpha=1, name=None,
                  hemi=None, resolution=50):
         """Add spherical foci, possibly mapping to displayed surf.
 
@@ -2597,7 +2542,7 @@ class Brain(object):
                            fnirs=(len(fnirs) > 0))
         head_mri_t = _get_trans(trans, 'head', 'mri', allow_none=False)[0]
         del trans
-        # get transforms to "mri"window
+        # get transforms to 'mri'window
         to_cf_t = _get_transforms_to_coord_frame(
             info, head_mri_t, coord_frame='mri')
         if pick_types(info, eeg=True, exclude=()).size > 0 and \
@@ -2634,7 +2579,7 @@ class Brain(object):
         ----------
         kind : str | list | None
             If None, removes all sensor-related data including the helmet.
-            Can be "meg", "eeg", "fnirs", "ecog", "seeg", "dbs" or "helmet"
+            Can be 'meg', 'eeg', 'fnirs', 'ecog', 'seeg', 'dbs' or 'helmet'
             to remove that item.
         """
         all_kinds = ('meg', 'eeg', 'fnirs', 'ecog', 'seeg', 'dbs', 'helmet')
@@ -2724,7 +2669,7 @@ class Brain(object):
         else:
             self.clear_glyphs()
         self.traces_mode = 'label'
-        self.add_annotation(self.annot, color="w", alpha=0.75)
+        self.add_annotation(self.annot, color='w', alpha=0.75)
 
         # now plot the time line
         self.plot_time_line(update=False)
@@ -2798,7 +2743,7 @@ class Brain(object):
                     filepath = op.join(self._subjects_dir,
                                        self._subject_id,
                                        'label',
-                                       ".".join([hemi, annot, 'annot']))
+                                       '.'.join([hemi, annot, 'annot']))
                     if not os.path.exists(filepath):
                         raise ValueError('Annotation file %s does not exist'
                                          % filepath)
@@ -2862,9 +2807,9 @@ class Brain(object):
         self._closed = True
         self._renderer.close()
 
-    def show(self):
+    def show(self, block=False):
         """Display the window."""
-        self._window._show()
+        self._window._show(block=block)
 
     @fill_doc
     def get_view(self, row=0, col=0):
@@ -2909,7 +2854,7 @@ class Brain(object):
         col : int | None
             The column to set. Default all columns.
         hemi : str | None
-            Which hemi to use for view lookup (when in "both" mode).
+            Which hemi to use for view lookup (when in 'both' mode).
         %(align_view)s
         %(azimuth)s
         %(elevation)s
@@ -2995,7 +2940,7 @@ class Brain(object):
             Either 'rgb' or 'rgba' for values to return.
         """
         if filename is None:
-            filename = _generate_default_filename(".png")
+            filename = _generate_default_filename('.png')
         _save_ndarray_img(
             filename, self.screenshot(mode=mode, time_viewer=True))
 
@@ -3040,7 +2985,7 @@ class Brain(object):
                     f'({want_size} = {n_pix} pixels)')
                 # Sometimes there can be off-by-one errors here (e.g.,
                 # if in mpl int() rather than int(round()) is used to
-                # compute the number of pixels) so rather than use "raw"
+                # compute the number of pixels) so rather than use 'raw'
                 # format and try to reshape ourselves, just write to PNG
                 # and read it, which has the dimensions encoded for us.
                 fig.savefig(output, dpi=dpi, format='png',
@@ -3120,8 +3065,11 @@ class Brain(object):
                             glyph_actor_, ctable, self._scalar_bar, rng)
         if self.time_viewer:
             with self._no_lut_update(f'update_lut {args}'):
+                rng = _get_range(self)
                 for key in ('fmin', 'fmid', 'fmax'):
-                    self.callbacks[key](lims[key])
+                    self.widgets[key]._set_value(
+                        _to_slider_int(self._data[key], rng))
+                    self.widgets[f'entry_{key}']._set_value(self._data[key])
         self._renderer._update()
 
     def set_data_smoothing(self, n_steps):
@@ -3305,7 +3253,7 @@ class Brain(object):
                     scale_mode='vector',
                     scale=scale_factor,
                     opacity=vector_alpha,
-                    name=str(hemi) + "_glyph"
+                    name=str(hemi) + '_glyph'
                 )
                 hemi_data['glyph_dataset'] = glyph_dataset
                 hemi_data['glyph_mapper'] = glyph_mapper
@@ -3423,7 +3371,7 @@ class Brain(object):
             if frame == n_frames:
                 # On the ImageIO step
                 self.status_msg.set_value(
-                    "Saving with ImageIO: %s"
+                    'Saving with ImageIO: %s'
                     % filename
                 )
                 self.status_msg.show()
@@ -3431,7 +3379,7 @@ class Brain(object):
                 self._renderer._status_bar_update()
             else:
                 self.status_msg.set_value(
-                    "Rendering images (frame %d / %d) ..."
+                    'Rendering images (frame %d / %d) ...'
                     % (frame + 1, n_frames)
                 )
                 self.status_msg.show()
@@ -3445,7 +3393,7 @@ class Brain(object):
         # set cursor to busy
         default_cursor = self._renderer._window_get_cursor()
         self._renderer._window_set_cursor(
-            self._renderer._window_new_cursor("WaitCursor"))
+            self._renderer._window_new_cursor('WaitCursor'))
 
         try:
             self._save_movie(filename, time_dilation, tmin, tmax,
@@ -3504,7 +3452,7 @@ class Brain(object):
             Specify additional options for :mod:`imageio`.
         """
         if filename is None:
-            filename = _generate_default_filename(".mp4")
+            filename = _generate_default_filename('.mp4')
         func = self._save_movie_tv if self.time_viewer else self._save_movie
         func(filename, time_dilation, tmin, tmax,
              framerate, interpolation, codec,
@@ -3518,15 +3466,15 @@ class Brain(object):
         if tmin is None:
             tmin = self._times[0]
         elif tmin < self._times[0]:
-            raise ValueError("tmin=%r is smaller than the first time point "
-                             "(%r)" % (tmin, self._times[0]))
+            raise ValueError('tmin=%r is smaller than the first time point '
+                             '(%r)' % (tmin, self._times[0]))
 
         # find indexes at which to create frames
         if tmax is None:
             tmax = self._times[-1]
         elif tmax > self._times[-1]:
-            raise ValueError("tmax=%r is greater than the latest time point "
-                             "(%r)" % (tmax, self._times[-1]))
+            raise ValueError('tmax=%r is greater than the latest time point '
+                             '(%r)' % (tmax, self._times[-1]))
         n_frames = floor((tmax - tmin) * time_dilation * framerate)
         times = np.arange(n_frames, dtype=float)
         times /= framerate * time_dilation
@@ -3535,9 +3483,9 @@ class Brain(object):
 
         n_times = len(time_idx)
         if n_times == 0:
-            raise ValueError("No time points selected")
+            raise ValueError('No time points selected')
 
-        logger.debug("Save movie for time points/samples\n%s\n%s"
+        logger.debug('Save movie for time points/samples\n%s\n%s'
                      % (times, time_idx))
         # Sometimes the first screenshot is rendered with a different
         # resolution on OS X
@@ -3575,11 +3523,11 @@ class Brain(object):
         Used by movie and image sequence saving functions.
         """
         if self.time_viewer:
-            func = partial(self.callbacks["time"],
+            func = partial(self.callbacks['time'],
                            update_widget=True)
         else:
             func = self.set_time_point
-        current_time_idx = self._data["time_idx"]
+        current_time_idx = self._data['time_idx']
         for ii, idx in enumerate(time_idx):
             func(idx)
             if callback is not None:
@@ -3605,10 +3553,10 @@ class Brain(object):
             elif isinstance(stc, _BaseVolSourceEstimate):
                 stc_vol = stc if hemi == 'vol' else None
             else:
-                raise TypeError("stc not supported")
+                raise TypeError('stc not supported')
 
             if stc_surf is None and stc_vol is None:
-                raise ValueError("No data to be added")
+                raise ValueError('No data to be added')
             if stc_surf is not None:
                 array = getattr(stc_surf, hemi + '_data')
                 vertices = stc_surf.vertices[0 if hemi == 'lh' else 1]
@@ -3676,7 +3624,7 @@ class Brain(object):
         points : list of int | None
             The vertices picked by the time viewer.
         """
-        if hasattr(self, "time_viewer"):
+        if hasattr(self, 'time_viewer'):
             return self.picked_points
 
     def __hash__(self):
@@ -3723,28 +3671,28 @@ def _update_monotonic(lims, fmin, fmid, fmax):
     if fmin is not None:
         lims['fmin'] = fmin
         if lims['fmax'] < fmin:
-            logger.debug(f'    Bumping fmax = {lims["fmax"]} to {fmin}')
+            logger.debug(f"    Bumping fmax = {lims['fmax']} to {fmin}")
             lims['fmax'] = fmin
         if lims['fmid'] < fmin:
-            logger.debug(f'    Bumping fmid = {lims["fmid"]} to {fmin}')
+            logger.debug(f"    Bumping fmid = {lims['fmid']} to {fmin}")
             lims['fmid'] = fmin
     assert lims['fmin'] <= lims['fmid'] <= lims['fmax']
     if fmid is not None:
         lims['fmid'] = fmid
         if lims['fmin'] > fmid:
-            logger.debug(f'    Bumping fmin = {lims["fmin"]} to {fmid}')
+            logger.debug(f"    Bumping fmin = {lims['fmin']} to {fmid}")
             lims['fmin'] = fmid
         if lims['fmax'] < fmid:
-            logger.debug(f'    Bumping fmax = {lims["fmax"]} to {fmid}')
+            logger.debug(f"    Bumping fmax = {lims['fmax']} to {fmid}")
             lims['fmax'] = fmid
     assert lims['fmin'] <= lims['fmid'] <= lims['fmax']
     if fmax is not None:
         lims['fmax'] = fmax
         if lims['fmin'] > fmax:
-            logger.debug(f'    Bumping fmin = {lims["fmin"]} to {fmax}')
+            logger.debug(f"    Bumping fmin = {lims['fmin']} to {fmax}")
             lims['fmin'] = fmax
         if lims['fmid'] > fmax:
-            logger.debug(f'    Bumping fmid = {lims["fmid"]} to {fmax}')
+            logger.debug(f"    Bumping fmid = {lims['fmid']} to {fmax}")
             lims['fmid'] = fmax
     assert lims['fmin'] <= lims['fmid'] <= lims['fmax']
 
@@ -3752,6 +3700,14 @@ def _update_monotonic(lims, fmin, fmid, fmax):
 def _get_range(brain):
     val = np.abs(np.concatenate(list(brain._current_act_data.values())))
     return [np.min(val), np.max(val)]
+
+
+def _to_slider_int(value, rng):
+    return int(_SLIDER_RES * (value - rng[0]) / (rng[1] - rng[0]))
+
+
+def _from_slider_int(value, rng):
+    return (value / _SLIDER_RES * (rng[1] - rng[0])) + rng[0]
 
 
 class _FakeIren():
