@@ -35,6 +35,7 @@ pyvista>=0.32,!=0.35.2
 pyvistaqt>=0.4
 mffpy>=0.5.7
 ipywidgets
+ipyevents
 ipyvtklink
 mne-qt-browser
 darkdetect
