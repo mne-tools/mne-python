@@ -118,7 +118,6 @@ def test_widget_abstraction_notebook(nbexec):
     from mne.viz.backends.renderer import _get_backend
     from mne.viz.backends.tests.test_abstract import _setup_app
     from IPython import get_ipython
-    import threading
 
     set_3d_backend('notebook')
     backend = _get_backend()
@@ -164,12 +163,6 @@ def test_widget_abstraction_notebook(nbexec):
     play_menu._play.value = 1
     assert 1 in widget_checks
 
-    # timer done separately because multithreading is not allowed in qt
     progress_bar = backend._ProgressBar(100)
-
-    def update_progress_bar():
-        progress_bar._increment()
-        threading.Timer(0.25, update_progress_bar).start()
-
-    update_progress_bar()
+    progress_bar._increment()
     central_layout._add_widget(progress_bar)
