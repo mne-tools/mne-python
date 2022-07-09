@@ -1,4 +1,3 @@
-import bullshit
 """MNE software for MEG and EEG data analysis."""
 
 # PEP0440 compatible formatted version, see:
