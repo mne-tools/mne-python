@@ -640,8 +640,8 @@ class _Application(_AbstractApplication, _MNEMainWindow, _Widget,
     def __init__(self, size=None, fullscreen=False):
         self._app = _init_mne_qtapp()
         _AbstractApplication.__init__(self)
-        _Widget.__init__(self)
         _MNEMainWindow.__init__(self, size=size)
+        _Widget.__init__(self)
 
         if fullscreen:
             self.setWindowState(Qt.WindowFullScreen)
@@ -714,6 +714,9 @@ class _Application(_AbstractApplication, _MNEMainWindow, _Widget,
         _Widget._show(self)
         if block:
             _qt_app_exec(self._app)
+
+    def _close(self):
+        self.close()
 
 
 class _Renderer(_PyVistaRenderer):

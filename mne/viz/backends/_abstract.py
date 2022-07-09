@@ -851,7 +851,15 @@ class _AbstractApplication(ABC):
         pass
 
     @abstractmethod
+    def _clean(self):
+        pass
+
+    @abstractmethod
     def _show(self, block=False):
+        pass
+
+    @abstractmethod
+    def _close(self):
         pass
 
 

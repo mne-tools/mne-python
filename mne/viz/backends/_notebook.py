@@ -466,7 +466,7 @@ class _FileButton(_AbstractFileButton, _Widget, Button,
         _Widget.__init__(self)
         self._file_picker = _FilePicker()
 
-        def fp_callback():
+        def fp_callback(x=None):
             # Note, in order to display the file picker where the button was,
             # the output must be cleared and then redrawn when finished
             if window is not None:
@@ -688,6 +688,9 @@ class _Application(_AbstractApplication, _Widget, VBox, metaclass=_BaseWidget):
     def _close_disconnect(self, after=True):
         pass
 
+    def _clean(self):
+        pass
+
     def _get_dpi(self):
         return 96
 
@@ -707,6 +710,9 @@ class _Application(_AbstractApplication, _Widget, VBox, metaclass=_BaseWidget):
 
     def _show(self, block=False):
         display(self)
+
+    def _close(self):
+        clear_output()
 
 
 class _Renderer(_PyVistaRenderer):

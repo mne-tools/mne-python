@@ -3,8 +3,6 @@
 #
 # License: Simplified BSD
 
-import pytest
-
 from mne.viz import set_3d_backend
 from mne.viz.backends.renderer import _get_backend
 from mne.viz.backends.tests._utils import skips_if_not_pyvistaqt
@@ -96,28 +94,13 @@ def _do_widget_tests(backend):
     play_menu._set_value(99)
     assert 99 in widget_checks
 
+    window._close()
+
 
 @skips_if_not_pyvistaqt
 def test_widget_abstraction_pyvistaqt():
     """Test the GUI widgets abstraction."""
     set_3d_backend('pyvistaqt')
     backend = _get_backend()
-
-    _do_widget_tests(backend)
-
-
-@pytest.mark.slowtest
-def test_widget_abstraction_notebook(nbexec):
-    """Test the GUI widgets abstraction in notebook."""
-    from mne.viz import set_3d_backend
-    from mne.viz.backends.renderer import _get_backend
-    from mne.viz.backends.tests.test_abstract import _do_widget_tests
-    from IPython import get_ipython
-
-    set_3d_backend('notebook')
-    backend = _get_backend()
-
-    ipython = get_ipython()
-    ipython.magic('%matplotlib widget')
 
     _do_widget_tests(backend)
