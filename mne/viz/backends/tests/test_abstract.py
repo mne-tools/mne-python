@@ -15,8 +15,11 @@ def _do_widget_tests(backend):
     def callback(x=None):
         widget_checks.add('click' if x is None else x)
 
-    window = backend._Application()
+    window = backend._AppWindow()
     central_layout = backend._VBoxLayout(scroll=(500, 500))
+    renderer = backend._3DRenderer(name='test', size=(200, 200))
+    renderer.sphere([0, 0, 0], 'red', 1)
+    central_layout._add_widget(renderer.plotter)
     canvas = backend._Canvas(5, 5, 96)
     canvas.ax.plot(range(10), range(10), label='plot')
     central_layout._add_widget(canvas)

@@ -34,7 +34,7 @@ from qtpy.QtWidgets import (QComboBox, QGroupBox, QHBoxLayout, QLabel,
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
                        _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
-from ._abstract import (_AbstractApplication, _AbstractHBoxLayout,
+from ._abstract import (_AbstractAppWindow, _AbstractHBoxLayout,
                         _AbstractVBoxLayout, _AbstractGridLayout,
                         _AbstractWidget, _AbstractCanvas,
                         _AbstractPopup, _AbstractLabel, _AbstractButton,
@@ -634,12 +634,12 @@ class _MNEMainWindow(MainWindow):
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
 
 
-class _Application(_AbstractApplication, _MNEMainWindow, _Widget,
-                   metaclass=_BaseWidget):
+class _AppWindow(_AbstractAppWindow, _MNEMainWindow, _Widget,
+                 metaclass=_BaseWidget):
 
     def __init__(self, size=None, fullscreen=False):
         self._app = _init_mne_qtapp()
-        _AbstractApplication.__init__(self)
+        _AbstractAppWindow.__init__(self)
         _MNEMainWindow.__init__(self, size=size)
         _Widget.__init__(self)
 
@@ -719,7 +719,7 @@ class _Application(_AbstractApplication, _MNEMainWindow, _Widget,
         self.close()
 
 
-class _Renderer(_PyVistaRenderer):
+class _3DRenderer(_PyVistaRenderer):
     _kind = 'qt'
 
     def __init__(self, *args, **kwargs):
@@ -1614,9 +1614,9 @@ class _QtAction(_AbstractAction):
         self._action.setShortcut(shortcut)
 
 
-class _Rnderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
-               _QtStatusBar, _QtWindow, _QtPlayback, _QtDialog,
-               _QtKeyPress):
+class _Renderer(_PyVistaRenderer, _QtDock, _QtToolBar, _QtMenuBar,
+                _QtStatusBar, _QtWindow, _QtPlayback, _QtDialog,
+                _QtKeyPress):
     _kind = 'qt'
 
     def __init__(self, *args, **kwargs):

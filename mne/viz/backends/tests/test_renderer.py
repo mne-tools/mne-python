@@ -41,7 +41,7 @@ def test_3d_functions(renderer):
     """Test figure management functions."""
     fig = renderer.create_3d_figure((300, 300))
     assert isinstance(fig, Figure3D)
-    wrap_renderer = renderer.backend._Rnderer(fig=fig)
+    wrap_renderer = renderer.backend._Renderer(fig=fig)
     wrap_renderer.sphere(np.array([0., 0., 0.]), 'w', 1.)
     renderer.backend._check_3d_figure(fig)
     renderer.set_3d_view(figure=fig, azimuth=None, elevation=None,

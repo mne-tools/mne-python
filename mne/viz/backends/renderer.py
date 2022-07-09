@@ -40,7 +40,7 @@ def _get_backend():
 
 def _get_renderer(*args, **kwargs):
     _get_3d_backend()
-    return backend._Rnderer(*args, **kwargs)
+    return backend._Renderer(*args, **kwargs)
 
 
 def _check_3d_backend_name(backend_name):

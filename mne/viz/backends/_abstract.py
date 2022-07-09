@@ -813,7 +813,7 @@ class _AbstractGridLayout(ABC):
         pass
 
 
-class _AbstractApplication(ABC):
+class _AbstractAppWindow(ABC):
 
     def __init__(self, size=None, fullscreen=False):
         pass

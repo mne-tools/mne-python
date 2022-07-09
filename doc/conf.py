@@ -322,7 +322,7 @@ class Resetter(object):
         except ImportError:
             MNEQtBrowser = None
         from mne.viz.backends.renderer import backend
-        _Renderer = backend._Rnderer if backend is not None else None
+        _Renderer = backend._Renderer if backend is not None else None
         reset_warnings(gallery_conf, fname)
         # in case users have interactive mode turned on in matplotlibrc,
         # turn it off here (otherwise the build can be very slow)

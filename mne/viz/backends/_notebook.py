@@ -18,7 +18,7 @@ from ipywidgets import (Widget, HBox, VBox, Button, Dropdown, IntSlider,
                         FloatSlider, BoundedFloatText, jsdlink)
 from ipyevents import Event
 
-from ._abstract import (_AbstractApplication, _AbstractHBoxLayout,
+from ._abstract import (_AbstractAppWindow, _AbstractHBoxLayout,
                         _AbstractVBoxLayout, _AbstractGridLayout,
                         _AbstractWidget, _AbstractCanvas,
                         _AbstractPopup, _AbstractLabel,
@@ -114,7 +114,7 @@ class _Widget(Widget, _AbstractWidget, metaclass=_BaseWidget):
         self._callback(key)
         # TO DO: actually simulate the keypress, see code below not yet working
         '''
-        # trigger to a vbox which will be present because the _Application is
+        # trigger to a vbox which will be present because the _AppWindow is
         # a vbox, this doesn't trigger specifically for the widget but this
         # is just for testing
         key_str = key.title() if len(key) > 1 else key
@@ -672,10 +672,10 @@ class _Canvas(_AbstractCanvas, _Widget, HBox, metaclass=_BaseWidget):
             self.layout.height = height
 
 
-class _Application(_AbstractApplication, _Widget, VBox, metaclass=_BaseWidget):
+class _AppWindow(_AbstractAppWindow, _Widget, VBox, metaclass=_BaseWidget):
 
     def __init__(self, size=None, fullscreen=False):
-        _AbstractApplication.__init__(self)
+        _AbstractAppWindow.__init__(self)
         _Widget.__init__(self)
         VBox.__init__(self, **_BASE_KWARGS)
 
@@ -715,7 +715,7 @@ class _Application(_AbstractApplication, _Widget, VBox, metaclass=_BaseWidget):
         clear_output()
 
 
-class _Renderer(_PyVistaRenderer):
+class _3DRenderer(_PyVistaRenderer):
     _kind = 'notebook'
 
     def __init__(self, *args, **kwargs):
@@ -1422,9 +1422,9 @@ class _IpyAction(_AbstractAction):
         pass
 
 
-class _Rnderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
-               _IpyStatusBar, _IpyWindow, _IpyPlayback, _IpyDialog,
-               _IpyKeyPress):
+class _Renderer(_PyVistaRenderer, _IpyDock, _IpyToolBar, _IpyMenuBar,
+                _IpyStatusBar, _IpyWindow, _IpyPlayback, _IpyDialog,
+                _IpyKeyPress):
     _kind = 'notebook'
 
     def __init__(self, *args, **kwargs):
