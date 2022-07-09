@@ -23,5 +23,6 @@ dependencies:
   - jupyter
   - ipympl
   - ipywidgets
+  - ipyevents
   - ipyvtklink
   - jupyter_client!=6.1.5
