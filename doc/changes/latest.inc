@@ -105,6 +105,8 @@ Enhancements
 
 - :meth:`mne.Evoked.plot_field` gained a new parameter, ``interaction``, to control the rotation axes when interacting with the head (:gh:`10788` by `Richard Höchenberger`_)
 
+- Add :func:`mne.read_evoked_besa` for reading evokeds from BESA ``.avr`` and ``.mul`` files. (:gh:`10892` by `Marijn van Vliet`_)
+
 Bugs
 ~~~~
 - Fix bug in :func:`mne.io.read_raw_edf` to allow reading in all Hypnodyne ZMax EDFs to be read in without issues (:gh:`10754` by :newcontrib:`Frederik Weber`)

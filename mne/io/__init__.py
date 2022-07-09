@@ -34,6 +34,7 @@ from . import pick
 from . import nihon
 
 from .array import RawArray
+from .besa import read_evoked_besa
 from .brainvision import read_raw_brainvision
 from .bti import read_raw_bti
 from .cnt import read_raw_cnt
