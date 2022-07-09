@@ -10,7 +10,7 @@ from mne.viz.backends.renderer import _get_backend
 from mne.viz.backends.tests._utils import skips_if_not_pyvistaqt
 
 
-def _setup_app(backend):
+def _do_widget_tests(backend):
     # testing utils
     widget_checks = set()
 
@@ -46,46 +46,40 @@ def _setup_app(backend):
     central_layout._add_widget(file_button)
     play_menu = backend._PlayMenu(0, (0, 100), callback)
     central_layout._add_widget(play_menu)
+    progress_bar = backend._ProgressBar(100)
+    progress_bar._increment()
+    central_layout._add_widget(progress_bar)
     window._add_keypress(callback)
     window._set_central_layout(central_layout)
     window._set_focus()
     window._show()
     # pop up
     popup = backend._Popup('Info', 'this is a message', 'test', callback)
-    return (window, central_layout, text, button, slider, checkbox, spinbox,
-            combobox, radio_buttons, file_button, play_menu, popup,
-            widget_checks)
 
-
-@skips_if_not_pyvistaqt
-def test_widget_abstraction_pyvistaqt():
-    """Test the GUI widgets abstraction."""
-    from qtpy.QtCore import QTimer
-    set_3d_backend('pyvistaqt')
-    backend = _get_backend()
-
-    (window, central_layout, text, button, slider, checkbox, spinbox, combobox,
-     radio_buttons, file_button, play_menu, popup, widget_checks) = \
-        _setup_app(backend)
-
+    # do tests
     # first, test popup
-    popup.button(popup.Ok).click()
+    popup._click('Ok')
     assert 'Ok' in widget_checks
 
+    window._trigger_keypress('a')
+    assert 'a' in widget_checks
+    window._trigger_keypress('escape')
+    assert 'escape' in widget_checks
+
     # test each widget
-    text.setText('foo')
+    text._set_value('foo')
     assert 'foo' in widget_checks
 
-    button.click()
+    button._click()
     assert 'click' in widget_checks
 
-    slider.setValue(10)
+    slider._set_value(10)
     assert 10 in widget_checks
 
     checkbox._set_checked(True)
     assert True in widget_checks
 
-    spinbox.setValue(20)
+    spinbox._set_value(20)
     assert 20 in widget_checks
 
     combobox._set_value('5')
@@ -99,16 +93,17 @@ def test_widget_abstraction_pyvistaqt():
     # file_button.click()
     assert hasattr(file_button, 'click')
 
-    play_menu._play.click()
-    assert 1 in widget_checks
+    play_menu._set_value(99)
+    assert 99 in widget_checks
 
-    # timer done separately because multithreading is not allowed in qt
-    progress_bar = backend._ProgressBar(100)
-    timer = QTimer()
-    timer.timeout.connect(progress_bar ._increment)
-    timer.setInterval(250)
-    timer.start()
-    central_layout._add_widget(progress_bar)
+
+@skips_if_not_pyvistaqt
+def test_widget_abstraction_pyvistaqt():
+    """Test the GUI widgets abstraction."""
+    set_3d_backend('pyvistaqt')
+    backend = _get_backend()
+
+    _do_widget_tests(backend)
 
 
 @pytest.mark.slowtest
@@ -116,7 +111,7 @@ def test_widget_abstraction_notebook(nbexec):
     """Test the GUI widgets abstraction in notebook."""
     from mne.viz import set_3d_backend
     from mne.viz.backends.renderer import _get_backend
-    from mne.viz.backends.tests.test_abstract import _setup_app
+    from mne.viz.backends.tests.test_abstract import _do_widget_tests
     from IPython import get_ipython
 
     set_3d_backend('notebook')
@@ -125,44 +120,4 @@ def test_widget_abstraction_notebook(nbexec):
     ipython = get_ipython()
     ipython.magic('%matplotlib widget')
 
-    (window, central_layout, text, button, slider, checkbox, spinbox, combobox,
-     radio_buttons, file_button, play_menu, popup, widget_checks) = \
-        _setup_app(backend)
-
-    # first, test popup
-    popup._buttons['Ok'].click()
-    assert 'Ok' in widget_checks
-
-    # test each widget
-    text.value = 'foo'
-    assert 'foo' in widget_checks
-
-    button.click()
-    assert 'click' in widget_checks
-
-    slider.value = 10
-    assert 10 in widget_checks
-
-    checkbox._set_checked(True)
-    assert True in widget_checks
-
-    spinbox.value = 20
-    assert 20 in widget_checks
-
-    combobox._set_value('5')
-    assert '5' in widget_checks
-
-    radio_buttons._set_value('50')
-    assert '50' in widget_checks
-
-    # this was tested manually but creates a blocking window so can't
-    # be tested here
-    # file_button.click()
-    assert hasattr(file_button, 'click')
-
-    play_menu._play.value = 1
-    assert 1 in widget_checks
-
-    progress_bar = backend._ProgressBar(100)
-    progress_bar._increment()
-    central_layout._add_widget(progress_bar)
+    _do_widget_tests(backend)

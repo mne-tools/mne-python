@@ -108,6 +108,25 @@ class _Widget(Widget, _AbstractWidget, metaclass=_BaseWidget):
         self._event_watcher = Event(source=self, watched_events=['keydown'])
         self._event_watcher.on_dom_event(
             lambda event: callback(event['key'].lower().replace('arrow', '')))
+        self._callback = callback
+
+    def _trigger_keypress(self, key):
+        self._callback(key)
+        # TO DO: actually simulate the keypress, see code below not yet working
+        '''
+        # trigger to a vbox which will be present because the _Application is
+        # a vbox, this doesn't trigger specifically for the widget but this
+        # is just for testing
+        key_str = key.title() if len(key) > 1 else key
+        display(HTML("""
+            <script>
+            let element = document.getElementsByClassName("widget-vbox")[0];
+            element.dispatchEvent(
+                new KeyboardEvent( 'keydown' , {'key':'%s'} ));
+            element.dispatchEvent(
+                new KeyboardEvent( 'keyup' , {'key':'%s'} ));
+            </script>""" % (key_str, key_str)))
+        '''
 
     def _set_focus(self):
         if hasattr(self, 'focus'):  # added in ipywidgets 8.0
@@ -147,6 +166,9 @@ class _Text(_AbstractText, _Widget, Text, metaclass=_BaseWidget):
                       **_BASE_KWARGS)
         if callback is not None:
             self.observe(lambda x: callback(x['new']), names='value')
+
+    def _set_value(self, value):
+        self.value = value
 
 
 class _Button(_Widget, _AbstractButton, Button, metaclass=_BaseWidget):
@@ -476,10 +498,29 @@ class _PlayMenu(_AbstractPlayMenu, _Widget, VBox, metaclass=_BaseWidget):
         VBox.__init__(self, **kwargs)
         self._slider = IntSlider(value=value, min=rng[0], max=rng[1],
                                  readout=False, continuous_update=False)
-        self._play = Play(value=value, min=rng[0], max=rng[1], interval=250)
-        self.children = (self._slider, self._play)
-        link((self._play, 'value'), (self._slider, 'value'))
+        self._play_widget = Play(
+            value=value, min=rng[0], max=rng[1], interval=250)
+        self.children = (self._slider, self._play_widget)
+        link((self._play_widget, 'value'), (self._slider, 'value'))
         self._slider.observe(lambda x: callback(x['new']), names='value')
+
+    # play, pause, reset and loop require ipywidgets v8.0+ and so are
+    # not currently tested, will be added upon release
+    def _play(self):
+        self.playing = True
+
+    def _pause(self):
+        self.playing = True
+
+    def _reset(self):
+        self.playing = True
+        self.value = self.min
+
+    def _loop(self):
+        self.repeat = not self.repeat
+
+    def _set_value(self, value):
+        self._slider.value = value
 
 
 class _Popup(_AbstractPopup, _Widget, VBox, metaclass=_BaseWidget):
@@ -528,6 +569,9 @@ class _Popup(_AbstractPopup, _Widget, VBox, metaclass=_BaseWidget):
 
         self.children += (hbox,)
         display(self)
+
+    def _click(self, value):
+        self._buttons[value].click()
 
 
 class _BoxLayout(object):

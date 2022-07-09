@@ -564,6 +564,10 @@ class _AbstractWidget(ABC):
         pass
 
     @abstractmethod
+    def _trigger_keypress(self, key):
+        pass
+
+    @abstractmethod
     def _set_focus(self):
         pass
 
@@ -591,6 +595,10 @@ class _AbstractText(_AbstractWidget):
 
     @abstractclassmethod
     def __init__(self, value=None, placeholder=None, callback=None):
+        pass
+
+    @abstractmethod
+    def _set_value(self, value):
         pass
 
 
@@ -720,6 +728,26 @@ class _AbstractPlayMenu(_AbstractWidget):
     def __init__(self, value, rng, callback):
         pass
 
+    @abstractmethod
+    def _play(self):
+        pass
+
+    @abstractmethod
+    def _pause(self):
+        pass
+
+    @abstractmethod
+    def _reset(self):
+        pass
+
+    @abstractmethod
+    def _loop(self):
+        pass
+
+    @abstractmethod
+    def _set_value(self, value):
+        pass
+
 
 class _AbstractPopup(_AbstractWidget):
 
@@ -738,6 +766,10 @@ class _AbstractPopup(_AbstractWidget):
     @abstractmethod
     def __init__(self, title, text, info_text=None, callback=None,
                  icon='Warning', buttons=None, window=None):
+        pass
+
+    @abstractmethod
+    def _click(self, value):
         pass
 
 

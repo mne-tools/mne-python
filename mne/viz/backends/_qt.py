@@ -17,10 +17,10 @@ from pyvistaqt.plotting import FileDialog, MainWindow
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 
-from qtpy.QtCore import (Qt, QTimer, QLocale, QLibraryInfo,
+from qtpy.QtCore import (Qt, QTimer, QLocale, QLibraryInfo, QEvent,
                          # non-object-based-abstraction-only, deprecate
                          Signal, QObject)
-from qtpy.QtGui import QIcon, QCursor
+from qtpy.QtGui import QIcon, QCursor, QKeyEvent
 from qtpy.QtWidgets import (QComboBox, QGroupBox, QHBoxLayout, QLabel,
                             QSlider, QDoubleSpinBox, QVBoxLayout, QWidget,
                             QSizePolicy, QProgressBar, QScrollArea,
@@ -134,6 +134,14 @@ class _Widget(_AbstractWidget, QWidget, metaclass=_BaseWidget):
             self._from_qt[event.key()] if event.key() in self._from_qt else
             event.text())
 
+    def _trigger_keypress(self, key):
+        if key in self._to_qt:
+            key_int = self._to_qt[key]
+        else:
+            key_int = getattr(Qt, f'Key_{key.upper()}')
+        self.keyPressEvent(
+            QKeyEvent(QEvent.KeyRelease, key_int, Qt.NoModifier, text=key))
+
     def _set_focus(self):
         self.setFocus()
 
@@ -186,6 +194,9 @@ class _Text(QLineEdit, _AbstractText, _Widget, metaclass=_BaseWidget):
         self.setPlaceholderText(placeholder)
         if callback is not None:
             self.textChanged.connect(callback)
+
+    def _set_value(self, value):
+        self.setText(value)
 
 
 class _Button(QPushButton, _AbstractButton, _Widget, metaclass=_BaseWidget):
@@ -392,27 +403,27 @@ class _PlayMenu(QVBoxLayout, _AbstractPlayMenu, _Widget,
         self._slider.setTracking(False)
         self._slider.valueChanged.connect(callback)
         self._nav_hbox = QHBoxLayout()
-        self._play = QPushButton()
-        self._play.setIcon(QIcon.fromTheme('play'))
-        self._nav_hbox.addWidget(self._play)
-        self._pause = QPushButton()
-        self._pause.setIcon(QIcon.fromTheme('pause'))
-        self._nav_hbox.addWidget(self._pause)
-        self._reset = QPushButton()
-        self._reset.setIcon(QIcon.fromTheme('reset'))
-        self._nav_hbox.addWidget(self._reset)
-        self._loop = QPushButton()
-        self._loop.setIcon(QIcon.fromTheme('restore'))
-        self._loop.setStyleSheet('background-color : lightgray;')
-        self._loop._checked = True
+        self._play_button = QPushButton()
+        self._play_button.setIcon(QIcon.fromTheme('play'))
+        self._nav_hbox.addWidget(self._play_button)
+        self._pause_button = QPushButton()
+        self._pause_button.setIcon(QIcon.fromTheme('pause'))
+        self._nav_hbox.addWidget(self._pause_button)
+        self._reset_button = QPushButton()
+        self._reset_button.setIcon(QIcon.fromTheme('reset'))
+        self._nav_hbox.addWidget(self._reset_button)
+        self._loop_button = QPushButton()
+        self._loop_button.setIcon(QIcon.fromTheme('restore'))
+        self._loop_button.setStyleSheet('background-color : lightgray;')
+        self._loop_button._checked = True
 
         def loop_callback():
-            self._loop._checked = not self._loop._checked
-            color = 'lightgray' if self._loop._checked else 'darkgray'
-            self._loop.setStyleSheet(f'background-color : {color};')
+            self._loop_button._checked = not self._loop_button._checked
+            color = 'lightgray' if self._loop_button._checked else 'darkgray'
+            self._loop_button.setStyleSheet(f'background-color : {color};')
 
-        self._loop.released.connect(loop_callback)
-        self._nav_hbox.addWidget(self._loop)
+        self._loop_button.released.connect(loop_callback)
+        self._nav_hbox.addWidget(self._loop_button)
         self._timer = QTimer()
 
         def timer_callback():
@@ -425,11 +436,27 @@ class _PlayMenu(QVBoxLayout, _AbstractPlayMenu, _Widget,
 
         self._timer.timeout.connect(timer_callback)
         self._timer.setInterval(250)
-        self._play.released.connect(self._timer.start)
-        self._pause.released.connect(self._timer.stop)
-        self._reset.released.connect(lambda: self._slider.setValue(rng[0]))
+        self._play_button.released.connect(self._timer.start)
+        self._pause_button.released.connect(self._timer.stop)
+        self._reset_button.released.connect(
+            lambda: self._slider.setValue(rng[0]))
         self.addWidget(self._slider)
         self.addLayout(self._nav_hbox)
+
+    def _play(self):
+        self._play_button.click()
+
+    def _pause(self):
+        self._pause_button.click()
+
+    def _reset(self):
+        self._reset_button.click()
+
+    def _loop(self):
+        self._loop_button.click()
+
+    def _set_value(self, value):
+        self._slider.setValue(value)
 
 
 class _Popup(QMessageBox, _AbstractPopup, _Widget, metaclass=_BaseWidget):
@@ -467,6 +494,9 @@ class _Popup(QMessageBox, _AbstractPopup, _Widget, metaclass=_BaseWidget):
                 lambda button: callback(button.text().title()))
         _qt_raise_window(self)
         self._show()
+
+    def _click(self, value):
+        self.button(getattr(QMessageBox, value)).click()
 
 
 class _ScrollArea(QScrollArea):
@@ -600,7 +630,7 @@ class _Canvas(FigureCanvas, _AbstractCanvas, metaclass=_BaseCanvas):
 
 class _MNEMainWindow(MainWindow):
     def __init__(self, parent=None, title=None, size=None):
-        super().__init__(parent, title, size)
+        MainWindow.__init__(self, parent=parent, title=title, size=size)
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
 
 
