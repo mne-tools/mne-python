@@ -98,7 +98,7 @@ class _Widget(_AbstractWidget, QWidget, metaclass=_BaseWidget):
 
     def __init__(self):
         _AbstractWidget.__init__()
-        QWidget.__init__(self)
+        # QWidget.__init__(self)
 
     def _show(self):
         self.show()
