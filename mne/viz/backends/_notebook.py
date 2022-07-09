@@ -117,8 +117,10 @@ class _Widget(Widget, _AbstractWidget, metaclass=_BaseWidget):
         # trigger to a vbox which will be present because the _AppWindow is
         # a vbox, this doesn't trigger specifically for the widget but this
         # is just for testing
+        # note: ipywidgets.HTML does not execute javascript but
+        # IPython.display.HTML does
         key_str = key.title() if len(key) > 1 else key
-        display(HTML("""
+        display(IPython.display.HTML("""
             <script>
             let element = document.getElementsByClassName("widget-vbox")[0];
             element.dispatchEvent(
