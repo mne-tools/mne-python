@@ -111,24 +111,9 @@ class _Widget(Widget, _AbstractWidget, metaclass=_BaseWidget):
         self._callback = callback
 
     def _trigger_keypress(self, key):
+        # note: this doesn't actually simulate a keypress, it just calls the
+        # callback function directly because this is not yet possible
         self._callback(key)
-        # TO DO: actually simulate the keypress, see code below not yet working
-        '''
-        # trigger to a vbox which will be present because the _AppWindow is
-        # a vbox, this doesn't trigger specifically for the widget but this
-        # is just for testing
-        # note: ipywidgets.HTML does not execute javascript but
-        # IPython.display.HTML does
-        key_str = key.title() if len(key) > 1 else key
-        display(IPython.display.HTML("""
-            <script>
-            let element = document.getElementsByClassName("widget-vbox")[0];
-            element.dispatchEvent(
-                new KeyboardEvent( 'keydown' , {'key':'%s'} ));
-            element.dispatchEvent(
-                new KeyboardEvent( 'keyup' , {'key':'%s'} ));
-            </script>""" % (key_str, key_str)))
-        '''
 
     def _set_focus(self):
         if hasattr(self, 'focus'):  # added in ipywidgets 8.0
@@ -591,7 +576,7 @@ class _BoxLayout(object):
         # if pyvista plotter, needs to be shown
         if isinstance(widget, Plotter):
             widget = widget.show(
-                jupyter_backend="ipyvtklink", return_viewer=True)
+                jupyter_backend='ipyvtklink', return_viewer=True)
             widget.layout.width = None  # unlock the fixed layout
         if hasattr(widget, 'layout'):
             widget.layout.margin = "2px 0px 2px 0px"
