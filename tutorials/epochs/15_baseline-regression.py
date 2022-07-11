@@ -41,7 +41,7 @@ from mne.datasets import sample
 
 tmin, tmax = -0.2, 0.5
 lowpass, highpass = 40, 0.1
-baseline_tmin, baseline_tmax = None, 0 # None takes the first timepoint
+baseline_tmin, baseline_tmax = None, 0  # None takes the first timepoint
 
 # we select a single central electrode as we combine activity from both
 # hemispheres
