@@ -1551,8 +1551,6 @@ index : {} | None
     (depending on the value of ``time_format``). {}
 """
 
-docdict['index_df'] = _index_df_base
-
 datetime = ':class:`pandas.DatetimeIndex`, '
 multiindex = ('If a list of two or more string values, a '
               ':class:`pandas.MultiIndex` will be created. ')
@@ -1714,19 +1712,21 @@ line_alpha : float | None
 _long_format_df_base = """
 long_format : bool
     If True, the DataFrame is returned in long format where each row is one
-    observation of the signal at a unique combination of time point{}.
+    observation of the signal at a unique combination of {}.
     {}Defaults to ``False``.
 """
 
 ch_type = ('For convenience, a ``ch_type`` column is added to facilitate '
            'subsetting the resulting DataFrame. ')
-raw = (' and channel', ch_type)
-epo = (', channel, epoch number, and condition', ch_type)
-stc = (' and vertex', '')
+raw = ('time point and channel', ch_type)
+epo = ('time point, channel, epoch number, and condition', ch_type)
+stc = ('time point and vertex', '')
+spe = ('frequency and channel', ch_type)
 
 docdict['long_format_df_epo'] = _long_format_df_base.format(*epo)
 docdict['long_format_df_raw'] = _long_format_df_base.format(*raw)
 docdict['long_format_df_stc'] = _long_format_df_base.format(*stc)
+docdict['long_format_df_spe'] = _long_format_df_base.format(*spe)
 
 docdict['loose'] = """
 loose : float | 'auto' | dict
