@@ -1,6 +1,6 @@
 # requirements for building docs
 sphinx!=4.1.0
-https://github.com/larsoner/numpydoc/archive/inherited.zip
+https://github.com/numpy/numpydoc/archive/main.zip
 https://github.com/pydata/pydata-sphinx-theme/archive/cf8b113a496eb458587c0778a423e40c7c1aa22d.zip
 https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip
 sphinxcontrib-bibtex>=2.1.2
