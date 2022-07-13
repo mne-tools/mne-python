@@ -23,6 +23,8 @@ Current (1.1.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- Add a note to clarify the inclusion of average referencing gain matrix during whitening (:gh:`10922` by :newcontrib:`Mingjian He`)
+
 - Add time axis scale bar for :meth:`mne.Epochs.plot` using matplotlib backend (:gh:`10736` by :newcontrib:`Jordan Drew`)
 
 - Add :func:`mne.bem.distance_to_bem` to find depth of source positions (:gh:`10632` by :newcontrib:`Matt Courtemanche`)
