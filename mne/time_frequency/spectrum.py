@@ -14,7 +14,9 @@ from ..channels.channels import UpdateChannelsMixin
 from ..defaults import _handle_default
 from ..io.meas_info import ContainsMixin
 from ..io.pick import _picks_to_idx, pick_info
-from ..utils import _check_sphere, _time_mask, fill_doc, logger, verbose, warn
+from ..utils import (_check_sphere, _time_mask, fill_doc, logger, verbose,
+                     warn, _build_data_frame, _check_pandas_installed,
+                     _check_pandas_index_arguments)
 from ..utils.check import _check_option, _is_numeric
 from ..utils.misc import _pl
 from ..viz.utils import _plot_psd, plt_show
@@ -206,6 +208,10 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
                                  reject_by_annotation=rba)
         elif isinstance(inst, BaseEpochs):
             data = inst.get_data(picks=picks)[:, :, time_mask]
+            # we need these for to_data_frame
+            self.event_id = inst.event_id.copy()
+            self.events = inst.events.copy()
+            self.selection = inst.selection.copy()
         else:  # Evoked
             data = inst.data[picks][:, time_mask]
         # triage method and kwargs. partial() doesn't check validity of kwargs,
@@ -344,6 +350,76 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
             freqs = self._freqs[fmin_idx:fmax_idx]
             return (data, freqs)
         return data
+
+    @verbose
+    def to_data_frame(self, picks=None, index=None, copy=True,
+                      long_format=False, *, verbose=None):
+        """Export data in tabular structure as a pandas DataFrame.
+
+        Channels are converted to columns in the DataFrame. By default,
+        an additional column "frequency" is added, unless ``index='freq'``
+        (in which case frequency values form the DataFrame's index).
+
+        Parameters
+        ----------
+        %(picks_all)s
+        index : str | list of str | None
+            Kind of index to use for the DataFrame. If ``None``, a sequential
+            integer index (:class:`pandas.RangeIndex`) will be used. If a
+            :class:`str`, a :class:`pandas.Index`, :class:`pandas.Int64Index`,
+            or :class:`pandas.Float64Index` will be used (see Notes). If a list
+            of two or more string values, a :class:`pandas.MultiIndex` will be
+            used. Defaults to ``None``.
+        %(copy_df)s
+        %(long_format_df_spe)s
+        %(verbose)s
+
+        Returns
+        -------
+        %(df_return)s
+
+        Notes
+        -----
+        Valid values for ``index`` depend on whether the Spectrum was created
+        from continuous data (:class:`~mne.io.Raw`, :class:`~mne.Evoked`) or
+        discontinuous data (:class:`~mne.Epochs`). For continuous data, only
+        ``None`` or ``'freq'`` is supported. For discontinuous data, additional
+        valid values are ``'epoch'`` and ``'condition'``, or a :class:`list`
+        comprising some of the valid string values (e.g.,
+        ``['freq', 'epoch']``).
+        """
+        # check pandas once here, instead of in each private utils function
+        pd = _check_pandas_installed()  # noqa
+        # triage for Epoch-derived spectra
+        from_epo = self._get_instance_type_string() == 'Epochs'
+        # arg checking
+        valid_index_args = ['freq']
+        if from_epo:
+            valid_index_args += ['epoch', 'condition']
+        index = _check_pandas_index_arguments(index, valid_index_args)
+        # get data
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+        data = self.get_data(picks)
+        if from_epo:
+            n_epochs, n_picks, n_freqs = data.shape
+            data = np.hstack(data)  # (freq*epochs) x signals
+        data = data.T
+        if copy:
+            data = data.copy()
+        # prepare extra columns / multiindex
+        mindex = list()
+        freqs = np.tile(self.freqs, n_epochs) if from_epo else self.freqs
+        mindex.append(('freq', freqs))
+        if from_epo:
+            rev_event_id = {v: k for k, v in self.event_id.items()}
+            conditions = [rev_event_id[k] for k in self.events[:, 2]]
+            mindex.append(('condition', np.repeat(conditions, n_freqs)))
+            mindex.append(('epoch', np.repeat(self.selection, n_freqs)))
+        # build DataFrame
+        default_idx = ['condition', 'epoch', 'freq'] if from_epo else ['freq']
+        df = _build_data_frame(self, data, picks, long_format, mindex, index,
+                               default_index=default_idx)
+        return df
 
     @property
     def freqs(self):
