@@ -55,5 +55,5 @@ fi
 
 # Hopefully temporary workaround until it's merged and released
 if [[ "$(pip list)" == *'pyvista '* ]]; then
-	pip install --progress-bar off https://github.com/pyvista/larsoner/zipball/try
+	pip install --progress-bar off https://github.com/larsoner/pyvista/zipball/try
 fi

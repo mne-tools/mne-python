@@ -32,5 +32,5 @@ python -m pip install $EXTRA_ARGS .[test,hdf5] codecov
 
 # Hopefully temporary workaround until it's merged and released
 if [[ "$(python -m pip list)" == *'pyvista '* ]]; then
-	pip install --progress-bar off https://github.com/pyvista/larsoner/zipball/try
+	pip install --progress-bar off https://github.com/larsoner/pyvista/zipball/try
 fi
