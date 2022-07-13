@@ -1902,7 +1902,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @verbose
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, start=None, stop=None,
-                      long_format=False, time_format='ms', *,
+                      long_format=False, time_format=None, *,
                       verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
