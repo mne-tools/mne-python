@@ -125,6 +125,9 @@ stages:
         mne sys_info -pd
         mne sys_info -pd | grep "qtpy: .*{PySide6=.*}$"
       displayName: Print config
+    - bash: |
+        set -e
+        LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
     - task: Cache@2
