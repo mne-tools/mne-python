@@ -1062,8 +1062,8 @@ def test_to_data_frame():
     assert_array_equal(df.values[:, 0],
                        data[:, 0, :, :].reshape(1, -1).squeeze())
     # compare arbitrary observation:
-    assert df.loc[('he', slice(None), freqs[1], times[2] * srate),
-                  ch_names[3]].iloc[0] == data[1, 3, 1, 2]
+    assert (df.loc[('he', slice(None), freqs[1], times[2]), ch_names[3]].iat[0]
+            == data[1, 3, 1, 2])
 
     # Check also for AverageTFR:
     tfr = tfr.average()
@@ -1092,8 +1092,7 @@ def test_to_data_frame():
     assert_array_equal(df.values[:, 0],
                        data[0, :, :].reshape(1, -1).squeeze())
     # compare arbitrary observation:
-    assert df.loc[(freqs[1], times[2] * srate), ch_names[3]] == \
-        data[3, 1, 2]
+    assert df.loc[(freqs[1], times[2]), ch_names[3]] == data[3, 1, 2]
 
 
 @requires_pandas
