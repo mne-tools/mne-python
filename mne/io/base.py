@@ -923,9 +923,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         _check_option('reject_by_annotation', reject_by_annotation.lower(),
                       ['omit', 'nan'])
         onsets, ends = _annotations_starts_stops(self, ['BAD'])
+        annotations = self.annotations.copy()
         keep = (onsets < stop) & (ends > start)
         onsets = np.maximum(onsets[keep], start)
         ends = np.minimum(ends[keep], stop)
+        annotations = annotations[keep]
+        annot_picks = [_picks_to_idx(info=self.info, picks=annot_ch_names) if annot_ch_names else picks for annot_ch_names in annotations.ch_names]
         if len(onsets) == 0:
             data, times = self[picks, start:stop]
             if units is not None:
@@ -963,11 +966,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             else:
                 msg = ("Setting {} of {} ({:.2%}) samples to NaN, retaining {}"
                        " ({:.2%}) samples.")
+                data, times = self[picks, start:stop]
+                for onset, end, pick in zip(onsets, ends, annot_picks):
+                    data[pick, onset:end] = np.nan
+                n_samples = data.size
+                n_rejected = np.isnan(data).sum()
+                n_kept = n_samples - n_rejected
                 logger.info(msg.format(n_rejected, n_samples,
                                        n_rejected / n_samples,
                                        n_kept, n_kept / n_samples))
-                data, times = self[picks, start:stop]
-                data[:, ~used[1:-1]] = np.nan
         else:
             data, times = self[picks, start:stop]
 
