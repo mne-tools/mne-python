@@ -20,7 +20,7 @@ def _export_raw(fname, raw):
     try:
         if not (raw.filenames[0].endswith('.fif')):
             drop_chs.append('STI 014')
-    except AttributeError: # mne.io.RawArray has no filenames attribute
+    except AttributeError:  # mne.io.RawArray has no filenames attribute
         pass
 
     ch_names = [ch for ch in raw.ch_names if ch not in drop_chs]
