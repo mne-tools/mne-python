@@ -14,9 +14,9 @@ from ..channels.channels import UpdateChannelsMixin
 from ..defaults import _handle_default
 from ..io.meas_info import ContainsMixin
 from ..io.pick import _picks_to_idx, pick_info
-from ..utils import (_check_sphere, _time_mask, fill_doc, logger, verbose,
-                     warn, _build_data_frame, _check_pandas_installed,
-                     _check_pandas_index_arguments)
+from ..utils import (_build_data_frame, _check_pandas_index_arguments,
+                     _check_pandas_installed, _check_sphere, _time_mask,
+                     fill_doc, logger, verbose, warn)
 from ..utils.check import _check_option, _is_numeric
 from ..utils.misc import _pl
 from ..viz.utils import _plot_psd, plt_show
@@ -390,8 +390,10 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         """
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
-        # triage for Epoch-derived spectra
+        # triage for Epoch-derived or unaggregated spectra
         from_epo = self._get_instance_type_string() == 'Epochs'
+        unagg_welch = 'segment' in self._dims
+        unagg_mt = 'taper' in self._dims
         # arg checking
         valid_index_args = ['freq']
         if from_epo:
@@ -400,25 +402,40 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         # get data
         picks = _picks_to_idx(self.info, picks, 'all', exclude=())
         data = self.get_data(picks)
-        if from_epo:
-            n_epochs, n_picks, n_freqs = data.shape
-            data = np.hstack(data)  # (freq*epochs) x signals
-        data = data.T
         if copy:
             data = data.copy()
+        # reshape
+        if unagg_mt:
+            data = np.moveaxis(data, self._dims.index('freq'), -2)
+        if from_epo:
+            n_epochs, n_picks, n_freqs = data.shape[:3]
+        else:
+            n_epochs, n_picks, n_freqs = (1,) + data.shape[:2]
+        n_segs = data.shape[-1] if unagg_mt or unagg_welch else 1
+        data = np.moveaxis(data, self._dims.index('channel'), -1)
+        # at this point, should be ([epoch], freq, [segment/taper], channel)
+        data = data.reshape(n_epochs * n_freqs * n_segs, n_picks)
         # prepare extra columns / multiindex
         mindex = list()
-        freqs = np.tile(self.freqs, n_epochs) if from_epo else self.freqs
-        mindex.append(('freq', freqs))
+        default_index = list()
         if from_epo:
             rev_event_id = {v: k for k, v in self.event_id.items()}
-            conditions = [rev_event_id[k] for k in self.events[:, 2]]
-            mindex.append(('condition', np.repeat(conditions, n_freqs)))
-            mindex.append(('epoch', np.repeat(self.selection, n_freqs)))
+            _conds = [rev_event_id[k] for k in self.events[:, 2]]
+            conditions = np.repeat(_conds, n_freqs * n_segs)
+            epoch_nums = np.repeat(self.selection, n_freqs * n_segs)
+            mindex.extend([('condition', conditions), ('epoch', epoch_nums)])
+            default_index.extend(['condition', 'epoch'])
+        freqs = np.tile(np.repeat(self.freqs, n_segs), n_epochs)
+        mindex.append(('freq', freqs))
+        default_index.append('freq')
+        if unagg_mt or unagg_welch:
+            name = 'taper' if unagg_mt else 'segment'
+            seg_nums = np.tile(np.arange(n_segs), n_epochs * n_freqs)
+            mindex.append((name, seg_nums))
+            default_index.append(name)
         # build DataFrame
-        default_idx = ['condition', 'epoch', 'freq'] if from_epo else ['freq']
         df = _build_data_frame(self, data, picks, long_format, mindex, index,
-                               default_index=default_idx)
+                               default_index=default_index)
         return df
 
     @property
