@@ -153,31 +153,59 @@ into a terminal and you should see ::
 
    make: *** No targets specified and no makefile found.  Stop.
 
-If you don't see this or something similar:
+If you don't see this or something similar, you may not have ``make`` installed.
 
-.. sidebar:: If you get:
-    :class: sd-card sd-shadow-sm
+.. tab-set::
 
-    *bash: conda: command not found*
+    .. tab-item:: Linux
+        :class-content: text-center
 
-    you need to add
+        .. button-link:: https://www.gnu.org/software/make/
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold mt-3
 
-    - :file:`{path_to_Anaconda}`
-    - :file:`{path_to_Anaconda}\\Scripts`
+            |cloud-download-alt| |ensp| Get make for Linux
 
-    to Windows-PATH.
+    .. tab-item:: macOS
+        :class-content: text-center
 
-- For Linux/MacOS, get `GNU Make`_
-- For Windows, you can install make for git BASH (which comes with `git for Windows`_):
+        .. button-link:: https://www.gnu.org/software/make/
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold mt-3
 
-  1. Download :file:`make-{newest.version}-without-guile-w32-bin.zip` from `ezwinports`_
-  2. Extract zip-folder
-  3. Copy the contents into :file:`{path_to_git}\\mingw64\\` (e.g. by merging the
-     folders with the equivalent ones already inside)
-  4. For the first time using git BASH, you need to run once (to be able to
-     activate your mnedev-environment): ::
+            |cloud-download-alt| |ensp| Get make for macOS
 
-      $ conda init bash
+    .. tab-item:: Windows
+
+        If you see: ::
+
+            bash: make: command not found
+
+        Install ``make`` for git BASH (which comes with `git for Windows`_):
+
+        1. Download :file:`make-{newest.version}-without-guile-w32-bin.zip` from `ezwinports`_
+        2. Extract zip-folder
+        3. Copy the contents into :file:`{path_to_git}\\mingw64\\` (e.g. by merging the
+           folders with the equivalent ones already inside)
+        4. For the first time using git BASH, you need to run once (to be able to
+           activate your ``mnedev`` environment): ::
+
+            $ conda init bash
+
+        If instead you see an error like: ::
+
+                bash: conda: command not found
+
+        at the top of your git BASH window, you need to add
+
+        - :file:`{path_to_Anaconda}`
+        - :file:`{path_to_Anaconda}\\Scripts`
+
+        to Windows-PATH first.
 
 
 Forking the MNE-Python repository
