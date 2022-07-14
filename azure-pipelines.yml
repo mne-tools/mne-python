@@ -309,7 +309,7 @@ stages:
       displayName: Remove old MNE
     - script: pip install -e .
       displayName: 'Install MNE-Python dev'
-    - script: pip install --progress-bar off -e .[test] codecov
+    - script: pip install --progress-bar off -e .[test] codecov https://github.com/pyvista/pyvista/zipball/main
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Install testing requirements
     - script: mne sys_info -pd
