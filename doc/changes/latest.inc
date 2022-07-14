@@ -111,7 +111,7 @@ Enhancements
 
 Bugs
 ~~~~
-- Fix bug in :func: `mne.export._eeglab._export_raw` to ignore empty filenames attribute in :class: `mne.io.RawArray` (:gh: `10927` by :newcontrib: `Reza Nasri`)
+- Fix bug in :func:`mne.export._eeglab._export_raw` to ignore empty filenames attribute in :class:`mne.io.RawArray` (:gh:`10927` by :newcontrib:`Reza Nasri`)
 
 - Fix bug in :func:`mne.io.read_raw_edf` to allow reading in all Hypnodyne ZMax EDFs to be read in without issues (:gh:`10754` by :newcontrib:`Frederik Weber`)
 
