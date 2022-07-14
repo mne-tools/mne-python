@@ -21,6 +21,8 @@ html[data-theme="light"] {
     --copybtn-opacity: 0.75;
     /* card header bg color */
     --mne-color-header: rgba(0, 0, 0, 0.05);
+    /* aside/sidebar bg color */
+    --mne-color-primary-bg: #cce5ff;
     /* pydata-sphinx-theme overrides */
     --pst-color-primary: var(--mne-color-primary);
     --pst-color-primary-text: var(--mne-color-primary-text);
@@ -45,6 +47,8 @@ html[data-theme="dark"] {
     --copybtn-opacity: 0.25;
     /* card header bg color */
     --mne-color-header: rgba(255, 255, 255, 0.2);
+    /* aside/sidebar bg color */
+    --mne-color-primary-bg: #003166;
     /* pydata-sphinx-theme overrides */
     --pst-color-primary: var(--mne-color-primary);
     --pst-color-primary-text: var(--mne-color-primary-text);
@@ -96,6 +100,7 @@ p.sphx-glr-signature {
 }
 /* script/notebook download buttons */
 .sphx-glr-download a.download {
+    border-radius: 0.5rem;
     /* ↓↓↓↓↓↓↓ these two rules copied from sphinx-design */
     box-shadow: 0 .125rem .25rem var(--sd-color-shadow) !important;
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
@@ -129,8 +134,10 @@ div[id^="examples-using-"] h2 {
 /* ******************************************* in-text sidebar callout boxes */
 div.sidebar,
 aside.sidebar {
-    background-color: var(--pst-color-primary);
-    border-color: rgb(var(--pst-color-info));
+    color: var(--mne-color-primary-text);
+    background-color: var(--mne-color-primary-bg);
+    border-color: var(--mne-color-primary);
+    border-radius: 0.5rem;
 }
 
 /* **************************************************************** homepage */
@@ -224,7 +231,16 @@ div.card {
     border: 1px solid var(--pst-color-border) !important;
     box-shadow: 1px 1px 1px var(--pst-color-shadow);
 }
+.sd-dropdown .sd-summary-up,
+.sd-dropdown .sd-summary-down {
+  top: 0.6rem;
+}
+
 .sd-card-header {
+    position: relative;
+    font-weight: 600;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--pst-color-border) !important;
     background-color: var(--mne-color-header) !important;
 }
@@ -261,11 +277,14 @@ p.btn a {
 }
 /* sidebar nav */
 nav.bd-links .active > a,
-nav.bd-links .active:hover > a {
+nav.bd-links .active:hover > a,
+.toc-entry a.nav-link.active,
+.toc-entry a.nav-link.active:hover {
     color: var(--pst-color-link);
 }
-/* sidebar nav hover */
-nav.bd-links li > a:hover {
+/* left sidebar nav hover */
+nav.bd-links li > a:hover,
+.toc-entry a.nav-link:hover {
     color: var(--pst-color-secondary);
 }
 /* sphinx-design tabs */
