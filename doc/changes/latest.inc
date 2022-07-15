@@ -111,6 +111,8 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug in :func:`mne.export.export_raw` to ignore None value in filenames attribute of :class:`mne.io.RawArray` (:gh:`10927` by :newcontrib:`Reza Nasri`)
+
 - Fix bug in :func:`mne.io.read_raw_edf` to allow reading in all Hypnodyne ZMax EDFs to be read in without issues (:gh:`10754` by :newcontrib:`Frederik Weber`)
 
 - Fix bug in :func:`mne.Epochs.drop_bad` where data was loaded although no rejection had to be performed (:gh:`10718` by :newcontrib:`Lukas Gemein`)
