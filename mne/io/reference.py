@@ -332,9 +332,10 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
                 with inst.info._unlock():
                     inst.info['custom_ref_applied'] = \
                         FIFF.FIFFV_MNE_CUSTOM_REF_OFF
-                inst.add_proj(make_eeg_average_ref_proj(inst.info,
-                                                        activate=False,
-                                                        ch_type=ch_type[0]))
+                for ch_typ in ch_type:
+                    inst.add_proj(make_eeg_average_ref_proj(inst.info,
+                                                            ch_type=ch_typ,
+                                                            activate=False))
             except Exception:
                 with inst.info._unlock():
                     inst.info['custom_ref_applied'] = custom_ref_applied
