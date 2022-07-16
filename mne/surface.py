@@ -315,8 +315,8 @@ def _triangle_coords(r, best, r1, nn, r12, r13, a, b, c):  # pragma: no cover
 def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
                           method='accurate'):
     """Project points onto (scalp) surface."""
-    surf_geom = _get_tri_supp_geom(surf)
     if method == 'accurate':
+        surf_geom = _get_tri_supp_geom(surf)
         pt_tris = np.empty((0,), int)
         pt_lens = np.zeros(len(rrs) + 1, int)
         out = _find_nearest_tri_pts(rrs, pt_tris, pt_lens,
@@ -331,6 +331,7 @@ def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
         idx = _compute_nearest(surf['rr'], rrs)
         out = (None, None, surf['rr'][idx])
         if return_nn:
+            surf_geom = _get_tri_supp_geom(surf)
             nn = _accumulate_normals(surf['tris'].astype(int), surf_geom['nn'],
                                      len(surf['rr']))
             out += (nn[idx],)
