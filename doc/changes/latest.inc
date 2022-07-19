@@ -193,6 +193,8 @@ Bugs
 
 - Fix value set in ``raw.orig_format`` for readers of BrainVision (ASCII format), EGI and Artemis123 files (:gh:`10851` by `Mathieu Scheltienne`_)
 
+- When reading EGI MFF files, the channel names are no longer ignored. (:gh:`10898` by `Scott Huberty`_ and `Daniel McCloy`_)
+
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
