@@ -47,7 +47,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
         The ICA solution.
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
-    %(picks_base)s all sources in the order as fitted.
+    %(picks_ica)s all sources in the order as fitted.
     start, stop : float | int | None
        If ``inst`` is a `~mne.io.Raw` or an `~mne.Evoked` object, the first and
        last time point (in seconds) of the data to plot. If ``inst`` is a
