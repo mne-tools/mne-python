@@ -52,3 +52,10 @@ fi
 if [ "${DEPS}" != "minimal" ]; then
 	pip install $STD_ARGS $EXTRA_ARGS -r requirements_testing_extra.txt
 fi
+
+# Temporary workaround until the fix is released
+
+# Hopefully temporary workaround until it's merged and released
+if [[ "$(pip list)" == *'pyvista '* ]]; then
+	python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
+fi
