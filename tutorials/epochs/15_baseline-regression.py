@@ -6,273 +6,279 @@
 Regression-based baseline correction
 ====================================================================
 
-Traditional baseline correction simply adds or subtracts a scalar amount from
-every timepoint in an epoch, such that the mean value during the defined
-baseline period is zero. Two difficulties are usually discussed in traditional
+This tutorial compares traditional baseline correction (adding or subtracting a
+scalar amount from every timepoint in an epoch) to a regression-based approach
+to baseline correction (which allows the effect of the baseline period to vary
+by timepoint). Specifically, this tutorial follows the method introduced by
+:footcite:t:`Alday2019`.
+
+There are at least two reasons you might consider using regression-based
 baseline correction:
- - which baseline time window to choose
- - no baseline differences between conditions
 
-The method introduced by :footcite:`Alday2019`, allows to account for the fact
-that there might be baseline differences between conditions that the we are
-not aware of. By including the baseline interval as a regressor in a
-general linear model, we allow the data to determine the amount of baseline
-correction needed.
-We demonstrate a alternative regression-based method, which allows the
-*strength of the effect* of the baseline period to vary across each
-timepoint of the epoch.
+1. Unlike traditional baseline correction, the regression-based approach does
+   not assume that the effect of the baseline is equivalent between different
+   experimental conditions. Thus it is safer against introduced bias /
+   false-positives.
 
+2. Assuming that pre-trial baseline signal level is mostly determined by slow
+   drifts in the data, the further away (in time) you get from the baseline
+   period, the less likely it is that the signal level is similar in amplitude
+   to the baseline amplitude. Thus using a time-varying baseline correction is
+   less likely to introduce signal distortions / spurious effects in the later
+   spans of long-duration epochs.
+
+One issue that affects both traditional and regression-based baseline
+correction is the question of what time window to choose as the baseline
+window.
 """
+
+# %%
 
 # Authors: Carina Forster
 # Email: carinaforster0611@gmail.com
 
 # License: BSD-3-Clause
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 import mne
-from mne.datasets import sample
 
-# %% define variables
+# %%
+# Load the data
+# =============
+#
+# We'll start by loading the MNE-Python :ref:`sample dataset <sample-dataset>`
+# and extracting the experimental events to get trial locations and trial
+# types. Since for this tutorial we're only going to look at EEG channels, we
+# can drop the other channel types, to speed things up:
 
-# first we define variables needed to epoch and preprocess the data
+data_path = mne.datasets.sample.data_path()
+raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_filt-0-40_raw.fif'
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
+
+events = mne.find_events(raw)
+
+raw.pick_types(meg=False, stim=False, eog=False, eeg=True)
+
+# %%
+# Here we merge visual and auditory events from both hemispheres, and make our
+# ``event_id`` dictionary for use during epoching.
+
+events = mne.merge_events(events, [1, 2], 1)  # auditory events will be "1"
+events = mne.merge_events(events, [3, 4], 2)  # visual events will be "2"
+event_id = {'auditory': 1, 'visual': 2}
+
+
+# %%
+# Preprocessing
+# =============
+#
+# Next we'll define some variables needed to epoch and preprocess the
+# data. We'll be combining left- and right-side stimuli, so we'll look at a
+# single *central* electrode to visualize the difference between auditory and
+# visual trials.
 
 tmin, tmax = -0.2, 0.5
 lowpass, highpass = 40, 0.1
 baseline_tmin, baseline_tmax = None, 0  # None takes the first timepoint
-
-# we select a single central electrode as we combine activity from both
-# hemispheres
-
 ch = "EEG 021"
 
-# now we load the audiovisual example dataset for one subject
-
-data_path = sample.data_path()
-
-subjects_dir = data_path / 'subjects'
-meg_path = data_path / 'MEG' / 'sample'
-raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
-
-# %% load data
-
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
-
-# we check for events saved while data data collection
-
-events = mne.find_events(raw)
-
-# next we pick only EEG channels
-
-raw.pick_types(stim=False, eog=False, eeg=True)
-
-# %% preprocess data
-
-# we start by bandpass filtering the data
+# %%
+# We'll do some standard preprocessing (a bandpass filter) and then epoch
+# the data. Note that we don't baseline correct the epochs (we specify
+# ``baseline=None``); we just minimally clean the data by rejecting channels
+# with very high or low amplitudes.  Note also that we operate on a *copy* of
+# the data so that we can later compare this with traditional baselining.
 
 raw_filtered = raw.copy().filter(highpass, lowpass)
 
-# %% create epochs
+epochs = mne.Epochs(raw_filtered, events, event_id, tmin=tmin, tmax=tmax,
+                    reject=dict(eeg=150e-6), flat=dict(eeg=5e-6),
+                    baseline=None, preload=True)
 
-# here we merge visual and auditory events from both hemispheres
 
-events = mne.merge_events(events, [1, 2], 1)  # auditory events
-events = mne.merge_events(events, [3, 4], 2)  # visual events
+# %%
+# Traditional baselining
+# ----------------------
+#
+# First let's baseline correct the data the traditional way. We average epochs
+# within each condition, and subtract the condition-specific baseline
+# separately for auditory and visual trials.
 
-# we store the events of interest in a dictionary
+baseline = (baseline_tmin, baseline_tmax)
+trad_aud = epochs['auditory'].average().apply_baseline(baseline)
+trad_vis = epochs['visual'].average().apply_baseline(baseline)
 
-event_id = {'auditory': 1, 'visual': 2}
+# %%
+# Regression-based baselining
+# ---------------------------
+#
+# Now let's try out the regression-based baseline correction approach. We'll
+# use :func:`mne.stats.linear_regression`, which needs a *design matrix* to
+# represent the regression predictors. We'll use four predictors: one for each
+# experimental condition, one for the effect of baseline, and one that is an
+# interaction between the baseline and one of the conditions (to account for
+# any inhomogeneity of the effect of baseline between the two conditions). Here
+# are the first two:
 
-# now we epoch the data for auditory and visual events
-# Note that we don't baseline correct the epochs by specifying baseline=None
-# we minimally clean the data by rejecting channels with very high or low
-# amplitudes
+aud_predictor = epochs.events[:, 2] == epochs.event_id['auditory']
+vis_predictor = epochs.events[:, 2] == epochs.event_id['visual']
 
-epochs = mne.Epochs(raw_filtered,
-                    events, event_id,
-                    tmin=tmin, tmax=tmax,
-                    reject=dict(eeg=150e-6),
-                    flat=dict(eeg=5e-6),
-                    baseline=None,
-                    preload=True)
+# %%
+# The baseline predictor is a bit trickier to compute: we'll find the average
+# value within the baseline period *separately for each epoch*, and use that
+# value as our (trial-level) predictor.  Here, since we're focused on one
+# particular channel, we'll use the baseline value *in that channel* as our
+# predictor, but depending on your research question you may want to do this
+# seaprately for each channel or combine information across channels.
 
-# here we delete the raw data to free up memory
+baseline_predictor = (
+    epochs.copy()
+          .crop(*baseline)
+          .pick_channels([ch])
+          .get_data()     # convert to NumPy array
+          .mean(axis=-1)  # average across timepoints
+          .squeeze()      # only 1 channel, so remove singleton dimension
+)
+baseline_predictor *= 1e6  # convert V → μV
 
-del raw_filtered
+# %%
+# Note that we converted *just the predictor* (not the epochs data) from Volts
+# to microVolts. This is done for regression-model-fitting purposes (very small
+# values can make model fitting unstable).
+#
+# Now we can set up the design matrix, stacking the 1-D predictors as rows,
+# then transposing with ``.T`` to make them columns. Combining them into one
+# :func:`~numpy.array` will also automatically convert the
+# :class:`boolean <bool>` ``aud_predictor`` and ``vis_predictor`` into
+# ones and zeros:
 
-# %% baseline correct the data the traditional way
+design_matrix = np.vstack([aud_predictor,
+                           vis_predictor,
+                           baseline_predictor,
+                           baseline_predictor * vis_predictor]).T
 
-# first let's baseline correct the data as we usually do
-# we average over all epochs and subtract the condition specific baseline
-# for auditory and visual events
-
-trad_aud = (epochs[epochs.events[:, 2] == 1].copy()
-            .average()
-            .apply_baseline((baseline_tmin, baseline_tmax)))
-
-trad_vis = (epochs[epochs.events[:, 2] == 2].copy()
-            .average()
-            .apply_baseline((baseline_tmin, baseline_tmax)))
-
-# %% plot evoked data baseline corrected the traditional way
-
-# here we choose a baseline window of 200 milli seconds
-# feel free to try out different baseline windows
-
-fig = mne.viz.plot_compare_evokeds({"auditory": trad_aud,
-                                   "visual": trad_vis},
-                                   picks=[ch],
-                                   title="traditional baseline correction",
-                                   show_sensors=False, legend=True,
-                                   truncate_yaxis=False,
-                                   colors=dict(auditory="b", visual="r"))
-
-# we can see that there is a lot going on in the baseline and the baseline
-# activity seems to differ between conditions
-
-# %% baseline correct data using a regression-based approach
-
-# let's now try out the regression-based baseline correction approach
-
-# therefore we need to crop the data in the desired baseline time window
-# and save the data as a numpy array
-
-# baseline_epochs = epochs.copy().crop(baseline_tmin, baseline_tmax)
-
-baseline_epochs = epochs.copy().pick_channels([ch]).crop(baseline_tmin,
-                                                         baseline_tmax)
-
-epoch_data = baseline_epochs.get_data()
-
-# here we take the mean over the last axis (time samples), get rid of the 0
-# dimension and multiply the data with 1e6 to convert to micro volt for fitting
-# purposes (very small values are not easy to fit for a regression model)
-
-baseline = epoch_data.mean(axis=-1).squeeze() * 1e6
-
-# next we set up the design matrix
-# each row is an epoch and each column is a regressor: here we define
-# 4 regressors: auditory events, visual events, baseline and the interaction
-# between the baseline and the visual condition
-
-design_matrix = np.stack([epochs.events[:, 2] == 1, epochs.events[:, 2] == 2,
-                          baseline, baseline * (epochs.events[:, 2] == 2)]).T
-
-# resulting shape of the design matrix should be number of epochs per subject
-# x number of regressors (here: 286 epochs x 4 regressors)
-
-# finally we fit the regression model
-
-# we add the epochs for both conditions, the design matrix and the names for
-# the regressors included in the model
+# %%
+# Finally we fit the regression model:
 
 reg_model = mne.stats.linear_regression(epochs, design_matrix,
                                         names=["auditory", "visual",
                                                "baseline",
                                                "baseline:visual"])
 
-# after fitting is done, we extract the beta values for each condition
+# %%
+# The function returns a dictionary of ``mne.stats.regression.lm`` objects,
+# which are each a :func:`~collections.namedtuple` with the various estimated
+# values stored as if it were an :class:`~mne.Evoked` object. Let's inspect it:
+
+print(reg_model.keys())
+print(f"model attributes: {reg_model['auditory']._fields}")
+print('values are stored in Evoked objects:')
+print(reg_model['auditory'].t_val)
+
+# %%
+# Plot the baseline regressor
+# ===========================
+#
+# First let's look at the estimated effect of the baseline period. What we care
+# about is the ``beta`` values, which tell us how strongly predictive the
+# baseline value is at each timepoint. The model will estimate its
+# effectiveness *for every channel* but since we used only one channel to form
+# our baseline predictor, let's examine how it looks for that channel only.
+# We'll add a horizontal line at β=1 to represent traditional baselining, where
+# the effect is assumed to be constant across timepoints:
+
+effect_of_baseline = reg_model['baseline'].beta
+effect_of_baseline.plot(picks=ch, hline=[1.], units=dict(eeg=r'$\beta$ value'),
+                        titles=dict(eeg=ch), selectable=False)
+
+# %%
+# Unsurprisingly, the trend is that the farther away in time we get from the
+# baseline period, the weaker the predictive value of the baseline amplitude
+# becomes. Put another way, early time points (in this data) should be more
+# strongly baseline-corrected than later time points.
+#
+# Plot the ERPs
+# =============
+#
+# Now let's look at the ``beta`` values for the two
+# conditions (``auditory`` and ``visual``): these are the coefficients that
+# represent the "pure" influence of the experimental stimuli on the signal,
+# after taking into account the (time-varying!) effect of the baseline. We'll
+# plot them together, side-by-side with the traditional baseline approach:
 
 reg_aud = reg_model['auditory'].beta
 reg_vis = reg_model['visual'].beta
 
-# %% plot evoked data baseline corrected with a regression approach
+kwargs = dict(picks=ch, show_sensors=False, truncate_yaxis=False)
+mne.viz.plot_compare_evokeds(dict(auditory=trad_aud, visual=trad_vis),
+                             title="Traditional", **kwargs)
+mne.viz.plot_compare_evokeds(dict(auditory=reg_aud, visual=reg_vis),
+                             title="Regression-based", **kwargs)
 
-fig = mne.viz.plot_compare_evokeds({'auditory': reg_aud,
-                                    'visual': reg_vis},
-                                   picks=ch,
-                                   title="baseline correction "
-                                         "based on regression",
-                                   show_sensors=False,
-                                   colors=dict(auditory="b", visual="r"),
-                                   truncate_yaxis=False)
+# %%
+# They look pretty similar, but there are some subtle differences in how far
+# apart the two conditions are (e.g., around 400-500 ms).
+#
+# Plot the scalp topographies and difference waves
+# ================================================
+#
+# Now let's compare the
+# scalp topographies for the traditional and regression-based approach. We'll
+# do this by computing the difference between conditions:
 
-# %% compare sensor topography for both approaches
+diff_traditional = mne.combine_evoked([trad_aud, trad_vis], weights=[1, -1])
+diff_regression = mne.combine_evoked([reg_aud, reg_vis], weights=[1, -1])
 
-# Finally, let's compare the topographies for the traditional and regression
-# approach
+# %%
+# Before we plot, let's make sure we get the same color scale for both figures:
 
-# here we calculate the difference between both conditions for the traditional
-# and the regression approach
+vmin = min(diff_traditional.get_data().min(),
+           diff_regression.get_data().min()) * 1e6
+vmax = max(diff_traditional.get_data().max(),
+           diff_regression.get_data().max()) * 1e6
+topo_kwargs = dict(vmin=vmin, vmax=vmax, ch_type='eeg',
+                   times=np.linspace(0.05, 0.45, 9))
 
-diff_traditional = mne.combine_evoked([trad_aud, trad_vis],
-                                      [1, -1])
+diff_traditional.plot_topomap(title="Traditional", **topo_kwargs)
 
-diff_regression = mne.combine_evoked([reg_aud, reg_vis],
-                                     [1, -1])
+# %%
+diff_regression.plot_topomap(title="Regression-based", **topo_kwargs)
 
-# %% plot topography of auditory-visual contrast with traditional baseline
-# correction
+# %%
+# We can see that the regression-based approach shows *stronger* difference
+# between conditions early on (around 100-150 ms) and *weaker* differences
+# later (around 250-350 ms, and again around 450 ms). This is also reflected in
+# the difference waves themselves: notice how the regression-based difference
+# wave is *further from zero* around 150 ms but *closer to zero* around 250-350
+# ms.
 
-diff_traditional.plot_topomap(times=[0.1, 0.2, 0.3, 0.4],
-                              ch_type='eeg', title="traditional "
-                                                   "baseline correction")
-# %% plot topography of auditory-visual contrast with regression-based baseline
-# correction
+title = "Difference in evoked potential (auditory minus visual)"
+fig = mne.viz.plot_compare_evokeds(dict(Traditional=diff_traditional,
+                                        Regression=diff_regression),
+                                   title=title, **kwargs)
 
-diff_regression.plot_topomap(times=[0.1, 0.2, 0.3, 0.4],
-                             ch_type='eeg', title="regression-based"
-                                                  " baseline correction")
+# %%
+# Examine the interaction term
+# ============================
+#
+# Finally, let's look at the interaction term from the regression model. This
+# tells us whether the effect of the baseline period is different in the visual
+# trials versus its effect in the auditory trials. Here we'll add a horizontal
+# line at zero, indicating the assumption that there ought to be no difference
+# (i.e., baselines should not be systematically higher in one type of trial,
+# and there should not be a difference in how long the effect of the baseline
+# persists through time in each type of trial).
 
-# we can see that the biggest difference is around 300 ms after stimulus onset
-# with a strong dipole in central channels, this difference is much less
-# pronounced in the regression-based baseline correction approach
+interaction_effect = reg_model['baseline:visual'].beta
+interaction_effect.plot(picks=ch, hline=[0.], units=dict(eeg=r'$\beta$ value'),
+                        titles=dict(eeg=ch), selectable=False)
 
-# %% compare both approaches in one plot
 
-# let's compare the traditional with the regression approach
-# therefore we plot the difference between the auditory and the
-# visual condition with traditional and regression-based baseline correction
-
-fig = mne.viz.plot_compare_evokeds({'traditional': diff_traditional,
-                                    'regression': diff_regression},
-                                   picks=ch,
-                                   title="difference evoked potential",
-                                   show_sensors=False,
-                                   colors=dict(traditional="magenta",
-                                               regression="orange"),
-                                   truncate_yaxis=False)
-
-# %% plot baseline regressor
-
-# eventually, we can check the impact of the baseline and interaction
-# regressor over time
-
-reg_baseline = reg_model['baseline'].beta
-reg_interaction = reg_model['baseline:visual'].beta
-
-# we choose the beta values for the central channel we selected
-# therefore we extract the channel index
-
-ch_index = raw.info.ch_names.index(ch)
-
-# here we plot the beta values over time
-
-plt.plot(reg_baseline.times, reg_baseline.get_data()[ch_index],
-         color='darkgreen')
-plt.xlabel('Time (s)')
-plt.ylabel('Volt')
-plt.title('"baseline" beta values over time')
-
-# we can see that the baseline beta values are decreasing over time,
-# therefore early evoked potentials are "more" baseline corrected than late
-# potentials
-
-# %% plot interaction regressor
-
-# Next we plot the interaction beta values over time
-
-plt.plot(reg_interaction.times, reg_interaction.get_data()[ch_index],
-         color='darkblue')
-plt.xlabel('Time (s)')
-plt.ylabel('Volt')
-plt.title('"interaction" beta values over time')
-plt.show()
-
-# the interaction beta weights are rather small with a strong, negative peak
-# around 500 ms post stimulus
+# %%
+# Indeed, the interaction beta weights are rather small and seem to fluctuate
+# randomly around zero, suggesting that there is no systematic difference in
+# the effect of the baseline on our two trial types.
 
 # %%
 # References
