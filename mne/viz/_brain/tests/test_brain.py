@@ -852,7 +852,7 @@ something
 # TODO: don't skip on Windows, see
 # https://github.com/mne-tools/mne-python/pull/10935
 # for some reason there is a dependency issue with ipympl even using pyvista
-@pytest.skipif(sys.platform == 'win32')
+@pytest.mark.skipif(sys.platform == 'win32', reason='ipympl issue on Windows')
 @testing.requires_testing_data
 def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     """Test a simple scraping example."""
