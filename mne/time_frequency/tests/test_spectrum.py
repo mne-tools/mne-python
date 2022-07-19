@@ -1,7 +1,12 @@
+from functools import partial
+
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
+from pandas import Series
 from pandas.testing import assert_frame_equal
+
+from mne.time_frequency.multitaper import _psd_from_mt
 
 
 def test_spectrum_errors(raw):
@@ -57,6 +62,41 @@ def test_unaggregated_welch_spectrum_to_data_frame(raw, long_format):
         orig_df.sort_values(by=group_by, inplace=True, ignore_index=True)
         orig_df.drop(columns=drop_cols, inplace=True)
     assert_frame_equal(agg_df, orig_df)
+
+
+def _agg_helper(df, weights, group_cols):
+    unagged_columns = df[group_cols].iloc[0].values.tolist()
+    x_mt = df.drop(columns=group_cols).values[np.newaxis].T
+    psd = _psd_from_mt(x_mt, weights)
+    psd = np.atleast_1d(np.squeeze(psd)).tolist()
+    _df = dict(zip(df.columns, unagged_columns + psd))
+    return Series(_df)
+
+
+@pytest.mark.parametrize('long_format', (False, True))
+def test_unaggregated_multitaper_spectrum_to_data_frame(raw, long_format):
+    """Test converting complex multitaper spectra to data frame."""
+    # aggregated multitaper
+    orig_df = (raw.compute_psd(method='multitaper')
+                  .to_data_frame(long_format=long_format))
+    # complex multitaper → aggr. w/ pandas (make sure we did reshaping right)
+    spectrum = raw.compute_psd(method='multitaper', output='complex')
+    df = spectrum.to_data_frame(long_format=long_format)
+    group_by = ['freq']
+    drop_cols = ['taper']
+    if long_format:
+        group_by.append('channel')
+        drop_cols.append('ch_type')
+        orig_df.drop(columns='ch_type', inplace=True)
+    # only do a couple freq bins, otherwise test takes forever
+    subset = partial(np.isin, test_elements=spectrum.freqs[:2])
+    df = df.loc[subset(df['freq'])]
+    orig_df = orig_df.loc[subset(orig_df['freq'])]
+    # aggregate
+    agg_df = (df.drop(columns=drop_cols)
+                .groupby(group_by, sort=False, as_index=False)
+                .apply(_agg_helper, spectrum._mt_weights, group_by))
+    assert_frame_equal(agg_df, orig_df, check_categorical=False)
 
 
 def test_spectrum_to_data_frame(raw):
