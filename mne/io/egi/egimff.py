@@ -259,11 +259,13 @@ def _get_eeg_calibration_info(filepath, egi_info):
 def _read_locs(filepath, egi_info, channel_naming):
     """Read channel locations."""
     from ...channels.montage import make_dig_montage
-    fname = Path(filepath) / 'coordinates.xml'
+    fname = op.join(filepath, 'coordinates.xml')
     if not op.exists(fname):
         logger.warn(
             'File coordinates.xml not found, not setting channel locations')
-        return None, None
+        ch_names = [channel_naming % (i + 1) for i in
+                    range(egi_info['n_channels'])]
+        return ch_names, None
     dig_ident_map = {
         'Left periauricular point': 'lpa',
         'Right periauricular point': 'rpa',
@@ -276,6 +278,7 @@ def _read_locs(filepath, egi_info, channel_naming):
     hsp = list()
     nlr = dict()
     ch_names = list()
+
     for sensor in sensors:
         name_element = sensor.getElementsByTagName('name')[0].firstChild
         num_element = sensor.getElementsByTagName('number')[0].firstChild
@@ -471,20 +474,6 @@ class RawMff(BaseRaw):
 
         # read in the montage, if it exists
         ch_names, mon = _read_locs(input_fname, egi_info, channel_naming)
-
-        # First: EEG
-        _auto_ch_names = [channel_naming % (i + 1) for i in
-                          range(egi_info['n_channels'])]
-        if ch_names is None:
-            ch_names = _auto_ch_names
-        else:
-            missing_ch_name_mask = [len(name) == 0 for name in ch_names]
-            if any(missing_ch_name_mask):
-                logger.info(
-                    'some channel names were missing from  coordinates.xml; '
-                    'falling back to auto-naming for those channels')
-            ch_names = np.where([len(name) == 0 for name in ch_names],
-                                _auto_ch_names, ch_names).tolist()
         # Second: Stim
         ch_names.extend(list(egi_info['event_codes']))
         if egi_info['new_trigger'] is not None:
@@ -908,7 +897,7 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     ch_coil = FIFF.FIFFV_COIL_EEG
     ch_kind = FIFF.FIFFV_EEG_CH
     chs = _create_chs(ch_names, cals, ch_coil, ch_kind, (), (), (), ())
-    _, mon = _read_locs(fname, chs, egi_info)
+    _, mon = _read_locs(fname, egi_info, channel_naming)
     # Update PNS channel info
     chs = _add_pns_channel_info(chs, egi_info, ch_names)
     with info._unlock():

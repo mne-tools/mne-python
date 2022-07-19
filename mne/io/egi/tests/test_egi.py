@@ -127,6 +127,11 @@ def test_egi_mff_pause_chunks(fname, tmp_path):
 @requires_testing_data
 def test_io_egi_mff():
     """Test importing EGI MFF simple binary files."""
+    # want vars for n chans
+    n_ref = 1
+    n_eeg = 128
+    n_card = 3
+
     raw = read_raw_egi(egi_mff_fname, include=None)
     assert ('RawMff' in repr(raw))
     assert raw.orig_format == "single"
@@ -136,7 +141,7 @@ def test_io_egi_mff():
                            test_scaling=False,  # XXX probably some bug
                            )
     assert raw.info['sfreq'] == 1000.
-    assert len(raw.info['dig']) == 132  # 3 cardinal pts + 128 eeg + 1 ref eeg
+    assert len(raw.info['dig']) == n_card + n_eeg + n_ref
     assert raw.info['dig'][0]['ident'] == FIFF.FIFFV_POINT_LPA
     assert raw.info['dig'][0]['kind'] == FIFF.FIFFV_POINT_CARDINAL
     assert raw.info['dig'][3]['kind'] == FIFF.FIFFV_POINT_EEG
@@ -144,7 +149,7 @@ def test_io_egi_mff():
     assert raw.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
     ref_loc = raw.info['dig'][-1]['r']
     eeg_picks = pick_types(raw.info, eeg=True)
-    assert len(eeg_picks) == 129
+    assert len(eeg_picks) == n_eeg + n_ref  # 129
     # ref channel doesn't store its own loc as ref location
     # so don't test it
     ref_pick = pick_channels(raw.info['ch_names'], ['VREF'])
@@ -158,7 +163,7 @@ def test_io_egi_mff():
     assert 'eeg' in raw
     # test our custom channel naming logic functionality
     eeg_chan = [c for c in raw.ch_names if 'EEG' in c]
-    assert len(eeg_chan) == 128  # VREF will not match in comprehension
+    assert len(eeg_chan) == n_eeg  # 128: VREF will not match in comprehension
     assert 'STI 014' in raw.ch_names
 
     events = find_events(raw, stim_channel='STI 014')

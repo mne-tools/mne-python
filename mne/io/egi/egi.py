@@ -152,7 +152,7 @@ def read_raw_egi(input_fname, eog=None, misc=None,
     """
     _validate_type(input_fname, 'path-like', 'input_fname')
     input_fname = str(input_fname)
-    if input_fname.rstrip('/\\').endswith('.mff'):  # TODO: should allow '.mff/'
+    if input_fname.rstrip('/\\').endswith('.mff'):  # allows .mff or .mff/
         return _read_raw_egi_mff(input_fname, eog, misc, include,
                                  exclude, preload, channel_naming, verbose)
     return RawEGI(input_fname, eog, misc, include, exclude, preload,
