@@ -881,8 +881,7 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     # Load metadata into info object
     # Exclude info['meas_date'] because record time info in
     # averaged MFF is the time of the averaging, not true record time.
-    ch_names = [channel_naming % (i + 1) for i in
-                range(mff.num_channels['EEG'])]
+    ch_names, mon = _read_locs(fname, egi_info, channel_naming)
     ch_names.extend(egi_info['pns_names'])
     info = create_info(ch_names, mff.sampling_rates['EEG'], ch_types)
     with info._unlock():
@@ -897,7 +896,6 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     ch_coil = FIFF.FIFFV_COIL_EEG
     ch_kind = FIFF.FIFFV_EEG_CH
     chs = _create_chs(ch_names, cals, ch_coil, ch_kind, (), (), (), ())
-    _, mon = _read_locs(fname, egi_info, channel_naming)
     # Update PNS channel info
     chs = _add_pns_channel_info(chs, egi_info, ch_names)
     with info._unlock():
@@ -920,7 +918,7 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
                 if entry['signalBin'] == 1:
                     # Add bad EEG channels
                     for ch in entry['channels']:
-                        bads.append(channel_naming % ch)
+                        bads.append(ch_names[ch - 1])
                 elif entry['signalBin'] == 2:
                     # Add bad PNS channels
                     for ch in entry['channels']:

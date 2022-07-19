@@ -349,10 +349,14 @@ def test_io_egi_crop_no_preload():
     (0, 'Category 1', 0.016, egi_txt_evoked_cat1_fname,
      ['E8', 'E11', 'E17', 'E28', 'ECG']),
     (1, 'Category 2', 0.0, egi_txt_evoked_cat2_fname,
-     ['E257', 'EMG'])
+     ['VREF', 'EMG'])
 ])
 def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     """Test reading evoked MFF file."""
+    # expected n channels
+    n_eeg = 256
+    n_ref = 1
+    n_card = 3
     # Test reading all conditions from evokeds
     evokeds = read_evokeds_mff(egi_mff_evoked_fname)
     assert len(evokeds) == 2
@@ -401,7 +405,7 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     assert evoked_cond.info['nchan'] == 259
     assert evoked_cond.info['sfreq'] == 250.0
     assert not evoked_cond.info['custom_ref_applied']
-    assert len(evoked_cond.info['dig']) == 261
+    assert len(evoked_cond.info['dig']) == n_card + n_eeg + n_ref
     assert evoked_cond.info['device_info']['type'] == 'HydroCel GSN 256 1.0'
 
 
