@@ -29,8 +29,8 @@ timepoint of the epoch.
 
 # License: BSD-3-Clause
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
 from mne.datasets import sample
