@@ -357,6 +357,8 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     n_eeg = 256
     n_ref = 1
     n_card = 3
+    n_pns = 2  # 1 ECG + 1 EMG
+
     # Test reading all conditions from evokeds
     evokeds = read_evokeds_mff(egi_mff_evoked_fname)
     assert len(evokeds) == 2
@@ -395,14 +397,14 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     assert object_diff(evoked_cond.info, evoked_idx.info) == ''
     assert evoked_cond.info['description'] == cond
     assert evoked_cond.info['bads'] == bads
-    assert len(evoked_cond.info['ch_names']) == 259
+    assert len(evoked_cond.info['ch_names']) == n_eeg + n_ref + n_pns  # 259
     assert 'ECG' in evoked_cond.info['ch_names']
     assert 'EMG' in evoked_cond.info['ch_names']
     assert 'ecg' in evoked_cond
     assert 'emg' in evoked_cond
     pick_eeg = pick_types(evoked_cond.info, eeg=True, exclude=[])
-    assert len(pick_eeg) == 257
-    assert evoked_cond.info['nchan'] == 259
+    assert len(pick_eeg) == n_eeg + n_ref  # 257
+    assert evoked_cond.info['nchan'] == n_eeg + n_ref + n_pns  # 259
     assert evoked_cond.info['sfreq'] == 250.0
     assert not evoked_cond.info['custom_ref_applied']
     assert len(evoked_cond.info['dig']) == n_card + n_eeg + n_ref
