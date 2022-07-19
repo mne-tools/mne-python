@@ -136,7 +136,7 @@ def test_io_egi_mff():
                            test_scaling=False,  # XXX probably some bug
                            )
     assert raw.info['sfreq'] == 1000.
-    assert len(raw.info['dig']) == 132  # 3 cardinal points + 129 eeg (one is ref)
+    assert len(raw.info['dig']) == 132  # 3 cardinal pts + 128 eeg + 1 ref eeg
     assert raw.info['dig'][0]['ident'] == FIFF.FIFFV_POINT_LPA
     assert raw.info['dig'][0]['kind'] == FIFF.FIFFV_POINT_CARDINAL
     assert raw.info['dig'][3]['kind'] == FIFF.FIFFV_POINT_EEG
@@ -145,7 +145,7 @@ def test_io_egi_mff():
     ref_loc = raw.info['dig'][-1]['r']
     eeg_picks = pick_types(raw.info, eeg=True)
     assert len(eeg_picks) == 129
-    # ref channel doesnt store its own loc as ref location
+    # ref channel doesn't store its own loc as ref location
     # so don't test it
     ref_pick = pick_channels(raw.info['ch_names'], ['VREF'])
     eeg_picks = np.setdiff1d(eeg_picks, ref_pick)

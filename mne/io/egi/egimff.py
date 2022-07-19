@@ -259,7 +259,7 @@ def _get_eeg_calibration_info(filepath, egi_info):
 def _read_locs(filepath, egi_info, channel_naming):
     """Read channel locations."""
     from ...channels.montage import make_dig_montage
-    fname = op.join(filepath, 'coordinates.xml')
+    fname = Path(filepath) / 'coordinates.xml'
     if not op.exists(fname):
         logger.warn(
             'File coordinates.xml not found, not setting channel locations')
@@ -281,7 +281,7 @@ def _read_locs(filepath, egi_info, channel_naming):
         num_element = sensor.getElementsByTagName('number')[0].firstChild
         name = (channel_naming % int(num_element.data) if name_element is None
                 else name_element.data)
-        nr = sensor.getElementsByTagName('number')[0].firstChild.data.encode()
+        nr = num_element.data.encode()
         coords = [float(sensor.getElementsByTagName(coord)[0].firstChild.data)
                   for coord in 'xyz']
         loc = np.array(coords) / 100  # cm -> m
@@ -294,7 +294,7 @@ def _read_locs(filepath, egi_info, channel_naming):
             # if it's not in egi_info['numbers'], it's a headshape point
             if len(id_) == 0:
                 hsp.append(loc)
-            # HSP, must be a data or reference channel
+            # not HSP, must be a data or reference channel
             else:
                 ch_names.append(name)
                 ch_pos[name] = loc
@@ -527,7 +527,7 @@ class RawMff(BaseRaw):
                 if is_eeg and is_not_ref:
                     chan['loc'][3:6] = ref_coords
 
-            # Cz ref was applied during acquisition, this will mark as already set.
+            # Cz ref was applied during acquisition, so mark as already set.
             with info._unlock():
                 info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
         file_bin = op.join(input_fname, egi_info['eeg_fname'])
