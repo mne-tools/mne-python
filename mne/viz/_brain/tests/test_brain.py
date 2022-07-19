@@ -849,6 +849,10 @@ something
         assert img.shape[:2] == screenshot_all.shape[:2]
 
 
+# TODO: don't skip on Windows, see
+# https://github.com/mne-tools/mne-python/pull/10935
+# for some reason there is a dependency issue with ipympl even using pyvista
+@pytest.skipif(sys.platform == 'win32')
 @testing.requires_testing_data
 def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     """Test a simple scraping example."""
