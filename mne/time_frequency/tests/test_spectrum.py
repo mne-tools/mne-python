@@ -1,6 +1,7 @@
 import numpy as np
-from numpy.testing import assert_array_equal
 import pytest
+from numpy.testing import assert_array_equal
+from pandas.testing import assert_frame_equal
 
 
 def test_spectrum_errors(raw):
@@ -25,7 +26,7 @@ def test_spectrum_errors(raw):
 )
 def test_spectrum_params(method, fmin, fmax, tmin, tmax, picks, proj, n_fft,
                          n_overlap, n_per_seg, average, window, bandwidth,
-                         adaptive, low_bias, normalization, raw, epochs):
+                         adaptive, low_bias, normalization, raw):
     """Test valid parameter combinations in the .compute_psd() method."""
     kwargs = dict(method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
                   picks=picks, proj=proj)
@@ -35,10 +36,27 @@ def test_spectrum_params(method, fmin, fmax, tmin, tmax, picks, proj, n_fft,
     else:
         kwargs.update(bandwidth=bandwidth, adaptive=adaptive,
                       low_bias=low_bias, normalization=normalization)
-    # test with Raw
     raw.compute_psd(**kwargs)
-    # TODO test with Epochs
-    # epochs.compute_psd(**kwargs)
+
+
+@pytest.mark.parametrize('long_format', (False, True))
+def test_unaggregated_welch_spectrum_to_data_frame(raw, long_format):
+    """Test converting unaggregated welch spectra to data frame."""
+    # aggregated welch
+    orig_df = raw.compute_psd().to_data_frame(long_format=long_format)
+    # unaggregated welch → agg w/ pandas (make sure we did reshaping right)
+    df = raw.compute_psd(average=False).to_data_frame(long_format=long_format)
+    drop_cols = 'ch_type' if long_format else 'segment'
+    group_by = ['freq', 'channel'] if long_format else 'freq'
+    agg_df = (df.drop(columns=drop_cols)
+                .groupby(group_by)
+                .aggregate(np.nanmean)  # this is the psd_array_welch() default
+                .reset_index())
+    if long_format:
+        agg_df.sort_values(by=group_by, inplace=True)
+        orig_df.sort_values(by=group_by, inplace=True, ignore_index=True)
+        orig_df.drop(columns=drop_cols, inplace=True)
+    assert_frame_equal(agg_df, orig_df)
 
 
 def test_spectrum_to_data_frame(raw):
