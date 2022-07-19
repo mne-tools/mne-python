@@ -276,7 +276,7 @@ def test_to_data_frame(fname):
     _, times = raw[0, :10]
     df = raw.to_data_frame(index='time')
     assert (df.columns == raw.ch_names).all()
-    assert_array_equal(np.round(times * 1e3), df.index.values[:10])
+    assert_array_equal(times, df.index.values[:10])
     df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
     assert 'time' in df.columns
     assert_array_equal(df.values[:, 1], raw._data[0] * 1e13)

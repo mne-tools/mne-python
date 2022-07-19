@@ -132,7 +132,7 @@
 
 .. _Annalisa Pascarella: http://www.iac.rm.cnr.it/~pasca/
 
-.. _Luke Bloy: https://imaging.research.chop.edu/people/dr-luke-bloy
+.. _Luke Bloy: https://www.research.chop.edu/imaging/team
 
 .. _Leonardo Barbosa: https://github.com/noreun
 
@@ -456,3 +456,8 @@
 
 .. _Lukas Gemein: https://github.com/gemeinl
 
+.. _Frederik Weber: https://github.com/Frederik-D-Weber
+
+.. _Mingjian He: https://github.com/mh105
+
+.. _Reza Nasri: https://github.com/0reza

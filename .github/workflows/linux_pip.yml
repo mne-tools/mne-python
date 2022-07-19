@@ -50,6 +50,9 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/github_actions_infos.sh
         name: 'Show infos'
+      # Uncomment if "xcb not found" Qt errors/segfaults come up again
+      # - shell: bash -el {0}
+      #   run: LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
       - shell: bash -el {0}
         run: ./tools/get_testing_version.sh
         name: 'Get testing version'

@@ -27,13 +27,12 @@ from nilearn.plotting import plot_anat
 from nilearn.datasets import load_mni152_template
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(data_path, 'subjects')
-fname_ave = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
-fname_bem = op.join(subjects_dir, 'sample', 'bem', 'sample-5120-bem-sol.fif')
-fname_trans = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_raw-trans.fif')
-fname_surf_lh = op.join(subjects_dir, 'sample', 'surf', 'lh.white')
+subjects_dir = data_path / 'subjects'
+fname_ave = data_path / 'MEG' / 'sample' / 'sample_audvis-ave.fif'
+fname_cov = data_path / 'MEG' / 'sample' / 'sample_audvis-cov.fif'
+fname_bem = subjects_dir / 'sample' / 'bem' / 'sample-5120-bem-sol.fif'
+fname_trans = data_path / 'MEG' / 'sample' / 'sample_audvis_raw-trans.fif'
+fname_surf_lh = subjects_dir / 'sample' / 'surf' / 'lh.white'
 
 # %%
 # Let's localize the N100m (using MEG only)

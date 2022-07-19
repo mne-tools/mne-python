@@ -288,8 +288,7 @@ def test_documented():
 
     pytest.param(
         partial(read_custom_montage, head_size=None),
-        ('346\n'  # XXX: this should actually raise an error 346 != 4
-         'FID\t      LPA\t -120.03\t      0\t      85\n'
+        ('FID\t      LPA\t -120.03\t      0\t      85\n'
          'FID\t      RPA\t  120.03\t      0\t      85\n'
          'FID\t      Nz\t   114.03\t     90\t      85\n'
          'EEG\t      F3\t  -62.027\t -50.053\t     85\n'
