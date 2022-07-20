@@ -419,6 +419,21 @@ def test_crop():
     assert tfr.data.shape[-2] == 2
 
 
+def test_decim():
+    """Test TFR decimation."""
+    data = np.zeros((3, 3, 3, 1000))
+    times = np.linspace(0, 1, 1000)
+    freqs = np.array([.10, .20, .30])
+    info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
+                           ['mag', 'mag', 'mag'])
+    with info._unlock():
+        info['lowpass'] = 100
+    tfr = EpochsTFR(info, data=data, times=times, freqs=freqs)
+    tfr.decimate(3)
+    assert tfr.times.size == 1000 // 3 + 1
+    assert tfr.data.shape == ((3, 3, 3, 1000 // 3 + 1))
+
+
 @requires_version('h5io')
 @requires_pandas
 def test_io(tmp_path):
