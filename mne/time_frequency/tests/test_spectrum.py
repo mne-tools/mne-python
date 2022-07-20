@@ -2,7 +2,6 @@ from functools import partial
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_equal
 from pandas import Series
 from pandas.testing import assert_frame_equal
 
@@ -109,7 +108,7 @@ def test_spectrum_to_data_frame(raw):
     picks = [0, 1]
     _pick_first = spectrum.pick(picks).to_data_frame()
     _pick_last = spectrum.to_data_frame(picks=picks)
-    assert_array_equal(_pick_first, _pick_last)
+    assert_frame_equal(_pick_first, _pick_last)
 
 
 def test_epoch_spectrum_to_data_frame(epochs):
@@ -128,10 +127,10 @@ def test_epoch_spectrum_to_data_frame(epochs):
     assert n_col == 6  # freq, cond, epo, ch_name, ch_type, value
     # test index
     df_idx = spectrum.to_data_frame(index=['epoch', 'condition'])
-    subset = df_idx.loc[(0, 'auditory/right')]
+    subset = df_idx.loc[(epochs.selection[0], list(epochs.event_id)[0])]
     assert subset.shape == (n_freq, n_chan + 1)  # the + 1 is the freq column
     # test picks
     picks = [0, 1]
     _pick_first = spectrum.pick(picks).to_data_frame()
     _pick_last = spectrum.to_data_frame(picks=picks)
-    assert_array_equal(_pick_first, _pick_last)
+    assert_frame_equal(_pick_first, _pick_last)
