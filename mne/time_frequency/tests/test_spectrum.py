@@ -44,25 +44,6 @@ def test_spectrum_params(method, fmin, fmax, tmin, tmax, picks, proj, n_fft,
     raw.compute_psd(**kwargs)
 
 
-@pytest.mark.parametrize('long_format', (False, True))
-def test_unaggregated_welch_spectrum_to_data_frame(raw, long_format):
-    """Test converting unaggregated welch spectra to data frame."""
-    # aggregated welch
-    orig_df = raw.compute_psd().to_data_frame(long_format=long_format)
-    # unaggregated welch → agg w/ pandas (make sure we did reshaping right)
-    df = raw.compute_psd(average=False).to_data_frame(long_format=long_format)
-    group_by = ['freq']
-    drop_cols = ['segment']
-    if long_format:
-        group_by.append('channel')
-        drop_cols.append('ch_type')
-        orig_df.drop(columns='ch_type', inplace=True)
-    agg_df = (df.drop(columns=drop_cols)
-                .groupby(group_by, sort=False, as_index=False)
-                .aggregate(np.nanmean))  # nanmean is psd_array_welch() default
-    assert_frame_equal(agg_df, orig_df, check_categorical=False)
-
-
 def _agg_helper(df, weights, group_cols):
     unagged_columns = df[group_cols].iloc[0].values.tolist()
     x_mt = df.drop(columns=group_cols).values[np.newaxis].T
@@ -73,28 +54,36 @@ def _agg_helper(df, weights, group_cols):
 
 
 @pytest.mark.parametrize('long_format', (False, True))
-def test_unaggregated_multitaper_spectrum_to_data_frame(raw, long_format):
+@pytest.mark.parametrize(
+    ('method', 'psd_kwargs', 'drop_cols', 'agg_func'),
+    [['welch', dict(average=False), ['segment'], np.nanmean],
+     ['multitaper', dict(output='complex'), ['taper'], _agg_helper]])
+def test_unaggregated_spectrum_to_data_frame(
+        raw, long_format, method, psd_kwargs, drop_cols, agg_func):
     """Test converting complex multitaper spectra to data frame."""
-    # aggregated multitaper
-    orig_df = (raw.compute_psd(method='multitaper')
+    # aggregated spectrum → dataframe
+    orig_df = (raw.compute_psd(method=method)
                   .to_data_frame(long_format=long_format))
-    # complex multitaper → aggr. w/ pandas (make sure we did reshaping right)
-    spectrum = raw.compute_psd(method='multitaper', output='complex')
+    # unaggregated welch or complex multitaper →
+    #   aggregate w/ pandas (to make sure we did reshaping right)
+    spectrum = raw.compute_psd(method=method, **psd_kwargs)
     df = spectrum.to_data_frame(long_format=long_format)
     group_by = ['freq']
-    drop_cols = ['taper']
     if long_format:
         group_by.append('channel')
         drop_cols.append('ch_type')
         orig_df.drop(columns='ch_type', inplace=True)
-    # only do a couple freq bins, otherwise test takes forever
+    # only do a couple freq bins, otherwise test takes forever for multitaper
     subset = partial(np.isin, test_elements=spectrum.freqs[:2])
     df = df.loc[subset(df['freq'])]
     orig_df = orig_df.loc[subset(orig_df['freq'])]
     # aggregate
-    agg_df = (df.drop(columns=drop_cols)
-                .groupby(group_by, sort=False, as_index=False)
-                .apply(_agg_helper, spectrum._mt_weights, group_by))
+    gb = (df.drop(columns=drop_cols)
+            .groupby(group_by, sort=False, as_index=False))
+    if method == 'welch':
+        agg_df = gb.aggregate(np.nanmean)
+    else:
+        agg_df = gb.apply(_agg_helper, spectrum._mt_weights, group_by)
     assert_frame_equal(agg_df, orig_df, check_categorical=False)
 
 
