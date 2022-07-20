@@ -51,17 +51,16 @@ def test_unaggregated_welch_spectrum_to_data_frame(raw, long_format):
     orig_df = raw.compute_psd().to_data_frame(long_format=long_format)
     # unaggregated welch → agg w/ pandas (make sure we did reshaping right)
     df = raw.compute_psd(average=False).to_data_frame(long_format=long_format)
-    drop_cols = 'ch_type' if long_format else 'segment'
-    group_by = ['freq', 'channel'] if long_format else 'freq'
-    agg_df = (df.drop(columns=drop_cols)
-                .groupby(group_by)
-                .aggregate(np.nanmean)  # this is the psd_array_welch() default
-                .reset_index())
+    group_by = ['freq']
+    drop_cols = ['segment']
     if long_format:
-        agg_df.sort_values(by=group_by, inplace=True)
-        orig_df.sort_values(by=group_by, inplace=True, ignore_index=True)
-        orig_df.drop(columns=drop_cols, inplace=True)
-    assert_frame_equal(agg_df, orig_df)
+        group_by.append('channel')
+        drop_cols.append('ch_type')
+        orig_df.drop(columns='ch_type', inplace=True)
+    agg_df = (df.drop(columns=drop_cols)
+                .groupby(group_by, sort=False, as_index=False)
+                .aggregate(np.nanmean))  # nanmean is psd_array_welch() default
+    assert_frame_equal(agg_df, orig_df, check_categorical=False)
 
 
 def _agg_helper(df, weights, group_cols):
