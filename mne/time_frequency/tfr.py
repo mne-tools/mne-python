@@ -2323,7 +2323,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin, EpochsTimesMixin):
                              events=self.events, event_id=self.event_id)
         else:
             self.data = data
-            self.times = times
+            self._set_times(times)
             self.freqs = freqs
             return self
 
