@@ -2288,7 +2288,10 @@ docdict['picks_good_data_noref'] = _reflow_param_docstring(
 docdict['picks_header'] = _picks_header
 docdict['picks_ica'] = """
 picks : int | list of int | slice | None
-    Indices of the ICA components to visualize.
+    Indices of the ICA components to visualize. If an integer, represents the
+    indice of the IC to pick. If a list of int or slice, represents the list of
+    indices of the ICs to pick. The indices are 0-indexed, so ``pick=1`` will
+    pick the second IC: ``ICA001``.
 """
 docdict['picks_nostr'] = f"""picks : list | slice | None
     {_picks_desc} {_picks_int}
