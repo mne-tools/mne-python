@@ -9,20 +9,25 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne import (read_surface, write_surface, decimate_surface, pick_types,
-                 dig_mri_distances, get_montage_volume_labels)
-from mne.channels import make_dig_montage
-from mne.coreg import get_mni_fiducials
-from mne.datasets import testing
-from mne.io import read_info
+                 dig_mri_distances, get_montage_volume_labels, read_trans,
+                 create_info)
+from mne.channels import make_dig_montage, make_standard_montage
+from mne.coreg import get_mni_fiducials, fit_matched_points
+from mne.datasets import testing, sample
+from mne.io import read_info, RawArray
 from mne.io.constants import FIFF
 from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
                          get_head_surf, read_curvature, get_meg_helmet_surf,
                          _normal_orth, _read_patch, _marching_cubes,
-                         _voxel_neighbors, warp_montage_volume)
-from mne.transforms import _get_trans, compute_volume_registration, apply_trans
+                         _voxel_neighbors, warp_montage_volume,
+                         _project_onto_surface)
+from mne.transforms import (_get_trans, compute_volume_registration,
+                            transform_surface_to, apply_trans)
 from mne.utils import (catch_logging, object_diff,
                        requires_freesurfer, requires_nibabel, requires_dipy,
                        _record_warnings)
+from mne.bem import read_bem_surfaces
+
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -405,3 +410,38 @@ def test_warp_montage_volume():
     with pytest.warns(RuntimeWarning, match='not assigned'):
         warp_montage_volume(doubled_montage, CT, reg_affine,
                             None, 'sample', subjects_dir_from=subjects_dir)
+
+
+@testing.requires_testing_data
+def test__project_onto_surface():
+    """Test _project_onto_surface for `method != 'accurate' and return_nn`."""
+    data_path = sample.data_path()
+
+    trans_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_raw-trans.fif'
+    trans = read_trans(trans_fname)
+
+    surf_path = data_path / "subjects" / "sample" / "bem" / "sample-head.fif"
+    head_surf = transform_surface_to(surf=read_bem_surfaces(surf_path)[0],
+                                     dest="mri",
+                                     trans=_get_trans(trans, 'head', 'mri'),
+                                     copy=True)
+
+    montage = make_standard_montage('GSN-HydroCel-129')
+    info = create_info(montage.ch_names, 100, ch_types='eeg')
+    raw = RawArray(np.zeros((len(montage.ch_names), 100)), info)
+    raw.set_montage(montage)
+
+    mri_fiducials = get_mni_fiducials("sample", data_path / "subjects")
+    mri_fid_loc = np.array([fid["r"] for fid in mri_fiducials])
+
+    eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
+    eeg_loc = np.array([raw.info['chs'][k]['loc'][:3] for k in eeg_picks])
+
+    cap_fid_loc = np.array([fid["r"] for fid in raw.info["dig"][:3]])
+
+    trans = fit_matched_points(cap_fid_loc, mri_fid_loc,
+                               out='trans', scale=True)
+
+    eeg_loc = apply_trans(trans, eeg_loc)
+    _project_onto_surface(eeg_loc, head_surf, project_rrs=True,
+                          return_nn=True, method="nearest")
