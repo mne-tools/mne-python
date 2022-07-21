@@ -485,12 +485,11 @@ class HandleTimesMixin(object):
 
         Returns
         -------
-        inst : instance of Epochs
-            The decimated Epochs object.
+        inst : instance of Evoked | instance of Epochs | instance of EpochsTFR
+            The decimated object.
 
         See Also
         --------
-        mne.Evoked.decimate
         mne.Epochs.resample
         mne.io.Raw.resample
 
