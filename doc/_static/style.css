@@ -164,6 +164,7 @@ ul.funders li img {
     width: 30px;
     max-height: 24px;
     object-fit: contain;
+    background-color: unset !important;
 }
 
 /* these two also affect collapsible divs */
@@ -213,10 +214,13 @@ div.frontpage-gallery:hover .fadeout {
     opacity: 0.0;
     transition: 200ms linear;
 }
-div#funder-logos,
-div#institution-logos,
-div.card img.institution {
-    background-color: #fff;
+div#funder-logos div.card,
+div#institution-logos div.card,
+div#funder-logos div.card img,
+div#institution-logos div.card img {
+    background-color: unset;
+    border: none;
+    border-radius: unset;
 }
 div.card {
     border: 1px solid var(--pst-color-border);
@@ -225,6 +229,9 @@ div.card {
 .card-header {
     border-bottom-color: var(--pst-color-border);
     background-color: var(--mne-color-header);
+}
+html[data-theme="dark"] img {
+    filter: none;
 }
 /* ********************************************* sphinx-design compatibility */
 .sd-dropdown {
