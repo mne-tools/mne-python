@@ -423,6 +423,87 @@ class GetEpochsMixin(object):
         self._metadata = metadata
 
 
+class EpochsTimesMixin(object):
+    """Class to handle times, tmin, tmax and decimation for epochs."""
+
+    @property
+    def times(self):
+        """Time vector in seconds."""
+        return self._times_readonly
+
+    def _set_times(self, times):
+        """Set self._times_readonly (and make it read only)."""
+        # naming used to indicate that it shouldn't be
+        # changed directly, but rather via this method
+        self._times_readonly = times.copy()
+        self._times_readonly.flags['WRITEABLE'] = False
+
+    @property
+    def tmin(self):
+        """First time point."""
+        return self.times[0]
+
+    @property
+    def tmax(self):
+        """Last time point."""
+        return self.times[-1]
+
+    @verbose
+    def decimate(self, decim, offset=0, verbose=None):
+        """Decimate the epochs.
+
+        Parameters
+        ----------
+        %(decim)s
+        %(offset_decim)s
+        %(verbose)s
+
+        Returns
+        -------
+        inst : instance of Epochs
+            The decimated Epochs object.
+
+        See Also
+        --------
+        mne.Evoked.decimate
+        mne.Epochs.resample
+        mne.io.Raw.resample
+
+        Notes
+        -----
+        %(decim_notes)s
+
+        If ``decim`` is 1, this method does not copy the underlying data.
+
+        .. versionadded:: 0.10.0
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        from ..evoked import _check_decim
+        decim, offset, new_sfreq = _check_decim(self.info, decim, offset)
+        start_idx = int(round(-self._raw_times[0] * (self.info['sfreq'] *
+                                                     self._decim)))
+        self._decim *= decim
+        i_start = start_idx % self._decim + offset
+        decim_slice = slice(i_start, None, self._decim)
+        with self.info._unlock():
+            self.info['sfreq'] = new_sfreq
+        if self.preload:
+            if decim != 1:
+                self._data = self._data[..., decim_slice].copy()
+                self._raw_times = self._raw_times[decim_slice].copy()
+            else:
+                self._data = np.ascontiguousarray(self._data)
+            self._decim_slice = slice(None)
+            self._decim = 1
+        else:
+            self._decim_slice = decim_slice
+        self._set_times(self._raw_times[self._decim_slice])
+        return self
+
+
 def _prepare_write_metadata(metadata):
     """Convert metadata to JSON for saving."""
     if metadata is not None:
