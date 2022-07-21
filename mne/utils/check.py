@@ -1002,7 +1002,7 @@ def _ensure_events(events):
         try:
             events = np.asarray(events)
         except ValueError as np_err:
-            if np_err.startswith(
+            if str(np_err).startswith(
                     'setting an array element with a sequence. The requested '
                     'array has an inhomogeneous shape'):
                 raise TypeError(err_msg)
