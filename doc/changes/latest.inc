@@ -109,8 +109,12 @@ Enhancements
 
 - Add :func:`mne.read_evoked_besa` for reading evokeds from BESA ``.avr`` and ``.mul`` files. (:gh:`10892` by `Marijn van Vliet`_)
 
+- Add :meth:`mne.time_frequency.EpochsTFR.decimate` to reduce size of time-frequency epochs objects (:gh:`10940` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
+- Fix bug in ``mne.surface._project_onto_surface`` for the condition ``method != 'accurate' and return_nn`` (:gh:`10930` by `Christian O'Reilly`_)
+
 - Fix bug in :func:`mne.export.export_raw` to ignore None value in filenames attribute of :class:`mne.io.RawArray` (:gh:`10927` by :newcontrib:`Reza Nasri`)
 
 - Fix bug in :func:`mne.io.read_raw_edf` to allow reading in all Hypnodyne ZMax EDFs to be read in without issues (:gh:`10754` by :newcontrib:`Frederik Weber`)
@@ -195,6 +199,7 @@ Bugs
 
 - When reading EGI MFF files, channel names are no longer ignored and reference channel information is properly incorporated (:gh:`10898` by `Scott Huberty`_ and `Daniel McCloy`_)
 
+- Fix documentation bug in ``ica.plot_sources`` to specify that ``picks`` keyword argument is for picking ICA components to plot (:gh:`10936` by `Adam Li`_)
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
