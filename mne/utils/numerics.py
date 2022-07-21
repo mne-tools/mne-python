@@ -5,18 +5,17 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import contextmanager
 import hashlib
-from io import BytesIO, StringIO
-from math import sqrt
 import numbers
 import operator
 import os
-import os.path as op
-from math import ceil
 import shutil
 import sys
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from io import BytesIO, StringIO
+from math import ceil, sqrt
+from pathlib import Path
 
 import numpy as np
 
@@ -427,7 +426,7 @@ def _replace_md5(fname):
     # adapted from sphinx-gallery
     assert fname.endswith('.new')
     fname_old = fname[:-4]
-    if op.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
+    if os.path.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
         os.remove(fname)
     else:
         shutil.move(fname, fname_old)
@@ -697,7 +696,7 @@ def object_size(x, memo=None):
     id_ = id(x)
     if id_ in memo:
         return 0  # do not add already existing ones
-    if isinstance(x, (bytes, str, int, float, type(None))):
+    if isinstance(x, (bytes, str, int, float, type(None), Path)):
         size = sys.getsizeof(x)
     elif isinstance(x, np.ndarray):
         # On newer versions of NumPy, just doing sys.getsizeof(x) works,

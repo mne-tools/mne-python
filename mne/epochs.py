@@ -39,7 +39,7 @@ from .io.pick import (channel_indices_by_type, channel_type,
 from .io.proj import setup_proj, ProjMixin
 from .io.base import BaseRaw, TimeMixin, _get_ch_factors
 from .bem import _check_origin
-from .evoked import EvokedArray, _check_decim
+from .evoked import EvokedArray
 from .baseline import rescale, _log_rescale, _check_baseline
 from .channels.channels import (UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
@@ -55,7 +55,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _time_mask, check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed,
-                    _check_preload, GetEpochsMixin,
+                    _check_preload, GetEpochsMixin, EpochsTimesMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
                     _check_combine, ShiftTimeMixin, _build_data_frame,
@@ -340,7 +340,8 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 @fill_doc
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin):
+                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin,
+                 EpochsTimesMixin):
     """Abstract base class for `~mne.Epochs`-type classes.
 
     .. warning:: This class provides basic functionality and should never be
@@ -648,60 +649,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._raw_times = self.times
         assert self._data.shape[-1] == len(self.times)
         self._raw = None  # shouldn't need it anymore
-        return self
-
-    @verbose
-    def decimate(self, decim, offset=0, verbose=None):
-        """Decimate the epochs.
-
-        Parameters
-        ----------
-        %(decim)s
-        %(offset_decim)s
-        %(verbose)s
-
-        Returns
-        -------
-        epochs : instance of Epochs
-            The decimated Epochs object.
-
-        See Also
-        --------
-        mne.Evoked.decimate
-        mne.Epochs.resample
-        mne.io.Raw.resample
-
-        Notes
-        -----
-        %(decim_notes)s
-
-        If ``decim`` is 1, this method does not copy the underlying data.
-
-        .. versionadded:: 0.10.0
-
-        References
-        ----------
-        .. footbibliography::
-        """
-        decim, offset, new_sfreq = _check_decim(self.info, decim, offset)
-        start_idx = int(round(-self._raw_times[0] * (self.info['sfreq'] *
-                                                     self._decim)))
-        self._decim *= decim
-        i_start = start_idx % self._decim + offset
-        decim_slice = slice(i_start, None, self._decim)
-        with self.info._unlock():
-            self.info['sfreq'] = new_sfreq
-        if self.preload:
-            if decim != 1:
-                self._data = self._data[:, :, decim_slice].copy()
-                self._raw_times = self._raw_times[decim_slice].copy()
-            else:
-                self._data = np.ascontiguousarray(self._data)
-            self._decim_slice = slice(None)
-            self._decim = 1
-        else:
-            self._decim_slice = decim_slice
-        self._set_times(self._raw_times[self._decim_slice])
         return self
 
     @verbose
@@ -1647,31 +1594,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return self
 
     @property
-    def times(self):
-        """Time vector in seconds."""
-        return self._times_readonly
-
-    def _set_times(self, times):
-        """Set self._times_readonly (and make it read only)."""
-        # naming used to indicate that it shouldn't be
-        # changed directly, but rather via this method
-        self._times_readonly = times.copy()
-        self._times_readonly.flags['WRITEABLE'] = False
-
-    @property
-    def tmin(self):
-        """First time point."""
-        return self.times[0]
-
-    @property
     def filename(self):
         """The filename."""
         return self._filename
-
-    @property
-    def tmax(self):
-        """Last time point."""
-        return self.times[-1]
 
     def __repr__(self):
         """Build string representation."""
@@ -2119,7 +2044,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     @verbose
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, long_format=False,
-                      time_format='ms', *, verbose=None):
+                      time_format=None, *, verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,

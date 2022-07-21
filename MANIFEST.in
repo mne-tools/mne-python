@@ -78,6 +78,7 @@ exclude .github/PULL_REQUEST_TEMPLATE.md
 # Test files
 
 recursive-exclude mne/io/tests/data *
+recursive-exclude mne/io/besa/tests/data *
 recursive-exclude mne/io/bti/tests/data *
 recursive-exclude mne/io/edf/tests/data *
 recursive-exclude mne/io/kit/tests/data *

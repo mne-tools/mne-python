@@ -1547,9 +1547,10 @@ info : mne.Info
 """
 
 docdict['info_str'] = f"""
-info : mne.Info | str
-    {_info_base} If ``str``, then it should be a filepath to a file with
-    measurement information (e.g. :class:`mne.io.Raw`).
+info : mne.Info | path-like
+    {_info_base} If ``path-like``, it should be a :class:`str` or
+    :class:`pathlib.Path` to a file with measurement information
+    (e.g. :class:`mne.io.Raw`).
 """
 
 docdict['int_order_maxwell'] = """
@@ -2287,7 +2288,11 @@ docdict['picks_good_data_noref'] = _reflow_param_docstring(
 docdict['picks_header'] = _picks_header
 docdict['picks_ica'] = """
 picks : int | list of int | slice | None
-    Indices of the ICA components to visualize.
+    Indices of the independent components (ICs) to visualize.
+    If an integer, represents the index of the IC to pick.
+    Multiple ICs can be selected using a list of int or a slice.
+    The indices are 0-indexed, so ``picks=1`` will
+    pick the second IC: ``ICA001``.
 """
 docdict['picks_nostr'] = f"""picks : list | slice | None
     {_picks_desc} {_picks_int}
@@ -3222,9 +3227,8 @@ time_format : str | None
     remain as float values in seconds. If ``'ms'``, time values will be rounded
     to the nearest millisecond and converted to integers. If ``'timedelta'``,
     time values will be converted to :class:`pandas.Timedelta` values. {}
-    Default is ``'ms'`` in version 0.22, and will change to ``None`` in
-    version 0.23.
-"""  # XXX make sure we deal with this deprecation in 0.23
+    Default is ``None``.
+"""
 
 docdict['time_format_df'] = _time_format_df_base.format('')
 
@@ -3306,14 +3310,14 @@ If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
     during coregistration. Can also be ``'fsaverage'`` to use the built-in
     fsaverage transformation."""
 
-docdict['trans'] = """
-trans : str | dict | instance of Transform | None
-    %s
+docdict['trans'] = f"""
+trans : path-like | dict | instance of Transform | None
+    {_trans_base}
     If trans is None, an identity matrix is assumed.
 
     .. versionchanged:: 0.19
        Support for 'fsaverage' argument.
-""" % (_trans_base,)
+"""
 
 docdict['trans_not_none'] = """
 trans : str | dict | instance of Transform

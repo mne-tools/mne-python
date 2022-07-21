@@ -185,7 +185,7 @@ def fetch_dataset(
     # return empty string if outdated dataset and we don't want to download
     if (not force_update) and outdated and not download:
         logger.info(
-            'Dataset out of date, force_upload=False, and download=False, '
+            'Dataset out of date but force_update=False and download=False, '
             'returning empty data_path')
         return (empty, data_version) if return_version else empty
 
