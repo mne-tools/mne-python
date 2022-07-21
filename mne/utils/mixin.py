@@ -448,8 +448,8 @@ def _check_decim(info, decim, offset, check_filter=True):
     return decim, offset, new_sfreq
 
 
-class HandleTimesMixin(object):
-    """Class to handle times, tmin, tmax and decimation."""
+class TimeMixin(object):
+    """Class to handle operations on time for MNE objects."""
 
     @property
     def times(self):
@@ -475,7 +475,7 @@ class HandleTimesMixin(object):
 
     @verbose
     def decimate(self, decim, offset=0, verbose=None):
-        """Decimate the epochs.
+        """Decimate the time-series data.
 
         Parameters
         ----------
@@ -532,6 +532,104 @@ class HandleTimesMixin(object):
         self._update_first_last()
         return self
 
+    # Overridden method signature does not match call...
+    def time_as_index(self, times, use_rounding=False):  # lgtm
+        """Convert time to indices.
+
+        Parameters
+        ----------
+        times : list-like | float | int
+            List of numbers or a number representing points in time.
+        use_rounding : bool
+            If True, use rounding (instead of truncation) when converting
+            times to indices. This can help avoid non-unique indices.
+
+        Returns
+        -------
+        index : ndarray
+            Indices corresponding to the times supplied.
+        """
+        from ..source_estimate import _BaseSourceEstimate
+        if isinstance(self, _BaseSourceEstimate):
+            sfreq = 1. / self.tstep
+        else:
+            sfreq = self.info['sfreq']
+        index = (np.atleast_1d(times) - self.times[0]) * sfreq
+        if use_rounding:
+            index = np.round(index)
+        return index.astype(int)
+
+    def _handle_tmin_tmax(self, tmin, tmax):
+        """Convert seconds to index into data.
+
+        Parameters
+        ----------
+        tmin : int | float | None
+            Start time of data to get in seconds.
+        tmax : int | float | None
+            End time of data to get in seconds.
+
+        Returns
+        -------
+        start : int
+            Integer index into data corresponding to tmin.
+        stop : int
+            Integer index into data corresponding to tmax.
+
+        """
+        _validate_type(tmin, types=('numeric', None), item_name='tmin',
+                       type_name="int, float, None")
+        _validate_type(tmax, types=('numeric', None), item_name='tmax',
+                       type_name='int, float, None')
+
+        # handle tmin/tmax as start and stop indices into data array
+        n_times = self.times.size
+        start = 0 if tmin is None else self.time_as_index(tmin)[0]
+        stop = n_times if tmax is None else self.time_as_index(tmax)[0]
+
+        # truncate start/stop to the open interval [0, n_times]
+        start = min(max(0, start), n_times)
+        stop = min(max(0, stop), n_times)
+
+        return start, stop
+
+    def shift_time(self, tshift, relative=True):
+        """Shift time scale in epoched or evoked data.
+
+        Parameters
+        ----------
+        tshift : float
+            The (absolute or relative) time shift in seconds. If ``relative``
+            is True, positive tshift increases the time value associated with
+            each sample, while negative tshift decreases it.
+        relative : bool
+            If True, increase or decrease time values by ``tshift`` seconds.
+            Otherwise, shift the time values such that the time of the first
+            sample equals ``tshift``.
+
+        Returns
+        -------
+        epochs : MNE-object
+            The modified instance.
+
+        Notes
+        -----
+        This method allows you to shift the *time* values associated with each
+        data sample by an arbitrary amount. It does *not* resample the signal
+        or change the *data* values in any way.
+        """
+        _check_preload(self, 'shift_time')
+        start = tshift + (self.times[0] if relative else 0.)
+        new_times = start + np.arange(len(self.times)) / self.info['sfreq']
+        self._set_times(new_times)
+        self._update_first_last()
+        return self
+
+    def _update_first_last(self):
+        """Update self.first and self.last (sample indices)."""
+        self.first = int(round(self.times[0] * self.info['sfreq']))
+        self.last = len(self.times) + self.first - 1
+
 
 def _prepare_write_metadata(metadata):
     """Convert metadata to JSON for saving."""
@@ -576,44 +674,3 @@ class _FakeNoPandas(object):  # noqa: D101
         import mne
         mne.epochs._check_pandas_installed = self._old_check
         mne.utils.mixin._check_pandas_installed = self._old_check
-
-
-class ShiftTimeMixin(object):
-    """Class for shift_time method (Epochs, Evoked, and DipoleFixed)."""
-
-    def shift_time(self, tshift, relative=True):
-        """Shift time scale in epoched or evoked data.
-
-        Parameters
-        ----------
-        tshift : float
-            The (absolute or relative) time shift in seconds. If ``relative``
-            is True, positive tshift increases the time value associated with
-            each sample, while negative tshift decreases it.
-        relative : bool
-            If True, increase or decrease time values by ``tshift`` seconds.
-            Otherwise, shift the time values such that the time of the first
-            sample equals ``tshift``.
-
-        Returns
-        -------
-        epochs : MNE-object
-            The modified instance.
-
-        Notes
-        -----
-        This method allows you to shift the *time* values associated with each
-        data sample by an arbitrary amount. It does *not* resample the signal
-        or change the *data* values in any way.
-        """
-        _check_preload(self, 'shift_time')
-        start = tshift + (self.times[0] if relative else 0.)
-        new_times = start + np.arange(len(self.times)) / self.info['sfreq']
-        self._set_times(new_times)
-        self._update_first_last()
-        return self
-
-    def _update_first_last(self):
-        """Update self.first and self.last (sample indices)."""
-        self.first = int(round(self.times[0] * self.info['sfreq']))
-        self.last = len(self.times) + self.first - 1

@@ -35,14 +35,14 @@ from .bem import _bem_find_surface, _bem_surf_name
 from .source_space import _make_volume_source_space, SourceSpaces
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
-                    check_fname, _pl, fill_doc, _check_option, ShiftTimeMixin,
+                    check_fname, _pl, fill_doc, _check_option,
                     _svd_lwork, _repeated_svd, _get_blas_funcs, _validate_type,
-                    copy_function_doc_to_method_doc)
+                    copy_function_doc_to_method_doc, TimeMixin)
 from .viz import plot_dipole_locations
 
 
 @fill_doc
-class Dipole:
+class Dipole(TimeMixin):
     u"""Dipole class for sequential dipole fits.
 
     .. note:: This class should usually not be instantiated directly,
@@ -102,7 +102,7 @@ class Dipole:
     def __init__(self, times, pos, amplitude, ori, gof,
                  name=None, conf=None, khi2=None, nfree=None,
                  *, verbose=None):  # noqa: D102
-        self.times = np.array(times)
+        self._set_times(np.array(times))
         self.pos = np.array(pos)
         self.amplitude = np.array(amplitude)
         self.ori = np.array(ori)
@@ -357,7 +357,7 @@ def _read_dipole_fixed(fname):
 
 
 @fill_doc
-class DipoleFixed(ShiftTimeMixin):
+class DipoleFixed(TimeMixin):
     """Dipole class for fixed-position dipole fits.
 
     .. note:: This class should usually not be instantiated directly,
@@ -401,7 +401,7 @@ class DipoleFixed(ShiftTimeMixin):
         self._aspect_kind = aspect_kind
         self.kind = _aspect_rev.get(aspect_kind, 'unknown')
         self.comment = comment
-        self.times = times
+        self._set_times(np.array(times))
         self.data = data
         self.preload = True
         self._update_first_last()

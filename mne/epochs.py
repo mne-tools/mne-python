@@ -37,7 +37,7 @@ from .io.pick import (channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
                       _DATA_CH_TYPES_SPLIT, _picks_to_idx)
 from .io.proj import setup_proj, ProjMixin
-from .io.base import BaseRaw, TimeMixin, _get_ch_factors
+from .io.base import BaseRaw, _get_ch_factors
 from .bem import _check_origin
 from .evoked import EvokedArray
 from .baseline import rescale, _log_rescale, _check_baseline
@@ -55,10 +55,10 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _time_mask, check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed,
-                    _check_preload, GetEpochsMixin, HandleTimesMixin,
+                    _check_preload, GetEpochsMixin, TimeMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
-                    _check_combine, ShiftTimeMixin, _build_data_frame,
+                    _check_combine, _build_data_frame,
                     _check_pandas_index_arguments, _convert_times,
                     _scale_dataframe_data, _check_time_format, object_size,
                     _on_missing, _validate_type, _ensure_events,
@@ -338,10 +338,9 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 
 
 @fill_doc
-class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
+class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin,
-                 HandleTimesMixin):
+                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin):
     """Abstract base class for `~mne.Epochs`-type classes.
 
     .. warning:: This class provides basic functionality and should never be

@@ -20,10 +20,10 @@ from .defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
 from .filter import detrend, FilterMixin, _check_fun
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
-                    fill_doc, _check_option, ShiftTimeMixin, _build_data_frame,
+                    fill_doc, _check_option, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
                     _convert_times, _scale_dataframe_data, _check_time_format,
-                    _check_preload, _check_fname, HandleTimesMixin)
+                    _check_preload, _check_fname, TimeMixin)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -41,7 +41,7 @@ from .io.proj import ProjMixin
 from .io.write import (start_and_end_file, start_block, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id, write_float, write_complex_float_matrix)
-from .io.base import TimeMixin, _check_maxshield, _get_ch_factors
+from .io.base import _check_maxshield, _get_ch_factors
 from .parallel import parallel_func
 
 _aspect_dict = {
@@ -62,8 +62,7 @@ _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 
 @fill_doc
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
-             InterpolationMixin, FilterMixin, TimeMixin, SizeMixin,
-             ShiftTimeMixin, HandleTimesMixin):
+             InterpolationMixin, FilterMixin, TimeMixin, SizeMixin):
     """Evoked data.
 
     Parameters

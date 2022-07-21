@@ -20,13 +20,13 @@ from ..baseline import rescale
 from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
-                     sizeof_fmt, GetEpochsMixin, HandleTimesMixin,
+                     sizeof_fmt, GetEpochsMixin, TimeMixin,
                      _prepare_read_metadata, fill_doc, _prepare_write_metadata,
                      _check_event_id, _gen_events, SizeMixin, _is_numeric,
                      _check_option, _validate_type, _check_combine,
                      _check_pandas_installed, _check_pandas_index_arguments,
                      _check_time_format, _convert_times, _build_data_frame,
-                     warn, _import_h5io_funcs, ShiftTimeMixin)
+                     warn, _import_h5io_funcs)
 from ..channels.channels import UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
@@ -2092,7 +2092,7 @@ class AverageTFR(_BaseTFR):
 
 
 @fill_doc
-class EpochsTFR(_BaseTFR, GetEpochsMixin, HandleTimesMixin, ShiftTimeMixin):
+class EpochsTFR(_BaseTFR, GetEpochsMixin, TimeMixin):
     """Container for Time-Frequency data on epochs.
 
     Can for example store induced power at sensor level.
