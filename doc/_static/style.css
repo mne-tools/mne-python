@@ -146,7 +146,7 @@ img.logo {
     width: 100%;
 }
 
-/* ************************************* homepage quick links & funders list */
+/* **************************************************** homepage quick links */
 ul.quicklinks a {
     font-weight: 600;
     color: var(--pst-color-text-base);
@@ -155,6 +155,8 @@ ul.quicklinks a:hover {
     text-decoration: none;
     color: var(--pst-color-secondary);
 }
+
+/* ************************************************************ funders page */
 ul.funders li {
     margin-left: 36px;
     text-indent: -36px;
@@ -214,6 +216,8 @@ div.frontpage-gallery:hover .fadeout {
     opacity: 0.0;
     transition: 200ms linear;
 }
+
+/* ************************************* front page funder/institution logos */
 div#funder-logos div.card,
 div#institution-logos div.card,
 div#funder-logos div.card img,
@@ -230,19 +234,11 @@ div.card {
     border-bottom-color: var(--pst-color-border);
     background-color: var(--mne-color-header);
 }
+/* this is most critical for the frontpage logos, but affects all images */
 html[data-theme="dark"] img {
     filter: none;
 }
 /* ********************************************* sphinx-design compatibility */
-.sd-dropdown {
-    border: 1px solid var(--pst-color-border) !important;
-    box-shadow: 1px 1px 1px var(--pst-color-shadow);
-}
-.sd-dropdown .sd-summary-up,
-.sd-dropdown .sd-summary-down {
-  top: 0.6rem;
-}
-
 .sd-card-header {
     position: relative;
     font-weight: 600;
@@ -258,8 +254,15 @@ html[data-theme="dark"] img {
 p.btn a {
     color: unset;
 }
-/* ****************************************************** navbar quick links */
+/* sphinx-design tabs */
+html .bd-content .sd-tab-set > label:hover,
+.bd-content .sd-tab-set > input:not(:checked) + label:hover {
+    opacity: unset;
+    color: var(--pst-color-secondary);
+    border-color: var(--pst-color-secondary);
+}
 
+/* ****************************************************** navbar quick links */
 #navbar-icon-links i.fa-github-square::before {
     color: var(--mne-color-github);
 }
@@ -294,13 +297,6 @@ nav.bd-links li > a:hover,
 .toc-entry a.nav-link:hover {
     color: var(--pst-color-secondary);
 }
-/* sphinx-design tabs */
-html .bd-content .sd-tab-set > label:hover,
-.bd-content .sd-tab-set > input:not(:checked) + label:hover {
-    opacity: unset;
-    color: var(--pst-color-secondary);
-    border-color: var(--pst-color-secondary);
-}
 /* *********************************************************** contrib guide */
 ul.icon-bullets {
     list-style-type: none;
@@ -310,7 +306,7 @@ ul.icon-bullets {
 .small-stack {
     font-size: 0.5em;
 }
-/* *********************************************************** copy button */
+/* ************************************************************* copy button */
 button.copybtn {
     /* always show; https://sphinx-copybutton.readthedocs.io/en/latest/use.html#modify-the-copy-button-s-css */
     opacity: var(--copybtn-opacity);
