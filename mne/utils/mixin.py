@@ -485,7 +485,7 @@ class HandleTimesMixin(object):
 
         Returns
         -------
-        inst : instance of Evoked | instance of Epochs | instance of EpochsTFR
+        inst : MNE-object
             The decimated object.
 
         See Also
@@ -508,15 +508,11 @@ class HandleTimesMixin(object):
         # if epochs have frequencies, they are not in time (EpochsTFR)
         # and so do not need to be checked whether they have been
         # appropriately filtered to avoid aliasing
-        from ..evoked import Evoked
         decim, offset, new_sfreq = _check_decim(
             self.info, decim, offset, check_filter=not hasattr(self, 'freqs'))
-        if isinstance(self, Evoked):
-            self._decim *= decim
         start_idx = int(round(-self._raw_times[0] * (self.info['sfreq'] *
                                                      self._decim)))
-        if not isinstance(self, Evoked):
-            self._decim *= decim
+        self._decim *= decim
         i_start = start_idx % self._decim + offset
         decim_slice = slice(i_start, None, self._decim)
         with self.info._unlock():
@@ -601,8 +597,8 @@ class ShiftTimeMixin(object):
 
         Returns
         -------
-        epochs : instance of Epochs
-            The modified Epochs instance.
+        epochs : MNE-object
+            The modified instance.
 
         Notes
         -----

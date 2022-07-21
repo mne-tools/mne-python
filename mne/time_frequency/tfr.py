@@ -26,7 +26,7 @@ from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      _check_option, _validate_type, _check_combine,
                      _check_pandas_installed, _check_pandas_index_arguments,
                      _check_time_format, _convert_times, _build_data_frame,
-                     warn, _import_h5io_funcs)
+                     warn, _import_h5io_funcs, ShiftTimeMixin)
 from ..channels.channels import UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
@@ -2092,7 +2092,7 @@ class AverageTFR(_BaseTFR):
 
 
 @fill_doc
-class EpochsTFR(_BaseTFR, GetEpochsMixin, HandleTimesMixin):
+class EpochsTFR(_BaseTFR, GetEpochsMixin, HandleTimesMixin, ShiftTimeMixin):
     """Container for Time-Frequency data on epochs.
 
     Can for example store induced power at sensor level.
