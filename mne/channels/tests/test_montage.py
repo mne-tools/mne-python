@@ -1580,6 +1580,20 @@ def test_plot_montage():
     plt.close('all')
 
 
+def test_montage_equality():
+    """Test montage equality."""
+    rng = np.random.RandomState(0)
+    fiducials = dict(zip(('nasion', 'lpa', 'rpa'), rng.rand(3, 3)))
+
+    # hsp positions are [1X, 1X, 1X]
+    hsp1 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 11.))
+    hsp2 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 12.))
+    hsp2_identical = make_dig_montage(**fiducials, hsp=np.full((2, 3), 12.))
+
+    assert hsp1 != hsp2
+    assert hsp2 == hsp2_identical
+
+
 @testing.requires_testing_data
 def test_montage_add_fiducials():
     """Test montage can add estimated fiducials for rpa, lpa, nas."""
