@@ -511,9 +511,9 @@ class HandleTimesMixin(object):
         # appropriately filtered to avoid aliasing
         decim, offset, new_sfreq = _check_decim(
             self.info, decim, offset, check_filter=not hasattr(self, 'freqs'))
+        self._decim *= decim
         start_idx = int(round(-self._raw_times[0] * (self.info['sfreq'] *
                                                      self._decim)))
-        self._decim *= decim
         i_start = start_idx % self._decim + offset
         decim_slice = slice(i_start, None, self._decim)
         with self.info._unlock():
