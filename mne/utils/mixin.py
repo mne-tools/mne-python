@@ -13,7 +13,7 @@ import numpy as np
 
 from .check import _check_pandas_installed, _check_preload, _validate_type
 from ._logging import warn, verbose
-from .numerics import object_size, object_hash
+from .numerics import object_size, object_hash, _time_mask
 
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
@@ -472,6 +472,52 @@ class TimeMixin(object):
     def tmax(self):
         """Last time point."""
         return self.times[-1]
+
+    @verbose
+    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
+        """Crop data to a given time interval.
+
+        Parameters
+        ----------
+        tmin : float | None
+            Start time of selection in seconds.
+        tmax : float | None
+            End time of selection in seconds.
+        %(include_tmax)s
+        %(verbose)s
+
+        Returns
+        -------
+        inst : MNE-object
+            The cropped time-series object, modified in-place.
+
+        Notes
+        -----
+        %(notes_tmax_included_by_default)s
+        """
+        if tmin is None:
+            tmin = self.tmin
+        elif tmin < self.tmin:
+            warn(f'tmin is not in time interval. tmin is set to '
+                 f'inst.tmin ({self.tmin:g} sec)')
+            tmin = self.tmin
+
+        if tmax is None:
+            tmax = self.tmax
+        elif tmax > self.tmax:
+            warn(f'tmax is not in time interval. tmax is set to '
+                 f'inst.tmax ({self.tmax:g} sec)')
+            tmax = self.tmax
+            include_tmax = True
+
+        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
+                          include_tmax=include_tmax)
+        self._set_times(self.times[mask])
+        self._raw_times = self._raw_times[mask]
+        self._update_first_last()
+        self._data = self._data[..., mask]
+
+        return self
 
     @verbose
     def decimate(self, decim, offset=0, verbose=None):

@@ -1680,26 +1680,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # XXX this could be made to work on non-preloaded data...
         _check_preload(self, 'Modifying data of epochs')
 
-        if tmin is None:
-            tmin = self.tmin
-        elif tmin < self.tmin:
-            warn('tmin is not in epochs time interval. tmin is set to '
-                 'epochs.tmin')
-            tmin = self.tmin
-
-        if tmax is None:
-            tmax = self.tmax
-        elif tmax > self.tmax:
-            warn('tmax is not in epochs time interval. tmax is set to '
-                 'epochs.tmax')
-            tmax = self.tmax
-            include_tmax = True
-
-        tmask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
-                           include_tmax=include_tmax)
-        self._set_times(self.times[tmask])
-        self._raw_times = self._raw_times[tmask]
-        self._data = self._data[:, :, tmask]
+        super().crop(tmin=tmin, tmax=tmax, include_tmax=include_tmax)
 
         # Adjust rejection period
         if self.reject_tmin is not None and self.reject_tmin < self.tmin:

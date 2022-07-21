@@ -18,7 +18,7 @@ from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
                        _BORDER_DEFAULT)
 from .filter import detrend, FilterMixin, _check_fun
-from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
+from .utils import (check_fname, logger, verbose, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
                     fill_doc, _check_option, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
@@ -353,51 +353,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def ch_names(self):
         """Channel names."""
         return self.info['ch_names']
-
-    @fill_doc
-    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
-        """Crop data to a given time interval.
-
-        Parameters
-        ----------
-        tmin : float | None
-            Start time of selection in seconds.
-        tmax : float | None
-            End time of selection in seconds.
-        %(include_tmax)s
-        %(verbose)s
-
-        Returns
-        -------
-        evoked : instance of Evoked
-            The cropped Evoked object, modified in-place.
-
-        Notes
-        -----
-        %(notes_tmax_included_by_default)s
-        """
-        if tmin is None:
-            tmin = self.tmin
-        elif tmin < self.tmin:
-            warn(f'tmin is not in Evoked time interval. tmin is set to '
-                 f'evoked.tmin ({self.tmin:g} sec)')
-            tmin = self.tmin
-
-        if tmax is None:
-            tmax = self.tmax
-        elif tmax > self.tmax:
-            warn(f'tmax is not in Evoked time interval. tmax is set to '
-                 f'evoked.tmax ({self.tmax:g} sec)')
-            tmax = self.tmax
-            include_tmax = True
-
-        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
-                          include_tmax=include_tmax)
-        self._set_times(self.times[mask])
-        self._update_first_last()
-        self.data = self.data[:, mask]
-
-        return self
 
     @copy_function_doc_to_method_doc(plot_evoked)
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
