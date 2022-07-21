@@ -2218,7 +2218,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin, EpochsTimesMixin):
         event_id = _check_event_id(event_id, events)
         self.data = data
         self._set_times(np.array(times, dtype=float))
-        self._raw_times = self.times.copy()
+        self._raw_times = self.times.copy()  # needed for decimate
         self._decim = 1
         self.freqs = np.array(freqs, dtype=float)
         self.events = events
