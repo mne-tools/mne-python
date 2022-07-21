@@ -429,14 +429,14 @@ class DigMontage(object):
         return out
 
     def __eq__(self, other):
-        """Compares different DigMontage objects for equality.
-
+        """Compare different DigMontage objects for equality.
+        
         Returns
         -------
         Boolean output from comparison of .dig
         """
         return self.dig == other.dig and self.ch_names == other.ch_names
-    
+
     def _get_ch_pos(self):
         pos = [d['r'] for d in _get_dig_eeg(self.dig)]
         assert len(self.ch_names) == len(pos)
@@ -631,7 +631,7 @@ class DigMontage(object):
             if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
                 self.dig.remove(d)
         return self
-    
+ 
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
 
