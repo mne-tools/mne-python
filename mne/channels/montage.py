@@ -430,7 +430,7 @@ class DigMontage(object):
 
     def __eq__(self, other):
         """Compare different DigMontage objects for equality.
-        
+
         Returns
         -------
         Boolean output from comparison of .dig
@@ -631,7 +631,7 @@ class DigMontage(object):
             if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
                 self.dig.remove(d)
         return self
- 
+
 
 VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
 
