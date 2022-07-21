@@ -197,6 +197,8 @@ Bugs
 
 - Fix value set in ``raw.orig_format`` for readers of BrainVision (ASCII format), EGI and Artemis123 files (:gh:`10851` by `Mathieu Scheltienne`_)
 
+- When reading EGI MFF files, channel names are no longer ignored and reference channel information is properly incorporated (:gh:`10898` by `Scott Huberty`_ and `Daniel McCloy`_)
+
 - Fix documentation bug in ``ica.plot_sources`` to specify that ``picks`` keyword argument is for picking ICA components to plot (:gh:`10936` by `Adam Li`_)
 
 API and behavior changes
