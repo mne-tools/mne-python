@@ -55,7 +55,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _time_mask, check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed,
-                    _check_preload, GetEpochsMixin, EpochsTimesMixin,
+                    _check_preload, GetEpochsMixin, HandleTimesMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
                     _check_combine, ShiftTimeMixin, _build_data_frame,
@@ -341,7 +341,7 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
                  TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin,
-                 EpochsTimesMixin):
+                 HandleTimesMixin):
     """Abstract base class for `~mne.Epochs`-type classes.
 
     .. warning:: This class provides basic functionality and should never be
@@ -1083,7 +1083,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         # the above constructor doesn't recreate the times object precisely
         # due to numerical precision issues
-        evoked.times = self.times.copy()
+        evoked._set_times(self.times.copy())
 
         # pick channels
         picks = _picks_to_idx(self.info, picks, 'data_or_ica', ())

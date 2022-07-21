@@ -423,8 +423,33 @@ class GetEpochsMixin(object):
         self._metadata = metadata
 
 
-class EpochsTimesMixin(object):
-    """Class to handle times, tmin, tmax and decimation for epochs."""
+def _check_decim(info, decim, offset, check_filter=True):
+    """Check decimation parameters."""
+    if decim < 1 or decim != int(decim):
+        raise ValueError('decim must be an integer > 0')
+    decim = int(decim)
+    new_sfreq = info['sfreq'] / float(decim)
+    offset = int(offset)
+    if not 0 <= offset < decim:
+        raise ValueError('decim must be at least 0 and less than %s, got '
+                         '%s' % (decim, offset))
+    if check_filter:
+        lowpass = info['lowpass']
+        if decim > 1 and lowpass is None:
+            warn('The measurement information indicates data is not low-pass '
+                 'filtered. The decim=%i parameter will result in a sampling '
+                 'frequency of %g Hz, which can cause aliasing artifacts.'
+                 % (decim, new_sfreq))
+        elif decim > 1 and new_sfreq < 3 * lowpass:
+            warn('The measurement information indicates a low-pass frequency '
+                 'of %g Hz. The decim=%i parameter will result in a sampling '
+                 'frequency of %g Hz, which can cause aliasing artifacts.'
+                 % (lowpass, decim, new_sfreq))  # > 50% nyquist lim
+    return decim, offset, new_sfreq
+
+
+class HandleTimesMixin(object):
+    """Class to handle times, tmin, tmax and decimation."""
 
     @property
     def times(self):
@@ -481,8 +506,11 @@ class EpochsTimesMixin(object):
         ----------
         .. footbibliography::
         """
-        from ..evoked import _check_decim
-        decim, offset, new_sfreq = _check_decim(self.info, decim, offset)
+        # if epochs have frequencies, they are not in time (EpochsTFR)
+        # and so do not need to be checked whether they have been
+        # appropriately filtered to avoid aliasing
+        decim, offset, new_sfreq = _check_decim(
+            self.info, decim, offset, check_filter=not hasattr(self, 'freqs'))
         start_idx = int(round(-self._raw_times[0] * (self.info['sfreq'] *
                                                      self._decim)))
         self._decim *= decim
@@ -490,6 +518,7 @@ class EpochsTimesMixin(object):
         decim_slice = slice(i_start, None, self._decim)
         with self.info._unlock():
             self.info['sfreq'] = new_sfreq
+
         if self.preload:
             if decim != 1:
                 self._data = self._data[..., decim_slice].copy()
@@ -501,6 +530,7 @@ class EpochsTimesMixin(object):
         else:
             self._decim_slice = decim_slice
         self._set_times(self._raw_times[self._decim_slice])
+        self._update_first_last()
         return self
 
 
@@ -577,15 +607,11 @@ class ShiftTimeMixin(object):
         data sample by an arbitrary amount. It does *not* resample the signal
         or change the *data* values in any way.
         """
-        from ..epochs import BaseEpochs
         _check_preload(self, 'shift_time')
         start = tshift + (self.times[0] if relative else 0.)
         new_times = start + np.arange(len(self.times)) / self.info['sfreq']
-        if isinstance(self, BaseEpochs):
-            self._set_times(new_times)
-        else:
-            self.times = new_times
-            self._update_first_last()
+        self._set_times(new_times)
+        self._update_first_last()
         return self
 
     def _update_first_last(self):

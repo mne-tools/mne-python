@@ -23,7 +23,7 @@ from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     fill_doc, _check_option, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
                     _convert_times, _scale_dataframe_data, _check_time_format,
-                    _check_preload, _check_fname)
+                    _check_preload, _check_fname, HandleTimesMixin)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -63,7 +63,7 @@ _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 @fill_doc
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              InterpolationMixin, FilterMixin, TimeMixin, SizeMixin,
-             ShiftTimeMixin):
+             ShiftTimeMixin, HandleTimesMixin):
     """Evoked data.
 
     Parameters
@@ -128,9 +128,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
         fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
-        self.info, self.nave, self._aspect_kind, self.comment, self.times, \
+        self.info, self.nave, self._aspect_kind, self.comment, times, \
             self.data, self.baseline = _read_evoked(fname, condition, kind,
                                                     allow_maxshield)
+        self._set_times(times)
+        self._raw_times = self.times.copy()
+        self._decim = 1
+
         self._update_first_last()
         self.preload = True
         # project and baseline correct
@@ -351,22 +355,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Channel names."""
         return self.info['ch_names']
 
-    @property
-    def tmin(self):
-        """First time point.
-
-        .. versionadded:: 0.21
-        """
-        return self.times[0]
-
-    @property
-    def tmax(self):
-        """Last time point.
-
-        .. versionadded:: 0.21
-        """
-        return self.times[-1]
-
     @fill_doc
     def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
         """Crop data to a given time interval.
@@ -406,48 +394,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
                           include_tmax=include_tmax)
-        self.times = self.times[mask]
+        self._set_times(self.times[mask])
         self._update_first_last()
         self.data = self.data[:, mask]
 
-        return self
-
-    @verbose
-    def decimate(self, decim, offset=0, verbose=None):
-        """Decimate the evoked data.
-
-        Parameters
-        ----------
-        %(decim)s
-        %(offset_decim)s
-        %(verbose)s
-
-        Returns
-        -------
-        evoked : instance of Evoked
-            The decimated Evoked object.
-
-        See Also
-        --------
-        Epochs.decimate
-        Epochs.resample
-        mne.io.Raw.resample
-
-        Notes
-        -----
-        %(decim_notes)s
-
-        .. versionadded:: 0.13.0
-        """
-        decim, offset, new_sfreq = _check_decim(self.info, decim, offset)
-        start_idx = int(round(self.times[0] * (self.info['sfreq'] * decim)))
-        i_start = start_idx % decim + offset
-        decim_slice = slice(i_start, None, decim)
-        with self.info._unlock():
-            self.info['sfreq'] = new_sfreq
-        self.data = self.data[:, decim_slice].copy()
-        self.times = self.times[decim_slice].copy()
-        self._update_first_last()
         return self
 
     @copy_function_doc_to_method_doc(plot_evoked)
@@ -860,30 +810,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return df
 
 
-def _check_decim(info, decim, offset):
-    """Check decimation parameters."""
-    if decim < 1 or decim != int(decim):
-        raise ValueError('decim must be an integer > 0')
-    decim = int(decim)
-    new_sfreq = info['sfreq'] / float(decim)
-    lowpass = info['lowpass']
-    if decim > 1 and lowpass is None:
-        warn('The measurement information indicates data is not low-pass '
-             'filtered. The decim=%i parameter will result in a sampling '
-             'frequency of %g Hz, which can cause aliasing artifacts.'
-             % (decim, new_sfreq))
-    elif decim > 1 and new_sfreq < 3 * lowpass:
-        warn('The measurement information indicates a low-pass frequency '
-             'of %g Hz. The decim=%i parameter will result in a sampling '
-             'frequency of %g Hz, which can cause aliasing artifacts.'
-             % (lowpass, decim, new_sfreq))  # > 50% nyquist lim
-    offset = int(offset)
-    if not 0 <= offset < decim:
-        raise ValueError('decim must be at least 0 and less than %s, got '
-                         '%s' % (decim, offset))
-    return decim, offset, new_sfreq
-
-
 @fill_doc
 class EvokedArray(Evoked):
     """Evoked object from numpy array.
@@ -942,8 +868,10 @@ class EvokedArray(Evoked):
 
         self.first = int(round(tmin * info['sfreq']))
         self.last = self.first + np.shape(data)[-1] - 1
-        self.times = np.arange(self.first, self.last + 1,
-                               dtype=np.float64) / info['sfreq']
+        self._set_times(np.arange(self.first, self.last + 1,
+                                  dtype=np.float64) / info['sfreq'])
+        self._raw_times = self.times.copy()
+        self._decim = 1
         self.info = info.copy()  # do not modify original info
         self.nave = nave
         self.kind = kind

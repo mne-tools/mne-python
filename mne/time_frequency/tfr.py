@@ -20,7 +20,7 @@ from ..baseline import rescale
 from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
-                     sizeof_fmt, GetEpochsMixin, EpochsTimesMixin,
+                     sizeof_fmt, GetEpochsMixin, HandleTimesMixin,
                      _prepare_read_metadata, fill_doc, _prepare_write_metadata,
                      _check_event_id, _gen_events, SizeMixin, _is_numeric,
                      _check_option, _validate_type, _check_combine,
@@ -2092,7 +2092,7 @@ class AverageTFR(_BaseTFR):
 
 
 @fill_doc
-class EpochsTFR(_BaseTFR, GetEpochsMixin, EpochsTimesMixin):
+class EpochsTFR(_BaseTFR, GetEpochsMixin, HandleTimesMixin):
     """Container for Time-Frequency data on epochs.
 
     Can for example store induced power at sensor level.
