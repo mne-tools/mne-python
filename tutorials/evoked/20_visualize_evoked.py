@@ -188,7 +188,7 @@ for combine in ('mean', 'median', 'gfp', custom_func):
 # conditions, and the traces and legend are styled accordingly. Here we also
 # show the ``time_unit='ms'`` parameter in action.
 
-# sphinx_gallery_thumbnail_number = 14
+# sphinx_gallery_thumbnail_number = 15
 mne.viz.plot_compare_evokeds(evks, picks='MEG 1811', colors=dict(aud=0, vis=1),
                              linestyles=dict(left='solid', right='dashed'),
                              time_unit='ms')
