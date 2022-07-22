@@ -11,7 +11,7 @@ dependencies:
 - scipy
 - numpy
 - matplotlib-base
-- pyvista>=0.32
+- pyvista>=0.32,!=0.35.2
 - nilearn
 - nibabel
 - nbformat
