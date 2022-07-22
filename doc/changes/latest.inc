@@ -211,4 +211,6 @@ API and behavior changes
 
 - The FLASH BEM surface generation via :func:`mne.bem.make_flash_bem` or the :ref:`mne flash_bem` command has now been clarified in terms of expected inputs. In :func:`mne.bem.convert_flash_mris` the ``convert`` parameter is now deprecated and the ``flash5`` and ``flash30`` now accept list of file names or nibabel images. One breaking change is that now the flash files are looked for as mef05_*.mgz and mef30_*.mgz in mri/flash folder (:gh:`10715` by `Alex Gramfort`_)
 
+- :func:`~mne.viz.plot_compare_evokeds` gets a new parameter ``time_unit`` which can be ``"s"`` or ``"ms"`` (:gh:`10950` by `Daniel McCloy`_)
+
 - The ``to_data_frame`` methods for :meth:`Raw <mne.io.Raw.to_data_frame>`, :meth:`Epochs <mne.Epochs.to_data_frame>`, :meth:`Evoked <mne.Evoked.to_data_frame>`, :meth:`SourceEstimate <mne.SourceEstimate.to_data_frame>`, :meth:`EpochsTFR <mne.time_frequency.EpochsTFR.to_data_frame>`, and :meth:`AverageTFR <mne.time_frequency.AverageTFR.to_data_frame>` all now have default ``time_format=None`` (keep time in seconds) instead of ``time_format='ms'`` (convert time to milliseconds) (:gh:`10925` by `Daniel McCloy`_)
