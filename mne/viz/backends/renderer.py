@@ -336,10 +336,7 @@ def close_3d_figure(figure):
 
 def close_all_3d_figures():
     """Close all the scenes of the current 3d backend."""
-    try:  # remove when pyvista 0.35.2 patch is released
-        backend._close_all()
-    except AttributeError:
-        pass
+    backend._close_all()
 
 
 def get_brain_class():

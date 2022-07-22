@@ -34,8 +34,16 @@ from ._abstract import (_AbstractDock, _AbstractToolBar, _AbstractMenuBar,
                         _AbstractWidgetList, _AbstractAction, _AbstractDialog,
                         _AbstractKeyPress)
 from ._pyvista import _PyVistaRenderer, Plotter
-from ._pyvista import (_close_all, _close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
+from ._pyvista import (_close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
                        _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
+
+
+def _close_all():
+    from ._pyvista import _close_all
+    try:  # remove when pyvista 0.35.2 patch is released
+        _close_all()
+    except AttributeError:
+        pass
 
 
 # from: https://fontawesome.com/icons
