@@ -500,7 +500,10 @@ def _use_backend(backend_name, interactive):
         try:
             yield renderer
         finally:
-            renderer.backend._close_all()
+            try:  # remove when pyvista 0.35.2 patch is released
+                renderer.backend._close_all()
+            except Exception:
+                pass
 
 
 def _check_skip_backend(name):
