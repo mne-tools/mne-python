@@ -502,7 +502,7 @@ def _use_backend(backend_name, interactive):
         finally:
             try:  # remove when pyvista 0.35.2 patch is released
                 renderer.backend._close_all()
-            except Exception:
+            except AttributeError:
                 pass
 
 
@@ -737,7 +737,11 @@ def brain_gc(request):
     from mne.viz import Brain
     ignore = set(id(o) for o in gc.get_objects())
     yield
-    close_func()
+    try:  # remove when pyvista 0.35.2 patch is released
+        close_func()
+    except AttributeError:
+        pass
+
     # no need to warn if the test itself failed, pytest-harvest helps us here
     try:
         outcome = request.node.harvest_rep_call
