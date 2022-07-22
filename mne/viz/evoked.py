@@ -2294,7 +2294,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     times = one_evoked.times
     info = one_evoked.info
     sphere = _check_sphere(sphere, info)
-    time_unit, times = _check_time_unit(time_unit, evoked.times)
+    time_unit, times = _check_time_unit(time_unit, one_evoked.times)
     tmin, tmax = times[0], times[-1]
     # set some defaults
     if ylim is None:
