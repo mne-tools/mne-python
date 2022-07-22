@@ -336,7 +336,10 @@ def close_3d_figure(figure):
 
 def close_all_3d_figures():
     """Close all the scenes of the current 3d backend."""
-    backend._close_all()
+    try:
+        backend._close_all()
+    except Exception:
+        pass
 
 
 def get_brain_class():
