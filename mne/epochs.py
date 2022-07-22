@@ -52,7 +52,7 @@ from .fixes import rng_uniform
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (_check_fname, check_fname, logger, verbose,
-                    _time_mask, check_random_state, warn, _pl,
+                    check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed,
                     _check_preload, GetEpochsMixin, TimeMixin,
