@@ -431,20 +431,20 @@ def _check_decim(info, decim, offset, check_filter=True):
     new_sfreq = info['sfreq'] / float(decim)
     offset = int(offset)
     if not 0 <= offset < decim:
-        raise ValueError('decim must be at least 0 and less than %s, got '
-                         '%s' % (decim, offset))
+        raise ValueError(f'decim must be at least 0 and less than {decim}, '
+                         f'got {offset}')
     if check_filter:
         lowpass = info['lowpass']
         if decim > 1 and lowpass is None:
             warn('The measurement information indicates data is not low-pass '
-                 'filtered. The decim=%i parameter will result in a sampling '
-                 'frequency of %g Hz, which can cause aliasing artifacts.'
-                 % (decim, new_sfreq))
+                 f'filtered. The decim={decim} parameter will result in a '
+                 f'sampling frequency of {new_sfreq} Hz, which can cause '
+                 'aliasing artifacts.')
         elif decim > 1 and new_sfreq < 3 * lowpass:
             warn('The measurement information indicates a low-pass frequency '
-                 'of %g Hz. The decim=%i parameter will result in a sampling '
-                 'frequency of %g Hz, which can cause aliasing artifacts.'
-                 % (lowpass, decim, new_sfreq))  # > 50% nyquist lim
+                 f'of {lowpass} Hz. The decim={decim} parameter will result '
+                 f'in a sampling frequency of {new_sfreq} Hz, which can '
+                 'cause aliasing artifacts.')  # > 50% nyquist lim
     return decim, offset, new_sfreq
 
 
@@ -499,14 +499,14 @@ class TimeMixin(object):
             tmin = self.tmin
         elif tmin < self.tmin:
             warn(f'tmin is not in time interval. tmin is set to '
-                 f'inst.tmin ({self.tmin:g} sec)')
+                 f'{type(self)}.tmin ({self.tmin:g} sec)')
             tmin = self.tmin
 
         if tmax is None:
             tmax = self.tmax
         elif tmax > self.tmax:
             warn(f'tmax is not in time interval. tmax is set to '
-                 f'inst.tmax ({self.tmax:g} sec)')
+                 f'{type(self)}.tmax ({self.tmax:g} sec)')
             tmax = self.tmax
             include_tmax = True
 

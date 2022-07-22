@@ -146,8 +146,8 @@ class Dipole(TimeMixin):
         else:
             _write_dipole_text(fname, self)
 
-    @fill_doc
-    def crop(self, tmin=None, tmax=None, include_tmax=True):
+    @verbose
+    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
         """Crop data to a given time interval.
 
         Parameters
@@ -157,6 +157,7 @@ class Dipole(TimeMixin):
         tmax : float | None
             End time of selection in seconds.
         %(include_tmax)s
+        %(verbose)s
 
         Returns
         -------
@@ -168,8 +169,8 @@ class Dipole(TimeMixin):
             sfreq = 1. / np.median(np.diff(self.times))
         mask = _time_mask(self.times, tmin, tmax, sfreq=sfreq,
                           include_tmax=include_tmax)
-        for attr in ('times', 'pos', 'gof', 'amplitude', 'ori',
-                     'khi2', 'nfree'):
+        self._set_times(self.times[mask])
+        for attr in ('pos', 'gof', 'amplitude', 'ori', 'khi2', 'nfree'):
             if getattr(self, attr) is not None:
                 setattr(self, attr, getattr(self, attr)[mask])
         for key in self.conf.keys():

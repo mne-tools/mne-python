@@ -58,7 +58,7 @@ raw.rename_channels(lambda x: x.strip('.'))  # remove dots from channel names
 events, _ = mne.events_from_annotations(raw, event_id=dict(T1=2, T2=3))
 
 # %%
-# Now we can create 5s epochs around events of interest.
+# Now we can create 5-second epochs around events of interest.
 tmin, tmax = -1, 4
 event_ids = dict(hands=2, feet=3)  # map event IDs to tasks
 
