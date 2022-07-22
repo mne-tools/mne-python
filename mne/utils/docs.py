@@ -3245,6 +3245,11 @@ time_label : str | callable | None
     is more than one time point.
 """
 
+docdict['time_unit'] = """\
+time_unit : str
+    The units for the time axis, can be "s" (default) or "ms".
+"""
+
 docdict['time_viewer_brain_screenshot'] = """
 time_viewer : bool
     If True, include time viewer traces. Only used if

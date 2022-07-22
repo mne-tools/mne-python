@@ -1693,7 +1693,7 @@ class DraggableLine(object):
 
 def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
                      unit=None, truncate_xaxis=True, truncate_yaxis=True,
-                     skip_axlabel=False, hline=True):
+                     skip_axlabel=False, hline=True, time_unit='s'):
     # don't show zero line if it coincides with x-axis (even if hline=True)
     if hline and ymin != 0.:
         axes.spines['top'].set_position('zero')
@@ -1746,7 +1746,7 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
     else:
         if unit is not None:
             axes.set_ylabel(unit, rotation=90)
-        axes.set_xlabel('Time (s)')
+        axes.set_xlabel(f'Time ({time_unit})')
     # plot vertical lines
     if vlines:
         _ymin, _ymax = axes.get_ylim()
