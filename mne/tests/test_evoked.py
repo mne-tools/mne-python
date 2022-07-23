@@ -81,24 +81,26 @@ def test_decim():
     info = create_info(n_channels, sfreq, 'eeg')
     with info._unlock():
         info['lowpass'] = sfreq_new / float(decim)
-    evoked = EvokedArray(data, info)
+    evoked = EvokedArray(data, info, tmin=-1)
+    zero_idx = evoked.times.tolist().index(0)
     evoked_dec = evoked.copy().decimate(decim)
     evoked_dec_2 = evoked.copy().decimate(decim, offset=1)
     evoked_dec_3 = evoked.decimate(dec_1).decimate(dec_2)
-    assert_array_equal(evoked_dec.data, data[:, ::decim])
-    assert_array_equal(evoked_dec_2.data, data[:, 1::decim])
-    assert_array_equal(evoked_dec.data, evoked_dec_3.data)
+    start_samp = zero_idx - decim
+    assert_array_equal(evoked_dec.data, data[:, start_samp::decim])
+    # this has +1 because offset=1 when decimating ↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+    assert_array_equal(evoked_dec_2.data, data[:, (start_samp + 1)::decim])
 
     # Check proper updating of various fields
-    assert evoked_dec.first == 0
-    assert evoked_dec.last == 3
-    assert_array_equal(evoked_dec.times, [0.0, 0.6, 1.2, 1.8])
-    assert evoked_dec_2.first == 0
-    assert evoked_dec_2.last == 3
-    assert_array_equal(evoked_dec_2.times, [0.1, 0.7, 1.3, 1.9])
-    assert evoked_dec_3.first == 0
-    assert evoked_dec_3.last == 3
-    assert_array_equal(evoked_dec_3.times, [0.0, 0.6, 1.2, 1.8])
+    assert evoked_dec.first == -1
+    assert evoked_dec.last == 1
+    assert_array_equal(evoked_dec.times, [-0.6, 0.0, 0.6])
+    assert evoked_dec_2.first == -1
+    assert evoked_dec_2.last == 1
+    assert_array_equal(evoked_dec_2.times, [-0.5, 0.1, 0.7])
+    assert evoked_dec_3.first == -1
+    assert evoked_dec_3.last == 1
+    assert_array_equal(evoked_dec_3.times, [-0.6, 0.0, 0.6])
 
     # make sure the time nearest zero is also sample number 0.
     for ev in (evoked_dec, evoked_dec_2, evoked_dec_3):
