@@ -131,16 +131,15 @@ div[id^="examples-using-"] h2 {
     word-break: break-word;
 }
 
-/* ******************************************* in-text sidebar callout boxes */
-div.sidebar,
-aside.sidebar {
-    color: var(--mne-color-primary-text);
-    background-color: var(--mne-color-primary-bg);
-    border-color: var(--mne-color-primary);
-    border-radius: 0.5rem;
+/* ******************************************************* reference spacing */
+aside.footnote {
+    margin-bottom: 0.5rem;
+}
+aside.footnote:last-child {
+    margin-bottom: 1rem;
 }
 
-/* **************************************************************** homepage */
+/* *********************************************************** homepage logo */
 img.logo {
     max-width: 360px;
     width: 100%;
@@ -154,6 +153,14 @@ ul.quicklinks a {
 ul.quicklinks a:hover {
     text-decoration: none;
     color: var(--pst-color-secondary);
+}
+h5.card-header {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+h5.card-header::before {
+    height: 0px;
+    margin-top: 0px;
 }
 
 /* ************************************************************ funders page */
@@ -169,20 +176,7 @@ ul.funders li img {
     background-color: unset !important;
 }
 
-/* these two also affect collapsible divs */
-h5.card-header {
-    margin-top: 0px;
-    margin-bottom: 0px;
-}
-h5.card-header::before {
-    height: 0px;
-    margin-top: 0px;
-}
-
 /* ******************************************************** version dropdown */
-.dropdown {
-    padding: 0 .5rem;  /* match other items in the hamburger menu */
-}
 .dropdown-toggle {
     font-weight: 600;
 }
@@ -226,6 +220,7 @@ div#institution-logos div.card img {
     border: none;
     border-radius: unset;
 }
+/*
 div.card {
     border: 1px solid var(--pst-color-border);
     background-color: rgb(var(--pst-color-background));
@@ -234,23 +229,13 @@ div.card {
     border-bottom-color: var(--pst-color-border);
     background-color: var(--mne-color-header);
 }
+*/
 /* this is most critical for the frontpage logos, but affects all images */
 html[data-theme="dark"] img {
     filter: none;
 }
+
 /* ********************************************* sphinx-design compatibility */
-.sd-card-header {
-    position: relative;
-    font-weight: 600;
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--pst-color-border) !important;
-    background-color: var(--mne-color-header) !important;
-}
-.sd-card-footer {
-    border-top: 1px solid var(--pst-color-border) !important;
-    background-color: var(--pst-color-background) !important;
-}
 p.btn a {
     color: unset;
 }
@@ -275,7 +260,7 @@ html .bd-content .sd-tab-set > label:hover,
 #navbar-icon-links i.fa-discord::before {
     color: var(--mne-color-discord);
 }
-/* ************************************ bootstrap overrides for nav elements */
+/* **************************************** color overrides for nav elements */
 /* topbar nav */
 .bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:focus,
 .bd-header.navbar-light#navbar-main .navbar-nav > .active > .nav-link {
@@ -311,6 +296,11 @@ button.copybtn {
     /* always show; https://sphinx-copybutton.readthedocs.io/en/latest/use.html#modify-the-copy-button-s-css */
     opacity: var(--copybtn-opacity);
  }
+
+/* ********************************************************* prev/next links */
+.prev-next-area a p.prev-next-title {
+    color: var(--pst-color-link);
+}
 
 /* *********************************************************** miscellaneous */
 .hidden {

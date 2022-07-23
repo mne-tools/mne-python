@@ -24,7 +24,7 @@ Why morphing?
 ~~~~~~~~~~~~~
 
 .. sidebar:: Morphing examples in MNE-Python
-    :class: sd-card sd-shadow-sm
+    :class: admonition info
 
     Examples of morphing in MNE-Python include :ref:`this tutorial
     <tut-mne-fixed-free>` on surface source estimation or these examples on

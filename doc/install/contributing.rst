@@ -94,7 +94,7 @@ Configuring git
 ~~~~~~~~~~~~~~~
 
 .. sidebar:: Git GUI alternative
-    :class: sd-card sd-shadow-sm
+    :class: admonition info
 
     `GitHub desktop`_ is a GUI alternative to command line git that some users
     appreciate; it is available for |windows| Windows and |apple| MacOS.
@@ -233,7 +233,7 @@ Creating the virtual environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: Supported Python environments
-    :class: sd-card sd-shadow-sm
+    :class: admonition info
 
     We strongly recommend the `Anaconda`_ or `Miniconda`_ environment managers
     for Python. Other setups are possible but are not officially supported by
@@ -371,7 +371,7 @@ feature, you should first synchronize your local ``main`` branch with the
     $ git checkout -b new-feature-x  # create local branch "new-feature-x" and check it out
 
 .. sidebar:: Alternative
-    :class: sd-card sd-shadow-sm
+    :class: admonition info
 
     You can save some typing by using ``git pull upstream/main`` to replace
     the ``fetch`` and ``merge`` lines above.
@@ -858,7 +858,7 @@ Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: pytest flags
-    :class: sd-card sd-shadow-sm
+    :class: admonition info
 
     The ``-x`` flag exits the pytest run when any test fails; this can speed
     up debugging when running all tests in a file or module.
