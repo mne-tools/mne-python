@@ -48,6 +48,7 @@ possible.
 
 
 .. dropdown:: Want an example to work through?
+    :color: success
     :icon: rocket
 
     Feel free to just read through the rest of the page, but if you find it
