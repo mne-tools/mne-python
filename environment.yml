@@ -29,7 +29,7 @@ dependencies:
 - imageio-ffmpeg>=0.4.1
 - vtk>=9.0.1
 - traitlets
-- pyvista>=0.32
+- pyvista>=0.32,!=0.35.2
 - pyvistaqt>=0.4
 - qdarkstyle
 - darkdetect
