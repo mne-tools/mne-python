@@ -114,9 +114,6 @@ Enhancements
 - Add :meth:`mne.time_frequency.EpochsTFR.decimate` to reduce size of time-frequency epochs objects (:gh:`10940` by `Alex Rockhill`_)
 
 
-- Add :meth:`mne.time_frequency.EpochsTFR.decimate` to reduce size of time-frequency epochs objects (:gh:`10940` by `Alex Rockhill`_)
-
-
 Bugs
 ~~~~
 - Fix bug in ``mne.surface._project_onto_surface`` for the condition ``method != 'accurate' and return_nn`` (:gh:`10930` by `Christian O'Reilly`_)
