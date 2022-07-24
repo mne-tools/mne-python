@@ -109,6 +109,8 @@ Enhancements
 
 - Add :func:`mne.read_evoked_besa` for reading evokeds from BESA ``.avr`` and ``.mul`` files. (:gh:`10892` by `Marijn van Vliet`_)
 
+- Add :func:'mne.channels.Montage.DigMontage.__eq__' to test equality for DigMontage instances, (uses .dig and .ch_names) (:gh:`10942` by :newcontrib:`Tziona NessAiver`)
+
 Bugs
 ~~~~
 - Fix bug in :func:`mne.export.export_raw` to ignore None value in filenames attribute of :class:`mne.io.RawArray` (:gh:`10927` by :newcontrib:`Reza Nasri`)
