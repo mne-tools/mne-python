@@ -145,6 +145,7 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         app = QApplication.instance() or QApplication(sys.argv or [app_name])
         app.setApplicationName(app_name)
     app.setOrganizationName(organization_name)
+    app.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
 
     if enable_icon or splash:
         icons_path = _qt_init_icons()
