@@ -17,8 +17,7 @@ baseline correction:
 
 1. Unlike traditional baseline correction, the regression-based approach does
    not assume that the effect of the baseline is equivalent between different
-   experimental conditions. Thus it is safer against introduced bias /
-   false-positives.
+   experimental conditions. Thus it is safer against introduced bias.
 
 2. Assuming that pre-trial baseline signal level is mostly determined by slow
    drifts in the data, the further away (in time) you get from the baseline
