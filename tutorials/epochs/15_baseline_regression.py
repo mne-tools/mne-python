@@ -117,7 +117,7 @@ trad_vis = epochs['visual'].average().apply_baseline(baseline)
 # represent the regression predictors. We'll use four predictors: one for each
 # experimental condition, one for the effect of baseline, and one that is an
 # interaction between the baseline and one of the conditions (to account for
-# any inhomogeneity of the effect of baseline between the two conditions). Here
+# any heterogeneity of the effect of baseline between the two conditions). Here
 # are the first two:
 
 aud_predictor = epochs.events[:, 2] == epochs.event_id['auditory']
