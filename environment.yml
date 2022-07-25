@@ -42,6 +42,7 @@ dependencies:
 - mne
 - mffpy>=0.5.7
 - ipywidgets
+- ipympl
 - ipyvtklink
 - mne-qt-browser
 - pymatreader
