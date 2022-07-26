@@ -19,8 +19,8 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 
 from ._logging import warn, ClosingStringIO
+from .check import check_version
 from .numerics import object_diff
-from ..fixes import _compare_version
 
 
 def _explain_exception(start=-1, stop=None, prefix='> '):
@@ -165,36 +165,6 @@ requires_h5py = partial(requires_module, name='h5py')
 def requires_numpydoc(func):
     """Decorate tests that need numpydoc."""
     return requires_version('numpydoc', '1.0')(func)  # validate needs 1.0
-
-
-def check_version(library, min_version):
-    r"""Check minimum library version required.
-
-    Parameters
-    ----------
-    library : str
-        The library name to import. Must have a ``__version__`` property.
-    min_version : str
-        The minimum version string. Anything that matches
-        ``'(\d+ | [a-z]+ | \.)'``. Can also be empty to skip version
-        check (just check for library presence).
-
-    Returns
-    -------
-    ok : bool
-        True if the library exists with at least the specified version.
-    """
-    ok = True
-    try:
-        library = __import__(library)
-    except ImportError:
-        ok = False
-    else:
-        if min_version:
-            this_version = getattr(library, '__version__', '0.0').lstrip('v')
-            if _compare_version(this_version, '<', min_version):
-                ok = False
-    return ok
 
 
 def run_command_if_main():
