@@ -74,7 +74,7 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
 def _convert_time(date_str, time_str):
     """Convert date and time strings to float time."""
     if date_str == time_str == '':
-        date_str = '01/01/1000'
+        date_str = '01/01/2000'
         time_str = '00:00:00'
         logger.info('No date or time found')
 
