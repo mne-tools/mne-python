@@ -1059,8 +1059,8 @@ CHANNEL_LOC_ALIASES = {
     'M2': 'TP10',
     # EGI ref chan is named VREF/Vertex Ref.
     # In the standard montages for EGI, the ref is named Cz
-    'VREF':'Cz',
-    'Vertex Reference':'Cz'
+    'VREF': 'Cz',
+    'Vertex Reference': 'Cz'
     # add a comment here (with doi of a published source) above any new
     # aliases, as they are added
 }
