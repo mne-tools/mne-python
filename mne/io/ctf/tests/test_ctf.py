@@ -444,6 +444,7 @@ def test_read_ctf_mag_bad_comp(tmp_path, monkeypatch):
         read_raw_ctf(path)
 
 
+@testing.requires_testing_data
 def test_invalid_meas_date(monkeypatch):
     """Test handling of invalid meas_date."""
     def _convert_time_bad(date_str, time_str):
