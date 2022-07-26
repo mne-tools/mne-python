@@ -76,7 +76,8 @@ def _convert_time(date_str, time_str):
     if date_str == time_str == '':
         date_str = '01/01/1970'
         time_str = '00:00:00'
-        logger.info('No date or time found, setting to the epoch (1970/01/01)')
+        logger.info('No date or time found, setting to the start of the '
+                    'POSIX epoch (1970/01/01 midnight)')
 
     for fmt in ("%d/%m/%Y", "%d-%b-%Y", "%a, %b %d, %Y", "%Y/%m/%d"):
         try:
