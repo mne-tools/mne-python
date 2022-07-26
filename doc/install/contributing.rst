@@ -94,8 +94,8 @@ Setting up your local development environment
 Configuring git
 ~~~~~~~~~~~~~~~
 
-.. sidebar:: Git GUI alternative
-    :class: admonition info
+.. note:: Git GUI alternative
+    :class: sidebar
 
     `GitHub desktop`_ is a GUI alternative to command line git that some users
     appreciate; it is available for |windows| Windows and |apple| MacOS.
@@ -233,8 +233,8 @@ of how that structure is set up is given here:
 Creating the virtual environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. sidebar:: Supported Python environments
-    :class: admonition info
+.. note:: Supported Python environments
+    :class: sidebar
 
     We strongly recommend the `Anaconda`_ or `Miniconda`_ environment managers
     for Python. Other setups are possible but are not officially supported by
@@ -371,8 +371,8 @@ feature, you should first synchronize your local ``main`` branch with the
     $ git merge upstream/main      # synchronize local main branch with remote upstream main branch
     $ git checkout -b new-feature-x  # create local branch "new-feature-x" and check it out
 
-.. sidebar:: Alternative
-    :class: admonition info
+.. note:: Alternative
+    :class: sidebar
 
     You can save some typing by using ``git pull upstream/main`` to replace
     the ``fetch`` and ``merge`` lines above.
@@ -858,8 +858,8 @@ to both visualization functions and tutorials/examples.
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. sidebar:: pytest flags
-    :class: admonition info
+.. note:: pytest flags
+    :class: sidebar
 
     The ``-x`` flag exits the pytest run when any test fails; this can speed
     up debugging when running all tests in a file or module.

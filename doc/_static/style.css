@@ -21,8 +21,6 @@ html[data-theme="light"] {
     --copybtn-opacity: 0.75;
     /* card header bg color */
     --mne-color-header: rgba(0, 0, 0, 0.05);
-    /* aside/sidebar bg color */
-    --mne-color-primary-bg: #cce5ff;
     /* pydata-sphinx-theme overrides */
     --pst-color-primary: var(--mne-color-primary);
     --pst-color-primary-text: var(--mne-color-primary-text);
@@ -47,8 +45,6 @@ html[data-theme="dark"] {
     --copybtn-opacity: 0.25;
     /* card header bg color */
     --mne-color-header: rgba(255, 255, 255, 0.2);
-    /* aside/sidebar bg color */
-    --mne-color-primary-bg: #003166;
     /* pydata-sphinx-theme overrides */
     --pst-color-primary: var(--mne-color-primary);
     --pst-color-primary-text: var(--mne-color-primary-text);

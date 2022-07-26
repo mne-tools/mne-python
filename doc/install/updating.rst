@@ -72,7 +72,10 @@ copies of all the packages instead of re-downloading them.
 Upgrading to the development version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. warning:: In between releases, function and class APIs can change without
+.. warning::
+    :class: sidebar
+
+    In between releases, function and class APIs can change without
     warning.
 
 Sometimes, new features or bugfixes become available that are important to your
