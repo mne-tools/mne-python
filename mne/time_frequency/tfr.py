@@ -20,13 +20,13 @@ from ..baseline import rescale
 from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
-                     sizeof_fmt, GetEpochsMixin, _prepare_read_metadata,
-                     fill_doc, _prepare_write_metadata, _check_event_id,
-                     _gen_events, SizeMixin, _is_numeric, _check_option,
-                     _validate_type, _check_combine, _check_pandas_installed,
-                     _check_pandas_index_arguments, _check_time_format,
-                     _convert_times, _build_data_frame, warn,
-                     _import_h5io_funcs)
+                     sizeof_fmt, GetEpochsMixin, EpochsTimesMixin,
+                     _prepare_read_metadata, fill_doc, _prepare_write_metadata,
+                     _check_event_id, _gen_events, SizeMixin, _is_numeric,
+                     _check_option, _validate_type, _check_combine,
+                     _check_pandas_installed, _check_pandas_index_arguments,
+                     _check_time_format, _convert_times, _build_data_frame,
+                     warn, _import_h5io_funcs)
 from ..channels.channels import UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
@@ -1034,7 +1034,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
 
     @verbose
     def to_data_frame(self, picks=None, index=None, long_format=False,
-                      time_format='ms', *, verbose=None):
+                      time_format=None, *, verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
@@ -2092,7 +2092,7 @@ class AverageTFR(_BaseTFR):
 
 
 @fill_doc
-class EpochsTFR(_BaseTFR, GetEpochsMixin):
+class EpochsTFR(_BaseTFR, GetEpochsMixin, EpochsTimesMixin):
     """Container for Time-Frequency data on epochs.
 
     Can for example store induced power at sensor level.
@@ -2217,7 +2217,9 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
             (len(dl) == 0 for dl in drop_log))
         event_id = _check_event_id(event_id, events)
         self.data = data
-        self.times = np.array(times, dtype=float)
+        self._set_times(np.array(times, dtype=float))
+        self._raw_times = self.times.copy()  # needed for decimate
+        self._decim = 1
         self.freqs = np.array(freqs, dtype=float)
         self.events = events
         self.event_id = event_id
@@ -2321,7 +2323,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
                              events=self.events, event_id=self.event_id)
         else:
             self.data = data
-            self.times = times
+            self._set_times(times)
             self.freqs = freqs
             return self
 

@@ -119,7 +119,7 @@ The coordinate systems related to MRI data are:
     Talairach brain. The differences are larger as you get further from the
     middle of the brain, towards the outside. The FreeSurfer Talairach
     coordinates mitigate this problem by additing a an additional
-    transformation, defined separately for negatice and positive MNI Talairach
+    transformation, defined separately for negative and positive MNI Talairach
     :math:`z` coordinates. These two transformations, denoted by :math:`T_-`
     and :math:`T_+` in :ref:`coordinate_system_figure`, are fixed as discussed in
     https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach (*Approach 2*).

@@ -159,7 +159,6 @@ have to adapt this depending on the system from which your CSV originated.
 
 # %%
 
-import os.path as op
 import numpy as np
 import pandas as pd
 import mne
@@ -251,7 +250,7 @@ raw.plot_sensors()
 # The ficiduals are marked in blue, green and red.
 # See :ref:`tut-source-alignment` for more details.
 
-subjects_dir = op.join(mne.datasets.sample.data_path(), 'subjects')
+subjects_dir = mne.datasets.sample.data_path() / 'subjects'
 mne.datasets.fetch_fsaverage(subjects_dir=subjects_dir)
 
 brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir,

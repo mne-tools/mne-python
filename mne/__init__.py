@@ -98,7 +98,8 @@ from .channels import (equalize_channels, rename_channels, find_layout,
                        read_vectorview_selection)
 from .report import Report, open_report
 
-from .io import read_epochs_fieldtrip, read_evoked_fieldtrip, read_evokeds_mff
+from .io import (read_epochs_fieldtrip, read_evoked_besa,
+                 read_evoked_fieldtrip, read_evokeds_mff)
 from .rank import compute_rank
 
 from . import beamformer

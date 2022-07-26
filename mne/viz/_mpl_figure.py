@@ -1573,6 +1573,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 denom = 4 if self.mne.butterfly else 2
                 y = tuple(np.array([-1, 1]) / denom + offset)
                 self._draw_one_scalebar(x, y, this_type)
+                if self.mne.is_epochs:
+                    x = (self.mne.times[0], self.mne.times[0] +
+                         self.mne.boundary_times[1] / 2)
+                    y_value = self.mne.n_channels - 0.5
+                    y = (y_value, y_value)
+                    self._draw_one_scalebar(x, y, 'time')
 
     def _hide_scalebars(self):
         """Remove channel scale bars."""
@@ -1599,15 +1605,21 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         from .utils import _simplify_float
         color = '#AA3377'  # purple
         kwargs = dict(color=color, zorder=self.mne.zorder['scalebar'])
-        scaler = 1 if self.mne.butterfly else 2
-        inv_norm = (scaler *
-                    self.mne.scalings[ch_type] *
-                    self.mne.unit_scalings[ch_type] /
-                    self.mne.scale_factor)
+        if ch_type == 'time':
+            label = f'{self.mne.boundary_times[1]/2:.2f} sec'
+            text = self.mne.ax_main.text(x[0] + .015, y[1] - .05, label,
+                                         va='bottom', ha='left',
+                                         size='xx-small', **kwargs)
+        else:
+            scaler = 1 if self.mne.butterfly else 2
+            inv_norm = (scaler *
+                        self.mne.scalings[ch_type] *
+                        self.mne.unit_scalings[ch_type] /
+                        self.mne.scale_factor)
+            label = f'{_simplify_float(inv_norm)} {self.mne.units[ch_type]} '
+            text = self.mne.ax_main.text(x[1], y[1], label, va='baseline',
+                                         ha='right', size='xx-small', **kwargs)
         bar = self.mne.ax_main.plot(x, y, lw=4, **kwargs)[0]
-        label = f'{_simplify_float(inv_norm)} {self.mne.units[ch_type]} '
-        text = self.mne.ax_main.text(x[1], y[1], label, va='baseline',
-                                     ha='right', size='xx-small', **kwargs)
         self.mne.scalebars[ch_type] = bar
         self.mne.scalebar_texts[ch_type] = text
 

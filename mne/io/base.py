@@ -239,6 +239,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                         % self._read_comp_grade)
         self._comp = None
         self._filenames = list(filenames)
+        _validate_type(orig_format, str, "orig_format")
+        _check_option(
+            "orig_format", orig_format, ("double", "single", "int", "short")
+        )
         self.orig_format = orig_format
         # Sanity check and set original units, if provided by the reader:
 
@@ -1898,7 +1902,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @verbose
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, start=None, stop=None,
-                      long_format=False, time_format='ms', *,
+                      long_format=False, time_format=None, *,
                       verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 

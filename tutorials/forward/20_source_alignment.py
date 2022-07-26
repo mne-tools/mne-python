@@ -15,7 +15,6 @@ Let's start out by loading some data.
 """
 
 # %%
-import os.path as op
 
 import numpy as np
 import nibabel as nib
@@ -25,17 +24,17 @@ import mne
 from mne.io.constants import FIFF
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(data_path, 'subjects')
-raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
-trans_fname = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_raw-trans.fif')
+subjects_dir = data_path / 'subjects'
+raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
+trans_fname = (data_path / 'MEG' / 'sample' /
+               'sample_audvis_raw-trans.fif')
 raw = mne.io.read_raw_fif(raw_fname)
 trans = mne.read_trans(trans_fname)
-src = mne.read_source_spaces(op.join(subjects_dir, 'sample', 'bem',
-                                     'sample-oct-6-src.fif'))
+src = mne.read_source_spaces(subjects_dir / 'sample' / 'bem' /
+                             'sample-oct-6-src.fif')
 
 # Load the T1 file and change the header information to the correct units
-t1w = nib.load(op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz'))
+t1w = nib.load(data_path / 'subjects' / 'sample' / 'mri' / 'T1.mgz')
 t1w = nib.Nifti1Image(t1w.dataobj, t1w.affine)
 t1w.header['xyzt_units'] = np.array(10, dtype='uint8')
 t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
@@ -209,8 +208,8 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
 
 # The head surface is stored in "mri" coordinate frame
 # (origin at center of volume, units=mm)
-seghead_rr, seghead_tri = mne.read_surface(
-    op.join(subjects_dir, 'sample', 'surf', 'lh.seghead'))
+seghead_rr, seghead_tri = mne.read_surface(subjects_dir / 'sample' /
+                                           'surf' / 'lh.seghead')
 
 # To put the scalp in the "head" coordinate frame, we apply the inverse of
 # the precomputed `trans` (which maps head → mri)

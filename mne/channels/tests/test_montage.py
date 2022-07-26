@@ -288,8 +288,7 @@ def test_documented():
 
     pytest.param(
         partial(read_custom_montage, head_size=None),
-        ('346\n'  # XXX: this should actually raise an error 346 != 4
-         'FID\t      LPA\t -120.03\t      0\t      85\n'
+        ('FID\t      LPA\t -120.03\t      0\t      85\n'
          'FID\t      RPA\t  120.03\t      0\t      85\n'
          'FID\t      Nz\t   114.03\t     90\t      85\n'
          'EEG\t      F3\t  -62.027\t -50.053\t     85\n'
@@ -1579,6 +1578,20 @@ def test_plot_montage():
     montage = read_dig_captrak(bvct_dig_montage_fname)
     montage.plot()
     plt.close('all')
+
+
+def test_montage_equality():
+    """Test montage equality."""
+    rng = np.random.RandomState(0)
+    fiducials = dict(zip(('nasion', 'lpa', 'rpa'), rng.rand(3, 3)))
+
+    # hsp positions are [1X, 1X, 1X]
+    hsp1 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 11.))
+    hsp2 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 12.))
+    hsp2_identical = make_dig_montage(**fiducials, hsp=np.full((2, 3), 12.))
+
+    assert hsp1 != hsp2
+    assert hsp2 == hsp2_identical
 
 
 @testing.requires_testing_data

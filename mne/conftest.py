@@ -117,6 +117,8 @@ def pytest_configure(config):
     ignore:.*The 'sym_pos' keyword is deprecated.*:DeprecationWarning
     # Should be removable by 2022/07/08, SciPy savemat issue
     ignore:.*elementwise comparison failed; returning scalar in.*:FutureWarning
+    # numba with NumPy dev
+    ignore:`np.MachAr` is deprecated.*:DeprecationWarning
     """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()

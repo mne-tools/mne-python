@@ -34,9 +34,6 @@ MNE.
 # License: BSD-3-Clause
 
 # %%
-
-import os.path as op
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -51,7 +48,7 @@ from mne.datasets import fetch_fsaverage
 # which is in MNI space
 misc_path = mne.datasets.misc.data_path()
 sample_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(sample_path, 'subjects')
+subjects_dir = sample_path / 'subjects'
 
 # use mne-python's fsaverage data
 fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
@@ -100,7 +97,7 @@ mne.viz.set_3d_backend('pyvistaqt')
 # after you're finished using ``Save Volume As`` in the transform popup
 # :footcite:`HamiltonEtAl2017`.
 
-T1 = nib.load(op.join(misc_path, 'seeg', 'sample_seeg', 'mri', 'T1.mgz'))
+T1 = nib.load(misc_path / 'seeg' / 'sample_seeg' / 'mri' / 'T1.mgz')
 viewer = T1.orthoview()
 viewer.set_position(0, 9.9, 5.8)
 viewer.figs[0].axes[0].annotate(
@@ -173,7 +170,7 @@ def plot_overlay(image, compare, title, thresh=None):
     fig.tight_layout()
 
 
-CT_orig = nib.load(op.join(misc_path, 'seeg', 'sample_seeg_CT.mgz'))
+CT_orig = nib.load(misc_path / 'seeg' / 'sample_seeg_CT.mgz')
 
 # resample to T1's definition of world coordinates
 CT_resampled = resample(moving=np.asarray(CT_orig.dataobj),
@@ -300,7 +297,7 @@ del CT_data, T1
 
 # estimate head->mri transform
 subj_trans = mne.coreg.estimate_head_mri_t(
-    'sample_seeg', op.join(misc_path, 'seeg'))
+    'sample_seeg', misc_path / 'seeg')
 
 # %%
 # Marking the Location of Each Electrode Contact
@@ -346,21 +343,21 @@ subj_trans = mne.coreg.estimate_head_mri_t(
 # load electrophysiology data to find channel locations for
 # (the channels are already located in the example)
 
-raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
+raw = mne.io.read_raw(misc_path / 'seeg' / 'sample_seeg_ieeg.fif')
 
 # you may want to add `block=True` to halt execution until you have interacted
 # with the GUI to find the channel positions, that way the raw object can
 # be used later in the script (e.g. saved with channel positions)
 mne.gui.locate_ieeg(raw.info, subj_trans, CT_aligned,
                     subject='sample_seeg',
-                    subjects_dir=op.join(misc_path, 'seeg'))
+                    subjects_dir=misc_path / 'seeg')
 # The `raw` object is modified to contain the channel locations
 
 # %%
 # Let's do a quick sidebar and show what this looks like for ECoG as well.
 
-T1_ecog = nib.load(op.join(misc_path, 'ecog', 'sample_ecog', 'mri', 'T1.mgz'))
-CT_orig_ecog = nib.load(op.join(misc_path, 'ecog', 'sample_ecog_CT.mgz'))
+T1_ecog = nib.load(misc_path / 'ecog' / 'sample_ecog' / 'mri' / 'T1.mgz')
+CT_orig_ecog = nib.load(misc_path / 'ecog' / 'sample_ecog_CT.mgz')
 
 # pre-computed affine from `mne.transforms.compute_volume_registration`
 reg_affine = np.array([
@@ -372,13 +369,13 @@ reg_affine = np.array([
 CT_aligned_ecog = mne.transforms.apply_volume_registration(
     CT_orig_ecog, T1_ecog, reg_affine, cval='1%')
 
-raw_ecog = mne.io.read_raw(op.join(misc_path, 'ecog', 'sample_ecog_ieeg.fif'))
+raw_ecog = mne.io.read_raw(misc_path / 'ecog' / 'sample_ecog_ieeg.fif')
 # use estimated `trans` which was used when the locations were found previously
 subj_trans_ecog = mne.coreg.estimate_head_mri_t(
-    'sample_ecog', op.join(misc_path, 'ecog'))
+    'sample_ecog', misc_path / 'ecog')
 mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
                     subject='sample_ecog',
-                    subjects_dir=op.join(misc_path, 'ecog'))
+                    subjects_dir=misc_path / 'ecog')
 
 # %%
 # For ECoG, we typically want to account for "brain shift" or shrinking of the
@@ -390,7 +387,7 @@ mne.gui.locate_ieeg(raw_ecog.info, subj_trans_ecog, CT_aligned_ecog,
 
 # plot projected sensors
 brain_kwargs = dict(cortex='low_contrast', alpha=0.2, background='white')
-brain = mne.viz.Brain('sample_ecog', subjects_dir=op.join(misc_path, 'ecog'),
+brain = mne.viz.Brain('sample_ecog', subjects_dir=misc_path / 'ecog',
                       title='Before Projection', **brain_kwargs)
 brain.add_sensors(raw_ecog.info, trans=subj_trans_ecog)
 view_kwargs = dict(azimuth=60, elevation=100, distance=350,
@@ -403,10 +400,10 @@ brain.show_view(**view_kwargs)
 # project sensors to the brain surface
 raw_ecog.info = mne.preprocessing.ieeg.project_sensors_onto_brain(
     raw_ecog.info, subj_trans_ecog, 'sample_ecog',
-    subjects_dir=op.join(misc_path, 'ecog'))
+    subjects_dir=misc_path / 'ecog')
 
 # plot projected sensors
-brain = mne.viz.Brain('sample_ecog', subjects_dir=op.join(misc_path, 'ecog'),
+brain = mne.viz.Brain('sample_ecog', subjects_dir=misc_path / 'ecog',
                       title='After Projection', **brain_kwargs)
 brain.add_sensors(raw_ecog.info, trans=subj_trans_ecog)
 brain.show_view(**view_kwargs)
@@ -424,7 +421,7 @@ brain.show_view(**view_kwargs)
 # when the electrode contacts were localized so we need to use it again here.
 
 # plot the alignment
-brain = mne.viz.Brain('sample_seeg', subjects_dir=op.join(misc_path, 'seeg'),
+brain = mne.viz.Brain('sample_seeg', subjects_dir=misc_path / 'seeg',
                       **brain_kwargs)
 brain.add_sensors(raw.info, trans=subj_trans)
 brain.show_view(**view_kwargs)
@@ -445,9 +442,9 @@ brain.show_view(**view_kwargs)
 
 # load the subject's brain and the Freesurfer "fsaverage" template brain
 subject_brain = nib.load(
-    op.join(misc_path, 'seeg', 'sample_seeg', 'mri', 'brain.mgz'))
+    misc_path / 'seeg' / 'sample_seeg' / 'mri' / 'brain.mgz')
 template_brain = nib.load(
-    op.join(subjects_dir, 'fsaverage', 'mri', 'brain.mgz'))
+    subjects_dir / 'fsaverage' / 'mri' / 'brain.mgz')
 
 plot_overlay(template_brain, subject_brain,
              'Alignment with fsaverage before Affine Registration')
@@ -491,7 +488,7 @@ montage.apply_trans(subj_trans)
 
 montage_warped, elec_image, warped_elec_image = mne.warp_montage_volume(
     montage, CT_aligned, reg_affine, sdr_morph, thresh=0.25,
-    subject_from='sample_seeg', subjects_dir_from=op.join(misc_path, 'seeg'),
+    subject_from='sample_seeg', subjects_dir_from=misc_path / 'seeg',
     subject_to='fsaverage', subjects_dir_to=subjects_dir)
 
 fig, axes = plt.subplots(2, 1, figsize=(8, 8))

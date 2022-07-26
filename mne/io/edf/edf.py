@@ -601,6 +601,10 @@ def _edf_str(x):
     return x.decode('latin-1').split('\x00')[0]
 
 
+def _edf_str_num(x):
+    return _edf_str(x).replace(",", ".")
+
+
 def _read_edf_header(fname, exclude, infer_types, include=None):
     """Read header information from EDF+ or BDF file."""
     edf_info = {'events': []}
@@ -736,13 +740,13 @@ def _read_edf_header(fname, exclude, infer_types, include=None):
         orig_units = dict(zip(ch_names, units))
 
         physical_min = np.array(
-            [float(_edf_str(fid.read(8))) for ch in channels])[sel]
+            [float(_edf_str_num(fid.read(8))) for ch in channels])[sel]
         physical_max = np.array(
-            [float(_edf_str(fid.read(8))) for ch in channels])[sel]
+            [float(_edf_str_num(fid.read(8))) for ch in channels])[sel]
         digital_min = np.array(
-            [float(_edf_str(fid.read(8))) for ch in channels])[sel]
+            [float(_edf_str_num(fid.read(8))) for ch in channels])[sel]
         digital_max = np.array(
-            [float(_edf_str(fid.read(8))) for ch in channels])[sel]
+            [float(_edf_str_num(fid.read(8))) for ch in channels])[sel]
         prefiltering = [_edf_str(fid.read(80)).strip() for ch in channels][:-1]
         highpass, lowpass = _parse_prefilter_string(prefiltering)
 

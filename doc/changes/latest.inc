@@ -23,6 +23,12 @@ Current (1.1.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- :class:`~mne.channels.DigMontage` objects can now be checked for equality via ``==`` (:gh:`10942` by :newcontrib:`Tziona NessAiver`)
+
+- Add a note to clarify the inclusion of average referencing gain matrix during whitening (:gh:`10922` by :newcontrib:`Mingjian He`)
+
+- Add time axis scale bar for :meth:`mne.Epochs.plot` using matplotlib backend (:gh:`10736` by :newcontrib:`Jordan Drew`)
+
 - Add :func:`mne.bem.distance_to_bem` to find depth of source positions (:gh:`10632` by :newcontrib:`Matt Courtemanche`)
 
 - Add support for ahdr files in :func:`mne.io.read_raw_brainvision` (:gh:`10515` by :newcontrib:`Alessandro Tonin`)
@@ -103,8 +109,18 @@ Enhancements
 
 - :meth:`mne.Evoked.plot_field` gained a new parameter, ``interaction``, to control the rotation axes when interacting with the head (:gh:`10788` by `Richard Höchenberger`_)
 
+- Add :func:`mne.read_evoked_besa` for reading evokeds from BESA ``.avr`` and ``.mul`` files. (:gh:`10892` by `Marijn van Vliet`_)
+
+- Add :meth:`mne.time_frequency.EpochsTFR.decimate` to reduce size of time-frequency epochs objects (:gh:`10940` by `Alex Rockhill`_)
+
+
 Bugs
 ~~~~
+- Fix bug in ``mne.surface._project_onto_surface`` for the condition ``method != 'accurate' and return_nn`` (:gh:`10930` by `Christian O'Reilly`_)
+
+- Fix bug in :func:`mne.export.export_raw` to ignore None value in filenames attribute of :class:`mne.io.RawArray` (:gh:`10927` by :newcontrib:`Reza Nasri`)
+
+- Fix bug in :func:`mne.io.read_raw_edf` to allow reading in all Hypnodyne ZMax EDFs to be read in without issues (:gh:`10754` by :newcontrib:`Frederik Weber`)
 
 - Fix bug in :func:`mne.Epochs.drop_bad` where data was loaded although no rejection had to be performed (:gh:`10718` by :newcontrib:`Lukas Gemein`)
 
@@ -124,6 +140,10 @@ Bugs
 
 - Fix bug in :func:`mne.io.read_raw_bti` where unknown electrode locations were not handled properly (:gh:`10662` by `Eric Larson`_)
 
+- Fix bug in :func:`mne.io.read_raw_ctf` on Windows where large files could not be read (:gh:`10866` by `Eric Larson`_)
+
+- Fix bug in :func:`mne.io.read_raw_ctf` where invalid measurement dates were not handled properly (:gh:`10957` by `Jean-Remi King`_ and `Eric Larson`_)
+
 - Rendering issues with recent MESA releases can be avoided by setting the new environment variable``MNE_3D_OPTION_MULTI_SAMPLES=1`` or using :func:`mne.viz.set_3d_options` (:gh:`10513` by `Eric Larson`_)
 
 - Fix behavior for the ``pyvista`` 3D renderer's ``quiver3D`` function so that default arguments plot a glyph in ``arrow`` mode (:gh:`10493` by `Alex Rockhill`_)
@@ -138,6 +158,8 @@ Bugs
 
 - Fix bug in coregistration GUI that prevented it from starting up if only a high-resolution head model was available (:gh:`10543` by `Richard Höchenberger`_)
 
+- Fix bug with :class:`mne.Epochs.add_reference_channels` where attributes were not updated properly so subsequent `~mne.Epochs.pick_types` calls were broken (:gh:`10912` by `Eric Larson`_)
+-
 - Fix bug in the :class:`mne.viz.Brain` tool bar that prevented the buttons to call the corresponding feature (:gh:`10560` by `Guillaume Favelier`_)
 
 - Fix issue with saving epochs once :func:`~mne.preprocessing.compute_current_source_density` has been used if a rejection threshold was used first (:gh:`10619` by `Alex Rockhill`_ and `Richard Höchenberger`_)
@@ -178,6 +200,11 @@ Bugs
 
 - Correctly report the number of available projections when printing measurement info in a Jupyter notebook (:gh:`10471` by `Clemens Brunner`_)
 
+- Fix value set in ``raw.orig_format`` for readers of BrainVision (ASCII format), EGI and Artemis123 files (:gh:`10851` by `Mathieu Scheltienne`_)
+
+- When reading EGI MFF files, channel names are no longer ignored and reference channel information is properly incorporated (:gh:`10898` by `Scott Huberty`_ and `Daniel McCloy`_)
+
+- Fix documentation bug in ``ica.plot_sources`` to specify that ``picks`` keyword argument is for picking ICA components to plot (:gh:`10936` by `Adam Li`_)
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -188,3 +215,7 @@ API and behavior changes
 - For :func:`mne.viz.plot_topomap`, :func:`mne.viz.plot_evoked_topomap`, :func:`mne.viz.plot_arrowmap`, :func:`mne.viz.plot_ica_components`, :meth:`mne.Covariance.plot_topomap`, :meth:`mne.Evoked.plot_topomap`, :meth:`mne.Evoked.animate_topomap`, :meth:`mne.decoding.CSP.plot_patterns`, :meth:`mne.Projection.plot_topomap` and :meth:`mne.preprocessing.ICA.plot_components` the topomap image interpolation was previously a cubic interpolation but now can be ``'linear'`` and ``'nearest'`` as well. Unless ``image_interp='nearest'`` is passed mne uses a subsequent matplotlib bilinear interpolation to make the interpolated image smoother. Previously, ``'image_interp'`` controlled this second interpolation step and, for the first interpolation, the only option was cubic. To simplify, ``image_interp`` is now responsible for the main interpolation and the subsequent matplotlib image interpolation is bilinear but can be changed afterward using ``im.set_interpolation`` (:gh:`10617` by `Alex Rockhill`_)
 
 - The FLASH BEM surface generation via :func:`mne.bem.make_flash_bem` or the :ref:`mne flash_bem` command has now been clarified in terms of expected inputs. In :func:`mne.bem.convert_flash_mris` the ``convert`` parameter is now deprecated and the ``flash5`` and ``flash30`` now accept list of file names or nibabel images. One breaking change is that now the flash files are looked for as mef05_*.mgz and mef30_*.mgz in mri/flash folder (:gh:`10715` by `Alex Gramfort`_)
+
+- :func:`~mne.viz.plot_compare_evokeds` gets a new parameter ``time_unit`` which can be ``"s"`` or ``"ms"`` (:gh:`10950` by `Daniel McCloy`_)
+
+- The ``to_data_frame`` methods for :meth:`Raw <mne.io.Raw.to_data_frame>`, :meth:`Epochs <mne.Epochs.to_data_frame>`, :meth:`Evoked <mne.Evoked.to_data_frame>`, :meth:`SourceEstimate <mne.SourceEstimate.to_data_frame>`, :meth:`EpochsTFR <mne.time_frequency.EpochsTFR.to_data_frame>`, and :meth:`AverageTFR <mne.time_frequency.AverageTFR.to_data_frame>` all now have default ``time_format=None`` (keep time in seconds) instead of ``time_format='ms'`` (convert time to milliseconds) (:gh:`10925` by `Daniel McCloy`_)
