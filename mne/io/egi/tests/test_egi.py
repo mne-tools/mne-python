@@ -481,7 +481,7 @@ def test_meas_date(fname, timestamp, utc_offset):
 @pytest.mark.parametrize('fname, standard_montage', [
     (egi_mff_fname, 'GSN-HydroCel-129'),  # 129 chan file
     (egi_mff_pns_fname, 'GSN-HydroCel-257')  # 257 chan file
-    ])
+])
 def test_set_standard_montage(fname, standard_montage):
     raw = read_raw_egi(fname, verbose='warning')
     raw.set_montage(standard_montage, match_alias=True)
