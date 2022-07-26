@@ -3,6 +3,7 @@
 # License: BSD-3-Clause
 
 import copy
+from datetime import datetime, timezone
 import os
 from os import path as op
 import shutil
@@ -13,12 +14,14 @@ from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 
 import mne
+import mne.io.ctf.info
 from mne import (pick_types, read_annotations, create_info,
                  events_from_annotations, make_forward_solution)
 from mne.transforms import apply_trans
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
 from mne.io.compensator import get_current_comp
 from mne.io.ctf.constants import CTF
+from mne.io.ctf.info import _convert_time
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
 from mne.utils import (_clean_names, catch_logging, _stamp_to_dt,
@@ -439,3 +442,16 @@ def test_read_ctf_mag_bad_comp(tmp_path, monkeypatch):
     monkeypatch.setattr(mne.io.ctf.ctf, '_read_res4', _bad_res4_grad_comp)
     with pytest.raises(RuntimeError, match='inconsistent compensation grade'):
         read_raw_ctf(path)
+
+
+def test_invalid_meas_date(monkeypatch):
+    """Test handling of invalid meas_date."""
+    def _convert_time_bad(date_str, time_str):
+        return _convert_time('', '')
+    monkeypatch.setattr(mne.io.ctf.info, '_convert_time', _convert_time_bad)
+
+    with catch_logging() as log:
+        raw = read_raw_ctf(ctf_dir / ctf_fname_continuous, verbose=True)
+    log = log.getvalue()
+    assert 'No date or time found' in log
+    assert raw.info['meas_date'] == datetime.fromtimestamp(0, tz=timezone.utc)
