@@ -1485,7 +1485,7 @@ def test_prepare_emptyroom_bads(bads):
     assert raw_er_prepared.info['dev_head_t'] == raw.info['dev_head_t']
 
     montage_expected = raw.copy().pick_types(meg=True).get_montage()
-    assert raw_er_prepared.get_montage().dig == montage_expected.dig
+    assert raw_er_prepared.get_montage() == montage_expected
 
     # Ensure the originals were not modified
     assert raw.info['bads'] == raw_bads_orig

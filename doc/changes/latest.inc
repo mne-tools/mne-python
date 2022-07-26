@@ -23,6 +23,8 @@ Current (1.1.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- :class:`~mne.channels.DigMontage` objects can now be checked for equality via ``==`` (:gh:`10942` by :newcontrib:`Tziona NessAiver`)
+
 - Add a note to clarify the inclusion of average referencing gain matrix during whitening (:gh:`10922` by :newcontrib:`Mingjian He`)
 
 - Add time axis scale bar for :meth:`mne.Epochs.plot` using matplotlib backend (:gh:`10736` by :newcontrib:`Jordan Drew`)
@@ -110,6 +112,7 @@ Enhancements
 - Add :func:`mne.read_evoked_besa` for reading evokeds from BESA ``.avr`` and ``.mul`` files. (:gh:`10892` by `Marijn van Vliet`_)
 
 - Add :meth:`mne.time_frequency.EpochsTFR.decimate` to reduce size of time-frequency epochs objects (:gh:`10940` by `Alex Rockhill`_)
+
 
 Bugs
 ~~~~

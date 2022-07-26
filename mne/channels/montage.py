@@ -428,6 +428,15 @@ class DigMontage(object):
         out += other
         return out
 
+    def __eq__(self, other):
+        """Compare different DigMontage objects for equality.
+
+        Returns
+        -------
+        Boolean output from comparison of .dig
+        """
+        return self.dig == other.dig and self.ch_names == other.ch_names
+
     def _get_ch_pos(self):
         pos = [d['r'] for d in _get_dig_eeg(self.dig)]
         assert len(self.ch_names) == len(pos)
