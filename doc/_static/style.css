@@ -206,6 +206,16 @@ div.frontpage-gallery:hover .fadeout {
     opacity: 0.0;
     transition: 200ms linear;
 }
+/* affects the homepage gallery tiles and the homepage sidebar quicklinks;
+   needed for dark mode. */
+div.card {
+    border: 1px solid var(--pst-color-border);
+    background-color: rgb(var(--pst-color-background));
+}
+.card-header {
+    border-bottom-color: var(--pst-color-border);
+    background-color: var(--mne-color-header);
+}
 
 /* ************************************* front page funder/institution logos */
 div#funder-logos div.card,
@@ -216,16 +226,6 @@ div#institution-logos div.card img {
     border: none;
     border-radius: unset;
 }
-/*
-div.card {
-    border: 1px solid var(--pst-color-border);
-    background-color: rgb(var(--pst-color-background));
-}
-.card-header {
-    border-bottom-color: var(--pst-color-border);
-    background-color: var(--mne-color-header);
-}
-*/
 /* this is most critical for the frontpage logos, but affects all images */
 html[data-theme="dark"] img {
     filter: none;
