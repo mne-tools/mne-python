@@ -113,7 +113,7 @@ Enhancements
 
 - Add :meth:`mne.time_frequency.EpochsTFR.decimate` to reduce size of time-frequency epochs objects (:gh:`10940` by `Alex Rockhill`_)
 
-- Add alias for EGI reference channel (`VREF` to `Cz`), which matches the EGI reference channel name to the reference channel name in the EGI standard montages. This way, users can set a standard EGI montage without raising an error by setting `match_alias=True` in :meth:`mne.io.Raw.set_montage` (:gh:`10823` by `Scott Huberty`_)
+- Add an alias that maps EGI reference channel names (``VREF`` or ``Vertex Reference``) to the electrode name in the standard EGI montages (``Cz``). Now setting standard EGI montages with :meth:`~mne.io.Raw.set_montage` with ``match_alias=True`` will avoid raising an error (:gh:`10823` by `Scott Huberty`_)
 
 Bugs
 ~~~~
