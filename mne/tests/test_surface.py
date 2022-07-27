@@ -225,8 +225,9 @@ def test_dig_mri_distances(dig_kinds, exclude, count, bounds, outliers):
 @pytest.mark.parametrize('distances', [(0.005, 0.006)])
 def test_warn_bad_coregistration(distances):
     """Test warning for bad coregistration."""
-    with pytest.warns(UserWarning, match='Warning: Bad coregistration.' + \
-                      'Median coregistration distance is greater than 5.0 mm') as record:
+    with pytest.warns(UserWarning, match='Warning: Bad coregistration. ' +
+                      'Median coregistration distance is greater than ' +
+                      '5.0 mm') as record:
         _warn_bad_coregistration(distances)
     assert len(record) == 1
 
