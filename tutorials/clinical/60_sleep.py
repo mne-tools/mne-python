@@ -188,19 +188,18 @@ print(epochs_test)
 fig, (ax1, ax2) = plt.subplots(ncols=2)
 
 # iterate over the subjects
-stages = sorted(event_id.keys())
+stages = sorted(event_id)
 for ax, title, epochs in zip([ax1, ax2],
                              ['Alice', 'Bob'],
                              [epochs_train, epochs_test]):
 
     for stage, color in zip(stages, stage_colors):
-        epochs[stage].plot_psd(area_mode=None, color=color, ax=ax,
-                               fmin=0.1, fmax=20., show=False,
-                               average=True, spatial_colors=False)
+        spectrum = epochs[stage].compute_psd(fmin=0.1, fmax=20.)
+        spectrum.plot(ci=None, color=color, ax=ax,
+                      show=False, average=True, spatial_colors=False)
     ax.set(title=title, xlabel='Frequency (Hz)')
-ax2.set(ylabel='µV^2/Hz (dB)')
+ax1.set(ylabel='µV²/Hz (dB)')
 ax2.legend(ax2.lines[2::3], stages)
-plt.show()
 
 ##############################################################################
 # Design a scikit-learn transformer from a Python function
