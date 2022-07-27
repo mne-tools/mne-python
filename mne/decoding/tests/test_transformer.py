@@ -239,7 +239,8 @@ def test_temporal_filter():
     X = np.random.rand(101, 500)
     filt = TemporalFilter(l_freq=25., h_freq=50., sfreq=1000.,
                           filter_length=150, fir_design='firwin2')
-    assert_equal(filt.fit_transform(X).shape, X.shape)
+    with use_log_level('error'):  # warning about transition bandwidth
+        assert_equal(filt.fit_transform(X).shape, X.shape)
 
 
 def test_bad_triage():
@@ -247,5 +248,4 @@ def test_bad_triage():
     filt = TemporalFilter(l_freq=8, h_freq=60, sfreq=160.)
     # Used to fail with "ValueError: Effective band-stop frequency (135.0) is
     # too high (maximum based on Nyquist is 80.0)"
-    with use_log_level('error'):  # errant warning on old SciPy
-        filt.fit_transform(np.zeros((1, 1, 481)))
+    filt.fit_transform(np.zeros((1, 1, 481)))
