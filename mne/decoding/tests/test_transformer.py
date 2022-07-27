@@ -14,7 +14,7 @@ from mne import io, read_events, Epochs, pick_types
 from mne.decoding import (Scaler, FilterEstimator, PSDEstimator, Vectorizer,
                           UnsupervisedSpatialFilter, TemporalFilter)
 from mne.defaults import DEFAULTS
-from mne.utils import requires_sklearn, check_version
+from mne.utils import requires_sklearn, check_version, use_log_level
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
@@ -247,4 +247,5 @@ def test_bad_triage():
     filt = TemporalFilter(l_freq=8, h_freq=60, sfreq=160.)
     # Used to fail with "ValueError: Effective band-stop frequency (135.0) is
     # too high (maximum based on Nyquist is 80.0)"
-    filt.fit_transform(np.zeros((1, 1, 481)))
+    with use_log_level('error'):  # errant warning on old SciPy
+        filt.fit_transform(np.zeros((1, 1, 481)))
