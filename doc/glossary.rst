@@ -124,7 +124,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         Event arrays can be created with :func:`mne.make_fixed_length_events`,
         :func:`mne.read_events`, and :func:`mne.find_events`.
         See :ref:`tut-events-vs-annotations` for a short tutorial.
-        See also :term:`events`.
+        See also :term:`annotations`.
 
     evoked
         Evoked data are obtained by averaging epochs. Typically, an evoked object
