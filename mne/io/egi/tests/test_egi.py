@@ -485,4 +485,10 @@ def test_meas_date(fname, timestamp, utc_offset):
 def test_set_standard_montage(fname, standard_montage):
     """Test setting a standard montage."""
     raw = read_raw_egi(fname, verbose='warning')
-    raw.set_montage(standard_montage, match_alias=True)
+    dig_before_mon = raw.info['dig']
+
+    raw.set_montage(standard_montage, match_alias=True, on_missing='ignore')
+    dig_after_mon = raw.info['dig']
+
+    # No dig entries should have been dropped while setting montage
+    assert len(dig_before_mon) == len(dig_after_mon)
