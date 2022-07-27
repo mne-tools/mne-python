@@ -3,6 +3,7 @@
 # License: BSD-3-Clause
 
 import os.path as op
+from unittest.case import _AssertWarnsContext
 
 import pytest
 import numpy as np
@@ -21,7 +22,7 @@ from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
                          get_head_surf, read_curvature, get_meg_helmet_surf,
                          _normal_orth, _read_patch, _marching_cubes,
                          _voxel_neighbors, warp_montage_volume,
-                         _project_onto_surface)
+                         _project_onto_surface, warn_bad_coregistration,)
 from mne.transforms import (_get_trans, compute_volume_registration,
                             transform_surface_to, apply_trans)
 from mne.utils import (catch_logging, object_diff,
@@ -221,7 +222,11 @@ def test_dig_mri_distances(dig_kinds, exclude, count, bounds, outliers):
     assert bounds[0] < np.mean(dists) < bounds[1]
     assert np.sum(dists > 0.03) == outliers
 
-
+@pytest.mark.parametrize('distances', [(0.005, 0.006)])
+def test_warn_bad_coregistration(distances):
+    with pytest.warns(UserWarning, match='Warning: Bad coregistration. Median coregistration distance is greater than 5.0 mm'):
+        warn_bad_coregistration(distances)
+    
 def test_normal_orth():
     """Test _normal_orth."""
     nns = np.eye(3)

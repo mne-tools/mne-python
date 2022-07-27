@@ -31,7 +31,7 @@ from .source_space import (add_source_space_distances, read_source_spaces,  # no
                            write_source_spaces)
 from .surface import (read_surface, write_surface, _normalize_vectors,
                       complete_surface_info, decimate_surface,
-                      _DistanceQuery)
+                      _DistanceQuery, warn_bad_coregistration)
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
@@ -1972,7 +1972,7 @@ class Coregistration(object):
         Returns
         -------
         dist : array, shape (n_points,)
-            The distance of the head shape points to the MRI skin surface.
+            The distance of the head shape points to the MRI skin surface, in m.
 
         See Also
         --------
@@ -1982,7 +1982,9 @@ class Coregistration(object):
         # faster to use our already-determined nearest points
         hsp_points, mri_points, _ = self._setup_icp(0)
         hsp_points = apply_trans(self._head_mri_t, hsp_points)
-        return np.linalg.norm(mri_points - hsp_points, axis=-1)
+        distances = np.linalg.norm(mri_points - hsp_points, axis=-1)
+        warn_bad_coregistration(distances)
+        return distances
 
     @property
     def trans(self):
