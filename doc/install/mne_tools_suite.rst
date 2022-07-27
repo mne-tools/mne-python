@@ -35,8 +35,8 @@ Related software
 There is also a growing ecosystem of other Python packages that work alongside
 MNE-Python, including packages for:
 
-.. sidebar:: Something missing?
-    :class: sd-card sd-shadow-sm
+.. note:: Something missing?
+    :class: sidebar
 
     If you know of a package that is related but not listed here, feel free to
     :ref:`make a pull request <contributing>` to add it to this list.

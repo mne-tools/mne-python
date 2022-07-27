@@ -14,6 +14,7 @@ reference :footcite:`GramfortEtAl2013a`:
 .. footbibliography::
 
 .. dropdown:: BibTeX for MNE-Python
+    :color: info
     :icon: typography
 
     .. include:: ../references.bib
@@ -32,6 +33,7 @@ software, please use :footcite:`GramfortEtAl2014`:
 
 
 .. dropdown:: BibTeX for inverse algorithms / MNE-C
+    :color: info
     :icon: typography
 
     .. include:: ../references.bib
