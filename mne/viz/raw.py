@@ -15,7 +15,6 @@ from ..annotations import _annotations_starts_stops
 from ..filter import create_filter
 from ..io.pick import pick_types, _pick_data_channels, pick_info, pick_channels
 from ..utils import verbose, _validate_type, _check_option
-from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (plt_show, _compute_scalings, _handle_decim, _check_cov,
