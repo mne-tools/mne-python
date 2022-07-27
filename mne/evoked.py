@@ -34,8 +34,8 @@ from .io.write import (end_block, start_and_end_file, start_block,
                        write_float_matrix, write_id, write_int, write_string)
 from .parallel import parallel_func
 from .time_frequency.spectrum import ToSpectrumMixin
-from .utils import (ShiftTimeMixin, SizeMixin, TimeMixin, _build_data_frame,
-                    _check_fname, _check_option, _check_pandas_index_arguments,
+from .utils import (SizeMixin, TimeMixin, _build_data_frame, _check_fname,
+                    _check_option, _check_pandas_index_arguments,
                     _check_pandas_installed, _check_preload,
                     _check_time_format, _convert_times, _scale_dataframe_data,
                     _validate_type, check_fname,
@@ -65,7 +65,7 @@ _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 @fill_doc
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              InterpolationMixin, FilterMixin, TimeMixin, SizeMixin,
-             ShiftTimeMixin, ToSpectrumMixin):
+             ToSpectrumMixin):
     """Evoked data.
 
     Parameters
