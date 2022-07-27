@@ -975,19 +975,21 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     -------
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
-    """
-    from ._mpl_figure import _psd_figure
 
-    # generate figure
-    # epochs always use multitaper, not Welch, so no need to allow "window"
-    # param above
-    fig = _psd_figure(
-        inst=epochs, proj=proj, picks=picks, axes=ax, tmin=tmin, tmax=tmax,
-        fmin=fmin, fmax=fmax, sphere=sphere, xscale=xscale, dB=dB,
-        average=average, estimate=estimate, area_mode=area_mode,
-        line_alpha=line_alpha, area_alpha=area_alpha, color=color,
-        spatial_colors=spatial_colors, n_jobs=n_jobs, bandwidth=bandwidth,
-        adaptive=adaptive, low_bias=low_bias, normalization=normalization,
-        window='hamming', exclude=exclude)
-    plt_show(show)
+    Notes
+    -----
+    %(notes_plot_*_psd_func)s
+    """
+
+    fig = epochs.plot_psd(
+        fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
+        proj=proj, method='multitaper',
+        ax=ax, color=color, xscale=xscale, area_mode=area_mode,
+        area_alpha=area_alpha, dB=dB, estimate=estimate, show=show,
+        line_alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
+        exclude=exclude, n_jobs=n_jobs, average=average, verbose=verbose,
+        # these are **method_kw:
+        window='hamming', bandwidth=bandwidth, adaptive=adaptive,
+        low_bias=low_bias, normalization=normalization)
+    plt_show(show, fig)
     return fig

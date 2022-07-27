@@ -415,9 +415,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
 
     Notes
     -----
-    This function exists to support legacy code; for new code the preferred
-    idiom is ``inst.compute_psd().plot()`` (where ``inst`` is an instance
-    of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.Evoked`).
+    %(notes_plot_*_psd_func)s
     """
 
     fig = raw.plot_psd(

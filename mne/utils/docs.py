@@ -2063,6 +2063,15 @@ can set the default for your computer via
           of ``mne-qt-browser``.
 """
 
+_notes_plot_psd = """\
+This {} exists to support legacy code; for new code the preferred
+idiom is ``inst.compute_psd().plot()`` (where ``inst`` is an instance
+of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.Evoked`).
+"""
+
+docdict['notes_plot_*_psd_func'] = _notes_plot_psd.format('function')
+docdict['notes_plot_psd_meth'] = _notes_plot_psd.format('method')
+
 docdict['notes_tmax_included_by_default'] = """
 Unlike Python slices, MNE time intervals by default include **both**
 their end points; ``crop(tmin, tmax)`` returns the interval

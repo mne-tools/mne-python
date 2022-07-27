@@ -115,13 +115,10 @@ class ToSpectrumMixin():
 
         Notes
         -----
-        This method exists to support legacy code; for new code the preferred
-        idiom is ``inst.compute_psd().plot()`` (where ``inst`` is an instance
-        of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or
-        :class:`~mne.Evoked`).
+        %(notes_plot_psd_meth)s
         """
         # legacy n_fft default for plot_psd()
-        if method_kw.get('n_fft', None) is None:
+        if method == 'welch' and method_kw.get('n_fft', None) is None:
             tm = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
             method_kw['n_fft'] = min(np.sum(tm), 2048)
 

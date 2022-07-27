@@ -1122,25 +1122,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            use_opengl=use_opengl, theme=theme,
                            overview_mode=overview_mode)
 
-    @copy_function_doc_to_method_doc(plot_epochs_psd)
-    def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None,
-                 proj=False, bandwidth=None, adaptive=False, low_bias=True,
-                 normalization='length', picks=None, ax=None, color='black',
-                 xscale='linear', area_mode='std', area_alpha=0.33,
-                 dB=True, estimate='auto', show=True, n_jobs=None,
-                 average=False, line_alpha=None, spatial_colors=True,
-                 sphere=None, exclude='bads', verbose=None):
-        return plot_epochs_psd(self, fmin=fmin, fmax=fmax, tmin=tmin,
-                               tmax=tmax, proj=proj, bandwidth=bandwidth,
-                               adaptive=adaptive, low_bias=low_bias,
-                               normalization=normalization, picks=picks, ax=ax,
-                               color=color, xscale=xscale, area_mode=area_mode,
-                               area_alpha=area_alpha, dB=dB, estimate=estimate,
-                               show=show, n_jobs=n_jobs, average=average,
-                               line_alpha=line_alpha,
-                               spatial_colors=spatial_colors, sphere=sphere,
-                               exclude=exclude, verbose=verbose)
-
     @copy_function_doc_to_method_doc(plot_epochs_psd_topomap)
     def plot_psd_topomap(self, bands=None, tmin=None,
                          tmax=None, proj=False, bandwidth=None, adaptive=False,
