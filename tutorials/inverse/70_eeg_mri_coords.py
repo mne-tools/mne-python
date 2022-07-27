@@ -79,6 +79,7 @@ plot_glass_brain(img_mni, cmap='hot_black_bone', threshold=0., black_bg=True,
 # we stored our locations in Freesurfer surface RAS (MRI) coordinates.
 #
 # .. dropdown:: What if my electrodes are in MRI voxels?
+#     :color: warning
 #     :icon: question
 #
 #     If you have voxel coordinates in MRI voxels, you can transform these to

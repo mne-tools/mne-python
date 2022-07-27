@@ -1587,10 +1587,7 @@ def _read_annotations_edf(annotations):
                 tals.extend(np.uint8([this_chan % 256, this_chan // 256])
                             .flatten('F'))
 
-        # use of latin-1 because characters are only encoded for the first 256
-        # code points and utf-8 can triggers an "invalid continuation byte"
-        # error
-        triggers = re.findall(pat, tals.decode('latin-1'))
+        triggers = re.findall(pat, tals.decode('utf8'))
 
     events = []
     offset = 0.

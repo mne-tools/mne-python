@@ -23,8 +23,8 @@ e.g., compute averages of data across subjects.
 Why morphing?
 ~~~~~~~~~~~~~
 
-.. sidebar:: Morphing examples in MNE-Python
-    :class: sd-card sd-shadow-sm
+.. note:: Morphing examples in MNE-Python
+    :class: sidebar
 
     Examples of morphing in MNE-Python include :ref:`this tutorial
     <tut-mne-fixed-free>` on surface source estimation or these examples on

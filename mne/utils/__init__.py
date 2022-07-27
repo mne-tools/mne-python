@@ -66,9 +66,9 @@ from .numerics import (hashfunc, _compute_row_norms,
                        _julian_to_dt, _dt_to_stamp, _stamp_to_dt,
                        _check_dt, _ReuseCycle, _arange_div, _hashable_ndarray,
                        _custom_lru_cache)
-from .mixin import (SizeMixin, GetEpochsMixin, EpochsTimesMixin,
+from .mixin import (SizeMixin, GetEpochsMixin, TimeMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
-                    _FakeNoPandas, ShiftTimeMixin)
+                    _FakeNoPandas)
 from .linalg import (_svd_lwork, _repeated_svd, _sym_mat_pow, sqrtm_sym, eigh,
                      _get_blas_funcs)
 from .dataframe import (_set_pandas_dtype, _scale_dataframe_data,
