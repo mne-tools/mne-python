@@ -391,14 +391,6 @@ general neuroimaging concepts. If you think a term is missing, please consider
         scaleogram (wavelet) showing the frequency content as a function of
         time.
 
-    MNE time-series object
-        An MNE class that contains a matrix with data that changes over time
-        such that successive time points are highly correlated with each other,
-        and it contains the relevant metadata to contextualize the time-series.
-        Examples include :class:`mne.io.Raw`, :class:`mne.Epochs`,
-        :class:`mne.Evoked`, :class:`mne.time_frequency.EpochsTFR` and
-        :class:`mne.SourceEstimate`.
-
     trans
         A coordinate frame affine transformation, usually between the Neuromag head
         coordinate frame and the MRI Surface RAS coordinate frame used by Freesurfer.

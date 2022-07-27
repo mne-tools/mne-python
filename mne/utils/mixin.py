@@ -488,7 +488,7 @@ class TimeMixin(object):
 
         Returns
         -------
-        inst : MNE-object
+        inst : instance of Raw, Epochs, Evoked, AverageTFR, or SourceEstimate
             The cropped time-series object, modified in-place.
 
         Notes
