@@ -259,7 +259,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         'welch', fmin, fmax, tmin, tmax, picks, proj, reject_by_annotation,
         n_jobs=n_jobs, verbose=verbose, n_fft=n_fft, n_overlap=n_overlap,
         n_per_seg=n_per_seg, average=average, window=window)
-    return spectrum.get_data(), spectrum.freqs
+    return spectrum.get_data(return_freqs=True)
 
 
 @deprecated('Function psd_multitaper() is deprecated; for Raw/Epochs/Evoked '
@@ -336,4 +336,4 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         reject_by_annotation, n_jobs=n_jobs, verbose=verbose,
         bandwidth=bandwidth, adaptive=adaptive, low_bias=low_bias,
         normalization=normalization)
-    return spectrum.get_data(), spectrum.freqs
+    return spectrum.get_data(return_freqs=True)
