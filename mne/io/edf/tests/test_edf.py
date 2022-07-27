@@ -343,6 +343,7 @@ def test_read_annotations(fname, recwarn):
     assert len(annot.onset) == 2
 
 
+@testing.requires_testing_data
 def test_read_utf8_annotations():
     """Test if UTF8 annotations can be read."""
     raw = read_raw_edf(edf_utf8_annotations)
