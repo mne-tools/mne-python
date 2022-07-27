@@ -1587,7 +1587,7 @@ def _read_annotations_edf(annotations):
                 tals.extend(np.uint8([this_chan % 256, this_chan // 256])
                             .flatten('F'))
 
-        triggers = re.findall(pat, tals.decode('uft8'))
+        triggers = re.findall(pat, tals.decode('utf8'))
 
     events = []
     offset = 0.
