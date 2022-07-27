@@ -260,6 +260,7 @@ stages:
       PYTHONIOENCODING: 'utf-8'
       AZURE_CI_WINDOWS: 'true'
       PYTHON_ARCH: 'x64'
+    timeoutInMinutes: 70
     strategy:
       maxParallel: 4
       matrix:

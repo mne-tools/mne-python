@@ -23,6 +23,8 @@ Current (1.1.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- :class:`~mne.channels.DigMontage` objects can now be checked for equality via ``==`` (:gh:`10942` by :newcontrib:`Tziona NessAiver`)
+
 - Add a note to clarify the inclusion of average referencing gain matrix during whitening (:gh:`10922` by :newcontrib:`Mingjian He`)
 
 - Add time axis scale bar for :meth:`mne.Epochs.plot` using matplotlib backend (:gh:`10736` by :newcontrib:`Jordan Drew`)
@@ -111,6 +113,7 @@ Enhancements
 
 - Add :meth:`mne.time_frequency.EpochsTFR.decimate` to reduce size of time-frequency epochs objects (:gh:`10940` by `Alex Rockhill`_)
 
+
 Bugs
 ~~~~
 - Fix bug in ``mne.surface._project_onto_surface`` for the condition ``method != 'accurate' and return_nn`` (:gh:`10930` by `Christian O'Reilly`_)
@@ -138,6 +141,8 @@ Bugs
 - Fix bug in :func:`mne.io.read_raw_bti` where unknown electrode locations were not handled properly (:gh:`10662` by `Eric Larson`_)
 
 - Fix bug in :func:`mne.io.read_raw_ctf` on Windows where large files could not be read (:gh:`10866` by `Eric Larson`_)
+
+- Fix bug in :func:`mne.io.read_raw_ctf` where invalid measurement dates were not handled properly (:gh:`10957` by `Jean-Remi King`_ and `Eric Larson`_)
 
 - Rendering issues with recent MESA releases can be avoided by setting the new environment variable``MNE_3D_OPTION_MULTI_SAMPLES=1`` or using :func:`mne.viz.set_3d_options` (:gh:`10513` by `Eric Larson`_)
 
