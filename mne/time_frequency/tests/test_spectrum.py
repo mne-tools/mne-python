@@ -2,10 +2,9 @@ from functools import partial
 
 import numpy as np
 import pytest
-from pandas import Series
-from pandas.testing import assert_frame_equal
 
 from mne.time_frequency.multitaper import _psd_from_mt
+from mne.utils import requires_pandas
 
 
 def test_spectrum_errors(raw):
@@ -44,6 +43,7 @@ def test_spectrum_params(method, fmin, fmax, tmin, tmax, picks, proj, n_fft,
 
 
 def _agg_helper(df, weights, group_cols):
+    from pandas import Series
     unagged_columns = df[group_cols].iloc[0].values.tolist()
     x_mt = df.drop(columns=group_cols).values[np.newaxis].T
     psd = _psd_from_mt(x_mt, weights)
@@ -52,10 +52,13 @@ def _agg_helper(df, weights, group_cols):
     return Series(_df)
 
 
+@requires_pandas
 @pytest.mark.parametrize('long_format', (False, True))
 @pytest.mark.parametrize('method', ('welch', 'multitaper'))
 def test_unaggregated_spectrum_to_data_frame(raw, long_format, method):
     """Test converting complex multitaper spectra to data frame."""
+    from pandas.testing import assert_frame_equal
+
     # aggregated spectrum → dataframe
     orig_df = (raw.compute_psd(method=method)
                   .to_data_frame(long_format=long_format))
@@ -87,8 +90,11 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method):
     assert_frame_equal(agg_df, orig_df, check_categorical=False)
 
 
+@requires_pandas
 def test_spectrum_to_data_frame(raw):
     """Test the to_data_frame method for Spectrum."""
+    from pandas.testing import assert_frame_equal
+
     spectrum = raw.compute_psd()
     n_chan, n_freq = spectrum.get_data().shape
     # test wide format
@@ -112,8 +118,11 @@ def test_spectrum_to_data_frame(raw):
     assert_frame_equal(_pick_first, _pick_last)
 
 
+@requires_pandas
 def test_epoch_spectrum_to_data_frame(epochs):
     """Test the to_data_frame method for Spectrum."""
+    from pandas.testing import assert_frame_equal
+
     spectrum = epochs.compute_psd()
     n_epo, n_chan, n_freq = spectrum.get_data().shape
     # test wide format
