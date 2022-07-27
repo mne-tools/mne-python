@@ -20,7 +20,7 @@ from ..baseline import rescale
 from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
-                     sizeof_fmt, GetEpochsMixin, EpochsTimesMixin,
+                     sizeof_fmt, GetEpochsMixin, TimeMixin,
                      _prepare_read_metadata, fill_doc, _prepare_write_metadata,
                      _check_event_id, _gen_events, SizeMixin, _is_numeric,
                      _check_option, _validate_type, _check_combine,
@@ -901,7 +901,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
 # TFR(s) class
 
-class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
+class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, TimeMixin):
     """Base TFR class."""
 
     @property
@@ -943,13 +943,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         inst : instance of AverageTFR
             The modified instance.
         """
-        if tmin is not None or tmax is not None:
-            time_mask = _time_mask(
-                self.times, tmin, tmax, sfreq=self.info['sfreq'],
-                include_tmax=include_tmax)
-
-        else:
-            time_mask = slice(None)
+        super().crop(tmin=tmin, tmax=tmax, include_tmax=include_tmax)
 
         if fmin is not None or fmax is not None:
             freq_mask = _freq_mask(self.freqs, sfreq=self.info['sfreq'],
@@ -957,14 +951,12 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         else:
             freq_mask = slice(None)
 
-        self.times = self.times[time_mask]
         self.freqs = self.freqs[freq_mask]
         # Deal with broadcasting (boolean arrays do not broadcast, but indices
         # do, so we need to convert freq_mask to make use of broadcasting)
-        if isinstance(time_mask, np.ndarray) and \
-                isinstance(freq_mask, np.ndarray):
-            freq_mask = np.where(freq_mask)[0][:, np.newaxis]
-        self.data = self.data[..., freq_mask, time_mask]
+        if isinstance(freq_mask, np.ndarray):
+            freq_mask = np.where(freq_mask)[0]
+        self._data = self._data[..., freq_mask, :]
         return self
 
     def copy(self):
@@ -1168,7 +1160,8 @@ class AverageTFR(_BaseTFR):
             raise ValueError("Number of times and data size don't match"
                              " (%d != %d)." % (n_times, len(times)))
         self.data = data
-        self.times = np.array(times, dtype=float)
+        self._set_times(np.array(times, dtype=float))
+        self._raw_times = self.times.copy()
         self.freqs = np.array(freqs, dtype=float)
         self.nave = nave
         self.comment = comment
@@ -2092,7 +2085,7 @@ class AverageTFR(_BaseTFR):
 
 
 @fill_doc
-class EpochsTFR(_BaseTFR, GetEpochsMixin, EpochsTimesMixin):
+class EpochsTFR(_BaseTFR, GetEpochsMixin):
     """Container for Time-Frequency data on epochs.
 
     Can for example store induced power at sensor level.
@@ -2650,7 +2643,7 @@ def _preproc_tfr_instance(tfr, picks, tmin, tmax, fmin, fmax, vmin, vmax, dB,
         tfr.data, tfr.times, tfr.freqs, tmin, tmax, fmin, fmax, mode,
         baseline, vmin, vmax, dB, tfr.info['sfreq'], copy=False)
 
-    tfr.times = times
+    tfr._set_times(times)
     tfr.freqs = freqs
     tfr.data = data
 
