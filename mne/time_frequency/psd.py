@@ -192,7 +192,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     """Compute the power spectral density (PSD) using Welch's method.
 
     Calculates periodograms for a sliding window over the time dimension, then
-    averages them together for each channel/epoch.
+    optionally averages them together for each channel/epoch.
 
     Parameters
     ----------
