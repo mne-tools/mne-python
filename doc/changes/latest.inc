@@ -23,11 +23,7 @@ Current (1.1.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-<<<<<<< HEAD
-- Add :func:`mne.channels.montage.DigMontage.__eq__` to test equality for DigMontage instances using .dig and .ch_names (:gh:`10942` by :newcontrib:`Tziona NessAiver`)
-=======
 - :class:`~mne.channels.DigMontage` objects can now be checked for equality via ``==`` (:gh:`10942` by :newcontrib:`Tziona NessAiver`)
->>>>>>> upstream/main
 
 - Add a note to clarify the inclusion of average referencing gain matrix during whitening (:gh:`10922` by :newcontrib:`Mingjian He`)
 
