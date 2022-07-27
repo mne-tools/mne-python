@@ -133,7 +133,7 @@ def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     # This can take forever, so let's make it fast
     # Also, make sure crop range is wide enough to avoid rendering bug
     evoked = epochs.average()
-    with pytest.warns(RuntimeWarning, match='tmax is not in Evoked'):
+    with pytest.warns(RuntimeWarning, match='tmax is not in time interval'):
         evoked.crop(0.1, 0.2)
     evoked.save(evoked_fname)
 

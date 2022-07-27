@@ -5,45 +5,65 @@
     --pst-font-family-base: 'Source Sans Pro', var(--pst-font-family-base-system);
     --pst-font-family-heading: var(--pst-font-family-base);
     --pst-font-family-monospace: 'Source Code Pro', var(--pst-font-family-monospace-system);
+    /* colors that aren't responsive to light/dark mode */
+    --mne-color-discord: #5865F2;
+    --mne-color-twitter: #55acee;
+    --mne-color-primary: #007bff;
+    --mne-color-primary-text: #fff;
+    --mne-color-primary-highlight: #0069d9;
 }
 
 html[data-theme="light"] {
+    /* topbar logo links */
     --mne-color-github: #000;
     --mne-color-discourse: #000;
-    --mne-color-discord: #5865F2;
-    --mne-color-twitter: #55acee;
-    --pst-color-border-rgba: rgba(0, 0, 0, 0.125);
-    --pst-color-background-rgba: rgba(0, 0, 0, 0.03);
-    --pst-color-primary-rgba: rgba(69, 157, 185, 0.2);
-    --pst-color-secondary-rgba: rgba(238, 144, 64, 0.2);
+    /* code block copy button */
     --copybtn-opacity: 0.75;
+    /* card header bg color */
+    --mne-color-header: rgba(0, 0, 0, 0.05);
+    /* pydata-sphinx-theme overrides */
+    --pst-color-primary: var(--mne-color-primary);
+    --pst-color-primary-text: var(--mne-color-primary-text);
+    --pst-color-primary-highlight: var(--mne-color-primary-highlight);
+    --pst-color-info: var(--pst-color-primary);
+    --pst-color-border: #ccc;
+    --pst-color-background: #fff;
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
-    --sg-download-a-border-color: var(--pst-color-border-rgba);
+    --sg-download-a-border-color: var(--pst-color-border);
     --sg-download-a-color: #fff;
-    --sg-download-a-hover-background-color: var(--pst-color-secondary);
+    --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
 }
 html[data-theme="dark"] {
-    --mne-color-github: #fff;
-    --mne-color-discourse: #FFF9AE;  /* color taken from their logo SVG */
-    --mne-color-discord: #fff;
-    --mne-color-twitter: #55acee;
-    --pst-color-border-rgba: rgba(201, 201, 201, 0.25);
-    --pst-color-background-rgba: rgba(255, 255, 255, 0.08);
-    --pst-color-primary-rgba: rgba(69, 157, 185, 0.3);
-    --pst-color-secondary-rgba: rgba(238, 144, 64, 0.3);
+    /* topbar logo links */
+    --mne-color-github: rgb(240, 246, 252);  /* from their logo SVG */
+    --mne-color-discourse: #FFF9AE;  /* from their logo SVG */
+    /* code block copy button */
     --copybtn-opacity: 0.25;
+    /* card header bg color */
+    --mne-color-header: rgba(255, 255, 255, 0.2);
+    /* pydata-sphinx-theme overrides */
+    --pst-color-primary: var(--mne-color-primary);
+    --pst-color-primary-text: var(--mne-color-primary-text);
+    --pst-color-primary-highlight: var(--mne-color-primary-highlight);
+    --pst-color-info: var(--pst-color-primary);
+    --pst-color-border: #333;
+    --pst-color-background: #000;
+    --pst-color-link: #80bdff;
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
-    --sg-download-a-border-color: var(--pst-color-border-rgba);
+    --sg-download-a-border-color: var(--pst-color-border);
     --sg-download-a-color: #fff;
-    --sg-download-a-hover-background-color: var(--pst-color-secondary);
+    --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
     --sg-download-a-hover-box-shadow-1: none;
     --sg-download-a-hover-box-shadow-2: none;
+}
+h1, h2, h3, h4, h5, h6 {
+    color: var(--pst-color-text-base);
 }
 
 /* ************************************************************ Sphinx fixes */
@@ -76,6 +96,7 @@ p.sphx-glr-signature {
 }
 /* script/notebook download buttons */
 .sphx-glr-download a.download {
+    border-radius: 0.5rem;
     /* ↓↓↓↓↓↓↓ these two rules copied from sphinx-design */
     box-shadow: 0 .125rem .25rem var(--sd-color-shadow) !important;
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
@@ -106,38 +127,29 @@ div[id^="examples-using-"] h2 {
     word-break: break-word;
 }
 
-/* ******************************************* in-text sidebar callout boxes */
-div.sidebar,
-aside.sidebar {
-    background-color: var(--pst-color-primary-rgba);
-    border-color: rgb(var(--pst-color-info));
+/* ******************************************************* reference spacing */
+aside.footnote {
+    margin-bottom: 0.5rem;
+}
+aside.footnote:last-child {
+    margin-bottom: 1rem;
 }
 
-/* **************************************************************** homepage */
+/* *********************************************************** homepage logo */
 img.logo {
     max-width: 360px;
     width: 100%;
 }
 
-/* ************************************* homepage quick links & funders list */
-ul.quicklinks {
+/* **************************************************** homepage quick links */
+ul.quicklinks a {
     font-weight: 600;
+    color: var(--pst-color-text-base);
 }
 ul.quicklinks a:hover {
     text-decoration: none;
+    color: var(--pst-color-secondary);
 }
-ul.funders li {
-    margin-left: 36px;
-    text-indent: -36px;
-    padding-bottom: 9px;
-}
-ul.funders li img {
-    width: 30px;
-    max-height: 24px;
-    object-fit: contain;
-}
-
-/* these two also affect collapsible divs */
 h5.card-header {
     margin-top: 0px;
     margin-bottom: 0px;
@@ -147,10 +159,20 @@ h5.card-header::before {
     margin-top: 0px;
 }
 
-/* ******************************************************** version dropdown */
-.dropdown {
-    padding: 0 .5rem;  /* match other items in the hamburger menu */
+/* ************************************************************ funders page */
+ul.funders li {
+    margin-left: 36px;
+    text-indent: -36px;
+    padding-bottom: 9px;
 }
+ul.funders li img {
+    width: 30px;
+    max-height: 24px;
+    object-fit: contain;
+    background-color: unset !important;
+}
+
+/* ******************************************************** version dropdown */
 .dropdown-toggle {
     font-weight: 600;
 }
@@ -184,47 +206,44 @@ div.frontpage-gallery:hover .fadeout {
     opacity: 0.0;
     transition: 200ms linear;
 }
-div.card img.institution {
-    background-color: #fffe;
-}
+/* affects the homepage gallery tiles and the homepage sidebar quicklinks;
+   needed for dark mode. */
 div.card {
-    border: 1px solid var(--pst-color-border-rgba);
+    border: 1px solid var(--pst-color-border);
     background-color: rgb(var(--pst-color-background));
 }
 .card-header {
-    border-bottom-color: var(--pst-color-border-rgba);
-    background-color: var(--pst-color-background-rgba);
+    border-bottom-color: var(--pst-color-border);
+    background-color: var(--mne-color-header);
 }
+
+/* ************************************* front page funder/institution logos */
+div#funder-logos div.card,
+div#institution-logos div.card,
+div#funder-logos div.card img,
+div#institution-logos div.card img {
+    background-color: unset;
+    border: none;
+    border-radius: unset;
+}
+/* this is most critical for the frontpage logos, but affects all images */
+html[data-theme="dark"] img {
+    filter: none;
+}
+
 /* ********************************************* sphinx-design compatibility */
-.sd-dropdown {
-    border: 1px solid var(--pst-color-border-rgba) !important;
-    box-shadow: 1px 1px 1px var(--pst-color-shadow);
-}
-.sd-card-header {
-    border-bottom: 1px solid var(--pst-color-border-rgba) !important;
-    background-color: var(--pst-color-background-rgba) !important;
-}
-.sd-card-footer {
-    border-top: 1px solid var(--pst-color-border-rgba) !important;
-    background-color: var(--pst-color-background-rgba) !important;
-}
 p.btn a {
     color: unset;
 }
-/* remove this when
-   https://github.com/pydata/pydata-sphinx-theme/issues/733 is addressed
-   ↓↓↓↓↓↓↓↓↓ */
-.sd-btn-primary {
-    background-color: var(--pst-color-link) !important;
-    border-color: var(--pst-color-link) !important
-}
-.sd-btn-primary:hover {
-    background-color: var(--pst-color-link-hover) !important;
-    border-color: var(--pst-color-link-hover) !important
+/* sphinx-design tabs */
+html .bd-content .sd-tab-set > label:hover,
+.bd-content .sd-tab-set > input:not(:checked) + label:hover {
+    opacity: unset;
+    color: var(--pst-color-secondary);
+    border-color: var(--pst-color-secondary);
 }
 
 /* ****************************************************** navbar quick links */
-
 #navbar-icon-links i.fa-github-square::before {
     color: var(--mne-color-github);
 }
@@ -237,6 +256,28 @@ p.btn a {
 #navbar-icon-links i.fa-discord::before {
     color: var(--mne-color-discord);
 }
+/* **************************************** color overrides for nav elements */
+/* topbar nav */
+.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:focus,
+.bd-header.navbar-light#navbar-main .navbar-nav > .active > .nav-link {
+    color: var(--pst-color-link);
+}
+/* topbar nav hover */
+.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:hover {
+    color: var(--pst-color-secondary);
+}
+/* sidebar nav */
+nav.bd-links .active > a,
+nav.bd-links .active:hover > a,
+.toc-entry a.nav-link.active,
+.toc-entry a.nav-link.active:hover {
+    color: var(--pst-color-link);
+}
+/* left sidebar nav hover */
+nav.bd-links li > a:hover,
+.toc-entry a.nav-link:hover {
+    color: var(--pst-color-secondary);
+}
 /* *********************************************************** contrib guide */
 ul.icon-bullets {
     list-style-type: none;
@@ -246,11 +287,16 @@ ul.icon-bullets {
 .small-stack {
     font-size: 0.5em;
 }
-/* *********************************************************** copy button */
+/* ************************************************************* copy button */
 button.copybtn {
     /* always show; https://sphinx-copybutton.readthedocs.io/en/latest/use.html#modify-the-copy-button-s-css */
     opacity: var(--copybtn-opacity);
  }
+
+/* ********************************************************* prev/next links */
+.prev-next-area a p.prev-next-title {
+    color: var(--pst-color-link);
+}
 
 /* *********************************************************** miscellaneous */
 .hidden {

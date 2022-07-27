@@ -1510,7 +1510,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
 
     evoked = EvokedArray(data, info, times[0], nave=1)
 
-    evoked.times = times
+    evoked._set_times(times)
     evoked._update_first_last()
 
     return evoked
