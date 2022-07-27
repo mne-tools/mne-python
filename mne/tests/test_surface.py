@@ -3,7 +3,6 @@
 # License: BSD-3-Clause
 
 import os.path as op
-from unittest.case import _AssertWarnsContext
 
 import pytest
 import numpy as np
@@ -226,7 +225,7 @@ def test_dig_mri_distances(dig_kinds, exclude, count, bounds, outliers):
 def test_warn_bad_coregistration(distances):
     with pytest.warns(UserWarning, match='Warning: Bad coregistration. Median coregistration distance is greater than 5.0 mm'):
         warn_bad_coregistration(distances)
-    
+
 def test_normal_orth():
     """Test _normal_orth."""
     nns = np.eye(3)
