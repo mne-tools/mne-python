@@ -1754,7 +1754,7 @@ def warn_bad_coregistration(distances):
     # Should include more warnings as definition of a
     # "bad coregistration" is expanded
     median_dist = np.median(distances)
-    good_limit = 5 / 1e3 # mm converted to m
+    good_limit = 5 / 1e3  # mm converted to m
     if median_dist > good_limit:
         warn(f'Warning: Bad coregistration. Median coregistration distance is \
              greater than {good_limit*1e3} mm', UserWarning)
