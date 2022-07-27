@@ -1744,20 +1744,26 @@ def dig_mri_distances(info, trans, subject, subjects_dir=None,
     info_dig = get_fitting_dig(
         info, dig_kinds, exclude_frontal=exclude_frontal)
     dists = _compute_nearest(pts, info_dig, return_dists=True)[1]
-    warn_bad_coregistration(dists)
+    _warn_bad_coregistration(dists)
     return dists
 
 
-def warn_bad_coregistration(distances):
-    """Warn if median of distances (in m), are greater than 5mm
+def _warn_bad_coregistration(distances):
+    """Warn if median of distances (in m) between head shape points 
+    and the scalp surface., are greater than 5mm.
+    
+    Parameters
+    ----------
+    distances : array, shape (n_points,)
+        The distances.
     """
     # Should include more warnings as definition of a
     # "bad coregistration" is expanded
     median_dist = np.median(distances)
     good_limit = 5 / 1e3  # mm converted to m
     if median_dist > good_limit:
-        warn(f'Warning: Bad coregistration. Median coregistration distance is \
-             greater than {good_limit*1e3} mm', UserWarning)
+        warn('Warning: Bad coregistration.' + \
+            f'Median coregistration distance is greater than {good_limit*1e3} mm', UserWarning)
     return
 
 
