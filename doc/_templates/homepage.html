@@ -19,9 +19,9 @@
 <!-- funders -->
 <div class="container my-4">
   <p class="h4 text-center font-weight-light">Funders</p>
-  <div class="d-flex flex-wrap flex-row justify-content-center align-items-center">
+  <div id="funder-logos" class="d-flex flex-wrap flex-row justify-content-center align-items-center">
     {% for item in funders -%}
-      <div class="card my-1 mx-2 border-light" style="{{ 'width: ' + item.size + 'rem;' }}">
+      <div class="card my-1 mx-2 {{ item.klass }}" style="{{ 'width: ' + item.size + 'rem;' }}">
         <a href="{{ pathto('funding.html', 1) }}">
             <img class="card-img institution" src="{{ pathto('_static/funding/' + item.img, 1) }}" title="{{ item.title }}" alt="{{ item.title }}">
         </a>
@@ -32,9 +32,9 @@
 <!-- institutions -->
 <div class="container my-4">
   <p class="h4 text-center font-weight-light">Supporting institutions</p>
-  <div class="d-flex flex-wrap flex-row justify-content-center align-items-center">
+  <div id="institution-logos" class="d-flex flex-wrap flex-row justify-content-center align-items-center">
     {% for inst in institutions -%}
-      <div class="card my-1 mx-2 border-light" style="{{ 'width: ' + inst.size + 'rem;' }}">
+      <div class="card my-1 mx-2 {{ inst.klass }}" style="{{ 'width: ' + inst.size + 'rem;' }}">
         <a href="{{ inst.url }}">
           <img class="card-img institution" src="{{ pathto('_static/institution_logos/' + inst.img, 1) }}" title="{{ inst.name }}" alt="{{ inst.name }}"/>
         </a>

@@ -37,7 +37,7 @@ from .io.pick import (channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
                       _DATA_CH_TYPES_SPLIT, _picks_to_idx)
 from .io.proj import setup_proj, ProjMixin
-from .io.base import BaseRaw, TimeMixin, _get_ch_factors
+from .io.base import BaseRaw, _get_ch_factors
 from .bem import _check_origin
 from .evoked import EvokedArray
 from .baseline import rescale, _log_rescale, _check_baseline
@@ -52,13 +52,13 @@ from .fixes import rng_uniform
 from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
                   plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
 from .utils import (_check_fname, check_fname, logger, verbose,
-                    _time_mask, check_random_state, warn, _pl,
+                    check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed,
-                    _check_preload, GetEpochsMixin, EpochsTimesMixin,
+                    _check_preload, GetEpochsMixin, TimeMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
-                    _check_combine, ShiftTimeMixin, _build_data_frame,
+                    _check_combine, _build_data_frame,
                     _check_pandas_index_arguments, _convert_times,
                     _scale_dataframe_data, _check_time_format, object_size,
                     _on_missing, _validate_type, _ensure_events,
@@ -338,10 +338,9 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 
 
 @fill_doc
-class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
+class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin,
-                 EpochsTimesMixin):
+                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin):
     """Abstract base class for `~mne.Epochs`-type classes.
 
     .. warning:: This class provides basic functionality and should never be
@@ -1083,7 +1082,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         # the above constructor doesn't recreate the times object precisely
         # due to numerical precision issues
-        evoked.times = self.times.copy()
+        evoked._set_times(self.times.copy())
 
         # pick channels
         picks = _picks_to_idx(self.info, picks, 'data_or_ica', ())
@@ -1681,26 +1680,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         # XXX this could be made to work on non-preloaded data...
         _check_preload(self, 'Modifying data of epochs')
 
-        if tmin is None:
-            tmin = self.tmin
-        elif tmin < self.tmin:
-            warn('tmin is not in epochs time interval. tmin is set to '
-                 'epochs.tmin')
-            tmin = self.tmin
-
-        if tmax is None:
-            tmax = self.tmax
-        elif tmax > self.tmax:
-            warn('tmax is not in epochs time interval. tmax is set to '
-                 'epochs.tmax')
-            tmax = self.tmax
-            include_tmax = True
-
-        tmask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
-                           include_tmax=include_tmax)
-        self._set_times(self.times[tmask])
-        self._raw_times = self._raw_times[tmask]
-        self._data = self._data[:, :, tmask]
+        super().crop(tmin=tmin, tmax=tmax, include_tmax=include_tmax)
 
         # Adjust rejection period
         if self.reject_tmin is not None and self.reject_tmin < self.tmin:

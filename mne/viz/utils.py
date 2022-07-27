@@ -1764,7 +1764,7 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
 
 def _handle_decim(info, decim, lowpass):
     """Handle decim parameter for plotters."""
-    from ..evoked import _check_decim
+    from ..utils.mixin import _check_decim
     from ..utils import _ensure_int
     if isinstance(decim, str) and decim == 'auto':
         lp = info['sfreq'] if info['lowpass'] is None else info['lowpass']

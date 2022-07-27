@@ -20,8 +20,8 @@ solutions, and the associated low-level utilities.
 MEG/EEG and MRI coordinate systems
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. sidebar:: Coordinate systems in MNE-Python
-    :class: sd-card sd-shadow-sm
+.. note:: Coordinate systems in MNE-Python
+    :class: sidebar
 
     In some MNE-Python objects (e.g., :class:`~mne.Forward`,
     :class:`~mne.SourceSpaces`, etc), information about the coordinate frame is
@@ -684,8 +684,8 @@ as :func:`mne.fit_dipole`, :func:`mne.viz.plot_alignment` or
 EEG forward solution in the sphere model
 ----------------------------------------
 
-.. sidebar:: Sphere-model examples in MNE-Python
-    :class: sd-card sd-shadow-sm
+.. note:: Sphere-model examples in MNE-Python
+    :class: sidebar
 
     For examples of using the sphere model when computing the forward model
     (using :func:`mne.make_forward_solution`), see :ref:`Brainstorm CTF phantom

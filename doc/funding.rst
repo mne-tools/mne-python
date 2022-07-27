@@ -21,7 +21,7 @@ Development of MNE-Python has been supported by:
 - |nsf| **US National Science Foundation:**
   `0958669 <https://www.nsf.gov/awardsearch/showAward?AWD_ID=0958669>`_,
   `1042134 <https://www.nsf.gov/awardsearch/showAward?AWD_ID=1042134>`_
-- |erc| **European Research Council:**
+- |erc| |ercdk| **European Research Council:**
   `YStG-263584 <https://erc.easme-web.eu/?p=263584>`_,
   `YStG-676943 <https://erc.easme-web.eu/?p=676943>`_
 - |doe| **US Department of Energy:** DE-FG02-99ER62764 (MIND)
@@ -53,9 +53,12 @@ institutions include:
    :start-after: institutional-partners-begin-content
 
 
-.. |nih| image:: _static/funding/nih.png
+.. |nih| image:: _static/funding/nih.svg
 .. |nsf| image:: _static/funding/nsf.png
 .. |erc| image:: _static/funding/erc.svg
+    :class: only-light
+.. |ercdk| image:: _static/funding/erc-dark.svg
+    :class: only-dark
 .. |doe| image:: _static/funding/doe.svg
 .. |anr| image:: _static/funding/anr.svg
 .. |cds| image:: _static/funding/cds.png

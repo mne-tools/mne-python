@@ -113,7 +113,7 @@ Enhancements
 
 - Add :meth:`mne.time_frequency.EpochsTFR.decimate` to reduce size of time-frequency epochs objects (:gh:`10940` by `Alex Rockhill`_)
 
-- Add alias for EGI referene channel to `mne.io.constants.CHANNEL_LOC_ALIASES`. Matches EGI ref channel name to the ref channel name in the EGI standard montages, so users can set a standard EGI montage without raising an error by setting `match_alias=True` in :meth:`mne.io.Raw.set_montage`. (:gh:`10823` by `Scott Huberty`_)
+- Add an alias that maps EGI reference channel names (``VREF`` or ``Vertex Reference``) to the electrode name in the standard EGI montages (``Cz``). Now setting standard EGI montages with :meth:`~mne.io.Raw.set_montage` with ``match_alias=True`` will avoid raising an error (:gh:`10823` by `Scott Huberty`_)
 
 Bugs
 ~~~~
@@ -220,3 +220,5 @@ API and behavior changes
 - :func:`~mne.viz.plot_compare_evokeds` gets a new parameter ``time_unit`` which can be ``"s"`` or ``"ms"`` (:gh:`10950` by `Daniel McCloy`_)
 
 - The ``to_data_frame`` methods for :meth:`Raw <mne.io.Raw.to_data_frame>`, :meth:`Epochs <mne.Epochs.to_data_frame>`, :meth:`Evoked <mne.Evoked.to_data_frame>`, :meth:`SourceEstimate <mne.SourceEstimate.to_data_frame>`, :meth:`EpochsTFR <mne.time_frequency.EpochsTFR.to_data_frame>`, and :meth:`AverageTFR <mne.time_frequency.AverageTFR.to_data_frame>` all now have default ``time_format=None`` (keep time in seconds) instead of ``time_format='ms'`` (convert time to milliseconds) (:gh:`10925` by `Daniel McCloy`_)
+
+- :func:`mne.Evoked.decimate` now aligns to the sample at time=0 (so that the exact sample when the event occurred is preserved) to be consistent with :func:`mne.Epochs.decimate` (:gh:`10945` by `Alex Rockhill`_)
