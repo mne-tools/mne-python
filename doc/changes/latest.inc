@@ -113,7 +113,7 @@ Enhancements
 
 - Add :meth:`mne.time_frequency.EpochsTFR.decimate` to reduce size of time-frequency epochs objects (:gh:`10940` by `Alex Rockhill`_)
 
-- Add :func:`mne.surface.warn_bad_coregistration` to warn user if the distance is greater than 5mm (:gh:`tbd` by `Tziona NessAiver`)
+- Add :func:`mne.surface.warn_bad_coregistration` to warn user if the distance is greater than 5mm (:gh:`10966` by `Tziona NessAiver`)
 
 Bugs
 ~~~~
