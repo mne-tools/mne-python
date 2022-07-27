@@ -1725,8 +1725,8 @@ spe = ('frequency and channel', ch_type)
 
 docdict['long_format_df_epo'] = _long_format_df_base.format(*epo)
 docdict['long_format_df_raw'] = _long_format_df_base.format(*raw)
-docdict['long_format_df_stc'] = _long_format_df_base.format(*stc)
 docdict['long_format_df_spe'] = _long_format_df_base.format(*spe)
+docdict['long_format_df_stc'] = _long_format_df_base.format(*stc)
 
 docdict['loose'] = """
 loose : float | 'auto' | dict
