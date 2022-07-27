@@ -1972,7 +1972,8 @@ class Coregistration(object):
         Returns
         -------
         dist : array, shape (n_points,)
-            The distance of the head shape points to the MRI skin surface, in m.
+            The distance of the head shape points to the MRI skin surface,
+            (in meters).
 
         See Also
         --------

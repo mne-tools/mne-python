@@ -221,10 +221,13 @@ def test_dig_mri_distances(dig_kinds, exclude, count, bounds, outliers):
     assert bounds[0] < np.mean(dists) < bounds[1]
     assert np.sum(dists > 0.03) == outliers
 
+
 @pytest.mark.parametrize('distances', [(0.005, 0.006)])
 def test_warn_bad_coregistration(distances):
-    with pytest.warns(UserWarning, match='Warning: Bad coregistration. Median coregistration distance is greater than 5.0 mm'):
+    with pytest.warns(UserWarning, match='Warning: Bad coregistration. \
+        Median coregistration distance is greater than 5.0 mm'):
         warn_bad_coregistration(distances)
+
 
 def test_normal_orth():
     """Test _normal_orth."""
