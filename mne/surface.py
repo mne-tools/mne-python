@@ -1749,7 +1749,7 @@ def dig_mri_distances(info, trans, subject, subjects_dir=None,
 
 
 def _warn_bad_coregistration(distances):
-    """Warn if median of distances (in m) between head shape points 
+    """Warn if median of distances (in m) between head shape points
     and the scalp surface., are greater than 5mm.
 
     Parameters
@@ -1763,7 +1763,7 @@ def _warn_bad_coregistration(distances):
     good_limit = 5 / 1e3  # mm converted to m
     if median_dist > good_limit:
         warn('Warning: Bad coregistration. Median coregistration ' +
-            f'distance is greater than {good_limit*1e3} mm', UserWarning)
+             f'distance is greater than {good_limit*1e3} mm', UserWarning)
     return
 
 
