@@ -30,30 +30,25 @@ Preprocessing
 
 # %%
 
-import os.path as op
-
-from mne.filter import next_fast_len
-
 import mne
-
+from mne.filter import next_fast_len
 
 print(__doc__)
 
 data_path = mne.datasets.opm.data_path()
 subject = 'OPM_sample'
 
-subjects_dir = op.join(data_path, 'subjects')
-bem_dir = op.join(subjects_dir, subject, 'bem')
-bem_fname = op.join(subjects_dir, subject, 'bem',
-                    subject + '-5120-5120-5120-bem-sol.fif')
-src_fname = op.join(bem_dir, '%s-oct6-src.fif' % subject)
+subjects_dir = data_path / 'subjects'
+bem_dir = subjects_dir / subject / 'bem'
+bem_fname = bem_dir / f'{subject}-5120-5120-5120-bem-sol.fif'
+src_fname = bem_dir / f'{subject}-oct6-src.fif'
 vv_fname = data_path / 'MEG' / 'SQUID' / 'SQUID_resting_state.fif'
 vv_erm_fname = data_path / 'MEG' / 'SQUID' / 'SQUID_empty_room.fif'
 vv_trans_fname = data_path / 'MEG' / 'SQUID' / 'SQUID-trans.fif'
 opm_fname = data_path / 'MEG' / 'OPM' / 'OPM_resting_state_raw.fif'
 opm_erm_fname = data_path / 'MEG' / 'OPM' / 'OPM_empty_room_raw.fif'
 opm_trans = mne.transforms.Transform('head', 'mri')  # use identity transform
-opm_coil_def_fname = op.join(data_path, 'MEG', 'OPM', 'coil_def.dat')
+opm_coil_def_fname = data_path / 'MEG' / 'OPM' / 'coil_def.dat'
 
 ##############################################################################
 # Load data, resample. We will store the raw objects in dicts with entries
