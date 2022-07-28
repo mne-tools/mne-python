@@ -930,17 +930,15 @@ def _handle_meas_date_nonUTC(meas_date):
     if isinstance(meas_date, str):
         ACCEPTED_ISO8601 = '%Y-%m-%d %H:%M:%S.%f'
         # Handle meas_date string with and without timezone data
-        for tz in ['%z', '']:  #no %Z
-            print(tz)
+        for tz in ['%z', '']:  # no %Z
             try:
-                meas_date = datetime.strptime(meas_date, ACCEPTED_ISO8601 + tz)  
-                print('success')              
+                meas_date = datetime.strptime(meas_date, ACCEPTED_ISO8601 + tz)
             except ValueError:
-                if tz == '': #or tz == '%Z':
+                if tz == '':  # or tz == '%Z':
                     meas_date = None
             else:
                 if tz == '':
-                    meas_date = meas_date.replace(tzinfo=timezone.utc)  #is below :944
+                    meas_date = meas_date.replace(tzinfo=timezone.utc)  # is below :944
                 break
     elif isinstance(meas_date, tuple):
         # old way
@@ -961,8 +959,8 @@ def _handle_meas_date_nonUTC(meas_date):
         elif isinstance(meas_date, datetime):
             utc_offset_str = meas_date.isoformat()[-6:] #sHH:MM format
             utc_offset_dt = meas_date.utcoffset()       #datetime.timedelta(seconds)
-            meas_date = meas_date.astimezone(timezone.utc)
         _check_dt(meas_date)  # run checks
+        meas_date = meas_date.astimezone(timezone.utc)
     return meas_date, utc_offset_str, utc_offset_dt
 
 def _sync_onset(raw, onset, inverse=False):

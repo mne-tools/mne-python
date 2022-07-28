@@ -1031,10 +1031,9 @@ def _julian_to_cal(jd):
 
 
 def _check_dt(dt):
-    if not isinstance(dt, datetime) or dt.tzinfo is None:
+    if not isinstance(dt, datetime) or dt.tzinfo is None or \
+            dt.tzinfo is not timezone.utc:
         raise ValueError('Date must be datetime object in UTC: %r' % (dt,))
-    elif dt.tzinfo is not timezone.utc:
-        dt.tzinfo
 
 def _dt_to_stamp(inp_date):
     """Convert a datetime object to a timestamp."""
