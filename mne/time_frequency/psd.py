@@ -182,8 +182,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
 
 
 @deprecated('Function psd_welch() is deprecated; for Raw/Epochs/Evoked use '
-            'instance.compute_psd(method="welch") instead, and use '
-            'spectrum.get_data() and spectrum.freqs.')
+            'spectrum = instance.compute_psd(method="welch") instead, '
+            'followed by spectrum.get_data(return_freqs=True).')
 @verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
               n_overlap=0, n_per_seg=None, picks=None, proj=False, n_jobs=None,
@@ -263,8 +263,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
 
 
 @deprecated('Function psd_multitaper() is deprecated; for Raw/Epochs/Evoked '
-            'use instance.compute_psd(method="multitaper") instead, and '
-            'use spectrum.get_data() and spectrum.freqs.')
+            'use spectrum = instance.compute_psd(method="multitaper") '
+            'instead, followed by spectrum.get_data(return_freqs=True).')
 @verbose
 def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                    bandwidth=None, adaptive=False, low_bias=True,
