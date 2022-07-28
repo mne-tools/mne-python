@@ -14,7 +14,7 @@ from mne.time_frequency import (csd_fourier, csd_multitaper,
                                 csd_array_multitaper, csd_array_morlet,
                                 tfr_morlet, csd_tfr,
                                 CrossSpectralDensity, read_csd,
-                                pick_channels_csd, psd_multitaper)
+                                pick_channels_csd)
 from mne.time_frequency.csd import _sym_mat_to_vector, _vector_to_sym_mat
 from mne.proj import Projection
 
