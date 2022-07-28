@@ -580,8 +580,7 @@ html_theme_options = {
     'use_edit_page_button': False,
     'navigation_with_keys': False,
     'show_toc_level': 1,
-    'navbar_end': ['search-button', 'theme-switcher', 'version-switcher',
-                   'navbar-icon-links'],
+    'navbar_end': ['theme-switcher', 'version-switcher', 'navbar-icon-links'],
     'footer_items': ['copyright'],
     'google_analytics_id': 'UA-37225609-1',
     'switcher': {
