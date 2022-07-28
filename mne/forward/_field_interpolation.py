@@ -22,7 +22,7 @@ from ..transforms import (transform_surface_to, read_trans, _find_trans,
 from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _do_cross_dots)
-from ..utils import logger, verbose, _check_option, _reg_pinv, _pl
+from ..utils import logger, verbose, _check_option, _reg_pinv, _pl, path_like
 from ..epochs import EpochsArray, BaseEpochs
 from ..evoked import Evoked, EvokedArray
 
@@ -450,7 +450,7 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         raise RuntimeError('No data available for mapping.')
 
     if trans is not None:
-        if isinstance(trans, str):
+        if isinstance(trans, path_like):
             trans = read_trans(trans)
         trans = _ensure_trans(trans, 'head', 'mri')
 
