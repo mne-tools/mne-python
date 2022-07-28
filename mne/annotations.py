@@ -901,14 +901,15 @@ def _handle_meas_date(meas_date):
     """Convert meas_date to datetime or None.
     
     See :func: '_handle_mas_date_nonUTC'
-    Note: Prefer '_handle_mas_date_nonUTC', but leaving this here to make sure nothing
-    gets messed up by adding return values 
+    Note: Prefer '_handle_mas_date_nonUTC', but leaving this here to make 
+    sure nothing gets messed up by adding return values. 
     """
     meas_date, _, _ = _handle_meas_date_nonUTC(meas_date)
     return meas_date
 
+
 def _handle_meas_date_nonUTC(meas_date):
-    """Convert meas_date to datetime or None, and extracts utc_offset if not UTC
+    """Convert meas_date to datetime or None, and get utc_offset if not UTC
     
     If `meas_date` is a string, it should conform to the ISO8601 format.
     More precisely to this '%Y-%m-%d %H:%M:%S.%f%z' particular case of the
@@ -918,10 +919,10 @@ def _handle_meas_date_nonUTC(meas_date):
     (If `meas_date` is tuple or scalar, should still be in UTC. 
     This only handles string and datetime formats)
     
-    See also _handle_meas_date(meas_date)
+    See also: _handle_meas_date(meas_date)
     Returns: meas_date as datetime object, and 
              utc_offset_str as str sHH:MM format or  as
-             utc_offset_dt as datetime object datetime.timedelta(seconds)
+             utc_offset_dt as datetime object datetime.timedelta(seconds).
     """
     print(meas_date)
     utc_offset_str = None
@@ -929,7 +930,7 @@ def _handle_meas_date_nonUTC(meas_date):
     if isinstance(meas_date, str):
         ACCEPTED_ISO8601 = '%Y-%m-%d %H:%M:%S.%f'
         # Handle meas_date string with and without timezone data
-        for tz in ['%z', '']: #no %Z
+        for tz in ['%z', '']:  #no %Z
             print(tz)
             try:
                 meas_date = datetime.strptime(meas_date, ACCEPTED_ISO8601 + tz)  
