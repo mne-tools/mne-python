@@ -477,12 +477,12 @@ def test_csd_multitaper():
         _test_csd_matrix(csd)
 
     # Test equivalence with PSD
-    psd, psd_freqs = psd_multitaper(epochs, fmin=1e-3,
-                                    normalization='full')  # omit DC
+    spectrum = epochs.compute_psd(fmin=1e-3, normalization='full')  # omit DC
     csd = csd_multitaper(epochs)
-    assert_allclose(psd_freqs, csd.frequencies)
+    assert_allclose(spectrum.freqs, csd.frequencies)
     csd = np.array([np.diag(csd.get_data(index=ii))
                     for ii in range(len(csd))]).T
+    psd = spectrum.get_data()
     assert_allclose(psd[0], csd)
 
     # For the next test, generate a simple sine wave with a known power
