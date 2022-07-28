@@ -79,7 +79,7 @@ def _locate_ieeg(renderer_interactive_pyvistaqt):
             pass
 
 
-def test_ieeg_elec_locate_gui_io(_locate_ieeg):
+def test_ieeg_elec_locate_io(_locate_ieeg):
     """Test the input/output of the intracranial location GUI."""
     import nibabel as nib
     info = mne.create_info([], 1000)
@@ -121,7 +121,7 @@ def test_locate_scraper(_locate_ieeg, _fake_CT_coords, tmp_path):
 
 
 @testing.requires_testing_data
-def test_ieeg_elec_locate_gui_display(_locate_ieeg, _fake_CT_coords):
+def test_ieeg_elec_locate_display(_locate_ieeg, _fake_CT_coords):
     """Test that the intracranial location GUI displays properly."""
     raw = mne.io.read_raw_fif(raw_path, preload=True)
     raw.pick_types(eeg=True)
