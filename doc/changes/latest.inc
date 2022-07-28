@@ -113,7 +113,7 @@ Enhancements
 
 - Add :meth:`mne.time_frequency.EpochsTFR.decimate` to reduce size of time-frequency epochs objects (:gh:`10940` by `Alex Rockhill`_)
 
-- Add :func:`mne.surface._warn_bad_coregistration` to warn user if the distance is greater than 5mm (:gh:`10966` by `Tziona NessAiver`_)
+- :func:`mne.surface.dig_mri_distances` and :meth: `mne.coreg.Coregistration.compute_dig_mri_distances` now warn user if the distance is greater than 5mm (:gh:`10966` by `Tziona NessAiver`_)
 
 - Add an alias that maps EGI reference channel names (``VREF`` or ``Vertex Reference``) to the electrode name in the standard EGI montages (``Cz``). Now setting standard EGI montages with :meth:`~mne.io.Raw.set_montage` with ``match_alias=True`` will avoid raising an error (:gh:`10823` by `Scott Huberty`_)
 

@@ -1728,7 +1728,7 @@ def dig_mri_distances(info, trans, subject, subjects_dir=None,
     Returns
     -------
     dists : array, shape (n_points,)
-        The distances.
+        The distances (in meters).
 
     See Also
     --------
@@ -1753,10 +1753,9 @@ def dig_mri_distances(info, trans, subject, subjects_dir=None,
 def _warn_bad_coregistration(distances):
     """Warn if median coregistratin distances are > 5mm.
 
-    Parameters
-    ----------
-    distances : array, shape (n_points,)
-        The distances (in meters).
+    Notes
+    -----
+    Update this function with further conditions for a bad coregistration
     """
     # Should include more warnings as definition of a
     # "bad coregistration" is expanded
