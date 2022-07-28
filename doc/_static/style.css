@@ -10,8 +10,9 @@
     --mne-color-twitter: #55acee;
     --mne-color-primary: #007bff;
     --mne-color-primary-text: #fff;
-    --mne-color-primary-highlight: #0069d9;
+    --mne-color-primary-highlight: #0063cc;
 }
+
 
 html[data-theme="light"] {
     /* topbar logo links */
@@ -20,7 +21,9 @@ html[data-theme="light"] {
     /* code block copy button */
     --copybtn-opacity: 0.75;
     /* card header bg color */
-    --mne-color-header: rgba(0, 0, 0, 0.05);
+    --mne-color-card-header: rgba(0, 0, 0, 0.05);
+    /* section headings */
+    --mne-color-heading: #003e80;
     /* pydata-sphinx-theme overrides */
     --pst-color-primary: var(--mne-color-primary);
     --pst-color-primary-text: var(--mne-color-primary-text);
@@ -28,6 +31,7 @@ html[data-theme="light"] {
     --pst-color-info: var(--pst-color-primary);
     --pst-color-border: #ccc;
     --pst-color-background: #fff;
+    --pst-color-link: var(--pst-color-primary-highlight);
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
@@ -44,7 +48,9 @@ html[data-theme="dark"] {
     /* code block copy button */
     --copybtn-opacity: 0.25;
     /* card header bg color */
-    --mne-color-header: rgba(255, 255, 255, 0.2);
+    --mne-color-card-header: rgba(255, 255, 255, 0.2);
+    /* section headings */
+    --mne-color-heading: #b8cbe0;
     /* pydata-sphinx-theme overrides */
     --pst-color-primary: var(--mne-color-primary);
     --pst-color-primary-text: var(--mne-color-primary-text);
@@ -52,7 +58,7 @@ html[data-theme="dark"] {
     --pst-color-info: var(--pst-color-primary);
     --pst-color-border: #333;
     --pst-color-background: #000;
-    --pst-color-link: #80bdff;
+    --pst-color-link: #66b0ff;
     /* sphinx-gallery overrides */
     --sg-download-a-background-color: var(--pst-color-primary);
     --sg-download-a-background-image: unset;
@@ -63,7 +69,7 @@ html[data-theme="dark"] {
     --sg-download-a-hover-box-shadow-2: none;
 }
 h1, h2, h3, h4, h5, h6 {
-    color: var(--pst-color-text-base);
+    color: var(--mne-color-heading);
 }
 
 /* ************************************************************ Sphinx fixes */
@@ -214,7 +220,7 @@ div.card {
 }
 .card-header {
     border-bottom-color: var(--pst-color-border);
-    background-color: var(--mne-color-header);
+    background-color: var(--mne-color-card-header);
 }
 
 /* ************************************* front page funder/institution logos */
