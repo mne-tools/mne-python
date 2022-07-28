@@ -23,21 +23,23 @@ on the image.
 # License: BSD-3-Clause
 
 # %%
-from mne.io.fiff.raw import read_raw_fif
+from os.path import dirname
+from pathlib import Path
+
 import numpy as np
 from matplotlib import pyplot as plt
-from os import path as op
 
 import mne
+from mne.io.fiff.raw import read_raw_fif
 from mne.viz import ClickableImage  # noqa: F401
-from mne.viz import (plot_alignment, snapshot_brain_montage, set_3d_view)
+from mne.viz import plot_alignment, set_3d_view, snapshot_brain_montage
 
 misc_path = mne.datasets.misc.data_path()
-ecog_data_fname = op.join(misc_path, 'ecog', 'sample_ecog_ieeg.fif')
-subjects_dir = op.join(misc_path, 'ecog')
+subjects_dir = misc_path / 'ecog'
+ecog_data_fname = subjects_dir / 'sample_ecog_ieeg.fif'
 
 # We've already clicked and exported
-layout_path = op.join(op.dirname(mne.__file__), 'data', 'image')
+layout_path = Path(dirname(mne.__file__)) / 'data' / 'image'
 layout_name = 'custom_layout.lout'
 
 # %%
@@ -117,7 +119,7 @@ ax.set_axis_off()
 # # Generate a layout from our clicks and normalize by the image
 # print('Generating and saving layout...')
 # lt = click.to_layout()
-# lt.save(op.join(layout_path, layout_name))  # save if we want
+# lt.save(layout_path / layout_name)  # save if we want
 
 # # We've already got the layout, load it
 lt = mne.channels.read_layout(layout_name, path=layout_path, scale=False)

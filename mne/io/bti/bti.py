@@ -14,7 +14,7 @@ from itertools import count
 
 import numpy as np
 
-from ...utils import logger, verbose, _stamp_to_dt
+from ...utils import logger, verbose, _stamp_to_dt, path_like
 from ...transforms import (combine_transforms, invert_transform,
                            Transform)
 from .._digitization import _make_bti_dig_points
@@ -67,7 +67,7 @@ class _bytes_io_mock_context():
 
 def _bti_open(fname, *args, **kwargs):
     """Handle BytesIO."""
-    if isinstance(fname, str):
+    if isinstance(fname, path_like):
         return open(fname, *args, **kwargs)
     elif isinstance(fname, BytesIO):
         return _bytes_io_mock_context(fname)
