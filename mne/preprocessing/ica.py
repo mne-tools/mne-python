@@ -1648,8 +1648,8 @@ class ICA(ContainsMixin):
         components = self.get_components()
 
         # compute metric #1: slope of the log-log psd
-        psd_func = psd_welch if isinstance(inst, BaseRaw) else psd_multitaper
-        psds, freqs = psd_func(sources, fmin=l_freq, fmax=h_freq, picks='misc')
+        spectrum = sources.compute_psd(fmin=l_freq, fmax=h_freq, picks='misc')
+        psds, freqs = spectrum.get_data(return_freqs=True)
         slopes = np.polyfit(np.log10(freqs), np.log10(psds).T, 1)[0]
 
         # compute metric #2: distance from the vertex of focus

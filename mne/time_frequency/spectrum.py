@@ -331,7 +331,8 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
             The frequency values for the requested range. Only returned if
             ``return_freqs`` is ``True``.
         """
-        picks = _picks_to_idx(self.info, picks, 'data', with_ref_meg=False)
+        picks = _picks_to_idx(self.info, picks, 'data_or_ica',
+                              with_ref_meg=False)
         fmin_idx = np.searchsorted(self.freqs, fmin)
         fmax_idx = np.searchsorted(self.freqs, fmax, side='right')
         freq_picks = np.arange(fmin_idx, fmax_idx)

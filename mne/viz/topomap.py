@@ -2004,11 +2004,11 @@ def plot_epochs_psd_topomap(epochs, bands=None,
         _prepare_topomap_plot(epochs, ch_type, sphere=sphere)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
-    psds, freqs = psd_multitaper(epochs, tmin=tmin, tmax=tmax,
-                                 bandwidth=bandwidth, adaptive=adaptive,
-                                 low_bias=low_bias,
-                                 normalization=normalization, picks=picks,
-                                 proj=proj, n_jobs=n_jobs)
+    spectrum = epochs.compute_psd(
+        tmin=tmin, tmax=tmax, bandwidth=bandwidth, adaptive=adaptive,
+        low_bias=low_bias, normalization=normalization, picks=picks,
+        proj=proj, n_jobs=n_jobs)
+    psds, freqs = spectrum.get_data(return_freqs=True)
     psds = np.mean(psds, axis=0)
     psds *= scaling**2
 

@@ -465,7 +465,8 @@ def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     if 'fmax' not in psd_args:
         psd_args['fmax'] = min(lp * 1.25, Nyquist)
     plot_lowpass_edge = lp < Nyquist and (psd_args['fmax'] > lp)
-    psds, freqs = psd_multitaper(epochs_src, picks=picks, **psd_args)
+    spectrum = epochs_src.compute_psd(picks=picks, **psd_args)
+    psds, freqs = spectrum.get_data(return_freqs=True)
 
     def set_title_and_labels(ax, title, xlab, ylab):
         if title:
