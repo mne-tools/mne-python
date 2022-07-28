@@ -62,10 +62,8 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
     @verbose
     def __init__(self, freqs, sfreq=1.0, method='morlet', n_cycles=7.0,
                  time_bandwidth=None, use_fft=True, decim=1, output='complex',
-                 n_jobs=None, *, verbose=None):  # noqa: D102
-        freqs, sfreq, _, n_cycles, time_bandwidth, decim = \
-            _check_tfr_param(freqs, sfreq, method, True, n_cycles,
-                             time_bandwidth, use_fft, decim, output)
+                 n_jobs=1, verbose=None):  # noqa: D102
+        """Init TimeFrequency transformer."""
         self.freqs = freqs
         self.sfreq = sfreq
         self.method = method
@@ -74,9 +72,9 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         self.use_fft = use_fft
         self.decim = decim
         # Check that output is not an average metric (e.g. ITC)
-        self.output = _check_option('output', output,
-                                    ['complex', 'power', 'phase'])
+        self.output = output
         self.n_jobs = n_jobs
+        self.verbose = verbose
 
     def fit_transform(self, X, y=None):
         """Time-frequency transform of times series along the last axis.
@@ -134,10 +132,18 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         if not shape:
             X = X[:, np.newaxis, :]
 
+        freqs, sfreq, _, n_cycles, time_bandwidth, decim = \
+            _check_tfr_param(self.freqs, self.sfreq, self.method, True, self.n_cycles,
+                             self.time_bandwidth, self.use_fft, self.decim, self.output)
+
+        output = _check_option('output', self.output,
+                      ['complex', 'power', 'phase'])
+
         # Compute time-frequency
-        Xt = _compute_tfr(X, self.freqs, self.sfreq, self.method,
-                          self.n_cycles, True, self.time_bandwidth,
-                          self.use_fft, self.decim, self.output, self.n_jobs)
+        Xt = _compute_tfr(X, freqs, sfreq, self.method,
+                          n_cycles, True, time_bandwidth,
+                          self.use_fft, decim, output, self.n_jobs,
+                          self.verbose)
 
         # Back to original shape
         if not shape:
