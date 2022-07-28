@@ -899,27 +899,28 @@ def _combine_annotations(one, two, one_n_samples, one_first_samp,
 
 def _handle_meas_date(meas_date):
     """Convert meas_date to datetime or None.
-    
+
     See :func: '_handle_mas_date_nonUTC'
-    Note: Prefer '_handle_mas_date_nonUTC', but leaving this here to make 
-    sure nothing gets messed up by adding return values. 
+    Note: Prefer '_handle_mas_date_nonUTC', but leaving this here to make
+    sure nothing gets messed up by adding return values.
     """
     meas_date, _, _ = _handle_meas_date_nonUTC(meas_date)
     return meas_date
 
+
 def _handle_meas_date_nonUTC(meas_date):
     """Convert meas_date to datetime or None, and get utc_offset if not UTC
-    
+
     If `meas_date` is a string, it should conform to the ISO8601 format.
     More precisely to this '%Y-%m-%d %H:%M:%S.%f%z' particular case of the
     ISO8601 format where the delimiter between date and time is ' '.
     Note that ISO8601 allows for ' ' or 'T' as delimiters between date and
     time.
-    (If `meas_date` is tuple or scalar, should still be in UTC. 
+    (If `meas_date` is tuple or scalar, should still be in UTC.
     This only handles string and datetime formats)
-    
+
     See also: _handle_meas_date(meas_date)
-    Returns: meas_date as datetime object, and 
+    Returns: meas_date as datetime object, and
              utc_offset_str as str sHH:MM format or  as
              utc_offset_dt as datetime object datetime.timedelta(seconds).
     """
@@ -936,7 +937,7 @@ def _handle_meas_date_nonUTC(meas_date):
     elif isinstance(meas_date, tuple):
         # old way
         meas_date = _stamp_to_dt(meas_date)
-        
+  
     if meas_date is not None:
         if np.isscalar(meas_date):
             # It would be nice just to do:
@@ -949,9 +950,9 @@ def _handle_meas_date_nonUTC(meas_date):
             meas_date *= [1, 1e6]
             meas_date = _stamp_to_dt(np.round(meas_date))
         elif isinstance(meas_date, datetime):
-            utc_offset_str = meas_date.isoformat()[-6:] # sHH:MM format
-            utc_offset_dt = meas_date.utcoffset() # datetime.timedelta(sec)
-        meas_date = meas_date.astimezone(timezone.utc) # convert correctly
+            utc_offset_str = meas_date.isoformat()[-6:]  # sHH:MM format
+            utc_offset_dt = meas_date.utcoffset()  # datetime.timedelta(sec)
+        meas_date = meas_date.astimezone(timezone.utc)  # convert correctly
         meas_date = meas_date.replace(tzinfo=timezone.utc)  # format
         _check_dt(meas_date)  # run checks
     return meas_date, utc_offset_str, utc_offset_dt

@@ -1035,6 +1035,7 @@ def _check_dt(dt):
             dt.tzinfo is not timezone.utc:
         raise ValueError('Date must be datetime object in UTC: %r' % (dt,))
 
+
 def _dt_to_stamp(inp_date):
     """Convert a datetime object to a timestamp."""
     _check_dt(inp_date)

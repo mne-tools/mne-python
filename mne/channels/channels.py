@@ -561,12 +561,12 @@ class SetChannelsMixin(MontageMixin):
 
         .. versionadded:: 0.20
         """
-        from ..annotations import _handle_meas_date, _handle_meas_date_nonUTC
-        meas_date, utc_offset, utc_date_dt = _handle_meas_date_nonUTC(meas_date)
+        from ..annotations import _handle_meas_date_nonUTC
+        meas_date, utc_offset, utc_as_dt = _handle_meas_date_nonUTC(meas_date)
         with self.info._unlock():
             self.info['meas_date'] = meas_date
-            if utc_offset is not None: 
-                self.info['utc_offset'] = utc_offset #or utc_offset_dt
+            if utc_offset is not None:
+                self.info['utc_offset'] = utc_offset  # or utc_offset_dt
         # clear file_id and meas_id if needed
         if meas_date is None:
             for key in ('file_id', 'meas_id'):
