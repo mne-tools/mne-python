@@ -14,15 +14,17 @@ Show sensor layouts of different MEG systems.
 
 # %%
 
-import os.path as op
+from pathlib import Path
 
 import mne
-from mne.io import read_raw_fif, read_raw_ctf, read_raw_bti, read_raw_kit
-from mne.io import read_raw_artemis123
 from mne.datasets import sample, spm_face, testing
+from mne.io import (read_raw_artemis123, read_raw_bti, read_raw_ctf,
+                    read_raw_fif, read_raw_kit)
 from mne.viz import plot_alignment, set_3d_title
 
 print(__doc__)
+
+root_path = Path(mne.__file__).parent.absolute()
 
 # %%
 # Neuromag
@@ -48,10 +50,10 @@ set_3d_title(figure=fig, title='CTF 275')
 # BTi
 # ---
 
-bti_path = op.abspath(op.dirname(mne.__file__)) + '/io/bti/tests/data/'
-raw = read_raw_bti(op.join(bti_path, 'test_pdf_linux'),
-                   op.join(bti_path, 'test_config_linux'),
-                   op.join(bti_path, 'test_hs_linux'))
+bti_path = root_path / 'io' / 'bti' / 'tests' / 'data'
+raw = read_raw_bti(bti_path / 'test_pdf_linux',
+                   bti_path / 'test_config_linux',
+                   bti_path / 'test_hs_linux')
 fig = plot_alignment(raw.info, meg=('helmet', 'sensors', 'ref'), **kwargs)
 set_3d_title(figure=fig, title='Magnes 3600wh')
 
@@ -59,8 +61,8 @@ set_3d_title(figure=fig, title='Magnes 3600wh')
 # KIT
 # ---
 
-kit_path = op.abspath(op.dirname(mne.__file__)) + '/io/kit/tests/data/'
-raw = read_raw_kit(op.join(kit_path, 'test.sqd'))
+kit_path = root_path / 'io' / 'kit' / 'tests' / 'data'
+raw = read_raw_kit(kit_path / 'test.sqd')
 fig = plot_alignment(raw.info, meg=('helmet', 'sensors'), **kwargs)
 set_3d_title(figure=fig, title='KIT')
 

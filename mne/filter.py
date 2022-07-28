@@ -2089,12 +2089,9 @@ class FilterMixin(object):
         new_times = (np.arange(self._data.shape[-1], dtype=np.float64) /
                      sfreq + self.times[0])
         # adjust indirectly affected variables
-        if isinstance(self, BaseEpochs):
-            self._set_times(new_times)
-            self._raw_times = self.times
-        else:  # isinstance(self, Evoked)
-            self.times = new_times
-            self._update_first_last()
+        self._set_times(new_times)
+        self._raw_times = self.times
+        self._update_first_last()
         return self
 
     @verbose

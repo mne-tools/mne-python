@@ -46,76 +46,11 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format, _arange_div)
+                     _check_time_format, _arange_div, TimeMixin)
 from ..defaults import _handle_default
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
-
-
-class TimeMixin(object):
-    """Class to add sfreq and time_as_index capabilities to certain classes."""
-
-    # Overridden method signature does not match call...
-    def time_as_index(self, times, use_rounding=False):  # lgtm
-        """Convert time to indices.
-
-        Parameters
-        ----------
-        times : list-like | float | int
-            List of numbers or a number representing points in time.
-        use_rounding : bool
-            If True, use rounding (instead of truncation) when converting
-            times to indices. This can help avoid non-unique indices.
-
-        Returns
-        -------
-        index : ndarray
-            Indices corresponding to the times supplied.
-        """
-        from ..source_estimate import _BaseSourceEstimate
-        if isinstance(self, _BaseSourceEstimate):
-            sfreq = 1. / self.tstep
-        else:
-            sfreq = self.info['sfreq']
-        index = (np.atleast_1d(times) - self.times[0]) * sfreq
-        if use_rounding:
-            index = np.round(index)
-        return index.astype(int)
-
-    def _handle_tmin_tmax(self, tmin, tmax):
-        """Convert seconds to index into data.
-
-        Parameters
-        ----------
-        tmin : int | float | None
-            Start time of data to get in seconds.
-        tmax : int | float | None
-            End time of data to get in seconds.
-
-        Returns
-        -------
-        start : int
-            Integer index into data corresponding to tmin.
-        stop : int
-            Integer index into data corresponding to tmax.
-
-        """
-        _validate_type(tmin, types=('numeric', None), item_name='tmin',
-                       type_name="int, float, None")
-        _validate_type(tmax, types=('numeric', None), item_name='tmax',
-                       type_name='int, float, None')
-
-        # handle tmin/tmax as start and stop indices into data array
-        n_times = self.times.size
-        start = 0 if tmin is None else self.time_as_index(tmin)[0]
-        stop = n_times if tmax is None else self.time_as_index(tmax)[0]
-
-        # truncate start/stop to the open interval [0, n_times]
-        start = min(max(0, start), n_times)
-        stop = min(max(0, stop), n_times)
-
-        return start, stop
 
 
 @fill_doc

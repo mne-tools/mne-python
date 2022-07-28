@@ -13,7 +13,7 @@ import numpy as np
 
 from .check import _check_pandas_installed, _check_preload, _validate_type
 from ._logging import warn, verbose
-from .numerics import object_size, object_hash
+from .numerics import object_size, object_hash, _time_mask
 
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
@@ -423,8 +423,33 @@ class GetEpochsMixin(object):
         self._metadata = metadata
 
 
-class EpochsTimesMixin(object):
-    """Class to handle times, tmin, tmax and decimation for epochs."""
+def _check_decim(info, decim, offset, check_filter=True):
+    """Check decimation parameters."""
+    if decim < 1 or decim != int(decim):
+        raise ValueError('decim must be an integer > 0')
+    decim = int(decim)
+    new_sfreq = info['sfreq'] / float(decim)
+    offset = int(offset)
+    if not 0 <= offset < decim:
+        raise ValueError(f'decim must be at least 0 and less than {decim}, '
+                         f'got {offset}')
+    if check_filter:
+        lowpass = info['lowpass']
+        if decim > 1 and lowpass is None:
+            warn('The measurement information indicates data is not low-pass '
+                 f'filtered. The decim={decim} parameter will result in a '
+                 f'sampling frequency of {new_sfreq} Hz, which can cause '
+                 'aliasing artifacts.')
+        elif decim > 1 and new_sfreq < 3 * lowpass:
+            warn('The measurement information indicates a low-pass frequency '
+                 f'of {lowpass} Hz. The decim={decim} parameter will result '
+                 f'in a sampling frequency of {new_sfreq} Hz, which can '
+                 'cause aliasing artifacts.')  # > 50% nyquist lim
+    return decim, offset, new_sfreq
+
+
+class TimeMixin(object):
+    """Class to handle operations on time for MNE objects."""
 
     @property
     def times(self):
@@ -449,8 +474,54 @@ class EpochsTimesMixin(object):
         return self.times[-1]
 
     @verbose
+    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
+        """Crop data to a given time interval.
+
+        Parameters
+        ----------
+        tmin : float | None
+            Start time of selection in seconds.
+        tmax : float | None
+            End time of selection in seconds.
+        %(include_tmax)s
+        %(verbose)s
+
+        Returns
+        -------
+        inst : instance of Raw, Epochs, Evoked, AverageTFR, or SourceEstimate
+            The cropped time-series object, modified in-place.
+
+        Notes
+        -----
+        %(notes_tmax_included_by_default)s
+        """
+        if tmin is None:
+            tmin = self.tmin
+        elif tmin < self.tmin:
+            warn(f'tmin is not in time interval. tmin is set to '
+                 f'{type(self)}.tmin ({self.tmin:g} sec)')
+            tmin = self.tmin
+
+        if tmax is None:
+            tmax = self.tmax
+        elif tmax > self.tmax:
+            warn(f'tmax is not in time interval. tmax is set to '
+                 f'{type(self)}.tmax ({self.tmax:g} sec)')
+            tmax = self.tmax
+            include_tmax = True
+
+        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
+                          include_tmax=include_tmax)
+        self._set_times(self.times[mask])
+        self._raw_times = self._raw_times[mask]
+        self._update_first_last()
+        self._data = self._data[..., mask]
+
+        return self
+
+    @verbose
     def decimate(self, decim, offset=0, verbose=None):
-        """Decimate the epochs.
+        """Decimate the time-series data.
 
         Parameters
         ----------
@@ -460,12 +531,11 @@ class EpochsTimesMixin(object):
 
         Returns
         -------
-        inst : instance of Epochs
-            The decimated Epochs object.
+        inst : MNE-object
+            The decimated object.
 
         See Also
         --------
-        mne.Evoked.decimate
         mne.Epochs.resample
         mne.io.Raw.resample
 
@@ -481,8 +551,11 @@ class EpochsTimesMixin(object):
         ----------
         .. footbibliography::
         """
-        from ..evoked import _check_decim
-        decim, offset, new_sfreq = _check_decim(self.info, decim, offset)
+        # if epochs have frequencies, they are not in time (EpochsTFR)
+        # and so do not need to be checked whether they have been
+        # appropriately filtered to avoid aliasing
+        decim, offset, new_sfreq = _check_decim(
+            self.info, decim, offset, check_filter=not hasattr(self, 'freqs'))
         start_idx = int(round(-self._raw_times[0] * (self.info['sfreq'] *
                                                      self._decim)))
         self._decim *= decim
@@ -490,6 +563,7 @@ class EpochsTimesMixin(object):
         decim_slice = slice(i_start, None, self._decim)
         with self.info._unlock():
             self.info['sfreq'] = new_sfreq
+
         if self.preload:
             if decim != 1:
                 self._data = self._data[..., decim_slice].copy()
@@ -501,7 +575,106 @@ class EpochsTimesMixin(object):
         else:
             self._decim_slice = decim_slice
         self._set_times(self._raw_times[self._decim_slice])
+        self._update_first_last()
         return self
+
+    # Overridden method signature does not match call...
+    def time_as_index(self, times, use_rounding=False):  # lgtm
+        """Convert time to indices.
+
+        Parameters
+        ----------
+        times : list-like | float | int
+            List of numbers or a number representing points in time.
+        use_rounding : bool
+            If True, use rounding (instead of truncation) when converting
+            times to indices. This can help avoid non-unique indices.
+
+        Returns
+        -------
+        index : ndarray
+            Indices corresponding to the times supplied.
+        """
+        from ..source_estimate import _BaseSourceEstimate
+        if isinstance(self, _BaseSourceEstimate):
+            sfreq = 1. / self.tstep
+        else:
+            sfreq = self.info['sfreq']
+        index = (np.atleast_1d(times) - self.times[0]) * sfreq
+        if use_rounding:
+            index = np.round(index)
+        return index.astype(int)
+
+    def _handle_tmin_tmax(self, tmin, tmax):
+        """Convert seconds to index into data.
+
+        Parameters
+        ----------
+        tmin : int | float | None
+            Start time of data to get in seconds.
+        tmax : int | float | None
+            End time of data to get in seconds.
+
+        Returns
+        -------
+        start : int
+            Integer index into data corresponding to tmin.
+        stop : int
+            Integer index into data corresponding to tmax.
+
+        """
+        _validate_type(tmin, types=('numeric', None), item_name='tmin',
+                       type_name="int, float, None")
+        _validate_type(tmax, types=('numeric', None), item_name='tmax',
+                       type_name='int, float, None')
+
+        # handle tmin/tmax as start and stop indices into data array
+        n_times = self.times.size
+        start = 0 if tmin is None else self.time_as_index(tmin)[0]
+        stop = n_times if tmax is None else self.time_as_index(tmax)[0]
+
+        # truncate start/stop to the open interval [0, n_times]
+        start = min(max(0, start), n_times)
+        stop = min(max(0, stop), n_times)
+
+        return start, stop
+
+    def shift_time(self, tshift, relative=True):
+        """Shift time scale in epoched or evoked data.
+
+        Parameters
+        ----------
+        tshift : float
+            The (absolute or relative) time shift in seconds. If ``relative``
+            is True, positive tshift increases the time value associated with
+            each sample, while negative tshift decreases it.
+        relative : bool
+            If True, increase or decrease time values by ``tshift`` seconds.
+            Otherwise, shift the time values such that the time of the first
+            sample equals ``tshift``.
+
+        Returns
+        -------
+        epochs : MNE-object
+            The modified instance.
+
+        Notes
+        -----
+        This method allows you to shift the *time* values associated with each
+        data sample by an arbitrary amount. It does *not* resample the signal
+        or change the *data* values in any way.
+        """
+        _check_preload(self, 'shift_time')
+        start = tshift + (self.times[0] if relative else 0.)
+        new_times = start + np.arange(len(self.times)) / self.info['sfreq']
+        self._set_times(new_times)
+        self._update_first_last()
+        return self
+
+    def _update_first_last(self):
+        """Update self.first and self.last (sample indices)."""
+        self.first = int(round(self.times[0] * self.info['sfreq']))
+        self.last = len(self.times) + self.first - 1
 
 
 def _prepare_write_metadata(metadata):
@@ -547,48 +720,3 @@ class _FakeNoPandas(object):  # noqa: D101
         import mne
         mne.epochs._check_pandas_installed = self._old_check
         mne.utils.mixin._check_pandas_installed = self._old_check
-
-
-class ShiftTimeMixin(object):
-    """Class for shift_time method (Epochs, Evoked, and DipoleFixed)."""
-
-    def shift_time(self, tshift, relative=True):
-        """Shift time scale in epoched or evoked data.
-
-        Parameters
-        ----------
-        tshift : float
-            The (absolute or relative) time shift in seconds. If ``relative``
-            is True, positive tshift increases the time value associated with
-            each sample, while negative tshift decreases it.
-        relative : bool
-            If True, increase or decrease time values by ``tshift`` seconds.
-            Otherwise, shift the time values such that the time of the first
-            sample equals ``tshift``.
-
-        Returns
-        -------
-        epochs : instance of Epochs
-            The modified Epochs instance.
-
-        Notes
-        -----
-        This method allows you to shift the *time* values associated with each
-        data sample by an arbitrary amount. It does *not* resample the signal
-        or change the *data* values in any way.
-        """
-        from ..epochs import BaseEpochs
-        _check_preload(self, 'shift_time')
-        start = tshift + (self.times[0] if relative else 0.)
-        new_times = start + np.arange(len(self.times)) / self.info['sfreq']
-        if isinstance(self, BaseEpochs):
-            self._set_times(new_times)
-        else:
-            self.times = new_times
-            self._update_first_last()
-        return self
-
-    def _update_first_last(self):
-        """Update self.first and self.last (sample indices)."""
-        self.first = int(round(self.times[0] * self.info['sfreq']))
-        self.last = len(self.times) + self.first - 1

@@ -11,16 +11,14 @@ This tutorial shows how to make the MNE helmet + brain image.
 
 # %%
 
-import os.path as op
 import mne
 
 sample_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(sample_path, 'subjects')
-fname_evoked = op.join(sample_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
-fname_inv = op.join(sample_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-meg-inv.fif')
-fname_trans = op.join(sample_path, 'MEG', 'sample',
-                      'sample_audvis_raw-trans.fif')
+subjects_dir = sample_path / 'subjects'
+fname_evoked = sample_path / 'MEG' / 'sample' / 'sample_audvis-ave.fif'
+fname_inv = (sample_path / 'MEG' / 'sample' /
+             'sample_audvis-meg-oct-6-meg-inv.fif')
+fname_trans = sample_path / 'MEG' / 'sample' / 'sample_audvis_raw-trans.fif'
 inv = mne.minimum_norm.read_inverse_operator(fname_inv)
 evoked = mne.read_evokeds(fname_evoked, baseline=(None, 0),
                           proj=True, verbose=False, condition='Left Auditory')

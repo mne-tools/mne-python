@@ -145,6 +145,10 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         app = QApplication.instance() or QApplication(sys.argv or [app_name])
         app.setApplicationName(app_name)
     app.setOrganizationName(organization_name)
+    try:
+        app.setAttribute(Qt.AA_UseHighDpiPixmaps)  # works on PyQt5 and PySide2
+    except AttributeError:
+        pass  # not required on PyQt6 and PySide6 anyway
 
     if enable_icon or splash:
         icons_path = _qt_init_icons()

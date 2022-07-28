@@ -61,6 +61,7 @@ test_generator_bdf = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 test_generator_edf = op.join(data_path, 'EDF', 'test_generator_2.edf')
 edf_annot_sub_s_path = op.join(data_path, 'EDF', 'subsecond_starttime.edf')
 edf_chtypes_path = op.join(data_path, 'EDF', 'chtypes_edf.edf')
+edf_utf8_annotations = op.join(data_path, 'EDF', 'test_utf8_annotations.edf')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -340,6 +341,14 @@ def test_read_annotations(fname, recwarn):
     """Test IO of annotations from edf and bdf files via regexp."""
     annot = read_annotations(fname)
     assert len(annot.onset) == 2
+
+
+@testing.requires_testing_data
+def test_read_utf8_annotations():
+    """Test if UTF8 annotations can be read."""
+    raw = read_raw_edf(edf_utf8_annotations)
+    assert raw.annotations[0]['description'] == 'RECORD START'
+    assert raw.annotations[1]['description'] == '仰卧'
 
 
 def test_edf_prefilter_parse():

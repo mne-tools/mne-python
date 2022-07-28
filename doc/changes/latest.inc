@@ -147,6 +147,8 @@ Bugs
 
 - Fix bug in :func:`mne.io.read_raw_ctf` on Windows where large files could not be read (:gh:`10866` by `Eric Larson`_)
 
+- Fix bug in :func:`mne.io.read_raw_ctf` where invalid measurement dates were not handled properly (:gh:`10957` by `Jean-Remi King`_ and `Eric Larson`_)
+
 - Rendering issues with recent MESA releases can be avoided by setting the new environment variable``MNE_3D_OPTION_MULTI_SAMPLES=1`` or using :func:`mne.viz.set_3d_options` (:gh:`10513` by `Eric Larson`_)
 
 - Fix behavior for the ``pyvista`` 3D renderer's ``quiver3D`` function so that default arguments plot a glyph in ``arrow`` mode (:gh:`10493` by `Alex Rockhill`_)
@@ -209,6 +211,8 @@ Bugs
 
 - Fix documentation bug in ``ica.plot_sources`` to specify that ``picks`` keyword argument is for picking ICA components to plot (:gh:`10936` by `Adam Li`_)
 
+- Annotations contained in EDF files are correctly read as UTF-8 according to the EDF specification (:gh:`10963` by `Clemens Brunner`_)
+
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - When creating BEM surfaces via :func:`mne.bem.make_watershed_bem` and :func:`mne.bem.make_flash_bem`, the ``copy`` parameter now defaults to ``True``. This means that instead of creating symbolic links inside the FreeSurfer subject's ``bem`` folder, we now create "actual" files. This should avoid troubles when sharing files across different operating systems and file systems (:gh:`10531` by `Richard Höchenberger`_)
@@ -222,3 +226,5 @@ API and behavior changes
 - :func:`~mne.viz.plot_compare_evokeds` gets a new parameter ``time_unit`` which can be ``"s"`` or ``"ms"`` (:gh:`10950` by `Daniel McCloy`_)
 
 - The ``to_data_frame`` methods for :meth:`Raw <mne.io.Raw.to_data_frame>`, :meth:`Epochs <mne.Epochs.to_data_frame>`, :meth:`Evoked <mne.Evoked.to_data_frame>`, :meth:`SourceEstimate <mne.SourceEstimate.to_data_frame>`, :meth:`EpochsTFR <mne.time_frequency.EpochsTFR.to_data_frame>`, and :meth:`AverageTFR <mne.time_frequency.AverageTFR.to_data_frame>` all now have default ``time_format=None`` (keep time in seconds) instead of ``time_format='ms'`` (convert time to milliseconds) (:gh:`10925` by `Daniel McCloy`_)
+
+- :func:`mne.Evoked.decimate` now aligns to the sample at time=0 (so that the exact sample when the event occurred is preserved) to be consistent with :func:`mne.Epochs.decimate` (:gh:`10945` by `Alex Rockhill`_)
