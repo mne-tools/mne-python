@@ -936,6 +936,7 @@ def _handle_meas_date_nonUTC(meas_date):
     elif isinstance(meas_date, tuple):
         # old way
         meas_date = _stamp_to_dt(meas_date)
+        
     if meas_date is not None:
         if np.isscalar(meas_date):
             # It would be nice just to do:
@@ -948,9 +949,10 @@ def _handle_meas_date_nonUTC(meas_date):
             meas_date *= [1, 1e6]
             meas_date = _stamp_to_dt(np.round(meas_date))
         elif isinstance(meas_date, datetime):
-            utc_offset_str = meas_date.isoformat()[-6:] #sHH:MM format
-            utc_offset_dt = meas_date.utcoffset()       #datetime.timedelta(seconds)
-        meas_date = meas_date.astimezone(timezone.utc)
+            utc_offset_str = meas_date.isoformat()[-6:] # sHH:MM format
+            utc_offset_dt = meas_date.utcoffset() # datetime.timedelta(sec)
+        meas_date = meas_date.astimezone(timezone.utc) # convert correctly
+        meas_date = meas_date.replace(tzinfo=timezone.utc)  # format
         _check_dt(meas_date)  # run checks
     return meas_date, utc_offset_str, utc_offset_dt
 

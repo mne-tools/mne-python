@@ -23,7 +23,7 @@ Current (1.1.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- Add :func:`mne.channels.montage.DigMontage.__eq__` to test equality for DigMontage instances using .dig and .ch_names (:gh:`10942` by :newcontrib:`Tziona NessAiver`)
+- :class:`~mne.channels.DigMontage` objects can now be checked for equality via ``==`` (:gh:`10942` by :newcontrib:`Tziona NessAiver`)
 
 - Add a note to clarify the inclusion of average referencing gain matrix during whitening (:gh:`10922` by :newcontrib:`Mingjian He`)
 
@@ -113,9 +113,11 @@ Enhancements
 
 - Add :meth:`mne.time_frequency.EpochsTFR.decimate` to reduce size of time-frequency epochs objects (:gh:`10940` by `Alex Rockhill`_)
 
-- :meth:`mne.channels.set_meas_date` can now accept when datetime objects are not UTC (:gh:`` by `Tziona NessAiver`_)
+- :meth: `mne.coreg.Coregistration.compute_dig_mri_distances` and directly getting distances from mri surfaces now warn user if the distance is greater than 5mm (:gh:`10966` by `Tziona NessAiver`_)
 
 - Add an alias that maps EGI reference channel names (``VREF`` or ``Vertex Reference``) to the electrode name in the standard EGI montages (``Cz``). Now setting standard EGI montages with :meth:`~mne.io.Raw.set_montage` with ``match_alias=True`` will avoid raising an error (:gh:`10823` by `Scott Huberty`_)
+
+- Make it possible to enter sHH:MM timezone information when calling :meth: `mne.channels.SetChannelsMixin.set_meas_date` (:gh: by `Tziona NessAiver`)
 
 Bugs
 ~~~~
