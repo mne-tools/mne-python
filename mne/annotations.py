@@ -909,7 +909,7 @@ def _handle_meas_date(meas_date):
 
 
 def _handle_meas_date_nonUTC(meas_date):
-    """Convert meas_date to datetime or None, and get utc_offset if not UTC
+    """Convert meas_date to datetime or None, and get utc_offset if not UTC.
 
     If `meas_date` is a string, it should conform to the ISO8601 format.
     More precisely to this '%Y-%m-%d %H:%M:%S.%f%z' particular case of the
