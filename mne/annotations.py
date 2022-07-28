@@ -937,7 +937,7 @@ def _handle_meas_date_nonUTC(meas_date):
     elif isinstance(meas_date, tuple):
         # old way
         meas_date = _stamp_to_dt(meas_date)
-  
+
     if meas_date is not None:
         if np.isscalar(meas_date):
             # It would be nice just to do:

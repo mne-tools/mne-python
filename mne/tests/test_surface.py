@@ -19,8 +19,7 @@ from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
                          get_head_surf, read_curvature, get_meg_helmet_surf,
                          _normal_orth, _read_patch, _marching_cubes,
                          _voxel_neighbors, warp_montage_volume,
-                         _project_onto_surface, _warn_bad_coregistration,
-                         _get_ico_surface)
+                         _project_onto_surface, _get_ico_surface)
 from mne.transforms import (_get_trans, compute_volume_registration,
                             apply_trans)
 from mne.utils import (catch_logging, object_diff,
@@ -218,16 +217,6 @@ def test_dig_mri_distances(dig_kinds, exclude, count, bounds, outliers):
     assert dists.shape == (count,)
     assert bounds[0] < np.mean(dists) < bounds[1]
     assert np.sum(dists > 0.03) == outliers
-
-
-@pytest.mark.parametrize('distances', [(0.005, 0.006)])
-def test_warn_bad_coregistration(distances):
-    """Test warning for bad coregistration."""
-    with pytest.warns(UserWarning, match='Warning: Bad coregistration. ' +
-                      'Median coregistration distance is greater than ' +
-                      '5.0 mm') as record:
-        _warn_bad_coregistration(distances)
-    assert len(record) == 1
 
 
 def test_normal_orth():
