@@ -907,7 +907,6 @@ def _handle_meas_date(meas_date):
     meas_date, _, _ = _handle_meas_date_nonUTC(meas_date)
     return meas_date
 
-
 def _handle_meas_date_nonUTC(meas_date):
     """Convert meas_date to datetime or None, and get utc_offset if not UTC
     
@@ -924,28 +923,20 @@ def _handle_meas_date_nonUTC(meas_date):
              utc_offset_str as str sHH:MM format or  as
              utc_offset_dt as datetime object datetime.timedelta(seconds).
     """
-    print(meas_date)
     utc_offset_str = None
     utc_offset_dt = None
     if isinstance(meas_date, str):
         ACCEPTED_ISO8601 = '%Y-%m-%d %H:%M:%S.%f'
-        # Handle meas_date string with and without timezone data
-        for tz in ['%z', '']:  # no %Z
-            try:
-                meas_date = datetime.strptime(meas_date, ACCEPTED_ISO8601 + tz)
-            except ValueError:
-                if tz == '':  # or tz == '%Z':
-                    meas_date = None
-            else:
-                if tz == '':
-                    meas_date = meas_date.replace(tzinfo=timezone.utc)  # is below :944
-                break
+        try:
+            meas_date = datetime.strptime(meas_date, ACCEPTED_ISO8601)
+        except ValueError:
+            meas_date = None
+        else:
+            meas_date = meas_date.replace(tzinfo=timezone.utc)
     elif isinstance(meas_date, tuple):
         # old way
         meas_date = _stamp_to_dt(meas_date)
-        
     if meas_date is not None:
-        print('not none')
         if np.isscalar(meas_date):
             # It would be nice just to do:
             #
@@ -959,9 +950,10 @@ def _handle_meas_date_nonUTC(meas_date):
         elif isinstance(meas_date, datetime):
             utc_offset_str = meas_date.isoformat()[-6:] #sHH:MM format
             utc_offset_dt = meas_date.utcoffset()       #datetime.timedelta(seconds)
-        _check_dt(meas_date)  # run checks
         meas_date = meas_date.astimezone(timezone.utc)
+        _check_dt(meas_date)  # run checks
     return meas_date, utc_offset_str, utc_offset_dt
+
 
 def _sync_onset(raw, onset, inverse=False):
     """Adjust onsets in relation to raw data."""
