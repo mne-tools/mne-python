@@ -1728,7 +1728,7 @@ def dig_mri_distances(info, trans, subject, subjects_dir=None,
     Returns
     -------
     dists : array, shape (n_points,)
-        The distances.
+        The distances (in meters).
 
     See Also
     --------
@@ -1746,7 +1746,25 @@ def dig_mri_distances(info, trans, subject, subjects_dir=None,
     info_dig = get_fitting_dig(
         info, dig_kinds, exclude_frontal=exclude_frontal)
     dists = _compute_nearest(pts, info_dig, return_dists=True)[1]
+    _warn_bad_coregistration(dists)
     return dists
+
+
+def _warn_bad_coregistration(distances):
+    """Warn if median coregistratin distances are > 5mm.
+
+    Notes
+    -----
+    Update this function with further conditions for a bad coregistration
+    """
+    # Should include more warnings as definition of a
+    # "bad coregistration" is expanded
+    median_dist = np.median(distances)
+    good_limit = 5 / 1e3  # mm converted to m
+    if median_dist > good_limit:
+        warn('Warning: Bad coregistration. Median coregistration ' +
+             f'distance is greater than {good_limit*1e3} mm', UserWarning)
+    return
 
 
 def _mesh_borders(tris, mask):
