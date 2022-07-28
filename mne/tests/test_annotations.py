@@ -40,6 +40,9 @@ data_path = testing.data_path(download=False)
 edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
 edf_annot_only = op.join(data_path, 'EDF', 'SC4001EC-Hypnogram.edf')
 
+# create simple test data for input of datetime object
+str_test_date = '2002-12-03 19:01:11.720100+03:00'
+dt_test_date = datetime.strptime(str_test_date, '%Y-%m-%d %H:%M:%S.%f%z')
 
 needs_pandas = pytest.mark.skipif(
     not check_version('pandas'), reason='Needs pandas')
@@ -976,6 +979,10 @@ def test_io_annotation_txt(dummy_annotation_txt_file, tmp_path_factory,
     pytest.param(42, 42.0, id='Scalar'),
     pytest.param(3.14, 3.14, id='Float'),
     pytest.param((3, 140000), 3.14, id='Scalar touple'),
+    pytest.param('2002-12-03 19:01:11.720100' + 'IDT', None,
+                 id='invalid iso8601 string with Region'),
+    pytest.param(dt_test_date, 1038931271.7201,
+                 id='valid datetime obj with region'),
     pytest.param('2002-12-03 19:01:11.720100', 1038942071.7201,
                  id='valid iso8601 string'),
     pytest.param('2002-12-03T19:01:11.720100', None,
