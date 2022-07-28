@@ -117,7 +117,7 @@ Enhancements
 
 - Add an alias that maps EGI reference channel names (``VREF`` or ``Vertex Reference``) to the electrode name in the standard EGI montages (``Cz``). Now setting standard EGI montages with :meth:`~mne.io.Raw.set_montage` with ``match_alias=True`` will avoid raising an error (:gh:`10823` by `Scott Huberty`_)
 
-- Make it possible to enter sHH:MM timezone information when calling :meth:`mne.channels.set_meas_date` (:gh:`10970` by `Tziona NessAiver`)
+- Make it possible to enter sHH:MM timezone information when calling :meth:`mne.io.Raw.set_meas_date` and related methods (:gh:`10970` by `Tziona NessAiver`_)
 
 Bugs
 ~~~~
