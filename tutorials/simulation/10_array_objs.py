@@ -25,8 +25,8 @@ import mne
 # .. admonition:: Info objects
 #     :class: sidebar note
 #
-#      For full documentation on the `~mne.Info` object, see
-#      :ref:`tut-info-class`.
+#     For full documentation on the `~mne.Info` object, see
+#     :ref:`tut-info-class`.
 #
 # The core data structures for continuous (`~mne.io.Raw`), discontinuous
 # (`~mne.Epochs`), and averaged (`~mne.Evoked`) data all have an ``info``

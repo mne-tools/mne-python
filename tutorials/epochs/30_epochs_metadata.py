@@ -33,7 +33,7 @@ epochs = mne.read_epochs(kiloword_data_file)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # .. admonition:: Restrictions on metadata DataFrames
-#    :class: sidebar note
+#    :class: sidebar warning
 #
 #    Metadata dataframes are less flexible than typical
 #    :class:`Pandas DataFrames <pandas.DataFrame>`. For example, the allowed

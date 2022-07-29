@@ -43,7 +43,7 @@ del raw
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # .. admonition:: Interactivity in pipelines and scripts
-#     :class: sidebar note
+#     :class: sidebar hint
 #
 #     To use the interactive features of the `~mne.Epochs.plot` method
 #     when running your code non-interactively, pass the ``block=True``
