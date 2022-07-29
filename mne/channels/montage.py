@@ -163,6 +163,10 @@ _BUILTIN_STANDARD_MONTAGES = [
     _BuiltinStandardMontage(
         name='artinis-brite23',
         description='Artinis Brite23 fNIRS (11 sources, 7 detectors)',
+    ),
+    _BuiltinStandardMontage(
+        name='brainproducts-RNP-BA-128',
+        description='Brain Products with 10-10 electrode names (128 channels)',
     )
 ]
 

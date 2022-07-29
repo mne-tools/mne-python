@@ -54,6 +54,7 @@ def test_standard_montage_errors():
     ['biosemi256', 1e-8],
     ['biosemi32', 1e-8],
     ['biosemi64', 1e-8],
+    ['brainproducts-RNP-BA-128', 1e-8]
 ])
 def test_standard_montages_on_sphere(kind, tol, head_size):
     """Test some standard montage are on sphere."""
