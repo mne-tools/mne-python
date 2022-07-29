@@ -11,6 +11,8 @@
     --mne-color-primary: #007bff;
     --mne-color-primary-text: #fff;
     --mne-color-primary-highlight: #0063cc;
+    /* font weight */
+    --mne-font-weight-semibold: 600;
 }
 
 
@@ -73,11 +75,37 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ************************************************************ Sphinx fixes */
+
+/* API docs parameter lists */
 dl.field-list {
     grid-template-columns: auto 1fr;
 }
 
-/* ********************************************************** Sphinx-gallery */
+/* make HTML'd pandas dataframes scrollable */
+table.dataframe {
+    display: block;
+    overflow: auto;
+}
+
+/* Long API titles need to wrap for mobile */
+div[id^="mne-"] h1,
+div[id^="examples-using-"] h2 {
+    word-break: break-word;
+}
+
+/* *********************************************** pydata-sphinx-theme fixes */
+
+/* this is most critical for the homepage logos, but affects all images */
+html[data-theme="dark"] img {
+    filter: none;
+}
+
+/* prev/next links */
+.prev-next-area a p.prev-next-title {
+    color: var(--pst-color-link);
+}
+
+/* **************************************************** sphinx-gallery fixes */
 
 /* backreference links: restore hover decoration that SG removes */
 a.sphx-glr-backref-instance:hover {
@@ -89,8 +117,8 @@ a[class^="sphx-glr-backref-module"] {
 }
 /* backreference links: make MNE calls bold and colorful */
 a[class^="sphx-glr-backref-module-mne"] {
-    font-weight: 600;
     color: rgb(var(--pst-color-link));
+    font-weight: var(--mne-font-weight-semibold);
 }
 /* suppress redundant note at top of every tutorial and signature at the end */
 div.sphx-glr-download-link-note,
@@ -121,24 +149,77 @@ iframe.sg_report {
     display: none;
 }
 
-/* ******************************** make HTML'd pandas dataframes scrollable */
-table.dataframe {
-    display: block;
-    overflow: auto;
+/* ***************************************************** sphinx-design fixes */
+p.btn a {
+    color: unset;
+}
+/* sphinx-design tabs */
+html .bd-content .sd-tab-set > label:hover,
+.bd-content .sd-tab-set > input:not(:checked) + label:hover {
+    opacity: unset;
+    color: var(--pst-color-secondary);
+    border-color: var(--pst-color-secondary);
 }
 
-/* ********************************* Long API titles need to wrap for mobile */
-div[id^="mne-"] h1,
-div[id^="examples-using-"] h2 {
-    word-break: break-word;
-}
+/* ************************************************************* copy button */
+button.copybtn {
+    /* always show; https://sphinx-copybutton.readthedocs.io/en/latest/use.html#modify-the-copy-button-s-css */
+    opacity: var(--copybtn-opacity);
+ }
 
-/* ******************************************************* reference spacing */
+/* *************************************************** bib reference spacing */
 aside.footnote {
     margin-bottom: 0.5rem;
 }
 aside.footnote:last-child {
     margin-bottom: 1rem;
+}
+
+/* ******************************************************** version dropdown */
+.dropdown-toggle {
+    font-weight: var(--mne-font-weight-semibold);
+}
+
+/* ******************************************************* navbar icon links */
+#navbar-icon-links i.fa-github-square::before {
+    color: var(--mne-color-github);
+}
+#navbar-icon-links i.fa-twitter-square::before {
+    color: var(--mne-color-twitter);
+}
+#navbar-icon-links i.fa-discourse::before {
+    color: var(--mne-color-discourse);
+}
+#navbar-icon-links i.fa-discord::before {
+    color: var(--mne-color-discord);
+}
+
+/* ************************************************************ nav elements */
+/* topbar nav inactive */
+.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link {
+    color: var(--pst-color-text-muted);
+}
+/* topbar nav active */
+.bd-header.navbar-light#navbar-main .navbar-nav > li.active > .nav-link {
+    color: var(--pst-color-link);
+    font-weight: var(--mne-font-weight-semibold);
+}
+/* topbar nav hover */
+.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:focus,
+.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:hover {
+    color: var(--pst-color-secondary);
+}
+/* sidebar nav */
+nav.bd-links .active > a,
+nav.bd-links .active:hover > a,
+.toc-entry a.nav-link.active,
+.toc-entry a.nav-link.active:hover {
+    color: var(--pst-color-link);
+}
+/* sidebar nav hover */
+nav.bd-links li > a:hover,
+.toc-entry a.nav-link:hover {
+    color: var(--pst-color-secondary);
 }
 
 /* *********************************************************** homepage logo */
@@ -149,7 +230,7 @@ img.logo {
 
 /* **************************************************** homepage quick links */
 ul.quicklinks a {
-    font-weight: 600;
+    font-weight: var(--mne-font-weight-semibold);
     color: var(--pst-color-text-base);
 }
 ul.quicklinks a:hover {
@@ -166,25 +247,7 @@ h5.card-header::before {
     margin-top: 0px;
 }
 
-/* ************************************************************ funders page */
-ul.funders li {
-    margin-left: 36px;
-    text-indent: -36px;
-    padding-bottom: 9px;
-}
-ul.funders li img {
-    width: 30px;
-    max-height: 24px;
-    object-fit: contain;
-    background-color: unset !important;
-}
-
-/* ******************************************************** version dropdown */
-.dropdown-toggle {
-    font-weight: 600;
-}
-
-/* ***************************************************** front page carousel */
+/* ******************************************************* homepage carousel */
 div.frontpage-gallery {
     overflow: hidden;
     height: 180px;
@@ -213,7 +276,7 @@ div.frontpage-gallery:hover .fadeout {
     opacity: 0.0;
     transition: 200ms linear;
 }
-/* affects the homepage gallery tiles and the homepage sidebar quicklinks;
+/* affects the homepage gallery tiles and the homepage sidebar quicklinks card;
    needed for dark mode. */
 div.card {
     border: 1px solid var(--pst-color-border);
@@ -224,7 +287,7 @@ div.card {
     background-color: var(--mne-color-card-header);
 }
 
-/* ************************************* front page funder/institution logos */
+/* *************************************** homepage funder/institution logos */
 div#funder-logos div.card,
 div#institution-logos div.card,
 div#funder-logos div.card img,
@@ -233,58 +296,18 @@ div#institution-logos div.card img {
     border: none;
     border-radius: unset;
 }
-/* this is most critical for the frontpage logos, but affects all images */
-html[data-theme="dark"] img {
-    filter: none;
-}
 
-/* ********************************************* sphinx-design compatibility */
-p.btn a {
-    color: unset;
+/* ************************************************************ funders page */
+ul.funders li {
+    margin-left: 36px;
+    text-indent: -36px;
+    padding-bottom: 9px;
 }
-/* sphinx-design tabs */
-html .bd-content .sd-tab-set > label:hover,
-.bd-content .sd-tab-set > input:not(:checked) + label:hover {
-    opacity: unset;
-    color: var(--pst-color-secondary);
-    border-color: var(--pst-color-secondary);
-}
-
-/* ****************************************************** navbar quick links */
-#navbar-icon-links i.fa-github-square::before {
-    color: var(--mne-color-github);
-}
-#navbar-icon-links i.fa-twitter-square::before {
-    color: var(--mne-color-twitter);
-}
-#navbar-icon-links i.fa-discourse::before {
-    color: var(--mne-color-discourse);
-}
-#navbar-icon-links i.fa-discord::before {
-    color: var(--mne-color-discord);
-}
-
-/* **************************************** color overrides for nav elements */
-/* topbar nav active */
-.bd-header.navbar-light#navbar-main .navbar-nav > .active > .nav-link {
-    color: var(--pst-color-link);
-}
-/* topbar nav hover */
-.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:focus,
-.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:hover {
-    color: var(--pst-color-secondary);
-}
-/* sidebar nav */
-nav.bd-links .active > a,
-nav.bd-links .active:hover > a,
-.toc-entry a.nav-link.active,
-.toc-entry a.nav-link.active:hover {
-    color: var(--pst-color-link);
-}
-/* left sidebar nav hover */
-nav.bd-links li > a:hover,
-.toc-entry a.nav-link:hover {
-    color: var(--pst-color-secondary);
+ul.funders li img {
+    width: 30px;
+    max-height: 24px;
+    object-fit: contain;
+    background-color: unset !important;
 }
 
 /* *********************************************************** contrib guide */
@@ -295,16 +318,6 @@ ul.icon-bullets {
 }
 .small-stack {
     font-size: 0.5em;
-}
-/* ************************************************************* copy button */
-button.copybtn {
-    /* always show; https://sphinx-copybutton.readthedocs.io/en/latest/use.html#modify-the-copy-button-s-css */
-    opacity: var(--copybtn-opacity);
- }
-
-/* ********************************************************* prev/next links */
-.prev-next-area a p.prev-next-title {
-    color: var(--pst-color-link);
 }
 
 /* *********************************************************** miscellaneous */
