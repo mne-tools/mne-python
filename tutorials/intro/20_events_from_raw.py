@@ -121,8 +121,8 @@ events = mne.find_events(raw, stim_channel='STI 014')
 print(events[:5])  # show the first 5
 
 # %%
-# .. note:: The middle column of the Events array
-#     :class: sidebar
+# .. admonition:: The middle column of the Events array
+#     :class: sidebar note
 #
 #     MNE-Python events are actually *three* values: in between the sample
 #     number and the integer event code is a value indicating what the event

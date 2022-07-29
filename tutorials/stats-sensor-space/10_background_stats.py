@@ -395,8 +395,8 @@ plot_t_p(ts[-1], ps[-1], titles[-1], mccs[-1])
 # multidimensional (e.g., spatio-temporal) -- because the null distribution
 # will be derived from data in a way that preserves these correlations.
 #
-# .. note:: Effect size
-#     :class: sidebar
+# .. admonition:: Effect size
+#     :class: sidebar note
 #
 #     For a nice description of how to compute the effect size obtained
 #     in a cluster test, see this

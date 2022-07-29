@@ -55,8 +55,8 @@ evks = dict(zip(conds, evokeds_list))
 # Plotting signal traces
 # ^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. note:: Butterfly plots
-#    :class: sidebar
+# .. admonition:: Butterfly plots
+#    :class: sidebar note
 #
 #    Plots of superimposed sensor timeseries are called "butterfly plots"
 #    because the positive- and negative-going traces can resemble butterfly

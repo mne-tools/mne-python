@@ -76,8 +76,8 @@ assert np.array_equal(events, events_from_file[:len(events)])
 mne.find_events(raw, stim_channel='STI 014')
 
 # %%
-# .. hint:: Including/excluding events
-#     :class: sidebar
+# .. admonition:: Including/excluding events
+#     :class: sidebar hint
 #
 #     Just like `~mne.pick_events`, `~mne.read_events` also has ``include``
 #     and ``exclude`` parameters.

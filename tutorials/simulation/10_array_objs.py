@@ -22,8 +22,8 @@ import mne
 # Creating `~mne.Info` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. note:: Info objects
-#     :class: sidebar
+# .. admonition:: Info objects
+#     :class: sidebar note
 #
 #      For full documentation on the `~mne.Info` object, see
 #      :ref:`tut-info-class`.
@@ -71,8 +71,8 @@ info = mne.create_info(ch_names, ch_types=ch_types, sfreq=sampling_freq)
 info.set_montage('standard_1020')
 
 # %%
-# .. warning:: Info consistency
-#     :class: sidebar
+# .. admonition:: Info consistency
+#     :class: sidebar warning
 #
 #     When assigning new values to the fields of an `~mne.Info` object, it is
 #     important that the fields stay consistent. if there are ``N`` channels:
@@ -97,8 +97,8 @@ print(info)
 # Creating `~mne.io.Raw` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. note:: Units
-#     :class: sidebar
+# .. admonition:: Units
+#     :class: sidebar note
 #
 #     The expected units for the different channel types are:
 #

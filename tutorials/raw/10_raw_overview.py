@@ -28,8 +28,8 @@ import mne
 # Loading continuous data
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. note:: Datasets in MNE-Python
-#     :class: sidebar
+# .. admonition:: Datasets in MNE-Python
+#     :class: sidebar note
 #
 #     There are ``data_path`` functions for several example datasets in
 #     MNE-Python (e.g., :func:`mne.datasets.kiloword.data_path`,
@@ -96,8 +96,8 @@ raw.crop(tmax=60)
 # Querying the Raw object
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. note:: Attributes vs. Methods
-#     :class: sidebar
+# .. admonition:: Attributes vs. Methods
+#     :class: sidebar hint
 #
 #     **Attributes** are usually static properties of Python objects — things
 #     that are pre-computed and stored as part of the object's representation
@@ -166,8 +166,8 @@ print(raw.info)
 # Time, sample number, and sample index
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# .. warning:: Sample numbering in VectorView data
-#     :class: sidebar
+# .. admonition:: Sample numbering in VectorView data
+#     :class: sidebar warning
 #
 #     For data from VectorView systems, it is important to distinguish *sample
 #     number* from *sample index*. See :term:`first_samp` for more information.
@@ -191,8 +191,8 @@ print(np.diff(raw.time_as_index([1, 2, 3])))
 # Modifying ``Raw`` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. warning:: ``len(raw)``
-#     :class: sidebar
+# .. admonition:: ``len(raw)``
+#     :class: sidebar warning
 #
 #     Although the :class:`~mne.io.Raw` object underlyingly stores data samples
 #     in a :class:`NumPy array <numpy.ndarray>` of shape (n_channels,
@@ -255,8 +255,8 @@ print(eog_and_frontal_eeg.ch_names)
 # Changing channel name and type
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# .. note:: Long channel names
-#     :class: sidebar
+# .. admonition:: Long channel names
+#     :class: sidebar note
 #
 #     Due to limitations in the :file:`.fif` file format (which MNE-Python uses
 #     to save :class:`~mne.io.Raw` objects), channel names are limited to a

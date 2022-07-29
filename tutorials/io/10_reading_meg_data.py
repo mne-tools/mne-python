@@ -143,8 +143,8 @@ Ricoh/KIT MEG system data (.con/.sqd)
 MNE-Python includes the :func:`mne.io.read_raw_kit` and
 :func:`mne.read_epochs_kit` to read and convert Ricoh/KIT MEG data.
 
-.. warning:: Channel naming
-    :class: sidebar
+.. admonition:: Channel naming
+    :class: sidebar warning
 
     In MNE 0.21 This reader function will by default replace the original channel names,
     which typically with index starting with zero, with ones with an index starting
