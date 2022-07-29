@@ -163,6 +163,7 @@ standard_montage_look_up_table = {
                                basename='artinis-octamon.elc'),
     'artinis-brite23': partial(_mgh_or_standard, coord_frame='mri',
                                basename='artinis-brite23.elc'),
+    'brainproducts-RNP-BA-128': partial(_easycap, basename='brainproducts-RNP-BA-128.txt'),
 }
 
 
