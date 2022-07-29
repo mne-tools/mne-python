@@ -49,7 +49,6 @@ from ..viz.topomap import _plot_corrmap
 
 from ..channels.channels import _contains_ch_type
 from ..channels.layout import _find_topomap_coords
-from ..time_frequency import psd_welch, psd_multitaper
 from ..io.write import start_and_end_file, write_id
 from ..utils import (logger, check_fname, _check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,

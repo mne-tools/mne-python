@@ -23,7 +23,6 @@ from ..utils import _validate_type, fill_doc
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types, _picks_to_idx
-from ..time_frequency.psd import psd_multitaper
 from ..utils import _reject_data_segments, verbose
 
 
