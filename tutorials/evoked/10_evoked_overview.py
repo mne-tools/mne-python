@@ -83,7 +83,8 @@ evoked.plot()
 # Subsetting ``Evoked`` data
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. sidebar:: Evokeds are not memory-mapped
+# .. note:: Evokeds are not memory-mapped
+#   :class: sidebar
 #
 #   :class:`~mne.Evoked` objects use a :attr:`~mne.Evoked.data` *attribute*
 #   rather than a :meth:`~mne.Epochs.get_data` *method*; this reflects the fact

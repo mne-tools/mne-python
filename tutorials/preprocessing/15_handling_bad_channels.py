@@ -86,7 +86,8 @@ bad_chan = raw.info['bads'].pop(-1)  # remove the last entry in the list
 raw.info['bads'] = original_bads     # change the whole list at once
 
 # %%
-# .. sidebar:: Blocking execution
+# .. hint:: Blocking execution
+#     :class: sidebar
 #
 #     If you want to build an interactive bad-channel-marking step into an
 #     analysis script, be sure to include the parameter ``block=True`` in your

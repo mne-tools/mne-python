@@ -42,7 +42,8 @@ del raw
 # Plotting ``Epochs`` as time series
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. sidebar:: Interactivity in pipelines and scripts
+# .. note:: Interactivity in pipelines and scripts
+#     :class: sidebar
 #
 #     To use the interactive features of the `~mne.Epochs.plot` method
 #     when running your code non-interactively, pass the ``block=True``

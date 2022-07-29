@@ -47,7 +47,8 @@ import mne
 #
 # Working with built-in montages
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# .. sidebar:: Computing sensor locations
+# .. note:: Computing sensor locations
+#     :class: sidebar
 #
 #     If you are interested in how standard (idealized) EEG sensor positions
 #     are computed on a spherical head model, make sure to check out the
@@ -124,7 +125,8 @@ fig = ssvep_raw.plot_sensors(show_names=True)
 # Plotting 2D sensor locations like EEGLAB
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. sidebar:: The ``sphere`` keyword is available in many places!
+# .. hint:: The ``sphere`` keyword is available in many places!
+#     :class: sidebar
 #
 #    All MNE plotting functions for EEG topographies and sensor locations
 #    support the ``sphere`` keyword argument, and therefore allow for

@@ -14,15 +14,16 @@ We begin by importing the necessary Python modules:
 
 # %%
 
-import mne
 import numpy as np
 
+import mne
 
 # %%
 # Creating `~mne.Info` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. sidebar:: Info objects
+# .. note:: Info objects
+#     :class: sidebar
 #
 #      For full documentation on the `~mne.Info` object, see
 #      :ref:`tut-info-class`.
@@ -70,7 +71,8 @@ info = mne.create_info(ch_names, ch_types=ch_types, sfreq=sampling_freq)
 info.set_montage('standard_1020')
 
 # %%
-# .. sidebar:: Info consistency
+# .. warning:: Info consistency
+#     :class: sidebar
 #
 #     When assigning new values to the fields of an `~mne.Info` object, it is
 #     important that the fields stay consistent. if there are ``N`` channels:
@@ -95,7 +97,8 @@ print(info)
 # Creating `~mne.io.Raw` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. sidebar:: Units
+# .. note:: Units
+#     :class: sidebar
 #
 #     The expected units for the different channel types are:
 #

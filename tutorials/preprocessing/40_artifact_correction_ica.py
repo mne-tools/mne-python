@@ -67,7 +67,8 @@ raw.load_data()
 # ICA in MNE-Python
 # ~~~~~~~~~~~~~~~~~
 #
-# .. sidebar:: ICA and dimensionality reduction
+# .. hint:: ICA and dimensionality reduction
+#     :class: sidebar
 #
 #     If you want to perform ICA with *no* dimensionality reduction (other than
 #     the number of Independent Components (ICs) given in ``n_components``, and
@@ -215,7 +216,8 @@ filt_raw = raw.copy().filter(l_freq=1., h_freq=None)
 # Fitting and plotting the ICA solution
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# .. sidebar:: Ignoring the time domain
+# .. hint:: Ignoring the time domain
+#     :class: sidebar
 #
 #     The ICA algorithms implemented in MNE-Python find patterns across
 #     channels, but ignore the time domain. This means you can compute ICA on

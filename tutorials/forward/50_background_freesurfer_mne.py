@@ -83,7 +83,8 @@ print(data.shape)
 # location ``(x, y, z)`` in the *scanner's native coordinate frame* is saved in
 # the image's *affine transformation*.
 #
-# .. sidebar:: Under the hood
+# .. note:: Under the hood
+#     :class: sidebar
 #
 #     ``mne.transforms.apply_trans`` effectively does a matrix multiplication
 #     (i.e., :func:`numpy.dot`), with a little extra work to handle the shape
@@ -249,7 +250,8 @@ nasion_head = [d for d in info['dig'] if
 print(nasion_head)  # note it's in "head" coordinates
 
 # %%
-# .. sidebar:: Head coordinate frame
+# .. note:: Head coordinate frame
+#     :class: sidebar
 #
 #      The head coordinate frame in MNE is the "Neuromag" head coordinate
 #      frame. The origin is given by the intersection between a line connecting
