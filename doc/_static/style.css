@@ -159,6 +159,7 @@ ul.quicklinks a:hover {
 h5.card-header {
     margin-top: 0px;
     margin-bottom: 0px;
+    color: var(--pst-color-text-base);
 }
 h5.card-header::before {
     height: 0px;
@@ -262,13 +263,14 @@ html .bd-content .sd-tab-set > label:hover,
 #navbar-icon-links i.fa-discord::before {
     color: var(--mne-color-discord);
 }
+
 /* **************************************** color overrides for nav elements */
-/* topbar nav */
-.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:focus,
+/* topbar nav active */
 .bd-header.navbar-light#navbar-main .navbar-nav > .active > .nav-link {
     color: var(--pst-color-link);
 }
 /* topbar nav hover */
+.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:focus,
 .bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:hover {
     color: var(--pst-color-secondary);
 }
@@ -284,6 +286,7 @@ nav.bd-links li > a:hover,
 .toc-entry a.nav-link:hover {
     color: var(--pst-color-secondary);
 }
+
 /* *********************************************************** contrib guide */
 ul.icon-bullets {
     list-style-type: none;
