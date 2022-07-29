@@ -137,6 +137,10 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
             logger.info('    The projection vectors do not apply to these '
                         'channels.')
 
+    if np.iscomplex(C).any():
+        logger.info('Converting phase-amplitude to power for visualization')
+        C = (C * C.conj()).real
+
     fig_cov, axes = plt.subplots(1, len(idx_names), squeeze=False,
                                  figsize=(3.8 * len(idx_names), 3.7))
     for k, (idx, name, _, _, _) in enumerate(idx_names):
