@@ -130,12 +130,13 @@ class ToSpectrumMixin():
         # translate kwargs
         amplitude = 'auto' if estimate == 'auto' else (estimate == 'amplitude')
         ci = 'sd' if area_mode == 'std' else area_mode
-
+        # ↓ here picks="all" because we've already restricted the `info` to
+        # ↓ have only `picks` channels
         fig = spectrum.plot(
-            average=average, dB=dB, amplitude=amplitude, xscale=xscale,
-            ci=ci, ci_alpha=area_alpha, color=color, alpha=line_alpha,
-            spatial_colors=spatial_colors, sphere=sphere, exclude=exclude,
-            ax=ax, show=show)
+            picks='all', average=average, dB=dB, amplitude=amplitude,
+            xscale=xscale, ci=ci, ci_alpha=area_alpha, color=color,
+            alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
+            exclude=exclude, ax=ax, show=show)
         return fig
 
 
@@ -445,7 +446,7 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         return self._method
 
     @fill_doc
-    def plot(self, picks=None, average=False, dB=True, amplitude='auto',
+    def plot(self, *, picks=None, average=False, dB=True, amplitude='auto',
              xscale='linear', ci='sd', ci_alpha=0.3, color='black', alpha=None,
              spatial_colors=True, sphere=None, exclude='bads', ax=None,
              show=True):
@@ -507,7 +508,9 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         titles = _handle_default('titles', None)
         units = _handle_default('units', None)
         if amplitude == 'auto':
-            amplitude = 'power' if dB else 'amplitude'
+            estimate = 'power' if dB else 'amplitude'
+        else:  # amplitude is boolean
+            estimate = 'amplitude' if amplitude else 'power'
         # split picks by channel type
         picks = _picks_to_idx(self.info, picks, 'data', with_ref_meg=False)
         (picks_list, units_list, scalings_list, titles_list
@@ -551,7 +554,7 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         # plot
         _plot_psd(self, fig, self.freqs, psd_list, picks_list, titles_list,
                   units_list, scalings_list, axes, make_label, color,
-                  area_mode=ci, area_alpha=ci_alpha, dB=dB, estimate=amplitude,
+                  area_mode=ci, area_alpha=ci_alpha, dB=dB, estimate=estimate,
                   average=average, spatial_colors=spatial_colors,
                   xscale=xscale, line_alpha=alpha,
                   sphere=sphere, xlabels_list=xlabels_list)
