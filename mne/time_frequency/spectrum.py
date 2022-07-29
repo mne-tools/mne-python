@@ -16,8 +16,9 @@ from ..io.meas_info import ContainsMixin
 from ..io.pick import _picks_to_idx, pick_info
 from ..utils import (_build_data_frame, _check_pandas_index_arguments,
                      _check_pandas_installed, _check_sphere, _time_mask,
-                     fill_doc, logger, verbose, warn)
-from ..utils.check import _check_option, _is_numeric
+                     _validate_type, fill_doc, logger, verbose, warn)
+from ..utils.check import (_check_fname, _check_option, _import_h5io_funcs,
+                           _is_numeric, check_fname)
 from ..utils.misc import _pl
 from ..viz.utils import _plot_psd, plt_show
 from . import psd_array_multitaper, psd_array_welch
@@ -187,6 +188,10 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         from .. import BaseEpochs
         from ..io import BaseRaw
 
+        # triage reading from file
+        if isinstance(inst, dict):
+            self._from_file(**inst)
+            return
         # arg checking
         sfreq = inst.info['sfreq']
         if np.isfinite(fmax) and (fmax > sfreq / 2):
@@ -270,6 +275,21 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         self._check_values()
         assert len(self._dims) == self._data.ndim
         assert self._data.shape == expected_shape
+
+    def _from_file(self, method, data, freqs, dims, data_type, inst_type, info):
+        """Recreate object from hdf5 file."""
+        from .. import Epochs, Evoked, Info
+        from ..io import Raw
+
+        self._method = method
+        self._data = data
+        self._freqs = freqs
+        self._dims = dims
+        self.info = Info(**info)
+        self._data_type = data_type
+        # instance type
+        inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked)
+        self._inst_type = inst_types[inst_type]
 
     def _get_instance_type_string(self):
         """Get string representation of the originating instance type."""
@@ -564,12 +584,16 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         plt_show(show, fig)
         return fig
 
-    def pick_epoch(self, epochs=None):
+    def plot_topomap(self):
+        """Plot scalp topography."""
+        raise NotImplementedError()
+
+    def pick_epoch(self, index=None):
         """Extract one or more epochs into a new Spectrum object.
 
         Parameters
         ----------
-        epochs : int | list of int
+        index : int | list of int
             Index (or list of indices) of which epochs to pick.
 
         Notes
@@ -582,7 +606,29 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         # probably via __getitem__?  May be better with a separate
         # EpochSpectrum class since we don't need it for Raw / Evoked?
         # Would be cool if something like Spectrum['aud/left'] worked...
-        pass
+        raise NotImplementedError()
+
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
+        """Save spectrum data to disk.
+
+        Parameters
+        ----------
+        fname : str
+        %(overwrite)s
+        %(verbose)s
+        """
+        _, write_hdf5 = _import_h5io_funcs()
+        check_fname(fname, 'spectrum', ('.h5', '.hdf5'))
+        fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
+        out = dict(method=self.method,
+                   data=self.get_data(picks='all', exclude=[]),
+                   dims=self._dims,
+                   freqs=self.freqs,
+                   inst_type=self._get_instance_type_string(),
+                   data_type=self._data_type,
+                   info=self.info)
+        write_hdf5(fname, out, overwrite=overwrite, title='mnepython')
 
     def units(self, latex=False):
         """Get the spectrum units for each channel type.
@@ -632,6 +678,29 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
             exp = ''
         pre, post = (r'$\mathrm{', r'}$') if latex else ('', '')
         return f'{pre}{unit}{exp}/{denom}{post}'
+
+
+def read_spectrum(fname):
+    """.
+
+    Parameters
+    ----------
+    fname : path-like
+        Path to a spectrum file.
+
+    Returns
+    -------
+    spectrum : instance of Spectrum
+    """
+    read_hdf5, _ = _import_h5io_funcs()
+    _validate_type(fname, 'path-like', 'fname')
+    fname = _check_fname(fname=fname, overwrite='read', must_exist=False)
+    # read it in
+    hdf5_dict = read_hdf5(fname, title='mnepython')
+    defaults = dict(method=None, fmin=None, fmax=None, tmin=None, tmax=None,
+                    picks=None, proj=None, reject_by_annotation=None,
+                    n_jobs=None, verbose=None)
+    return Spectrum(hdf5_dict, **defaults)
 
 
 def _check_ci(ci):
