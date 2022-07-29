@@ -39,7 +39,6 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets.sleep_physionet.age import fetch_data
-from mne.time_frequency import psd_welch
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
@@ -234,7 +233,8 @@ def eeg_power_band(epochs):
                   "sigma": [11.5, 15.5],
                   "beta": [15.5, 30]}
 
-    psds, freqs = psd_welch(epochs, picks='eeg', fmin=0.5, fmax=30.)
+    spectrum = epochs.compute_psd(picks='eeg', fmin=0.5, fmax=30.)
+    psds, freqs = spectrum.get_data(return_freqs=True)
     # Normalize the PSDs
     psds /= np.sum(psds, axis=-1, keepdims=True)
 

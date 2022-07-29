@@ -488,8 +488,10 @@ def test_simulate_raw_chpi():
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
 
     for picks in [picks_meg[:3], picks_eeg[:3]]:
-        psd_sim, freqs_sim = psd_welch(raw_sim, picks=picks)
-        psd_chpi, freqs_chpi = psd_welch(raw_chpi, picks=picks)
+        psd_sim, freqs_sim = (
+            raw_sim.compute_psd(picks=picks).get_data(return_freqs=True))
+        psd_chpi, freqs_chpi = (
+            raw_chpi.compute_psd(picks=picks).get_data(return_freqs=True))
 
         assert_array_equal(freqs_sim, freqs_chpi)
         freq_idx = np.sort([np.argmin(np.abs(freqs_sim - f))

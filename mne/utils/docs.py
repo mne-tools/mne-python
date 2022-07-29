@@ -1029,12 +1029,15 @@ exclude_frontal : bool
     (below the nasion) and positivy Y values (in front of the LPA/RPA).
 """
 
-docdict['exclude_psd'] = """\
+_exclude_spectrum = """\
 exclude : list of str | 'bads'
-    Channel names to exclude from being drawn. If ``'bads'``, channels
+    Channel names to exclude{}. If ``'bads'``, channels
     in ``spectrum.info['bads']`` are excluded; pass an empty list to
     plot all channels (including "bad" channels, if any).
 """
+
+docdict['exclude_spectrum_get_data'] = _exclude_spectrum.format('')
+docdict['exclude_spectrum_plot'] = _exclude_spectrum.format(' from being drawn')
 
 docdict['export_edf_note'] = """
 For EDF exports, only channels measured in Volts are allowed; in MNE-Python

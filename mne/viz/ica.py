@@ -465,7 +465,12 @@ def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         psd_args['fmax'] = min(lp * 1.25, Nyquist)
     plot_lowpass_edge = lp < Nyquist and (psd_args['fmax'] > lp)
     spectrum = epochs_src.compute_psd(picks=picks, **psd_args)
-    psds, freqs = spectrum.get_data(return_freqs=True)
+    # we've already restricted picks  ↑↑↑↑↑↑↑↑↑↑↑
+    # in the spectrum object, so here we do picks=all  ↓↓↓↓↓↓↓↓↓↓↓
+    psds, freqs = spectrum.get_data(return_freqs=True, picks='all', exclude=[])
+    # we also pass exclude=[] so that when this is called by right-clicking in
+    # a plot_sources() window on an ICA component name that has been marked as
+    # bad, we can still get a plot of it.
 
     def set_title_and_labels(ax, title, xlab, ylab):
         if title:

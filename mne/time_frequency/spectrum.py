@@ -313,12 +313,14 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         return self.info['ch_names']
 
     @fill_doc
-    def get_data(self, picks=None, fmin=0, fmax=np.inf, return_freqs=False):
+    def get_data(self, picks=None, exclude='bads', fmin=0, fmax=np.inf,
+                 return_freqs=False):
         """Get spectrum data in NumPy array format.
 
         Parameters
         ----------
         %(picks_good_data_noref)s
+        %(exclude_spectrum_get_data)s
         %(fmin_fmax_psd)s
         return_freqs : bool
             Whether to return the frequency bin values for the requested
@@ -332,7 +334,7 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
             The frequency values for the requested range. Only returned if
             ``return_freqs`` is ``True``.
         """
-        picks = _picks_to_idx(self.info, picks, 'data_or_ica',
+        picks = _picks_to_idx(self.info, picks, 'data_or_ica', exclude=exclude,
                               with_ref_meg=False)
         fmin_idx = np.searchsorted(self.freqs, fmin)
         fmax_idx = np.searchsorted(self.freqs, fmax, side='right')
@@ -486,7 +488,7 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
             ``None``.
         %(spatial_colors_psd)s
         %(sphere_topomap_auto)s
-        %(exclude_psd)s
+        %(exclude_spectrum_plot)s
         %(ax_psd)s
         %(show)s
 
