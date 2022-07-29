@@ -4,10 +4,12 @@
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
 
 import operator
+
 import numpy as np
 
+from ..filter import next_fast_len
 from ..parallel import parallel_func
-from ..utils import sum_squared, warn, verbose, logger, _check_option
+from ..utils import _check_option, logger, sum_squared, verbose, warn
 
 
 def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
@@ -59,9 +61,9 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     .. footbibliography::
     """
     from scipy import interpolate
-    from scipy.fft import rfft, irfft
+    from scipy.fft import irfft, rfft
     from scipy.signal.windows import dpss as sp_dpss
-    from ..filter import next_fast_len
+
     # This np.int32 business works around a weird Windows bug, see
     # gh-5039 and https://github.com/scipy/scipy/pull/8608
     Kmax = np.int32(operator.index(Kmax))
