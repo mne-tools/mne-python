@@ -137,7 +137,7 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
             logger.info('    The projection vectors do not apply to these '
                         'channels.')
 
-    if np.iscomplex(C).any():
+    if np.iscomplexobj(C):
         logger.info('Converting phase-amplitude to power for visualization')
         C = (C * C.conj()).real
 

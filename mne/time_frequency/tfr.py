@@ -2428,7 +2428,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
         copy = baseline is not None
     data = rescale(data, times, baseline, mode, copy=copy)
 
-    if np.iscomplex(data).any():
+    if np.iscomplexobj(data):
         logger.info('Converting phase-amplitude to power for visualization')
         data = (data * data.conj()).real
 

@@ -15,7 +15,7 @@ import pytest
 import matplotlib.pyplot as plt
 
 from mne import (read_events, read_cov, read_source_spaces, read_evokeds,
-                 read_dipole, SourceEstimate, pick_events)
+                 read_dipole, SourceEstimate, pick_events, Covariance)
 from mne.chpi import compute_chpi_snr
 from mne.datasets import testing
 from mne.filter import create_filter
@@ -113,6 +113,10 @@ def test_plot_cov():
     cov = read_cov(cov_fname)
     with pytest.warns(RuntimeWarning, match='projection'):
         fig1, fig2 = cov.plot(raw.info, proj=True, exclude=raw.ch_names[6:])
+
+    # test complex numbers
+    cov['data'] = cov.data * (1 + 1j)
+    fig1, fig2 = cov.plot(raw.info)
 
 
 @testing.requires_testing_data
