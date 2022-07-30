@@ -469,7 +469,8 @@ def apply_dics_csd(csd, filters, verbose=None):
     frequencies = [np.mean(dfreq) for dfreq in csd.frequencies]
     n_freqs = len(frequencies)
 
-    source_power = np.zeros((n_sources, len(csd.frequencies)))
+    source_power = np.zeros((n_sources * (3 * pick_ori),
+                            len(csd.frequencies)))
 
     # Ensure the CSD is in the same order as the weights
     csd_picks = [csd.ch_names.index(ch) for ch in ch_names]
