@@ -2439,9 +2439,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     # crop time
     itmin, itmax = None, None
     idx = np.where(_time_mask(times, tmin, tmax, sfreq=sfreq))[0]
-    if tmin is not Non
-    # crop data
-    data = data[:, ifmin:ifmax, itmin:itmax]e:
+    if tmin is not None:
         itmin = idx[0]
     if tmax is not None:
         itmax = idx[-1] + 1
