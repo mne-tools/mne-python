@@ -585,6 +585,10 @@ def _cov_as_csd(cov, info):
 @pytest.mark.slowtest
 @pytest.mark.parametrize(
     'reg, pick_ori, weight_norm, use_cov, depth, lower, upper, real_filter', [
+        (0.05, 'vector', 'unit-noise-gain-invariant',
+         False, None, 26, 28, True),
+        (0.05, 'vector', 'unit-noise-gain', False, None, 13, 15, True),
+        (0.05, 'vector', 'nai', False, None, 13, 15, True),
         (0.05, None, 'unit-noise-gain-invariant', False, None, 26, 28, False),
         (0.05, None, 'unit-noise-gain-invariant', True, None, 40, 42, False),
         (0.05, None, 'unit-noise-gain-invariant', True, None, 40, 42, True),
