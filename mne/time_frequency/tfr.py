@@ -16,7 +16,7 @@ import numpy as np
 
 from .multitaper import dpss_windows
 
-from ..baseline import rescale
+from ..baseline import rescale, _check_baseline
 from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
@@ -904,6 +904,8 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, TimeMixin):
     """Base TFR class."""
 
+    baseline = None
+
     @property
     def data(self):
         return self._data
@@ -1004,7 +1006,9 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, TimeMixin):
         inst : instance of AverageTFR
             The modified instance.
         """  # noqa: E501
-        rescale(self.data, self.times, baseline, mode, copy=False)
+        self.baseline = _check_baseline(baseline, times=self.times,
+                                        sfreq=self.info['sfreq'])
+        rescale(self.data, self.times, self.baseline, mode, copy=False)
         return self
 
     @verbose
@@ -2428,10 +2432,16 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
         copy = baseline is not None
     data = rescale(data, times, baseline, mode, copy=copy)
 
+    if np.iscomplex(data).any():
+        logger.info('Converting phase-amplitude to power for visualization')
+        data = (data * data.conj()).real
+
     # crop time
     itmin, itmax = None, None
     idx = np.where(_time_mask(times, tmin, tmax, sfreq=sfreq))[0]
-    if tmin is not None:
+    if tmin is not Non
+    # crop data
+    data = data[:, ifmin:ifmax, itmin:itmax]e:
         itmin = idx[0]
     if tmax is not None:
         itmax = idx[-1] + 1
@@ -2452,7 +2462,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     data = data[:, ifmin:ifmax, itmin:itmax]
 
     if dB:
-        data = 10 * np.log10((data * data.conj()).real)
+        data = 10 * np.log10(data)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
     return data, times, freqs, vmin, vmax
