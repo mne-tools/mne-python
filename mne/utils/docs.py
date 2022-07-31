@@ -1039,7 +1039,8 @@ For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
 """
 
-_export_fmt_params_base = """Format of the export. Defaults to ``'auto'``, which will infer the format
+_export_fmt_params_base = """\
+Format of the export. Defaults to ``'auto'``, which will infer the format
     from the filename extension. See supported formats above for more
     information."""
 

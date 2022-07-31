@@ -70,7 +70,7 @@ def _read_hc(directory):
         return None
     s = list()
     with open(fname, 'rb') as fid:
-        while(True):
+        while True:
             p = _read_one_coil_point(fid)
             if p is None:
                 # First point bad indicates that the file is empty
