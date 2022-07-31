@@ -47,7 +47,8 @@ import mne
 #
 # Working with built-in montages
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# .. sidebar:: Computing sensor locations
+# .. admonition:: Computing sensor locations
+#     :class: sidebar note
 #
 #     If you are interested in how standard (idealized) EEG sensor positions
 #     are computed on a spherical head model, make sure to check out the
@@ -124,11 +125,12 @@ fig = ssvep_raw.plot_sensors(show_names=True)
 # Plotting 2D sensor locations like EEGLAB
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. sidebar:: The ``sphere`` keyword is available in many places!
+# .. admonition:: The ``sphere`` keyword is available in many places!
+#     :class: sidebar hint
 #
-#    All MNE plotting functions for EEG topographies and sensor locations
-#    support the ``sphere`` keyword argument, and therefore allow for
-#    adjustment of the way the sensors are projected onto the head circle.
+#     All MNE plotting functions for EEG topographies and sensor locations
+#     support the ``sphere`` keyword argument, and therefore allow for
+#     adjustment of the way the sensors are projected onto the head circle.
 #
 # In MNE-Python, by default the head center is calculated using
 # :term:`fiducial points <fiducial>`. This means that
