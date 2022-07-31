@@ -913,6 +913,8 @@ def reset_warnings(gallery_conf, fname):
         '`np.object` is a deprecated alias for the builtin `object`',  # pyxdf
         # nilearn, should be fixed in > 0.9.1
         'In future, it will be an error for \'np.bool_\' scalars to',
+        # sklearn hasn't updated to SciPy's sym_pos dep
+        'The \'sym_pos\' keyword is deprecated',
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
