@@ -421,5 +421,5 @@ def test_anonymize(tmp_path):
     with ArgvSetter(('-f', raw_fname, '-o', out_fname)):
         mne_anonymize.run()
     info = read_info(out_fname)
-    assert(op.exists(out_fname))
+    assert op.exists(out_fname)
     assert info['meas_date'] == _stamp_to_dt((946684800, 0))

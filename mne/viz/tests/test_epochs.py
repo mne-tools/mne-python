@@ -125,7 +125,7 @@ def test_plot_epochs_clicks(epochs, epochs_full, capsys,
     # test vline
     fig._fake_keypress('escape')  # close and drop epochs
     fig._close_event()  # XXX workaround, MPL Agg doesn't trigger close event
-    assert(n_epochs - 1 == len(epochs))
+    assert n_epochs - 1 == len(epochs)
     # test marking bad channels
     # need more than 1 epoch this time
     fig = epochs_full.plot(n_epochs=3)

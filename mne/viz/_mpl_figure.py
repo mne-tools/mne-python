@@ -2227,7 +2227,7 @@ def _calc_new_margins(fig, old_width, old_height, new_width, new_height):
     # gh-8304: don't allow resizing too small
     if (new_margins['bottom'] < new_margins['top'] and
             new_margins['left'] < new_margins['right']):
-        return(new_margins)
+        return new_margins
 
 
 @contextmanager

@@ -589,7 +589,7 @@ def test_ch_types():
               'POL $A1', 'POL $A2']
 
     # by default all types are 'eeg'
-    assert(all(t == 'eeg' for t in raw.get_channel_types()))
+    assert all(t == 'eeg' for t in raw.get_channel_types())
     assert raw.ch_names == labels
 
     raw = read_raw_edf(edf_chtypes_path, infer_types=True)

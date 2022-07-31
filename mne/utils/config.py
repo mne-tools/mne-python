@@ -416,7 +416,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     stim_channel = list()
     ch_count = 0
     ch = get_config('MNE_STIM_CHANNEL')
-    while(ch is not None and ch in info['ch_names']):
+    while ch is not None and ch in info['ch_names']:
         stim_channel.append(ch)
         ch_count += 1
         ch = get_config('MNE_STIM_CHANNEL_%d' % ch_count)

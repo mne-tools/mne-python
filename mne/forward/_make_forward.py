@@ -102,7 +102,7 @@ def _read_coil_def_file(fname, use_registry=True):
             for p in range(npts):
                 # get next non-comment line
                 line = lines.pop()
-                while(line[0] == '#'):
+                while line[0] == '#':
                     line = lines.pop()
                 vals = np.fromstring(line, sep=' ')
                 if len(vals) != 7:

@@ -1097,7 +1097,7 @@ def test_to_data_frame():
         assert_array_equal(df.values.T[2:], stc.data)
         # test long format
         df_long = stc.to_data_frame(long_format=True)
-        assert(len(df_long) == stc.data.size)
+        assert len(df_long) == stc.data.size
         expected = ('subject', 'time', 'source', 'value')
         assert set(expected) == set(df_long.columns)
 
