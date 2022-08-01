@@ -15,7 +15,7 @@ import pytest
 import matplotlib.pyplot as plt
 
 from mne import (read_events, read_cov, read_source_spaces, read_evokeds,
-                 read_dipole, SourceEstimate, pick_events, Covariance)
+                 read_dipole, SourceEstimate, pick_events)
 from mne.chpi import compute_chpi_snr
 from mne.datasets import testing
 from mne.filter import create_filter
