@@ -138,8 +138,7 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
                         'channels.')
 
     if np.iscomplexobj(C):
-        logger.info('Converting phase-amplitude to power for visualization')
-        C = (C * C.conj()).real
+        C = np.sqrt((C * C.conj()).real)
 
     fig_cov, axes = plt.subplots(1, len(idx_names), squeeze=False,
                                  figsize=(3.8 * len(idx_names), 3.7))

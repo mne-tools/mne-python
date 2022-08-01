@@ -2429,8 +2429,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     data = rescale(data, times, baseline, mode, copy=copy)
 
     if np.iscomplexobj(data):
-        logger.info('Converting phase-amplitude to power for visualization')
-        data = (data * data.conj()).real
+        data = np.sqrt((data * data.conj()).real)
 
     # crop time
     itmin, itmax = None, None
@@ -2456,7 +2455,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     data = data[:, ifmin:ifmax, itmin:itmax]
 
     if dB:
-        data = 10 * np.log10(data)
+        data = 20 * np.log10(data)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
     return data, times, freqs, vmin, vmax
