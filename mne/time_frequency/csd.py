@@ -1380,7 +1380,7 @@ def compute_csd(epochs_tfr, verbose=None, **kwargs):
         # TODO: phase-amplitude should be supported but it causes a
         # non-positive semi-definite matrix, see
         # https://github.com/mne-tools/mne-python/pull/10920
-        if np.iscomplex(epochs_data).any():  # if complex, convert to power
+        if np.iscomplexobj(epochs_data):  # if complex, convert to power
             epochs_data = (epochs_data * epochs_data.conj()).real
         epochs = EpochsArray(
             epochs_data, epochs_tfr.info, events=epochs_tfr.events,
