@@ -10,10 +10,11 @@ import numbers
 
 import numpy as np
 
-from .tfr import _cwt_array, morlet, _get_nfft
+from .tfr import _cwt_array, morlet, _get_nfft, EpochsTFR
 from ..io.pick import pick_channels, _picks_to_idx
 from ..utils import (logger, verbose, warn, copy_function_doc_to_method_doc,
-                     ProgressBar, _check_fname, _import_h5io_funcs)
+                     ProgressBar, _check_fname, _import_h5io_funcs,
+                     _validate_type)
 from ..viz.misc import plot_csd
 from ..time_frequency.multitaper import (_compute_mt_params, _mt_spectra,
                                          _csd_from_mt, _psd_from_mt_adaptive)
@@ -1348,3 +1349,48 @@ def _csd_morlet(data, sfreq, wavelets, nfft, tslice=None, use_fft=True,
     csds /= sfreq
 
     return csds
+
+
+@verbose
+def compute_csd(epochs_tfr, verbose=None, **kwargs):
+    """Compute covariance matrices across frequencies for TFR epochs.
+
+    Parameters
+    ----------
+    epochs_tfr : EpochsTFR
+        The time-frequency resolved epochs over which to compute the
+        covariance.
+    %(verbose)s
+    **kwargs : dict
+        Arguments to pass to :func:`mne.compute_covariance`.
+
+    Returns
+    -------
+    res : instance of CrossSpectralDensity
+        Cross-spectral density restricted to selected channels.
+    """
+    from .. import EpochsArray
+    from ..cov import compute_covariance
+    _validate_type(epochs_tfr, EpochsTFR)
+    n_channels, n_freqs = len(epochs_tfr.ch_names), epochs_tfr.freqs.size
+    data = np.zeros((n_channels * (n_channels + 1) // 2, n_freqs),
+                    dtype=np.complex128)
+    # move frequencies to front
+    for idx, epochs_data in enumerate(epochs_tfr.data.transpose([2, 0, 1, 3])):
+        # TODO: phase-amplitude should be supported but it causes a
+        # non-positive semi-definite matrix, see
+        # https://github.com/mne-tools/mne-python/pull/10920
+        if np.iscomplex(epochs_data).any():  # if complex, convert to power
+            epochs_data = (epochs_data * epochs_data.conj()).real
+        epochs = EpochsArray(
+            epochs_data, epochs_tfr.info, events=epochs_tfr.events,
+            tmin=epochs_tfr.times[0] if epochs_tfr.times.size > 0 else None)
+        epochs.baseline = epochs_tfr.baseline
+        csd = compute_covariance(epochs, **kwargs)
+        data[:, idx] = csd.data[np.triu_indices(csd.data.shape[0])]
+
+    # TO DO: EpochTFR should store n_fft and projs to be consistent
+    return CrossSpectralDensity(data=data, ch_names=epochs_tfr.ch_names,
+                                tmin=epochs_tfr.tmin, tmax=epochs_tfr.tmax,
+                                frequencies=epochs_tfr.freqs,
+                                n_fft=None, projs=None)

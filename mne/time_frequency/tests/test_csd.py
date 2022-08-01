@@ -12,7 +12,7 @@ from mne.utils import sum_squared, requires_version
 from mne.time_frequency import (csd_fourier, csd_multitaper,
                                 csd_morlet, csd_array_fourier,
                                 csd_array_multitaper, csd_array_morlet,
-                                tfr_morlet,
+                                tfr_morlet, EpochsTFR, compute_csd,
                                 CrossSpectralDensity, read_csd,
                                 pick_channels_csd, psd_multitaper)
 from mne.time_frequency.csd import _sym_mat_to_vector, _vector_to_sym_mat
@@ -550,3 +550,18 @@ def test_equalize_channels():
 
     assert csd1.ch_names == ['CH1', 'CH2']
     assert csd2.ch_names == ['CH1', 'CH2']
+
+
+def test_compute_csd():
+    """Test computing cross-spectral density on time-frequency epochs."""
+    n_epochs = 6
+    info = mne.io.read_info(raw_fname)
+    info = mne.pick_info(info, mne.pick_types(info, meg=True))
+    freqs = np.arange(8, 10)
+    times = np.linspace(0, 1, int(round(info['sfreq'])))
+    epochs_tfr = EpochsTFR(info, np.zeros((n_epochs, len(info.ch_names),
+                                           freqs.size, times.size)),
+                           times=times, freqs=freqs)
+    epochs_tfr.apply_baseline((0, 0.5))
+    csd = compute_csd(epochs_tfr, tmin=0.5, tmax=1)
+    assert_array_equal(csd.frequencies, freqs)

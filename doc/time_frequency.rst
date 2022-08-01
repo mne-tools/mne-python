@@ -22,6 +22,7 @@ Functions that operate on mne-python objects:
 .. autosummary::
    :toctree: generated/
 
+   compute_csd
    csd_fourier
    csd_multitaper
    csd_morlet
