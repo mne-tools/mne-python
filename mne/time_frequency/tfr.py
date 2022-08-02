@@ -905,7 +905,6 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, TimeMixin):
     """Base TFR class."""
 
     def __init__(self):
-        super().__init__()
         self.baseline = None
 
     @property
@@ -1152,6 +1151,7 @@ class AverageTFR(_BaseTFR):
     @verbose
     def __init__(self, info, data, times, freqs, nave, comment=None,
                  method=None, verbose=None):  # noqa: D102
+        super().__init__()
         self.info = info
         if data.ndim != 3:
             raise ValueError('data should be 3d. Got %d.' % data.ndim)
@@ -2183,6 +2183,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
                  events=None, event_id=None, selection=None,
                  drop_log=None, metadata=None, verbose=None):
         # noqa: D102
+        super().__init__()
         self.info = info
         if data.ndim != 4:
             raise ValueError('data should be 4d. Got %d.' % data.ndim)
