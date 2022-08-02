@@ -11,6 +11,13 @@ from ..utils import logger, verbose, _time_mask, _check_option
 from .multitaper import psd_array_multitaper
 
 
+# copied from SciPy
+# https://github.com/scipy/scipy/blob/f71e7fad717801c4476312fe1e23f2dfbb4c9d7f/scipy/signal/_spectral_py.py#L2019  # noqa: E501
+def _median_bias(n):
+    ii_2 = 2 * np.arange(1., (n - 1) // 2 + 1)
+    return 1 + np.sum(1. / (ii_2 + 1) - 1. / ii_2)
+
+
 def _decomp_aggregate_mask(epoch, func, average, freq_sl):
     _, _, spect = func(epoch)
     spect = spect[..., freq_sl, :]
@@ -18,7 +25,7 @@ def _decomp_aggregate_mask(epoch, func, average, freq_sl):
     if average == 'mean':
         spect = np.nanmean(spect, axis=-1)
     elif average == 'median':
-        spect = np.nanmedian(spect, axis=-1)
+        spect = np.nanmedian(spect, axis=-1) / _median_bias(spect.shape[-1])
     return spect
 
 
