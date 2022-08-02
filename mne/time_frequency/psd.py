@@ -18,6 +18,15 @@ def _median_bias(n):
     return 1 + np.sum(1. / (ii_2 + 1) - 1. / ii_2)
 
 
+def _nan_median_bias(arr):
+    """A version of _median_bias that works with arrays with nans."""
+    # we can assume that everywhere along the last dimension
+    # there is the same number of NaNs
+    idx = (0, ) * (arr.ndim - 1)
+    n_notnan = (~np.isnan(arr[idx])).sum()
+    return _median_bias(n_notnan)
+
+
 def _decomp_aggregate_mask(epoch, func, average, freq_sl):
     _, _, spect = func(epoch)
     spect = spect[..., freq_sl, :]
@@ -25,7 +34,7 @@ def _decomp_aggregate_mask(epoch, func, average, freq_sl):
     if average == 'mean':
         spect = np.nanmean(spect, axis=-1)
     elif average == 'median':
-        spect = np.nanmedian(spect, axis=-1) / _median_bias(spect.shape[-1])
+        spect = np.nanmedian(spect, axis=-1) / _nan_median_bias(spect)
     return spect
 
 
