@@ -40,6 +40,21 @@ def test_psd_nan():
     assert 'using 256-point FFT on 256 samples with 0 overlap' in log
     assert 'hamming window' in log
 
+    # check median with NaNs:
+    psds_median, freqs_median = psd_array_welch(
+        x, float(n_fft), n_fft=n_fft, n_overlap=n_overlap, average='median')
+    psds_unagg, freqs_unagg = psd_array_welch(
+        x, float(n_fft), n_fft=n_fft, n_overlap=n_overlap, average=None)
+    assert_allclose(freqs, freqs_median)
+    assert_allclose(freqs_median, freqs_unagg)
+
+    n_not_nan = np.unique((~np.isnan(psds_unagg)).sum(axis=-1))
+    assert len(n_not_nan) == 1
+    bias = _median_bias(n_not_nan[0])
+    assert_allclose(psds_median, np.nanmedian(psds_unagg, axis=-1) / bias)
+
+
+
 
 def test_psd():
     """Tests the welch and multitaper PSD."""
