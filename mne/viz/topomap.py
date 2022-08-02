@@ -1458,6 +1458,9 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     data = rescale(data, tfr.times, baseline, mode, copy=True)
 
+    if np.iscomplexobj(data):
+        data = np.sqrt((data * data.conj()).real)
+
     # crop time
     itmin, itmax = None, None
     idx = np.where(_time_mask(tfr.times, tmin, tmax))[0]

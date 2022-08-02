@@ -2428,6 +2428,9 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
         copy = baseline is not None
     data = rescale(data, times, baseline, mode, copy=copy)
 
+    if np.iscomplexobj(data):
+        data = np.sqrt((data * data.conj()).real)
+
     # crop time
     itmin, itmax = None, None
     idx = np.where(_time_mask(times, tmin, tmax, sfreq=sfreq))[0]
@@ -2452,7 +2455,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     data = data[:, ifmin:ifmax, itmin:itmax]
 
     if dB:
-        data = 10 * np.log10((data * data.conj()).real)
+        data = 20 * np.log10(data)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
     return data, times, freqs, vmin, vmax

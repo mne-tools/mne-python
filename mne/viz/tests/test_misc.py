@@ -114,6 +114,10 @@ def test_plot_cov():
     with pytest.warns(RuntimeWarning, match='projection'):
         fig1, fig2 = cov.plot(raw.info, proj=True, exclude=raw.ch_names[6:])
 
+    # test complex numbers
+    cov['data'] = cov.data * (1 + 1j)
+    fig1, fig2 = cov.plot(raw.info)
+
 
 @testing.requires_testing_data
 @requires_nibabel()

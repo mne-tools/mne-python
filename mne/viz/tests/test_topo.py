@@ -278,6 +278,12 @@ def test_plot_tfr_topo():
     fig = tfr.plot_topo(baseline=(None, 0), mode='ratio',
                         title='Average power', vmin=0., vmax=14.)
 
+    # test complex
+    tfr.data = tfr.data * (1 + 1j)
+    plt.close('all')
+    fig = tfr.plot_topo(baseline=(None, 0), mode='ratio',
+                        title='Average power', vmin=0., vmax=14.)
+
     # test opening tfr by clicking
     num_figures_before = len(plt.get_fignums())
     # could use np.reshape(fig.axes[-1].images[0].get_extent(), (2, 2)).mean(1)
