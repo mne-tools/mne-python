@@ -417,7 +417,6 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     -----
     %(notes_plot_*_psd_func)s
     """
-
     fig = raw.plot_psd(
         fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
         proj=proj, reject_by_annotation=reject_by_annotation, method='welch',

@@ -980,7 +980,6 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     -----
     %(notes_plot_*_psd_func)s
     """
-
     fig = epochs.plot_psd(
         fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
         proj=proj, method='multitaper',
