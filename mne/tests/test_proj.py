@@ -338,7 +338,7 @@ def test_make_eeg_average_ref_proj():
     reref = raw.copy()
     reref.add_proj(car)
     reref.apply_proj()
-    assert_array_almost_equal(reref._data[eeg].mean(axis=0), 0, decimal=19)
+    assert_array_almost_equal(reref._data[eeg].mean(axis=0), 0, decimal=18)
 
     # Error when custom reference has already been applied
     with raw.info._unlock():
