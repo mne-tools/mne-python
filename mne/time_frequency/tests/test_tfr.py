@@ -154,6 +154,7 @@ def test_time_frequency():
     itc = ret / 23  # test dic
 
     power = power.apply_baseline(baseline=(-0.1, 0), mode='logratio')
+    assert power.baseline == (-0.1, 0)
 
     assert 'meg' in power
     assert 'grad' in power
