@@ -16,10 +16,10 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
-.. _current:
+.. _changes_1_1_0:
 
-Current (1.1.dev0)
-------------------
+Version 1.1.0 (2022-08-02)
+--------------------------
 
 Enhancements
 ~~~~~~~~~~~~
