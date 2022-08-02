@@ -904,7 +904,9 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, TimeMixin):
     """Base TFR class."""
 
-    baseline = None
+    def __init__(self):
+        super().__init__()
+        self.baseline = None
 
     @property
     def data(self):
