@@ -10,6 +10,7 @@ from mne.utils import catch_logging
 from mne.time_frequency import (psd_welch, psd_array_welch, psd_multitaper,
                                 psd_array_multitaper)
 from mne.time_frequency.multitaper import _psd_from_mt
+from mne.time_frequency.psd import _median_bias
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -243,7 +244,8 @@ def test_psd_welch_average_kwarg(kind):
     assert_allclose(psds_mean, psds_unagg.mean(axis=-1))
 
     # Compare with manual median calculation
-    assert_allclose(psds_median, np.median(psds_unagg, axis=-1))
+    bias = _median_bias(psds_unagg.shape[-1])
+    assert_allclose(psds_median, np.median(psds_unagg, axis=-1) / bias)
 
 
 @pytest.mark.slowtest

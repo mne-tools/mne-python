@@ -207,6 +207,8 @@ Bugs
 
 - When reading EGI MFF files, channel names are no longer ignored and reference channel information is properly incorporated (:gh:`10898` by `Scott Huberty`_ and `Daniel McCloy`_)
 
+- Fix bug in :func:`mne.time_frequency.psd_array_welch` and related functions/methods where the bias was not accounted for when ``average='median'`` (:gh:`10990` by `Eric Larson`_)
+
 - Fix bug in :class:`mne.decoding.TemporalFilter` where filter parameters were not handled properly (:gh:`10968` by `Eric Larson`_)
 
 - Fix documentation bug in ``ica.plot_sources`` to specify that ``picks`` keyword argument is for picking ICA components to plot (:gh:`10936` by `Adam Li`_)
