@@ -10,7 +10,7 @@ from mne.utils import catch_logging
 from mne.time_frequency import (psd_welch, psd_array_welch, psd_multitaper,
                                 psd_array_multitaper)
 from mne.time_frequency.multitaper import _psd_from_mt
-from mne.time_frequency.psd import _median_bias
+from mne.time_frequency.psd import _median_biases
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -188,6 +188,12 @@ def test_psd():
         assert (psds_ev.shape == (len(kws['picks']), len(freqs)))
 
 
+# Copied from SciPy
+def _median_bias(n):
+    ii_2 = 2 * np.arange(1., (n - 1) // 2 + 1)
+    return 1 + np.sum(1. / (ii_2 + 1) - 1. / ii_2)
+
+
 @pytest.mark.parametrize('kind', ('raw', 'epochs', 'evoked'))
 def test_psd_welch_average_kwarg(kind):
     """Test `average` kwarg of psd_welch()."""
@@ -205,8 +211,10 @@ def test_psd_welch_average_kwarg(kind):
 
     tmin, tmax = -0.5, 0.5
     fmin, fmax = 0, np.inf
-    n_fft = 256
-    n_per_seg = 128
+    # make these small so that sometimes we get an odd number, sometimes an
+    # even number of estimates
+    n_fft = 64
+    n_per_seg = 32
     n_overlap = 0
 
     event_id = 2
@@ -243,9 +251,29 @@ def test_psd_welch_average_kwarg(kind):
     assert psds_mean.shape == psds_unagg.shape[:-1]
     assert_allclose(psds_mean, psds_unagg.mean(axis=-1))
 
-    # Compare with manual median calculation
+    # Compare with manual median calculation (_median_bias copied from SciPy)
+
     bias = _median_bias(psds_unagg.shape[-1])
     assert_allclose(psds_median, np.median(psds_unagg, axis=-1) / bias)
+    if kind == 'epochs':
+        want_shape = (3, 2, 33, 18)
+    elif kind == 'evoked':
+        want_shape = (2, 33, 18)
+    else:
+        assert kind == 'raw'
+        want_shape = (2, 33, 9)
+    assert psds_unagg.shape == want_shape
+
+
+@pytest.mark.parametrize('n', (2, 3, 5, 8, 12, 13, 14, 15))
+def test_median_biases(n):
+    """Test vectorization of median_biases."""
+    want_biases = np.concatenate(
+        ([1., 1.], [_median_bias(ii) for ii in range(2, n + 1)]))
+    got_biases = _median_biases(n)
+    assert_allclose(want_biases, got_biases)
+    assert_allclose(got_biases[n], _median_bias(n))
+    assert_allclose(got_biases[:3], 1.)
 
 
 @pytest.mark.slowtest
