@@ -37,6 +37,7 @@ Functions that operate on mne-python objects:
    tfr_stockwell
    read_tfrs
    write_tfrs
+   read_spectrum
 
 Functions that operate on ``np.ndarray`` objects:
 

@@ -610,13 +610,18 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
 
     @verbose
     def save(self, fname, *, overwrite=False, verbose=None):
-        """Save spectrum data to disk.
+        """Save spectrum data to disk (in HDF5 format).
 
         Parameters
         ----------
-        fname : str
+        fname : path-like
+            Path of file to save to.
         %(overwrite)s
         %(verbose)s
+
+        See Also
+        --------
+        mne.time_frequency.read_spectrum
         """
         _, write_hdf5 = _import_h5io_funcs()
         check_fname(fname, 'spectrum', ('.h5', '.hdf5'))
@@ -681,16 +686,20 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
 
 
 def read_spectrum(fname):
-    """.
+    """Load a :class:`mne.time_frequency.Spectrum` object from disk.
 
     Parameters
     ----------
     fname : path-like
-        Path to a spectrum file.
+        Path to a spectrum file in HDF5 format.
 
     Returns
     -------
     spectrum : instance of Spectrum
+
+    See Also
+    --------
+    mne.time_frequency.Spectrum.save
     """
     read_hdf5, _ = _import_h5io_funcs()
     _validate_type(fname, 'path-like', 'fname')
