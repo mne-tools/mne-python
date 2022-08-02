@@ -1876,7 +1876,7 @@ method : str
 """
 
 docdict['method_kw_psd'] = """\
-**method_kw : other parameters
+**method_kw
     Additional keyword arguments passed to the spectral estimation
     function (e.g., ``n_fft, n_overlap, n_per_seg, average, window``
     for Welch method, or
