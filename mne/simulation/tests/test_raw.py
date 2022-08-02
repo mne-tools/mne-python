@@ -31,7 +31,6 @@ from mne.label import Label
 from mne.surface import _get_ico_surface
 from mne.io import read_raw_fif, RawArray
 from mne.io.constants import FIFF
-from mne.time_frequency import psd_welch
 from mne.utils import catch_logging, check_version
 
 base_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')

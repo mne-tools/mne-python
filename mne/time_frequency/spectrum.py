@@ -275,7 +275,8 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         assert len(self._dims) == self._data.ndim
         assert self._data.shape == expected_shape
 
-    def _from_file(self, method, data, freqs, dims, data_type, inst_type, info):
+    def _from_file(self, method, data, freqs, dims, data_type, inst_type,
+                   info):
         """Recreate object from hdf5 file."""
         from .. import Epochs, Evoked, Info
         from ..io import Raw

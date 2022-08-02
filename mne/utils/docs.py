@@ -1037,7 +1037,8 @@ exclude : list of str | 'bads'
 """
 
 docdict['exclude_spectrum_get_data'] = _exclude_spectrum.format('')
-docdict['exclude_spectrum_plot'] = _exclude_spectrum.format(' from being drawn')
+docdict['exclude_spectrum_plot'] = _exclude_spectrum.format(
+    ' from being drawn')
 
 docdict['export_edf_note'] = """
 For EDF exports, only channels measured in Volts are allowed; in MNE-Python
