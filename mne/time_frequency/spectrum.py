@@ -253,7 +253,6 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         self._freqs = freqs
         self._inst_type = type(inst)
         self._method = method
-        self.verbose = verbose
         # document dims
         self._dims = ('channel', 'freq',)
         expected_shape = (len(self.ch_names), len(self.freqs))
