@@ -10,6 +10,6 @@ from .csd import (CrossSpectralDensity, csd_fourier, csd_multitaper,
 from .ar import fit_iir_model_raw
 from .multitaper import (dpss_windows, psd_array_multitaper,
                          tfr_array_multitaper)
-from .spectrum import Spectrum
+from .spectrum import Spectrum, read_spectrum
 from ._stft import stft, istft, stftfreq
 from ._stockwell import tfr_stockwell, tfr_array_stockwell

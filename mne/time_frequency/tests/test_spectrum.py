@@ -3,8 +3,9 @@ from functools import partial
 import numpy as np
 import pytest
 
+from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
-from mne.utils import requires_pandas
+from mne.utils import object_diff, requires_pandas
 
 
 def test_spectrum_errors(raw):
@@ -40,6 +41,19 @@ def test_spectrum_params(method, fmin, fmax, tmin, tmax, picks, proj, n_fft,
         kwargs.update(bandwidth=bandwidth, adaptive=adaptive,
                       low_bias=low_bias, normalization=normalization)
     raw.compute_psd(**kwargs)
+
+
+def test_spectrum_io(raw, tmp_path):
+    """Test save/load of spectrum objects."""
+    fname = tmp_path / 'spectrum.h5'
+    orig = raw.compute_psd()
+    orig.save(fname)
+    loaded = read_spectrum(fname)
+    # there is one attr (_inst_type) that object_diff can't handle
+    assert orig._inst_type == loaded._inst_type
+    del orig._inst_type
+    del loaded._inst_type
+    assert object_diff(vars(orig), vars(loaded)) == ''
 
 
 def _agg_helper(df, weights, group_cols):
