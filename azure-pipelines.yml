@@ -185,7 +185,7 @@ stages:
         set -e
         which mne
         mne sys_info -pd
-        mne sys_info -pd | grep "^mne: .*0.*$"
+        mne sys_info -pd | grep "^mne: .*dev0.*$"
       displayName: Print config
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
