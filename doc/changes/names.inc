@@ -2,6 +2,8 @@
 
 .. _Adam Li: http://github.com/adam2392
 
+.. _Adeline Fecker: https://github.com/adelinefecker
+
 .. _Adina Wagner: https://github.com/adswa
 
 .. _Adonay Nunes: https://github.com/AdoNunes
@@ -11,6 +13,8 @@
 .. _Alejandro Weinstein: http://ocam.cl
 
 .. _Alessandro Tonin: https://wysscenter.ch/team/alessandro-tonin
+
+.. _Alex Ciok: https://github.com/alexCiok
 
 .. _Alex Gramfort: http://alexandre.gramfort.net
 
@@ -42,15 +46,23 @@
 
 .. _Apoorva Karekal: https://github.com/apoorva6262
 
+.. _Archit Singhal: https://github.com/architsinghal-mriirs
+
+.. _Ashley Drew: https://github.com/ashdrew
+
 .. _Asish Panda: https://github.com/kaichogami
 
 .. _Austin Hurst: https://github.com/a-hurst
+
+.. _Ben Beasley: https://github.com/musicinmybrain
 
 .. _Britta Westner: https://github.com/britta-wstnr
 
 .. _Bruno Nicenboim: https://bnicenboim.github.io
 
 .. _buildqa: https://github.com/buildqa
+
+.. _Carina Forster: https://github.com/carinafo
 
 .. _Cathy Nangini: https://github.com/KatiRG
 
@@ -143,6 +155,8 @@
 .. _Guillaume Dumas: http://www.extrospection.eu
 
 .. _Guillaume Favelier: https://github.com/GuillaumeFavelier
+
+.. _Hamid Maymandi: https://github.com/HamidMandi
 
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
 
@@ -304,6 +318,8 @@
 
 .. _Nathalie Gayraud: https://github.com/ngayraud
 
+.. _Naveen Srinivasan: https://github.com/naveensrinivasan
+
 .. _Nick Foti: http://nfoti.github.io
 
 .. _Nick Ward: http://www.ucl.ac.uk/ion/departments/sobell/Research/NWard
@@ -407,6 +423,8 @@
 .. _Simon Kern: https://github.com/skjerns
 
 .. _Simon Kornblith: http://simonster.com
+
+.. _Sondre Foslien: https://github.com/sondrfos
 
 .. _Sophie Herbst: https://github.com/SophieHerbst
 
