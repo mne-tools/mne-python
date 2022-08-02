@@ -213,7 +213,7 @@ Bugs
 
 - Annotations contained in EDF files are correctly read as UTF-8 according to the EDF specification (:gh:`10963` by `Clemens Brunner`_)
 
-- Fix bug where complex-valued topoplots caused an error, convert to power instead (:gh:`10978` by `Alex Rockhill`_)
+- Fix bug where complex-valued topoplots caused an error, convert to amplitude instead (:gh:`10978` by `Alex Rockhill`_)
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
