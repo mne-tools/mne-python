@@ -571,7 +571,8 @@ def test_compute_csd():
     assert_allclose(csd._data, csd_test._data, atol=1e-16)
     assert_array_equal(csd.frequencies, freqs)
 
-    csd_test = csd_multitaper(epochs)
+    fmin, fmax  = 38, 40
+    csd_test = csd_multitaper(epochs, fmin=freqs[0] - 1, fmax=freqs[1])
     epochs_tfr = tfr_multitaper(epochs, freqs, n_cycles=7,
                                 average=False, return_itc=False,
                                 output='complex')
