@@ -184,7 +184,7 @@ stages:
         set -e
         which mne
         mne sys_info -pd
-        python ./tools/check_mne_import.py
+        python ./tools/check_mne_location.py
       displayName: Print config
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
