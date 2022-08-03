@@ -132,17 +132,14 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         if not shape:
             X = X[:, np.newaxis, :]
 
-        freqs, sfreq, _, n_cycles, time_bandwidth, decim = \
-            _check_tfr_param(self.freqs, self.sfreq, self.method, True, self.n_cycles,
-                             self.time_bandwidth, self.use_fft, self.decim, self.output)
-
+        # Check non-average output
         output = _check_option('output', self.output,
                       ['complex', 'power', 'phase'])
 
         # Compute time-frequency
-        Xt = _compute_tfr(X, freqs, sfreq, self.method,
-                          n_cycles, True, time_bandwidth,
-                          self.use_fft, decim, output, self.n_jobs,
+        Xt = _compute_tfr(X, self.freqs, self.sfreq, self.method,
+                          self.n_cycles, True, self.time_bandwidth,
+                          self.use_fft, self.decim, output, self.n_jobs,
                           self.verbose)
 
         # Back to original shape
