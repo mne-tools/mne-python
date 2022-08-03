@@ -1342,6 +1342,7 @@ def _csd_morlet(data, sfreq, wavelets, nfft, tslice=None, use_fft=True,
 
     # Compute the spectral density between all pairs of series
     n_channels = data.shape[0]
+    import pdb; pdb.set_trace()
     csds = np.vstack([np.mean(psds[[i]] * psds_conj[i:], axis=2)
                       for i in range(n_channels)])
 

@@ -119,8 +119,6 @@ Enhancements
 
 - Add provenance in :func:`mne.time_frequency.EpochsTFR.apply_baseline` (:gh:`10979` by `Alex Rockhill`_)
 
-- Add :func:`mne.time_frequency.compute_csd` to compute cross-spectral density from :class:`mne.time_frequency.EpochsTFR` (:gh:`10986` by `Alex Rockhill`_)
-
 Bugs
 ~~~~
 - Fix bug in ``mne.surface._project_onto_surface`` for the condition ``method != 'accurate' and return_nn`` (:gh:`10930` by `Christian O'Reilly`_)
