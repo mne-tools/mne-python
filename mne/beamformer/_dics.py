@@ -470,7 +470,7 @@ def apply_dics_csd(csd, filters, verbose=None):
     n_freqs = len(frequencies)
 
     source_power = np.zeros(
-        (n_sources * (3 * filters['pick_ori'] == 'vector'),
+        (n_sources * (3 if filters['pick_ori'] == 'vector' else 1),
          len(csd.frequencies)))
 
     # Ensure the CSD is in the same order as the weights
