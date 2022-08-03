@@ -12,7 +12,7 @@ from mne.utils import sum_squared, requires_version
 from mne.time_frequency import (csd_fourier, csd_multitaper,
                                 csd_morlet, csd_array_fourier,
                                 csd_array_multitaper, csd_array_morlet,
-                                tfr_morlet, EpochsTFR, compute_csd,
+                                tfr_morlet, compute_csd,
                                 CrossSpectralDensity, read_csd,
                                 pick_channels_csd, psd_multitaper)
 from mne.time_frequency.csd import _sym_mat_to_vector, _vector_to_sym_mat
@@ -557,12 +557,16 @@ def test_compute_csd():
     rng = np.random.default_rng(11)
     n_epochs = 6
     info = mne.io.read_info(raw_fname)
-    info = mne.pick_info(info, mne.pick_types(info, meg=True))
-    freqs = np.arange(8, 10)
+    info = mne.pick_info(info, mne.pick_types(info, eeg=True))
+    freqs = np.arange(38, 40)
     times = np.linspace(0, 1, int(round(info['sfreq'])))
     data = rng.normal(
-        shape=(n_epochs, len(info.ch_names), freqs.size, times.size))
-    epochs_tfr = EpochsTFR(info, data, times=times, freqs=freqs)
-    epochs_tfr.apply_baseline((0, 0.5))
-    csd = compute_csd(epochs_tfr, tmin=0.5, tmax=1)
+        size=(n_epochs, len(info.ch_names), times.size)) * 1e-6
+    epochs = mne.EpochsArray(data, info)
+    csd_test = csd_morlet(epochs, freqs, n_cycles=7)
+    epochs_tfr = tfr_morlet(epochs, freqs, n_cycles=7,
+                            average=False, return_itc=False,
+                            output='complex')
+    csd = compute_csd(epochs_tfr)
+    assert_array_equal(csd._data, csd_test._data)
     assert_array_equal(csd.frequencies, freqs)

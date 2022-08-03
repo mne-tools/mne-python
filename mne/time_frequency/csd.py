@@ -1347,7 +1347,6 @@ def _csd_morlet(data, sfreq, wavelets, nfft, tslice=None, use_fft=True,
 
     # Scaling by sampling frequency for compatibility with Matlab
     csds /= sfreq
-    import pdb; pdb.set_trace()
     return csds
 
 
@@ -1369,24 +1368,22 @@ def compute_csd(epochs_tfr, verbose=None, **kwargs):
     res : instance of CrossSpectralDensity
         Cross-spectral density restricted to selected channels.
     """
-    from .. import EpochsArray
-    from ..cov import compute_covariance
     _validate_type(epochs_tfr, EpochsTFR)
     n_channels, n_freqs = len(epochs_tfr.ch_names), epochs_tfr.freqs.size
     data = np.zeros((n_channels * (n_channels + 1) // 2, n_freqs),
                     dtype=np.complex128)
-    # move frequencies to front
-    for idx, epochs_data in enumerate(epochs_tfr.data.transpose([2, 0, 1, 3])):
-        # cross-spectral density is only defined for power
-        # wikipedia.org/wiki/Spectral_density#Cross_power_spectral_density
-        if np.iscomplexobj(epochs_data):  # if complex, convert to power
-            epochs_data = (epochs_data * epochs_data.conj()).real
-        epochs = EpochsArray(
-            epochs_data, epochs_tfr.info, events=epochs_tfr.events,
-            tmin=epochs_tfr.times[0] if epochs_tfr.times.size > 0 else None)
-        epochs.baseline = epochs_tfr.baseline
-        csd = compute_covariance(epochs, **kwargs)
-        data[:, idx] = csd.data[np.triu_indices(csd.data.shape[0])]
+    # iterate over epochs
+    for idx, epochs_data in enumerate(epochs_tfr.data):
+        epochs_data_conj = np.conj(epochs_data)
+        csds = np.vstack([np.mean(epochs_data[[i]] * epochs_data_conj[i:],
+                                  axis=2) for i in range(n_channels)])
+
+        # Scaling by sampling frequency for compatibility with Matlab
+        csds /= epochs_tfr.info['sfreq']
+        data += csds
+
+    # scale to compute mean
+    data /= len(epochs_tfr)
 
     # TO DO: EpochTFR should store n_fft and projs to be consistent
     return CrossSpectralDensity(data=data, ch_names=epochs_tfr.ch_names,
