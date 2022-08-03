@@ -5,7 +5,7 @@ import pytest
 
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
-from mne.utils import object_diff, requires_pandas
+from mne.utils import object_diff, requires_h5py, requires_pandas
 
 
 def test_spectrum_errors(raw):
@@ -43,6 +43,7 @@ def test_spectrum_params(method, fmin, fmax, tmin, tmax, picks, proj, n_fft,
     raw.compute_psd(**kwargs)
 
 
+@requires_h5py
 def test_spectrum_io(raw, tmp_path):
     """Test save/load of spectrum objects."""
     fname = tmp_path / 'spectrum.h5'
