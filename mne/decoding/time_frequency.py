@@ -64,7 +64,6 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
                  time_bandwidth=None, use_fft=True, decim=1, output='complex',
                  n_jobs=1, verbose=None):  # noqa: D102
         """Init TimeFrequency transformer."""
-
         # Check non-average output
         output = _check_option('output', output,
                                ['complex', 'power', 'phase'])
