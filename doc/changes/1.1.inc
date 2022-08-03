@@ -16,10 +16,10 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
-.. _current:
+.. _changes_1_1_0:
 
-Current (1.1.dev0)
-------------------
+Version 1.1.0 (2022-08-03)
+--------------------------
 
 Enhancements
 ~~~~~~~~~~~~
@@ -234,3 +234,56 @@ API and behavior changes
 - The ``to_data_frame`` methods for :meth:`Raw <mne.io.Raw.to_data_frame>`, :meth:`Epochs <mne.Epochs.to_data_frame>`, :meth:`Evoked <mne.Evoked.to_data_frame>`, :meth:`SourceEstimate <mne.SourceEstimate.to_data_frame>`, :meth:`EpochsTFR <mne.time_frequency.EpochsTFR.to_data_frame>`, and :meth:`AverageTFR <mne.time_frequency.AverageTFR.to_data_frame>` all now have default ``time_format=None`` (keep time in seconds) instead of ``time_format='ms'`` (convert time to milliseconds) (:gh:`10925` by `Daniel McCloy`_)
 
 - :func:`mne.Evoked.decimate` now aligns to the sample at time=0 (so that the exact sample when the event occurred is preserved) to be consistent with :func:`mne.Epochs.decimate` (:gh:`10945` by `Alex Rockhill`_)
+
+Authors
+~~~~~~~
+
+* Adam Li
+* Adeline Fecker+
+* Alessandro Tonin+
+* Alex Ciok+
+* Alex Rockhill
+* Alexandre Gramfort
+* Archit Singhal+
+* Ashley Drew+
+* Ben Beasley+
+* Carina Forster+
+* Christian O'Reilly
+* Clemens Brunner
+* Cora Kim
+* Daniel McCloy
+* Dominik Welke
+* Dominique Makowski
+* Eric Larson
+* Evan Hathaway
+* Frederik D. Weber+
+* Guillaume Favelier
+* Hamid Maymandi+
+* Ilias Machairas+
+* Jean-Remi King
+* Johann Benerradi
+* Jon Houck
+* Jona Sassenhagen
+* Jordan Drew+
+* Lukas Gemein+
+* Marijn van Vliet
+* Martin Schulz
+* Mathieu Scheltienne
+* Matt Courtemanche+
+* Matthias Dold+
+* Matti Toivonen+
+* Michiru Kaneda+
+* Mikołaj Magnuski
+* Mingjian He+
+* Naveen Srinivasan+
+* Phillip Alday
+* Reza Nasri+
+* Reza Shoorangiz
+* Richard Höchenberger
+* Rob Luke
+* Scott Huberty+
+* Simon Kern
+* Sondre Foslien+
+* Stefan Appelhoff
+* T. Wang+
+* Tziona NessAiver+
