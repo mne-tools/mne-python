@@ -64,6 +64,11 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
                  time_bandwidth=None, use_fft=True, decim=1, output='complex',
                  n_jobs=1, verbose=None):  # noqa: D102
         """Init TimeFrequency transformer."""
+
+        # Check non-average output
+        output = _check_option('output', output,
+                      ['complex', 'power', 'phase'])
+
         self.freqs = freqs
         self.sfreq = sfreq
         self.method = method
@@ -132,14 +137,10 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         if not shape:
             X = X[:, np.newaxis, :]
 
-        # Check non-average output
-        output = _check_option('output', self.output,
-                      ['complex', 'power', 'phase'])
-
         # Compute time-frequency
         Xt = _compute_tfr(X, self.freqs, self.sfreq, self.method,
                           self.n_cycles, True, self.time_bandwidth,
-                          self.use_fft, self.decim, output, self.n_jobs,
+                          self.use_fft, self.decim, self.output, self.n_jobs,
                           self.verbose)
 
         # Back to original shape
