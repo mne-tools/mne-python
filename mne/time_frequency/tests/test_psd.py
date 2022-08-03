@@ -149,8 +149,11 @@ def test_psd_welch_average_kwarg(crop):
     bias = _median_bias(psds_unagg.shape[-1])
     assert_allclose(psds_median, np.median(psds_unagg, axis=-1) / bias)
     # check shape of unagg
-    assert psds_unagg.shape == (data.shape[:-1] +
-                                (data.shape[-1] // n_per_seg + 1,))
+    n_chan, n_times = data.shape
+    n_freq = len(freqs_unagg)
+    n_segs = np.ceil(n_times / n_per_seg).astype(int)
+    assert n_segs % 2 == (1 if crop else 0)
+    assert psds_unagg.shape == (n_chan, n_freq, n_segs)
 
 
 @pytest.mark.parametrize('n', (2, 3, 5, 8, 12, 13, 14, 15))
