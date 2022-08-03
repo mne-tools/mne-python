@@ -12,7 +12,7 @@ from mne.utils import sum_squared, requires_version
 from mne.time_frequency import (csd_fourier, csd_multitaper,
                                 csd_morlet, csd_array_fourier,
                                 csd_array_multitaper, csd_array_morlet,
-                                tfr_morlet, compute_csd,
+                                tfr_morlet, compute_csd, tfr_multitaper,
                                 CrossSpectralDensity, read_csd,
                                 pick_channels_csd, psd_multitaper)
 from mne.time_frequency.csd import _sym_mat_to_vector, _vector_to_sym_mat
@@ -570,3 +570,10 @@ def test_compute_csd():
     csd = compute_csd(epochs_tfr)
     assert_allclose(csd._data, csd_test._data, atol=1e-16)
     assert_array_equal(csd.frequencies, freqs)
+
+    csd_test = csd_multitaper(epochs)
+    epochs_tfr = tfr_multitaper(epochs, freqs, n_cycles=7,
+                                average=False, return_itc=False,
+                                output='complex')
+    csd = compute_csd(epochs_tfr)
+    assert_allclose(csd._data, csd_test._data, atol=1e-16)
