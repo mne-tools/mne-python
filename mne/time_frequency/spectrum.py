@@ -696,6 +696,7 @@ def read_spectrum(fname):
     Returns
     -------
     spectrum : instance of Spectrum
+        The loaded Spectrum object.
 
     See Also
     --------
