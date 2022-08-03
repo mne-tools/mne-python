@@ -570,6 +570,3 @@ def test_compute_csd():
     csd = compute_csd(epochs_tfr)
     assert_allclose(csd._data, csd_test._data, atol=1e-16)
     assert_array_equal(csd.frequencies, freqs)
-
-    csd_test = csd_multitaper(epochs)
-    epochs_tfr = 
