@@ -5,7 +5,7 @@
 import numpy as np
 from .mixin import TransformerMixin
 from .base import BaseEstimator
-from ..time_frequency.tfr import _compute_tfr, _check_tfr_param
+from ..time_frequency.tfr import _compute_tfr
 from ..utils import fill_doc, _check_option, verbose
 
 
@@ -67,7 +67,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
 
         # Check non-average output
         output = _check_option('output', output,
-                      ['complex', 'power', 'phase'])
+                               ['complex', 'power', 'phase'])
 
         self.freqs = freqs
         self.sfreq = sfreq
