@@ -184,15 +184,7 @@ stages:
         set -e
         which mne
         mne sys_info -pd
-        # Check to make sure we're importing the correct mne
-        echo "Checking that mne points to the correct location"
         python ./tools/check_mne_import.py
-        if [[ "${BRANCHNAME}" == 'maint/'* ]]; then
-          echo "Not checking for "dev" in name for maint branch"
-        else
-          echo "Checking for dev0 in name"
-          mne sys_info -pd | grep "^mne: .*dev0.*$"
-        fi
       displayName: Print config
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
