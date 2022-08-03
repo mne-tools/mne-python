@@ -69,7 +69,7 @@ epochs = mne.Epochs(raw, events, event_ids, tmin - 0.5, tmax + 0.5,
 # Here we set suitable values for computing ERDS maps.
 freqs = np.arange(2, 36)  # frequencies from 2-35Hz
 vmin, vmax = -1, 1.5  # set min and max ERDS values in plot
-baseline = [-1, 0]  # baseline interval (in s)
+baseline = (-1, 0)  # baseline interval (in s)
 cnorm = TwoSlopeNorm(vmin=vmin, vcenter=0, vmax=vmax)  # min, center & max ERDS
 
 kwargs = dict(n_permutations=100, step_down_p=0.05, seed=1,
