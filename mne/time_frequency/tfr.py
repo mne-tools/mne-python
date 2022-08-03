@@ -679,11 +679,11 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
         else:
             # if the input is of class Evoked
             meta = evs = ev_id = selection = drop_log = None
-        if power.ndim == 5:  # average across tapers
-            power = power.mean(axis=2)
+
         out = EpochsTFR(info, power, times, freqs, method='%s-power' % method,
                         events=evs, event_id=ev_id, selection=selection,
                         drop_log=drop_log, metadata=meta)
+
     return out
 
 
@@ -833,8 +833,7 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
 @verbose
 def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                    use_fft=True, return_itc=True, decim=1,
-                   n_jobs=None, picks=None, average=True,
-                   output='power', verbose=None):
+                   n_jobs=None, picks=None, average=True, verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
     Same computation as `~mne.time_frequency.tfr_array_multitaper`, but
@@ -872,11 +871,6 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     %(n_jobs)s
     %(picks_good_data)s
     %(average_tfr)s
-    output : str
-        Can be "power" (default) or "complex". If "complex", then
-        average must be False.
-
-        .. versionadded:: 1.2
     %(verbose)s
 
     Returns
@@ -902,7 +896,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
                       zero_mean=True, time_bandwidth=time_bandwidth)
     return _tfr_aux('multitaper', inst, freqs, decim, return_itc, picks,
-                    average, output, **tfr_params)
+                    average, **tfr_params)
 
 
 # TFR(s) class
