@@ -2,7 +2,7 @@ cff-version: 1.2.0
 title: "MNE-Python"
 message: "If you use this software, please cite both the software itself, and the paper listed in the preferred-citation field."
 version: 1.1.0
-date-released: "2022-08-02"
+date-released: "2022-08-03"
 commit: c210dfb4a1cab292c47c892fb2ee3c0b308ec90b
 doi: 10.5281/zenodo.592483
 keywords:

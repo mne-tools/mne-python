@@ -5,7 +5,7 @@
     "codeRepository": "git+https://github.com/mne-tools/mne-python.git",
     "dateCreated": "2010-12-26",
     "datePublished": "2014-08-04",
-    "dateModified": "2022-08-02",
+    "dateModified": "2022-08-03",
     "downloadUrl": "https://github.com/mne-tools/mne-python/archive/v1.1.0.zip",
     "issueTracker": "https://github.com/mne-tools/mne-python/issues",
     "name": "MNE-Python",
