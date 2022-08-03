@@ -154,6 +154,7 @@ def test_time_frequency():
     itc = ret / 23  # test dic
 
     power = power.apply_baseline(baseline=(-0.1, 0), mode='logratio')
+    assert power.baseline == (-0.1, 0)
 
     assert 'meg' in power
     assert 'grad' in power
@@ -548,7 +549,7 @@ def test_init_EpochsTFR():
     freqs_x = freqs[:-1]
     with pytest.raises(ValueError, match="frequencies and data size don't"):
         tfr = EpochsTFR(info, data=data, times=times_x, freqs=freqs_x)
-        del(tfr)
+        del tfr
 
 
 def test_plot():
@@ -1067,7 +1068,7 @@ def test_to_data_frame():
                 'value')
     assert set(expected) == set(df_long.columns)
     assert set(tfr.ch_names) == set(df_long['channel'])
-    assert(len(df_long) == tfr.data.size)
+    assert len(df_long) == tfr.data.size
     # test long format w/ index
     df_long = tfr.to_data_frame(long_format=True, index=['freq'])
     del df_wide, df_long
@@ -1097,7 +1098,7 @@ def test_to_data_frame():
     expected = ('freq', 'time', 'channel', 'ch_type', 'value')
     assert set(expected) == set(df_long.columns)
     assert set(tfr.ch_names) == set(df_long['channel'])
-    assert(len(df_long) == tfr.data.size)
+    assert len(df_long) == tfr.data.size
     # test long format w/ index
     df_long = tfr.to_data_frame(long_format=True, index=['freq'])
     del df_wide, df_long

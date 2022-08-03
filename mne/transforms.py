@@ -333,10 +333,10 @@ def rotation3d_align_z_axis(target_z_axis):
                             target_z_axis[1] * target_z_axis[1])
 
     # assert that r is a rotation matrix r^t * r = I and det(r) = 1
-    assert(np.any((r.dot(r.T) - np.identity(3)) < 1E-12))
-    assert((np.linalg.det(r) - 1.0) < 1E-12)
+    assert np.any((r.dot(r.T) - np.identity(3)) < 1E-12)
+    assert (np.linalg.det(r) - 1.0) < 1E-12
     # assert that r maps [0 0 1] on the device z axis (target_z_axis)
-    assert(np.linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12)
+    assert np.linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12
 
     return r
 

@@ -23,6 +23,8 @@ Current (1.1.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
+- Added new built-in montage R-Net 128 Ch (Brain Products) (:gh:`10974` by :newcontrib:`Ilias Machairas`)
+
 - :class:`~mne.channels.DigMontage` objects can now be checked for equality via ``==`` (:gh:`10942` by :newcontrib:`Tziona NessAiver`)
 
 - Add a note to clarify the inclusion of average referencing gain matrix during whitening (:gh:`10922` by :newcontrib:`Mingjian He`)
@@ -115,6 +117,8 @@ Enhancements
 
 - Add an alias that maps EGI reference channel names (``VREF`` or ``Vertex Reference``) to the electrode name in the standard EGI montages (``Cz``). Now setting standard EGI montages with :meth:`~mne.io.Raw.set_montage` with ``match_alias=True`` will avoid raising an error (:gh:`10823` by `Scott Huberty`_)
 
+- Add provenance in :func:`mne.time_frequency.EpochsTFR.apply_baseline` (:gh:`10979` by `Alex Rockhill`_)
+
 Bugs
 ~~~~
 - Fix bug in ``mne.surface._project_onto_surface`` for the condition ``method != 'accurate' and return_nn`` (:gh:`10930` by `Christian O'Reilly`_)
@@ -205,9 +209,15 @@ Bugs
 
 - When reading EGI MFF files, channel names are no longer ignored and reference channel information is properly incorporated (:gh:`10898` by `Scott Huberty`_ and `Daniel McCloy`_)
 
+- Fix bug in :func:`mne.time_frequency.psd_array_welch` and related functions/methods where the bias was not accounted for when ``average='median'`` (:gh:`10990` by `Eric Larson`_)
+
+- Fix bug in :class:`mne.decoding.TemporalFilter` where filter parameters were not handled properly (:gh:`10968` by `Eric Larson`_)
+
 - Fix documentation bug in ``ica.plot_sources`` to specify that ``picks`` keyword argument is for picking ICA components to plot (:gh:`10936` by `Adam Li`_)
 
 - Annotations contained in EDF files are correctly read as UTF-8 according to the EDF specification (:gh:`10963` by `Clemens Brunner`_)
+
+- Fix bug where complex-valued topoplots caused an error, convert to amplitude instead (:gh:`10978` by `Alex Rockhill`_)
 
 API and behavior changes
 ~~~~~~~~~~~~~~~~~~~~~~~~

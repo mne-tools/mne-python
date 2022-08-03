@@ -508,6 +508,13 @@ def test_plot_tfr_topomap():
     picks = [93, 94, 96, 97, 21, 22, 24, 25, 129, 130, 315, 316, 2, 5, 8, 11]
     info = pick_info(raw.info, picks)
     data = rng.randn(len(picks), n_freqs, len(times))
+
+    # test complex numbers
+    tfr = AverageTFR(info, data * (1 + 1j), times, np.arange(n_freqs), nave)
+    tfr.plot_topomap(ch_type='mag', tmin=0.05, tmax=0.150, fmin=0, fmax=10,
+                     res=res, contours=0)
+
+    # test real numbers
     tfr = AverageTFR(info, data, times, np.arange(n_freqs), nave)
     tfr.plot_topomap(ch_type='mag', tmin=0.05, tmax=0.150, fmin=0, fmax=10,
                      res=res, contours=0)

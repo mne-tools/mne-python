@@ -11,6 +11,39 @@ from ..utils import logger, verbose, _time_mask, _check_option
 from .multitaper import psd_array_multitaper
 
 
+# adapted from SciPy
+# https://github.com/scipy/scipy/blob/f71e7fad717801c4476312fe1e23f2dfbb4c9d7f/scipy/signal/_spectral_py.py#L2019  # noqa: E501
+def _median_biases(n):
+    # Compute the biases for 0 to max(n, 1) terms included in a median calc
+    biases = np.ones(n + 1)
+    # The original SciPy code is:
+    #
+    # def _median_bias(n):
+    #     ii_2 = 2 * np.arange(1., (n - 1) // 2 + 1)
+    #     return 1 + np.sum(1. / (ii_2 + 1) - 1. / ii_2)
+    #
+    # This is a sum over (n-1)//2 terms.
+    # The ii_2 terms here for different n are:
+    #
+    # n=0: []  # 0 terms
+    # n=1: []  # 0 terms
+    # n=2: []  # 0 terms
+    # n=3: [2]  # 1 term
+    # n=4: [2]  # 1 term
+    # n=5: [2, 4]  # 2 terms
+    # n=6: [2, 4]  # 2 terms
+    # ...
+    #
+    # We can get the terms for 0 through n using a cumulative summation and
+    # indexing:
+    if n >= 3:
+        ii_2 = 2 * np.arange(1, (n - 1) // 2 + 1)
+        sums = 1 + np.cumsum(1. / (ii_2 + 1) - 1. / ii_2)
+        idx = np.arange(2, n) // 2 - 1
+        biases[3:] = sums[idx]
+    return biases
+
+
 def _decomp_aggregate_mask(epoch, func, average, freq_sl):
     _, _, spect = func(epoch)
     spect = spect[..., freq_sl, :]
@@ -18,7 +51,9 @@ def _decomp_aggregate_mask(epoch, func, average, freq_sl):
     if average == 'mean':
         spect = np.nanmean(spect, axis=-1)
     elif average == 'median':
-        spect = np.nanmedian(spect, axis=-1)
+        biases = _median_biases(spect.shape[-1])
+        idx = (~np.isnan(spect)).sum(-1)
+        spect = np.nanmedian(spect, axis=-1) / biases[idx]
     return spect
 
 

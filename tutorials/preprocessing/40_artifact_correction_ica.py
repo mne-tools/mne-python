@@ -67,7 +67,8 @@ raw.load_data()
 # ICA in MNE-Python
 # ~~~~~~~~~~~~~~~~~
 #
-# .. sidebar:: ICA and dimensionality reduction
+# .. admonition:: ICA and dimensionality reduction
+#     :class: sidebar hint
 #
 #     If you want to perform ICA with *no* dimensionality reduction (other than
 #     the number of Independent Components (ICs) given in ``n_components``, and
@@ -215,19 +216,14 @@ filt_raw = raw.copy().filter(l_freq=1., h_freq=None)
 # Fitting and plotting the ICA solution
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# .. sidebar:: Ignoring the time domain
+# .. admonition:: Ignoring the time domain
+#     :class: sidebar hint
 #
 #     The ICA algorithms implemented in MNE-Python find patterns across
 #     channels, but ignore the time domain. This means you can compute ICA on
 #     discontinuous `~mne.Epochs` or `~mne.Evoked` objects (not
 #     just continuous `~mne.io.Raw` objects), or only use every Nth
 #     sample by passing the ``decim`` parameter to ``ICA.fit()``.
-#
-#     .. note:: `~mne.Epochs` used for fitting ICA should not be
-#               baseline-corrected. Because cleaning the data via ICA may
-#               introduce DC offsets, we suggest to baseline correct your data
-#               **after** cleaning (and not before), should you require
-#               baseline correction.
 #
 # Now we're ready to set up and fit the ICA. Since we know (from observing our
 # raw data) that the EOG and ECG artifacts are fairly strong, we would expect
@@ -246,6 +242,14 @@ filt_raw = raw.copy().filter(l_freq=1., h_freq=None)
 # flip on different runs, or may not always be returned in the same order), so
 # we'll also specify a `random seed`_ so that we get identical results each
 # time this tutorial is built by our web servers.
+#
+# .. warning::
+#
+#     `~mne.Epochs` used for fitting ICA should not be
+#     baseline-corrected. Because cleaning the data via ICA may
+#     introduce DC offsets, we suggest to baseline correct your data
+#     **after** cleaning (and not before), should you require
+#     baseline correction.
 
 ica = ICA(n_components=15, max_iter='auto', random_state=97)
 ica.fit(filt_raw)

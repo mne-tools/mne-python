@@ -646,7 +646,7 @@ class SourceSpaces(list):
             # save the mgh image
             img = nib.freesurfer.mghformat.MGHImage(img, affine)
         else:
-            raise(ValueError('Unrecognized file extension'))
+            raise ValueError('Unrecognized file extension')
 
         # write image to file
         nib.save(img, fname)
@@ -2885,7 +2885,7 @@ def _get_src_nn(s, use_cps=True, vertices=None):
     if use_cps and s.get('patch_inds') is not None:
         nn = np.empty((len(vertices), 3))
         for vp, p in enumerate(np.searchsorted(s['vertno'], vertices)):
-            assert(s['vertno'][p] == vertices[vp])
+            assert s['vertno'][p] == vertices[vp]
             #  Project out the surface normal and compute SVD
             nn[vp] = np.sum(
                 s['nn'][s['pinfo'][s['patch_inds'][p]], :], axis=0)

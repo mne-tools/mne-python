@@ -16,7 +16,7 @@ import numpy as np
 
 from .multitaper import dpss_windows
 
-from ..baseline import rescale
+from ..baseline import rescale, _check_baseline
 from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
@@ -904,6 +904,9 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, TimeMixin):
     """Base TFR class."""
 
+    def __init__(self):
+        self.baseline = None
+
     @property
     def data(self):
         return self._data
@@ -1004,7 +1007,9 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, TimeMixin):
         inst : instance of AverageTFR
             The modified instance.
         """  # noqa: E501
-        rescale(self.data, self.times, baseline, mode, copy=False)
+        self.baseline = _check_baseline(baseline, times=self.times,
+                                        sfreq=self.info['sfreq'])
+        rescale(self.data, self.times, self.baseline, mode, copy=False)
         return self
 
     @verbose
@@ -1146,6 +1151,7 @@ class AverageTFR(_BaseTFR):
     @verbose
     def __init__(self, info, data, times, freqs, nave, comment=None,
                  method=None, verbose=None):  # noqa: D102
+        super().__init__()
         self.info = info
         if data.ndim != 3:
             raise ValueError('data should be 3d. Got %d.' % data.ndim)
@@ -2177,6 +2183,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
                  events=None, event_id=None, selection=None,
                  drop_log=None, metadata=None, verbose=None):
         # noqa: D102
+        super().__init__()
         self.info = info
         if data.ndim != 4:
             raise ValueError('data should be 4d. Got %d.' % data.ndim)
@@ -2428,6 +2435,9 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
         copy = baseline is not None
     data = rescale(data, times, baseline, mode, copy=copy)
 
+    if np.iscomplexobj(data):
+        data = np.sqrt((data * data.conj()).real)
+
     # crop time
     itmin, itmax = None, None
     idx = np.where(_time_mask(times, tmin, tmax, sfreq=sfreq))[0]
@@ -2452,7 +2462,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     data = data[:, ifmin:ifmax, itmin:itmax]
 
     if dB:
-        data = 10 * np.log10((data * data.conj()).real)
+        data = 20 * np.log10(data)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
     return data, times, freqs, vmin, vmax

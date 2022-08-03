@@ -462,7 +462,8 @@ for title in ('Without', 'With'):
 #
 # Visualizing SSP sensor-space bias via signal reconstruction
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# .. sidebar:: SSP reconstruction
+# .. admonition:: SSP reconstruction
+#     :class: sidebar note
 #
 #     Internally, the reconstruction is performed by effectively using a
 #     minimum-norm source localization to a spherical source space with the

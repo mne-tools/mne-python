@@ -1292,7 +1292,7 @@ def test_to_data_frame():
     assert_array_equal(df.values[:, 3], raw._data[2] * 1e15)
     # test long format
     df_long = raw.to_data_frame(long_format=True)
-    assert(len(df_long) == raw.get_data().size)
+    assert len(df_long) == raw.get_data().size
     expected = ('time', 'channel', 'ch_type', 'value')
     assert set(expected) == set(df_long.columns)
     # test bad time format

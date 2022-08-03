@@ -274,7 +274,7 @@ def _get_inverse_funcs(estimator, terminal=True):
     # and remove it from the transformers.
     if terminal:
         last_is_estimator = inverse_func[-1] is False
-        all_invertible = not(False in inverse_func[:-1])
+        all_invertible = False not in inverse_func[:-1]
         if last_is_estimator and all_invertible:
             # keep all inverse transformation and remove last estimation
             inverse_func = inverse_func[:-1]

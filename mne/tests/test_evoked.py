@@ -435,7 +435,7 @@ def test_to_data_frame():
     expected = ('time', 'channel', 'ch_type', 'value')
     assert set(expected) == set(df_long.columns)
     assert set(ave.ch_names) == set(df_long['channel'])
-    assert(len(df_long) == ave.data.size)
+    assert len(df_long) == ave.data.size
     del df_wide, df_long
     # test scalings
     df = ave.to_data_frame(index='time')

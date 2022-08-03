@@ -233,7 +233,7 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
         The graphical user interface (GUI) window.
     """
     from ..viz.backends._utils import _qt_app_exec
-    from ._ieeg_locate_gui import IntracranialElectrodeLocator
+    from ._ieeg_locate import IntracranialElectrodeLocator
     from qtpy.QtWidgets import QApplication
     # get application
     app = QApplication.instance()
@@ -254,7 +254,7 @@ class _GUIScraper(object):
         return '<GUIScraper>'
 
     def __call__(self, block, block_vars, gallery_conf):
-        from ._ieeg_locate_gui import IntracranialElectrodeLocator
+        from ._ieeg_locate import IntracranialElectrodeLocator
         from ._coreg import CoregistrationUI
         from sphinx_gallery.scrapers import figure_rst
         from qtpy import QtGui

@@ -580,8 +580,7 @@ html_theme_options = {
     'use_edit_page_button': False,
     'navigation_with_keys': False,
     'show_toc_level': 1,
-    'navbar_end': ['search-button', 'theme-switcher', 'version-switcher',
-                   'navbar-icon-links'],
+    'navbar_end': ['theme-switcher', 'version-switcher', 'navbar-icon-links'],
     'footer_items': ['copyright'],
     'google_analytics_id': 'UA-37225609-1',
     'switcher': {
@@ -754,12 +753,12 @@ html_context = {
              size=xxl,\
              klass='only-dark'),
         dict(name='Berkeley Institute for Data Science',
-             img='BIDS.png',
+             img='BIDS.svg',
              url='https://bids.berkeley.edu/',
              size=lg,
              klass='only-light'),
         dict(name='Berkeley Institute for Data Science',
-             img='BIDS-dark.png',
+             img='BIDS-dark.svg',
              url='https://bids.berkeley.edu/',
              size=lg,
              klass='only-dark'),
@@ -914,6 +913,8 @@ def reset_warnings(gallery_conf, fname):
         '`np.object` is a deprecated alias for the builtin `object`',  # pyxdf
         # nilearn, should be fixed in > 0.9.1
         'In future, it will be an error for \'np.bool_\' scalars to',
+        # sklearn hasn't updated to SciPy's sym_pos dep
+        'The \'sym_pos\' keyword is deprecated',
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)

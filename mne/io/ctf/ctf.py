@@ -124,7 +124,7 @@ class RawCTF(BaseRaw):
         raw_extras = list()
         missing_names = list()
         no_samps = list()
-        while(True):
+        while True:
             suffix = 'meg4' if len(fnames) == 0 else ('%d_meg4' % len(fnames))
             meg4_name, found = _make_ctf_name(
                 directory, suffix, raise_error=False)

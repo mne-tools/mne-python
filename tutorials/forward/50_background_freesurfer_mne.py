@@ -83,7 +83,8 @@ print(data.shape)
 # location ``(x, y, z)`` in the *scanner's native coordinate frame* is saved in
 # the image's *affine transformation*.
 #
-# .. sidebar:: Under the hood
+# .. admonition:: Under the hood
+#     :class: sidebar note
 #
 #     ``mne.transforms.apply_trans`` effectively does a matrix multiplication
 #     (i.e., :func:`numpy.dot`), with a little extra work to handle the shape
@@ -249,14 +250,15 @@ nasion_head = [d for d in info['dig'] if
 print(nasion_head)  # note it's in "head" coordinates
 
 # %%
-# .. sidebar:: Head coordinate frame
+# .. admonition:: Head coordinate frame
+#     :class: sidebar note
 #
-#      The head coordinate frame in MNE is the "Neuromag" head coordinate
-#      frame. The origin is given by the intersection between a line connecting
-#      the LPA and RPA and the line orthogonal to it that runs through the
-#      nasion. It is also in RAS orientation, meaning that +X runs through
-#      the RPA, +Y goes through the nasion, and +Z is orthogonal to these
-#      pointing upward. See :ref:`coordinate_systems` for more information.
+#     The head coordinate frame in MNE is the "Neuromag" head coordinate
+#     frame. The origin is given by the intersection between a line connecting
+#     the LPA and RPA and the line orthogonal to it that runs through the
+#     nasion. It is also in RAS orientation, meaning that +X runs through
+#     the RPA, +Y goes through the nasion, and +Z is orthogonal to these
+#     pointing upward. See :ref:`coordinate_systems` for more information.
 #
 # Notice that in "head" coordinate frame the nasion has values of 0 for the
 # ``x`` and ``z`` directions (which makes sense given that the nasion is used
