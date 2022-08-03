@@ -554,14 +554,15 @@ def test_equalize_channels():
 
 def test_compute_csd():
     """Test computing cross-spectral density on time-frequency epochs."""
+    rng = np.random.default_rng(11)
     n_epochs = 6
     info = mne.io.read_info(raw_fname)
     info = mne.pick_info(info, mne.pick_types(info, meg=True))
     freqs = np.arange(8, 10)
     times = np.linspace(0, 1, int(round(info['sfreq'])))
-    epochs_tfr = EpochsTFR(info, np.zeros((n_epochs, len(info.ch_names),
-                                           freqs.size, times.size)),
-                           times=times, freqs=freqs)
+    data = rng.normal(
+        shape=(n_epochs, len(info.ch_names), freqs.size, times.size))
+    epochs_tfr = EpochsTFR(info, data, times=times, freqs=freqs)
     epochs_tfr.apply_baseline((0, 0.5))
     csd = compute_csd(epochs_tfr, tmin=0.5, tmax=1)
     assert_array_equal(csd.frequencies, freqs)

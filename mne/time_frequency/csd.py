@@ -1342,13 +1342,12 @@ def _csd_morlet(data, sfreq, wavelets, nfft, tslice=None, use_fft=True,
 
     # Compute the spectral density between all pairs of series
     n_channels = data.shape[0]
-    import pdb; pdb.set_trace()
     csds = np.vstack([np.mean(psds[[i]] * psds_conj[i:], axis=2)
                       for i in range(n_channels)])
 
     # Scaling by sampling frequency for compatibility with Matlab
     csds /= sfreq
-
+    import pdb; pdb.set_trace()
     return csds
 
 
@@ -1378,9 +1377,8 @@ def compute_csd(epochs_tfr, verbose=None, **kwargs):
                     dtype=np.complex128)
     # move frequencies to front
     for idx, epochs_data in enumerate(epochs_tfr.data.transpose([2, 0, 1, 3])):
-        # TODO: phase-amplitude should be supported but it causes a
-        # non-positive semi-definite matrix, see
-        # https://github.com/mne-tools/mne-python/pull/10920
+        # cross-spectral density is only defined for power
+        # wikipedia.org/wiki/Spectral_density#Cross_power_spectral_density
         if np.iscomplexobj(epochs_data):  # if complex, convert to power
             epochs_data = (epochs_data * epochs_data.conj()).real
         epochs = EpochsArray(
