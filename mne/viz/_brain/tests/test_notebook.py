@@ -19,6 +19,7 @@ pytestmark = pytest.mark.skipif(
 @testing.requires_testing_data
 def test_notebook_alignment(renderer_notebook, brain_gc, nbexec):
     """Test plot alignment in a notebook."""
+    import pytest
     import mne
     with pytest.MonkeyPatch().context() as mp:
         mp.delenv('_MNE_FAKE_HOME_DIR')
@@ -43,6 +44,7 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
     import os
     import tempfile
     from contextlib import contextmanager
+    import pytest
     from numpy.testing import assert_allclose
     from ipywidgets import Button
     import matplotlib.pyplot as plt
