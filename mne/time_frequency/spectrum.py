@@ -375,6 +375,11 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin, GetEpochsMixin):
             warn(f'Zero value in spectrum for channel{s} {", ".join(chs)}',
                  UserWarning)
 
+    @property
+    def _detrend_picks(self):
+        """Provide compatibility with __iter__."""
+        return list()
+
     def _format_units(self, unit, latex, power=True):
         """Format the measurement units nicely."""
         if power:

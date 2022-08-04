@@ -2,6 +2,7 @@ from functools import partial
 
 import numpy as np
 import pytest
+from numpy.testing import assert_array_equal
 
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
@@ -55,6 +56,24 @@ def test_spectrum_io(raw, tmp_path):
     del orig._inst_type
     del loaded._inst_type
     assert object_diff(vars(orig), vars(loaded)) == ''
+
+
+def test_spectrum_getitem_raw(raw):
+    """Test Spectrum.__getitem__ for Raw-derived spectra."""
+    spect = raw.compute_psd()
+    want = spect.get_data(slice(1, 3), fmax=7)
+    freq_idx = np.searchsorted(spect.freqs, 7)
+    got = spect[1:3, :freq_idx]
+    assert_array_equal(want, got)
+
+
+def test_spectrum_getitem_epochs(epochs):
+    """Test Spectrum.__getitem__ for Epochs-derived spectra."""
+    spect = epochs.compute_psd()
+    # testing data has just one epoch, its event_id label is "1"
+    want = spect.get_data()
+    got = spect['1']
+    assert_array_equal(want, got)
 
 
 def _agg_helper(df, weights, group_cols):
