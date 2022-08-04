@@ -277,15 +277,15 @@ def test_coreg_gui_scraper(tmp_path, renderer_interactive_pyvistaqt):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_coreg_gui_notebook(renderer_notebook, nbexec):
+def test_coreg_gui_notebook(renderer_notebook, nbexec, monkeypatch):
     """Test the coregistration UI in a notebook."""
     import os
     import mne
     from mne.datasets import testing
     from mne.gui import coregistration
     mne.viz.set_3d_backend('notebook')  # set the 3d backend
-    with mne.utils.modified_env(_MNE_FAKE_HOME_DIR=None):
-        data_path = testing.data_path(download=False)
+    monkeypatch.delenv('_MNE_FAKE_HOME_DIR')
+    data_path = testing.data_path(download=False)
     subjects_dir = os.path.join(data_path, 'subjects')
     coregistration(subject='sample', subjects_dir=subjects_dir)
 
