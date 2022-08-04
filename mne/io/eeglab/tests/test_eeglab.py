@@ -45,9 +45,6 @@ epochs_h5_fnames = [epochs_fname_h5, epochs_fname_onefile_h5]
 montage_path = op.join(base_dir, 'test_chans.locs')
 
 
-pymatreader = pytest.importorskip('pymatreader')  # module-level
-
-
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname', [
     raw_fname_mat,
