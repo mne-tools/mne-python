@@ -6,7 +6,7 @@ from numpy.testing import assert_array_equal
 
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
-from mne.utils import object_diff, requires_h5py, requires_pandas
+from mne.utils import requires_h5py, requires_pandas
 
 
 def test_spectrum_errors(raw):
@@ -51,11 +51,17 @@ def test_spectrum_io(raw, tmp_path):
     orig = raw.compute_psd()
     orig.save(fname)
     loaded = read_spectrum(fname)
-    # there is one attr (_inst_type) that object_diff can't handle
-    assert orig._inst_type == loaded._inst_type
-    del orig._inst_type
-    del loaded._inst_type
-    assert object_diff(vars(orig), vars(loaded)) == ''
+    assert orig == loaded
+
+
+def test_spectrum_copy(raw):
+    """Test copying Spectrum objects."""
+    spect = raw.compute_psd()
+    spect_copy = spect.copy()
+    assert spect == spect_copy
+    assert id(spect) != id(spect_copy)
+    spect_copy._freqs = None
+    assert spect.freqs is not None
 
 
 def test_spectrum_getitem_raw(raw):

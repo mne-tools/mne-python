@@ -18,7 +18,7 @@ from ..io.pick import _picks_to_idx, pick_info
 from ..utils import (GetEpochsMixin, _build_data_frame,
                      _check_pandas_index_arguments, _check_pandas_installed,
                      _check_sphere, _time_mask, _validate_type, fill_doc,
-                     logger, verbose, warn)
+                     logger, object_diff, verbose, warn)
 from ..utils.check import (_check_fname, _check_option, _import_h5io_funcs,
                            _is_numeric, check_fname)
 from ..utils.misc import _pl
@@ -292,6 +292,21 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin, GetEpochsMixin):
             result.__dict__[k] = v
         return result
 
+    def __eq__(self, other):
+        """Test equivalence of two Spectrum instances."""
+        # there is one attr (_inst_type) that object_diff can't handle
+        if self._inst_type != other._inst_type:
+            return False
+        _inst_type = self._inst_type
+        del self._inst_type
+        del other._inst_type
+        try:
+            same = object_diff(vars(self), vars(other)) == ''
+        finally:
+            self._inst_type = _inst_type
+            other._inst_type = _inst_type
+        return same
+
     def __getitem__(self, item):
         """Get Spectrum data.
 
@@ -404,6 +419,7 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin, GetEpochsMixin):
         self._dims = dims
         self.info = Info(**info)
         self._data_type = data_type
+        self.preload = True
         # instance type
         inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked)
         self._inst_type = inst_types[inst_type]
