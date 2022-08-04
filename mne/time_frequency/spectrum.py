@@ -5,6 +5,7 @@
 #
 # License: BSD-3-Clause
 
+from copy import deepcopy
 from functools import partial
 from inspect import signature
 
@@ -14,9 +15,10 @@ from ..channels.channels import UpdateChannelsMixin
 from ..defaults import _handle_default
 from ..io.meas_info import ContainsMixin
 from ..io.pick import _picks_to_idx, pick_info
-from ..utils import (_build_data_frame, _check_pandas_index_arguments,
-                     _check_pandas_installed, _check_sphere, _time_mask,
-                     _validate_type, fill_doc, logger, verbose, warn)
+from ..utils import (GetEpochsMixin, _build_data_frame,
+                     _check_pandas_index_arguments, _check_pandas_installed,
+                     _check_sphere, _time_mask, _validate_type, fill_doc,
+                     logger, verbose, warn)
 from ..utils.check import (_check_fname, _check_option, _import_h5io_funcs,
                            _is_numeric, check_fname)
 from ..utils.misc import _pl
@@ -142,7 +144,7 @@ class ToSpectrumMixin():
 
 
 @fill_doc
-class Spectrum(ContainsMixin, UpdateChannelsMixin):
+class Spectrum(ContainsMixin, UpdateChannelsMixin, GetEpochsMixin):
     """Data object for spectral representations of continuous data.
 
     .. warning:: The preferred means of creating Spectrum objects is via the
@@ -215,8 +217,14 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
             self.event_id = inst.event_id.copy()
             self.events = inst.events.copy()
             self.selection = inst.selection.copy()
+            # we need these for __getitem__
+            self.drop_log = deepcopy(inst.drop_log)
+            self._metadata = inst.metadata
         else:  # Evoked
             data = inst.data[picks][:, time_mask]
+
+        # we need this for __getitem__ (both Raw- and Epochs-derived)
+        self.preload = True
         # triage method and kwargs. partial() doesn't check validity of kwargs,
         # so we do it manually to save compute time if any are invalid.
         psd_funcs = dict(welch=psd_array_welch,
@@ -275,6 +283,61 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         assert len(self._dims) == self._data.ndim
         assert self._data.shape == expected_shape
 
+    def __deepcopy__(self, memodict):
+        """Make a deepcopy."""
+        cls = self.__class__
+        result = cls.__new__(cls)
+        for k, v in self.__dict__.items():
+            v = deepcopy(v, memodict)
+            result.__dict__[k] = v
+        return result
+
+    def __getitem__(self, item):
+        """Get Spectrum data.
+
+        Parameters
+        ----------
+        item : int | slice | array-like | str
+            See Notes.
+
+        Returns
+        -------
+        data : ndarray, shape (n_channels, n_freqs)
+            The raw data.
+
+        Notes
+        -----
+        For Spectrum objects derived from :class:`~mne.Epochs` data, the access
+        options are the same as for :class:`~mne.Epochs` objects, see the
+        docstring of :meth:`mne.Epochs.__getitem__` for explanation.
+
+        For Spectrum objects derived from :class:`~mne.io.Raw` or
+        :class:`~mne.Evoked` data, integer-, list-, and slice-based
+        indexing is possible, similar to a :class:`NumPy array<numpy.ndarray>`:
+
+        - ``spectrum[0]`` gives all frequency bins in the first channel
+        - ``spectrum[:3]`` gives all frequency bins in the first 3 channels
+        - ``spectrum[[0, 2], 5]`` gives the value in the sixth frequency bin of
+          the first and third channels
+        - ``spectrum[(4, 7)]`` is the same as ``spectrum[4, 7]``.
+
+        .. note::
+
+           Unlike :class:`~mne.io.Raw` objects (which returns a tuple of the
+           requested data values and the corresponding times), accessing
+           :class:`~mne.time_frequency.Spectrum` values via subscript does
+           **not** return the corresponding frequency bin values.
+        """
+        from .. import BaseEpochs
+        from ..io import BaseRaw
+
+        if BaseEpochs in self._inst_type.__bases__:
+            return super().__getitem__(item)
+        else:
+            self._parse_get_set_params = partial(
+                BaseRaw._parse_get_set_params, self)
+            return BaseRaw._getitem(self, item, return_times=False)
+
     def __repr__(self):
         """Build string representation of the Spectrum object."""
         inst_type = self._get_instance_type_string()
@@ -326,7 +389,7 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
 
     def _from_file(self, method, data, freqs, dims, data_type, inst_type,
                    info):
-        """Recreate object from hdf5 file."""
+        """Recreate Spectrum object from hdf5 file."""
         from .. import Epochs, Evoked, Info
         from ..io import Raw
 
@@ -368,6 +431,16 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
     @property
     def method(self):
         return self._method
+
+    def copy(self):
+        """Return copy of the Spectrum instance.
+
+        Returns
+        -------
+        spectrum : instance of Spectrum
+            A copy of the object.
+        """
+        return deepcopy(self)
 
     @fill_doc
     def get_data(self, picks=None, exclude='bads', fmin=0, fmax=np.inf,
@@ -506,7 +579,10 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
             # not sure if that makes an important difference? Anyway that
             # aggregation would need to happen in the _plot_psd function
             # though, not here... for now we just average like we always did.
-            logger.info('Averaging across epochs...')
+
+            # only log message if averaging will actually have an effect
+            if self._data.shape[0] > 1:
+                logger.info('Averaging across epochs...')
             # epoch axis should always be the first axis
             psd_list = [_p.mean(axis=0) for _p in psd_list]
         # initialize figure
@@ -528,26 +604,6 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
 
     def plot_topomap(self):
         """Plot scalp topography."""
-        raise NotImplementedError()
-
-    def pick_epoch(self, index=None):
-        """Extract one or more epochs into a new Spectrum object.
-
-        Parameters
-        ----------
-        index : int | list of int
-            Index (or list of indices) of which epochs to pick.
-
-        Notes
-        -----
-        Like the channel-picking methods, this modifies the object in-place.
-        If you don't want that, use ``.copy()`` first and assign the result to
-        a new variable.
-        """
-        # XXX FIXME TODO figure out how to let people pick a specific epoch,
-        # probably via __getitem__?  May be better with a separate
-        # EpochSpectrum class since we don't need it for Raw / Evoked?
-        # Would be cool if something like Spectrum['aud/left'] worked...
         raise NotImplementedError()
 
     @verbose
