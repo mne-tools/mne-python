@@ -10,7 +10,7 @@ import os
 
 from . import get_config
 from .utils import (logger, verbose, warn, ProgressBar, _validate_type,
-                    _check_option, _ensure_int, deprecated)
+                    _ensure_int)
 
 
 @verbose
@@ -108,36 +108,6 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
     else:
         parallel_out = parallel
     return parallel_out, my_func, n_jobs
-
-
-# this isn't really meant to be public but it's easy enough to deprecate
-@deprecated('check_n_jobs is deprecated and will be removed in 1.1, use '
-            'parallel_func directly')
-def check_n_jobs(n_jobs, allow_cuda=False):
-    """Check n_jobs in particular for negative values.
-
-    Parameters
-    ----------
-    n_jobs : int
-        The number of jobs.
-    allow_cuda : bool
-        Allow n_jobs to be 'cuda'. Default: False.
-
-    Returns
-    -------
-    n_jobs : int
-        The checked number of jobs. Always positive (or 'cuda' if
-        applicable).
-    """
-    types = ('int-like', None)
-    if allow_cuda:
-        types = types + ('str',)
-    _validate_type(n_jobs, types, 'n_jobs')
-    if isinstance(n_jobs, str):
-        # We can only be in this path if allow_cuda
-        _check_option('n_jobs', n_jobs, ('cuda',), extra='when str')
-        return 'cuda'  # return 'cuda'
-    return _check_n_jobs(n_jobs)
 
 
 def _check_n_jobs(n_jobs):
