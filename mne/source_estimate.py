@@ -1568,8 +1568,9 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
     See Also
     --------
-    VectorSourceEstimate : A container for vector source estimates.
+    VectorSourceEstimate : A container for vector surface source estimates.
     VolSourceEstimate : A container for volume source estimates.
+    VolVectorSourceEstimate : A container for volume vector source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
     """
@@ -2160,6 +2161,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
+    VectorSourceEstimate : A container for vector surface source estimates.
     VolVectorSourceEstimate : A container for volume vector source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
@@ -2244,7 +2246,8 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate,
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
-    VectorSourceEstimate : A container for vector source estimates.
+    VectorSourceEstimate : A container for vector surface source estimates.
+    VolSourceEstimate : A container for volume source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
 
@@ -2421,7 +2424,7 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
-    VectorSourceEstimate : A container for vector source estimates.
+    VectorSourceEstimate : A container for vector surface source estimates.
     VolSourceEstimate : A container for volume source estimates.
     VolVectorSourceEstimate : A container for Volume vector source estimates.
 
