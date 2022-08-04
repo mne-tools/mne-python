@@ -87,6 +87,8 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     exclusion by clicking on the line. The selected components are added to
     ``ica.exclude`` on close.
 
+    %(notes_2d_backend)s
+
     .. versionadded:: 0.10.0
     """
     from ..io.base import BaseRaw

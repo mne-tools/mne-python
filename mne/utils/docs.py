@@ -1995,6 +1995,23 @@ normalize : bool
     False.
 """
 
+docdict['notes_2d_backend'] = """\
+MNE-Python provides two different backends for signal-browsing plots (i.e.,
+:meth:`raw.plot()<mne.io.Raw.plot>`, :meth:`epochs.plot()<mne.Epochs.plot>`,
+and :meth:`ica.plot_sources()<mne.preprocessing.ICA.plot_sources>`). One is
+based on :mod:`matplotlib` and the other is based on
+:doc:`PyQtGraph<pyqtgraph:index>`. You can set the backend for the
+duration of a Python session using :func:`mne.viz.set_browser_backend`, or you
+can change the backend temporarily with the context manager
+:func:`mne.viz.use_browser_backend`.
+
+.. note:: For the PyQtGraph backend to run in IPython with ``block=False``
+          you must run the magic command ``%%gui qt5`` first.
+.. note:: To report issues with the PyQtGraph backend, please use the
+          `issues <https://github.com/mne-tools/mne-qt-browser/issues>`_
+          of ``mne-qt-browser``.
+"""
+
 docdict['notes_tmax_included_by_default'] = """
 Unlike Python slices, MNE time intervals by default include **both**
 their end points; ``crop(tmin, tmax)`` returns the interval
