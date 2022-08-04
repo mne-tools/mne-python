@@ -59,9 +59,11 @@ def _check_load_mat(fname, uint16_codec):
     """Check if the mat struct contains 'EEG'."""
     try:
         read_mat = _import_pymatreader_funcs('EEGLAB I/O')
-    except RuntimeError:
-        from scipy.io import loadmat as read_mat
-    eeg = read_mat(fname, uint16_codec=uint16_codec, simplify_cells=True)
+    except RuntimeError:  # pymatreader not installed
+        from scipy.io import loadmat
+        eeg = loadmat(fname, simplify_cells=True)
+    else:
+        eeg = read_mat(fname, uint16_codec=uint16_codec)
     if 'ALLEEG' in eeg:
         raise NotImplementedError(
             'Loading an ALLEEG array is not supported. Please contact'
