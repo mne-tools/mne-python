@@ -7,8 +7,9 @@ import os
 from os import path as op
 import pkg_resources
 import re
+from pathlib import Path
 
-from ..utils import _get_path, _do_path_update, _mne_path
+from ..utils import _get_path, _do_path_update
 from ...utils import _url_to_local_path, verbose
 
 
@@ -87,7 +88,7 @@ def data_path(url, path=None, force_update=False, update_path=None, *,
 
     # Offer to update the path
     _do_path_update(path, update_path, key, name)
-    destinations = [_mne_path(dest) for dest in destinations]
+    destinations = [Path(dest) for dest in destinations]
     return destinations
 
 
