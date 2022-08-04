@@ -17,8 +17,8 @@ from scipy import io
 from mne import write_events, read_epochs_eeglab
 from mne.channels import read_custom_montage
 from mne.io import read_raw_eeglab
-from mne.io.eeglab.eeglab import (_get_montage_information, _dol_to_lod,
-                                  _check_for_scipy_mat_struct)
+from mne.io.eeglab.eeglab import _get_montage_information, _dol_to_lod
+from mne.io.eeglab._eeglab import readmat
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 from mne.utils import Bunch, _check_pymatreader_installed
@@ -448,8 +448,7 @@ def test_read_single_epoch():
 @testing.requires_testing_data
 def test_get_montage_info_with_ch_type():
     """Test that the channel types are properly returned."""
-    mat = io.loadmat(raw_fname_onefile_mat, squeeze_me=True, mat_dtype=False)
-    mat = _check_for_scipy_mat_struct(mat)
+    mat = readmat(raw_fname_onefile_mat)
     n = len(mat['EEG']['chanlocs']['labels'])
     mat['EEG']['chanlocs']['type'] = ['eeg'] * (n - 2) + ['eog'] + ['stim']
     mat['EEG']['chanlocs'] = _dol_to_lod(mat['EEG']['chanlocs'])
@@ -460,8 +459,7 @@ def test_get_montage_info_with_ch_type():
     assert montage is None
 
     # test unknown type warning
-    mat = io.loadmat(raw_fname_onefile_mat, squeeze_me=True, mat_dtype=False)
-    mat = _check_for_scipy_mat_struct(mat)
+    mat = readmat(raw_fname_onefile_mat)
     n = len(mat['EEG']['chanlocs']['labels'])
     mat['EEG']['chanlocs']['type'] = ['eeg'] * (n - 2) + ['eog'] + ['unknown']
     mat['EEG']['chanlocs'] = _dol_to_lod(mat['EEG']['chanlocs'])
