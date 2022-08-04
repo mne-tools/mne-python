@@ -8,6 +8,7 @@ import os.path as op
 
 import numpy as np
 
+from scipy.io import loadmat
 try:
     from scipy.io.matlab import MatlabOpaque, MatlabFunction
 except ImportError:  # scipy < 1.8
@@ -124,7 +125,6 @@ def _check_load_mat(fname, uint16_codec):
     try:
         read_mat = _import_pymatreader_funcs('EEGLAB I/O')
     except RuntimeError:  # pymatreader not installed
-        from scipy.io import loadmat
         eeg = loadmat(fname, squeeze_me=True, mat_dtype=False)
         eeg = _check_for_scipy_mat_struct(eeg)
     else:
