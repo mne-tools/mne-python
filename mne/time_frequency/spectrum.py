@@ -275,6 +275,55 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         assert len(self._dims) == self._data.ndim
         assert self._data.shape == expected_shape
 
+    def __repr__(self):
+        """Build string representation of the Spectrum object."""
+        inst_type = self._get_instance_type_string()
+        # shape & dimension names
+        dims = ' × '.join(
+            [f'{dim[0]} {dim[1]}s'
+             for dim in zip(self._data.shape, self._dims)])
+        freq_range = f'{self.freqs[0]:0.1f}-{self.freqs[-1]:0.1f} Hz'
+        return f'<{self._data_type} (from {inst_type}) | {dims}, {freq_range}>'
+
+    def _repr_html_(self, caption=None):
+        """Build HTML representation of the Spectrum object."""
+        from ..html_templates import repr_templates_env
+
+        inst_type = self._get_instance_type_string()
+        t = repr_templates_env.get_template('spectrum.html.jinja')
+        t = t.render(spectrum=self, inst_type=inst_type,
+                     data_type=self._data_type)
+        return t
+
+    def _check_values(self):
+        """Check PSD results for bad values."""
+        # negative values OK if the spectrum is really fourier coefficients
+        if 'taper' in self._dims:
+            return
+        # TODO: should this be more fine-grained (report "chan X in epoch Y")?
+        ch_dim = self._dims.index('channel')
+        dims = np.arange(self._data.ndim).tolist()
+        dims.pop(ch_dim)
+        # take min() across all but the channel axis
+        bad_value = self._data.min(axis=tuple(dims)) <= 0
+        if bad_value.any():
+            chs = np.array(self.ch_names)[bad_value].tolist()
+            s = _pl(bad_value.sum())
+            warn(f'Zero value in spectrum for channel{s} {", ".join(chs)}',
+                 UserWarning)
+
+    def _format_units(self, unit, latex, power=True):
+        """Format the measurement units nicely."""
+        if power:
+            denom = 'Hz'
+            exp = r'^{2}' if latex else '²'
+            unit = f'({unit})' if '/' in unit else unit
+        else:
+            denom = r'\sqrt{Hz}' if latex else '√(Hz)'
+            exp = ''
+        pre, post = (r'$\mathrm{', r'}$') if latex else ('', '')
+        return f'{pre}{unit}{exp}/{denom}{post}'
+
     def _from_file(self, method, data, freqs, dims, data_type, inst_type,
                    info):
         """Recreate object from hdf5 file."""
@@ -308,29 +357,17 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
                 f'Unknown instance type {self._inst_type} in Spectrum')
         return inst_type
 
-    def __repr__(self):
-        """Build string representation of the Spectrum object."""
-        inst_type = self._get_instance_type_string()
-        # shape & dimension names
-        dims = ' × '.join(
-            [f'{dim[0]} {dim[1]}s'
-             for dim in zip(self._data.shape, self._dims)])
-        freq_range = f'{self.freqs[0]:0.1f}-{self.freqs[-1]:0.1f} Hz'
-        return f'<{self._data_type} (from {inst_type}) | {dims}, {freq_range}>'
-
-    def _repr_html_(self, caption=None):
-        """Build HTML representation of the Spectrum object."""
-        from ..html_templates import repr_templates_env
-
-        inst_type = self._get_instance_type_string()
-        t = repr_templates_env.get_template('spectrum.html.jinja')
-        t = t.render(spectrum=self, inst_type=inst_type,
-                     data_type=self._data_type)
-        return t
-
     @property
     def ch_names(self):
         return self.info['ch_names']
+
+    @property
+    def freqs(self):
+        return self._freqs
+
+    @property
+    def method(self):
+        return self._method
 
     @fill_doc
     def get_data(self, picks=None, exclude='bads', fmin=0, fmax=np.inf,
@@ -371,101 +408,6 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
             freqs = self._freqs[fmin_idx:fmax_idx]
             return (data, freqs)
         return data
-
-    @verbose
-    def to_data_frame(self, picks=None, index=None, copy=True,
-                      long_format=False, *, verbose=None):
-        """Export data in tabular structure as a pandas DataFrame.
-
-        Channels are converted to columns in the DataFrame. By default,
-        an additional column "frequency" is added, unless ``index='freq'``
-        (in which case frequency values form the DataFrame's index).
-
-        Parameters
-        ----------
-        %(picks_all)s
-        index : str | list of str | None
-            Kind of index to use for the DataFrame. If ``None``, a sequential
-            integer index (:class:`pandas.RangeIndex`) will be used. If a
-            :class:`str`, a :class:`pandas.Index`, :class:`pandas.Int64Index`,
-            or :class:`pandas.Float64Index` will be used (see Notes). If a list
-            of two or more string values, a :class:`pandas.MultiIndex` will be
-            used. Defaults to ``None``.
-        %(copy_df)s
-        %(long_format_df_spe)s
-        %(verbose)s
-
-        Returns
-        -------
-        %(df_return)s
-
-        Notes
-        -----
-        Valid values for ``index`` depend on whether the Spectrum was created
-        from continuous data (:class:`~mne.io.Raw`, :class:`~mne.Evoked`) or
-        discontinuous data (:class:`~mne.Epochs`). For continuous data, only
-        ``None`` or ``'freq'`` is supported. For discontinuous data, additional
-        valid values are ``'epoch'`` and ``'condition'``, or a :class:`list`
-        comprising some of the valid string values (e.g.,
-        ``['freq', 'epoch']``).
-        """
-        # check pandas once here, instead of in each private utils function
-        pd = _check_pandas_installed()  # noqa
-        # triage for Epoch-derived or unaggregated spectra
-        from_epo = self._get_instance_type_string() == 'Epochs'
-        unagg_welch = 'segment' in self._dims
-        unagg_mt = 'taper' in self._dims
-        # arg checking
-        valid_index_args = ['freq']
-        if from_epo:
-            valid_index_args += ['epoch', 'condition']
-        index = _check_pandas_index_arguments(index, valid_index_args)
-        # get data
-        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
-        data = self.get_data(picks)
-        if copy:
-            data = data.copy()
-        # reshape
-        if unagg_mt:
-            data = np.moveaxis(data, self._dims.index('freq'), -2)
-        if from_epo:
-            n_epochs, n_picks, n_freqs = data.shape[:3]
-        else:
-            n_epochs, n_picks, n_freqs = (1,) + data.shape[:2]
-        n_segs = data.shape[-1] if unagg_mt or unagg_welch else 1
-        data = np.moveaxis(data, self._dims.index('channel'), -1)
-        # at this point, should be ([epoch], freq, [segment/taper], channel)
-        data = data.reshape(n_epochs * n_freqs * n_segs, n_picks)
-        # prepare extra columns / multiindex
-        mindex = list()
-        default_index = list()
-        if from_epo:
-            rev_event_id = {v: k for k, v in self.event_id.items()}
-            _conds = [rev_event_id[k] for k in self.events[:, 2]]
-            conditions = np.repeat(_conds, n_freqs * n_segs)
-            epoch_nums = np.repeat(self.selection, n_freqs * n_segs)
-            mindex.extend([('condition', conditions), ('epoch', epoch_nums)])
-            default_index.extend(['condition', 'epoch'])
-        freqs = np.tile(np.repeat(self.freqs, n_segs), n_epochs)
-        mindex.append(('freq', freqs))
-        default_index.append('freq')
-        if unagg_mt or unagg_welch:
-            name = 'taper' if unagg_mt else 'segment'
-            seg_nums = np.tile(np.arange(n_segs), n_epochs * n_freqs)
-            mindex.append((name, seg_nums))
-            default_index.append(name)
-        # build DataFrame
-        df = _build_data_frame(self, data, picks, long_format, mindex, index,
-                               default_index=default_index)
-        return df
-
-    @property
-    def freqs(self):
-        return self._freqs
-
-    @property
-    def method(self):
-        return self._method
 
     @fill_doc
     def plot(self, *, picks=None, average=False, dB=True, amplitude='auto',
@@ -635,6 +577,93 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
                    info=self.info)
         write_hdf5(fname, out, overwrite=overwrite, title='mnepython')
 
+    @verbose
+    def to_data_frame(self, picks=None, index=None, copy=True,
+                      long_format=False, *, verbose=None):
+        """Export data in tabular structure as a pandas DataFrame.
+
+        Channels are converted to columns in the DataFrame. By default,
+        an additional column "frequency" is added, unless ``index='freq'``
+        (in which case frequency values form the DataFrame's index).
+
+        Parameters
+        ----------
+        %(picks_all)s
+        index : str | list of str | None
+            Kind of index to use for the DataFrame. If ``None``, a sequential
+            integer index (:class:`pandas.RangeIndex`) will be used. If a
+            :class:`str`, a :class:`pandas.Index`, :class:`pandas.Int64Index`,
+            or :class:`pandas.Float64Index` will be used (see Notes). If a list
+            of two or more string values, a :class:`pandas.MultiIndex` will be
+            used. Defaults to ``None``.
+        %(copy_df)s
+        %(long_format_df_spe)s
+        %(verbose)s
+
+        Returns
+        -------
+        %(df_return)s
+
+        Notes
+        -----
+        Valid values for ``index`` depend on whether the Spectrum was created
+        from continuous data (:class:`~mne.io.Raw`, :class:`~mne.Evoked`) or
+        discontinuous data (:class:`~mne.Epochs`). For continuous data, only
+        ``None`` or ``'freq'`` is supported. For discontinuous data, additional
+        valid values are ``'epoch'`` and ``'condition'``, or a :class:`list`
+        comprising some of the valid string values (e.g.,
+        ``['freq', 'epoch']``).
+        """
+        # check pandas once here, instead of in each private utils function
+        pd = _check_pandas_installed()  # noqa
+        # triage for Epoch-derived or unaggregated spectra
+        from_epo = self._get_instance_type_string() == 'Epochs'
+        unagg_welch = 'segment' in self._dims
+        unagg_mt = 'taper' in self._dims
+        # arg checking
+        valid_index_args = ['freq']
+        if from_epo:
+            valid_index_args += ['epoch', 'condition']
+        index = _check_pandas_index_arguments(index, valid_index_args)
+        # get data
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+        data = self.get_data(picks)
+        if copy:
+            data = data.copy()
+        # reshape
+        if unagg_mt:
+            data = np.moveaxis(data, self._dims.index('freq'), -2)
+        if from_epo:
+            n_epochs, n_picks, n_freqs = data.shape[:3]
+        else:
+            n_epochs, n_picks, n_freqs = (1,) + data.shape[:2]
+        n_segs = data.shape[-1] if unagg_mt or unagg_welch else 1
+        data = np.moveaxis(data, self._dims.index('channel'), -1)
+        # at this point, should be ([epoch], freq, [segment/taper], channel)
+        data = data.reshape(n_epochs * n_freqs * n_segs, n_picks)
+        # prepare extra columns / multiindex
+        mindex = list()
+        default_index = list()
+        if from_epo:
+            rev_event_id = {v: k for k, v in self.event_id.items()}
+            _conds = [rev_event_id[k] for k in self.events[:, 2]]
+            conditions = np.repeat(_conds, n_freqs * n_segs)
+            epoch_nums = np.repeat(self.selection, n_freqs * n_segs)
+            mindex.extend([('condition', conditions), ('epoch', epoch_nums)])
+            default_index.extend(['condition', 'epoch'])
+        freqs = np.tile(np.repeat(self.freqs, n_segs), n_epochs)
+        mindex.append(('freq', freqs))
+        default_index.append('freq')
+        if unagg_mt or unagg_welch:
+            name = 'taper' if unagg_mt else 'segment'
+            seg_nums = np.tile(np.arange(n_segs), n_epochs * n_freqs)
+            mindex.append((name, seg_nums))
+            default_index.append(name)
+        # build DataFrame
+        df = _build_data_frame(self, data, picks, long_format, mindex, index,
+                               default_index=default_index)
+        return df
+
     def units(self, latex=False):
         """Get the spectrum units for each channel type.
 
@@ -654,35 +683,6 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin):
         units = _handle_default('si_units', None)
         return {ch_type: self._format_units(units[ch_type], latex=latex)
                 for ch_type in sorted(self.get_channel_types(unique=True))}
-
-    def _check_values(self):
-        """Check PSD results for bad values."""
-        # negative values OK if the spectrum is really fourier coefficients
-        if 'taper' in self._dims:
-            return
-        # TODO: should this be more fine-grained (report "chan X in epoch Y")?
-        ch_dim = self._dims.index('channel')
-        dims = np.arange(self._data.ndim).tolist()
-        dims.pop(ch_dim)
-        # take min() across all but the channel axis
-        bad_value = self._data.min(axis=tuple(dims)) <= 0
-        if bad_value.any():
-            chs = np.array(self.ch_names)[bad_value].tolist()
-            s = _pl(bad_value.sum())
-            warn(f'Zero value in spectrum for channel{s} {", ".join(chs)}',
-                 UserWarning)
-
-    def _format_units(self, unit, latex, power=True):
-        """Format the measurement units nicely."""
-        if power:
-            denom = 'Hz'
-            exp = r'^{2}' if latex else '²'
-            unit = f'({unit})' if '/' in unit else unit
-        else:
-            denom = r'\sqrt{Hz}' if latex else '√(Hz)'
-            exp = ''
-        pre, post = (r'$\mathrm{', r'}$') if latex else ('', '')
-        return f'{pre}{unit}{exp}/{denom}{post}'
 
 
 def read_spectrum(fname):
