@@ -35,6 +35,8 @@ pyvista>=0.32,!=0.35.2
 pyvistaqt>=0.4
 mffpy>=0.5.7
 ipywidgets
+ipympl; platform_system!="Windows"  # XXX: Add support when ipympl CIs include Windows
+ipyevents
 ipyvtklink
 mne-qt-browser
 darkdetect
