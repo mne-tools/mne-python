@@ -8,7 +8,7 @@ import os.path as op
 
 import numpy as np
 
-from ._eeglab import readmat
+from ._eeglab import _readmat
 from ..pick import _PICK_TYPES_KEYS
 from ..utils import _read_segments_file, _find_channels
 from ..constants import FIFF
@@ -57,7 +57,7 @@ def _check_eeglab_fname(fname, dataname):
 
 def _check_load_mat(fname, uint16_codec):
     """Check if the mat struct contains 'EEG'."""
-    eeg = readmat(fname, uint16_codec=uint16_codec)
+    eeg = _readmat(fname, uint16_codec=uint16_codec)
     if 'ALLEEG' in eeg:
         raise NotImplementedError(
             'Loading an ALLEEG array is not supported. Please contact'
