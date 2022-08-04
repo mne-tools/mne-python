@@ -307,8 +307,7 @@ def test_flash_bem(tmp_path):
 
     # Test synthesize flash5 with MEF flash5 and flash30 default locations
     flash5_img = convert_flash_mris(
-        subject="sample", subjects_dir=tempdir, convert=False,
-        unwarp=False
+        subject="sample", subjects_dir=tempdir, unwarp=False
     )
     assert flash5_img == (flash_path / "parameter_maps" / "flash5.mgz")
     assert flash5_img.exists()
