@@ -3,7 +3,7 @@
 #
 # License: BSD-3-Clause
 
-from os.path import isdir
+import os.path as op
 
 import numpy as np
 import pytest
@@ -32,10 +32,10 @@ def test_buggy_mkl():
 def test_tempdir():
     """Test TempDir."""
     tempdir2 = _TempDir()
-    assert (isdir(tempdir2))
+    assert (op.isdir(tempdir2))
     x = str(tempdir2)
     del tempdir2
-    assert (not isdir(x))
+    assert (not op.isdir(x))
 
 
 def test_datasets(monkeypatch, tmp_path):
