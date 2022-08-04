@@ -7,7 +7,6 @@
 import os.path as op
 
 import numpy as np
-
 from scipy.io import loadmat
 try:
     from scipy.io.matlab import MatlabOpaque, MatlabFunction
