@@ -152,11 +152,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
                  proj, reject_by_annotation, *, n_jobs, verbose, **method_kw):
-        # triage reading from file
-        if isinstance(inst, dict):
-            self._from_file(**inst)
-            return
-
         # arg checking
         self._sfreq = inst.info['sfreq']
         if np.isfinite(fmax) and (fmax > self.sfreq / 2):
@@ -296,6 +291,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         if method_kw.get('output', '') == 'complex':
             self._shape = (
                 self._shape[:-1] + (self._mt_weights.size,) + self._shape[-1:])
+        # we don't need these anymore, and they make save/load harder
+        del self._picks
+        del self._psd_func
+        del self._time_mask
 
     def _format_units(self, unit, latex, power=True):
         """Format the measurement units nicely."""
@@ -309,8 +308,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         pre, post = (r'$\mathrm{', r'}$') if latex else ('', '')
         return f'{pre}{unit}{exp}/{denom}{post}'
 
-    def _from_file(self, method, data, freqs, dims, data_type, inst_type,
-                   info):
+    def _from_file(self, method, data, freqs, sfreq, shape, dims, data_type,
+                   inst_type, info, metadata=None, drop_log=None,
+                   event_id=None, events=None, selection=None):
         """Recreate Spectrum object from hdf5 file."""
         from .. import Epochs, Evoked, Info
         from ..io import Raw
@@ -319,9 +319,17 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self._data = data
         self._freqs = freqs
         self._dims = dims
+        self._sfreq = sfreq
+        self._shape = shape
         self.info = Info(**info)
         self._data_type = data_type
         self.preload = True
+        if inst_type == 'Epochs':
+            self._metadata = metadata
+            self.drop_log = drop_log
+            self.event_id = event_id
+            self.events = events
+            self.selection = selection
         # instance type
         inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked)
         self._inst_type = inst_types[inst_type]
@@ -363,6 +371,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     @property
     def sfreq(self):
         return self._sfreq
+
+    @property
+    def shape(self):
+        return self._shape
 
     def copy(self):
         """Return copy of the Spectrum instance.
@@ -556,13 +568,22 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         _, write_hdf5 = _import_h5io_funcs()
         check_fname(fname, 'spectrum', ('.h5', '.hdf5'))
         fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
+        inst_type_str = self._get_instance_type_string()
         out = dict(method=self.method,
                    data=self.get_data(picks='all', exclude=[]),
+                   sfreq=self.sfreq,
+                   shape=self.shape,
                    dims=self._dims,
                    freqs=self.freqs,
-                   inst_type=self._get_instance_type_string(),
+                   inst_type=inst_type_str,
                    data_type=self._data_type,
                    info=self.info)
+        if inst_type_str == 'Epochs':
+            out.update(metadata=self._metadata,
+                       drop_log=self.drop_log,
+                       event_id=self.event_id,
+                       events=self.events,
+                       selection=self.selection)
         write_hdf5(fname, out, overwrite=overwrite, title='mnepython')
 
     @verbose
@@ -719,6 +740,11 @@ class Spectrum(BaseSpectrum):
                  proj, reject_by_annotation, *, n_jobs, verbose, **method_kw):
         from ..io import BaseRaw
 
+        # triage reading from file
+        if isinstance(inst, dict):
+            self._from_file(**inst)
+            return
+        # do the basic setup
         super().__init__(inst, method, fmin, fmax, tmin, tmax, picks, proj,
                          reject_by_annotation, n_jobs=n_jobs, verbose=verbose,
                          **method_kw)
@@ -815,11 +841,14 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
 
     def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
                  proj, reject_by_annotation, *, n_jobs, verbose, **method_kw):
-
+        # triage reading from file
+        if isinstance(inst, dict):
+            self._from_file(**inst)
+            return
+        # do the basic setup
         super().__init__(inst, method, fmin, fmax, tmin, tmax, picks, proj,
                          reject_by_annotation, n_jobs=n_jobs, verbose=verbose,
                          **method_kw)
-
         # get just the data we want
         data = inst.get_data(picks=self._picks)[:, :, self._time_mask]
         # compute the spectra
@@ -878,7 +907,8 @@ def read_spectrum(fname):
     defaults = dict(method=None, fmin=None, fmax=None, tmin=None, tmax=None,
                     picks=None, proj=None, reject_by_annotation=None,
                     n_jobs=None, verbose=None)
-    return Spectrum(hdf5_dict, **defaults)
+    Klass = EpochsSpectrum if hdf5_dict['inst_type'] == 'Epochs' else Spectrum
+    return Klass(hdf5_dict, **defaults)
 
 
 def _check_ci(ci):

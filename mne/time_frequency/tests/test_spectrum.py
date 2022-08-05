@@ -45,10 +45,12 @@ def test_spectrum_params(method, fmin, fmax, tmin, tmax, picks, proj, n_fft,
 
 
 @requires_h5py
-def test_spectrum_io(raw, tmp_path):
+@pytest.mark.parametrize('inst', ('raw', 'epochs'))
+def test_spectrum_io(inst, tmp_path, request):
     """Test save/load of spectrum objects."""
+    inst = request.getfixturevalue(inst)
     fname = tmp_path / 'spectrum.h5'
-    orig = raw.compute_psd()
+    orig = inst.compute_psd()
     orig.save(fname)
     loaded = read_spectrum(fname)
     assert orig == loaded
