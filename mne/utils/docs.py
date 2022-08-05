@@ -1996,17 +1996,19 @@ normalize : bool
 """
 
 docdict['notes_2d_backend'] = """\
-MNE-Python provides two different backends for signal-browsing plots (i.e.,
+MNE-Python provides two different backends for browsing plots (i.e.,
 :meth:`raw.plot()<mne.io.Raw.plot>`, :meth:`epochs.plot()<mne.Epochs.plot>`,
 and :meth:`ica.plot_sources()<mne.preprocessing.ICA.plot_sources>`). One is
-based on :mod:`matplotlib` and the other is based on
-:doc:`PyQtGraph<pyqtgraph:index>`. You can set the backend for the
-duration of a Python session using :func:`mne.viz.set_browser_backend`, or you
-can change the backend temporarily with the context manager
-:func:`mne.viz.use_browser_backend`.
+based on :mod:`matplotlib`, and the other is based on
+:doc:`PyQtGraph<pyqtgraph:index>`. You can set the backend temporarily with the 
+context manager :func:`mne.viz.use_browser_backend`, you can set it for the
+duration of a Python session using :func:`mne.viz.set_browser_backend`, and you
+can set the default for your computer via
+:func:`mne.set_config('MNE_BROWSER_BACKEND', 'matplotlib')<mne.set_config>`
+(or ``'qt'``).
 
 .. note:: For the PyQtGraph backend to run in IPython with ``block=False``
-          you must run the magic command ``%%gui qt5`` first.
+          you must run the magic command ``%gui qt5`` first.
 .. note:: To report issues with the PyQtGraph backend, please use the
           `issues <https://github.com/mne-tools/mne-qt-browser/issues>`_
           of ``mne-qt-browser``.
