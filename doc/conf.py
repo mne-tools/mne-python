@@ -138,7 +138,7 @@ intersphinx_mapping = {
     'scipy': ('https://scipy.github.io/devdocs', None),
     'matplotlib': ('https://matplotlib.org/stable', None),
     'sklearn': ('https://scikit-learn.org/stable', None),
-    'numba': ('https://numba.pydata.org/numba-doc/latest', None),
+    'numba': ('https://numba.readthedocs.io/en/latest', None),
     'joblib': ('https://joblib.readthedocs.io/en/latest', None),
     'nibabel': ('https://nipy.org/nibabel', None),
     'nilearn': ('http://nilearn.github.io/stable', None),
