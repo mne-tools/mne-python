@@ -3,7 +3,6 @@
 #
 # License: BSD-3-Clause
 
-from collections import Counter
 import inspect
 from inspect import getsource
 import os.path as op
