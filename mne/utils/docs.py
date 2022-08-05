@@ -3546,6 +3546,8 @@ xscale : str
 # %%
 # Z
 
+docdict['¿test—üñɪçøɖɘ_keys*'] = '¿test—üñɪçøɖɘ_values*'
+
 docdict_indented = {}
 
 
