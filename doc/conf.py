@@ -138,7 +138,7 @@ intersphinx_mapping = {
     'scipy': ('https://scipy.github.io/devdocs', None),
     'matplotlib': ('https://matplotlib.org/stable', None),
     'sklearn': ('https://scikit-learn.org/stable', None),
-    'numba': ('https://numba.pydata.org/numba-doc/latest', None),
+    'numba': ('https://numba.readthedocs.io/en/latest', None),
     'joblib': ('https://joblib.readthedocs.io/en/latest', None),
     'nibabel': ('https://nipy.org/nibabel', None),
     'nilearn': ('http://nilearn.github.io/stable', None),
@@ -160,6 +160,7 @@ intersphinx_mapping = {
              'https://dipy.org/documentation/latest/objects.inv/'),
     'pooch': ('https://www.fatiando.org/pooch/latest/', None),
     'pybv': ('https://pybv.readthedocs.io/en/latest/', None),
+    'pyqtgraph': ('https://pyqtgraph.readthedocs.io/en/latest/', None)
 }
 
 
@@ -582,7 +583,7 @@ html_theme_options = {
     'show_toc_level': 1,
     'navbar_end': ['theme-switcher', 'version-switcher', 'navbar-icon-links'],
     'footer_items': ['copyright'],
-    'google_analytics_id': 'UA-37225609-1',
+    'analytics': dict(google_analytics_id='UA-37225609-1'),
     'switcher': {
         'json_url': 'https://mne.tools/dev/_static/versions.json',
         'version_match': switcher_version_match,
