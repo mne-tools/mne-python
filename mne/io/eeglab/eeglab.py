@@ -8,13 +8,13 @@ import os.path as op
 
 import numpy as np
 
+from ._eeglab import _readmat
 from ..pick import _PICK_TYPES_KEYS
 from ..utils import _read_segments_file, _find_channels
 from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
-from ...utils import (logger, verbose, warn, fill_doc, Bunch, _check_fname,
-                      _import_pymatreader_funcs)
+from ...utils import logger, verbose, warn, fill_doc, Bunch, _check_fname
 from ...channels import make_dig_montage
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -57,8 +57,7 @@ def _check_eeglab_fname(fname, dataname):
 
 def _check_load_mat(fname, uint16_codec):
     """Check if the mat struct contains 'EEG'."""
-    read_mat = _import_pymatreader_funcs('EEGLAB I/O')
-    eeg = read_mat(fname, uint16_codec=uint16_codec)
+    eeg = _readmat(fname, uint16_codec=uint16_codec)
     if 'ALLEEG' in eeg:
         raise NotImplementedError(
             'Loading an ALLEEG array is not supported. Please contact'
