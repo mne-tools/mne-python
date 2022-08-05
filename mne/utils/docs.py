@@ -2000,7 +2000,7 @@ MNE-Python provides two different backends for browsing plots (i.e.,
 :meth:`raw.plot()<mne.io.Raw.plot>`, :meth:`epochs.plot()<mne.Epochs.plot>`,
 and :meth:`ica.plot_sources()<mne.preprocessing.ICA.plot_sources>`). One is
 based on :mod:`matplotlib`, and the other is based on
-:doc:`PyQtGraph<pyqtgraph:index>`. You can set the backend temporarily with the 
+:doc:`PyQtGraph<pyqtgraph:index>`. You can set the backend temporarily with the
 context manager :func:`mne.viz.use_browser_backend`, you can set it for the
 duration of a Python session using :func:`mne.viz.set_browser_backend`, and you
 can set the default for your computer via
