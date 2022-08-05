@@ -24,6 +24,7 @@ from ..utils.check import (_check_fname, _check_option, _import_h5io_funcs,
 from ..utils.misc import _pl
 from ..viz.utils import _plot_psd, plt_show
 from . import psd_array_multitaper, psd_array_welch
+from .psd import _check_nfft
 
 
 def _identity_function(x):
@@ -61,10 +62,13 @@ class ToSpectrumMixin():
         ----------
         .. footbibliography::
         """
+        from .. import BaseEpochs
         from ..io import BaseRaw
+
         if method == 'auto':
             method = 'welch' if isinstance(self, BaseRaw) else 'multitaper'
-        return Spectrum(
+        Klass = EpochsSpectrum if isinstance(self, BaseEpochs) else Spectrum
+        return Klass(
             self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
             picks=picks, proj=proj, reject_by_annotation=reject_by_annotation,
             n_jobs=n_jobs, verbose=verbose, **method_kw)
@@ -143,88 +147,24 @@ class ToSpectrumMixin():
         return fig
 
 
-@fill_doc
-class Spectrum(ContainsMixin, UpdateChannelsMixin, GetEpochsMixin):
-    """Data object for spectral representations of continuous data.
-
-    .. warning:: The preferred means of creating Spectrum objects is via the
-                 instance methods :meth:`mne.io.Raw.compute_psd`,
-                 :meth:`mne.Epochs.compute_psd`, or
-                 :meth:`mne.Evoked.compute_psd`. Direct instantiation is not
-                 supported.
-
-    Parameters
-    ----------
-    inst : instance of Raw, Epochs, or Evoked
-        The data from which to compute the frequency spectrum.
-    %(method_psd)s
-    %(fmin_fmax_psd)s
-    %(tmin_tmax_psd)s
-    %(picks_good_data_noref)s
-    %(proj_psd)s
-    %(reject_by_annotation_psd)s
-    %(n_jobs)s
-    %(verbose)s
-    %(method_kw_psd)s
-
-    Attributes
-    ----------
-    ch_names : list
-        The channel names.
-    freqs : array
-        Frequencies at which the amplitude, power, or fourier coefficients
-        have been computed.
-    %(info_not_none)s
-    method : str
-        The method used to compute the spectrum ('welch' or 'multitaper').
-
-    See Also
-    --------
-    mne.io.Raw.compute_psd
-    mne.Epochs.compute_psd
-    mne.Evoked.compute_psd
-    """
+class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
+    """Base class for Spectrum and EpochsSpectrum."""
 
     def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
                  proj, reject_by_annotation, *, n_jobs, verbose, **method_kw):
-        from .. import BaseEpochs
-        from ..io import BaseRaw
-
         # triage reading from file
         if isinstance(inst, dict):
             self._from_file(**inst)
             return
+
         # arg checking
-        sfreq = inst.info['sfreq']
-        if np.isfinite(fmax) and (fmax > sfreq / 2):
+        self._sfreq = inst.info['sfreq']
+        if np.isfinite(fmax) and (fmax > self.sfreq / 2):
             raise ValueError(
                 f'Requested fmax ({fmax} Hz) must not exceed ½ the sampling '
                 f'frequency of the data ({0.5 * inst.info["sfreq"]} Hz).')
         _check_option('method', method, ('welch', 'multitaper'))
-        # get just the data we want to include (formerly _check_psd_data())
-        time_mask = _time_mask(inst.times, tmin, tmax, sfreq=sfreq)
-        picks = _picks_to_idx(inst.info, picks, 'data', with_ref_meg=False)
-        if proj:
-            inst = inst.copy().apply_proj()
-        if isinstance(inst, BaseRaw):
-            start, stop = np.where(time_mask)[0][[0, -1]]
-            rba = 'NaN' if reject_by_annotation else None
-            data = inst.get_data(picks, start, stop + 1,
-                                 reject_by_annotation=rba)
-        elif isinstance(inst, BaseEpochs):
-            data = inst.get_data(picks=picks)[:, :, time_mask]
-            # we need these for to_data_frame
-            self.event_id = inst.event_id.copy()
-            self.events = inst.events.copy()
-            self.selection = inst.selection.copy()
-            # we need these for __getitem__
-            self.drop_log = deepcopy(inst.drop_log)
-            self._metadata = inst.metadata
-        else:  # Evoked
-            data = inst.data[picks][:, time_mask]
 
-        # we need this for __getitem__ (both Raw- and Epochs-derived)
-        self.preload = True
         # triage method and kwargs. partial() doesn't check validity of kwargs,
         # so we do it manually to save compute time if any are invalid.
         psd_funcs = dict(welch=psd_array_welch,
@@ -238,50 +178,34 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin, GetEpochsMixin):
             raise TypeError(
                 f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} '
                 f'for PSD method "{method}".')
-        psd_func = partial(psd_funcs[method], **method_kw)
-        # make the spectra
-        result = psd_func(
-            data, sfreq, fmin=fmin, fmax=fmax, n_jobs=n_jobs, verbose=verbose)
-        # assign ._data (handling unaggregated multitaper output)
-        if method_kw.get('output', '') == 'complex':
-            fourier_coefs, freqs, weights = result
-            self._data = fourier_coefs
-            self._mt_weights = weights
-        else:
-            psds, freqs = result
-            self._data = psds
-        # add the info. bads were effectively dropped by _check_psd_data() so
-        # we update the info accordingly
-        self.info = pick_info(inst.info, sel=picks, copy=True)
-        if proj:  # projs were already applied
-            with self.info._unlock():
-                for proj in self.info['projs']:
-                    proj['active'] = True
-        # assign properties (._data already assigned above)
-        self._freqs = freqs
-        self._inst_type = type(inst)
+        self._psd_func = partial(psd_funcs[method], **method_kw)
+
+        # apply proj if desired
+        if proj:
+            inst = inst.copy().apply_proj()
+
+        # prep times and picks
+        self._time_mask = _time_mask(inst.times, tmin, tmax, sfreq=self.sfreq)
+        self._picks = _picks_to_idx(inst.info, picks, 'data',
+                                    with_ref_meg=False)
+
+        # add the info object. bads and non-data channels were dropped by
+        # _picks_to_idx() so we update the info accordingly:
+        self.info = pick_info(inst.info, sel=self._picks, copy=True)
+
+        # assign some attributes
+        self.preload = True  # needed for __getitem__, doesn't mean anything
         self._method = method
-        # document dims
+        self._inst_type = type(inst)
+        # self._dims may also get updated by child classes
         self._dims = ('channel', 'freq',)
-        expected_shape = (len(self.ch_names), len(self.freqs))
-        if BaseEpochs in self._inst_type.__bases__:
-            self._dims = ('epoch',) + self._dims
-            expected_shape = (len(inst),) + expected_shape
         if method_kw.get('average', '') in (None, False):
             self._dims += ('segment',)
-            # hard to know in advance how many welch segments, so fudge it here
-            expected_shape += (psds.shape[-1],)
         if method_kw.get('output', '') == 'complex':
             self._dims = self._dims[:-1] + ('taper',) + self._dims[-1:]
-            expected_shape = (
-                expected_shape[:-1] + (weights.size,) + expected_shape[-1:])
         # record data type (for repr and html_repr)
         self._data_type = ('Fourier Coefficients' if 'taper' in self._dims
                            else 'Power Spectrum')
-        # check for bad values
-        self._check_values()
-        assert len(self._dims) == self._data.ndim
-        assert self._data.shape == expected_shape
 
     def __deepcopy__(self, memodict):
         """Make a deepcopy."""
@@ -307,52 +231,6 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin, GetEpochsMixin):
             other._inst_type = _inst_type
         return same
 
-    def __getitem__(self, item):
-        """Get Spectrum data.
-
-        Parameters
-        ----------
-        item : int | slice | array-like | str
-            See Notes.
-
-        Returns
-        -------
-        data : ndarray, shape (n_channels, n_freqs)
-            The raw data.
-
-        Notes
-        -----
-        For Spectrum objects derived from :class:`~mne.Epochs` data, the access
-        options are the same as for :class:`~mne.Epochs` objects, see the
-        docstring of :meth:`mne.Epochs.__getitem__` for explanation.
-
-        For Spectrum objects derived from :class:`~mne.io.Raw` or
-        :class:`~mne.Evoked` data, integer-, list-, and slice-based
-        indexing is possible, similar to a :class:`NumPy array<numpy.ndarray>`:
-
-        - ``spectrum[0]`` gives all frequency bins in the first channel
-        - ``spectrum[:3]`` gives all frequency bins in the first 3 channels
-        - ``spectrum[[0, 2], 5]`` gives the value in the sixth frequency bin of
-          the first and third channels
-        - ``spectrum[(4, 7)]`` is the same as ``spectrum[4, 7]``.
-
-        .. note::
-
-           Unlike :class:`~mne.io.Raw` objects (which returns a tuple of the
-           requested data values and the corresponding times), accessing
-           :class:`~mne.time_frequency.Spectrum` values via subscript does
-           **not** return the corresponding frequency bin values.
-        """
-        from .. import BaseEpochs
-        from ..io import BaseRaw
-
-        if BaseEpochs in self._inst_type.__bases__:
-            return super().__getitem__(item)
-        else:
-            self._parse_get_set_params = partial(
-                BaseRaw._parse_get_set_params, self)
-            return BaseRaw._getitem(self, item, return_times=False)
-
     def __repr__(self):
         """Build string representation of the Spectrum object."""
         inst_type = self._get_instance_type_string()
@@ -375,6 +253,8 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin, GetEpochsMixin):
 
     def _check_values(self):
         """Check PSD results for bad values."""
+        assert len(self._dims) == self._data.ndim
+        assert self._data.shape == self._shape
         # negative values OK if the spectrum is really fourier coefficients
         if 'taper' in self._dims:
             return
@@ -390,10 +270,32 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin, GetEpochsMixin):
             warn(f'Zero value in spectrum for channel{s} {", ".join(chs)}',
                  UserWarning)
 
-    @property
-    def _detrend_picks(self):
-        """Provide compatibility with __iter__."""
-        return list()
+    def _compute_spectra(self, data, fmin, fmax, n_jobs, method_kw, verbose):
+        # make the spectra
+        result = self._psd_func(
+            data, self.sfreq, fmin=fmin, fmax=fmax, n_jobs=n_jobs,
+            verbose=verbose)
+        # assign ._data (handling unaggregated multitaper output)
+        if method_kw.get('output', '') == 'complex':
+            fourier_coefs, freqs, weights = result
+            self._data = fourier_coefs
+            self._mt_weights = weights
+        else:
+            psds, freqs = result
+            self._data = psds
+        # assign properties (._data already assigned above)
+        self._freqs = freqs
+        # this is *expected* shape, but it gets asserted later so it's reliable
+        self._shape = (len(self.ch_names), len(self.freqs))
+        # append n_welch_segments
+        if method_kw.get('average', '') in (None, False):
+            n_welch_segments = _compute_n_welch_segments(data.shape[-1],
+                                                         method_kw)
+            self._shape += (n_welch_segments,)
+        # insert n_tapers
+        if method_kw.get('output', '') == 'complex':
+            self._shape = (
+                self._shape[:-1] + (self._mt_weights.size,) + self._shape[-1:])
 
     def _format_units(self, unit, latex, power=True):
         """Format the measurement units nicely."""
@@ -442,6 +344,11 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin, GetEpochsMixin):
         return inst_type
 
     @property
+    def _detrend_picks(self):
+        """Provide compatibility with __iter__."""
+        return list()
+
+    @property
     def ch_names(self):
         return self.info['ch_names']
 
@@ -452,6 +359,10 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin, GetEpochsMixin):
     @property
     def method(self):
         return self._method
+
+    @property
+    def sfreq(self):
+        return self._sfreq
 
     def copy(self):
         """Return copy of the Spectrum instance.
@@ -762,6 +673,186 @@ class Spectrum(ContainsMixin, UpdateChannelsMixin, GetEpochsMixin):
                 for ch_type in sorted(self.get_channel_types(unique=True))}
 
 
+@fill_doc
+class Spectrum(BaseSpectrum):
+    """Data object for spectral representations of continuous data.
+
+    .. warning:: The preferred means of creating Spectrum objects from
+                 continuous or averaged data is via the instance methods
+                 :meth:`mne.io.Raw.compute_psd` or
+                 :meth:`mne.Evoked.compute_psd`. Direct class instantiation
+                 is not supported.
+
+    Parameters
+    ----------
+    inst : instance of Raw or Evoked
+        The data from which to compute the frequency spectrum.
+    %(method_psd)s
+    %(fmin_fmax_psd)s
+    %(tmin_tmax_psd)s
+    %(picks_good_data_noref)s
+    %(proj_psd)s
+    %(reject_by_annotation_psd)s
+    %(n_jobs)s
+    %(verbose)s
+    %(method_kw_psd)s
+
+    Attributes
+    ----------
+    ch_names : list
+        The channel names.
+    freqs : array
+        Frequencies at which the amplitude, power, or fourier coefficients
+        have been computed.
+    %(info_not_none)s
+    method : str
+        The method used to compute the spectrum ('welch' or 'multitaper').
+
+    See Also
+    --------
+    EpochsSpectrum
+    mne.io.Raw.compute_psd
+    mne.Epochs.compute_psd
+    mne.Evoked.compute_psd
+    """
+    def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
+                 proj, reject_by_annotation, *, n_jobs, verbose, **method_kw):
+        from ..io import BaseRaw
+
+        super().__init__(inst, method, fmin, fmax, tmin, tmax, picks, proj,
+                         reject_by_annotation, n_jobs=n_jobs, verbose=verbose,
+                         **method_kw)
+        # get just the data we want
+        if isinstance(inst, BaseRaw):
+            start, stop = np.where(self._time_mask)[0][[0, -1]]
+            rba = 'NaN' if reject_by_annotation else None
+            data = inst.get_data(self._picks, start, stop + 1,
+                                 reject_by_annotation=rba)
+        else:  # Evoked
+            data = inst.data[self._picks][:, self._time_mask]
+        # compute the spectra
+        self._compute_spectra(data, fmin, fmax, n_jobs, method_kw, verbose)
+        # check for bad values
+        self._check_values()
+
+    def __getitem__(self, item):
+        """Get Spectrum data.
+
+        Parameters
+        ----------
+        item : int | slice | array-like
+            Indexing is similar to a :class:`NumPy array<numpy.ndarray>`; see
+            Notes.
+
+        Returns
+        -------
+        %(getitem_spectrum_return)s
+
+        Notes
+        -----
+        Integer-, list-, and slice-based indexing is possible:
+
+        - ``spectrum[0]`` gives all frequency bins in the first channel
+        - ``spectrum[:3]`` gives all frequency bins in the first 3 channels
+        - ``spectrum[[0, 2], 5]`` gives the value in the sixth frequency bin of
+          the first and third channels
+        - ``spectrum[(4, 7)]`` is the same as ``spectrum[4, 7]``.
+
+        .. note::
+
+           Unlike :class:`~mne.io.Raw` objects (which returns a tuple of the
+           requested data values and the corresponding times), accessing
+           :class:`~mne.time_frequency.Spectrum` values via subscript does
+           **not** return the corresponding frequency bin values. If you need
+           them, use ``spectrum.freqs[freq_indices]``.
+        """
+        from ..io import BaseRaw
+        self._parse_get_set_params = partial(
+            BaseRaw._parse_get_set_params, self)
+        return BaseRaw._getitem(self, item, return_times=False)
+
+
+@fill_doc
+class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
+    """Data object for spectral representations of epoched data.
+
+    .. warning:: The preferred means of creating Spectrum objects from Epochs
+                 is via the instance method :meth:`mne.Epochs.compute_psd`.
+                 Direct class instantiation is not supported.
+
+    Parameters
+    ----------
+    inst : instance of Epochs
+        The data from which to compute the frequency spectrum.
+    %(method_psd)s
+    %(fmin_fmax_psd)s
+    %(tmin_tmax_psd)s
+    %(picks_good_data_noref)s
+    %(proj_psd)s
+    %(reject_by_annotation_psd)s
+    %(n_jobs)s
+    %(verbose)s
+    %(method_kw_psd)s
+
+    Attributes
+    ----------
+    ch_names : list
+        The channel names.
+    freqs : array
+        Frequencies at which the amplitude, power, or fourier coefficients
+        have been computed.
+    %(info_not_none)s
+    method : str
+        The method used to compute the spectrum ('welch' or 'multitaper').
+
+    See Also
+    --------
+    Spectrum
+    mne.io.Raw.compute_psd
+    mne.Epochs.compute_psd
+    mne.Evoked.compute_psd
+    """
+
+    def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
+                 proj, reject_by_annotation, *, n_jobs, verbose, **method_kw):
+
+        super().__init__(inst, method, fmin, fmax, tmin, tmax, picks, proj,
+                         reject_by_annotation, n_jobs=n_jobs, verbose=verbose,
+                         **method_kw)
+
+        # get just the data we want
+        data = inst.get_data(picks=self._picks)[:, :, self._time_mask]
+        # compute the spectra
+        self._compute_spectra(data, fmin, fmax, n_jobs, method_kw, verbose)
+        self._dims = ('epoch',) + self._dims
+        self._shape = (len(inst),) + self._shape
+        # check for bad values
+        self._check_values()
+        # we need these for to_data_frame()
+        self.event_id = inst.event_id.copy()
+        self.events = inst.events.copy()
+        self.selection = inst.selection.copy()
+        # we need these for __getitem__()
+        self.drop_log = deepcopy(inst.drop_log)
+        self._metadata = inst.metadata
+
+    def __getitem__(self, item):
+        """Get Spectrum data.
+
+        Parameters
+        ----------
+        item : int | slice | array-like | str
+            Access options are the same as for :class:`~mne.Epochs` objects,
+            see the docstring of :meth:`mne.Epochs.__getitem__` for
+            explanation.
+
+        Returns
+        -------
+        %(getitem_epochspectrum_return)s
+        """
+        return super().__getitem__(item)
+
+
 def read_spectrum(fname):
     """Load a :class:`mne.time_frequency.Spectrum` object from disk.
 
@@ -799,3 +890,17 @@ def _check_ci(ci):
     else:
         _check_option('ci', ci, [None, 'sd', 'range'])
     return ci
+
+
+def _compute_n_welch_segments(n_times, method_kw):
+    # get default values from psd_array_welch
+    _defaults = dict()
+    for param in ('n_fft', 'n_per_seg', 'n_overlap'):
+        _defaults[param] = signature(psd_array_welch).parameters[param].default
+    # override defaults with user-specified values
+    for key, val in _defaults.items():
+        _defaults.update({key: method_kw.get(key, val)})
+    # sanity check values / replace `None`s with real numbers
+    n_fft, n_per_seg, n_overlap = _check_nfft(n_times, **_defaults)
+    # compute expected number of segments
+    return n_times // (n_per_seg - n_overlap)

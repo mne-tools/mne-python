@@ -1381,6 +1381,18 @@ time_as_index : bool
     (False, default).
 """
 
+_getitem_base = """\
+data : ndarray
+    The selected spectral data. Shape will be
+    ``({}n_channels, n_freqs)`` for normal power spectra,
+    ``({}n_channels, n_freqs, n_segments)`` for unaggregated
+    Welch estimates, or ``({}n_channels, n_tapers, n_freqs)``
+    for unaggregated multitaper estimates.
+"""
+docdict['getitem_spectrum_return'] = _getitem_base.format('', '', '')
+_fill_epochs = ['n_epochs, '] * 3
+docdict['getitem_epochspectrum_return'] = _getitem_base.format(*_fill_epochs)
+
 docdict['group_by_browse'] = """
 group_by : str
     How to group channels. ``'type'`` groups by channel type,
