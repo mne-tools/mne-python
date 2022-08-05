@@ -21,7 +21,7 @@ from .check import (check_fname, check_version, check_random_state,
                     _check_all_same_channel_names, path_like, _ensure_events,
                     _check_eeglabio_installed, _check_pybv_installed,
                     _check_edflib_installed, _to_rgb, _soft_import,
-                    _check_dict_keys,
+                    _check_dict_keys, _check_pymatreader_installed,
                     _import_h5py, _import_h5io_funcs,
                     _import_pymatreader_funcs)
 from .config import (set_config, get_config, get_config_path, set_cache_dir,

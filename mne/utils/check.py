@@ -384,6 +384,15 @@ def _check_pybv_installed(strict=True):
     return _soft_import('pybv', 'exporting to BrainVision', strict=strict)
 
 
+def _check_pymatreader_installed(strict=True):
+    """Aux function."""
+    return _soft_import(
+        'pymatreader',
+        'loading v7.3 (HDF5) .MAT files',
+        strict=strict
+    )
+
+
 def _check_pandas_index_arguments(index, valid):
     """Check pandas index arguments."""
     if index is None:
