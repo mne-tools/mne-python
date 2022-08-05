@@ -583,7 +583,7 @@ html_theme_options = {
     'show_toc_level': 1,
     'navbar_end': ['theme-switcher', 'version-switcher', 'navbar-icon-links'],
     'footer_items': ['copyright'],
-    'google_analytics_id': 'UA-37225609-1',
+    'analytics': dict(google_analytics_id='UA-37225609-1'),
     'switcher': {
         'json_url': 'https://mne.tools/dev/_static/versions.json',
         'version_match': switcher_version_match,
