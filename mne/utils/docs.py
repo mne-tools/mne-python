@@ -3546,6 +3546,9 @@ xscale : str
 # %%
 # Z
 
+# this is needed in test_docstring_parameters, which reads the file as text
+docdict['¿test—üñɪçøɖɘ_keys*'] = '¿test—üñɪçøɖɘ_values*'
+
 docdict_indented = {}
 
 
