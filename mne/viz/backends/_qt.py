@@ -32,7 +32,7 @@ from qtpy.QtWidgets import (QComboBox, QGroupBox, QHBoxLayout, QLabel,
                             QSpinBox, QStyle, QStyleOptionSlider)
 
 from ._pyvista import _PyVistaRenderer
-from ._pyvista import (_close_3d_figure, _check_3d_figure,  # noqa: F401,E501 analysis:ignore
+from ._pyvista import (_close_3d_figure, _check_3d_figure, _close_all, # noqa: F401,E501 analysis:ignore
                        _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
 from ._abstract import (_AbstractAppWindow, _AbstractHBoxLayout,
                         _AbstractVBoxLayout, _AbstractGridLayout,
@@ -54,14 +54,6 @@ from ._utils import (_qt_disable_paint, _qt_get_stylesheet, _qt_is_dark,
 from ..utils import safe_event
 from ...utils import _check_option, get_config
 from ...fixes import _compare_version
-
-
-def _close_all():
-    from ._pyvista import _close_all
-    try:  # remove when pyvista 0.35.2 patch is released
-        _close_all()
-    except AttributeError:
-        pass
 
 
 # Adapted from matplotlib
