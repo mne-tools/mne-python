@@ -31,4 +31,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- None yet
+- meth:`mne.Evoked.plot` has a new default value ``'auto'`` for its ``spatial_colors`` parameter, which will use spatial colors automatically if channel locations are available (:gh:`11017` by :newcontrib:`Hüseyin Orkun Elmas`)

@@ -102,7 +102,7 @@ def test_plot_evoked():
     evoked = epochs.average()
     assert evoked.proj is False
     fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo',
-                      time_unit='s')
+                      time_unit='s', spatial_colors=False)
     amplitudes = _get_amplitudes(fig)
     assert len(amplitudes) == len(default_picks)
     assert evoked.proj is False
@@ -174,7 +174,7 @@ def test_plot_evoked():
         (0, 0.1),
         [(0, 0.1), (0.1, 0.2)]
     ]:
-        fig = evoked.plot(time_unit='s', highlight=highlight)
+        fig = evoked.plot(time_unit='s', highlight=highlight, spatial_colors=False)
         for ax in fig.get_axes():
             highlighted_areas = [child for child in ax.get_children()
                                  if isinstance(child, PolyCollection)]
@@ -219,21 +219,21 @@ def test_plot_evoked_reconstruct(picks, rlims, avg_proj):
         assert len(evoked.info['projs']) == 0
         assert evoked.proj is False
     fig = evoked.plot(proj=True, hline=[1], exclude=[], window_title='foo',
-                      time_unit='s')
+                      time_unit='s', spatial_colors=False)
     amplitudes = _get_amplitudes(fig)
     assert len(amplitudes) == len(picks)
     assert evoked.proj is avg_proj
 
-    fig = evoked.plot(proj='reconstruct', exclude=[])
+    fig = evoked.plot(proj='reconstruct', exclude=[], spatial_colors=False)
     amplitudes_recon = _get_amplitudes(fig)
     if avg_proj is False:
         assert_allclose(amplitudes, amplitudes_recon)
     proj = compute_proj_evoked(evoked.copy().crop(None, 0).apply_proj())
     evoked.add_proj(proj)
     assert len(evoked.info['projs']) == 2 if len(picks) == 3 else 4
-    fig = evoked.plot(proj=True, exclude=[])
+    fig = evoked.plot(proj=True, exclude=[], spatial_colors=False)
     amplitudes_proj = _get_amplitudes(fig)
-    fig = evoked.plot(proj='reconstruct', exclude=[])
+    fig = evoked.plot(proj='reconstruct', exclude=[], spatial_colors=False)
     amplitudes_recon = _get_amplitudes(fig)
     assert len(amplitudes_recon) == len(picks)
     norm = np.linalg.norm(amplitudes)

@@ -193,6 +193,16 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
     _draw_outlines(ax, outlines)
 
 
+def _check_spatial_colors(info, picks, spatial_colors):
+    """Set spatial colors True if channel locations exists, False otherwise."""
+    if spatial_colors == 'auto':
+        if picks and len(picks) == 1:
+            spatial_colors = False
+        else:
+            spatial_colors = _check_ch_locs(info)
+    return spatial_colors
+
+
 def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                  ylim=None, proj=False, xlim='tight', hline=None,
                  units=None, scalings=None, titles=None, axes=None,
@@ -217,7 +227,8 @@ def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         If True, draw at the end.
     """
     import matplotlib.pyplot as plt
-
+    _check_option('spatial_colors', spatial_colors, [True, False, 'auto'])
+    spatial_colors = _check_spatial_colors(evoked.info, picks, spatial_colors)
     # For evoked.plot_image ...
     # First input checks for group_by and axes if any of them is not None.
     # Either both must be dicts, or neither.
@@ -251,7 +262,7 @@ def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                          mask_style=mask_style, mask_cmap=mask_cmap,
                          mask_alpha=mask_alpha, time_unit=time_unit,
                          show_names=show_names,
-                         sphere=sphere, draw=False)
+                         sphere=sphere, draw=False, spatial_colors=spatial_colors)
             if remove_xlabels and not _is_last_row(ax):
                 ax.set_xticklabels([])
                 ax.set_xlabel("")
@@ -736,11 +747,13 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
            Plot GFP for EEG instead of RMS. Label RMS traces correctly as such.
     window_title : str | None
         The title to put at the top of the figure.
-    spatial_colors : bool
+    spatial_colors : bool | 'auto'
         If True, the lines are color coded by mapping physical sensor
         coordinates into color values. Spatially similar channels will have
         similar colors. Bad channels will be dotted. If False, the good
-        channels are plotted black and bad channels red. Defaults to False.
+        channels are plotted black and bad channels red. If 'auto' uses True if
+        channel locations are present, False if channel locations are not present 
+        or there is only one channel. Defaults to 'auto'.
     zorder : str | callable
         Which channels to put in the front or back. Only matters if
         ``spatial_colors`` is used.
@@ -1243,7 +1256,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
     if not has_sss:
         evokeds_white[0].plot(unit=False, axes=axes_evoked,
                               hline=[-1.96, 1.96], show=False,
-                              time_unit=time_unit)
+                              time_unit=time_unit, spatial_colors=False)
     else:
         for ((ch_type, picks), ax) in zip(picks_list, axes_evoked):
             ax.plot(times, evokeds_white[0].data[picks].T, color='k',
