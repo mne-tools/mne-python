@@ -412,6 +412,8 @@
 
 .. _Sébastien Marti: https://www.researchgate.net/profile/Sebastien-Marti
 
+.. _Sena Er: https://github.com/sena-neuro
+
 .. _Senwen Deng: https://snwn.de
 
 .. _Sheraz Khan: https://github.com/SherazKhan
