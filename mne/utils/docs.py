@@ -2311,8 +2311,9 @@ picks : int | list of int | slice | None
     Indices of the independent components (ICs) to visualize.
     If an integer, represents the index of the IC to pick.
     Multiple ICs can be selected using a list of int or a slice.
-    The indices are 0-indexed, so ``picks=1`` will
-    pick the second IC: ``ICA001``.
+    The indices are 0-indexed, so ``picks=1`` will pick the second
+    IC: ``ICA001``. ``None`` will pick all independent components in the order
+    fitted.
 """
 docdict['picks_nostr'] = f"""picks : list | slice | None
     {_picks_desc} {_picks_int}
