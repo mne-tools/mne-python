@@ -277,6 +277,14 @@ def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                            ' for interactive SSP selection.')
 
     _check_option('gfp', gfp, [True, False, 'only'])
+    _check_option('spatial_colors', spatial_colors, [True, False, 'auto'])
+
+    # Check channel location
+    if spatial_colors == 'auto':
+        if _check_ch_locs(info=info):
+            spatial_colors = True
+        else:
+            spatial_colors = False
 
     if highlight is not None:
         highlight = np.array(highlight, dtype=float)
@@ -736,11 +744,12 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
            Plot GFP for EEG instead of RMS. Label RMS traces correctly as such.
     window_title : str | None
         The title to put at the top of the figure.
-    spatial_colors : bool
+    spatial_colors : str | bool
         If True, the lines are color coded by mapping physical sensor
         coordinates into color values. Spatially similar channels will have
         similar colors. Bad channels will be dotted. If False, the good
-        channels are plotted black and bad channels red. Defaults to False.
+        channels are plotted black and bad channels red. Can be 'auto' use True if
+        channel locations are present, False otherwise. Defaults to 'auto'.
     zorder : str | callable
         Which channels to put in the front or back. Only matters if
         ``spatial_colors`` is used.

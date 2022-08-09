@@ -358,7 +358,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
-             spatial_colors=False, zorder='unsorted', selectable=True,
+             spatial_colors='auto', zorder='unsorted', selectable=True,
              noise_cov=None, time_unit='s', sphere=None, *, highlight=None,
              verbose=None):
         return plot_evoked(
