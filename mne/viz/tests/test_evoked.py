@@ -83,7 +83,8 @@ def test_plot_evoked_cov():
     with pytest.raises(TypeError, match='Covariance'):
         evoked.plot(noise_cov=1., time_unit='s', spatial_colors=False)
     with pytest.raises(FileNotFoundError, match='File does not exist'):
-        evoked.plot(noise_cov='nonexistent-cov.fif', time_unit='s', spatial_colors=False)
+        evoked.plot(noise_cov='nonexistent-cov.fif', time_unit='s',
+                    spatial_colors=False)
     raw = read_raw_fif(raw_sss_fname)
     events = make_fixed_length_events(raw)
     epochs = Epochs(raw, events, picks=default_picks)
@@ -116,9 +117,11 @@ def test_plot_evoked():
     evoked.plot(exclude='bads', time_unit='s', spatial_colors=False)
 
     # test selective updating of dict keys is working.
-    evoked.plot(hline=[1], units=dict(mag='femto foo'), time_unit='s', spatial_colors=False)
+    evoked.plot(hline=[1], units=dict(mag='femto foo'), time_unit='s',
+                spatial_colors=False)
     evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
-    evoked_delayed_ssp.plot(proj='interactive', time_unit='s', spatial_colors=False)
+    evoked_delayed_ssp.plot(proj='interactive', time_unit='s',
+                            spatial_colors=False)
     evoked_delayed_ssp.apply_proj()
     pytest.raises(RuntimeError, evoked_delayed_ssp.plot,
                   proj='interactive', time_unit='s')
@@ -173,7 +176,8 @@ def test_plot_evoked():
         (0, 0.1),
         [(0, 0.1), (0.1, 0.2)]
     ]:
-        fig = evoked.plot(time_unit='s', highlight=highlight, spatial_colors=False)
+        fig = evoked.plot(time_unit='s', highlight=highlight,
+                          spatial_colors=False)
         for ax in fig.get_axes():
             highlighted_areas = [child for child in ax.get_children()
                                  if isinstance(child, PolyCollection)]
@@ -189,7 +193,9 @@ def test_constrained_layout():
     assert fig.get_constrained_layout()
     evoked = mne.read_evokeds(evoked_fname)[0]
     evoked.pick(evoked.ch_names[:2])
-    evoked.plot(axes=ax, spatial_colors=False)  # smoke test that it does not break things
+
+    # smoke test that it does not break things
+    evoked.plot(axes=ax, spatial_colors=False)
     assert fig.get_constrained_layout()
     plt.close('all')
 

@@ -49,5 +49,6 @@ Bugs
 API changes
 ~~~~~~~~~~~
 - meth:`mne.Evoked.plot` has a new default value ``'auto'`` for its ``spatial_colors`` parameter, which will use spatial colors automatically if channel locations are available (:gh:`11017` by :newcontrib:`Hüseyin Orkun Elmas`)
+- meth:`mne.Evoked.plot` has a new default value ``'auto'`` for its ``spatial_colors`` parameter, which will use spatial colors automatically if channel locations are available (:gh:`11017` by :newcontrib:`Hüseyin Orkun Elmas`)
 - The ``bands`` parameter of :meth:`mne.Epochs.plot_psd_topomap` now accepts :class:`dict` input; legacy :class:`tuple` input is supported, but discouraged for new code (:gh:`11050` by `Daniel McCloy`_)
 - The ``show_toolbar`` argument to :class:`mne.viz.Brain` is being removed by deprecation (:gh:`11049` by `Eric Larson`_)
