@@ -237,7 +237,7 @@ del CT_orig
 #         # convert from vox->vox to ras->ras
 #         manual_reg_affine = \
 #             CT_orig.affine @ np.linalg.inv(manual_reg_affine_vox) \
-#             @ np.linalg.inv(T1.affine)
+#             @ np.linalg.inv(CT_orig.affine)
 #         CT_aligned_fix_img = affine_registration(
 #             moving=np.array(CT_orig.dataobj), static=np.array(T1.dataobj),
 #             moving_affine=CT_orig.affine, static_affine=T1.affine,
