@@ -238,7 +238,7 @@ del CT_orig
 #             CT_orig.affine @ np.linalg.inv(manual_reg_affine_vox) \
 #             @ np.linalg.inv(CT_orig.affine)
 #         reg_affine, _ = mne.transforms.compute_volume_registration(
-#             CT_orig, T1, pipeline='rigids',
+#             CT_orig, T1, pipeline=['rigid'],
 #             starting_affine=manual_reg_affine)
 #         CT_aligned = mne.transforms.apply_volume_registration(
 #             CT_orig, T1, reg_affine, cval='1%')
