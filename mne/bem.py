@@ -1716,7 +1716,7 @@ def _write_echos(mri_dir, flash_echos, angle):
 
 
 @verbose
-def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
+def convert_flash_mris(subject, flash30=True, unwarp=False,
                        subjects_dir=None, flash5=True, verbose=None):
     """Synthetize the flash 5 files for use with make_flash_bem.
 
@@ -1739,14 +1739,6 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         the list of flash 5 echos images will be written to the mri/flash
         folder with convention mef05_<echo>.mgz. If a SpatialImage object
         each frame of the image will be interpreted as an echo.
-    convert : bool
-        Assume that the Flash MRI images have already been converted
-        to mgz files.
-
-        DEPRECATED: This option is deprecated and will be removed in 1.2.
-        Set it explicitly to False to silence the deprecation warning
-        and use the flash5_echos and flash30_echos parameters to specify
-        the images to use.
     unwarp : bool
         Run grad_unwarp with -unwarp option on each of the converted
         data sets. It requires FreeSurfer's MATLAB toolbox to be properly
@@ -1783,57 +1775,10 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     pm_dir.mkdir(parents=True, exist_ok=True)
     echos_done = 0
 
-    if convert and not isinstance(flash5, bool):
-        raise ValueError("When passing flash5 images, convert must be False.")
-    if convert and not isinstance(flash30, bool):
-        raise ValueError("When passing flash30 images, convert must be False.")
-
-    if convert:
-        warn("The convert parameter is deprecated and will be removed in "
-             "1.2. You can now pass the Flash 5 and 30 echos as nibabel "
-             "images to the function via the flash5_echos and flash30_echos"
-             "parameters.",
-             DeprecationWarning)
-
-        logger.info("\n---- Converting Flash images ----")
-        echos = ['001', '002', '003', '004', '005', '006', '007', '008']
-        if flash30:
-            flashes = ['05', '30']
-        else:
-            flashes = ['05']
-        #
-        missing = False
-        for flash in flashes:
-            for echo in echos:
-                if not op.isdir(op.join('flash' + flash, echo)):
-                    missing = True
-        if missing:
-            echos = ['002', '003', '004', '005', '006', '007', '008', '009']
-            for flash in flashes:
-                for echo in echos:
-                    if not op.isdir(op.join('flash' + flash, echo)):
-                        raise RuntimeError("Directory %s is missing."
-                                           % op.join('flash' + flash, echo))
-        #
-        for flash in flashes:
-            for echo in echos:
-                if not op.isdir(op.join('flash' + flash, echo)):
-                    raise RuntimeError("Directory %s is missing."
-                                       % op.join('flash' + flash, echo))
-                sample_file = glob.glob(op.join('flash' + flash, echo, '*'))[0]
-                dest_file = op.join(mri_dir, 'flash', f'mef{flash}_{echo}.mgz')
-                # do not redo if already present
-                if op.isfile(dest_file):
-                    logger.info("The file %s is already there")
-                else:
-                    cmd = ['mri_convert', sample_file, dest_file]
-                    run_subprocess_env(cmd)
-                    echos_done += 1
-    else:
-        if not isinstance(flash5, bool):
-            _write_echos(mri_dir, flash5, angle='05')
-        if not isinstance(flash30, bool):
-            _write_echos(mri_dir, flash30, angle='30')
+    if not isinstance(flash5, bool):
+        _write_echos(mri_dir, flash5, angle='05')
+    if not isinstance(flash30, bool):
+        _write_echos(mri_dir, flash30, angle='30')
 
     # Step 1b : Run grad_unwarp on converted files
     template = op.join(flash_dir, "mef*_*.mgz")
@@ -1891,8 +1836,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
 
 @verbose
 def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
-                   flash_path=None, copy=True, *, flash5_img=None,
-                   register=True, verbose=None):
+                   copy=True, *, flash5_img=None, register=True, verbose=None):
     """Create 3-Layer BEM model from prepared flash MRI images.
 
     Parameters
@@ -1904,14 +1848,6 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     show : bool
         Show surfaces to visually inspect all three BEM surfaces (recommended).
     %(subjects_dir)s
-    flash_path : str | None
-        [DEPRECATED] Use the flash5_img parameter instead.
-
-        Path to the flash images. If None (default), mri/flash/parameter_maps
-        within the subject reconstruction is used.
-
-        .. versionadded:: 0.13.0
-        .. versionchanged:: 1.1 Deprecated
     copy : bool
         If True (default), use copies instead of symlinks for surfaces
         (if they do not already exist).
@@ -1920,9 +1856,10 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         .. versionchanged:: 1.1 Use copies instead of symlinks.
     flash5_img : None | path-like | Nifti1Image
         The path to the synthesized flash 5 MRI image or the image itself. If
-        None (default), the path defaults to flash5.mgz within the flash_path
-        folder. If not present the image is copied or written to the
-        flash_path folder as flash5.mgz.
+        None (default), the path defaults to
+        ``mri/flash/parameter_maps/flash5.mgz`` within the subject
+        reconstruction. If not present the image is copied or written to the
+        default location.
 
         .. versionadded:: 1.1.0
     register : bool
@@ -1953,13 +1890,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
     mri_dir = Path(mri_dir)
     bem_dir = Path(bem_dir)
-    if flash_path is None:
-        flash_path = mri_dir / 'flash' / 'parameter_maps'
-    else:
-        warn("The flash_path parameter is deprecated and will be removed "
-             "in version 1.1. Use the flash5_img parameter instead.")
-        flash_path = Path(flash_path).resolve()
     subjects_dir = env['SUBJECTS_DIR']
+    flash_path = (mri_dir / 'flash' / 'parameter_maps').resolve()
     flash_path.mkdir(exist_ok=True, parents=True)
 
     logger.info('\nProcessing the flash MRI data to produce BEM meshes with '
