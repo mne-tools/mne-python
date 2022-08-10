@@ -24,11 +24,10 @@ Current (1.2.dev0)
 Enhancements
 ~~~~~~~~~~~~
 - EEGLAB files (saved as MAT versions less than v7.3) can now be imported with :func:`mne.io.read_raw_eeglab` without the optional dependency ``pymatreader`` (:gh:`11006` by `Clemens Brunner`_)
-- Document ``height`` and ``weight`` keys of  ``subject_info`` entry in :class:`mne.Info` (:gh:`10964` by :newcontrib:`Sena Er`)
 
 Bugs
 ~~~~
-- None yet
+- Document ``height`` and ``weight`` keys of  ``subject_info`` entry in :class:`mne.Info` (:gh:`11019` by :newcontrib:`Sena Er`)
 
 API changes
 ~~~~~~~~~~~
