@@ -27,7 +27,7 @@ Enhancements
 
 Bugs
 ~~~~
-- None yet
+- Document ``height`` and ``weight`` keys of  ``subject_info`` entry in :class:`mne.Info` (:gh:`11019` by :newcontrib:`Sena Er`)
 
 API changes
 ~~~~~~~~~~~
