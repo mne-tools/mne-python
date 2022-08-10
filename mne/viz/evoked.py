@@ -279,8 +279,8 @@ def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     _check_option('gfp', gfp, [True, False, 'only'])
     _check_option('spatial_colors', spatial_colors, [True, False, 'auto'])
 
-    # Check channel location, spatial colors is True if channel locations exists
-    # False otherwise
+    # Check channel location, spatial colors is True
+    # if channel locations exists, False otherwise
     spatial_colors = _check_ch_locs(info=info)
 
     if highlight is not None:
