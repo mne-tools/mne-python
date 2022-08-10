@@ -1644,7 +1644,7 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
         reslicing/accuracy for the steps.
     %(niter)s
     starting_affine : ndarray
-        The affine to seed the registration with.
+        The affine to initialize the registration with.
     %(verbose)s
 
     Returns
