@@ -217,7 +217,7 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
         on the distributions in :footcite:`GreischarEtAl2004`.
     epoch_threshold : float
         The proportion of epochs with electrical distance less than
-        ``ed_threshold`` in order to consider the channel bridged.
+        ``lm_cutoff`` in order to consider the channel bridged.
         The default is 0.5.
     l_freq : float
         The low cutoff frequency to use. Default is 0.5 Hz.
