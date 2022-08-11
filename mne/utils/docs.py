@@ -2276,6 +2276,67 @@ docdict['pick_ori_novec'] = """
 pick_ori : None | "normal"
 """ + _pick_ori_novec
 
+docdict['pick_types_params'] = """
+meg : bool | str
+    If True include MEG channels. If string it can be 'mag', 'grad',
+    'planar1' or 'planar2' to select only magnetometers, all
+    gradiometers, or a specific type of gradiometer.
+eeg : bool
+    If True include EEG channels.
+stim : bool
+    If True include stimulus channels.
+eog : bool
+    If True include EOG channels.
+ecg : bool
+    If True include ECG channels.
+emg : bool
+    If True include EMG channels.
+ref_meg : bool | str
+    If True include CTF / 4D reference channels. If 'auto', reference
+    channels are included if compensations are present and ``meg`` is
+    not False. Can also be the string options for the ``meg``
+    parameter.
+misc : bool
+    If True include miscellaneous analog channels.
+resp : bool
+    If ``True`` include respiratory channels.
+chpi : bool
+    If True include continuous HPI coil channels.
+exci : bool
+    Flux excitation channel used to be a stimulus channel.
+ias : bool
+    Internal Active Shielding data (maybe on Triux only).
+syst : bool
+    System status channel information (on Triux systems only).
+seeg : bool
+    Stereotactic EEG channels.
+dipole : bool
+    Dipole time course channels.
+gof : bool
+    Dipole goodness of fit channels.
+bio : bool
+    Bio channels.
+ecog : bool
+    Electrocorticography channels.
+fnirs : bool | str
+    Functional near-infrared spectroscopy channels. If True include all
+    fNIRS channels. If False (default) include none. If string it can
+    be 'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
+    include channels measuring deoxyhemoglobin).
+csd : bool
+    EEG-CSD channels.
+dbs : bool
+    Deep brain stimulation channels.
+include : list of str
+    List of additional channels to include. If empty do not include
+    any.
+exclude : list of str | str
+    List of channels to exclude. If 'bads' (default), exclude channels
+    in ``info['bads']``.
+selection : list of str
+    Restrict sensor channels (MEG, EEG, etc.) to this list of channel names.
+"""
+
 _picks_types = 'str | list | slice | None'
 _picks_header = f'picks : {_picks_types}'
 _picks_desc = 'Channels to include.'
@@ -2311,8 +2372,9 @@ picks : int | list of int | slice | None
     Indices of the independent components (ICs) to visualize.
     If an integer, represents the index of the IC to pick.
     Multiple ICs can be selected using a list of int or a slice.
-    The indices are 0-indexed, so ``picks=1`` will
-    pick the second IC: ``ICA001``.
+    The indices are 0-indexed, so ``picks=1`` will pick the second
+    IC: ``ICA001``. ``None`` will pick all independent components in the order
+    fitted.
 """
 docdict['picks_nostr'] = f"""picks : list | slice | None
     {_picks_desc} {_picks_int}

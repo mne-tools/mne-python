@@ -103,12 +103,10 @@ def run():
         flash30 = True
     elif len(flash30) == 0:
         flash30 = False
-    convert = not options.noconvert
     register = not options.registered
     unwarp = options.unwarp
     overwrite = options.overwrite
     show = options.show
-    flash_path = options.flash_path
     copy = options.copy
 
     if options.subject is None:
@@ -117,12 +115,11 @@ def run():
 
     flash5_img = convert_flash_mris(
         subject=subject, subjects_dir=subjects_dir, flash5=flash5,
-        flash30=flash30, convert=convert, unwarp=unwarp, verbose=True
+        flash30=flash30, unwarp=unwarp, verbose=True
     )
     make_flash_bem(subject=subject, subjects_dir=subjects_dir,
-                   overwrite=overwrite, show=show, flash_path=flash_path,
-                   copy=copy, register=register, flash5_img=flash5_img,
-                   verbose=True)
+                   overwrite=overwrite, show=show, copy=copy,
+                   register=register, flash5_img=flash5_img, verbose=True)
 
 
 mne.utils.run_command_if_main()

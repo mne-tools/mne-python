@@ -758,6 +758,10 @@ class Info(dict, MontageMixin, ContainsMixin):
             Subject sex (0=unknown, 1=male, 2=female).
         hand : int
             Handedness (1=right, 2=left, 3=ambidextrous).
+        weight : float
+            Weight in kilograms.
+        height : float
+            Height in meters.
     """
 
     _attributes = {
