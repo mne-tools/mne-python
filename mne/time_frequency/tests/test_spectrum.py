@@ -45,7 +45,7 @@ def test_spectrum_params(method, fmin, fmax, tmin, tmax, picks, proj, n_fft,
 
 
 @requires_h5py
-@pytest.mark.parametrize('inst', ('raw', 'epochs'))
+@pytest.mark.parametrize('inst', ('raw', 'epochs', 'evoked'))
 def test_spectrum_io(inst, tmp_path, request):
     """Test save/load of spectrum objects."""
     inst = request.getfixturevalue(inst)
