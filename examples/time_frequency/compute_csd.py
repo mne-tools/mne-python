@@ -21,8 +21,6 @@ the CSD:
 # License: BSD-3-Clause
 
 # %%
-from matplotlib import pyplot as plt
-
 import mne
 from mne.datasets import sample
 from mne.time_frequency import csd_fourier, csd_multitaper, csd_morlet
@@ -84,11 +82,16 @@ csd_wav = csd_morlet(epochs, frequencies, decim=10, n_jobs=n_jobs)
 # The resulting :class:`mne.time_frequency.CrossSpectralDensity` objects have a
 # plotting function we can use to compare the results of the different methods.
 # We're plotting the mean CSD across frequencies.
-csd_fft.mean().plot()
-plt.suptitle('short-term Fourier transform')
+# :func:`mne.time_frequency.CrossSpectralDensity.plot()` returns a list of
+# created figures. In this case, each returned list has one figure.
+fig_fft = csd_fft.mean().plot(show=False)[0]
+fig_fft.suptitle('short-term Fourier transform')
+fig_fft.show()
 
-csd_mt.mean().plot()
-plt.suptitle('adaptive multitapers')
+fig_mt = csd_mt.mean().plot(show=False)[0]
+fig_mt.suptitle('adaptive multitapers')
+fig_mt.show()
 
-csd_wav.mean().plot()
-plt.suptitle('Morlet wavelet transform')
+fig_wav = csd_wav.mean().plot(show=False)[0]
+fig_wav.suptitle('Morlet wavelet transform')
+fig_wav.show()
