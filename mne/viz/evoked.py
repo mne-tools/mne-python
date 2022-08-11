@@ -281,7 +281,8 @@ def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
     # Check channel location, spatial colors is True
     # if channel locations exists, False otherwise
-    spatial_colors = _check_ch_locs(info=info)
+    if spatial_colors == 'auto':
+        spatial_colors = _check_ch_locs(info=info)
 
     if highlight is not None:
         highlight = np.array(highlight, dtype=float)
