@@ -11,7 +11,8 @@ from inspect import signature
 
 import numpy as np
 
-from ..channels.channels import UpdateChannelsMixin
+from ..channels.channels import UpdateChannelsMixin, _get_ch_type
+from ..channels.layout import _merge_ch_data
 from ..defaults import _handle_default
 from ..io.meas_info import ContainsMixin
 from ..io.pick import _picks_to_idx, pick_info
@@ -22,6 +23,8 @@ from ..utils import (GetEpochsMixin, _build_data_frame,
 from ..utils.check import (_check_fname, _check_option, _import_h5io_funcs,
                            _is_numeric, check_fname)
 from ..utils.misc import _pl
+from ..viz.topomap import (_make_head_outlines, _prepare_topomap_plot,
+                           plot_psds_topomap)
 from ..viz.utils import _plot_psd, plt_show
 from . import psd_array_multitaper, psd_array_welch
 from .psd import _check_nfft
@@ -547,9 +550,57 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         plt_show(show, fig)
         return fig
 
-    def plot_topomap(self):
-        """Plot scalp topography."""
-        raise NotImplementedError()
+    def plot_topomap(self, bands=None, ch_type=None, *, normalize=False,
+                     agg_fun=None, dB=False, outlines='head', sphere=None,
+                     cmap=None, vlim=(None, None), cbar_fmt='auto',
+                     axes=None, show=True, n_jobs=None, verbose=None):
+        """Plot scalp topography of PSD for chosen frequency bands.
+
+        Parameters
+        ----------
+        %(bands_psd_topo)s
+        %(ch_type_epoch_topomap)s
+        %(normalize_psd_topo)s
+        %(agg_fun_psd_topo)s
+        %(dB_psd_topo)s
+        %(outlines_topomap)s
+        %(sphere_topomap_auto)s
+        %(cmap_psd_topo)s
+        %(vlim_psd_topo_joint)s
+        %(cbar_fmt_psd_topo)s
+        %(axes_psd_topo)s
+        %(show)s
+        %(n_jobs)s
+        %(verbose)s
+
+        Returns
+        -------
+        fig : instance of Figure
+            Figure distributing one image per channel across sensor topography.
+        """
+        ch_type = _get_ch_type(self, ch_type)
+        units = _handle_default('units', None)
+        scalings = _handle_default('scalings', None)
+        unit = units[ch_type]
+        scaling = scalings[ch_type]
+
+        picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
+            _prepare_topomap_plot(self, ch_type, sphere=sphere)
+        outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
+
+        psds, freqs = self.get_data(picks=picks, return_freqs=True)
+        if 'epoch' in self._dims:
+            psds = np.mean(psds, axis=self._dims.index('epoch'))
+        psds *= scaling**2
+
+        if merge_channels:
+            psds, names = _merge_ch_data(psds, ch_type, names, method='mean')
+
+        return plot_psds_topomap(
+            psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun,
+            bands=bands, cmap=cmap, dB=dB, normalize=normalize,
+            cbar_fmt=cbar_fmt, outlines=outlines, axes=axes, show=show,
+            sphere=sphere, vlim=vlim, unit=unit, ch_type=ch_type)
 
     @verbose
     def save(self, fname, *, overwrite=False, verbose=None):
