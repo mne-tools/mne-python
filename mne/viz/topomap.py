@@ -1970,11 +1970,7 @@ def plot_epochs_psd_topomap(epochs, bands=None,
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     %(normalization)s
-    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-        The channel type to plot. For 'grad', the gradiometers are collected in
-        pairs and the mean for each pair is plotted. If None, then first
-        available channel type from order given above is used. Defaults to
-        None.
+    %(ch_type_epoch_topomap)s
     %(cmap_psd_topo)s
     %(agg_fun_psd_topo)s
     %(dB_plot_topomap)s

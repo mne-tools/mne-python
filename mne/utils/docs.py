@@ -472,12 +472,16 @@ ch_names : list | None
                     ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
 """
 
-docdict['ch_type_evoked_topomap'] = """
+_ch_type_topomap = """\
 ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-    The channel type to plot. For 'grad', the gradiometers are collected in
-    pairs and the RMS for each pair is plotted.
-    If None, then channels are chosen in the order given above.
+    The channel type to plot. For ``'grad'``, the gradiometers are
+    collected in pairs and the {} for each pair is plotted. If
+    ``None`` the first available channel type from order shown above is
+    used. Defaults to ``None``.
 """
+
+docdict['ch_type_evoked_topomap'] = _ch_type_topomap.format('RMS')
+docdict['ch_type_epoch_topomap'] = _ch_type_topomap.format('mean')
 
 docdict['ch_type_set_eeg_reference'] = """
 ch_type : list of str | str
