@@ -579,6 +579,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig : instance of Figure
             Figure distributing one image per channel across sensor topography.
         """
+        # TODO: should replace / deprecate old API entrypoints for topomaps
         ch_type = _get_ch_type(self, ch_type)
         units = _handle_default('units', None)
         scalings = _handle_default('scalings', None)
@@ -789,6 +790,7 @@ class Spectrum(BaseSpectrum):
     mne.Epochs.compute_psd
     mne.Evoked.compute_psd
     """
+
     def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
                  proj, reject_by_annotation, *, n_jobs, verbose, **method_kw):
         from ..io import BaseRaw
