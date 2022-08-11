@@ -337,7 +337,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     def _get_instance_type_string(self):
         """Get string representation of the originating instance type."""
-        from .. import BaseEpochs, Evoked
+        from .. import BaseEpochs, Evoked, EvokedArray
         from ..io import BaseRaw
 
         parent_classes = self._inst_type.__bases__
@@ -345,7 +345,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             inst_type_str = 'Raw'
         elif BaseEpochs in parent_classes:
             inst_type_str = 'Epochs'
-        elif self._inst_type == Evoked:
+        elif self._inst_type in (Evoked, EvokedArray):
             inst_type_str = 'Evoked'
         else:
             raise RuntimeError(
