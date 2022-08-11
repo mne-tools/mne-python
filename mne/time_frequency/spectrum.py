@@ -550,6 +550,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         plt_show(show, fig)
         return fig
 
+    @verbose
     def plot_topomap(self, bands=None, ch_type=None, *, normalize=False,
                      agg_fun=None, dB=False, outlines='head', sphere=None,
                      cmap=None, vlim=(None, None), cbar_fmt='auto',
