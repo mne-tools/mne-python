@@ -299,10 +299,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     def _format_units(self, unit, latex, power=True):
         """Format the measurement units nicely."""
+        unit = f'({unit})' if '/' in unit else unit
         if power:
             denom = 'Hz'
             exp = r'^{2}' if latex else '²'
-            unit = f'({unit})' if '/' in unit else unit
         else:
             denom = r'\sqrt{Hz}' if latex else '√(Hz)'
             exp = ''
@@ -688,10 +688,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             Mapping from channel type to a string representation of the units
             for that channel type.
         """
-        # TODO: this should "know" whether the contents are power, amplitude,
-        # or fourier coefficients.
         units = _handle_default('si_units', None)
-        return {ch_type: self._format_units(units[ch_type], latex=latex)
+        power = not hasattr(self, '_mt_weights')
+        return {ch_type: self._format_units(units[ch_type], power=power,
+                                            latex=latex)
                 for ch_type in sorted(self.get_channel_types(unique=True))}
 
 
