@@ -908,7 +908,8 @@ def read_spectrum(fname):
     defaults = dict(method=None, fmin=None, fmax=None, tmin=None, tmax=None,
                     picks=None, proj=None, reject_by_annotation=None,
                     n_jobs=None, verbose=None)
-    Klass = EpochsSpectrum if hdf5_dict['inst_type_str'] == 'Epochs' else Spectrum
+    Klass = (EpochsSpectrum if hdf5_dict['inst_type_str'] == 'Epochs'
+             else Spectrum)
     return Klass(hdf5_dict, **defaults)
 
 
