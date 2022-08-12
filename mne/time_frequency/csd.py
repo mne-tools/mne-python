@@ -1351,7 +1351,7 @@ def _csd_morlet(data, sfreq, wavelets, nfft, tslice=None, use_fft=True,
 
 
 @verbose
-def compute_csd(epochs_tfr, verbose=None, **kwargs):
+def compute_csd(epochs_tfr, verbose=None):
     """Compute covariance matrices across frequencies for TFR epochs.
 
     Parameters
@@ -1360,8 +1360,6 @@ def compute_csd(epochs_tfr, verbose=None, **kwargs):
         The time-frequency resolved epochs over which to compute the
         covariance.
     %(verbose)s
-    **kwargs : dict
-        Arguments to pass to :func:`mne.compute_covariance`.
 
     Returns
     -------
