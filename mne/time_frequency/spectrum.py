@@ -560,7 +560,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         Parameters
         ----------
         %(bands_psd_topo)s
-        %(ch_type_epoch_topomap)s
+        %(ch_type_psd_topomap)s
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
         %(dB_psd_topo)s
@@ -577,7 +577,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         Returns
         -------
         fig : instance of Figure
-            Figure distributing one image per channel across sensor topography.
+            Figure showing one scalp topography per frequency band.
         """
         # TODO: should replace / deprecate old API entrypoints for topomaps
         ch_type = _get_ch_type(self, ch_type)

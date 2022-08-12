@@ -480,8 +480,7 @@ ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
     used. Defaults to ``None``.
 """
 
-docdict['ch_type_epoch_topomap'] = _ch_type_topomap.format('mean')
-docdict['ch_type_evoked_topomap'] = _ch_type_topomap.format('RMS')
+docdict['ch_type_psd_topomap'] = _ch_type_topomap.format('mean')
 
 docdict['ch_type_set_eeg_reference'] = """
 ch_type : list of str | str
@@ -493,13 +492,7 @@ ch_type : list of str | str
     .. versionadded:: 0.19
 """
 
-docdict['ch_type_topomap'] = """
-ch_type : str
-    The channel type being plotted. Determines the ``'auto'``
-    extrapolation mode.
-
-    .. versionadded:: 0.21
-"""
+docdict['ch_type_topomap'] = _ch_type_topomap.format('RMS')
 
 chwise = """
 channel_wise : bool

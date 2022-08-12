@@ -757,6 +757,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     %(sphere_topomap)s
     %(border_topomap)s
     %(ch_type_topomap)s
+
+        .. versionadded:: 0.21
     %(cnorm)s
 
         .. versionadded:: 0.24
@@ -1549,7 +1551,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         automatically by checking for local maxima in global field power. If
         "interactive", the time can be set interactively at run-time by using a
         slider.
-    %(ch_type_evoked_topomap)s
+    %(ch_type_topomap)s
     %(vmin_vmax_topomap)s
     %(cmap_topomap)s
     %(sensors_topomap)s
@@ -1970,7 +1972,7 @@ def plot_epochs_psd_topomap(epochs, bands=None,
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     %(normalization)s
-    %(ch_type_epoch_topomap)s
+    %(ch_type_psd_topomap)s
     %(cmap_psd_topo)s
     %(agg_fun_psd_topo)s
     %(dB_plot_topomap)s
@@ -1987,7 +1989,7 @@ def plot_epochs_psd_topomap(epochs, bands=None,
     Returns
     -------
     fig : instance of Figure
-        Figure distributing one image per channel across sensor topography.
+        Figure showing one scalp topography per frequency band.
     """
     ch_type = _get_ch_type(epochs, ch_type)
     units = _handle_default('units', None)
