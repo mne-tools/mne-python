@@ -17,6 +17,7 @@ Time-Frequency
    EpochsTFR
    CrossSpectralDensity
    Spectrum
+   EpochsSpectrum
 
 Functions that operate on mne-python objects:
 
