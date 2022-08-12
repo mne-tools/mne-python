@@ -48,8 +48,8 @@ def test_spectrum_params(method, fmin, fmax, tmin, tmax, picks, proj, n_fft,
 @pytest.mark.parametrize('inst', ('raw', 'epochs', 'evoked'))
 def test_spectrum_io(inst, tmp_path, request):
     """Test save/load of spectrum objects."""
+    fname = tmp_path / f'{inst}-spectrum.h5'
     inst = request.getfixturevalue(inst)
-    fname = tmp_path / 'spectrum.h5'
     orig = inst.compute_psd()
     orig.save(fname)
     loaded = read_spectrum(fname)
@@ -85,6 +85,7 @@ def test_spectrum_getitem_epochs(epochs):
 
 
 def _agg_helper(df, weights, group_cols):
+    """Aggregate complex multitaper spectrum after conversion to DataFrame."""
     from pandas import Series
     unagged_columns = df[group_cols].iloc[0].values.tolist()
     x_mt = df.drop(columns=group_cols).values[np.newaxis].T
@@ -133,54 +134,42 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method):
 
 
 @requires_pandas
-def test_spectrum_to_data_frame(raw):
+@pytest.mark.parametrize('inst', ('raw', 'epochs', 'evoked'))
+def test_spectrum_to_data_frame(inst, request):
     """Test the to_data_frame method for Spectrum."""
     from pandas.testing import assert_frame_equal
 
-    spectrum = raw.compute_psd()
-    n_chan, n_freq = spectrum.get_data().shape
+    # setup
+    is_epochs = inst == 'epochs'
+    inst = request.getfixturevalue(inst)
+    extra_dim = () if is_epochs else (1,)
+    extra_cols = ['freq', 'condition', 'epoch'] if is_epochs else ['freq']
+    # compute PSD
+    spectrum = inst.compute_psd()
+    n_epo, n_chan, n_freq = extra_dim + spectrum.get_data().shape
     # test wide format
     df_wide = spectrum.to_data_frame()
     n_row, n_col = df_wide.shape
     assert n_row == n_freq
-    assert n_col == n_chan + 1  # freq column
+    assert n_col == n_chan + len(extra_cols)
+    assert set(spectrum.ch_names + extra_cols) == set(df_wide.columns)
     # test long format
     df_long = spectrum.to_data_frame(long_format=True)
     n_row, n_col = df_long.shape
-    assert n_row == n_freq * n_chan
-    assert n_col == 4  # freq, ch_name, ch_type, value
+    assert n_row == n_epo * n_freq * n_chan
+    base_cols = ['channel', 'ch_type', 'value']
+    assert n_col == len(base_cols + extra_cols)
+    assert set(base_cols + extra_cols) == set(df_long.columns)
     # test index
-    _ = spectrum.to_data_frame(index='freq')
+    index = extra_cols[-2:]  # ['freq'] or ['condition', 'epoch']
+    df = spectrum.to_data_frame(index=index)
+    if is_epochs:
+        index_tuple = (list(spectrum.event_id)[0],  # condition
+                       spectrum.selection[0])       # epoch number
+        subset = df.loc[index_tuple]
+        assert subset.shape == (n_freq, n_chan + 1)  # + 1 is the freq column
     with pytest.raises(ValueError, match='"time" is not a valid option'):
         spectrum.to_data_frame(index='time')
-    # test picks
-    picks = [0, 1]
-    _pick_first = spectrum.pick(picks).to_data_frame()
-    _pick_last = spectrum.to_data_frame(picks=picks)
-    assert_frame_equal(_pick_first, _pick_last)
-
-
-@requires_pandas
-def test_epoch_spectrum_to_data_frame(epochs):
-    """Test the to_data_frame method for Spectrum."""
-    from pandas.testing import assert_frame_equal
-
-    spectrum = epochs.compute_psd()
-    n_epo, n_chan, n_freq = spectrum.get_data().shape
-    # test wide format
-    df_wide = spectrum.to_data_frame()
-    n_row, n_col = df_wide.shape
-    assert n_row == n_freq * n_epo
-    assert n_col == n_chan + 3  # freq, condition, epoch
-    # test long format
-    df_long = spectrum.to_data_frame(long_format=True)
-    n_row, n_col = df_long.shape
-    assert n_row == n_freq * n_epo * n_chan
-    assert n_col == 6  # freq, cond, epo, ch_name, ch_type, value
-    # test index
-    df_idx = spectrum.to_data_frame(index=['epoch', 'condition'])
-    subset = df_idx.loc[(epochs.selection[0], list(epochs.event_id)[0])]
-    assert subset.shape == (n_freq, n_chan + 1)  # the + 1 is the freq column
     # test picks
     picks = [0, 1]
     _pick_first = spectrum.pick(picks).to_data_frame()
