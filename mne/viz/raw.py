@@ -198,11 +198,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     By default, the channel means are removed when ``remove_dc`` is set to
     ``True``. This flag can be toggled by pressing 'd'.
 
-    .. note:: For the Qt backend to run in IPython with ``block=False``
-              you must run the magic command ``%%gui qt5`` first.
-    .. note:: To report issues with the qt-backend, please use the
-              `issues <https://github.com/mne-tools/mne-qt-browser/issues>`_
-              of ``mne-qt-browser``.
+    %(notes_2d_backend)s
     """
     from ..io.base import BaseRaw
     from ._figure import _get_browser

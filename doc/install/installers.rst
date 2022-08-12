@@ -16,7 +16,7 @@ Got any questions? Let us know on the `MNE Forum`_!
     .. tab-item:: Linux
         :class-content: text-center
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.0.3/MNE-Python-1.0.3_0-Linux.sh
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.0/MNE-Python-1.1.0_0-Linux.sh
             :ref-type: ref
             :color: primary
             :shadow:
@@ -30,28 +30,43 @@ Got any questions? Let us know on the `MNE Forum`_!
 
         .. code-block:: console
 
-            $ sh ./MNE-Python-1.0.3_0-Linux.sh
+            $ sh ./MNE-Python-1.1.0_0-Linux.sh
 
 
-    .. tab-item:: macOS
+    .. tab-item:: macOS (Intel)
         :class-content: text-center
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.0.3/MNE-Python-1.0.3_0-macOS_Intel.pkg
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.0/MNE-Python-1.1.0_0-macOS_Intel.pkg
             :ref-type: ref
             :color: primary
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Download for macOS
+            |cloud-download-alt| |ensp| Download for macOS (Intel)
 
         **Supported platforms:**
-        macOS 10.15 (Catalina) and newer (Intel and Apple Silicon)
+        macOS 10.15 (Catalina) and newer
 
+
+    .. tab-item:: macOS (Apple Silicon)
+        :class-content: text-center
+
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.0/MNE-Python-1.1.0_0-macOS_M1.pkg
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold mt-3
+
+            |cloud-download-alt| |ensp| Download for macOS (Apple Silicon)
+
+
+        **Supported platforms:**
+        macOS 10.15 (Catalina) and newer
 
     .. tab-item:: Windows
         :class-content: text-center
 
-        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.0.3/MNE-Python-1.0.3_0-Windows.exe
+        .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.0/MNE-Python-1.1.0_0-Windows.exe
             :ref-type: ref
             :color: primary
             :shadow:

@@ -6,6 +6,7 @@ import logging
 import sys
 import os
 import os.path as op
+from pathlib import Path
 from shutil import rmtree
 
 from .. import __version__ as mne_version
@@ -16,7 +17,7 @@ from .config import (
     TESTING_VERSIONED,
     MISC_VERSIONED,
 )
-from .utils import _dataset_version, _do_path_update, _get_path, _mne_path
+from .utils import _dataset_version, _do_path_update, _get_path
 from ..fixes import _compare_version
 
 
@@ -163,7 +164,7 @@ def fetch_dataset(
     if name.startswith("bst_"):
         final_path = op.join(final_path, name)
 
-    final_path = _mne_path(final_path)
+    final_path = Path(final_path)
 
     # additional condition: check for version.txt and parse it
     # check if testing or misc data is outdated; if so, redownload it
@@ -180,7 +181,7 @@ def fetch_dataset(
             f"Dataset {name} version {data_version} out of date, "
             f"latest version is {want_version}"
         )
-    empty = _mne_path("")
+    empty = Path("")
 
     # return empty string if outdated dataset and we don't want to download
     if (not force_update) and outdated and not download:

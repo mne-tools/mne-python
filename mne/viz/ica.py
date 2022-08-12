@@ -47,7 +47,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
         The ICA solution.
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
-    %(picks_ica)s ``None`` (default) will pick all sources in the order fitted.
+    %(picks_ica)s
     start, stop : float | int | None
        If ``inst`` is a `~mne.io.Raw` or an `~mne.Evoked` object, the first and
        last time point (in seconds) of the data to plot. If ``inst`` is a
@@ -86,6 +86,8 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     For raw and epoch instances, it is possible to select components for
     exclusion by clicking on the line. The selected components are added to
     ``ica.exclude`` on close.
+
+    %(notes_2d_backend)s
 
     .. versionadded:: 0.10.0
     """

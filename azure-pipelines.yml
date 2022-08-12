@@ -300,6 +300,11 @@ stages:
     - script: conda env update --name base --file environment.yml
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Setup MNE environment
+    # ipympl is not tested on Windows and even its installation interferes
+    # with basic matplotlib functionality so it must be uninstalled until fixed
+    - script: conda uninstall -y ipympl
+      condition: eq(variables['TEST_MODE'], 'conda')
+      displayName: Remove ipympl
     - bash: |
         set -e
         conda remove -c conda-forge --force -yq mne

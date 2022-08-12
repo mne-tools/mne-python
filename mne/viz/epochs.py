@@ -758,6 +758,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     to the plot. Click 'help' button at bottom left corner of the plotter to
     view all the options.
 
+    %(notes_2d_backend)s
+
     .. versionadded:: 0.10.0
     """
     from ._figure import _get_browser
