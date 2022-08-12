@@ -149,6 +149,51 @@ class ToSpectrumMixin():
             exclude=exclude, ax=ax, show=show)
         return fig
 
+    @verbose
+    def plot_psd_topomap(self, bands=None, tmin=None, tmax=None, proj=False,
+                         method='auto', ch_type=None, *, normalize=False,
+                         agg_fun=None, dB=False, outlines='head', sphere=None,
+                         cmap=None, vlim=(None, None), cbar_fmt='auto',
+                         axes=None, show=True, n_jobs=None, verbose=None,
+                         **method_kw):
+        """Plot scalp topography of PSD for chosen frequency bands.
+
+        Parameters
+        ----------
+        %(bands_psd_topo)s
+        %(tmin_tmax_psd)s
+        %(proj_psd)s
+        %(method_psd)s
+        %(ch_type_psd_topomap)s
+        %(normalize_psd_topo)s
+        %(agg_fun_psd_topo)s
+        %(dB_psd_topo)s
+        %(outlines_topomap)s
+        %(sphere_topomap_auto)s
+        %(cmap_psd_topo)s
+        %(vlim_psd_topo_joint)s
+        %(cbar_fmt_psd_topo)s
+        %(axes_psd_topo)s
+        %(show)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_psd)s
+
+        Returns
+        -------
+        fig : instance of Figure
+            Figure showing one scalp topography per frequency band.
+        """
+        spectrum = self.compute_psd(
+            method=method, tmin=tmin, tmax=tmax, proj=proj,
+            n_jobs=n_jobs, verbose=verbose, **method_kw)
+
+        fig = spectrum.plot_topomap(
+            bands=None, ch_type=None, normalize=False, agg_fun=None, dB=False,
+            outlines='head', sphere=None, cmap=None, vlim=(None, None),
+            cbar_fmt='auto', axes=None, show=True, n_jobs=None, verbose=None)
+        return fig
+
 
 class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     """Base class for Spectrum and EpochsSpectrum."""
