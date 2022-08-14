@@ -196,7 +196,7 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
     r"""Compute bridged EEG electrodes using the intrinsic Hjorth algorithm.
 
     First, an electrical distance matrix is computed by taking the pairwise
-    variance between electrodes. Local minimums in this matriux below
+    variance between electrodes. Local minimums in this matrix below
     ``lm_cutoff`` are indicative of bridging between a pair of electrodes.
     Pairs of electrodes are marked as bridged as long as their electrical
     distance is below ``lm_cutoff`` on more than the ``epoch_threshold``
@@ -215,7 +215,7 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
         search for a local minimum (lm) indicative of bridging.
         EEGLAB defaults to 5 :math:`{\mu}V^2`. MNE defaults to
         16 :math:`{\mu}V^2` to be conservative based on the distributions in
-        :footcite:`GreischarEtAl2004`.
+        :footcite:t:`GreischarEtAl2004`.
     epoch_threshold : float
         The proportion of epochs with electrical distance less than
         ``lm_cutoff`` in order to consider the channel bridged.
