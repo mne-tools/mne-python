@@ -1667,7 +1667,7 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
         starting_affine=starting_affine)[:2]
 
 
-def _compute_volume_registration(moving, static, pipeline, zooms, niter,
+def _compute_volume_registration(moving, static, pipeline, zooms, niter, *,
                                  starting_affine=None):
     _require_version('nibabel', 'SDR morph', '2.1.0')
     _require_version('dipy', 'SDR morph', '0.10.1')
