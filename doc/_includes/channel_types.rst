@@ -53,7 +53,7 @@ bio            Miscellaneous biological channels (e.g.,  Arbitrary units
 
 stim           stimulus (a.k.a. trigger) channels        Arbitrary units
 
-resp           response-trigger channel                  Arbitrary units
+resp           respiration monitoring channel            Volts
 
 chpi           continuous head position indicator        Teslas
                (HPI) coil channels
