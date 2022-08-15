@@ -1351,7 +1351,7 @@ def _csd_morlet(data, sfreq, wavelets, nfft, tslice=None, use_fft=True,
 
 
 @verbose
-def compute_csd(epochs_tfr, verbose=None):
+def csd_tfr(epochs_tfr, verbose=None):
     """Compute covariance matrices across frequencies for TFR epochs.
 
     Parameters
@@ -1383,8 +1383,8 @@ def compute_csd(epochs_tfr, verbose=None):
     # scale to compute mean
     data /= len(epochs_tfr)
 
-    # TO DO: EpochTFR should store n_fft and projs to be consistent
+    # TO DO: EpochTFR should store n_fft to be consistent
     return CrossSpectralDensity(data=data, ch_names=epochs_tfr.ch_names,
                                 tmin=epochs_tfr.tmin, tmax=epochs_tfr.tmax,
-                                frequencies=epochs_tfr.freqs,
-                                n_fft=None, projs=None)
+                                frequencies=epochs_tfr.freqs, n_fft=None,
+                                projs=epochs_tfr.info.get('projs', None))
