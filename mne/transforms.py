@@ -1626,7 +1626,7 @@ def _reslice_normalize(img, zooms):
 
 @verbose
 def compute_volume_registration(moving, static, pipeline='all', zooms=None,
-                                niter=None, starting_affine=None,
+                                niter=None, *, starting_affine=None,
                                 verbose=None):
     """Align two volumes using an affine and, optionally, SDR.
 
@@ -1645,6 +1645,8 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
     %(niter)s
     starting_affine : ndarray
         The affine to initialize the registration with.
+
+        .. versionadded:: 1.2
     %(verbose)s
 
     Returns
@@ -1661,7 +1663,8 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
     .. versionadded:: 0.24
     """
     return _compute_volume_registration(
-        moving, static, pipeline, zooms, niter, starting_affine)[:2]
+        moving, static, pipeline, zooms, niter,
+        starting_affine=starting_affine)[:2]
 
 
 def _compute_volume_registration(moving, static, pipeline, zooms, niter,
