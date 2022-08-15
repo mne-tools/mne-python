@@ -1379,7 +1379,7 @@ def compute_csd(epochs_tfr, verbose=None):
         # There is a redundancy in the calculation here because we don't really
         # need the lower triangle of the matrix, but it should still be faster
         # than a loop (hopefully!).
-        csds = np.einsum('xct,yct->xyc', epochs_data, epochs_data_conj)
+        csds = np.einsum('xft,yft->xyf', epochs_data, epochs_data_conj)
         csds = csds[np.triu_indices(len(epochs_data)) + (slice(None),)]
         csds /= epochs_data.shape[-1]
 
