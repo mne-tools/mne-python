@@ -88,6 +88,8 @@
 
 .. _Dan Wakeman: https://github.com/dgwakeman
 
+.. _Daniel Carlström Schad: https://github.com/Dod12
+
 .. _Daniel McCloy: http://dan.mccloy.info
 
 .. _Daniel Strohmeier: https://github.com/joewalter
