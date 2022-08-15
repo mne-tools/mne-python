@@ -568,5 +568,5 @@ def test_csd_tfr():
                             average=False, return_itc=False,
                             output='complex')
     csd = csd_tfr(epochs_tfr)
-    assert_allclose(csd._data, csd_test._data, atol=1e-16)
+    assert_allclose(csd._data, csd_test._data)
     assert_array_equal(csd.frequencies, freqs)
