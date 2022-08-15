@@ -1373,8 +1373,15 @@ def compute_csd(epochs_tfr, verbose=None):
     # iterate over epochs
     for idx, epochs_data in enumerate(epochs_tfr.data):
         epochs_data_conj = np.conj(epochs_data)
-        csds = np.vstack([np.mean(epochs_data[[i]] * epochs_data_conj[i:],
-                                  axis=2) for i in range(n_channels)])
+        # This is equivalent to:
+        # csds = np.vstack([np.mean(epochs_data[[i]] * epochs_data_conj[i:],
+        #                           axis=2) for i in range(n_channels)])
+        # There is a redundancy in the calculation here because we don't really
+        # need the lower triangle of the matrix, but it should still be faster
+        # than a loop (hopefully!).
+        csds = np.einsum('xct,yct->xyc', epochs_data, epochs_data_conj)
+        csds = csds[np.triu_indices(len(epochs_data)) + (slice(None),)]
+        csds /= epochs_data.shape[-1]
 
         # Scaling by sampling frequency for compatibility with Matlab
         csds /= epochs_tfr.info['sfreq']
