@@ -10,10 +10,11 @@ import numbers
 
 import numpy as np
 
-from .tfr import _cwt_array, morlet, _get_nfft
+from .tfr import _cwt_array, morlet, _get_nfft, EpochsTFR
 from ..io.pick import pick_channels, _picks_to_idx
 from ..utils import (logger, verbose, warn, copy_function_doc_to_method_doc,
-                     ProgressBar, _check_fname, _import_h5io_funcs)
+                     ProgressBar, _check_fname, _import_h5io_funcs,
+                     _validate_type)
 from ..viz.misc import plot_csd
 from ..time_frequency.multitaper import (_compute_mt_params, _mt_spectra,
                                          _csd_from_mt, _psd_from_mt_adaptive)
@@ -1346,5 +1347,50 @@ def _csd_morlet(data, sfreq, wavelets, nfft, tslice=None, use_fft=True,
 
     # Scaling by sampling frequency for compatibility with Matlab
     csds /= sfreq
-
     return csds
+
+
+@verbose
+def csd_tfr(epochs_tfr, verbose=None):
+    """Compute covariance matrices across frequencies for TFR epochs.
+
+    Parameters
+    ----------
+    epochs_tfr : EpochsTFR
+        The time-frequency resolved epochs over which to compute the
+        covariance.
+    %(verbose)s
+
+    Returns
+    -------
+    res : instance of CrossSpectralDensity
+        Cross-spectral density restricted to selected channels.
+    """
+    _validate_type(epochs_tfr, EpochsTFR)
+    n_channels, n_freqs = len(epochs_tfr.ch_names), epochs_tfr.freqs.size
+    data = np.zeros((n_channels * (n_channels + 1) // 2, n_freqs),
+                    dtype=np.complex128)
+    # iterate over epochs
+    for idx, epochs_data in enumerate(epochs_tfr.data):
+        # This is equivalent to:
+        # csds = np.vstack([np.mean(epochs_data[[i]] * epochs_data_conj[i:],
+        #                           axis=2) for i in range(n_channels)])
+        # There is a redundancy in the calculation here because we don't really
+        # need the lower triangle of the matrix, but it should still be faster
+        # than a loop (hopefully!).
+        csds = np.einsum('xft,yft->xyf', epochs_data, np.conj(epochs_data))
+        csds = csds[np.triu_indices(n_channels) + (slice(None),)]
+        csds /= epochs_data.shape[-1]
+
+        # Scaling by sampling frequency for compatibility with Matlab
+        csds /= epochs_tfr.info['sfreq']
+        data += csds
+
+    # scale to compute mean
+    data /= len(epochs_tfr)
+
+    # TO DO: EpochTFR should store n_fft to be consistent
+    return CrossSpectralDensity(data=data, ch_names=epochs_tfr.ch_names,
+                                tmin=epochs_tfr.tmin, tmax=epochs_tfr.tmax,
+                                frequencies=epochs_tfr.freqs, n_fft=None,
+                                projs=epochs_tfr.info.get('projs', None))
