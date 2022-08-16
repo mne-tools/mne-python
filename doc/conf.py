@@ -182,6 +182,7 @@ numpydoc_xref_aliases = {
     'path-like': ':term:`path-like`',
     'array-like': ':term:`array-like`',
     'Path': ':class:`python:pathlib.Path`',
+    'bool': ':class:`python:bool`',
     # Matplotlib
     'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',
     'color': ':doc:`color <matplotlib:api/colors_api>`',
