@@ -66,10 +66,14 @@ def test_plot_filter():
     iir = create_filter(data, sfreq, l_freq, h_freq, method='iir')
     plot_filter(iir, sfreq)
     plt.close('all')
-    iir = create_filter(data, sfreq, l_freq, h_freq, method='iir', iir_params={'output': 'ba'})
+    iir = create_filter(data, sfreq, l_freq, h_freq,
+                        method='iir', iir_params={'output': 'ba'}
+                        )
     plot_filter(iir, sfreq, compensate=True)
     plt.close('all')
-    iir = create_filter(data, sfreq, l_freq, h_freq, method='iir', iir_params={'output': 'sos'})
+    iir = create_filter(data, sfreq, l_freq, h_freq,
+                        method='iir', iir_params={'output': 'sos'}
+                        )
     plot_filter(iir, sfreq, compensate=True)
     plt.close('all')
     plot_filter(iir, sfreq, freq, gain)
