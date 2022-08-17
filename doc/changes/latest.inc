@@ -32,7 +32,7 @@ Bugs
 ~~~~
 - Fix bug in :func:`mne.decoding.TimeFrequency` that prevented cloning if constructor arguments were modified (:gh:`11004` by :newcontrib:`Daniel Carlström Schad`)
 - Document ``height`` and ``weight`` keys of  ``subject_info`` entry in :class:`mne.Info` (:gh:`11019` by :newcontrib:`Sena Er`)
-- Fixed bug in :func:`mne.viz.plot_filter` when plotting filters created using ``output='ba'`` mode with `compensation` turned on. (by `Marian Dovgialo`_)
+- Fixed bug in :func:`mne.viz.plot_filter` when plotting filters created using ``output='ba'`` mode with ``compensation`` turned on. (by `Marian Dovgialo`_)
 
 API changes
 ~~~~~~~~~~~
