@@ -46,10 +46,13 @@ def test_spectrum_params(method, fmin, fmax, tmin, tmax, picks, proj, n_fft,
 
 @requires_h5py
 @pytest.mark.parametrize('inst', ('raw', 'epochs', 'evoked'))
-def test_spectrum_io(inst, tmp_path, request):
+def test_spectrum_io(inst, tmp_path, request, evoked):
     """Test save/load of spectrum objects."""
     fname = tmp_path / f'{inst}-spectrum.h5'
-    inst = request.getfixturevalue(inst)
+    # ↓ XXX workaround:
+    # ↓ parametrized fixtures are not accessible via request.getfixturevalue
+    # ↓ https://github.com/pytest-dev/pytest/issues/4666#issuecomment-456593913
+    inst = evoked if inst == 'evoked' else request.getfixturevalue(inst)
     orig = inst.compute_psd()
     orig.save(fname)
     loaded = read_spectrum(fname)
@@ -87,6 +90,7 @@ def test_spectrum_getitem_epochs(epochs):
 def _agg_helper(df, weights, group_cols):
     """Aggregate complex multitaper spectrum after conversion to DataFrame."""
     from pandas import Series
+
     unagged_columns = df[group_cols].iloc[0].values.tolist()
     x_mt = df.drop(columns=group_cols).values[np.newaxis].T
     psd = _psd_from_mt(x_mt, weights)
@@ -135,13 +139,16 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method):
 
 @requires_pandas
 @pytest.mark.parametrize('inst', ('raw', 'epochs', 'evoked'))
-def test_spectrum_to_data_frame(inst, request):
+def test_spectrum_to_data_frame(inst, request, evoked):
     """Test the to_data_frame method for Spectrum."""
     from pandas.testing import assert_frame_equal
 
     # setup
     is_epochs = inst == 'epochs'
-    inst = request.getfixturevalue(inst)
+    # ↓ XXX workaround:
+    # ↓ parametrized fixtures are not accessible via request.getfixturevalue
+    # ↓ https://github.com/pytest-dev/pytest/issues/4666#issuecomment-456593913
+    inst = evoked if inst == 'evoked' else request.getfixturevalue(inst)
     extra_dim = () if is_epochs else (1,)
     extra_cols = ['freq', 'condition', 'epoch'] if is_epochs else ['freq']
     # compute PSD
