@@ -13,7 +13,8 @@ import numpy as np
 
 from ..channels.channels import UpdateChannelsMixin, _get_ch_type
 from ..channels.layout import _merge_ch_data
-from ..defaults import _handle_default
+from ..defaults import (_BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                        _INTERPOLATION_DEFAULT, _handle_default)
 from ..io.meas_info import ContainsMixin
 from ..io.pick import _picks_to_idx, pick_info
 from ..utils import (GetEpochsMixin, _build_data_frame,
@@ -152,8 +153,14 @@ class ToSpectrumMixin():
     @verbose
     def plot_psd_topomap(self, bands=None, tmin=None, tmax=None, proj=False,
                          method='auto', ch_type=None, *, normalize=False,
-                         agg_fun=None, dB=False, outlines='head', sphere=None,
-                         cmap=None, vlim=(None, None), cbar_fmt='auto',
+                         agg_fun=None, dB=False, sensors=True,
+                         show_names=False, mask=None, mask_params=None,
+                         contours=6, outlines='head', sphere=None,
+                         image_interp=_INTERPOLATION_DEFAULT,
+                         extrapolate=_EXTRAPOLATE_DEFAULT,
+                         border=_BORDER_DEFAULT, res=64, size=1,
+                         cmap=None, vlim=(None, None), colorbar=True,
+                         cbar_fmt='auto', units=None,
                          axes=None, show=True, n_jobs=None, verbose=None,
                          **method_kw):
         """Plot scalp topography of PSD for chosen frequency bands.
@@ -168,11 +175,23 @@ class ToSpectrumMixin():
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
         %(dB_psd_topo)s
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+        %(mask_evoked_topomap)s
+        %(mask_params_topomap)s
+        %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+        %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
         %(cmap_psd_topo)s
         %(vlim_psd_topo_joint)s
+        %(colorbar_topomap)s
         %(cbar_fmt_psd_topo)s
+        %(units_topomap)s
         %(axes_psd_topo)s
         %(show)s
         %(n_jobs)s
@@ -189,9 +208,13 @@ class ToSpectrumMixin():
             n_jobs=n_jobs, verbose=verbose, **method_kw)
 
         fig = spectrum.plot_topomap(
-            bands=None, ch_type=None, normalize=False, agg_fun=None, dB=False,
-            outlines='head', sphere=None, cmap=None, vlim=(None, None),
-            cbar_fmt='auto', axes=None, show=True, n_jobs=None, verbose=None)
+            bands=bands, ch_type=ch_type, normalize=normalize, agg_fun=agg_fun,
+            dB=dB, sensors=sensors, show_names=show_names, mask=mask,
+            mask_params=mask_params, contours=contours, outlines=outlines,
+            sphere=sphere, image_interp=image_interp, extrapolate=extrapolate,
+            border=border, res=res, size=size, cmap=cmap, vlim=vlim,
+            cbar_fmt=cbar_fmt, axes=axes, show=show, n_jobs=n_jobs,
+            verbose=verbose)
         return fig
 
 
@@ -597,9 +620,13 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     @verbose
     def plot_topomap(self, bands=None, ch_type=None, *, normalize=False,
-                     agg_fun=None, dB=False, outlines='head', sphere=None,
-                     cmap=None, vlim=(None, None), cbar_fmt='auto',
-                     axes=None, show=True, n_jobs=None, verbose=None):
+                     agg_fun=None, dB=False, sensors=True, show_names=False,
+                     mask=None, mask_params=None, contours=6, outlines='head',
+                     sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+                     extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT,
+                     res=64, size=1, cmap=None, vlim=(None, None),
+                     colorbar=True, cbar_fmt='auto', units=None, axes=None,
+                     show=True, n_jobs=None, verbose=None):
         """Plot scalp topography of PSD for chosen frequency bands.
 
         Parameters
@@ -609,11 +636,23 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
         %(dB_psd_topo)s
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+        %(mask_evoked_topomap)s
+        %(mask_params_topomap)s
+        %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+        %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
         %(cmap_psd_topo)s
         %(vlim_psd_topo_joint)s
+        %(colorbar_topomap)s
         %(cbar_fmt_psd_topo)s
+        %(units_topomap)s
         %(axes_psd_topo)s
         %(show)s
         %(n_jobs)s
@@ -625,6 +664,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             Figure showing one scalp topography per frequency band.
         """
         # TODO: should replace / deprecate old API entrypoints for topomaps
+        # TODO: should suppress excess colorbars when vlim='joint'
         ch_type = _get_ch_type(self, ch_type)
         units = _handle_default('units', None)
         scalings = _handle_default('scalings', None)
