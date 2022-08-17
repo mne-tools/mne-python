@@ -563,10 +563,10 @@ def test_csd_tfr():
     data = rng.normal(
         size=(n_epochs, len(info.ch_names), times.size)) * 1e-6
     epochs = mne.EpochsArray(data, info)
-    csd_test = csd_morlet(epochs, freqs, n_cycles=7)
+    csd_test = csd_morlet(epochs, freqs, n_cycles=7, tmin=0.25, tmax=0.75)
     epochs_tfr = tfr_morlet(epochs, freqs, n_cycles=7,
                             average=False, return_itc=False,
                             output='complex')
-    csd = csd_tfr(epochs_tfr)
+    csd = csd_tfr(epochs_tfr, tmin=0.25, tmax=0.75)
     assert_allclose(csd._data, csd_test._data)
     assert_array_equal(csd.frequencies, freqs)
