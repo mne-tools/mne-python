@@ -666,9 +666,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # TODO: should replace / deprecate old API entrypoints for topomaps
         # TODO: should suppress excess colorbars when vlim='joint'
         ch_type = _get_ch_type(self, ch_type)
-        units = _handle_default('units', None)
+        if units is None:
+            units = _handle_default('units', None)
+        unit = units[ch_type] if hasattr(units, 'keys') else units
         scalings = _handle_default('scalings', None)
-        unit = units[ch_type]
         scaling = scalings[ch_type]
 
         picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
