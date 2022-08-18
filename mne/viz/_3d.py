@@ -1764,7 +1764,7 @@ def link_brains(brains, time=True, camera=False, colorbar=True,
                             " {} was given.".format(type(brain)))
         # enable time viewer if necessary
         brain.setup_time_viewer()
-    subjects = [brain._subject_id for brain in brains]
+    subjects = [brain._subject for brain in brains]
     if subjects.count(subjects[0]) != len(subjects):
         raise RuntimeError("Cannot link brains from different subjects.")
 
@@ -2009,7 +2009,7 @@ def _plot_stc(stc, subject, surface, hemi, colormap, time_label,
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
     kwargs = {
-        "subject_id": subject, "hemi": hemi, "surf": surface,
+        "subject": subject, "hemi": hemi, "surf": surface,
         "title": title, "cortex": cortex, "size": size,
         "background": background, "foreground": foreground,
         "figure": figure, "subjects_dir": subjects_dir,
