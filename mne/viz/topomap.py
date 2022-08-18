@@ -2133,10 +2133,11 @@ def plot_psds_topomap(
         if dB and not normalize:
             data = 10 * np.log10(data)
 
-        _plot_topomap_multi_cbar(data, pos, ax, title=title, vmin=vmin,
-                                 vmax=vmax, cmap=cmap, outlines=outlines,
-                                 colorbar=True, unit=unit, cbar_fmt=cbar_fmt,
-                                 sphere=sphere, ch_type=ch_type)
+        colorbar = vlim != 'joint' or ax == axes[-1]
+        _plot_topomap_multi_cbar(
+            data, pos, ax, title=title, vmin=vmin, vmax=vmax, cmap=cmap,
+            outlines=outlines, colorbar=colorbar, unit=unit, cbar_fmt=cbar_fmt,
+            sphere=sphere, ch_type=ch_type)
     tight_layout(fig=fig)
     fig.canvas.draw()
     plt_show(show)
