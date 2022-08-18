@@ -10,7 +10,7 @@
 from .annotate_amplitude import annotate_amplitude
 from .maxfilter import apply_maxfilter
 from .ssp import compute_proj_ecg, compute_proj_eog
-from .eog import find_eog_events, create_eog_epochs
+from .eog import find_eog_events, create_eog_epochs, eog_regression
 from .ecg import find_ecg_events, create_ecg_epochs
 from .ica import (ICA, ica_find_eog_events, ica_find_ecg_events,
                   get_score_funcs, read_ica, corrmap, read_ica_eeglab)

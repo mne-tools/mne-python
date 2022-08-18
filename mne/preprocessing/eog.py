@@ -10,7 +10,8 @@ from ._peak_finder import peak_finder
 from .. import pick_types, pick_channels
 from ..utils import logger, verbose, _pl, _validate_type
 from ..filter import filter_data
-from ..epochs import Epochs
+from ..epochs import BaseEpochs, Epochs
+from ..io import BaseRaw
 
 
 @verbose
@@ -249,3 +250,112 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
                         reject_by_annotation=reject_by_annotation,
                         decim=decim)
     return eog_epochs
+
+
+def eog_regression(inst, eog_evokeds=None, eog_channels=None, picks=None):
+    """Remove EOG signals from the EEG channels by regression.
+
+    Employs linear regression to remove EOG signals from other channels, as
+    described in [1]_. Optionally, one may chose to use evoked blink/saccade
+    data to obtain the regression weights as described in [2]_.
+
+    The operation is performed in-place.
+
+    Parameters
+    ----------
+    inst : Raw | Epochs
+        The data on which the EOG correction produce should be performed.
+    eog_evokeds : Evoked | list of Evoked | None
+        Optional recordings of averaged eye movements. For example averaged
+        blinks and/or saccades (use a list to supply different kinds of
+        movements). When specified, regression weights will be fitted on this
+        data, before being applied to the data given as ``inst`` parameter.
+        Regression weights obtained from averaged data might be more robust
+        [2]_.
+    eog_channels : str | list of str | None
+        The names of the EOG channels to use in the regression. By default, all
+        EOG channels are used.
+    picks : list of int | None
+        Channels from which to remove the EOG. By default, the correction is
+        applied to EEG channels only.
+
+    Returns
+    -------
+    inst : Raw | Epochs
+        The version of the data with the EOG removed.
+    weights : ndarray, shape (n_eog_channels, n_channels)
+        The regression weights. For each EOG channel, the fitted regression
+        weight to each data channel. The ordering of the weights matches the
+        ordering of the channels of the object given as ``inst`` parameter.
+    intercept : ndarray, shape (n_channels,)
+        For each data channel, the fitted intercept. The ordering of the
+        intercepts matches the ordering of the channels of the object given as
+        ``inst`` parameter.
+
+    References
+    ----------
+    .. [1] Gratton, G. and Coles, M. G. H. and Donchin, E. (1983). A new method
+           for off-line removal of ocular artifact. Electroencephalography and
+           Clinical Neurophysiology, 468-484.
+           https://doi.org/10.1016/0013-4694(83)90135-9
+    .. [2] Croft, R. J. and Barry, R. J. (1998). EOG correction: a new
+           aligned-artifact average solution. Clinical Neurophysiology, 107(6),
+           395-401. http://doi.org/10.1016/s0013-4694(98)00087-x
+    """
+    # Handle defaults for EOG channels parameter
+    if eog_channels is None:
+        eog_picks = pick_types(inst.info, meg=False, ref_meg=False, eog=True)
+        eog_channels = [inst.ch_names[ch] for ch in eog_picks]
+    elif isinstance(eog_channels, str):
+        eog_channels = [eog_channels]
+    eog_picks = [inst.ch_names.index(ch) for ch in eog_channels]
+    if len(eog_picks) == 0:
+        raise RuntimeError('No EOG channels found in given data instance. '
+                           'Make sure channel types are marked properly.')
+
+    # Default picks: channels to remove EOG from
+    if picks is None:
+        picks = pick_types(inst.info, meg=False, ref_meg=False, eeg=True)
+
+    # This is the data from which the EOG should be removed. When operating on
+    # epochs, concatenate all the epochs into a channels x time matrix.
+    data = inst._data
+    if isinstance(inst, BaseEpochs):
+        n_epochs, n_channels, n_samples = data.shape
+        data = data.transpose(1, 0, 2).reshape(n_channels, -1)
+
+    # This is the data on which to perform the regression. When eog_evokeds is
+    # not provided, this is the same as the data from which the EOG should be
+    # removed.
+    if eog_evokeds is not None:
+        # Make sure the channels of `eog_evokeds` are in the same order as
+        # those in `inst`.
+        try:
+            ev_eog_picks = [eog_evokeds.ch_names.index(ch)
+                            for ch in eog_channels]
+            ev_picks = [eog_evokeds.ch_names.index(inst.ch_names[ch])
+                        for ch in picks]
+        except ValueError:
+            raise RuntimeError('Cannot obtain all required regression weights '
+                               'from the given eog_evokeds, as some channels '
+                               'are missing.')
+        eog_data = eog_evokeds.data[ev_eog_picks]
+        reg_data = eog_evokeds.data[ev_picks]
+    else:
+        eog_data = data[eog_picks, :]
+        reg_data = data[picks, :]
+
+    # Calculate EOG weights. Add a row of ones to also fit the intercept.
+    eog_data = np.vstack((np.ones(eog_data.shape[1]), eog_data)).T
+    weights = np.linalg.lstsq(eog_data, reg_data.T)[0]
+    intercept = weights[0]
+    weights = weights[1:]
+
+    # Remove EOG from data.
+    data[picks, :] -= weights.T @ data[eog_picks, :] + intercept[:, None]
+    if isinstance(inst, BaseEpochs):
+        # Reshape the data back into epochs x channels x samples
+        data = data.reshape(n_channels, n_epochs, n_samples).transpose(1, 0, 2)
+    inst._data = data
+
+    return inst, weights, intercept
