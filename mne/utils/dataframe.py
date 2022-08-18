@@ -8,6 +8,7 @@ import numpy as np
 
 from ._logging import logger, verbose
 from ..defaults import _handle_default
+from ..fixes import _get_args
 
 
 @verbose
@@ -62,17 +63,21 @@ def _build_data_frame(inst, data, picks, long_format, mindex, index,
     for i, (k, v) in enumerate(mindex):
         df.insert(i, k, v)
     # build Index
+    kwargs = dict()
+    key = 'copy' if 'copy' in _get_args(df.set_index) else 'inplace'
+    val = False if key == 'copy' else True
+    kwargs[key] = val
     if long_format:
-        df.set_index(default_index, inplace=True)
+        df = df.set_index(default_index, **kwargs)
         df.columns.name = col_kind
     elif index is not None:
-        df.set_index(index, inplace=True)
+        df = df.set_index(index, **kwargs)
         if set(index) == set(default_index):
             df.columns.name = col_kind
     # long format
     if long_format:
         df = df.stack().reset_index()
-        df.rename(columns={0: 'value'}, inplace=True)
+        df = df.rename(columns={0: 'value'}, **kwargs)
         # add column for channel types (as appropriate)
         ch_map = (None if isinstance(inst, _BaseSourceEstimate) else
                   dict(zip(np.array(inst.ch_names)[picks],
@@ -83,7 +88,7 @@ def _build_data_frame(inst, data, picks, long_format, mindex, index,
             df.insert(col_index, 'ch_type', ch_type)
         # restore index
         if index is not None:
-            df.set_index(index, inplace=True)
+            df = df.set_index(index, **kwargs)
         # convert channel/vertex/ch_type columns to factors
         to_factor = [c for c in df.columns.tolist()
                      if c not in ('time', 'value')]
