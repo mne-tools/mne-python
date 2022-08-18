@@ -68,20 +68,16 @@ def _build_data_frame(inst, data, picks, long_format, mindex, index,
     val = False if key == 'copy' else True
     kwargs[key] = val
     if long_format:
-        df_ = df.set_index(default_index, **kwargs)
-        # and old Pandas returned None for inplace=True, so we need to check
-        df = df_ if df_ is not None else df
+        df = df.set_index(default_index, **kwargs)
         df.columns.name = col_kind
     elif index is not None:
-        df_ = df.set_index(index, **kwargs)
-        df = df_ if df_ is not None else df
+        df = df.set_index(index, **kwargs)
         if set(index) == set(default_index):
             df.columns.name = col_kind
     # long format
     if long_format:
         df = df.stack().reset_index()
-        df_ = df.rename(columns={0: 'value'}, **kwargs)
-        df = df_ if df_ is not None else df
+        df = df.rename(columns={0: 'value'}, **kwargs)
         # add column for channel types (as appropriate)
         ch_map = (None if isinstance(inst, _BaseSourceEstimate) else
                   dict(zip(np.array(inst.ch_names)[picks],
@@ -92,8 +88,7 @@ def _build_data_frame(inst, data, picks, long_format, mindex, index,
             df.insert(col_index, 'ch_type', ch_type)
         # restore index
         if index is not None:
-            df_ = df.set_index(index, **kwargs)
-            df = df_ if df_ is not None else df
+            df = df.set_index(index, **kwargs)
         # convert channel/vertex/ch_type columns to factors
         to_factor = [c for c in df.columns.tolist()
                      if c not in ('time', 'value')]
