@@ -239,7 +239,7 @@ class Brain(object):
                  views='auto', *, offset='auto', show_toolbar=None,
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', silhouette=False, theme=None,
-                 show=True, block=False, subject_id=None):
+                 show=True, block=False):
         from ..backends.renderer import backend, _get_renderer
 
         if show_toolbar is not None:
@@ -289,7 +289,7 @@ class Brain(object):
         self._hemi = hemi
         self._units = units
         self._alpha = float(alpha)
-        self._subject_id = subject
+        self._subject = subject
         self._subjects_dir = subjects_dir
         self._views = views
         self._times = None
