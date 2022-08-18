@@ -269,7 +269,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                    sfreq=self.info['sfreq'])
         if self.baseline is not None and baseline is None:
             raise ValueError('The data has already been baseline-corrected. '
-                             'Cannot remove existing basline correction.')
+                             'Cannot remove existing baseline correction.')
         elif baseline is None:
             # Do not rescale
             logger.info(_log_rescale(None))
