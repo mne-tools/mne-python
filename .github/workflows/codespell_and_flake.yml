@@ -41,4 +41,5 @@ jobs:
           quiet_level: '3'
           builtin: 'clear,rare,informal,names'
           ignore_words_file: 'ignore_words.txt'
+          uri_ignore_words_list: 'bu'
         name: 'Run codespell'
