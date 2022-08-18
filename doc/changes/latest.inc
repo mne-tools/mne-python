@@ -36,4 +36,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- None yet
+- The ``bands`` parameter of :meth:`mne.Epochs.plot_psd_topomap` now accepts :class:`dict` input; legacy :class:`tuple` input is supported, but discouraged for new code (:gh:`11050` by `Daniel McCloy`_)
