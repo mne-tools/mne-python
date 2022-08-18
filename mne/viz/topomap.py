@@ -2069,15 +2069,23 @@ def plot_psds_topomap(
         cbar_fmt = '%0.1f' if dB else '%0.3f'
 
     if bands is None:
-        bands = [(0, 4, 'Delta (0-4 Hz)'), (4, 8, 'Theta (4-8 Hz)'),
-                 (8, 12, 'Alpha (8-12 Hz)'), (12, 30, 'Beta (12-30 Hz)'),
-                 (30, 45, 'Gamma (30-45 Hz)')]
-    else:  # upconvert single freqs to band upper/lower edges as needed
-        bin_spacing = np.diff(freqs)[0]
-        bin_edges = np.array([0, bin_spacing]) - bin_spacing / 2
-        bands = [tuple(bin_edges + freqs[np.argmin(np.abs(freqs - band[0]))]) +
-                 (band[1],) if len(band) == 2 else band for band in bands]
-
+        bands = {'Delta (0-4 Hz)': (0, 4), 'Theta (4-8 Hz)': (4, 8),
+                 'Alpha (8-12 Hz)': (8, 12), 'Beta (12-30 Hz)': (12, 30),
+                 'Gamma (30-45 Hz)': (30, 45)}
+    elif not hasattr(bands, 'keys'):
+        # convert legacy list-of-tuple input to a dict
+        bands = {band[-1]: band[:-1] for band in bands}
+        logger.info('converting legacy list-of-tuples input to a dict for the '
+                    '`bands` parameter')
+    # upconvert single freqs to band upper/lower edges as needed
+    bin_spacing = np.diff(freqs)[0]
+    bin_edges = np.array([0, bin_spacing]) - bin_spacing / 2
+    for band, _edges in bands.items():
+        if not hasattr(_edges, '__len__'):
+            _edges = (_edges,)
+        if len(_edges) == 1:
+            bands[band] = tuple(bin_edges
+                                + freqs[np.argmin(np.abs(freqs - _edges[0]))])
     if agg_fun is None:
         agg_fun = np.sum if normalize else np.mean
 
@@ -2097,7 +2105,7 @@ def plot_psds_topomap(
     # handle vmin/vmax
     if vlim == 'joint':
         _freq_masks = [(fmin < freqs) & (freqs < fmax)
-                       for (fmin, fmax, _) in bands]
+                       for (fmin, fmax) in bands.values()]
         _datas = [agg_fun(psds[:, _freq_mask], axis=1)
                   for _freq_mask in _freq_masks]
         _datas = [10 * np.log10(_d) if (dB and not normalize) else _d
@@ -2116,7 +2124,7 @@ def plot_psds_topomap(
         if dB and not normalize:
             unit += ' (dB)'
 
-    for ax, (fmin, fmax, title) in zip(axes, bands):
+    for ax, (title, (fmin, fmax)) in zip(axes, bands.items()):
         freq_mask = (fmin < freqs) & (freqs < fmax)
         if freq_mask.sum() == 0:
             raise RuntimeError('No frequencies in band "%s" (%s, %s)'
