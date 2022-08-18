@@ -37,3 +37,5 @@ nin
 trough
 recuse
 ro
+nam
+bu

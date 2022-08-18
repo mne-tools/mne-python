@@ -1764,7 +1764,7 @@ class Coregistration(object):
         self._log_dig_mri_distance('Start')
         n_scale_params = self._n_scale_params
         if n_scale_params == 3:
-            # enfore 1 even for 3-axis here (3 points is not enough)
+            # enforce 1 even for 3-axis here (3 points is not enough)
             logger.info("Enforcing 1 scaling parameter for fit "
                         "with fiducials.")
             n_scale_params = 1
