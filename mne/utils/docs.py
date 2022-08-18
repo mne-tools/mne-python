@@ -279,18 +279,26 @@ bad_condition : str
 """
 
 docdict['bands_psd_topo'] = """
-bands : list of tuple | None
-    The frequencies or frequency ranges to plot. Length-2 tuples specify
-    a single frequency and a subplot title (e.g.,
-    ``(6.5, 'presentation rate')``); length-3 tuples specify lower and
-    upper band edges and a subplot title. If ``None`` (the default),
-    expands to::
+bands : None | dict | list of tuple
+    The frequencies or frequency ranges to plot. If a :class:`dict`, keys will
+    be used as subplot titles and values should be either a single frequency
+    (e.g., ``{'presentation rate': 6.5}``) or a length-two sequence of lower
+    and upper frequency band edges (e.g., ``{'theta': (4, 8)}``). If a single
+    frequency is provided, the plot will show the frequency bin that is closest
+    to the requested value. If ``None`` (the default), expands to::
 
-        bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
-                 (12, 30, 'Beta'), (30, 45, 'Gamma')]
+        bands = {'Delta (0-4 Hz)': (0, 4), 'Theta (4-8 Hz)': (4, 8),
+                 'Alpha (8-12 Hz)': (8, 12), 'Beta (12-30 Hz)': (12, 30),
+                 'Gamma (30-45 Hz)': (30, 45)}
 
-    In bands where a single frequency is provided, the topomap will reflect
-    the single frequency bin that is closest to the provided value.
+    .. note::
+       For backwards compatibility, :class:`tuples<tuple>` of length 2 or 3 are
+       also accepted, where the last element of the tuple is the subplot title
+       and the other entries are frequency values (a single value or band
+       edges). New code should use :class:`dict` or ``None``.
+
+    .. versionchanged:: 1.2
+       Allow passing a dict and discourage passing tuples.
 """
 
 docdict['base_estimator'] = """
