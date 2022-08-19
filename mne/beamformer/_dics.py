@@ -434,6 +434,11 @@ def apply_dics_csd(csd, filters, verbose=None):
     (CSD) object to estimate source power in time and frequency windows
     specified in the CSD object :footcite:`GrossEtAl2001`.
 
+    .. note:: Only power can computed from the cross-spectral density, not
+              complex phase-amplitude, so vector DICS filters will be
+              converted to scalar source estimates since power is strictly
+              positive and so 3D directions cannot be combined meaningfully.
+
     Parameters
     ----------
     csd : instance of CrossSpectralDensity
@@ -469,9 +474,7 @@ def apply_dics_csd(csd, filters, verbose=None):
     frequencies = [np.mean(dfreq) for dfreq in csd.frequencies]
     n_freqs = len(frequencies)
 
-    source_power = np.zeros(
-        (n_sources * (3 if filters['pick_ori'] == 'vector' else 1),
-         len(csd.frequencies)))
+    source_power = np.zeros((n_sources, len(csd.frequencies)))
 
     # Ensure the CSD is in the same order as the weights
     csd_picks = [csd.ch_names.index(ch) for ch in ch_names]
@@ -498,7 +501,5 @@ def apply_dics_csd(csd, filters, verbose=None):
 
     return (_make_stc(source_power, vertices=vertices,
                       src_type=filters['src_type'], tmin=0., tstep=1.,
-                      vector=(filters['pick_ori'] == 'vector'),
-                      source_nn=filters['source_nn'],
                       subject=subject, warn_text=warn_text),
             frequencies)
