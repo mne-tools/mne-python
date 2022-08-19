@@ -9,9 +9,10 @@ import numpy as np
 from ._peak_finder import peak_finder
 from .. import pick_types, pick_channels
 from ..utils import logger, verbose, _pl, _validate_type
+from ..utils.check import _check_preload
 from ..filter import filter_data
 from ..epochs import BaseEpochs, Epochs
-from ..io import BaseRaw
+from ..io.pick import _picks_to_idx
 
 
 @verbose
@@ -252,7 +253,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
     return eog_epochs
 
 
-def eog_regression(inst, eog_evokeds=None, eog_channels=None, picks=None):
+def eog_regression(inst, eog_evokeds=None, eog_channels='eog', picks='data'):
     """Remove EOG signals from the EEG channels by regression.
 
     Employs linear regression to remove EOG signals from other channels, as
@@ -303,22 +304,15 @@ def eog_regression(inst, eog_evokeds=None, eog_channels=None, picks=None):
            395-401. http://doi.org/10.1016/s0013-4694(98)00087-x
     """
     # Handle defaults for EOG channels parameter
-    if eog_channels is None:
-        eog_picks = pick_types(inst.info, meg=False, ref_meg=False, eog=True)
-        eog_channels = [inst.ch_names[ch] for ch in eog_picks]
-    elif isinstance(eog_channels, str):
-        eog_channels = [eog_channels]
-    eog_picks = [inst.ch_names.index(ch) for ch in eog_channels]
+    eog_picks = _picks_to_idx(inst.info, eog_channels)
     if len(eog_picks) == 0:
         raise RuntimeError('No EOG channels found in given data instance. '
                            'Make sure channel types are marked properly.')
-
-    # Default picks: channels to remove EOG from
-    if picks is None:
-        picks = pick_types(inst.info, meg=False, ref_meg=False, eeg=True)
+    picks = _picks_to_idx(inst.info, picks)
 
     # This is the data from which the EOG should be removed. When operating on
     # epochs, concatenate all the epochs into a channels x time matrix.
+    _check_preload(inst, 'EOG regression')
     data = inst._data
     if isinstance(inst, BaseEpochs):
         n_epochs, n_channels, n_samples = data.shape
@@ -331,8 +325,8 @@ def eog_regression(inst, eog_evokeds=None, eog_channels=None, picks=None):
         # Make sure the channels of `eog_evokeds` are in the same order as
         # those in `inst`.
         try:
-            ev_eog_picks = [eog_evokeds.ch_names.index(ch)
-                            for ch in eog_channels]
+            ev_eog_picks = [eog_evokeds.ch_names.index(inst.ch_names[ch])
+                            for ch in eog_picks]
             ev_picks = [eog_evokeds.ch_names.index(inst.ch_names[ch])
                         for ch in picks]
         except ValueError:
