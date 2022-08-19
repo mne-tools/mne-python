@@ -35,7 +35,7 @@ dependencies:
 - darkdetect
 - dipy
 - nibabel
-- openmeeg
+- openmeeg>=2.5.0
 - nilearn
 - python-picard
 - qtpy
