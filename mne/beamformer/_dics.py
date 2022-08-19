@@ -213,7 +213,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     max_oris = []
     for i, freq in enumerate(frequencies):
         if n_freqs > 1:
-            logger.info('    applying DICS spatial filter at '
+            logger.info('    computing DICS spatial filter at '
                         f'{round(freq, 2)} Hz ({i + 1}/{n_freqs})')
 
         Cm = csd.get_data(index=i)
