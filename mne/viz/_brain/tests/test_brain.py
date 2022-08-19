@@ -198,8 +198,10 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     with pytest.raises(ValueError, match='RGB argument'):
         Brain('sample', cortex='badcolor')
     # test no surfaces
-    with pytest.deprecated_call(match='show_toolbar'):
-        Brain(subject=subject, hemi=None, surf=None, show_toolbar=True)
+    with pytest.deprecated_call(match='show_toolbar'):  # and subject_id
+        Brain(subject_id=subject, hemi=None, surf=None, show_toolbar=True)
+    with pytest.raises(TypeError, match='missing 1 required positional'):
+        Brain()
     renderer_pyvistaqt.backend._close_all()
 
     brain = Brain(hemi=hemi, surf=surf, size=size, title=title,

@@ -64,6 +64,9 @@ class Brain(object):
     ----------
     subject : str
         Subject name in Freesurfer subjects dir.
+
+        .. versionchanged:: 1.2
+           This parameter was renamed from ``subject_id`` to ``subject``.
     hemi : str
         Hemisphere id (ie 'lh', 'rh', 'both', or 'split'). In the case
         of 'both', both hemispheres are shown in the same window.
@@ -140,6 +143,8 @@ class Brain(object):
         Display the window as soon as it is ready. Defaults to True.
     block : bool
         If True, start the Qt application event loop. Default to False.
+    subject_id : str | None
+        Deprecated, use ``subject`` instead.
 
     Attributes
     ----------
@@ -233,18 +238,29 @@ class Brain(object):
        +-------------------------------------+--------------+---------------+
     """
 
-    def __init__(self, subject, hemi='both', surf='pial', title=None,
+    def __init__(self, subject=None, hemi='both', surf='pial', title=None,
                  cortex="classic", alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
                  views='auto', *, offset='auto', show_toolbar=None,
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', silhouette=False, theme=None,
-                 show=True, block=False):
+                 show=True, block=False, subject_id=None):
         from ..backends.renderer import backend, _get_renderer
 
         if show_toolbar is not None:
-            warn('show_toolbar is deprecated and will be removed in 1.2.',
+            warn('show_toolbar is deprecated and will be removed in 1.3.',
                  DeprecationWarning)
+        # This and the "if subject is None" conditional should be removed in
+        # 1.3, and the default subject=None switched to subject (no default)
+        if subject_id is not None:
+            warn('subject_id is deprecated and will be removed in 1.3, use '
+                 'subject instead.', DeprecationWarning)
+            subject = subject_id
+        if subject is None:
+            # raise the same error that we'd get if subject had no default
+            raise TypeError("Brain.__init__() missing 1 required positional "
+                            "argument: 'subject'")
+        _validate_type(subject, str, 'subject')
         if hemi is None:
             hemi = 'vol'
         hemi = self._check_hemi(hemi, extras=('both', 'split', 'vol'))
