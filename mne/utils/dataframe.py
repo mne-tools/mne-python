@@ -8,6 +8,7 @@ import numpy as np
 
 from ._logging import logger, verbose
 from ..defaults import _handle_default
+from ..fixes import _get_args
 
 
 @verbose
@@ -47,6 +48,16 @@ def _convert_times(inst, times, time_format):
     return times
 
 
+def _inplace(df, method, **kwargs):
+    """Handle transition: inplace=True (pandas <1.5) → copy=False (>=1.5)."""
+    _meth = getattr(df, method)  # used for set_index() and rename()
+    if 'copy' in _get_args(_meth):
+        return _meth(**kwargs, copy=False)
+    else:
+        _meth(**kwargs, inplace=True)
+        return df
+
+
 @verbose
 def _build_data_frame(inst, data, picks, long_format, mindex, index,
                       default_index, col_names=None, col_kind='channel',
@@ -63,16 +74,16 @@ def _build_data_frame(inst, data, picks, long_format, mindex, index,
         df.insert(i, k, v)
     # build Index
     if long_format:
-        df.set_index(default_index, inplace=True)
+        df = _inplace(df, 'set_index', keys=default_index)
         df.columns.name = col_kind
     elif index is not None:
-        df.set_index(index, inplace=True)
+        df = _inplace(df, 'set_index', keys=index)
         if set(index) == set(default_index):
             df.columns.name = col_kind
     # long format
     if long_format:
         df = df.stack().reset_index()
-        df.rename(columns={0: 'value'}, inplace=True)
+        df = _inplace(df, 'rename', columns={0: 'value'})
         # add column for channel types (as appropriate)
         ch_map = (None if isinstance(inst, _BaseSourceEstimate) else
                   dict(zip(np.array(inst.ch_names)[picks],
@@ -83,7 +94,7 @@ def _build_data_frame(inst, data, picks, long_format, mindex, index,
             df.insert(col_index, 'ch_type', ch_type)
         # restore index
         if index is not None:
-            df.set_index(index, inplace=True)
+            df = _inplace(df, 'set_index', keys=index)
         # convert channel/vertex/ch_type columns to factors
         to_factor = [c for c in df.columns.tolist()
                      if c not in ('time', 'value')]
