@@ -16,8 +16,6 @@ import sys
 import tempfile
 import re
 
-import numpy as np
-
 from .check import (_validate_type, _check_qt_version, _check_option,
                     _check_fname)
 from .docs import fill_doc
