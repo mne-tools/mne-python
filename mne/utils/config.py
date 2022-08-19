@@ -531,7 +531,6 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         nibabel:       3.1.1
         nilearn:       0.7.0
         dipy:          1.1.1
-        openmeeg:      2.5.0
         cupy:          Not found
         pandas:        1.0.5
         pyvista:       0.25.3 {pyvistaqt=0.1.1, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 7.0, 256 bits)}
