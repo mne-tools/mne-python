@@ -578,8 +578,7 @@ class TimeMixin(object):
         self._update_first_last()
         return self
 
-    # Overridden method signature does not match call...
-    def time_as_index(self, times, use_rounding=False):  # lgtm
+    def time_as_index(self, times, use_rounding=False):
         """Convert time to indices.
 
         Parameters
