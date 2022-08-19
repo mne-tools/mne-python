@@ -14,3 +14,4 @@ https://github.com/mne-tools/mne-bids/zipball/main
 pyxdf
 https://github.com/mne-tools/mne-connectivity/archive/main.zip
 pytest
+graphviz
