@@ -664,7 +664,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             Figure showing one scalp topography per frequency band.
         """
         # TODO: should replace / deprecate old API entrypoints for topomaps
-        # TODO: should suppress excess colorbars when vlim='joint'
         ch_type = _get_ch_type(self, ch_type)
         if units is None:
             units = _handle_default('units', None)
@@ -684,11 +683,26 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         if merge_channels:
             psds, names = _merge_ch_data(psds, ch_type, names, method='mean')
 
+        # XXX missing from below call (not in its API yet):
+        # sensors
+        # show_names
+        # mask
+        # mask_params
+        # contours
+        # image_interp
+        # extrapolate
+        # border
+        # res
+        # size
+        # colorbar
+        # n_jobs
+        # verbose
         return plot_psds_topomap(
             psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun,
             bands=bands, cmap=cmap, dB=dB, normalize=normalize,
             cbar_fmt=cbar_fmt, outlines=outlines, axes=axes, show=show,
             sphere=sphere, vlim=vlim, unit=unit, ch_type=ch_type)
+
 
     @verbose
     def save(self, fname, *, overwrite=False, verbose=None):
