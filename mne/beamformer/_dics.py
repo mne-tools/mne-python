@@ -437,7 +437,8 @@ def apply_dics_csd(csd, filters, verbose=None):
     .. note:: Only power can computed from the cross-spectral density, not
               complex phase-amplitude, so vector DICS filters will be
               converted to scalar source estimates since power is strictly
-              positive and so 3D directions cannot be combined meaningfully.
+              positive and so 3D directions cannot be combined meaningfully
+              (the direction would be confined to the positive quadrent).
 
     Parameters
     ----------
