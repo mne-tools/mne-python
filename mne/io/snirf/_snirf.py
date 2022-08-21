@@ -305,7 +305,7 @@ class RawSNIRF(BaseRaw):
             if need_data_scale:
                 snirf_data_unit = np.array(
                     dat.get('nirs/data1/measurementList1/dataUnit', b'M')
-                    ).item().decode('utf-8')
+                snirf_data_unit = snirf_data_unit.item().decode('utf-8')
                 data_scale = _get_dataunit_scaling(snirf_data_unit)
 
             # Create mne structure
@@ -545,6 +545,7 @@ def _get_dataunit_scaling(hbx_unit):
         raise RuntimeError(f'The Hb unit {hbx_unit} is not supported '
                            'by MNE. Please report this error as a GitHub '
                            'issue to inform the developers.')
+
 
 def _extract_sampling_rate(dat):
     """Extract the sample rate from the time field."""

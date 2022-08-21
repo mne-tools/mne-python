@@ -1595,6 +1595,10 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         Regularization factor for fNIRS raw phase signals.
     fnirs_od : float (default 0.1)
         Regularization factor for fNIRS optical density signals.
+    fnirs_td_gated_amplitude : float (default 0.1)
+        Regularization factor for fNIRS time domain gated amplitude signals.
+    fnirs_td_moments_amplitude : float (default 0.1)
+        Regularization factor for fNIRS time domain moments amplitude signals.
     csd : float (default 0.1)
         Regularization factor for EEG-CSD signals.
     dbs : float (default 0.1)
@@ -1628,7 +1632,10 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     regs = dict(eeg=eeg, seeg=seeg, dbs=dbs, ecog=ecog, hbo=hbo, hbr=hbr,
                 fnirs_cw_amplitude=fnirs_cw_amplitude,
                 fnirs_fd_ac_amplitude=fnirs_fd_ac_amplitude,
-                fnirs_fd_phase=fnirs_fd_phase, fnirs_od=fnirs_od, csd=csd)
+                fnirs_fd_phase=fnirs_fd_phase, fnirs_od=fnirs_od,
+                fnirs_td_gated_amplitude=fnirs_td_gated_amplitude,
+                fnirs_td_moments_amplitude=fnirs_td_moments_amplitude,
+                csd=csd)
 
     if exclude is None:
         raise ValueError('exclude must be a list of strings or "bads"')
