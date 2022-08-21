@@ -6,8 +6,8 @@ from contextlib import nullcontext
 from copy import deepcopy
 import os
 import os.path as op
-from shutil import copyfile
 import re
+from shutil import copyfile
 
 import numpy as np
 from numpy.fft import fft
@@ -33,7 +33,6 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  compute_source_morph, labels_to_stc, scale_mri,
                  write_source_spaces)
 from mne.datasets import testing
-from mne.externals.h5io import write_hdf5
 from mne.fixes import _get_img_fdata
 from mne.io import read_info
 from mne.io.constants import FIFF
@@ -45,7 +44,7 @@ from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (requires_pandas, requires_sklearn, catch_logging,
-                       requires_h5py, requires_nibabel, requires_version)
+                       requires_nibabel, requires_version, _record_warnings)
 from mne.io import read_raw_fif
 
 data_path = testing.data_path(download=False)
@@ -148,9 +147,10 @@ def test_spatial_inter_hemi_adjacency():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_h5py
-def test_volume_stc(tmpdir):
+@requires_version('h5io')
+def test_volume_stc(tmp_path):
     """Test volume STCs."""
+    from h5io import write_hdf5
     N = 100
     data = np.arange(N)[:, np.newaxis]
     datas = [data,
@@ -173,12 +173,12 @@ def test_volume_stc(tmpdir):
             stc = VolVectorSourceEstimate(data, [vertno], 0, 1)
             ext = 'h5'
             klass = VolVectorSourceEstimate
-        fname_temp = tmpdir.join('temp-vl.' + ext)
+        fname_temp = tmp_path / ('temp-vl.' + ext)
         stc_new = stc
         n = 3 if ext == 'h5' else 2
         for ii in range(n):
             if ii < 2:
-                stc_new.save(fname_temp)
+                stc_new.save(fname_temp, overwrite=True)
             else:
                 # Pass stc.vertices[0], an ndarray, to ensure support for
                 # the way we used to write volume STCs
@@ -201,11 +201,13 @@ def test_volume_stc(tmpdir):
     assert ' kB' in repr(stc)
 
     stc_new = stc
-    pytest.raises(ValueError, stc.save, fname_vol, ftype='whatever')
+    fname_temp = tmp_path / ('temp-vl.stc')
+    with pytest.raises(ValueError, match="'ftype' parameter"):
+        stc.save(fname_vol, ftype='whatever', overwrite=True)
     for ftype in ['w', 'h5']:
         for _ in range(2):
-            fname_temp = tmpdir.join('temp-vol.%s' % ftype)
-            stc_new.save(fname_temp, ftype=ftype)
+            fname_temp = tmp_path / ('temp-vol.%s' % ftype)
+            stc_new.save(fname_temp, ftype=ftype, overwrite=True)
             stc_new = read_source_estimate(fname_temp)
             assert (isinstance(stc_new, VolSourceEstimate))
             assert_array_equal(stc.vertices[0], stc_new.vertices[0])
@@ -240,11 +242,11 @@ def test_stc_as_volume():
 
 @testing.requires_testing_data
 @requires_nibabel()
-def test_save_vol_stc_as_nifti(tmpdir):
+def test_save_vol_stc_as_nifti(tmp_path):
     """Save the stc as a nifti file and export."""
     import nibabel as nib
     src = read_source_spaces(fname_vsrc)
-    vol_fname = tmpdir.join('stc.nii.gz')
+    vol_fname = tmp_path / 'stc.nii.gz'
 
     # now let's actually read a MNE-C processed file
     stc = read_source_estimate(fname_vol, 'sample')
@@ -252,15 +254,15 @@ def test_save_vol_stc_as_nifti(tmpdir):
 
     stc.save_as_volume(vol_fname, src,
                        dest='surf', mri_resolution=False)
-    with pytest.warns(None):  # nib<->numpy
+    with _record_warnings():  # nib<->numpy
         img = nib.load(str(vol_fname))
     assert (img.shape == src[0]['shape'] + (len(stc.times),))
 
-    with pytest.warns(None):  # nib<->numpy
+    with _record_warnings():  # nib<->numpy
         t1_img = nib.load(fname_t1)
-    stc.save_as_volume(tmpdir.join('stc.nii.gz'), src,
-                       dest='mri', mri_resolution=True)
-    with pytest.warns(None):  # nib<->numpy
+    stc.save_as_volume(vol_fname, src, dest='mri', mri_resolution=True,
+                       overwrite=True)
+    with _record_warnings():  # nib<->numpy
         img = nib.load(str(vol_fname))
     assert (img.shape == t1_img.shape + (len(stc.times),))
     assert_allclose(img.affine, t1_img.affine, atol=1e-5)
@@ -410,11 +412,11 @@ def test_stc_attributes():
     assert stc.data.shape == (len(data), 1)
 
 
-def test_io_stc(tmpdir):
+def test_io_stc(tmp_path):
     """Test IO for STC files."""
     stc = _fake_stc()
-    stc.save(tmpdir.join("tmp.stc"))
-    stc2 = read_source_estimate(tmpdir.join("tmp.stc"))
+    stc.save(tmp_path / "tmp.stc")
+    stc2 = read_source_estimate(tmp_path / "tmp.stc")
 
     assert_array_almost_equal(stc.data, stc2.data)
     assert_array_almost_equal(stc.tmin, stc2.tmin)
@@ -425,23 +427,28 @@ def test_io_stc(tmpdir):
     # test warning for complex data
     stc2.data = stc2.data.astype(np.complex128)
     with pytest.raises(ValueError, match='Cannot save complex-valued STC'):
-        stc2.save(tmpdir.join('complex.stc'))
+        stc2.save(tmp_path / 'complex.stc')
 
 
-@requires_h5py
+@requires_version('h5io')
 @pytest.mark.parametrize('is_complex', (True, False))
 @pytest.mark.parametrize('vector', (True, False))
-def test_io_stc_h5(tmpdir, is_complex, vector):
+def test_io_stc_h5(tmp_path, is_complex, vector):
     """Test IO for STC files using HDF5."""
     if vector:
         stc = _fake_vec_stc(is_complex=is_complex)
     else:
         stc = _fake_stc(is_complex=is_complex)
-    pytest.raises(ValueError, stc.save, tmpdir.join('tmp'),
-                  ftype='foo')
-    out_name = tmpdir.join('tmp')
+    match = 'can only be written' if vector else "Invalid value for the 'ftype"
+    with pytest.raises(ValueError, match=match):
+        stc.save(tmp_path / 'tmp.h5', ftype='foo')
+    out_name = str(tmp_path / 'tmp')
     stc.save(out_name, ftype='h5')
-    stc.save(out_name, ftype='h5')  # test overwrite
+    # test overwrite
+    assert op.isfile(out_name + '-stc.h5')
+    with pytest.raises(FileExistsError, match='Destination file exists'):
+        stc.save(out_name, ftype='h5')
+    stc.save(out_name, ftype='h5', overwrite=True)
     stc3 = read_source_estimate(out_name)
     stc4 = read_source_estimate(out_name + '-stc')
     stc5 = read_source_estimate(out_name + '-stc.h5')
@@ -457,14 +464,14 @@ def test_io_stc_h5(tmpdir, is_complex, vector):
             assert_array_equal(v1, v2)
 
 
-def test_io_w(tmpdir):
+def test_io_w(tmp_path):
     """Test IO for w files."""
     stc = _fake_stc(n_time=1)
-    w_fname = tmpdir.join('fake')
+    w_fname = tmp_path / 'fake'
     stc.save(w_fname, ftype='w')
     src = read_source_estimate(w_fname)
-    src.save(tmpdir.join('tmp'), ftype='w')
-    src2 = read_source_estimate(tmpdir.join('tmp-lh.w'))
+    src.save(tmp_path / 'tmp', ftype='w')
+    src2 = read_source_estimate(tmp_path / 'tmp-lh.w')
     assert_array_almost_equal(src.data, src2.data)
     assert_array_almost_equal(src.lh_vertno, src2.lh_vertno)
     assert_array_almost_equal(src.rh_vertno, src2.rh_vertno)
@@ -691,7 +698,8 @@ def test_extract_label_time_course(kind, vector):
             with pytest.raises(ValueError, match='when using a vector'):
                 extract_label_time_course(stcs, labels, src, mode=mode)
             continue
-        label_tc = extract_label_time_course(stcs, labels, src, mode=mode)
+        with _record_warnings():  # SVD convergence on arm64
+            label_tc = extract_label_time_course(stcs, labels, src, mode=mode)
         label_tc_method = [stc.extract_label_time_course(labels, src,
                                                          mode=mode)
                            for stc in stcs]
@@ -885,7 +893,7 @@ def test_extract_label_time_course_volume(
             assert_allclose(_varexp(label_tc, label_tc), 1.)
             ve = _varexp(stc_back.data, stcs[0].data)
             assert 0.83 < ve < 0.85
-            with pytest.warns(None):  # ignore warnings about no output
+            with _record_warnings():  # ignore no output
                 label_tc_rt = extract_label_time_course(
                     stc_back, labels, src=src, mri_resolution=mri_res,
                     allow_empty=True)
@@ -1089,7 +1097,7 @@ def test_to_data_frame():
         assert_array_equal(df.values.T[2:], stc.data)
         # test long format
         df_long = stc.to_data_frame(long_format=True)
-        assert(len(df_long) == stc.data.size)
+        assert len(df_long) == stc.data.size
         expected = ('subject', 'time', 'source', 'value')
         assert set(expected) == set(df_long.columns)
 
@@ -1143,7 +1151,7 @@ def test_get_peak(kind, vector, n_times):
     with pytest.raises(ValueError, match='out of bounds'):
         stc.get_peak(tmax=90)
     with pytest.raises(ValueError,
-                       match='smaller or equal' if n_times > 1 else 'out of'):
+                       match='must be <=' if n_times > 1 else 'out of'):
         stc.get_peak(tmin=0.002, tmax=0.001)
 
     vert_idx, time_idx = stc.get_peak()
@@ -1168,9 +1176,9 @@ def test_get_peak(kind, vector, n_times):
             stc.get_peak(hemi='rh')
 
 
-@requires_h5py
+@requires_version('h5io')
 @testing.requires_testing_data
-def test_mixed_stc(tmpdir):
+def test_mixed_stc(tmp_path):
     """Test source estimate from mixed source space."""
     N = 90  # number of sources
     T = 2  # number of time points
@@ -1186,7 +1194,7 @@ def test_mixed_stc(tmpdir):
     stc = MixedSourceEstimate(data, vertno, 0, 1)
 
     # make sure error is raised for plotting surface with volume source
-    fname = tmpdir.join('mixed-stc.h5')
+    fname = tmp_path / 'mixed-stc.h5'
     stc.save(fname)
     stc_out = read_source_estimate(fname)
     assert_array_equal(stc_out.vertices, vertno)
@@ -1196,7 +1204,7 @@ def test_mixed_stc(tmpdir):
     assert isinstance(stc_out, MixedSourceEstimate)
 
 
-@requires_h5py
+@requires_version('h5io')
 @pytest.mark.parametrize('klass, kind', [
     (VectorSourceEstimate, 'surf'),
     (VolVectorSourceEstimate, 'vol'),
@@ -1205,7 +1213,7 @@ def test_mixed_stc(tmpdir):
 ])
 @pytest.mark.parametrize('dtype', [
     np.float32, np.float64, np.complex64, np.complex128])
-def test_vec_stc_basic(tmpdir, klass, kind, dtype):
+def test_vec_stc_basic(tmp_path, klass, kind, dtype):
     """Test (vol)vector source estimate."""
     nn = np.array([
         [1, 0, 0],
@@ -1278,7 +1286,7 @@ def test_vec_stc_basic(tmpdir, klass, kind, dtype):
     assert_allclose(got_directions, directions * flips)
     assert_allclose(projected.data, amplitudes * flips)
 
-    out_name = tmpdir.join('temp.h5')
+    out_name = tmp_path / 'temp.h5'
     stc.save(out_name)
     stc_read = read_source_estimate(out_name)
     assert_allclose(stc.data, stc_read.data)
@@ -1530,20 +1538,21 @@ def test_vol_mask():
 
 
 @testing.requires_testing_data
-def test_stc_near_sensors(tmpdir):
+def test_stc_near_sensors(tmp_path):
     """Test stc_near_sensors."""
     info = read_info(fname_evoked)
     # pick the left EEG sensors
     picks = pick_types(info, meg=False, eeg=True, exclude=())
     picks = [pick for pick in picks if info['chs'][pick]['loc'][0] < 0]
     pick_info(info, picks, copy=False)
-    info['projs'] = []
+    with info._unlock():
+        info['projs'] = []
     info['bads'] = []
     assert info['nchan'] == 33
     evoked = EvokedArray(np.eye(info['nchan']), info)
     trans = read_trans(fname_fwd)
     assert trans['to'] == FIFF.FIFFV_COORD_HEAD
-    this_dir = str(tmpdir)
+    this_dir = str(tmp_path)
     # testing does not have pial, so fake it
     os.makedirs(op.join(this_dir, 'sample', 'surf'))
     for hemi in ('lh', 'rh'):
@@ -1609,14 +1618,15 @@ def test_stc_near_sensors(tmpdir):
     # and now with volumetric projection
     src = read_source_spaces(fname_vsrc)
     with catch_logging() as log:
-        stc_vol = stc_near_sensors(evoked, trans, 'sample', src=src,
-                                   subjects_dir=subjects_dir, verbose=True,
-                                   distance=0.033)
+        stc_vol = stc_near_sensors(
+            evoked, trans, 'sample', src=src, surface=None,
+            subjects_dir=subjects_dir, distance=0.033, verbose=True)
     assert isinstance(stc_vol, VolSourceEstimate)
     log = log.getvalue()
     assert '4157 volume vertices' in log
 
 
+@requires_version('pymatreader')
 @testing.requires_testing_data
 def test_stc_near_sensors_picks():
     """Test using picks with stc_near_sensors."""
@@ -1625,7 +1635,7 @@ def test_stc_near_sensors_picks():
     src = mne.read_source_spaces(fname_src_fs)
     kwargs = dict(
         evoked=evoked, subject='fsaverage', trans='fsaverage',
-        subjects_dir=subjects_dir, src=src, project=True)
+        subjects_dir=subjects_dir, src=src, surface=None, project=True)
     with pytest.raises(ValueError, match='No appropriate channels'):
         stc_near_sensors(**kwargs)
     picks = np.arange(len(info['ch_names']))
@@ -1659,9 +1669,9 @@ def _make_morph_map_hemi_same(subject_from, subject_to, subjects_dir,
     'surface',
 ))
 @pytest.mark.parametrize('scale', ((1.0, 0.8, 1.2), 1., 0.9))
-def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
+def test_scale_morph_labels(kind, scale, monkeypatch, tmp_path):
     """Test label extraction, morphing, and MRI scaling relationships."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     subject_from = 'sample'
     subject_to = 'small'
     testing_dir = op.join(subjects_dir, subject_from)
@@ -1782,7 +1792,7 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
         want_affine = np.eye(4)
         want_affine.ravel()[::5][:3] = 1. / np.array(scale, float)
         # just a scaling (to within 1% if zooms=None, 20% with zooms=10)
-        assert_allclose(want_affine[:, :3], got_affine[:, :3], atol=2e-1)
+        assert_allclose(want_affine[:, :3], got_affine[:, :3], atol=0.4)
         assert got_affine[3, 3] == 1.
         # little translation (to within `limit` mm)
         move = np.linalg.norm(got_affine[:3, 3])
@@ -1801,10 +1811,10 @@ def test_scale_morph_labels(kind, scale, monkeypatch, tmpdir):
                 min_, max_ = 0.57, 0.67
             elif scale == 1:
                 # min_, max_ = 0.85, 0.875  # zooms='auto' values
-                min_, max_ = 0.72, 0.75
+                min_, max_ = 0.72, 0.76
             else:
                 # min_, max_ = 0.84, 0.855  # zooms='auto' values
-                min_, max_ = 0.61, 0.63
+                min_, max_ = 0.46, 0.63
             assert min_ < corr <= max_, scale
         else:
             assert_allclose(

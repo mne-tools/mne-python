@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 """
-.. _example-movement-comp:
+.. _ex-movement-comp:
 
 ==============================================
 Maxwell filter data with movement compensation
@@ -19,19 +20,16 @@ details:
 
 # %%
 
-from os import path as op
-
 import mne
 from mne.preprocessing import maxwell_filter
 
 print(__doc__)
 
-data_path = op.join(mne.datasets.misc.data_path(verbose=True), 'movement')
+data_path = mne.datasets.misc.data_path(verbose=True) / 'movement'
 
-head_pos = mne.chpi.read_head_pos(op.join(data_path, 'simulated_quats.pos'))
-raw = mne.io.read_raw_fif(op.join(data_path, 'simulated_movement_raw.fif'))
-raw_stat = mne.io.read_raw_fif(op.join(data_path,
-                                       'simulated_stationary_raw.fif'))
+head_pos = mne.chpi.read_head_pos(data_path / 'simulated_quats.pos')
+raw = mne.io.read_raw_fif(data_path / 'simulated_movement_raw.fif')
+raw_stat = mne.io.read_raw_fif(data_path / 'simulated_stationary_raw.fif')
 
 # %%
 # Visualize the "subject" head movements. By providing the measurement

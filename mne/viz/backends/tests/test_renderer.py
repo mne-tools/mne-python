@@ -12,15 +12,13 @@ import pytest
 import numpy as np
 
 from mne.utils import run_subprocess
-from mne.viz import set_3d_backend, get_3d_backend
+from mne.viz import set_3d_backend, get_3d_backend, Figure3D
 from mne.viz.backends.renderer import _get_renderer
-from mne.viz.backends.tests._utils import (skips_if_not_mayavi,
-                                           skips_if_not_pyvistaqt)
+from mne.viz.backends.tests._utils import skips_if_not_pyvistaqt
 from mne.viz.backends._utils import ALLOWED_QUIVER_MODES
 
 
 @pytest.mark.parametrize('backend', [
-    pytest.param('mayavi', marks=skips_if_not_mayavi),
     pytest.param('pyvistaqt', marks=skips_if_not_pyvistaqt),
     pytest.param('foo', marks=pytest.mark.xfail(raises=ValueError)),
 ])
@@ -42,15 +40,16 @@ def test_backend_environment_setup(backend, monkeypatch):
 def test_3d_functions(renderer):
     """Test figure management functions."""
     fig = renderer.create_3d_figure((300, 300))
-    # Mayavi actually needs something in the display to set the title
+    assert isinstance(fig, Figure3D)
     wrap_renderer = renderer.backend._Renderer(fig=fig)
     wrap_renderer.sphere(np.array([0., 0., 0.]), 'w', 1.)
     renderer.backend._check_3d_figure(fig)
-    renderer.backend._set_3d_view(figure=fig, azimuth=None, elevation=None,
-                                  focalpoint=(0., 0., 0.), distance=None)
-    renderer.backend._set_3d_title(figure=fig, title='foo')
+    renderer.set_3d_view(figure=fig, azimuth=None, elevation=None,
+                         focalpoint=(0., 0., 0.), distance=None)
+    renderer.set_3d_title(figure=fig, title='foo')
     renderer.backend._take_3d_screenshot(figure=fig)
-    renderer.backend._close_all()
+    renderer.close_3d_figure(fig)
+    renderer.close_all_3d_figures()
 
 
 def test_3d_backend(renderer):
@@ -149,9 +148,9 @@ def test_3d_backend(renderer):
     # use tube
     rend.tube(origin=np.array([[0, 0, 0]]),
               destination=np.array([[0, 1, 0]]))
-    tube = rend.tube(origin=np.array([[1, 0, 0]]),
-                     destination=np.array([[1, 1, 0]]),
-                     scalars=np.array([[1.0, 1.0]]))
+    _, tube = rend.tube(origin=np.array([[1, 0, 0]]),
+                        destination=np.array([[1, 1, 0]]),
+                        scalars=np.array([[1.0, 1.0]]))
 
     # scalar bar
     rend.scalarbar(source=tube, title="Scalar Bar",
@@ -180,16 +179,16 @@ def test_renderer(renderer, monkeypatch):
     """Test that renderers are available on demand."""
     backend = renderer.get_3d_backend()
     cmd = [sys.executable, '-uc',
-           'import mne; mne.viz.create_3d_figure((800, 600)); '
+           'import mne; mne.viz.create_3d_figure((800, 600), show=True); '
            'backend = mne.viz.get_3d_backend(); '
            'assert backend == %r, backend' % (backend,)]
     monkeypatch.setenv('MNE_3D_BACKEND', backend)
     run_subprocess(cmd)
 
 
-def test_set_3d_backend_bad(monkeypatch, tmpdir):
+def test_set_3d_backend_bad(monkeypatch, tmp_path):
     """Test that the error emitted when a bad backend name is used."""
-    match = "Allowed values are 'pyvistaqt', 'mayavi', and 'notebook'"
+    match = "Allowed values are 'pyvistaqt' and 'notebook'"
     with pytest.raises(ValueError, match=match):
         set_3d_backend('invalid')
 
@@ -199,8 +198,6 @@ def test_set_3d_backend_bad(monkeypatch, tmpdir):
     monkeypatch.setattr('mne.viz.backends.renderer._reload_backend', fail)
     monkeypatch.setattr(
         'mne.viz.backends.renderer.MNE_3D_BACKEND', None)
-    # avoid using the config
-    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmpdir))
     match = 'Could not load any valid 3D.*\npyvistaqt: .*'
     assert get_3d_backend() is None
     with pytest.raises(RuntimeError, match=match):

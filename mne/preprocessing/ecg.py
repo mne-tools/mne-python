@@ -42,8 +42,8 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
         Low pass frequency
     h_freq : float
         High pass frequency
-    %(ecg_tstart)s
-    %(ecg_filter_length)s
+    %(tstart_ecg)s
+    %(filter_length_ecg)s
     %(verbose)s
 
     Returns
@@ -147,15 +147,15 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     ----------
     raw : instance of Raw
         The raw data.
-    %(ecg_event_id)s
-    %(ecg_ch_name)s
-    %(ecg_tstart)s
-    %(ecg_filter_freqs)s
+    %(event_id_ecg)s
+    %(ch_name_ecg)s
+    %(tstart_ecg)s
+    %(l_freq_ecg_filter)s
     qrs_threshold : float | str
         Between 0 and 1. qrs detection threshold. Can also be "auto" to
         automatically choose the threshold that generates a reasonable
         number of heartbeats (40-160 beats / min).
-    %(ecg_filter_length)s
+    %(filter_length_ecg)s
     return_ecg : bool
         Return the ECG data. This is especially useful if no ECG channel
         is present in the input data, so one will be synthesized. Defaults to
@@ -291,14 +291,14 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     ----------
     raw : instance of Raw
         The raw data.
-    %(ecg_ch_name)s
-    %(ecg_event_id)s
+    %(ch_name_ecg)s
+    %(event_id_ecg)s
     %(picks_all)s
     tmin : float
         Start time before event.
     tmax : float
         End time after event.
-    %(ecg_filter_freqs)s
+    %(l_freq_ecg_filter)s
     %(reject_epochs)s
     %(flat)s
     %(baseline_epochs)s
@@ -326,6 +326,17 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     --------
     find_ecg_events
     compute_proj_ecg
+
+    Notes
+    -----
+    If you already have a list of R-peak times, or want to compute R-peaks
+    outside MNE-Python using a different algorithm, the recommended approach is
+    to call the :class:`~mne.Epochs` constructor directly, with your R-peaks
+    formatted as an :term:`events` array (here we also demonstrate the relevant
+    default values)::
+
+        mne.Epochs(raw, r_peak_events_array, tmin=-0.5, tmax=0.5,
+                   baseline=None, preload=True, proj=False)  # doctest: +SKIP
     """
     has_ecg = 'ecg' in raw or ch_name is not None
     if keep_ecg and (has_ecg or not preload):
@@ -351,10 +362,11 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
             ecg, create_info(ch_names=['ECG-SYN'],
                              sfreq=raw.info['sfreq'], ch_types=['ecg']),
             first_samp=raw.first_samp)
-        ignore = ['ch_names', 'chs', 'nchan', 'bads']
-        for k, v in raw.info.items():
-            if k not in ignore:
-                ecg_raw.info[k] = v
+        with ecg_raw.info._unlock():
+            ignore = ['ch_names', 'chs', 'nchan', 'bads']
+            for k, v in raw.info.items():
+                if k not in ignore:
+                    ecg_raw.info[k] = v
         syn_epochs = Epochs(ecg_raw, events=ecg_epochs.events,
                             event_id=event_id, tmin=tmin, tmax=tmax,
                             proj=False, picks=[0], baseline=baseline,

@@ -1,22 +1,24 @@
-# Tagging a commit with:
-# - [circle front] will build the front page and perform test-doc
-# - [circle full] will build everything
-# - [circle linkcheck] will run our linkcheck
-# - [circle interactive_test] will run our test suite (useful for debugging
-#   issues using "Rerun with SSH")
+# By default, for PRs CircleCI will build only examples that have changed.
+# For main commits, builds are skipped entirely, as we only do full builds
+# scheduled for one time daily.
+#
+# Tagging a commit with the following overrides these behaviors:
+# - [circle front] will run the front page examples and perform test-doc
+# - [circle full] will run all examples and perform test-doc
+# - [circle linkcheck] will run our linkcheck job
+# - [circle deploy] on a main or maint/* commit will try to immediately build
+#   and deploy docs rather than waiting for the nightly build
 
 version: 2.1
 
-_xvfb: &xvfb
-  name: Start Xvfb virtual framebuffer
-  command: |
-    echo "export DISPLAY=:99" >> $BASH_ENV
-    /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1280x1024x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix
-
 jobs:
     build_docs:
+      parameters:
+        scheduled:
+          type: string
+          default: "false"
       docker:
-        - image: circleci/python:3.8.5-buster
+        - image: cimg/base:current-22.04
       steps:
         - restore_cache:
             keys:
@@ -25,9 +27,11 @@ jobs:
         - run:
             name: Complete checkout
             command: |
+              set -e
               if ! git remote -v | grep upstream; then
-                git remote add upstream git://github.com/mne-tools/mne-python.git
+                git remote add upstream https://github.com/mne-tools/mne-python.git
               fi
+              git remote set-url upstream https://github.com/mne-tools/mne-python.git
               git fetch upstream
         - save_cache:
             key: source-cache
@@ -36,43 +40,78 @@ jobs:
         - run:
             name: Check-skip
             command: |
+              set -e
               export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
               if [[ -v CIRCLE_PULL_REQUEST ]] && ([[ "$COMMIT_MESSAGE" == *"[skip circle]"* ]] || [[ "$COMMIT_MESSAGE" == *"[circle skip]"* ]]); then
                 echo "Skip detected, exiting job ${CIRCLE_JOB} for PR ${CIRCLE_PULL_REQUEST}."
                 circleci-agent step halt;
               fi
         - run:
+            name: Merge with upstream and triage run
+            command: |
+              set -e
+              echo $(git log -1 --pretty=%B) | tee gitlog.txt
+              echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
+              if [[ $(cat merge.txt) != "" ]]; then
+                echo "Merging $(cat merge.txt)";
+                git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
+              else
+                if [[ "$CIRCLE_BRANCH" == "main" ]]; then
+                  KIND=dev
+                else
+                  KIND=stable
+                fi
+                export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
+                if [[ "<< parameters.scheduled >>" == "true" ]]; then
+                  echo "Scheduled full build detected, checking if it's required."
+                  wget https://mne.tools/${KIND}/_version.txt;
+                  REMOTE_VERSION=$(cat _version.txt)
+                  THIS_VERSION=$(git rev-parse HEAD)
+                  echo "Current ${KIND} SHA: ${REMOTE_VERSION}"
+                  echo "This    ${KIND} SHA: ${THIS_VERSION}"
+                  if [[ "${THIS_VERSION}" != "${REMOTE_VERSION}" ]]; then
+                    echo "Rebuild required."
+                  else
+                    echo "Rebuild skipped."
+                    circleci-agent step halt;
+                  fi
+                elif [[ "$COMMIT_MESSAGE" == *"[circle deploy]"* ]]; then
+                  echo "Forced deployed build detected, building and deploying docs";
+                else
+                  echo "Waiting until scheduled run to build ${KIND} docs, exiting job ${CIRCLE_JOB}."
+                  circleci-agent step halt;
+                fi
+              fi
+
+        - run:
             name: Set BASH_ENV
             command: |
               set -e
+              ./tools/setup_xvfb.sh
+              sudo apt install -qq graphviz optipng python3.10-venv python3-venv libxft2 ffmpeg
+              python3.10 -m venv ~/python_env
               echo "set -e" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
               echo "export MNE_FULL_DATE=true" >> $BASH_ENV
               source tools/get_minimal_commands.sh
               echo "export MNE_3D_BACKEND=pyvistaqt" >> $BASH_ENV
+              echo "export MNE_3D_OPTION_MULTI_SAMPLES=1" >> $BASH_ENV
+              echo "export MNE_BROWSER_BACKEND=qt" >> $BASH_ENV
+              echo "export MNE_BROWSER_PRECOMPUTE=false" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:$PATH" >> $BASH_ENV
+              echo "export DISPLAY=:99" >> $BASH_ENV
+              echo "source ~/python_env/bin/activate" >> $BASH_ENV
+              mkdir -p ~/.local/bin
+              ln -s ~/python_env/bin/python ~/.local/bin/python
               echo "BASH_ENV:"
               cat $BASH_ENV
               mkdir -p ~/mne_data
-              touch pattern.txt;
+              touch pattern.txt
         - run:
             name: check neuromag2ft
             command: |
               neuromag2ft --version
-
-        - run:
-            name: Merge with upstream
-            command: |
-              echo $(git log -1 --pretty=%B) | tee gitlog.txt
-              echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
-              if [[ $(cat merge.txt) != "" ]]; then
-                echo "Merging $(cat merge.txt)";
-                git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
-              fi
-
-        - run:
-            <<: *xvfb
 
         - run:
             name: Install fonts needed for diagrams
@@ -88,7 +127,7 @@ jobs:
               - pip-cache
         - restore_cache:
             keys:
-              - user-install-bin-cache
+              - user-install-bin-cache-310
 
         # Hack in uninstalls of libraries as necessary if pip doesn't do the right thing in upgrading for us...
         - run:
@@ -101,14 +140,14 @@ jobs:
             paths:
               - ~/.cache/pip
         - save_cache:
-            key: user-install-bin-cache
+            key: user-install-bin-cache-310
             paths:
-              - ~/.local/lib/python3.8/site-packages
+              - ~/.local/lib/python3.10/site-packages
               - ~/.local/bin
 
         - run:
-            name: Check PyQt5
-            command: LD_DEBUG=libs python -c "from PyQt5.QtWidgets import QApplication, QWidget; app = QApplication([])"
+            name: Check Qt
+            command: LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication, QWidget; app = QApplication([])"
 
         # Load tiny cache so that ~/.mne does not need to be created below
         - restore_cache:
@@ -120,7 +159,7 @@ jobs:
             name: Check installation
             command: |
                which python
-               QT_DEBUG_PLUGINS=1 mne sys_info
+               QT_DEBUG_PLUGINS=1 mne sys_info -pd
                python -c "import numpy; numpy.show_config()"
                LIBGL_DEBUG=verbose python -c "import pyvistaqt; pyvistaqt.BackgroundPlotter(show=True)"
                python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
@@ -378,7 +417,7 @@ jobs:
         - run:
             name: Check installation
             command: |
-              mne sys_info
+              mne sys_info -pd
         - run:
             name: make linkcheck
             command: |
@@ -394,8 +433,8 @@ jobs:
 
 
     deploy:
-      docker:
-        - image: circleci/python:3.8.5-buster
+      machine:
+        image: ubuntu-2004:202111-01
       steps:
         - attach_workspace:
             at: /tmp/build
@@ -454,73 +493,46 @@ jobs:
             paths:
               - ~/mne_data/MNE-visual_92_categories-data
 
-
-    interactive_test:
-      docker:
-        - image: circleci/python:3.9.2-buster
-      steps:
-        - restore_cache:
-            keys:
-              - source-cache
-        - checkout
-        - run:
-            name: Set BASH_ENV
-            command: |
-              set -e
-              echo "set -e" >> $BASH_ENV
-              echo "export OPENBLAS_NUM_THREADS=1" >> $BASH_ENV
-              mkdir -p ~/mne_data
-        - run:
-            name: Check-skip
-            command: |
-              export COMMIT_MESSAGE=$(git log --format=oneline -n 1);
-              if [[ "$COMMIT_MESSAGE" != *"[circle interactive_test]"* ]]; then
-                echo "Skip detected, exiting job ${CIRCLE_JOB}."
-                circleci-agent step halt;
-              fi
-        - run:
-            <<: *xvfb
-        - restore_cache:
-            keys:
-              - pip-cache
-        - run:
-            name: Get Python running
-            command: |
-              ./tools/circleci_dependencies.sh
-        - run:
-            name: Check installation
-            command: |
-              mne sys_info
-        - restore_cache:
-            keys:
-              - data-cache-testing
-        - run:
-            name: Get data
-            command: |
-              python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
-        - run:
-            name: pytest
-            command: |
-              pytest -m "not slowtest" mne -xv
-
 workflows:
   default:
     jobs:
-      - build_docs
-      - linkcheck
-      - interactive_test
+      - build_docs:
+          name: build_docs
+      - linkcheck:
+          name: linkcheck
       - deploy:
+          name: deploy
           requires:
             - build_docs
           filters:
             branches:
               only:
                 - main
-                - maint/0.23
+                - maint/1.1
+
+  main:
+    jobs:
+      - build_docs:
+          scheduled: "true"
+          name: build_docs_main
+      - deploy:
+          name: deploy_main
+          requires:
+            - build_docs_main
+    triggers:
+      - schedule:
+          # "At 00:00" (once a day) should be enough "0 0 * * *",
+          # But for testing at first, let's do once an hour (6 AM GMT)
+          cron: "0 6 * * *"
+          filters:
+            branches:
+              only:
+                - main
 
   weekly:
     jobs:
       - linkcheck:
+          name: linkcheck_weekly
           scheduled: "true"
     triggers:
       - schedule:

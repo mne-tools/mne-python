@@ -49,6 +49,7 @@ Projections:
    make_eeg_layout
    make_grid_layout
    find_ch_adjacency
+   get_builtin_ch_adjacencies
    read_ch_adjacency
    equalize_channels
    rename_channels
@@ -69,17 +70,19 @@ Projections:
 
    ICA
    Xdawn
+   annotate_amplitude
    annotate_break
-   annotate_flat
    annotate_movement
    annotate_muscle_zscore
    annotate_nan
    compute_average_dev_head_t
    compute_current_source_density
+   compute_bridged_electrodes
    compute_fine_calibration
    compute_maxwell_basis
    compute_proj_ecg
    compute_proj_eog
+   cortical_signal_suppression
    create_ecg_epochs
    create_eog_epochs
    find_bad_channels_maxwell
@@ -89,8 +92,10 @@ Projections:
    ica_find_ecg_events
    ica_find_eog_events
    infomax
+   interpolate_bridged_electrodes
    equalize_bads
    maxwell_filter
+   maxwell_filter_prepare_emptyroom
    oversampled_temporal_projection
    peak_finder
    read_ica
@@ -118,6 +123,19 @@ Projections:
    short_channels
    scalp_coupling_index
    temporal_derivative_distribution_repair
+
+:py:mod:`mne.preprocessing.ieeg`:
+
+.. currentmodule:: mne.preprocessing.ieeg
+
+.. automodule:: mne.preprocessing.ieeg
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
+   project_sensors_onto_brain
 
 EEG referencing:
 

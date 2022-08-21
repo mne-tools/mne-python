@@ -41,30 +41,36 @@ import platform
 import warnings
 from collections import OrderedDict
 from contextlib import contextmanager
-from copy import deepcopy
 from functools import partial
 
+import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import pyplot as plt
+from matplotlib import get_backend
 from matplotlib.figure import Figure
 
-from mne import set_config, channel_indices_by_type, pick_types
-from mne.annotations import _sync_onset
-from mne.defaults import _handle_default
-from mne.io.pick import (_DATA_CH_TYPES_SPLIT, _DATA_CH_TYPES_ORDER_DEFAULT,
-                         _VALID_CHANNEL_TYPES, _picks_to_idx,
-                         _FNIRS_CH_TYPES_SPLIT)
-from mne.time_frequency import psd_welch, psd_multitaper
-from mne.utils import logger, _check_option, _check_sphere, Bunch, \
-    _click_ch_name
-from mne.viz import plot_sensors, plot_epochs_image
-from mne.viz._figure import BrowserBase
-from mne.viz.ica import (_create_properties_layout,
-                         _prepare_data_ica_properties,
-                         _fast_plot_ica_properties)
-from mne.viz.utils import (_events_off, DraggableLine, plt_show, _prop_kw,
-                           _merge_annotations, _set_window_title,
-                           _validate_if_list_of_axes, _fake_click, _plot_psd)
+from .. import channel_indices_by_type, pick_types
+from ..annotations import _sync_onset
+from ..defaults import _handle_default
+from ..io.pick import (_DATA_CH_TYPES_ORDER_DEFAULT, _DATA_CH_TYPES_SPLIT,
+                       _FNIRS_CH_TYPES_SPLIT, _VALID_CHANNEL_TYPES,
+                       _picks_to_idx)
+from ..time_frequency import psd_multitaper, psd_welch
+from ..utils import Bunch, _check_option, _check_sphere, _click_ch_name, logger
+from . import plot_sensors
+from ._figure import BrowserBase
+from .utils import (DraggableLine, _events_off, _fake_click,
+                    _merge_annotations, _plot_psd, _prop_kw, _set_window_title,
+                    _validate_if_list_of_axes, plt_show)
+
+name = 'matplotlib'
+plt.ion()
+BACKEND = get_backend()
+#   This  ↑↑↑↑↑↑↑↑↑↑↑↑↑  does weird things:
+#   https://github.com/matplotlib/matplotlib/issues/23298
+#   but wrapping it in ion() context makes it go away (can't actually use
+#   `with plt.ion()` as context manager, though, for compat reasons).
+#   Moving this bit to a separate function in ../../fixes.py doesn't work.
+plt.ioff()
 
 # CONSTANTS (inches)
 ANNOTATION_FIG_PAD = 0.1
@@ -78,6 +84,7 @@ class MNEFigure(Figure):
 
     def __init__(self, **kwargs):
         from matplotlib import rcParams
+
         # figsize is the only kwarg we pass to matplotlib Figure()
         figsize = kwargs.pop('figsize', None)
         super().__init__(figsize=figsize)
@@ -98,6 +105,7 @@ class MNEFigure(Figure):
 
     def _close(self, event):
         """Handle close events."""
+        logger.debug(f'Closing {self!r}')
         # remove references from parent fig to child fig
         is_child = getattr(self.mne, 'parent_fig', None) is not None
         is_named = getattr(self.mne, 'fig_name', None) is not None
@@ -109,8 +117,7 @@ class MNEFigure(Figure):
     def _keypress(self, event):
         """Handle keypress events."""
         if event.key == self.mne.close_key:
-            from matplotlib.pyplot import close
-            close(self)
+            plt.close(self)
         elif event.key == 'f11':  # full screen
             self.canvas.manager.full_screen_toggle()
 
@@ -186,8 +193,7 @@ class MNEAnnotationFigure(MNEFigure):
         text = self.label.get_text()
         key = event.key
         if key == self.mne.close_key:
-            from matplotlib.pyplot import close
-            close(self)
+            plt.close(self)
         elif key == 'backspace':
             text = text[:-1]
         elif key == 'enter':
@@ -210,12 +216,15 @@ class MNEAnnotationFigure(MNEFigure):
         # update click-drag rectangle color
         color = buttons.circles[idx].get_edgecolor()
         selector = self.mne.parent_fig.mne.ax_main.selector
-        # We need to update this pending
         # https://github.com/matplotlib/matplotlib/issues/20618
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter('ignore', DeprecationWarning)
-            selector.rect.set_color(color)
-            selector.rectprops.update(dict(facecolor=color))
+        # https://github.com/matplotlib/matplotlib/pull/20693
+        try:  # > 3.4.2
+            selector.set_props(color=color, facecolor=color)
+        except AttributeError:
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter('ignore', DeprecationWarning)
+                selector.rect.set_color(color)
+                selector.rectprops.update(dict(facecolor=color))
 
     def _click_override(self, event):
         """Override MPL radiobutton click detector to use transData."""
@@ -252,11 +261,10 @@ class MNESelectionFigure(MNEFigure):
 
     def _close(self, event):
         """Handle close events."""
-        from matplotlib.pyplot import close
         self.mne.parent_fig.mne.child_figs.remove(self)
         self.mne.fig_selection = None
         # selection fig & main fig tightly integrated; closing one closes both
-        close(self.mne.parent_fig)
+        plt.close(self.mne.parent_fig)
 
     def _keypress(self, event):
         """Handle keypress events."""
@@ -318,13 +326,15 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def __init__(self, inst, figsize, ica=None,
                  xlabel='Time (s)', **kwargs):
         from matplotlib.colors import to_rgba_array
-        from matplotlib.ticker import (FixedLocator, FixedFormatter,
-                                       FuncFormatter, NullFormatter)
         from matplotlib.patches import Rectangle
-        from matplotlib.widgets import Button
+        from matplotlib.ticker import (FixedFormatter, FixedLocator,
+                                       FuncFormatter, NullFormatter)
         from matplotlib.transforms import blended_transform_factory
-        from mpl_toolkits.axes_grid1.axes_size import Fixed
+        from matplotlib.widgets import Button
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+        from mpl_toolkits.axes_grid1.axes_size import Fixed
+
+        self.backend_name = 'matplotlib'
 
         kwargs.update({'inst': inst,
                        'figsize': figsize,
@@ -360,6 +370,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         # this only gets shown in zen mode
         self.mne.zen_xlabel = ax_main.set_xlabel(xlabel)
         self.mne.zen_xlabel.set_visible(not self.mne.scrollbars_visible)
+        # make sure background color of the axis is set
+        if 'bgcolor' in kwargs:
+            ax_main.set_facecolor(kwargs['bgcolor'])
 
         # SCROLLBARS
         ax_hscroll = div.append_axes(position='bottom',
@@ -380,9 +393,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 ax_hscroll.add_patch(
                     Rectangle((start, 0), width, 1, color='none',
                               zorder=self.mne.zorder['patch']))
-            # add epoch boundaries & center epoch numbers between boundaries
-            midpoints = np.convolve(self.mne.boundary_times, np.ones(2),
-                                    mode='valid') / 2
             # both axes, major ticks: gridlines
             for _ax in (ax_main, ax_hscroll):
                 _ax.xaxis.set_major_locator(
@@ -394,11 +404,11 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             ax_hscroll.grid(alpha=0.5, linewidth=0.5, linestyle='solid',
                             **grid_kwargs)
             # main axes, minor ticks: ticklabel (epoch number) for every epoch
-            ax_main.xaxis.set_minor_locator(FixedLocator(midpoints))
+            ax_main.xaxis.set_minor_locator(FixedLocator(self.mne.midpoints))
             ax_main.xaxis.set_minor_formatter(FixedFormatter(epoch_nums))
             # hscroll axes, minor ticks: up to 20 ticklabels (epoch numbers)
             ax_hscroll.xaxis.set_minor_locator(
-                FixedLocator(midpoints, nbins=20))
+                FixedLocator(self.mne.midpoints, nbins=20))
             ax_hscroll.xaxis.set_minor_formatter(
                 FuncFormatter(lambda x, pos: self._get_epoch_num_from_time(x)))
             # hide some ticks
@@ -500,31 +510,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             vsel_patch=vsel_patch, hsel_patch=hsel_patch, vline=vline,
             vline_hscroll=vline_hscroll, vline_text=vline_text)
 
-    def _close(self, event):
-        """Handle close events (via keypress or window [x])."""
-        from matplotlib.pyplot import close
-        # write out bad epochs (after converting epoch numbers to indices)
-        if self.mne.instance_type == 'epochs':
-            bad_ixs = np.in1d(self.mne.inst.selection,
-                              self.mne.bad_epochs).nonzero()[0]
-            self.mne.inst.drop(bad_ixs)
-        # write bad channels back to instance (don't do this for proj;
-        # proj checkboxes are for viz only and shouldn't modify the instance)
-        if self.mne.instance_type in ('raw', 'epochs'):
-            self.mne.inst.info['bads'] = self.mne.info['bads']
-            logger.info(
-                f"Channels marked as bad: {self.mne.info['bads'] or 'none'}")
-        # ICA excludes
-        elif self.mne.instance_type == 'ica':
-            self.mne.ica.exclude = [self.mne.ica._ica_names.index(ch)
-                                    for ch in self.mne.info['bads']]
-        # write window size to config
-        size = ','.join(self.get_size_inches().astype(str))
-        set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
-        # Clean up child figures (don't pop(), child figs remove themselves)
-        while len(self.mne.child_figs):
-            fig = self.mne.child_figs[-1]
-            close(fig)
+    def _get_size(self):
+        return self.get_size_inches()
 
     def _resize(self, event):
         """Handle resize event for mne_browse-style plots (Raw/Epochs/ICA)."""
@@ -547,7 +534,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         if not self.mne.draggable_annotations:
             self._remove_annotation_hover_line()
             return
-        from matplotlib.patheffects import Stroke, Normal
+        from matplotlib.patheffects import Normal, Stroke
         for coll in self.mne.annotations:
             if coll.contains(event)[0]:
                 path = coll.get_paths()
@@ -694,7 +681,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         elif key == 'd':  # DC shift
             self.mne.remove_dc = not self.mne.remove_dc
             self._redraw()
-        elif key == 'h' and self.mne.instance_type == 'epochs':  # histogram
+        elif key == 'h':  # histogram
             self._toggle_epoch_histogram()
         elif key == 'j' and len(self.mne.projs):  # SSP window
             self._toggle_proj_fig()
@@ -709,11 +696,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         elif key == 's':  # scalebars
             self._toggle_scalebars(event)
         elif key == 'w':  # toggle noise cov whitening
-            if self.mne.noise_cov is not None:
-                self.mne.use_noise_cov = not self.mne.use_noise_cov
-                self._update_projector()
-                self._update_yaxis_labels()  # add/remove italics
-                self._redraw()
+            self._toggle_whitening()
         elif key == 'z':  # zen mode: hide scrollbars and buttons
             self._toggle_scrollbars()
             self._redraw(update_data=False)
@@ -794,6 +777,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             elif event.mouseevent.button == 3:  # right click
                 self._create_ch_context_fig(ind)
 
+    def _create_ch_context_fig(self, idx):
+        fig = super()._create_ch_context_fig(idx)
+        plt_show(fig=fig)
+
     def _new_child_figure(self, fig_name, **kwargs):
         """Instantiate a new MNE dialog figure (with event listeners)."""
         fig = _figure(toolbar=False, parent_fig=self, fig_name=fig_name,
@@ -803,118 +790,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         if isinstance(fig_name, str):
             setattr(self.mne, fig_name, fig)
         return fig
-
-    def _create_ch_context_fig(self, idx):
-        """Show context figure; idx is index of **visible** channels."""
-        inst = self.mne.instance_type
-        pick = self.mne.picks[idx]
-        if inst == 'raw':
-            self._create_ch_location_fig(pick)
-        elif inst == 'ica':
-            self._create_ica_properties_fig(pick)
-        else:
-            self._create_epoch_image_fig(pick)
-
-    def _create_ch_location_fig(self, pick):
-        """Show channel location figure."""
-        from .utils import _channel_type_prettyprint
-        ch_name = self.mne.ch_names[pick]
-        ch_type = self.mne.ch_types[pick]
-        if ch_type not in _DATA_CH_TYPES_SPLIT:
-            return
-        # create figure and axes
-        fig = self._new_child_figure(figsize=(4, 4), fig_name=None,
-                                     window_title=f'Location of {ch_name}')
-        ax = fig.add_subplot(111)
-        title = f'{ch_name} position ({_channel_type_prettyprint[ch_type]})'
-        _ = plot_sensors(self.mne.info, ch_type=ch_type, axes=ax,
-                         title=title, kind='select')
-        # highlight desired channel & disable interactivity
-        inds = np.in1d(fig.lasso.ch_names, [ch_name])
-        fig.lasso.disconnect()
-        fig.lasso.alpha_other = 0.3
-        fig.lasso.linewidth_selected = 3
-        fig.lasso.style_sensors(inds)
-        plt_show(fig=fig)
-
-    def _create_ica_properties_fig(self, idx):
-        """Show ICA properties for the selected component."""
-        ch_name = self.mne.ch_names[idx]
-        if ch_name not in self.mne.ica._ica_names:  # for EOG chans: do nothing
-            return
-        pick = self.mne.ica._ica_names.index(ch_name)
-        fig = self._new_child_figure(figsize=(7, 6), fig_name=None,
-                                     window_title=f'{ch_name} properties')
-        fig, axes = _create_properties_layout(fig=fig)
-        if not hasattr(self.mne, 'data_ica_properties'):
-            # Precompute epoch sources only once
-            self.mne.data_ica_properties = _prepare_data_ica_properties(
-                self.mne.ica_inst, self.mne.ica)
-        _fast_plot_ica_properties(
-            self.mne.ica, self.mne.ica_inst, picks=pick, axes=axes,
-            precomputed_data=self.mne.data_ica_properties)
-
-    def _create_epoch_image_fig(self, pick):
-        """Show epochs image for the selected channel."""
-        from matplotlib.gridspec import GridSpec
-        ch_name = self.mne.ch_names[pick]
-        fig = self._new_child_figure(figsize=(6, 4), fig_name=None,
-                                     window_title=f'Epochs image ({ch_name})')
-        gs = GridSpec(nrows=3, ncols=10)
-        fig.add_subplot(gs[:2, :9])
-        fig.add_subplot(gs[2, :9])
-        fig.add_subplot(gs[:2, 9])
-        plot_epochs_image(self.mne.inst, picks=pick, fig=fig)
-
-    def _toggle_epoch_histogram(self):
-        """Show or hide peak-to-peak histogram of channel amplitudes."""
-        if self.mne.fig_histogram is None:
-            self._create_epoch_histogram()
-            plt_show(fig=self.mne.fig_histogram)
-        else:
-            from matplotlib.pyplot import close
-            close(self.mne.fig_histogram)
-
-    def _create_epoch_histogram(self):
-        """Create peak-to-peak histogram of channel amplitudes."""
-        epochs = self.mne.inst
-        data = OrderedDict()
-        ptp = np.ptp(epochs.get_data(), axis=2)
-        for ch_type in ('eeg', 'mag', 'grad'):
-            if ch_type in epochs:
-                data[ch_type] = ptp.T[self.mne.ch_types == ch_type].ravel()
-        units = _handle_default('units')
-        titles = _handle_default('titles')
-        colors = _handle_default('color')
-        scalings = _handle_default('scalings')
-        title = 'Histogram of peak-to-peak amplitudes'
-        figsize = (4, 1 + 1.5 * len(data))
-        fig = self._new_child_figure(figsize=figsize, fig_name='fig_histogram',
-                                     window_title=title)
-        for ix, (_ch_type, _data) in enumerate(data.items()):
-            ax = fig.add_subplot(len(data), 1, ix + 1)
-            ax.set(title=titles[_ch_type], xlabel=units[_ch_type],
-                   ylabel='Count')
-            # set histogram bin range based on rejection thresholds
-            reject = None
-            _range = None
-            if epochs.reject is not None and _ch_type in epochs.reject:
-                reject = epochs.reject[_ch_type] * scalings[_ch_type]
-                _range = (0., reject * 1.1)
-            # plot it
-            ax.hist(_data * scalings[_ch_type], bins=100,
-                    color=colors[_ch_type], range=_range)
-            if reject is not None:
-                ax.plot((reject, reject), (0, ax.get_ylim()[1]), color='r')
-        # finalize
-        fig.suptitle(title, y=0.99)
-        kwargs = dict(bottom=fig._inch_to_rel(0.5, horiz=False),
-                      top=1 - fig._inch_to_rel(0.5, horiz=False),
-                      left=fig._inch_to_rel(0.75),
-                      right=1 - fig._inch_to_rel(0.25))
-        fig.subplots_adjust(hspace=0.7, **kwargs)
-        self.mne.fig_histogram = fig
-        plt_show(fig=fig)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # HELP DIALOG
@@ -955,8 +830,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             self._create_help_fig()
             plt_show(fig=self.mne.fig_help)
         else:
-            from matplotlib.pyplot import close
-            close(self.mne.fig_help)
+            plt.close(self.mne.fig_help)
 
     def _get_help_text(self):
         """Generate help dialog text; `None`-valued entries removed later."""
@@ -1035,9 +909,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _create_annotation_fig(self):
         """Create the annotation dialog window."""
-        from matplotlib.widgets import Button, SpanSelector, CheckButtons
-        from mpl_toolkits.axes_grid1.axes_size import Fixed
+        from matplotlib.widgets import Button, CheckButtons, SpanSelector
         from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+        from mpl_toolkits.axes_grid1.axes_size import Fixed
+
         # make figure
         labels = np.array(sorted(set(self.mne.inst.annotations.description)))
         radio_button_h = self._compute_annotation_figsize(len(labels))
@@ -1154,7 +1029,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _update_annotation_fig(self):
         """Draw or redraw the radio buttons and annotation labels."""
-        from matplotlib.widgets import RadioButtons, CheckButtons
+        from matplotlib.widgets import CheckButtons, RadioButtons
+
         # define shorthand variables
         fig = self.mne.fig_annotation
         ax = fig.mne.radio_ax
@@ -1234,11 +1110,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _toggle_annotation_fig(self):
         """Show/hide the annotation dialog window."""
-        if self.mne.fig_annotation is None:
+        if self.mne.fig_annotation is None and not self.mne.is_epochs:
             self._create_annotation_fig()
         else:
-            from matplotlib.pyplot import close
-            close(self.mne.fig_annotation)
+            plt.close(self.mne.fig_annotation)
 
     def _compute_annotation_figsize(self, n_labels):
         """Adapt size of Annotation UI to accommodate the number of buttons.
@@ -1379,8 +1254,9 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     def _create_selection_fig(self):
         """Create channel selection dialog window."""
         from matplotlib.colors import to_rgb
-        from matplotlib.widgets import RadioButtons
         from matplotlib.gridspec import GridSpec
+        from matplotlib.widgets import RadioButtons
+
         # make figure
         fig = self._new_child_figure(figsize=(3, 7),
                                      FigureClass=MNESelectionFigure,
@@ -1427,7 +1303,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         instructions_ax.set_axis_off()
         # add event listeners
         radio_ax.buttons.on_clicked(fig._radiopress)
-        fig.canvas.mpl_connect('lasso_event', fig._set_custom_selection)
+        fig.lasso.callbacks.append(fig._set_custom_selection)
 
     def _change_selection_vscroll(self, event):
         """Handle clicks on vertical scrollbar when using selections."""
@@ -1465,23 +1341,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self._update_trace_offsets()
         self._update_vscroll()
         self._redraw(annotations=True)
-
-    def _make_butterfly_selections_dict(self):
-        """Make an altered copy of the selections dict for butterfly mode."""
-        from ..utils import _get_stim_channel
-        selections_dict = deepcopy(self.mne.ch_selections)
-        # remove potential duplicates
-        for selection_group in ('Vertex', 'Custom'):
-            selections_dict.pop(selection_group, None)
-        # if present, remove stim channel from non-misc selection groups
-        stim_ch = _get_stim_channel(None, self.mne.info, raise_error=False)
-        if len(stim_ch):
-            stim_pick = self.mne.ch_names.tolist().index(stim_ch[0])
-            for _sel, _picks in selections_dict.items():
-                if _sel != 'Misc':
-                    stim_mask = np.in1d(_picks, [stim_pick], invert=True)
-                    selections_dict[_sel] = np.array(_picks)[stim_mask]
-        return selections_dict
 
     def _update_highlighted_sensors(self):
         """Update the sensor plot to show what is selected."""
@@ -1565,8 +1424,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         if self.mne.fig_proj is None:
             self._create_proj_fig()
         else:
-            from matplotlib.pyplot import close
-            close(self.mne.fig_proj)
+            plt.close(self.mne.fig_proj)
 
     def _toggle_proj_checkbox(self, event, toggle_all=False):
         """Perform operations when proj boxes clicked."""
@@ -1592,6 +1450,14 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             self.mne.projs_on = new_state
             self._update_projector()
             self._redraw()
+
+    def _toggle_epoch_histogram(self):
+        """Show or hide peak-to-peak histogram of channel amplitudes."""
+        if self.mne.instance_type == 'epochs':
+            if self.mne.fig_histogram is None:
+                self._create_epoch_histogram()
+            else:
+                plt.close(self.mne.fig_histogram)
 
     def _toggle_bad_channel(self, idx):
         """Mark/unmark bad channels; `idx` is index of *visible* channels."""
@@ -1707,6 +1573,12 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                 denom = 4 if self.mne.butterfly else 2
                 y = tuple(np.array([-1, 1]) / denom + offset)
                 self._draw_one_scalebar(x, y, this_type)
+                if self.mne.is_epochs:
+                    x = (self.mne.times[0], self.mne.times[0] +
+                         self.mne.boundary_times[1] / 2)
+                    y_value = self.mne.n_channels - 0.5
+                    y = (y_value, y_value)
+                    self._draw_one_scalebar(x, y, 'time')
 
     def _hide_scalebars(self):
         """Remove channel scale bars."""
@@ -1733,15 +1605,21 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         from .utils import _simplify_float
         color = '#AA3377'  # purple
         kwargs = dict(color=color, zorder=self.mne.zorder['scalebar'])
-        scaler = 1 if self.mne.butterfly else 2
-        inv_norm = (scaler *
-                    self.mne.scalings[ch_type] *
-                    self.mne.unit_scalings[ch_type] /
-                    self.mne.scale_factor)
+        if ch_type == 'time':
+            label = f'{self.mne.boundary_times[1]/2:.2f} sec'
+            text = self.mne.ax_main.text(x[0] + .015, y[1] - .05, label,
+                                         va='bottom', ha='left',
+                                         size='xx-small', **kwargs)
+        else:
+            scaler = 1 if self.mne.butterfly else 2
+            inv_norm = (scaler *
+                        self.mne.scalings[ch_type] *
+                        self.mne.unit_scalings[ch_type] /
+                        self.mne.scale_factor)
+            label = f'{_simplify_float(inv_norm)} {self.mne.units[ch_type]} '
+            text = self.mne.ax_main.text(x[1], y[1], label, va='baseline',
+                                         ha='right', size='xx-small', **kwargs)
         bar = self.mne.ax_main.plot(x, y, lw=4, **kwargs)[0]
-        label = f'{_simplify_float(inv_norm)} {self.mne.units[ch_type]} '
-        text = self.mne.ax_main.text(x[1], y[1], label, va='baseline',
-                                     ha='right', size='xx-small', **kwargs)
         self.mne.scalebars[ch_type] = bar
         self.mne.scalebar_texts[ch_type] = text
 
@@ -1862,6 +1740,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         """Draw (or redraw) the channel data."""
         from matplotlib.colors import to_rgba_array
         from matplotlib.patches import Rectangle
+
         # clear scalebars
         if self.mne.scalebars_visible:
             self._hide_scalebars()
@@ -1869,6 +1748,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         picks = self.mne.picks
         ch_names = self.mne.ch_names[picks]
         ch_types = self.mne.ch_types[picks]
+        offset_ixs = (picks
+                      if self.mne.butterfly and self.mne.ch_selections is None
+                      else slice(None))
+        offsets = self.mne.trace_offsets[offset_ixs]
         bad_bool = np.in1d(ch_names, self.mne.info['bads'])
         # colors
         good_ch_colors = [self.mne.ch_color_dict[_type] for _type in ch_types]
@@ -1929,7 +1812,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
             # override custom color on bad epochs
             for _ix in visible_bad_epoch_ix:
                 _cols = np.array([self.mne.epoch_color_bad,
-                                  self.mne.ch_color_bad])[bad_bool.astype(int)]
+                                  self.mne.ch_color_bad],
+                                 dtype=object)[bad_bool.astype(int)]
                 custom_colors[:, _ix] = to_rgba_array(_cols)
 
         # update traces
@@ -1937,7 +1821,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         for ii, line in enumerate(self.mne.traces):
             this_name = ch_names[ii]
             this_type = ch_types[ii]
-            this_offset = self.mne.trace_offsets[ii]
+            this_offset = offsets[ii]
             this_times = decim_times[decim[ii]]
             this_data = this_offset - self.mne.data[ii] * self.mne.scale_factor
             this_data = this_data[..., ::decim[ii]]
@@ -2000,14 +1884,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _redraw(self, update_data=True, annotations=False):
         """Redraw (convenience method for frequently grouped actions)."""
-        if update_data:
-            self._update_data()
+        super()._redraw(update_data, annotations)
         if self.mne.vline_visible and self.mne.is_epochs:
             # prevent flickering
             _ = self._recompute_epochs_vlines(None)
-        self._draw_traces()
-        if annotations and not self.mne.is_epochs:
-            self._draw_annotations()
         self.canvas.draw_idle()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -2016,8 +1896,8 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _draw_event_lines(self):
         """Draw the event lines and their labels."""
-        from matplotlib.colors import to_rgba_array
         from matplotlib.collections import LineCollection
+        from matplotlib.colors import to_rgba_array
         if self.mne.event_nums is not None:
             mask = np.logical_and(self.mne.event_times >= self.mne.times[0],
                                   self.mne.event_times <= self.mne.times[-1])
@@ -2089,26 +1969,33 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
         self.canvas.draw_idle()
 
     # workaround: plt.close() doesn't spawn close_event on Agg backend
-    # (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)
+    # (check MPL github issue #18609; scheduled to be fixed by MPL 3.6)
     def _close_event(self, fig=None):
         """Force calling of the MPL figure close event."""
+        from ..fixes import _close_event
         fig = fig or self
-        try:
-            fig.canvas.close_event()
-        except ValueError:  # old mpl with Qt
-            pass  # pragma: no cover
+        _close_event(fig)
 
     def _fake_keypress(self, key, fig=None):
         fig = fig or self
         fig.canvas.key_press_event(key)
 
-    def _fake_click(self, point, fig=None, ax=None,
+    def _fake_click(self, point, add_points=None, fig=None, ax=None,
                     xform='ax', button=1, kind='press'):
         """Fake a click at a relative point within axes."""
         fig = fig or self
         ax = ax or self.mne.ax_main
-        _fake_click(fig=fig, ax=ax, point=point, xform=xform,
-                    button=button, kind=kind)
+        if kind == 'drag' and add_points is not None:
+            _fake_click(fig=fig, ax=ax, point=point, xform=xform,
+                        button=button, kind='press')
+            for apoint in add_points:
+                _fake_click(fig=fig, ax=ax, point=apoint, xform=xform,
+                            button=button, kind='motion')
+            _fake_click(fig=fig, ax=ax, point=add_points[-1], xform=xform,
+                        button=button, kind='release')
+        else:
+            _fake_click(fig=fig, ax=ax, point=point, xform=xform,
+                        button=button, kind=kind)
 
     def _fake_scroll(self, x, y, step, fig=None):
         fig = fig or self
@@ -2124,7 +2011,23 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
                        size[1] * factor[1])
         else:
             size = [int(x * factor) for x in size]
-        self.canvas.manager.canvas.resize(*size)
+        self.canvas.manager.resize(*size)
+
+    def _get_ticklabels(self, orientation):
+        if orientation == 'x':
+            labels = self.mne.ax_main.get_xticklabels(minor=self.mne.is_epochs)
+        elif orientation == 'y':
+            labels = self.mne.ax_main.get_yticklabels()
+        label_texts = [lb.get_text() for lb in labels]
+
+        return label_texts
+
+    def _get_scale_bar_texts(self):
+        texts = tuple(t.get_text().strip() for t in self.mne.ax_main.texts)
+        # First text is empty because of vline
+        texts = texts[1:]
+
+        return texts
 
 
 class MNELineFigure(MNEFigure):
@@ -2163,6 +2066,7 @@ class MNELineFigure(MNEFigure):
 
 
 def _close_all():
+    """Close all figures (only used in our tests)."""
     plt.close('all')
 
 
@@ -2173,11 +2077,12 @@ def _get_n_figs():
 def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
     """Instantiate a new figure."""
     from matplotlib import rc_context
-    from matplotlib.pyplot import figure
     title = kwargs.pop('window_title', None)  # extract title before init
     rc = dict() if toolbar else dict(toolbar='none')
     with rc_context(rc=rc):
-        fig = figure(FigureClass=FigureClass, **kwargs)
+        fig = plt.figure(FigureClass=FigureClass, **kwargs)
+    # BACKEND defined globally at the top of this file
+    fig.mne.backend = BACKEND
     if title is not None:
         _set_window_title(fig, title)
     # add event callbacks
@@ -2188,6 +2093,7 @@ def _figure(toolbar=True, FigureClass=MNEFigure, **kwargs):
 def _line_figure(inst, axes=None, picks=None, **kwargs):
     """Instantiate a new line figure."""
     from matplotlib.axes import Axes
+
     # if picks is None, only show data channels
     allowed_ch_types = (_DATA_CH_TYPES_SPLIT if picks is None else
                         _VALID_CHANNEL_TYPES)
@@ -2218,6 +2124,7 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
     """Instantiate a new power spectral density figure."""
     from .. import BaseEpochs
     from ..io import BaseRaw
+
     # triage kwargs for different PSD methods (raw→welch, epochs→multitaper)
     welch_kwargs = ('n_fft', 'n_overlap', 'reject_by_annotation')
     multitaper_kwargs = ('bandwidth', 'adaptive', 'low_bias', 'normalization')
@@ -2273,6 +2180,7 @@ def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
               scalings_list, axes, make_label, color, area_mode, area_alpha,
               dB, estimate, average, spatial_colors, xscale, line_alpha,
               sphere, xlabels_list)
+    fig.subplots_adjust(hspace=0.3)
     return fig
 
 
@@ -2319,7 +2227,7 @@ def _calc_new_margins(fig, old_width, old_height, new_width, new_height):
     # gh-8304: don't allow resizing too small
     if (new_margins['bottom'] < new_margins['top'] and
             new_margins['left'] < new_margins['right']):
-        return(new_margins)
+        return new_margins
 
 
 @contextmanager
@@ -2335,7 +2243,11 @@ def _patched_canvas(fig):
 
 def _init_browser(**kwargs):
     """Instantiate a new MNE browse-style figure."""
+    from mne.io import BaseRaw
     fig = _figure(toolbar=False, FigureClass=MNEBrowseFigure, **kwargs)
+
+    # splash is ignored (maybe we could do it for mpl if we get_backend() and
+    # check if it's Qt... but seems overkill)
 
     # initialize zen mode
     # (can't do in __init__ due to get_position() calls)
@@ -2348,5 +2260,26 @@ def _init_browser(**kwargs):
     if not fig.mne.scrollbars_visible:
         fig.mne.scrollbars_visible = True
         fig._toggle_scrollbars()
+
+    # Initialize parts of the plot
+    is_ica = fig.mne.instance_type == 'ica'
+
+    if not is_ica:
+        # make channel selection dialog,
+        # if requested (doesn't work well in init)
+        if fig.mne.group_by in ('selection', 'position'):
+            fig._create_selection_fig()
+
+    # start with projectors dialog open, if requested
+    if getattr(fig.mne, 'show_options', False):
+        fig._toggle_proj_fig()
+
+    # update data, and plot
+    fig._update_trace_offsets()
+    fig._redraw(update_data=True, annotations=False)
+
+    if isinstance(fig.mne.inst, BaseRaw):
+        fig._setup_annotation_colors()
+        fig._draw_annotations()
 
     return fig

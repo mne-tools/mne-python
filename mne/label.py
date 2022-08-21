@@ -14,7 +14,7 @@ import re
 import numpy as np
 
 from .morph_map import read_morph_map
-from .parallel import parallel_func, check_n_jobs
+from .parallel import parallel_func
 from .source_estimate import (SourceEstimate, VolSourceEstimate,
                               _center_of_mass, extract_label_time_course,
                               spatial_src_adjacency)
@@ -140,7 +140,7 @@ def _n_colors(n, bytes_=False, cmap='hsv'):
 
 
 @fill_doc
-class Label(object):
+class Label:
     """A FreeSurfer/MNE label with vertices restricted to one hemisphere.
 
     Labels can be combined with the ``+`` operator:
@@ -166,7 +166,7 @@ class Label(object):
         Kept as information but not used by the object itself.
     filename : str
         Kept as information but not used by the object itself.
-    %(label_subject)s
+    %(subject_label)s
     color : None | matplotlib color
         Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
     %(verbose)s
@@ -190,7 +190,6 @@ class Label(object):
         value on initialization, but it can also be set manually.
     values : array, shape (N,)
         Values at the vertices.
-    %(verbose)s
     vertices : array, shape (N,)
         Vertex indices (0 based)
     """
@@ -198,7 +197,7 @@ class Label(object):
     @verbose
     def __init__(self, vertices=(), pos=None, values=None, hemi=None,
                  comment="", name=None, filename=None, subject=None,
-                 color=None, verbose=None):  # noqa: D102
+                 color=None, *, verbose=None):  # noqa: D102
         # check parameters
         if not isinstance(hemi, str):
             raise ValueError('hemi must be a string, not %s' % type(hemi))
@@ -233,7 +232,6 @@ class Label(object):
         self.values = values
         self.hemi = hemi
         self.comment = comment
-        self.verbose = verbose
         self.subject = _check_subject(None, subject, raise_error=False)
         self.color = color
         self.name = name
@@ -245,7 +243,6 @@ class Label(object):
         self.values = state['values']
         self.hemi = state['hemi']
         self.comment = state['comment']
-        self.verbose = state['verbose']
         self.subject = state.get('subject', None)
         self.color = state.get('color', None)
         self.name = state['name']
@@ -257,7 +254,6 @@ class Label(object):
                    values=self.values,
                    hemi=self.hemi,
                    comment=self.comment,
-                   verbose=self.verbose,
                    subject=self.subject,
                    color=self.color,
                    name=self.name,
@@ -343,10 +339,9 @@ class Label(object):
         name = "%s + %s" % (name0, name1)
 
         color = _blend_colors(self.color, other.color)
-        verbose = self.verbose or other.verbose
 
         label = Label(vertices, pos, values, self.hemi, comment, name, None,
-                      self.subject, color, verbose)
+                      self.subject, color)
         return label
 
     def __sub__(self, other):
@@ -374,7 +369,7 @@ class Label(object):
         name = "%s - %s" % (self.name or 'unnamed', other.name or 'unnamed')
         return Label(self.vertices[keep], self.pos[keep], self.values[keep],
                      self.hemi, self.comment, name, None, self.subject,
-                     self.color, self.verbose)
+                     self.color)
 
     def save(self, filename):
         r"""Write to disk as FreeSurfer \*.label file.
@@ -500,7 +495,7 @@ class Label(object):
 
     @verbose
     def smooth(self, subject=None, smooth=2, grade=None,
-               subjects_dir=None, n_jobs=1, verbose=None):
+               subjects_dir=None, n_jobs=None, verbose=None):
         """Smooth the label.
 
         Useful for filling in labels made in a
@@ -508,7 +503,7 @@ class Label(object):
 
         Parameters
         ----------
-        %(label_subject)s
+        %(subject_label)s
         smooth : int
             Number of iterations for the smoothing of the surface data.
             Cannot be None here since not all vertices are used. For a
@@ -527,7 +522,7 @@ class Label(object):
             a label filling the surface, use None.
         %(subjects_dir)s
         %(n_jobs)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -542,11 +537,11 @@ class Label(object):
         """
         subject = _check_subject(self.subject, subject)
         return self.morph(subject, subject, smooth, grade, subjects_dir,
-                          n_jobs, verbose)
+                          n_jobs, verbose=verbose)
 
     @verbose
     def morph(self, subject_from=None, subject_to=None, smooth=5, grade=None,
-              subjects_dir=None, n_jobs=1, verbose=None):
+              subjects_dir=None, n_jobs=None, verbose=None):
         """Morph the label.
 
         Useful for transforming a label from one subject to another.
@@ -575,7 +570,7 @@ class Label(object):
             a label filling the surface, use None.
         %(subjects_dir)s
         %(n_jobs)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -640,7 +635,7 @@ class Label(object):
             or 'contiguous' to split the label into connected components.
             If a number or 'contiguous' is specified, names of the new labels
             will be the input label's name with div1, div2 etc. appended.
-        %(label_subject)s
+        %(subject_label)s
         %(subjects_dir)s
         freesurfer : bool
             By default (``False``) ``split_label`` uses an algorithm that is
@@ -740,7 +735,7 @@ class Label(object):
 
         Parameters
         ----------
-        %(label_subject)s
+        %(subject_label)s
         restrict_vertices : bool | array of int | instance of SourceSpaces
             If True, returned vertex will be one from the label. Otherwise,
             it could be any vertex from surf. If an array of int, the
@@ -794,10 +789,10 @@ class Label(object):
 
         Parameters
         ----------
-        %(label_subject)s
+        %(subject_label)s
         %(subjects_dir)s
         %(surface)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -839,10 +834,10 @@ class Label(object):
 
         Parameters
         ----------
-        %(label_subject)s
+        %(subject_label)s
         %(subjects_dir)s
         %(surface)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -989,7 +984,7 @@ def read_label(filename, subject=None, color=None, *, verbose=None):
     ----------
     filename : str
         Path to label file.
-    %(label_subject)s
+    %(subject_label)s
         It is good practice to set this attribute to avoid combining
         incompatible labels and SourceEstimates (e.g., ones from other
         subjects). Note that due to file specification limitations, the
@@ -1134,7 +1129,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     ----------
     label_to_split : Label | str
         Label which is to be split (Label object or path to a label file).
-    %(label_subject)s
+    %(subject_label)s
     %(subjects_dir)s
 
     Returns
@@ -1218,7 +1213,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
         posterior to anterior), or the number of new labels to create (default
         is 2). If a number is specified, names of the new labels will be the
         input label's name with div1, div2 etc. appended.
-    %(label_subject)s
+    %(subject_label)s
     %(subjects_dir)s
     freesurfer : bool
         By default (``False``) ``split_label`` uses an algorithm that is
@@ -1592,7 +1587,7 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
 
 
 @fill_doc
-def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
+def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=None,
                 overlap=True, names=None, surface='white', colors=None):
     """Generate circular labels in source space with region growing.
 
@@ -1644,7 +1639,6 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     used for each label.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    n_jobs = check_n_jobs(n_jobs)
 
     # make sure the inputs are arrays
     if np.isscalar(seeds):
@@ -1710,7 +1704,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
 
     if overlap:
         # create the patches
-        parallel, my_grow_labels, _ = parallel_func(_grow_labels, n_jobs)
+        parallel, my_grow_labels, n_jobs = parallel_func(_grow_labels, n_jobs)
         seeds = np.array_split(np.array(seeds, dtype='O'), n_jobs)
         extents = np.array_split(extents, n_jobs)
         hemis = np.array_split(hemis, n_jobs)
@@ -2270,7 +2264,7 @@ def morph_labels(labels, subject_to, subject_from=None, subjects_dir=None,
         pos = vert_poss[li][vertices]
         out_labels.append(
             Label(vertices, pos, values, label.hemi, label.comment, label.name,
-                  filename, subject_to, label.color, label.verbose))
+                  filename, subject_to, label.color))
     return out_labels
 
 
@@ -2284,7 +2278,7 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, src=None,
 
     Parameters
     ----------
-    %(eltc_labels)s
+    %(labels_eltc)s
     values : ndarray, shape (n_labels, ...)
         The values in each label. Can be 1D or 2D.
     tmin : float
@@ -2292,7 +2286,7 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, src=None,
     tstep : float
         The tstep to use for the STC.
     %(subject)s
-    %(eltc_src)s
+    %(src_eltc)s
         Can be omitted if using a surface source space, in which case
         the label vertices will determine the output STC vertices.
         Required if using a volumetric source space.
@@ -2346,7 +2340,7 @@ def labels_to_stc(labels, values, tmin=0, tstep=1, subject=None, src=None,
         rev_op = np.zeros(label_op.shape[::-1])
         rev_op[np.arange(label_op.shape[1]), np.argmax(label_op, axis=0)] = 1.
         data = rev_op @ values
-    return klass(data, vertices, tmin, tstep, subject, verbose)
+    return klass(data, vertices, tmin, tstep, subject, verbose=verbose)
 
 
 def _check_values_labels(values, n_labels):

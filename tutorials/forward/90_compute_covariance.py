@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-compute-covariance:
 
+=============================
 Computing a covariance matrix
 =============================
 
@@ -14,8 +16,6 @@ minimum-norm inverse solution. For more information, see
 
 # %%
 
-import os.path as op
-
 import mne
 from mne.datasets import sample
 
@@ -26,10 +26,10 @@ from mne.datasets import sample
 # inverse solution. For more information, see :ref:`minimum_norm_estimates`.
 
 data_path = sample.data_path()
-raw_empty_room_fname = op.join(
-    data_path, 'MEG', 'sample', 'ernoise_raw.fif')
+raw_empty_room_fname = (data_path / 'MEG' / 'sample' /
+                        'ernoise_raw.fif')
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
-raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname)
 raw.set_eeg_reference('average', projection=True)
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
@@ -105,7 +105,7 @@ noise_cov_baseline.plot(epochs.info, proj=True)
 # available. Unfortunately it is not easy to tell the effective number of
 # samples, hence, to choose the appropriate regularization.
 # In MNE-Python, regularization is done using advanced regularization methods
-# described in :footcite:`EngemannGramfort2015`. For this the 'auto' option
+# described in :footcite:p:`EngemannGramfort2015`. For this the 'auto' option
 # can be used. With this option cross-validation will be used to learn the
 # optimal regularization:
 
@@ -149,8 +149,7 @@ evoked.plot_white(noise_cov_reg, time_unit='s')
 # introductory materials can be found `here <https://goo.gl/ElWrxe>`_.
 #
 # For expert use cases or debugging the alternative estimators can also be
-# compared (see :ref:`ex-evoked-whitening`) and
-# :ref:`ex-covariance-whitening-dspm`):
+# compared (see :ref:`ex-evoked-whitening`):
 
 noise_covs = mne.compute_covariance(
     epochs, tmax=0., method=('empirical', 'shrunk'), return_estimators=True,
@@ -175,8 +174,9 @@ evoked_meg.plot_white([noise_cov_baseline, noise_cov], time_unit='s')
 
 ##############################################################################
 # Based on the negative log-likelihood, the baseline covariance
-# seems more appropriate. See :ref:`ex-covariance-whitening-dspm` for more
-# information.
+# seems more appropriate. Improper regularization can lead to overestimation of
+# source amplitudes, see :footcite:p:`EngemannGramfort2015` for more
+# information and examples.
 
 # %%
 # References

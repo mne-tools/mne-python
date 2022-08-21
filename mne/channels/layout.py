@@ -28,8 +28,9 @@ from .channels import _get_ch_info
 class Layout(object):
     """Sensor layouts.
 
-    Layouts are typically loaded from a file using read_layout. Only use this
-    class directly if you're constructing a new layout.
+    Layouts are typically loaded from a file using
+    :func:`~mne.channels.read_layout`. Only use this class directly if you're
+    constructing a new layout.
 
     Parameters
     ----------
@@ -184,6 +185,57 @@ def read_layout(kind, path=None, scale=True):
     See Also
     --------
     Layout.save
+
+    Notes
+    -----
+    Valid ``kind`` arguments are:
+
+    .. table::
+       :widths: auto
+
+       +----------------------+
+       | Kind                 |
+       +======================+
+       | biosemi              |
+       +----------------------+
+       | CTF151               |
+       +----------------------+
+       | CTF275               |
+       +----------------------+
+       | CTF-275              |
+       +----------------------+
+       | EEG1005              |
+       +----------------------+
+       | EGI256               |
+       +----------------------+
+       | GeodesicHeadWeb-130  |
+       +----------------------+
+       | GeodesicHeadWeb-280  |
+       +----------------------+
+       | KIT-125              |
+       +----------------------+
+       | KIT-157              |
+       +----------------------+
+       | KIT-160              |
+       +----------------------+
+       | KIT-AD               |
+       +----------------------+
+       | KIT-AS-2008          |
+       +----------------------+
+       | KIT-UMD-3            |
+       +----------------------+
+       | magnesWH3600         |
+       +----------------------+
+       | Neuromag_122         |
+       +----------------------+
+       | Vectorview-all       |
+       +----------------------+
+       | Vectorview-grad      |
+       +----------------------+
+       | Vectorview-grad_norm |
+       +----------------------+
+       | Vectorview-mag       |
+       +----------------------+
     """
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'layouts')
@@ -667,7 +719,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
     locs3d = np.array([ch['loc'][:3] for ch in chs])
 
     # If electrode locations are not available, use digization points
-    if not _check_ch_locs(chs):
+    if not _check_ch_locs(info=info, picks=picks):
         logging.warning('Did not find any electrode locations (in the info '
                         'object), will attempt to use digitization points '
                         'instead. However, if digitization points do not '

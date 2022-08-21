@@ -2,29 +2,35 @@
 """
 .. _tut-fixed-length-epochs:
 
-Creating epochs of equal length
-===============================
+Divide continuous data into equally-spaced epochs
+=================================================
 
-This tutorial shows how to create equal length epochs and briefly demonstrates
-an example of their use in connectivity analysis.
+This tutorial shows how to segment continuous data into a set of epochs spaced
+equidistantly in time. The epochs will not be created based on experimental
+events; instead, the continuous data will be "chunked" into consecutive epochs
+(which may be temporally overlapping, adjacent, or separated).
+We will also briefly demonstrate how to use these epochs in connectivity
+analysis.
 
-First, we import necessary modules and read in a sample raw
-data set. This data set contains brain activity that is event-related, i.e.
+First, we import necessary modules and read in a sample raw data set.
+This data set contains brain activity that is event-related, i.e.,
 synchronized to the onset of auditory stimuli. However, rather than creating
 epochs by segmenting the data around the onset of each stimulus, we will
 create 30 second epochs that allow us to perform non-event-related analyses of
 the signal.
 
 .. note::
-    Starting in version 0.25, all functions in the ``mne.connectivity``
-    sub-module will be housed in a separate package called
-    ``mne-connectivity``. Download it by  running
-    ``pip install mne-connectivity``.
+    Starting in version 1.0, all functions in the ``mne.connectivity``
+    sub-module are housed in a separate package called
+    :mod:`mne-connectivity <mne_connectivity>`. Download it by  running:
+
+    .. code-block:: console
+
+        $ pip install mne-connectivity
 """
 
 # %%
 
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 import mne
@@ -32,9 +38,8 @@ from mne.preprocessing import compute_proj_ecg
 from mne_connectivity import envelope_correlation
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
-
+sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
+                        'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 
 # %%
@@ -94,10 +99,11 @@ alpha_data = epochs.get_data()
 
 # %%
 # If desired, separate correlation matrices for each epoch can be obtained.
-# For envelope correlations, this is done by passing ``combine=None`` to the
-# envelope correlations function.
+# For envelope correlations, this is the default return if you use
+# :meth:`mne-connectivity:mne_connectivity.EpochConnectivity.get_data`:
 
-corr_matrix = envelope_correlation(alpha_data, combine=None)
+corr_matrix = envelope_correlation(alpha_data).get_data()
+print(corr_matrix.shape)
 
 # %%
 # Now we can plot correlation matrices. We'll compare the first and last

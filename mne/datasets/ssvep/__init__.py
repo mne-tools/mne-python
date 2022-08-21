@@ -1,3 +1,3 @@
 """SSVEP dataset."""
 
-from .ssvep import data_path, has_ssvep_data, get_version
+from .ssvep import data_path, get_version

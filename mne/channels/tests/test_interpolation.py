@@ -10,14 +10,16 @@ from mne.channels.interpolation import _make_interpolation_matrix
 from mne.datasets import testing
 from mne.preprocessing.nirs import (optical_density, scalp_coupling_index,
                                     beer_lambert_law)
-from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
 from mne.io.proj import _has_eeg_average_ref_proj
+from mne.utils import _record_warnings, requires_version
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 raw_fname_ctf = op.join(base_dir, 'test_ctf_raw.fif')
+
+testing_path = testing.data_path(download=False)
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
@@ -161,7 +163,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
     raw_few.del_proj()
     raw_few.info['bads'] = [raw_few.ch_names[-1]]
     orig_data = raw_few[1][0]
-    with pytest.warns(None) as w:
+    with _record_warnings() as w:
         raw_few.interpolate_bads(reset_bads=False, **kw)
     assert len([ww for ww in w if 'more than' not in str(ww.message)]) == 0
     new_data = raw_few[1][0]
@@ -272,18 +274,18 @@ def test_interpolate_meg_ctf():
 @testing.requires_testing_data
 def test_interpolation_ctf_comp():
     """Test interpolation with compensated CTF data."""
-    ctf_dir = op.join(testing.data_path(download=False), 'CTF')
-    raw_fname = op.join(ctf_dir, 'somMDYO-18av.ds')
+    raw_fname = op.join(testing_path, 'CTF', 'somMDYO-18av.ds')
     raw = io.read_raw_ctf(raw_fname, preload=True)
     raw.info['bads'] = [raw.ch_names[5], raw.ch_names[-5]]
     raw.interpolate_bads(mode='fast', origin=(0., 0., 0.04))
     assert raw.info['bads'] == []
 
 
+@requires_version('pymatreader')
 @testing.requires_testing_data
 def test_interpolation_nirs():
     """Test interpolating bad nirs channels."""
-    fname = op.join(data_path(download=False),
+    fname = op.join(testing_path,
                     'NIRx', 'nirscout', 'nirx_15_2_recording_w_overlap')
     raw_intensity = read_raw_nirx(fname, preload=False)
     raw_od = optical_density(raw_intensity)
@@ -298,7 +300,7 @@ def test_interpolation_nirs():
     raw_od.interpolate_bads()
     assert raw_od.info['bads'] == []
     assert bad_0_std_pre_interp > np.std(raw_od._data[bad_0])
-    raw_haemo = beer_lambert_law(raw_od)
+    raw_haemo = beer_lambert_law(raw_od, ppf=6)
     raw_haemo.info['bads'] = raw_haemo.ch_names[2:4]
     assert raw_haemo.info['bads'] == ['S1_D2 hbo', 'S1_D2 hbr']
     raw_haemo.interpolate_bads()

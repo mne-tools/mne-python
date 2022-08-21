@@ -1,9 +1,7 @@
 [run]
 branch = True
 source = mne
-include = */mne/*
 omit =
-    */mne/externals/*
     */bin/*
     */setup.py
     */mne/fixes*

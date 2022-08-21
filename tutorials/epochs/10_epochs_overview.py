@@ -2,6 +2,7 @@
 """
 .. _tut-epochs-class:
 
+=============================================
 The Epochs data structure: discontinuous data
 =============================================
 
@@ -18,7 +19,6 @@ As usual we'll start by importing the modules we need:
 
 # %%
 
-import os
 import mne
 
 # %%
@@ -73,8 +73,8 @@ import mne
 # the :class:`~mne.io.Raw` data to save memory:
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
+                        'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False).crop(tmax=60)
 
 # %%

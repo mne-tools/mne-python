@@ -7,7 +7,8 @@ Computing various MNE solutions
 ===============================
 
 This example shows example fixed- and free-orientation source localizations
-produced by MNE, dSPM, sLORETA, and eLORETA.
+produced by the minimum-norm variants implemented in MNE-Python:
+MNE, dSPM, sLORETA, and eLORETA.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
@@ -22,14 +23,15 @@ from mne.minimum_norm import make_inverse_operator, apply_inverse
 print(__doc__)
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
+subjects_dir = data_path / 'subjects'
 
 # Read data (just MEG here for speed, though we could use MEG+EEG)
-fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
-evoked = mne.read_evokeds(fname_evoked, condition='Left Auditory',
+meg_path = data_path / 'MEG' / 'sample'
+fname_evoked = meg_path / 'sample_audvis-ave.fif'
+evoked = mne.read_evokeds(fname_evoked, condition='Right Auditory',
                           baseline=(None, 0))
-fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
-fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
+fname_fwd = meg_path / 'sample_audvis-meg-oct-6-fwd.fif'
+fname_cov = meg_path / 'sample_audvis-cov.fif'
 fwd = mne.read_forward_solution(fname_fwd)
 cov = mne.read_cov(fname_cov)
 # crop for speed in these examples
@@ -48,8 +50,9 @@ inv = make_inverse_operator(evoked.info, fwd, cov, loose=0., depth=0.8,
 # value of the source estimates to simplify the visualization.
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-kwargs = dict(initial_time=0.08, hemi='both', subjects_dir=subjects_dir,
-              size=(600, 600))
+kwargs = dict(initial_time=0.08, hemi='lh', subjects_dir=subjects_dir,
+              size=(600, 600), clim=dict(kind='percent', lims=[90, 95, 99]),
+              smoothing_steps=7)
 
 stc = abs(apply_inverse(evoked, inv, lambda2, 'MNE', verbose=True))
 brain = stc.plot(figure=1, **kwargs)

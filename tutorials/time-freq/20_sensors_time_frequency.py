@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-sensors-time-freq:
 
@@ -18,25 +19,25 @@ related synchronizations (ERS) / desynchronizations (ERD) in the beta band.
 # License: BSD-3-Clause
 
 # %%
-import os.path as op
-
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
-from mne.time_frequency import tfr_morlet, psd_multitaper, psd_welch
 from mne.datasets import somato
+from mne.time_frequency import psd_multitaper, psd_welch, tfr_morlet
 
 # %%
 # Set parameters
 data_path = somato.data_path()
 subject = '01'
 task = 'somato'
-raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
-                    'sub-{}_task-{}_meg.fif'.format(subject, task))
+raw_fname = (data_path / f'sub-{subject}' / 'meg' /
+             f'sub-{subject}_task-{task}_meg.fif')
 
 # Setup for reading the raw data
 raw = mne.io.read_raw_fif(raw_fname)
+# crop and resample just to reduce computation time
+raw.crop(120, 360).load_data().resample(200)
 events = mne.find_events(raw, stim_channel='STI 014')
 
 # picks MEG gradiometers
@@ -49,13 +50,11 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=baseline, reject=dict(grad=4000e-13, eog=350e-6),
                     preload=True)
 
-epochs.resample(200., npad='auto')  # resample to reduce computation time
-
 # %%
 # Frequency analysis
 # ------------------
 #
-# We start by exploring the frequence content of our epochs.
+# We start by exploring the frequency content of our epochs.
 
 
 # %%
@@ -63,18 +62,27 @@ epochs.resample(200., npad='auto')  # resample to reduce computation time
 epochs.plot_psd(fmin=2., fmax=40., average=True, spatial_colors=False)
 
 # %%
-# Now let's take a look at the spatial distributions of the PSD.
-epochs.plot_psd_topomap(ch_type='grad', normalize=True)
+# Now, let's take a look at the spatial distributions of the PSD, averaged
+# across epochs and frequency bands.
+epochs.plot_psd_topomap(ch_type='grad', normalize=False)
 
 # %%
-# Alternatively, you can also create PSDs from Epochs objects with functions
+# Alternatively, you can also create PSDs from `~mne.Epochs` with functions
 # that start with ``psd_`` such as
 # :func:`mne.time_frequency.psd_multitaper` and
 # :func:`mne.time_frequency.psd_welch`.
+#
+# .. note::
+#    In contrast to the methods for visualization, those ``psd_*`` functions do
+#    **not** scale the data from SI units to more "convenient" values. So when
+#    e.g. calculating the PSD of gradiometers via
+#    :func:`~mne.time_frequency.psd_multitaper`, you will get the power as
+#    ``(T/m)²/Hz`` (instead of ``(fT/cm)²/Hz`` via
+#    :meth:`~mne.Epochs.plot_psd`).
 
 f, ax = plt.subplots()
-psds, freqs = psd_multitaper(epochs, fmin=2, fmax=40, n_jobs=1)
-psds = 10. * np.log10(psds)
+psds, freqs = psd_multitaper(epochs, fmin=2, fmax=40, n_jobs=None)
+psds = 10 * np.log10(psds)  # convert to dB
 psds_mean = psds.mean(0).mean(0)
 psds_std = psds.mean(0).std(0)
 
@@ -94,7 +102,7 @@ plt.show()
 # bias relative to the mean), which is a more robust measure.
 
 # Estimate PSDs based on "mean" and "median" averaging for comparison.
-kwargs = dict(fmin=2, fmax=40, n_jobs=1)
+kwargs = dict(fmin=2, fmax=40, n_jobs=None)
 psds_welch_mean, freqs_mean = psd_welch(epochs, average='mean', **kwargs)
 psds_welch_median, freqs_median = psd_welch(epochs, average='median', **kwargs)
 
@@ -149,7 +157,7 @@ print(psds_welch_unagg.shape)
 freqs = np.logspace(*np.log10([6, 35]), num=8)
 n_cycles = freqs / 2.  # different number of cycle per frequency
 power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
-                        return_itc=True, decim=3, n_jobs=1)
+                        return_itc=True, decim=3, n_jobs=None)
 
 # %%
 # Inspect power

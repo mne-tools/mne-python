@@ -19,7 +19,7 @@ from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (plt_show, _compute_scalings, _handle_decim, _check_cov,
-                    _shorten_path_from_middle,
+                    _shorten_path_from_middle, _handle_precompute,
                     _get_channel_plotting_order, _make_event_color_dict)
 
 _RAW_CLIP_DEF = 1.5
@@ -27,14 +27,16 @@ _RAW_CLIP_DEF = 1.5
 
 @verbose
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
-             bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
+             bgcolor='w', color=None, bad_color='lightgray',
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4,
              clipping=_RAW_CLIP_DEF, show_first_samp=False,
              proj=True, group_by='type', butterfly=False, decim='auto',
              noise_cov=None, event_id=None, show_scrollbars=True,
-             show_scalebars=True, time_format='float', verbose=None):
+             show_scalebars=True, time_format='float',
+             precompute=None, use_opengl=None, *, theme=None,
+             overview_mode=None, verbose=None):
     """Plot raw data.
 
     Parameters
@@ -67,23 +69,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Color to make bad channels.
     %(event_color)s
         Defaults to ``'cyan'``.
-    scalings : 'auto' | dict | None
-        Scaling factors for the traces. If any fields in scalings are 'auto',
-        the scaling factor is set to match the 99.5th percentile of a subset of
-        the corresponding data. If scalings == 'auto', all scalings fields are
-        set to 'auto'. If any fields are 'auto' and data is not preloaded, a
-        subset of times up to 100mb will be loaded. If None, defaults to::
-
-            dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
-                 emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
-                 resp=1, chpi=1e-4, whitened=1e2)
-
-        A particular scaling value ``s`` corresponds to half of the visualized
-        signal range around zero (i.e. from ``0`` to ``+s`` or from ``0`` to
-        ``-s``). For example, the default scaling of ``20e-6`` (20µV) for EEG
-        signals means that the visualized range will be 40µV (20µV in the
-        positive direction and 20µV in the negative direction).
-
+    %(scalings)s
     remove_dc : bool
         If True remove DC component when plotting data.
     order : array of int | None
@@ -103,6 +89,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Whether to halt program execution until the figure is closed.
         Useful for setting bad channels on the fly by clicking on a line.
         May not work on all systems / platforms.
+        (Only Qt) If you run from a script, this needs to
+        be ``True`` or a Qt-eventloop needs to be started somewhere
+        else in the script (e.g. if you want to implement the browser
+        inside another Qt-Application).
     highpass : float | None
         Highpass to apply when displaying data.
     lowpass : float | None
@@ -136,7 +126,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Individual projectors can be enabled/disabled interactively (see
         Notes). This argument only affects the plot; use ``raw.apply_proj()``
         to modify the data stored in the Raw object.
-    %(browse_group_by)s
+    %(group_by_browse)s
     butterfly : bool
         Whether to start in butterfly mode. Defaults to False.
     decim : int | 'auto'
@@ -164,17 +154,23 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
         .. versionadded:: 0.16.0
     %(show_scrollbars)s
-    show_scalebars : bool
-        Whether or not to show the scale bars. Defaults to True.
+    %(show_scalebars)s
 
         .. versionadded:: 0.20.0
     %(time_format)s
+    %(precompute)s
+    %(use_opengl)s
+    %(theme_pg)s
+
+        .. versionadded:: 1.0
+    %(overview_mode)s
+
+        .. versionadded:: 1.1
     %(verbose)s
 
     Returns
     -------
-    fig : instance of matplotlib.figure.Figure
-        Raw traces.
+    %(browser)s
 
     Notes
     -----
@@ -201,6 +197,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     'b', and whitening mode (when ``noise_cov is not None``) by pressing 'w'.
     By default, the channel means are removed when ``remove_dc`` is set to
     ``True``. This flag can be toggled by pressing 'd'.
+
+    %(notes_2d_backend)s
     """
     from ..io.base import BaseRaw
     from ._figure import _get_browser
@@ -212,7 +210,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     projs_on = np.full_like(projs, proj, dtype=bool)
     # disable projs in info if user doesn't want to see them right away
     if not proj:
-        info['projs'] = list()
+        with info._unlock():
+            info['projs'] = list()
 
     # handle defaults / check arg validity
     color = _handle_default('color', color)
@@ -302,6 +301,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         raise TypeError(f'title must be None or a string, got a {type(title)}')
 
     # gather parameters and initialize figure
+    _validate_type(use_opengl, (bool, None), 'use_opengl')
+    precompute = _handle_precompute(precompute)
     params = dict(inst=raw,
                   info=info,
                   # channels and channel order
@@ -345,31 +346,16 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   clipping=clipping,
                   scrollbars_visible=show_scrollbars,
                   scalebars_visible=show_scalebars,
-                  window_title=title)
+                  window_title=title,
+                  bgcolor=bgcolor,
+                  # Qt-specific
+                  precompute=precompute,
+                  use_opengl=use_opengl,
+                  theme=theme,
+                  overview_mode=overview_mode,
+                  )
 
-    fig = _get_browser(**params)
-
-    fig._update_picks()
-
-    # make channel selection dialog, if requested (doesn't work well in init)
-    if group_by in ('selection', 'position'):
-        fig._create_selection_fig()
-
-    # update projector and data, and plot
-    fig._update_projector()
-    fig._update_trace_offsets()
-    fig._update_data()
-    fig._draw_traces()
-
-    # plot annotations (if any)
-    fig._setup_annotation_colors()
-    fig._draw_annotations()
-
-    # start with projectors dialog open, if requested
-    if show_options:
-        fig._toggle_proj_fig()
-
-    plt_show(show, block=block)
+    fig = _get_browser(show=show, block=block, **params)
 
     return fig
 
@@ -379,7 +365,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
                  n_fft=None, n_overlap=0, reject_by_annotation=True,
                  picks=None, ax=None, color='black', xscale='linear',
                  area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
-                 show=True, n_jobs=1, average=False, line_alpha=None,
+                 show=True, n_jobs=None, average=False, line_alpha=None,
                  spatial_colors=True, sphere=None, window='hamming',
                  exclude='bads', verbose=None):
     """%(plot_psd_doc)s.
@@ -406,22 +392,22 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
     %(reject_by_annotation_raw)s
-    %(plot_psd_picks_good_data)s
+    %(picks_plot_psd_good_data)s
     ax : instance of Axes | None
         Axes to plot into. If None, axes will be created.
-    %(plot_psd_color)s
-    %(plot_psd_xscale)s
-    %(plot_psd_area_mode)s
-    %(plot_psd_area_alpha)s
-    %(plot_psd_dB)s
-    %(plot_psd_estimate)s
+    %(color_plot_psd)s
+    %(xscale_plot_psd)s
+    %(area_mode_plot_psd)s
+    %(area_alpha_plot_psd)s
+    %(dB_plot_psd)s
+    %(estimate_plot_psd)s
     %(show)s
     %(n_jobs)s
-    %(plot_psd_average)s
-    %(plot_psd_line_alpha)s
-    %(plot_psd_spatial_colors)s
-    %(topomap_sphere_auto)s
-    %(window-psd)s
+    %(average_plot_psd)s
+    %(line_alpha_plot_psd)s
+    %(spatial_colors_plot_psd)s
+    %(sphere_topomap_auto)s
+    %(window_psd)s
 
         .. versionadded:: 0.22.0
     exclude : list of str | 'bads'
@@ -461,7 +447,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
 def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, block=False, n_jobs=1, axes=None,
+                      show=True, block=False, n_jobs=None, axes=None,
                       verbose=None):
     """Plot channel-wise frequency spectra as topography.
 

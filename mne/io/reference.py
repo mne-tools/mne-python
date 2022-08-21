@@ -101,7 +101,8 @@ def _check_before_reference(inst, ref_from, ref_to, ch_type):
     # info that a non-CAR has been applied.
     ref_to_channels = pick_channels(inst.ch_names, ref_to, ordered=True)
     if len(np.intersect1d(ref_to_channels, eeg_idx)) > 0:
-        inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
+        with inst.info._unlock():
+            inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
 
     return ref_to
 
@@ -210,9 +211,8 @@ def add_reference_channels(inst, ref_channels, copy=True):
                        dl['kind'] == FIFF.FIFFV_POINT_EEG and
                        dl['ident'] == 0)]
         if len(ref_channels) > 1 or len(ref_dig_loc) != len(ref_channels):
-            ref_dig_array = np.zeros(12)
-            warn('The locations of multiple reference channels are ignored '
-                 '(set to zero).')
+            ref_dig_array = np.full(12, np.nan)
+            warn('The locations of multiple reference channels are ignored.')
         else:  # n_ref_channels == 1 and a single ref digitization exists
             ref_dig_array = np.concatenate((ref_dig_loc[0]['r'],
                                            ref_dig_loc[0]['r'], np.zeros(6)))
@@ -220,12 +220,12 @@ def add_reference_channels(inst, ref_channels, copy=True):
             for idx in pick_types(inst.info, meg=False, eeg=True, exclude=[]):
                 inst.info['chs'][idx]['loc'][3:6] = ref_dig_loc[0]['r']
     else:
-        # we should actually be able to do this from the montage, but
-        # it looks like the montage isn't stored, so we can't extract
-        # this information. The user will just have to call set_montage()
-        # by setting this to zero, we fall back to the old behavior
-        # when missing digitisation
-        ref_dig_array = np.zeros(12)
+        # Ideally we'd fall back on getting the location from a montage, but
+        # locations for non-present channels aren't stored, so location is
+        # unknown. Users can call set_montage() again if needed.
+        ref_dig_array = np.full(12, np.nan)
+        logger.info('Location for this channel is unknown; consider calling '
+                    'set_montage() again if needed.')
 
     for ch in ref_channels:
         chan_info = {'ch_name': ch,
@@ -241,12 +241,16 @@ def add_reference_channels(inst, ref_channels, copy=True):
                      'loc': ref_dig_array}
         inst.info['chs'].append(chan_info)
         inst.info._update_redundant()
+    range_ = np.arange(1, len(ref_channels) + 1)
     if isinstance(inst, BaseRaw):
         inst._cals = np.hstack((inst._cals, [1] * len(ref_channels)))
-        range_ = np.arange(1, len(ref_channels) + 1)
         for pi, picks in enumerate(inst._read_picks):
             inst._read_picks[pi] = np.concatenate(
                 [picks, np.max(picks) + range_])
+    elif isinstance(inst, BaseEpochs):
+        picks = inst.picks
+        inst.picks = np.concatenate(
+            [picks, np.max(picks) + range_])
     inst.info._check_consistency()
     set_eeg_reference(inst, ref_channels=ref_channels, copy=False,
                       verbose=False)
@@ -280,17 +284,21 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     This function will re-reference the data according to the desired
     reference.
 
+    Note that it is also possible to re-reference the signal using a
+    Laplacian (LAP) "reference-free" transformation using the
+    :func:`.compute_current_source_density` function.
+
     Parameters
     ----------
     inst : instance of Raw | Epochs | Evoked
         Instance of Raw or Epochs with EEG channels and reference channel(s).
-    %(set_eeg_reference_ref_channels)s
+    %(ref_channels_set_eeg_reference)s
     copy : bool
         Specifies whether the data will be copied (True) or modified in-place
         (False). Defaults to True.
-    %(set_eeg_reference_projection)s
-    %(set_eeg_reference_ch_type)s
-    %(set_eeg_reference_forward)s
+    %(projection_set_eeg_reference)s
+    %(ch_type_set_eeg_reference)s
+    %(forward_set_eeg_reference)s
     %(verbose)s
 
     Returns
@@ -320,11 +328,14 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
             # sure that the custom_ref_applied flag is left untouched.
             custom_ref_applied = inst.info['custom_ref_applied']
             try:
-                inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
+                with inst.info._unlock():
+                    inst.info['custom_ref_applied'] = \
+                        FIFF.FIFFV_MNE_CUSTOM_REF_OFF
                 inst.add_proj(make_eeg_average_ref_proj(inst.info,
-                              activate=False))
+                                                        activate=False))
             except Exception:
-                inst.info['custom_ref_applied'] = custom_ref_applied
+                with inst.info._unlock():
+                    inst.info['custom_ref_applied'] = custom_ref_applied
                 raise
             # If the data has been preloaded, projections will no
             # longer be automatically applied.
@@ -525,7 +536,8 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     # Set other info-keys from original instance.
     pick_info = {k: v for k, v in inst.info.items() if k not in
                  ['chs', 'ch_names', 'bads', 'nchan', 'sfreq']}
-    ref_info.update(pick_info)
+    with ref_info._unlock():
+        ref_info.update(pick_info)
 
     # Rereferencing of data.
     ref_data = multiplier @ inst._data

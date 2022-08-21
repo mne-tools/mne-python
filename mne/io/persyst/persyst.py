@@ -95,8 +95,11 @@ class RawPersyst(BaseRaw):
             if key == '':
                 continue
 
-            # make sure key are lowercase for everything, but electrodes
-            if key is not None and section != 'channelmap':
+            # Make sure key are lowercase for everything, but electrodes.
+            # We also do not want to lower-case comments because those
+            # are free-form text where casing may matter.
+            if key is not None and section not in ['channelmap',
+                                                   'comments']:
                 key = key.lower()
 
             # FileInfo
@@ -182,10 +185,11 @@ class RawPersyst(BaseRaw):
         ch_types = 'eeg'
         info = create_info(ch_names, sfreq, ch_types=ch_types)
         info.update(subject_info=subject_info)
-        for idx in range(n_chs):
-            # calibration brings to uV then 1e-6 brings to V
-            info['chs'][idx]['cal'] = cal * 1.0e-6
-        info['meas_date'] = meas_date
+        with info._unlock():
+            for idx in range(n_chs):
+                # calibration brings to uV then 1e-6 brings to V
+                info['chs'][idx]['cal'] = cal * 1.0e-6
+            info['meas_date'] = meas_date
 
         # determine number of samples in file
         # Note: We do not use the lay file to do this

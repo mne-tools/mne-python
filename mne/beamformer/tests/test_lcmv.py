@@ -24,7 +24,8 @@ from mne.io.constants import FIFF
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.minimum_norm.tests.test_inverse import _assert_free_ori_match
 from mne.simulation import simulate_evoked
-from mne.utils import object_diff, requires_h5py, catch_logging
+from mne.utils import (object_diff, requires_version, catch_logging,
+                       _record_warnings)
 
 
 data_path = testing.data_path(download=False)
@@ -37,6 +38,7 @@ fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
 fname_event = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc_raw-eve.fif')
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
+ctf_fname = op.join(data_path, 'CTF', 'somMDYO-18av.ds')
 
 reject = dict(grad=4000e-13, mag=4e-12)
 
@@ -117,6 +119,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
         forward_surf_ori, forward_fixed, forward_vol
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_lcmv_vector():
     """Test vector LCMV solutions."""
@@ -125,7 +128,8 @@ def test_lcmv_vector():
     # For speed and for rank-deficiency calculation simplicity,
     # just use grads
     info = mne.pick_info(info, mne.pick_types(info, meg='grad', exclude=()))
-    info.update(bads=[], projs=[])
+    with info._unlock():
+        info.update(bads=[], projs=[])
 
     forward = mne.read_forward_solution(fname_fwd)
     forward = mne.pick_channels_forward(forward, info['ch_names'])
@@ -204,7 +208,7 @@ def test_lcmv_vector():
 
 
 @pytest.mark.slowtest
-@requires_h5py
+@requires_version('h5io')
 @testing.requires_testing_data
 @pytest.mark.parametrize('reg, proj, kind', [
     (0.01, True, 'volume'),
@@ -212,7 +216,7 @@ def test_lcmv_vector():
     (0.01, False, 'surface'),
     (0., True, 'surface'),
 ])
-def test_make_lcmv_bem(tmpdir, reg, proj, kind):
+def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     """Test LCMV with evoked data and single trials."""
     raw, epochs, evoked, data_cov, noise_cov, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data(proj=proj)
@@ -225,7 +229,7 @@ def test_make_lcmv_bem(tmpdir, reg, proj, kind):
 
     filters = make_lcmv(evoked.info, fwd, data_cov, reg=reg,
                         noise_cov=noise_cov)
-    stc = apply_lcmv(evoked, filters, max_ori_out='signed')
+    stc = apply_lcmv(evoked, filters)
     stc.crop(0.02, None)
 
     stc_pow = np.sum(np.abs(stc.data), axis=1)
@@ -241,7 +245,7 @@ def test_make_lcmv_bem(tmpdir, reg, proj, kind):
         filters = make_lcmv(evoked.info, forward_surf_ori, data_cov,
                             reg=reg, noise_cov=noise_cov,
                             pick_ori='normal', weight_norm=None)
-        stc_normal = apply_lcmv(evoked, filters, max_ori_out='signed')
+        stc_normal = apply_lcmv(evoked, filters)
         stc_normal.crop(0.02, None)
 
         stc_pow = np.sum(np.abs(stc_normal.data), axis=1)
@@ -262,7 +266,7 @@ def test_make_lcmv_bem(tmpdir, reg, proj, kind):
     # Test picking source orientation maximizing output source power
     filters = make_lcmv(evoked.info, fwd, data_cov, reg=reg,
                         noise_cov=noise_cov, pick_ori='max-power')
-    stc_max_power = apply_lcmv(evoked, filters, max_ori_out='signed')
+    stc_max_power = apply_lcmv(evoked, filters)
     stc_max_power.crop(0.02, None)
     stc_pow = np.sum(np.abs(stc_max_power.data), axis=1)
     idx = np.argmax(stc_pow)
@@ -302,7 +306,7 @@ def test_make_lcmv_bem(tmpdir, reg, proj, kind):
     assert 'rank %s' % rank in repr(filters)
 
     # I/O
-    fname = op.join(str(tmpdir), 'filters.h5')
+    fname = op.join(str(tmp_path), 'filters.h5')
     with pytest.warns(RuntimeWarning, match='-lcmv.h5'):
         filters.save(fname)
     filters_read = read_beamformer(fname)
@@ -344,8 +348,6 @@ def test_make_lcmv_bem(tmpdir, reg, proj, kind):
     evoked_ch.pick_channels(evoked_ch.ch_names[1:])
     filters = make_lcmv(evoked.info, forward_vol, data_cov, reg=0.01,
                         noise_cov=noise_cov)
-    pytest.raises(ValueError, apply_lcmv, evoked_ch, filters,
-                  max_ori_out='signed')
 
     # Test if discrepancies in channel selection of data and fwd model are
     # handled correctly in apply_lcmv
@@ -356,18 +358,18 @@ def test_make_lcmv_bem(tmpdir, reg, proj, kind):
     # this channel from the data
     # also test here that no warnings are thrown - implemented to check whether
     # src should not be None warning occurs
-    stc = apply_lcmv(evoked, filters, max_ori_out='signed')
+    stc = apply_lcmv(evoked, filters)
 
     # the result should be equal to applying this filter to a dataset without
     # this channel:
-    stc_ch = apply_lcmv(evoked_ch, filters, max_ori_out='signed')
+    stc_ch = apply_lcmv(evoked_ch, filters)
     assert_array_almost_equal(stc.data, stc_ch.data)
 
     # Test if non-matching SSP projection is detected in application of filter
     if proj:
         raw_proj = raw.copy().del_proj()
         with pytest.raises(ValueError, match='do not match the projections'):
-            apply_lcmv_raw(raw_proj, filters, max_ori_out='signed')
+            apply_lcmv_raw(raw_proj, filters)
 
     # Test apply_lcmv_raw
     use_raw = raw.copy().crop(0, 1)
@@ -382,15 +384,14 @@ def test_make_lcmv_bem(tmpdir, reg, proj, kind):
     del filters['src_type']  # emulate 0.16 behaviour to cause warning
     with pytest.warns(RuntimeWarning, match='spatial filter does not contain '
                       'src_type'):
-        apply_lcmv(evoked, filters, max_ori_out='signed')
+        apply_lcmv(evoked, filters)
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
     filters = make_lcmv(epochs.info, forward_fixed, data_cov, reg=0.01,
                         noise_cov=noise_cov)
-    stcs = apply_lcmv_epochs(epochs, filters, max_ori_out='signed')
-    stcs_ = apply_lcmv_epochs(epochs, filters, return_generator=True,
-                              max_ori_out='signed')
+    stcs = apply_lcmv_epochs(epochs, filters)
+    stcs_ = apply_lcmv_epochs(epochs, filters, return_generator=True)
     assert_array_equal(stcs[0].data, next(stcs_).data)
 
     epochs.drop_bad()
@@ -405,14 +406,14 @@ def test_make_lcmv_bem(tmpdir, reg, proj, kind):
     # compare it to the solution using evoked with fixed orientation
     filters = make_lcmv(evoked.info, forward_fixed, data_cov, reg=0.01,
                         noise_cov=noise_cov)
-    stc_fixed = apply_lcmv(evoked, filters, max_ori_out='signed')
+    stc_fixed = apply_lcmv(evoked, filters)
     assert_array_almost_equal(stc_avg, stc_fixed.data)
 
     # use a label so we have few source vertices and delayed computation is
     # not used
     filters = make_lcmv(epochs.info, forward_fixed, data_cov, reg=0.01,
                         noise_cov=noise_cov, label=label)
-    stcs_label = apply_lcmv_epochs(epochs, filters, max_ori_out='signed')
+    stcs_label = apply_lcmv_epochs(epochs, filters)
 
     assert_array_almost_equal(stcs_label[0].data, stcs[0].in_label(label).data)
 
@@ -467,7 +468,7 @@ def test_make_lcmv_sphere(pick_ori, weight_norm):
     filters = make_lcmv(evoked.info, fwd_sphere, data_cov, reg=0.1,
                         noise_cov=noise_cov, weight_norm=weight_norm,
                         pick_ori=pick_ori, reduce_rank=True)
-    stc_sphere = apply_lcmv(evoked, filters, max_ori_out='signed')
+    stc_sphere = apply_lcmv(evoked, filters)
     if isinstance(stc_sphere, VolVectorSourceEstimate):
         stc_sphere = stc_sphere.magnitude()
     else:
@@ -520,9 +521,7 @@ def test_lcmv_cov(weight_norm, pick_ori):
 @testing.requires_testing_data
 def test_lcmv_ctf_comp():
     """Test interpolation with compensated CTF data."""
-    ctf_dir = op.join(testing.data_path(download=False), 'CTF')
-    raw_fname = op.join(ctf_dir, 'somMDYO-18av.ds')
-    raw = mne.io.read_raw_ctf(raw_fname, preload=True)
+    raw = mne.io.read_raw_ctf(ctf_fname, preload=True)
     raw.pick(raw.ch_names[:70])
 
     events = mne.make_fixed_length_events(raw, duration=0.2)[:2]
@@ -545,12 +544,13 @@ def test_lcmv_ctf_comp():
         make_lcmv(info_comp, fwd, data_cov)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize('proj, weight_norm', [
     (True, 'unit-noise-gain'),
     (False, 'unit-noise-gain'),
-    pytest.param(True, None, marks=pytest.mark.slowtest),
-    pytest.param(True, 'nai', marks=pytest.mark.slowtest),
+    (True, None),
+    (True, 'nai'),
 ])
 def test_lcmv_reg_proj(proj, weight_norm):
     """Test LCMV with and without proj."""
@@ -674,8 +674,8 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
         # no reg
         (0.00, 'vector', None, True, None, 23, 24, 0.96, 0.97),
         (0.00, 'vector', 'unit-noise-gain-invariant', True, None, 52, 54, 0.95, 0.96),  # noqa: E501
-        (0.00, 'vector', 'unit-noise-gain', True, None, 44, 46, 0.97, 0.98),
-        (0.00, 'vector', 'nai', True, None, 44, 46, 0.97, 0.98),
+        (0.00, 'vector', 'unit-noise-gain', True, None, 44, 48, 0.97, 0.99),
+        (0.00, 'vector', 'nai', True, None, 44, 48, 0.97, 0.99),
         (0.00, 'max-power', None, True, None, 14, 15, 0, 0),
         (0.00, 'max-power', 'unit-noise-gain-invariant', True, None, 35, 37, 0, 0),  # noqa: E501
         (0.00, 'max-power', 'unit-noise-gain', True, None, 35, 37, 0, 0),
@@ -689,7 +689,7 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
     if not use_cov:
         evoked.pick_types(meg='grad')
         noise_cov = None
-    with pytest.warns(None):  # rank deficiency of data_cov
+    with _record_warnings():  # rank deficiency of data_cov
         filters = make_lcmv(evoked.info, fwd, data_cov, reg,
                             noise_cov, pick_ori=pick_ori,
                             weight_norm=weight_norm,

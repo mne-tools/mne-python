@@ -5,18 +5,17 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import contextmanager
 import hashlib
-from io import BytesIO, StringIO
-from math import sqrt
 import numbers
 import operator
 import os
-import os.path as op
-from math import ceil
 import shutil
 import sys
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from io import BytesIO, StringIO
+from math import ceil, sqrt
+from pathlib import Path
 
 import numpy as np
 
@@ -427,7 +426,7 @@ def _replace_md5(fname):
     # adapted from sphinx-gallery
     assert fname.endswith('.new')
     fname_old = fname[:-4]
-    if op.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
+    if os.path.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
         os.remove(fname)
     else:
         shutil.move(fname, fname_old)
@@ -633,6 +632,7 @@ def object_hash(x, h=None):
     digest : int
         The digest resulting from the hash.
     """
+    from scipy import sparse
     if h is None:
         h = hashlib.md5()
     if hasattr(x, 'keys'):
@@ -654,6 +654,13 @@ def object_hash(x, h=None):
         h.update(x.tobytes())
     elif isinstance(x, datetime):
         object_hash(_dt_to_stamp(x))
+    elif sparse.issparse(x):
+        h.update(str(type(x)).encode('utf-8'))
+        if not isinstance(x, (sparse.csr_matrix, sparse.csc_matrix)):
+            raise RuntimeError(f'Unsupported sparse type {type(x)}')
+        h.update(x.data.tobytes())
+        h.update(x.indices.tobytes())
+        h.update(x.indptr.tobytes())
     elif hasattr(x, '__len__'):
         # all other list-like types
         h.update(str(type(x)).encode('utf-8'))
@@ -689,7 +696,7 @@ def object_size(x, memo=None):
     id_ = id(x)
     if id_ in memo:
         return 0  # do not add already existing ones
-    if isinstance(x, (bytes, str, int, float, type(None))):
+    if isinstance(x, (bytes, str, int, float, type(None), Path)):
         size = sys.getsizeof(x)
     elif isinstance(x, np.ndarray):
         # On newer versions of NumPy, just doing sys.getsizeof(x) works,
@@ -1042,7 +1049,7 @@ def _stamp_to_dt(utc_stamp):
     if len(stamp) == 1:  # In case there is no microseconds information
         stamp.append(0)
     return (datetime.fromtimestamp(0, tz=timezone.utc) +
-            timedelta(0, stamp[0], stamp[1]))  # day, sec, µs
+            timedelta(seconds=stamp[0], microseconds=stamp[1]))
 
 
 class _ReuseCycle(object):
@@ -1097,3 +1104,29 @@ if has_numba:
         return out
 else:  # pragma: no cover
     _arange_div = _arange_div_fallback
+
+
+_LRU_CACHES = dict()
+_LRU_CACHE_MAXSIZES = dict()
+
+
+def _custom_lru_cache(maxsize):
+    def dec(fun):
+        fun_hash = hash(fun)
+        this_cache = _LRU_CACHES[fun_hash] = dict()
+        _LRU_CACHE_MAXSIZES[fun_hash] = maxsize
+
+        def cache_fun(*args):
+            hash_ = object_hash(args)
+            if hash_ in this_cache:
+                this_val = this_cache.pop(hash_)
+            else:
+                this_val = fun(*args)
+            this_cache[hash_] = this_val  # (re)insert in last pos
+            while len(this_cache) > _LRU_CACHE_MAXSIZES[fun_hash]:
+                for key in this_cache:  # just an easy way to get first element
+                    this_cache.pop(key)
+                    break  # first in, first out
+            return this_val
+        return cache_fun
+    return dec

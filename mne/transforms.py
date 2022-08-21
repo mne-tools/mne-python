@@ -17,10 +17,10 @@ from .fixes import jit, mean, _get_img_fdata
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
-from .io.write import start_file, end_file, write_coord_trans
+from .io.write import start_and_end_file, write_coord_trans
 from .defaults import _handle_default
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
-                    _check_path_like, get_subjects_dir, fill_doc, _check_fname,
+                    _path_like, get_subjects_dir, fill_doc, _check_fname,
                     _check_option, _require_version, wrapped_stdout)
 
 
@@ -333,10 +333,10 @@ def rotation3d_align_z_axis(target_z_axis):
                             target_z_axis[1] * target_z_axis[1])
 
     # assert that r is a rotation matrix r^t * r = I and det(r) = 1
-    assert(np.any((r.dot(r.T) - np.identity(3)) < 1E-12))
-    assert((np.linalg.det(r) - 1.0) < 1E-12)
+    assert np.any((r.dot(r.T) - np.identity(3)) < 1E-12)
+    assert (np.linalg.det(r) - 1.0) < 1E-12
     # assert that r maps [0 0 1] on the device z axis (target_z_axis)
-    assert(np.linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12)
+    assert np.linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12
 
     return r
 
@@ -450,7 +450,7 @@ def _get_trans(trans, fro='mri', to='head', allow_none=True):
     if allow_none:
         types += (None,)
     _validate_type(trans, types, 'trans')
-    if _check_path_like(trans):
+    if _path_like(trans):
         trans = str(trans)
         if trans == 'fsaverage':
             trans = op.join(op.dirname(__file__), 'data', 'fsaverage',
@@ -521,11 +521,11 @@ def combine_transforms(t_first, t_second, fro, to):
 
 @verbose
 def read_trans(fname, return_all=False, verbose=None):
-    """Read a -trans.fif file.
+    """Read a ``-trans.fif`` file.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         The name of the file.
     return_all : bool
         If True, return all transformations in the file.
@@ -544,6 +544,7 @@ def read_trans(fname, return_all=False, verbose=None):
     write_trans
     mne.transforms.Transform
     """
+    fname = _check_fname(fname, overwrite='read', must_exist=True)
     fid, tree, directory = fiff_open(fname)
 
     trans = list()
@@ -558,15 +559,18 @@ def read_trans(fname, return_all=False, verbose=None):
     return trans if return_all else trans[0]
 
 
-def write_trans(fname, trans):
+@verbose
+def write_trans(fname, trans, *, overwrite=False, verbose=None):
     """Write a -trans.fif file.
 
     Parameters
     ----------
-    fname : str
-        The name of the file, which should end in '-trans.fif'.
+    fname : path-like
+        The name of the file, which should end in ``-trans.fif``.
     trans : dict
         Trans file data, as returned by read_trans.
+    %(overwrite)s
+    %(verbose)s
 
     See Also
     --------
@@ -574,9 +578,9 @@ def write_trans(fname, trans):
     """
     check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz',
                                  '_trans.fif', '_trans.fif.gz'))
-    fid = start_file(fname)
-    write_coord_trans(fid, trans)
-    end_file(fid)
+    fname = _check_fname(fname=fname, overwrite=overwrite)
+    with start_and_end_file(fname) as fid:
+        write_coord_trans(fid, trans)
 
 
 def invert_transform(trans):
@@ -717,8 +721,8 @@ def _cart_to_sph(cart):
     sph_pts : ndarray, shape (n_points, 3)
         Array containing points in spherical coordinates (rad, azimuth, polar)
     """
-    assert cart.ndim == 2 and cart.shape[1] == 3
     cart = np.atleast_2d(cart)
+    assert cart.ndim == 2 and cart.shape[1] == 3
     out = np.empty((len(cart), 3))
     out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
     norm = np.where(out[:, 0] > 0, out[:, 0], 1)  # protect against / 0
@@ -742,8 +746,8 @@ def _sph_to_cart(sph_pts):
         Array containing points in Cartesian coordinates (x, y, z)
 
     """
-    assert sph_pts.ndim == 2 and sph_pts.shape[1] == 3
     sph_pts = np.atleast_2d(sph_pts)
+    assert sph_pts.ndim == 2 and sph_pts.shape[1] == 3
     cart_pts = np.empty((len(sph_pts), 3))
     cart_pts[:, 2] = sph_pts[:, 0] * np.cos(sph_pts[:, 2])
     xy = sph_pts[:, 0] * np.sin(sph_pts[:, 2])
@@ -1277,11 +1281,12 @@ def _quat_to_affine(quat):
     return affine
 
 
-def _angle_between_quats(x, y):
+def _angle_between_quats(x, y=None):
     """Compute the ang between two quaternions w/3-element representations."""
     # z = conj(x) * y
     # conjugate just negates all but the first element in a 4-element quat,
     # so it's just a negative for us
+    y = np.zeros(3) if y is None else y
     z = _quat_mult(-x, y)
     z0 = _quat_real(z)
     return 2 * np.arctan2(np.linalg.norm(z, axis=-1), z0)
@@ -1621,7 +1626,8 @@ def _reslice_normalize(img, zooms):
 
 @verbose
 def compute_volume_registration(moving, static, pipeline='all', zooms=None,
-                                niter=None, verbose=None):
+                                niter=None, *, starting_affine=None,
+                                verbose=None):
     """Align two volumes using an affine and, optionally, SDR.
 
     Parameters
@@ -1637,6 +1643,10 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
         (each with values that are float`, tuple, or None) to provide separate
         reslicing/accuracy for the steps.
     %(niter)s
+    starting_affine : ndarray
+        The affine to initialize the registration with.
+
+        .. versionadded:: 1.2
     %(verbose)s
 
     Returns
@@ -1653,21 +1663,25 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
     .. versionadded:: 0.24
     """
     return _compute_volume_registration(
-        moving, static, pipeline, zooms, niter)[:2]
+        moving, static, pipeline, zooms, niter,
+        starting_affine=starting_affine)[:2]
 
 
-def _compute_volume_registration(moving, static, pipeline, zooms, niter):
+def _compute_volume_registration(moving, static, pipeline, zooms, niter, *,
+                                 starting_affine=None):
     _require_version('nibabel', 'SDR morph', '2.1.0')
     _require_version('dipy', 'SDR morph', '0.10.1')
     import nibabel as nib
     with np.testing.suppress_warnings():
+        from dipy.align.imaffine import AffineMap
         from dipy.align import (affine_registration, center_of_mass,
-                                translation, rigid, affine, resample,
+                                translation, rigid, affine,
                                 imwarp, metrics)
 
     # input validation
     _validate_type(moving, nib.spatialimages.SpatialImage, 'moving')
     _validate_type(static, nib.spatialimages.SpatialImage, 'static')
+    original_zoom = np.mean(moving.header.get_zooms()[:3])
     zooms = _validate_zooms(zooms)
     niter = _validate_niter(niter)
     pipeline = _validate_pipeline(pipeline)
@@ -1675,48 +1689,51 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
     logger.info('Computing registration...')
 
     # affine optimizations
-    moving_orig = moving
-    static_orig = static
-    out_affine = np.eye(4)
+    reg_affine = starting_affine
     sdr_morph = None
     pipeline_options = dict(translation=[center_of_mass, translation],
                             rigid=[rigid], affine=[affine])
-    sigmas = [3.0, 1.0, 0.0]
+    sigmas_mm = np.array([3.0, 1.0, 0.0])  # default for affine_registration
+    sigma_diff_mm = 2.0
     factors = [4, 2, 1]
+    current_zoom = None
     for i, step in enumerate(pipeline):
         # reslice image with zooms
         if i == 0 or zooms[step] != zooms[pipeline[i - 1]]:
             if zooms[step] is not None:
                 logger.info(f'Reslicing to zooms={zooms[step]} for {step} ...')
+                current_zoom = np.mean(zooms[step])
             else:
                 logger.info(f'Using original zooms for {step} ...')
+                current_zoom = original_zoom
             static_zoomed, static_affine = _reslice_normalize(
                 static, zooms[step])
-        # must be resliced every time because it is adjusted at every step
-        moving_zoomed, moving_affine = _reslice_normalize(moving, zooms[step])
+            moving_zoomed, moving_affine = _reslice_normalize(
+                moving, zooms[step])
         logger.info(f'Optimizing {step}:')
         if step == 'sdr':  # happens last
+            sigma_diff_vox = sigma_diff_mm / current_zoom
+            affine_map = AffineMap(reg_affine,  # apply registration here
+                                   static_zoomed.shape, static_affine,
+                                   moving_zoomed.shape, moving_affine)
+            moving_zoomed = affine_map.transform(moving_zoomed)
+            metric = metrics.CCMetric(
+                dim=3, sigma_diff=sigma_diff_vox,
+                radius=max(int(np.ceil(2 * sigma_diff_vox)), 1))
             sdr = imwarp.SymmetricDiffeomorphicRegistration(
-                metrics.CCMetric(3), niter[step])
+                metric, niter[step])
             with wrapped_stdout(indent='    ', cull_newlines=True):
                 sdr_morph = sdr.optimize(static_zoomed, moving_zoomed,
-                                         static_affine, moving_affine)
-            moving_zoomed = sdr_morph.transform(moving_zoomed)
+                                         static_affine, static_affine)
+            moved_zoomed = sdr_morph.transform(moving_zoomed)
         else:
+            sigmas_vox = list(sigmas_mm / current_zoom)
             with wrapped_stdout(indent='    ', cull_newlines=True):
-                moving_zoomed, reg_affine = affine_registration(
+                moved_zoomed, reg_affine = affine_registration(
                     moving_zoomed, static_zoomed, moving_affine, static_affine,
                     nbins=32, metric='MI', pipeline=pipeline_options[step],
-                    level_iters=niter[step], sigmas=sigmas, factors=factors)
-
-            # update the overall alignment affine
-            out_affine = np.dot(out_affine, reg_affine)
-
-            # apply the current affine to the full-resolution data
-            moving = resample(np.asarray(moving_orig.dataobj),
-                              np.asarray(static_orig.dataobj),
-                              moving_orig.affine, static_orig.affine,
-                              out_affine)
+                    level_iters=niter[step], sigmas=sigmas_vox,
+                    factors=factors, starting_affine=reg_affine)
 
             # report some useful information
             if step in ('translation', 'rigid'):
@@ -1726,16 +1743,17 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
                 logger.info(f'    Translation: {dist:6.1f} mm')
                 if step == 'rigid':
                     logger.info(f'    Rotation:    {angle:6.1f}°')
-        assert moving_zoomed.shape == static_zoomed.shape, step
-        r2 = _compute_r2(static_zoomed, moving_zoomed)
+        assert moved_zoomed.shape == static_zoomed.shape, step
+        r2 = _compute_r2(static_zoomed, moved_zoomed)
         logger.info(f'    R²:          {r2:6.1f}%')
-    return (out_affine, sdr_morph, static_zoomed.shape, static_affine,
+    return (reg_affine, sdr_morph, static_zoomed.shape, static_affine,
             moving_zoomed.shape, moving_affine)
 
 
 @verbose
 def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
-                              interpolation='linear', verbose=None):
+                              interpolation='linear', cval=0.,
+                              verbose=None):
     """Apply volume registration.
 
     Uses registration parameters computed by
@@ -1750,6 +1768,10 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     interpolation : str
         Interpolation to be used during the interpolation.
         Can be "linear" (default) or "nearest".
+    cval : float | str
+        The constant value to assume exists outside the bounds of the
+        ``moving`` image domain. Can be a string percentage like ``'1%%'``
+        to use the given percentile of image data as the constant value.
     %(verbose)s
 
     Returns
@@ -1771,8 +1793,19 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
     _validate_type(reg_affine, np.ndarray, 'reg_affine')
     _check_option('reg_affine.shape', reg_affine.shape, ((4, 4),))
     _validate_type(sdr_morph, (DiffeomorphicMap, None), 'sdr_morph')
+    _validate_type(cval, ('numeric', str), 'cval')
+    perc = None
+    if isinstance(cval, str):
+        if not cval.endswith('%'):
+            raise ValueError(f'cval must end with % if str, got {cval}')
+        perc = float(cval[:-1])
     logger.info('Applying affine registration ...')
-    moving, moving_affine = np.asarray(moving.dataobj), moving.affine
+    moving_affine = moving.affine
+    moving = np.asarray(moving.dataobj, dtype=float)
+    if perc is not None:
+        cval = np.percentile(moving, perc)
+        logger.info(f'Using a lower bound at the {perc} percentile: {cval}')
+    moving -= cval
     static, static_affine = np.asarray(static.dataobj), static.affine
     affine_map = AffineMap(reg_affine,
                            static.shape, static_affine,
@@ -1784,6 +1817,7 @@ def apply_volume_registration(moving, static, reg_affine, sdr_morph=None,
             reg_data, interpolation=interpolation,
             image_world2grid=np.linalg.inv(static_affine),
             out_shape=static.shape, out_grid2world=static_affine)
+    reg_data += cval
     reg_img = SpatialImage(reg_data, static_affine)
     logger.info('[done]')
     return reg_img

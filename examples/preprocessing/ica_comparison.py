@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-ica-comp:
+
 ===========================================
 Compare the different ICA algorithms in MNE
 ===========================================
@@ -29,11 +32,11 @@ print(__doc__)
 # - 1-30 Hz band-pass filter
 
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
 
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname).crop(0, 60).pick('meg').load_data()
 
-picks = mne.pick_types(raw.info, meg=True)
 reject = dict(mag=5e-12, grad=4000e-13)
 raw.filter(1, 30, fir_design='firwin')
 
@@ -46,7 +49,7 @@ def run_ica(method, fit_params=None):
     ica = ICA(n_components=20, method=method, fit_params=fit_params,
               max_iter='auto', random_state=0)
     t0 = time()
-    ica.fit(raw, picks=picks, reject=reject)
+    ica.fit(raw, reject=reject)
     fit_time = time() - t0
     title = ('ICA decomposition using %s (took %.1fs)' % (method, fit_time))
     ica.plot_components(title=title)

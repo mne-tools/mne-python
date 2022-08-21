@@ -76,7 +76,7 @@ Changelog
 
 - New gfp parameter in :func:`mne.Evoked.plot` method to display Global Field Power (GFP) by `Eric Larson`_.
 
-- Add :meth:`mne.Report.add_slider_to_section` methods to :class:`mne.Report` by `Teon Brooks`_
+- Add ``mne.Report.add_slider_to_section`` methods to :class:`mne.Report` by `Teon Brooks`_
 
 BUG
 ~~~

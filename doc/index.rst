@@ -14,9 +14,13 @@ MNE-Python Homepage
 
 .. image:: _static/mne_logo.svg
    :alt: MNE-Python
-   :class: logo
+   :class: logo, mainlogo, only-light
    :align: center
 
+.. image:: _static/mne_logo_dark.svg
+   :alt: MNE-Python
+   :class: logo, mainlogo, only-dark
+   :align: center
 
 .. rst-class:: h4 text-center font-weight-light my-4
 
@@ -28,8 +32,8 @@ MNE-Python Homepage
 .. toctree::
    :hidden:
 
-   Install<install/index>
-   Documentation<overview/index>
-   API Reference<python_reference>
-   Get help<overview/get_help>
-   Development<overview/development>
+   Install <install/index>
+   Documentation <overview/index>
+   API Reference <python_reference>
+   Get help <overview/get_help>
+   Development <overview/development>

@@ -6,25 +6,27 @@
 
 from builtins import input  # no-op here but facilitates testing
 from difflib import get_close_matches
-from distutils.version import LooseVersion
+from importlib import import_module
 import operator
 import os
 import os.path as op
 from pathlib import Path
+import re
 import sys
 import warnings
 import numbers
 
 import numpy as np
 
-from ..fixes import _median_complex
-from ._logging import warn, logger
+from ..fixes import _median_complex, _compare_version
+from ._logging import warn, logger, verbose
 
 
-def _ensure_int(x, name='unknown', must_be='an int'):
+def _ensure_int(x, name='unknown', must_be='an int', *, extra=''):
     """Ensure a variable is an integer."""
     # This is preferred over numbers.Integral, see:
     # https://github.com/scipy/scipy/pull/7351#issuecomment-299713159
+    extra = f' {extra}' if extra else extra
     try:
         # someone passing True/False is much more likely to be an error than
         # intentional usage
@@ -32,7 +34,7 @@ def _ensure_int(x, name='unknown', must_be='an int'):
             raise TypeError()
         x = int(operator.index(x))
     except TypeError:
-        raise TypeError('%s must be %s, got %s' % (name, must_be, type(x)))
+        raise TypeError(f'{name} must be {must_be}{extra}, got {type(x)}')
     return x
 
 
@@ -64,7 +66,8 @@ def check_fname(fname, filetype, endings, endings_err=()):
              % (fname, filetype, print_endings))
 
 
-def check_version(library, min_version='0.0'):
+def check_version(library, min_version='0.0', *, strip=True,
+                  return_version=False):
     r"""Check minimum library version required.
 
     Parameters
@@ -75,35 +78,91 @@ def check_version(library, min_version='0.0'):
         The minimum version string. Anything that matches
         ``'(\d+ | [a-z]+ | \.)'``. Can also be empty to skip version
         check (just check for library presence).
+    strip : bool
+        If True (default), then PEP440 development markers like ``.devN``
+        will be stripped from the version. This makes it so that
+        ``check_version('mne', '1.1')`` will be ``True`` even when on version
+        ``'1.1.dev0'`` (prerelease/dev version). This option is provided for
+        backward compatibility with the behavior of ``LooseVersion``, and
+        diverges from how modern parsing in ``packaging.version.parse`` works.
+
+        .. versionadded:: 1.0
+    return_version : bool
+        If True (default False), also return the version (can be None if the
+        library is missing).
+
+        .. versionadded:: 1.0
 
     Returns
     -------
     ok : bool
         True if the library exists with at least the specified version.
+    version : str | None
+        The version. Only returned when ``return_version=True``.
     """
     ok = True
+    version = None
     try:
-        library = __import__(library)
+        library = import_module(library)
     except ImportError:
         ok = False
     else:
-        if min_version and \
-                LooseVersion(library.__version__) < LooseVersion(min_version):
-            ok = False
-    return ok
+        check_version = min_version and min_version != '0.0'
+        get_version = check_version or return_version
+        if get_version:
+            version = library.__version__
+            if strip:
+                version = _strip_dev(version)
+        if check_version:
+            if _compare_version(version, '<', min_version):
+                ok = False
+    out = (ok, version) if return_version else ok
+    return out
+
+
+def _strip_dev(version):
+    # First capturing group () is what we want to keep, at the beginning:
+    #
+    # - at least one numeral, then
+    # - repeats of {dot, at least one numeral}
+    #
+    # The rest (consume to the end of the string) is the stuff we want to cut
+    # off:
+    #
+    # - A period (maybe), then
+    # - "dev", "rc", or "+", then
+    # - numerals, periods, dashes, and "a" through "g" (hex chars)
+    #
+    # Thanks https://www.regextester.com !
+    exp = r'^([0-9]+(?:\.[0-9]+)*)\.?(?:dev|rc|\+)[0-9+a-g\.\-]+$'
+    match = re.match(exp, version)
+    return match.groups()[0] if match is not None else version
 
 
 def _require_version(lib, what, version='0.0'):
     """Require library for a purpose."""
-    if not check_version(lib, version):
+    ok, got = check_version(lib, version, return_version=True)
+    if not ok:
         extra = f' (version >= {version})' if version != '0.0' else ''
-        raise ImportError(f'The {lib} package{extra} is required to {what}')
+        why = 'package was not found' if got is None else f'got {repr(got)}'
+        raise ImportError(f'The {lib} package{extra} is required to {what}, '
+                          f'{why}')
 
 
-def _check_mayavi_version(min_version='4.3.0'):
-    """Check mayavi version."""
-    if not check_version('mayavi', min_version):
-        raise RuntimeError("Need mayavi >= %s" % min_version)
+def _import_h5py():
+    _require_version('h5py', 'read MATLAB files >= v7.3')
+    import h5py
+    return h5py
+
+
+def _import_h5io_funcs():
+    h5io = _soft_import('h5io', 'HDF5-based I/O')
+    return h5io.read_hdf5, h5io.write_hdf5
+
+
+def _import_pymatreader_funcs(purpose):
+    pymatreader = _soft_import('pymatreader', purpose)
+    return pymatreader.read_mat
 
 
 # adapted from scikit-learn utils/validation.py
@@ -151,10 +210,17 @@ def _check_event_id(event_id, events):
     return event_id
 
 
+@verbose
 def _check_fname(fname, overwrite=False, must_exist=False, name='File',
-                 need_dir=False):
+                 need_dir=False, *, verbose=None):
     """Check for file existence, and return string of its absolute path."""
     _validate_type(fname, 'path-like', name)
+    fname = str(
+        Path(fname)
+        .expanduser()
+        .absolute()
+    )
+
     if op.exists(fname):
         if not overwrite:
             raise FileExistsError('Destination file exists. Please use option '
@@ -177,7 +243,8 @@ def _check_fname(fname, overwrite=False, must_exist=False, name='File',
                     f'{name} does not have read permissions: {fname}')
     elif must_exist:
         raise FileNotFoundError(f'{name} does not exist: {fname}')
-    return str(op.abspath(fname))
+
+    return fname
 
 
 def _check_subject(first, second, *, raise_error=True,
@@ -237,7 +304,8 @@ def _check_compensation_grade(info1, info2, name1,
         # pick channels
         for t_info in [info1, info2]:
             if t_info['comps']:
-                t_info['comps'] = []
+                with t_info._unlock():
+                    t_info['comps'] = []
             picks = pick_channels(t_info['ch_names'], ch_names)
             pick_info(t_info, picks, copy=False)
     # "or 0" here aliases None -> 0, as they are equivalent
@@ -251,43 +319,78 @@ def _check_compensation_grade(info1, info2, name1,
             % (name1, grade1, name2, grade2))
 
 
-def _check_pylsl_installed(strict=True):
-    """Aux function."""
+def _soft_import(name, purpose, strict=True):
+    """Import soft dependencies, providing informative errors on failure.
+
+    Parameters
+    ----------
+    name : str
+        Name of the module to be imported. For example, 'pandas'.
+    purpose : str
+        A very brief statement (formulated as a noun phrase) explaining what
+        functionality the package provides to MNE-Python.
+    strict : bool
+        Whether to raise an error if module import fails.
+    """
+    # so that error msg lines are aligned
+    def indent(x):
+        return x.rjust(len(x) + 14)
+
+    # Mapping import namespaces to their pypi package name
+    pip_name = dict(
+        sklearn='scikit-learn',
+        EDFlib='EDFlib-Python',
+        mne_bids='mne-bids',
+        mne_nirs='mne-nirs',
+        mne_features='mne-features',
+        mne_qt_browser='mne-qt-browser',
+        mne_connectivity='mne-connectivity',
+        pyvista='pyvistaqt').get(name, name)
+
     try:
-        import pylsl
-        return pylsl
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the pylsl '
-                               'library is required.')
+        mod = import_module(name)
+        return mod
+    except (ImportError, ModuleNotFoundError):
+        if strict:
+            raise RuntimeError(
+                f'For {purpose} to work, the {name} module is needed, ' +
+                'but it could not be imported.\n' +
+                '\n'.join((indent('use the following installation method '
+                                  'appropriate for your environment:'),
+                           indent(f"'pip install {pip_name}'"),
+                           indent(f"'conda install -c conda-forge {pip_name}'")
+                           )))
         else:
             return False
 
 
 def _check_pandas_installed(strict=True):
     """Aux function."""
-    try:
-        import pandas
-        return pandas
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the Pandas '
-                               'library is required.')
-        else:
-            return False
+    return _soft_import('pandas', 'dataframe integration', strict=strict)
 
 
 def _check_eeglabio_installed(strict=True):
     """Aux function."""
-    try:
-        import eeglabio
-        return eeglabio
-    except ImportError:
-        if strict is True:
-            raise RuntimeError('For this functionality to work, the eeglabio '
-                               'library is required.')
-        else:
-            return False
+    return _soft_import('eeglabio', 'exporting to EEGLab', strict=strict)
+
+
+def _check_edflib_installed(strict=True):
+    """Aux function."""
+    return _soft_import('EDFlib', 'exporting to EDF', strict=strict)
+
+
+def _check_pybv_installed(strict=True):
+    """Aux function."""
+    return _soft_import('pybv', 'exporting to BrainVision', strict=strict)
+
+
+def _check_pymatreader_installed(strict=True):
+    """Aux function."""
+    return _soft_import(
+        'pymatreader',
+        'loading v7.3 (HDF5) .MAT files',
+        strict=strict
+    )
 
 
 def _check_pandas_index_arguments(index, valid):
@@ -323,14 +426,31 @@ def _check_time_format(time_format, valid, meas_date=None):
     return time_format
 
 
-def _check_ch_locs(chs):
+def _check_ch_locs(info, picks=None, ch_type=None):
     """Check if channel locations exist.
 
     Parameters
     ----------
-    chs : dict
-        The channels from info['chs']
+    info : Info | None
+        `~mne.Info` instance.
+    picks : list of int
+        Channel indices to consider. If provided, ``ch_type`` must be ``None``.
+    ch_type : str | None
+        The channel type to restrict the check to. If ``None``, check all
+        channel types. If provided, ``picks`` must be ``None``.
     """
+    from ..io.pick import _picks_to_idx, pick_info
+
+    if picks is not None and ch_type is not None:
+        raise ValueError('Either picks or ch_type may be provided, not both')
+
+    if picks is not None:
+        info = pick_info(info=info, sel=picks)
+    elif ch_type is not None:
+        picks = _picks_to_idx(info=info, picks=ch_type, none=ch_type)
+        info = pick_info(info=info, sel=picks)
+
+    chs = info['chs']
     locs3d = np.array([ch['loc'][:3] for ch in chs])
     return not ((locs3d == 0).all() or
                 (~np.isfinite(locs3d)).all() or
@@ -371,7 +491,8 @@ _multi = {
 }
 
 
-def _validate_type(item, types=None, item_name=None, type_name=None):
+def _validate_type(item, types=None, item_name=None, type_name=None, *,
+                   extra=''):
     """Validate that `item` is an instance of `types`.
 
     Parameters
@@ -389,9 +510,11 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
     type_name : str | None
         Possible types to show inside the error message that the checked item
         can be.
+    extra : str
+        Extra text to append to the warning.
     """
     if types == "int":
-        _ensure_int(item, name=item_name)
+        _ensure_int(item, name=item_name, extra=extra)
         return  # terminate prematurely
     elif types == "info":
         from mne.io import Info as types
@@ -402,6 +525,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
     check_types = sum(((type(None),) if type_ is None else (type_,)
                        if not isinstance(type_, str) else _multi[type_]
                        for type_ in types), ())
+    extra = f' {extra}' if extra else extra
     if not isinstance(item, check_types):
         if type_name is None:
             type_name = ['None' if cls_ is None else cls_.__name__
@@ -415,11 +539,12 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
                 type_name[-1] = 'or ' + type_name[-1]
                 type_name = ', '.join(type_name)
         _item_name = 'Item' if item_name is None else item_name
-        raise TypeError(f"{_item_name} must be an instance of {type_name}, "
-                        f"got {type(item)} instead.")
+        raise TypeError(
+            f"{_item_name} must be an instance of {type_name}{extra}, "
+            f"got {type(item)} instead.")
 
 
-def _check_path_like(item):
+def _path_like(item):
     """Validate that `item` is `path-like`.
 
     Parameters
@@ -631,7 +756,7 @@ def _check_option(parameter, value, allowed_values, extra=''):
         return value
 
     # Prepare a nice error message for the user
-    extra = ' ' + extra if extra else extra
+    extra = f' {extra}' if extra else extra
     msg = ("Invalid value for the '{parameter}' parameter{extra}. "
            '{options}, but got {value!r} instead.')
     allowed_values = list(allowed_values)  # e.g., if a dict was given
@@ -639,8 +764,11 @@ def _check_option(parameter, value, allowed_values, extra=''):
         options = f'The only allowed value is {repr(allowed_values[0])}'
     else:
         options = 'Allowed values are '
-        options += ', '.join([f'{repr(v)}' for v in allowed_values[:-1]])
-        options += f', and {repr(allowed_values[-1])}'
+        if len(allowed_values) == 2:
+            options += ' and '.join(repr(v) for v in allowed_values)
+        else:
+            options += ', '.join(repr(v) for v in allowed_values[:-1])
+            options += f', and {repr(allowed_values[-1])}'
     raise ValueError(msg.format(parameter=parameter, options=options,
                                 value=value, extra=extra))
 
@@ -654,16 +782,16 @@ def _check_all_same_channel_names(instances):
     return True
 
 
-def _check_combine(mode, valid=('mean', 'median', 'std')):
+def _check_combine(mode, valid=('mean', 'median', 'std'), axis=0):
     if mode == "mean":
         def fun(data):
-            return np.mean(data, axis=0)
+            return np.mean(data, axis=axis)
     elif mode == "std":
         def fun(data):
-            return np.std(data, axis=0)
+            return np.std(data, axis=axis)
     elif mode == "median" or mode == np.median:
         def fun(data):
-            return _median_complex(data, axis=0)
+            return _median_complex(data, axis=axis)
     elif callable(mode):
         fun = mode
     else:
@@ -692,23 +820,26 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
              % (1e9 * max_cur))
 
 
-def _check_pyqt5_version():
-    bad = True
+def _check_qt_version(*, return_api=False):
+    """Check if Qt is installed."""
     try:
-        from PyQt5.Qt import PYQT_VERSION_STR as version
+        from qtpy import QtCore, API_NAME as api
     except Exception:
-        version = 'unknown'
+        api = version = None
     else:
-        if LooseVersion(version) >= LooseVersion('5.10'):
-            bad = False
-    bad &= sys.platform == 'darwin'
-    if bad:
-        warn('macOS users should use PyQt5 >= 5.10 for GUIs, got %s. '
-             'Please upgrade e.g. with:\n\n'
-             '    pip install "PyQt5>=5.10,<5.14"\n'
-             % (version,))
-
-    return version
+        try:  # pyside
+            version = QtCore.__version__
+        except AttributeError:
+            version = QtCore.QT_VERSION_STR
+        if sys.platform == 'darwin' and api in ('PyQt5', 'PySide2'):
+            if not _compare_version(version, '>=', '5.10'):
+                warn(f'macOS users should use {api} >= 5.10 for GUIs, '
+                     f'got {version}. Please upgrade e.g. with:\n\n'
+                     f'    pip install "{api}>=5.10"\n')
+    if return_api:
+        return version, api
+    else:
+        return version
 
 
 def _check_sphere(sphere, info=None, sphere_units='m'):
@@ -724,13 +855,86 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
                 pass
             else:
                 sphere = 'auto'
+
     if isinstance(sphere, str):
-        if sphere != 'auto':
-            raise ValueError('sphere, if str, must be "auto", got %r'
-                             % (sphere))
-        R, r0, _ = fit_sphere_to_headshape(info, verbose=False, units='m')
-        sphere = tuple(r0) + (R,)
-        sphere_units = 'm'
+        if sphere not in ('auto', 'eeglab'):
+            raise ValueError(
+                f'sphere, if str, must be "auto" or "eeglab", got {sphere}'
+            )
+        assert info is not None
+
+        if sphere == 'auto':
+            R, r0, _ = fit_sphere_to_headshape(info, verbose=False, units='m')
+            sphere = tuple(r0) + (R,)
+            sphere_units = 'm'
+        elif sphere == 'eeglab':
+            # We need coordinates for the 2D plane formed by
+            # Fpz<->Oz and T7<->T8, as this plane will be the horizon (i.e. it
+            # will determine the location of the head circle).
+            #
+            # We implement some special-handling in case Fpz is missing, as
+            # this seems to be a quite common situation in numerous EEG labs.
+            montage = info.get_montage()
+            if montage is None:
+                raise ValueError(
+                    'No montage was set on your data, but sphere="eeglab" '
+                    'can only work if digitization points for the EEG '
+                    'channels are available. Consider calling set_montage() '
+                    'to apply a montage.'
+                )
+            ch_pos = montage.get_positions()['ch_pos']
+            horizon_ch_names = ('Fpz', 'Oz', 'T7', 'T8')
+
+            if 'FPz' in ch_pos:  # "fix" naming
+                ch_pos['Fpz'] = ch_pos['FPz']
+                del ch_pos['FPz']
+            elif 'Fpz' not in ch_pos and 'Oz' in ch_pos:
+                logger.info(
+                    'Approximating Fpz location by mirroring Oz along '
+                    'the X and Y axes.'
+                )
+                # This assumes Fpz and Oz have the same Z coordinate
+                ch_pos['Fpz'] = ch_pos['Oz'] * [-1, -1, 1]
+
+            for ch_name in horizon_ch_names:
+                if ch_name not in ch_pos:
+                    msg = (
+                        f'sphere="eeglab" requires digitization points of '
+                        f'the following electrode locations in the data: '
+                        f'{", ".join(horizon_ch_names)}, but could not find: '
+                        f'{ch_name}'
+                    )
+                    if ch_name == 'Fpz':
+                        msg += (
+                            ', and was unable to approximate its location '
+                            'from Oz'
+                        )
+                    raise ValueError(msg)
+
+            # Calculate the radius from: T7<->T8, Fpz<->Oz
+            radius = np.abs([
+                ch_pos['T7'][0],   # X axis
+                ch_pos['T8'][0],   # X axis
+                ch_pos['Fpz'][1],  # Y axis
+                ch_pos['Oz'][1]    # Y axis
+            ]).mean()
+
+            # Calculate the center of the head sphere
+            # Use 4 digpoints for each of the 3 axes to hopefully get a better
+            # approximation than when using just 2 digpoints.
+            sphere_locs = dict()
+            for idx, axis in enumerate(('X', 'Y', 'Z')):
+                sphere_locs[axis] = np.mean([
+                    ch_pos['T7'][idx],
+                    ch_pos['T8'][idx],
+                    ch_pos['Fpz'][idx],
+                    ch_pos['Oz'][idx]
+                ])
+            sphere = (
+                sphere_locs['X'], sphere_locs['Y'], sphere_locs['Z'], radius
+            )
+            sphere_units = 'm'
+            del sphere_locs, radius, montage, ch_pos
     elif isinstance(sphere, ConductorModel):
         if not sphere['is_sphere'] or len(sphere['layers']) == 0:
             raise ValueError('sphere, if a ConductorModel, must be spherical '
@@ -801,14 +1005,39 @@ def _safe_input(msg, *, alt=None, use=None):
 
 
 def _ensure_events(events):
-    events_type = type(events)
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('ignore')  # deprecation for object array
-        events = np.asarray(events)
+    err_msg = f'events should be a NumPy array of integers, got {type(events)}'
+    if check_version('numpy', '1.24'):
+        # NumPy >= 1.24 raises ValueError
+        try:
+            events = np.asarray(events)
+        except ValueError as np_err:
+            if str(np_err).startswith(
+                    'setting an array element with a sequence. The requested '
+                    'array has an inhomogeneous shape'):
+                raise TypeError(err_msg)
+            else:
+                raise
+    else:
+        # NumPy < 1.24 gives VisibleDeprecationWarning
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('ignore')
+            events = np.asarray(events)
+    # now that we're sure that events is an array...
     if not np.issubdtype(events.dtype, np.integer):
-        raise TypeError('events should be a NumPy array of integers, '
-                        f'got {events_type}')
+        raise TypeError(err_msg)
     if events.ndim != 2 or events.shape[1] != 3:
         raise ValueError(
             f'events must be of shape (N, 3), got {events.shape}')
     return events
+
+
+def _to_rgb(*args, name='color', alpha=False):
+    from matplotlib.colors import colorConverter
+    func = colorConverter.to_rgba if alpha else colorConverter.to_rgb
+    try:
+        return func(*args)
+    except ValueError:
+        args = args[0] if len(args) == 1 else args
+        raise ValueError(
+            f'Invalid RGB{"A" if alpha else ""} argument(s) for {name}: '
+            f'{repr(args)}') from None

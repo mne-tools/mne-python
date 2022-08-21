@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_allclose
 
+import mne
 from mne import (make_bem_model, read_bem_surfaces, write_bem_surfaces,
                  make_bem_solution, read_bem_solution, write_bem_solution,
                  make_sphere_model, Transform, Info, write_surface,
@@ -20,11 +21,12 @@ from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
 from mne.datasets import testing
-from mne.utils import catch_logging, requires_h5py
+from mne.utils import catch_logging, check_version
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
-                     _check_surface_size, _bem_find_surface)
-from mne.surface import read_surface
+                     _check_surface_size, _bem_find_surface,
+                     make_scalp_surfaces, distance_to_bem)
+from mne.surface import read_surface, _get_ico_surface
 from mne.io import read_info
 
 fname_raw = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
@@ -68,13 +70,17 @@ def _compare_bem_solutions(sol_a, sol_b):
                         err_msg='Mismatch: %s' % key)
 
 
+h5py_mark = pytest.mark.skipif(not check_version('h5py'), reason='Needs h5py')
+
+
 @testing.requires_testing_data
-@requires_h5py
-@pytest.mark.parametrize('ext', ('fif', 'h5'))
-def test_io_bem(tmpdir, ext):
+@pytest.mark.parametrize('ext', [
+    'fif',
+    pytest.param('h5', marks=h5py_mark),
+])
+def test_io_bem(tmp_path, ext):
     """Test reading and writing of bem surfaces and solutions."""
-    import h5py
-    temp_bem = op.join(str(tmpdir), f'temp-bem.{ext}')
+    temp_bem = op.join(str(tmp_path), f'temp-bem.{ext}')
     # model
     with pytest.raises(ValueError, match='BEM data not found'):
         read_bem_surfaces(fname_raw)
@@ -87,6 +93,7 @@ def test_io_bem(tmpdir, ext):
         write_bem_surfaces(temp_bem, surf[0])
     write_bem_surfaces(temp_bem, surf[0], overwrite=True)
     if ext == 'h5':
+        import h5py
         with h5py.File(temp_bem, 'r'):  # make sure it's valid
             pass
     surf_read = read_bem_surfaces(temp_bem, patch_stats=False)
@@ -95,7 +102,7 @@ def test_io_bem(tmpdir, ext):
     # solution
     with pytest.raises(RuntimeError, match='No BEM solution found'):
         read_bem_solution(fname_bem_3)
-    temp_sol = op.join(str(tmpdir), f'temp-sol.{ext}')
+    temp_sol = op.join(str(tmp_path), f'temp-sol.{ext}')
     sol = read_bem_solution(fname_bem_sol_3)
     assert 'BEM' in repr(sol)
     write_bem_solution(temp_sol, sol)
@@ -138,12 +145,12 @@ def test_make_sphere_model():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('kwargs, fname', [
-    [dict(), fname_bem_3],
+    pytest.param(dict(), fname_bem_3, marks=pytest.mark.slowtest),  # Azure
     [dict(conductivity=[0.3]), fname_bem_1],
 ])
-def test_make_bem_model(tmpdir, kwargs, fname):
+def test_make_bem_model(tmp_path, kwargs, fname):
     """Test BEM model creation from Python with I/O."""
-    fname_temp = tmpdir.join('temp-bem.fif')
+    fname_temp = tmp_path / 'temp-bem.fif'
     with catch_logging() as log:
         model = make_bem_model('sample', ico=2, subjects_dir=subjects_dir,
                                verbose=True, **kwargs)
@@ -166,25 +173,25 @@ def test_make_bem_model(tmpdir, kwargs, fname):
 
 
 @testing.requires_testing_data
-def test_bem_model_topology(tmpdir):
+def test_bem_model_topology(tmp_path):
     """Test BEM model topological checks."""
     # bad topology (not enough neighboring tris)
-    makedirs(tmpdir.join('foo', 'bem'))
+    makedirs(tmp_path / 'foo' / 'bem')
     for fname in ('inner_skull', 'outer_skull', 'outer_skin'):
         fname += '.surf'
         copy(op.join(subjects_dir, 'sample', 'bem', fname),
-             str(tmpdir.join('foo', 'bem', fname)))
-    outer_fname = tmpdir.join('foo', 'bem', 'outer_skull.surf')
+             tmp_path / 'foo' / 'bem' / fname)
+    outer_fname = tmp_path / 'foo' / 'bem' / 'outer_skull.surf'
     rr, tris = read_surface(outer_fname)
     tris = tris[:-1]
     write_surface(outer_fname, rr, tris[:-1], overwrite=True)
     with pytest.raises(RuntimeError, match='Surface outer skull is not compl'):
-        make_bem_model('foo', None, subjects_dir=tmpdir)
+        make_bem_model('foo', None, subjects_dir=tmp_path)
     # Now get past this error to reach gh-6127 (not enough neighbor tris)
     rr_bad = np.concatenate([rr, np.mean(rr, axis=0, keepdims=True)], axis=0)
     write_surface(outer_fname, rr_bad, tris, overwrite=True)
     with pytest.raises(ValueError, match='Surface outer skull.*triangles'):
-        make_bem_model('foo', None, subjects_dir=tmpdir)
+        make_bem_model('foo', None, subjects_dir=tmp_path)
 
 
 @pytest.mark.slowtest
@@ -193,7 +200,7 @@ def test_bem_model_topology(tmpdir):
     [(0.3,), fname_bem_sol_1],
     [(0.3, 0.006, 0.3), fname_bem_sol_3],
 ])
-def test_bem_solution(tmpdir, cond, fname):
+def test_bem_solution(tmp_path, cond, fname):
     """Test making a BEM solution from Python with I/O."""
     # test degenerate conditions
     surf = read_bem_surfaces(fname_bem_1)[0]
@@ -218,7 +225,7 @@ def test_bem_solution(tmpdir, cond, fname):
     pytest.raises(RuntimeError, _check_surface_size, surfs[1])
 
     # actually test functionality
-    fname_temp = op.join(str(tmpdir), 'temp-bem-sol.fif')
+    fname_temp = op.join(str(tmp_path), 'temp-bem-sol.fif')
     # use a model and solution made in Python
     for model_type in ('python', 'c'):
         if model_type == 'python':
@@ -390,11 +397,12 @@ def test_fit_sphere_to_headshape():
     pytest.raises(TypeError, fit_sphere_to_headshape, 1, units='m')
 
 
+@pytest.mark.slowtest  # ~2 min on Azure Windows
 @testing.requires_testing_data
-def test_io_head_bem(tmpdir):
+def test_io_head_bem(tmp_path):
     """Test reading and writing of defective head surfaces."""
     head = read_bem_surfaces(fname_dense_head)[0]
-    fname_defect = op.join(str(tmpdir), 'temp-head-defect.fif')
+    fname_defect = op.join(str(tmp_path), 'temp-head-defect.fif')
     # create defects
     head['rr'][0] = np.array([-0.01487014, -0.04563854, -0.12660208])
     head['tris'][0] = np.array([21919, 21918, 21907])
@@ -413,3 +421,98 @@ def test_io_head_bem(tmpdir):
     assert head['id'] == head_defect['id'] == FIFF.FIFFV_BEM_SURF_ID_HEAD
     assert np.allclose(head['rr'], head_defect['rr'])
     assert np.allclose(head['tris'], head_defect['tris'])
+
+
+@pytest.mark.slowtest  # ~4 sec locally
+def test_make_scalp_surfaces_topology(tmp_path, monkeypatch):
+    """Test topology checks for make_scalp_surfaces."""
+    pytest.importorskip('pyvista')
+    subjects_dir = tmp_path
+    subject = 'test'
+    surf_dir = subjects_dir / subject / 'surf'
+    makedirs(surf_dir)
+    surf = _get_ico_surface(2)
+    surf['rr'] *= 100  # mm
+    write_surface(surf_dir / 'lh.seghead', surf['rr'], surf['tris'])
+
+    # make it so that decimation really messes up the mesh just by deleting
+    # the last N tris
+    def _decimate_surface(points, triangles, n_triangles):
+        assert len(triangles) >= n_triangles
+        return points, triangles[:n_triangles]
+
+    monkeypatch.setattr(mne.bem, 'decimate_surface', _decimate_surface)
+    # TODO: These two errors should probably have the same class...
+
+    # Not enough neighbors
+    monkeypatch.setattr(mne.bem, '_tri_levels', dict(sparse=315))
+    with pytest.raises(ValueError, match='.*have fewer than three.*'):
+        make_scalp_surfaces(subject, subjects_dir, force=False, verbose=True)
+    monkeypatch.setattr(mne.bem, '_tri_levels', dict(sparse=319))
+    # Incomplete surface (sum of solid angles)
+    with pytest.raises(RuntimeError, match='.*is not complete.*'):
+        make_scalp_surfaces(
+            subject, subjects_dir, force=False, verbose=True, overwrite=True)
+    bem_dir = subjects_dir / subject / 'bem'
+    sparse_path = (bem_dir / f'{subject}-head-sparse.fif')
+    assert not sparse_path.is_file()
+
+    # These are ignorable
+    monkeypatch.setattr(mne.bem, '_tri_levels', dict(sparse=315))
+    with pytest.warns(RuntimeWarning, match='.*have fewer than three.*'):
+        make_scalp_surfaces(
+            subject, subjects_dir, force=True, overwrite=True)
+    surf, = read_bem_surfaces(sparse_path, on_defects='ignore')
+    assert len(surf['tris']) == 315
+    monkeypatch.setattr(mne.bem, '_tri_levels', dict(sparse=319))
+    with pytest.warns(RuntimeWarning, match='.*is not complete.*'):
+        make_scalp_surfaces(
+            subject, subjects_dir, force=True, overwrite=True)
+    surf, = read_bem_surfaces(sparse_path, on_defects='ignore')
+    assert len(surf['tris']) == 319
+
+
+@pytest.mark.parametrize("bem_type", ["bem", "sphere"])
+@pytest.mark.parametrize("n_pos", [1, 10])
+@testing.requires_testing_data
+def test_distance_to_bem(bem_type, n_pos):
+    """Test distance_to_bem."""
+    # Test spherical ConductorModels
+    if bem_type == "sphere":
+        bem = make_sphere_model(r0=np.array([0, 0, 0]), verbose=0)
+        r = bem['layers'][0]['rad']
+        true_dist = np.array([r, 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+    else:
+        bem = read_bem_solution(fname_bem_sol_1)
+        r = 0.05
+        true_dist = np.array([
+            0.01708097, 0.00256595, 0.01022884, 0.02306622, 0.02927288,
+            0.04491787, 0.00990493, 0.02244751, 0.04819345, 0.01928304
+        ])
+
+    pos = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [r, 0.0, 0.0],
+            [-r, 0.0, 0.0],
+            [0.0, r, 0.0],
+            [0.0, -r, 0.0],
+            [0.0, 0.0, r],
+            [-r / np.sqrt(2.), r / np.sqrt(2.), 0.0],
+            [-r / np.sqrt(2.), -r / np.sqrt(2.), 0.0],
+            [0, -r / np.sqrt(2.), r / np.sqrt(2.)],
+            [r / np.sqrt(3.), r / np.sqrt(3.), r / np.sqrt(3.)]
+        ]
+    )
+
+    if n_pos == 1:
+        pos = pos[0, :]
+        true_dist = true_dist[0]
+
+    dist = distance_to_bem(pos, bem)
+    if n_pos == 1:
+        assert isinstance(dist, float)
+    else:
+        assert isinstance(dist, np.ndarray)
+
+    assert_allclose(dist, true_dist, rtol=1e-6, atol=1e-6)

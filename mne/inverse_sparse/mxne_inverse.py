@@ -12,7 +12,7 @@ from ..forward import is_fixed_orient
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
 from ..utils import (logger, verbose, _check_depth, _check_option, sum_squared,
-                     _validate_type, check_random_state)
+                     _validate_type, check_random_state, warn)
 from ..dipole import Dipole
 
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
@@ -98,8 +98,9 @@ def _compute_residual(forward, evoked, X, active_set, info):
             non_active_projs.append(p)
 
     if len(active_projs) > 0:
-        r_tmp.info['projs'] = deactivate_proj(active_projs, copy=True,
-                                              verbose=False)
+        with r_tmp.info._unlock():
+            r_tmp.info['projs'] = deactivate_proj(active_projs, copy=True,
+                                                  verbose=False)
         r_tmp.apply_proj(verbose=False)
         r_tmp.add_proj(non_active_projs, remove_existing=False, verbose=False)
 
@@ -162,7 +163,8 @@ def _split_gof(M, X, gain):
     assert gain.shape[0] == M.shape[0], (gain.shape, M.shape)
     # find an orthonormal basis for our matrices that spans the actual data
     U, s, _ = np.linalg.svd(gain, full_matrices=False)
-    U = U[:, s >= s[0] * 1e-6]
+    if U.shape[1] > 0:
+        U = U[:, s >= s[0] * 1e-6]
     # the part that gets explained
     fit_orth = U.T @ M
     # the part that got over-explained (landed in residual)
@@ -332,9 +334,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
     weights_min : float
         Do not consider in the estimation sources for which weights
         is less than weights_min.
-    solver : 'prox' | 'cd' | 'bcd' | 'auto'
-        The algorithm to use for the optimization. 'prox' stands for
-        proximal iterations using the FISTA algorithm, 'cd' uses
+    solver : 'cd' | 'bcd' | 'auto'
+        The algorithm to use for the optimization. 'cd' uses
         coordinate descent, and 'bcd' applies block coordinate descent.
         'cd' is only available for fixed orientation.
     n_mxne_iter : int
@@ -347,7 +348,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations. Ignored if
         solver is 'cd'.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
     %(pick_ori)s
@@ -393,11 +394,12 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
     if dgap_freq <= 0.:
         raise ValueError('dgap_freq must be a positive integer.'
                          ' Got dgap_freq = %s' % dgap_freq)
-    if not(isinstance(sure_alpha_grid, (np.ndarray, list)) or
-           sure_alpha_grid == "auto"):
+    if not (isinstance(sure_alpha_grid, (np.ndarray, list)) or
+            sure_alpha_grid == "auto"):
         raise ValueError('If not equal to "auto" sure_alpha_grid must be an '
                          'array. Got %s' % type(sure_alpha_grid))
-    if sure_alpha_grid != "auto" and alpha != "sure":
+    if ((isinstance(sure_alpha_grid, str) and sure_alpha_grid != "auto")
+            and (isinstance(alpha, str) and alpha != "sure")):
         raise Exception('If sure_alpha_grid is manually specified, alpha must '
                         'be "sure". Got %s' % alpha)
     pca = True
@@ -441,8 +443,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
 
     # Alpha selected automatically by SURE minimization
     if alpha == "sure":
-        alpha_grid = (np.geomspace(100, 10, num=15)
-                      if sure_alpha_grid == "auto" else sure_alpha_grid)
+        alpha_grid = sure_alpha_grid
+        if isinstance(sure_alpha_grid, str) and sure_alpha_grid == "auto":
+            alpha_grid = np.geomspace(100, 10, num=15)
         X, active_set, best_alpha_ = _compute_mxne_sure(
             M, gain, alpha_grid, sigma=1, random_state=random_state,
             n_mxne_iter=n_mxne_iter, maxit=maxit, tol=tol,
@@ -475,14 +478,15 @@ def mixed_norm(evoked, forward, noise_cov, alpha='sure', loose='auto',
         del active_set_tmp
 
     if active_set.sum() == 0:
-        raise Exception("No active dipoles found. alpha is too big.")
-
-    # Reapply weights to have correct unit
-    X = _reapply_source_weighting(X, source_weighting, active_set)
-    source_weighting[source_weighting == 0] = 1  # zeros
-    gain_active /= source_weighting[active_set]
-    del source_weighting
-    M_estimate = np.dot(gain_active, X)
+        warn("No active dipoles found. alpha is too big.")
+        M_estimate = np.zeros_like(M)
+    else:
+        # Reapply weights to have correct unit
+        X = _reapply_source_weighting(X, source_weighting, active_set)
+        source_weighting[source_weighting == 0] = 1  # zeros
+        gain_active /= source_weighting[active_set]
+        del source_weighting
+        M_estimate = np.dot(gain_active, X)
 
     outs = list()
     residual = list()
@@ -610,7 +614,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         * l1_ratio. 0 means no time regularization a.k.a. MxNE.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
     %(pick_ori)s
@@ -776,7 +780,7 @@ def _compute_mxne_sure(M, gain, alpha_grid, sigma, n_mxne_iter, maxit, tol,
         Size of active set increase at each iteration.
     debias : bool
         Debias source estimates.
-    solver : 'prox' | 'cd' | 'bcd' | 'auto'
+    solver : 'cd' | 'bcd' | 'auto'
         The algorithm to use for the optimization.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.

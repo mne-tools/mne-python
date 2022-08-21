@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-sim-raw:
+
 ===========================
 Generate simulated raw data
 ===========================
@@ -26,8 +29,9 @@ from mne.simulation import (simulate_sparse_stc, simulate_raw,
 print(__doc__)
 
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_raw.fif'
+fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
 
 # Load real data as the template
 raw = mne.io.read_raw_fif(raw_fname)

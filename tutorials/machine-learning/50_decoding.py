@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 r"""
+.. _tut-mvpa:
+
 ===============
 Decoding (MVPA)
 ===============
@@ -38,26 +41,29 @@ from mne.decoding import (SlidingEstimator, GeneralizingEstimator, Scaler,
 
 data_path = sample.data_path()
 
-subjects_dir = data_path + '/subjects'
-raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
+subjects_dir = data_path / 'subjects'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
 tmin, tmax = -0.200, 0.500
 event_id = {'Auditory/Left': 1, 'Visual/Left': 3}  # just use two
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname)
+raw.pick_types(meg='grad', stim=True, eog=True, exclude=())
 
 # The subsequent decoding analyses only capture evoked responses, so we can
 # low-pass the MEG data. Usually a value more like 40 Hz would be used,
 # but here low-pass at 20 so we can more heavily decimate, and allow
-# the examlpe to run faster. The 2 Hz high-pass helps improve CSP.
-raw.filter(2, 20)
+# the example to run faster. The 2 Hz high-pass helps improve CSP.
+raw.load_data().filter(2, 20)
 events = mne.find_events(raw, 'STI 014')
 
-# Set up pick list: EEG + MEG - bad channels (modify to your needs)
-raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
+# Set up bad channels (modify to your needs)
+raw.info['bads'] += ['MEG 2443']  # bads + 2 more
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=('grad', 'eog'), baseline=(None, 0.), preload=True,
-                    reject=dict(grad=4000e-13, eog=150e-6), decim=10)
+                    reject=dict(grad=4000e-13, eog=150e-6), decim=3,
+                    verbose='error')
 epochs.pick_types(meg=True, exclude='bads')  # remove stim and EOG
 del raw
 
@@ -112,11 +118,13 @@ y = epochs.events[:, 2]  # target: auditory left vs visual left
 
 # Uses all MEG sensors and time points as separate classification
 # features, so the resulting filters used are spatio-temporal
-clf = make_pipeline(Scaler(epochs.info),
-                    Vectorizer(),
-                    LogisticRegression(solver='lbfgs'))
+clf = make_pipeline(
+    Scaler(epochs.info),
+    Vectorizer(),
+    LogisticRegression(solver='liblinear')  # liblinear is faster than lbfgs
+)
 
-scores = cross_val_multiscore(clf, X, y, cv=5, n_jobs=1)
+scores = cross_val_multiscore(clf, X, y, cv=5, n_jobs=None)
 
 # Mean scores across cross-validation splits
 score = np.mean(scores, axis=0)
@@ -197,8 +205,11 @@ print('Spatio-temporal: %0.1f%%' % (100 * score,))
 # We can use CSP with these data with:
 
 csp = CSP(n_components=3, norm_trace=False)
-clf_csp = make_pipeline(csp, LinearModel(LogisticRegression(solver='lbfgs')))
-scores = cross_val_multiscore(clf_csp, X, y, cv=5, n_jobs=1)
+clf_csp = make_pipeline(
+    csp,
+    LinearModel(LogisticRegression(solver='liblinear'))
+)
+scores = cross_val_multiscore(clf_csp, X, y, cv=5, n_jobs=None)
 print('CSP: %0.1f%%' % (100 * scores.mean(),))
 
 # %%
@@ -273,7 +284,7 @@ csp.plot_filters(epochs.info, scalings=1e-9)
 # epochs. The :class:`mne.decoding.SlidingEstimator` will take as input a
 # pair of features :math:`X` and targets :math:`y`, where :math:`X` has
 # more than 2 dimensions. For decoding over time the data :math:`X`
-# is the epochs data of shape n_epochs x n_channels x n_times. As the
+# is the epochs data of shape n_epochs × n_channels × n_times. As the
 # last dimension of :math:`X` is the time, an estimator will be fit
 # on every time instant.
 #
@@ -292,10 +303,15 @@ csp.plot_filters(epochs.info, scalings=1e-9)
 
 # We will train the classifier on all left visual vs auditory trials on MEG
 
-clf = make_pipeline(StandardScaler(), LogisticRegression(solver='lbfgs'))
+clf = make_pipeline(
+    StandardScaler(),
+    LogisticRegression(solver='liblinear')
+)
 
-time_decod = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc', verbose=True)
-scores = cross_val_multiscore(time_decod, X, y, cv=5, n_jobs=1)
+time_decod = SlidingEstimator(
+    clf, n_jobs=None, scoring='roc_auc', verbose=True)
+# here we use cv=3 just for speed
+scores = cross_val_multiscore(time_decod, X, y, cv=3, n_jobs=None)
 
 # Mean scores across cross-validation splits
 scores = np.mean(scores, axis=0)
@@ -313,9 +329,12 @@ ax.set_title('Sensor space decoding')
 # %%
 # You can retrieve the spatial filters and spatial patterns if you explicitly
 # use a LinearModel
-clf = make_pipeline(StandardScaler(),
-                    LinearModel(LogisticRegression(solver='lbfgs')))
-time_decod = SlidingEstimator(clf, n_jobs=1, scoring='roc_auc', verbose=True)
+clf = make_pipeline(
+    StandardScaler(),
+    LinearModel(LogisticRegression(solver='liblinear'))
+)
+time_decod = SlidingEstimator(
+    clf, n_jobs=None, scoring='roc_auc', verbose=True)
 time_decod.fit(X, y)
 
 coef = get_coef(time_decod, 'patterns_', inverse_transform=True)
@@ -349,10 +368,11 @@ evoked_time_gen.plot_joint(times=np.arange(0., .500, .100), title='patterns',
 # in :footcite:`KingDehaene2014`:
 
 # define the Temporal generalization object
-time_gen = GeneralizingEstimator(clf, n_jobs=1, scoring='roc_auc',
+time_gen = GeneralizingEstimator(clf, n_jobs=None, scoring='roc_auc',
                                  verbose=True)
 
-scores = cross_val_multiscore(time_gen, X, y, cv=5, n_jobs=1)
+# again, cv=3 just for speed
+scores = cross_val_multiscore(time_gen, X, y, cv=3, n_jobs=None)
 
 # Mean scores across cross-validation splits
 scores = np.mean(scores, axis=0)
@@ -391,7 +411,7 @@ cbar.set_label('AUC')
 cov = mne.compute_covariance(epochs, tmax=0.)
 del epochs
 fwd = mne.read_forward_solution(
-    data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif')
+    meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif')
 inv = mne.minimum_norm.make_inverse_operator(
     evoked_time_gen.info, fwd, cov, loose=0.)
 stc = mne.minimum_norm.apply_inverse(evoked_time_gen, inv, 1. / 9., 'dSPM')
@@ -414,7 +434,7 @@ brain = stc.plot(hemi='split', views=('lat', 'med'), initial_time=0.1,
 #
 # .. topic:: Examples
 #
-#     * :ref:`tut-dec-st-source`
+#     * :ref:`ex-dec-st-source`
 #
 # Exercise
 # ========

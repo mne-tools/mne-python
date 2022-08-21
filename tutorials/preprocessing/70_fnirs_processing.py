@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-fnirs-processing:
 
+================================================================
 Preprocessing functional near-infrared spectroscopy (fNIRS) data
 ================================================================
 
@@ -42,13 +44,13 @@ raw_intensity.annotations.set_durations(5)
 raw_intensity.annotations.rename({'1.0': 'Control',
                                   '2.0': 'Tapping/Left',
                                   '3.0': 'Tapping/Right'})
-raw_intensity.annotations.delete(
-    raw_intensity.annotations.description == '15.0')
+unwanted = np.nonzero(raw_intensity.annotations.description == '15.0')
+raw_intensity.annotations.delete(unwanted)
 
 
 # %%
-# View location of sensors over brain surface
-# -------------------------------------------
+# Viewing location of sensors over brain surface
+# ----------------------------------------------
 #
 # Here we validate that the location of sources-detector pairs and channels
 # are in the expected locations. Source-detector pairs are shown as lines
@@ -58,10 +60,12 @@ raw_intensity.annotations.delete(
 
 subjects_dir = op.join(mne.datasets.sample.data_path(), 'subjects')
 
-brain = mne.viz.Brain('fsaverage', subjects_dir=subjects_dir, background="w")
-brain.add_sensors(raw_intensity.info, trans='fsaverage')
+brain = mne.viz.Brain(
+    'fsaverage', subjects_dir=subjects_dir, background='w', cortex='0.5')
+brain.add_sensors(
+    raw_intensity.info, trans='fsaverage',
+    fnirs=['channels', 'pairs', 'sources', 'detectors'])
 brain.show_view(azimuth=20, elevation=60, distance=400)
-
 
 # %%
 # Selecting channels appropriate for detecting neural responses
@@ -133,7 +137,7 @@ raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
 # Next we convert the optical density data to haemoglobin concentration using
 # the modified Beer-Lambert law.
 
-raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od)
+raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od, ppf=0.1)
 raw_haemo.plot(n_channels=len(raw_haemo.ch_names),
                duration=500, show_scrollbars=False)
 
@@ -336,7 +340,7 @@ mne.viz.plot_evoked_topo(epochs['Left'].average(picks='hbo'), color='b',
 mne.viz.plot_evoked_topo(epochs['Right'].average(picks='hbo'), color='r',
                          axes=axes, legend=False)
 
-# Tidy the legend.
+# Tidy the legend:
 leg_lines = [line for line in axes.lines if line.get_c() == 'b'][:1]
 leg_lines.append([line for line in axes.lines if line.get_c() == 'r'][0])
 fig.legend(leg_lines, ['Left', 'Right'], loc='lower right')

@@ -18,10 +18,14 @@ from mne.io.constants import FIFF
 from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
                          get_head_surf, read_curvature, get_meg_helmet_surf,
                          _normal_orth, _read_patch, _marching_cubes,
-                         _voxel_neighbors, warp_montage_volume)
-from mne.transforms import _get_trans, compute_volume_registration, apply_trans
-from mne.utils import (requires_vtk, catch_logging, object_diff,
-                       requires_freesurfer, requires_nibabel, requires_dipy)
+                         _voxel_neighbors, warp_montage_volume,
+                         _project_onto_surface, _get_ico_surface)
+from mne.transforms import (_get_trans, compute_volume_registration,
+                            apply_trans)
+from mne.utils import (catch_logging, object_diff,
+                       requires_freesurfer, requires_nibabel, requires_dipy,
+                       _record_warnings)
+
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -117,19 +121,19 @@ def test_compute_nearest():
 
 
 @testing.requires_testing_data
-def test_io_surface(tmpdir):
+def test_io_surface(tmp_path):
     """Test reading and writing of Freesurfer surface mesh files."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fname_quad = op.join(data_path, 'subjects', 'bert', 'surf',
                          'lh.inflated.nofix')
     fname_tri = op.join(data_path, 'subjects', 'sample', 'bem',
                         'inner_skull.surf')
     for fname in (fname_quad, fname_tri):
-        with pytest.warns(None):  # no volume info
+        with _record_warnings():  # no volume info
             pts, tri, vol_info = read_surface(fname, read_metadata=True)
         write_surface(op.join(tempdir, 'tmp'), pts, tri, volume_info=vol_info,
                       overwrite=True)
-        with pytest.warns(None):  # no volume info
+        with _record_warnings():  # no volume info
             c_pts, c_tri, c_vol_info = read_surface(op.join(tempdir, 'tmp'),
                                                     read_metadata=True)
         assert_array_equal(pts, c_pts)
@@ -165,9 +169,9 @@ def test_read_curv():
     assert np.logical_or(bin_curv == 0, bin_curv == 1).all()
 
 
-@requires_vtk
 def test_decimate_surface_vtk():
     """Test triangular surface decimation."""
+    pytest.importorskip('pyvista')
     points = np.array([[-0.00686118, -0.10369860, 0.02615170],
                        [-0.00713948, -0.10370162, 0.02614874],
                        [-0.00686208, -0.10368247, 0.02588313],
@@ -224,12 +228,12 @@ def test_normal_orth():
 
 
 # 0.06 sec locally even with all these params
-@requires_vtk
 @pytest.mark.parametrize('dtype', (np.float64, np.uint16, '>i4'))
 @pytest.mark.parametrize('value', (1, 12))
 @pytest.mark.parametrize('smooth', (0, 0.9))
 def test_marching_cubes(dtype, value, smooth):
     """Test creating surfaces via marching cubes."""
+    pytest.importorskip('pyvista')
     data = np.zeros((50, 50, 50), dtype=dtype)
     data[20:30, 20:30, 20:30] = value
     level = [value]
@@ -240,6 +244,12 @@ def test_marching_cubes(dtype, value, smooth):
     rtol = 1e-2 if smooth else 1e-9
     assert_allclose(verts.sum(axis=0), [14700, 14700, 14700], rtol=rtol)
     assert_allclose(triangles.sum(axis=0), [363402, 360865, 350588])
+    # test fill holes
+    data[24:27, 24:27, 24:27] = 0
+    verts, triangles = _marching_cubes(data, level, smooth=smooth,
+                                       fill_hole_size=2)[0]
+    # check that no surfaces in the middle
+    assert np.linalg.norm(verts - np.array([25, 25, 25]), axis=1).min() > 4
     # problematic values
     with pytest.raises(TypeError, match='1D array-like'):
         _marching_cubes(data, ['foo'])
@@ -254,6 +264,7 @@ def test_marching_cubes(dtype, value, smooth):
 
 
 @requires_nibabel()
+@testing.requires_testing_data
 def test_get_montage_volume_labels():
     """Test finding ROI labels near montage channel locations."""
     ch_coords = np.array([[-8.7040273, 17.99938754, 10.29604017],
@@ -282,17 +293,19 @@ def test_get_montage_volume_labels():
                        match='Coordinate frame not supported'):
         get_montage_volume_labels(
             fail_montage, 'sample', subjects_dir, aseg='aseg')
+    with pytest.raises(ValueError, match='between 0 and 10'):
+        get_montage_volume_labels(montage, 'sample', subjects_dir, dist=11)
 
 
 def test_voxel_neighbors():
     """Test finding points above a threshold near a seed location."""
-    image = np.zeros((10, 10, 10))
-    image[4:7, 4:7, 4:7] = 3
-    image[5, 5, 5] = 4
+    locs = np.array(np.meshgrid(*[np.linspace(-1, 1, 101)] * 3))
+    image = 1 - np.linalg.norm(locs, axis=0)
+    true_volume = set([tuple(coord) for coord in
+                       np.array(np.where(image > 0.95)).T])
     volume = _voxel_neighbors(
-        (5.5, 5.1, 4.9), image, thresh=2, max_peak_dist=1)
-    true_volume = set([(5, 4, 5), (5, 5, 4), (5, 5, 5), (6, 5, 5),
-                       (5, 6, 5), (5, 5, 6), (4, 5, 5)])
+        np.array([-0.3, 0.6, 0.5]) + (np.array(image.shape[0]) - 1) / 2,
+        image, thresh=0.95, use_relative=False)
     assert volume.difference(true_volume) == set()
     assert true_volume.difference(volume) == set()
 
@@ -308,10 +321,11 @@ def test_warp_montage_volume():
         op.join(subjects_dir, 'sample', 'mri', 'brain.mgz'))
     template_brain = nib.load(
         op.join(subjects_dir, 'fsaverage', 'mri', 'brain.mgz'))
+    zooms = dict(translation=10, rigid=10, sdr=10)
     reg_affine, sdr_morph = compute_volume_registration(
-        subject_brain, template_brain, zooms=5,
-        niter=dict(translation=[5, 5, 5], rigid=[5, 5, 5],
-                   sdr=[3, 3, 3]), pipeline=('translation', 'rigid', 'sdr'))
+        subject_brain, template_brain, zooms=zooms,
+        niter=[3, 3, 3],
+        pipeline=('translation', 'rigid', 'sdr'))
     # make an info object with three channels with positions
     ch_coords = np.array([[-8.7040273, 17.99938754, 10.29604017],
                           [-14.03007764, 19.69978401, 12.07236939],
@@ -341,7 +355,7 @@ def test_warp_montage_volume():
                                rpa=rpa['r'], coord_frame='mri')
     montage_warped, image_from, image_to = warp_montage_volume(
         montage, CT, reg_affine, sdr_morph, 'sample',
-        subjects_dir=subjects_dir, thresh=0.99)
+        subjects_dir_from=subjects_dir, thresh=0.99)
     # checked with nilearn plot from `tut-ieeg-localize`
     # check montage in surface RAS
     ground_truth_warped = np.array([[-0.009, -0.00133333, -0.033],
@@ -363,25 +377,27 @@ def test_warp_montage_volume():
     for i in range(len(montage.ch_names)):
         assert np.linalg.norm(
             np.array(np.where(np.array(image_to.dataobj) == i + 1)
-                     ).mean(axis=1) - ground_truth_warped_voxels[i]) < 5
-
+                     ).mean(axis=1) - ground_truth_warped_voxels[i]) < 8
     # test inputs
     with pytest.raises(ValueError, match='`thresh` must be between 0 and 1'):
         warp_montage_volume(
             montage, CT, reg_affine, sdr_morph, 'sample', thresh=11.)
     with pytest.raises(ValueError, match='subject folder is incorrect'):
         warp_montage_volume(
-            montage, CT, reg_affine, sdr_morph, subject_from='foo')
+            montage, CT, reg_affine, sdr_morph, subject_from='foo',
+            subjects_dir_from=subjects_dir)
     CT_unaligned = nib.Nifti1Image(CT_data, template_brain.affine)
     with pytest.raises(RuntimeError, match='not aligned to Freesurfer'):
         warp_montage_volume(montage, CT_unaligned, reg_affine,
-                            sdr_morph, 'sample', subjects_dir=subjects_dir)
+                            sdr_morph, 'sample',
+                            subjects_dir_from=subjects_dir)
     bad_montage = montage.copy()
     for d in bad_montage.dig:
         d['coord_frame'] = 99
     with pytest.raises(RuntimeError, match='Coordinate frame not supported'):
         warp_montage_volume(bad_montage, CT, reg_affine,
-                            sdr_morph, 'sample', subjects_dir=subjects_dir)
+                            sdr_morph, 'sample',
+                            subjects_dir_from=subjects_dir)
 
     # check channel not warped
     ch_pos_doubled = ch_pos.copy()
@@ -391,4 +407,32 @@ def test_warp_montage_volume():
         rpa=rpa['r'], coord_frame='mri')
     with pytest.warns(RuntimeWarning, match='not assigned'):
         warp_montage_volume(doubled_montage, CT, reg_affine,
-                            sdr_morph, 'sample', subjects_dir=subjects_dir)
+                            None, 'sample', subjects_dir_from=subjects_dir)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('ret_nn', (False, True))
+@pytest.mark.parametrize('method', ('accurate', 'nearest'))
+def test_project_onto_surface(method, ret_nn):
+    """Test _project_onto_surface (gh-10930)."""
+    locs = np.random.default_rng(0).normal(size=(10, 3))
+    locs *= 2 / np.linalg.norm(locs, axis=1)[:, None]  # lie on a sphere rad=2
+    surf = _get_ico_surface(3)
+    assert len(surf['rr']) == 642
+    assert_allclose(np.linalg.norm(surf['rr'], axis=1), 1., rtol=1e-3)  # unit
+    # project
+    weights, tri_idx, *out = _project_onto_surface(
+        locs, surf, project_rrs=True, return_nn=ret_nn, method=method)
+    locs /= 2.  # back to unit
+    assert_allclose(np.linalg.norm(locs, axis=1), 1., rtol=1e-5)
+    assert len(out) == 2 if ret_nn else 1
+    # for a sphere, both the rr (out[0]) and nn (out[1], if exists) should
+    # both be very similar to each other and to our unit-length `locs`
+    for kind, comp in zip(('rr', 'nn'), out):
+        assert_allclose(
+            np.linalg.norm(comp, axis=1), 1., atol=0.05,
+            err_msg=f'{kind} not unit vectors for {method}')
+        cos = np.sum(locs * comp, axis=1)
+        assert_allclose(
+            cos, 1., atol=0.05,  # ico > 3 would be even better tol
+            err_msg=f'{kind} not in same direction as locs for {method}')

@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-functional-label:
+
 =================================================
 Generate a functional label from source estimates
 =================================================
@@ -26,9 +29,10 @@ from mne.datasets import sample
 print(__doc__)
 
 data_path = sample.data_path()
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
-fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
-subjects_dir = data_path + '/subjects'
+fname_inv = (
+    data_path / 'MEG' / 'sample' / 'sample_audvis-meg-oct-6-meg-inv.fif')
+fname_evoked = data_path / 'MEG' / 'sample' / 'sample_audvis-ave.fif'
+subjects_dir = data_path / 'subjects'
 subject = 'sample'
 
 snr = 3.0
@@ -98,7 +102,7 @@ plt.legend()
 plt.show()
 
 # %%
-# plot brain in 3D with PySurfer if available
+# plot brain in 3D with mne.viz.Brain if available
 brain = stc_mean.plot(hemi='lh', subjects_dir=subjects_dir)
 brain.show_view('lateral')
 

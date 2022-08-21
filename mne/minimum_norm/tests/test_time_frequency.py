@@ -85,7 +85,7 @@ def test_tfr_with_inverse_operator(method):
     freqs = np.arange(7, 30, 2)  # define frequencies of interest
     power, phase_lock = source_induced_power(
         epochs, inv, freqs, label, baseline=(-0.1, 0), baseline_mode='percent',
-        n_cycles=2, n_jobs=1, method=method, prepared=True)
+        n_cycles=2, n_jobs=None, method=method, prepared=True)
     assert np.all(phase_lock > 0)
     assert np.all(phase_lock <= 1)
     assert 5 < np.max(power) < 7

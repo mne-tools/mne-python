@@ -9,8 +9,10 @@ from mne import (vertex_to_mni, head_to_mni,
                  read_talxfm, read_freesurfer_lut,
                  get_volume_labels_from_aseg)
 from mne.datasets import testing
-from mne._freesurfer import _get_mgz_header, _check_subject_dir
-from mne.transforms import apply_trans, _get_trans
+from mne._freesurfer import (_get_mgz_header, _check_subject_dir, read_lta,
+                             _estimate_talxfm_rigid)
+from mne.transforms import (apply_trans, _get_trans, rot_to_quat,
+                            _angle_between_quats)
 from mne.utils import requires_nibabel
 
 data_path = testing.data_path(download=False)
@@ -96,13 +98,51 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
     assert_allclose(coords, coords_2, atol=0.1)
 
 
+def test_read_lta(tmp_path):
+    """Test reading a Freesurfer linear transform array file."""
+    with open(op.join(tmp_path, 'test.lta'), 'w') as fid:
+        fid.write("""type      = 0 # LINEAR_VOX_TO_VOX
+                     nxforms   = 1
+                     mean      = 0.0000 0.0000 0.0000
+                     sigma     = 1.0000
+                     1 4 4
+                     0.99221027 -0.05494503  0.11180324 -3.84350586
+                     0.05233596  0.99828744 0.02614108 -9.77523804
+                     -0.11304809 -0.02008611 0.99338663 15.25457001
+                     0 0 0 1
+                     src volume info
+                     valid = 1  # volume info valid
+                     filename = tmp.mgz
+                     volume = 256 256 256
+                     voxelsize = 1 1 1
+                     xras   = -1 0 0
+                     yras   = 0 0 -1
+                     zras   = 0 1 0
+                     cras   = -1.19374 -3.31686 3.25835
+                     dst volume info
+                     valid = 1  # volume info valid
+                     filename = tmp.mgz
+                     volume = 256 256 256
+                     voxelsize = 1 1 1
+                     xras   = -1 0 0
+                     yras   = 0 0 -1
+                     zras   = 0 1 0
+                     cras   = -1.19374 -3.31686 3.25835)""")
+    assert_array_equal(
+        read_lta(op.join(tmp_path, 'test.lta')),
+        np.array([[0.99221027, -0.05494503, 0.11180324, -3.84350586],
+                  [0.05233596, 0.99828744, 0.02614108, -9.77523804],
+                  [-0.11304809, -0.02008611, 0.99338663, 15.25457001],
+                  [0., 0., 0., 1.]]))
+
+
 @testing.requires_testing_data
 @requires_nibabel()
 @pytest.mark.parametrize('fname', [
     None,
     op.join(op.dirname(mne.__file__), 'data', 'FreeSurferColorLUT.txt'),
 ])
-def test_read_freesurfer_lut(fname, tmpdir):
+def test_read_freesurfer_lut(fname, tmp_path):
     """Test reading volume label names."""
     atlas_ids, colors = read_freesurfer_lut(fname)
     assert list(atlas_ids).count('Brain-Stem') == 1
@@ -125,7 +165,7 @@ def test_read_freesurfer_lut(fname, tmpdir):
     # long name (only test on one run)
     if fname is not None:
         return
-    fname = str(tmpdir.join('long.txt'))
+    fname = tmp_path / 'long.txt'
     names = ['Anterior_Cingulate_and_Medial_Prefrontal_Cortex-' + hemi
              for hemi in ('lh', 'rh')]
     ids = np.arange(1, len(names) + 1)
@@ -149,3 +189,16 @@ def test_read_freesurfer_lut(fname, tmpdir):
             fid.write(line)
     with pytest.raises(RuntimeError, match='formatted'):
         read_freesurfer_lut(fname)
+
+
+@testing.requires_testing_data
+def test_talxfm_rigid():
+    """Test that talxfm_rigid gives reasonable results."""
+    rigid = _estimate_talxfm_rigid('fsaverage', subjects_dir=subjects_dir)
+    assert_allclose(rigid, np.eye(4), atol=1e-6)
+    rigid = _estimate_talxfm_rigid('sample', subjects_dir=subjects_dir)
+    assert_allclose(np.linalg.norm(rigid[:3, :3], axis=1), 1., atol=1e-6)
+    move = 1000 * np.linalg.norm(rigid[:3, 3])
+    assert 30 < move < 70
+    ang = np.rad2deg(_angle_between_quats(rot_to_quat(rigid[:3, :3])))
+    assert 20 < ang < 25

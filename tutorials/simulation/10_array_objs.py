@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-creating-data-structures:
 
+================================================
 Creating MNE-Python data structures from scratch
 ================================================
 
@@ -12,18 +14,19 @@ We begin by importing the necessary Python modules:
 
 # %%
 
-import mne
 import numpy as np
 
+import mne
 
 # %%
 # Creating `~mne.Info` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. sidebar:: Info objects
+# .. admonition:: Info objects
+#     :class: sidebar note
 #
-#      For full documentation on the `~mne.Info` object, see
-#      :ref:`tut-info-class`.
+#     For full documentation on the `~mne.Info` object, see
+#     :ref:`tut-info-class`.
 #
 # The core data structures for continuous (`~mne.io.Raw`), discontinuous
 # (`~mne.Epochs`), and averaged (`~mne.Evoked`) data all have an ``info``
@@ -68,7 +71,8 @@ info = mne.create_info(ch_names, ch_types=ch_types, sfreq=sampling_freq)
 info.set_montage('standard_1020')
 
 # %%
-# .. sidebar:: Info consistency
+# .. admonition:: Info consistency
+#     :class: sidebar warning
 #
 #     When assigning new values to the fields of an `~mne.Info` object, it is
 #     important that the fields stay consistent. if there are ``N`` channels:
@@ -93,7 +97,8 @@ print(info)
 # Creating `~mne.io.Raw` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# .. sidebar:: Units
+# .. admonition:: Units
+#     :class: sidebar note
 #
 #     The expected units for the different channel types are:
 #

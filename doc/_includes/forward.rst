@@ -20,13 +20,14 @@ solutions, and the associated low-level utilities.
 MEG/EEG and MRI coordinate systems
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. sidebar:: Coordinate systems in MNE-Python
+.. note:: Coordinate systems in MNE-Python
+    :class: sidebar
 
-   In some MNE-Python objects (e.g., :class:`~mne.Forward`,
-   :class:`~mne.SourceSpaces`, etc), information about the coordinate frame is
-   encoded as a constant integer value. The meaning of those integers is
-   determined `in the source code
-   <https://github.com/mne-tools/mne-python/blob/main/mne/io/constants.py#L186-L197>`__.
+    In some MNE-Python objects (e.g., :class:`~mne.Forward`,
+    :class:`~mne.SourceSpaces`, etc), information about the coordinate frame is
+    encoded as a constant integer value. The meaning of those integers is
+    determined `in the source code
+    <https://github.com/mne-tools/mne-python/blob/main/mne/io/constants.py#L186-L197>`__.
 
 The coordinate systems used in MNE software (and FreeSurfer) and their
 relationships are depicted in :ref:`coordinate_system_figure`. Except for the
@@ -118,7 +119,7 @@ The coordinate systems related to MRI data are:
     Talairach brain. The differences are larger as you get further from the
     middle of the brain, towards the outside. The FreeSurfer Talairach
     coordinates mitigate this problem by additing a an additional
-    transformation, defined separately for negatice and positive MNI Talairach
+    transformation, defined separately for negative and positive MNI Talairach
     :math:`z` coordinates. These two transformations, denoted by :math:`T_-`
     and :math:`T_+` in :ref:`coordinate_system_figure`, are fixed as discussed in
     https://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach (*Approach 2*).
@@ -683,14 +684,15 @@ as :func:`mne.fit_dipole`, :func:`mne.viz.plot_alignment` or
 EEG forward solution in the sphere model
 ----------------------------------------
 
-.. sidebar:: Sphere-model examples in MNE-Python
+.. note:: Sphere-model examples in MNE-Python
+    :class: sidebar
 
-   For examples of using the sphere model when computing the forward model
-   (using :func:`mne.make_forward_solution`), see :ref:`Brainstorm CTF phantom
-   dataset tutorial <plt_brainstorm_phantom_ctf_eeg_sphere_geometry>`,
-   :ref:`Brainstorm Elekta phantom dataset tutorial
-   <plt_brainstorm_phantom_elekta_eeg_sphere_geometry>`, and
-   :ref:`tut-source-alignment-without-mri`.
+    For examples of using the sphere model when computing the forward model
+    (using :func:`mne.make_forward_solution`), see :ref:`Brainstorm CTF phantom
+    dataset tutorial <plt_brainstorm_phantom_ctf_eeg_sphere_geometry>`,
+    :ref:`Brainstorm Elekta phantom dataset tutorial
+    <plt_brainstorm_phantom_elekta_eeg_sphere_geometry>`, and
+    :ref:`tut-source-alignment-without-mri`.
 
 When the sphere model is employed, the computation of the EEG solution can be
 substantially accelerated by using approximation methods described by Mosher

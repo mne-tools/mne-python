@@ -29,7 +29,8 @@ from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
 from mne.surface import _mesh_borders
-from mne.utils import requires_sklearn, get_subjects_dir, check_version
+from mne.utils import (requires_sklearn, get_subjects_dir, check_version,
+                       _record_warnings)
 
 
 data_path = testing.data_path(download=False)
@@ -270,7 +271,7 @@ def test_label_fill_restrict(fname):
         # Check that we can auto-fill patch info quickly for one condition
         for s in src:
             s['nearest'] = None
-        with pytest.warns(None):
+        with _record_warnings():
             label_src = label_src.fill(src)
     else:
         label_src = label_src.fill(src)
@@ -310,9 +311,9 @@ def test_label_io_and_time_course_estimates():
 
 
 @testing.requires_testing_data
-def test_label_io(tmpdir):
+def test_label_io(tmp_path):
     """Test IO of label files."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     label = read_label(label_fname)
 
     # label attributes
@@ -345,10 +346,10 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
 
 
 @testing.requires_testing_data
-def test_annot_io(tmpdir):
+def test_annot_io(tmp_path):
     """Test I/O from and to *.annot files."""
     # copy necessary files from fsaverage to tempdir
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     subject = 'fsaverage'
     label_src = os.path.join(subjects_dir, 'fsaverage', 'label')
     surf_src = os.path.join(subjects_dir, 'fsaverage', 'surf')
@@ -448,7 +449,7 @@ def test_labels_to_stc():
 
 
 @testing.requires_testing_data
-def test_read_labels_from_annot(tmpdir):
+def test_read_labels_from_annot(tmp_path):
     """Test reading labels from FreeSurfer parcellation."""
     # test some invalid inputs
     pytest.raises(ValueError, read_labels_from_annot, 'sample', hemi='bla',
@@ -458,7 +459,7 @@ def test_read_labels_from_annot(tmpdir):
     with pytest.raises(IOError, match='does not exist'):
         _read_annot_cands('foo')
     with pytest.raises(IOError, match='no candidate'):
-        _read_annot(str(tmpdir))
+        _read_annot(str(tmp_path))
 
     # read labels using hemi specification
     labels_lh = read_labels_from_annot('sample', hemi='lh',
@@ -522,9 +523,9 @@ def test_read_labels_from_annot_annot2labels():
 
 
 @testing.requires_testing_data
-def test_write_labels_to_annot(tmpdir):
+def test_write_labels_to_annot(tmp_path):
     """Test writing FreeSurfer parcellation from labels."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
 
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
 
@@ -781,13 +782,13 @@ def test_morph():
     verts = [np.arange(10242), np.arange(10242)]
     for hemi in ['lh', 'rh']:
         label.hemi = hemi
-        with pytest.warns(None):  # morph map maybe missing
+        with _record_warnings():  # morph map maybe missing
             label.morph(None, 'fsaverage', 5, verts, subjects_dir, 2)
     pytest.raises(TypeError, label.morph, None, 1, 5, verts,
                   subjects_dir, 2)
     pytest.raises(TypeError, label.morph, None, 'fsaverage', 5.5, verts,
                   subjects_dir, 2)
-    with pytest.warns(None):  # morph map maybe missing
+    with _record_warnings():  # morph map maybe missing
         label.smooth(subjects_dir=subjects_dir)  # make sure this runs
 
 

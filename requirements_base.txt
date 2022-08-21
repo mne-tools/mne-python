@@ -1,0 +1,9 @@
+# requirements for basic MNE-Python functionality
+numpy>=1.15.4
+scipy>=1.1.0
+matplotlib
+tqdm
+pooch>=1.5
+decorator
+packaging
+jinja2

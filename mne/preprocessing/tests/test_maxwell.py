@@ -24,13 +24,15 @@ from mne.io import (read_raw_fif, read_info, read_raw_bti, read_raw_kit,
                     BaseRaw, read_raw_ctf)
 from mne.io.constants import FIFF
 from mne.preprocessing import (maxwell_filter, find_bad_channels_maxwell,
-                               annotate_flat, compute_maxwell_basis)
+                               annotate_amplitude, compute_maxwell_basis,
+                               maxwell_filter_prepare_emptyroom,
+                               annotate_movement)
 from mne.preprocessing.maxwell import (
     _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
     _bases_real_to_complex, _prep_mf_coils)
 from mne.rank import _get_rank_sss, _compute_rank_int, compute_rank
-from mne.utils import (assert_meg_snr, catch_logging,
+from mne.utils import (assert_meg_snr, catch_logging, _record_warnings,
                        object_diff, buggy_mkl_svd, use_log_level)
 
 io_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -139,9 +141,9 @@ def read_crop(fname, lims=(0, None)):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_movement_compensation(tmpdir):
+def test_movement_compensation(tmp_path):
     """Test movement compensation."""
-    temp_dir = str(tmpdir)
+    temp_dir = str(tmp_path)
     lims = (0, 4)
     raw = read_crop(raw_fname, lims).load_data()
     head_pos = read_head_pos(pos_fname)
@@ -344,7 +346,7 @@ def test_multipolar_bases():
     # Test our basis calculations
     info = read_info(raw_fname)
     with use_coil_def(elekta_def_fname):
-        coils = _prep_meg_channels(info, accurate=True, do_es=True)[0]
+        coils = _prep_meg_channels(info, do_es=True)[0]
     # Check against a known benchmark
     sss_data = loadmat(bases_fname)
     exp = dict(int_order=int_order, ext_order=ext_order)
@@ -482,15 +484,12 @@ def test_basic():
 
 
 @testing.requires_testing_data
-def test_maxwell_filter_additional(tmpdir):
+def test_maxwell_filter_additional(tmp_path):
     """Test processing of Maxwell filtered data."""
     # TODO: Future tests integrate with mne/io/tests/test_proc_history
 
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
-    data_path = op.join(testing.data_path(download=False))
-
     file_name = 'test_move_anon'
-
     raw_fname = op.join(data_path, 'SSS', file_name + '_raw.fif')
 
     # Use 2.0 seconds of data to get stable cov. estimate
@@ -504,7 +503,7 @@ def test_maxwell_filter_additional(tmpdir):
                              bad_condition='ignore')
 
     # Test io on processed data
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     test_outname = op.join(tempdir, 'test_raw_sss.fif')
     raw_sss.save(test_outname)
     raw_sss_loaded = read_crop(test_outname).load_data()
@@ -539,6 +538,7 @@ def test_bads_reconstruction():
     assert_meg_snr(raw_sss, read_crop(sss_bad_recon_fname), 300.)
 
 
+@pytest.mark.slowtest
 @buggy_mkl_svd
 @testing.requires_testing_data
 def test_spatiotemporal():
@@ -734,7 +734,7 @@ def _check_reg_match(sss_py, sss_mf, comp_tol):
 
 
 @testing.requires_testing_data
-def test_cross_talk(tmpdir):
+def test_cross_talk(tmp_path):
     """Test Maxwell filter cross-talk cancellation."""
     raw = read_crop(raw_fname, (0., 1.))
     raw.info['bads'] = bads
@@ -756,7 +756,7 @@ def test_cross_talk(tmpdir):
     assert_array_equal(py_ctc['decoupler'].toarray(),
                        mf_ctc['decoupler'].toarray())
     # I/O roundtrip
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fname = op.join(tempdir, 'test_sss_raw.fif')
     sss_ctc.save(fname)
     sss_ctc_read = read_raw_fif(fname)
@@ -902,7 +902,7 @@ def get_n_projected():
 @buggy_mkl_svd
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_shielding_factor(tmpdir):
+def test_shielding_factor(tmp_path):
     """Test Maxwell filter shielding factor using empty room."""
     raw_erm = read_crop(erm_fname).load_data().pick_types(meg=True)
     erm_power = raw_erm[pick_types(raw_erm.info, meg='mag')][0]
@@ -1077,21 +1077,22 @@ def test_shielding_factor(tmpdir):
     _assert_shielding(raw_sss, erm_power_grad, 1.5, 1.6, 'grad')
     assert counts[0] == 3
     with get_n_projected() as counts:
-        raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname_3d,
-                                 cross_talk=ctc_fname, st_duration=1.,
-                                 coord_frame='meg', regularize='in')
+        with _record_warnings():  # SVD convergence on arm64
+            raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname_3d,
+                                     cross_talk=ctc_fname, st_duration=1.,
+                                     coord_frame='meg', regularize='in')
     # Our 3D cal has worse defaults for this ERM than the 1D file
     _assert_shielding(raw_sss, erm_power, 57, 58)
     assert counts[0] == 3
     # Show it by rewriting the 3D as 1D and testing it
-    temp_dir = str(tmpdir)
+    temp_dir = str(tmp_path)
     temp_fname = op.join(temp_dir, 'test_cal.dat')
     with open(fine_cal_fname_3d, 'r') as fid:
         with open(temp_fname, 'w') as fid_out:
             for line in fid:
                 fid_out.write(' '.join(line.strip().split(' ')[:14]) + '\n')
     with get_n_projected() as counts:
-        with pytest.warns(None):  # SVD convergence sometimes
+        with _record_warnings():  # SVD convergence sometimes
             raw_sss = maxwell_filter(raw_erm, calibration=temp_fname,
                                      cross_talk=ctc_fname, st_duration=1.,
                                      coord_frame='meg', regularize='in')
@@ -1134,7 +1135,7 @@ def test_all():
                mf_head_origin)
     for ii, rf in enumerate(raw_fnames):
         raw = read_crop(rf, (0., 1.))
-        with pytest.warns(None):  # sometimes the fit is bad
+        with _record_warnings():  # sometimes the fit is bad
             sss_py = maxwell_filter(
                 raw, calibration=fine_cals[ii], cross_talk=ctcs[ii],
                 st_duration=st_durs[ii], coord_frame=coord_frames[ii],
@@ -1247,27 +1248,31 @@ def test_mf_skips():
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     ('fname', 'bads', 'annot', 'add_ch', 'ignore_ref', 'want_bads',
-     'return_scores', 'h_freq'), [
+     'return_scores', 'h_freq', 'meas_date'), [
         # Neuromag data tested against MF
-        (sample_fname, [], False, False, False, ['MEG 2443'], False, None),
+        (sample_fname, [], False, False, False, ['MEG 2443'], False, None,
+         'raw'),
         # add 0111 to test picking, add annot to test it, and prepend chs for
         # idx
         (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], False,
-         None),
+         None, 'raw'),
         # CTF data seems to be sensitive to linalg lib (?) because some
         # channels are very close to the limit, so we just check that one shows
         # up
         (ctf_fname_continuous, [], False, False, False, {'BR1-4304'}, False,
-         None),
+         None, 'raw'),
         # faked
         (ctf_fname_continuous, [], False, False, True, ['MLC24-4304'], False,
-         None),
+         None, 'raw'),
         # For `return_scores=True`
         (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], True,
-         50)
+         50, 'raw'),
+        (sample_fname, ['MEG 0111'], True, True, False, ['MEG 2443'], True,
+         50, None),
     ])
 def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
-                                   want_bads, return_scores, h_freq):
+                                   want_bads, return_scores, h_freq,
+                                   meas_date):
     """Test automatic bad channel detection."""
     if fname.endswith('.ds'):
         raw = read_raw_ctf(fname).load_data()
@@ -1276,6 +1281,10 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
         raw = read_raw_fif(fname)
         raw.fix_mag_coil_types().load_data().pick_types(meg=True, exclude=())
         flat_idx = 1
+    if meas_date is None:
+        raw.set_meas_date(None)
+    else:
+        assert meas_date == 'raw'
     raw.filter(None, 40)
     raw.info['bads'] = bads
     raw._data[flat_idx] = 0  # MaxFilter didn't have this but doesn't affect it
@@ -1287,7 +1296,8 @@ def test_find_bad_channels_maxwell(fname, bads, annot, add_ch, ignore_ref,
     if add_ch:
         raw_eeg = read_raw_fif(fname)
         raw_eeg.pick_types(meg=False, eeg=True, exclude=()).load_data()
-        raw_eeg.info['lowpass'] = 40.
+        with raw_eeg.info._unlock():
+            raw_eeg.info['lowpass'] = 40.
         raw = raw_eeg.add_channels([raw])  # prepend the EEG channels
         assert 0 in pick_types(raw.info, meg=False, eeg=True)
     if ignore_ref:
@@ -1398,7 +1408,8 @@ def test_find_bads_maxwell_flat():
     assert flat == raw.ch_names[:306]
     assert noisy == []  # none found because all flat
     # now do what we suggest in the warning
-    annot, _ = annotate_flat(raw, bad_percent=100, min_duration=1.)
+    annot, _ = annotate_amplitude(raw, flat=0., bad_percent=100,
+                                  min_duration=1.)
     assert_allclose(annot.duration, 10., atol=1e-2)  # not even divisor sfreq
     raw.info['bads'] = []
     raw.set_annotations(annot)
@@ -1436,3 +1447,112 @@ def test_compute_maxwell_basis(regularize, n):
     xform = S[:, :n_use_in] @ pS[:n_use_in]
     got = xform @ raw.pick_types(meg=True, exclude='bads').get_data()
     assert_allclose(got, want)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('bads', ('from_raw', 'union', 'keep'))
+def test_prepare_emptyroom_bads(bads):
+    """Test prepare_emptyroom."""
+    raw = read_raw_fif(raw_fname, allow_maxshield='yes', verbose=False)
+    names = [name for name in raw.ch_names if 'EEG' not in name]
+    raw.pick_channels(names)
+    raw_er = read_raw_fif(erm_fname, allow_maxshield='yes', verbose=False)
+    raw_er.pick_channels(names)
+    assert raw.ch_names == raw_er.ch_names
+    assert raw_er.info['dev_head_t'] is None
+    assert raw.info['dev_head_t'] is not None
+    raw_er.set_montage(None)
+
+    if bads == 'from_raw':
+        raw_bads_orig = ['MEG0113', 'MEG2313']
+        raw_er_bads_orig = []
+    elif bads == 'union':
+        raw_bads_orig = ['MEG0113']
+        raw_er_bads_orig = ['MEG2313']
+    elif bads == 'keep':
+        raw_bads_orig = []
+        raw_er_bads_orig = ['MEG0113', 'MEG2313']
+
+    raw.info['bads'] = raw_bads_orig
+    raw_er.info['bads'] = raw_er_bads_orig
+
+    raw_er_prepared = maxwell_filter_prepare_emptyroom(
+        raw_er=raw_er,
+        raw=raw,
+        bads=bads
+    )
+    assert raw_er_prepared.info['bads'] == ['MEG0113', 'MEG2313']
+    assert raw_er_prepared.info['dev_head_t'] == raw.info['dev_head_t']
+
+    montage_expected = raw.copy().pick_types(meg=True).get_montage()
+    assert raw_er_prepared.get_montage() == montage_expected
+
+    # Ensure the originals were not modified
+    assert raw.info['bads'] == raw_bads_orig
+    assert raw_er.info['bads'] == raw_er_bads_orig
+    assert raw_er.info['dev_head_t'] is None
+    assert raw_er.get_montage() is None
+
+
+@testing.requires_testing_data
+@pytest.mark.slowtest  # lots of params
+@pytest.mark.parametrize('set_annot_when', ('before', 'after'))
+@pytest.mark.parametrize('raw_meas_date', ('orig', None))
+@pytest.mark.parametrize('raw_er_meas_date', ('orig', None))
+def test_prepare_emptyroom_annot_first_samp(set_annot_when, raw_meas_date,
+                                            raw_er_meas_date):
+    """Test prepare_emptyroom."""
+    raw = read_raw_fif(raw_fname, allow_maxshield='yes', verbose=False)
+    raw_er = read_raw_fif(erm_fname, allow_maxshield='yes', verbose=False)
+    names = raw.ch_names[:3]  # make it faster
+    raw.pick_channels(names)
+    raw_er.pick_channels(names)
+    assert raw.ch_names == raw_er.ch_names
+    assert raw.info['meas_date'] != raw_er.info['meas_date']
+    if raw_meas_date is None:
+        raw.set_meas_date(None)
+    if raw_er_meas_date is None:
+        raw_er.set_meas_date(None)
+    # to make life easier, make it the same duration
+    n_rep = max(int(np.ceil(len(raw.times) / len(raw_er.times))), 1)
+    raw_er = mne.concatenate_raws([raw_er] * n_rep).crop(0, raw.times[-1])
+    assert_allclose(raw.times, raw_er.times)
+    raw_er_first_samp_orig = raw_er.first_samp
+    assert len(raw.annotations) == 0
+    pos = mne.chpi.read_head_pos(pos_fname)
+    annot, _ = annotate_movement(raw, pos, 1.)
+    # Add an annotation right at the beginning and end to make sure nothing
+    # gets cropped
+    onset = raw.times[[0, -1]]
+    duration = 1. / raw.info['sfreq']
+    annot.append(onset + raw.first_time * (raw.info['meas_date'] is not None),
+                 duration, ['BAD_CUSTOM'])
+    want_annot = 7  # 5 from annotate_movement plus our first and last samps
+    if set_annot_when == 'before':
+        raw.set_annotations(annot)
+        meas_date = 'keep'
+        want_date = raw_er.info['meas_date']
+    else:
+        assert set_annot_when == 'after'
+        meas_date = 'from_raw'
+        want_date = raw.info['meas_date']
+    raw_er_prepared = maxwell_filter_prepare_emptyroom(
+        raw_er=raw_er, raw=raw, meas_date=meas_date, emit_warning=True)
+    assert raw_er.first_samp == raw_er_first_samp_orig
+    assert raw_er_prepared.info['meas_date'] == want_date
+    assert raw_er_prepared.first_samp == raw.first_samp
+
+    # Ensure (movement) annotations carry over regardless of whether they're
+    # set before or after preparation
+    assert len(annot) == want_annot
+    if set_annot_when == 'after':
+        raw.set_annotations(annot)
+        raw_er_prepared.set_annotations(annot)
+    assert len(raw.annotations) == want_annot
+    prop_bad = np.isnan(
+        raw.get_data([0], reject_by_annotation='nan')).mean()
+    assert 0.3 < prop_bad < 0.4
+    assert len(raw_er_prepared.annotations) == want_annot
+    prop_bad_er = np.isnan(
+        raw_er_prepared.get_data([0], reject_by_annotation='nan')).mean()
+    assert_allclose(prop_bad, prop_bad_er)

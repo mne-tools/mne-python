@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """
+.. _tut-ecd-dipole:
+
 ============================================================
 Source localization with equivalent current dipole (ECD) fit
 ============================================================
 
 This shows how to fit a dipole :footcite:`Sarvas1987` using mne-python.
 
-For a comparison of fits between MNE-C and mne-python, see
+For a comparison of fits between MNE-C and MNE-Python, see
 `this gist <https://gist.github.com/larsoner/ca55f791200fe1dc3dd2>`__.
 """
 
@@ -25,13 +27,12 @@ from nilearn.plotting import plot_anat
 from nilearn.datasets import load_mni152_template
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(data_path, 'subjects')
-fname_ave = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
-fname_bem = op.join(subjects_dir, 'sample', 'bem', 'sample-5120-bem-sol.fif')
-fname_trans = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_raw-trans.fif')
-fname_surf_lh = op.join(subjects_dir, 'sample', 'surf', 'lh.white')
+subjects_dir = data_path / 'subjects'
+fname_ave = data_path / 'MEG' / 'sample' / 'sample_audvis-ave.fif'
+fname_cov = data_path / 'MEG' / 'sample' / 'sample_audvis-cov.fif'
+fname_bem = subjects_dir / 'sample' / 'bem' / 'sample-5120-bem-sol.fif'
+fname_trans = data_path / 'MEG' / 'sample' / 'sample_audvis_raw-trans.fif'
+fname_surf_lh = subjects_dir / 'sample' / 'surf' / 'lh.white'
 
 # %%
 # Let's localize the N100m (using MEG only)
@@ -46,6 +47,16 @@ dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 
 # Plot the result in 3D brain with the MRI image.
 dip.plot_locations(fname_trans, 'sample', subjects_dir, mode='orthoview')
+
+# %%
+# We can also plot the result using outlines of the head and brain.
+
+# sphinx_gallery_thumbnail_number = 2
+
+color = ['k'] * len(dip)
+color[np.argmax(dip.gof)] = 'r'
+dip.plot_locations(fname_trans, 'sample', subjects_dir, mode='outlines',
+                   color=color)
 
 # %%
 # Plot the result in 3D brain with the MRI image using Nilearn

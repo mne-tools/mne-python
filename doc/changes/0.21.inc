@@ -271,7 +271,7 @@ Bugs
 
 - Fix bug with :func:`mne.channels.read_custom_montage` where ``"headshape"`` points in SFP format were not read properly, by `Eric Larson`_
 
-- Fix bug with setting HTML classes when using :meth:`mne.Report.add_bem_to_section` by `Eric Larson`_
+- Fix bug with setting HTML classes when using ``mne.Report.add_bem_to_section`` by `Eric Larson`_
 
 - Fix bug with convex-hull based MEG helmet creation where the face area could be covered up, by `Eric Larson`_
 
@@ -438,7 +438,7 @@ API changes
 
 - The ``threshold`` argument in :meth:`mne.preprocessing.ICA.find_bads_ecg` defaults to ``None`` in version 0.21 but will change to ``'auto'`` in 0.22 by `Yu-Han Luo`_
 
-- The function ``mne.preprocessing.mark_flat`` has been deprecated in favor of :func:`mne.preprocessing.annotate_flat` by `Eric Larson`_
+- The function ``mne.preprocessing.mark_flat`` has been deprecated in favor of ``mne.preprocessing.annotate_flat`` by `Eric Larson`_
 
 - The default argument ``meg=True`` in :func:`mne.pick_types` will change to ``meg=False`` in version 0.22 by `Clemens Brunner`_
 

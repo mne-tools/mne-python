@@ -52,9 +52,9 @@ Installing MNE-Python
 
 To install the latest stable version of MNE-Python, you can use pip_ in a terminal:
 
-.. code-block:: bash
+.. code-block:: console
 
-    pip install -U mne
+    $ pip install -U mne
 
 - MNE-Python 0.17 was the last release to support Python 2.7
 - MNE-Python 0.18 requires Python 3.5 or higher
@@ -70,15 +70,15 @@ Get the latest code
 
 To install the latest version of the code using pip_ open a terminal and type:
 
-.. code-block:: bash
+.. code-block:: console
 
-    pip install -U https://github.com/mne-tools/mne-python/archive/main.zip
+    $ pip install -U https://github.com/mne-tools/mne-python/archive/main.zip
 
 To get the latest code using `git <https://git-scm.com/>`__, open a terminal and type:
 
-.. code-block:: bash
+.. code-block:: console
 
-    git clone git://github.com/mne-tools/mne-python.git
+    $ git clone https://github.com/mne-tools/mne-python.git
 
 Alternatively, you can also download a
 `zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/main.zip>`__.
@@ -90,23 +90,31 @@ Dependencies
 The minimum required dependencies to run MNE-Python are:
 
 - Python >= 3.7
-- NumPy >= 1.16.0
-- SciPy >= 1.2.0
+- NumPy >= 1.18.1
+- SciPy >= 1.4.1
+- Matplotlib >= 3.1.0
+- pooch >= 1.5
+- tqdm
+- Jinja2
+- decorator
 
 For full functionality, some functions require:
 
-- Matplotlib >= 3.1.0
-- Scikit-learn >= 0.21.0
-- Numba >= 0.44.0
+- Scikit-learn >= 0.22.0
+- joblib >= 0.15 (for parallelization control)
+- Numba >= 0.48.0
 - NiBabel >= 2.5.0
-- Pandas >= 0.24.0
+- Pandas >= 1.0.0
 - Picard >= 0.3
-- CuPy >= 6.0.0 (for NVIDIA CUDA acceleration)
-- DIPY >= 1.0.0
+- CuPy >= 7.1.1 (for NVIDIA CUDA acceleration)
+- DIPY >= 1.1.0
 - Imageio >= 2.6.1
-- PyVista >= 0.30
+- PyVista >= 0.32
 - pyvistaqt >= 0.4
 - mffpy >= 0.5.7
+- h5py
+- h5io
+- pymatreader
 
 Contributing to MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -125,12 +133,12 @@ https://mne.discourse.group
 Licensing
 ^^^^^^^^^
 
-MNE-Python is **BSD-licenced** (3 clause):
+MNE-Python is **BSD-licenced** (BSD-3-Clause):
 
     This software is OSI Certified Open Source Software.
     OSI Certified is a certification mark of the Open Source Initiative.
 
-    Copyright (c) 2011-2019, authors of MNE-Python.
+    Copyright (c) 2011-2022, authors of MNE-Python.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without

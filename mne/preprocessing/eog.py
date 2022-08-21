@@ -8,7 +8,7 @@ import numpy as np
 
 from ._peak_finder import peak_finder
 from .. import pick_types, pick_channels
-from ..utils import logger, verbose, _pl, warn, _validate_type
+from ..utils import logger, verbose, _pl, _validate_type
 from ..filter import filter_data
 from ..epochs import Epochs
 
@@ -34,7 +34,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         High cut-off frequency to apply to the EOG channel in Hz.
     filter_length : str | int | None
         Number of taps to use for filtering.
-    %(eog_ch_name)s
+    %(ch_name_eog)s
     tstart : float
         Start detection after tstart seconds.
     reject_by_annotation : bool
@@ -139,14 +139,7 @@ def _get_eog_channel_index(ch_name, inst):
                               eog=True, ecg=False, emg=False, ref_meg=False,
                               exclude='bads')
         if eog_inds.size == 0:
-            warn('No EOG channel found. Trying with EEG 061 and EEG 062. '
-                 'This functionality will be removed in version 0.24',
-                 DeprecationWarning)
-            eog_inds = pick_channels(inst.ch_names,
-                                     include=['EEG 061', 'EEG 062'])
-            if eog_inds.size == 0:
-                raise ValueError('Could not find any EOG channels.')
-
+            raise RuntimeError('No EOG channel(s) found')
         ch_names = [inst.ch_names[i] for i in eog_inds]
     elif isinstance(ch_name, str):
         ch_names = [ch_name]
@@ -180,7 +173,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
     ----------
     raw : instance of Raw
         The raw data.
-    %(eog_ch_name)s
+    %(ch_name_eog)s
     event_id : int
         The index to assign to found events.
     %(picks_all)s

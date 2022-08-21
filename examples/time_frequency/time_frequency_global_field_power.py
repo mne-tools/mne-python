@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-time-freq-global-field-power:
 
@@ -25,7 +26,7 @@ all :term:`GFPs<GFP>` are visualized. To estimate uncertainty, non-parametric
 confidence intervals are computed as described in :footcite:`EfronHastie2016`
 across channels.
 
-The advantage of this method over summarizing the Space x Time x Frequency
+The advantage of this method over summarizing the Space × Time × Frequency
 output of a Morlet Wavelet in frequency bands is relative speed and, more
 importantly, the clear-cut comparability of the spectral decomposition (the
 same type of filter is used across all bands).
@@ -43,14 +44,12 @@ References
 # License: BSD-3-Clause
 
 # %%
-import os.path as op
-
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
-from mne.datasets import somato
 from mne.baseline import rescale
+from mne.datasets import somato
 from mne.stats import bootstrap_confidence_interval
 
 # %%
@@ -58,8 +57,8 @@ from mne.stats import bootstrap_confidence_interval
 data_path = somato.data_path()
 subject = '01'
 task = 'somato'
-raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
-                    'sub-{}_task-{}_meg.fif'.format(subject, task))
+raw_fname = (data_path / f'sub-{subject}' / 'meg' /
+             f'sub-{subject}_task-{task}_meg.fif')
 
 # let's explore some frequency bands
 iter_freqs = [
@@ -89,7 +88,7 @@ for band, fmin, fmax in iter_freqs:
     raw.load_data()
 
     # bandpass filter
-    raw.filter(fmin, fmax, n_jobs=1,  # use more jobs to speed up.
+    raw.filter(fmin, fmax, n_jobs=None,  # use more jobs to speed up.
                l_trans_bandwidth=1,  # make sure filter params are the same
                h_trans_bandwidth=1)  # in each band and skip "auto" option.
 

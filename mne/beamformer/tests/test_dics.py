@@ -24,7 +24,7 @@ from mne.surface import _compute_nearest
 from mne.time_frequency import CrossSpectralDensity, csd_morlet
 from mne.time_frequency.csd import _sym_mat_to_vector
 from mne.transforms import invert_transform, apply_trans
-from mne.utils import object_diff, requires_h5py, catch_logging
+from mne.utils import object_diff, requires_version, catch_logging
 
 data_path = testing.data_path(download=False)
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -74,7 +74,8 @@ def _simulate_data(fwd, idx):  # Somewhere on the frontal lobe by default
 
     # Create an info object that holds information about the sensors
     info = mne.create_info(fwd['info']['ch_names'], sfreq, ch_types='grad')
-    info.update(fwd['info'])  # Merge in sensor position information
+    with info._unlock():
+        info.update(fwd['info'])  # Merge in sensor position information
     # heavily decimate sensors to make it much faster
     info = mne.pick_info(info, np.arange(info['nchan'])[::5])
     fwd = mne.pick_channels_forward(fwd, info['ch_names'])
@@ -143,13 +144,13 @@ def _make_rand_csd(info, csd):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_h5py
+@requires_version('h5io')
 @idx_param
 @pytest.mark.parametrize('whiten', [
     pytest.param(False, marks=pytest.mark.slowtest),
     True,
 ])
-def test_make_dics(tmpdir, _load_forward, idx, whiten):
+def test_make_dics(tmp_path, _load_forward, idx, whiten):
     """Test making DICS beamformer filters."""
     # We only test proper handling of parameters here. Testing the results is
     # done in test_apply_dics_timeseries and test_apply_dics_csd.
@@ -318,7 +319,7 @@ def test_make_dics(tmpdir, _load_forward, idx, whiten):
     # Test whether spatial filter contains src_type
     assert 'src_type' in filters
 
-    fname = op.join(str(tmpdir), 'filters-dics.h5')
+    fname = op.join(str(tmp_path), 'filters-dics.h5')
     filters.save(fname)
     filters_read = read_beamformer(fname)
     assert isinstance(filters, Beamformer)
@@ -430,9 +431,7 @@ def test_real(_load_forward, idx):
                              real_filter=True, inversion='single')
     # Also test here that no warings are thrown - implemented to check whether
     # src should not be None warning occurs:
-    with pytest.warns(None) as w:
-        power, f = apply_dics_csd(csd, filters_real)
-    assert len(w) == 0
+    power, f = apply_dics_csd(csd, filters_real)
 
     assert f == [10, 20]
     dist = _fwd_dist(power, fwd_surf, vertices, source_ind)
@@ -505,9 +504,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
     # Sanity checks on the resulting STC after applying DICS on epochs.
     # Also test here that no warnings are thrown - implemented to check whether
     # src should not be None warning occurs
-    with pytest.warns(None) as w:
-        stcs = apply_dics_epochs(epochs, filters)
-    assert len(w) == 0
+    stcs = apply_dics_epochs(epochs, filters)
 
     assert isinstance(stcs, list)
     assert len(stcs) == 1
@@ -538,7 +535,7 @@ def test_apply_dics_timeseries(_load_forward, idx):
     evoked_proj = evoked.copy()
     p = compute_proj_evoked(evoked_proj, n_grad=1, n_mag=0, n_eeg=0)
     proj_matrix = make_projector(p, evoked_proj.ch_names)[0]
-    evoked_proj.info['projs'] += p
+    evoked_proj.add_proj(p)
     filters_proj = make_dics(evoked_proj.info, fwd_surf, csd20, label=label)
     assert_array_equal(filters_proj['proj'], proj_matrix)
     stc_proj = apply_dics(evoked_proj, filters_proj)
@@ -711,7 +708,7 @@ def test_make_dics_rank(_load_forward, idx, whiten):
     assert f'Computing rank from covariance with rank={use_rank}' in log, log
     stc_2, _ = apply_dics_csd(csd, filters_2)
     corr = np.corrcoef(stc_2.data.ravel(), stc.data.ravel())[0, 1]
-    assert 0.8 < corr < 0.99999
+    assert 0.8 < corr < 0.999999
 
     # degenerate conditions
     if whiten:

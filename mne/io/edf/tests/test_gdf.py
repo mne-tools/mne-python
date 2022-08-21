@@ -19,8 +19,8 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne import pick_types, find_events, events_from_annotations
 
 data_path = testing.data_path(download=False)
-gdf1_path = op.join(data_path, 'GDF', 'test_gdf_1.25')
-gdf2_path = op.join(data_path, 'GDF', 'test_gdf_2.20')
+gdf1_path = str(op.join(data_path, 'GDF', 'test_gdf_1.25'))
+gdf2_path = str(op.join(data_path, 'GDF', 'test_gdf_2.20'))
 gdf_1ch_path = op.join(data_path, 'GDF', 'test_1ch.gdf')
 
 
@@ -58,9 +58,9 @@ def test_gdf_data():
 
 
 @testing.requires_testing_data
-def test_gdf2_birthday(tmpdir):
+def test_gdf2_birthday(tmp_path):
     """Test reading raw GDF 2.x files."""
-    new_fname = str(tmpdir.join('temp.gdf'))
+    new_fname = tmp_path / 'temp.gdf'
     shutil.copyfile(gdf2_path + '.gdf', new_fname)
     # go back 44.5 years so the subject should show up as 44
     offset_edf = (  # to their ref
@@ -137,3 +137,10 @@ def test_gdf_exclude_channels():
     assert 'Cz' not in raw.ch_names
     assert 'Pz' not in raw.ch_names
     assert 'Oz' not in raw.ch_names
+
+
+@testing.requires_testing_data
+def test_gdf_include():
+    """Test reading GDF data with include."""
+    raw = read_raw_gdf(gdf1_path + '.gdf', include=('FP1', 'O1'))
+    assert sorted(raw.ch_names) == ['FP1', 'O1']

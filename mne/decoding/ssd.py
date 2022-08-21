@@ -184,7 +184,7 @@ class SSD(BaseEstimator, TransformerMixin):
         self.filters_ = eigvects_[:, ix]
         self.patterns_ = np.linalg.pinv(self.filters_)
         # We assume that ordering by spectral ratio is more important
-        # than the initial ordering. This ording should be also learned when
+        # than the initial ordering. This ordering should be also learned when
         # fitting.
         X_ssd = self.filters_.T @ X[..., self.picks_, :]
         sorter_spec = Ellipsis

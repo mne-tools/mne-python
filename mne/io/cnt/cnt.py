@@ -311,6 +311,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     info.update(meas_date=meas_date,
                 description=session_label, bads=bads,
                 subject_info=subject_info, chs=chs)
+    info._unlocked = False
     info._update_redundant()
     return info, cnt_info
 

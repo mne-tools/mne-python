@@ -330,7 +330,7 @@ class SourceSimulator(object):
         If None, it is computed using existing events and waveform lengths.
     first_samp : int
         First sample from which the simulation takes place, as an integer.
-        Comparable to the ``first_samp`` property of `~mne.io.Raw` objects.
+        Comparable to the :term:`first_samp` property of `~mne.io.Raw` objects.
         Default is 0.
 
     Attributes

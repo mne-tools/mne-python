@@ -30,14 +30,14 @@ def estimate_rank(data, tol='auto', return_singular=False, norm=True,
     ----------
     data : array
         Data to estimate the rank of (should be 2-dimensional).
-    %(rank_tol)s
+    %(tol_rank)s
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
     norm : bool
         If True, data will be scaled by their estimated row-wise norm.
         Else data are assumed to be scaled. Defaults to True.
-    %(rank_tol_kind)s
+    %(tol_kind_rank)s
 
     Returns
     -------
@@ -109,7 +109,7 @@ def _estimate_rank_from_s(s, tol='auto', tol_kind='absolute'):
 
 def _estimate_rank_raw(raw, picks=None, tol=1e-4, scalings='norm',
                        with_ref_meg=False, tol_kind='absolute'):
-    """Aid the deprecation of raw.estimate_rank."""
+    """Aid the transition away from raw.estimate_rank."""
     if picks is None:
         picks = _picks_to_idx(raw.info, picks, with_ref_meg=with_ref_meg)
     # conveniency wrapper to expose the expert "tol" option + scalings options
@@ -198,7 +198,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol='auto',
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    picks_list = _picks_by_type(info)
+    picks_list = _picks_by_type(info, exclude=[])
     scalings = _handle_default('scalings_cov_rank', scalings)
     _apply_scaling_cov(data, picks_list, scalings)
     if data.shape[1] < data.shape[0]:
@@ -285,18 +285,18 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
     ----------
     inst : instance of Raw, Epochs, or Covariance
         Raw measurements to compute the rank from or the covariance.
-    %(rank_None)s
+    %(rank_none)s
     scalings : dict | None (default None)
         Defaults to ``dict(mag=1e15, grad=1e13, eeg=1e6)``.
         These defaults will scale different channel types
         to comparable values.
     %(info)s Only necessary if ``inst`` is a :class:`mne.Covariance`
         object (since this does not provide ``inst.info``).
-    %(rank_tol)s
+    %(tol_rank)s
     proj : bool
         If True, all projs in ``inst`` and ``info`` will be applied or
         considered when ``rank=None`` or ``rank='info'``.
-    %(rank_tol_kind)s
+    %(tol_kind_rank)s
     %(on_rank_mismatch)s
     %(verbose)s
 
@@ -322,8 +322,11 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         inst_type = 'covariance'
         if info is None:
             raise ValueError('info cannot be None if inst is a Covariance.')
+        # Reset bads as it's already taken into account in inst['names']
+        info = info.copy()
+        info['bads'] = []
         inst = pick_channels_cov(
-            inst, set(inst['names']) & set(info['ch_names']))
+            inst, set(inst['names']) & set(info['ch_names']), exclude=[])
         if info['ch_names'] != inst['names']:
             info = pick_info(info, [info['ch_names'].index(name)
                                     for name in inst['names']])

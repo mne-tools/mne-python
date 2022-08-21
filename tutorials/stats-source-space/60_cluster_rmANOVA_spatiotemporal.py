@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _tut-cluster-rm-anova-spatiotemporal:
+
 ======================================================================
 Repeated measures ANOVA on source data with spatio-temporal clustering
 ======================================================================
@@ -39,10 +42,11 @@ print(__doc__)
 # Set parameters
 # --------------
 data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-subjects_dir = data_path + '/subjects'
-src_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
+subjects_dir = data_path / 'subjects'
+src_fname = subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-ico-5-src.fif'
 
 tmin = -0.2
 tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
@@ -70,7 +74,7 @@ epochs.equalize_event_counts(event_id)
 # %%
 # Transform to source space
 # -------------------------
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+fname_inv = meg_path / 'sample_audvis-meg-oct-6-meg-inv.fif'
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE, sLORETA, or eLORETA)
@@ -84,7 +88,7 @@ sample_vertices = [inverse_operator['src'][0]['vertno'], np.array([], int)]
 conditions = []
 for cond in ['l_aud', 'r_aud', 'l_vis', 'r_vis']:  # order is important
     evoked = epochs[cond].average()
-    evoked.resample(50, npad='auto')
+    evoked.resample(30).crop(0., None)
     condition = apply_inverse(evoked, inverse_operator, lambda2, method)
     #    Let's only deal with t > 0, cropping to reduce multiple comparisons
     condition.crop(0, None)
@@ -104,7 +108,7 @@ tstep = conditions[0].tstep * 1000  # convert to milliseconds
 #
 # We'll only consider the left hemisphere in this tutorial.
 n_vertices_sample, n_times = conditions[0].lh_data.shape
-n_subjects = 7
+n_subjects = 6
 print('Simulating data for %d subjects.' % n_subjects)
 
 #    Let's make sure our results replicate, so set the seed.
@@ -139,7 +143,7 @@ X = X.reshape(n_vertices_fsave, n_times, n_subjects, 4)
 # Now we need to prepare the group matrix for the ANOVA statistic. To make the
 # clustering function work correctly with the ANOVA function X needs to be a
 # list of multi-dimensional arrays (one per condition) of shape: samples
-# (subjects) x time x space.
+# (subjects) × time × space.
 #
 # First we permute dimensions, then split the array into a list of conditions
 # and discard the empty dimension resulting from the split using numpy squeeze.
@@ -179,7 +183,7 @@ n_conditions = 4
 #
 # Inside the clustering function each condition will be passed as flattened
 # array, necessitated by the clustering procedure. The ANOVA however expects an
-# input array of dimensions: subjects X conditions X observations (optional).
+# input array of dimensions: subjects × conditions × observations (optional).
 #
 # The following function catches the list input and swaps the first and the
 # second dimension, and finally calls ANOVA.
@@ -206,22 +210,22 @@ def stat_fun(*args):
 print('Computing adjacency.')
 adjacency = mne.spatial_src_adjacency(src[:1])
 
-#    Now let's actually do the clustering. Please relax, on a small
-#    notebook and one single thread only this will take a couple of minutes ...
-pthresh = 0.0005
+# Now let's actually do the clustering. Please relax, on a small
+# notebook and one single thread only this will take a couple of minutes ...
+pthresh = 0.005
 f_thresh = f_threshold_mway_rm(n_subjects, factor_levels, effects, pthresh)
 
-#    To speed things up a bit we will ...
-n_permutations = 128  # ... run fewer permutations (reduces sensitivity)
+# To speed things up a bit we will ...
+n_permutations = 50  # ... run way fewer permutations (reduces sensitivity)
 
 print('Clustering.')
-T_obs, clusters, cluster_p_values, H0 = clu = \
-    spatio_temporal_cluster_test(X, adjacency=adjacency, n_jobs=1,
+F_obs, clusters, cluster_p_values, H0 = clu = \
+    spatio_temporal_cluster_test(X, adjacency=adjacency, n_jobs=None,
                                  threshold=f_thresh, stat_fun=stat_fun,
                                  n_permutations=n_permutations,
                                  buffer_size=None)
-#    Now select the clusters that are sig. at p < 0.05 (note that this value
-#    is multiple-comparisons corrected).
+# Now select the clusters that are sig. at p < 0.05 (note that this value
+# is multiple-comparisons corrected).
 good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 
 # %%

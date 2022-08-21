@@ -4,6 +4,7 @@
 # License: Simplified BSD
 
 import os.path as op
+
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
                            assert_array_less, assert_array_equal)
@@ -21,7 +22,7 @@ from mne.inverse_sparse.mxne_optim import norm_l2inf
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.minimum_norm.tests.test_inverse import \
     assert_var_exp_log, assert_stc_res
-from mne.utils import assert_stcs_equal, catch_logging
+from mne.utils import assert_stcs_equal, catch_logging, _record_warnings
 from mne.dipole import Dipole
 from mne.source_estimate import VolSourceEstimate
 from mne.simulation import simulate_sparse_stc, simulate_evoked
@@ -80,12 +81,7 @@ def test_mxne_inverse_standard(forward):
     # MxNE tests
     alpha = 70  # spatial regularization parameter
 
-    with pytest.deprecated_call(match="will be solved"):
-        stc_prox = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
-                              depth=depth, maxit=300, tol=1e-8,
-                              active_set_size=10, weights=stc_dspm,
-                              weights_min=weights_min, solver='prox')
-    with pytest.warns(None):  # CD
+    with _record_warnings():  # CD
         stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                             depth=depth, maxit=300, tol=1e-8,
                             active_set_size=10, weights=stc_dspm,
@@ -94,28 +90,25 @@ def test_mxne_inverse_standard(forward):
                          depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                          weights=stc_dspm, weights_min=weights_min,
                          solver='bcd')
-    assert_array_almost_equal(stc_prox.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_cd.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_bcd.times, evoked_l21.times, 5)
-    assert_allclose(stc_prox.data, stc_cd.data, rtol=1e-3, atol=0.0)
-    assert_allclose(stc_prox.data, stc_bcd.data, rtol=1e-3, atol=0.0)
     assert_allclose(stc_cd.data, stc_bcd.data, rtol=1e-3, atol=0.0)
-    assert stc_prox.vertices[1][0] in label.vertices
     assert stc_cd.vertices[1][0] in label.vertices
     assert stc_bcd.vertices[1][0] in label.vertices
 
     # vector
-    with pytest.warns(None):  # no convergence
+    with _record_warnings():  # no convergence
         stc = mixed_norm(evoked_l21, forward, cov, alpha, loose=1, maxit=2)
-    with pytest.warns(None):  # no convergence
+    with _record_warnings():  # no convergence
         stc_vec = mixed_norm(evoked_l21, forward, cov, alpha, loose=1, maxit=2,
                              pick_ori='vector')
     assert_stcs_equal(stc_vec.magnitude(), stc)
-    with pytest.warns(None), pytest.raises(ValueError, match='pick_ori='):
+    with _record_warnings(), \
+            pytest.raises(ValueError, match='pick_ori='):
         mixed_norm(evoked_l21, forward, cov, alpha, loose=0, maxit=2,
                    pick_ori='vector')
 
-    with pytest.warns(None), catch_logging() as log:  # CD
+    with _record_warnings(), catch_logging() as log:  # CD
         dips = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                           depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                           weights=stc_dspm, weights_min=weights_min,
@@ -127,7 +120,7 @@ def test_mxne_inverse_standard(forward):
     assert_var_exp_log(log.getvalue(), 51, 53)  # 51.8
 
     # Single time point things should match
-    with pytest.warns(None), catch_logging() as log:
+    with _record_warnings(), catch_logging() as log:
         dips = mixed_norm(evoked_l21.copy().crop(0.081, 0.081),
                           forward, cov, alpha, loose=loose,
                           depth=depth, maxit=300, tol=1e-8, active_set_size=10,
@@ -137,7 +130,7 @@ def test_mxne_inverse_standard(forward):
     gof = sum(dip.gof[0] for dip in dips)  # these are now partial exp vars
     assert_allclose(gof, 37.9, atol=0.1)
 
-    with pytest.warns(None), catch_logging() as log:
+    with _record_warnings(), catch_logging() as log:
         stc, res = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                               depth=depth, maxit=300, tol=1e-8,
                               weights=stc_dspm,  # gh-6382
@@ -150,7 +143,7 @@ def test_mxne_inverse_standard(forward):
     assert_stc_res(evoked_l21, stc, forward, res)
 
     # irMxNE tests
-    with pytest.warns(None), catch_logging() as log:  # CD
+    with _record_warnings(), catch_logging() as log:  # CD
         stc, residual = mixed_norm(
             evoked_l21, forward, cov, alpha, n_mxne_iter=5, loose=0.0001,
             depth=depth, maxit=300, tol=1e-8, active_set_size=10,
@@ -212,13 +205,13 @@ def test_mxne_vol_sphere():
                                     bem=sphere, eeg=False, meg=True)
 
     alpha = 80.
-    pytest.raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,
-                  loose=0.0, return_residual=False,
-                  maxit=3, tol=1e-8, active_set_size=10)
 
-    pytest.raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,
-                  loose=0.2, return_residual=False,
-                  maxit=3, tol=1e-8, active_set_size=10)
+    # Computing inverse with restricted orientations should also work, since
+    # we have a discrete source space.
+    stc = mixed_norm(evoked_l21, fwd, cov, alpha, loose=0.2,
+                     return_residual=False, maxit=3, tol=1e-8,
+                     active_set_size=10)
+    assert_array_almost_equal(stc.times, evoked_l21.times, 5)
 
     # irMxNE tests
     with catch_logging() as log:
@@ -396,11 +389,13 @@ def test_mxne_inverse_sure():
     n_dipoles = 2
     raw = mne.io.read_raw_fif(fname_raw)
     info = mne.io.read_info(fname_data)
-    info['projs'] = []
+    with info._unlock():
+        info['projs'] = []
     noise_cov = mne.make_ad_hoc_cov(info)
     label_names = ['Aud-lh', 'Aud-rh']
-    labels = [mne.read_label(data_path + '/MEG/sample/labels/%s.label' % ln)
-              for ln in label_names]
+    labels = [
+        mne.read_label(data_path / 'MEG' / 'sample' / 'labels' / f'{ln}.label')
+        for ln in label_names]
     fname_fwd = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
     forward = mne.read_forward_solution(fname_fwd)
@@ -416,3 +411,25 @@ def test_mxne_inverse_sure():
     stc_ = mixed_norm(evoked, forward, noise_cov, loose=0.9, n_mxne_iter=5,
                       depth=0.9)
     assert_array_equal(stc_.vertices, stc.vertices)
+
+
+@pytest.mark.slowtest  # slow on Azure
+@testing.requires_testing_data
+def test_mxne_inverse_empty():
+    """Tests solver with too high alpha."""
+    evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
+    evoked.pick("grad", exclude="bads")
+    fname_fwd = op.join(data_path, 'MEG', 'sample',
+                        'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+    forward = mne.read_forward_solution(fname_fwd)
+    forward = mne.pick_types_forward(forward, meg="grad", eeg=False,
+                                     exclude=evoked.info['bads'])
+    cov = read_cov(fname_cov)
+    with pytest.warns(RuntimeWarning, match='too big'):
+        stc, residual = mixed_norm(
+            evoked, forward, cov, n_mxne_iter=3, alpha=99,
+            return_residual=True)
+        assert stc.data.size == 0
+        assert stc.vertices[0].size == 0
+        assert stc.vertices[1].size == 0
+        assert_allclose(evoked.data, residual.data)

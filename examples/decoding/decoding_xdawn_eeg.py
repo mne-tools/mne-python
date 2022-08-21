@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-xdawn-decoding:
 
@@ -25,7 +26,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.preprocessing import MinMaxScaler
 
-from mne import io, pick_types, read_events, Epochs, EvokedArray
+from mne import io, pick_types, read_events, Epochs, EvokedArray, create_info
 from mne.datasets import sample
 from mne.preprocessing import Xdawn
 from mne.decoding import Vectorizer
@@ -37,8 +38,9 @@ data_path = sample.data_path()
 
 # %%
 # Set parameters and read data
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
 tmin, tmax = -0.1, 0.3
 event_id = {'Auditory/Left': 1, 'Auditory/Right': 2,
             'Visual/Left': 3, 'Visual/Right': 4}
@@ -102,11 +104,11 @@ ax.set(ylabel='True label', xlabel='Predicted label')
 fig, axes = plt.subplots(nrows=len(event_id), ncols=n_filter,
                          figsize=(n_filter, len(event_id) * 2))
 fitted_xdawn = clf.steps[0][1]
-tmp_info = epochs.info.copy()
-tmp_info['sfreq'] = 1.
+info = create_info(epochs.ch_names, 1, epochs.get_channel_types())
+info.set_montage(epochs.get_montage())
 for ii, cur_class in enumerate(sorted(event_id)):
     cur_patterns = fitted_xdawn.patterns_[cur_class]
-    pattern_evoked = EvokedArray(cur_patterns[:n_filter].T, tmp_info, tmin=0)
+    pattern_evoked = EvokedArray(cur_patterns[:n_filter].T, info, tmin=0)
     pattern_evoked.plot_topomap(
         times=np.arange(n_filter),
         time_format='Component %d' if ii == 0 else '', colorbar=False,

@@ -20,8 +20,8 @@ from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
 from ..io.proj import (_read_proj, make_projector, _write_proj,
                        _needs_eeg_average_ref_proj)
 from ..io.tree import dir_tree_find
-from ..io.write import (write_int, write_float_matrix, start_file,
-                        start_block, end_block, end_file, write_float,
+from ..io.write import (write_int, write_float_matrix, start_and_end_file,
+                        start_block, end_block, write_float,
                         write_coord_trans, write_string)
 
 from ..io.pick import channel_type, pick_info, pick_types, pick_channels
@@ -41,7 +41,7 @@ from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn, _validate_type,
                      _check_compensation_grade, _check_option,
-                     _check_depth, _check_src_normal)
+                     _check_depth, _check_src_normal, _check_fname)
 
 
 INVERSE_METHODS = ('MNE', 'dSPM', 'sLORETA', 'eLORETA')
@@ -54,24 +54,51 @@ class InverseOperator(dict):
         """Return a copy of the InverseOperator."""
         return InverseOperator(deepcopy(self))
 
+    def _get_chs_and_src_info_for_repr(self):
+        n_chs_meg = len(pick_types(self['info'], meg=True, eeg=False))
+        n_chs_eeg = len(pick_types(self['info'], meg=False, eeg=True))
+
+        src_space_descr = f"{self['src'].kind} with {self['nsource']} sources"
+
+        src_ori_fiff_to_name_map = {
+            FIFF.FIFFV_MNE_UNKNOWN_ORI: 'Unknown',
+            FIFF.FIFFV_MNE_FIXED_ORI: 'Fixed',
+            FIFF.FIFFV_MNE_FREE_ORI: 'Free'
+        }
+        src_ori = src_ori_fiff_to_name_map[self['source_ori']]
+        if src_ori == 'Free':  # we need to do some investigation
+            prior = self['orient_prior']
+            if prior is not None:
+                prior = prior['data']
+                if not np.allclose(prior, 1.):
+                    src_ori = f'Loose ({np.min(prior)})'
+        return n_chs_meg, n_chs_eeg, src_space_descr, src_ori
+
     def __repr__(self):  # noqa: D105
         """Summarize inverse info instead of printing all."""
+        repr_info = self._get_chs_and_src_info_for_repr()
+        n_chs_meg, n_chs_eeg, src_space_descr, src_ori = repr_info
+
         entr = '<InverseOperator'
-
-        nchan = len(pick_types(self['info'], meg=True, eeg=False))
-        entr += ' | ' + 'MEG channels: %d' % nchan
-        nchan = len(pick_types(self['info'], meg=False, eeg=True))
-        entr += ' | ' + 'EEG channels: %d' % nchan
-
-        entr += (' | Source space: %s with %d sources'
-                 % (self['src'].kind, self['nsource']))
-        source_ori = {FIFF.FIFFV_MNE_UNKNOWN_ORI: 'Unknown',
-                      FIFF.FIFFV_MNE_FIXED_ORI: 'Fixed',
-                      FIFF.FIFFV_MNE_FREE_ORI: 'Free'}
-        entr += ' | Source orientation: %s' % source_ori[self['source_ori']]
+        entr += f' | MEG channels: {n_chs_meg}'
+        entr += f' | EEG channels: {n_chs_eeg}'
+        entr += f' | Source space: {src_space_descr}'
+        entr += f' | Source orientation: {src_ori}'
         entr += '>'
-
         return entr
+
+    def _repr_html_(self):
+        from ..html_templates import repr_templates_env
+        repr_info = self._get_chs_and_src_info_for_repr()
+        n_chs_meg, n_chs_eeg, src_space_descr, src_ori = repr_info
+
+        t = repr_templates_env.get_template('inverse_operator.html.jinja')
+        html = t.render(
+            channels=f'{n_chs_meg} MEG, {n_chs_eeg} EEG',
+            source_space_descr=src_space_descr,
+            source_orientation=src_ori
+        )
+        return html
 
 
 def _pick_channels_inverse_operator(ch_names, inv):
@@ -93,7 +120,7 @@ def _pick_channels_inverse_operator(ch_names, inv):
 
 
 @verbose
-def read_inverse_operator(fname, verbose=None):
+def read_inverse_operator(fname, *, verbose=None):
     """Read the inverse operator decomposition from a FIF file.
 
     Parameters
@@ -113,7 +140,7 @@ def read_inverse_operator(fname, verbose=None):
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz',
                                             '_inv.fif', '_inv.fif.gz'))
-
+    fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
     #
     #   Open the file, create directory
     #
@@ -314,7 +341,7 @@ def read_inverse_operator(fname, verbose=None):
 
 
 @verbose
-def write_inverse_operator(fname, inv, verbose=None):
+def write_inverse_operator(fname, inv, *, overwrite=False, verbose=None):
     """Write an inverse operator to a FIF file.
 
     Parameters
@@ -323,6 +350,9 @@ def write_inverse_operator(fname, inv, verbose=None):
         The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     inv : dict
         The inverse operator.
+    %(overwrite)s
+
+        .. versionadded:: 1.0
     %(verbose)s
 
     See Also
@@ -331,6 +361,8 @@ def write_inverse_operator(fname, inv, verbose=None):
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz',
                                             '_inv.fif', '_inv.fif.gz'))
+    fname = _check_fname(fname=fname, overwrite=overwrite)
+
     _validate_type(inv, InverseOperator, 'inv')
 
     #
@@ -339,7 +371,11 @@ def write_inverse_operator(fname, inv, verbose=None):
     logger.info('Write inverse operator decomposition in %s...' % fname)
 
     # Create the file and save the essentials
-    fid = start_file(fname)
+    with start_and_end_file(fname) as fid:
+        _write_inverse_operator(fid, inv)
+
+
+def _write_inverse_operator(fid, inv):
     start_block(fid, FIFF.FIFFB_MNE)
 
     #
@@ -429,9 +465,6 @@ def write_inverse_operator(fname, inv, verbose=None):
 
     end_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
     end_block(fid, FIFF.FIFFB_MNE)
-    end_file(fid)
-
-    fid.close()
 
 ###############################################################################
 # Compute inverse solution
@@ -688,7 +721,7 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
         set, these correspond to the vertices in the label. Otherwise, all
         vertex numbers are returned.
     source_nn : array, shape (3 * n_vertices, 3)
-        The direction in carthesian coordicates of the direction of the source
+        The direction in cartesian coordicates of the direction of the source
         dipoles.
     """  # noqa: E501
     eigen_leads = inv['eigen_leads']['data']
@@ -1265,7 +1298,7 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
         Use minimum norm, dSPM (default), sLORETA, or eLORETA.
-    %(pick_ori-novec)s
+    %(pick_ori_novec)s
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     label : Label | None
@@ -1327,7 +1360,7 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
     # Reshape back to (n_src, ..., 1)
     sol.shape = stc.data.shape[:-1] + (1,)
     stc = stc.__class__(
-        sol, stc.vertices, stc.tmin, stc.tstep, stc.subject, stc.verbose)
+        sol, stc.vertices, stc.tmin, stc.tstep, stc.subject)
     if combine:  # combine the three directions
         logger.info('    Combining the current components...')
         np.sqrt(stc.data, out=stc.data)
@@ -1368,6 +1401,26 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     loose = _triage_loose(forward['src'], loose, fixed)
     del fixed
 
+    # Figure out what kind of inverse is requested
+    fixed_inverse = all(v == 0. for v in loose.values())
+    constrained_inverse = any(v < 1. for v in loose.values())
+
+    # We only support fixed orientations for surface and discrete source
+    # spaces. Not volume or mixed.
+    if fixed_inverse:
+        if len(loose) > 1:  # Mixed source space
+            raise ValueError('Computing inverse solutions for mixed source '
+                             'spaces with fixed orientations is not '
+                             'supported.')
+        if 'volume' in loose:
+            raise ValueError('Computing inverse solutions for volume source '
+                             'spaces with fixed orientations is not '
+                             'supported.')
+    if loose.get('volume', 1) < 1:
+        raise ValueError('Computing inverse solutions with restricted '
+                         'orientations (loose < 1) is not supported for '
+                         'volume source spaces.')
+
     # Deal with "depth"
     if exp is not None:
         exp = float(exp)
@@ -1376,10 +1429,10 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                              f'equal to 0, got {exp}')
         exp = exp or None  # alias 0. -> None
 
-    # put the forward solution in correct orientation
+    # Put the forward solution in correct orientation.
     # (delaying for the case of fixed ori with depth weighting if
     # allow_fixed_depth is True)
-    if loose.get('surface', 1.) == 0. and len(loose) == 1:
+    if fixed_inverse:
         if not is_fixed_orient(forward):
             if allow_fixed_depth:
                 # can convert now
@@ -1397,7 +1450,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                 'Forward operator has fixed orientation and can only '
                 'be used to make a fixed-orientation inverse '
                 'operator.')
-        if loose.get('surface', 1.) < 1. and not forward['surf_ori']:
+        if constrained_inverse and not forward['surf_ori']:
             logger.info('Converting forward solution to surface orientation')
             convert_forward_solution(
                 forward, surf_ori=True, use_cps=use_cps, copy=False)
@@ -1415,7 +1468,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             rank=rank)
 
     # Deal with fixed orientation forward / inverse
-    if loose.get('surface', 1.) == 0. and len(loose) == 1:
+    if fixed_inverse:
         orient_prior = None
         if not is_fixed_orient(forward):
             if depth_prior is not None:
@@ -1427,8 +1480,8 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             convert_forward_solution(
                 forward, surf_ori=True, force_fixed=True,
                 use_cps=use_cps, copy=False)
-    else:
-        if loose.get('surface', 1.) < 1:
+    else:  # Free or loose orientation
+        if constrained_inverse:
             assert forward['surf_ori']
         # In theory we could have orient_prior=None for loose=1., but
         # the MNE-C code does not do this
@@ -1483,7 +1536,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         Use fixed source orientations normal to the cortical mantle. If True,
         the loose parameter must be "auto" or 0. If 'auto', the loose value
         is used.
-    %(rank_None)s
+    %(rank_none)s
     %(use_cps)s
     %(verbose)s
 
@@ -1679,7 +1732,7 @@ def estimate_snr(evoked, inv, verbose=None):
         \tilde{M} = R^\frac{1}{2}V\Gamma U^T
 
     The values in the diagonal matrix :math:`\Gamma` are expressed in terms
-    of the chosen regularization :math:`\lambda\approx\frac{1}{\rm{SNR}^2}`
+    of the chosen regularization :math:`\lambda^2 \sim 1/\rm{SNR}^2`
     and singular values :math:`\lambda_k` as:
 
     .. math::

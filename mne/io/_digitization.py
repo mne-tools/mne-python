@@ -15,12 +15,12 @@ import os.path as op
 
 import numpy as np
 
-from ..utils import logger, warn, Bunch, _validate_type
+from ..utils import logger, warn, Bunch, _validate_type, _check_fname, verbose
 
 from .constants import FIFF, _coord_frame_named
 from .tree import dir_tree_find
 from .tag import read_tag
-from .write import (start_file, end_file, write_dig_points)
+from .write import (start_and_end_file, write_dig_points)
 
 from ..transforms import (apply_trans, Transform,
                           get_ras_to_neuromag_trans, combine_transforms,
@@ -193,12 +193,13 @@ def _read_dig_fif(fid, meas_info):
     return _format_dig_points(dig)
 
 
-def write_dig(fname, pts, coord_frame=None):
+@verbose
+def write_dig(fname, pts, coord_frame=None, *, overwrite=False, verbose=None):
     """Write digitization data to a FIF file.
 
     Parameters
     ----------
-    fname : str
+    fname : path-like
         Destination file name.
     pts : iterator of dict
         Iterator through digitizer points. Each point is a dictionary with
@@ -207,7 +208,14 @@ def write_dig(fname, pts, coord_frame=None):
         If all the points have the same coordinate frame, specify the type
         here. Can be None (default) if the points could have varying
         coordinate frames.
+    %(overwrite)s
+
+        .. versionadded:: 1.0
+    %(verbose)s
+
+        .. versionadded:: 1.0
     """
+    fname = _check_fname(fname, overwrite=overwrite)
     if coord_frame is not None:
         coord_frame = _to_const(coord_frame)
         pts_frames = {pt.get('coord_frame', coord_frame) for pt in pts}
@@ -217,9 +225,8 @@ def write_dig(fname, pts, coord_frame=None):
                 'Points have coord_frame entries that are incompatible with '
                 'coord_frame=%i: %s.' % (coord_frame, str(tuple(bad_frames))))
 
-    with start_file(fname) as fid:
+    with start_and_end_file(fname) as fid:
         write_dig_points(fid, pts, block=True, coord_frame=coord_frame)
-        end_file(fid)
 
 
 _cardinal_ident_mapping = {
@@ -266,7 +273,8 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
     if len(dig_coord_frames) != 1:
         raise RuntimeError('Only single coordinate frame in dig is supported, '
                            f'got {dig_coord_frames}')
-
+    dig_ch_pos_location = np.array(dig_ch_pos_location)
+    dig_ch_pos_location.shape = (-1, 3)  # empty will be (0, 3)
     return Bunch(
         nasion=fids.get('nasion', None),
         lpa=fids.get('lpa', None),
@@ -274,7 +282,7 @@ def _get_data_as_dict_from_dig(dig, exclude_ref_channel=True):
         hsp=np.array(hsp) if len(hsp) else None,
         hpi=np.array(hpi) if len(hpi) else None,
         elp=np.array(elp) if len(elp) else None,
-        dig_ch_pos_location=np.array(dig_ch_pos_location),
+        dig_ch_pos_location=dig_ch_pos_location,
         coord_frame=dig_coord_frames.pop(),
     )
 
@@ -417,12 +425,22 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'kind': FIFF.FIFFV_POINT_EXTRA,
                         'coord_frame': coord_frame})
     if dig_ch_pos is not None:
-        try:  # use the last 3 as int if possible (e.g., EEG001->1)
-            idents = []
-            for key in dig_ch_pos:
-                _validate_type(key, str, 'dig_ch_pos')
+        idents = []
+        use_arange = False
+        for key, value in dig_ch_pos.items():
+            _validate_type(key, str, 'dig_ch_pos')
+            try:
                 idents.append(int(key[-3:]))
-        except ValueError:  # and if any conversion fails, simply use arange
+            except ValueError:
+                use_arange = True
+            _validate_type(value, (np.ndarray, list, tuple), 'dig_ch_pos')
+            value = np.array(value, dtype=float)
+            dig_ch_pos[key] = value
+            if value.shape != (3, ):
+                raise RuntimeError(
+                    "The position should be a 1D array of 3 floats. "
+                    f"Provided shape {value.shape}.")
+        if use_arange:
             idents = np.arange(1, len(dig_ch_pos) + 1)
         for key, ident in zip(dig_ch_pos, idents):
             dig.append({'r': dig_ch_pos[key], 'ident': int(ident),

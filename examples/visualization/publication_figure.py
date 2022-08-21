@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-publication-figure:
 
@@ -147,7 +148,8 @@ axes[evoked_idx].legend(
     frameon=True, columnspacing=0.1, labelspacing=0.1,
     fontsize=8, fancybox=True, handlelength=1.8)
 # remove the "N_ave" annotation
-axes[evoked_idx].texts = []
+for text in list(axes[evoked_idx].texts):
+    text.remove()
 # Remove spines and add grid
 axes[evoked_idx].grid(True)
 axes[evoked_idx].set_axisbelow(True)

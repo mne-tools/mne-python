@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-tfr-comparison:
+
 ======================================================================
 Time-frequency on simulated data (Multitaper vs. Morlet vs. Stockwell)
 ======================================================================

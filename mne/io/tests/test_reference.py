@@ -7,8 +7,8 @@
 from contextlib import nullcontext
 import itertools
 import os.path as op
-import numpy as np
 
+import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import pytest
 
@@ -18,13 +18,13 @@ from mne import (pick_channels, pick_types, Epochs, read_events,
                  make_forward_solution, setup_volume_source_space,
                  pick_channels_forward, read_evokeds,
                  find_events)
-from mne.epochs import BaseEpochs
+from mne.epochs import BaseEpochs, make_fixed_length_epochs
 from mne.io import RawArray, read_raw_fif
 from mne.io.constants import FIFF
 from mne.io.proj import _has_eeg_average_ref_proj, Projection
 from mne.io.reference import _apply_reference
 from mne.datasets import testing
-from mne.utils import catch_logging
+from mne.utils import catch_logging, _record_warnings
 
 base_dir = op.join(op.dirname(__file__), 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -142,7 +142,8 @@ def test_apply_reference():
     _apply_reference(raw, ['EEG 003'], ['EEG 004'])
 
     # CSD cannot be rereferenced
-    raw.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
+    with raw.info._unlock():
+        raw.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
     with pytest.raises(RuntimeError, match="Cannot set.* type 'CSD'"):
         raw.set_eeg_reference()
 
@@ -151,7 +152,8 @@ def test_apply_reference():
 def test_set_eeg_reference():
     """Test rereference eeg data."""
     raw = read_raw_fif(fif_fname, preload=True)
-    raw.info['projs'] = []
+    with raw.info._unlock():
+        raw.info['projs'] = []
 
     # Test setting an average reference projection
     assert (not _has_eeg_average_ref_proj(raw.info['projs']))
@@ -172,7 +174,8 @@ def test_set_eeg_reference():
 
     # Test setting an average reference on non-preloaded data
     raw_nopreload = read_raw_fif(fif_fname, preload=False)
-    raw_nopreload.info['projs'] = []
+    with raw_nopreload.info._unlock():
+        raw_nopreload.info['projs'] = []
     reref, ref_data = set_eeg_reference(raw_nopreload, projection=True)
     assert _has_eeg_average_ref_proj(reref.info['projs'])
     assert not reref.info['projs'][0]['active']
@@ -196,7 +199,8 @@ def test_set_eeg_reference():
     # When creating an average reference fails, make sure the
     # custom_ref_applied flag remains untouched.
     reref = raw.copy()
-    reref.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
+    with reref.info._unlock():
+        reref.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
     reref.pick_types(meg=True, eeg=False)  # Cause making average ref fail
     pytest.raises(ValueError, set_eeg_reference, reref, projection=True)
     assert reref.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
@@ -221,7 +225,8 @@ def test_set_eeg_reference():
 
     # Test that average reference gives identical results when calculated
     # via SSP projection (projection=True) or directly (projection=False)
-    raw.info['projs'] = []
+    with raw.info._unlock():
+        raw.info['projs'] = []
     reref_1, _ = set_eeg_reference(raw.copy(), projection=True)
     reref_1.apply_proj()
     reref_2, _ = set_eeg_reference(raw.copy(), projection=False)
@@ -537,7 +542,7 @@ def test_add_reference():
     # create epochs in delayed mode, allowing removal of CAR when re-reffing
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True, proj='delayed')
-    with pytest.warns(RuntimeWarning, match='ignored .set to zero.'):
+    with pytest.warns(RuntimeWarning, match='reference channels are ignored'):
         epochs_ref = add_reference_channels(epochs, ['M1', 'M2'], copy=True)
     assert_equal(epochs_ref._data.shape[1], epochs._data.shape[1] + 2)
     _check_channel_names(epochs_ref, ['M1', 'M2'])
@@ -577,7 +582,7 @@ def test_add_reference():
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True, proj='delayed')
     evoked = epochs.average()
-    with pytest.warns(RuntimeWarning, match='ignored .set to zero.'):
+    with pytest.warns(RuntimeWarning, match='reference channels are ignored'):
         evoked_ref = add_reference_channels(evoked, ['M1', 'M2'], copy=True)
     assert_equal(evoked_ref.data.shape[0], evoked.data.shape[0] + 2)
     _check_channel_names(evoked_ref, ['M1', 'M2'])
@@ -599,6 +604,19 @@ def test_add_reference():
     with pytest.raises(TypeError, match='instance of'):
         add_reference_channels(raw, 1)
 
+    # gh-10878
+    raw = read_raw_fif(raw_fname).crop(0, 1, include_tmax=False).load_data()
+    data = raw.copy().add_reference_channels(['REF']).pick_types(eeg=True)
+    data = data.get_data()
+    epochs = make_fixed_length_epochs(raw).load_data()
+    data_2 = epochs.copy().add_reference_channels(['REF']).pick_types(eeg=True)
+    data_2 = data_2.get_data()[0]
+    assert_allclose(data, data_2)
+    evoked = epochs.average()
+    data_3 = evoked.copy().add_reference_channels(['REF']).pick_types(eeg=True)
+    data_3 = data_3.get_data()
+    assert_allclose(data, data_3)
+
 
 @pytest.mark.parametrize('n_ref', (1, 2))
 def test_add_reorder(n_ref):
@@ -608,7 +626,7 @@ def test_add_reorder(n_ref):
     assert len(raw.ch_names) == 60
     chs = ['EEG %03d' % (60 + ii) for ii in range(1, n_ref)] + ['EEG 000']
     with pytest.raises(RuntimeError, match='preload'):
-        with pytest.warns(None):  # ignore multiple warning
+        with _record_warnings():  # ignore multiple warning
             add_reference_channels(raw, chs, copy=False)
     raw.load_data()
     if n_ref == 1:

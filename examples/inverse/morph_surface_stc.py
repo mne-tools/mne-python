@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-morph-surface:
 
@@ -28,9 +29,6 @@ source estimate.
 # License: BSD-3-Clause
 
 # %%
-import os
-import os.path as op
-
 import mne
 from mne.datasets import sample
 
@@ -40,14 +38,13 @@ print(__doc__)
 # Setup paths
 
 data_path = sample.data_path()
-sample_dir = op.join(data_path, 'MEG', 'sample')
-subjects_dir = op.join(data_path, 'subjects')
-fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
-fname_fwd = op.join(sample_dir, 'sample_audvis-meg-oct-6-fwd.fif')
-fname_fsaverage_src = os.path.join(subjects_dir, 'fsaverage', 'bem',
-                                   'fsaverage-ico-5-src.fif')
-
-fname_stc = os.path.join(sample_dir, 'sample_audvis-meg')
+sample_dir = data_path / 'MEG' / 'sample'
+subjects_dir = data_path / 'subjects'
+fname_src = subjects_dir / 'sample' / 'bem' / 'sample-oct-6-src.fif'
+fname_fwd = sample_dir / 'sample_audvis-meg-oct-6-fwd.fif'
+fname_fsaverage_src = (subjects_dir / 'fsaverage' / 'bem' /
+                       'fsaverage-ico-5-src.fif')
+fname_stc = sample_dir / 'sample_audvis-meg'
 
 # %%
 # Load example data

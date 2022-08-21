@@ -1,5 +1,5 @@
+# -*- coding: utf-8 -*-
 """
-
 .. _ex-vector-mne-solution:
 
 ============================================
@@ -34,14 +34,16 @@ from mne.minimum_norm import read_inverse_operator, apply_inverse
 print(__doc__)
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
+subjects_dir = data_path / 'subjects'
+smoothing_steps = 7
 
 # Read evoked data
-fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
+meg_path = data_path / 'MEG' / 'sample'
+fname_evoked = meg_path / 'sample_audvis-ave.fif'
 evoked = mne.read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 
 # Read inverse solution
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+fname_inv = meg_path / 'sample_audvis-meg-oct-6-meg-inv.fif'
 inv = read_inverse_operator(fname_inv)
 
 # Apply inverse solution, set pick_ori='vector' to obtain a
@@ -58,7 +60,8 @@ _, peak_time = stc.magnitude().get_peak(hemi='lh')
 
 # sphinx_gallery_thumbnail_number = 2
 brain = stc.plot(
-    initial_time=peak_time, hemi='lh', subjects_dir=subjects_dir)
+    initial_time=peak_time, hemi='lh', subjects_dir=subjects_dir,
+    smoothing_steps=smoothing_steps)
 
 # You can save a brain movie with:
 # brain.save_movie(time_dilation=20, tmin=0.05, tmax=0.16, framerate=10,
@@ -74,14 +77,14 @@ print('Absolute cosine similarity between source normals and directions: '
       f'{np.abs(np.sum(directions * inv["source_nn"][2::3], axis=-1)).mean()}')
 brain_max = stc_max.plot(
     initial_time=peak_time, hemi='lh', subjects_dir=subjects_dir,
-    time_label='Max power')
+    time_label='Max power', smoothing_steps=smoothing_steps)
 
 # %%
 # The normal is very similar:
 
 brain_normal = stc.project('normal', inv['src'])[0].plot(
     initial_time=peak_time, hemi='lh', subjects_dir=subjects_dir,
-    time_label='Normal')
+    time_label='Normal', smoothing_steps=smoothing_steps)
 
 # %%
 # You can also do this with a fixed-orientation inverse. It looks a lot like
@@ -89,9 +92,10 @@ brain_normal = stc.project('normal', inv['src'])[0].plot(
 # sources close to fixed orientation:
 
 fname_inv_fixed = (
-    data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-fixed-inv.fif')
+    meg_path / 'sample_audvis-meg-oct-6-meg-fixed-inv.fif')
 inv_fixed = read_inverse_operator(fname_inv_fixed)
 stc_fixed = apply_inverse(
     evoked, inv_fixed, lambda2, 'dSPM', pick_ori='vector')
 brain_fixed = stc_fixed.plot(
-    initial_time=peak_time, hemi='lh', subjects_dir=subjects_dir)
+    initial_time=peak_time, hemi='lh', subjects_dir=subjects_dir,
+    smoothing_steps=smoothing_steps)

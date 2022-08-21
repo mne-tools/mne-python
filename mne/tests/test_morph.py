@@ -9,7 +9,7 @@ import numpy as np
 from numpy.testing import (assert_array_less, assert_allclose,
                            assert_array_equal)
 from scipy.spatial.distance import cdist
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, eye as speye
 
 import mne
 from mne import (SourceEstimate, VolSourceEstimate, VectorSourceEstimate,
@@ -27,7 +27,7 @@ from mne.minimum_norm import (apply_inverse, read_inverse_operator,
 from mne.source_space import _add_interpolator, _grid_interp
 from mne.transforms import quat_to_rot
 from mne.utils import (requires_nibabel, check_version, requires_version,
-                       requires_dipy, requires_h5py, catch_logging)
+                       requires_dipy, catch_logging, _record_warnings)
 from mne.fixes import _get_args
 
 # Setup paths
@@ -67,7 +67,7 @@ def _real_vec_stc():
 
 def test_sourcemorph_consistency():
     """Test SourceMorph class consistency."""
-    assert _get_args(SourceMorph.__init__)[1:] == \
+    assert _get_args(SourceMorph.__init__)[1:-1] == \
         mne.morph._SOURCE_MORPH_ATTRIBUTES
 
 
@@ -193,7 +193,7 @@ def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn, dtype):
         with pytest.raises(ValueError, match='required to use nearest'):
             morph = compute_source_morph(stc, 'sample', 'fsaverage', **kwargs)
         return
-    with pytest.warns(None) as w:
+    with _record_warnings() as w:
         morph = compute_source_morph(stc, 'sample', 'fsaverage', **kwargs)
     w = [ww for ww in w if 'vertices not included' in str(ww.message)]
     assert len(w) == n_warn
@@ -209,6 +209,20 @@ def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn, dtype):
     assert_power_preserved(stc, stc_back)
 
 
+@testing.requires_testing_data
+def test_surface_source_morph_shortcut():
+    """Test that our shortcut for smooth=0 works."""
+    stc = mne.read_source_estimate(fname_smorph)
+    morph_identity = compute_source_morph(
+        stc, 'sample', 'sample', spacing=stc.vertices, smooth=0,
+        subjects_dir=subjects_dir)
+    stc_back = morph_identity.apply(stc)
+    assert_allclose(stc_back.data, stc.data, rtol=1e-4)
+    abs_sum = morph_identity.morph_mat - speye(len(stc.data), format='csc')
+    abs_sum = np.abs(abs_sum.data).sum()
+    assert abs_sum < 1e-4
+
+
 def assert_power_preserved(orig, new, limits=(1., 1.05)):
     """Assert that the power is preserved during a round-trip morph."""
     __tracebackhide__ = True
@@ -222,9 +236,9 @@ def assert_power_preserved(orig, new, limits=(1., 1.05)):
         assert min_ < power_ratio < max_, f'Power ratio {kind} = {power_ratio}'
 
 
-@requires_h5py
+@requires_version('h5io')
 @testing.requires_testing_data
-def test_surface_vector_source_morph(tmpdir):
+def test_surface_vector_source_morph(tmp_path):
     """Test surface and vector source estimate morph."""
     inverse_operator_surf = read_inverse_operator(fname_inv_surf)
 
@@ -256,9 +270,9 @@ def test_surface_vector_source_morph(tmpdir):
     assert 'surface' in repr(source_morph_surf)
 
     # check loading and saving for surf
-    source_morph_surf.save(tmpdir.join('42.h5'))
+    source_morph_surf.save(tmp_path / '42.h5')
 
-    source_morph_surf_r = read_source_morph(tmpdir.join('42.h5'))
+    source_morph_surf_r = read_source_morph(tmp_path / '42.h5')
 
     assert (all([read == saved for read, saved in
                  zip(sorted(source_morph_surf_r.__dict__),
@@ -274,12 +288,12 @@ def test_surface_vector_source_morph(tmpdir):
         source_morph_surf.apply(stc_vol)
 
 
-@requires_h5py
+@requires_version('h5io')
 @requires_nibabel()
 @requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_volume_source_morph_basic(tmpdir):
+def test_volume_source_morph_basic(tmp_path):
     """Test volume source estimate morph, special cases and exceptions."""
     import nibabel as nib
     inverse_operator_vol = read_inverse_operator(fname_inv_vol)
@@ -342,14 +356,14 @@ def test_volume_source_morph_basic(tmpdir):
                              subjects_dir=subjects_dir)
 
     # two different ways of saving
-    source_morph_vol.save(tmpdir.join('vol'))
+    source_morph_vol.save(tmp_path / 'vol')
 
     # check loading
-    source_morph_vol_r = read_source_morph(tmpdir.join('vol-morph.h5'))
+    source_morph_vol_r = read_source_morph(tmp_path / 'vol-morph.h5')
 
     # check for invalid file name handling ()
     with pytest.raises(IOError, match='not found'):
-        read_source_morph(tmpdir.join('42'))
+        read_source_morph(tmp_path / '42')
 
     # check morph
     stc_vol_morphed = source_morph_vol.apply(stc_vol)
@@ -459,21 +473,21 @@ def test_volume_source_morph_basic(tmpdir):
     assert_allclose(img_vol, img_vol_2)
 
 
-@requires_h5py
+@requires_version('h5io')
 @requires_nibabel()
 @requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
 @pytest.mark.parametrize(
     'subject_from, subject_to, lower, upper, dtype, morph_mat', [
-        ('sample', 'fsaverage', 10.0, 10.4, float, False),
+        ('sample', 'fsaverage', 5.9, 6.1, float, False),
         ('fsaverage', 'fsaverage', 0., 0.1, float, False),
         ('sample', 'sample', 0., 0.1, complex, False),
         ('sample', 'sample', 0., 0.1, float, True),  # morph_mat
-        ('sample', 'fsaverage', 7.0, 7.4, float, True),  # morph_mat
+        ('sample', 'fsaverage', 10, 12, float, True),  # morph_mat
     ])
 def test_volume_source_morph_round_trip(
-        tmpdir, subject_from, subject_to, lower, upper, dtype, morph_mat,
+        tmp_path, subject_from, subject_to, lower, upper, dtype, morph_mat,
         monkeypatch):
     """Test volume source estimate morph round-trips well."""
     import nibabel as nib
@@ -553,7 +567,7 @@ def test_volume_source_morph_round_trip(
     # check that power is more or less preserved (labelizing messes with this)
     if morph_mat:
         if subject_to == 'fsaverage':
-            limits = (14.0, 14.2)
+            limits = (18, 18.5)
         else:
             limits = (7, 7.5)
     else:
@@ -563,7 +577,7 @@ def test_volume_source_morph_round_trip(
     stc_from_unit_rt = morph_to_from.apply(morph_from_to.apply(stc_from_unit))
     assert_power_preserved(stc_from_unit, stc_from_unit_rt, limits=limits)
     if morph_mat:
-        fname = tmpdir.join('temp-morph.h5')
+        fname = tmp_path / 'temp-morph.h5'
         morph_to_from.save(fname)
         morph_to_from = read_source_morph(fname)
         assert morph_to_from.vol_morph_mat is None
@@ -745,7 +759,7 @@ def test_morph_stc_sparse():
     (slice(1, 2), 51, 204, 12),
     (slice(0, 2), 88, 324, 20),
 ])
-def test_volume_labels_morph(tmpdir, sl, n_real, n_mri, n_orig):
+def test_volume_labels_morph(tmp_path, sl, n_real, n_mri, n_orig):
     """Test generating a source space from volume label."""
     import nibabel as nib
     n_use = (sl.stop - sl.start) // (sl.step or 1)
@@ -866,7 +880,6 @@ def test_mixed_source_morph(_mixed_morph_srcs, vector):
 
     # Now actually morph
     stc_fs = morph.apply(stc)
-    img = stc_fs.volume().as_volume(src_fs, mri_resolution=False)
     vol_info = _get_mri_info_data(fname_aseg_fs, data=True)
     rrs = np.concatenate([src_fs[2]['rr'][sp['vertno']] for sp in src_fs[2:]])
     n_want = np.in1d(_get_atlas_values(vol_info, rrs), ids).sum()

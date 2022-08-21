@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-epochs-dataframe:
 
+=====================================
 Exporting Epochs to Pandas DataFrames
 =====================================
 
@@ -16,13 +18,15 @@ need and loading the data:
 """
 
 # %%
-import os
+
+import matplotlib.pyplot as plt
 import seaborn as sns
+
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_filt-0-40_raw.fif')
+sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
+                        'sample_audvis_filt-0-40_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 
 # %%
@@ -31,8 +35,8 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 # :ref:`tut-reject-epochs-section`), and segment the continuous data into
 # epochs:
 
-sample_data_events_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                       'sample_audvis_filt-0-40_raw-eve.fif')
+sample_data_events_file = (sample_data_folder / 'MEG' / 'sample' /
+                           'sample_audvis_filt-0-40_raw-eve.fif')
 events = mne.read_events(sample_data_events_file)
 
 event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
@@ -126,10 +130,12 @@ long_df.head()
 # confidence band for each channel, with confidence computed across the epochs
 # in the chosen condition:
 
+plt.figure()
 channels = ['MEG 1332', 'MEG 1342']
 data = long_df.loc['auditory/left'].query('channel in @channels')
 # convert channel column (CategoryDtype → string; for a nicer-looking legend)
 data['channel'] = data['channel'].astype(str)
+data.reset_index(drop=True, inplace=True)  # speeds things up
 sns.lineplot(x='time', y='value', hue='channel', data=data)
 
 # %%
@@ -139,6 +145,7 @@ sns.lineplot(x='time', y='value', hue='channel', data=data)
 # of the timing of the peak in each channel as a :func:`~seaborn.violinplot`:
 
 # sphinx_gallery_thumbnail_number = 2
+plt.figure()
 df = epochs.to_data_frame(time_format=None)
 peak_latency = (df.filter(regex=r'condition|epoch|MEG 1332|MEG 2123')
                 .groupby(['condition', 'epoch'])

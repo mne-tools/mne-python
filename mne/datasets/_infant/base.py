@@ -31,7 +31,7 @@ _MANIFEST_PATH = op.dirname(__file__)
 
 
 @verbose
-def fetch_infant_template(age, subjects_dir=None, verbose=None):
+def fetch_infant_template(age, subjects_dir=None, *, verbose=None):
     """Fetch and update an infant MRI template.
 
     Parameters

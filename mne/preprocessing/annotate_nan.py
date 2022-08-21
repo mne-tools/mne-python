@@ -4,7 +4,7 @@
 
 import numpy as np
 
-from ..annotations import Annotations
+from ..annotations import Annotations, _adjust_onset_meas_date
 from ..utils import verbose
 from .artifact_detection import _annotations_from_mask
 
@@ -31,5 +31,7 @@ def annotate_nan(raw, *, verbose=None):
         onsets.extend(annot.onset)
         durations.extend(annot.duration)
         ch_names.extend([[ch_name]] * len(annot))
-    annot = Annotations(onsets, durations, 'BAD_NAN', ch_names=ch_names)
+    annot = Annotations(onsets, durations, 'BAD_NAN', ch_names=ch_names,
+                        orig_time=raw.info['meas_date'])
+    _adjust_onset_meas_date(annot, raw)
     return annot

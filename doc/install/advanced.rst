@@ -5,8 +5,17 @@
 Advanced setup
 ==============
 
-Using with IPython / Jupyter notebooks
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Working with Jupyter Notebooks and JupyterLab
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you like using Jupyter notebooks, you should also update the "base"
+conda environment to include the ``nb_conda_kernels`` package; this will
+make it easier to use MNE-Python in Jupyter Notebooks launched from the
+Anaconda GUI:
+
+.. code-block:: console
+
+    $ conda install --name=base nb_conda_kernels
 
 When using MNE-Python within IPython or a Jupyter notebook, we strongly
 recommend using the Qt matplotlib backend for fast and correct rendering. On
@@ -36,7 +45,7 @@ display, MNE-Python will work with the standard "inline" magic:
 
     In [1]: %matplotlib inline
 
-but some functionality will be lost. For example, mayavi scenes will still
+but some functionality will be lost. For example, PyVista scenes will still
 pop-up a separate window, but only one window at a time is possible, and
 interactivity within the scene is limited in non-blocking plot calls.
 
@@ -44,13 +53,11 @@ interactivity within the scene is limited in non-blocking plot calls.
   :class: note
 
   If you are using MNE-Python on Windows through IPython or Jupyter, you might
-  also have to use the IPython magic command ``%gui qt`` after importing
-  MNE-Python, Mayavi or PySurfer (see `here
+  also have to use the IPython magic command ``%gui qt`` (see `here
   <https://github.com/ipython/ipython/issues/10384>`_). For example:
 
   .. code-block:: ipython
 
-     In [1]: from mayavi import mlab
      In [2]: %gui qt
 
 If you installed the ``nb_conda_kernels`` package into your ``base``
@@ -74,8 +81,19 @@ the notebook 3d backend:
 
 
 The notebook 3d backend requires PyVista to be installed along with other packages,
-please follow :doc:`mne_python`.
+please follow :ref:`standard-instructions`.
 
+Installing to a headless server
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+With `pyvista`_:
+Download the `server environment file`_ and use it to create the conda
+environment
+
+.. code-block:: console
+
+    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
+    $ conda env create -f server_environment.yml
 
 Using the development version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -120,8 +138,8 @@ dependencies, using the provided `requirements file`_:
 
 .. code-block:: console
 
-    curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/requirements.txt
-    pip install --user requirements.txt
+    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/requirements.txt
+    $ pip install --user -r requirements.txt
 
 Other configurations will probably also work, but we may be unable to offer
 support if you encounter difficulties related to your particular Python
@@ -175,6 +193,12 @@ to force MESA to use modern OpenGL by using this before executing
 
 Also, it's possible that different software rending backends might perform
 better than others, such as using the ``llvmpipe`` backend rather than ``swr``.
+In newer MESA (21+), rendering can be incorrect when using MSAA, so consider
+setting:
+
+.. code-block:: console
+
+    $ export MNE_3D_OPTION_MULTI_SAMPLES=1
 
 MESA also can have trouble with full-screen antialiasing, which you can
 disable with:
@@ -232,7 +256,8 @@ Troubleshooting 3D plots
 3D plotting trouble after upgrade on macOS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When upgrading MNE-Python from version 0.19 or lower, some macOS users may end up with
+When upgrading MNE-Python from version 0.19 or lower, some macOS users may end
+up with
 conflicting versions of some of the 3D plotting dependencies. If you plot using
 the pyvista 3D backend and find that you can click-drag to rotate the brain,
 but cannot adjust any of the settings sliders, it is likely that your versions
@@ -249,21 +274,10 @@ If you installed VTK using ``pip`` rather than ``conda``, substitute the first
 line for ``pip uninstall -y vtk``.
 
 
-Trouble using mayavi backend
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. LINKS
 
-If you run into trouble when visualizing source estimates (or anything else)
-using mayavi, you can try setting a couple of environment variables at the
-beginning of your script, session, or notebook::
-
-    >>> import os
-    >>> os.environ['ETS_TOOLKIT'] = 'qt4'
-    >>> os.environ['QT_API'] = 'pyqt5'
-
-And for macOS users, it might be helpful to also add the following::
-
-    >>> os.environ['MNE_3D_OPTION_ANTIALIAS'] = 'false'
-
-This will tell mayavi to use Qt backend with PyQt bindings, instead of the
-default PySide. For more information, see
-http://docs.enthought.com/mayavi/mayavi/building_applications.html#integrating-in-a-qt-application.
+.. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
+.. _server environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
+.. _`pyvista`: https://docs.pyvista.org/
+.. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
+.. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb

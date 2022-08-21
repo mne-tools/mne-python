@@ -312,7 +312,7 @@ FIFF.FIFF_SQUID_BIAS        = 701
 FIFF.FIFF_SQUID_OFFSET      = 702
 FIFF.FIFF_SQUID_GATE        = 703
 #
-# Aspect values used to save charactersitic curves of SQUIDs. (mjk)
+# Aspect values used to save characteristic curves of SQUIDs. (mjk)
 #
 FIFF.FIFFV_ASPECT_IFII_LOW  = 1100
 FIFF.FIFFV_ASPECT_IFII_HIGH = 1101
@@ -1038,6 +1038,7 @@ FIFF.FIFF_MNE_RT_CLIENT_ID         = 3701  # realtime client
 FIFF.FIFF_MNE_EPOCHS_SELECTION     = 3800  # the epochs selection
 FIFF.FIFF_MNE_EPOCHS_DROP_LOG      = 3801  # the drop log
 FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT   = 3802  # rejection and flat params
+FIFF.FIFF_MNE_EPOCHS_RAW_SFREQ     = 3803  # original raw sfreq
 
 # MNE annotations
 FIFF.FIFFB_MNE_ANNOTATIONS         = 3810  # annotations block
@@ -1060,7 +1061,11 @@ CHANNEL_LOC_ALIASES = {
     'T5': 'T9',
     'T6': 'T10',
     'M1': 'TP9',
-    'M2': 'TP10'
+    'M2': 'TP10',
+    # EGI ref chan is named VREF/Vertex Ref.
+    # In the standard montages for EGI, the ref is named Cz
+    'VREF': 'Cz',
+    'Vertex Reference': 'Cz'
     # add a comment here (with doi of a published source) above any new
     # aliases, as they are added
 }

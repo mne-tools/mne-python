@@ -12,7 +12,7 @@ from numpy.testing import assert_allclose
 from scipy import sparse
 
 from mne.datasets import testing
-from mne.utils import catch_logging
+from mne.utils import catch_logging, _record_warnings
 from mne import read_morph_map
 
 data_path = testing.data_path(download=False)
@@ -21,10 +21,10 @@ subjects_dir = op.join(data_path, 'subjects')
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_make_morph_maps(tmpdir):
+def test_make_morph_maps(tmp_path):
     """Test reading and creating morph maps."""
     # make a new fake subjects_dir
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     for subject in ('sample', 'sample_ds', 'fsaverage_ds'):
         os.mkdir(op.join(tempdir, subject))
         os.mkdir(op.join(tempdir, subject, 'surf'))
@@ -54,7 +54,7 @@ def test_make_morph_maps(tmpdir):
             assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
 
     # This will also trigger creation, but it's trivial
-    with pytest.warns(None):
+    with _record_warnings():
         mmap = read_morph_map('sample', 'sample', subjects_dir=tempdir)
     for mm in mmap:
         assert (mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0

@@ -22,8 +22,8 @@ from mne.utils import requires_sklearn
 data_path = testing.data_path(download=False)
 stc_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-lh.stc')
-raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw-eve.fif'
+raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_trunc_raw.fif'
+event_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_trunc_raw-eve.fif'
 
 
 @testing.requires_testing_data
@@ -88,7 +88,8 @@ def test_continuous_regression_no_overlap():
     # a sampling of frequency where rounding and truncation yield
     # different results checks conversion from samples to times is
     # consistent across Epochs and linear_regression_raw
-    raw.info['sfreq'] = 128
+    with raw.info._unlock():
+        raw.info['sfreq'] = 128
 
     events = mne.read_events(event_fname)
     event_id = dict(audio_l=1, audio_r=2)

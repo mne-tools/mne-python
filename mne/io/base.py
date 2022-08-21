@@ -24,13 +24,12 @@ from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
 from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx,
                    channel_type)
-from .meas_info import write_meas_info, _ensure_infos_match
+from .meas_info import write_meas_info, _ensure_infos_match, ContainsMixin
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
-from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
-                                 SetChannelsMixin, InterpolationMixin,
-                                 _unit2human)
+from ..channels.channels import (UpdateChannelsMixin, SetChannelsMixin,
+                                 InterpolationMixin, _unit2human)
 from .compensator import set_current_comp, make_compensator
-from .write import (start_file, end_file, start_block, end_block,
+from .write import (start_and_end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
                     write_id, write_string, _get_split_size, _NEXT_FILE_BUFFER)
@@ -47,77 +46,11 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format, _arange_div)
+                     _check_time_format, _arange_div, TimeMixin)
 from ..defaults import _handle_default
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
-from ..data.html_templates import raw_template
-
-
-class TimeMixin(object):
-    """Class to add sfreq and time_as_index capabilities to certain classes."""
-
-    # Overridden method signature does not match call...
-    def time_as_index(self, times, use_rounding=False):  # lgtm
-        """Convert time to indices.
-
-        Parameters
-        ----------
-        times : list-like | float | int
-            List of numbers or a number representing points in time.
-        use_rounding : bool
-            If True, use rounding (instead of truncation) when converting
-            times to indices. This can help avoid non-unique indices.
-
-        Returns
-        -------
-        index : ndarray
-            Indices corresponding to the times supplied.
-        """
-        from ..source_estimate import _BaseSourceEstimate
-        if isinstance(self, _BaseSourceEstimate):
-            sfreq = 1. / self.tstep
-        else:
-            sfreq = self.info['sfreq']
-        index = (np.atleast_1d(times) - self.times[0]) * sfreq
-        if use_rounding:
-            index = np.round(index)
-        return index.astype(int)
-
-    def _handle_tmin_tmax(self, tmin, tmax):
-        """Convert seconds to index into data.
-
-        Parameters
-        ----------
-        tmin : int | float | None
-            Start time of data to get in seconds.
-        tmax : int | float | None
-            End time of data to get in seconds.
-
-        Returns
-        -------
-        start : int
-            Integer index into data corresponding to tmin.
-        stop : int
-            Integer index into data corresponding to tmax.
-
-        """
-        _validate_type(tmin, types=('numeric', None), item_name='tmin',
-                       type_name="int, float, None")
-        _validate_type(tmax, types=('numeric', None), item_name='tmax',
-                       type_name='int, float, None')
-
-        # handle tmin/tmax as start and stop indices into data array
-        n_times = self.times.size
-        start = 0 if tmin is None else self.time_as_index(tmin)[0]
-        stop = n_times if tmax is None else self.time_as_index(tmax)[0]
-
-        # truncate start/stop to the open interval [0, n_times]
-        start = min(max(0, start), n_times)
-        stop = min(max(0, stop), n_times)
-
-        return start, stop
 
 
 @fill_doc
@@ -188,7 +121,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  filenames=(None,), raw_extras=(None,),
                  orig_format='double', dtype=np.float64,
                  buffer_size_sec=1., orig_units=None,
-                 verbose=None):  # noqa: D102
+                 *, verbose=None):  # noqa: D102
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
@@ -214,9 +147,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._last_samps = np.array(last_samps)
         self._first_samps = np.array(first_samps)
         orig_ch_names = info['ch_names']
-        if isinstance(info['meas_date'], tuple):  # be permissive of old code
-            info['meas_date'] = _stamp_to_dt(info['meas_date'])
-        info._check_consistency()  # make sure subclass did a good job
+        with info._unlock(check_after=True):
+            # be permissive of old code
+            if isinstance(info['meas_date'], tuple):
+                info['meas_date'] = _stamp_to_dt(info['meas_date'])
         self.info = info
         self.buffer_size_sec = float(buffer_size_sec)
         cals = np.empty(info['nchan'])
@@ -226,7 +160,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if len(bad) > 0:
             raise ValueError('Bad cals for channels %s'
                              % {ii: self.ch_names[ii] for ii in bad})
-        self.verbose = verbose
         self._cals = cals
         self._raw_extras = list(dict() if r is None else r for r in raw_extras)
         for r in self._raw_extras:
@@ -241,6 +174,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                         % self._read_comp_grade)
         self._comp = None
         self._filenames = list(filenames)
+        _validate_type(orig_format, str, "orig_format")
+        _check_option(
+            "orig_format", orig_format, ("double", "single", "int", "short")
+        )
         self.orig_format = orig_format
         # Sanity check and set original units, if provided by the reader:
 
@@ -282,6 +219,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._projector = None
         self._dtype_ = dtype
         self.set_annotations(None)
+        self._cropped_samp = first_samps[0]
         # If we have True or a string, actually do the preloading
         if load_from_disk:
             self._preload_data(preload)
@@ -303,7 +241,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         grade : int
             CTF gradient compensation level.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -361,7 +299,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             to store the data.
         projector : array
             SSP operator to apply to the data.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -539,7 +477,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -577,8 +515,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @property
     def first_samp(self):
-        """The first data sample."""
-        return self._first_samps[0]
+        """The first data sample.
+
+        See :term:`first_samp`.
+        """
+        return self._cropped_samp
 
     @property
     def first_time(self):
@@ -607,14 +548,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             times to indices. This can help avoid non-unique indices.
         origin : datetime | float | int | None
             Time reference for times. If None, ``times`` are assumed to be
-            relative to ``first_samp``.
+            relative to :term:`first_samp`.
 
             .. versionadded:: 0.17.0
 
         Returns
         -------
         index : ndarray
-            Indices relative to ``first_samp`` corresponding to the times
+            Indices relative to :term:`first_samp` corresponding to the times
             supplied.
         """
         origin = _handle_meas_date(origin)
@@ -657,10 +598,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         annotations : instance of mne.Annotations | None
             Annotations to set. If None, the annotations is defined
             but empty.
-        emit_warning : bool
-            Whether to emit warnings when cropping or omitting annotations.
+        %(emit_warning)s
+            The default is True.
         %(on_missing_ch_names)s
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -861,7 +802,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             ignored if the ``stop`` parameter is defined.
 
             .. versionadded:: 0.24.0
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -972,7 +913,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return data
 
     @verbose
-    def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
+    def apply_function(self, fun, picks=None, dtype=None, n_jobs=None,
                        channel_wise=True, verbose=None, **kwargs):
         """Apply a function to a subset of channels.
 
@@ -980,15 +921,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        %(applyfun_fun)s
+        %(fun_applyfun)s
         %(picks_all_data_noref)s
-        %(applyfun_dtype)s
+        %(dtype_applyfun)s
         %(n_jobs)s
-        %(applyfun_chwise)s
+        %(channel_wise_applyfun)s
 
             .. versionadded:: 0.18
-        %(verbose_meth)s
-        %(kwarg_fun)s
+        %(verbose)s
+        %(kwargs_fun)s
 
         Returns
         -------
@@ -1006,6 +947,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self._data = self._data.astype(dtype)
 
         if channel_wise:
+            parallel, p_fun, n_jobs = parallel_func(_check_fun, n_jobs)
             if n_jobs == 1:
                 # modify data inplace to save memory
                 for idx in picks:
@@ -1013,7 +955,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                                     **kwargs)
             else:
                 # use parallel function
-                parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
                 data_picks_new = parallel(
                     p_fun(fun, data_in[p], **kwargs) for p in picks)
                 for pp, p in enumerate(picks):
@@ -1027,19 +968,21 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     # Need a separate method because the default pad is different for raw
     @copy_doc(FilterMixin.filter)
     def filter(self, l_freq, h_freq, picks=None, filter_length='auto',
-               l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
+               l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=None,
                method='fir', iir_params=None, phase='zero',
                fir_window='hamming', fir_design='firwin',
                skip_by_annotation=('edge', 'bad_acq_skip'),
                pad='reflect_limited', verbose=None):  # noqa: D102
         return super().filter(
             l_freq, h_freq, picks, filter_length, l_trans_bandwidth,
-            h_trans_bandwidth, n_jobs, method, iir_params, phase,
-            fir_window, fir_design, skip_by_annotation, pad, verbose)
+            h_trans_bandwidth, n_jobs=n_jobs, method=method,
+            iir_params=iir_params, phase=phase, fir_window=fir_window,
+            fir_design=fir_design, skip_by_annotation=skip_by_annotation,
+            pad=pad, verbose=verbose)
 
     @verbose
     def notch_filter(self, freqs, picks=None, filter_length='auto',
-                     notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
+                     notch_widths=None, trans_bandwidth=1.0, n_jobs=None,
                      method='fir', iir_params=None, mt_bandwidth=None,
                      p_value=0.05, phase='zero', fir_window='hamming',
                      fir_design='firwin', pad='reflect_limited', verbose=None):
@@ -1049,36 +992,37 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         freqs : float | array of float | None
             Specific frequencies to filter out from data, e.g.,
-            np.arange(60, 241, 60) in the US or np.arange(50, 251, 50) in
-            Europe. None can only be used with the mode 'spectrum_fit',
-            where an F test is used to find sinusoidal components.
+            ``np.arange(60, 241, 60)`` in the US or ``np.arange(50, 251, 50)``
+            in Europe. ``None`` can only be used with the mode
+            ``'spectrum_fit'``, where an F test is used to find sinusoidal
+            components.
         %(picks_all_data)s
         %(filter_length_notch)s
         notch_widths : float | array of float | None
             Width of each stop band (centred at each freq in freqs) in Hz.
-            If None, freqs / 200 is used.
+            If None, ``freqs / 200`` is used.
         trans_bandwidth : float
             Width of the transition band in Hz.
             Only used for ``method='fir'``.
-        %(n_jobs-fir)s
-        %(method-fir)s
+        %(n_jobs_fir)s
+        %(method_fir)s
         %(iir_params)s
         mt_bandwidth : float | None
             The bandwidth of the multitaper windowing function in Hz.
             Only used in 'spectrum_fit' mode.
         p_value : float
             P-value to use in F-test thresholding to determine significant
-            sinusoidal components to remove when method='spectrum_fit' and
-            freqs=None. Note that this will be Bonferroni corrected for the
+            sinusoidal components to remove when ``method='spectrum_fit'`` and
+            ``freqs=None``. Note that this will be Bonferroni corrected for the
             number of frequencies, so large p-values may be justified.
         %(phase)s
         %(fir_window)s
         %(fir_design)s
-        %(pad-fir)s
+        %(pad_fir)s
             The default is ``'reflect_limited'``.
 
             .. versionadded:: 0.15
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1118,7 +1062,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', stim_picks=None,
-                 n_jobs=1, events=None, pad='reflect_limited',
+                 n_jobs=None, events=None, pad='reflect_limited',
                  verbose=None):  # lgtm
         """Resample all channels.
 
@@ -1147,23 +1091,23 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         sfreq : float
             New sample rate to use.
         %(npad)s
-        %(window-resample)s
+        %(window_resample)s
         stim_picks : list of int | None
             Stim channels. These channels are simply subsampled or
             supersampled (without applying any filtering). This reduces
             resampling artifacts in stim channels, but may lead to missing
             triggers. If None, stim channels are automatically chosen using
             :func:`mne.pick_types`.
-        %(n_jobs-cuda)s
+        %(n_jobs_cuda)s
         events : 2D array, shape (n_events, 3) | None
             An optional event matrix. When specified, the onsets of the events
             are resampled jointly with the data. NB: The input events are not
             modified, but a new array is returned with the raw instead.
-        %(pad-fir)s
+        %(pad)s
             The default is ``'reflect_limited'``.
 
             .. versionadded:: 0.15
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1247,16 +1191,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                         resamp = resample(data_chunk, **kwargs)
                     new_data[ci, this_sl] = resamp
 
-        self._first_samps = (self._first_samps * ratio).astype(int)
+        self._cropped_samp = int(np.round(self._cropped_samp * ratio))
+        self._first_samps = np.round(self._first_samps * ratio).astype(int)
         self._last_samps = (np.array(self._first_samps) + n_news - 1)
         self._raw_lengths[ri] = list(n_news)
         assert np.array_equal(n_news, self._last_samps - self._first_samps + 1)
         self._data = new_data
         self.preload = True
-        self.info['sfreq'] = sfreq
         lowpass = self.info.get('lowpass')
         lowpass = np.inf if lowpass is None else lowpass
-        self.info['lowpass'] = min(lowpass, sfreq / 2.)
+        with self.info._unlock():
+            self.info['lowpass'] = min(lowpass, sfreq / 2.)
+            self.info['sfreq'] = sfreq
 
         # See the comment above why we ignore all errors here.
         if events is None:
@@ -1282,23 +1228,25 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             )
             return self, events
 
-    @fill_doc
-    def crop(self, tmin=0.0, tmax=None, include_tmax=True):
+    @verbose
+    def crop(self, tmin=0.0, tmax=None, include_tmax=True, *, verbose=None):
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
-        that the new tmin is assumed to be t=0 for all subsequently called
-        functions (e.g., time_as_index, or Epochs). New first_samp and
-        last_samp are set accordingly.
+        that the new ``tmin`` is assumed to be ``t=0`` for all subsequently
+        called functions (e.g., :meth:`~mne.io.Raw.time_as_index`, or
+        :class:`~mne.Epochs`). New :term:`first_samp` and :term:`last_samp`
+        are set accordingly.
 
         Thus function operates in-place on the instance.
         Use :meth:`mne.io.Raw.copy` if operation on a copy is desired.
 
         Parameters
         ----------
-        %(raw_tmin)s
-        %(raw_tmax)s
+        %(tmin_raw)s
+        %(tmax_raw)s
         %(include_tmax)s
+        %(verbose)s
 
         Returns
         -------
@@ -1327,6 +1275,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         keepers = np.logical_and(np.less(smin, cumul_lens[1:]),
                                  np.greater_equal(smax, cumul_lens[:-1]))
         keepers = np.where(keepers)[0]
+        # if we drop file(s) from the beginning, we need to keep track of
+        # how many samples we dropped relative to that one
+        self._cropped_samp += smin
         self._first_samps = np.atleast_1d(self._first_samps[keepers])
         # Adjust first_samp of first used file!
         self._first_samps[0] += smin - cumul_lens[keepers[0]]
@@ -1341,12 +1292,50 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             # slice and copy to avoid the reference to large array
             self._data = self._data[:, smin:smax + 1].copy()
 
-        if self.annotations.orig_time is None:
-            self.annotations.onset -= tmin
+        annotations = self.annotations
         # now call setter to filter out annotations outside of interval
-        self.set_annotations(self.annotations, False)
+        if annotations.orig_time is None:
+            assert self.info['meas_date'] is None
+            # When self.info['meas_date'] is None (which is guaranteed if
+            # self.annotations.orig_time is None), when we do the
+            # self.set_annotations, it's assumed that the annotations onset
+            # are relative to first_time, so we have to subtract it, then
+            # set_annotations will put it back.
+            annotations.onset -= self.first_time
+        self.set_annotations(annotations, False)
 
         return self
+
+    @verbose
+    def crop_by_annotations(self, annotations=None, *, verbose=None):
+        """Get crops of raw data file for selected annotations.
+
+        Parameters
+        ----------
+        annotations : instance of Annotations | None
+            The annotations to use for cropping the raw file. If None,
+            the annotations from the instance are used.
+        %(verbose)s
+
+        Returns
+        -------
+        raws : list
+            The cropped raw objects.
+        """
+        if annotations is None:
+            annotations = self.annotations
+
+        raws = []
+        for annot in annotations:
+            onset = annot["onset"] - self.first_time
+            # be careful about near-zero errors (crop is very picky about this,
+            # e.g., -1e-8 is an error)
+            if -self.info['sfreq'] / 2 < onset < 0:
+                onset = 0
+            raw_crop = self.copy().crop(onset, onset + annot["duration"])
+            raws.append(raw_crop)
+
+        return raws
 
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=None,
@@ -1367,8 +1356,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             or ``_ieeg.fif`` (common intracranial EEG data). You may also
             append an additional ``.gz`` suffix to enable gzip compression.
         %(picks_all)s
-        %(raw_tmin)s
-        %(raw_tmax)s
+        %(tmin_raw)s
+        %(tmax_raw)s
         buffer_size_sec : float | None
             Size of data chunks in seconds. If None (default), the buffer
             size of the original file is used.
@@ -1401,11 +1390,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. note:: Due to FIFF file limitations, the maximum split
                       size is 2GB.
-        split_naming : {'neuromag' | 'bids'}
-            Add the filename partition with the appropriate naming schema.
+        %(split_naming)s
 
             .. versionadded:: 0.17
-        %(verbose_meth)s
+        %(verbose)s
 
         Notes
         -----
@@ -1415,12 +1403,17 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         work properly on a saved concatenated file (e.g., probably some
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
+
+        Samples annotated ``BAD_ACQ_SKIP`` are not stored in order to optimize
+        memory. Whatever values, they will be loaded as 0s when reading file.
         """
-        fname = op.abspath(fname)
         endings = ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                    '_meg.fif', '_eeg.fif', '_ieeg.fif')
         endings += tuple([f'{e}.gz' for e in endings])
         endings_err = ('.fif', '.fif.gz')
+
+        # convert to str, check for overwrite a few lines later
+        fname = _check_fname(fname, overwrite=True, verbose="error")
         check_fname(fname, 'raw', endings, endings_err=endings_err)
 
         split_size = _get_split_size(split_size)
@@ -1447,8 +1440,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             raise ValueError('Complex data must be saved as "single" or '
                              '"double", not "short"')
 
-        # check for file existence
-        _check_fname(fname, overwrite)
+        # check for file existence and expand `~` if present
+        fname = _check_fname(fname=fname, overwrite=overwrite,
+                             verbose="error")
 
         if proj:
             info = deepcopy(self.info)
@@ -1474,24 +1468,37 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    split_size, split_naming, 0, None, overwrite)
 
     @verbose
-    def export(self, fname, fmt='auto', verbose=None):
+    def export(self, fname, fmt='auto', physical_range='auto',
+               add_ch_type=False, *, overwrite=False, verbose=None):
         """Export Raw to external formats.
 
-        Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
-        %(export_warning)s :meth:`save` instead.
+        %(export_fmt_support_raw)s
+
+        %(export_warning)s
 
         Parameters
         ----------
-        %(export_params_fname)s
-        %(export_params_fmt)s
+        %(fname_export_params)s
+        %(export_fmt_params_raw)s
+        %(physical_range_export_params)s
+        %(add_ch_type_export_params)s
+        %(overwrite)s
+
+            .. versionadded:: 0.24.1
         %(verbose)s
 
         Notes
         -----
+        .. versionadded:: 0.24
+
+        %(export_warning_note_raw)s
         %(export_eeglab_note)s
+        %(export_edf_note)s
         """
         from ..export import export_raw
-        export_raw(fname, self, fmt, verbose=verbose)
+        export_raw(fname, self, fmt, physical_range=physical_range,
+                   add_ch_type=add_ch_type, overwrite=overwrite,
+                   verbose=verbose)
 
     def _tmin_tmax_to_start_stop(self, tmin, tmax):
         start = int(np.floor(tmin * self.info['sfreq']))
@@ -1509,22 +1516,25 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_raw)
     def plot(self, events=None, duration=10.0, start=0.0, n_channels=20,
-             bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
+             bgcolor='w', color=None, bad_color='lightgray',
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=_RAW_CLIP_DEF,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, time_format='float',
-             verbose=None):
+             precompute=None, use_opengl=None, *, theme=None,
+             overview_mode=None, verbose=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
                         lowpass, filtorder, clipping, show_first_samp,
                         proj, group_by, butterfly, decim, noise_cov=noise_cov,
                         event_id=event_id, show_scrollbars=show_scrollbars,
-                        show_scalebars=show_scalebars,
-                        time_format=time_format, verbose=verbose)
+                        show_scalebars=show_scalebars, time_format=time_format,
+                        precompute=precompute, use_opengl=use_opengl,
+                        theme=theme, overview_mode=overview_mode,
+                        verbose=verbose)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
@@ -1532,7 +1542,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  n_fft=None, n_overlap=0, reject_by_annotation=True,
                  picks=None, ax=None, color='black', xscale='linear',
                  area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
-                 show=True, n_jobs=1, average=False, line_alpha=None,
+                 show=True, n_jobs=None, average=False, line_alpha=None,
                  spatial_colors=True, sphere=None, window='hamming',
                  exclude='bads', verbose=None):
         return plot_raw_psd(self, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
@@ -1549,7 +1559,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
                       n_fft=2048, n_overlap=0, layout=None, color='w',
                       fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, block=False, n_jobs=1, axes=None,
+                      show=True, block=False, n_jobs=None, axes=None,
                       verbose=None):
         return plot_raw_psd_topo(self, tmin=tmin, tmax=tmax, fmin=fmin,
                                  fmax=fmax, proj=proj, n_fft=n_fft,
@@ -1593,7 +1603,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         return self.n_times
 
-    def load_bad_channels(self, bad_file=None, force=False):
+    @verbose
+    def load_bad_channels(self, bad_file=None, force=False, verbose=None):
         """Mark channels as bad from a text file.
 
         This function operates mostly in the style of the C function
@@ -1602,34 +1613,39 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        bad_file : str
-            File name of the text file containing bad channels
-            If bad_file = None, bad channels are cleared, but this
-            is more easily done directly as raw.info['bads'] = [].
+        bad_file : path-like | None
+            File name of the text file containing bad channels.
+            If ``None`` (default), bad channels are cleared, but this
+            is more easily done directly with ``raw.info['bads'] = []``.
         force : bool
             Whether or not to force bad channel marking (of those
             that exist) if channels are not found, instead of
-            raising an error.
+            raising an error. Defaults to ``False``.
+        %(verbose)s
         """
+        prev_bads = self.info['bads']
+        new_bads = []
         if bad_file is not None:
             # Check to make sure bad channels are there
             names = frozenset(self.info['ch_names'])
             with open(bad_file) as fid:
                 bad_names = [line for line in fid.read().splitlines() if line]
-            names_there = [ci for ci in bad_names if ci in names]
-            count_diff = len(bad_names) - len(names_there)
+            new_bads = [ci for ci in bad_names if ci in names]
+            count_diff = len(bad_names) - len(new_bads)
 
             if count_diff > 0:
+                msg = (f'{count_diff} bad channel(s) from:'
+                       f'\n{bad_file}\nnot found in:\n{self.filenames[0]}')
                 if not force:
-                    raise ValueError('Bad channels from:\n%s\n not found '
-                                     'in:\n%s' % (bad_file,
-                                                  self.filenames[0]))
+                    raise ValueError(msg)
                 else:
-                    warn('%d bad channels from:\n%s\nnot found in:\n%s'
-                         % (count_diff, bad_file, self.filenames[0]))
-            self.info['bads'] = names_there
+                    warn(msg)
+
+        if prev_bads != new_bads:
+            logger.info(f'Updating bad channels: {prev_bads} -> {new_bads}')
+            self.info['bads'] = new_bads
         else:
-            self.info['bads'] = []
+            logger.info(f'No channels updated. Bads are: {prev_bads}')
 
     @fill_doc
     def append(self, raws, preload=None):
@@ -1702,7 +1718,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             annotations = _combine_annotations(
                 annotations, r.annotations, n_samples,
                 self.first_samp, r.first_samp,
-                self.info['sfreq'], self.info['meas_date'])
+                self.info['sfreq'])
             edge_samps.append(sum(self._last_samps) -
                               sum(self._first_samps) + (ri + 1))
             self._first_samps = np.r_[self._first_samps, r._first_samps]
@@ -1711,6 +1727,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
         assert annotations.orig_time == self.info['meas_date']
+        # The above _combine_annotations gets everything synchronized to
+        # first_samp. set_annotations (with no absolute time reference) assumes
+        # that the annotations being set are relative to first_samp, and will
+        # add it back on. So here we have to remove it:
+        if annotations.orig_time is None:
+            annotations.onset -= self.first_samp / self.info['sfreq']
         self.set_annotations(annotations)
         for edge_samp in edge_samps:
             onset = _sync_onset(self, (edge_samp) / self.info['sfreq'], True)
@@ -1750,15 +1772,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return "<%s | %s>" % (self.__class__.__name__, s)
 
     def _repr_html_(self, caption=None):
+        from ..html_templates import repr_templates_env
         basenames = [
             os.path.basename(f) for f in self._filenames if f is not None
         ]
         m, s = divmod(self._last_time - self.first_time, 60)
         h, m = divmod(m, 60)
         duration = f'{int(h):02d}:{int(m):02d}:{int(s):02d}'
-        return raw_template.substitute(
+        raw_template = repr_templates_env.get_template('raw.html.jinja')
+        return raw_template.render(
             info_repr=self.info._repr_html_(caption=caption),
-            filenames=basenames, duration=duration)
+            filenames=basenames, duration=duration
+        )
 
     def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.
@@ -1809,10 +1834,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         buffer_size_sec = float(buffer_size_sec)
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
-    @fill_doc
+    @verbose
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, start=None, stop=None,
-                      long_format=False, time_format='ms'):
+                      long_format=False, time_format=None, *,
+                      verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default, an
@@ -1822,10 +1848,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         %(picks_all)s
-        %(df_index_raw)s
+        %(index_df_raw)s
             Defaults to ``None``.
-        %(df_scalings)s
-        %(df_copy)s
+        %(scalings_df)s
+        %(copy_df)s
         start : int | None
             Starting sample index for creating the DataFrame from a temporal
             span of the Raw object. ``None`` (the default) uses the first
@@ -1833,10 +1859,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         stop : int | None
             Ending sample index for creating the DataFrame from a temporal span
             of the Raw object. ``None`` (the default) uses the last sample.
-        %(df_longform_raw)s
-        %(df_time_format_raw)s
+        %(long_format_df_raw)s
+        %(time_format_df_raw)s
 
             .. versionadded:: 0.20
+        %(verbose)s
 
         Returns
         -------
@@ -1930,11 +1957,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
               f"{'name':<{lens['name']}}  "
               f"{'type':<{lens['type']}}  "
               f"{'unit':<{lens['unit']}}  "
-              f"{'min':>8}  "
-              f"{'Q1':>8}  "
-              f"{'median':>8}  "
-              f"{'Q3':>8}  "
-              f"{'max':>8}")
+              f"{'min':>9}  "
+              f"{'Q1':>9}  "
+              f"{'median':>9}  "
+              f"{'Q3':>9}  "
+              f"{'max':>9}")
         # print description for each channel
         for i in range(nchan):
             msg = (f"{i:>{lens['ch']}}  "
@@ -1942,8 +1969,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    f"{cols['type'][i].upper():<{lens['type']}}  "
                    f"{cols['unit'][i]:<{lens['unit']}}  ")
             for col in ["min", "Q1", "median", "Q3"]:
-                msg += f"{cols[col][i]:>8.2f}  "
-            msg += f"{cols['max'][i]:>8.2f}"
+                msg += f"{cols[col][i]:>9.2f}  "
+            msg += f"{cols['max'][i]:>9.2f}"
             print(msg)
 
 
@@ -2143,6 +2170,9 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
         raise RuntimeError('Cannot write raw file with no data: %s -> %s '
                            '(max: %s) requested' % (start, stop, n_times_max))
 
+    # Expand `~` if present
+    fname = _check_fname(fname=fname, overwrite=overwrite)
+
     base, ext = op.splitext(fname)
     if part_idx > 0:
         if split_naming == 'neuromag':
@@ -2169,14 +2199,17 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
     logger.info('Writing %s' % use_fname)
 
     picks = _picks_to_idx(info, picks, 'all', ())
-    fid, cals = _start_writing_raw(use_fname, info, picks, data_type,
-                                   reset_range, raw.annotations)
-    with ctx, fid:
-        final_fname = _write_raw_fid(
-            raw, info, picks, fid, cals, part_idx, start, stop,
-            buffer_size, prev_fname, split_size, use_fname,
-            projector, drop_small_buffer, fmt, fname, reserved_fname,
-            data_type, reset_range, split_naming, overwrite)
+    with start_and_end_file(use_fname) as fid:
+        cals = _start_writing_raw(fid, info, picks, data_type,
+                                  reset_range, raw.annotations)
+        with ctx:
+            final_fname = _write_raw_fid(
+                raw, info, picks, fid, cals, part_idx, start, stop,
+                buffer_size, prev_fname, split_size, use_fname,
+                projector, drop_small_buffer, fmt, fname, reserved_fname,
+                data_type, reset_range, split_naming,
+                overwrite=True  # we've started writing already above
+            )
     if final_fname != use_fname:
         assert split_naming == 'bids'
         logger.info(f'Renaming BIDS split file {op.basename(final_fname)}')
@@ -2316,19 +2349,18 @@ def _write_raw_fid(raw, info, picks, fid, cals, part_idx, start, stop,
     else:
         end_block(fid, FIFF.FIFFB_RAW_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
-    end_file(fid)
     return final_fname
 
 
 @fill_doc
-def _start_writing_raw(name, info, sel, data_type,
+def _start_writing_raw(fid, info, sel, data_type,
                        reset_range, annotations):
     """Start write raw data in file.
 
     Parameters
     ----------
-    name : string
-        Name of the file to create.
+    fid : file
+        The created file.
     %(info_not_none)s
     sel : array of int | None
         Indices of channels to include. If None, all channels
@@ -2356,7 +2388,6 @@ def _start_writing_raw(name, info, sel, data_type,
     #
     # Create the file and save the essentials
     #
-    fid = start_file(name)
     start_block(fid, FIFF.FIFFB_MEAS)
     write_id(fid, FIFF.FIFF_BLOCK_ID)
     if info['meas_id'] is not None:
@@ -2388,7 +2419,7 @@ def _start_writing_raw(name, info, sel, data_type,
     else:
         start_block(fid, FIFF.FIFFB_RAW_DATA)
 
-    return fid, cals
+    return cals
 
 
 def _write_raw_buffer(fid, buf, cals, fmt):
@@ -2468,7 +2499,7 @@ def _check_raw_compatibility(raw):
 @verbose
 def concatenate_raws(raws, preload=None, events_list=None, *,
                      on_mismatch='raise', verbose=None):
-    """Concatenate raw instances as if they were continuous.
+    """Concatenate `~mne.io.Raw` instances as if they were continuous.
 
     .. note:: ``raws[0]`` is modified in-place to achieve the concatenation.
               Boundaries of the raw files are annotated bad. If you wish to use
@@ -2483,7 +2514,7 @@ def concatenate_raws(raws, preload=None, events_list=None, *,
     %(preload_concatenate)s
     events_list : None | list
         The events to concatenate. Defaults to ``None``.
-    %(on_info_mismatch)s
+    %(on_mismatch_info)s
     %(verbose)s
 
     Returns

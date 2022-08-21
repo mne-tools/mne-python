@@ -75,11 +75,11 @@ def test_get_coef():
 
     parameters = {'kernel': ['linear'], 'C': [1, 10]}
     lm_gs_classification = LinearModel(
-        GridSearchCV(svm.SVC(), parameters, cv=2, refit=True, n_jobs=1))
+        GridSearchCV(svm.SVC(), parameters, cv=2, refit=True, n_jobs=None))
     assert (is_classifier(lm_gs_classification))
 
     lm_gs_regression = LinearModel(
-        GridSearchCV(svm.SVR(), parameters, cv=2, refit=True, n_jobs=1))
+        GridSearchCV(svm.SVR(), parameters, cv=2, refit=True, n_jobs=None))
     assert (is_regressor(lm_gs_regression))
 
     # Define a classifier, an invertible transformer and an non-invertible one.
@@ -333,7 +333,7 @@ def test_linearmodel():
     from sklearn.model_selection import GridSearchCV
     parameters = {'kernel': ['linear'], 'C': [1, 10]}
     clf = LinearModel(
-        GridSearchCV(svm.SVC(), parameters, cv=2, refit=True, n_jobs=1))
+        GridSearchCV(svm.SVC(), parameters, cv=2, refit=True, n_jobs=None))
     clf.fit(X, y)
     assert_equal(clf.filters_.shape, (n_features,))
     assert_equal(clf.patterns_.shape, (n_features,))
@@ -345,7 +345,7 @@ def test_linearmodel():
     n_targets = 1
     Y = rng.rand(n, n_targets)
     clf = LinearModel(
-        GridSearchCV(svm.SVR(), parameters, cv=2, refit=True, n_jobs=1))
+        GridSearchCV(svm.SVR(), parameters, cv=2, refit=True, n_jobs=None))
     clf.fit(X, y)
     assert_equal(clf.filters_.shape, (n_features, ))
     assert_equal(clf.patterns_.shape, (n_features, ))
@@ -402,7 +402,7 @@ def test_cross_val_multiscore():
     pytest.raises(ValueError, cross_val_multiscore, clf, X, y, cv=cv,
                   scoring='roc_auc')
     clf = SlidingEstimator(logreg, scoring='roc_auc')
-    scores_auc = cross_val_multiscore(clf, X, y, cv=cv, n_jobs=1)
+    scores_auc = cross_val_multiscore(clf, X, y, cv=cv, n_jobs=None)
     scores_auc_manual = list()
     for train, test in cv.split(X, y):
         clf.fit(X[train], y[train])

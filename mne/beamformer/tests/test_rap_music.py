@@ -4,9 +4,10 @@
 # License: BSD-3-Clause
 
 import os.path as op
+
+import pytest
 import numpy as np
 from scipy import linalg
-
 from numpy.testing import assert_allclose
 
 import mne
@@ -29,7 +30,8 @@ def _get_data(ch_decim=1):
     # Read evoked
     evoked = mne.read_evokeds(fname_ave, 0, baseline=(None, 0))
     evoked.info['bads'] = ['MEG 2443']
-    evoked.info['lowpass'] = 16  # fake for decim
+    with evoked.info._unlock():
+        evoked.info['lowpass'] = 16  # fake for decim
     evoked.decimate(12)
     evoked.crop(0.0, 0.3)
     picks = mne.pick_types(evoked.info, meg=True, eeg=False)
@@ -153,6 +155,7 @@ def test_rap_music_simulated():
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked, residual)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_rap_music_sphere():
     """Test RAP-MUSIC with real data, sphere model, MEG only."""

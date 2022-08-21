@@ -13,6 +13,7 @@ from functools import partial
 import glob
 import os
 import os.path as op
+from pathlib import Path
 import shutil
 from copy import deepcopy
 
@@ -20,9 +21,8 @@ import numpy as np
 
 from .io.constants import FIFF, FWD
 from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
-from .io.write import (start_file, start_block, write_float, write_int,
-                       write_float_matrix, write_int_matrix, end_block,
-                       end_file)
+from .io.write import (start_and_end_file, start_block, write_float, write_int,
+                       write_float_matrix, write_int_matrix, end_block)
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.open import fiff_open
@@ -34,8 +34,8 @@ from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
-                    _on_missing)
-from .externals.h5io import write_hdf5, read_hdf5
+                    _on_missing, _import_h5io_funcs, _ensure_int,
+                    _path_like)
 
 
 # ############################################################################
@@ -263,10 +263,13 @@ def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
     surf = complete_surface_info(surf, copy=copy, verbose=False)
     fewer = np.where([len(t) < 3 for t in surf['neighbor_tri']])[0]
     if len(fewer) > 0:
+        fewer = list(fewer)
+        fewer = (fewer[:80] + ['...']) if len(fewer) > 80 else fewer
+        fewer = ', '.join(str(f) for f in fewer)
         msg = ('Surface {} has topological defects: {:.0f} / {:.0f} vertices '
                'have fewer than three neighboring triangles [{}]{}'
-               .format(_bem_surf_name[surf['id']], len(fewer), surf['ntri'],
-                       ', '.join(str(f) for f in fewer), extra))
+               .format(_bem_surf_name[surf['id']], len(fewer), len(surf['rr']),
+                       fewer, extra))
         _on_missing(on_missing=incomplete, msg=msg, name='on_defects')
     return surf
 
@@ -482,7 +485,7 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
                          'number of elements (1 or 3)')
     for si, surf in enumerate(surfs):
         if isinstance(surf, str):
-            surfs[si] = read_surface(surf, return_dict=True)[-1]
+            surfs[si] = surf = read_surface(surf, return_dict=True)[-1]
     # Downsampling if the surface is isomorphic with a subdivided icosahedron
     if ico is not None:
         for si, surf in enumerate(surfs):
@@ -650,8 +653,8 @@ def _compute_linear_parameters(mu, u):
 
 def _one_step(mu, u):
     """Evaluate the residual sum of squares fit for one set of mu values."""
-    if np.abs(mu).max() > 1.0:
-        return 1.0
+    if np.abs(mu).max() >= 1.0:
+        return 100.0
 
     # Compose the data for the linear fitting, compute SVD, then residuals
     y, uu, sing, vv = _compose_linear_fitting_data(mu, u)
@@ -681,13 +684,13 @@ def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     # Do the nonlinear minimization, constraining mu to the interval [-1, +1]
     mu_0 = np.zeros(3)
     fun = partial(_one_step, u=u)
-    max_ = 1. - 2e-4  # adjust for fmin_cobyla "catol" that not all scipy have
-    cons = list()
-    for ii in range(nfit):
-        def mycon(x, ii=ii):
-            return max_ - np.abs(x[ii])
-        cons.append(mycon)
-    mu = fmin_cobyla(fun, mu_0, cons, rhobeg=0.5, rhoend=1e-5, disp=0)
+    catol = 1e-6
+    max_ = 1. - 2 * catol
+
+    def cons(x):
+        return max_ - np.abs(x)
+
+    mu = fmin_cobyla(fun, mu_0, [cons], rhobeg=0.5, rhoend=1e-5, catol=catol)
 
     # (6) Do the final step: calculation of the linear parameters
     rv, lambda_ = _compute_linear_parameters(mu, u)
@@ -1020,7 +1023,7 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
 @verbose
 def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                        volume='T1', atlas=False, gcaatlas=False, preflood=None,
-                       show=False, copy=False, T1=None, brainmask='ws.mgz',
+                       show=False, copy=True, T1=None, brainmask='ws.mgz',
                        verbose=None):
     """Create BEM surfaces using the FreeSurfer watershed algorithm.
 
@@ -1044,10 +1047,11 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
         .. versionadded:: 0.12
 
     copy : bool
-        If True (default False), use copies instead of symlinks for surfaces
+        If True (default), use copies instead of symlinks for surfaces
         (if they do not already exist).
 
         .. versionadded:: 0.18
+        .. versionchanged:: 1.1 Use copies instead of symlinks.
     T1 : bool | None
         If True, pass the ``-T1`` flag.
         By default (None), this takes the same value as ``gcaatlas``.
@@ -1251,6 +1255,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, on_defects='raise',
 
 
 def _read_bem_surfaces_h5(fname, s_id):
+    read_hdf5, _ = _import_h5io_funcs()
     bem = read_hdf5(fname)
     try:
         [s['id'] for s in bem['surfs']]
@@ -1393,6 +1398,7 @@ def read_bem_solution(fname, verbose=None):
     fname = _check_fname(fname, 'read', True, 'fname')
     # mirrors fwd_bem_load_surfaces from fwd_bem_model.c
     if fname.endswith('.h5'):
+        read_hdf5, _ = _import_h5io_funcs()
         logger.info('Loading surfaces and solution...')
         bem = read_hdf5(fname)
     else:
@@ -1558,19 +1564,19 @@ def write_bem_surfaces(fname, surfs, overwrite=False, verbose=None):
     fname = _check_fname(fname, overwrite=overwrite, name='fname')
 
     if fname.endswith('.h5'):
+        _, write_hdf5 = _import_h5io_funcs()
         write_hdf5(fname, dict(surfs=surfs), overwrite=True)
     else:
-        with start_file(fname) as fid:
+        with start_and_end_file(fname) as fid:
             start_block(fid, FIFF.FIFFB_BEM)
             write_int(fid, FIFF.FIFF_BEM_COORD_FRAME, surfs[0]['coord_frame'])
             _write_bem_surfaces_block(fid, surfs)
             end_block(fid, FIFF.FIFFB_BEM)
-            end_file(fid)
 
 
 @verbose
 def write_head_bem(fname, rr, tris, on_defects='raise', overwrite=False,
-                   verbose=None):
+                   *, verbose=None):
     """Write a head surface to a fiff file.
 
     Parameters
@@ -1629,6 +1635,7 @@ def write_bem_solution(fname, bem, overwrite=False, verbose=None):
     """
     fname = _check_fname(fname, overwrite=overwrite, name='fname')
     if fname.endswith('.h5'):
+        _, write_hdf5 = _import_h5io_funcs()
         bem = {k: bem[k] for k in ('surfs', 'solution', 'bem_method')}
         write_hdf5(fname, bem, overwrite=True)
     else:
@@ -1637,7 +1644,7 @@ def write_bem_solution(fname, bem, overwrite=False, verbose=None):
 
 def _write_bem_solution_fif(fname, bem):
     _check_bem_size(bem['surfs'])
-    with start_file(fname) as fid:
+    with start_and_end_file(fname) as fid:
         start_block(fid, FIFF.FIFFB_BEM)
         # Coordinate frame (mainly for backward compatibility)
         write_int(fid, FIFF.FIFF_BEM_COORD_FRAME,
@@ -1652,7 +1659,6 @@ def _write_bem_solution_fif(fname, bem):
             write_float_matrix(fid, FIFF.FIFF_BEM_POT_SOLUTION,
                                bem['solution'])
         end_block(fid, FIFF.FIFFB_BEM)
-        end_file(fid)
 
 
 # #############################################################################
@@ -1683,101 +1689,100 @@ def _prepare_env(subject, subjects_dir):
     return env, mri_dir, bem_dir
 
 
+def _write_echos(mri_dir, flash_echos, angle):
+    import nibabel as nib
+    from nibabel.spatialimages import SpatialImage
+    if _path_like(flash_echos):
+        flash_echos = nib.load(flash_echos)
+    if isinstance(flash_echos, SpatialImage):
+        flash_echo_imgs = []
+        data = np.asanyarray(flash_echos.dataobj)
+        affine = flash_echos.affine
+        if data.ndim == 3:
+            data = data[..., np.newaxis]
+        for echo_idx in range(data.shape[3]):
+            this_echo_img = flash_echos.__class__(
+                data[..., echo_idx], affine=affine,
+                header=deepcopy(flash_echos.header)
+            )
+            flash_echo_imgs.append(this_echo_img)
+        flash_echos = flash_echo_imgs
+        del flash_echo_imgs
+    for idx, flash_echo in enumerate(flash_echos, 1):
+        if _path_like(flash_echo):
+            flash_echo = nib.load(flash_echo)
+        nib.save(flash_echo,
+                 op.join(mri_dir, 'flash', f'mef{angle}_{idx:03d}.mgz'))
+
+
 @verbose
-def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
-                       subjects_dir=None, verbose=None):
-    """Convert DICOM files for use with make_flash_bem.
+def convert_flash_mris(subject, flash30=True, unwarp=False,
+                       subjects_dir=None, flash5=True, verbose=None):
+    """Synthetize the flash 5 files for use with make_flash_bem.
+
+    This function aims to produce a synthesized flash 5 MRI from
+    multiecho flash (MEF) MRI data. This function can use MEF data
+    with 5 or 30 flip angles. If flash5 (and flash30) images are not
+    explicitly provided, it will assume that the different echos are available
+    in the mri/flash folder of the subject with the following naming
+    convention "mef<angle>_<echo>.mgz", e.g. "mef05_001.mgz"
+    or "mef30_001.mgz".
 
     Parameters
     ----------
     subject : str
         Subject name.
-    flash30 : bool
-        Use 30-degree flip angle data.
-    convert : bool
-        Assume that the Flash MRI images have already been converted
-        to mgz files.
+    flash30 : bool | list of SpatialImage or path-like | SpatialImage | path-like
+        If False do not use 30-degree flip angle data.
+        The list of flash 5 echos to use. If True it will look for files
+        named mef30_*.mgz in the subject's mri/flash directory and if not False
+        the list of flash 5 echos images will be written to the mri/flash
+        folder with convention mef05_<echo>.mgz. If a SpatialImage object
+        each frame of the image will be interpreted as an echo.
     unwarp : bool
         Run grad_unwarp with -unwarp option on each of the converted
         data sets. It requires FreeSurfer's MATLAB toolbox to be properly
         installed.
     %(subjects_dir)s
+    flash5 : list of SpatialImage or path-like | SpatialImage | path-like | True
+        The list of flash 5 echos to use. If True it will look for files
+        named mef05_*.mgz in the subject's mri/flash directory and if not None
+        the list of flash 5 echos images will be written to the mri/flash
+        folder with convention mef05_<echo>.mgz. If a SpatialImage object
+        each frame of the image will be interpreted as an echo.
     %(verbose)s
+
+    Returns
+    -------
+    flash5_img : path-like
+        The path the synthesized flash 5 MRI.
 
     Notes
     -----
-    Before running this script do the following:
-    (unless convert=False is specified)
-
-    1. Copy all of your FLASH images in a single directory <source> and
-        create a directory <dest> to hold the output of mne_organize_dicom
-    2. cd to <dest> and run
-        $ mne_organize_dicom <source>
-        to create an appropriate directory structure
-    3. Create symbolic links to make flash05 and flash30 point to the
-        appropriate series:
-        $ ln -s <FLASH 5 series dir> flash05
-        $ ln -s <FLASH 30 series dir> flash30
-        Some partition formats (e.g. FAT32) do not support symbolic links.
-        In this case, copy the file to the appropriate series:
-        $ cp <FLASH 5 series dir> flash05
-        $ cp <FLASH 30 series dir> flash30
-    4. cd to the directory where flash05 and flash30 links are
-    5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
-    6. Run this script
-
     This function assumes that the Freesurfer segmentation of the subject
     has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
     should be, as usual, in the subject's mri directory.
-    """
+    """  # noqa: E501
     env, mri_dir = _prepare_env(subject, subjects_dir)[:2]
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
+
+    mri_dir = Path(mri_dir)
     # Step 1a : Data conversion to mgz format
-    if not op.exists(op.join(mri_dir, 'flash', 'parameter_maps')):
-        os.makedirs(op.join(mri_dir, 'flash', 'parameter_maps'))
+    flash_dir = mri_dir / "flash"
+    pm_dir = flash_dir / 'parameter_maps'
+    pm_dir.mkdir(parents=True, exist_ok=True)
     echos_done = 0
-    if convert:
-        logger.info("\n---- Converting Flash images ----")
-        echos = ['001', '002', '003', '004', '005', '006', '007', '008']
-        if flash30:
-            flashes = ['05', '30']
-        else:
-            flashes = ['05']
-        #
-        missing = False
-        for flash in flashes:
-            for echo in echos:
-                if not op.isdir(op.join('flash' + flash, echo)):
-                    missing = True
-        if missing:
-            echos = ['002', '003', '004', '005', '006', '007', '008', '009']
-            for flash in flashes:
-                for echo in echos:
-                    if not op.isdir(op.join('flash' + flash, echo)):
-                        raise RuntimeError("Directory %s is missing."
-                                           % op.join('flash' + flash, echo))
-        #
-        for flash in flashes:
-            for echo in echos:
-                if not op.isdir(op.join('flash' + flash, echo)):
-                    raise RuntimeError("Directory %s is missing."
-                                       % op.join('flash' + flash, echo))
-                sample_file = glob.glob(op.join('flash' + flash, echo, '*'))[0]
-                dest_file = op.join(mri_dir, 'flash',
-                                    'mef' + flash + '_' + echo + '.mgz')
-                # do not redo if already present
-                if op.isfile(dest_file):
-                    logger.info("The file %s is already there")
-                else:
-                    cmd = ['mri_convert', sample_file, dest_file]
-                    run_subprocess_env(cmd)
-                    echos_done += 1
+
+    if not isinstance(flash5, bool):
+        _write_echos(mri_dir, flash5, angle='05')
+    if not isinstance(flash30, bool):
+        _write_echos(mri_dir, flash30, angle='30')
+
     # Step 1b : Run grad_unwarp on converted files
-    flash_dir = op.join(mri_dir, "flash")
-    template = op.join(flash_dir, "mef*.mgz")
-    files = glob.glob(template)
+    template = op.join(flash_dir, "mef*_*.mgz")
+    files = sorted(glob.glob(template))
     if len(files) == 0:
         raise ValueError('No suitable source files found (%s)' % template)
     if unwarp:
@@ -1788,56 +1793,50 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
                    'true']
             run_subprocess_env(cmd)
     # Clear parameter maps if some of the data were reconverted
-    pm_dir = op.join(flash_dir, 'parameter_maps')
-    if echos_done > 0 and op.exists(pm_dir):
+    if echos_done > 0 and pm_dir.exists():
         shutil.rmtree(pm_dir)
         logger.info("\nParameter maps directory cleared")
-    if not op.exists(pm_dir):
-        os.makedirs(pm_dir)
+    if not pm_dir.exists():
+        pm_dir.mkdir(parents=True, exist_ok=True)
     # Step 2 : Create the parameter maps
     if flash30:
         logger.info("\n---- Creating the parameter maps ----")
         if unwarp:
-            files = glob.glob(op.join(flash_dir, "mef05*u.mgz"))
+            files = sorted(glob.glob(op.join(flash_dir, "mef05_*u.mgz")))
         if len(os.listdir(pm_dir)) == 0:
-            cmd = (['mri_ms_fitparms'] +
-                   files +
-                   [op.join(flash_dir, 'parameter_maps')])
+            cmd = (['mri_ms_fitparms'] + files + [str(pm_dir)])
             run_subprocess_env(cmd)
         else:
             logger.info("Parameter maps were already computed")
         # Step 3 : Synthesize the flash 5 images
         logger.info("\n---- Synthesizing flash 5 images ----")
-        if not op.exists(op.join(pm_dir, 'flash5.mgz')):
+        if not (pm_dir / 'flash5.mgz').exists():
             cmd = ['mri_synthesize', '20', '5', '5',
-                   op.join(pm_dir, 'T1.mgz'),
-                   op.join(pm_dir, 'PD.mgz'),
-                   op.join(pm_dir, 'flash5.mgz')
+                   (pm_dir / 'T1.mgz'),
+                   (pm_dir / 'PD.mgz'),
+                   (pm_dir / 'flash5.mgz')
                    ]
             run_subprocess_env(cmd)
-            os.remove(op.join(pm_dir, 'flash5_reg.mgz'))
+            (pm_dir / 'flash5_reg.mgz').unlink()
         else:
             logger.info("Synthesized flash 5 volume is already there")
     else:
         logger.info("\n---- Averaging flash5 echoes ----")
-        template = op.join(flash_dir,
-                           "mef05*u.mgz" if unwarp else "mef05*.mgz")
-        files = glob.glob(template)
+        template = "mef05_*u.mgz" if unwarp else "mef05_*.mgz"
+        files = sorted(flash_dir.glob(template))
         if len(files) == 0:
             raise ValueError('No suitable source files found (%s)' % template)
-        cmd = (['mri_average', '-noconform'] +
-               files +
-               [op.join(pm_dir, 'flash5.mgz')])
+        cmd = (['mri_average', '-noconform'] + files + [pm_dir / 'flash5.mgz'])
         run_subprocess_env(cmd)
-        if op.exists(op.join(pm_dir, 'flash5_reg.mgz')):
-            os.remove(op.join(pm_dir, 'flash5_reg.mgz'))
+        (pm_dir / 'flash5_reg.mgz').unlink(missing_ok=True)
     del tempdir  # finally done running subprocesses
-    assert op.isfile(op.join(pm_dir, 'flash5.mgz'))
+    assert (pm_dir / 'flash5.mgz').exists()
+    return pm_dir / 'flash5.mgz'
 
 
 @verbose
 def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
-                   flash_path=None, copy=False, verbose=None):
+                   copy=True, *, flash5_img=None, register=True, verbose=None):
     """Create 3-Layer BEM model from prepared flash MRI images.
 
     Parameters
@@ -1849,16 +1848,25 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     show : bool
         Show surfaces to visually inspect all three BEM surfaces (recommended).
     %(subjects_dir)s
-    flash_path : str | None
-        Path to the flash images. If None (default), mri/flash/parameter_maps
-        within the subject reconstruction is used.
-
-        .. versionadded:: 0.13.0
     copy : bool
-        If True (default False), use copies instead of symlinks for surfaces
+        If True (default), use copies instead of symlinks for surfaces
         (if they do not already exist).
 
         .. versionadded:: 0.18
+        .. versionchanged:: 1.1 Use copies instead of symlinks.
+    flash5_img : None | path-like | Nifti1Image
+        The path to the synthesized flash 5 MRI image or the image itself. If
+        None (default), the path defaults to
+        ``mri/flash/parameter_maps/flash5.mgz`` within the subject
+        reconstruction. If not present the image is copied or written to the
+        default location.
+
+        .. versionadded:: 1.1.0
+    register : bool
+        Register the flash 5 image with T1.mgz file. If False, we assume
+        that the images are already coregistered.
+
+        .. versionadded:: 1.1.0
     %(verbose)s
 
     See Also
@@ -1870,8 +1878,8 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     This program assumes that FreeSurfer is installed and sourced properly.
 
     This function extracts the BEM surfaces (outer skull, inner skull, and
-    outer skin) from multiecho FLASH MRI data with spin angles of 5 and 30
-    degrees, in mgz format.
+    outer skin) from a FLASH 5 MRI image synthesized from multiecho FLASH
+    images acquired with spin angles of 5 and 30 degrees.
     """
     from .viz.misc import plot_bem
 
@@ -1880,65 +1888,81 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
 
-    if flash_path is None:
-        flash_path = op.join(mri_dir, 'flash', 'parameter_maps')
-    else:
-        flash_path = op.abspath(flash_path)
+    mri_dir = Path(mri_dir)
+    bem_dir = Path(bem_dir)
     subjects_dir = env['SUBJECTS_DIR']
+    flash_path = (mri_dir / 'flash' / 'parameter_maps').resolve()
+    flash_path.mkdir(exist_ok=True, parents=True)
 
     logger.info('\nProcessing the flash MRI data to produce BEM meshes with '
                 'the following parameters:\n'
                 'SUBJECTS_DIR = %s\n'
                 'SUBJECT = %s\n'
                 'Result dir = %s\n' % (subjects_dir, subject,
-                                       op.join(bem_dir, 'flash')))
+                                       bem_dir / 'flash'))
     # Step 4 : Register with MPRAGE
-    logger.info("\n---- Registering flash 5 with MPRAGE ----")
-    flash5 = op.join(flash_path, 'flash5.mgz')
-    flash5_reg = op.join(flash_path, 'flash5_reg.mgz')
-    if not op.exists(flash5_reg):
-        if op.exists(op.join(mri_dir, 'T1.mgz')):
-            ref_volume = op.join(mri_dir, 'T1.mgz')
-        else:
-            ref_volume = op.join(mri_dir, 'T1')
-        cmd = ['fsl_rigid_register', '-r', ref_volume, '-i', flash5,
-               '-o', flash5_reg]
+    flash5 = flash_path / 'flash5.mgz'
+
+    if _path_like(flash5_img):
+        logger.info(f"Copying flash 5 image {flash5_img} to {flash5}")
+        cmd = ['mri_convert', Path(flash5_img).resolve(), flash5]
         run_subprocess_env(cmd)
+    elif flash5_img is None:
+        if not flash5.exists():
+            raise ValueError(f'Flash 5 image cannot be found at {flash5}.')
     else:
-        logger.info("Registered flash 5 image is already there")
+        logger.info(f"Writing flash 5 image at {flash5}")
+        import nibabel as nib
+        nib.save(flash5_img, flash5)
+
+    if register:
+        logger.info("\n---- Registering flash 5 with T1 MPRAGE ----")
+        flash5_reg = flash_path / 'flash5_reg.mgz'
+        if not flash5_reg.exists():
+            if (mri_dir / 'T1.mgz').exists():
+                ref_volume = mri_dir / 'T1.mgz'
+            else:
+                ref_volume = mri_dir / 'T1'
+            cmd = ['fsl_rigid_register', '-r', str(ref_volume), '-i',
+                   str(flash5), '-o', str(flash5_reg)]
+            run_subprocess_env(cmd)
+        else:
+            logger.info("Registered flash 5 image is already there")
+    else:
+        flash5_reg = flash5
+
     # Step 5a : Convert flash5 into COR
     logger.info("\n---- Converting flash5 volume into COR format ----")
-    flash5_dir = op.join(mri_dir, 'flash5')
+    flash5_dir = mri_dir / 'flash5'
     shutil.rmtree(flash5_dir, ignore_errors=True)
-    os.makedirs(flash5_dir)
-    cmd = ['mri_convert', flash5_reg, op.join(mri_dir, 'flash5')]
+    flash5_dir.mkdir(exist_ok=True, parents=True)
+    cmd = ['mri_convert', flash5_reg, flash5_dir]
     run_subprocess_env(cmd)
     # Step 5b and c : Convert the mgz volumes into COR
     convert_T1 = False
-    T1_dir = op.join(mri_dir, 'T1')
-    if not op.isdir(T1_dir) or len(glob.glob(op.join(T1_dir, 'COR*'))) == 0:
+    T1_dir = mri_dir / 'T1'
+    if not T1_dir.is_dir() or next(T1_dir.glob('COR*')) is None:
         convert_T1 = True
     convert_brain = False
-    brain_dir = op.join(mri_dir, 'brain')
-    if not op.isdir(brain_dir) or \
-            len(glob.glob(op.join(brain_dir, 'COR*'))) == 0:
+    brain_dir = mri_dir / 'brain'
+    if not brain_dir.is_dir() or next(brain_dir.glob('COR*')) is None:
         convert_brain = True
     logger.info("\n---- Converting T1 volume into COR format ----")
     if convert_T1:
-        T1_fname = op.join(mri_dir, 'T1.mgz')
-        if not op.isfile(T1_fname):
+        T1_fname = mri_dir / 'T1.mgz'
+        if not T1_fname.is_file():
             raise RuntimeError("Both T1 mgz and T1 COR volumes missing.")
-        os.makedirs(T1_dir)
+        T1_dir.mkdir(exist_ok=True, parents=True)
         cmd = ['mri_convert', T1_fname, T1_dir]
         run_subprocess_env(cmd)
     else:
         logger.info("T1 volume is already in COR format")
     logger.info("\n---- Converting brain volume into COR format ----")
     if convert_brain:
-        brain_fname = op.join(mri_dir, 'brain.mgz')
-        if not op.isfile(brain_fname):
+        brain_fname = mri_dir / 'brain.mgz'
+        if not brain_fname.is_file():
             raise RuntimeError("Both brain mgz and brain COR volumes missing.")
-        os.makedirs(brain_dir)
+        brain_dir.mkdir(exist_ok=True, parents=True)
         cmd = ['mri_convert', brain_fname, brain_dir]
         run_subprocess_env(cmd)
     else:
@@ -1950,13 +1974,12 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     del tempdir  # ran our last subprocess; clean up directory
 
     logger.info("\n---- Converting the tri files into surf files ----")
-    flash_bem_dir = op.join(bem_dir, 'flash')
-    if not op.exists(flash_bem_dir):
-        os.makedirs(flash_bem_dir)
+    flash_bem_dir = bem_dir / 'flash'
+    flash_bem_dir.mkdir(exist_ok=True, parents=True)
     surfs = ['inner_skull', 'outer_skull', 'outer_skin']
     for surf in surfs:
-        out_fname = op.join(flash_bem_dir, surf + '.tri')
-        shutil.move(op.join(bem_dir, surf + '.tri'), out_fname)
+        out_fname = flash_bem_dir / (surf + '.tri')
+        shutil.move(bem_dir / (surf + '.tri'), out_fname)
         nodes, tris = read_tri(out_fname, swap=True)
         # Do not write volume info here because the tris are already in
         # standard Freesurfer coords
@@ -1965,8 +1988,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
     # Cleanup section
     logger.info("\n---- Cleaning up ----")
-    os.remove(op.join(bem_dir, 'inner_skull_tmp.tri'))
-    # os.chdir(mri_dir)
+    (bem_dir / 'inner_skull_tmp.tri').unlink()
     if convert_T1:
         shutil.rmtree(T1_dir)
         logger.info("Deleted the T1 COR volume")
@@ -1979,18 +2001,18 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
     logger.info("\n---- Creating symbolic links ----")
     # os.chdir(bem_dir)
     for surf in surfs:
-        surf = op.join(bem_dir, surf + '.surf')
-        if not overwrite and op.exists(surf):
+        surf = bem_dir / (surf + '.surf')
+        if not overwrite and surf.exists():
             skip_symlink = True
         else:
-            if op.exists(surf):
-                os.remove(surf)
-            _symlink(op.join(flash_bem_dir, op.basename(surf)), surf, copy)
+            if surf.exists():
+                surf.unlink()
+            _symlink(flash_bem_dir / surf.name, surf, copy)
             skip_symlink = False
     if skip_symlink:
         logger.info("Unable to create all symbolic links to .surf files "
                     "in bem folder. Use --overwrite option to recreate them.")
-        dest = op.join(bem_dir, 'flash')
+        dest = bem_dir / 'flash'
     else:
         logger.info("Symbolic links to .surf files created in bem folder")
         dest = bem_dir
@@ -2063,9 +2085,16 @@ def _check_file(fname, overwrite):
         raise IOError(f'File {fname} exists, use --overwrite to overwrite it')
 
 
+_tri_levels = dict(
+    medium=30000,
+    sparse=2500,
+)
+
+
 @verbose
 def make_scalp_surfaces(subject, subjects_dir=None, force=True,
-                        overwrite=False, no_decimate=False, verbose=None):
+                        overwrite=False, no_decimate=False, *,
+                        threshold=20, mri='T1.mgz', verbose=None):
     """Create surfaces of the scalp and neck.
 
     The scalp surfaces are required for using the MNE coregistration GUI, and
@@ -2078,28 +2107,35 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     %(subjects_dir)s
     force : bool
         Force creation of the surface even if it has some topological defects.
-        Defaults to ``True``.
+        Defaults to ``True``. See :ref:`tut-fix-meshes` for ideas on how to
+        fix problematic meshes.
     %(overwrite)s
     no_decimate : bool
         Disable the "medium" and "sparse" decimations. In this case, only
         a "dense" surface will be generated. Defaults to ``False``, i.e.,
         create surfaces for all three types of decimations.
+    threshold : int
+        The threshold to use with the MRI in the call to ``mkheadsurf``.
+        The default is 20.
+
+        .. versionadded:: 1.1
+    mri : str
+        The MRI to use. Should exist in ``$SUBJECTS_DIR/$SUBJECT/mri``.
+
+        .. versionadded:: 1.1
     %(verbose)s
     """
-    this_env = deepcopy(os.environ)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    this_env['SUBJECTS_DIR'] = subjects_dir
-    this_env['SUBJECT'] = subject
-    if 'FREESURFER_HOME' not in this_env:
-        raise RuntimeError('The FreeSurfer environment needs to be set up '
-                           'for this script')
     incomplete = 'warn' if force else 'raise'
     subj_path = op.join(subjects_dir, subject)
     if not op.exists(subj_path):
         raise RuntimeError('%s does not exist. Please check your subject '
                            'directory path.' % subj_path)
 
-    mri = 'T1.mgz' if op.exists(op.join(subj_path, 'mri', 'T1.mgz')) else 'T1'
+    # Backward compat for old FreeSurfer (?)
+    _validate_type(mri, str, 'mri')
+    if mri == 'T1.mgz':
+        mri = mri if op.exists(op.join(subj_path, 'mri', mri)) else 'T1'
 
     logger.info('1. Creating a dense scalp tessellation with mkheadsurf...')
 
@@ -2113,9 +2149,21 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
         return surf
 
     my_seghead = check_seghead()
+    threshold = _ensure_int(threshold, 'threshold')
     if my_seghead is None:
-        run_subprocess(['mkheadsurf', '-subjid', subject, '-srcvol', mri],
-                       env=this_env)
+        this_env = deepcopy(os.environ)
+        this_env['SUBJECTS_DIR'] = subjects_dir
+        this_env['SUBJECT'] = subject
+        this_env['subjdir'] = subjects_dir + '/' + subject
+        if 'FREESURFER_HOME' not in this_env:
+            raise RuntimeError(
+                'The FreeSurfer environment needs to be set up to use '
+                'make_scalp_surfaces to create the outer skin surface '
+                'lh.seghead')
+        run_subprocess([
+            'mkheadsurf', '-subjid', subject, '-srcvol', mri,
+            '-thresh1', str(threshold),
+            '-thresh2', str(threshold)], env=this_env)
 
     surf = check_seghead()
     if surf is None:
@@ -2130,18 +2178,20 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
     logger.info('2. Creating %s ...' % dense_fname)
     _check_file(dense_fname, overwrite)
     # Helpful message if we get a topology error
-    msg = '\n\nConsider using --force as an additional input parameter.'
+    msg = ('\n\nConsider using pymeshfix directly to fix the mesh, or --force '
+           'to ignore the problem.')
     surf = _surfaces_to_bem(
         [surf], [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1],
         incomplete=incomplete, extra=msg)[0]
     write_bem_surfaces(dense_fname, surf, overwrite=overwrite)
-    levels = 'medium', 'sparse'
-    tris = [] if no_decimate else [30000, 2500]
     if os.getenv('_MNE_TESTING_SCALP', 'false') == 'true':
         tris = [len(surf['tris'])]  # don't actually decimate
-    for ii, (n_tri, level) in enumerate(zip(tris, levels), 3):
-        logger.info('%i. Creating %s tessellation...' % (ii, level))
-        logger.info('%i.1 Decimating the dense tessellation...' % ii)
+    for ii, (level, n_tri) in enumerate(_tri_levels.items(), 3):
+        if no_decimate:
+            break
+        logger.info(f'{ii}. Creating {level} tessellation...')
+        logger.info(f'{ii}.1 Decimating the dense tessellation '
+                    f'({len(surf["tris"])} -> {n_tri} triangles)...')
         points, tris = decimate_surface(points=surf['rr'],
                                         triangles=surf['tris'],
                                         n_triangles=n_tri)
@@ -2153,3 +2203,66 @@ def make_scalp_surfaces(subject, subjects_dir=None, force=True,
             [FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False,
             incomplete=incomplete, extra=msg)
         write_bem_surfaces(dec_fname, dec_surf, overwrite=overwrite)
+    logger.info('[done]')
+
+
+@verbose
+def distance_to_bem(pos, bem, trans=None, verbose=None):
+    """Calculate the distance of positions to inner skull surface.
+
+    Parameters
+    ----------
+    pos : array, shape (..., 3)
+        Position(s) in m, in head coordinates.
+    bem : instance of ConductorModel
+        Conductor model.
+    %(trans)s If None (default), assumes bem is in head coordinates.
+    %(verbose)s
+
+    Returns
+    -------
+    distances : float | array, shape (...)
+        The computed distance(s). A float is returned if pos is
+        an array of shape (3,) corresponding to a single position.
+
+    Notes
+    -----
+    .. versionadded:: 1.1
+    """
+    ndim = pos.ndim
+    if ndim == 1:
+        pos = pos[np.newaxis, :]
+
+    n = pos.shape[0]
+    distance = np.zeros((n,))
+
+    logger.info(
+        'Computing distance to inner skull surface for ' +
+        f'{n} position{_pl(n)}...'
+    )
+
+    if bem['is_sphere']:
+        center = bem['r0']
+
+        if trans:
+            center = apply_trans(trans, center, move=True)
+        radius = bem['layers'][0]['rad']
+
+        distance = np.abs(radius - np.linalg.norm(
+            pos - center, axis=1
+        ))
+
+    else:  # is BEM
+        surface_points = bem['surfs'][0]['rr']
+
+        if trans:
+            surface_points = apply_trans(
+                trans, surface_points, move=True
+            )
+
+        _, distance = _compute_nearest(surface_points, pos, return_dists=True)
+
+    if ndim == 1:
+        distance = distance[0]  # return just a float if one pos is passed
+
+    return distance

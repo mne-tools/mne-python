@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _ex-snr-estimate:
+
 ==================================
 Estimate data SNR using an inverse
 ==================================
@@ -13,8 +15,6 @@ using a minimum-norm inverse operator.
 
 # %%
 
-from os import path as op
-
 from mne.datasets.sample import data_path
 from mne.minimum_norm import read_inverse_operator
 from mne import read_evokeds
@@ -22,9 +22,9 @@ from mne.viz import plot_snr_estimate
 
 print(__doc__)
 
-data_dir = op.join(data_path(), 'MEG', 'sample')
-fname_inv = op.join(data_dir, 'sample_audvis-meg-oct-6-meg-inv.fif')
-fname_evoked = op.join(data_dir, 'sample_audvis-ave.fif')
+data_dir = data_path() / 'MEG' / 'sample'
+fname_inv = data_dir / 'sample_audvis-meg-oct-6-meg-inv.fif'
+fname_evoked = data_dir / 'sample_audvis-ave.fif'
 
 inv = read_inverse_operator(fname_inv)
 evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]

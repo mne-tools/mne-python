@@ -4,9 +4,10 @@
 
 # License: BSD-3-Clause
 
+import copy
 import os.path as op
 import warnings
-import copy
+
 import numpy as np
 
 from .fixes import _get_img_fdata
@@ -19,9 +20,9 @@ from .source_space import SourceSpaces, _ensure_src, _grid_interp
 from .surface import mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
-                    BunchConst, _check_fname, warn,
-                    _ensure_int, ProgressBar, use_log_level)
-from .externals.h5io import read_hdf5, write_hdf5
+                    BunchConst, _check_fname, warn, _custom_lru_cache,
+                    _ensure_int, ProgressBar, use_log_level,
+                    _import_h5io_funcs)
 
 
 @verbose
@@ -292,11 +293,11 @@ _SOURCE_MORPH_ATTRIBUTES = [  # used in writing
     'subject_from', 'subject_to', 'kind', 'zooms', 'niter_affine', 'niter_sdr',
     'spacing', 'smooth', 'xhemi', 'morph_mat', 'vertices_to',
     'shape', 'affine', 'pre_affine', 'sdr_morph', 'src_data',
-    'vol_morph_mat', 'verbose']
+    'vol_morph_mat']
 
 
 @fill_doc
-class SourceMorph(object):
+class SourceMorph:
     """Morph source space data from one subject to another.
 
     .. note:: This class should not be instantiated directly.
@@ -360,11 +361,12 @@ class SourceMorph(object):
     .. footbibliography::
     """
 
+    @verbose
     def __init__(self, subject_from, subject_to, kind, zooms,
                  niter_affine, niter_sdr, spacing, smooth, xhemi,
                  morph_mat, vertices_to, shape,
                  affine, pre_affine, sdr_morph, src_data,
-                 vol_morph_mat, verbose=None):
+                 vol_morph_mat, *, verbose=None):
         # universal
         self.subject_from = subject_from
         self.subject_to = subject_to
@@ -387,7 +389,6 @@ class SourceMorph(object):
         # used by both
         self.src_data = src_data
         self.vol_morph_mat = vol_morph_mat
-        self.verbose = verbose
         # compute vertices_to here (partly for backward compat and no src
         # provided)
         if vertices_to is None or len(vertices_to) == 0 and kind == 'volume':
@@ -432,7 +433,7 @@ class SourceMorph(object):
         mri_space : bool | None
             Whether the image to world registration should be in mri space. The
             default (None) is mri_space=mri_resolution.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -473,7 +474,7 @@ class SourceMorph(object):
 
         Parameters
         ----------
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -646,8 +647,9 @@ class SourceMorph(object):
             The stem of the file name. '-morph.h5' will be added if fname does
             not end with '.h5'.
         %(overwrite)s
-        %(verbose_meth)s
+        %(verbose)s
         """
+        _, write_hdf5 = _import_h5io_funcs()
         fname = _check_fname(fname, overwrite=overwrite, must_exist=False)
         if not fname.endswith('.h5'):
             fname = '%s-morph.h5' % fname
@@ -743,6 +745,7 @@ def read_source_morph(fname):
     source_morph : instance of SourceMorph
         The loaded morph.
     """
+    read_hdf5, _ = _import_h5io_funcs()
     vals = read_hdf5(fname)
     if vals['pre_affine'] is not None:  # reconstruct
         from dipy.align.imaffine import AffineMap
@@ -1063,6 +1066,7 @@ def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
 
 def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
     from scipy import sparse
+    _validate_type(smooth, (str, None, 'int-like'), 'smoothing steps')
     if len(vertices_from) == 0:
         return sparse.csr_matrix((len(vertices_to), 0))
     e = mesh_edges(tris)
@@ -1073,8 +1077,18 @@ def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
         _check_option('smooth', smooth, ('nearest',),
                       extra=' when used as a string.')
         mm = _surf_nearest(vertices_from, e).tocsr()
+    elif smooth == 0:
+        mm = sparse.csc_matrix(
+            (np.ones(len(vertices_from)),  # data, indices, indptr
+                vertices_from,
+                np.arange(len(vertices_from) + 1)),
+            shape=(e.shape[0], len(vertices_from))).tocsr()
     else:
-        mm = _surf_upsampling_mat(vertices_from, e, smooth, warn=warn)
+        mm, n_missing, n_iter = _surf_upsampling_mat(vertices_from, e, smooth)
+        if n_missing and warn:
+            warn_(f'{n_missing}/{e.shape[0]} vertices not included in '
+                  'smoothing, consider increasing the number of steps')
+        logger.info(f'    {n_iter} smooth iterations done.')
     assert mm.shape == (n_vertices, len(vertices_from))
     if maps is not None:
         mm = maps[vertices_to] * mm
@@ -1085,7 +1099,7 @@ def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
 
 
 @verbose
-def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
+def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=None,
                       verbose=None):
     """Convert a grade to source space vertices for a given subject.
 
@@ -1158,6 +1172,8 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     return vertices
 
 
+# Takes ~20 ms to hash, ~100 ms to compute (5x speedup)
+@_custom_lru_cache(20)
 def _surf_nearest(vertices, adj_mat):
     from scipy import sparse
     from scipy.sparse.csgraph import dijkstra
@@ -1185,7 +1201,12 @@ def _csr_row_norm(data, row_norm):
     data.data /= np.where(row_norm, row_norm, 1).repeat(np.diff(data.indptr))
 
 
-def _surf_upsampling_mat(idx_from, e, smooth, warn=True):
+# upsamplers are generally not very big (< 1 MB), and users might have a lot
+# For 5 smoothing steps for example:
+# smoothing_steps=5 takes ~20 ms to hash, ~100 ms to compute (5x speedup)
+# smoothing_steps=None takes ~20 ms to hash, ~400 ms to compute (20x speedup)
+@_custom_lru_cache(20)
+def _surf_upsampling_mat(idx_from, e, smooth):
     """Upsample data on a subject's surface given mesh edges."""
     # we're in CSR format and it's to==from
     from scipy import sparse
@@ -1198,13 +1219,7 @@ def _surf_upsampling_mat(idx_from, e, smooth, warn=True):
     _validate_type(smooth, ('int-like', str, None), 'smoothing steps')
     if smooth is not None:  # number of steps
         smooth = _ensure_int(smooth, 'smoothing steps')
-        if smooth == 0:
-            return sparse.csc_matrix(
-                (np.ones(len(idx_from)),  # data, indices, indptr
-                 idx_from,
-                 np.arange(len(idx_from) + 1)),
-                shape=(e.shape[0], len(idx_from))).tocsr()
-        elif smooth < 0:
+        if smooth <= 0:  # == 0 is handled in a shortcut above
             raise ValueError(
                 'The number of smoothing operations has to be at least 0, got '
                 f'{smooth}')
@@ -1236,11 +1251,9 @@ def _surf_upsampling_mat(idx_from, e, smooth, warn=True):
         if k == smooth or (smooth is None and len(idx) == n_tot):
             break  # last iteration / done
     assert data.shape == (n_tot, len(idx_from))
-    if len(idx) != n_tot and warn:
-        warn_(f'{n_tot-len(idx)}/{n_tot} vertices not included in smoothing, '
-              'consider increasing the number of steps')
-    logger.info(f'    {k + 1} smooth iterations done.')
-    return data
+    n_missing = n_tot - len(idx)
+    n_iter = k + 1
+    return data, n_missing, n_iter
 
 
 def _sparse_argmax_nnz_row(csr_mat):

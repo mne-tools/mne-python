@@ -11,9 +11,9 @@ from .mixin import TransformerMixin
 from .base import BaseEstimator
 
 from .. import pick_types
-from ..filter import filter_data, _triage_filter_params
+from ..filter import filter_data
 from ..time_frequency.psd import psd_array_multitaper
-from ..utils import fill_doc, _check_option, _validate_type
+from ..utils import fill_doc, _check_option, _validate_type, verbose
 from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
                        _picks_to_idx)
 from ..cov import _check_scalings_user
@@ -350,10 +350,7 @@ class PSDEstimator(TransformerMixin):
         bandwidth.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
-    normalization : str
-        Either "full" or "length" (default). If "full", the PSD will
-        be normalized by the sampling rate as well as the length of
-        the signal (as in nitime).
+    %(normalization)s
     %(verbose)s
 
     See Also
@@ -361,9 +358,10 @@ class PSDEstimator(TransformerMixin):
     mne.time_frequency.psd_multitaper
     """
 
+    @verbose
     def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
-                 adaptive=False, low_bias=True, n_jobs=1,
-                 normalization='length', verbose=None):  # noqa: D102
+                 adaptive=False, low_bias=True, n_jobs=None,
+                 normalization='length', *, verbose=None):  # noqa: D102
         self.sfreq = sfreq
         self.fmin = fmin
         self.fmax = fmax
@@ -371,7 +369,6 @@ class PSDEstimator(TransformerMixin):
         self.adaptive = adaptive
         self.low_bias = low_bias
         self.n_jobs = n_jobs
-        self.verbose = verbose
         self.normalization = normalization
 
     def fit(self, epochs_data, y):
@@ -472,9 +469,9 @@ class FilterEstimator(TransformerMixin):
     """
 
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='auto',
-                 l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
-                 method='fir', iir_params=None, fir_design='firwin',
-                 verbose=None):  # noqa: D102
+                 l_trans_bandwidth='auto', h_trans_bandwidth='auto',
+                 n_jobs=None, method='fir', iir_params=None,
+                 fir_design='firwin', *, verbose=None):  # noqa: D102
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -524,14 +521,16 @@ class FilterEstimator(TransformerMixin):
                                              self.l_freq < self.h_freq) and
                                             self.h_freq <
                                             self.info['lowpass']):
-            self.info['lowpass'] = self.h_freq
+            with self.info._unlock():
+                self.info['lowpass'] = self.h_freq
 
         if self.info['highpass'] is None or (self.l_freq is not None and
                                              (self.h_freq is None or
                                               self.l_freq < self.h_freq) and
                                              self.l_freq >
                                              self.info['highpass']):
-            self.info['highpass'] = self.l_freq
+            with self.info._unlock():
+                self.info['highpass'] = self.l_freq
 
         return self
 
@@ -767,11 +766,12 @@ class TemporalFilter(TransformerMixin):
     mne.filter.filter_data
     """
 
+    @verbose
     def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
                  filter_length='auto', l_trans_bandwidth='auto',
-                 h_trans_bandwidth='auto', n_jobs=1, method='fir',
+                 h_trans_bandwidth='auto', n_jobs=None, method='fir',
                  iir_params=None, fir_window='hamming', fir_design='firwin',
-                 verbose=None):  # noqa: D102
+                 *, verbose=None):  # noqa: D102
         self.l_freq = l_freq
         self.h_freq = h_freq
         self.sfreq = sfreq
@@ -783,7 +783,6 @@ class TemporalFilter(TransformerMixin):
         self.iir_params = iir_params
         self.fir_window = fir_window
         self.fir_design = fir_design
-        self.verbose = verbose
 
         if not isinstance(self.n_jobs, int) and self.n_jobs == 'cuda':
             raise ValueError('n_jobs must be int or "cuda", got %s instead.'
@@ -829,21 +828,11 @@ class TemporalFilter(TransformerMixin):
 
         shape = X.shape
         X = X.reshape(-1, shape[-1])
-        (X, self.sfreq, self.l_freq, self.h_freq, self.l_trans_bandwidth,
-         self.h_trans_bandwidth, self.filter_length, _, self.fir_window,
-         self.fir_design) = \
-            _triage_filter_params(X, self.sfreq, self.l_freq, self.h_freq,
-                                  self.l_trans_bandwidth,
-                                  self.h_trans_bandwidth, self.filter_length,
-                                  self.method, phase='zero',
-                                  fir_window=self.fir_window,
-                                  fir_design=self.fir_design)
         X = filter_data(X, self.sfreq, self.l_freq, self.h_freq,
                         filter_length=self.filter_length,
                         l_trans_bandwidth=self.l_trans_bandwidth,
                         h_trans_bandwidth=self.h_trans_bandwidth,
                         n_jobs=self.n_jobs, method=self.method,
                         iir_params=self.iir_params, copy=False,
-                        fir_window=self.fir_window, fir_design=self.fir_design,
-                        verbose=self.verbose)
+                        fir_window=self.fir_window, fir_design=self.fir_design)
         return X.reshape(shape)

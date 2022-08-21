@@ -85,7 +85,7 @@ Changelog
 
 - Add plotting of rank estimates in :func:`mne.viz.plot_cov` by `Eric Larson`_
 
-- Add a new :func:`mne.viz.plot_sensors_connectivity` function to visualize the sensor connectivity in 3D by `Guillaume Favelier`_ and `Alex Gramfort`_
+- Add a new ``mne.viz.plot_sensors_connectivity`` function to visualize the sensor connectivity in 3D by `Guillaume Favelier`_ and `Alex Gramfort`_
 
 - Add support for ``info['utc_offset']``, ``info['device_info']``, and ``info['helium_info']`` components of :class:`mne.Info` by `Eric Larson`_
 

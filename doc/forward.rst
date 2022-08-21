@@ -6,9 +6,14 @@ Forward Modeling
 
 .. autosummary::
    :toctree: generated/
+   :template: autosummary/class_no_inherited_members.rst
 
    Forward
    SourceSpaces
+
+.. autosummary::
+   :toctree: generated/
+
    add_source_space_distances
    apply_forward
    apply_forward_raw
@@ -59,3 +64,4 @@ Forward Modeling
    make_flash_bem
    make_scalp_surfaces
    convert_flash_mris
+   distance_to_bem

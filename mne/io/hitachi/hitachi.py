@@ -102,6 +102,8 @@ class RawHitachi(BaseRaw):
             if len(parts) == 0:  # some header lines are blank
                 continue
             kind, parts = parts[0], parts[1:]
+            if len(parts) == 0:
+                parts = ['']  # some fields (e.g., Comment) meaningfully blank
             if kind == 'File Version':
                 logger.info(f'Reading Hitachi fNIRS file version {parts[0]}')
             elif kind == 'AnalyzeMode':
@@ -228,10 +230,11 @@ class RawHitachi(BaseRaw):
 
         # Create mne structure
         info = create_info(ch_names, sfreq, ch_types=ch_types)
-        info.update(info_extra)
-        info['meas_date'] = meas_date
-        for li, loc in enumerate(locs):
-            info['chs'][li]['loc'][:] = loc
+        with info._unlock():
+            info.update(info_extra)
+            info['meas_date'] = meas_date
+            for li, loc in enumerate(locs):
+                info['chs'][li]['loc'][:] = loc
 
         super().__init__(
             info, preload, filenames=[fname], last_samps=[last_samp],

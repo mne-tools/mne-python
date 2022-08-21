@@ -3,3 +3,6 @@ nitime
 nbclient
 sphinx-gallery
 eeglabio
+EDFlib-Python
+pybv
+imageio-ffmpeg

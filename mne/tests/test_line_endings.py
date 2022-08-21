@@ -4,7 +4,6 @@
 # License: BSD-3-Clause
 
 import os
-from unittest import SkipTest
 from os import path as op
 import sys
 
@@ -31,7 +30,7 @@ skip_files = (
 def _assert_line_endings(dir_):
     """Check line endings for a directory."""
     if sys.platform == 'win32':
-        raise SkipTest('Skipping line endings check on Windows')
+        pytest.skip('Skipping line endings check on Windows')
     report = list()
     good_exts = ('.py', '.dat', '.sel', '.lout', '.css', '.js', '.lay', '.txt',
                  '.elc', '.csd', '.sfp', '.json', '.hpts', '.vmrk', '.vhdr',
@@ -57,9 +56,9 @@ def _assert_line_endings(dir_):
                              % (len(report), '\n'.join(report)))
 
 
-def test_line_endings(tmpdir):
+def test_line_endings(tmp_path):
     """Test line endings of mne-python."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     with open(op.join(tempdir, 'foo'), 'wb') as fid:
         fid.write('bad\r\ngood\n'.encode('ascii'))
     _assert_line_endings(tempdir)

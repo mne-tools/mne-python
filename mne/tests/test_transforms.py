@@ -1,10 +1,15 @@
+# -*- coding: utf-8 -*-
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#
+# License: BSD-3-Clause
+
 import os
 import os.path as op
 
 import pytest
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_equal, assert_allclose,
-                           assert_array_less)
+                           assert_array_less, assert_almost_equal)
 import itertools
 
 import mne
@@ -70,9 +75,9 @@ def test_get_trans():
 
 
 @testing.requires_testing_data
-def test_io_trans(tmpdir):
+def test_io_trans(tmp_path):
     """Test reading and writing of trans files."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     os.mkdir(op.join(tempdir, 'sample'))
     pytest.raises(RuntimeError, _find_trans, 'sample', subjects_dir=tempdir)
     trans0 = read_trans(fname)
@@ -236,9 +241,9 @@ def test_rotation():
         m4 = rotation(x, y, z)
         assert_array_equal(m, m4[:3, :3])
         back = rotation_angles(m)
-        assert_equal(back, rot)
+        assert_almost_equal(actual=back, desired=rot, decimal=12)
         back4 = rotation_angles(m4)
-        assert_equal(back4, rot)
+        assert_almost_equal(actual=back4, desired=rot, decimal=12)
 
 
 def test_rotation3d_align_z_axis():
@@ -371,7 +376,7 @@ def test_average_quats():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('subject', ('fsaverage', 'sample'))
-def test_fs_xfm(subject, tmpdir):
+def test_fs_xfm(subject, tmp_path):
     """Test reading and writing of Freesurfer transforms."""
     fname = op.join(data_path, 'subjects', subject, 'mri', 'transforms',
                     'talairach.xfm')
@@ -379,7 +384,7 @@ def test_fs_xfm(subject, tmpdir):
     if subject == 'fsaverage':
         assert_allclose(xfm, np.eye(4), atol=1e-5)  # fsaverage is in MNI
     assert kind == 'MNI Transform File'
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     fname_out = op.join(tempdir, 'out.xfm')
     _write_fs_xfm(fname_out, xfm, kind)
     xfm_read, kind_read = _read_fs_xfm(fname_out)
@@ -530,14 +535,17 @@ def test_volume_registration():
                             moving_affine=T1.affine,
                             static_affine=T1.affine,
                             between_affine=np.linalg.inv(affine))
-    for pipeline in ('rigids', ('translation', 'sdr')):
+    for pipeline, cval in zip(('rigids', ('translation', 'sdr')), (0., '1%')):
         reg_affine, sdr_morph = mne.transforms.compute_volume_registration(
             T1_resampled, T1, pipeline=pipeline, zooms=10, niter=[5])
-        assert_allclose(affine, reg_affine, atol=0.25)
+        assert_allclose(affine, reg_affine, atol=0.01)
         T1_aligned = mne.transforms.apply_volume_registration(
-            T1_resampled, T1, reg_affine, sdr_morph)
+            T1_resampled, T1, reg_affine, sdr_morph, cval=cval)
         r2 = _compute_r2(_get_img_fdata(T1_aligned), _get_img_fdata(T1))
         assert 99.9 < r2
+    with pytest.raises(ValueError, match='cval'):
+        mne.transforms.apply_volume_registration(
+            T1_resampled, T1, reg_affine, sdr_morph, cval='bad')
 
     # check that all orders of the pipeline work
     for pipeline_len in range(1, 5):

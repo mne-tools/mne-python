@@ -88,7 +88,7 @@ Changelog
 
 - Add ``evoked.as_type`` to  allow remapping data in MEG channels to virtual magnetometer or gradiometer channels by `Mainak Jas`_
 
-- Add :meth:`mne.Report.add_bem_to_section`, :meth:`mne.Report.add_htmls_to_section` methods to :class:`mne.Report` by `Teon Brooks`_
+- Add ``mne.Report.add_bem_to_section``, ``mne.Report.add_htmls_to_section`` methods to :class:`mne.Report` by `Teon Brooks`_
 
 - Add support for KIT epochs files with ``read_epochs_kit`` by `Teon Brooks`_
 

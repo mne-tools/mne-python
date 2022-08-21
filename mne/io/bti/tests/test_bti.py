@@ -12,15 +12,15 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
 
+import mne
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_bti
 from mne.io._digitization import _make_bti_dig_points
-from mne.io.bti.bti import (_read_config,
+from mne.io.bti.bti import (_read_config, _read_head_shape,
                             _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info,
                             _loc_to_coil_trans, _convert_coil_trans,
                             _check_nan_dev_head_t, _rename_channels)
-from mne.io.bti.bti import _read_head_shape
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
@@ -53,6 +53,25 @@ NCH = 248
 def test_read_2500():
     """Test reading data from 2500 system."""
     _test_raw_reader(read_raw_bti, pdf_fname=fname_2500, head_shape_fname=None)
+
+
+def test_no_loc_none(monkeypatch):
+    """Test that we don't set loc to None when no trans is found."""
+    ch_name = 'MLzA'
+
+    def _read_config_bad(*args, **kwargs):
+        cfg = _read_config(*args, **kwargs)
+        idx = [ch['name'] for ch in cfg['chs']].index(ch_name)
+        del cfg['chs'][idx]['dev']['transform']
+        return cfg
+
+    monkeypatch.setattr(mne.io.bti.bti, '_read_config', _read_config_bad)
+    kwargs = dict(pdf_fname=pdf_fnames[0], config_fname=config_fnames[0],
+                  head_shape_fname=hs_fnames[0], rename_channels=False,
+                  sort_by_ch_name=False)
+    raw = read_raw_bti(**kwargs)
+    idx = raw.ch_names.index(ch_name)
+    assert_allclose(raw.info['chs'][idx]['loc'], np.full(12, np.nan))
 
 
 def test_read_config():
@@ -355,3 +374,12 @@ def test_nan_trans():
 def test_bti_ch_data(fname, preload):
     """Test for gh-6048."""
     read_raw_bti(fname, preload=preload)  # used to fail with ascii decode err
+
+
+@testing.requires_testing_data
+def test_bti_set_eog():
+    """Check that EOG channels can be set (gh-10092)."""
+    raw = read_raw_bti(fname_sim,
+                       preload=False,
+                       eog_ch=('X65', 'X67', 'X69', 'X66', 'X68'))
+    assert_equal(len(pick_types(raw.info, eog=True)), 5)

@@ -6,10 +6,10 @@
 
 import os
 import os.path as op
-import numpy as np
-from distutils.version import LooseVersion
 
-from ...utils import (_fetch_file, verbose, _TempDir, _check_pandas_installed,
+import numpy as np
+
+from ...utils import (verbose, _TempDir, _check_pandas_installed,
                       _on_missing)
 from ..utils import _get_path
 
@@ -27,6 +27,7 @@ sha1sums_fname = op.join(op.dirname(__file__), 'SHA1SUMS')
 
 
 def _fetch_one(fname, hashsum, path, force_update, base_url):
+    import pooch
     # Fetch the file
     url = base_url + '/' + fname
     destination = op.join(path, fname)
@@ -35,8 +36,12 @@ def _fetch_one(fname, hashsum, path, force_update, base_url):
             os.remove(destination)
         if not op.isdir(op.dirname(destination)):
             os.makedirs(op.dirname(destination))
-        _fetch_file(url, destination, print_destination=False,
-                    hash_=hashsum, hash_type='sha1')
+        pooch.retrieve(
+            url=url,
+            known_hash=f"sha1:{hashsum}",
+            path=path,
+            fname=fname
+        )
     return destination
 
 
@@ -60,7 +65,7 @@ def _data_path(path=None, verbose=None):
 
     Returns
     -------
-    path : list of str
+    path : list of Path
         Local path to the given data file. This path is contained inside a list
         of length one, for compatibility.
 
@@ -76,15 +81,19 @@ def _data_path(path=None, verbose=None):
 
 def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     """Help function to download Physionet's temazepam dataset records."""
+    import pooch
+
     pd = _check_pandas_installed()
     tmp = _TempDir()
 
     # Download subjects info.
     subjects_fname = op.join(tmp, 'ST-subjects.xls')
-    _fetch_file(url=TEMAZEPAM_RECORDS_URL,
-                file_name=subjects_fname,
-                hash_=TEMAZEPAM_RECORDS_URL_SHA1,
-                hash_type='sha1')
+    pooch.retrieve(
+        url=TEMAZEPAM_RECORDS_URL,
+        known_hash=f"sha1:{TEMAZEPAM_RECORDS_URL_SHA1}",
+        path=tmp,
+        fname=op.basename(subjects_fname)
+    )
 
     # Load and Massage the checksums.
     sha1_df = pd.read_csv(sha1sums_fname, sep='  ', header=None,
@@ -96,8 +105,7 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
 
     # Load and massage the data.
     data = pd.read_excel(subjects_fname, header=[0, 1])
-    if LooseVersion(pd.__version__) >= LooseVersion('0.24.0'):
-        data = data.set_index(('Subject - age - sex', 'Nr'))
+    data = data.set_index(('Subject - age - sex', 'Nr'))
     data.index.name = 'subject'
     data.columns.names = [None, None]
     data = (data.set_index([('Subject - age - sex', 'Age'),
@@ -118,10 +126,7 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
     data = data.set_index(['id', 'subject', 'age', 'sex', 'drug',
                            'lights off', 'night nr', 'record type']).unstack()
     data.columns = [l1 + '_' + l2 for l1, l2 in data.columns]
-    if LooseVersion(pd.__version__) < LooseVersion('0.21.0'):
-        data = data.reset_index().drop(labels=['id'], axis=1)
-    else:
-        data = data.reset_index().drop(columns=['id'])
+    data = data.reset_index().drop(columns=['id'])
 
     data['sex'] = (data.sex.astype('category')
                        .cat.rename_categories({1: 'male', 2: 'female'}))
@@ -136,15 +141,18 @@ def _update_sleep_temazepam_records(fname=TEMAZEPAM_SLEEP_RECORDS):
 
 def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
     """Help function to download Physionet's age dataset records."""
+    import pooch
     pd = _check_pandas_installed()
     tmp = _TempDir()
 
     # Download subjects info.
     subjects_fname = op.join(tmp, 'SC-subjects.xls')
-    _fetch_file(url=AGE_RECORDS_URL,
-                file_name=subjects_fname,
-                hash_=AGE_RECORDS_URL_SHA1,
-                hash_type='sha1')
+    pooch.retrieve(
+        url=AGE_RECORDS_URL,
+        known_hash=f"sha1:{AGE_RECORDS_URL_SHA1}",
+        path=tmp,
+        fname=op.basename(subjects_fname)
+    )
 
     # Load and Massage the checksums.
     sha1_df = pd.read_csv(sha1sums_fname, sep='  ', header=None,
@@ -170,10 +178,7 @@ def _update_sleep_age_records(fname=AGE_SLEEP_RECORDS):
                                      .str.split('.', expand=True)[0]
                                      .astype('category'))
 
-    if LooseVersion(pd.__version__) < LooseVersion('0.21.0'):
-        data = data.reset_index().drop(labels=['id'], axis=1)
-    else:
-        data = data.reset_index().drop(columns=['id'])
+    data = data.reset_index().drop(columns=['id'])
     data = data[['subject', 'night', 'record type', 'age', 'sex', 'lights off',
                  'sha', 'fname']]
 

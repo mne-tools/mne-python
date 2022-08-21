@@ -47,13 +47,7 @@ pandas_not_found_warning_msg = 'The Pandas library is not installed. Not ' \
                                'returning the original trialinfo matrix as ' \
                                'metadata.'
 
-
-def _has_h5py():
-    try:
-        import h5py  # noqa
-        return True
-    except ImportError:
-        return False
+testing_path = mne.datasets.testing.data_path(download=False)
 
 
 def _remove_ignored_ch_fields(info):
@@ -84,22 +78,20 @@ def _remove_bad_dig_fields(info):
     # Similarly, fiducial locations do not appear to be stored, so we
     # cannot add those, either. Same with HPI coils.
     if info['dig'] is not None:
-        info['dig'] = [d for d in info['dig']
-                       if d['kind'] == FIFF.FIFFV_POINT_EEG and
-                       d['ident'] != 0]  # ref
+        with info._unlock():
+            info['dig'] = [d for d in info['dig']
+                           if d['kind'] == FIFF.FIFFV_POINT_EEG and
+                           d['ident'] != 0]  # ref
 
 
 def get_data_paths(system):
     """Return common paths for all tests."""
-    test_data_folder_ft = os.path.join(mne.datasets.testing.data_path(),
-                                       'fieldtrip/ft_test_data', system)
-
-    return test_data_folder_ft
+    return testing_path / 'fieldtrip' / 'ft_test_data' / system
 
 
 def get_cfg_local(system):
     """Return cfg_local field for the system."""
-    from mne.externals.pymatreader import read_mat
+    from pymatreader import read_mat
     cfg_local = read_mat(os.path.join(get_data_paths(system), 'raw_v7.mat'),
                          ['cfg_local'])['cfg_local']
 
@@ -110,12 +102,12 @@ def get_raw_info(system):
     """Return the info dict of the raw data."""
     cfg_local = get_cfg_local(system)
 
-    raw_data_file = os.path.join(mne.datasets.testing.data_path(),
-                                 cfg_local['file_name'])
+    raw_data_file = os.path.join(testing_path, cfg_local['file_name'])
     reader_function = system_to_reader_fn_dict[system]
 
     info = reader_function(raw_data_file, preload=False).info
-    info['comps'] = []
+    with info._unlock():
+        info['comps'] = []
     return info
 
 
@@ -123,8 +115,7 @@ def get_raw_data(system, drop_extra_chs=False):
     """Find, load and process the raw data."""
     cfg_local = get_cfg_local(system)
 
-    raw_data_file = os.path.join(mne.datasets.testing.data_path(),
-                                 cfg_local['file_name'])
+    raw_data_file = os.path.join(testing_path, cfg_local['file_name'])
     reader_function = system_to_reader_fn_dict[system]
 
     raw_data = reader_function(raw_data_file, preload=True)
@@ -133,7 +124,8 @@ def get_raw_data(system, drop_extra_chs=False):
         crop -= 0.5 * (1.0 / raw_data.info['sfreq'])
     raw_data.crop(0, crop)
     raw_data.del_proj('all')
-    raw_data.info['comps'] = []
+    with raw_data.info._unlock():
+        raw_data.info['comps'] = []
     raw_data.drop_channels(cfg_local['removed_chan_names'])
 
     if system in ['EGI']:
@@ -209,7 +201,8 @@ def check_info_fields(expected, actual, has_raw_info, ignore_long=True):
     # an empty list here
     for obj in (expected, actual):
         if obj['dig'] is None:
-            obj['dig'] = []
+            with obj._unlock():
+                obj['dig'] = []
 
     d = object_diff(actual, expected, allclose=True)
     assert d == '', d

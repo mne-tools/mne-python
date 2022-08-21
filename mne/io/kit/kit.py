@@ -17,7 +17,7 @@ import numpy as np
 
 from ..pick import pick_types
 from ...utils import (verbose, logger, warn, fill_doc, _check_option,
-                      _stamp_to_dt)
+                      _stamp_to_dt, _check_fname)
 from ...transforms import apply_trans, als_ras_trans
 from ..base import BaseRaw
 from ..utils import _mult_cal_one
@@ -49,8 +49,9 @@ def _call_digitization(info, mrk, elp, hsp, kit_info):
 
     # setup digitization
     if mrk is not None and elp is not None and hsp is not None:
-        info['dig'], info['dev_head_t'], info['hpi_results'] = _set_dig_kit(
-            mrk, elp, hsp, kit_info['eeg_dig'])
+        with info._unlock():
+            info['dig'], info['dev_head_t'], info['hpi_results'] = \
+                _set_dig_kit(mrk, elp, hsp, kit_info['eeg_dig'])
     elif mrk is not None or elp is not None or hsp is not None:
         raise ValueError("mrk, elp and hsp need to be provided as a group "
                          "(all or none)")
@@ -386,11 +387,12 @@ class EpochsKIT(BaseEpochs):
         if isinstance(events, str):
             events = read_events(events)
 
+        input_fname = _check_fname(fname=input_fname, must_exist=True,
+                                   overwrite='read')
         logger.info('Extracting KIT Parameters from %s...' % input_fname)
-        input_fname = op.abspath(input_fname)
         self.info, kit_info = get_kit_info(
             input_fname, allow_unknown_format, standardize_names)
-        kit_info.update(filename=input_fname)
+        kit_info.update(input_fname=input_fname)
         self._raw_extras = [kit_info]
         self._filenames = []
         if len(events) != self._raw_extras[0]['n_epochs']:
@@ -437,11 +439,11 @@ class EpochsKIT(BaseEpochs):
         epoch_length = info['frame_length']
         n_epochs = info['n_epochs']
         n_samples = info['n_samples']
-        filename = info['filename']
+        input_fname = info['input_fname']
         dtype = info['dtype']
         nchan = info['nchan']
 
-        with open(filename, 'rb', buffering=0) as fid:
+        with open(input_fname, 'rb', buffering=0) as fid:
             fid.seek(info['dirs'][KIT.DIR_INDEX_RAW_DATA]['offset'])
             count = n_samples * nchan
             data = np.fromfile(fid, dtype=dtype, count=count)
@@ -511,7 +513,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             version_string = "V%iR%03i" % (version, revision)
             if allow_unknown_format:
                 unsupported_format = True
-                warn("Force loading KIT format %s", version_string)
+                warn("Force loading KIT format %s" % version_string)
             else:
                 raise UnsupportedKITFormat(
                     version_string,
@@ -768,7 +770,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
     ad_to_tesla = ad_to_volt / amp_gain * channel_gain
     conv_factor = np.where(is_meg, ad_to_tesla, ad_to_volt)
     # XXX this is a bit of a hack. Should probably do this more cleanly at
-    # some point... the 2 ** (adc_stored - 14) was emperically determined using
+    # some point... the 2 ** (adc_stored - 14) was empirically determined using
     # the test files with known amplitudes. The conv_factors need to be
     # replaced by these values otherwise we're off by a factor off 5000.0
     # for the EEG data.
@@ -841,6 +843,7 @@ def get_kit_info(rawfile, allow_unknown_format, standardize_names=None,
             coord_frame=FIFF.FIFFV_COORD_DEVICE,
             coil_type=KIT.CH_TO_FIFF_COIL[ch['type']],
             kind=KIT.CH_TO_FIFF_KIND[ch['type']], loc=loc))
+    info._unlocked = False
     info._update_redundant()
     return info, sqd
 
@@ -927,18 +930,8 @@ def read_epochs_kit(input_fname, events, event_id=None, mrk=None, elp=None,
     ----------
     input_fname : str
         Path to the sqd file.
-    events : array, shape (n_events, 3)
-        The events typically returned by the read_events function.
-        If some events don't match the events of interest as specified
-        by event_id, they will be marked as 'IGNORED' in the drop log.
-    event_id : int | list of int | dict | None
-        The id of the event to consider. If dict,
-        the keys can later be used to access associated events. Example:
-        dict(auditory=1, visual=3). If int, a dict will be created with
-        the id as string. If a list, all events with the IDs specified
-        in the list are used. If None, all events will be used with
-        and a dict is created with string integer names corresponding
-        to the event id integers.
+    %(events_epochs)s
+    %(event_id)s
     mrk : None | str | array_like, shape (5, 3) | list of str or array_like
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.

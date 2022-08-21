@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-ica-pca-decoding:
+
 ==================================================================
 Analysis of evoked response using ICA and PCA reduction techniques
 ==================================================================
@@ -30,8 +33,9 @@ print(__doc__)
 data_path = sample.data_path()
 
 # Load and filter data, set up epochs
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_filt-0-40_raw.fif'
+event_fname = meg_path / 'sample_audvis_filt-0-40_raw-eve.fif'
 tmin, tmax = -0.1, 0.3
 event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
 
@@ -59,7 +63,8 @@ ev.plot(show=False, window_title="PCA", time_unit='s')
 
 ##############################################################################
 # Transform data with ICA computed on the raw epochs (no averaging)
-ica = UnsupervisedSpatialFilter(FastICA(30), average=False)
+ica = UnsupervisedSpatialFilter(
+    FastICA(30, whiten='unit-variance'), average=False)
 ica_data = ica.fit_transform(X)
 ev1 = mne.EvokedArray(np.mean(ica_data, axis=0),
                       mne.create_info(30, epochs.info['sfreq'],

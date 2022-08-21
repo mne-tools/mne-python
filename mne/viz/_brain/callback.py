@@ -3,6 +3,9 @@
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #
 # License: Simplified BSD
+
+import weakref
+
 from ...utils import logger
 
 
@@ -54,15 +57,18 @@ class UpdateLUT(object):
     """Update the LUT."""
 
     def __init__(self, brain=None):
-        self.brain = brain
-        self.widgets = {key: list() for key in self.brain.keys}
+        self.brain = weakref.ref(brain)
+        self.widgets = {key: list() for key in brain.keys}
 
     def __call__(self, fmin=None, fmid=None, fmax=None):
         """Update the colorbar sliders."""
-        self.brain.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
-        with self.brain._no_lut_update(f'UpdateLUT {fmin} {fmid} {fmax}'):
+        brain = self.brain()
+        if brain is None:
+            return
+        brain.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
+        with brain._no_lut_update(f'UpdateLUT {fmin} {fmid} {fmax}'):
             for key in ('fmin', 'fmid', 'fmax'):
-                value = self.brain._data[key]
+                value = brain._data[key]
                 logger.debug(f'Updating {key} = {value}')
                 for widget in self.widgets[key]:
                     widget.set_value(value)

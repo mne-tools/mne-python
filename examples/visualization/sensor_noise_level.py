@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+.. _ex-noise-level:
+
 ======================================
 Show noise levels from empty room data
 ======================================

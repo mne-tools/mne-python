@@ -1,12 +1,13 @@
 # License: BSD Style.
 
 from ...utils import verbose
-from ..utils import _data_path, _data_path_doc, _get_version, _version_doc
+from ..utils import (_download_mne_dataset, _data_path_doc, _get_version,
+                     _version_doc)
 
 
 @verbose
-def data_path(path=None, force_update=False, update_path=True, download=True,
-              verbose=None):
+def data_path(path=None, force_update=False, update_path=True,
+              download=True, *, verbose=None):
     """
     Get path to local copy of visual_92_categories dataset.
 
@@ -32,9 +33,8 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
 
     Returns
     -------
-    path : list of str
-        Local path to the given data file. This path is contained inside a list
-        of length one, for compatibility.
+    path : instance of Path
+        Local path to the given data file.
 
     Notes
     -----
@@ -42,9 +42,10 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
         Radoslaw M. Cichy, Dimitrios Pantazis, Aude Oliva (2014) Resolving
         human object recognition in space and time. doi: 10.1038/NN.3635
     """
-    return _data_path(path=path, force_update=force_update,
-                      update_path=update_path, name='visual_92_categories',
-                      download=download)
+    return _download_mne_dataset(
+        name='visual_92_categories', processor='untar', path=path,
+        force_update=force_update, update_path=update_path,
+        download=download)
 
 
 data_path.__doc__ = _data_path_doc.format(

@@ -2,6 +2,7 @@
 """
 .. _tut-events-vs-annotations:
 
+============================
 Parsing events from raw data
 ============================
 
@@ -28,13 +29,12 @@ to just 60 seconds before loading it into RAM:
 
 # %%
 
-import os
 import numpy as np
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+sample_data_raw_file = (sample_data_folder / 'MEG' / 'sample' /
+                        'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file)
 raw.crop(tmax=60).load_data()
 
@@ -121,7 +121,8 @@ events = mne.find_events(raw, stim_channel='STI 014')
 print(events[:5])  # show the first 5
 
 # %%
-# .. sidebar:: The middle column of the Events array
+# .. admonition:: The middle column of the Events array
+#     :class: sidebar note
 #
 #     MNE-Python events are actually *three* values: in between the sample
 #     number and the integer event code is a value indicating what the event
@@ -161,7 +162,7 @@ print(events[:5])  # show the first 5
 # :attr:`~mne.io.Raw.annotations` attribute of the `~mne.io.Raw` object:
 
 testing_data_folder = mne.datasets.testing.data_path()
-eeglab_raw_file = os.path.join(testing_data_folder, 'EEGLAB', 'test_raw.set')
+eeglab_raw_file = testing_data_folder / 'EEGLAB' / 'test_raw.set'
 eeglab_raw = mne.io.read_raw_eeglab(eeglab_raw_file)
 print(eeglab_raw.annotations)
 

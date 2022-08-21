@@ -8,6 +8,20 @@ import os.path as op
 
 from setuptools import setup
 
+
+def parse_requirements_file(fname):
+    requirements = list()
+    with open(fname, 'r') as fid:
+        for line in fid:
+            req = line.strip()
+            if req.startswith('#'):
+                continue
+            # strip end-of-line comments
+            req = req.split('#', maxsplit=1)[0].strip()
+            requirements.append(req)
+    return requirements
+
+
 # get the version (don't import mne here, so dependencies are not needed)
 version = None
 with open(op.join('mne', '_version.py'), 'r') as fid:
@@ -19,10 +33,8 @@ if version is None:
     raise RuntimeError('Could not determine version')
 
 
-descr = """MNE python project for MEG and EEG data analysis."""
-
 DISTNAME = 'mne'
-DESCRIPTION = descr
+DESCRIPTION = 'MNE-Python project for MEG and EEG data analysis.'
 MAINTAINER = 'Alexandre Gramfort'
 MAINTAINER_EMAIL = 'alexandre.gramfort@inria.fr'
 URL = 'https://mne.tools/dev/'
@@ -48,15 +60,13 @@ if __name__ == "__main__":
     with open('README.rst', 'r') as fid:
         long_description = fid.read()
 
-    hard_dependencies = ('numpy', 'scipy')
-    install_requires = list()
-    with open('requirements.txt', 'r') as fid:
-        for line in fid:
-            req = line.strip()
-            for hard_dep in hard_dependencies:
-                if req.startswith(hard_dep):
-                    install_requires.append(req)
-
+    # data_dependencies is empty, but let's leave them so that we don't break
+    # people's workflows who did `pip install mne[data]`
+    install_requires = parse_requirements_file('requirements_base.txt')
+    data_requires = []
+    hdf5_requires = parse_requirements_file('requirements_hdf5.txt')
+    test_requires = (parse_requirements_file('requirements_testing.txt') +
+                     parse_requirements_file('requirements_testing_extra.txt'))
     setup(name=DISTNAME,
           maintainer=MAINTAINER,
           include_package_data=True,
@@ -90,8 +100,14 @@ if __name__ == "__main__":
           platforms='any',
           python_requires='>=3.7',
           install_requires=install_requires,
+          extras_require={
+              'data': data_requires,
+              'hdf5': hdf5_requires,
+              'test': test_requires,
+          },
           packages=package_tree('mne'),
           package_data={'mne': [
+              op.join('data', 'eegbci_checksums.txt'),
               op.join('data', '*.sel'),
               op.join('data', 'icos.fif.gz'),
               op.join('data', 'coil_def*.dat'),
@@ -109,9 +125,11 @@ if __name__ == "__main__":
               op.join('datasets', 'sleep_physionet', 'SHA1SUMS'),
               op.join('datasets', '_fsaverage', '*.txt'),
               op.join('datasets', '_infant', '*.txt'),
-              op.join('gui', 'help', '*.json'),
+              op.join('datasets', '_phantom', '*.txt'),
               op.join('html', '*.js'),
               op.join('html', '*.css'),
+              op.join('html_templates', 'repr', '*.jinja'),
+              op.join('html_templates', 'report', '*.jinja'),
               op.join('icons', '*.svg'),
               op.join('icons', '*.png'),
               op.join('io', 'artemis123', 'resources', '*.csv'),

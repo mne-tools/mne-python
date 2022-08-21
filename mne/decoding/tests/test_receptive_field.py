@@ -143,6 +143,7 @@ def test_time_delay():
                     assert_array_equal(X_delayed[:ii, :, idx], 0.)
 
 
+@pytest.mark.slowtest  # slow on Azure
 @pytest.mark.parametrize('n_jobs', n_jobs_test)
 @requires_sklearn
 def test_receptive_field_basic(n_jobs):

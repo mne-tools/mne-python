@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _tut-ssvep:
 
@@ -67,7 +68,8 @@ from scipy.stats import ttest_rel
 
 # Load raw data
 data_path = mne.datasets.ssvep.data_path()
-bids_fname = data_path + '/sub-02/ses-01/eeg/sub-02_ses-01_task-ssvep_eeg.vhdr'
+bids_fname = (data_path / 'sub-02' / 'ses-01' / 'eeg' /
+              'sub-02_ses-01_task-ssvep_eeg.vhdr')
 
 raw = mne.io.read_raw_brainvision(bids_fname, preload=True, verbose=False)
 raw.info['line_freq'] = 50.
@@ -88,7 +90,6 @@ event_id = {
     '15hz': 155
 }
 events, _ = mne.events_from_annotations(raw, verbose=False)
-raw.info["events"] = events
 tmin, tmax = -1., 20.  # in s
 baseline = None
 epochs = mne.Epochs(
@@ -299,8 +300,8 @@ fig.show()
 # Extract SNR values at the stimulation frequency
 # -----------------------------------------------
 #
-# Our processing yielded a large array of many SNR values for each trial x
-# channel x frequency-bin of the PSD array.
+# Our processing yielded a large array of many SNR values for each trial ×
+# channel × frequency-bin of the PSD array.
 #
 # For statistical analysis we obviously need to define specific subsets of this
 # array. First of all, we are only interested in SNR at the stimulation

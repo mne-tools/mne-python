@@ -13,7 +13,7 @@ from functools import partial
 import numpy as np
 
 from .utils import plt_show
-from ..utils import _validate_type, deprecated, CONNECTIVITY_DEPRECATION_MSG
+from ..utils import _validate_type
 
 
 def circular_layout(node_names, node_order, start_pos=90, start_between=True,
@@ -89,14 +89,14 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
     return node_angles
 
 
-def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
+def _plot_connectivity_circle_onpick(event, fig=None, ax=None, indices=None,
                                      n_nodes=0, node_angles=None,
                                      ylim=[9, 10]):
     """Isolate connections around a single node when user left clicks a node.
 
     On right click, resets all connections.
     """
-    if event.inaxes != axes:
+    if event.inaxes != ax:
         return
 
     if event.button == 1:  # left click
@@ -119,131 +119,24 @@ def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
         fig.canvas.draw()
 
 
-@deprecated(CONNECTIVITY_DEPRECATION_MSG)
-def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
-                             node_angles=None, node_width=None,
-                             node_colors=None, facecolor='black',
-                             textcolor='white', node_edgecolor='black',
-                             linewidth=1.5, colormap='hot', vmin=None,
-                             vmax=None, colorbar=True, title=None,
-                             colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
-                             fontsize_title=12, fontsize_names=8,
-                             fontsize_colorbar=8, padding=6.,
-                             fig=None, subplot=111, interactive=True,
-                             node_linewidth=2., show=True):
-    """Visualize connectivity as a circular graph.
-
-    Parameters
-    ----------
-    con : array
-        Connectivity scores. Can be a square matrix, or a 1D array. If a 1D
-        array is provided, "indices" has to be used to define the connection
-        indices.
-    node_names : list of str
-        Node names. The order corresponds to the order in con.
-    indices : tuple of array | None
-        Two arrays with indices of connections for which the connections
-        strengths are defined in con. Only needed if con is a 1D array.
-    n_lines : int | None
-        If not None, only the n_lines strongest connections (strength=abs(con))
-        are drawn.
-    node_angles : array, shape (n_node_names,) | None
-        Array with node positions in degrees. If None, the nodes are equally
-        spaced on the circle. See mne.viz.circular_layout.
-    node_width : float | None
-        Width of each node in degrees. If None, the minimum angle between any
-        two nodes is used as the width.
-    node_colors : list of tuple | list of str
-        List with the color to use for each node. If fewer colors than nodes
-        are provided, the colors will be repeated. Any color supported by
-        matplotlib can be used, e.g., RGBA tuples, named colors.
-    facecolor : str
-        Color to use for background. See matplotlib.colors.
-    textcolor : str
-        Color to use for text. See matplotlib.colors.
-    node_edgecolor : str
-        Color to use for lines around nodes. See matplotlib.colors.
-    linewidth : float
-        Line width to use for connections.
-    colormap : str | instance of matplotlib.colors.LinearSegmentedColormap
-        Colormap to use for coloring the connections.
-    vmin : float | None
-        Minimum value for colormap. If None, it is determined automatically.
-    vmax : float | None
-        Maximum value for colormap. If None, it is determined automatically.
-    colorbar : bool
-        Display a colorbar or not.
-    title : str
-        The figure title.
-    colorbar_size : float
-        Size of the colorbar.
-    colorbar_pos : tuple, shape (2,)
-        Position of the colorbar.
-    fontsize_title : int
-        Font size to use for title.
-    fontsize_names : int
-        Font size to use for node names.
-    fontsize_colorbar : int
-        Font size to use for colorbar.
-    padding : float
-        Space to add around figure to accommodate long labels.
-    fig : None | instance of matplotlib.figure.Figure
-        The figure to use. If None, a new figure with the specified background
-        color will be created.
-    subplot : int | tuple, shape (3,)
-        Location of the subplot when creating figures with multiple plots. E.g.
-        121 or (1, 2, 1) for 1 row, 2 columns, plot 1. See
-        matplotlib.pyplot.subplot.
-    interactive : bool
-        When enabled, left-click on a node to show only connections to that
-        node. Right-click shows all connections.
-    node_linewidth : float
-        Line with for nodes.
-    show : bool
-        Show figure if True.
-
-    Returns
-    -------
-    fig : instance of matplotlib.figure.Figure
-        The figure handle.
-    axes : instance of matplotlib.projections.polar.PolarAxes
-        The subplot handle.
-
-    Notes
-    -----
-    This code is based on a circle graph example by Nicolas P. Rougier
-
-    By default, :func:`matplotlib.pyplot.savefig` does not take ``facecolor``
-    into account when saving, even if set when a figure is generated. This
-    can be addressed via, e.g.::
-
-    >>> fig.savefig(fname_fig, facecolor='black') # doctest:+SKIP
-
-    If ``facecolor`` is not set via :func:`matplotlib.pyplot.savefig`, the
-    figure labels, title, and legend may be cut off in the output figure.
-    """
-    return _plot_connectivity_circle(
-        con, node_names, indices, n_lines, node_angles, node_width,
-        node_colors, facecolor, textcolor, node_edgecolor, linewidth, colormap,
-        vmin, vmax, colorbar, title, colorbar_size, colorbar_pos,
-        fontsize_title, fontsize_names, fontsize_colorbar, padding,
-        fig, subplot, interactive, node_linewidth, show)
-
-
 def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                               node_angles=None, node_width=None,
-                              node_colors=None, facecolor='black',
-                              textcolor='white', node_edgecolor='black',
-                              linewidth=1.5, colormap='hot', vmin=None,
-                              vmax=None, colorbar=True, title=None,
-                              colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
+                              node_height=None, node_colors=None,
+                              facecolor='black', textcolor='white',
+                              node_edgecolor='black', linewidth=1.5,
+                              colormap='hot', vmin=None, vmax=None,
+                              colorbar=True, title=None,
+                              colorbar_size=None, colorbar_pos=None,
                               fontsize_title=12, fontsize_names=8,
                               fontsize_colorbar=8, padding=6.,
-                              fig=None, subplot=111, interactive=True,
+                              ax=None, interactive=True,
                               node_linewidth=2., show=True):
     import matplotlib.pyplot as plt
     import matplotlib.path as m_path
     import matplotlib.patches as m_patches
+    from matplotlib.projections.polar import PolarAxes
+
+    _validate_type(ax, (None, PolarAxes))
 
     n_nodes = len(node_names)
 
@@ -264,6 +157,9 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         node_width = np.min(np.abs(dist_mat))
     else:
         node_width = node_width * np.pi / 180
+
+    if node_height is None:
+        node_height = 1.0
 
     if node_colors is not None:
         if len(node_colors) < n_nodes:
@@ -294,25 +190,23 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     if isinstance(colormap, str):
         colormap = plt.get_cmap(colormap)
 
-    # Make figure background the same colors as axes
-    if fig is None:
-        fig = plt.figure(figsize=(8, 8), facecolor=facecolor)
-
     # Use a polar axes
-    if not isinstance(subplot, tuple):
-        subplot = (subplot,)
-    axes = plt.subplot(*subplot, polar=True)
-    axes.set_facecolor(facecolor)
+    if ax is None:
+        fig = plt.figure(figsize=(8, 8), facecolor=facecolor)
+        ax = fig.add_subplot(polar=True)
+    else:
+        fig = ax.figure
+    ax.set_facecolor(facecolor)
 
     # No ticks, we'll put our own
-    plt.xticks([])
-    plt.yticks([])
+    ax.set_xticks([])
+    ax.set_yticks([])
 
     # Set y axes limit, add additional space if requested
-    plt.ylim(0, 10 + padding)
+    ax.set_ylim(0, 10 + padding)
 
     # Remove the black axes border which may obscure the labels
-    axes.spines['polar'].set_visible(False)
+    ax.spines['polar'].set_visible(False)
 
     # Draw lines between connected nodes, only draw the strongest connections
     if n_lines is not None and len(con) > n_lines:
@@ -394,13 +288,13 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         # Actual line
         patch = m_patches.PathPatch(path, fill=False, edgecolor=color,
                                     linewidth=linewidth, alpha=1.)
-        axes.add_patch(patch)
+        ax.add_patch(patch)
 
     # Draw ring with colored nodes
-    height = np.ones(n_nodes) * 1.0
-    bars = axes.bar(node_angles, height, width=node_width, bottom=9,
-                    edgecolor=node_edgecolor, lw=node_linewidth,
-                    facecolor='.9', align='center')
+    height = np.ones(n_nodes) * node_height
+    bars = ax.bar(node_angles, height, width=node_width, bottom=9,
+                  edgecolor=node_edgecolor, lw=node_linewidth,
+                  facecolor='.9', align='center')
 
     for bar, color in zip(bars, node_colors):
         bar.set_facecolor(color)
@@ -415,22 +309,24 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
             angle_deg += 180
             ha = 'right'
 
-        axes.text(angle_rad, 10.4, name, size=fontsize_names,
-                  rotation=angle_deg, rotation_mode='anchor',
-                  horizontalalignment=ha, verticalalignment='center',
-                  color=textcolor)
+        ax.text(angle_rad, 9.4 + node_height, name, size=fontsize_names,
+                rotation=angle_deg, rotation_mode='anchor',
+                horizontalalignment=ha, verticalalignment='center',
+                color=textcolor)
 
     if title is not None:
-        plt.title(title, color=textcolor, fontsize=fontsize_title,
-                  axes=axes)
+        ax.set_title(title, color=textcolor, fontsize=fontsize_title)
 
     if colorbar:
         sm = plt.cm.ScalarMappable(cmap=colormap,
                                    norm=plt.Normalize(vmin, vmax))
         sm.set_array(np.linspace(vmin, vmax))
-        cb = plt.colorbar(sm, ax=axes, use_gridspec=False,
-                          shrink=colorbar_size,
-                          anchor=colorbar_pos)
+        colorbar_kwargs = dict()
+        if colorbar_size is not None:
+            colorbar_kwargs.update(shrink=colorbar_size)
+        if colorbar_pos is not None:
+            colorbar_kwargs.update(anchor=colorbar_pos)
+        cb = fig.colorbar(sm, ax=ax, **colorbar_kwargs)
         cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
         cb.ax.tick_params(labelsize=fontsize_colorbar)
         plt.setp(cb_yticks, color=textcolor)
@@ -438,13 +334,13 @@ def _plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     # Add callback for interaction
     if interactive:
         callback = partial(_plot_connectivity_circle_onpick, fig=fig,
-                           axes=axes, indices=indices, n_nodes=n_nodes,
+                           ax=ax, indices=indices, n_nodes=n_nodes,
                            node_angles=node_angles)
 
         fig.canvas.mpl_connect('button_press_event', callback)
 
     plt_show(show)
-    return fig, axes
+    return fig, ax
 
 
 def plot_channel_labels_circle(labels, colors=None, picks=None, **kwargs):
@@ -463,7 +359,8 @@ def plot_channel_labels_circle(labels, colors=None, picks=None, **kwargs):
     picks : list | tuple
         The channels to consider.
     **kwargs : kwargs
-        Keyword arguments for ``plot_connectivity_circle``.
+        Keyword arguments for
+        :func:`mne_connectivity.viz.plot_connectivity_circle`.
 
     Returns
     -------

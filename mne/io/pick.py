@@ -12,7 +12,7 @@ import numpy as np
 
 from .constants import FIFF
 from ..utils import (logger, verbose, _validate_type, fill_doc, _ensure_int,
-                     _check_option)
+                     _check_option, warn)
 
 
 def get_channel_type_constants(include_defaults=False):
@@ -395,63 +395,7 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
     Parameters
     ----------
     %(info_not_none)s
-    meg : bool | str
-        If True include MEG channels. If string it can be 'mag', 'grad',
-        'planar1' or 'planar2' to select only magnetometers, all gradiometers,
-        or a specific type of gradiometer.
-    eeg : bool
-        If True include EEG channels.
-    stim : bool
-        If True include stimulus channels.
-    eog : bool
-        If True include EOG channels.
-    ecg : bool
-        If True include ECG channels.
-    emg : bool
-        If True include EMG channels.
-    ref_meg : bool | str
-        If True include CTF / 4D reference channels. If 'auto', reference
-        channels are included if compensations are present and ``meg`` is not
-        False. Can also be the string options for the ``meg`` parameter.
-    misc : bool
-        If True include miscellaneous analog channels.
-    resp : bool
-        If True include response-trigger channel. For some MEG systems this
-        is separate from the stim channel.
-    chpi : bool
-        If True include continuous HPI coil channels.
-    exci : bool
-        Flux excitation channel used to be a stimulus channel.
-    ias : bool
-        Internal Active Shielding data (maybe on Triux only).
-    syst : bool
-        System status channel information (on Triux systems only).
-    seeg : bool
-        Stereotactic EEG channels.
-    dipole : bool
-        Dipole time course channels.
-    gof : bool
-        Dipole goodness of fit channels.
-    bio : bool
-        Bio channels.
-    ecog : bool
-        Electrocorticography channels.
-    fnirs : bool | str
-        Functional near-infrared spectroscopy channels. If True include all
-        fNIRS channels. If False (default) include none. If string it can be
-        'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
-        include channels measuring deoxyhemoglobin).
-    csd : bool
-        Current source density channels.
-    dbs : bool
-        Deep brain stimulation channels.
-    include : list of str
-        List of additional channels to include. If empty do not include any.
-    exclude : list of str | str
-        List of channels to exclude. If 'bads' (default), exclude channels
-        in ``info['bads']``.
-    selection : list of str
-        Restrict sensor channels (MEG, EEG) to this list of channel names.
+    %(pick_types_params)s
 
     Returns
     -------
@@ -567,11 +511,12 @@ def pick_info(info, sel=(), copy=True, verbose=None):
             logger.info('Removing %d compensators from info because '
                         'not all compensation channels were picked.'
                         % (len(info['comps']),))
-            info['comps'] = []
-    info['chs'] = [info['chs'][k] for k in sel]
+            with info._unlock():
+                info['comps'] = []
+    with info._unlock():
+        info['chs'] = [info['chs'][k] for k in sel]
     info._update_redundant()
     info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
-
     if 'comps' in info:
         comps = deepcopy(info['comps'])
         for c in comps:
@@ -583,8 +528,10 @@ def pick_info(info, sel=(), copy=True, verbose=None):
             c['data']['nrow'] = len(row_names)
             c['data']['row_names'] = row_names
             c['data']['data'] = c['data']['data'][row_idx]
-        info['comps'] = comps
+        with info._unlock():
+            info['comps'] = comps
     info._check_consistency()
+
     return info
 
 
@@ -713,7 +660,8 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
     fwd['sol']['row_names'] = ch_names
 
     # Pick the appropriate channel names from the info-dict using sel_info
-    fwd['info']['chs'] = [fwd['info']['chs'][k] for k in sel_info]
+    with fwd['info']._unlock():
+        fwd['info']['chs'] = [fwd['info']['chs'][k] for k in sel_info]
     fwd['info']._update_redundant()
     fwd['info']['bads'] = [b for b in fwd['info']['bads'] if b in ch_names]
 
@@ -1124,14 +1072,13 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
     # second: match all to channel names
     #
 
-    bad_name = None
+    bad_names = []
     picks_name = list()
     for pick in picks:
         try:
             picks_name.append(info['ch_names'].index(pick))
         except ValueError:
-            bad_name = pick
-            break
+            bad_names.append(pick)
 
     #
     # third: match all to types
@@ -1178,7 +1125,7 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
                 'picks (%s) could not be interpreted as '
                 'channel names (no channel "%s"), channel types (no '
                 'type "%s"), or a generic type (just "all" or "data")'
-                % (repr(orig_picks) + extra_repr, bad_name, bad_type))
+                % (repr(orig_picks) + extra_repr, str(bad_names), bad_type))
         picks = np.array([], int)
     elif sum(any_found) > 1:
         raise RuntimeError('Some channel names are ambiguously equivalent to '
@@ -1186,8 +1133,13 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
                            'picks for these')
     else:
         picks = np.array(all_picks[np.where(any_found)[0][0]])
+
+    picked_ch_type_or_generic = not len(picks_name)
+    if len(bad_names) > 0 and not picked_ch_type_or_generic:
+        warn(f'Channel(s) {bad_names} could not be picked, because '
+             'they are not present in the info instance.')
+
     if return_kind:
-        picked_ch_type_or_generic = not len(picks_name)
         return picks, picked_ch_type_or_generic
     return picks
 
@@ -1216,4 +1168,7 @@ def _get_channel_types(info, picks=None, unique=False, only_data_chs=False):
     if only_data_chs:
         ch_types = [ch_type for ch_type in ch_types
                     if ch_type in _DATA_CH_TYPES_SPLIT]
-    return set(ch_types) if unique is True else ch_types
+    if unique:
+        # set does not preserve order but dict does, so let's just use it
+        ch_types = list({k: k for k in ch_types}.keys())
+    return ch_types

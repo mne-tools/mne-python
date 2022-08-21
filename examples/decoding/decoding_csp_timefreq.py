@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 .. _ex-decoding-csp-eeg-timefreq:
 
@@ -52,15 +53,15 @@ raw.load_data()
 # Assemble the classifier using scikit-learn pipeline
 clf = make_pipeline(CSP(n_components=4, reg=None, log=True, norm_trace=False),
                     LinearDiscriminantAnalysis())
-n_splits = 5  # how many folds to use for cross-validation
+n_splits = 3  # for cross-validation, 5 is better, here we use 3 for speed
 cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
 
 # Classification & time-frequency parameters
 tmin, tmax = -.200, 2.000
 n_cycles = 10.  # how many complete cycles: used to define window size
-min_freq = 5.
-max_freq = 25.
-n_freqs = 8  # how many frequency bins to use
+min_freq = 8.
+max_freq = 20.
+n_freqs = 6  # how many frequency bins to use
 
 # Assemble list of frequency range tuples
 freqs = np.linspace(min_freq, max_freq, n_freqs)  # assemble frequencies
@@ -87,7 +88,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     w_size = n_cycles / ((fmax + fmin) / 2.)  # in seconds
 
     # Apply band-pass filter to isolate the specified frequencies
-    raw_filter = raw.copy().filter(fmin, fmax, n_jobs=1, fir_design='firwin',
+    raw_filter = raw.copy().filter(fmin, fmax, fir_design='firwin',
                                    skip_by_annotation='edge')
 
     # Extract epochs from filtered data, padded by window size
@@ -99,9 +100,8 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     X = epochs.get_data()
 
     # Save mean scores over folds for each frequency and time window
-    freq_scores[freq] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
-                                                scoring='roc_auc', cv=cv,
-                                                n_jobs=1), axis=0)
+    freq_scores[freq] = np.mean(cross_val_score(
+        estimator=clf, X=X, y=y, scoring='roc_auc', cv=cv), axis=0)
 
 # %%
 # Plot frequency results
@@ -130,7 +130,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     w_size = n_cycles / ((fmax + fmin) / 2.)  # in seconds
 
     # Apply band-pass filter to isolate the specified frequencies
-    raw_filter = raw.copy().filter(fmin, fmax, n_jobs=1, fir_design='firwin',
+    raw_filter = raw.copy().filter(fmin, fmax, fir_design='firwin',
                                    skip_by_annotation='edge')
 
     # Extract epochs from filtered data, padded by window size
@@ -150,9 +150,8 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
         X = epochs.copy().crop(w_tmin, w_tmax).get_data()
 
         # Save mean scores over folds for each frequency and time window
-        tf_scores[freq, t] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
-                                                     scoring='roc_auc', cv=cv,
-                                                     n_jobs=1), axis=0)
+        tf_scores[freq, t] = np.mean(cross_val_score(
+            estimator=clf, X=X, y=y, scoring='roc_auc', cv=cv), axis=0)
 
 # %%
 # Plot time-frequency results

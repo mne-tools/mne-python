@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
 """
+.. _ex-mixed-norm-inverse:
+
 ================================================================
 Compute sparse inverse solution with mixed norm: MxNE and irMxNE
 ================================================================
@@ -29,10 +32,11 @@ from mne.viz import (plot_sparse_source_estimates,
 print(__doc__)
 
 data_path = sample.data_path()
-fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-ave_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
-cov_fname = data_path + '/MEG/sample/sample_audvis-shrunk-cov.fif'
-subjects_dir = data_path + '/subjects'
+meg_path = data_path / 'MEG' / 'sample'
+fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+ave_fname = meg_path / 'sample_audvis-ave.fif'
+cov_fname = meg_path / 'sample_audvis-shrunk-cov.fif'
+subjects_dir = data_path / 'subjects'
 
 # Read noise covariance matrix
 cov = mne.read_cov(cov_fname)
@@ -62,7 +66,11 @@ dipoles, residual = mixed_norm(
     evoked, forward, cov, alpha, loose=loose, depth=depth, maxit=3000,
     tol=1e-4, active_set_size=10, debias=False, weights=stc_dspm,
     weights_min=8., n_mxne_iter=n_mxne_iter, return_residual=True,
-    return_as_dipoles=True, verbose=True, random_state=0)
+    return_as_dipoles=True, verbose=True, random_state=0,
+    # for this dataset we know we should use a high alpha, so avoid some
+    # of the slower (lower) alpha values
+    sure_alpha_grid=np.linspace(100, 40, 10),
+)
 
 t = 0.083
 tidx = evoked.time_as_index(t)
@@ -111,7 +119,8 @@ morph = mne.compute_source_morph(stc, subject_from='sample',
                                  subject_to='fsaverage', spacing=None,
                                  sparse=True, subjects_dir=subjects_dir)
 stc_fsaverage = morph.apply(stc)
-src_fsaverage_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
+src_fsaverage_fname = (
+    subjects_dir / 'fsaverage' / 'bem' / 'fsaverage-ico-5-src.fif')
 src_fsaverage = mne.read_source_spaces(src_fsaverage_fname)
 
 plot_sparse_source_estimates(src_fsaverage, stc_fsaverage, bgcolor=(1, 1, 1),

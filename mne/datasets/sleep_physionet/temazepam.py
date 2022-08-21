@@ -16,7 +16,7 @@ BASE_URL = 'https://physionet.org/physiobank/database/sleep-edfx/sleep-telemetry
 
 
 @verbose
-def fetch_data(subjects, *, path=None, force_update=False, base_url=BASE_URL,
+def fetch_data(subjects, path=None, force_update=False, base_url=BASE_URL, *,
                verbose=None):
     """Get paths to local copies of PhysioNet Polysomnography dataset files.
 

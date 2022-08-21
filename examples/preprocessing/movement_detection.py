@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
 """
-======================================================
+.. _ex-movement-detect:
+
+=====================================================
 Annotate movement artifacts and reestimate dev_head_t
-======================================================
+=====================================================
 
 Periods, where the participant moved considerably, are contaminated by low
 amplitude artifacts. When averaging the magnetic fields, the more spread the
@@ -13,15 +16,12 @@ This example uses the continuous head position indicators (cHPI) times series
 to annotate periods of head movement, then the device to head transformation
 matrix is estimated from the artifact-free segments. The new head position will
 be more representative of the actual head position during the recording.
-
 """
 # Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>
 # License: BSD-3-Clause
 
 # %%
-
-import os.path as op
 
 import mne
 from mne.datasets.brainstorm import bst_auditory
@@ -30,13 +30,12 @@ from mne.preprocessing import annotate_movement, compute_average_dev_head_t
 
 # Load data
 data_path = bst_auditory.data_path()
-data_path_MEG = op.join(data_path, 'MEG')
+data_path_MEG = data_path / 'MEG'
 subject = 'bst_auditory'
-subjects_dir = op.join(data_path, 'subjects')
-trans_fname = op.join(data_path, 'MEG', 'bst_auditory',
-                      'bst_auditory-trans.fif')
-raw_fname1 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_01.ds')
-raw_fname2 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_02.ds')
+subjects_dir = data_path / 'subjects'
+trans_fname = data_path / 'MEG' / 'bst_auditory' / 'bst_auditory-trans.fif'
+raw_fname1 = data_path_MEG / 'bst_auditory' / 'S01_AEF_20131218_01.ds'
+raw_fname2 = data_path_MEG / 'bst_auditory' / 'S01_AEF_20131218_02.ds'
 # read and concatenate two files, ignoring device<->head mismatch
 raw = read_raw_ctf(raw_fname1, preload=False)
 mne.io.concatenate_raws(
@@ -79,5 +78,6 @@ raw.plot(n_channels=100, duration=20)
 # and plot it:
 new_dev_head_t = compute_average_dev_head_t(raw, head_pos)
 raw.info['dev_head_t'] = new_dev_head_t
-mne.viz.plot_alignment(raw.info, show_axes=True, subject=subject,
-                       trans=trans_fname, subjects_dir=subjects_dir)
+fig = mne.viz.plot_alignment(raw.info, show_axes=True, subject=subject,
+                             trans=trans_fname, subjects_dir=subjects_dir)
+mne.viz.set_3d_view(fig, azimuth=90, elevation=60)

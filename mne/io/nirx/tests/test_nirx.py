@@ -14,52 +14,51 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 from mne import pick_types
 from mne.datasets.testing import data_path, requires_testing_data
-from mne.io import read_raw_nirx, read_raw_snirf
-from mne.utils import requires_h5py
+from mne.io import read_raw_nirx
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.preprocessing import annotate_nan
 from mne.transforms import apply_trans, _get_trans
 from mne.preprocessing.nirs import source_detector_distances,\
-    short_channels
+    short_channels, _reorder_nirx
 from mne.io.constants import FIFF
 
-fname_nirx_15_0 = op.join(data_path(download=False),
-                          'NIRx', 'nirscout', 'nirx_15_0_recording')
-fname_nirx_15_2 = op.join(data_path(download=False),
-                          'NIRx', 'nirscout', 'nirx_15_2_recording')
-fname_nirx_15_2_short = op.join(data_path(download=False),
-                                'NIRx', 'nirscout',
-                                'nirx_15_2_recording_w_short')
-fname_nirx_15_3_short = op.join(data_path(download=False),
-                                'NIRx', 'nirscout', 'nirx_15_3_recording')
+testing_path = data_path(download=False)
+fname_nirx_15_0 = op.join(
+    testing_path, 'NIRx', 'nirscout', 'nirx_15_0_recording')
+fname_nirx_15_2 = op.join(
+    testing_path, 'NIRx', 'nirscout', 'nirx_15_2_recording')
+fname_nirx_15_2_short = op.join(
+    testing_path, 'NIRx', 'nirscout', 'nirx_15_2_recording_w_short')
+fname_nirx_15_3_short = op.join(
+    testing_path, 'NIRx', 'nirscout', 'nirx_15_3_recording')
 
 
 # This file has no saturated sections
-nirsport1_wo_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
+nirsport1_wo_sat = op.join(testing_path, 'NIRx', 'nirsport_v1',
                            'nirx_15_3_recording_wo_saturation')
 # This file has saturation, but not on the optode pairing in montage
-nirsport1_w_sat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
+nirsport1_w_sat = op.join(testing_path, 'NIRx', 'nirsport_v1',
                           'nirx_15_3_recording_w_saturation_'
                           'not_on_montage_channels')
 # This file has saturation in channels of interest
-nirsport1_w_fullsat = op.join(data_path(download=False), 'NIRx', 'nirsport_v1',
-                              'nirx_15_3_recording_w_'
-                              'saturation_on_montage_channels')
+nirsport1_w_fullsat = op.join(
+    testing_path, 'NIRx', 'nirsport_v1', 'nirx_15_3_recording_w_'
+    'saturation_on_montage_channels')
 
-# NIRSport2 device using Aurora software and matching snirf file
-nirsport2 = op.join(data_path(download=False), 'NIRx', 'nirsport_v2',
-                    'aurora_recording _w_short_and_acc')
-nirsport2_snirf = op.join(data_path(download=False), 'SNIRF', 'NIRx',
-                          'NIRSport2', '1.0.3', '2021-05-05_001.snirf')
+# NIRSport2 device using Aurora software
+nirsport2 = op.join(
+    testing_path, 'NIRx', 'nirsport_v2', 'aurora_recording _w_short_and_acc')
+nirsport2_2021_9 = op.join(
+    testing_path, 'NIRx', 'nirsport_v2', 'aurora_2021_9')
+nirsport2_2021_9_6 = op.join(
+    testing_path, 'NIRx', 'nirsport_v2', 'aurora_2021_9_6')
 
 
-@requires_h5py
-@requires_testing_data
-@pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
-def test_nirsport_v2_matches_snirf():
+def test_nirsport_v2_matches_snirf(nirx_snirf):
     """Test NIRSport2 raw files return same data as snirf."""
-    raw = read_raw_nirx(nirsport2, preload=True)
-    raw_snirf = read_raw_snirf(nirsport2_snirf, preload=True)
+    raw, raw_snirf = nirx_snirf
+    _reorder_nirx(raw_snirf)
+    assert raw.ch_names == raw_snirf.ch_names
 
     assert_allclose(raw._data, raw_snirf._data)
 
@@ -84,11 +83,12 @@ def test_nirsport_v2():
     # nirsite https://github.com/mne-tools/mne-testing-data/pull/86
     # figure 3
     allowed_distance_error = 0.005
-    distances = source_detector_distances(raw.info)
-    assert_allclose(distances[::2][:14],
-                    [0.0304, 0.0411, 0.008, 0.0400, 0.008, 0.0310, 0.0411,
-                     0.008, 0.0299, 0.008, 0.0370, 0.008, 0.0404, 0.008],
-                    atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S1_D1 760").info),
+                    [0.0304], atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S2_D2 760").info),
+                    [0.0400], atol=allowed_distance_error)
 
     # Test location of detectors
     # The locations of detectors can be seen in the first
@@ -127,7 +127,7 @@ def test_nirsport_v2():
     assert_allclose(
         mni_locs[9], [-0.0, -0.1195, 0.0142], atol=allowed_dist_error)
 
-    assert raw.info['ch_names'][34][:2] == 'S8'
+    assert raw.info['ch_names'][39][:2] == 'S8'
     assert_allclose(
         mni_locs[34], [0.0828, -0.046, 0.0285], atol=allowed_dist_error)
 
@@ -139,7 +139,7 @@ def test_nirsport_v2():
         np.diff(raw.annotations.onset), [2.3, 3.1], atol=0.1)
 
     mon = raw.get_montage()
-    assert len(mon.dig) == 43
+    assert len(mon.dig) == 27
 
 
 @requires_testing_data
@@ -192,7 +192,8 @@ def test_nirsport_v1_w_sat():
 @pytest.mark.filterwarnings('ignore:.*Extraction of measurement.*:')
 @requires_testing_data
 @pytest.mark.parametrize('preload', (True, False))
-def test_nirsport_v1_w_bad_sat(preload):
+@pytest.mark.parametrize('meas_date', (None, "orig"))
+def test_nirsport_v1_w_bad_sat(preload, meas_date):
     """Test NIRSport1 file with NaNs."""
     fname = nirsport1_w_fullsat
     raw = read_raw_nirx(fname, preload=preload)
@@ -210,7 +211,13 @@ def test_nirsport_v1_w_bad_sat(preload):
     assert np.isnan(data_nan).any()
     assert not np.allclose(raw_nan.get_data(), data)
     raw_nan_annot = raw_ignore.copy()
-    raw_nan_annot.set_annotations(annotate_nan(raw_nan))
+    if meas_date is None:
+        raw.set_meas_date(None)
+        raw_nan.set_meas_date(None)
+        raw_nan_annot.set_meas_date(None)
+    nan_annots = annotate_nan(raw_nan)
+    assert nan_annots.orig_time == raw_nan.info["meas_date"]
+    raw_nan_annot.set_annotations(nan_annots)
     use_mask = np.where(raw.annotations.description == 'BAD_SATURATED')
     for key in ('onset', 'duration'):
         a = getattr(raw_nan_annot.annotations, key)[::2]  # one ch in each
@@ -237,24 +244,24 @@ def test_nirx_missing_warn():
 
 
 @requires_testing_data
-def test_nirx_missing_evt(tmpdir):
+def test_nirx_missing_evt(tmp_path):
     """Test reading NIRX files when missing data."""
-    shutil.copytree(fname_nirx_15_2_short, str(tmpdir) + "/data/")
-    os.rename(str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.evt",
-              str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.xxx")
-    fname = str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.hdr"
+    shutil.copytree(fname_nirx_15_2_short, str(tmp_path) + "/data/")
+    os.rename(tmp_path / "data" / "NIRS-2019-08-23_001.evt",
+              tmp_path / "data" / "NIRS-2019-08-23_001.xxx")
+    fname = tmp_path / "data" / "NIRS-2019-08-23_001.hdr"
     raw = read_raw_nirx(fname, preload=True)
     assert raw.annotations.onset.shape == (0, )
 
 
 @requires_testing_data
-def test_nirx_dat_warn(tmpdir):
+def test_nirx_dat_warn(tmp_path):
     """Test reading NIRX files when missing data."""
-    shutil.copytree(fname_nirx_15_2_short, str(tmpdir) + "/data/")
-    os.rename(str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.dat",
-              str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.tmp")
-    fname = str(tmpdir) + "/data" + "/NIRS-2019-08-23_001.hdr"
-    with pytest.raises(RuntimeWarning, match='A single dat'):
+    shutil.copytree(fname_nirx_15_2_short, str(tmp_path) + "/data/")
+    os.rename(tmp_path / "data" / "NIRS-2019-08-23_001.dat",
+              tmp_path / "data" / "NIRS-2019-08-23_001.tmp")
+    fname = tmp_path / "data" / "NIRS-2019-08-23_001.hdr"
+    with pytest.warns(RuntimeWarning, match='A single dat'):
         read_raw_nirx(fname, preload=True)
 
 
@@ -289,11 +296,12 @@ def test_nirx_15_2_short():
     # nirsite https://github.com/mne-tools/mne-testing-data/pull/51
     # step 4 figure 2
     allowed_distance_error = 0.0002
-    distances = source_detector_distances(raw.info)
-    assert_allclose(distances[::2], [
-        0.0304, 0.0078, 0.0310, 0.0086, 0.0416,
-        0.0072, 0.0389, 0.0075, 0.0558, 0.0562,
-        0.0561, 0.0565, 0.0077], atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S1_D1 760").info),
+                    [0.0304], atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S2_D10 760").info),
+                    [0.0086], atol=allowed_distance_error)
 
     # Test which channels are short
     # These are the ones marked as red at
@@ -380,11 +388,12 @@ def test_nirx_15_3_short():
     # Test distance between optodes matches values from
     # https://github.com/mne-tools/mne-testing-data/pull/72
     allowed_distance_error = 0.001
-    distances = source_detector_distances(raw.info)
-    assert_allclose(distances[::2], [
-        0.0304, 0.0078, 0.0310, 0.0086, 0.0416,
-        0.0072, 0.0389, 0.0075, 0.0558, 0.0562,
-        0.0561, 0.0565, 0.0077], atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S1_D2 760").info),
+                    [0.0304], atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S5_D13 760").info),
+                    [0.0076], atol=allowed_distance_error)
 
     # Test which channels are short
     # These are the ones marked as red at
@@ -439,21 +448,36 @@ def test_nirx_15_3_short():
 
 
 @requires_testing_data
-def test_encoding(tmpdir):
+def test_locale_encoding(tmp_path):
     """Test NIRx encoding."""
-    fname = str(tmpdir.join('latin'))
+    fname = tmp_path / 'latin'
     shutil.copytree(fname_nirx_15_2, fname)
     hdr_fname = op.join(fname, 'NIRS-2019-10-02_003.hdr')
     hdr = list()
     with open(hdr_fname, 'rb') as fid:
         hdr.extend(line for line in fid)
+    # French
     hdr[2] = b'Date="jeu. 13 f\xe9vr. 2020"\r\n'
     with open(hdr_fname, 'wb') as fid:
         for line in hdr:
             fid.write(line)
-    # smoke test
-    with pytest.raises(RuntimeWarning, match='Extraction of measurement date'):
-        read_raw_nirx(fname)
+    read_raw_nirx(fname, verbose='debug')
+    # German
+    hdr[2] = b'Date="mi 13 dez 2020"\r\n'
+    with open(hdr_fname, 'wb') as fid:
+        for line in hdr:
+            fid.write(line)
+    read_raw_nirx(fname, verbose='debug')
+    # Italian
+    hdr[2] = b'Date="ven 24 gen 2020"\r\n'
+    hdr[3] = b'Time="10:57:41.454"\r\n'
+    with open(hdr_fname, 'wb') as fid:
+        for line in hdr:
+            fid.write(line)
+    raw = read_raw_nirx(fname, verbose='debug')
+    want_dt = dt.datetime(
+        2020, 1, 24, 10, 57, 41, 454000, tzinfo=dt.timezone.utc)
+    assert raw.info['meas_date'] == want_dt
 
 
 @requires_testing_data
@@ -504,6 +528,15 @@ def test_nirx_15_2():
 
 
 @requires_testing_data
+def test_nirx_aurora_2021_9_6():
+    """Test reading NIRX files."""
+    raw = read_raw_nirx(nirsport2_2021_9_6, preload=True)
+    assert len(raw.annotations) == 3
+    assert raw.annotations.description[0] == "1.0"
+    assert raw.annotations.description[2] == "3.0"
+
+
+@requires_testing_data
 def test_nirx_15_0():
     """Test reading NIRX files."""
     raw = read_raw_nirx(fname_nirx_15_0, preload=True)
@@ -549,19 +582,44 @@ def test_nirx_15_0():
 
     # Test distance between optodes matches values from
     allowed_distance_error = 0.0002
-    distances = source_detector_distances(raw.info)
-    assert_allclose(distances[::2], [
-        0.0301, 0.0315, 0.0343, 0.0368, 0.0408,
-        0.0399, 0.0393, 0.0367, 0.0336, 0.0447], atol=allowed_distance_error)
+
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S1_D1 760").info),
+                    [0.0300], atol=allowed_distance_error)
+    assert_allclose(source_detector_distances(raw.copy().
+                                              pick("S7_D7 760").info),
+                    [0.0392], atol=allowed_distance_error)
 
 
 @requires_testing_data
 @pytest.mark.parametrize('fname, boundary_decimal', (
     [fname_nirx_15_2_short, 1],
     [fname_nirx_15_2, 0],
-    [fname_nirx_15_0, 0]
+    [fname_nirx_15_2, 0],
+    [nirsport2_2021_9, 0],
 ))
 def test_nirx_standard(fname, boundary_decimal):
     """Test standard operations."""
     _test_raw_reader(read_raw_nirx, fname=fname,
                      boundary_decimal=boundary_decimal)  # low fs
+
+
+# Below are the native (on-disk) orders, which should be preserved
+@requires_testing_data
+@pytest.mark.parametrize('fname, want_order', [
+    (fname_nirx_15_0, ['S1_D1', 'S2_D2', 'S3_D3', 'S4_D4', 'S5_D5', 'S6_D6', 'S7_D7', 'S8_D8', 'S9_D9', 'S10_D10']),  # noqa: E501
+    (fname_nirx_15_2, ['S1_D1', 'S1_D10', 'S2_D1', 'S2_D2', 'S3_D2', 'S3_D3', 'S4_D3', 'S4_D4', 'S5_D4', 'S5_D5', 'S6_D5', 'S6_D6', 'S7_D6', 'S7_D7', 'S8_D7', 'S8_D8', 'S9_D8', 'S9_D9', 'S10_D9', 'S10_D10', 'S11_D11', 'S11_D12', 'S12_D12', 'S12_D13', 'S13_D13', 'S13_D14', 'S14_D14', 'S14_D15', 'S15_D15', 'S15_D16', 'S16_D11', 'S16_D16']),  # noqa: E501
+    (fname_nirx_15_2_short, ['S1_D1', 'S1_D9', 'S2_D3', 'S2_D10', 'S3_D2', 'S3_D11', 'S4_D4', 'S4_D12', 'S5_D5', 'S5_D6', 'S5_D7', 'S5_D8', 'S5_D13']),  # noqa: E501
+    (fname_nirx_15_3_short, ['S1_D2', 'S1_D9', 'S2_D1', 'S2_D10', 'S3_D3', 'S3_D11', 'S4_D4', 'S4_D12', 'S5_D5', 'S5_D6', 'S5_D7', 'S5_D8', 'S5_D13']),  # noqa: E501
+    (nirsport1_wo_sat, ['S1_D4', 'S1_D5', 'S1_D6', 'S2_D5', 'S2_D6', 'S3_D5', 'S4_D1', 'S4_D3', 'S4_D4', 'S5_D1', 'S5_D2', 'S6_D1', 'S6_D3']),  # noqa: E501
+    (nirsport2, ['S1_D1', 'S1_D6', 'S1_D9', 'S2_D2', 'S2_D10', 'S3_D5', 'S3_D7', 'S3_D11', 'S4_D8', 'S4_D12', 'S5_D3', 'S5_D13', 'S6_D4', 'S6_D14', 'S7_D1', 'S7_D6', 'S7_D15', 'S8_D5', 'S8_D7', 'S8_D16']),  # noqa: E501
+    (nirsport2_2021_9, ['S1_D1', 'S1_D3', 'S2_D1', 'S2_D2', 'S2_D4', 'S3_D2', 'S3_D5', 'S4_D1', 'S4_D3', 'S4_D4', 'S4_D6', 'S5_D2', 'S5_D4', 'S5_D5', 'S5_D7', 'S6_D3', 'S6_D6', 'S7_D4', 'S7_D6', 'S7_D7', 'S8_D5', 'S8_D7']),  # noqa: E501
+])
+def test_channel_order(fname, want_order):
+    """Test that logical channel order is preserved."""
+    raw = read_raw_nirx(fname)
+    ch_names = raw.ch_names
+    prefixes = [ch_name.split()[0] for ch_name in ch_names]
+    assert prefixes[::2] == prefixes[1::2]
+    prefixes = prefixes[::2]
+    assert prefixes == want_order
