@@ -1069,22 +1069,3 @@ CHANNEL_LOC_ALIASES = {
     # add a comment here (with doi of a published source) above any new
     # aliases, as they are added
 }
-
-# SNIRF: Supported measurementList(k).dataTypeLabel values in dataTimeSeries
-FNIRS_SNIRF_DATATYPELABELS = {
-    # These types are specified `here <https://github.com/fNIRS/snirf/blob/master/snirf_specification.md#supported-measurementlistkdatatypelabel-values-in-datatimeseries>`_ 
-    "HbO": 1, #	Oxygenated hemoglobin (oxyhemoglobin) concentration
-    "HbR": 2, #	Deoxygenated hemoglobin (deoxyhemoglobin) concentration
-    "HbT": 3, #	Total hemoglobin concentration
-    "dOD": 4, #	Change in optical density
-    "mua": 5, #	Absorption coefficient
-    "musp": 6, #	Scattering coefficient
-    "H2O": 7, #	Water content
-    "Lipid": 8, #	Lipid concentration
-    "BFi": 9, #	Blood flow index
-    "HRF dOD": 10, #	Hemodynamic response function for change in optical density
-    "HRF HbO": 11, #	Hemodynamic response function for oxyhemoglobin concentration
-    "HRF HbR": 12, #	Hemodynamic response function for deoxyhemoglobin concentration
-    "HRF HbT": 13, #	Hemodynamic response function for total hemoglobin concentration
-    "HRF BFi": 14, #	Hemodynamic response function for blood flow index
-}
