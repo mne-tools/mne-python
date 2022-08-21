@@ -114,12 +114,25 @@ raw.plot()
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # To visualize the frequency content of continuous data, the `~mne.io.Raw`
-# object provides a `~mne.io.Raw.plot_psd` to plot the `spectral density`_ of
-# the data.
+# object provides a :meth:`~mne.io.Raw.compute_psd` method to compute
+# `spectral density`_ and the resulting :class:`~mne.time_frequency.Spectrum`
+# object has a :meth:`~mne.time_frequency.Spectrum.plot` method:
 
-raw.plot_psd(average=True)
+spectrum = raw.compute_psd()
+spectrum.plot(average=True)
 
 # %%
+# .. note::
+#
+#    Prior to the addition of the :class:`~mne.time_frequency.Spectrum` class,
+#    the above plot was possible via::
+#
+#        raw.plot_psd(average=True)
+#
+#    The :meth:`~mne.io.Raw.plot_psd` method of :class:`~mne.io.Raw` objects
+#    is still provided to support legacy analysis scripts, but new code should
+#    instead use the :class:`~mne.time_frequency.Spectrum` object API.
+#
 # If the data have been filtered, vertical dashed lines will automatically
 # indicate filter boundaries. The spectrum for each channel type is drawn in
 # its own subplot; here we've passed the ``average=True`` parameter to get a
@@ -131,7 +144,17 @@ raw.plot_psd(average=True)
 # documentation of `~mne.io.Raw.plot_psd` for full details):
 
 midline = ['EEG 002', 'EEG 012', 'EEG 030', 'EEG 048', 'EEG 058', 'EEG 060']
-raw.plot_psd(picks=midline)
+spectrum.plot(picks=midline)
+
+# %%
+# It is also possible to plot spectral power estimates across sensors as a
+# scalp topography, using the :class:`~mne.time_frequency.Spectrum`'s
+# :meth:`~mne.time_frequency.Spectrum.plot_topomap` method. The default
+# parameters will plot five frequency bands (δ, θ, α, β, γ), will compute power
+# based on magnetometer channels (if present), and will plot the power
+# estimates on a dB-like log-scale:
+
+spectrum.plot_topomap()
 
 # %%
 # Alternatively, you can plot the PSD for every sensor on its own axes, with

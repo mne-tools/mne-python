@@ -130,23 +130,41 @@ epochs.plot_sensors(kind='topomap', ch_type='all')
 # Plotting the power spectrum of ``Epochs``
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Again, just like `~mne.io.Raw` objects, `~mne.Epochs` objects
-# have a `~mne.Epochs.plot_psd` method for plotting the `spectral
-# density`_ of the data.
+# Again, just like `~mne.io.Raw` objects, :class:`~mne.Epochs` objects
+# can be converted to `spectral density`_ via
+# :meth:`~mne.Epochs.compute_psd`, which can then be plotted using the
+# :class:`~mne.time_frequency.EpochsSpectrum`'s
+# :meth:`~mne.time_frequency.EpochsSpectrum.plot` method.
 
-epochs['auditory'].plot_psd(picks='eeg')
-
-# %%
-# It is also possible to plot spectral estimates across sensors as a scalp
-# topography, using `~mne.Epochs.plot_psd_topomap`. The default parameters will
-# plot five frequency bands (δ, θ, α, β, γ), will compute power based on
-# magnetometer channels, and will plot the power estimates in decibels:
-
-epochs['visual/right'].plot_psd_topomap()
+epochs['auditory'].compute_psd().plot(picks='eeg')
 
 # %%
+# It is also possible to plot spectral power estimates across sensors as a
+# scalp topography, using the :class:`~mne.time_frequency.EpochsSpectrum`'s
+# :meth:`~mne.time_frequency.EpochsSpectrum.plot_topomap` method. The default
+# parameters will plot five frequency bands (δ, θ, α, β, γ), will compute power
+# based on magnetometer channels (if present), and will plot the power
+# estimates on a dB-like log-scale:
+
+spectrum = epochs['visual/right'].compute_psd()
+spectrum.plot_topomap()
+
+# %%
+# .. note::
+#    Prior to the addition of the :class:`~mne.time_frequency.EpochsSpectrum`
+#    class, the above plots were possible via::
+#
+#        epochs['auditory'].plot_psd(picks='eeg')
+#        epochs['visual/right'].plot_psd_topomap()
+#
+#    The :meth:`~mne.Epochs.plot_psd` and `~mne.Epochs.plot_psd_topomap`
+#    methods of :class:`~mne.Epochs` objects are still provided to support
+#    legacy analysis scripts, but new code should instead use the
+#    :class:`~mne.time_frequency.EpochsSpectrum` object API.
+#
 # Just like `~mne.Epochs.plot_projs_topomap`,
-# `~mne.Epochs.plot_psd_topomap` has a ``vlim='joint'`` option for fixing
+# `~mne.time_frequency.EpochsSpectrum.plot_topomap` has a ``vlim='joint'``
+# option for fixing
 # the colorbar limits jointly across all subplots, to give a better sense of
 # the relative magnitude in each frequency band. You can change which channel
 # type is used  via the ``ch_type`` parameter, and if you want to view
