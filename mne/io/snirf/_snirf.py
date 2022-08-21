@@ -33,20 +33,20 @@ _AVAILABLE_SNIRF_DATA_TYPES = (
 FNIRS_SNIRF_DATATYPELABELS = {
     # These types are specified here:
     # https://github.com/fNIRS/snirf/blob/master/snirf_specification.md#supported-measurementlistkdatatypelabel-values-in-datatimeseries  # noqa: E501
-    "HbO": 1,      # Oxygenated hemoglobin (oxyhemoglobin) concentration
-    "HbR": 2,      # Deoxygenated hemoglobin (deoxyhemoglobin) concentration
-    "HbT": 3,      # Total hemoglobin concentration
-    "dOD": 4,      # Change in optical density
-    "mua": 5,      # Absorption coefficient
-    "musp": 6,     # Scattering coefficient
-    "H2O": 7,      # Water content
-    "Lipid": 8,    # Lipid concentration
-    "BFi": 9,      # Blood flow index
-    "HRF dOD": 10, # HRF for change in optical density
-    "HRF HbO": 11, # HRF for oxyhemoglobin concentration
-    "HRF HbR": 12, # HRF for deoxyhemoglobin concentration
-    "HRF HbT": 13, # HRF for total hemoglobin concentration
-    "HRF BFi": 14, # HRF for blood flow index
+    "HbO": 1,       # Oxygenated hemoglobin (oxyhemoglobin) concentration
+    "HbR": 2,       # Deoxygenated hemoglobin (deoxyhemoglobin) concentration
+    "HbT": 3,       # Total hemoglobin concentration
+    "dOD": 4,       # Change in optical density
+    "mua": 5,       # Absorption coefficient
+    "musp": 6,      # Scattering coefficient
+    "H2O": 7,       # Water content
+    "Lipid": 8,     # Lipid concentration
+    "BFi": 9,       # Blood flow index
+    "HRF dOD": 10,  # HRF for change in optical density
+    "HRF HbO": 11,  # HRF for oxyhemoglobin concentration
+    "HRF HbR": 12,  # HRF for deoxyhemoglobin concentration
+    "HRF HbT": 13,  # HRF for total hemoglobin concentration
+    "HRF BFi": 14,  # HRF for blood flow index
 }
 
 
@@ -379,7 +379,8 @@ class RawSNIRF(BaseRaw):
                     else:
                         assert snirf_data_type == SNIRF_TD_MOMENTS_AMPLITUDE
                         moment_idx = np.array(
-                            dat.get(f'{ch_root}/dataTypeIndex'), int).item() - 1
+                            dat.get(f'{ch_root}/dataTypeIndex'),
+                            int).item() - 1
                         info['chs'][idx]['loc'][10] = \
                             fnirs_moment_orders[moment_idx]
                 elif snirf_data_type == SNIRF_PROCESSED:
