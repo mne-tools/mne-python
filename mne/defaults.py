@@ -14,7 +14,7 @@ DEFAULTS = dict(
                fnirs_cw_amplitude='k', fnirs_fd_ac_amplitude='k',
                fnirs_fd_phase='k', fnirs_od='k',
                fnirs_td_gated_amplitude='k',
-               fnirs_td_gated_moment='k',
+               fnirs_td_moments_amplitude='k',
                csd='k', whitened='k'),
     si_units=dict(mag='T', grad='T/m', eeg='V', eog='V', ecg='V', emg='V',
                   misc='AU', seeg='V', dbs='V', dipole='Am', gof='GOF',
@@ -23,7 +23,7 @@ DEFAULTS = dict(
                   fnirs_fd_phase='rad', fnirs_od='V',
                   # TODO: These units and scalings are wrong
                   fnirs_td_gated_amplitude='Au',
-                  fnirs_td_gated_moment='Au',
+                  fnirs_td_moments_amplitude='Au',
                   csd='V/m²', whitened='Z'),
     units=dict(mag='fT', grad='fT/cm', eeg='µV', eog='µV', ecg='µV', emg='µV',
                misc='AU', seeg='mV', dbs='µV', dipole='nAm', gof='GOF',
@@ -31,7 +31,7 @@ DEFAULTS = dict(
                fnirs_cw_amplitude='V', fnirs_fd_ac_amplitude='V',
                fnirs_fd_phase='rad', fnirs_od='V',
                fnirs_td_gated_amplitude='Au',
-               fnirs_td_gated_moment='Au',
+               fnirs_td_moments_amplitude='Au',
                csd='mV/m²', whitened='Z'),
     # scalings for the units
     scalings=dict(mag=1e15, grad=1e13, eeg=1e6, eog=1e6, emg=1e6, ecg=1e6,
@@ -40,7 +40,7 @@ DEFAULTS = dict(
                   fnirs_cw_amplitude=1.0, fnirs_fd_ac_amplitude=1.0,
                   fnirs_fd_phase=1., fnirs_od=1.0,
                   fnirs_td_gated_amplitude=1.,
-                  fnirs_td_gated_moment=1.,
+                  fnirs_td_moments_amplitude=1.,
                   csd=1e3, whitened=1.),
     # rough guess for a good plot
     scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
@@ -51,7 +51,7 @@ DEFAULTS = dict(
                            fnirs_fd_ac_amplitude=2e-2, fnirs_fd_phase=2e-1,
                            fnirs_od=2e-2,
                            fnirs_td_gated_amplitude=1.,
-                           fnirs_td_gated_moment=1.,
+                           fnirs_td_moments_amplitude=1.,
                            csd=200e-4, dipole=1e-7, gof=1e2),
     scalings_cov_rank=dict(mag=1e12, grad=1e11, eeg=1e5,  # ~100x scalings
                            seeg=1e1, dbs=1e4, ecog=1e4, hbo=1e4, hbr=1e4),
@@ -68,7 +68,7 @@ DEFAULTS = dict(
                 fnirs_fd_phase='fNIRS (FD phase)',
                 fnirs_od='fNIRS (OD)', hbr='Deoxyhemoglobin',
                 fnirs_td_gated_amplitude='fNIRS (TD amplitude)',
-                fnirs_td_gated_moment='fNIRS (TD moment)',
+                fnirs_td_moments_amplitude='fNIRS (TD moment)',
                 gof='Goodness of fit', csd='Current source density',
                 stim='Stimulus',
                 ),
