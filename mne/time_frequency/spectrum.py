@@ -150,6 +150,12 @@ class ToSpectrumMixin():
             exclude=exclude, ax=ax, show=show)
         return fig
 
+
+    @verbose
+    def plot_psd_topo(self):
+        # XXX TODO XXX TODO
+        raise NotImplementedError()
+
     @verbose
     def plot_psd_topomap(self, bands=None, tmin=None, tmax=None, proj=False,
                          method='auto', ch_type=None, *, normalize=False,
