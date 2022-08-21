@@ -304,7 +304,7 @@ class RawSNIRF(BaseRaw):
             data_scale = None
             if need_data_scale:
                 snirf_data_unit = np.array(
-                    dat.get('nirs/data1/measurementList1/dataUnit', b'M')
+                    dat.get('nirs/data1/measurementList1/dataUnit', b'M'))
                 snirf_data_unit = snirf_data_unit.item().decode('utf-8')
                 data_scale = _get_dataunit_scaling(snirf_data_unit)
 
