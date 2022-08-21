@@ -119,6 +119,9 @@ def pytest_configure(config):
     ignore:.*elementwise comparison failed; returning scalar in.*:FutureWarning
     # numba with NumPy dev
     ignore:`np.MachAr` is deprecated.*:DeprecationWarning
+    # matplotlib 3.6
+    # gh-11063, gh-11062
+    ignore:.*event function was deprecated in Matplotlib.*:DeprecationWarning
     """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
