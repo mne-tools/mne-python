@@ -20,8 +20,9 @@ from mne.utils import requires_good_network
 
 
 # https://github.com/mne-tools/fiff-constants/commits/master
-REPO = 'mne-tools'
-COMMIT = 'aa49e20cff5791fbaf01d77ad4ec2e0ecb69840d'
+# TODO: Set back to mne-tools before merge!
+REPO = 'larsoner'
+COMMIT = 'd9835a6fd544926da18a6c07403808368c8f2931'
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
@@ -55,6 +56,8 @@ _missing_coil_def = (
     303,    # fNIRS optical density
     304,    # fNIRS frequency domain AC amplitude
     305,    # fNIRS frequency domain phase
+    306,    # fNIRS time domain gated amplitude
+    307,    # fNIRS time domain moments amplitude
     1000,   # For testing the MCG software
     2001,   # Generic axial gradiometer
     3011,   # VV prototype wirewound planar sensor
