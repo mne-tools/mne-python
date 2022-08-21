@@ -1237,9 +1237,11 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
 class _RegCovariance(BaseEstimator):
     """Aux class."""
 
-    def __init__(self, info, grad=0.1, mag=0.1, eeg=0.1, seeg=0.1,
+    def __init__(self, info, grad=0.1, mag=0.1, eeg=0.1, *, seeg=0.1,
                  ecog=0.1, hbo=0.1, hbr=0.1, fnirs_cw_amplitude=0.1,
                  fnirs_fd_ac_amplitude=0.1, fnirs_fd_phase=0.1, fnirs_od=0.1,
+                 fnirs_td_gated_amplitude=0.1,
+                 fnirs_td_moments_amplitude=0.1,
                  csd=0.1, dbs=0.1, store_precision=False,
                  assume_centered=False):
         self.info = info
@@ -1540,9 +1542,12 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
 
 @verbose
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
-               proj=True, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
+               proj=True, *, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
                fnirs_cw_amplitude=0.1, fnirs_fd_ac_amplitude=0.1,
-               fnirs_fd_phase=0.1, fnirs_od=0.1, csd=0.1, dbs=0.1,
+               fnirs_fd_phase=0.1, fnirs_od=0.1,
+               fnirs_td_gated_amplitude=0.1,
+               fnirs_td_moments_amplitude=0.1,
+               csd=0.1, dbs=0.1,
                rank=None, scalings=None, verbose=None):
     """Regularize noise covariance matrix.
 

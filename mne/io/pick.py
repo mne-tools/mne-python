@@ -729,9 +729,8 @@ def channel_indices_by_type(info, picks=None):
     """
     idx_by_type = {key: list() for key in _PICK_TYPES_KEYS if
                    key not in ('meg', 'fnirs')}
-    idx_by_type.update(mag=list(), grad=list(), hbo=list(), hbr=list(),
-                       fnirs_cw_amplitude=list(), fnirs_fd_ac_amplitude=list(),
-                       fnirs_fd_phase=list(), fnirs_od=list())
+    idx_by_type.update(mag=list(), grad=list())
+    idx_by_type.update((key, list()) for key in _FNIRS_CH_TYPES_SPLIT)
     picks = _picks_to_idx(info, picks,
                           none='all', exclude=(), allow_empty=True)
     for k in picks:
