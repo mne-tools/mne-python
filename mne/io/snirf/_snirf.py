@@ -244,6 +244,7 @@ class RawSNIRF(BaseRaw):
 
             chnames = []
             ch_types = []
+            need_data_scale = False
             for chan in channels:
                 ch_root = f'nirs/data1/{chan}'
                 src_idx = np.array(
@@ -290,9 +291,22 @@ class RawSNIRF(BaseRaw):
                         suffix = f' {fnirs_wavelengths[wve_idx]}'
                     else:
                         suffix = f' {dt_id.lower()}'
+                        if dt_id not in ('hbo', 'hbr'):
+                            raise RuntimeError(
+                                'read_raw_snirf can only handle processed '
+                                'data in the form of optical density or '
+                                f'HbO/HbR, but got type f{dt_id}')
+                        need_data_scale = True
                     ch_name = ch_name + suffix
                     chnames.append(ch_name)
                     ch_types.append(dt_id)
+
+            data_scale = None
+            if need_data_scale:
+                snirf_data_unit = np.array(
+                    dat.get('nirs/data1/measurementList1/dataUnit', b'M')
+                    ).item().decode('utf-8')
+                data_scale = _get_dataunit_scaling(snirf_data_unit)
 
             # Create mne structure
             info = create_info(chnames,
@@ -466,9 +480,10 @@ class RawSNIRF(BaseRaw):
                     with info._unlock():
                         info["subject_info"]['birthday'] = birthday
 
-            super(RawSNIRF, self).__init__(info, preload, filenames=[fname],
-                                           last_samps=[last_samps],
-                                           verbose=verbose)
+            raw_extras = dict(data_scale=data_scale)
+            super(RawSNIRF, self).__init__(
+                info, preload, filenames=[fname], last_samps=[last_samps],
+                raw_extras=[raw_extras], verbose=verbose)
 
             # Extract annotations
             annot = Annotations([], [], [])
@@ -494,6 +509,10 @@ class RawSNIRF(BaseRaw):
 
         _mult_cal_one(data, one, idx, cals, mult)
 
+        data_scale = self._raw_extras[fi]['data_scale']
+        if data_scale is not None:
+            one *= data_scale
+
 
 def _get_timeunit_scaling(time_unit):
     """MNE expects time in seconds, return required scaling."""
@@ -516,6 +535,16 @@ def _get_lengthunit_scaling(length_unit):
                            'by MNE. Please report this error as a GitHub '
                            'issue to inform the developers.')
 
+
+def _get_dataunit_scaling(hbx_unit):
+    """MNE expects hbo/hbr in M, return required scaling."""
+    scalings = {'M': None, 'uM': 1e-6}
+    try:
+        return scalings[hbx_unit]
+    except KeyError:
+        raise RuntimeError(f'The Hb unit {hbx_unit} is not supported '
+                           'by MNE. Please report this error as a GitHub '
+                           'issue to inform the developers.')
 
 def _extract_sampling_rate(dat):
     """Extract the sample rate from the time field."""
