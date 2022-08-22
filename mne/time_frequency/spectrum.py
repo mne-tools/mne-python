@@ -95,7 +95,7 @@ class ToSpectrumMixin():
         %(proj_psd)s
         %(reject_by_annotation_psd)s
         %(method_psd)s
-        %(ax_psd)s
+        %(axes_spectrum_plot)s
         %(color_plot_psd)s
         %(xscale_plot_psd)s
         %(area_mode_plot_psd)s
@@ -150,9 +150,52 @@ class ToSpectrumMixin():
             exclude=exclude, ax=ax, show=show)
         return fig
 
-
     @verbose
-    def plot_psd_topo(self):
+    def plot_psd_topo(self, tmin=None, tmax=None, fmin=0, fmax=100, proj=False,
+                      method='auto', layout=None, color='w',
+                      fig_facecolor='k', axis_facecolor='k', dB=True,
+                      axes=None,
+                      block=False, show=True, n_jobs=None, verbose=None,
+                      **method_kw):
+        """Plot power spectral density, separately for each channel.
+
+        Parameters
+        ----------
+        %(tmin_tmax_psd)s
+        %(fmin_fmax_psd_topo)s
+        %(proj_psd)s
+        %(method_psd)s
+        n_fft : int
+            Number of points to use in Welch FFT calculations. Defaults to 2048.
+        layout : instance of Layout | None
+            Layout instance specifying sensor positions (does not need to be
+            specified for Neuromag data). If None (default), the correct layout is
+            inferred from the data.
+        color : str | tuple
+            A matplotlib-compatible color to use for the curves. Defaults to white.
+        fig_facecolor : str | tuple
+            A matplotlib-compatible color to use for the figure background.
+            Defaults to black.
+        axis_facecolor : str | tuple
+            A matplotlib-compatible color to use for the axis background.
+            Defaults to black.
+        dB : bool
+            If True, transform data to decibels. Defaults to True.
+        axes : instance of matplotlib Axes | None
+            Axes to plot into. If None, axes will be created.
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            May not work on all systems / platforms. Defaults to False.
+        %(show)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_psd)s Defaults to ``dict(n_fft=2048)``.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            Figure distributing one image per channel across sensor topography.
+        """
         # XXX TODO XXX TODO
         raise NotImplementedError()
 
@@ -180,7 +223,7 @@ class ToSpectrumMixin():
         %(ch_type_psd_topomap)s
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
-        %(dB_psd_topo)s
+        %(dB_spectrum_plot_topomap)s
         %(sensors_topomap)s
         %(show_names_topomap)s
         %(mask_evoked_topomap)s
@@ -198,7 +241,7 @@ class ToSpectrumMixin():
         %(colorbar_topomap)s
         %(cbar_fmt_psd_topo)s
         %(units_topomap)s
-        %(axes_psd_topo)s
+        %(axes_spectrum_plot_topomap)s
         %(show)s
         %(n_jobs)s
         %(verbose)s
@@ -519,7 +562,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             interactive plotting of scalp topography is disabled, and
             parameters ``ci`` and ``ci_alpha`` control the style of the
             confidence band around the mean. Default is ``False``.
-        %(dB_psd)s
+        %(dB_spectrum_plot)s
         amplitude : bool | 'auto'
             Whether to plot an amplitude spectrum (``True``) or power spectrum
             (``False``). If ``'auto'``, will plot a power spectrum when
@@ -546,7 +589,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(spatial_colors_psd)s
         %(sphere_topomap_auto)s
         %(exclude_spectrum_plot)s
-        %(ax_psd)s
+        %(axes_spectrum_plot_topomap)s
         %(show)s
 
         Returns
@@ -624,6 +667,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         plt_show(show, fig)
         return fig
 
+    def plot_topo(self):
+        # XXX TODO FIXME
+        raise NotImplementedError()
+
     @verbose
     def plot_topomap(self, bands=None, ch_type=None, *, normalize=False,
                      agg_fun=None, dB=False, sensors=True, show_names=False,
@@ -641,7 +688,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(ch_type_psd_topomap)s
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
-        %(dB_psd_topo)s
+        %(dB_spectrum_plot_topomap)s
         %(sensors_topomap)s
         %(show_names_topomap)s
         %(mask_evoked_topomap)s
@@ -659,7 +706,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(colorbar_topomap)s
         %(cbar_fmt_psd_topo)s
         %(units_topomap)s
-        %(axes_psd_topo)s
+        %(axes_spectrum_plot_topomap)s
         %(show)s
         %(n_jobs)s
         %(verbose)s
