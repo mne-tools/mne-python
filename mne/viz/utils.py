@@ -753,8 +753,8 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press', key=None):
     else:
         assert xform == 'pix'
         x, y = point
-    # This works on 3.6+, but not on < 3.5 (lasso events not propagated)
-    if _compare_version(mpl_version, '<=', '3.5'):
+    # This works on 3.6+, but not on <= 3.5.1 (lasso events not propagated)
+    if _compare_version(mpl_version, '<=', '3.5.1'):
         if kind == 'press':
             fig.canvas.button_press_event(x=x, y=y, button=button)
         elif kind == 'release':
