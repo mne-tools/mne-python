@@ -276,7 +276,7 @@ def eog_regression(inst, eog_evokeds=None, eog_channels=None, picks=None):
     eog_channels : str | list of str | None
         The names of the EOG channels to use in the regression. By default, all
         EOG channels are used.
-    %{picks_all_data}s
+    %(picks_all_data)s
 
     Returns
     -------
