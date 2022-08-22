@@ -15,7 +15,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 import pytest
 import matplotlib.pyplot as plt
-from matplotlib import gridspec, colormaps
+from matplotlib import gridspec
 from matplotlib.collections import PolyCollection
 
 import mne
@@ -24,7 +24,7 @@ from mne import (read_events, Epochs, read_cov, compute_covariance,
 from mne.io import read_raw_fif
 from mne.utils import catch_logging
 from mne.viz import plot_compare_evokeds, plot_evoked_white
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _get_cmap
 from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.stats.parametric import _parametric_ci
@@ -409,7 +409,7 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds(evoked_dict, colors=list(range(3)))
     plt.close('all')
     # test colormap
-    cmap = colormaps['viridis']
+    cmap = _get_cmap('viridis')
     plot_compare_evokeds(evoked_dict, cmap=cmap, colors=dict(aud=0.4, vis=0.9))
     plot_compare_evokeds(evoked_dict, cmap=cmap, colors=dict(aud=1, vis=2))
     plot_compare_evokeds(evoked_dict, cmap=('cmap title', 'inferno'),
