@@ -922,6 +922,9 @@ def reset_warnings(gallery_conf, fname):
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
+    # matplotlib 3.6 in nilearn and pyvist
+    warnings.filterwarnings(
+        'ignore', message='.*cmap function will be deprecated.*')
     # xarray/netcdf4
     warnings.filterwarnings(
         'ignore', message=r'numpy\.ndarray size changed, may indicate.*',

@@ -753,24 +753,36 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
     else:
         assert xform == 'pix'
         x, y = point
-    func = fig.canvas.callbacks.process
     if kind in ('press', 'release'):
-        func = partial(
-            func, f'button_{kind}_event',
-            backend_bases.MouseEvent(kind, fig.canvas, x, y, button=button))
+        kind = f'button_{kind}_event'
     else:
         assert kind == 'motion'
-        func = partial(
-            func, 'motion_notify_event',
-            backend_bases.MouseEvent('motion_notify_event', fig.canvas, x, y))
-    func()
+        kind = 'motion_notify_event'
+        from mne.utils import _record_warnings
+        # TODO: This is not equivalent!
+        with _record_warnings():
+            fig.canvas.motion_notify_event(x=x, y=y, guiEvent=None)
+        return
+    fig.canvas.callbacks.process(
+        kind,
+        backend_bases.MouseEvent(
+            name=kind, canvas=fig.canvas, x=x, y=y, button=button))
 
 
 def _fake_keypress(fig, key):
     from matplotlib import backend_bases
     fig.canvas.callbacks.process(
         'key_press_event',
-        backend_bases.KeyEvent('key_press_event', fig.canvas, key))
+        backend_bases.KeyEvent(
+            name='key_press_event', canvas=fig.canvas, key=key))
+
+
+def _fake_scroll(fig, x, y, step):
+    from matplotlib import backend_bases
+    fig.canvas.callbacks.process(
+            'scroll_event',
+            backend_bases.MouseEvent(
+                name='scroll_event', canvas=fig.canvas, x=x, y=y, step=step))
 
 
 def add_background_image(fig, im, set_ratios=None):

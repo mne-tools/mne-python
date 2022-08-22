@@ -60,7 +60,7 @@ from . import plot_sensors
 from ._figure import BrowserBase
 from .utils import (DraggableLine, _events_off, _fake_click, _fake_keypress,
                     _merge_annotations, _plot_psd, _prop_kw, _set_window_title,
-                    _validate_if_list_of_axes, plt_show)
+                    _validate_if_list_of_axes, plt_show, _fake_scroll)
 
 name = 'matplotlib'
 plt.ion()
@@ -1999,10 +1999,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _fake_scroll(self, x, y, step, fig=None):
         fig = fig or self
-        self.canvas.callbacks.process(
-            'scroll_event',
-            backend_bases.MouseEvent(
-                'scroll_event', fig.canvas, x, y, step=step))
+        _fake_scroll(fig, x, y, step)
 
     def _click_ch_name(self, ch_index, button):
         _click_ch_name(self, ch_index, button)
