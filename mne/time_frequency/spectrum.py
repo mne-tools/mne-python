@@ -657,7 +657,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             # epoch axis should always be the first axis
             psd_list = [_p.mean(axis=0) for _p in psd_list]
         # initialize figure
-        fig, axes = _line_figure(self, ax, picks=picks)
+        fig, axes = _line_figure(self, axes, picks=picks)
         # don't add ylabels & titles if figure has unexpected number of axes
         make_label = len(axes) == len(fig.axes)
         # Plot Frequency [Hz] xlabel only on the last axis
