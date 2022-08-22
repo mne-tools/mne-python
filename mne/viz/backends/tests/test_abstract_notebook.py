@@ -9,13 +9,13 @@ import sys
 import pytest
 from mne.utils import check_version
 
-pytestmark = pytest.mark.skipif(
+pytest.mark.skipif(
     sys.platform.startswith('win') or not check_version('ipympl'),
     reason='nbexec does not work on Windows')
-
-
-@pytest.mark.skipif(not _compare_version(mpl_version, '<=', '3.5'),
+pytest.mark.skipif(check_version('matplotlib', '3.6'),
                     reason='matplotlib notebook issue gh-23699')
+
+
 def test_widget_abstraction_notebook(nbexec):
     """Test the GUI widgets abstraction in notebook."""
     from mne.viz import set_3d_backend
