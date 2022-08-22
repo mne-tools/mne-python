@@ -743,6 +743,11 @@ class ClickableImage(object):
         return lt
 
 
+def _old_mpl_events():
+    from matplotlib import backend_bases, __version__ as mpl_version
+    return _compare_version(mpl_version, '<=', '3.5.1')
+
+
 def _fake_click(fig, ax, point, xform='ax', button=1, kind='press', key=None):
     """Fake a click at a relative point within axes."""
     from matplotlib import backend_bases, __version__ as mpl_version
@@ -754,7 +759,7 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press', key=None):
         assert xform == 'pix'
         x, y = point
     # This works on 3.6+, but not on <= 3.5.1 (lasso events not propagated)
-    if _compare_version(mpl_version, '<=', '3.5.1'):
+    if _old_mpl_events():
         if kind == 'press':
             fig.canvas.button_press_event(x=x, y=y, button=button)
         elif kind == 'release':
@@ -776,11 +781,14 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press', key=None):
 
 
 def _fake_keypress(fig, key):
-    from matplotlib import backend_bases
-    fig.canvas.callbacks.process(
-        'key_press_event',
-        backend_bases.KeyEvent(
-            name='key_press_event', canvas=fig.canvas, key=key))
+    if _old_mpl_events():
+        fig.canvas.key_press_event(key)
+    else:
+        from matplotlib import backend_bases
+        fig.canvas.callbacks.process(
+            'key_press_event',
+            backend_bases.KeyEvent(
+                name='key_press_event', canvas=fig.canvas, key=key))
 
 
 def _fake_scroll(fig, x, y, step):
