@@ -28,6 +28,7 @@ Enhancements
 - Improve ``repr()`` for :class:`mne.minimum_norm.InverseOperator` when loose orientation is used (:gh:`11048` by `Eric Larson`_)
 - :meth:`mne.Epochs.plot_psd_topomap` now suppresses redundant colorbars when ``vlim='joint'`` (:gh:`11051` by `Daniel McCloy`_)
 - Add ``starting_affine`` keyword argument to :func:`mne.transforms.compute_volume_registration` to initialize an alignment with an affine (:gh:`11020` by `Alex Rockhill`_)
+- trans parameter in :func:`mne.make_field_map` now accepts Path and uses standardised loading logic. (:gh:`10784` by :newcontrib:`Andrew Quinn`_)
 
 Bugs
 ~~~~

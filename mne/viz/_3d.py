@@ -458,6 +458,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     ----------
     %(info)s If None (default), no sensor information will be shown.
     %(trans)s
+        "auto" will load trans from fs directory specified by
+        ``'subject'`` and ``'subjects_dir'`` parameters.
     %(subject)s Can be omitted if ``src`` is provided.
     %(subjects_dir)s
     surfaces : str | list | dict
@@ -603,14 +605,15 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             raise ValueError(f'subject ("{subject}") did not match the '
                              f'subject name in src ("{src_subject}")')
     # configure transforms
-    if trans == 'auto':
+    if isinstance(trans, str) and trans == 'auto':
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         trans = _find_trans(subject, subjects_dir)
+    trans, trans_type = _get_trans(trans, fro='head', to='mri')
 
     picks = pick_types(info, meg=('sensors' in meg), ref_meg=('ref' in meg),
                        eeg=(len(eeg) > 0), ecog=ecog, seeg=seeg, dbs=dbs,
                        fnirs=(len(fnirs) > 0))
-    if trans is None:
+    if trans_type == 'identity':
         # Some stuff is natively in head coords, others in MRI coords
         msg = ('A head<->mri transformation matrix (trans) is required '
                f'to plot %s in {coord_frame} coordinates, '
