@@ -1699,8 +1699,11 @@ def _validate_cmap_pce(cmap, colors, color_vals):
         cmap = get_cmap(cmap, lut=lut)
     elif isinstance(cmap, Colormap) and all_int:
         # triage method for MPL 3.6 ('resampled') or older ('_resample')
-        _resamp = getattr(cmap, 'resampled', cmap._resample)
-        cmap = _resamp(lut)
+        if hasattr(cmap, 'resampled'):
+            resampled = cmap.resampled
+        else:
+            resampled = cmap._resample
+        cmap = resampled(lut)
     return cmap, colorbar_title
 
 
