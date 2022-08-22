@@ -19,8 +19,10 @@ pytestmark = pytest.mark.skipif(
 @testing.requires_testing_data
 def test_notebook_alignment(renderer_notebook, brain_gc, nbexec):
     """Test plot alignment in a notebook."""
+    import pytest
     import mne
-    with mne.utils.modified_env(_MNE_FAKE_HOME_DIR=None):
+    with pytest.MonkeyPatch().context() as mp:
+        mp.delenv('_MNE_FAKE_HOME_DIR')
         data_path = mne.datasets.testing.data_path(download=False)
     raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_trunc_raw.fif'
     subjects_dir = data_path / 'subjects'
@@ -42,12 +44,14 @@ def test_notebook_interactive(renderer_notebook, brain_gc, nbexec):
     import os
     import tempfile
     from contextlib import contextmanager
+    import pytest
     from numpy.testing import assert_allclose
     from ipywidgets import Button
     import matplotlib.pyplot as plt
     import mne
     from mne.datasets import testing
-    with mne.utils.modified_env(_MNE_FAKE_HOME_DIR=None):
+    with pytest.MonkeyPatch().context() as mp:
+        mp.delenv('_MNE_FAKE_HOME_DIR')
         data_path = testing.data_path(download=False)
     sample_dir = os.path.join(data_path, 'MEG', 'sample')
     subjects_dir = os.path.join(data_path, 'subjects')
