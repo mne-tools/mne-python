@@ -777,10 +777,12 @@ def _fake_keypress(fig, key):
 
 def _fake_scroll(fig, x, y, step):
     from matplotlib import backend_bases
+    button = 'up' if step >=0 else 'down'
     fig.canvas.callbacks.process(
         'scroll_event',
         backend_bases.MouseEvent(
-            name='scroll_event', canvas=fig.canvas, x=x, y=y, step=step))
+            name='scroll_event', canvas=fig.canvas, x=x, y=y, step=step,
+            button=button))
 
 
 def add_background_image(fig, im, set_ratios=None):
