@@ -95,7 +95,7 @@ class ToSpectrumMixin():
         %(proj_psd)s
         %(reject_by_annotation_psd)s
         %(method_psd)s
-        %(axes_spectrum_plot)s
+        %(ax_plot_psd)s
         %(color_plot_psd)s
         %(xscale_plot_psd)s
         %(area_mode_plot_psd)s
@@ -128,6 +128,7 @@ class ToSpectrumMixin():
         -----
         %(notes_plot_psd_meth)s
         """
+        # TODO: deduplicate with plot_psd_topo (below)
         # legacy n_fft default for plot_psd()
         if method == 'welch' and method_kw.get('n_fft', None) is None:
             tm = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
@@ -165,8 +166,6 @@ class ToSpectrumMixin():
         %(fmin_fmax_psd_topo)s
         %(proj_psd)s
         %(method_psd)s
-        n_fft : int
-            Number of points to use in Welch FFT calculations. Defaults to 2048.
         layout : instance of Layout | None
             Layout instance specifying sensor positions (does not need to be
             specified for Neuromag data). If None (default), the correct layout is
@@ -197,6 +196,12 @@ class ToSpectrumMixin():
             Figure distributing one image per channel across sensor topography.
         """
         # XXX TODO XXX TODO
+        # TODO: deduplicate with plot_psd (above)
+        # legacy n_fft default for plot_psd_topo()
+        if method == 'welch' and method_kw.get('n_fft', None) is None:
+            tm = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
+            method_kw['n_fft'] = min(np.sum(tm), 2048)
+
         raise NotImplementedError()
 
     @verbose
@@ -223,7 +228,7 @@ class ToSpectrumMixin():
         %(ch_type_psd_topomap)s
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
-        %(dB_spectrum_plot_topomap)s
+        %(dB_plot_topomap)s
         %(sensors_topomap)s
         %(show_names_topomap)s
         %(mask_evoked_topomap)s
@@ -241,7 +246,7 @@ class ToSpectrumMixin():
         %(colorbar_topomap)s
         %(cbar_fmt_psd_topo)s
         %(units_topomap)s
-        %(axes_spectrum_plot_topomap)s
+        %(axes_plot_topomap)s
         %(show)s
         %(n_jobs)s
         %(verbose)s
@@ -550,7 +555,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     @fill_doc
     def plot(self, *, picks=None, average=False, dB=True, amplitude='auto',
              xscale='linear', ci='sd', ci_alpha=0.3, color='black', alpha=None,
-             spatial_colors=True, sphere=None, exclude='bads', ax=None,
+             spatial_colors=True, sphere=None, exclude='bads', axes=None,
              show=True):
         """%(plot_psd_doc)s.
 
@@ -589,7 +594,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(spatial_colors_psd)s
         %(sphere_topomap_auto)s
         %(exclude_spectrum_plot)s
-        %(axes_spectrum_plot_topomap)s
+        %(axes_plot_topomap)s
         %(show)s
 
         Returns
@@ -668,6 +673,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         return fig
 
     def plot_topo(self):
+        """Plot power spectral density, separately for each channel."""
         # XXX TODO FIXME
         raise NotImplementedError()
 
@@ -688,7 +694,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(ch_type_psd_topomap)s
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
-        %(dB_spectrum_plot_topomap)s
+        %(dB_plot_topomap)s
         %(sensors_topomap)s
         %(show_names_topomap)s
         %(mask_evoked_topomap)s
@@ -706,7 +712,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(colorbar_topomap)s
         %(cbar_fmt_psd_topo)s
         %(units_topomap)s
-        %(axes_spectrum_plot_topomap)s
+        %(axes_plot_topomap)s
         %(show)s
         %(n_jobs)s
         %(verbose)s
