@@ -49,6 +49,7 @@ from matplotlib import get_backend, backend_bases
 from matplotlib.figure import Figure
 
 from .. import channel_indices_by_type, pick_types
+from ..fixes import _close_event
 from ..annotations import _sync_onset
 from ..defaults import _handle_default
 from ..io.pick import (_DATA_CH_TYPES_ORDER_DEFAULT, _DATA_CH_TYPES_SPLIT,
@@ -1972,7 +1973,6 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
     # (check MPL github issue #18609; scheduled to be fixed by MPL 3.6)
     def _close_event(self, fig=None):
         """Force calling of the MPL figure close event."""
-        from ..fixes import _close_event
         fig = fig or self
         _close_event(fig)
 

@@ -851,11 +851,8 @@ def test_plot_sensors(raw):
     assert fig.lasso.selection == []
     _fake_click(fig, ax, (0.65, 1), xform='ax', kind='motion')
     _fake_click(fig, ax, (0.65, 0.7), xform='ax', kind='motion')
-    #_fake_keypress(fig, 'control')
-    from mne.utils import _record_warnings
-    with _record_warnings():
-        fig.canvas.key_press_event('control')
-    _fake_click(fig, ax, (0, 0.7), xform='ax', kind='release')
+    _fake_keypress(fig, 'control')
+    _fake_click(fig, ax, (0, 0.7), xform='ax', kind='release', key='control')
     assert fig.lasso.selection == ['MEG 0121']
 
     # check that point appearance changes
@@ -864,11 +861,11 @@ def test_plot_sensors(raw):
     assert (fc[:, -1] == [0.5, 1., 0.5]).all()
     assert (ec[:, -1] == [0.25, 1., 0.25]).all()
 
-    _fake_click(fig, ax, (0.7, 1), xform='ax', kind='motion')
+    _fake_click(fig, ax, (0.7, 1), xform='ax', kind='motion', key='control')
     xy = ax.collections[0].get_offsets()
-    _fake_click(fig, ax, xy[2], xform='data')  # single selection
+    _fake_click(fig, ax, xy[2], xform='data', key='control')  # single selection
     assert fig.lasso.selection == ['MEG 0121', 'MEG 0131']
-    _fake_click(fig, ax, xy[2], xform='data')  # deselect
+    _fake_click(fig, ax, xy[2], xform='data', key='control')  # deselect
     assert fig.lasso.selection == ['MEG 0121']
     plt.close('all')
 
