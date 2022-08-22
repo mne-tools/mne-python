@@ -69,7 +69,7 @@ event_ids = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR': 4}
 evoked_before = mne.Epochs(raw, events, event_ids, tmin, tmax,
                            baseline=(tmin, 0)).average()
 evoked_after = mne.Epochs(raw_clean, events, event_ids, tmin, tmax,
-                           baseline=(tmin, 0)).average()
+                          baseline=(tmin, 0)).average()
 
 # Let's also apply EOG regression to the blink epochs, so we can see how much
 # of the eye blink artifact was removed
