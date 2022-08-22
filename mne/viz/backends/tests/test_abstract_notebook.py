@@ -13,7 +13,7 @@ pytest.mark.skipif(
     sys.platform.startswith('win') or not check_version('ipympl'),
     reason='nbexec does not work on Windows')
 pytest.mark.skipif(check_version('matplotlib', '3.6'),
-                    reason='matplotlib notebook issue gh-23699')
+                   reason='matplotlib notebook issue gh-23699')
 
 
 def test_widget_abstraction_notebook(nbexec):
