@@ -9,6 +9,7 @@ import sys
 import pytest
 from mne.utils import check_version
 
+
 @pytest.mark.skipif(
     sys.platform.startswith('win') or not check_version('ipympl'),
     reason='nbexec does not work on Windows')
