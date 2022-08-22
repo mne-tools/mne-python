@@ -262,7 +262,8 @@ _ch_types_present = ('match the number of channel types present in the {}'
                      'object.')
 docdict['ax_plot_psd'] = _axes.format('ax', _ch_types_present.format(''))
 docdict['axes_cov_plot_topomap'] = _axes.format('axes', 'be length 1')
-docdict['axes_evoked_plot_topomap'] = _axes.format('axes',
+docdict['axes_evoked_plot_topomap'] = _axes.format(
+    'axes',
     'match the number of ``times`` provided (unless ``times`` is ``None``)')
 docdict['axes_plot_topomap'] = _axes.format(
     'axes', 'match the length of ``bands``')
