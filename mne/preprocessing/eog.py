@@ -8,7 +8,7 @@ import numpy as np
 
 from ._peak_finder import peak_finder
 from .. import pick_types, pick_channels
-from ..utils import logger, verbose, _pl, _validate_type
+from ..utils import logger, verbose, _pl, _validate_type, fill_doc
 from ..utils.check import _check_preload
 from ..filter import filter_data
 from ..epochs import BaseEpochs, Epochs
@@ -253,6 +253,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
     return eog_epochs
 
 
+@fill_doc
 def eog_regression(inst, eog_evokeds=None, eog_channels=None, picks=None):
     """Remove EOG signals from the EEG channels by regression.
 
