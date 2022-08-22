@@ -13,7 +13,6 @@ import os.path as op
 from pathlib import Path
 import re
 import sys
-import warnings
 import numbers
 
 import numpy as np

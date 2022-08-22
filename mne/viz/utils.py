@@ -766,7 +766,6 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press', key=None):
             key=key))
 
 
-
 def _fake_keypress(fig, key):
     from matplotlib import backend_bases
     fig.canvas.callbacks.process(
@@ -777,7 +776,7 @@ def _fake_keypress(fig, key):
 
 def _fake_scroll(fig, x, y, step):
     from matplotlib import backend_bases
-    button = 'up' if step >=0 else 'down'
+    button = 'up' if step >= 0 else 'down'
     fig.canvas.callbacks.process(
         'scroll_event',
         backend_bases.MouseEvent(

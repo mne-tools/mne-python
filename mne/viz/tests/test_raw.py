@@ -863,7 +863,7 @@ def test_plot_sensors(raw):
 
     _fake_click(fig, ax, (0.7, 1), xform='ax', kind='motion', key='control')
     xy = ax.collections[0].get_offsets()
-    _fake_click(fig, ax, xy[2], xform='data', key='control')  # single selection
+    _fake_click(fig, ax, xy[2], xform='data', key='control')  # single sel
     assert fig.lasso.selection == ['MEG 0121', 'MEG 0131']
     _fake_click(fig, ax, xy[2], xform='data', key='control')  # deselect
     assert fig.lasso.selection == ['MEG 0121']

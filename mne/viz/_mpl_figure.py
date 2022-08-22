@@ -45,7 +45,7 @@ from functools import partial
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import get_backend, backend_bases
+from matplotlib import get_backend
 from matplotlib.figure import Figure
 
 from .. import channel_indices_by_type, pick_types
