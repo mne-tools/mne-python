@@ -1285,13 +1285,13 @@ class AverageTFR(_BaseTFR):
             If ``None``, defaults to ``'both'`` if ``mask`` is not None, and is
             ignored otherwise.
 
-             .. versionadded:: 0.17
+            .. versionadded:: 0.17
         mask_cmap : matplotlib colormap | (colormap, bool) | 'interactive'
             The colormap chosen for masked parts of the image (see below), if
             ``mask`` is not ``None``. If None, ``cmap`` is reused. Defaults to
             ``'Greys'``. Not interactive. Otherwise, as ``cmap``.
 
-             .. versionadded:: 0.17
+            .. versionadded:: 0.17
         mask_alpha : float
             A float between 0 and 1. If ``mask`` is not None, this sets the
             alpha level (degree of transparency) for the masked-out segments.
