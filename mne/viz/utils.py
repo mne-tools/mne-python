@@ -2501,7 +2501,9 @@ def _check_type_projs(projs):
 
 
 def _get_cmap(colormap, lut=None):
-    from matplotlib import colors, colormaps
+    from matplotlib import colors, colormaps, rcParams
+    if colormap is None:
+        colormap = rcParams["image.cmap"]
     if isinstance(colormap, str) and colormap in ('mne', 'mne_analyze'):
         from ._3d import mne_analyze_colormap
         colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
@@ -2509,9 +2511,9 @@ def _get_cmap(colormap, lut=None):
         colormap = colormaps[colormap]
     if lut is not None:
         # triage method for MPL 3.6 ('resampled') or older ('_resample')
-        if hasattr(cmap, 'resampled'):
-            resampled = cmap.resampled
+        if hasattr(colormap, 'resampled'):
+            resampled = colormap.resampled
         else:
-            resampled = cmap._resample
-        cmap = resampled(lut)
+            resampled = colormap._resample
+        colormap = resampled(lut)
     return colormap

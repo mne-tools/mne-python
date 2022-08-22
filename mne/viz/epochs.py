@@ -540,7 +540,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         ax['evoked'].set_xlim(tmin, tmax)
         ax['evoked'].lines[0].set_clip_on(True)
         ax['evoked'].collections[0].set_clip_on(True)
-        ax['evoked'].get_shared_x_axes().join(ax['evoked'], ax_im)
+        ax['evoked'].axes.sharex(ax_im)
         # fix the axes for proper updating during interactivity
         loc = ax_im.xaxis.get_major_locator()
         ax['evoked'].xaxis.set_major_locator(loc)

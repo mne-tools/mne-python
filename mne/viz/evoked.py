@@ -1688,12 +1688,14 @@ def _validate_colors_pce(colors, cmap, conditions, tags):
 
 def _validate_cmap_pce(cmap, colors, color_vals):
     """Check and assign colormap for plot_compare_evokeds."""
+    from matplotlib.colors import Colormap
     all_int = all(isinstance(_color, Integral) for _color in color_vals)
     colorbar_title = ''
     if isinstance(cmap, (list, tuple, np.ndarray)) and len(cmap) == 2:
         colorbar_title, cmap = cmap
-    lut = len(color_vals) if all_int else None
-    cmap = _get_cmap(cmap, lut)
+    if isinstance(cmap, (str, Colormap)):
+        lut = len(color_vals) if all_int else None
+        cmap = _get_cmap(cmap, lut)
     return cmap, colorbar_title
 
 
