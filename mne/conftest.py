@@ -123,6 +123,7 @@ def pytest_configure(config):
     # gh-11063, gh-11062
     ignore:.*event function was deprecated in Matplotlib.*:
     ignore:.*cmap function will be deprecated.*:
+    ignore:.*The join function was deprecated in Matplotlib.*:
     """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()

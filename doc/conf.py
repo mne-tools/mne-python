@@ -928,6 +928,8 @@ def reset_warnings(gallery_conf, fname):
         'ignore', message='.*event function was deprecated in Matplotlib.*')
     warnings.filterwarnings(
         'ignore', message='.*cmap function will be deprecated.*')
+    warnings.filterwarnings(
+        'ignore', message='.*The join function was deprecated in Matplotlib.*')
     # xarray/netcdf4
     warnings.filterwarnings(
         'ignore', message=r'numpy\.ndarray size changed, may indicate.*',
