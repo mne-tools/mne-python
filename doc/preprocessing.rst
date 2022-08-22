@@ -70,6 +70,7 @@ Projections:
 
    ICA
    Xdawn
+   EOGRegression
    annotate_amplitude
    annotate_break
    annotate_movement
@@ -85,7 +86,6 @@ Projections:
    cortical_signal_suppression
    create_ecg_epochs
    create_eog_epochs
-   eog_regression
    find_bad_channels_maxwell
    find_ecg_events
    find_eog_events
