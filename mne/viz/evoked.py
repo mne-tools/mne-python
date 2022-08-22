@@ -217,6 +217,19 @@ def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         If True, draw at the end.
     """
     import matplotlib.pyplot as plt
+    _check_option('spatial_colors', spatial_colors, [True, False, 'auto'])
+
+    # If spatial colors is set to 'auto' check if picks is
+    # greater than 1. If picks is less than or equal to 1
+    # then spatial_colors is set to 'False'.
+    # If picks is greater than 1, set spatial colors
+    # True if channel locations exists False otherwise.
+    if spatial_colors == 'auto':
+        if len(picks) == 1:
+            # If picks is just one single channel, spatial_colors="auto" becomes False
+            spatial_colors = False
+        else:
+            spatial_colors = _check_ch_locs(info=evoked.info)
 
     # For evoked.plot_image ...
     # First input checks for group_by and axes if any of them is not None.
@@ -251,7 +264,7 @@ def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                          mask_style=mask_style, mask_cmap=mask_cmap,
                          mask_alpha=mask_alpha, time_unit=time_unit,
                          show_names=show_names,
-                         sphere=sphere, draw=False)
+                         sphere=sphere, draw=False,spatial_colors=spatial_colors)
             if remove_xlabels and not _is_last_row(ax):
                 ax.set_xticklabels([])
                 ax.set_xlabel("")
@@ -277,12 +290,6 @@ def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                            ' for interactive SSP selection.')
 
     _check_option('gfp', gfp, [True, False, 'only'])
-    _check_option('spatial_colors', spatial_colors, [True, False, 'auto'])
-
-    # Check channel location, spatial colors is True
-    # if channel locations exists, False otherwise
-    if spatial_colors == 'auto':
-        spatial_colors = _check_ch_locs(info=info)
 
     if highlight is not None:
         highlight = np.array(highlight, dtype=float)
@@ -747,7 +754,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         coordinates into color values. Spatially similar channels will have
         similar colors. Bad channels will be dotted. If False, the good
         channels are plotted black and bad channels red. If 'auto' uses True if
-        channel locations are present, False otherwise. Defaults to 'auto'.
+        channel locations are present, False if channel locations are not present 
+        or there is only one channel. Defaults to 'auto'.
     zorder : str | callable
         Which channels to put in the front or back. Only matters if
         ``spatial_colors`` is used.
@@ -1250,7 +1258,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
     if not has_sss:
         evokeds_white[0].plot(unit=False, axes=axes_evoked,
                               hline=[-1.96, 1.96], show=False,
-                              time_unit=time_unit)
+                              time_unit=time_unit, spatial_colors=False)
     else:
         for ((ch_type, picks), ax) in zip(picks_list, axes_evoked):
             ax.plot(times, evokeds_white[0].data[picks].T, color='k',

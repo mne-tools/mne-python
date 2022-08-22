@@ -24,11 +24,10 @@ Current (1.2.dev0)
 Enhancements
 ~~~~~~~~~~~~
 - EEGLAB files (saved as MAT versions less than v7.3) can now be imported with :func:`mne.io.read_raw_eeglab` without the optional dependency ``pymatreader`` (:gh:`11006` by `Clemens Brunner`_)
--  Adds a default 'auto' option for spatial_colors argument in Evoked.plot() (:gh:`11017` by :newcontrib:`Hüseyin Orkun Elmas`)
 Bugs
 ~~~~
 - None yet
 
 API changes
 ~~~~~~~~~~~
-- None yet
+- meth:`mne.Evoked.plot` has a new default value ``'auto'`` for its ``spatial_colors`` parameter, which will use spatial colors automatically if channel locations are available (:gh:`11017` by :newcontrib:`Hüseyin Orkun Elmas`)
