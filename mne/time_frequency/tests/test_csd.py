@@ -16,6 +16,7 @@ from mne.time_frequency import (csd_fourier, csd_multitaper,
                                 CrossSpectralDensity, read_csd,
                                 pick_channels_csd, psd_multitaper)
 from mne.time_frequency.csd import _sym_mat_to_vector, _vector_to_sym_mat
+from mne.proj import compute_proj_raw, Projection
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -223,17 +224,25 @@ def test_csd_get_data():
 @requires_version('h5io')
 def test_csd_save(tmp_path):
     """Test saving and loading a CrossSpectralDensity."""
-    csd = _make_csd()
-    tempdir = str(tmp_path)
-    fname = op.join(tempdir, 'csd.h5')
+    raw = mne.io.read_raw_fif(raw_fname)
+    events = mne.find_events(raw)
+    picks = mne.pick_types(raw.info, meg='grad')
+    projs = compute_proj_raw(raw, n_grad=1, n_mag=1, n_eeg=1, reject=None)
+    raw.add_proj(projs)
+    epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=1,
+                        picks=picks, baseline=(None, 0),
+                        reject=dict(grad=4000e-13), preload=True)
+    csd = csd_fourier(epochs, fmin=15, fmax=20)
+    fname = op.join(str(tmp_path), 'csd.h5')
     csd.save(fname)
     csd2 = read_csd(fname)
     assert_array_equal(csd._data, csd2._data)
+    assert_array_equal(csd.frequencies, csd2.frequencies)
     assert csd.tmin == csd2.tmin
     assert csd.tmax == csd2.tmax
     assert csd.ch_names == csd2.ch_names
-    assert csd.frequencies == csd2.frequencies
     assert csd._is_sum == csd2._is_sum
+    assert isinstance(csd2.projs[0], Projection)
 
 
 def test_csd_pickle(tmp_path):
