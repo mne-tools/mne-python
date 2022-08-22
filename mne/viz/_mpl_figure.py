@@ -45,7 +45,7 @@ from functools import partial
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import get_backend
+from matplotlib import get_backend, backend_bases
 from matplotlib.figure import Figure
 
 from .. import channel_indices_by_type, pick_types
@@ -58,7 +58,7 @@ from ..time_frequency import psd_multitaper, psd_welch
 from ..utils import Bunch, _check_option, _check_sphere, _click_ch_name, logger
 from . import plot_sensors
 from ._figure import BrowserBase
-from .utils import (DraggableLine, _events_off, _fake_click,
+from .utils import (DraggableLine, _events_off, _fake_click, _fake_keypress,
                     _merge_annotations, _plot_psd, _prop_kw, _set_window_title,
                     _validate_if_list_of_axes, plt_show)
 
@@ -1978,7 +1978,7 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _fake_keypress(self, key, fig=None):
         fig = fig or self
-        fig.canvas.key_press_event(key)
+        _fake_keypress(fig, key)
 
     def _fake_click(self, point, add_points=None, fig=None, ax=None,
                     xform='ax', button=1, kind='press'):
@@ -1999,7 +1999,10 @@ class MNEBrowseFigure(BrowserBase, MNEFigure):
 
     def _fake_scroll(self, x, y, step, fig=None):
         fig = fig or self
-        fig.canvas.scroll_event(x, y, step)
+        self.canvas.callbacks.process(
+            'scroll_event',
+            backend_bases.MouseEvent(
+                'scroll_event', fig.canvas, x, y, step=step))
 
     def _click_ch_name(self, ch_index, button):
         _click_ch_name(self, ch_index, button)

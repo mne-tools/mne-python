@@ -31,7 +31,7 @@ from mne.label import read_label
 from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
 from mne.viz._brain.colormap import calculate_lut
 
-from matplotlib import cm, image
+from matplotlib import image, colormaps
 from matplotlib.lines import Line2D
 
 data_path = testing.data_path(download=False)
@@ -933,11 +933,11 @@ def test_calculate_lut():
     calculate_lut(colormap, alpha=alpha, fmin=fmin,
                   fmid=fmid, fmax=fmax, center=center)
     center = 0.0
-    colormap = cm.get_cmap(colormap)
+    colormap = colormaps[colormap]
     calculate_lut(colormap, alpha=alpha, fmin=fmin,
                   fmid=fmid, fmax=fmax, center=center)
 
-    cmap = cm.get_cmap(colormap)
+    cmap = colormap
     zero_alpha = np.array([1., 1., 1., 0])
     half_alpha = np.array([1., 1., 1., 0.5])
     atol = 1.5 / 256.

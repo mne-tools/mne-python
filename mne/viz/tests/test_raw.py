@@ -8,6 +8,7 @@ from copy import deepcopy
 
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib import backend_bases
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
@@ -18,7 +19,7 @@ from mne.datasets import testing
 from mne.io import RawArray
 from mne.utils import _dt_to_stamp, _record_warnings, get_config, set_config
 from mne.viz import plot_raw, plot_sensors
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _fake_keypress
 
 
 def _annotation_helper(raw, browse_backend, events=False):
@@ -727,7 +728,9 @@ def test_plot_raw_psd(raw, raw_orig):
     raw_unchanged = raw.copy()
     # normal mode
     fig = raw.plot_psd(average=False)
-    fig.canvas.resize_event()
+    fig.canvas.callbacks.process(
+        'resize_event',
+        backend_bases.ResizeEvent('resize_event', fig.canvas))
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
     raw.plot_psd(tmax=None, picks=picks, area_mode='range', average=False,
@@ -848,7 +851,7 @@ def test_plot_sensors(raw):
     assert fig.lasso.selection == []
     _fake_click(fig, ax, (0.65, 1), xform='ax', kind='motion')
     _fake_click(fig, ax, (0.65, 0.7), xform='ax', kind='motion')
-    fig.canvas.key_press_event('control')
+    _fake_keypress(fig, 'control')
     _fake_click(fig, ax, (0, 0.7), xform='ax', kind='release')
     assert fig.lasso.selection == ['MEG 0121']
 

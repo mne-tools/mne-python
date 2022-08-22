@@ -542,7 +542,7 @@ def test_process_clim_round_trip():
     # With some positive data
     out = _process_clim('auto', 'auto', True, 1.)
     want = dict(
-        colormap=plt.get_cmap('hot'),
+        colormap=plt.colormaps['hot'],
         clim=dict(kind='value', lims=[1, 1, 1]),
         transparent=True,)
     _assert_mapdata_equal(out, want)

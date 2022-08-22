@@ -1026,8 +1026,10 @@ else:
 def _close_event(fig):
     """Force calling of the MPL figure close event."""
     from .utils import logger
+    from matplotlib import backend_bases
     try:
-        fig.canvas.close_event()
+        fig.canvas.callbacks.process(
+            'close_event', backend_bases.CloseEvent('close', fig.canvas))
         logger.debug(f'Called {fig!r}.canvas.close_event()')
     except ValueError:  # old mpl with Qt
         logger.debug(f'Calling {fig!r}.canvas.close_event() failed')

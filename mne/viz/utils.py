@@ -745,6 +745,7 @@ class ClickableImage(object):
 
 def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
     """Fake a click at a relative point within axes."""
+    from matplotlib import backend_bases
     if xform == 'ax':
         x, y = ax.transAxes.transform_point(point)
     elif xform == 'data':
@@ -752,14 +753,24 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
     else:
         assert xform == 'pix'
         x, y = point
-    if kind == 'press':
-        func = partial(fig.canvas.button_press_event, x=x, y=y, button=button)
-    elif kind == 'release':
-        func = partial(fig.canvas.button_release_event, x=x, y=y,
-                       button=button)
-    elif kind == 'motion':
-        func = partial(fig.canvas.motion_notify_event, x=x, y=y)
-    func(guiEvent=None)
+    func = fig.canvas.callbacks.process
+    if kind in ('press', 'release'):
+        func = partial(
+            func, f'button_{kind}_event',
+            backend_bases.MouseEvent(kind, fig.canvas, x, y, button=button))
+    else:
+        assert kind == 'motion'
+        func = partial(
+            func, 'motion_notify_event',
+            backend_bases.MouseEvent('motion_notify_event', fig.canvas, x, y))
+    func()
+
+
+def _fake_keypress(fig, key):
+    from matplotlib import backend_bases
+    fig.canvas.callbacks.process(
+        'key_press_event',
+        backend_bases.KeyEvent('key_press_event', fig.canvas, key))
 
 
 def add_background_image(fig, im, set_ratios=None):
@@ -2476,3 +2487,20 @@ def _check_type_projs(projs):
     for pi, p in enumerate(projs):
         _validate_type(p, Projection, f'projs[{pi}]')
     return projs
+
+
+def _get_cmap(colormap, lut=None):
+    from matplotlib import colors, colormaps
+    if isinstance(colormap, str) and colormap in ('mne', 'mne_analyze'):
+        from ._3d import mne_analyze_colormap
+        colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
+    elif not isinstance(colormap, colors.Colormap):
+        colormap = colormaps[colormap]
+    if lut is not None:
+        # triage method for MPL 3.6 ('resampled') or older ('_resample')
+        if hasattr(cmap, 'resampled'):
+            resampled = cmap.resampled
+        else:
+            resampled = cmap._resample
+        cmap = resampled(lut)
+    return colormap

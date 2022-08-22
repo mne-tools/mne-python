@@ -31,7 +31,7 @@ from ..utils import (_clean_names, _time_mask, verbose, logger, fill_doc,
                      warn)
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
-                    plt_show, _process_times, DraggableColorbar,
+                    plt_show, _process_times, DraggableColorbar, _get_cmap,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
                     _set_3d_axes_equal, _check_type_projs)
 from ..time_frequency import psd_multitaper
@@ -979,9 +979,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     norm = min(data) >= 0
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
     if cmap is None:
-        cmap = plt.get_cmap('Reds' if norm else 'RdBu_r')
-    elif isinstance(cmap, str):
-        cmap = plt.get_cmap(cmap)
+        cmap = 'Reds' if norm else 'RdBu_r'
+    cmap = _get_cmap(cmap)
 
     outlines = _make_head_outlines(sphere, pos, outlines, (0., 0.))
     assert isinstance(outlines, dict)

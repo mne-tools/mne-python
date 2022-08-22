@@ -15,8 +15,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 import pytest
 import matplotlib.pyplot as plt
-from matplotlib import gridspec
-from matplotlib.cm import get_cmap
+from matplotlib import gridspec, colormaps
 from matplotlib.collections import PolyCollection
 
 import mne
@@ -410,7 +409,7 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds(evoked_dict, colors=list(range(3)))
     plt.close('all')
     # test colormap
-    cmap = get_cmap('viridis')
+    cmap = colormaps['viridis']
     plot_compare_evokeds(evoked_dict, cmap=cmap, colors=dict(aud=0.4, vis=0.9))
     plot_compare_evokeds(evoked_dict, cmap=cmap, colors=dict(aud=1, vis=2))
     plot_compare_evokeds(evoked_dict, cmap=('cmap title', 'inferno'),
