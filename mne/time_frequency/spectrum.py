@@ -16,7 +16,7 @@ from ..channels.layout import _merge_ch_data
 from ..defaults import (_BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT,
                         _INTERPOLATION_DEFAULT, _handle_default)
 from ..io.meas_info import ContainsMixin
-from ..io.pick import _picks_to_idx, pick_info
+from ..io.pick import _pick_data_channels, _picks_to_idx, pick_info
 from ..utils import (GetEpochsMixin, _build_data_frame,
                      _check_pandas_index_arguments, _check_pandas_installed,
                      _check_sphere, _time_mask, _validate_type, fill_doc,
@@ -24,6 +24,7 @@ from ..utils import (GetEpochsMixin, _build_data_frame,
 from ..utils.check import (_check_fname, _check_option, _import_h5io_funcs,
                            _is_numeric, check_fname)
 from ..utils.misc import _pl
+from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import (_make_head_outlines, _prepare_topomap_plot,
                            plot_psds_topomap)
 from ..viz.utils import _plot_psd, plt_show
@@ -149,9 +150,8 @@ class ToSpectrumMixin():
 
     @verbose
     def plot_psd_topo(self, tmin=None, tmax=None, fmin=0, fmax=100, proj=False,
-                      method='auto', layout=None, color='w',
-                      fig_facecolor='k', axis_facecolor='k', dB=True,
-                      axes=None,
+                      *, method='auto', dB=True, layout=None, color='w',
+                      fig_facecolor='k', axis_facecolor='k', axes=None,
                       block=False, show=True, n_jobs=None, verbose=None,
                       **method_kw):
         """Plot power spectral density, separately for each channel.
@@ -162,22 +162,21 @@ class ToSpectrumMixin():
         %(fmin_fmax_psd_topo)s
         %(proj_psd)s
         %(method_psd)s
+        %(dB_spectrum_plot_topo)s
         layout : instance of Layout | None
             Layout instance specifying sensor positions (does not need to be
-            specified for Neuromag data). If None (default), the correct layout is
+            specified for Neuromag data). If ``None`` (default), the layout is
             inferred from the data.
         color : str | tuple
-            A matplotlib-compatible color to use for the curves. Defaults to white.
+            A matplotlib-compatible color to use for the curves. Defaults to
+            white.
         fig_facecolor : str | tuple
             A matplotlib-compatible color to use for the figure background.
             Defaults to black.
         axis_facecolor : str | tuple
             A matplotlib-compatible color to use for the axis background.
             Defaults to black.
-        dB : bool
-            If True, transform data to decibels. Defaults to True.
-        axes : instance of matplotlib Axes | None
-            Axes to plot into. If None, axes will be created.
+        %(axes_spectrum_plot_topo)s
         block : bool
             Whether to halt program execution until the figure is closed.
             May not work on all systems / platforms. Defaults to False.
@@ -191,9 +190,32 @@ class ToSpectrumMixin():
         fig : instance of matplotlib.figure.Figure
             Figure distributing one image per channel across sensor topography.
         """
+        # XXX FIXME TODO needs to use different Klass for Epochs input
         self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
 
-        raise NotImplementedError()
+        spectrum = self.compute_psd(
+            method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
+            proj=proj, n_jobs=n_jobs, verbose=verbose, **method_kw)
+
+        psds, freqs = spectrum.get_data(), spectrum.freqs
+        if dB:
+            psds = 10 * np.log10(psds)
+            y_label = 'dB'
+        else:
+            y_label = 'Power'
+        show_func = partial(
+            _plot_timeseries_unified, data=[psds], color=color, times=[freqs])
+        click_func = partial(
+            _plot_timeseries, data=[psds], color=color, times=[freqs])
+        picks = _pick_data_channels(self.info)
+        info = pick_info(self.info, picks)
+        fig = _plot_topo(info, times=freqs, show_func=show_func,
+                        click_func=click_func, layout=layout,
+                        axis_facecolor=axis_facecolor,
+                        fig_facecolor=fig_facecolor, x_label='Frequency (Hz)',
+                        unified=True, y_label=y_label, axes=axes)
+        plt_show(show, block=block)
+        return fig
 
     @verbose
     def plot_psd_topomap(self, bands=None, tmin=None, tmax=None, proj=False,

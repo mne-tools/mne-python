@@ -485,6 +485,7 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
     """
+    # XXX TODO FIXME use Spectrum-based code path
     if layout is None:
         from ..channels.layout import find_layout
         layout = find_layout(raw.info)
