@@ -253,7 +253,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
     return eog_epochs
 
 
-def eog_regression(inst, eog_evokeds=None, eog_channels='eog', picks='data'):
+def eog_regression(inst, eog_evokeds=None, eog_channels=None, picks=None):
     """Remove EOG signals from the EEG channels by regression.
 
     Employs linear regression to remove EOG signals from other channels, as
@@ -276,9 +276,7 @@ def eog_regression(inst, eog_evokeds=None, eog_channels='eog', picks='data'):
     eog_channels : str | list of str | None
         The names of the EOG channels to use in the regression. By default, all
         EOG channels are used.
-    picks : list of int | None
-        Channels from which to remove the EOG. By default, the correction is
-        applied to EEG channels only.
+    %{picks_all_data}s
 
     Returns
     -------
@@ -304,11 +302,11 @@ def eog_regression(inst, eog_evokeds=None, eog_channels='eog', picks='data'):
            395-401. http://doi.org/10.1016/s0013-4694(98)00087-x
     """
     # Handle defaults for EOG channels parameter
-    eog_picks = _picks_to_idx(inst.info, eog_channels)
-    if len(eog_picks) == 0:
+    eog_inds = _get_eog_channel_index(eog_channels, inst)
+    if len(eog_inds) == 0:
         raise RuntimeError('No EOG channels found in given data instance. '
                            'Make sure channel types are marked properly.')
-    picks = _picks_to_idx(inst.info, picks)
+    picks = _picks_to_idx(inst.info, picks, none='data')
 
     # This is the data from which the EOG should be removed. When operating on
     # epochs, concatenate all the epochs into a channels x time matrix.
@@ -325,28 +323,28 @@ def eog_regression(inst, eog_evokeds=None, eog_channels='eog', picks='data'):
         # Make sure the channels of `eog_evokeds` are in the same order as
         # those in `inst`.
         try:
-            ev_eog_picks = [eog_evokeds.ch_names.index(inst.ch_names[ch])
-                            for ch in eog_picks]
+            ev_eog_inds = [eog_evokeds.ch_names.index(inst.ch_names[ch])
+                           for ch in eog_inds]
             ev_picks = [eog_evokeds.ch_names.index(inst.ch_names[ch])
                         for ch in picks]
         except ValueError:
             raise RuntimeError('Cannot obtain all required regression weights '
                                'from the given eog_evokeds, as some channels '
                                'are missing.')
-        eog_data = eog_evokeds.data[ev_eog_picks]
+        eog_data = eog_evokeds.data[ev_eog_inds]
         reg_data = eog_evokeds.data[ev_picks]
     else:
-        eog_data = data[eog_picks, :]
+        eog_data = data[eog_inds, :]
         reg_data = data[picks, :]
 
     # Calculate EOG weights. Add a row of ones to also fit the intercept.
     eog_data = np.vstack((np.ones(eog_data.shape[1]), eog_data)).T
-    weights = np.linalg.lstsq(eog_data, reg_data.T)[0]
+    weights = np.linalg.lstsq(eog_data, reg_data.T, rcond=None)[0]
     intercept = weights[0]
     weights = weights[1:]
 
     # Remove EOG from data.
-    data[picks, :] -= weights.T @ data[eog_picks, :] + intercept[:, None]
+    data[picks, :] -= weights.T @ data[eog_inds, :] + intercept[:, None]
     if isinstance(inst, BaseEpochs):
         # Reshape the data back into epochs x channels x samples
         data = data.reshape(n_channels, n_epochs, n_samples).transpose(1, 0, 2)
