@@ -274,8 +274,3 @@ def test_as_meg_type_evoked():
     virt_epochs = virt_epochs.as_type('mag')
     assert (all(ch.endswith('_v') for ch in virt_epochs.info['ch_names']))
     assert_allclose(virt_epochs.get_data().mean(0), virt_evoked.data)
-
-
-@testing.requires_testing_data
-def test_field_map_ctf_with_pathlike():
-    """Test that field mapping can be done with CTF data."""
