@@ -128,11 +128,7 @@ class ToSpectrumMixin():
         -----
         %(notes_plot_psd_meth)s
         """
-        # TODO: deduplicate with plot_psd_topo (below)
-        # legacy n_fft default for plot_psd()
-        if method == 'welch' and method_kw.get('n_fft', None) is None:
-            tm = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
-            method_kw['n_fft'] = min(np.sum(tm), 2048)
+        self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
 
         spectrum = self.compute_psd(
             method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
@@ -195,12 +191,7 @@ class ToSpectrumMixin():
         fig : instance of matplotlib.figure.Figure
             Figure distributing one image per channel across sensor topography.
         """
-        # XXX TODO XXX TODO
-        # TODO: deduplicate with plot_psd (above)
-        # legacy n_fft default for plot_psd_topo()
-        if method == 'welch' and method_kw.get('n_fft', None) is None:
-            tm = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
-            method_kw['n_fft'] = min(np.sum(tm), 2048)
+        self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
 
         raise NotImplementedError()
 
@@ -270,6 +261,16 @@ class ToSpectrumMixin():
             cbar_fmt=cbar_fmt, axes=axes, show=show, n_jobs=n_jobs,
             verbose=verbose)
         return fig
+
+    def _set_legacy_nfft_default(self, tmin, tmax, method, method_kw):
+        """Update method_kw with legacy n_fft default for plot_psd[_topo]().
+
+        This method returns ``None`` and has a side effect of (maybe) updating
+        the ``method_kw`` dict.
+        """
+        if method == 'welch' and method_kw.get('n_fft', None) is None:
+            tm = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
+            method_kw['n_fft'] = min(np.sum(tm), 2048)
 
 
 class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
