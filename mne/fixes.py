@@ -1029,7 +1029,9 @@ def _close_event(fig):
     from matplotlib import backend_bases
     try:
         fig.canvas.callbacks.process(
-            'close_event', backend_bases.CloseEvent('close', fig.canvas))
+            'close_event', backend_bases.CloseEvent(
+                name='close_event', canvas=fig.canvas))
+        #fig.canvas.close_event()
         logger.debug(f'Called {fig!r}.canvas.close_event()')
     except ValueError:  # old mpl with Qt
         logger.debug(f'Calling {fig!r}.canvas.close_event() failed')

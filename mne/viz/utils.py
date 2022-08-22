@@ -755,6 +755,14 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
         x, y = point
     if kind in ('press', 'release'):
         kind = f'button_{kind}_event'
+        # TODO: This is not equivalent!
+        from mne.utils import _record_warnings
+        with _record_warnings():
+            if kind == 'press':
+                fig.canvas.button_press_event(x=x, y=y, button=button, guiEvent=None)
+            else:
+                fig.canvas.button_release_event(x=x, y=y, button=button, guiEvent=None)
+        return
     else:
         assert kind == 'motion'
         kind = 'motion_notify_event'

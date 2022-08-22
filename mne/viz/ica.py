@@ -12,7 +12,7 @@ import warnings
 
 import numpy as np
 
-from .utils import (tight_layout, _make_event_color_dict,
+from .utils import (tight_layout, _make_event_color_dict, _get_cmap,
                     plt_show, _convert_psds, _compute_scalings,
                     _handle_precompute)
 from .topomap import _plot_ica_topomap
