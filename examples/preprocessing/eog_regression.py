@@ -20,7 +20,7 @@ License: BSD (3-clause)
 ###############################################################################
 import mne
 from mne.datasets import sample
-from mne.preprocessing import eog_regression
+from mne.preprocessing import eog_regression, EOGRegression, regress_artifact
 from matplotlib import pyplot as plt
 
 print(__doc__)
@@ -30,6 +30,7 @@ raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_filt-0-40_raw.fif'
 
 # Read raw data
 raw = mne.io.Raw(raw_fname, preload=True)
+#raw.set_eeg_reference('average')
 events = mne.find_events(raw, 'STI 014')
 
 # For this example, we only operate on the EEG channels.
@@ -51,14 +52,11 @@ blink_epochs = mne.Epochs(raw, eog_events, eog_event_id, tmin=-0.5, tmax=0.5,
 blink_evoked = blink_epochs.average('all')
 
 # Perform regression and remove EOG
-raw_clean, weights, _ = eog_regression(raw.copy(), blink_evoked)
+weights = EOGRegression().fit(blink_evoked)
+raw_clean = weights.apply(raw, copy=True)
 
 # Show the filter weights in a topomap
-fig, ax = plt.subplots()
-eeg_ch_info = mne.pick_info(raw.info, mne.pick_types(raw.info, eeg=True))
-im, _ = mne.viz.plot_topomap(weights[0], eeg_ch_info, outlines='skirt')
-fig.colorbar(im)
-ax.set_title('Regression weights')
+weights.plot()
 
 # Let's compare the signal before and after cleaning with EOG regression. This
 # is best visualized by cutting epochs and plotting the evoked potential.
@@ -73,8 +71,7 @@ evoked_after = mne.Epochs(raw_clean, events, event_ids, tmin, tmax,
 
 # Let's also apply EOG regression to the blink epochs, so we can see how much
 # of the eye blink artifact was removed
-blink_after, _, _ = eog_regression(blink_epochs.copy(), blink_evoked)
-blink_evoked_after = blink_after.average()
+blink_evoked_after = weights.apply(blink_evoked).apply_baseline()
 
 # Create epochs after EOG correction
 epochs_after = mne.Epochs(raw_clean, events, event_ids, tmin, tmax,
@@ -98,3 +95,11 @@ blink_evoked_after.pick('eeg').plot(axes=ax[1, 1])
 ax[1, 1].set_ylim(-30, 100)
 ax[1, 1].set_title('Blink evoked after EOG regression')
 plt.tight_layout()
+
+# Test if the old interface still works
+raw_clean2, betas = regress_artifact(raw, copy=True)
+mne.Epochs(raw_clean2, events, event_ids, tmin, tmax, baseline=(tmin, 0)).average().plot()
+plt.ylim(-6, 6)
+raw_clean3, _ = regress_artifact(raw, betas=betas, copy=True)
+mne.Epochs(raw_clean3, events, event_ids, tmin, tmax, baseline=(tmin, 0)).average().plot()
+plt.ylim(-6, 6)

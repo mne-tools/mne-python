@@ -5,9 +5,10 @@
 import numpy as np
 
 from ..epochs import BaseEpochs
-from ..io.pick import _picks_to_idx
+from ..io.pick import _picks_to_idx, pick_info
 from ..io.base import BaseRaw
 from ..utils import _check_preload, _validate_type, _check_option, verbose
+from .eog import EOGRegression
 
 
 @verbose
@@ -53,35 +54,16 @@ def regress_artifact(inst, picks=None, picks_artifact='eog', betas=None,
     ----------
     .. footbibliography::
     """  # noqa: E501
-    _check_preload(inst, 'regress')
-    _validate_type(inst, (BaseEpochs, BaseRaw), 'inst', 'Epochs or Raw')
-    picks = _picks_to_idx(inst.info, picks, none='data')
-    picks_artifact = _picks_to_idx(inst.info, picks_artifact)
-    if np.in1d(picks_artifact, picks).any():
-        raise ValueError('picks_artifact cannot be contained in picks')
-    inst = inst.copy() if copy else inst
-    artifact_data = inst._data[..., picks_artifact, :]
-    ref_data = artifact_data - np.mean(artifact_data, -1, keepdims=True)
-    if ref_data.ndim == 3:
-        ref_data = ref_data.transpose(1, 0, 2).reshape(len(picks_artifact), -1)
-    cov = np.dot(ref_data, ref_data.T)
-    # process each one separately to reduce memory load
-    betas_shape = (len(picks), len(picks_artifact))
     if betas is None:
-        betas = np.empty(betas_shape)
-        estimate = True
+        betas = EOGRegression(picks, picks_artifact).fit(inst)
     else:
-        estimate = False
-        betas = np.asarray(betas, dtype=float)
+        # Create an EOGRegression object and load the given betas into it.
+        picks = _picks_to_idx(inst.info, picks, none='data')
+        picks_artifact = _picks_to_idx(inst.info, picks_artifact)
+        betas_shape = (len(picks), len(picks_artifact))
         _check_option('betas.shape', betas.shape, (betas_shape,))
-    for pi, pick in enumerate(picks):
-        this_data = inst._data[..., pick, :]  # view
-        orig_shape = this_data.shape
-        if estimate:
-            # subtract mean over time from every trial/channel
-            cov_data = this_data - np.mean(this_data, -1, keepdims=True)
-            cov_data = cov_data.reshape(1, -1)
-            betas[pi] = np.linalg.solve(cov, np.dot(ref_data, cov_data.T)).T[0]
-        # subtract weighted (demeaned) eye channels from channel
-        this_data -= (betas[pi] @ ref_data).reshape(orig_shape)
-    return inst, betas
+        r = EOGRegression(picks, picks_artifact)
+        r.info = pick_info(inst.info, picks)
+        r.coef_ = betas
+        betas = r
+    return betas.apply(inst, copy=copy), betas.coef_

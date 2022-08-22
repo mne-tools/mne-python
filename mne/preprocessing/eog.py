@@ -6,14 +6,17 @@
 
 import numpy as np
 
-from ._peak_finder import peak_finder
-from .. import pick_types, pick_channels
+from .. import Evoked, EvokedArray, pick_types, pick_channels
+from ..defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                        _BORDER_DEFAULT)
+from ..epochs import BaseEpochs, Epochs
+from ..filter import filter_data
+from ..io import BaseRaw
+from ..io.pick import _picks_to_idx, pick_info
 from ..utils import logger, verbose, _pl, _validate_type, fill_doc
 from ..utils.check import _check_preload
-from ..filter import filter_data
-from ..epochs import BaseEpochs, Epochs
-from ..io.pick import _picks_to_idx
-
+from ._peak_finder import peak_finder
+from ..minimum_norm.inverse import _needs_eeg_average_ref_proj
 
 @verbose
 def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
@@ -254,43 +257,21 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
 
 
 @fill_doc
-def eog_regression(inst, eog_evokeds=None, eog_channels=None, picks=None):
-    """Remove EOG signals from the EEG channels by regression.
+class EOGRegression():
+    """Remove EOG artifact signals from other channels by regression.
 
-    Employs linear regression to remove EOG signals from other channels, as
-    described in [1]_. Optionally, one may chose to use evoked blink/saccade
-    data to obtain the regression weights as described in [2]_.
-
-    The operation is performed in-place.
-
-    Parameters
-    ----------
-    inst : Raw | Epochs
-        The data on which the EOG correction produce should be performed.
-    eog_evokeds : Evoked | list of Evoked | None
-        Optional recordings of averaged eye movements. For example averaged
-        blinks and/or saccades (use a list to supply different kinds of
-        movements). When specified, regression weights will be fitted on this
-        data, before being applied to the data given as ``inst`` parameter.
-        Regression weights obtained from averaged data might be more robust
-        [2]_.
-    eog_channels : str | list of str | None
-        The names of the EOG channels to use in the regression. By default, all
-        EOG channels are used.
-    %(picks_all_data)s
+    Employs linear regression to remove signals captured by some channels,
+    typically EOG, but it also works with ECG from other channels, as described
+    in [1]_. You can also chose to fit the regression coefficients on evoked
+    blink/saccade data and then apply them to continous data, as described in
+    [2]_.
 
     Returns
     -------
-    inst : Raw | Epochs
-        The version of the data with the EOG removed.
-    weights : ndarray, shape (number of EOG channels, number of data channels)
-        The regression weights. For each EOG channel, the fitted regression
-        weight to each data channel. The ordering of the weights matches the
-        ordering of the channels of the object given as ``inst`` parameter.
-    intercept : ndarray, shape (n_channels,)
-        For each data channel, the fitted intercept. The ordering of the
-        intercepts matches the ordering of the channels of the object given as
-        ``inst`` parameter.
+    %(picks_good_data)s
+    picks_artifact : array-like | str
+        Channel picks to use as predictor/explanatory variables capturing
+        the artifact of interest (default is "eog").
 
     References
     ----------
@@ -302,53 +283,157 @@ def eog_regression(inst, eog_evokeds=None, eog_channels=None, picks=None):
            aligned-artifact average solution. Clinical Neurophysiology, 107(6),
            395-401. http://doi.org/10.1016/s0013-4694(98)00087-x
     """
-    # Handle defaults for EOG channels parameter
-    eog_inds = _get_eog_channel_index(eog_channels, inst)
-    if len(eog_inds) == 0:
-        raise RuntimeError('No EOG channels found in given data instance. '
-                           'Make sure channel types are marked properly.')
-    picks = _picks_to_idx(inst.info, picks, none='data')
+    def __init__(self, picks=None, picks_artifact='eog'):
+        self._picks = picks
+        self._picks_artifact = picks_artifact
 
-    # This is the data from which the EOG should be removed. When operating on
-    # epochs, concatenate all the epochs into a channels x time matrix.
-    _check_preload(inst, 'EOG regression')
-    data = inst._data
-    if isinstance(inst, BaseEpochs):
-        n_epochs, n_channels, n_samples = data.shape
-        data = data.transpose(1, 0, 2).reshape(n_channels, -1)
+    def fit(self, inst):
+        """Fit EOG regression coefficients.
 
-    # This is the data on which to perform the regression. When eog_evokeds is
-    # not provided, this is the same as the data from which the EOG should be
-    # removed.
-    if eog_evokeds is not None:
-        # Make sure the channels of `eog_evokeds` are in the same order as
-        # those in `inst`.
-        try:
-            ev_eog_inds = [eog_evokeds.ch_names.index(inst.ch_names[ch])
-                           for ch in eog_inds]
-            ev_picks = [eog_evokeds.ch_names.index(inst.ch_names[ch])
-                        for ch in picks]
-        except ValueError:
-            raise RuntimeError('Cannot obtain all required regression weights '
-                               'from the given eog_evokeds, as some channels '
-                               'are missing.')
-        eog_data = eog_evokeds.data[ev_eog_inds]
-        reg_data = eog_evokeds.data[ev_picks]
-    else:
-        eog_data = data[eog_inds, :]
-        reg_data = data[picks, :]
+        Parameters
+        ----------
+        inst : Raw | Epochs | Evoked
+            The data on which the EOG regression weights should be fitted.
 
-    # Calculate EOG weights. Add a row of ones to also fit the intercept.
-    eog_data = np.vstack((np.ones(eog_data.shape[1]), eog_data)).T
-    weights = np.linalg.lstsq(eog_data, reg_data.T, rcond=None)[0]
-    intercept = weights[0]
-    weights = weights[1:]
+        Returns
+        -------
+        self : EOGRegression
+            The fitted ``EOGRegression`` object. The regression coefficients
+            are availabe as the ``.coef_`` and ``.intercep_`` attributes.
 
-    # Remove EOG from data.
-    data[picks, :] -= weights.T @ data[eog_inds, :] + intercept[:, None]
-    if isinstance(inst, BaseEpochs):
-        # Reshape the data back into epochs x channels x samples
-        data = data.reshape(n_channels, n_epochs, n_samples).transpose(1, 0, 2)
-    inst._data = data
+        Notes
+        -----
+        If your data contains EEG channels, make sure to apply the desired
+        reference (see :func:`set_eeg_reference`) before performing EOG
+        regression.
+        """
+        self._check_inst(inst)
+        picks = _picks_to_idx(inst.info, self._picks, none='data')
+        picks_artifact = _picks_to_idx(inst.info, self._picks_artifact)
 
-    return inst, weights, intercept
+        # Calculate regression coefficients. Add a row of ones to also fit the
+        # intercept.
+        _check_preload(inst, 'artifact regression')
+        artifact_data = inst._data[..., picks_artifact, :]
+        ref_data = artifact_data - np.mean(artifact_data, -1, keepdims=True)
+        if ref_data.ndim == 3:
+            ref_data = ref_data.transpose(1, 0, 2)
+            ref_data = ref_data.reshape(len(picks_artifact), -1)
+        cov_ref = ref_data @ ref_data.T
+
+        # Process each channel separately to reduce memory load
+        coef = np.zeros((len(picks), len(picks_artifact)))
+        for pi, pick in enumerate(picks):
+            this_data = inst._data[..., pick, :]  # view
+            # Subtract mean over time from every trial/channel
+            cov_data = this_data - np.mean(this_data, -1, keepdims=True)
+            cov_data = cov_data.reshape(1, -1)
+            # Perform the linear regression
+            coef[pi] = np.linalg.solve(cov_ref, ref_data @ cov_data.T).T[0]
+
+        # Store relevant parameters in the object.
+        self.info = pick_info(inst.info, picks)
+        self.coef_ = coef
+        return self
+
+    @fill_doc
+    def apply(self, inst, copy=True):
+        """Apply the regression coefficients to some data.
+
+        Parameters
+        ----------
+        inst : Raw | Epochs | Evoked
+            The data on which to apply the regression.
+        %(copy_df)s
+
+        Returns
+        -------
+        inst : Raw | Epochs | Evoked
+            A version of the data with the artifact channels regressed out.
+
+        Notes
+        -----
+        Only works after ``.fit()`` has been used.
+        """
+        self._check_inst(inst)
+        # The channels indices may not exactly match those of the object used
+        # during .fit(). We align then using channel names.
+        picks = [inst.ch_names.index(ch) for ch in self.info['ch_names']]
+        picks_artifact = _picks_to_idx(inst.info, self._picks_artifact)
+
+        if copy:
+            inst = inst.copy()
+        artifact_data = inst._data[..., picks_artifact, :]
+        ref_data = artifact_data - np.mean(artifact_data, -1, keepdims=True)
+
+        # Prepare the data matrix for regression
+        _check_preload(inst, 'artifact regression')
+        for pi, pick in enumerate(picks):
+            this_data = inst._data[..., pick, :]  # view
+            this_data -= (self.coef_[pi] @ ref_data).reshape(this_data.shape)
+
+        return inst
+
+    def plot(self, ch_type=None, vmin=None, vmax=None, cmap=None, sensors=True,
+             colorbar=True, res=64, size=1, cbar_fmt='%3.1f', show=True,
+             show_names=False, title='Regression coefficients', mask=None,
+             mask_params=None, outlines='head', contours=6,
+             image_interp=_INTERPOLATION_DEFAULT, axes=None,
+             extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
+             border=_BORDER_DEFAULT):
+        """Plot the regression weights.
+
+        Parameters
+        ----------
+        %(ch_type_evoked_topomap)s
+        %(vmin_vmax_topomap)s
+        %(cmap_topomap)s
+        %(sensors_topomap)s
+        %(colorbar_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cbar_fmt_topomap)s
+        %(show)s
+        %(show_names_topomap)s
+        %(title_none)s
+        %(mask_evoked_topomap)s
+        %(mask_params_topomap)s
+        %(outlines_topomap)s
+        %(contours_topomap)s
+        %(image_interp_topomap)s
+        %(axes_topomap)s
+        %(extrapolate_topomap)s
+        %(sphere_topomap_auto)s
+        %(border_topomap)s
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            Figure with a topomap subplot for each channel type.
+
+        Notes
+        -----
+        Only works after ``.fit()`` has been used.
+        """
+        ev = EvokedArray(self.coef_, self.info, comment='Regression coefs')
+        return ev.plot_topomap(times=0, scalings=1, units='weight',
+                               ch_type=ch_type, vmin=vmin, vmax=vmax,
+                               cmap=cmap, sensors=sensors, colorbar=colorbar,
+                               res=res, size=size, cbar_fmt=cbar_fmt,
+                               show=show, show_names=show_names, title=title,
+                               mask=mask, mask_params=mask_params,
+                               outlines=outlines, contours=contours,
+                               image_interp=image_interp, axes=axes,
+                               extrapolate=extrapolate, sphere=sphere,
+                               border=border, time_format='')
+
+    def _check_inst(self, inst):
+        """Helper method to perform some sanity checks on the input."""
+        _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), 'inst',
+                       'Raw, Epochs, Evoked')
+        info = pick_info(inst.info, self._picks)
+        if _needs_eeg_average_ref_proj(info):
+            raise RuntimeError('No reference for the EEG channels has been '
+                               'set. Use inst.set_eeg_reference to do so.')
+        if not inst.proj:
+            inst.apply_proj()
