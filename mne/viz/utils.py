@@ -28,7 +28,7 @@ from decorator import decorator
 import numpy as np
 
 from ..defaults import _handle_default
-from ..fixes import _get_args, _compare_version
+from ..fixes import _get_args
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
 from ..io.meas_info import create_info
@@ -41,7 +41,7 @@ from ..io.proj import setup_proj, Projection
 from ..rank import compute_rank
 from ..utils import (verbose, get_config, _check_ch_locs, _check_option,
                      logger, fill_doc, _pl, _check_sphere, _ensure_int,
-                     _validate_type, _to_rgb, warn)
+                     _validate_type, _to_rgb, warn, check_version)
 from ..transforms import apply_trans
 
 
@@ -744,13 +744,12 @@ class ClickableImage(object):
 
 
 def _old_mpl_events():
-    from matplotlib import backend_bases, __version__ as mpl_version
-    return _compare_version(mpl_version, '<=', '3.5.1')
+    return not check_version('matplotlib', '3.6')
 
 
 def _fake_click(fig, ax, point, xform='ax', button=1, kind='press', key=None):
     """Fake a click at a relative point within axes."""
-    from matplotlib import backend_bases, __version__ as mpl_version
+    from matplotlib import backend_bases
     if xform == 'ax':
         x, y = ax.transAxes.transform_point(point)
     elif xform == 'data':
