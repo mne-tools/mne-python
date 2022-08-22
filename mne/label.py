@@ -126,7 +126,7 @@ def _n_colors(n, bytes_=False, cmap='hsv'):
                                   "colors" % n_max)
 
     from .viz.utils import _get_cmap
-    cm = _get_cmap(cmap, n)
+    cm = _get_cmap(cmap)
     pos = np.linspace(0, 1, n, False)
     colors = cm(pos, bytes=bytes_)
     if bytes_:

@@ -28,7 +28,7 @@ from decorator import decorator
 import numpy as np
 
 from ..defaults import _handle_default
-from ..fixes import _get_args
+from ..fixes import _get_args, _compare_version
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
 from ..io.meas_info import create_info
@@ -745,7 +745,7 @@ class ClickableImage(object):
 
 def _fake_click(fig, ax, point, xform='ax', button=1, kind='press', key=None):
     """Fake a click at a relative point within axes."""
-    from matplotlib import backend_bases
+    from matplotlib import backend_bases, __version__ as mpl_version
     if xform == 'ax':
         x, y = ax.transAxes.transform_point(point)
     elif xform == 'data':
@@ -753,17 +753,26 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press', key=None):
     else:
         assert xform == 'pix'
         x, y = point
-    if kind in ('press', 'release'):
-        kind = f'button_{kind}_event'
+    # This works on 3.6+, but not on < 3.5 (lasso events not propagated)
+    if _compare_version(mpl_version, '<=', '3.5'):
+        if kind == 'press':
+            fig.canvas.button_press_event(x=x, y=y, button=button)
+        elif kind == 'release':
+            fig.canvas.button_release_event(x=x, y=y, button=button)
+        elif kind == 'motion':
+            fig.canvas.motion_notify_event(x=x, y=y)
     else:
-        assert kind == 'motion'
-        kind = 'motion_notify_event'
-        button = None
-    fig.canvas.callbacks.process(
-        kind,
-        backend_bases.MouseEvent(
-            name=kind, canvas=fig.canvas, x=x, y=y, button=button,
-            key=key))
+        if kind in ('press', 'release'):
+            kind = f'button_{kind}_event'
+        else:
+            assert kind == 'motion'
+            kind = 'motion_notify_event'
+            button = None
+        fig.canvas.callbacks.process(
+            kind,
+            backend_bases.MouseEvent(
+                name=kind, canvas=fig.canvas, x=x, y=y, button=button,
+                key=key))
 
 
 def _fake_keypress(fig, key):
@@ -1367,7 +1376,6 @@ class DraggableColorbar(object):
 
     def key_press(self, event):
         """Handle key press."""
-        # print(event.key)
         scale = self.cbar.norm.vmax - self.cbar.norm.vmin
         perc = 0.03
         if event.key == 'down':

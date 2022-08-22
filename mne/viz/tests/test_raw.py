@@ -335,6 +335,9 @@ def test_plot_raw_selection(raw, browser_backend):
     # test lasso
     # Testing lasso-interactivity of sensor-plot within Qt-backend
     # with QTest doesn't seem to work.
+    want = ['MEG 0111', 'MEG 0112', 'MEG 0113', 'MEG 0131', 'MEG 0132',
+            'MEG 0133']
+    assert want == sorted(fig.mne.ch_names[fig.mne.picks])
     want = ['MEG 0121', 'MEG 0122', 'MEG 0123']
     if ismpl:
         sel_fig._set_custom_selection()  # lasso empty → should do nothing
