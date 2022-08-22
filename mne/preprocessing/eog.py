@@ -283,7 +283,7 @@ def eog_regression(inst, eog_evokeds=None, eog_channels=None, picks=None):
     -------
     inst : Raw | Epochs
         The version of the data with the EOG removed.
-    weights : ndarray, shape (n_eog_channels, n_channels)
+    weights : ndarray, shape (number of EOG channels, number of data channels)
         The regression weights. For each EOG channel, the fitted regression
         weight to each data channel. The ordering of the weights matches the
         ordering of the channels of the object given as ``inst`` parameter.
