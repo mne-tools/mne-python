@@ -1589,7 +1589,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
 
         .. versionchanged:: 1.1
            Support for ``array-like`` input.
-    %(axes_topomap)s
+    %(axes_evoked_plot_topomap)s
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
@@ -1979,14 +1979,13 @@ def plot_epochs_psd_topomap(epochs, bands=None,
         None.
     %(cmap_psd_topo)s
     %(agg_fun_psd_topo)s
-    %(dB_psd_topo)s
+    %(dB_plot_topomap)s
     %(n_jobs)s
     %(normalize_psd_topo)s
     %(cbar_fmt_psd_topo)s
     %(outlines_topomap)s
-    %(axes_psd_topo)s
-    show : bool
-        Show figure if True.
+    %(axes_plot_topomap)s
+    %(show)s
     %(sphere_topomap_auto)s
     %(vlim_psd_topo_joint)s
     %(verbose)s
@@ -2043,11 +2042,11 @@ def plot_psds_topomap(
     %(agg_fun_psd_topo)s
     %(bands_psd_topo)s
     %(cmap_psd_topo)s
-    %(dB_psd_topo)s
+    %(dB_plot_topomap)s
     %(normalize_psd_topo)s
     %(cbar_fmt_psd_topo)s
     %(outlines_topomap)s
-    %(axes_psd_topo)s
+    %(axes_plot_topomap)s
     show : bool
         Show figure if True.
     %(sphere_topomap)s
@@ -2063,6 +2062,7 @@ def plot_psds_topomap(
         Figure with a topomap subplot for each band.
     """
     import matplotlib.pyplot as plt
+    from matplotlib.axes import Axes
     sphere = _check_sphere(sphere)
 
     if cbar_fmt == 'auto':
@@ -2095,6 +2095,8 @@ def plot_psds_topomap(
 
     n_axes = len(bands)
     if axes is not None:
+        if isinstance(axes, Axes):
+            axes = [axes]
         _validate_if_list_of_axes(axes, n_axes)
         fig = axes[0].figure
     else:

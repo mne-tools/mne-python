@@ -285,7 +285,7 @@ class Covariance(dict):
         %(outlines_topomap)s
         %(contours_topomap)s
         %(image_interp_topomap)s
-        %(axes_topomap)s
+        %(axes_cov_plot_topomap)s
         %(extrapolate_topomap)s
         %(sphere_topomap_auto)s
         %(border_topomap)s

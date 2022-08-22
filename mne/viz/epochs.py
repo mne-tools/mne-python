@@ -955,9 +955,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     %(normalization)s
-    %(picks_plot_psd_good_data)s
-    ax : instance of Axes | None
-        Axes to plot into. If None, axes will be created.
+    %(picks_good_data_noref)s
+    %(ax_plot_psd)s
     %(color_plot_psd)s
     %(xscale_plot_psd)s
     %(area_mode_plot_psd)s

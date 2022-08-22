@@ -250,19 +250,22 @@ average : bool, default True
     .. versionadded:: 0.13.0
 """
 
-docdict['axes_psd_topo'] = """
-axes : list of Axes | None
-    List of axes to plot consecutive topographies to. If ``None`` the axes
-    will be created automatically. Defaults to ``None``.
+_axes = """\
+{} : instance of Axes | list of Axes | None
+    The axes to plot to. If ``None``, a new :class:`~matplotlib.figure.Figure`
+    will be created with the correct number of axes. If
+    :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+    a :class:`list` of axes), the number of axes provided must {}.
+    Default is ``None``.
 """
-
-docdict['axes_topomap'] = """
-axes : instance of Axes | list | None
-    The axes to plot to. If list, the list must be a list of Axes of the
-    same length as ``times`` (unless ``times`` is None). If instance of
-    Axes, ``times`` must be a float or a list of one float.
-    Defaults to None.
-"""
+_ch_types_present = ('match the number of channel types present in the {}'
+                     'object.')
+docdict['ax_plot_psd'] = _axes.format('ax', _ch_types_present.format(''))
+docdict['axes_cov_plot_topomap'] = _axes.format('axes', 'be length 1')
+docdict['axes_evoked_plot_topomap'] = _axes.format('axes',
+    'match the number of ``times`` provided (unless ``times`` is ``None``)')
+docdict['axes_plot_topomap'] = _axes.format(
+    'axes', 'match the length of ``bands``')
 
 docdict['azimuth'] = """
 azimuth : float
@@ -719,22 +722,25 @@ cross_talk : str | None
 # %%
 # D
 
-docdict['dB_plot_psd'] = """
+_dB = """\
+dB : bool
+    Whether to plot on a decibel-like scale. If ``True``, plots
+    10 × log₁₀(spectral magnitude){}.{}
+"""
+
+docdict['dB_plot_psd'] = """\
 dB : bool
     Plot Power Spectral Density (PSD), in units (amplitude**2/Hz (dB)) if
     ``dB=True``, and ``estimate='power'`` or ``estimate='auto'``. Plot PSD
     in units (amplitude**2/Hz) if ``dB=False`` and,
     ``estimate='power'``. Plot Amplitude Spectral Density (ASD), in units
     (amplitude/sqrt(Hz)), if ``dB=False`` and ``estimate='amplitude'`` or
-    ``estimate='auto'``. Plot ASD, in units (amplitude/sqrt(Hz) (db)), if
+    ``estimate='auto'``. Plot ASD, in units (amplitude/sqrt(Hz) (dB)), if
     ``dB=True`` and ``estimate='amplitude'``.
 """
-
-docdict['dB_psd_topo'] = """
-dB : bool
-    If ``True``, transform data to decibels (with ``10 * np.log10(data)``)
-    following the application of ``agg_fun``. Ignored if ``normalize=True``.
-"""
+docdict['dB_plot_topomap'] = _dB.format(
+    ' following the application of ``agg_fun``',
+    ' Ignored if ``normalize=True``.')
 
 docdict['daysback_anonymize_info'] = """
 daysback : int | None
@@ -1267,6 +1273,15 @@ flat : dict | str | None
     If ``'existing'``, then the flat parameters set during epoch creation are
     used.
 """
+
+_fmin_fmax = """\
+fmin, fmax : float
+    The lower- and upper-bound on frequencies of interest. Default is {}"""
+
+docdict['fmin_fmax_psd'] = _fmin_fmax.format(
+    '``fmin=0, fmax=np.inf`` (spans all frequencies present in the data).')
+
+docdict['fmin_fmax_psd_topo'] = _fmin_fmax.format('``fmin=0, fmax=100``.')
 
 docdict['fmin_fmid_fmax'] = """
 fmin : float
@@ -2395,13 +2410,6 @@ picks_trace : {_picks_types}
     ``'ecg'``). {_picks_int} {_picks_str} no channels.
 """
 
-docdict['picks_plot_psd_good_data'] = \
-    f'{picks_base} good data channels. {reminder}'[:-2] + """
-    Cannot be None if ``ax`` is supplied.If both ``picks`` and ``ax`` are None
-    separate subplots will be created for each standard channel type
-    (``mag``, ``grad``, and ``eeg``).
-"""
-
 docdict['pipeline'] = """
 pipeline : str | tuple
     The volume registration steps to perform (a ``str`` for a single step,
@@ -2711,6 +2719,13 @@ reject_by_annotation : bool
     Whether to reject based on annotations. If ``True`` (default), epochs
     overlapping with segments whose description begins with ``'bad'`` are
     rejected. If ``False``, no rejection based on annotations is performed.
+"""
+
+docdict['reject_by_annotation_psd'] = """\
+reject_by_annotation : bool
+    Whether to omit bad spans of data before spectral estimation. If
+    ``True``, spans with annotations whose description begins with
+    ``bad`` will be omitted.
 """
 
 docdict['reject_by_annotation_raw'] = _reject_by_annotation_base + """
