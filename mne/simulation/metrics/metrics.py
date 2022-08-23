@@ -185,6 +185,7 @@ def _check_threshold(threshold):
 def _abs_col_sum(x):
     return np.abs(x).sum(axis=1)
 
+
 def _dle(p, q, src, stc):
     """Aux function to compute dipole localization error."""
     from scipy.spatial.distance import cdist
