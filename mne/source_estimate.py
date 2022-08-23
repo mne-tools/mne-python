@@ -3215,6 +3215,9 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     evoked : instance of Evoked
         The evoked data. Must contain ECoG, sEEG or DBS channels.
     %(trans)s
+
+        .. versionchanged:: 0.19
+            Support for 'fsaverage' argument.
     subject : str
         The subject name.
     distance : float

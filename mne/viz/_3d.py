@@ -457,9 +457,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     Parameters
     ----------
     %(info)s If None (default), no sensor information will be shown.
-    %(trans)s
-        "auto" will load trans from the FreeSurfer directory
+    %(trans)s "auto" will load trans from the FreeSurfer directory
         specified by ``subject`` and ``subjects_dir`` parameters.
+
+        .. versionchanged:: 0.19
+            Support for 'fsaverage' argument.
     %(subject)s Can be omitted if ``src`` is provided.
     %(subjects_dir)s
     surfaces : str | list | dict
