@@ -455,8 +455,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @fill_doc
     def animate_topomap(self, ch_type=None, times=None, frame_rate=None,
-                        butterfly=False, blit=True, show=True, time_unit='s',
-                        sphere=None, *, image_interp=_INTERPOLATION_DEFAULT,
+                        vmin=None, vmax=None, butterfly=False, blit=True,
+                        show=True, time_unit='s', sphere=None, *,
+                        image_interp=_INTERPOLATION_DEFAULT,
                         extrapolate=_EXTRAPOLATE_DEFAULT, verbose=None):
         """Make animation of evoked data as topomap timeseries.
 
@@ -478,6 +479,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         frame_rate : int | None
             Frame rate for the animation in Hz. If None,
             frame rate = sfreq / 10. Defaults to None.
+        %(vmin_vmax_topomap)s
         butterfly : bool
             Whether to plot the data as butterfly plot under the topomap.
             Defaults to False.
@@ -513,9 +515,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         return _topomap_animation(
             self, ch_type=ch_type, times=times, frame_rate=frame_rate,
-            butterfly=butterfly, blit=blit, show=show, time_unit=time_unit,
-            sphere=sphere, image_interp=image_interp,
-            extrapolate=extrapolate, verbose=verbose)
+            vmin=vmin, vmax=vmax, butterfly=butterfly, blit=blit,
+            show=show, time_unit=time_unit, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate,
+            verbose=verbose)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields.
