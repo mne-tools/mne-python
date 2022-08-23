@@ -575,6 +575,14 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
 
     To create a fixed-orientation forward solution, use this function
     followed by :func:`mne.convert_forward_solution`.
+
+    .. note::
+        If the BEM solution was computed with :doc:`OpenMEEG <openmeeg:index>`
+        in :func:`mne.bem.make_bem_solution`, then OpenMEEG will automatically
+        be used to compute the forward solution.
+
+    .. versionchanged:: 1.2
+       Added support for OpenMEEG-based forward solution calculations.
     """
     # Currently not (sup)ported:
     # 1. --grad option (gradients of the field, not used much)
