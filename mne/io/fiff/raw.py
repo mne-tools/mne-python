@@ -4,7 +4,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import copy
 import os
@@ -56,8 +56,7 @@ class Raw(BaseRaw):
 
     Attributes
     ----------
-    info : dict
-        :class:`Measurement info <mne.Info>`.
+    %(info_not_none)s
     ch_names : list of string
         List of channels' names.
     n_times : int
@@ -170,7 +169,8 @@ class Raw(BaseRaw):
                     if (len(raw_node) == 0):
                         raise ValueError('No raw data in %s' % fname_rep)
                     _check_maxshield(allow_maxshield)
-                    info['maxshield'] = True
+                    with info._unlock():
+                        info['maxshield'] = True
             del meas
 
             if len(raw_node) == 1:
@@ -202,6 +202,11 @@ class Raw(BaseRaw):
             raw = _RawShell()
             raw.filename = fname
             raw.first_samp = first_samp
+            if info['meas_date'] is None and annotations is not None:
+                # we need to adjust annotations.onset as when there is no meas
+                # date set_annotations considers that the origin of time is the
+                # first available sample (ignores first_samp)
+                annotations.onset -= first_samp / info['sfreq']
             raw.set_annotations(annotations)
 
             #   Go through the remaining tags in the directory
@@ -309,7 +314,6 @@ class Raw(BaseRaw):
                     float(raw.last_samp) / info['sfreq']))
 
         raw.info = info
-        raw.verbose = verbose
 
         logger.info('Ready.')
 
@@ -469,6 +473,11 @@ def read_raw_fif(fname, allow_maxshield=False, preload=False,
     Notes
     -----
     .. versionadded:: 0.9.0
+
+    When reading a FIF file, note that the first N seconds annotated
+    ``BAD_ACQ_SKIP`` are **skipped**. They are removed from ``raw.times`` and
+    ``raw.n_times`` parameters but ``raw.first_samp`` and ``raw.first_time``
+    are updated accordingly.
     """
     return Raw(fname=fname, allow_maxshield=allow_maxshield,
                preload=preload, verbose=verbose,

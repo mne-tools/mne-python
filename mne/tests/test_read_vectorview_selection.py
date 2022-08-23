@@ -4,7 +4,6 @@ import pytest
 
 from mne import read_vectorview_selection
 from mne.io import read_raw_fif
-from mne.utils import run_tests_if_main
 
 test_path = op.join(op.split(__file__)[0], '..', 'io', 'tests', 'data')
 raw_fname = op.join(test_path, 'test_raw.fif')
@@ -47,6 +46,3 @@ def test_read_vectorview_selection():
 
     with pytest.raises(TypeError, match='must be an instance of Info or None'):
         read_vectorview_selection(name, info='foo')
-
-
-run_tests_if_main()

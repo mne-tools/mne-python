@@ -2,9 +2,11 @@
 """Some utility functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import contextlib
+from decorator import FunctionMaker
+import importlib
 import inspect
 from io import StringIO
 import re
@@ -15,7 +17,6 @@ import warnings
 from typing import Any, Callable, TypeVar
 
 from .docs import fill_doc
-from ..externals.decorator import FunctionMaker
 
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
@@ -101,29 +102,16 @@ def verbose(function: _FuncT) -> _FuncT:
     except TypeError:  # nothing to add
         pass
 
-    # Anything using verbose should either have `verbose=None` in the signature
-    # or have a `self.verbose` attribute (if in a method). This code path
-    # will raise an error if neither is the case.
+    # Anything using verbose should have `verbose=None` in the signature.
+    # This code path will raise an error if this is not the case.
     body = """\
 def %(name)s(%(signature)s):\n
     try:
-        verbose
-    except UnboundLocalError:
-        try:
-            verbose = self.verbose
-        except NameError:
-            raise RuntimeError('Function %%s does not accept verbose parameter'
-                               %% (_function_,))
-        except AttributeError:
-            raise RuntimeError('Method %%s class does not have self.verbose'
-                               %% (_function_,))
-    else:
-        if verbose is None:
-            try:
-                verbose = self.verbose
-            except (NameError, AttributeError):
-                pass
-    if verbose is not None:
+        do_level_change = verbose is not None
+    except (NameError, UnboundLocalError):
+        raise RuntimeError('Function/method %%s does not accept verbose '
+                           'parameter' %% (_function_,)) from None
+    if do_level_change:
         with _use_log_level_(verbose):
             return _function_(%(shortsignature)s)
     else:
@@ -131,34 +119,58 @@ def %(name)s(%(signature)s):\n
     evaldict = dict(
         _use_log_level_=use_log_level, _function_=function)
     fm = FunctionMaker(function, None, None, None, None, function.__module__)
-    attrs = dict(__wrapped__=function, __qualname__=function.__qualname__)
+    attrs = dict(__wrapped__=function, __qualname__=function.__qualname__,
+                 __globals__=function.__globals__)
     return fm.make(body, evaldict, addsource=True, **attrs)
 
 
-class use_log_level(object):
-    """Context handler for logging level.
+@fill_doc
+class use_log_level:
+    """Context manager for logging level.
 
     Parameters
     ----------
-    level : int
-        The level to use.
-    add_frames : int | None
-        Number of stack frames to include.
+    %(verbose)s
+    %(add_frames)s
+
+    See Also
+    --------
+    mne.verbose
+
+    Notes
+    -----
+    See the :ref:`logging documentation <tut-logging>` for details.
+
+    Examples
+    --------
+    >>> from mne import use_log_level
+    >>> from mne.utils import logger
+    >>> with use_log_level(False):
+    ...     # Most MNE logger messages are "info" level, False makes them not
+    ...     # print:
+    ...     logger.info('This message will not be printed')
+    >>> with use_log_level(True):
+    ...     # Using verbose=True in functions, methods, or this context manager
+    ...     # will ensure they are printed
+    ...     logger.info('This message will be printed!')
+    This message will be printed!
     """
 
-    def __init__(self, level, add_frames=None):  # noqa: D102
-        self.level = level
-        self.add_frames = add_frames
-        self.old_frames = _filter.add_frames
+    def __init__(self, verbose, *, add_frames=None):  # noqa: D102
+        self._level = verbose
+        self._add_frames = add_frames
+        self._old_frames = _filter.add_frames
 
     def __enter__(self):  # noqa: D105
-        self.old_level = set_log_level(self.level, True, self.add_frames)
+        self._old_level = set_log_level(
+            self._level, return_old_level=True, add_frames=self._add_frames)
 
     def __exit__(self, *args):  # noqa: D105
-        add_frames = self.old_frames if self.add_frames is not None else None
-        set_log_level(self.old_level, add_frames=add_frames)
+        add_frames = self._old_frames if self._add_frames is not None else None
+        set_log_level(self._old_level, add_frames=add_frames)
 
 
+@fill_doc
 def set_log_level(verbose=None, return_old_level=False, add_frames=None):
     """Set the logging level.
 
@@ -173,10 +185,7 @@ def set_log_level(verbose=None, return_old_level=False, add_frames=None):
         it doesn't exist, defaults to INFO.
     return_old_level : bool
         If True, return the old verbosity level.
-    add_frames : int | None
-        If int, enable (>=1) or disable (0) the printing of stack frame
-        information using formatting. Default (None) does not change the
-        formatting. This can add overhead so is meant only for debugging.
+    %(add_frames)s
 
     Returns
     -------
@@ -283,18 +292,36 @@ class catch_logging(object):
     stdout when complete.
     """
 
+    def __init__(self, verbose=None):
+        self.verbose = verbose
+
     def __enter__(self):  # noqa: D105
+        if self.verbose is not None:
+            self._ctx = use_log_level(self.verbose)
+        else:
+            self._ctx = contextlib.nullcontext()
         self._data = ClosingStringIO()
         self._lh = logging.StreamHandler(self._data)
         self._lh.setFormatter(logging.Formatter('%(message)s'))
         self._lh._mne_file_like = True  # monkey patch for warn() use
         _remove_close_handlers(logger)
         logger.addHandler(self._lh)
+        self._ctx.__enter__()
         return self._data
 
     def __exit__(self, *args):  # noqa: D105
+        self._ctx.__exit__(*args)
         logger.removeHandler(self._lh)
         set_log_file(None)
+
+
+@contextlib.contextmanager
+def _record_warnings():
+    # this is a helper that mostly acts like pytest.warns(None) did before
+    # pytest 7
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        yield w
 
 
 class WrapStdOut(object):
@@ -316,7 +343,8 @@ class WrapStdOut(object):
 _verbose_dec_re = re.compile('^<decorator-gen-[0-9]+>$')
 
 
-def warn(message, category=RuntimeWarning, module='mne'):
+def warn(message, category=RuntimeWarning, module='mne',
+         ignore_namespaces=('mne',)):
     """Emit a warning with trace outside the mne namespace.
 
     This function takes arguments like warnings.warn, and sends messages
@@ -333,9 +361,13 @@ def warn(message, category=RuntimeWarning, module='mne'):
         The warning class. Defaults to ``RuntimeWarning``.
     module : str
         The name of the module emitting the warning.
+    ignore_namespaces : list of str
+        Namespaces to ignore when traversing the stack.
+
+        .. versionadded:: 0.24
     """
-    import mne
-    root_dir = op.dirname(mne.__file__)
+    root_dirs = [importlib.import_module(ns) for ns in ignore_namespaces]
+    root_dirs = [op.dirname(ns.__file__) for ns in root_dirs]
     frame = None
     if logger.level <= logging.WARN:
         frame = inspect.currentframe()
@@ -346,7 +378,7 @@ def warn(message, category=RuntimeWarning, module='mne'):
             if not _verbose_dec_re.search(fname):
                 # treat tests as scripts
                 # and don't capture unittest/case.py (assert_raises)
-                if not (fname.startswith(root_dir) or
+                if not (any(fname.startswith(rd) for rd in root_dirs) or
                         ('unittest' in fname and 'case' in fname)) or \
                         op.basename(op.dirname(fname)) == 'tests':
                     break
@@ -392,28 +424,6 @@ def filter_out_warnings(warn_record, category=None, match=None):
 
     match : str | None
         text or regex that matches the error message to filter out
-
-    Examples
-    --------
-    This can be used as::
-
-        >>> import pytest
-        >>> import warnings
-        >>> from mne.utils import filter_out_warnings
-        >>> with pytest.warns(None) as recwarn:
-        ...     warnings.warn("value must be 0 or None", UserWarning)
-        >>> filter_out_warnings(recwarn, match=".* 0 or None")
-        >>> assert len(recwarn.list) == 0
-
-        >>> with pytest.warns(None) as recwarn:
-        ...     warnings.warn("value must be 42", UserWarning)
-        >>> filter_out_warnings(recwarn, match=r'.* must be \d+$')
-        >>> assert len(recwarn.list) == 0
-
-        >>> with pytest.warns(None) as recwarn:
-        ...     warnings.warn("this is not here", UserWarning)
-        >>> filter_out_warnings(recwarn, match=r'.* must be \d+$')
-        >>> assert len(recwarn.list) == 1
     """
     regexp = re.compile('.*' if match is None else match)
     is_category = [w.category == category if category is not None else True
@@ -425,20 +435,6 @@ def filter_out_warnings(warn_record, category=None, match=None):
 
     for i in reversed(ind):
         warn_record._list.pop(i)
-
-
-class ETSContext(object):
-    """Add more meaningful message to errors generated by ETS Toolkit."""
-
-    def __enter__(self):  # noqa: D105
-        pass
-
-    def __exit__(self, type, value, traceback):  # noqa: D105
-        if isinstance(value, SystemExit) and value.code.\
-                startswith("This program needs access to the screen"):
-            value.code += ("\nThis can probably be solved by setting "
-                           "ETS_TOOLKIT=qt4. On bash, type\n\n    $ export "
-                           "ETS_TOOLKIT=qt4\n\nand run the command again.")
 
 
 @contextlib.contextmanager

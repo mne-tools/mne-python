@@ -4,7 +4,7 @@
 #          Roman Goj <roman.goj@gmail.com>
 #          Britta Westner <britta.wstnr@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
 
@@ -16,10 +16,9 @@ from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
-                     _pl, _check_src_normal, check_version, _sym_mat_pow, warn)
+                     _pl, _check_src_normal, check_version, _sym_mat_pow, warn,
+                     _import_h5io_funcs)
 from ..time_frequency.csd import CrossSpectralDensity
-
-from ..externals.h5io import read_hdf5, write_hdf5
 
 
 def _check_proj_match(proj, filters):
@@ -386,7 +385,6 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     return W, max_power_ori
 
 
-# TODO: Eventually we can @jit() this to make it faster
 def _compute_power(Cm, W, n_orient):
     """Use beamformer filters to compute source power.
 
@@ -404,10 +402,9 @@ def _compute_power(Cm, W, n_orient):
     """
     n_sources = W.shape[0] // n_orient
 
-    source_power = np.zeros(n_sources)
-    for k in range(n_sources):
-        Wk = W[n_orient * k: n_orient * k + n_orient]
-        source_power[k] = np.trace(Wk @ Cm @ Wk.conj().T).real
+    Wk = W.reshape(n_sources, n_orient, W.shape[1])
+    source_power = np.trace((Wk @ Cm @ Wk.conj().transpose(0, 2, 1)).real,
+                            axis1=1, axis2=2)
 
     return source_power
 
@@ -462,6 +459,8 @@ class Beamformer(dict):
         %(overwrite)s
         %(verbose)s
         """
+        _, write_hdf5 = _import_h5io_funcs()
+
         ending = '-%s.h5' % (self['kind'].lower(),)
         check_fname(fname, self['kind'], (ending,))
         csd_orig = None
@@ -488,6 +487,7 @@ def read_beamformer(fname):
     filter : instance of Beamformer
         The beamformer filter.
     """
+    read_hdf5, _ = _import_h5io_funcs()
     beamformer = read_hdf5(fname, title='mnepython')
     if 'csd' in beamformer:
         beamformer['csd'] = CrossSpectralDensity(**beamformer['csd'])

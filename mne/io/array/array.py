@@ -2,7 +2,7 @@
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
@@ -18,8 +18,7 @@ class RawArray(BaseRaw):
     ----------
     data : array, shape (n_channels, n_times)
         The channels' time series. See notes for proper units of measure.
-    info : instance of Info
-        Info dictionary. Consider using :func:`mne.create_info` to populate
+    %(info_not_none)s Consider using :func:`mne.create_info` to populate
         this structure. This may be modified in place by the class.
     first_samp : int
         First sample offset used during recording (default 0).

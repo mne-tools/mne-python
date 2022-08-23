@@ -18,11 +18,9 @@ from mne.channels import (make_eeg_layout, make_grid_layout, read_layout,
                           find_layout, HEAD_SIZE_DEFAULT)
 from mne.channels.layout import (_box_size, _find_topomap_coords,
                                  generate_2d_layout)
-from mne.utils import run_tests_if_main
 from mne import pick_types, pick_info
 from mne.io import read_raw_kit, _empty_info, read_info
 from mne.io.constants import FIFF
-from mne.utils import _TempDir
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
@@ -48,14 +46,15 @@ def _get_test_info():
         {'cal': 0.002142000012099743, 'ch_name': 'EOG 061', 'coil_type': 1,
          'coord_frame': 0, 'kind': 202, 'loc': loc.copy(), 'logno': 61,
          'range': 1.0, 'scanno': 376, 'unit': 107, 'unit_mul': 0}]
+    test_info._unlocked = False
     test_info._update_redundant()
     test_info._check_consistency()
     return test_info
 
 
-def test_io_layout_lout():
+def test_io_layout_lout(tmp_path):
     """Test IO with .lout files."""
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
     layout = read_layout('Vectorview-all', scale=False)
     layout.save(op.join(tempdir, 'foobar.lout'))
     layout_read = read_layout(op.join(tempdir, 'foobar.lout'), path='./',
@@ -65,9 +64,9 @@ def test_io_layout_lout():
     print(layout)  # test repr
 
 
-def test_io_layout_lay():
+def test_io_layout_lay(tmp_path):
     """Test IO with .lay files."""
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
     layout = read_layout('CTF151', scale=False)
     layout.save(op.join(tempdir, 'foobar.lay'))
     layout_read = read_layout(op.join(tempdir, 'foobar.lay'), path='./',
@@ -100,7 +99,7 @@ def test_find_topomap_coords():
 
     for z_pt in ((HEAD_SIZE_DEFAULT, 0., 0.),
                  (0., HEAD_SIZE_DEFAULT, 0.)):
-        info['dig'][-1]['r'] = z_pt
+        info['dig'][-1]['r'] = np.array(z_pt)
         l1 = _find_topomap_coords(info, picks, **kwargs)
         assert_allclose(l1[-1], z_pt[:2], err_msg='Z=0 point moved', atol=1e-6)
 
@@ -115,6 +114,7 @@ def test_find_topomap_coords():
         _find_topomap_coords(info, picks, **kwargs)
 
     # Test function with too little EEG digitization points: it should fail
+    info._unlocked = True
     info['dig'] = info['dig'][:-2]
     with pytest.raises(ValueError, match='Number of EEG digitization points'):
         _find_topomap_coords(info, picks, **kwargs)
@@ -125,7 +125,8 @@ def test_find_topomap_coords():
         _find_topomap_coords(info, picks, **kwargs)
 
     # Test function without EEG digitization points: it should fail
-    info['dig'] = [d for d in info['dig'] if d['kind'] != FIFF.FIFFV_POINT_EEG]
+    info['dig'] = [d for d in info['dig']
+                   if d['kind'] != FIFF.FIFFV_POINT_EEG]
     with pytest.raises(RuntimeError, match='Did not find any digitization'):
         _find_topomap_coords(info, picks, **kwargs)
 
@@ -138,9 +139,9 @@ def test_find_topomap_coords():
         _find_topomap_coords(info, picks, **kwargs)
 
 
-def test_make_eeg_layout():
+def test_make_eeg_layout(tmp_path):
     """Test creation of EEG layout."""
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
     tmp_name = 'foo'
     lout_name = 'test_raw'
     lout_orig = read_layout(kind=lout_name, path=lout_path)
@@ -164,9 +165,9 @@ def test_make_eeg_layout():
     pytest.raises(ValueError, make_eeg_layout, info, height=1.1)
 
 
-def test_make_grid_layout():
+def test_make_grid_layout(tmp_path):
     """Test creation of grid layout."""
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
     tmp_name = 'bar'
     lout_name = 'test_ica'
     lout_orig = read_layout(kind=lout_name, path=lout_path)
@@ -262,7 +263,8 @@ def test_find_layout():
     assert_equal(lout.kind, 'KIT-157')
     # fallback for missing IDs
     for val in (35, 52, 54, 1001):
-        raw_kit.info['kit_system_id'] = val
+        with raw_kit.info._unlock():
+            raw_kit.info['kit_system_id'] = val
         lout = find_layout(raw_kit.info)
         assert lout.kind == 'custom'
 
@@ -367,6 +369,3 @@ def test_generate_2d_layout():
     # Make sure background image normalizing is correct
     lt_bg = generate_2d_layout(xy, bg_image=bg_image)
     assert_allclose(lt_bg.pos[:, :2].max(), xy.max() / float(sbg))
-
-
-run_tests_if_main()

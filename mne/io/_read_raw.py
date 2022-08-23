@@ -2,7 +2,7 @@
 
 # Authors: Clemens Brunner <clemens.brunner@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 
 from pathlib import Path
@@ -12,7 +12,7 @@ from . import (read_raw_edf, read_raw_bdf, read_raw_gdf, read_raw_brainvision,
                read_raw_fif, read_raw_eeglab, read_raw_cnt, read_raw_egi,
                read_raw_eximia, read_raw_nirx, read_raw_fieldtrip,
                read_raw_artemis123, read_raw_nicolet, read_raw_kit,
-               read_raw_ctf, read_raw_boxy)
+               read_raw_ctf, read_raw_boxy, read_raw_snirf)
 from ..utils import fill_doc
 
 
@@ -32,6 +32,7 @@ supported = {
     ".bdf": read_raw_bdf,
     ".gdf": read_raw_gdf,
     ".vhdr": read_raw_brainvision,
+    ".ahdr": read_raw_brainvision,
     ".fif": read_raw_fif,
     ".fif.gz": read_raw_fif,
     ".set": read_raw_eeglab,
@@ -39,6 +40,7 @@ supported = {
     ".mff": read_raw_egi,
     ".nxe": read_raw_eximia,
     ".hdr": read_raw_nirx,
+    ".snirf": read_raw_snirf,
     ".mat": read_raw_fieldtrip,
     ".bin": read_raw_artemis123,
     ".data": read_raw_nicolet,
@@ -50,6 +52,7 @@ supported = {
 
 # known but unsupported file formats
 suggested = {".vmrk": partial(_read_unsupported, suggest=".vhdr"),
+             ".amrk": partial(_read_unsupported, suggest=".ahdr"),
              ".eeg": partial(_read_unsupported, suggest=".vhdr")}
 
 # all known file formats

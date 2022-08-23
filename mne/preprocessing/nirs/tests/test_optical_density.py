@@ -2,7 +2,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import pytest as pytest
@@ -30,6 +30,8 @@ def test_optical_density():
     _validate_type(raw, BaseRaw, 'raw')
     assert 'fnirs_cw_amplitude' not in raw
     assert 'fnirs_od' in raw
+    with pytest.raises(RuntimeError, match='on continuous wave'):
+        optical_density(raw)
 
 
 @testing.requires_testing_data
@@ -37,8 +39,10 @@ def test_optical_density_zeromean():
     """Test that optical density can process zero mean data."""
     raw = read_raw_nirx(fname_nirx, preload=True)
     raw._data[4] -= np.mean(raw._data[4])
-    with pytest.warns(RuntimeWarning, match='Negative'):
-        raw = optical_density(raw)
+    raw._data[4, -1] = 0
+    with np.errstate(invalid='raise', divide='raise'):
+        with pytest.warns(RuntimeWarning, match='Negative'):
+            raw = optical_density(raw)
     assert 'fnirs_od' in raw
 
 

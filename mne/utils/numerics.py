@@ -3,20 +3,19 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Clemens Brunner <clemens.brunner@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
-from contextlib import contextmanager
 import hashlib
-from io import BytesIO, StringIO
-from math import sqrt
 import numbers
 import operator
 import os
-import os.path as op
-from math import ceil
 import shutil
 import sys
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from io import BytesIO, StringIO
+from math import ceil, sqrt
+from pathlib import Path
 
 import numpy as np
 
@@ -427,7 +426,7 @@ def _replace_md5(fname):
     # adapted from sphinx-gallery
     assert fname.endswith('.new')
     fname_old = fname[:-4]
-    if op.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
+    if os.path.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
         os.remove(fname)
     else:
         shutil.move(fname, fname_old)
@@ -605,6 +604,18 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     return grand_average
 
 
+class _HashableNdarray(np.ndarray):
+    def __hash__(self):
+        return object_hash(self)
+
+    def __eq__(self, other):
+        return NotImplementedError  # defer to hash
+
+
+def _hashable_ndarray(x):
+    return x.view(_HashableNdarray)
+
+
 def object_hash(x, h=None):
     """Hash a reasonable python object.
 
@@ -621,6 +632,7 @@ def object_hash(x, h=None):
     digest : int
         The digest resulting from the hash.
     """
+    from scipy import sparse
     if h is None:
         h = hashlib.md5()
     if hasattr(x, 'keys'):
@@ -642,6 +654,13 @@ def object_hash(x, h=None):
         h.update(x.tobytes())
     elif isinstance(x, datetime):
         object_hash(_dt_to_stamp(x))
+    elif sparse.issparse(x):
+        h.update(str(type(x)).encode('utf-8'))
+        if not isinstance(x, (sparse.csr_matrix, sparse.csc_matrix)):
+            raise RuntimeError(f'Unsupported sparse type {type(x)}')
+        h.update(x.data.tobytes())
+        h.update(x.indices.tobytes())
+        h.update(x.indptr.tobytes())
     elif hasattr(x, '__len__'):
         # all other list-like types
         h.update(str(type(x)).encode('utf-8'))
@@ -677,7 +696,7 @@ def object_size(x, memo=None):
     id_ = id(x)
     if id_ in memo:
         return 0  # do not add already existing ones
-    if isinstance(x, (bytes, str, int, float, type(None))):
+    if isinstance(x, (bytes, str, int, float, type(None), Path)):
         size = sys.getsizeof(x)
     elif isinstance(x, np.ndarray):
         # On newer versions of NumPy, just doing sys.getsizeof(x) works,
@@ -713,15 +732,19 @@ def _sort_keys(x):
     return keys
 
 
-def _array_equal_nan(a, b):
+def _array_equal_nan(a, b, allclose=False):
     try:
-        np.testing.assert_array_equal(a, b)
+        if allclose:
+            func = np.testing.assert_allclose
+        else:
+            func = np.testing.assert_array_equal
+        func(a, b)
     except AssertionError:
         return False
     return True
 
 
-def object_diff(a, b, pre=''):
+def object_diff(a, b, pre='', *, allclose=False):
     """Compute all differences between two python variables.
 
     Parameters
@@ -733,6 +756,8 @@ def object_diff(a, b, pre=''):
         Must be same type as ``a``.
     pre : str
         String to prepend to each line.
+    allclose : bool
+        If True (default False), use assert_allclose.
 
     Returns
     -------
@@ -759,15 +784,17 @@ def object_diff(a, b, pre=''):
                 out += pre + ' right missing key %s\n' % key
             else:
                 out += object_diff(a[key], b[key],
-                                   pre=(pre + '[%s]' % repr(key)))
+                                   pre=(pre + '[%s]' % repr(key)),
+                                   allclose=allclose)
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
             out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
-                out += object_diff(xx1, xx2, pre + '[%s]' % ii)
+                out += object_diff(
+                    xx1, xx2, pre + '[%s]' % ii, allclose=allclose)
     elif isinstance(a, float):
-        if not _array_equal_nan(a, b):
+        if not _array_equal_nan(a, b, allclose):
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif isinstance(a, (str, int, bytes, np.generic)):
         if a != b:
@@ -776,7 +803,7 @@ def object_diff(a, b, pre=''):
         if b is not None:
             out += pre + ' left is None, right is not (%s)\n' % (b)
     elif isinstance(a, np.ndarray):
-        if not _array_equal_nan(a, b):
+        if not _array_equal_nan(a, b, allclose):
             out += pre + ' array mismatch\n'
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():
@@ -796,7 +823,8 @@ def object_diff(a, b, pre=''):
                 out += pre + (' sparse matrix a and b differ on %s '
                               'elements' % c.nnz)
     elif hasattr(a, '__getstate__'):
-        out += object_diff(a.__getstate__(), b.__getstate__(), pre)
+        out += object_diff(a.__getstate__(), b.__getstate__(), pre,
+                           allclose=allclose)
     else:
         raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
     return out
@@ -1021,7 +1049,7 @@ def _stamp_to_dt(utc_stamp):
     if len(stamp) == 1:  # In case there is no microseconds information
         stamp.append(0)
     return (datetime.fromtimestamp(0, tz=timezone.utc) +
-            timedelta(0, stamp[0], stamp[1]))  # day, sec, µs
+            timedelta(seconds=stamp[0], microseconds=stamp[1]))
 
 
 class _ReuseCycle(object):
@@ -1076,3 +1104,29 @@ if has_numba:
         return out
 else:  # pragma: no cover
     _arange_div = _arange_div_fallback
+
+
+_LRU_CACHES = dict()
+_LRU_CACHE_MAXSIZES = dict()
+
+
+def _custom_lru_cache(maxsize):
+    def dec(fun):
+        fun_hash = hash(fun)
+        this_cache = _LRU_CACHES[fun_hash] = dict()
+        _LRU_CACHE_MAXSIZES[fun_hash] = maxsize
+
+        def cache_fun(*args):
+            hash_ = object_hash(args)
+            if hash_ in this_cache:
+                this_val = this_cache.pop(hash_)
+            else:
+                this_val = fun(*args)
+            this_cache[hash_] = this_val  # (re)insert in last pos
+            while len(this_cache) > _LRU_CACHE_MAXSIZES[fun_hash]:
+                for key in this_cache:  # just an easy way to get first element
+                    this_cache.pop(key)
+                    break  # first in, first out
+            return this_val
+        return cache_fun
+    return dec

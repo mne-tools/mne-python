@@ -2,7 +2,7 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
@@ -32,7 +32,7 @@ from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
                        pick_types)
 from ..io.write import (write_int, start_block, end_block,
                         write_coord_trans, write_name_list,
-                        write_string, start_file, end_file, write_id)
+                        write_string, start_and_end_file, write_id)
 from ..io.base import BaseRaw
 from ..evoked import Evoked, EvokedArray
 from ..epochs import BaseEpochs
@@ -49,43 +49,97 @@ from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      _validate_type, _check_compensation_grade, _check_option,
                      _check_stc_units, _stamp_to_dt, _on_missing)
 from ..label import Label
-from ..fixes import einsum
 
 
 class Forward(dict):
     """Forward class to represent info from forward solution.
 
+    Like :class:`mne.Info`, this data structure behaves like a dictionary.
+    It contains all metadata necessary for a forward solution.
+
+    .. warning::
+        This class should not be modified or created by users.
+        Forward objects should be obtained using
+        :func:`mne.make_forward_solution` or :func:`mne.read_forward_solution`.
+
     Attributes
     ----------
     ch_names : list of str
-        List of channels' names.
+        A convenience wrapper accessible as ``fwd.ch_names`` which wraps
+        ``fwd['info']['ch_names']``.
 
-        .. versionadded:: 0.20.0
+    See Also
+    --------
+    mne.make_forward_solution
+    mne.read_forward_solution
+
+    Notes
+    -----
+    Forward data is accessible via string keys using standard
+    :class:`python:dict` access (e.g., ``fwd['nsource'] == 4096``):
+
+        source_ori : int
+            The source orientation, either ``FIFF.FIFFV_MNE_FIXED_ORI`` or
+            ``FIFF.FIFFV_MNE_FREE_ORI``.
+        coord_frame : int
+            The coordinate frame of the forward solution, usually
+            ``FIFF.FIFFV_COORD_HEAD``.
+        nsource : int
+            The number of source locations.
+        nchan : int
+            The number of channels.
+        sol : dict
+            The forward solution, with entries:
+
+            ``'data'`` : ndarray, shape (n_channels, nsource * n_ori)
+                The forward solution data. The shape will be
+                ``(n_channels, nsource)`` for a fixed-orientation forward and
+                ``(n_channels, nsource * 3)`` for a free-orientation forward.
+            ``'row_names'`` : list of str
+                The channel names.
+        mri_head_t : instance of Transform
+            The mri ↔ head transformation that was used.
+        info : instance of :class:`~mne.Info`
+            The measurement information (with contents reduced compared to that
+            of the original data).
+        src : instance of :class:`~mne.SourceSpaces`
+            The source space used during forward computation. This can differ
+            from the original source space as:
+
+            1. Source points are removed due to proximity to (or existing
+               outside)
+               the inner skull surface.
+            2. The source space will be converted to the ``coord_frame`` of the
+               forward solution, which typically means it gets converted from
+               MRI to head coordinates.
+        source_rr : ndarray, shape (n_sources, 3)
+            The source locations.
+        source_nn : ndarray, shape (n_sources, 3)
+            The source normals. Will be all +Z (``(0, 0, 1.)``) for volume
+            source spaces. For surface source spaces, these are normal to the
+            cortical surface.
+        surf_ori : int
+            Whether ``sol`` is surface-oriented with the surface normal in the
+            Z component (``FIFF.FIFFV_MNE_FIXED_ORI``) or +Z in the given
+            ``coord_frame`` in the Z component (``FIFF.FIFFV_MNE_FREE_ORI``).
+
+    Forward objects also have some attributes that are accessible via ``.``
+    access, like ``fwd.ch_names``.
     """
 
     def copy(self):
         """Copy the Forward instance."""
         return Forward(deepcopy(self))
 
-    def __repr__(self):
-        """Summarize forward info instead of printing all."""
-        entr = '<Forward'
-
-        nchan = len(pick_types(self['info'], meg=True, eeg=False, exclude=[]))
-        entr += ' | ' + 'MEG channels: %d' % nchan
-        nchan = len(pick_types(self['info'], meg=False, eeg=True, exclude=[]))
-        entr += ' | ' + 'EEG channels: %d' % nchan
-
+    def _get_src_type_and_ori_for_repr(self):
         src_types = np.array([src['type'] for src in self['src']])
+
         if (src_types == 'surf').all():
-            entr += (' | Source space: Surface with %d vertices'
-                     % self['nsource'])
+            src_type = 'Surface with %d vertices' % self['nsource']
         elif (src_types == 'vol').all():
-            entr += (' | Source space: Volume with %d grid points'
-                     % self['nsource'])
+            src_type = 'Volume with %d grid points' % self['nsource']
         elif (src_types == 'discrete').all():
-            entr += (' | Source space: Discrete with %d dipoles'
-                     % self['nsource'])
+            src_type = 'Discrete with %d dipoles' % self['nsource']
         else:
             count_string = ''
             if (src_types == 'surf').any():
@@ -96,19 +150,46 @@ class Forward(dict):
                 count_string += '%d discrete, ' \
                                 % (src_types == 'discrete').sum()
             count_string = count_string.rstrip(', ')
-            entr += (' | Source space: Mixed (%s) with %d vertices'
-                     % (count_string, self['nsource']))
+            src_type = ('Mixed (%s) with %d vertices'
+                        % (count_string, self['nsource']))
 
         if self['source_ori'] == FIFF.FIFFV_MNE_UNKNOWN_ORI:
-            entr += (' | Source orientation: Unknown')
+            src_ori = 'Unknown'
         elif self['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
-            entr += (' | Source orientation: Fixed')
+            src_ori = 'Fixed'
         elif self['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-            entr += (' | Source orientation: Free')
+            src_ori = 'Free'
 
+        return src_type, src_ori
+
+    def __repr__(self):
+        """Summarize forward info instead of printing all."""
+        entr = '<Forward'
+
+        nchan = len(pick_types(self['info'], meg=True, eeg=False, exclude=[]))
+        entr += ' | ' + 'MEG channels: %d' % nchan
+        nchan = len(pick_types(self['info'], meg=False, eeg=True, exclude=[]))
+        entr += ' | ' + 'EEG channels: %d' % nchan
+
+        src_type, src_ori = self._get_src_type_and_ori_for_repr()
+        entr += f' | Source space: {src_type}'
+        entr += f' | Source orientation: {src_ori}'
         entr += '>'
 
         return entr
+
+    def _repr_html_(self):
+        from ..html_templates import repr_templates_env
+        good_chs, bad_chs, _, _, = self['info']._get_chs_for_repr()
+        src_descr, src_ori = self._get_src_type_and_ori_for_repr()
+        t = repr_templates_env.get_template('forward.html.jinja')
+        html = t.render(
+            good_channels=good_chs,
+            bad_channels=bad_chs,
+            source_space_descr=src_descr,
+            source_orientation=src_ori
+        )
+        return html
 
     @property
     def ch_names(self):
@@ -166,7 +247,7 @@ def _block_diag(A, n):
         The block size
     Returns
     -------
-    bd : sparse matrix
+    bd : scipy.sparse.spmatrix
         The block diagonal matrix
     """
     from scipy import sparse
@@ -247,6 +328,7 @@ def _read_one(fid, node):
     return one
 
 
+@fill_doc
 def _read_forward_meas_info(tree, fid):
     """Read light measurement info from forward operator.
 
@@ -259,11 +341,11 @@ def _read_forward_meas_info(tree, fid):
 
     Returns
     -------
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     """
     # This function assumes fid is being used as a context manager
     info = Info()
+    info._unlocked = True
 
     # Information from the MRI file
     parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
@@ -298,7 +380,7 @@ def _read_forward_meas_info(tree, fid):
     ch_names_mapping = _read_extended_ch_info(chs, parent_meg, fid)
     info._update_redundant()
 
-    #   Get the MRI <-> head coordinate transformation
+    # Get the MRI <-> head coordinate transformation
     tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
     coord_head = FIFF.FIFFV_COORD_HEAD
     coord_mri = FIFF.FIFFV_COORD_MRI
@@ -312,7 +394,7 @@ def _read_forward_meas_info(tree, fid):
     else:
         raise ValueError('MRI/head coordinate transformation not found')
 
-    #   Get the MEG device <-> head coordinate transformation
+    # Get the MEG device <-> head coordinate transformation
     tag = find_tag(fid, parent_meg, FIFF.FIFF_COORD_TRANS)
     if tag is None:
         raise ValueError('MEG/head coordinate transformation not found')
@@ -335,7 +417,7 @@ def _read_forward_meas_info(tree, fid):
         tag = find_tag(fid, parent_mri, 236)  # Constant 236 used before v0.11
 
     info['custom_ref_applied'] = int(tag.data) if tag is not None else False
-    info._check_consistency()
+    info._unlocked = False
     return info
 
 
@@ -422,7 +504,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz',
                                    '_fwd.fif', '_fwd.fif.gz'))
-
+    fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
     #   Open the file, create directory
     logger.info('Reading forward solution from %s...' % fname)
     f, tree, _ = fiff_open(fname)
@@ -506,10 +588,12 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
             parent_env = parent_env[0]
             tag = find_tag(fid, parent_env, FIFF.FIFF_MNE_ENV_WORKING_DIR)
             if tag is not None:
-                fwd['info']['working_dir'] = tag.data
+                with fwd['info']._unlock():
+                    fwd['info']['working_dir'] = tag.data
             tag = find_tag(fid, parent_env, FIFF.FIFF_MNE_ENV_COMMAND_LINE)
             if tag is not None:
-                fwd['info']['command_line'] = tag.data
+                with fwd['info']._unlock():
+                    fwd['info']['command_line'] = tag.data
 
     #   Transform the source spaces to the correct coordinate frame
     #   if necessary
@@ -703,8 +787,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     Parameters
     ----------
     fname : str
-        File name to save the forward solution to. It should end with -fwd.fif
-        or -fwd.fif.gz.
+        File name to save the forward solution to. It should end with
+        ``-fwd.fif`` or ``-fwd.fif.gz``.
     fwd : Forward
         Forward solution.
     %(overwrite)s
@@ -732,9 +816,13 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz',
                                    '_fwd.fif', '_fwd.fif.gz'))
 
-    # check for file existence
-    _check_fname(fname, overwrite)
-    fid = start_file(fname)
+    # check for file existence and expand `~` if present
+    fname = _check_fname(fname, overwrite)
+    with start_and_end_file(fname) as fid:
+        _write_forward_solution(fid, fwd)
+
+
+def _write_forward_solution(fid, fwd):
     start_block(fid, FIFF.FIFFB_MNE)
 
     #
@@ -869,7 +957,6 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         end_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
 
     end_block(fid, FIFF.FIFFB_MNE)
-    end_file(fid)
 
 
 def is_fixed_orient(forward, orig=False):
@@ -895,6 +982,7 @@ def is_fixed_orient(forward, orig=False):
     return fixed_ori
 
 
+@fill_doc
 def write_forward_meas_info(fid, info):
     """Write measurement info stored in forward solution.
 
@@ -902,8 +990,7 @@ def write_forward_meas_info(fid, info):
     ----------
     fid : file id
         The file id
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     """
     info._check_consistency()
     #
@@ -1003,10 +1090,10 @@ def _triage_loose(src, loose, fixed='auto'):
     del fixed
 
     for key, this_loose in loose.items():
-        if key != 'surface' and this_loose != 1:
+        if key not in ('surface', 'discrete') and this_loose != 1:
             raise ValueError(
-                'loose parameter has to be 1 or "auto" for non-surface '
-                f'source spaces, got loose["{key}"] = {this_loose}')
+                'loose parameter has to be 1 or "auto" for non-surface/'
+                f'discrete source spaces, got loose["{key}"] = {this_loose}')
         if not 0 <= this_loose <= 1:
             raise ValueError(
                 f'loose ({key}) must be between 0 and 1, got {this_loose}')
@@ -1101,8 +1188,7 @@ def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
     ----------
     forward : instance of Forward
         The forward solution.
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     exp : float
         Exponent for the depth weighting, must be between 0 and 1.
     limit : float | None
@@ -1127,7 +1213,7 @@ def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
         ``limit_depth_chs='whiten'``.
 
         .. versionadded:: 0.18
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.18
     %(verbose)s
@@ -1218,7 +1304,7 @@ def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
         #     x = np.dot(Gk.T, Gk)
         #     d[k] = linalg.svdvals(x)[0]
         G.shape = (G.shape[0], -1, 3)
-        d = np.linalg.norm(einsum('svj,svk->vjk', G, G),  # vector dot products
+        d = np.linalg.norm(np.einsum('svj,svk->vjk', G, G),  # vector dot prods
                            ord=2, axis=(1, 2))  # ord=2 spectral (largest s.v.)
         G.shape = (G.shape[0], -1)
 
@@ -1299,25 +1385,27 @@ def _stc_src_sel(src, stc, on_missing='raise',
     return src_sel, stc_sel, out_vertices
 
 
-def _fill_measurement_info(info, fwd, sfreq):
+def _fill_measurement_info(info, fwd, sfreq, data):
     """Fill the measurement info of a Raw or Evoked object."""
     sel = pick_channels(info['ch_names'], fwd['sol']['row_names'])
     info = pick_info(info, sel)
     info['bads'] = []
 
-    # this is probably correct based on what's done in meas_info.py...
-    info['meas_id'] = fwd['info']['meas_id']
-    info['file_id'] = info['meas_id']
-
     now = time()
     sec = np.floor(now)
     usec = 1e6 * (now - sec)
 
-    info.update(meas_date=_stamp_to_dt((int(sec), int(usec))), highpass=0.,
-                lowpass=sfreq / 2., sfreq=sfreq, projs=[])
-    info._check_consistency()
+    # this is probably correct based on what's done in meas_info.py...
+    with info._unlock(check_after=True):
+        info.update(meas_id=fwd['info']['meas_id'], file_id=info['meas_id'],
+                    meas_date=_stamp_to_dt((int(sec), int(usec))),
+                    highpass=0., lowpass=sfreq / 2., sfreq=sfreq, projs=[])
 
-    return info
+    # reorder data (which is in fwd order) to match that of info
+    order = [fwd['sol']['row_names'].index(name) for name in info['ch_names']]
+    data = data[order]
+
+    return info, data
 
 
 @verbose
@@ -1379,8 +1467,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
         Forward operator to use.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    info : instance of Info
-        Measurement info to generate the evoked.
+    %(info_not_none)s
     start : int, optional
         Index of first time sample (index not time is seconds).
     stop : int, optional
@@ -1419,11 +1506,11 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
 
     # fill the measurement info
     sfreq = float(1.0 / stc.tstep)
-    info_out = _fill_measurement_info(info, fwd, sfreq)
+    info, data = _fill_measurement_info(info, fwd, sfreq, data)
 
-    evoked = EvokedArray(data, info_out, times[0], nave=1)
+    evoked = EvokedArray(data, info, times[0], nave=1)
 
-    evoked.times = times
+    evoked._set_times(times)
     evoked._update_first_last()
 
     return evoked
@@ -1449,8 +1536,7 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
         Forward operator to use.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     start : int, optional
         Index of first time sample (index not time is seconds).
     stop : int, optional
@@ -1484,14 +1570,11 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
                                  use_cps=use_cps)
 
     sfreq = 1.0 / stc.tstep
-    info = _fill_measurement_info(info, fwd, sfreq)
-    info['projs'] = []
+    info, data = _fill_measurement_info(info, fwd, sfreq, data)
+    with info._unlock():
+        info['projs'] = []
     # store sensor data in Raw object using the info
-    raw = RawArray(data, info)
-    raw.preload = True
-
-    raw._first_samps = np.array([int(np.round(times[0] * sfreq))])
-    raw._last_samps = np.array([raw.first_samp + raw._data.shape[1] - 1])
+    raw = RawArray(data, info, first_samp=int(np.round(times[0] * sfreq)))
     raw._projector = None
     return raw
 

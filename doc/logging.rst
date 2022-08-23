@@ -15,6 +15,7 @@ Logging and Configuration
    set_config
    set_cache_dir
    sys_info
+   use_log_level
    verbose
 
 :py:mod:`mne.utils`:

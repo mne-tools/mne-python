@@ -3,7 +3,8 @@
 Datasets Overview
 #################
 
-.. sidebar:: Contributing datasets to MNE-Python
+.. note:: Contributing datasets to MNE-Python
+    :class: sidebar
 
     Do not hesitate to contact MNE-Python developers on the
     `MNE Forum <https://mne.discourse.group>`_ to discuss the possibility of
@@ -121,7 +122,7 @@ Details can be found at the Brainstorm `resting state dataset tutorial`_.
 
 .. topic:: Examples
 
-    * :ref:`ex-envelope-correlation`
+    * :ref:`mne-connectivity:ex-envelope-correlation`
 
 Median nerve
 ^^^^^^^^^^^^
@@ -277,7 +278,7 @@ the MEG center in La Timone hospital in Marseille.
 
 .. topic:: Examples
 
-    * :ref:`tut_phantom_4Dbti`
+    * :ref:`tut-phantom-4Dbti`
 
 OPM
 ===
@@ -368,19 +369,28 @@ This function will download an infant template MRI from
 
 ECoG Dataset
 ^^^^^^^^^^^^
-:func:`mne.datasets.misc.data_path`. Data exists at ``/ecog/sample_ecog.mat``.
+:func:`mne.datasets.misc.data_path`. Data exists at ``/ecog/``.
 
-This dataset contains a sample Electrocorticography (ECoG) dataset. It includes
-a single grid of electrodes placed over the temporal lobe during an auditory
-listening task. This dataset is primarily used to demonstrate visualization
-functions in MNE and does not contain useful metadata for analysis.
+This dataset contains a sample electrocorticography (ECoG) dataset. It includes
+two grids of electrodes and ten shaft electrodes with simulated motor data (actual data
+pending availability).
 
 .. topic:: Examples
 
-    * :ref:`How to convert 3D electrode positions to a 2D image.
-      <ex-electrode-pos-2d>`: Demonstrates
-      how to project a 3D electrode location onto a 2D image, a common procedure
-      in electrocorticography.
+    * :ref:`ex-electrode-pos-2d`: Demonstrates how to project a 3D electrode location onto a 2D image, a common procedure in ECoG analyses.
+    * :ref:`tut-ieeg-localize`: Demonstrates how to use a graphical user interface to locate electrode contacts as well as warp them to a common atlas.
+
+sEEG Dataset
+^^^^^^^^^^^^
+:func:`mne.datasets.misc.data_path`. Data exists at ``/seeg/``.
+
+This dataset contains a sample stereoelectroencephalography (sEEG) dataset.
+It includes 21 shaft electrodes during a two-choice movement task on a keyboard.
+
+.. topic:: Examples
+
+    * :ref:`tut-ieeg-localize`: Demonstrates how to use a graphical user interface to locate electrode contacts as well as warp them to a common atlas.
+    * :ref:`tut-working-with-seeg`: Demonstrates ways to plot sEEG anatomy and results.
 
 .. _limo-dataset:
 

@@ -1,0 +1,22 @@
+# The purpose of this file is to trigger review requests when PRs touch
+# particular files. Those reviews are not mandatory, however it's often useful
+# to have an expert pinged who is interested in only one part of MNE and
+# doesn't follow general development. Having your name in this file does not
+# imply ownership of the code -- the CODEOWNERS filename is a misnomer -- but
+# rather just serves to indicate that you want to be pinged for potential
+# review.
+#
+# Note that only GitHub handles (whether individuals or teams) with commit
+# rights should be added to this file.
+# See https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
+# for more details about how CODEOWNERS works.
+# This file was adapted from SciPy.
+
+# Each line is a file pattern followed by one or more owners.
+
+# IO
+/mne/io/brainvision @sappelhoff
+/mne/export @sappelhoff
+
+# Beamforming
+/mne/beamformer/ @britta-wstnr

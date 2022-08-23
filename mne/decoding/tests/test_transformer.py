@@ -1,7 +1,7 @@
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #         Romain Trachel <trachelr@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import numpy as np
@@ -14,7 +14,7 @@ from mne import io, read_events, Epochs, pick_types
 from mne.decoding import (Scaler, FilterEstimator, PSDEstimator, Vectorizer,
                           UnsupervisedSpatialFilter, TemporalFilter)
 from mne.defaults import DEFAULTS
-from mne.utils import requires_sklearn, run_tests_if_main, check_version
+from mne.utils import requires_sklearn, check_version, use_log_level
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
@@ -50,10 +50,6 @@ def test_scaler(info, method):
             with pytest.raises(ImportError, match='No module'):
                 Scaler(info, method)
             return
-        if check_version('sklearn', '1.0'):
-            # 1.0.dev0 is a problem pending
-            # https://github.com/scikit-learn/scikit-learn/issues/19726
-            pytest.skip('Bug on sklear main as of 2021/03/19')
 
     if info:
         info = epochs.info
@@ -243,7 +239,13 @@ def test_temporal_filter():
     X = np.random.rand(101, 500)
     filt = TemporalFilter(l_freq=25., h_freq=50., sfreq=1000.,
                           filter_length=150, fir_design='firwin2')
-    assert_equal(filt.fit_transform(X).shape, X.shape)
+    with use_log_level('error'):  # warning about transition bandwidth
+        assert_equal(filt.fit_transform(X).shape, X.shape)
 
 
-run_tests_if_main()
+def test_bad_triage():
+    """Test for gh-10924."""
+    filt = TemporalFilter(l_freq=8, h_freq=60, sfreq=160.)
+    # Used to fail with "ValueError: Effective band-stop frequency (135.0) is
+    # too high (maximum based on Nyquist is 80.0)"
+    filt.fit_transform(np.zeros((1, 1, 481)))

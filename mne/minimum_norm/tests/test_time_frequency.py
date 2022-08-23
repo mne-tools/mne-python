@@ -8,7 +8,6 @@ from mne.datasets import testing
 from mne import find_events, Epochs, pick_types
 from mne.io import read_raw_fif
 from mne.io.constants import FIFF
-from mne.utils import run_tests_if_main
 from mne.label import read_label
 from mne.minimum_norm import (read_inverse_operator, apply_inverse_epochs,
                               prepare_inverse_operator, INVERSE_METHODS)
@@ -86,7 +85,7 @@ def test_tfr_with_inverse_operator(method):
     freqs = np.arange(7, 30, 2)  # define frequencies of interest
     power, phase_lock = source_induced_power(
         epochs, inv, freqs, label, baseline=(-0.1, 0), baseline_mode='percent',
-        n_cycles=2, n_jobs=1, method=method, prepared=True)
+        n_cycles=2, n_jobs=None, method=method, prepared=True)
     assert np.all(phase_lock > 0)
     assert np.all(phase_lock <= 1)
     assert 5 < np.max(power) < 7
@@ -206,6 +205,3 @@ def test_source_psd_epochs(method):
             one_epochs, inv, lambda2=lambda2, method=method,
             pick_ori="normal", label=label, bandwidth=0.01, low_bias=True,
             fmin=fmin, fmax=fmax, return_generator=False, prepared=True)
-
-
-run_tests_if_main()

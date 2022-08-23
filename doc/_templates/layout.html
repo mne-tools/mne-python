@@ -1,79 +1,80 @@
-{%- extends "pydata_sphinx_theme/layout.html" %}
-
-{% block fonts %}
-    <!-- add `style` or `link` tags with your CSS `@font-face` declarations here -->
-    <!-- ... and a `style` tag with setting `font-family` in `body` and `.header-style` -->
-    <!-- ... and optionally preload the `woff2` for snappier page loads -->
-    <!-- or add a `style` tag with a font fallback chain with good cross-platform coverage -->
-    <style>
-        body,.header-style {font-family: 'Source Sans Pro', sans-serif;}
-        code,kbd,pre,samp {font-family: 'Source Code Pro', monospace;}
-    </style>
-{% endblock %}
+{%- extends 'pydata_sphinx_theme/layout.html' %}
 
 {% block extrahead %}
     <link rel="canonical" href="https://mne.tools/stable/index.html" />
-    <script type="text/javascript" src="{{ pathto('_static/copybutton.js', 1) }}"></script>
-    <script type="text/javascript" src="{{ pathto('_static/scrollfix.js', 1) }}"></script>
-{{ super() }}
+    {{ super() }}
 {% endblock %}
 
-<!-- homepage gallery -->
-{% block docs_body %}
-<div>
-  {% block body %} {% endblock %}
-  {% if pagename == 'index' %}
-    <div class="container">
-      <div class="d-flex flex-wrap flex-row justify-content-center">
-        {% for item in carousel %}
-          <div class="card col-11 col-lg-5 m-2 m-md-3 frontpage-gallery">
-            <a href="{{ item.url }}">
-              <img class="card-img" src="{{ pathto('_images/' + item.img, 1) }}" alt="{{ item.alt }}">
-              <div class="card-img-overlay">
-                <h5 class="card-title fadeout">{{ item.title }}</h5>
-                <p class="card-text fadeout">{{ item.text }}</p>
-              </div>
-            </a>
-          </div>
-        {% endfor %}
-      </div>
+{%- block content %}
+
+  <!-- checkbox to toggle primary sidebar -->
+  <input type="checkbox" class="sidebar-toggle" name="__primary" id="__primary">
+  <label class="overlay overlay-primary" for="__primary"></label>
+
+  <!-- Checkboxes to toggle the secondary sidebar -->
+  <input type="checkbox" class="sidebar-toggle" name="__secondary" id="__secondary">
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+
+  <!-- A search field pop-up that will only show when the search button is clicked -->
+
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+      {% include "../components/search-field.html" %}
     </div>
-    <!-- funders -->
-    <div class="container">
-      <p class="h4 text-center font-weight-light mt-4 mt-lg-5">Funders</p>
-    </div>
-    <div class="d-flex flex-wrap flex-row justify-content-center align-items-center">
-      {% for item in funders -%}
-        <div class="card my-1 mx-2 border-light" style="{{ 'width: ' + item.size + 'rem;' }}">
-          <a href="{{ pathto('funding.html', 1) }}">
-            <img class="card-img" src="{{ pathto('_static/funding/' + item.img, 1) }}" title="{{ item.title }}" alt="{{ item.title }}">
-          </a>
+  </div>
+
+  {% include "sections/announcement.html" %}
+
+  {% block docs_navbar %}
+  <nav class="bd-header navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main">
+    {%- include "sections/header.html" %}
+  </nav>
+  {% endblock %}
+
+  <div class="bd-container container-xl">
+    <div class="bd-container__inner row">
+      {% include "sections/sidebar-primary.html" %}
+      <!-- ↓↓↓↓↓ this chunk is customized ↓↓↓↓↓ -->
+      {% if pagename != 'index' %}
+        {% include "sections/sidebar-secondary.html" %}
+      {% endif %}
+      <!-- ↑↑↑ this chunk is customized ↑↑↑ -->
+
+      {% block docs_main %}
+      <div class="bd-content col">
+
+        <div class="bd-header-article">
+            {% include "sections/header-article.html" %}
         </div>
-      {% endfor %}
-    </div>
-    <!-- institutions -->
-    <p class="h4 text-center font-weight-light mt-4 mt-lg-5">Supporting institutions</p>
-    <div class="container">
-      <div class="d-flex flex-wrap flex-row justify-content-center align-items-center">
-        {% for inst in institutions -%}
-          <div class="card my-1 mx-2 border-light" style="{{ 'width: ' + inst.size + 'rem;' }}">
-            <a href="{{ inst.url }}">
-              <img class="card-img" src="{{ pathto('_static/institution_logos/' + inst.img, 1) }}" title="{{ inst.name }}" alt="{{ inst.name }}"/>
-            </a>
+
+        <!-- ↓↓↓↓↓ this chunk is customized ↓↓↓↓↓ -->
+        {% block docs_body %}
+          <div>
+            {% block body %} {% endblock %}
+            {% if pagename == 'index' %}
+              {%- include 'homepage.html' -%}
+            {% endif %}
           </div>
-        {% endfor %}
+        {% endblock %}
+        <!-- ↑↑↑ this chunk is customized ↑↑↑ -->
+
+        {% if theme_show_prev_next %}
+        <footer class="bd-footer-article">
+            {% include "sections/footer-article.html" %}
+        </footer>
+        {% endif %}
       </div>
+      {% endblock %}
     </div>
+  </div>
 
-  {% endif %}
-</div>
-{% endblock %}
+  {# Scripts placed at the end of the page to cut down on time to first content #}
+  <!-- ↓↓↓↓↓ this chunk is customized ↓↓↓↓↓ -->
+  {%- block scripts_end %}
+    <script src="https://mne.tools/versionwarning.js"></script>
+    {{ super() }}
+  {%- endblock %}
+  <!-- ↑↑↑ this chunk is customized ↑↑↑ -->
 
-
-<!-- footer -->
-{%- block footer %}
-<footer class="footer mt-5 mt-md-0">
-  <p class="text-center text-muted small">&copy; Copyright {{ copyright }}</p>
-</footer>
-  <script src="https://mne.tools/versionwarning.js"></script>
 {%- endblock %}

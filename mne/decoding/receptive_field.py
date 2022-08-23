@@ -2,7 +2,7 @@
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numbers
 
@@ -11,9 +11,10 @@ import numpy as np
 from .base import get_coef, BaseEstimator, _check_estimator
 from .time_delaying_ridge import TimeDelayingRidge
 from ..fixes import is_regressor
-from ..utils import _validate_type, verbose
+from ..utils import _validate_type, verbose, fill_doc
 
 
+@fill_doc
 class ReceptiveField(BaseEstimator):
     """Fit a receptive field model.
 
@@ -66,10 +67,7 @@ class ReceptiveField(BaseEstimator):
         duration. Only used if ``estimator`` is float or None.
 
         .. versionadded:: 0.18
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see
-        :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-        for more).
+    %(verbose)s
 
     Attributes
     ----------
@@ -108,7 +106,7 @@ class ReceptiveField(BaseEstimator):
     @verbose
     def __init__(self, tmin, tmax, sfreq, feature_names=None, estimator=None,
                  fit_intercept=None, scoring='r2', patterns=False,
-                 n_jobs=1, edge_correction=True, verbose=None):
+                 n_jobs=None, edge_correction=True, verbose=None):
         self.feature_names = feature_names
         self.sfreq = float(sfreq)
         self.tmin = tmin
@@ -119,7 +117,6 @@ class ReceptiveField(BaseEstimator):
         self.patterns = patterns
         self.n_jobs = n_jobs
         self.edge_correction = edge_correction
-        self.verbose = verbose
 
     def __repr__(self):  # noqa: D105
         s = "tmin, tmax : (%.3f, %.3f), " % (self.tmin, self.tmax)
@@ -153,7 +150,6 @@ class ReceptiveField(BaseEstimator):
                 y = y.reshape(-1, y.shape[-1], order='F')
         return X, y
 
-    @verbose
     def fit(self, X, y):
         """Fit a receptive field model.
 

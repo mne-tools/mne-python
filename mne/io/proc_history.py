@@ -226,8 +226,7 @@ def _read_maxfilter_record(fid, tree):
                 if kind == FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST:
                     tag = read_tag(fid, pos)
                     chs = tag.data.split(':')
-                    # XXX for some reason this list can have a bunch of junk
-                    # in the last entry, e.g.:
+                    # This list can null chars in the last entry, e.g.:
                     # [..., u'MEG2642', u'MEG2643', u'MEG2641\x00 ... \x00']
                     chs[-1] = chs[-1].split('\x00')[0]
                     sss_ctc['proj_items_chs'] = chs

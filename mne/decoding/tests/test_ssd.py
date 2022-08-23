@@ -1,6 +1,6 @@
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Victoria Peterson <victoriapeterson09@gmail.com>
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 import pytest
@@ -292,7 +292,7 @@ def test_sorting():
 def test_return_filtered():
     """Test return filtered option."""
     # Check return_filtered
-    # Simulated more noise data and with broader freqquency than the desired
+    # Simulated more noise data and with broader frequency than the desired
     X, _, _ = simulate_data(SNR=0.9, freqs_sig=[4, 13])
     sf = 250
     n_channels = X.shape[0]

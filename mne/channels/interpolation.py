@@ -1,6 +1,6 @@
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 from numpy.polynomial.legendre import legval
@@ -123,7 +123,9 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
 
 
 @verbose
-def _interpolate_bads_eeg(inst, origin, exclude, verbose=None):
+def _interpolate_bads_eeg(inst, origin, exclude=None, verbose=None):
+    if exclude is None:
+        exclude = list()
     bads_idx = np.zeros(len(inst.ch_names), dtype=bool)
     goods_idx = np.zeros(len(inst.ch_names), dtype=bool)
 
@@ -203,15 +205,13 @@ def _interpolate_bads_meeg(inst, mode='accurate', origin=(0., 0., 0.04),
 @verbose
 def _interpolate_bads_nirs(inst, method='nearest', exclude=(), verbose=None):
     from scipy.spatial.distance import pdist, squareform
-    from mne.preprocessing.nirs import _channel_frequencies,\
-        _check_channels_ordered
+    from mne.preprocessing.nirs import _validate_nirs_info
 
-    # Returns pick of all nirs and ensures channels are correctly ordered
-    freqs = np.unique(_channel_frequencies(inst))
-    picks_nirs = _check_channels_ordered(inst, freqs)
-    if len(picks_nirs) == 0:
+    if len(pick_types(inst.info, fnirs=True, exclude=())) == 0:
         return
 
+    # Returns pick of all nirs and ensures channels are correctly ordered
+    picks_nirs = _validate_nirs_info(inst.info)
     nirs_ch_names = [inst.info['ch_names'][p] for p in picks_nirs]
     nirs_ch_names = [ch for ch in nirs_ch_names if ch not in exclude]
     bads_nirs = [ch for ch in inst.info['bads'] if ch in nirs_ch_names]

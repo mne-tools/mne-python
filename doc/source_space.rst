@@ -17,8 +17,6 @@ Source Space Data
    VolVectorSourceEstimate
    SourceMorph
    compute_source_morph
-   head_to_mni
-   head_to_mri
    extract_label_time_course
    grade_to_tris
    grade_to_vertices
@@ -33,12 +31,11 @@ Source Space Data
    read_label
    read_source_estimate
    read_source_morph
-   read_talxfm
    split_label
    stc_to_label
    stc_near_sensors
    transform_surface_to
-   vertex_to_mni
    write_labels_to_annot
    write_label
    source_space.compute_distance_to_sensors
+   source_space.get_decimated_surfaces

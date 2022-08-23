@@ -2,7 +2,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -10,12 +10,11 @@ import numpy as np
 
 from ...io import BaseRaw
 from ...io.constants import FIFF
-from ...utils import _validate_type
-from ..nirs import source_detector_distances, _channel_frequencies,\
-    _check_channels_ordered, _channel_chromophore
+from ...utils import _validate_type, warn
+from ..nirs import source_detector_distances, _validate_nirs_info
 
 
-def beer_lambert_law(raw, ppf=0.1):
+def beer_lambert_law(raw, ppf=6.):
     r"""Convert NIRS optical density data to haemoglobin concentration.
 
     Parameters
@@ -33,31 +32,42 @@ def beer_lambert_law(raw, ppf=0.1):
     from scipy import linalg
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
-
-    freqs = np.unique(_channel_frequencies(raw))
-    picks = _check_channels_ordered(raw, freqs)
+    _validate_type(ppf, 'numeric', 'ppf')
+    ppf = float(ppf)
+    picks = _validate_nirs_info(raw.info, fnirs='od', which='Beer-lambert')
+    # This is the one place we *really* need the actual/accurate frequencies
+    freqs = np.array(
+        [raw.info['chs'][pick]['loc'][9] for pick in picks], float)
     abs_coef = _load_absorption(freqs)
     distances = source_detector_distances(raw.info)
-
-    for ii in picks[::2]:
-
+    if (distances == 0).any():
+        warn('Source-detector distances are zero, some resulting '
+             'concentrations will be zero. Consider setting a montage '
+             'with raw.set_montage.')
+    if (distances > 0.1).any():
+        warn('Source-detector distances are greater than 10 cm. '
+             'Large distances will result in invalid data, and are '
+             'likely due to optode locations being stored in a '
+             ' unit other than meters.')
+    rename = dict()
+    for ii, jj in zip(picks[::2], picks[1::2]):
         EL = abs_coef * distances[ii] * ppf
         iEL = linalg.pinv(EL)
 
-        raw._data[[ii, ii + 1]] = iEL @ raw._data[[ii, ii + 1]] * 1e-3
+        raw._data[[ii, jj]] = iEL @ raw._data[[ii, jj]] * 1e-3
 
         # Update channel information
         coil_dict = dict(hbo=FIFF.FIFFV_COIL_FNIRS_HBO,
                          hbr=FIFF.FIFFV_COIL_FNIRS_HBR)
-        for ki, kind in enumerate(('hbo', 'hbr')):
-            ch = raw.info['chs'][ii + ki]
+        for ki, kind in zip((ii, jj), ('hbo', 'hbr')):
+            ch = raw.info['chs'][ki]
             ch.update(coil_type=coil_dict[kind], unit=FIFF.FIFF_UNIT_MOL)
-            raw.rename_channels({
-                ch['ch_name']: '%s %s' % (ch['ch_name'][:-4], kind)})
+            new_name = f'{ch["ch_name"].split(" ")[0]} {kind}'
+            rename[ch['ch_name']] = new_name
+    raw.rename_channels(rename)
 
     # Validate the format of data after transformation is valid
-    chroma = np.unique(_channel_chromophore(raw))
-    _check_channels_ordered(raw, chroma)
+    _validate_nirs_info(raw.info, fnirs='hb')
     return raw
 
 

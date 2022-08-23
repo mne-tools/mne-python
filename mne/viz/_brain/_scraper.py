@@ -1,7 +1,7 @@
 import os
 import os.path as op
-from distutils.version import LooseVersion
 
+from ...fixes import _compare_version
 from ._brain import Brain
 
 
@@ -70,9 +70,10 @@ class _BrainScraper(object):
                 # Out to sphinx-gallery:
                 #
                 # 1. A static image but hide it (useful for carousel)
-                if LooseVersion(matplotlib.__version__) >= \
-                        LooseVersion('3.3.1') and \
-                        animation.FFMpegWriter.isAvailable():
+                if (
+                    _compare_version(matplotlib.__version__, '>=', '3.3.1') and
+                    animation.FFMpegWriter.isAvailable()
+                ):
                     writer = 'ffmpeg'
                 elif animation.ImageMagickWriter.isAvailable():
                     writer = 'imagemagick'

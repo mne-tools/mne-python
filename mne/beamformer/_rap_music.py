@@ -3,7 +3,7 @@
 # Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
@@ -11,11 +11,12 @@ from ..forward import is_fixed_orient, convert_forward_solution
 from ..io.pick import pick_channels_evoked, pick_info, pick_channels_forward
 from ..inverse_sparse.mxne_inverse import _make_dipoles_sparse
 from ..minimum_norm.inverse import _log_exp_var
-from ..utils import logger, verbose, _check_info_inv
+from ..utils import logger, verbose, _check_info_inv, fill_doc
 from ..dipole import Dipole
 from ._compute_beamformer import _prepare_beamformer_input
 
 
+@fill_doc
 def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
                      picks=None):
     """RAP-MUSIC for evoked data.
@@ -24,8 +25,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
     ----------
     data : array, shape (n_channels, n_times)
         Evoked data.
-    info : dict
-        Measurement info.
+    %(info_not_none)s
     times : array
         Times.
     forward : instance of Forward

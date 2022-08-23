@@ -25,6 +25,7 @@ Reading raw data
    read_raw_kit
    read_raw_nedf
    read_raw_nicolet
+   read_raw_hitachi
    read_raw_nirx
    read_raw_snirf
    read_raw_eeglab

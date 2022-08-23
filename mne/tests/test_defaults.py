@@ -40,3 +40,19 @@ def test_si_units():
         else:
             want_scale = _get_scaling(key, units[key])
             assert_allclose(scale, want_scale, rtol=1e-12)
+
+
+@pytest.mark.parametrize('key', ('si_units', 'color', 'scalings',
+                                 'scalings_plot_raw'))
+def test_consistency(key):
+    """Test defaults consistency."""
+    units = set(_handle_default('units'))
+    other = set(_handle_default(key))
+    au_keys = set('stim exci syst resp ias chpi'.split())
+    assert au_keys.intersection(units) == set()
+    if key in ('color', 'scalings_plot_raw'):
+        assert au_keys.issubset(other)
+        other = other.difference(au_keys)
+    else:
+        assert au_keys.intersection(other) == set()
+    assert units == other, key

@@ -2,7 +2,7 @@
 #          Yousra Bekhti <yousra.bekhti@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 from copy import deepcopy
@@ -20,7 +20,7 @@ from mne import (read_source_spaces, pick_types, read_trans, read_cov,
                  make_bem_solution)
 from mne.bem import _surfaces_to_bem
 from mne.chpi import (read_head_pos, compute_chpi_amplitudes,
-                      compute_chpi_locs, compute_head_pos, _get_hpi_info)
+                      compute_chpi_locs, compute_head_pos, get_chpi_info)
 from mne.tests.test_chpi import _assert_quats
 from mne.datasets import testing
 from mne.simulation import (simulate_sparse_stc, simulate_raw, add_eog,
@@ -184,8 +184,9 @@ def raw_data():
     raw.info.normalize_proj()
     ecg = RawArray(np.zeros((1, len(raw.times))),
                    create_info(['ECG 063'], raw.info['sfreq'], 'ecg'))
-    for key in ('dev_head_t', 'highpass', 'lowpass', 'dig'):
-        ecg.info[key] = raw.info[key]
+    with ecg.info._unlock():
+        for key in ('dev_head_t', 'highpass', 'lowpass', 'dig'):
+            ecg.info[key] = raw.info[key]
     raw.add_channels([ecg])
 
     src = read_source_spaces(src_fname)
@@ -208,12 +209,12 @@ def _get_head_pos_sim(raw):
     return head_pos_sim
 
 
-def test_simulate_raw_sphere(raw_data, tmpdir):
+def test_simulate_raw_sphere(raw_data, tmp_path):
     """Test simulation of raw data with sphere model."""
     seed = 42
     raw, src, stc, trans, sphere = raw_data
     assert len(pick_types(raw.info, meg=False, ecg=True)) == 1
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
 
     # head pos
     head_pos_sim = _get_head_pos_sim(raw)
@@ -319,7 +320,8 @@ def test_degenerate(raw_data):
         simulate_raw(info, stc, trans, src, sphere,
                      head_pos=head_pos_sim_err)
     raw_bad = raw.copy()
-    raw_bad.info['dig'] = None
+    with raw_bad.info._unlock():
+        raw_bad.info['dig'] = None
     with pytest.raises(RuntimeError, match='Cannot fit headshape'):
         add_eog(raw_bad)
 
@@ -395,6 +397,7 @@ def test_simulate_raw_bem(raw_data):
     assert raw_sim.n_times == ss.n_times
 
 
+@pytest.mark.slowtest  # slow on Windows Azure
 def test_simulate_round_trip(raw_data):
     """Test simulate_raw round trip calculations."""
     # Check a diagonal round-trip
@@ -477,7 +480,7 @@ def test_simulate_raw_chpi():
     # need to trim extra samples off this one
     raw_chpi = add_chpi(raw_sim.copy(), head_pos=pos_fname, interp='zero')
     # test cHPI indication
-    hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(raw.info)
+    hpi_freqs, hpi_pick, hpi_ons = get_chpi_info(raw.info, on_missing='raise')
     assert_allclose(raw_sim[hpi_pick][0], 0.)
     assert_allclose(raw_chpi[hpi_pick][0], hpi_ons.sum())
     # test that the cHPI signals make some reasonable values

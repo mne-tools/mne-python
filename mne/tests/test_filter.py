@@ -7,7 +7,7 @@ from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
 import pytest
 from scipy.signal import resample as sp_resample, butter, freqz, sosfreqz
 
-from mne import create_info
+from mne import create_info, Epochs
 from numpy.fft import fft, fftfreq
 from mne.io import RawArray, read_raw_fif
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
@@ -17,8 +17,7 @@ from mne.filter import (filter_data, resample, _resample_stim_channels,
                         estimate_ringing_samples, create_filter,
                         _length_factors)
 
-from mne.utils import (sum_squared, run_tests_if_main,
-                       catch_logging, requires_mne, run_subprocess)
+from mne.utils import sum_squared, catch_logging, requires_mne, run_subprocess
 
 
 def test_filter_array():
@@ -29,9 +28,9 @@ def test_filter_array():
 
 
 @requires_mne
-def test_mne_c_design(tmpdir):
+def test_mne_c_design(tmp_path):
     """Test MNE-C filter design."""
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     temp_fname = op.join(tempdir, 'test_raw.fif')
     out_fname = op.join(tempdir, 'test_c_raw.fif')
     x = np.zeros((1, 10001))
@@ -283,10 +282,10 @@ def test_resample_scipy():
 def test_n_jobs(n_jobs):
     """Test resampling against SciPy."""
     x = np.random.RandomState(0).randn(4, 100)
-    y1 = resample(x, 2, 1, n_jobs=1)
+    y1 = resample(x, 2, 1, n_jobs=None)
     y2 = resample(x, 2, 1, n_jobs=n_jobs)
     assert_allclose(y1, y2)
-    y1 = filter_data(x, 100., 0, 40, n_jobs=1)
+    y1 = filter_data(x, 100., 0, 40, n_jobs=None)
     y2 = filter_data(x, 100., 0, 40, n_jobs=n_jobs)
     assert_allclose(y1, y2)
 
@@ -328,6 +327,31 @@ def test_resample_raw():
     assert data.shape == (1, 63)
 
 
+def test_resample_below_1_sample():
+    """Test resampling doesn't yield datapoints."""
+    # Raw
+    x = np.zeros((1, 100))
+    sfreq = 1000.
+    raw = RawArray(x, create_info(1, sfreq, 'eeg'))
+    raw.resample(5)
+    assert len(raw.times) == 1
+    assert raw.get_data().shape[1] == 1
+
+    # Epochs
+    x = np.zeros((1, 10000))
+    sfreq = 1000.
+    raw = RawArray(x, create_info(1, sfreq, 'eeg'))
+    events = np.array([[400, 0, 1],
+                      [2000, 0, 1],
+                      [3000, 0, 1]])
+    epochs = Epochs(raw, events, {'test': 1}, 0, 0.2, proj=False,
+                    picks='eeg', baseline=None, preload=True,
+                    verbose=False)
+    epochs.resample(1)
+    assert len(epochs.times) == 1
+    assert epochs.get_data().shape[2] == 1
+
+
 @pytest.mark.slowtest
 def test_filters():
     """Test low-, band-, high-pass, and band-stop filters plus resampling."""
@@ -342,9 +366,12 @@ def test_filters():
         pytest.raises((ValueError, TypeError),
                       filter_data, a, sfreq, 4, 8, None, fl,
                       1.0, 1.0, fir_design='firwin')
-    for nj in ['blah', 0.5]:
-        pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 1000,
-                      1.0, 1.0, n_jobs=nj, phase='zero', fir_design='firwin')
+    with pytest.raises(TypeError, match='got <class'):
+        filter_data(a, sfreq, 4, 8, None, 1000, 1.0, 1.0, n_jobs=0.5,
+                    phase='zero', fir_design='firwin')
+    with pytest.raises(ValueError, match='Invalid value'):
+        filter_data(a, sfreq, 4, 8, None, 1000, 1.0, 1.0, n_jobs='blah',
+                    phase='zero', fir_design='firwin')
     pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 100,
                   1., 1., fir_window='foo')
     pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 10,
@@ -402,7 +429,7 @@ def test_filters():
     assert_array_almost_equal(bp[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
     # note that on systems without CUDA, this line serves as a test for a
-    # graceful fallback to n_jobs=1
+    # graceful fallback to n_jobs=None
     bp_up_dn = resample(resample(bp, 2, 1, n_jobs='cuda'), 1, 2, n_jobs='cuda')
     assert_array_almost_equal(bp[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
@@ -514,13 +541,21 @@ def test_filter_auto():
     with pytest.raises(ValueError, match='Data to be filtered must be real'):
         filter_data(x.astype(np.float32), sfreq, None, 10)
     with pytest.raises(ValueError, match='Data to be filtered must be real'):
-        filter_data(1j, 1000., None, 40.)
+        filter_data([1j], 1000., None, 40.)
+    with pytest.raises(TypeError, match='instance of ndarray'):
+        filter_data('foo', 1000., None, 40.)
+    # gh-10258
+    raw = RawArray([[0.]], create_info(1, 1000., 'eeg'))
+    with pytest.raises(TypeError, match=r'.*copy\(\)\.filter\(\.\.\.\)` in.*'):
+        filter_data(raw, 1000., None, 40.)
+    with pytest.raises(TypeError, match=r'.*copy\(\)\.notch_filter\(\.\.\..*'):
+        notch_filter(raw, 1000., [60.])
 
 
 def test_cuda_fir():
     """Test CUDA-based filtering."""
     # Using `n_jobs='cuda'` on a non-CUDA system should be fine,
-    # as it should fall back to using n_jobs=1.
+    # as it should fall back to using n_jobs=None.
     rng = np.random.RandomState(0)
     sfreq = 500
     sig_len_secs = 20
@@ -566,7 +601,7 @@ def test_cuda_resampling():
         for N in (997, 1000):  # one prime, one even
             a = rng.randn(2, N)
             for fro, to in ((1, 2), (2, 1), (1, 3), (3, 1)):
-                a1 = resample(a, fro, to, n_jobs=1, npad='auto',
+                a1 = resample(a, fro, to, n_jobs=None, npad='auto',
                               window=window)
                 a2 = resample(a, fro, to, n_jobs='cuda', npad='auto',
                               window=window)
@@ -760,6 +795,3 @@ def test_filter_picks():
                 raw.filter(picks=picks, **kwargs)
                 want = want[1:]
                 assert_allclose(raw.get_data(), want)
-
-
-run_tests_if_main()

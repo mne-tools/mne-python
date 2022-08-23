@@ -1,7 +1,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from functools import partial
 import struct
@@ -333,6 +333,10 @@ _ch_coord_dict = {
     FIFF.FIFFV_MEG_CH: FIFF.FIFFV_COORD_DEVICE,
     FIFF.FIFFV_REF_MEG_CH: FIFF.FIFFV_COORD_DEVICE,
     FIFF.FIFFV_EEG_CH: FIFF.FIFFV_COORD_HEAD,
+    FIFF.FIFFV_ECOG_CH: FIFF.FIFFV_COORD_HEAD,
+    FIFF.FIFFV_SEEG_CH: FIFF.FIFFV_COORD_HEAD,
+    FIFF.FIFFV_DBS_CH: FIFF.FIFFV_COORD_HEAD,
+    FIFF.FIFFV_FNIRS_CH: FIFF.FIFFV_COORD_HEAD
 }
 
 
@@ -457,6 +461,8 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
     if pos is not None:
         fid.seek(pos, 0)
     tag = _read_tag_header(fid)
+    if tag is None:
+        return tag
     if tag.size > 0:
         matrix_coding = _is_matrix & tag.type
         if matrix_coding != 0:

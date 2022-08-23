@@ -2,7 +2,7 @@
 #         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Jean-Remi King <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections import Counter
 
@@ -92,7 +92,7 @@ class EMS(TransformerMixin, EstimatorMixin):
 
 
 @verbose
-def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
+def compute_ems(epochs, conditions=None, picks=None, n_jobs=None, cv=None,
                 verbose=None):
     """Compute event-matched spatial filter on epochs.
 
@@ -189,7 +189,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
     y = epochs.events[:, 2]
     _, cv_splits = _set_cv(cv, 'classifier', X=y, y=y)
 
-    parallel, p_func, _ = parallel_func(_run_ems, n_jobs=n_jobs)
+    parallel, p_func, n_jobs = parallel_func(_run_ems, n_jobs=n_jobs)
     # FIXME this parallelization should be removed.
     #   1) it's numpy computation so it's already efficient,
     #   2) it duplicates the data in RAM,

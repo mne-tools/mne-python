@@ -525,8 +525,9 @@ The documented structures are:
 
 **measurement info**
 
-    Translation of the FIFFB_MEAS_INFO entity, see :ref:`BGBFHDIJ`. This
-    data structure is returned by fiff_read_meas_info .
+    Translation of the FIFFB_MEAS_INFO entity, see :ref:`BGBFHDIJ` and
+    :class:`mne.Info`. This data structure is returned by fiff_read_meas_info,
+    will not be as complete as :class:`mne.Info`.
 
 **surf**
 
@@ -688,7 +689,7 @@ The documented structures are:
     | FIFFV_PROJ_ITEM_NONE          | 0     | The nature of this projection item is unknown            |
     +-------------------------------+-------+----------------------------------------------------------+
     | FIFFV_PROJ_ITEM_FIELD         | 1     | This is projection item is a generic field pattern or    |
-    |                               |       | field patters.                                           |
+    |                               |       | field patterns.                                          |
     +-------------------------------+-------+----------------------------------------------------------+
     | FIFFV_PROJ_ITEM_DIP_FIX       | 2     | This projection item is the field of one dipole          |
     +-------------------------------+-------+----------------------------------------------------------+

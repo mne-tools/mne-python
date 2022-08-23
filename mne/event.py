@@ -5,29 +5,31 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Clement Moutard <clement.moutard@polytechnique.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
+from collections.abc import Sequence
+
 import numpy as np
 
-
 from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
-                    _validate_type, _check_option)
+                    _validate_type, _check_option, fill_doc, _check_fname,
+                    _on_missing, _check_on_missing)
 from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
 from .io.open import fiff_open
-from .io.write import write_int, start_block, start_file, end_block, end_file
+from .io.write import write_int, start_block, start_and_end_file, end_block
 from .io.pick import pick_channels
 
 
+@fill_doc
 def pick_events(events, include=None, exclude=None, step=False):
-    """Select some events.
+    """Select some :term:`events`.
 
     Parameters
     ----------
-    events : ndarray
-        Array as returned by mne.find_events.
+    %(events)s
     include : int | list | None
         A event id to include or a list of them.
         If None all events are included.
@@ -191,7 +193,7 @@ def _read_events_fif(fid, tree):
 @verbose
 def read_events(filename, include=None, exclude=None, mask=None,
                 mask_type='and', return_event_id=False, verbose=None):
-    """Read events from fif or text file.
+    """Read :term:`events` from fif or text file.
 
     See :ref:`tut-events-vs-annotations` and :ref:`tut-event-arrays`
     for more information about events.
@@ -229,8 +231,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
 
     Returns
     -------
-    events: array, shape (n_events, 3)
-        The list of events.
+    %(events)s
     event_id : dict
         Dictionary of ``{str: int}`` mappings of event IDs.
 
@@ -299,8 +300,9 @@ def read_events(filename, include=None, exclude=None, mask=None,
     return out
 
 
-def write_events(filename, event_list):
-    """Write events to file.
+@verbose
+def write_events(filename, events, *, overwrite=False, verbose=None):
+    """Write :term:`events` to file.
 
     Parameters
     ----------
@@ -311,32 +313,29 @@ def write_events(filename, event_list):
         .txt) events are written as plain text.
         Note that new format event files do not contain
         the "time" column (used to be the second column).
-    event_list : array, shape (n_events, 3)
-        The list of events.
+    %(events)s
+    %(overwrite)s
+    %(verbose)s
 
     See Also
     --------
     read_events
     """
+    filename = _check_fname(filename, overwrite=overwrite)
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
                                      '-eve.lst', '-eve.txt', '_eve.fif',
                                      '_eve.fif.gz', '_eve.lst', '_eve.txt'))
-
     ext = op.splitext(filename)[1].lower()
-    if ext == '.fif' or ext == '.gz':
+    if ext in ('.fif', '.gz'):
         #   Start writing...
-        fid = start_file(filename)
-
-        start_block(fid, FIFF.FIFFB_MNE_EVENTS)
-        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, event_list.T)
-        end_block(fid, FIFF.FIFFB_MNE_EVENTS)
-
-        end_file(fid)
+        with start_and_end_file(filename) as fid:
+            start_block(fid, FIFF.FIFFB_MNE_EVENTS)
+            write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, events.T)
+            end_block(fid, FIFF.FIFFB_MNE_EVENTS)
     else:
-        f = open(filename, 'w')
-        for e in event_list:
-            f.write('%6d %6d %3d\n' % tuple(e))
-        f.close()
+        with open(filename, 'w') as f:
+            for e in events:
+                f.write('%6d %6d %3d\n' % tuple(e))
 
 
 def _find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
@@ -466,7 +465,8 @@ def _find_events(data, first_samp, verbose=None, output='onset',
     initial_value = data[0, 0]
     if initial_value != 0:
         if initial_event:
-            events = np.insert(events, 0, [0, 0, initial_value], axis=0)
+            events = np.insert(
+                events, 0, [first_samp, 0, initial_value], axis=0)
         else:
             logger.info('Trigger channel has a non-zero initial value of {} '
                         '(consider using initial_event=True to detect this '
@@ -538,7 +538,7 @@ def find_events(raw, stim_channel=None, output='onset',
                 consecutive='increasing', min_duration=0,
                 shortest_event=2, mask=None, uint_cast=False,
                 mask_type='and', initial_event=False, verbose=None):
-    """Find events from raw file.
+    """Find :term:`events` from raw file.
 
     See :ref:`tut-events-vs-annotations` and :ref:`tut-event-arrays`
     for more information about events.
@@ -597,13 +597,7 @@ def find_events(raw, stim_channel=None, output='onset',
 
     Returns
     -------
-    events : array, shape = (n_events, 3)
-        All events that were found. The first column contains the event time
-        in samples and the third column contains the event id. For output =
-        'onset' or 'step', the second column contains the value of the stim
-        channel immediately before the event/step. For output = 'offset',
-        the second column contains the value of the stim channel after the
-        event offset.
+    %(events)s
 
     See Also
     --------
@@ -757,7 +751,7 @@ def _mask_trigs(events, mask, mask_type):
 
 
 def merge_events(events, ids, new_id, replace_events=True):
-    """Merge a set of events.
+    """Merge a set of :term:`events`.
 
     Parameters
     ----------
@@ -817,13 +811,13 @@ def merge_events(events, ids, new_id, replace_events=True):
     return events_out
 
 
+@fill_doc
 def shift_time_events(events, ids, tshift, sfreq):
-    """Shift an event.
+    """Shift a set of :term:`events`.
 
     Parameters
     ----------
-    events : array, shape=(n_events, 3)
-        The events.
+    %(events)s
     ids : ndarray of int | None
         The ids of events to shift.
     tshift : float
@@ -834,7 +828,7 @@ def shift_time_events(events, ids, tshift, sfreq):
 
     Returns
     -------
-    new_events : array
+    new_events : array of int, shape (n_new_events, 3)
         The new events.
     """
     events = events.copy()
@@ -847,9 +841,10 @@ def shift_time_events(events, ids, tshift, sfreq):
     return events
 
 
+@fill_doc
 def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
                              first_samp=True, overlap=0.):
-    """Make a set of events separated by a fixed duration.
+    """Make a set of :term:`events` separated by a fixed duration.
 
     Parameters
     ----------
@@ -865,10 +860,10 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
     duration : float
         The duration to separate events by (in seconds).
     first_samp : bool
-        If True (default), times will have raw.first_samp added to them, as
+        If True (default), times will have :term:`first_samp` added to them, as
         in :func:`mne.find_events`. This behavior is not desirable if the
         returned events will be combined with event times that already
-        have ``raw.first_samp`` added to them, e.g. event times that come
+        have :term:`first_samp` added to them, e.g. event times that come
         from :func:`mne.find_events`.
     overlap : float
         The overlap between events (in seconds).
@@ -878,8 +873,7 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
 
     Returns
     -------
-    new_events : array
-        The new events.
+    %(events)s
     """
     from .io.base import BaseRaw
     _validate_type(raw, BaseRaw, "raw")
@@ -925,7 +919,7 @@ def concatenate_events(events, first_samps, last_samps):
     Parameters
     ----------
     events : list of array
-        List of event arrays, typically each extracted from a
+        List of :term:`events` arrays, typically each extracted from a
         corresponding raw file that is being concatenated.
     first_samps : list or array of int
         First sample numbers of the raw files concatenated.
@@ -961,6 +955,7 @@ def concatenate_events(events, first_samps, last_samps):
     return events_out
 
 
+@fill_doc
 class AcqParserFIF(object):
     """Parser for Elekta data acquisition settings.
 
@@ -972,8 +967,7 @@ class AcqParserFIF(object):
 
     Parameters
     ----------
-    info : Info
-        An instance of Info where the DACQ parameters will be taken from.
+    %(info_not_none)s This is where the DACQ parameters will be taken from.
 
     Attributes
     ----------
@@ -1422,3 +1416,86 @@ class AcqParserFIF(object):
             conds_data.append(dict(events=cat_t0, event_id=cat_id,
                                    tmin=tmin, tmax=tmax))
         return conds_data[0] if len(conds_data) == 1 else conds_data
+
+
+def match_event_names(event_names, keys, *, on_missing='raise'):
+    """Search a collection of event names for matching (sub-)groups of events.
+
+    This function is particularly helpful when using grouped event names
+    (i.e., event names containing forward slashes ``/``). Please see the
+    Examples section below for a working example.
+
+    Parameters
+    ----------
+    event_names : array-like of str | dict
+        Either a collection of event names, or the ``event_id`` dictionary
+        mapping event names to event codes.
+    keys : array-like of str | str
+        One or multiple event names or groups to search for in ``event_names``.
+    on_missing : 'raise' | 'warn' | 'ignore'
+        How to handle situations when none of the ``keys`` can be found in
+        ``event_names``. If ``'warn'`` or ``'ignore'``, an empty list will be
+        returned.
+
+    Returns
+    -------
+    matches : list of str
+        All event names that match any of the ``keys`` provided.
+
+    Notes
+    -----
+    .. versionadded:: 1.0
+
+    Examples
+    --------
+    Assuming the following grouped event names in the data, you could easily
+    query for all ``auditory`` and ``left`` event names::
+
+        >>> event_names = [
+        ...     'auditory/left',
+        ...     'auditory/right',
+        ...     'visual/left',
+        ...     'visual/right'
+        ... ]
+        >>> match_event_names(
+        ...     event_names=event_names,
+        ...     keys=['auditory', 'left']
+        ... )
+        ['auditory/left', 'auditory/right', 'visual/left']
+    """
+    _check_on_missing(on_missing)
+
+    if isinstance(event_names, dict):
+        event_names = list(event_names)
+
+    # ensure we have a list of `keys`
+    if (
+        isinstance(keys, (Sequence, np.ndarray)) and
+        not isinstance(keys, str)
+    ):
+        keys = list(keys)
+    else:
+        keys = [keys]
+
+    matches = []
+
+    # form the hierarchical event name mapping
+    for key in keys:
+        if not isinstance(key, str):
+            raise ValueError(f'keys must be strings, got {type(key)} ({key})')
+
+        matches.extend(
+            name for name in event_names
+            if set(key.split('/')).issubset(name.split('/'))
+        )
+
+    if not matches:
+        _on_missing(
+            on_missing=on_missing,
+            msg=f'Event name "{key}" could not be found. The following events '
+                f'are present in the data: {", ".join(event_names)}',
+            error_klass=KeyError
+        )
+
+    matches = sorted(set(matches))  # deduplicate if necessary
+    return matches

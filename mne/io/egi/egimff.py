@@ -1,10 +1,10 @@
 """EGI NetStation Load Function."""
 
+from collections import OrderedDict
 import datetime
 import math
 import os.path as op
 import re
-import time
 from xml.dom.minidom import parse
 
 import numpy as np
@@ -12,15 +12,16 @@ import numpy as np
 from .events import _read_events, _combine_triggers
 from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
                       _get_gains, _block_r)
-from .._digitization import DigPoint
 from ..base import BaseRaw
 from ..constants import FIFF
-from ..meas_info import _empty_info, create_info
+from ..meas_info import _empty_info, create_info, _ensure_meas_date_none_or_dt
 from ..proj import setup_proj
 from ..utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
 from ...utils import verbose, logger, warn, _check_option, _check_fname
 from ...evoked import EvokedArray
+
+REFERENCE_NAMES = ('VREF', 'Vertex Reference')
 
 
 def _read_mff_header(filepath):
@@ -104,6 +105,8 @@ def _read_mff_header(filepath):
     # Add the sensor info.
     sensor_layout_file = op.join(filepath, 'sensorLayout.xml')
     sensor_layout_obj = parse(sensor_layout_file)
+    summaryinfo['device'] = (sensor_layout_obj.getElementsByTagName('name')
+                             [0].firstChild.data)
     sensors = sensor_layout_obj.getElementsByTagName('sensor')
     chan_type = list()
     chan_unit = list()
@@ -209,24 +212,27 @@ def _read_header(input_fname):
     mff_hdr = _read_mff_header(input_fname)
     with open(input_fname + '/signal1.bin', 'rb') as fid:
         version = np.fromfile(fid, np.int32, 1)[0]
-    # This should be equivalent to the following, but no need for external dep:
-    # import dateutil.parser
-    # time_n = dateutil.parser.parse(mff_hdr['date'])
-    dt = mff_hdr['date'][:26]
-    assert mff_hdr['date'][-6] in ('+', '-')
-    sn = -1 if mff_hdr['date'][-6] == '-' else 1  # +
-    tz = [sn * int(t) for t in (mff_hdr['date'][-5:-3], mff_hdr['date'][-2:])]
-    time_n = datetime.datetime.strptime(dt, '%Y-%m-%dT%H:%M:%S.%f')
-    time_n = time_n.replace(tzinfo=_FixedOffset(60 * tz[0] + tz[1]))
+    '''
+    the datetime.strptime .f directive (milleseconds)
+    will only accept up to 6 digits. if there are more than
+    six millesecond digits in the provided timestamp string
+    (i.e. because of trailing zeros, as in test_egi_pns.mff)
+    then slice both the first 26 elements and the last 6
+    elements of the timestamp string to truncate the
+    milleseconds to 6 digits and extract the timezone,
+    and then piece these together and assign back to mff_hdr['date']
+    '''
+    if len(mff_hdr['date']) > 32:
+        dt, tz = [mff_hdr['date'][:26], mff_hdr['date'][-6:]]
+        mff_hdr['date'] = dt + tz
+
+    time_n = (datetime.datetime.strptime(
+              mff_hdr['date'], '%Y-%m-%dT%H:%M:%S.%f%z'))
+
     info = dict(
         version=version,
-        year=int(time_n.strftime('%Y')),
-        month=int(time_n.strftime('%m')),
-        day=int(time_n.strftime('%d')),
-        hour=int(time_n.strftime('%H')),
-        minute=int(time_n.strftime('%M')),
-        second=int(time_n.strftime('%S')),
-        millisecond=int(time_n.strftime('%f')),
+        meas_dt_local=time_n,
+        utc_offset=time_n.strftime('%z'),
         gain=0,
         bits=0,
         value_range=0)
@@ -250,59 +256,53 @@ def _get_eeg_calibration_info(filepath, egi_info):
     return cals
 
 
-def _read_locs(filepath, chs, egi_info):
+def _read_locs(filepath, egi_info, channel_naming):
     """Read channel locations."""
+    from ...channels.montage import make_dig_montage
     fname = op.join(filepath, 'coordinates.xml')
     if not op.exists(fname):
-        return chs, []
-    reference_names = ('VREF', 'Vertex Reference')
-    dig_kind_map = {
-        '': FIFF.FIFFV_POINT_EEG,
-        'VREF': FIFF.FIFFV_POINT_EEG,
-        'Vertex Reference': FIFF.FIFFV_POINT_EEG,
-        'Left periauricular point': FIFF.FIFFV_POINT_CARDINAL,
-        'Right periauricular point': FIFF.FIFFV_POINT_CARDINAL,
-        'Nasion': FIFF.FIFFV_POINT_CARDINAL,
-    }
+        logger.warn(
+            'File coordinates.xml not found, not setting channel locations')
+        ch_names = [channel_naming % (i + 1) for i in
+                    range(egi_info['n_channels'])]
+        return ch_names, None
     dig_ident_map = {
-        'Left periauricular point': FIFF.FIFFV_POINT_LPA,
-        'Right periauricular point': FIFF.FIFFV_POINT_RPA,
-        'Nasion': FIFF.FIFFV_POINT_NASION,
+        'Left periauricular point': 'lpa',
+        'Right periauricular point': 'rpa',
+        'Nasion': 'nasion',
     }
     numbers = np.array(egi_info['numbers'])
     coordinates = parse(fname)
     sensors = coordinates.getElementsByTagName('sensor')
-    dig_points = []
-    dig_reference = None
+    ch_pos = OrderedDict()
+    hsp = list()
+    nlr = dict()
+    ch_names = list()
+
     for sensor in sensors:
         name_element = sensor.getElementsByTagName('name')[0].firstChild
-        name = '' if name_element is None else name_element.data
-        nr = sensor.getElementsByTagName('number')[0].firstChild.data.encode()
+        num_element = sensor.getElementsByTagName('number')[0].firstChild
+        name = (channel_naming % int(num_element.data) if name_element is None
+                else name_element.data)
+        nr = num_element.data.encode()
         coords = [float(sensor.getElementsByTagName(coord)[0].firstChild.data)
                   for coord in 'xyz']
         loc = np.array(coords) / 100  # cm -> m
         # create dig entry
-        kind = dig_kind_map[name]
-        if kind == FIFF.FIFFV_POINT_CARDINAL:
-            ident = dig_ident_map[name]
+        if name in dig_ident_map:
+            nlr[dig_ident_map[name]] = loc
         else:
-            ident = int(nr)
-        dig_point = DigPoint(kind=kind, ident=ident, r=loc,
-                             coord_frame=FIFF.FIFFV_COORD_HEAD)
-        dig_points.append(dig_point)
-        if name in reference_names:
-            dig_reference = dig_point
-        # add location to channel entry
-        id = np.flatnonzero(numbers == nr)
-        if len(id) == 0:
-            continue
-        chs[id[0]]['loc'][:3] = loc
-    # Insert reference location into channel location
-    if dig_reference is not None:
-        for ch in chs:
-            if ch['kind'] == FIFF.FIFFV_EEG_CH:
-                ch['loc'][3:6] = dig_reference['r']
-    return chs, dig_points
+            # id_ is the index of the channel in egi_info['numbers']
+            id_ = np.flatnonzero(numbers == nr)
+            # if it's not in egi_info['numbers'], it's a headshape point
+            if len(id_) == 0:
+                hsp.append(loc)
+            # not HSP, must be a data or reference channel
+            else:
+                ch_names.append(name)
+                ch_pos[name] = loc
+    mon = make_dig_montage(ch_pos=ch_pos, hsp=hsp, **nlr)
+    return ch_names, mon
 
 
 def _add_pns_channel_info(chs, egi_info, ch_names):
@@ -443,7 +443,8 @@ class RawMff(BaseRaw):
                 if isinstance(v, list):
                     for k in v:
                         if k not in event_codes:
-                            raise ValueError('Could find event named "%s"' % k)
+                            raise ValueError(
+                                f'Could not find event named {repr(k)}')
                 elif v is not None:
                     raise ValueError('`%s` must be None or of type list' % kk)
             logger.info('    Synthesizing trigger channel "STI 014" ...')
@@ -463,17 +464,16 @@ class RawMff(BaseRaw):
             self.event_id = None
             egi_info['new_trigger'] = None
             event_codes = []
+
+        meas_dt_utc = (egi_info['meas_dt_local']
+                       .astimezone(datetime.timezone.utc))
         info = _empty_info(egi_info['sfreq'])
-        my_time = datetime.datetime(
-            egi_info['year'], egi_info['month'], egi_info['day'],
-            egi_info['hour'], egi_info['minute'], egi_info['second'])
-        my_timestamp = time.mktime(my_time.timetuple())
-        info['meas_date'] = (my_timestamp, 0)
+        info['meas_date'] = _ensure_meas_date_none_or_dt(meas_dt_utc)
+        info['utc_offset'] = egi_info['utc_offset']
+        info['device_info'] = dict(type=egi_info['device'])
 
-        # First: EEG
-        ch_names = [channel_naming % (i + 1) for i in
-                    range(egi_info['n_channels'])]
-
+        # read in the montage, if it exists
+        ch_names, mon = _read_locs(input_fname, egi_info, channel_naming)
         # Second: Stim
         ch_names.extend(list(egi_info['event_codes']))
         if egi_info['new_trigger'] is not None:
@@ -490,7 +490,7 @@ class RawMff(BaseRaw):
         ch_coil = FIFF.FIFFV_COIL_EEG
         ch_kind = FIFF.FIFFV_EEG_CH
         chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
-        chs, dig = _read_locs(input_fname, chs, egi_info)
+
         sti_ch_idx = [i for i, name in enumerate(ch_names) if
                       name.startswith('STI') or name in event_codes]
         for idx in sti_ch_idx:
@@ -500,10 +500,25 @@ class RawMff(BaseRaw):
                              'coil_type': FIFF.FIFFV_COIL_NONE,
                              'unit': FIFF.FIFF_UNIT_NONE})
         chs = _add_pns_channel_info(chs, egi_info, ch_names)
-
         info['chs'] = chs
-        info['dig'] = dig
+        info._unlocked = False
         info._update_redundant()
+
+        if mon is not None:
+            info.set_montage(mon, on_missing='ignore')
+
+        ref_idx = np.flatnonzero(np.in1d(mon.ch_names, REFERENCE_NAMES))
+        if len(ref_idx):
+            ref_coords = info['chs'][int(ref_idx)]['loc'][:3]
+            for chan in info['chs']:
+                is_eeg = chan['kind'] == FIFF.FIFFV_EEG_CH
+                is_not_ref = chan['ch_name'] not in REFERENCE_NAMES
+                if is_eeg and is_not_ref:
+                    chan['loc'][3:6] = ref_coords
+
+            # Cz ref was applied during acquisition, so mark as already set.
+            with info._unlock():
+                info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
         file_bin = op.join(input_fname, egi_info['eeg_fname'])
         egi_info['egi_events'] = egi_events
 
@@ -555,7 +570,7 @@ class RawMff(BaseRaw):
         self._raw_extras = [egi_info]
 
         super(RawMff, self).__init__(
-            info, preload=preload, orig_format='float', filenames=[file_bin],
+            info, preload=preload, orig_format="single", filenames=[file_bin],
             first_samps=first_samps, last_samps=last_samps,
             raw_extras=[egi_info], verbose=verbose)
 
@@ -574,6 +589,7 @@ class RawMff(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""
+        logger.debug(f'Reading MFF {start:6d} ... {stop:6d} ...')
         dtype = '<f4'  # Data read in four byte floats.
 
         egi_info = self._raw_extras[fi]
@@ -606,17 +622,23 @@ class RawMff(BaseRaw):
         # the potentially larger `data` with it, taking skips into account
         disk_samps = egi_info['disk_samps'][start:stop]
         disk_use_idx = np.where(disk_samps > -1)[0]
-        if len(disk_use_idx):
-            start = disk_samps[disk_use_idx[0]]
-            stop = disk_samps[disk_use_idx[-1]] + 1
-            assert len(disk_use_idx) == stop - start
+        # short circuit in case we don't need any samples
+        if not len(disk_use_idx):
+            _mult_cal_one(data, one, idx, cals, mult)
+            return
+
+        start = disk_samps[disk_use_idx[0]]
+        stop = disk_samps[disk_use_idx[-1]] + 1
+        assert len(disk_use_idx) == stop - start
 
         # Get starting/stopping block/samples
         block_samples_offset = np.cumsum(samples_block)
-        offset_blocks = np.sum(block_samples_offset < start)
+        offset_blocks = np.sum(block_samples_offset <= start)
         offset_samples = start - (block_samples_offset[offset_blocks - 1]
                                   if offset_blocks > 0 else 0)
 
+        # TODO: Refactor this reading with the PNS reading in a single function
+        # (DRY)
         samples_to_read = stop - start
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # Go to starting block
@@ -628,11 +650,13 @@ class RawMff(BaseRaw):
                 if this_block_info is not None:
                     current_block_info = this_block_info
                 fid.seek(current_block_info['block_size'], 1)
-                current_block = current_block + 1
+                current_block += 1
 
             # Start reading samples
             while samples_to_read > 0:
+                logger.debug(f'    Reading from block {current_block}')
                 this_block_info = _block_r(fid)
+                current_block += 1
                 if this_block_info is not None:
                     current_block_info = this_block_info
 
@@ -643,6 +667,8 @@ class RawMff(BaseRaw):
 
                 # Compute indexes
                 samples_read = block_data.shape[1]
+                logger.debug(f'        Read   {samples_read} samples')
+                logger.debug(f'        Offset {offset_samples} samples')
                 if offset_samples > 0:
                     # First block read, skip to the offset:
                     block_data = block_data[:, offset_samples:]
@@ -652,6 +678,7 @@ class RawMff(BaseRaw):
                     # Last block to read, skip the last samples
                     block_data = block_data[:, :samples_to_read]
                     samples_read = samples_to_read
+                logger.debug(f'        Keep   {samples_read} samples')
 
                 s_start = current_data_sample
                 s_end = s_start + samples_read
@@ -688,7 +715,7 @@ class RawMff(BaseRaw):
                     if this_block_info is not None:
                         current_block_info = this_block_info
                     fid.seek(current_block_info['block_size'], 1)
-                    current_block = current_block + 1
+                    current_block += 1
 
                 # Start reading samples
                 while samples_to_read > 0:
@@ -790,8 +817,12 @@ def read_evokeds_mff(fname, condition=None, channel_naming='E%d',
         raise ValueError('fname must be an MFF file with extension ".mff".')
     # Confirm the input MFF is averaged
     mff = mffpy.Reader(fname)
-    if mff.flavor != 'averaged':
-        raise ValueError(f'{fname} is a {mff.flavor} MFF file. '
+    try:
+        flavor = mff.mff_flavor
+    except AttributeError:  # < 6.3
+        flavor = mff.flavor
+    if flavor not in ('averaged', 'segmented'):  # old, new names
+        raise ValueError(f'{fname} is a {flavor} MFF file. '
                          'fname must be the path to an averaged MFF file.')
     # Check for categories.xml file
     if 'categories.xml' not in mff.directory.listdir():
@@ -850,11 +881,12 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     # Load metadata into info object
     # Exclude info['meas_date'] because record time info in
     # averaged MFF is the time of the averaging, not true record time.
-    ch_names = [channel_naming % (i + 1) for i in
-                range(mff.num_channels['EEG'])]
+    ch_names, mon = _read_locs(fname, egi_info, channel_naming)
     ch_names.extend(egi_info['pns_names'])
     info = create_info(ch_names, mff.sampling_rates['EEG'], ch_types)
-    info['nchan'] = sum(mff.num_channels.values())
+    with info._unlock():
+        info['device_info'] = dict(type=egi_info['device'])
+        info['nchan'] = sum(mff.num_channels.values())
 
     # Add individual channel info
     # Get calibration info for EEG channels
@@ -864,11 +896,12 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
     ch_coil = FIFF.FIFFV_COIL_EEG
     ch_kind = FIFF.FIFFV_EEG_CH
     chs = _create_chs(ch_names, cals, ch_coil, ch_kind, (), (), (), ())
-    chs, dig = _read_locs(fname, chs, egi_info)
     # Update PNS channel info
     chs = _add_pns_channel_info(chs, egi_info, ch_names)
-    info['chs'] = chs
-    info['dig'] = dig
+    with info._unlock():
+        info['chs'] = chs
+    if mon is not None:
+        info.set_montage(mon, on_missing='ignore')
 
     # Add bad channels to info
     info['description'] = category
@@ -885,7 +918,7 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
                 if entry['signalBin'] == 1:
                     # Add bad EEG channels
                     for ch in entry['channels']:
-                        bads.append(channel_naming % ch)
+                        bads.append(ch_names[ch - 1])
                 elif entry['signalBin'] == 2:
                     # Add bad PNS channels
                     for ch in entry['channels']:
@@ -894,17 +927,23 @@ def _read_evoked_mff(fname, condition, channel_naming='E%d', verbose=None):
 
     # Add EEG reference to info
     # Initialize 'custom_ref_applied' to False
-    info['custom_ref_applied'] = False
-    with mff.directory.filepointer('history') as fp:
-        history = mffpy.XML.from_file(fp)
-    for entry in history.entries:
-        if entry['method'] == 'Montage Operations Tool':
-            if 'Average Reference' in entry['settings']:
-                # Average reference has been applied
-                projector, info = setup_proj(info)
-            else:
-                # Custom reference has been applied that is not an average
-                info['custom_ref_applied'] = True
+    with info._unlock():
+        info['custom_ref_applied'] = False
+    try:
+        fp = mff.directory.filepointer('history')
+    except (ValueError, FileNotFoundError):  # old (<=0.6.3) vs new mffpy
+        pass
+    else:
+        with fp:
+            history = mffpy.XML.from_file(fp)
+        for entry in history.entries:
+            if entry['method'] == 'Montage Operations Tool':
+                if 'Average Reference' in entry['settings']:
+                    # Average reference has been applied
+                    projector, info = setup_proj(info)
+                else:
+                    # Custom reference has been applied that is not an average
+                    info['custom_ref_applied'] = True
 
     # Get nave from categories.xml
     try:

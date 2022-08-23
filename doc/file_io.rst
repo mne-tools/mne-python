@@ -24,6 +24,7 @@ File I/O
    read_epochs_fieldtrip
    read_events
    read_evokeds
+   read_evoked_besa
    read_evoked_fieldtrip
    read_evokeds_mff
    read_freesurfer_lut
@@ -32,7 +33,6 @@ File I/O
    read_morph_map
    read_proj
    read_reject_parameters
-   read_selection
    read_source_estimate
    read_source_spaces
    read_surface

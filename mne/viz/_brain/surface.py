@@ -23,7 +23,7 @@ class _Surface(object):
 
     Parameters
     ----------
-    subject_id : string
+    subject : string
         Name of subject
     hemi : {'lh', 'rh'}
         Which hemisphere to load
@@ -62,7 +62,7 @@ class _Surface(object):
     offset : float | None
         If float, align inside edge of each hemisphere to center + offset.
         If None, do not change coordinates (default).
-    subject_id : string
+    subject : string
         Name of subject.
     surf : string
         Name of the surface to load (eg. inflated, orig ...).
@@ -70,7 +70,7 @@ class _Surface(object):
         Can be 'm' or 'mm' (default).
     """
 
-    def __init__(self, subject_id, hemi, surf, subjects_dir=None, offset=None,
+    def __init__(self, subject, hemi, surf, subjects_dir=None, offset=None,
                  units='mm', x_dir=None):
 
         x_dir = np.array([1., 0, 0]) if x_dir is None else x_dir
@@ -80,7 +80,7 @@ class _Surface(object):
         _validate_type(offset, (None, 'numeric'), 'offset')
 
         self.units = _check_option('units', units, ('mm', 'm'))
-        self.subject_id = subject_id
+        self.subject = subject
         self.hemi = hemi
         self.surf = surf
         self.offset = offset
@@ -94,7 +94,10 @@ class _Surface(object):
         self.x_dir = x_dir
 
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        self.data_path = path.join(subjects_dir, subject_id)
+        self.data_path = path.join(subjects_dir, subject)
+        if surf == 'seghead':
+            raise ValueError('`surf` cannot be seghead, use '
+                             '`mne.viz.Brain.add_head` to plot the seghead')
 
     def load_geometry(self):
         """Load geometry of the surface.
@@ -113,6 +116,10 @@ class _Surface(object):
             _check_fname(fname, overwrite='read', must_exist=True,
                          name='flatmap surface file')
             coords, faces, orig_faces = _read_patch(fname)
+            # rotate 90 degrees to get to a more standard orientation
+            # where X determines the distance between the hemis
+            coords = coords[:, [1, 0, 2]]
+            coords[:, 1] *= -1
         else:
             coords, faces = read_surface(
                 path.join(self.data_path, 'surf',
@@ -127,7 +134,8 @@ class _Surface(object):
             else:
                 coords -= (np.min(x_) + self.offset) * self.x_dir
         surf = dict(rr=coords, tris=faces)
-        complete_surface_info(surf, copy=False, verbose=False)
+        complete_surface_info(
+            surf, copy=False, verbose=False, do_neighbor_tri=False)
         nn = surf['nn']
         self.coords = coords
         self.faces = faces

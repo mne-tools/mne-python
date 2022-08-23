@@ -1,6 +1,6 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -16,7 +16,6 @@ from mne.io.array import RawArray
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.meas_info import create_info
 from mne.io.pick import get_channel_type_constants
-from mne.utils import run_tests_if_main
 from mne.channels import make_dig_montage
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
@@ -26,7 +25,7 @@ fif_fname = op.join(base_dir, 'test_raw.fif')
 def test_long_names():
     """Test long name support."""
     info = create_info(['a' * 15 + 'b', 'a' * 16], 1000., verbose='error')
-    data = np.empty((2, 1000))
+    data = np.zeros((2, 1000))
     raw = RawArray(data, info)
     assert raw.ch_names == ['a' * 15 + 'b', 'a' * 16]
     # and a way to get the old behavior
@@ -34,7 +33,7 @@ def test_long_names():
                         allow_duplicates=True, verbose='error')
     assert raw.ch_names == ['a' * 13 + '-0', 'a' * 13 + '-1']
     info = create_info(['a' * 16] * 11, 1000., verbose='error')
-    data = np.empty((11, 1000))
+    data = np.zeros((11, 1000))
     raw = RawArray(data, info)
     assert raw.ch_names == ['a' * 16 + '-%s' % ii for ii in range(11)]
 
@@ -42,7 +41,7 @@ def test_long_names():
 def test_array_copy():
     """Test copying during construction."""
     info = create_info(1, 1000.)
-    data = np.empty((1, 1000))
+    data = np.zeros((1, 1000))
     # 'auto' (default)
     raw = RawArray(data, info)
     assert raw._data is data
@@ -180,6 +179,3 @@ def test_array_raw():
     raw.set_montage(montage)
     raw.plot_psd(average=False)  # looking for nonexistent layout
     raw.plot_psd_topo()
-
-
-run_tests_if_main()

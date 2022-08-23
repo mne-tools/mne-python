@@ -1,6 +1,6 @@
 # Author: Joan Massich <mailsik@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 import os.path as op
@@ -13,7 +13,7 @@ from .info import _convert_time
 
 def _get_markers(fname):
     def consume(fid, predicate):  # just a consumer to move around conveniently
-        while(predicate(fid.readline())):
+        while predicate(fid.readline()):
             pass
 
     def parse_marker(string):  # XXX: there should be a nicer way to do that

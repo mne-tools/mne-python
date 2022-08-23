@@ -16,15 +16,15 @@ from numpy.testing import assert_allclose
 import pytest
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
-from matplotlib.cm import get_cmap
+from matplotlib.collections import PolyCollection
 
 import mne
 from mne import (read_events, Epochs, read_cov, compute_covariance,
                  make_fixed_length_events, compute_proj_evoked)
 from mne.io import read_raw_fif
-from mne.utils import catch_logging, requires_version
+from mne.utils import catch_logging
 from mne.viz import plot_compare_evokeds, plot_evoked_white
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _get_cmap
 from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.stats.parametric import _parametric_ci
@@ -36,6 +36,8 @@ raw_sss_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 event_id, tmin, tmax = 1, -0.1, 0.1
+
+ctf_fname = testing.data_path(download=False) / 'CTF' / 'testdata_ctf.ds'
 
 # Use a subset of channels for plotting speed
 # make sure we have a magnetometer and a pair of grad pairs for topomap.
@@ -80,7 +82,7 @@ def test_plot_evoked_cov():
         evoked.plot(noise_cov=cov, time_unit='s')
     with pytest.raises(TypeError, match='Covariance'):
         evoked.plot(noise_cov=1., time_unit='s')
-    with pytest.raises(IOError, match='No such file'):
+    with pytest.raises(FileNotFoundError, match='File does not exist'):
         evoked.plot(noise_cov='nonexistent-cov.fif', time_unit='s')
     raw = read_raw_fif(raw_sss_fname)
     events = make_fixed_length_events(raw)
@@ -120,7 +122,8 @@ def test_plot_evoked():
     evoked_delayed_ssp.apply_proj()
     pytest.raises(RuntimeError, evoked_delayed_ssp.plot,
                   proj='interactive', time_unit='s')
-    evoked_delayed_ssp.info['projs'] = []
+    with evoked_delayed_ssp.info._unlock():
+        evoked_delayed_ssp.info['projs'] = []
     pytest.raises(RuntimeError, evoked_delayed_ssp.plot,
                   proj='interactive', time_unit='s')
     pytest.raises(RuntimeError, evoked_delayed_ssp.plot,
@@ -165,8 +168,21 @@ def test_plot_evoked():
         evoked.plot(verbose=True, time_unit='s')
     assert 'Need more than one' in log_file.getvalue()
 
+    # Test highlight
+    for highlight in [
+        (0, 0.1),
+        [(0, 0.1), (0.1, 0.2)]
+    ]:
+        fig = evoked.plot(time_unit='s', highlight=highlight)
+        for ax in fig.get_axes():
+            highlighted_areas = [child for child in ax.get_children()
+                                 if isinstance(child, PolyCollection)]
+            assert len(highlighted_areas) == len(np.atleast_2d(highlight))
 
-@requires_version('matplotlib', '2.2')
+    with pytest.raises(ValueError, match='must be reshapable into a 2D array'):
+        fig = evoked.plot(time_unit='s', highlight=0.1)
+
+
 def test_constrained_layout():
     """Test that we handle constrained layouts correctly."""
     fig, ax = plt.subplots(1, 1, constrained_layout=True)
@@ -316,13 +332,15 @@ def test_plot_white():
     # Hack to test plotting of maxfiltered data
     evoked_sss = _get_epochs(picks='meg').average()
     sss = dict(sss_info=dict(in_order=80, components=np.arange(80)))
-    evoked_sss.info['proc_history'] = [dict(max_info=sss)]
+    with evoked_sss.info._unlock():
+        evoked_sss.info['proc_history'] = [dict(max_info=sss)]
     evoked_sss.plot_white(cov, rank={'meg': 64})
     with pytest.raises(ValueError, match='When using SSS'):
         evoked_sss.plot_white(cov, rank={'grad': 201})
     evoked_sss.plot_white(cov, time_unit='s')
 
 
+@pytest.mark.slowtest  # slow on Azure
 def test_plot_compare_evokeds():
     """Test plot_compare_evokeds."""
     evoked = _get_epochs().average()
@@ -358,10 +376,22 @@ def test_plot_compare_evokeds():
         assert (yvals < ylim[1]).all()
         assert (yvals > ylim[0]).all()
     plt.close('all')
+
     # test other CI args
-    for _ci in (None, False, 0.5,
-                lambda x: np.stack([x.mean(axis=0) + 1, x.mean(axis=0) - 1])):
-        plot_compare_evokeds({'cond': [blue, red, evoked]}, ci=_ci)
+    def ci_func(array):
+        return array.mean(axis=0, keepdims=True) * np.array([[0.5], [1.5]])
+
+    ci_types = (None, False, 0.5, ci_func)
+    for _ci in ci_types:
+        fig = plot_compare_evokeds({'cond': [blue, red, evoked]}, ci=_ci)[0]
+        if _ci in ci_types[2:]:
+            assert np.any([isinstance(coll, PolyCollection)
+                           for coll in fig.axes[0].collections])
+    # make sure we can get a CI even for single conditions
+    fig = plot_compare_evokeds(evoked, picks='eeg', ci=ci_func)[0]
+    assert np.any([isinstance(coll, PolyCollection)
+                   for coll in fig.axes[0].collections])
+
     with pytest.raises(TypeError, match='"ci" must be None, bool, float or'):
         plot_compare_evokeds(evoked, ci='foo')
     # test sensor inset, legend location, and axis inversion & truncation
@@ -379,7 +409,7 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds(evoked_dict, colors=list(range(3)))
     plt.close('all')
     # test colormap
-    cmap = get_cmap('viridis')
+    cmap = _get_cmap('viridis')
     plot_compare_evokeds(evoked_dict, cmap=cmap, colors=dict(aud=0.4, vis=0.9))
     plot_compare_evokeds(evoked_dict, cmap=cmap, colors=dict(aud=1, vis=2))
     plot_compare_evokeds(evoked_dict, cmap=('cmap title', 'inferno'),
@@ -476,10 +506,7 @@ def test_plot_compare_evokeds_neuromag122():
 @testing.requires_testing_data
 def test_plot_ctf():
     """Test plotting of CTF evoked."""
-    ctf_dir = op.join(testing.data_path(download=False), 'CTF')
-    raw_fname = op.join(ctf_dir, 'testdata_ctf.ds')
-
-    raw = mne.io.read_raw_ctf(raw_fname, preload=True)
+    raw = mne.io.read_raw_ctf(ctf_fname, preload=True)
     events = np.array([[200, 0, 1]])
     event_id = 1
     tmin, tmax = -0.1, 0.5  # start and end of an epoch in sec.

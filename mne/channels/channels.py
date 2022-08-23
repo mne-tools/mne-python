@@ -6,35 +6,36 @@
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Daniel McCloy <dan.mccloy@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 
-import os
 import os.path as op
+from pathlib import Path
 import sys
 from collections import OrderedDict
+from dataclasses import dataclass
 from copy import deepcopy
 from functools import partial
+import string
+from typing import Union
 
 import numpy as np
 
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
-from ..transforms import _frame_to_str
 from ..utils import (verbose, logger, warn,
                      _check_preload, _validate_type, fill_doc, _check_option,
-                     _get_stim_channel, _check_fname)
-from ..io.compensator import get_current_comp
+                     _get_stim_channel, _check_fname, _check_dict_keys)
 from ..io.constants import FIFF
 from ..io.meas_info import (anonymize_info, Info, MontageMixin, create_info,
                             _rename_comps)
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx,
-                       _get_channel_types, get_channel_type_constants,
+                       get_channel_type_constants,
                        _pick_data_channels)
 from ..io.tag import _rename_list
 from ..io.write import DATE_NONE
-from ..io._digitization import _get_data_as_dict_from_dig
+from ..io.proj import setup_proj
 
 
 def _get_meg_system(info):
@@ -170,9 +171,14 @@ def equalize_channels(instances, copy=True, verbose=None):
     for inst in instances:
         # Only perform picking when needed
         if inst.ch_names != common_channels:
-            if copy:
-                inst = inst.copy()
-            inst.pick_channels(common_channels, ordered=True)
+            if isinstance(inst, Info):
+                sel = pick_channels(inst.ch_names, common_channels, exclude=[],
+                                    ordered=True)
+                inst = pick_info(inst, sel, copy=copy, verbose=False)
+            else:
+                if copy:
+                    inst = inst.copy()
+                inst.pick_channels(common_channels, ordered=True)
             if len(inst.ch_names) == len(common_channels):
                 reordered = True
         equalized_instances.append(inst)
@@ -183,102 +189,6 @@ def equalize_channels(instances, copy=True, verbose=None):
         logger.info('Channels have been re-ordered.')
 
     return equalized_instances
-
-
-class ContainsMixin(object):
-    """Mixin class for Raw, Evoked, Epochs."""
-
-    def __contains__(self, ch_type):
-        """Check channel type membership.
-
-        Parameters
-        ----------
-        ch_type : str
-            Channel type to check for. Can be e.g. 'meg', 'eeg', 'stim', etc.
-
-        Returns
-        -------
-        in : bool
-            Whether or not the instance contains the given channel type.
-
-        Examples
-        --------
-        Channel type membership can be tested as::
-
-            >>> 'meg' in inst  # doctest: +SKIP
-            True
-            >>> 'seeg' in inst  # doctest: +SKIP
-            False
-
-        """
-        if ch_type == 'meg':
-            has_ch_type = (_contains_ch_type(self.info, 'mag') or
-                           _contains_ch_type(self.info, 'grad'))
-        else:
-            has_ch_type = _contains_ch_type(self.info, ch_type)
-        return has_ch_type
-
-    @property
-    def compensation_grade(self):
-        """The current gradient compensation grade."""
-        return get_current_comp(self.info)
-
-    @fill_doc
-    def get_channel_types(self, picks=None, unique=False, only_data_chs=False):
-        """Get a list of channel type for each channel.
-
-        Parameters
-        ----------
-        %(picks_all)s
-        unique : bool
-            Whether to return only unique channel types. Default is ``False``.
-        only_data_chs : bool
-            Whether to ignore non-data channels. Default is ``False``.
-
-        Returns
-        -------
-        channel_types : list
-            The channel types.
-        """
-        return _get_channel_types(self.info, picks=picks, unique=unique,
-                                  only_data_chs=only_data_chs)
-
-    @fill_doc
-    def get_montage(self):
-        """Get a DigMontage from instance.
-
-        Returns
-        -------
-        %(montage)s
-        """
-        from ..channels.montage import make_dig_montage
-        if self.info['dig'] is None:
-            return None
-        # obtain coord_frame, and landmark coords
-        # (nasion, lpa, rpa, hsp, hpi) from DigPoints
-        montage_bunch = _get_data_as_dict_from_dig(self.info['dig'])
-        coord_frame = _frame_to_str.get(montage_bunch.coord_frame)
-
-        # get the channel names and chs data structure
-        ch_names, chs = self.info['ch_names'], self.info['chs']
-        picks = pick_types(self.info, meg=False, eeg=True,
-                           seeg=True, ecog=True, dbs=True)
-
-        # channel positions from dig do not match ch_names one to one,
-        # so use loc[:3] instead
-        ch_pos = {ch_names[ii]: chs[ii]['loc'][:3] for ii in picks}
-
-        # create montage
-        montage = make_dig_montage(
-            ch_pos=ch_pos,
-            coord_frame=coord_frame,
-            nasion=montage_bunch.nasion,
-            lpa=montage_bunch.lpa,
-            rpa=montage_bunch.rpa,
-            hsp=montage_bunch.hsp,
-            hpi=montage_bunch.hpi,
-        )
-        return montage
 
 
 channel_type_constants = get_channel_type_constants()
@@ -321,11 +231,11 @@ class SetChannelsMixin(MontageMixin):
 
         Parameters
         ----------
-        %(set_eeg_reference_ref_channels)s
-        %(set_eeg_reference_projection)s
-        %(set_eeg_reference_ch_type)s
-        %(set_eeg_reference_forward)s
-        %(verbose_meth)s
+        %(ref_channels_set_eeg_reference)s
+        %(projection_set_eeg_reference)s
+        %(ch_type_set_eeg_reference)s
+        %(forward_set_eeg_reference)s
+        %(verbose)s
 
         Returns
         -------
@@ -401,7 +311,7 @@ class SetChannelsMixin(MontageMixin):
         mapping : dict
             A dictionary mapping a channel to a sensor type (str), e.g.,
             ``{'EEG061': 'eog'}``.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -479,8 +389,8 @@ class SetChannelsMixin(MontageMixin):
 
         Parameters
         ----------
-        %(rename_channels_mapping_duplicates)s
-        %(verbose_meth)s
+        %(mapping_rename_channels_duplicates)s
+        %(verbose)s
 
         Returns
         -------
@@ -566,8 +476,8 @@ class SetChannelsMixin(MontageMixin):
             .. versionadded:: 0.13.0
         show : bool
             Show figure if True. Defaults to True.
-        %(topomap_sphere_auto)s
-        %(verbose_meth)s
+        %(sphere_topomap_auto)s
+        %(verbose)s
 
         Returns
         -------
@@ -583,7 +493,7 @@ class SetChannelsMixin(MontageMixin):
         Notes
         -----
         This function plots the sensor locations from the info structure using
-        matplotlib. For drawing the sensors using mayavi see
+        matplotlib. For drawing the sensors using PyVista see
         :func:`mne.viz.plot_alignment`.
 
         .. versionadded:: 0.12.0
@@ -600,7 +510,8 @@ class SetChannelsMixin(MontageMixin):
 
         Parameters
         ----------
-        %(anonymize_info_parameters)s
+        %(daysback_anonymize_info)s
+        %(keep_his_anonymize_info)s
         %(verbose)s
 
         Returns
@@ -651,7 +562,8 @@ class SetChannelsMixin(MontageMixin):
         """
         from ..annotations import _handle_meas_date
         meas_date = _handle_meas_date(meas_date)
-        self.info['meas_date'] = meas_date
+        with self.info._unlock():
+            self.info['meas_date'] = meas_date
 
         # clear file_id and meas_id if needed
         if meas_date is None:
@@ -686,65 +598,8 @@ class UpdateChannelsMixin(object):
 
         Parameters
         ----------
-        meg : bool | str
-            If True include MEG channels. If string it can be 'mag', 'grad',
-            'planar1' or 'planar2' to select only magnetometers, all
-            gradiometers, or a specific type of gradiometer.
-        eeg : bool
-            If True include EEG channels.
-        stim : bool
-            If True include stimulus channels.
-        eog : bool
-            If True include EOG channels.
-        ecg : bool
-            If True include ECG channels.
-        emg : bool
-            If True include EMG channels.
-        ref_meg : bool | str
-            If True include CTF / 4D reference channels. If 'auto', reference
-            channels are included if compensations are present and ``meg`` is
-            not False. Can also be the string options for the ``meg``
-            parameter.
-        misc : bool
-            If True include miscellaneous analog channels.
-        resp : bool
-            If ``True`` include respiratory channels.
-        chpi : bool
-            If True include continuous HPI coil channels.
-        exci : bool
-            Flux excitation channel used to be a stimulus channel.
-        ias : bool
-            Internal Active Shielding data (maybe on Triux only).
-        syst : bool
-            System status channel information (on Triux systems only).
-        seeg : bool
-            Stereotactic EEG channels.
-        dipole : bool
-            Dipole time course channels.
-        gof : bool
-            Dipole goodness of fit channels.
-        bio : bool
-            Bio channels.
-        ecog : bool
-            Electrocorticography channels.
-        fnirs : bool | str
-            Functional near-infrared spectroscopy channels. If True include all
-            fNIRS channels. If False (default) include none. If string it can
-            be 'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
-            include channels measuring deoxyhemoglobin).
-        csd : bool
-            EEG-CSD channels.
-        dbs : bool
-            Deep brain stimulation channels.
-        include : list of str
-            List of additional channels to include. If empty do not include
-            any.
-        exclude : list of str | str
-            List of channels to exclude. If 'bads' (default), exclude channels
-            in ``info['bads']``.
-        selection : list of str
-            Restrict sensor channels (MEG, EEG) to this list of channel names.
-        %(verbose_meth)s
+        %(pick_types_params)s
+        %(verbose)s
 
         Returns
         -------
@@ -763,8 +618,8 @@ class UpdateChannelsMixin(object):
             self.info, meg=meg, eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
-            ecog=ecog, fnirs=fnirs, dbs=dbs, include=include, exclude=exclude,
-            selection=selection)
+            ecog=ecog, fnirs=fnirs, csd=csd, dbs=dbs, include=include,
+            exclude=exclude, selection=selection)
 
         self._pick_drop_channels(idx)
 
@@ -783,7 +638,8 @@ class UpdateChannelsMixin(object):
 
         return self
 
-    def pick_channels(self, ch_names, ordered=False):
+    @verbose
+    def pick_channels(self, ch_names, ordered=False, *, verbose=None):
         """Pick some channels.
 
         Parameters
@@ -795,6 +651,9 @@ class UpdateChannelsMixin(object):
             the modified instance matches the order of ``ch_names``.
 
             .. versionadded:: 0.20.0
+        %(verbose)s
+
+            .. versionadded:: 1.1
 
         Returns
         -------
@@ -818,8 +677,8 @@ class UpdateChannelsMixin(object):
         picks = pick_channels(self.info['ch_names'], ch_names, ordered=ordered)
         return self._pick_drop_channels(picks)
 
-    @fill_doc
-    def pick(self, picks, exclude=()):
+    @verbose
+    def pick(self, picks, exclude=(), *, verbose=None):
         """Pick a subset of channels.
 
         Parameters
@@ -828,6 +687,9 @@ class UpdateChannelsMixin(object):
         exclude : list | str
             Set of channels to exclude, only used when picking based on
             types (e.g., exclude="bads" when picks="meg").
+        %(verbose)s
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -919,7 +781,8 @@ class UpdateChannelsMixin(object):
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
         return self._pick_drop_channels(idx)
 
-    def _pick_drop_channels(self, idx):
+    @verbose
+    def _pick_drop_channels(self, idx, *, verbose=None):
         # avoid circular imports
         from ..io import BaseRaw
         from ..time_frequency import AverageTFR, EpochsTFR
@@ -1070,6 +933,13 @@ class UpdateChannelsMixin(object):
             self._read_picks = [
                 np.concatenate([r, extra_idx]) for r in self._read_picks]
             assert all(len(r) == self.info['nchan'] for r in self._read_picks)
+        elif isinstance(self, BaseEpochs):
+            self.picks = np.arange(self._data.shape[1])
+            if hasattr(self, '_projector'):
+                activate = False if self._do_delayed_proj else self.proj
+                self._projector, self.info = setup_proj(self.info, False,
+                                                        activate=activate)
+
         return self
 
     @fill_doc
@@ -1138,7 +1008,7 @@ class InterpolationMixin(object):
         exclude : list | tuple
             The channels to exclude from interpolation. If excluded a bad
             channel will stay in bads.
-        %(verbose_meth)s
+        %(verbose)s
 
         Returns
         -------
@@ -1188,9 +1058,8 @@ def rename_channels(info, mapping, allow_duplicates=False, verbose=None):
 
     Parameters
     ----------
-    info : dict
-        Measurement info to modify.
-    %(rename_channels_mapping_duplicates)s
+    %(info_not_none)s Note: modified in place.
+    %(mapping_rename_channels_duplicates)s
     %(verbose)s
     """
     _validate_type(info, Info, 'info')
@@ -1200,11 +1069,8 @@ def rename_channels(info, mapping, allow_duplicates=False, verbose=None):
 
     # first check and assemble clean mappings of index and name
     if isinstance(mapping, dict):
-        orig_names = sorted(list(mapping.keys()))
-        missing = [orig_name not in ch_names for orig_name in orig_names]
-        if any(missing):
-            raise ValueError("Channel name(s) in mapping missing from info: "
-                             "%s" % np.array(orig_names)[np.array(missing)])
+        _check_dict_keys(mapping, ch_names, key_description="channel name(s)",
+                         valid_key_source="info")
         new_names = [(ch_names.index(ch_name), new_name)
                      for ch_name, new_name in mapping.items()]
     elif callable(mapping):
@@ -1253,9 +1119,300 @@ def _recursive_flatten(cell, dtype):
     return cell
 
 
+@dataclass
+class _BuiltinChannelAdjacency:
+    name: str
+    description: str
+    fname: str
+    source_url: Union[str, None]
+
+
+_ft_neighbor_url_t = string.Template(
+    'https://github.com/fieldtrip/fieldtrip/raw/master/'
+    'template/neighbours/$fname'
+)
+
+_BUILTIN_CHANNEL_ADJACENCIES = [
+    _BuiltinChannelAdjacency(
+        name='biosemi16',
+        description='Biosemi 16-electrode cap',
+        fname='biosemi16_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='biosemi16_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='biosemi32',
+        description='Biosemi 32-electrode cap',
+        fname='biosemi32_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='biosemi32_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='biosemi64',
+        description='Biosemi 64-electrode cap',
+        fname='biosemi64_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='biosemi64_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='bti148',
+        description='BTI 148-channel system',
+        fname='bti148_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='bti148_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='bti248',
+        description='BTI 248-channel system',
+        fname='bti248_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='bti248_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='bti248grad',
+        description='BTI 248 gradiometer system',
+        fname='bti248grad_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='bti248grad_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='ctf64',
+        description='CTF 64 axial gradiometer',
+        fname='ctf64_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='ctf64_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='ctf151',
+        description='CTF 151 axial gradiometer',
+        fname='ctf151_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='ctf151_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='ctf275',
+        description='CTF 275 axial gradiometer',
+        fname='ctf275_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='ctf275_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='easycap32ch-avg',
+        description='',
+        fname='easycap32ch-avg_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='easycap32ch-avg_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='easycap64ch-avg',
+        description='',
+        fname='easycap64ch-avg_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='easycap64ch-avg_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='easycap128ch-avg',
+        description='',
+        fname='easycap128ch-avg_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='easycap128ch-avg_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='easycapM1',
+        description='Easycap M1',
+        fname='easycapM1_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='easycapM1_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='easycapM11',
+        description='Easycap M11',
+        fname='easycapM11_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='easycapM11_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='easycapM14',
+        description='Easycap M14',
+        fname='easycapM14_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='easycapM14_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='easycapM15',
+        description='Easycap M15',
+        fname='easycapM15_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='easycapM15_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='KIT-157',
+        description='',
+        fname='KIT-157_neighb.mat',
+        source_url=None,
+    ),
+    _BuiltinChannelAdjacency(
+        name='KIT-208',
+        description='',
+        fname='KIT-208_neighb.mat',
+        source_url=None,
+    ),
+    _BuiltinChannelAdjacency(
+        name='KIT-NYU-2019',
+        description='',
+        fname='KIT-NYU-2019_neighb.mat',
+        source_url=None,
+    ),
+    _BuiltinChannelAdjacency(
+        name='KIT-UMD-1',
+        description='',
+        fname='KIT-UMD-1_neighb.mat',
+        source_url=None,
+    ),
+    _BuiltinChannelAdjacency(
+        name='KIT-UMD-2',
+        description='',
+        fname='KIT-UMD-2_neighb.mat',
+        source_url=None,
+    ),
+    _BuiltinChannelAdjacency(
+        name='KIT-UMD-3',
+        description='',
+        fname='KIT-UMD-3_neighb.mat',
+        source_url=None,
+    ),
+    _BuiltinChannelAdjacency(
+        name='KIT-UMD-4',
+        description='',
+        fname='KIT-UMD-4_neighb.mat',
+        source_url=None,
+    ),
+    _BuiltinChannelAdjacency(
+        name='neuromag306mag',
+        description='Neuromag306, only magnetometers',
+        fname='neuromag306mag_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='neuromag306mag_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='neuromag306planar',
+        description='Neuromag306, only planar gradiometers',
+        fname='neuromag306planar_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='neuromag306planar_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='neuromag122cmb',
+        description='Neuromag122, only combined planar gradiometers',
+        fname='neuromag122cmb_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='neuromag122cmb_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='neuromag306cmb',
+        description='Neuromag306, only combined planar gradiometers',
+        fname='neuromag306cmb_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='neuromag306cmb_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='ecog256',
+        description='ECOG 256channels, average referenced',
+        fname='ecog256_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='ecog256_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='ecog256bipolar',
+        description='ECOG 256channels, bipolar referenced',
+        fname='ecog256bipolar_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='ecog256bipolar_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='eeg1010_neighb',
+        description='',
+        fname='eeg1010_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='eeg1010_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='elec1005',
+        description='Standard 10-05 system',
+        fname='elec1005_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='elec1005_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='elec1010',
+        description='Standard 10-10 system',
+        fname='elec1010_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='elec1010_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='elec1020',
+        description='Standard 10-20 system',
+        fname='elec1020_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='elec1020_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='itab28',
+        description='ITAB 28-channel system',
+        fname='itab28_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='itab28_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='itab153',
+        description='ITAB 153-channel system',
+        fname='itab153_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='itab153_neighb.mat'),
+    ),
+    _BuiltinChannelAdjacency(
+        name='language29ch-avg',
+        description='MPI for Psycholinguistic: Averaged 29-channel cap',
+        fname='language29ch-avg_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='language29ch-avg_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='mpi_59_channels',
+        description='MPI for Psycholinguistic: 59-channel cap',
+        fname='mpi_59_channels_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='mpi_59_channels_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='yokogawa160',
+        description='',
+        fname='yokogawa160_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='yokogawa160_neighb.mat'),  # noqa: E501
+    ),
+    _BuiltinChannelAdjacency(
+        name='yokogawa440',
+        description='',
+        fname='yokogawa440_neighb.mat',
+        source_url=_ft_neighbor_url_t.substitute(fname='yokogawa440_neighb.mat'),  # noqa: E501
+    ),
+]
+
+
+@fill_doc
+def get_builtin_ch_adjacencies(*, descriptions=False):
+    """Get a list of all FieldTrip neighbor definitions shipping with MNE.
+
+    The names of the these neighbor definitions can be passed to
+    :func:`read_ch_adjacency`.
+
+    Parameters
+    ----------
+    descriptions : bool
+        Whether to return not only the neighbor definition names, but also
+        their corresponding descriptions. If ``True``, a list of tuples is
+        returned, where the first tuple element is the neighbor definition name
+        and the second is the description. If ``False`` (default), only the
+        names are returned.
+
+    Returns
+    -------
+    neighbor_name : list of str | list of tuple
+        If ``descriptions=False``, the names of all builtin FieldTrip neighbor
+        definitions that can be loaded directly via :func:`read_ch_adjacency`.
+
+        If ``descriptions=True``, a list of tuples ``(name, description)``.
+
+    Notes
+    -----
+    .. versionadded:: 1.1
+    """
+    if descriptions:
+        return sorted(
+            [(m.name, m.description) for m in _BUILTIN_CHANNEL_ADJACENCIES],
+            key=lambda x: x[0].casefold()  # only sort based on name
+        )
+    else:
+        return sorted(
+            [m.name for m in _BUILTIN_CHANNEL_ADJACENCIES],
+            key=str.casefold
+        )
+
+
 @fill_doc
 def read_ch_adjacency(fname, picks=None):
-    """Parse FieldTrip neighbors .mat file.
+    """Read a channel adjacency ("neighbors") file that ships with MNE.
 
     More information on these neighbor definitions can be found on the related
     `FieldTrip documentation pages
@@ -1264,10 +1421,15 @@ def read_ch_adjacency(fname, picks=None):
     Parameters
     ----------
     fname : str
-        The file name. Example: 'neuromag306mag', 'neuromag306planar',
-        'ctf275', 'biosemi64', etc.
+        The path to the file to load, or the name of a channel adjacency
+        matrix that ships with MNE-Python.
+
+        .. note::
+            You can retrieve the names of all
+            built-in channel adjacencies via
+            :func:`mne.channels.get_builtin_ch_adjacencies`.
     %(picks_all)s
-        Picks Must match the template.
+        Picks must match the template.
 
     Returns
     -------
@@ -1278,31 +1440,50 @@ def read_ch_adjacency(fname, picks=None):
 
     See Also
     --------
+    get_builtin_ch_adjacencies
+    mne.viz.plot_ch_adjacency
     find_ch_adjacency
+    mne.stats.combine_adjacency
 
     Notes
     -----
-    This function is closely related to :func:`find_ch_adjacency`. If you
-    don't know the correct file for the neighbor definitions,
-    :func:`find_ch_adjacency` can compute the adjacency matrix from 2d
-    sensor locations.
+    If the neighbor definition you need is not shipped by MNE-Python,
+    you may use :func:`find_ch_adjacency` to compute the
+    adjacency matrix based on your 2D sensor locations.
+
+    Note that depending on your use case, you may need to additionally use
+    :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
+    to pass to the eventual function.
     """
     from scipy.io import loadmat
-    if not op.isabs(fname):
-        templates_dir = op.realpath(op.join(op.dirname(__file__),
-                                            'data', 'neighbors'))
-        templates = os.listdir(templates_dir)
-        for f in templates:
-            if f == fname:
-                break
-            if f == fname + '_neighb.mat':
-                fname += '_neighb.mat'
-                break
-        else:
-            raise ValueError('I do not know about this neighbor '
-                             'template: "{}"'.format(fname))
+    if op.isabs(fname):
+        fname = _check_fname(
+            fname=fname,
+            overwrite='read',
+            must_exist=True
+        )
+    else:  # built-in FieldTrip neighbors
+        ch_adj_name = fname
+        del fname
+        if ch_adj_name.endswith('_neighb.mat'):  # backward-compat
+            ch_adj_name = ch_adj_name.replace('_neighb.mat', '')
 
-        fname = op.join(templates_dir, fname)
+        if ch_adj_name not in get_builtin_ch_adjacencies():
+            raise ValueError(
+                f'No built-in channel adjacency matrix found with name: '
+                f'{ch_adj_name}. Valid names are: '
+                f'{", ".join(get_builtin_ch_adjacencies())}'
+            )
+
+        ch_adj = [a for a in _BUILTIN_CHANNEL_ADJACENCIES
+                  if a.name == ch_adj_name][0]
+        fname = ch_adj.fname
+        templates_dir = Path(__file__).resolve().parent / 'data' / 'neighbors'
+        fname = _check_fname(  # only needed to convert to a string
+            fname=templates_dir / fname,
+            overwrite='read',
+            must_exist=True
+        )
 
     nb = loadmat(fname)['neighbours']
     ch_names = _recursive_flatten(nb['label'], str)
@@ -1314,6 +1495,13 @@ def read_ch_adjacency(fname, picks=None):
     # picking before constructing matrix is buggy
     adjacency = adjacency[picks][:, picks]
     ch_names = [ch_names[p] for p in picks]
+
+    # make sure MEG channel names contain space after "MEG"
+    for idx, ch_name in enumerate(ch_names):
+        if ch_name.startswith('MEG') and not ch_name[3] == ' ':
+            ch_name = ch_name.replace('MEG', 'MEG ')
+            ch_names[idx] = ch_name
+
     return adjacency, ch_names
 
 
@@ -1331,7 +1519,7 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
 
     Returns
     -------
-    ch_adjacency : scipy.sparse matrix
+    ch_adjacency : scipy.sparse.spmatrix
         The adjacency matrix.
     """
     from scipy import sparse
@@ -1356,21 +1544,21 @@ def _ch_neighbor_adjacency(ch_names, neighbors):
     return ch_adjacency
 
 
+@fill_doc
 def find_ch_adjacency(info, ch_type):
     """Find the adjacency matrix for the given channels.
 
     This function tries to infer the appropriate adjacency matrix template
     for the given channels. If a template is not found, the adjacency matrix
-    is computed using Delaunay triangulation based on 2d sensor locations.
+    is computed using Delaunay triangulation based on 2D sensor locations.
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info.
+    %(info_not_none)s
     ch_type : str | None
         The channel type for computing the adjacency matrix. Currently
-        supports 'mag', 'grad', 'eeg' and None. If None, the info must contain
-        only one channel type.
+        supports ``'mag'``, ``'grad'``, ``'eeg'`` and ``None``.
+        If ``None``, the info must contain only one channel type.
 
     Returns
     -------
@@ -1381,6 +1569,9 @@ def find_ch_adjacency(info, ch_type):
 
     See Also
     --------
+    mne.viz.plot_ch_adjacency
+    mne.stats.combine_adjacency
+    get_builtin_ch_adjacencies
     read_ch_adjacency
 
     Notes
@@ -1392,6 +1583,10 @@ def find_ch_adjacency(info, ch_type):
     is always computed for EEG data and never loaded from a template file. If
     you want to load a template for a given montage use
     :func:`read_ch_adjacency` directly.
+
+    Note that depending on your use case, you may need to additionally use
+    :func:`mne.stats.combine_adjacency` to prepare a final "adjacency"
+    to pass to the eventual function.
     """
     if ch_type is None:
         picks = channel_indices_by_type(info)
@@ -1435,27 +1630,27 @@ def find_ch_adjacency(info, ch_type):
         conn_name = KIT_NEIGHBORS.get(info['kit_system_id'])
 
     if conn_name is not None:
-        logger.info('Reading adjacency matrix for %s.' % conn_name)
+        logger.info(f'Reading adjacency matrix for {conn_name}.')
         return read_ch_adjacency(conn_name)
     logger.info('Could not find a adjacency matrix for the data. '
                 'Computing adjacency based on Delaunay triangulations.')
     return _compute_ch_adjacency(info, ch_type)
 
 
+@fill_doc
 def _compute_ch_adjacency(info, ch_type):
     """Compute channel adjacency matrix using Delaunay triangulations.
 
     Parameters
     ----------
-    info : instance of mne.measuerment_info.Info
-        The measurement info.
+    %(info_not_none)s
     ch_type : str
         The channel type for computing the adjacency matrix. Currently
         supports 'mag', 'grad' and 'eeg'.
 
     Returns
     -------
-    ch_adjacency : scipy.sparse matrix, shape (n_channels, n_channels)
+    ch_adjacency : scipy.sparse.csr_matrix, shape (n_channels, n_channels)
         The adjacency matrix.
     ch_names : list
         The list of channel names present in adjacency matrix.
@@ -1502,13 +1697,13 @@ def _compute_ch_adjacency(info, ch_type):
     return ch_adjacency, ch_names
 
 
+@fill_doc
 def fix_mag_coil_types(info, use_cal=False):
     """Fix magnetometer coil types.
 
     Parameters
     ----------
-    info : dict
-        The info dict to correct. Corrections are done in-place.
+    %(info_not_none)s Corrections are done in-place.
     use_cal : bool
         If True, further refine the check for old coil types by checking
         ``info['chs'][ii]['cal']``.
@@ -1538,13 +1733,14 @@ def fix_mag_coil_types(info, use_cal=False):
     for ii in old_mag_inds:
         info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_VV_MAG_T3
     logger.info('%d of %d magnetometer types replaced with T3.' %
-                (len(old_mag_inds), len(pick_types(info, meg='mag'))))
+                (len(old_mag_inds),
+                 len(pick_types(info, meg='mag', exclude=[]))))
     info._check_consistency()
 
 
 def _get_T1T2_mag_inds(info, use_cal=False):
     """Find T1/T2 magnetometer coil types."""
-    picks = pick_types(info, meg='mag')
+    picks = pick_types(info, meg='mag', exclude=[])
     old_mag_inds = []
     # From email exchanges, systems with the larger T2 coil only use the cal
     # value of 2.09e-11. Newer T3 magnetometers use 4.13e-11 or 1.33e-10
@@ -1606,6 +1802,7 @@ def _get_ch_info(info):
             has_csd_coils)
 
 
+@fill_doc
 def make_1020_channel_selections(info, midline="z"):
     """Return dict mapping from ROI names to lists of picks for 10/20 setups.
 
@@ -1620,11 +1817,9 @@ def make_1020_channel_selections(info, midline="z"):
 
     Parameters
     ----------
-    info : instance of Info
-        Where to obtain the channel names from. The picks will
-        be in relation to the position in ``info["ch_names"]``. If possible,
-        this lists will be sorted by y value position of the channel locations,
-        i.e., from back to front.
+    %(info_not_none)s If possible, the channel lists will be sorted
+        posterior-to-anterior; otherwise they default to the order specified in
+        ``info["ch_names"]``.
     midline : str
         Names ending in any of these characters are stored under the
         ``Midline`` key. Defaults to 'z'. Note that capitalization is ignored.
@@ -1790,15 +1985,17 @@ def combine_channels(inst, groups, method='mean', keep_stim=False,
     new_data = np.swapaxes(new_data, 0, ch_axis)
     info = create_info(sfreq=inst.info['sfreq'], ch_names=new_ch_names,
                        ch_types=new_ch_types)
+    # create new instances and make sure to copy important attributes
     if isinstance(inst, BaseRaw):
-        combined_inst = RawArray(new_data, info, first_samp=inst.first_samp,
-                                 verbose=inst.verbose)
+        combined_inst = RawArray(new_data, info, first_samp=inst.first_samp)
     elif isinstance(inst, BaseEpochs):
         combined_inst = EpochsArray(new_data, info, events=inst.events,
-                                    tmin=inst.times[0], verbose=inst.verbose)
+                                    tmin=inst.times[0], baseline=inst.baseline)
+        if inst.metadata is not None:
+            combined_inst.metadata = inst.metadata.copy()
     elif isinstance(inst, Evoked):
         combined_inst = EvokedArray(new_data, info, tmin=inst.times[0],
-                                    verbose=inst.verbose)
+                                    baseline=inst.baseline)
 
     return combined_inst
 
@@ -1895,10 +2092,9 @@ def read_vectorview_selection(name, fname=None, info=None, verbose=None):
     fname : str
         Filename of the selection file (if ``None``, built-in selections are
         used).
-    info : instance of Info
-        Measurement info file, which will be used to determine the spacing
-        of channel names to return, e.g. ``'MEG 0111'`` for old Neuromag
-        systems and ``'MEG0111'`` for new ones.
+    %(info)s Used to determine which channel naming convention to use, e.g.
+        ``'MEG 0111'`` (with space) for old Neuromag systems and ``'MEG0111'``
+        (without space) for new ones.
     %(verbose)s
 
     Returns

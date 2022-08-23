@@ -1,7 +1,33 @@
 import os
 import subprocess
 from datetime import date
+
 from mne import __version__ as release_version
+
+# NOTE: ../codemeta.json and ../citation.cff should not be continuously
+#       updated. Run this script only at release time.
+
+package_name = 'MNE-Python'
+hard_dependencies = ('numpy', 'scipy')
+release_date = str(date.today())
+commit = subprocess.run(['git', 'log', '-1', '--pretty=%H'],
+                        capture_output=True, text=True).stdout.strip()
+
+# KEYWORDS
+keywords = (
+    'MEG',
+    'magnetoencephalography',
+    'EEG',
+    'electroencephalography',
+    'fNIRS',
+    'functional near-infrared spectroscopy',
+    'iEEG',
+    'intracranial EEG',
+    'eCoG',
+    'electrocorticography',
+    'DBS',
+    'deep brain stimulation'
+)
 
 # add to these as necessary
 compound_surnames = (
@@ -10,12 +36,13 @@ compound_surnames = (
     'De Santis',
     'Dupré la Tour',
     'de la Torre',
+    'de Montalivet',
     'van den Bosch',
     'Van den Bossche',
     'Van Der Donckt',
     'van der Meer',
     'van Harmelen',
-    'Visconti di Oleggio Castello'
+    'Visconti di Oleggio Castello',
 )
 
 
@@ -62,7 +89,7 @@ all_names = [parse_name(line) for line in lines]
 
 
 # CONSTRUCT JSON AUTHORS LIST
-authors = [f'''{{
+json_authors = [f'''{{
            "@type":"Person",
            "email":"{email}",
            "givenName":"{first}",
@@ -70,14 +97,13 @@ authors = [f'''{{
         }}''' for (first, last, email) in all_names]
 
 
-# GET OUR DEPENDENCIES
+# GET OUR DEPENDENCY VERSIONS
 with open(os.path.join('..', 'setup.py'), 'r') as fid:
     for line in fid:
         if line.strip().startswith('python_requires='):
             version = line.strip().split('=', maxsplit=1)[1].strip("'\",")
             dependencies = [f'python{version}']
             break
-hard_dependencies = ('numpy', 'scipy')
 with open(os.path.join('..', 'requirements.txt'), 'r') as fid:
     for line in fid:
         req = line.strip()
@@ -87,8 +113,9 @@ with open(os.path.join('..', 'requirements.txt'), 'r') as fid:
 
 
 # these must be done outside the boilerplate (no \n allowed in f-strings):
-authors = ',\n        '.join(authors)
+json_authors = ',\n        '.join(json_authors)
 dependencies = '",\n        "'.join(dependencies)
+json_keywords = '",\n        "'.join(keywords)
 
 
 # ASSEMBLE COMPLETE JSON
@@ -99,22 +126,17 @@ codemeta_boilerplate = f'''{{
     "codeRepository": "git+https://github.com/mne-tools/mne-python.git",
     "dateCreated": "2010-12-26",
     "datePublished": "2014-08-04",
-    "dateModified": "{str(date.today())}",
+    "dateModified": "{release_date}",
     "downloadUrl": "https://github.com/mne-tools/mne-python/archive/v{release_version}.zip",
     "issueTracker": "https://github.com/mne-tools/mne-python/issues",
-    "name": "MNE-Python",
+    "name": "{package_name}",
     "version": "{release_version}",
-    "description": "MNE-Python is an open-source Python package for exploring, visualizing, and analyzing human neurophysiological data. It provides methods for data input/output, preprocessing, visualization, source estimation, time-frequency analysis, connectivity analysis, machine learning, and statistics.",
+    "description": "{package_name} is an open-source Python package for exploring, visualizing, and analyzing human neurophysiological data. It provides methods for data input/output, preprocessing, visualization, source estimation, time-frequency analysis, connectivity analysis, machine learning, and statistics.",
     "applicationCategory": "Neuroscience",
     "developmentStatus": "active",
     "referencePublication": "https://doi.org/10.3389/fnins.2013.00267",
     "keywords": [
-        "MEG",
-        "EEG",
-        "fNIRS",
-        "ECoG",
-        "sEEG",
-        "DBS"
+        "{json_keywords}"
     ],
     "programmingLanguage": [
         "Python"
@@ -128,7 +150,7 @@ codemeta_boilerplate = f'''{{
         "{dependencies}"
     ],
     "author": [
-        {authors}
+        {json_authors}
     ]
 }}
 '''  # noqa E501
@@ -137,3 +159,77 @@ codemeta_boilerplate = f'''{{
 # WRITE TO FILE
 with open(os.path.join('..', 'codemeta.json'), 'w') as codemeta_file:
     codemeta_file.write(codemeta_boilerplate)
+
+
+# # # # # # # # # # # # # # #
+# GENERATE CITATION.CFF TOO #
+# # # # # # # # # # # # # # #
+message = ('If you use this software, please cite both the software itself, '
+           'and the paper listed in the preferred-citation field.')
+
+# in CFF, multi-word keywords need to be wrapped in quotes
+cff_keywords = (f'"{kw}"' if ' ' in kw else kw for kw in keywords)
+# make into a bulleted list
+cff_keywords = '\n'.join(f'  - {kw}' for kw in cff_keywords)
+
+# TODO: someday would be nice to include ORCiD identifiers too
+cff_authors = [f'  - family-names: {last}\n    given-names: {first}'
+               if first else
+               f'  - name: {last}'
+               for (first, last, _) in all_names]
+cff_authors = '\n'.join(cff_authors)
+
+# this ↓↓↓ is the meta-DOI that always resolves to the latest release
+zenodo_doi = '10.5281/zenodo.592483'
+
+# ASSEMBLE THE CFF STRING
+cff_boilerplate = f'''\
+cff-version: 1.2.0
+title: "{package_name}"
+message: "{message}"
+version: {release_version}
+date-released: "{release_date}"
+commit: {commit}
+doi: {zenodo_doi}
+keywords:
+{cff_keywords}
+authors:
+{cff_authors}
+preferred-citation:
+  title: "MEG and EEG Data Analysis with MNE-Python"
+  journal: "Frontiers in Neuroscience"
+  type: article
+  year: 2013
+  volume: 7
+  issue: 267
+  start: 1
+  end: 13
+  doi: 10.3389/fnins.2013.00267
+  authors:
+    - family-names: Gramfort
+      given-names: Alexandre
+    - family-names: Luessi
+      given-names: Martin
+    - family-names: Larson
+      given-names: Eric
+    - family-names: Engemann
+      given-names: Denis A.
+    - family-names: Strohmeier
+      given-names: Daniel
+    - family-names: Brodbeck
+      given-names: Christian
+    - family-names: Goj
+      given-names: Roman
+    - family-names: Jas
+      given-names: Mainak
+    - family-names: Brooks
+      given-names: Teon
+    - family-names: Parkkonen
+      given-names: Lauri
+    - family-names: Hämäläinen
+      given-names: Matti S.
+'''
+
+# WRITE TO FILE
+with open(os.path.join('..', 'CITATION.cff'), 'w') as cff_file:
+    cff_file.write(cff_boilerplate)

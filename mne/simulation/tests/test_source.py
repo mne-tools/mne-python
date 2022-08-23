@@ -1,7 +1,7 @@
 # Author: Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
 #         Samuel Deslauriers-Gauthier <sam.deslauriers@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -15,7 +15,7 @@ from mne import (read_label, read_forward_solution, pick_types_forward,
                  convert_forward_solution)
 from mne.label import Label
 from mne.simulation import simulate_stc, simulate_sparse_stc, SourceSimulator
-from mne.utils import run_tests_if_main, check_version
+from mne.utils import check_version
 
 
 data_path = testing.data_path(download=False)
@@ -412,6 +412,3 @@ def test_source_simulator(_get_fwd_labels):
     assert len(stcs) == 2
     assert stcs[0].data.shape[1] == 6
     assert stcs[1].data.shape[1] == 4
-
-
-run_tests_if_main()

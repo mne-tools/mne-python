@@ -11,33 +11,37 @@
 #          Daniel McCloy <dan@mccloy.info>
 #
 # License: Simplified BSD
-
 from collections import defaultdict
 from contextlib import contextmanager
-from functools import partial
+from datetime import datetime
 import difflib
-import webbrowser
-import tempfile
+from functools import partial
 import math
-import numpy as np
-from copy import deepcopy
-from distutils.version import LooseVersion
+import os
+import sys
+import tempfile
+import traceback
 import warnings
+import webbrowser
+
+from decorator import decorator
+import numpy as np
 
 from ..defaults import _handle_default
-from ..fixes import _get_status
+from ..fixes import _get_args
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
+from ..io.meas_info import create_info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT, _VALID_CHANNEL_TYPES,
                        pick_info, _picks_by_type, pick_channels_cov,
                        _contains_ch_type)
-from ..io.meas_info import create_info
+from ..io.proj import setup_proj, Projection
 from ..rank import compute_rank
-from ..io.proj import setup_proj
-from ..utils import (verbose, get_config, warn, _check_ch_locs, _check_option,
-                     logger, fill_doc, _pl, _check_sphere, _ensure_int)
+from ..utils import (verbose, get_config, _check_ch_locs, _check_option,
+                     logger, fill_doc, _pl, _check_sphere, _ensure_int,
+                     _validate_type, _to_rgb, warn, check_version)
 from ..transforms import apply_trans
 
 
@@ -47,6 +51,15 @@ _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
                              'ecg': "ECG sensor", 'emg': "EMG sensor",
                              'ecog': "ECoG channel",
                              'misc': "miscellaneous sensor"}
+
+
+@decorator
+def safe_event(fun, *args, **kwargs):
+    """Protect against Qt exiting on event-handling errors."""
+    try:
+        return fun(*args, **kwargs)
+    except Exception:
+        traceback.print_exc(file=sys.stderr)
 
 
 def _setup_vmin_vmax(data, vmin, vmax, norm=False):
@@ -101,10 +114,47 @@ def plt_show(show=True, fig=None, **kwargs):
     **kwargs : dict
         Extra arguments for :func:`matplotlib.pyplot.show`.
     """
-    from matplotlib import get_backend
     import matplotlib.pyplot as plt
-    if show and get_backend() != 'agg':
+    from matplotlib import get_backend
+    if hasattr(fig, 'mne') and hasattr(fig.mne, 'backend'):
+        backend = fig.mne.backend
+    else:
+        backend = get_backend()
+    if show and backend != 'agg':
         (fig or plt).show(**kwargs)
+
+
+def _show_browser(show=True, block=True, fig=None, **kwargs):
+    """Show the browser considering different backends.
+
+    Parameters
+    ----------
+    show : bool
+        Show the figure.
+    block : bool
+        If to block execution on showing.
+    fig : instance of Figure | None
+        Needs to be passed for Qt backend,
+        optional for matplotlib.
+    **kwargs : dict
+        Extra arguments for :func:`matplotlib.pyplot.show`.
+    """
+    from ._figure import get_browser_backend
+    _validate_type(block, bool, 'block')
+    backend = get_browser_backend()
+    if os.getenv('_MNE_BROWSER_NO_BLOCK', 'false').lower() == 'true':
+        block = False
+    if backend == 'matplotlib':
+        plt_show(show, block=block, **kwargs)
+    else:
+        from qtpy.QtWidgets import QApplication
+        from .backends._utils import _qt_app_exec
+        if show:
+            fig.show()
+        # If block=False, a Qt-Event-Loop has to be started
+        # somewhere else in the calling code.
+        if block:
+            _qt_app_exec(QApplication.instance())
 
 
 def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
@@ -132,20 +182,25 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     This will not force constrained_layout=False if the figure was created
     with that method.
     """
+    _validate_type(pad, 'numeric', 'pad')
     import matplotlib.pyplot as plt
     fig = plt.gcf() if fig is None else fig
 
     fig.canvas.draw()
     constrained = fig.get_constrained_layout()
+    kwargs = dict(pad=pad, h_pad=h_pad, w_pad=w_pad)
     if constrained:
         return  # no-op
     try:  # see https://github.com/matplotlib/matplotlib/issues/2654
         with warnings.catch_warnings(record=True) as ws:
-            fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
+            fig.tight_layout(**kwargs)
     except Exception:
         try:
             with warnings.catch_warnings(record=True) as ws:
-                fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
+                if hasattr(fig, 'set_layout_engine'):
+                    fig.set_layout_engine('tight', **kwargs)
+                else:
+                    fig.set_tight_layout(kwargs)
         except Exception:
             warn('Matplotlib function "tight_layout" is not supported.'
                  ' Skipping subplot adjustment.')
@@ -166,33 +221,30 @@ def _check_delayed_ssp(container):
         raise RuntimeError('No projs found in evoked.')
 
 
-def _validate_if_list_of_axes(axes, obligatory_len=None):
+def _validate_if_list_of_axes(axes, obligatory_len=None, name='axes'):
     """Validate whether input is a list/array of axes."""
     from matplotlib.axes import Axes
-    if obligatory_len is not None and not isinstance(obligatory_len, int):
-        raise ValueError('obligatory_len must be None or int, got %d',
-                         'instead' % type(obligatory_len))
-    if not isinstance(axes, (list, np.ndarray)):
-        raise ValueError('axes must be a list or numpy array of matplotlib '
-                         'axes objects, got %s instead.' % type(axes))
+    _validate_type(axes, (list, tuple, np.ndarray), name)
     if isinstance(axes, np.ndarray) and axes.ndim > 1:
-        raise ValueError('if input is a numpy array, it must be '
-                         'one-dimensional. The received numpy array has %d '
-                         'dimensions however. Try using ravel or flatten '
-                         'method of the array.' % axes.ndim)
-    is_correct_type = np.array([isinstance(x, Axes)
-                                for x in axes])
-    if not np.all(is_correct_type):
-        first_bad = np.where(np.logical_not(is_correct_type))[0][0]
-        raise ValueError('axes must be a list or numpy array of matplotlib '
-                         'axes objects while one of the list elements is '
-                         '%s.' % type(axes[first_bad]))
-    if obligatory_len is not None and not len(axes) == obligatory_len:
-        raise ValueError('axes must be a list/array of length %d, while the'
-                         ' length is %d' % (obligatory_len, len(axes)))
+        raise ValueError(
+            f'if {name} is a numpy array, it must be one-dimensional, but '
+            f'the received numpy array has {axes.ndim} dimensions. Try using '
+            'ravel or flatten method of the array.')
+    wrong_idx = np.where([not isinstance(x, Axes) for x in axes])[0]
+    if len(wrong_idx):
+        raise TypeError(
+            f'{name} must be an array-like of matplotlib axes objects, but '
+            f'{name}[{wrong_idx[0]}] is of type {type(axes[wrong_idx[0]])}')
+    if obligatory_len is not None:
+        obligatory_len = _ensure_int(obligatory_len, 'obligatory_len',
+                                     extra='if not None')
+        if len(axes) != obligatory_len:
+            raise ValueError(
+                f'{name} must be an array-like of length {obligatory_len}, '
+                f'but the length is {len(axes)}')
 
 
-def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
+def mne_analyze_colormap(limits=[5, 10, 15], format='vtk'):
     """Return a colormap similar to that used by mne_analyze.
 
     Parameters
@@ -202,7 +254,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
         3, or completely specified (and potentially asymmetric) if length 6.
     format : str
         Type of colormap to return. If 'matplotlib', will return a
-        matplotlib.colors.LinearSegmentedColormap. If 'mayavi', will
+        matplotlib.colors.LinearSegmentedColormap. If 'vtk', will
         return an RGBA array of shape (256, 4).
 
     Returns
@@ -260,7 +312,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
                            (limits[5], 1.0, 1.0)),
                  }
         return colors.LinearSegmentedColormap('mne_analyze', cdict)
-    elif format == 'mayavi':
+    elif format in ('vtk', 'mayavi'):
         if len(limits) == 3:
             limits = np.concatenate((-np.flipud(limits), [0], limits)) /\
                 limits[-1]
@@ -276,7 +328,9 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
                           for c in [r, g, b, a]]].T
         return colormap
     else:
-        raise ValueError('format must be either matplotlib or mayavi')
+        # Use this instead of check_option because we have a hidden option
+        raise ValueError(
+            f'format must be either matplotlib or vtk, got {repr(format)}')
 
 
 @contextmanager
@@ -292,7 +346,7 @@ def _toggle_proj(event, params, all_=False):
     """Perform operations when proj boxes clicked."""
     # read options if possible
     if 'proj_checks' in params:
-        bools = _get_status(params['proj_checks'])
+        bools = list(params['proj_checks'].get_status())
         if all_:
             new_bools = [not all(bools)] * len(bools)
             with _events_off(params['proj_checks']):
@@ -362,7 +416,7 @@ def _make_event_color_dict(event_color, events=None, event_id=None):
 def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
                      size=1.3, sharex=False, sharey=False):
     from matplotlib.gridspec import GridSpec
-    from ._figure import _figure
+    from ._mpl_figure import _figure
 
     if n_cells == 1:
         nrows = ncols = 1
@@ -689,8 +743,13 @@ class ClickableImage(object):
         return lt
 
 
-def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
+def _old_mpl_events():
+    return not check_version('matplotlib', '3.6')
+
+
+def _fake_click(fig, ax, point, xform='ax', button=1, kind='press', key=None):
     """Fake a click at a relative point within axes."""
+    from matplotlib import backend_bases
     if xform == 'ax':
         x, y = ax.transAxes.transform_point(point)
     elif xform == 'data':
@@ -698,14 +757,47 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
     else:
         assert xform == 'pix'
         x, y = point
-    if kind == 'press':
-        func = partial(fig.canvas.button_press_event, x=x, y=y, button=button)
-    elif kind == 'release':
-        func = partial(fig.canvas.button_release_event, x=x, y=y,
-                       button=button)
-    elif kind == 'motion':
-        func = partial(fig.canvas.motion_notify_event, x=x, y=y)
-    func(guiEvent=None)
+    # This works on 3.6+, but not on <= 3.5.1 (lasso events not propagated)
+    if _old_mpl_events():
+        if kind == 'press':
+            fig.canvas.button_press_event(x=x, y=y, button=button)
+        elif kind == 'release':
+            fig.canvas.button_release_event(x=x, y=y, button=button)
+        elif kind == 'motion':
+            fig.canvas.motion_notify_event(x=x, y=y)
+    else:
+        if kind in ('press', 'release'):
+            kind = f'button_{kind}_event'
+        else:
+            assert kind == 'motion'
+            kind = 'motion_notify_event'
+            button = None
+        fig.canvas.callbacks.process(
+            kind,
+            backend_bases.MouseEvent(
+                name=kind, canvas=fig.canvas, x=x, y=y, button=button,
+                key=key))
+
+
+def _fake_keypress(fig, key):
+    if _old_mpl_events():
+        fig.canvas.key_press_event(key)
+    else:
+        from matplotlib import backend_bases
+        fig.canvas.callbacks.process(
+            'key_press_event',
+            backend_bases.KeyEvent(
+                name='key_press_event', canvas=fig.canvas, key=key))
+
+
+def _fake_scroll(fig, x, y, step):
+    from matplotlib import backend_bases
+    button = 'up' if step >= 0 else 'down'
+    fig.canvas.callbacks.process(
+        'scroll_event',
+        backend_bases.MouseEvent(
+            name='scroll_event', canvas=fig.canvas, x=x, y=y, step=step,
+            button=button))
 
 
 def add_background_image(fig, im, set_ratios=None):
@@ -807,13 +899,13 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
 @verbose
 def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                  show_names=False, ch_groups=None, to_sphere=True, axes=None,
-                 block=False, show=True, sphere=None, verbose=None):
+                 block=False, show=True, sphere=None, pointsize=None,
+                 linewidth=2, verbose=None):
     """Plot sensors positions.
 
     Parameters
     ----------
-    info : instance of Info
-        Info structure containing the channel locations.
+    %(info_not_none)s
     kind : str
         Whether to plot the sensors as 3d, topomap or as an interactive
         sensor selection dialog. Available options 'topomap', '3d', 'select'.
@@ -857,7 +949,12 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         .. versionadded:: 0.13.0
     show : bool
         Show figure if True. Defaults to True.
-    %(topomap_sphere_auto)s
+    %(sphere_topomap_auto)s
+    pointsize : float | None
+        The size of the points. If None (default), will bet set to 75 if
+        ``kind='3d'``, or 25 otherwise.
+    linewidth : float
+        The width of the outline. If 0, the outline will not be drawn.
     %(verbose)s
 
     Returns
@@ -874,7 +971,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     Notes
     -----
     This function plots the sensor locations from the info structure using
-    matplotlib. For drawing the sensors using mayavi see
+    matplotlib. For drawing the sensors using PyVista see
     :func:`mne.viz.plot_alignment`.
 
     .. versionadded:: 0.12.0
@@ -882,7 +979,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     from .evoked import _rgb
     _check_option('kind', kind, ['topomap', '3d', 'select'])
     if not isinstance(info, Info):
-        raise TypeError('info must be an instance of Info not %s' % type(info))
+        raise TypeError(f'info must be an instance of Info not {type(info)}')
     ch_indices = channel_indices_by_type(info)
     allowed_types = _DATA_CH_TYPES_SPLIT
     if ch_type is None:
@@ -898,16 +995,17 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     elif ch_type in allowed_types:
         picks = ch_indices[ch_type]
     else:
-        raise ValueError("ch_type must be one of %s not %s!" % (allowed_types,
-                                                                ch_type))
+        raise ValueError(
+            f'ch_type must be one of {allowed_types} not {ch_type}!')
 
     if len(picks) == 0:
-        raise ValueError('Could not find any channels of type %s.' % ch_type)
+        raise ValueError(f'Could not find any channels of type {ch_type}.')
 
-    chs = [info['chs'][pick] for pick in picks]
-    if not _check_ch_locs(chs):
+    if not _check_ch_locs(info=info, picks=picks):
         raise RuntimeError('No valid channel positions found')
+
     dev_head_t = info['dev_head_t']
+    chs = [info['chs'][pick] for pick in picks]
     pos = np.empty((len(chs), 3))
     for ci, ch in enumerate(chs):
         pos[ci] = ch['loc'][:3]
@@ -966,7 +1064,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     title = 'Sensor positions (%s)' % ch_type if title is None else title
     fig = _plot_sensors(pos, info, picks, colors, bads, ch_names, title,
                         show_names, axes, show, kind, block,
-                        to_sphere, sphere)
+                        to_sphere, sphere, pointsize=pointsize,
+                        linewidth=linewidth)
     if kind == 'select':
         return fig, fig.lasso.selection
     return fig
@@ -991,7 +1090,7 @@ def _onpick_sensor(event, fig, ax, pos, ch_names, show_names):
 
     # XXX: Bug in matplotlib won't allow setting the position of existing
     # text item, so we create a new one.
-    ax.texts.pop(0)
+    ax.texts[0].remove()
     if len(this_pos) == 3:
         ax.text(this_pos[0], this_pos[1], this_pos[2], ch_name)
     else:
@@ -1006,7 +1105,8 @@ def _close_event(event, fig):
 
 
 def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
-                  ax, show, kind, block, to_sphere, sphere):
+                  ax, show, kind, block, to_sphere, sphere, pointsize=None,
+                  linewidth=2):
     """Plot sensors."""
     from matplotlib import rcParams
     import matplotlib.pyplot as plt
@@ -1028,9 +1128,11 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         fig = ax.get_figure()
 
     if kind == '3d':
+        pointsize = 75 if pointsize is None else pointsize
         ax.text(0, 0, 0, '', zorder=1)
+
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors,
-                   s=75, edgecolor=edgecolors, linewidth=2)
+                   s=pointsize, edgecolor=edgecolors, linewidth=linewidth)
 
         ax.azim = 90
         ax.elev = 0
@@ -1038,13 +1140,15 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         ax.yaxis.set_label_text('y (m)')
         ax.zaxis.set_label_text('z (m)')
     else:  # kind in 'select', 'topomap'
+        pointsize = 25 if pointsize is None else pointsize
         ax.text(0, 0, '', zorder=1)
 
         pos, outlines = _get_pos_outlines(info, picks, sphere,
                                           to_sphere=to_sphere)
         _draw_outlines(ax, outlines)
         pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, clip_on=False,
-                         c=colors, edgecolors=edgecolors, s=25, lw=2)
+                         c=colors, edgecolors=edgecolors, s=pointsize,
+                         lw=linewidth)
         if kind == 'select':
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
         else:
@@ -1071,6 +1175,16 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
                 ax.text(this_pos[0] + 0.0025, this_pos[1], ch_names[idx],
                         ha='left', va='center')
         connect_picker = (kind == 'select')
+        # make sure no names go off the edge of the canvas
+        xmin, ymin, xmax, ymax = fig.get_window_extent().bounds
+        renderer = fig.canvas.get_renderer()
+        extents = [x.get_window_extent(renderer=renderer) for x in ax.texts]
+        xmaxs = np.array([x.max[0] for x in extents])
+        bad_xmax_ixs = np.nonzero(xmaxs > xmax)[0]
+        if len(bad_xmax_ixs):
+            needed_space = (xmaxs[bad_xmax_ixs] - xmax).max() / xmax
+            fig.subplots_adjust(right=1 - 1.1 * needed_space)
+
     if connect_picker:
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
                          ch_names=ch_names, show_names=show_names)
@@ -1113,14 +1227,32 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
     """
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
+
     scalings = _handle_default('scalings_plot_raw', scalings)
     if not isinstance(inst, (BaseRaw, BaseEpochs)):
         raise ValueError('Must supply either Raw or Epochs')
 
+    for key, value in scalings.items():
+        if not (isinstance(value, str) and value == 'auto'):
+            try:
+                scalings[key] = float(value)
+            except Exception:
+                raise ValueError(
+                    f'scalings must be "auto" or float, got '
+                    f'scalings[{key!r}]={value!r} which could not be '
+                    f'converted to float'
+                )
+
+    # If there are no "auto" scalings, we can return early!
+    if all(
+        [scalings[ch_type] != 'auto'
+         for ch_type in inst.get_channel_types(unique=True)]
+    ):
+        return scalings
+
     ch_types = channel_indices_by_type(inst.info)
     ch_types = {i_type: i_ixs
                 for i_type, i_ixs in ch_types.items() if len(i_ixs) != 0}
-    scalings = deepcopy(scalings)
 
     if inst.preload is False:
         if isinstance(inst, BaseRaw):
@@ -1146,15 +1278,7 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
         data = inst._data.swapaxes(0, 1).reshape([len(inst.ch_names), -1])
     # Iterate through ch types and update scaling if ' auto'
     for key, value in scalings.items():
-        if key not in ch_types:
-            continue
-        if not (isinstance(value, str) and value == 'auto'):
-            try:
-                scalings[key] = float(value)
-            except Exception:
-                raise ValueError(
-                    f'scalings must be "auto" or float, got scalings[{key!r}]='
-                    f'{value!r} which could not be converted to float')
+        if key not in ch_types or value != 'auto':
             continue
         this_data = data[ch_types[key]]
         if remove_dc and (this_data.shape[1] / inst.info["sfreq"] >= duration):
@@ -1240,15 +1364,15 @@ class DraggableColorbar(object):
 
     def connect(self):
         """Connect to all the events we need."""
-        self.cidpress = self.cbar.patch.figure.canvas.mpl_connect(
+        self.cidpress = self.cbar.ax.figure.canvas.mpl_connect(
             'button_press_event', self.on_press)
-        self.cidrelease = self.cbar.patch.figure.canvas.mpl_connect(
+        self.cidrelease = self.cbar.ax.figure.canvas.mpl_connect(
             'button_release_event', self.on_release)
-        self.cidmotion = self.cbar.patch.figure.canvas.mpl_connect(
+        self.cidmotion = self.cbar.ax.figure.canvas.mpl_connect(
             'motion_notify_event', self.on_motion)
-        self.keypress = self.cbar.patch.figure.canvas.mpl_connect(
+        self.keypress = self.cbar.ax.figure.canvas.mpl_connect(
             'key_press_event', self.key_press)
-        self.scroll = self.cbar.patch.figure.canvas.mpl_connect(
+        self.scroll = self.cbar.ax.figure.canvas.mpl_connect(
             'scroll_event', self.on_scroll)
 
     def on_press(self, event):
@@ -1259,7 +1383,6 @@ class DraggableColorbar(object):
 
     def key_press(self, event):
         """Handle key press."""
-        # print(event.key)
         scale = self.cbar.norm.vmax - self.cbar.norm.vmin
         perc = 0.03
         if event.key == 'down':
@@ -1289,7 +1412,7 @@ class DraggableColorbar(object):
             self.index = 0
         cmap = self.cycle[self.index]
         self.cbar.mappable.set_cmap(cmap)
-        self.cbar.draw_all()
+        _draw_without_rendering(self.cbar)
         self.mappable.set_cmap(cmap)
         self._update()
 
@@ -1325,13 +1448,24 @@ class DraggableColorbar(object):
         self._update()
 
     def _update(self):
-        self.cbar.set_ticks(None, update_ticks=True)  # use default
-        self.cbar.draw_all()
+        from matplotlib.ticker import AutoLocator
+        self.cbar.set_ticks(AutoLocator())
+        self.cbar.update_ticks()
+        _draw_without_rendering(self.cbar)
         self.mappable.set_norm(self.cbar.norm)
-        self.cbar.patch.figure.canvas.draw()
+        self.cbar.ax.figure.canvas.draw()
 
 
-class SelectFromCollection(object):
+def _draw_without_rendering(cbar):
+    # draw_all deprecated in Matplotlib 3.6
+    try:
+        meth = cbar.ax.figure.draw_without_rendering
+    except AttributeError:
+        meth = cbar.draw_all
+    return meth()
+
+
+class SelectFromCollection:
     """Select channels from a matplotlib collection using ``LassoSelector``.
 
     Selected channels are saved in the ``selection`` attribute. This tool
@@ -1354,16 +1488,12 @@ class SelectFromCollection(object):
     Notes
     -----
     This tool selects collection objects based on their *origins*
-    (i.e., ``offsets``). Emits mpl event 'lasso_event' when selection is ready.
+    (i.e., ``offsets``). Calls all callbacks in self.callbacks when selection
+    is ready.
     """
 
     def __init__(self, ax, collection, ch_names, alpha_other=0.5,
                  linewidth_other=0.5, alpha_selected=1, linewidth_selected=1):
-        from matplotlib import __version__
-        if LooseVersion(__version__) < LooseVersion('1.2.1'):
-            raise ImportError('Interactive selection not possible for '
-                              'matplotlib versions < 1.2.1. Upgrade '
-                              'matplotlib.')
         from matplotlib.widgets import LassoSelector
         self.canvas = ax.figure.canvas
         self.collection = collection
@@ -1389,9 +1519,10 @@ class SelectFromCollection(object):
         self.ec[:, -1] = self.alpha_other
         self.lw = np.full(self.Npts, self.linewidth_other)
 
-        self.lasso = LassoSelector(ax, onselect=self.on_select,
-                                   lineprops=dict(color='red', linewidth=0.5))
+        line_kw = _prop_kw('line', dict(color='red', linewidth=0.5))
+        self.lasso = LassoSelector(ax, onselect=self.on_select, **line_kw)
         self.selection = list()
+        self.callbacks = list()
 
     def on_select(self, verts):
         """Select a subset from the collection."""
@@ -1408,7 +1539,7 @@ class SelectFromCollection(object):
 
         self.selection[:] = np.array(self.ch_names)[inds].tolist()
         self.style_sensors(inds)
-        self.canvas.callbacks.process('lasso_event')
+        self.notify()
 
     def select_one(self, ind):
         """Select or deselect one sensor."""
@@ -1420,7 +1551,12 @@ class SelectFromCollection(object):
             self.selection.append(ch_name)
         inds = np.in1d(self.ch_names, self.selection).nonzero()[0]
         self.style_sensors(inds)
-        self.canvas.callbacks.process('lasso_event')
+        self.notify()
+
+    def notify(self):
+        """Notify listeners that a selection has been made."""
+        for callback in self.callbacks:
+            callback()
 
     def select_many(self, inds):
         """Select many sensors using indices (for predefined selections)."""
@@ -1589,12 +1725,12 @@ class DraggableLine(object):
         self.line.figure.canvas.mpl_disconnect(self.cidpress)
         self.line.figure.canvas.mpl_disconnect(self.cidrelease)
         self.line.figure.canvas.mpl_disconnect(self.cidmotion)
-        self.line.figure.axes[0].lines.remove(self.line)
+        self.line.remove()
 
 
 def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
                      unit=None, truncate_xaxis=True, truncate_yaxis=True,
-                     skip_axlabel=False, hline=True):
+                     skip_axlabel=False, hline=True, time_unit='s'):
     # don't show zero line if it coincides with x-axis (even if hline=True)
     if hline and ymin != 0.:
         axes.spines['top'].set_position('zero')
@@ -1605,7 +1741,7 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
     # new ticks that are nice round numbers close to (but less extreme than)
     # xmin and xmax
     vlines = [] if vlines is None else vlines
-    xticks = _trim_ticks(axes.get_xticks(), xmin, xmax)
+    xticks = _trim_ticks(axes.get_xticks(), round(xmin, 2), round(xmax, 2))
     xticks = np.array(sorted(set([x for x in xticks] + vlines)))
     if len(xticks) < 2:
         def log_fix(tval):
@@ -1647,7 +1783,7 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
     else:
         if unit is not None:
             axes.set_ylabel(unit, rotation=90)
-        axes.set_xlabel('Time (s)')
+        axes.set_xlabel(f'Time ({time_unit})')
     # plot vertical lines
     if vlines:
         _ymin, _ymax = axes.get_ylim()
@@ -1665,12 +1801,13 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
 
 def _handle_decim(info, decim, lowpass):
     """Handle decim parameter for plotters."""
-    from ..evoked import _check_decim
+    from ..utils.mixin import _check_decim
     from ..utils import _ensure_int
     if isinstance(decim, str) and decim == 'auto':
         lp = info['sfreq'] if info['lowpass'] is None else info['lowpass']
         lp = min(lp, info['sfreq'] if lowpass is None else lowpass)
-        info['lowpass'] = lp
+        with info._unlock():
+            info['lowpass'] = lp
         decim = max(int(info['sfreq'] / (lp * 3) + 1e-6), 1)
     decim = _ensure_int(decim, 'decim', must_be='an int or "auto"')
     if decim <= 0:
@@ -1775,7 +1912,8 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
         # we risk the rank estimates being incorrect (i.e., if the projectors
         # do not match).
         info_proj = info.copy()
-        info_proj['projs'] += cov['projs']
+        with info_proj._unlock():
+            info_proj['projs'] += cov['projs']
         this_rank = {}
         # assemble rank dict for this cov, such that we have meg
         for ch_type, this_picks in picks_list2:
@@ -1801,14 +1939,10 @@ def _triage_rank_sss(info, covs, rank=None, scalings=None):
 
 def _check_cov(noise_cov, info):
     """Check the noise_cov for whitening and issue an SSS warning."""
-    from ..cov import read_cov, Covariance
+    from ..cov import _ensure_cov
     if noise_cov is None:
         return None
-    if isinstance(noise_cov, str):
-        noise_cov = read_cov(noise_cov)
-    if not isinstance(noise_cov, Covariance):
-        raise TypeError('noise_cov must be a str or Covariance, got %s'
-                        % (type(noise_cov),))
+    noise_cov = _ensure_cov(noise_cov, name='noise_cov', verbose=False)
     if _check_sss(info)[2]:  # has_sss
         warn('Data have been processed with SSS, which changes the relative '
              'scaling of magnetometers and gradiometers when viewing data '
@@ -1853,9 +1987,10 @@ def _check_time_unit(time_unit, times):
 def _plot_masked_image(ax, data, times, mask=None, yvals=None,
                        cmap="RdBu_r", vmin=None, vmax=None, ylim=None,
                        mask_style="both", mask_alpha=.25, mask_cmap="Greys",
-                       yscale="linear"):
+                       yscale="linear", cnorm=None):
     """Plot a potentially masked (evoked, TFR, ...) 2D image."""
-    from matplotlib import ticker, __version__ as mpl_version
+    from matplotlib import ticker
+    from matplotlib.colors import Normalize
 
     if mask_style is None and mask is not None:
         mask_style = "both"  # default
@@ -1863,6 +1998,8 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
     draw_contour = mask_style in {"both", "contour"}
     if cmap is None:
         mask_cmap = cmap
+    if cnorm is None:
+        cnorm = Normalize(vmin=vmin, vmax=vmax)
 
     # mask param check and preparation
     if draw_mask is None:
@@ -1911,11 +2048,6 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
         else:
             yscale = 'linear'
 
-    # https://github.com/matplotlib/matplotlib/pull/9477
-    if yscale == "log" and mpl_version == "2.1.0":
-        warn("With matplotlib version 2.1.0, lines may not show up in "
-             "`AverageTFR.plot_joint`. Upgrade to a more recent version.")
-
     if yscale == "log":  # pcolormesh for log scale
         # compute bounds between time samples
         time_lims, = centers_to_edges(times)
@@ -1928,13 +2060,13 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
 
         if mask is not None:
             ax.pcolormesh(time_mesh, yval_mesh, data, cmap=mask_cmap,
-                          vmin=vmin, vmax=vmax, alpha=mask_alpha)
+                          norm=cnorm, alpha=mask_alpha)
             im = ax.pcolormesh(time_mesh, yval_mesh,
                                np.ma.masked_where(~mask, data), cmap=cmap,
-                               vmin=vmin, vmax=vmax, alpha=1)
+                               norm=cnorm, alpha=1)
         else:
             im = ax.pcolormesh(time_mesh, yval_mesh, data, cmap=cmap,
-                               vmin=vmin, vmax=vmax)
+                               norm=cnorm)
         if ylim is None:
             ylim = yval_lims[[0, -1]]
         if yscale == 'log':
@@ -1955,16 +2087,16 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
         dy = np.median(np.diff(yvals)) / 2. if len(yvals) > 1 else 0.5
         extent = [times[0] - dt, times[-1] + dt,
                   yvals[0] - dy, yvals[-1] + dy]
-        im_args = dict(interpolation='nearest', origin='lower',
-                       extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
-
+        im_args = dict(interpolation='nearest', origin='lower', extent=extent,
+                       aspect='auto')
         if draw_mask:
-            ax.imshow(data, alpha=mask_alpha, cmap=mask_cmap, **im_args)
-            im = ax.imshow(
-                np.ma.masked_where(~mask, data), cmap=cmap, **im_args)
+            ax.imshow(data, alpha=mask_alpha, cmap=mask_cmap, norm=cnorm,
+                      **im_args)
+            im = ax.imshow(np.ma.masked_where(~mask, data), cmap=cmap,
+                           norm=cnorm, **im_args)
         else:
-            ax.imshow(data, cmap=cmap, **im_args)  # see #6481
-            im = ax.imshow(data, cmap=cmap, **im_args)
+            ax.imshow(data, cmap=cmap, norm=cnorm, **im_args)  # see #6481
+            im = ax.imshow(data, cmap=cmap, norm=cnorm, **im_args)
 
         if draw_contour and np.unique(mask).size == 2:
             big_mask = np.kron(mask, np.ones((10, 10)))
@@ -2015,51 +2147,6 @@ def _make_combine_callable(combine):
                              '"mean", "median", "std", or "gfp"; got {}'
                              ''.format(combine))
     return combine
-
-
-def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
-    """Center given colormap (ranging from vmin to vmax) at value 0.
-
-    Parameters
-    ----------
-    cmap : matplotlib.colors.Colormap
-        The colormap to center around 0.
-    vmin : float
-        Minimum value in the data to map to the lower end of the colormap.
-    vmax : float
-        Maximum value in the data to map to the upper end of the colormap.
-    name : str
-        Name of the new colormap. Defaults to 'cmap_centered'.
-
-    Returns
-    -------
-    cmap_centered : matplotlib.colors.Colormap
-        The new colormap centered around 0.
-
-    Notes
-    -----
-    This function can be used in situations where vmin and vmax are not
-    symmetric around zero. Normally, this results in the value zero not being
-    mapped to white anymore in many colormaps. Using this function, the value
-    zero will be mapped to white even for asymmetric positive and negative
-    value ranges. Note that this could also be achieved by re-normalizing a
-    given colormap by subclassing matplotlib.colors.Normalize as described
-    here:
-    https://matplotlib.org/users/colormapnorms.html#custom-normalization-two-linear-ranges
-    """  # noqa: E501
-    from matplotlib.colors import LinearSegmentedColormap
-
-    vzero = abs(vmin) / float(vmax - vmin)
-    index_old = np.linspace(0, 1, cmap.N)
-    index_new = np.hstack([np.linspace(0, vzero, cmap.N // 2, endpoint=False),
-                           np.linspace(vzero, 1, cmap.N // 2)])
-
-    colors = "red", "green", "blue", "alpha"
-    cdict = {name: [] for name in colors}
-    for old, new in zip(index_old, index_new):
-        for color, name in zip(cmap(old), colors):
-            cdict[name].append((new, color, color))
-    return LinearSegmentedColormap(name, cdict)
 
 
 def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
@@ -2174,8 +2261,9 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         # Needed because the data do not match the info anymore.
         info = create_info([inst.ch_names[p] for p in picks],
                            inst.info['sfreq'], types)
-        info['chs'] = [inst.info['chs'][p] for p in picks]
-        info['dev_head_t'] = inst.info['dev_head_t']
+        with info._unlock():
+            info['chs'] = [inst.info['chs'][p] for p in picks]
+            info['dev_head_t'] = inst.info['dev_head_t']
         ch_types_used = list()
         for this_type in _VALID_CHANNEL_TYPES:
             if this_type in types:
@@ -2193,7 +2281,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
                     ch_types_used=ch_types_used, selectable=True, psd=True,
                     line_alpha=line_alpha, nave=None, time_unit='ms',
-                    sphere=sphere)
+                    sphere=sphere, highlight=None)
 
     for ii, (ax, xlabel) in enumerate(zip(ax_list, xlabels_list)):
         ax.grid(True, linestyle=':')
@@ -2215,8 +2303,11 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
 
 def _trim_ticks(ticks, _min, _max):
     """Remove ticks that are more extreme than the given limits."""
-    keep = np.where(np.logical_and(ticks >= _min, ticks <= _max))
-    return ticks[keep]
+    if np.isclose(_min, _max):
+        keep_idx = 0  # ensure we always keep at least one tick
+    else:
+        keep_idx = np.where(np.logical_and(ticks >= _min, ticks <= _max))
+    return np.atleast_1d(ticks[keep_idx])
 
 
 def _set_window_title(fig, title):
@@ -2288,12 +2379,12 @@ def _figure_agg(**kwargs):
     return fig
 
 
-def _ndarray_to_fig(img):
+def _ndarray_to_fig(img, dpi=100):
     """Convert to MPL figure, adapted from matplotlib.image.imsave."""
-    dpi = 100
     figsize = np.array(img.shape[:2][::-1]) / dpi
-    fig = _figure_agg(dpi=dpi, figsize=figsize, frameon=False)
-    fig.figimage(img, resize=True)
+    fig = _figure_agg(dpi=dpi, figsize=figsize)
+    ax = fig.add_axes([0, 0, 1, 1], frame_on=False)
+    ax.imshow(img)
     return fig
 
 
@@ -2303,7 +2394,8 @@ def _save_ndarray_img(fname, img):
     Image.fromarray(img).save(fname)
 
 
-def concatenate_images(images, axis=0, bgcolor='black', centered=True):
+def concatenate_images(images, axis=0, bgcolor='black', centered=True,
+                       n_channels=3):
     """Concatenate a list of images.
 
     Parameters
@@ -2319,29 +2411,131 @@ def concatenate_images(images, axis=0, bgcolor='black', centered=True):
         'black'.
     centered : bool
         If True, the images are centered. Defaults to True.
+    n_channels : int
+        Number of color channels. Can be 3 or 4. The default value is 3.
 
     Returns
     -------
     img : ndarray
         The concatenated image.
     """
-    from matplotlib.colors import colorConverter
-    if isinstance(bgcolor, str):
-        bgcolor = colorConverter.to_rgb(bgcolor)
+    n_channels = _ensure_int(n_channels, 'n_channels')
+    axis = _ensure_int(axis)
+    _check_option('axis', axis, (0, 1))
+    _check_option('n_channels', n_channels, (3, 4))
+    alpha = True if n_channels == 4 else False
+    bgcolor = _to_rgb(bgcolor, name='bgcolor', alpha=alpha)
     bgcolor = np.asarray(bgcolor) * 255
     funcs = [np.sum, np.max]
     ret_shape = np.asarray([
         funcs[axis]([image.shape[0] for image in images]),
         funcs[1 - axis]([image.shape[1] for image in images]),
     ])
-    ret = np.zeros((ret_shape[0], ret_shape[1], 3), dtype=np.uint8)
+    ret = np.zeros((ret_shape[0], ret_shape[1], n_channels), dtype=np.uint8)
     ret[:, :, :] = bgcolor
     ptr = np.array([0, 0])
     sec = np.array([0 == axis, 1 == axis]).astype(int)
     for image in images:
         shape = image.shape[:-1]
-        dec = ptr
+        dec = ptr.copy()
         dec += ((ret_shape - shape) // 2) * (1 - sec) if centered else 0
         ret[dec[0]:dec[0] + shape[0], dec[1]:dec[1] + shape[1], :] = image
         ptr += shape * sec
     return ret
+
+
+def _generate_default_filename(ext=".png"):
+    now = datetime.now()
+    dt_string = now.strftime("_%Y-%m-%d_%H-%M-%S")
+    return "MNE" + dt_string + ext
+
+
+def _prop_kw(kind, val):
+    # Can be removed in when we depend on matplotlib 3.4.3+
+    # https://github.com/matplotlib/matplotlib/pull/20585
+    from matplotlib.widgets import SpanSelector
+    pre = '' if 'props' in _get_args(SpanSelector) else kind
+    return {pre + 'props': val}
+
+
+def _handle_precompute(precompute):
+    _validate_type(precompute, (bool, str, None), 'precompute')
+    if precompute is None:
+        precompute = get_config('MNE_BROWSER_PRECOMPUTE', 'auto').lower()
+        _check_option('MNE_BROWSER_PRECOMPUTE',
+                      precompute, ('true', 'false', 'auto'),
+                      extra='when precompute=None is used')
+        precompute = dict(true=True, false=False, auto='auto')[precompute]
+    return precompute
+
+
+def _set_3d_axes_equal(ax):
+    """Make axes of 3D plot have equal scale on all dimensions.
+
+    This way spheres appear as actual spheres, cubes as cubes, etc..
+    This is one possible solution to Matplotlib's ``ax.set_aspect('equal')``
+    and ``ax.axis('equal')`` not working for 3D.
+
+    Parameters
+    ----------
+    ax: matplotlib.axes.Axes
+        A matplotlib 3d axis to use.
+
+    Notes
+    -----
+    modified from:
+    https://stackoverflow.com/q/13685386
+
+    Should no longer be necessary for matplotlib >= 3.3.0:
+    https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.3.0.html#axes3d-no-longer-distorts-the-3d-plot-to-match-the-2d-aspect-ratio
+    """
+    x_lim, y_lim, z_lim = ax.get_xlim3d(), ax.get_ylim3d(), ax.get_zlim3d()
+
+    def get_range(lim):
+        return lim[1] - lim[0], np.mean(lim)
+    x_range, x_mean = get_range(x_lim)
+    y_range, y_mean = get_range(y_lim)
+    z_range, z_mean = get_range(z_lim)
+
+    # The plot bounding box is a sphere in the sense of the infinity
+    # norm, hence I call half the max range the plot radius.
+    plot_radius = 0.5 * max([x_range, y_range, z_range])
+
+    ax.set_xlim3d([x_mean - plot_radius, x_mean + plot_radius])
+    ax.set_ylim3d([y_mean - plot_radius, y_mean + plot_radius])
+    ax.set_zlim3d([z_mean - plot_radius, z_mean + plot_radius])
+
+
+def _check_type_projs(projs):
+    _validate_type(projs, (list, tuple, Projection), 'projs')
+    if isinstance(projs, Projection):
+        projs = [projs]
+    for pi, p in enumerate(projs):
+        _validate_type(p, Projection, f'projs[{pi}]')
+    return projs
+
+
+def _get_cmap(colormap, lut=None):
+    from matplotlib import colors, rcParams
+    try:
+        from matplotlib import colormaps
+    except Exception:
+        from matplotlib.cm import get_cmap
+    else:
+        def get_cmap(cmap):
+            return colormaps[cmap]
+    if colormap is None:
+        colormap = rcParams["image.cmap"]
+    if isinstance(colormap, str) and colormap in ('mne', 'mne_analyze'):
+        from ._3d import mne_analyze_colormap
+        colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
+    elif not isinstance(colormap, colors.Colormap):
+        colormap = get_cmap(colormap)
+    if lut is not None:
+        # triage method for MPL 3.6 ('resampled') or older ('_resample')
+        if hasattr(colormap, 'resampled'):
+            resampled = colormap.resampled
+        else:
+            resampled = colormap._resample
+        colormap = resampled(lut)
+    return colormap

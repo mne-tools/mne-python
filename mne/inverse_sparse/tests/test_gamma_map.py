@@ -18,7 +18,7 @@ from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne.minimum_norm.tests.test_inverse import (assert_stc_res,
                                                  assert_var_exp_log)
 from mne import pick_types_forward
-from mne.utils import assert_stcs_equal, run_tests_if_main, catch_logging
+from mne.utils import assert_stcs_equal, catch_logging
 from mne.dipole import Dipole
 
 data_path = testing.data_path(download=False)
@@ -130,16 +130,14 @@ def test_gamma_map_vol_sphere():
                                     eeg=False, meg=True)
 
     alpha = 0.5
-    pytest.raises(ValueError, gamma_map, evoked, fwd, cov, alpha,
-                  loose=0, return_residual=False)
-
-    pytest.raises(ValueError, gamma_map, evoked, fwd, cov, alpha,
-                  loose=0.2, return_residual=False)
-
     stc = gamma_map(evoked, fwd, cov, alpha, tol=1e-4,
                     xyz_same_gamma=False, update_mode=2,
                     return_residual=False)
+    assert_array_almost_equal(stc.times, evoked.times, 5)
 
+    # Computing inverse with restricted orientations should also work, since
+    # we have a discrete source space.
+    stc = gamma_map(evoked, fwd, cov, alpha, loose=0.2, return_residual=False)
     assert_array_almost_equal(stc.times, evoked.times, 5)
 
     # Compare orientation obtained using fit_dipole and gamma_map
@@ -159,6 +157,3 @@ def test_gamma_map_vol_sphere():
 
     dip_fit = mne.fit_dipole(evoked_dip, cov, sphere)[0]
     assert (np.abs(np.dot(dip_fit.ori[0], dip_gmap.ori[0])) > 0.99)
-
-
-run_tests_if_main()

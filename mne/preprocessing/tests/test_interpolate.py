@@ -1,8 +1,9 @@
 import os.path as op
+import numpy as np
 
 import pytest
 
-from mne.preprocessing.interpolate import equalize_bads
+from mne.preprocessing import equalize_bads, interpolate_bridged_electrodes
 from mne import io, pick_types, read_events, Epochs
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -58,3 +59,24 @@ def test_equalize_bads(interp_thresh, inst_type):
 
     for inst in insts_ok:
         assert set(inst.info['bads']) == set(bads_ok)
+
+
+def test_interpolate_bridged_electrodes():
+    """Test interpolate_bridged_electrodes function."""
+    raw, epochs, evoked = _load_data()
+    for inst in (raw, epochs, evoked):
+        idx0 = inst.ch_names.index('EEG 001')
+        idx1 = inst.ch_names.index('EEG 002')
+        ch_names_orig = inst.ch_names.copy()
+        bads_orig = inst.info['bads'].copy()
+        inst2 = inst.copy()
+        inst2.info['bads'] = ['EEG 001', 'EEG 002']
+        inst2.interpolate_bads()
+        data_interp_reg = inst2.get_data(picks=['EEG 001', 'EEG 002'])
+        inst = interpolate_bridged_electrodes(inst, [(idx0, idx1)])
+        data_interp = inst.get_data(picks=['EEG 001', 'EEG 002'])
+        assert not any(['virtual' in ch for ch in inst.ch_names])
+        assert inst.ch_names == ch_names_orig
+        assert inst.info['bads'] == bads_orig
+        # check closer to regular interpolation than original data
+        assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 5.4e-5

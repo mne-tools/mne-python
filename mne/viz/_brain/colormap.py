@@ -52,9 +52,9 @@ def get_fill_colors(cols, n_fill):
     if ind.size > 0:
         # choose the two colors between which there is the large step
         ind = ind[0] + 1
-        fillcols = np.r_[np.tile(cols[ind, :], (n_fill / 2, 1)),
+        fillcols = np.r_[np.tile(cols[ind, :], (n_fill // 2, 1)),
                          np.tile(cols[ind + 1, :],
-                                 (n_fill - n_fill / 2, 1))]
+                                 (n_fill - n_fill // 2, 1))]
     else:
         # choose a color from the middle of the colormap
         fillcols = np.tile(cols[int(cols.shape[0] / 2), :], (n_fill, 1))
@@ -140,7 +140,7 @@ def calculate_lut(lut_table, alpha, fmin, fmid, fmax, center=None,
         lut_table[:, -1] = np.round(lut_table[:, -1] * alpha)
 
     if divergent:
-        if fmax == fmin:
+        if np.isclose(fmax, fmin, rtol=1e-6, atol=0):
             lut_table = np.r_[
                 lut_table[:1],
                 get_fill_colors(

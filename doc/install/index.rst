@@ -1,42 +1,80 @@
-Quick start
-===========
+.. _install:
+.. _quick-start:
 
-MNE-Python requires Python version 3.6 or higher.
-For users already familiar with Python:
+Installing MNE-Python
+======================
 
-- If you only need 2D plotting capabilities with MNE-Python (i.e., most EEG/ERP
-  or other sensor-level analyses), you can install MNE-Python using ``pip``:
 
-  .. code-block:: console
+.. when https://github.com/executablebooks/sphinx-design/issues/66 is fixed,
+   prepend |cloud-download-alt| |ensp| to the "Download installers" button text
+   and |wrench| |ensp| to the "Setup instructions" button text
 
-      $ pip install mne  # dependencies are numpy, scipy, matplotlib
+.. grid:: 2
 
-- If you need MNE-Python's 3D plotting capabilities (e.g., plotting estimated
-  source activity on a cortical surface) it is a good idea to install
-  MNE-Python into its own virtual environment. To do this with ``conda`` (this
-  will create a conda environment called ``mne``):
+    .. grid-item-card::
+        :text-align: center
 
-  .. code-block:: console
+        .. rst-class:: font-weight-bold mb-0
 
-      $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
-      $ conda env update --file environment.yml
+            Standalone installers
 
-  If you need to convert structural MRI scans into models of the scalp,
-  inner/outer skull, and cortical surfaces you also need
-  :doc:`FreeSurfer <freesurfer>`.
+        .. rst-class:: card-subtitle text-muted mt-0
 
-The :ref:`install_python_and_mne_python` page has more detailed instructions
-for different operating systems (including instructions for installing Python
-if you don't already have it). The :ref:`advanced_setup` page has additional
-tips and tricks for special situations (servers, notebooks, CUDA, installing
-the development version, etc). The :ref:`contributing` has additional
-installation instructions for (future) contributors to MNE-Python (extra
-dependencies, etc).
+            For Beginners
+
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. image:: ../_static/mne_installer_macOS.png
+           :alt: MNE-Python Installer
+
+        **New to Python?** Use our standalone installers that include
+        everything to get you started!
+        +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+        .. button-ref:: installers
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold
+
+            Download Installers
+
+
+    .. grid-item-card::
+        :text-align: center
+
+        .. rst-class:: font-weight-bold mb-0
+
+            Install via ``pip`` or ``conda``
+
+        .. rst-class:: card-subtitle text-muted mt-0
+
+            For Advanced Users
+
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. image:: ../_static/mne_installer_console.png
+           :alt: Terminal Window
+
+        **Already familiar with Python?**
+        Follow our advanced setup instructions for ``pip`` and ``conda``!
+        +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        .. button-ref:: manual-install
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold
+
+            Setup Instructions
+
 
 .. toctree::
     :hidden:
 
-    pre_install
-    mne_python
-    freesurfer
+    installers
+    manual_install
     advanced
+    check_installation
+    updating
+    freesurfer
+    mne_tools_suite

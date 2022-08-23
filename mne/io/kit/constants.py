@@ -3,7 +3,7 @@
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from ..constants import FIFF
 from ...utils import BunchConst

@@ -1,6 +1,6 @@
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 from os import path
@@ -19,14 +19,15 @@ def read_raw_nicolet(input_fname, ch_type, eog=(),
                      ecg=(), emg=(), misc=(), preload=False, verbose=None):
     """Read Nicolet data as raw object.
 
-    Note: This reader takes data files with the extension ``.data`` as an
-    input. The header file with the same file name stem and an extension
-    ``.head`` is expected to be found in the same directory.
+    ..note:: This reader takes data files with the extension ``.data`` as an
+             input. The header file with the same file name stem and an
+             extension ``.head`` is expected to be found in the same
+             directory.
 
     Parameters
     ----------
     input_fname : str
-        Path to the data file.
+        Path to the data file (ending with ``.data`` not ``.head``).
     ch_type : str
         Channel type to designate to the data channels. Supported data types
         include 'eeg', 'dbs'.
@@ -63,7 +64,13 @@ def read_raw_nicolet(input_fname, ch_type, eog=(),
 
 def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
     """Extract info from Nicolet header files."""
-    fname = path.splitext(fname)[0]
+    fname, extension = path.splitext(fname)
+
+    if extension != '.data':
+        raise ValueError(
+            f'File name should end with .data not "{extension}".'
+        )
+
     header = fname + '.head'
 
     logger.info('Reading header...')
@@ -113,6 +120,7 @@ def _get_nicolet_info(fname, ch_type, eog, ecg, emg, misc):
                               misc)
     info['highpass'] = 0.
     info['lowpass'] = info['sfreq'] / 2.0
+    info._unlocked = False
     info._update_redundant()
     return info, header_info
 

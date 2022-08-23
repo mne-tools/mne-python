@@ -21,7 +21,8 @@ from ._version import __version__
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,
                     get_config, get_config_path, set_cache_dir,
-                    set_memmap_min_size, grand_average, sys_info, open_docs)
+                    set_memmap_min_size, grand_average, sys_info, open_docs,
+                    use_log_level)
 from .io.pick import (pick_types, pick_channels,
                       pick_channels_regexp, pick_channels_forward,
                       pick_types_forward, pick_channels_cov,
@@ -43,6 +44,9 @@ from .cov import (read_cov, write_cov, Covariance, compute_raw_covariance,
 from .event import (read_events, write_events, find_events, merge_events,
                     pick_events, make_fixed_length_events, concatenate_events,
                     find_stim_steps, AcqParserFIF)
+from ._freesurfer import (head_to_mni, head_to_mri, read_talxfm,
+                          get_volume_labels_from_aseg, read_freesurfer_lut,
+                          vertex_to_mni, read_lta)
 from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       average_forward_solutions, Forward,
                       write_forward_solution, make_forward_solution,
@@ -62,22 +66,22 @@ from .source_estimate import (read_source_estimate,
                               spatio_temporal_dist_adjacency,
                               extract_label_time_course, stc_near_sensors)
 from .surface import (read_surface, write_surface, decimate_surface, read_tri,
-                      read_morph_map, get_head_surf, get_meg_helmet_surf,
-                      dig_mri_distances)
+                      get_head_surf, get_meg_helmet_surf, dig_mri_distances,
+                      warp_montage_volume, get_montage_volume_labels)
+from .morph_map import read_morph_map
 from .morph import (SourceMorph, read_source_morph, grade_to_vertices,
                     compute_source_morph)
-from .source_space import (read_source_spaces, vertex_to_mni,
-                           head_to_mni, head_to_mri, read_talxfm,
+from .source_space import (read_source_spaces,
                            write_source_spaces, setup_source_space,
                            setup_volume_source_space, SourceSpaces,
                            add_source_space_distances, morph_source_spaces,
-                           get_volume_labels_from_aseg,
-                           get_volume_labels_from_src, read_freesurfer_lut)
+                           get_volume_labels_from_src)
 from .annotations import (Annotations, read_annotations, annotations_from_events,
                           events_from_annotations)
 from .epochs import (BaseEpochs, Epochs, EpochsArray, read_epochs,
                      concatenate_epochs, make_fixed_length_epochs)
-from .evoked import Evoked, EvokedArray, read_evokeds, write_evokeds, combine_evoked
+from .evoked import (Evoked, EvokedArray, read_evokeds, write_evokeds,
+                     combine_evoked)
 from .label import (read_label, label_sign_flip,
                     write_label, stc_to_label, grow_labels, Label, split_label,
                     BiHemiLabel, read_labels_from_annot, write_labels_to_annot,
@@ -94,21 +98,20 @@ from .channels import (equalize_channels, rename_channels, find_layout,
                        read_vectorview_selection)
 from .report import Report, open_report
 
-from .io import read_epochs_fieldtrip, read_evoked_fieldtrip, read_evokeds_mff
+from .io import (read_epochs_fieldtrip, read_evoked_besa,
+                 read_evoked_fieldtrip, read_evokeds_mff)
 from .rank import compute_rank
 
 from . import beamformer
 from . import channels
 from . import chpi
 from . import commands
-from . import connectivity
 from . import coreg
 from . import cuda
 from . import datasets
 from . import dipole
 from . import epochs
 from . import event
-from . import externals
 from . import io
 from . import filter
 from . import gui
@@ -121,10 +124,7 @@ from . import surface
 from . import time_frequency
 from . import viz
 from . import decoding
-
-# deprecations
-from .utils import deprecated_alias
-deprecated_alias('read_selection', read_vectorview_selection)
+from . import export
 
 # initialize logging
 set_log_level(None, False)

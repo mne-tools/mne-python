@@ -1,6 +1,7 @@
 import numpy as np
 
 from .constants import FIFF
+from ..utils import fill_doc
 
 
 def get_current_comp(info):
@@ -62,6 +63,7 @@ def _make_compensator(info, grade):
                      ' found' % grade)
 
 
+@fill_doc
 def make_compensator(info, from_, to, exclude_comp_chs=False):
     """Return compensation matrix eg. for CTF system.
 
@@ -70,8 +72,7 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
 
     Parameters
     ----------
-    info : dict
-        The measurement info.
+    %(info_not_none)s
     from_ : int
         Compensation in the input data.
     to : int

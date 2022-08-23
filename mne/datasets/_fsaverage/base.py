@@ -5,15 +5,14 @@
 import os
 import os.path as op
 
-
 from ..utils import _manifest_check_download, _get_path
-from ...utils import (verbose, get_subjects_dir, set_config)
+from ...utils import verbose, get_subjects_dir, set_config
 
 FSAVERAGE_MANIFEST_PATH = op.dirname(__file__)
 
 
 @verbose
-def fetch_fsaverage(subjects_dir=None, verbose=None):
+def fetch_fsaverage(subjects_dir=None, *, verbose=None):
     """Fetch and update fsaverage.
 
     Parameters
@@ -66,19 +65,19 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
     #     fid.write('\n'.join(names))
     #
     subjects_dir = _set_montage_coreg_path(subjects_dir)
-    subjects_dir = op.abspath(subjects_dir)
+    subjects_dir = op.abspath(op.expanduser(subjects_dir))
     fs_dir = op.join(subjects_dir, 'fsaverage')
     os.makedirs(fs_dir, exist_ok=True)
     _manifest_check_download(
         manifest_path=op.join(FSAVERAGE_MANIFEST_PATH, 'root.txt'),
         destination=op.join(subjects_dir),
-        url='https://osf.io/3bxqt/download?revision=2',
+        url='https://osf.io/3bxqt/download?version=2',
         hash_='5133fe92b7b8f03ae19219d5f46e4177',
     )
     _manifest_check_download(
         manifest_path=op.join(FSAVERAGE_MANIFEST_PATH, 'bem.txt'),
         destination=op.join(subjects_dir, 'fsaverage'),
-        url='https://osf.io/7ve8g/download?revision=4',
+        url='https://osf.io/7ve8g/download?version=4',
         hash_='b31509cdcf7908af6a83dc5ee8f49fb1',
     )
     return fs_dir

@@ -1,7 +1,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from ..utils._bunch import BunchConstNamed
 
@@ -312,7 +312,7 @@ FIFF.FIFF_SQUID_BIAS        = 701
 FIFF.FIFF_SQUID_OFFSET      = 702
 FIFF.FIFF_SQUID_GATE        = 703
 #
-# Aspect values used to save charactersitic curves of SQUIDs. (mjk)
+# Aspect values used to save characteristic curves of SQUIDs. (mjk)
 #
 FIFF.FIFFV_ASPECT_IFII_LOW  = 1100
 FIFF.FIFFV_ASPECT_IFII_HIGH = 1101
@@ -979,6 +979,14 @@ FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD     = 7503
 FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG   = 8001
 FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2  = 8002
 #
+# FieldLine sensors
+#
+FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1    = 8101
+#
+# Kernel sensors
+#
+FIFF.FIFFV_COIL_KERNEL_OPM_MAG_GEN1    = 8201
+#
 # KRISS sensors
 #
 FIFF.FIFFV_COIL_KRISS_GRAD         = 9001
@@ -1011,6 +1019,8 @@ _ch_coil_type_named = {key: key for key in (
     FIFF.FIFFV_COIL_BABY_REF_MAG2, FIFF.FIFFV_COIL_ARTEMIS123_GRAD,
     FIFF.FIFFV_COIL_ARTEMIS123_REF_MAG, FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD,
     FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG, FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2,
+    FIFF.FIFFV_COIL_FIELDLINE_OPM_MAG_GEN1,
+    FIFF.FIFFV_COIL_KERNEL_OPM_MAG_GEN1,
     FIFF.FIFFV_COIL_KRISS_GRAD, FIFF.FIFFV_COIL_COMPUMEDICS_ADULT_GRAD,
     FIFF.FIFFV_COIL_COMPUMEDICS_PEDIATRIC_GRAD,
 )}
@@ -1023,6 +1033,7 @@ FIFF.FIFF_MNE_RT_CLIENT_ID         = 3701  # realtime client
 FIFF.FIFF_MNE_EPOCHS_SELECTION     = 3800  # the epochs selection
 FIFF.FIFF_MNE_EPOCHS_DROP_LOG      = 3801  # the drop log
 FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT   = 3802  # rejection and flat params
+FIFF.FIFF_MNE_EPOCHS_RAW_SFREQ     = 3803  # original raw sfreq
 
 # MNE annotations
 FIFF.FIFFB_MNE_ANNOTATIONS         = 3810  # annotations block
@@ -1045,7 +1056,11 @@ CHANNEL_LOC_ALIASES = {
     'T5': 'T9',
     'T6': 'T10',
     'M1': 'TP9',
-    'M2': 'TP10'
+    'M2': 'TP10',
+    # EGI ref chan is named VREF/Vertex Ref.
+    # In the standard montages for EGI, the ref is named Cz
+    'VREF': 'Cz',
+    'Vertex Reference': 'Cz'
     # add a comment here (with doi of a published source) above any new
     # aliases, as they are added
 }

@@ -2,7 +2,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 from io import BytesIO, SEEK_SET
@@ -13,7 +13,7 @@ import numpy as np
 from .tag import read_tag_info, read_tag, Tag, _call_dict_names
 from .tree import make_dir_tree, dir_tree_find
 from .constants import FIFF
-from ..utils import logger, verbose, _file_like
+from ..utils import logger, verbose, _file_like, warn
 
 
 class _NoCloseRead(object):
@@ -140,28 +140,35 @@ def _fiff_open(fname, fid, preload):
     tag = read_tag_info(fid)
 
     #   Check that this looks like a fif file
+    prefix = f'file {repr(fname)} does not'
     if tag.kind != FIFF.FIFF_FILE_ID:
-        raise ValueError('file does not start with a file id tag')
+        raise ValueError(f'{prefix} start with a file id tag')
 
     if tag.type != FIFF.FIFFT_ID_STRUCT:
-        raise ValueError('file does not start with a file id tag')
+        raise ValueError(f'{prefix} start with a file id tag')
 
     if tag.size != 20:
-        raise ValueError('file does not start with a file id tag')
+        raise ValueError(f'{prefix} start with a file id tag')
 
     tag = read_tag(fid)
 
     if tag.kind != FIFF.FIFF_DIR_POINTER:
-        raise ValueError('file does not have a directory pointer')
+        raise ValueError(f'{prefix} have a directory pointer')
 
     #   Read or create the directory tree
     logger.debug('    Creating tag directory for %s...' % fname)
 
     dirpos = int(tag.data)
+    read_slow = True
     if dirpos > 0:
-        tag = read_tag(fid, dirpos)
-        directory = tag.data
-    else:
+        dir_tag = read_tag(fid, dirpos)
+        if dir_tag is None:
+            warn(f'FIF tag directory missing at the end of the file, possibly '
+                 f'corrupted file: {fname}')
+        else:
+            directory = dir_tag.data
+            read_slow = False
+    if read_slow:
         fid.seek(0, 0)
         directory = list()
         while tag.next >= 0:

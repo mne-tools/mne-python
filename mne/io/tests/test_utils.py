@@ -2,7 +2,7 @@
 """Run tests for the utilities."""
 # Author: Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from mne.io.utils import _check_orig_units
 

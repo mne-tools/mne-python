@@ -4,7 +4,7 @@
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from inspect import isgenerator
 from collections import namedtuple
@@ -248,7 +248,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
         if solver == 'cholesky':
             def solver(X, y):
                 a = (X.T * X).toarray()  # dot product of sparse matrices
-                return linalg.solve(a, X.T * y, sym_pos=True,
+                return linalg.solve(a, X.T * y, assume_a='pos',
                                     overwrite_a=True, overwrite_b=True).T
     elif callable(solver):
         pass
@@ -288,7 +288,8 @@ def _prepare_rerp_data(raw, events, picks=None, decim=1):
     picks = _picks_to_idx(raw.info, picks)
     info = pick_info(raw.info, picks)
     decim = int(decim)
-    info["sfreq"] /= decim
+    with info._unlock():
+        info["sfreq"] /= decim
     data, times = raw[:]
     data = data[picks, ::decim]
     if len(set(events[:, 0])) < len(events[:, 0]):
