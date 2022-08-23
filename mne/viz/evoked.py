@@ -226,7 +226,9 @@ def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     # True if channel locations exists False otherwise.
     if spatial_colors == 'auto':
         if picks and len(picks) == 1:
-            # If picks is just one single channel, spatial_colors="auto" becomes False
+
+            # If picks is not None and just one single channel
+            # spatial_colors="auto" becomes False
             spatial_colors = False
         else:
             spatial_colors = _check_ch_locs(info=evoked.info)
