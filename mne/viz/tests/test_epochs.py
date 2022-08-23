@@ -397,7 +397,6 @@ def test_plot_psd_epochs_ctf(raw_ctf):
     epochs.plot_psd_topomap()
 
 
-
 def test_plot_epochs_selection_butterfly(raw, browser_backend):
     """Test that using selection and butterfly works."""
     events = make_fixed_length_events(raw)[:1]

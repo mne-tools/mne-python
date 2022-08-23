@@ -13,8 +13,9 @@ import numpy as np
 
 from ..channels.channels import UpdateChannelsMixin, _get_ch_type
 from ..channels.layout import _merge_ch_data
-from ..defaults import (_BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT,
-                        _INTERPOLATION_DEFAULT, _handle_default)
+# from ..defaults import (_BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT,
+#                         _INTERPOLATION_DEFAULT)
+from ..defaults import _handle_default
 from ..io.meas_info import ContainsMixin
 from ..io.pick import _pick_data_channels, _picks_to_idx, pick_info
 from ..utils import (GetEpochsMixin, _build_data_frame,
@@ -787,7 +788,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
         return plot_psds_topomap(
             psds=psds, freqs=freqs, pos=pos, bands=bands, ch_type=ch_type,
-            normalize=normalize, agg_fun=agg_fun, dB=dB,  #  sensors=sensors,
+            normalize=normalize, agg_fun=agg_fun, dB=dB,  # sensors=sensors,
             # show_names=show_names, mask=mask, mask_params=mask_params,
             # contours=contours,
             outlines=outlines, sphere=sphere,
