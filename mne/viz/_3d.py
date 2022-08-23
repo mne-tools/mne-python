@@ -45,7 +45,7 @@ from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl, get_config,
                      _ensure_int, _validate_type, _check_option, _to_rgb)
 from ._3d_overlay import _LayeredMesh
-from .utils import (mne_analyze_colormap, _get_color_list,
+from .utils import (mne_analyze_colormap, _get_color_list, _get_cmap,
                     plt_show, tight_layout, figure_nobar, _check_time_unit)
 from ..bem import ConductorModel, _bem_find_surface, _ensure_bem_surfaces
 
@@ -1371,15 +1371,6 @@ def _sensor_shape(coil):
     return rrs, tris
 
 
-def _get_cmap(colormap):
-    import matplotlib.pyplot as plt
-    if isinstance(colormap, str) and colormap in ('mne', 'mne_analyze'):
-        colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
-    else:
-        colormap = plt.get_cmap(colormap)
-    return colormap
-
-
 def _process_clim(clim, colormap, transparent, data=0., allow_pos_lims=True):
     """Convert colormap/clim options to dict.
 
@@ -1615,7 +1606,6 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     """Plot source estimate using mpl."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
-    from matplotlib import cm
     from matplotlib.widgets import Slider
     import nibabel as nib
     from scipy import stats
@@ -1675,8 +1665,8 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     vertices = stc.vertices[hemi_idx]
     n_verts = len(vertices)
     tris = _get_subject_sphere_tris(subject, subjects_dir)[hemi_idx]
-    cmap = cm.get_cmap(colormap)
-    greymap = cm.get_cmap('Greys')
+    cmap = _get_cmap(colormap)
+    greymap = _get_cmap('Greys')
 
     curv = nib.freesurfer.read_morph_data(
         op.join(subjects_dir, subject, 'surf', '%s.curv' % hemi))[inuse]
@@ -2484,7 +2474,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                              'sign of your data for visualization purposes')
         # due to nilearn plotting weirdness, extend this to go
         # -scale_pts[2]->scale_pts[2] instead of scale_pts[0]->scale_pts[2]
-        colormap = plt.get_cmap(colormap)
+        colormap = _get_cmap(colormap)
         colormap = colormap(
             np.interp(np.linspace(-1, 1, 256),
                       scale_pts / scale_pts[2],

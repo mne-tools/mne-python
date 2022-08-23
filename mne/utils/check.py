@@ -13,13 +13,12 @@ import os.path as op
 from pathlib import Path
 import re
 import sys
-import warnings
 import numbers
 
 import numpy as np
 
 from ..fixes import _median_complex, _compare_version
-from ._logging import warn, logger, verbose
+from ._logging import warn, logger, verbose, _record_warnings
 
 
 def _ensure_int(x, name='unknown', must_be='an int', *, extra=''):
@@ -1006,23 +1005,16 @@ def _safe_input(msg, *, alt=None, use=None):
 
 def _ensure_events(events):
     err_msg = f'events should be a NumPy array of integers, got {type(events)}'
-    if check_version('numpy', '1.24'):
-        # NumPy >= 1.24 raises ValueError
+    with _record_warnings():
         try:
             events = np.asarray(events)
         except ValueError as np_err:
             if str(np_err).startswith(
                     'setting an array element with a sequence. The requested '
                     'array has an inhomogeneous shape'):
-                raise TypeError(err_msg)
+                raise TypeError(err_msg) from None
             else:
                 raise
-    else:
-        # NumPy < 1.24 gives VisibleDeprecationWarning
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter('ignore')
-            events = np.asarray(events)
-    # now that we're sure that events is an array...
     if not np.issubdtype(events.dtype, np.integer):
         raise TypeError(err_msg)
     if events.ndim != 2 or events.shape[1] != 3:

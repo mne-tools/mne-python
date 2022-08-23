@@ -30,8 +30,9 @@ from mne.utils import check_version
 from mne.label import read_label
 from mne.viz._brain import Brain, _LinkViewer, _BrainScraper, _LayeredMesh
 from mne.viz._brain.colormap import calculate_lut
+from mne.viz.utils import _get_cmap
 
-from matplotlib import cm, image
+from matplotlib import image
 from matplotlib.lines import Line2D
 
 data_path = testing.data_path(download=False)
@@ -438,6 +439,9 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     del view_args
     img = brain.screenshot(mode='rgba')
     want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 4])
+    # on macOS sometimes matplotlib is HiDPI and VTK is not...
+    factor = 2 if np.allclose(img.shape[:2], want_size[:2] / 2.) else 1
+    want_size[:2] /= factor
     assert_allclose(img.shape, want_size)
     brain.close()
 
@@ -933,11 +937,10 @@ def test_calculate_lut():
     calculate_lut(colormap, alpha=alpha, fmin=fmin,
                   fmid=fmid, fmax=fmax, center=center)
     center = 0.0
-    colormap = cm.get_cmap(colormap)
-    calculate_lut(colormap, alpha=alpha, fmin=fmin,
+    cmap = _get_cmap(colormap)
+    calculate_lut(cmap, alpha=alpha, fmin=fmin,
                   fmid=fmid, fmax=fmax, center=center)
 
-    cmap = cm.get_cmap(colormap)
     zero_alpha = np.array([1., 1., 1., 0])
     half_alpha = np.array([1., 1., 1., 0.5])
     atol = 1.5 / 256.
