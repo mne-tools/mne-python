@@ -83,7 +83,7 @@ def test_spectrum_getitem_epochs(epochs):
     spect = epochs.compute_psd()
     # testing data has just one epoch, its event_id label is "1"
     want = spect.get_data()
-    got = spect['1']
+    got = spect['1'].get_data()
     assert_array_equal(want, got)
 
 
