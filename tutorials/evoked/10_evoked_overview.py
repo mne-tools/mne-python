@@ -258,7 +258,7 @@ evokeds_list[0].plot(picks='eeg')
 # :ref:`tut-section-subselect-epochs` for more information):
 
 left_right_aud = epochs['auditory'].average()
-print(left_right_aud)
+left_right_aud
 
 # %%
 # This approach will weight each epoch equally and create a single
