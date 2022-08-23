@@ -206,8 +206,7 @@ def region_localization_error(stc_true, stc_est, src, threshold='90%',
 
     .. math::
 
-        RLE = \frac{1}{2Q}\sum_{k \in I} \min_{l \in \hat{I}}{||r_k - r_l||}
-        + \frac{1}{2\hat{Q}}\sum_{l \in \hat{I}} \min_{k \in I}{||r_k - r_l||},
+        RLE = \frac{1}{2Q}\sum_{k \in I} \min_{l \in \hat{I}}{||r_k - r_l||} + \frac{1}{2\hat{Q}}\sum_{l \in \hat{I}} \min_{k \in I}{||r_k - r_l||}
 
     where :math:`I` and :math:`\hat{I}` denote respectively the original and
     estimated indexes of active sources, :math:`Q` and :math:`\hat{Q}` are
@@ -233,32 +232,19 @@ def region_localization_error(stc_true, stc_est, src, threshold='90%',
 
     Notes
     -----
-    Papers [1]_ and [2]_ use term Dipole Localization Error (DLE)
-    for the same formula.
-    Paper [3]_ uses term Error Distance (ED) for the same formula.
+    Papers :footcite:`MaksymenkoEtAl2017` and :footcite:`BeckerEtAl2017`
+    use term Dipole Localization Error (DLE) for the same formula. Paper
+    :footcite:`YaoEtAl2005` uses term Error Distance (ED) for the same formula.
     To unify the terminology and to avoid confusion with other cases
-    of using term DLE but for different metric [4], we use term
-    Region Localization Error (RLE).
+    of using term DLE but for different metric :footcite:`MolinsEtAl2008`, we
+    use term Region Localization Error (RLE).
 
     .. versionadded:: 1.2
 
     References
     ----------
-    .. [1] Maksymenko K., Giusiano B., Roehri N., Bénar CG and Badier JM
-           (2017), Strategies for statistical thresholding of source
-           localization maps in magnetoencephalography and estimating source
-           extent. Journal of Neuroscience Methods 290, 95 – 10
-    .. [2] Becker H., Albera L., Comon P., Nunes JC, Gribonval R., Fleureau J.,
-           Guillotel P. and Merlet I. (2017), SISSY: An efficient and automatic
-           algorithm for the analysis of EEG sources based on structured
-           sparsity. NeuroImage 157, 157-172
-    .. [3] Yao J., Dewald J. P. A. (2005), Evaluation of different cortical
-           source localization methods using simulated and experimental
-           EEG data. NeuroImage 25 (2), 369–382.
-    .. [4] Moulins A., Stufflebeam S.M., Brown E.N., Hämäläinen M.S. (2008),
-           Quantification of the benefit from integrating MEG and EEG data
-           in minimum l2-norm estimation. NeuroImage 42 (3), 1069–1077.
-    """
+    .. footbibliography::
+    """  # noqa: E501
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
     stc_true, stc_est = _thresholding(stc_true, stc_est, threshold)
     func = partial(_dle, src=src, stc=stc_true)
@@ -506,17 +492,14 @@ def peak_position_error(stc_true, stc_est, src, threshold='50%',
 
     Notes
     -----
+    These metrics are documented in :footcite:`StenroosHauk2013` and
+    :footcite:`LinEtAl2006a`.
+
     .. versionadded:: 1.2
 
     References
     ----------
-    .. [1] Stenroos M., Hauk O.(2013), Minimum-norm cortical source estimation
-           in layered head models is robust against skull conductivity error.
-           NeuroImage 81, 265 – 272
-    .. [2] Lin FH., Witzel T., Ahlfors S., Stufflebeam S., Belliveau J.,
-           Fleureau J., Hämäläinen M.S. (2006), Assessing and improving the
-           spatial accuracy in MEG source localization by depth-weighted
-           minimum-norm estimates. NeuroImage 31, 160-171
+    .. footbibliography::
     """
     stc_est, r_true, r_est = _prepare_ppe_sd(stc_true, stc_est, src, threshold)
     func = partial(_peak_position_error, r_est=r_est, r_true=r_true)
@@ -573,17 +556,14 @@ def spatial_deviation_error(stc_true, stc_est, src, threshold='50%',
 
     Notes
     -----
+    These metrics are documented in :footcite:`StenroosHauk2013` and
+    :footcite:`LinEtAl2006a`.
+
     .. versionadded:: 1.2
 
     References
     ----------
-    .. [1] Stenroos M., Hauk O.(2013), Minimum-norm cortical source estimation
-           in layered head models is robust against skull conductivity error.
-           NeuroImage 81, 265 – 272
-    .. [2] Lin FH., Witzel T., Ahlfors S., Stufflebeam S., Belliveau J.,
-           Fleureau J., Hämäläinen M.S. (2006), Assessing and improving the
-           spatial accuracy in MEG source localization by depth-weighted
-           minimum-norm estimates. NeuroImage 31, 160-171
+    .. footbibliography::
     """
     stc_est, r_true, r_est = _prepare_ppe_sd(stc_true, stc_est, src, threshold)
     func = partial(_spatial_deviation, r_est=r_est, r_true=r_true)
