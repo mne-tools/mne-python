@@ -44,31 +44,31 @@ def test_plot_epochs_basic(epochs, epochs_full, noise_cov_io, capsys,
     # add a channel to the epochs.info['bads']
     epochs.info['bads'] = [epochs.ch_names[0]]
     with pytest.warns(RuntimeWarning, match='projection'):
-        epochs.plot(noise_cov=noise_cov_io, spatial_colors=False)
+        epochs.plot(noise_cov=noise_cov_io)
     browser_backend._close_all()
     # add a channel to cov['bads']
     noise_cov_io['bads'] = [epochs.ch_names[1]]
     with pytest.warns(RuntimeWarning, match='projection'):
-        epochs.plot(noise_cov=noise_cov_io, spatial_colors=False)
+        epochs.plot(noise_cov=noise_cov_io)
     browser_backend._close_all()
     # have a data channel missing from the covariance
     noise_cov_io['names'] = noise_cov_io['names'][:306]
     noise_cov_io['data'] = noise_cov_io['data'][:306][:306]
     with pytest.warns(RuntimeWarning, match='projection'):
-        epochs.plot(noise_cov=noise_cov_io, spatial_colors=False)
+        epochs.plot(noise_cov=noise_cov_io)
     browser_backend._close_all()
     # other options
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
     fig._fake_keypress('escape')
     with pytest.raises(ValueError, match='No appropriate channels found'):
-        epochs.plot(picks=[], spatial_colors=False)
+        epochs.plot(picks=[])
     # gh-5906
     assert len(epochs_full) == 7
     epochs_full.info['bads'] = [epochs_full.ch_names[0]]
     capsys.readouterr()
     # test title error handling
     with pytest.raises(TypeError, match='title must be None or a string, got'):
-        epochs_full.plot(title=7, spatial_colors=False)
+        epochs_full.plot(title=7)
     # test auto-generated title, and selection mode
     epochs_full.plot(group_by='selection', title='')
 
