@@ -194,7 +194,7 @@ for ax, title, epochs in zip([ax1, ax2],
 
     for stage, color in zip(stages, stage_colors):
         spectrum = epochs[stage].compute_psd(fmin=0.1, fmax=20.)
-        spectrum.plot(ci=None, color=color, ax=ax,
+        spectrum.plot(ci=None, color=color, axes=ax,
                       show=False, average=True, spatial_colors=False)
     ax.set(title=title, xlabel='Frequency (Hz)')
 ax1.set(ylabel='µV²/Hz (dB)')
