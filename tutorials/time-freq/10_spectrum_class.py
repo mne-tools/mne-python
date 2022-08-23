@@ -8,7 +8,7 @@ The Spectrum and EpochsSpectrum classes: frequency-domain data
 
 This tutorial shows how to create and visualize frequency-domain
 representations of your data, starting from continuous :class:`~mne.io.Raw`,
-discontinous :class:`~mne.Epochs`, or averaged :class:`~mne.Evoked` data.
+discontinuous :class:`~mne.Epochs`, or averaged :class:`~mne.Evoked` data.
 
 As usual we'll start by importing the modules we need, and loading our
 `sample`_ dataset:
@@ -32,7 +32,7 @@ raw.compute_psd()
 
 # %%
 # By default, the spectral estimation method will be the
-# :footcite:p:`Welch1967` method for continous data, and the multitaper
+# :footcite:p:`Welch1967` method for continuous data, and the multitaper
 # method :footcite:`Slepian1978` for epoched or averaged data. This default can
 # be overridden by passing ``method='welch'`` or ``method='multitaper'`` to the
 # :meth:`~mne.io.Raw.compute_psd` method.
