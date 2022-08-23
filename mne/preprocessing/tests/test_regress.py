@@ -35,7 +35,6 @@ def test_regress_artifact():
     with pytest.raises(ValueError, match=r'Invalid value.*betas\.shape.*'):
         regress_artifact(epochs, betas=betas[:-1])
     # Regressing channels onto themselves should work
-    raw, betas = regress_artifact(raw, picks='EEG 001',
-                                  picks_artifact='EEG 001')
-    assert np.ptp(raw._data[0]) < 1E-15  # constant value
+    epochs, betas = regress_artifact(epochs, picks='eog', picks_artifact='eog')
+    assert np.ptp(epochs._data[:, -1, :]) < 1E-15  # constant value
     assert_allclose(betas, 1)
