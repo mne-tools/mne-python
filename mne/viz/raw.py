@@ -431,34 +431,28 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
 
 @verbose
 def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
-                      n_fft=2048, n_overlap=0, layout=None, color='w',
-                      fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, block=False, n_jobs=None, axes=None,
+                      *, n_fft=2048, n_overlap=0, dB=True, layout=None,
+                      color='w', fig_facecolor='k', axis_facecolor='k',
+                      axes=None, block=False, show=True, n_jobs=None,
                       verbose=None):
-    """Plot channel-wise frequency spectra as topography.
+    """Plot power spectral density, separately for each channel.
 
     Parameters
     ----------
     raw : instance of io.Raw
         The raw instance to use.
-    tmin : float
-        Start time for calculations. Defaults to zero.
-    tmax : float | None
-        End time for calculations. If None (default), the end of data is used.
-    fmin : float
-        Start frequency to consider. Defaults to zero.
-    fmax : float
-        End frequency to consider. Defaults to 100.
-    proj : bool
-        Apply projection. Defaults to False.
+    %(tmin_tmax_psd)s
+    %(fmin_fmax_psd_topo)s
+    %(proj_psd)s
     n_fft : int
         Number of points to use in Welch FFT calculations. Defaults to 2048.
     n_overlap : int
         The number of points of overlap between blocks. Defaults to 0
         (no overlap).
+    %(dB_spectrum_plot_topo)s
     layout : instance of Layout | None
         Layout instance specifying sensor positions (does not need to be
-        specified for Neuromag data). If None (default), the correct layout is
+        specified for Neuromag data). If ``None`` (default), the layout is
         inferred from the data.
     color : str | tuple
         A matplotlib-compatible color to use for the curves. Defaults to white.
@@ -468,16 +462,12 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     axis_facecolor : str | tuple
         A matplotlib-compatible color to use for the axis background.
         Defaults to black.
-    dB : bool
-        If True, transform data to decibels. Defaults to True.
-    show : bool
-        Show figure if True. Defaults to True.
+    %(axes_spectrum_plot_topo)s
     block : bool
         Whether to halt program execution until the figure is closed.
         May not work on all systems / platforms. Defaults to False.
+    %(show)s
     %(n_jobs)s
-    axes : instance of matplotlib Axes | None
-        Axes to plot into. If None, axes will be created.
     %(verbose)s
 
     Returns
@@ -485,38 +475,11 @@ def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
     fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
     """
-    # XXX TODO FIXME use Spectrum-based code path
-    if layout is None:
-        from ..channels.layout import find_layout
-        layout = find_layout(raw.info)
-
-    spectrum = raw.compute_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
-                               proj=proj, n_fft=n_fft, n_overlap=n_overlap,
-                               n_jobs=n_jobs)
-    psds, freqs = spectrum.get_data(), spectrum.freqs
-    if dB:
-        psds = 10 * np.log10(psds)
-        y_label = 'dB'
-    else:
-        y_label = 'Power'
-    show_func = partial(_plot_timeseries_unified, data=[psds], color=color,
-                        times=[freqs])
-    click_func = partial(_plot_timeseries, data=[psds], color=color,
-                         times=[freqs])
-    picks = _pick_data_channels(raw.info)
-    info = pick_info(raw.info, picks)
-
-    fig = _plot_topo(info, times=freqs, show_func=show_func,
-                     click_func=click_func, layout=layout,
-                     axis_facecolor=axis_facecolor,
-                     fig_facecolor=fig_facecolor, x_label='Frequency (Hz)',
-                     unified=True, y_label=y_label, axes=axes)
-
-    try:
-        plt_show(show, block=block)
-    except TypeError:  # not all versions have this
-        plt_show(show)
-    return fig
+    return raw.plot_psd_topo(
+        tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, proj=proj, method='welch',
+        dB=dB, layout=layout, color=color, fig_facecolor=fig_facecolor,
+        axis_facecolor=axis_facecolor, axes=axes, block=block, show=show,
+        n_jobs=n_jobs, verbose=verbose, n_fft=n_fft, n_overlap=n_overlap)
 
 
 def _setup_channel_selections(raw, kind, order):

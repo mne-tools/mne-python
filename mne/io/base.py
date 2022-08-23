@@ -1536,20 +1536,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                         theme=theme, overview_mode=overview_mode,
                         verbose=verbose)
 
-    @copy_function_doc_to_method_doc(plot_raw_psd_topo)
-    def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
-                      n_fft=2048, n_overlap=0, layout=None, color='w',
-                      fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, block=False, n_jobs=None, axes=None,
-                      verbose=None):
-        return plot_raw_psd_topo(self, tmin=tmin, tmax=tmax, fmin=fmin,
-                                 fmax=fmax, proj=proj, n_fft=n_fft,
-                                 n_overlap=n_overlap, layout=layout,
-                                 color=color, fig_facecolor=fig_facecolor,
-                                 axis_facecolor=axis_facecolor, dB=dB,
-                                 show=show, block=block, n_jobs=n_jobs,
-                                 axes=axes, verbose=verbose)
-
     @property
     def ch_names(self):
         """Channel names."""

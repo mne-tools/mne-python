@@ -145,7 +145,7 @@ class ToSpectrumMixin():
             picks='all', average=average, dB=dB, amplitude=amplitude,
             xscale=xscale, ci=ci, ci_alpha=area_alpha, color=color,
             alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
-            exclude=exclude, ax=ax, show=show)
+            exclude=exclude, axes=ax, show=show)
         return fig
 
     @verbose
@@ -190,8 +190,11 @@ class ToSpectrumMixin():
         fig : instance of matplotlib.figure.Figure
             Figure distributing one image per channel across sensor topography.
         """
-        # XXX FIXME TODO needs to use different Klass for Epochs input
         self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
+
+        if layout is None:
+            from ..channels.layout import find_layout
+            layout = find_layout(self.info)
 
         spectrum = self.compute_psd(
             method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
@@ -209,11 +212,11 @@ class ToSpectrumMixin():
             _plot_timeseries, data=[psds], color=color, times=[freqs])
         picks = _pick_data_channels(self.info)
         info = pick_info(self.info, picks)
-        fig = _plot_topo(info, times=freqs, show_func=show_func,
-                        click_func=click_func, layout=layout,
-                        axis_facecolor=axis_facecolor,
-                        fig_facecolor=fig_facecolor, x_label='Frequency (Hz)',
-                        unified=True, y_label=y_label, axes=axes)
+        fig = _plot_topo(
+            info, times=freqs, show_func=show_func, click_func=click_func,
+            layout=layout, axis_facecolor=axis_facecolor,
+            fig_facecolor=fig_facecolor, x_label='Frequency (Hz)',
+            unified=True, y_label=y_label, axes=axes)
         plt_show(show, block=block)
         return fig
 
