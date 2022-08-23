@@ -3,10 +3,6 @@
 The minimum-norm current estimates
 ==================================
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
 .. NOTE: part of this file is included in doc/overview/implementation.rst.
    Changes here are reflected there. If you want to link to this content, link
    to :ref:`ch_mne` to link to that section of the implementation.rst page.
@@ -154,14 +150,17 @@ to raw data. To reflect the decrease of noise due to averaging, this matrix,
 :math:`C_0`, is scaled by the number of averages, :math:`L`, *i.e.*, :math:`C =
 C_0 / L`.
 
+.. note::
+   When EEG data are included, the gain matrix :math:`G` needs to be average referenced when computing the linear inverse operator :math:`M`. This is incorporated during creating the spatial whitening operator :math:`C^{-^1/_2}`, which includes any projectors on the data. EEG data average reference (using a projector) is mandatory for source modeling and is checked when calculating the inverse operator. 
+
 As shown above, regularization of the inverse solution is equivalent to a
 change in the variance of the current amplitudes in the Bayesian *a priori*
 distribution.
 
 A convenient choice for the source-covariance matrix :math:`R` is such that
 :math:`\text{trace}(\tilde{G} R \tilde{G}^\top) / \text{trace}(I) = 1`. With this
-choice we can approximate :math:`\lambda^2 \sim 1/SNR`, where SNR is the
-(power) signal-to-noise ratio of the whitened data.
+choice we can approximate :math:`\lambda^2 \sim 1/\rm{SNR}^2`, where SNR is the
+(amplitude) signal-to-noise ratio of the whitened data.
 
 .. note::
    The definition of the signal to noise-ratio/ :math:`\lambda^2` relationship
@@ -171,7 +170,7 @@ choice we can approximate :math:`\lambda^2 \sim 1/SNR`, where SNR is the
    have, in general, different units of measure. For example, the MEG data are
    expressed in T or T/m whereas the unit of EEG is Volts.
 
-See :ref:`tut_compute_covariance` for example of noise covariance computation
+See :ref:`tut-compute-covariance` for example of noise covariance computation
 and whitening.
 
 .. _cov_regularization_math:
@@ -606,8 +605,3 @@ Generalizing, for any combination of sums and differences, where :math:`w_i =
 .. math::    1 / L_{eff} = \sum_{i = 1}^n {1/{L_i}}
 
 .. target for :end-before: inverse-end-content
-
-References
-~~~~~~~~~~
-
-.. footbibliography::

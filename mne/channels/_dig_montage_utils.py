@@ -19,7 +19,6 @@ import numpy as np
 from ..utils import _check_fname, Bunch, warn
 
 
-# XXX: to split as _parse like bvct
 def _read_dig_montage_egi(
         fname,
         _scaling,
@@ -55,11 +54,6 @@ def _read_dig_montage_egi(
         elif kind == 1:
             dig_ch_pos['EEG %03d' %
                        (len(dig_ch_pos.keys()) + 1)] = coordinates
-            # XXX: The EGI reader needs to be fixed with this code here.
-            # As a reference channel it should be called EEG000 or
-            # REF to follow the conventions. I should be:
-            # dig_ch_pos['REF'] = coordinates
-
         # Fiducials
         elif kind == 2:
             fid_name = fid_name_map[name]
@@ -72,9 +66,7 @@ def _read_dig_montage_egi(
     return Bunch(
         # EGI stuff
         nasion=fids['nasion'], lpa=fids['lpa'], rpa=fids['rpa'],
-        dig_ch_pos=dig_ch_pos, coord_frame='unknown',
-        # not EGI stuff
-        hsp=None, hpi=None, elp=None, point_names=None,
+        ch_pos=dig_ch_pos, coord_frame='unknown',
     )
 
 

@@ -9,51 +9,29 @@
 from copy import deepcopy
 
 import numpy as np
-from scipy import linalg
 
-from ..io.constants import FWD, FIFF
 from ..bem import _check_origin
+from ..cov import make_ad_hoc_cov
+from ..io.constants import FIFF
 from ..io.pick import pick_types, pick_info
-from ..surface import get_head_surf, get_meg_helmet_surf
-
+from ..io.meas_info import _simplify_info
 from ..io.proj import _has_eeg_average_ref_proj, make_projector
+from ..surface import get_head_surf, get_meg_helmet_surf
 from ..transforms import (transform_surface_to, read_trans, _find_trans,
                           _ensure_trans)
 from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _do_cross_dots)
-from ..parallel import check_n_jobs
-from ..utils import logger, verbose, _check_option, _reg_pinv, _pl
+from ..utils import logger, verbose, _check_option, _reg_pinv, _pl, path_like
 from ..epochs import EpochsArray, BaseEpochs
 from ..evoked import Evoked, EvokedArray
 
 
-def _is_axial_coil(coil):
-    """Determine if the coil is axial."""
-    is_ax = coil['coil_class'] in (
-        FWD.COILC_MAG, FWD.COILC_AXIAL_GRAD, FWD.COILC_AXIAL_GRAD2)
-    return is_ax
-
-
-def _ad_hoc_noise(coils, ch_type='meg'):
-    """Create ad-hoc noise covariance."""
-    # XXX should de-duplicate with make_ad_hoc_cov
-    v = np.empty(len(coils))
-    if ch_type == 'meg':
-        axs = np.array([_is_axial_coil(coil) for coil in coils], dtype=bool)
-        v[axs] = 4e-28  # 20e-15 ** 2
-        v[np.logical_not(axs)] = 2.5e-25  # 5e-13 ** 2
-    else:
-        v.fill(1e-12)  # 1e-6 ** 2
-    cov = dict(diag=True, data=v, eig=None, eigvec=None)
-    return cov
-
-
-def _setup_dots(mode, coils, ch_type):
+def _setup_dots(mode, info, coils, ch_type):
     """Set up dot products."""
     from scipy.interpolate import interp1d
     int_rad = 0.06
-    noise = _ad_hoc_noise(coils, ch_type)
+    noise = make_ad_hoc_cov(info, dict(mag=20e-15, grad=5e-13, eeg=1e-6))
     n_coeff, interp = (50, 'nearest') if mode == 'fast' else (100, 'linear')
     lut, n_fact = _get_legen_table(ch_type, False, n_coeff, verbose=False)
     lut_fun = interp1d(np.linspace(-1, 1, lut.shape[0]), lut, interp, axis=0)
@@ -106,6 +84,7 @@ def _compute_mapping_matrix(fmd, info):
 
 def _pinv_trunc(x, miss):
     """Compute pseudoinverse, truncating at most "miss" fraction of varexp."""
+    from scipy import linalg
     u, s, v = linalg.svd(x, full_matrices=False)
 
     # Eigenvalue truncation
@@ -188,11 +167,12 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, origin, miss=None):
     #
     # Step 2. Calculate the dot products
     #
-    int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils_from, kind)
+    int_rad, noise, lut_fun, n_fact = _setup_dots(
+        mode, info_from, coils_from, kind)
     logger.info(f'    Computing dot products for {len(coils_from)} '
                 f'{kind.upper()} channel{_pl(coils_from)}...')
     self_dots = _do_self_dots(int_rad, False, coils_from, origin, kind,
-                              lut_fun, n_fact, n_jobs=1)
+                              lut_fun, n_fact, n_jobs=None)
     logger.info(f'    Computing cross products for {len(coils_from)} → '
                 f'{len(coils_to)} {kind.upper()} channel{_pl(coils_to)}...')
     cross_dots = _do_cross_dots(int_rad, False, coils_from, coils_to,
@@ -292,13 +272,12 @@ def _as_meg_type_inst(inst, ch_type='grad', mode='fast'):
 
 @verbose
 def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
-                          n_jobs=1, origin=(0., 0., 0.04), verbose=None):
+                          n_jobs=None, origin=(0., 0., 0.04), verbose=None):
     """Re-map M/EEG data to a surface.
 
     Parameters
     ----------
-    info : instance of Info
-        Measurement info.
+    %(info_not_none)s
     surf : dict
         The surface to map the data to. The required fields are `'rr'`,
         `'nn'`, and `'coord_frame'`. Must be in head coordinates.
@@ -334,7 +313,6 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     # deal with coordinate frames here -- always go to "head" (easiest)
     orig_surf = surf
     surf = transform_surface_to(deepcopy(surf), 'head', trans)
-    n_jobs = check_n_jobs(n_jobs)
     origin = _check_origin(origin, info)
 
     #
@@ -353,23 +331,25 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     # XXX this code does not do any checking for compensation channels,
     # but it seems like this must be intentional from the ref_meg=False
     # (presumably from the C code)
-    chs = [info['chs'][pick] for pick in picks]
+    dev_head_t = info['dev_head_t']
+    info = pick_info(_simplify_info(info), picks)
+    info['dev_head_t'] = dev_head_t
 
     # create coil defs in head coordinates
     if ch_type == 'meg':
         # Put them in head coordinates
-        coils = _create_meg_coils(chs, 'normal', info['dev_head_t'])
+        coils = _create_meg_coils(info['chs'], 'normal', info['dev_head_t'])
         type_str = 'coils'
         miss = 1e-4  # Smoothing criterion for MEG
     else:  # EEG
-        coils = _create_eeg_els(chs)
+        coils = _create_eeg_els(info['chs'])
         type_str = 'electrodes'
         miss = 1e-3  # Smoothing criterion for EEG
 
     #
     # Step 2. Calculate the dot products
     #
-    int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils, ch_type)
+    int_rad, noise, lut_fun, n_fact = _setup_dots(mode, info, coils, ch_type)
     logger.info('Computing dot products for %i %s...' % (len(coils), type_str))
     self_dots = _do_self_dots(int_rad, False, coils, origin, ch_type,
                               lut_fun, n_fact, n_jobs)
@@ -383,8 +363,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     #
     # Step 4. Return the result
     #
-    ch_names = [c['ch_name'] for c in chs]
-    fmd = dict(kind=ch_type, surf=surf, ch_names=ch_names, coils=coils,
+    fmd = dict(kind=ch_type, surf=surf, ch_names=info['ch_names'], coils=coils,
                origin=origin, noise=noise, self_dots=self_dots,
                surface_dots=surface_dots, int_rad=int_rad, miss=miss)
     logger.info('Field mapping data ready')
@@ -404,7 +383,8 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 @verbose
 def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
                    ch_type=None, mode='fast', meg_surf='helmet',
-                   origin=(0., 0., 0.04), n_jobs=1, verbose=None):
+                   origin=(0., 0., 0.04), n_jobs=None, *,
+                   head_source=('bem', 'head'), verbose=None):
     """Compute surface maps used for field display in 3D.
 
     Parameters
@@ -439,6 +419,9 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
 
         .. versionadded:: 0.11
     %(n_jobs)s
+    %(head_source)s
+
+        .. versionadded:: 1.1
     %(verbose)s
 
     Returns
@@ -467,7 +450,7 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         raise RuntimeError('No data available for mapping.')
 
     if trans is not None:
-        if isinstance(trans, str):
+        if isinstance(trans, path_like):
             trans = read_trans(trans)
         trans = _ensure_trans(trans, 'head', 'mri')
 
@@ -478,7 +461,8 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         if this_type == 'meg' and meg_surf == 'helmet':
             surf = get_meg_helmet_surf(info, trans)
         else:
-            surf = get_head_surf(subject, subjects_dir=subjects_dir)
+            surf = get_head_surf(
+                subject, source=head_source, subjects_dir=subjects_dir)
         surfs.append(surf)
 
     surf_maps = list()

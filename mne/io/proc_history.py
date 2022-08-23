@@ -4,7 +4,6 @@
 # License: Simplified BSD
 
 import numpy as np
-from scipy.sparse import csc_matrix
 
 from .open import read_tag, fiff_open
 from .tree import dir_tree_find
@@ -13,6 +12,7 @@ from .write import (start_block, end_block, write_int, write_float,
                     write_float_sparse, write_id)
 from .tag import find_tag
 from .constants import FIFF
+from ..fixes import _csc_matrix_cast
 from ..utils import warn, _check_fname
 
 _proc_keys = ['parent_file_id', 'block_id', 'parent_block_id',
@@ -153,7 +153,7 @@ _sss_ctc_ids = (FIFF.FIFF_BLOCK_ID,
                 FIFF.FIFF_CREATOR,
                 FIFF.FIFF_DECOUPLER_MATRIX)
 _sss_ctc_writers = (write_id, write_int, write_string, write_float_sparse)
-_sss_ctc_casters = (dict, np.array, str, csc_matrix)
+_sss_ctc_casters = (dict, np.array, str, _csc_matrix_cast)
 
 _sss_cal_keys = ('cal_chans', 'cal_corrs')
 _sss_cal_ids = (FIFF.FIFF_SSS_CAL_CHANS, FIFF.FIFF_SSS_CAL_CORRS)
@@ -226,8 +226,7 @@ def _read_maxfilter_record(fid, tree):
                 if kind == FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST:
                     tag = read_tag(fid, pos)
                     chs = tag.data.split(':')
-                    # XXX for some reason this list can have a bunch of junk
-                    # in the last entry, e.g.:
+                    # This list can null chars in the last entry, e.g.:
                     # [..., u'MEG2642', u'MEG2643', u'MEG2641\x00 ... \x00']
                     chs[-1] = chs[-1].split('\x00')[0]
                     sss_ctc['proj_items_chs'] = chs

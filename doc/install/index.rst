@@ -1,26 +1,80 @@
-:orphan:
+.. _install:
+.. _quick-start:
 
-Installation — contents
-=======================
+Installing MNE-Python
+======================
 
-MNE-Python is an open-source Python module for processing, analysis, and
-visualization of functional neuroimaging data (EEG, MEG, sEEG, ECoG, and
-fNIRS). Pages describing the installation procedure are listed below. The
-:ref:`contributing guide <contributing>` has advanced installation instructions
-for (future) contributors to MNE-Python.
+
+.. when https://github.com/executablebooks/sphinx-design/issues/66 is fixed,
+   prepend |cloud-download-alt| |ensp| to the "Download installers" button text
+   and |wrench| |ensp| to the "Setup instructions" button text
+
+.. grid:: 2
+
+    .. grid-item-card::
+        :text-align: center
+
+        .. rst-class:: font-weight-bold mb-0
+
+            Standalone installers
+
+        .. rst-class:: card-subtitle text-muted mt-0
+
+            For Beginners
+
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. image:: ../_static/mne_installer_macOS.png
+           :alt: MNE-Python Installer
+
+        **New to Python?** Use our standalone installers that include
+        everything to get you started!
+        +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+        .. button-ref:: installers
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold
+
+            Download Installers
+
+
+    .. grid-item-card::
+        :text-align: center
+
+        .. rst-class:: font-weight-bold mb-0
+
+            Install via ``pip`` or ``conda``
+
+        .. rst-class:: card-subtitle text-muted mt-0
+
+            For Advanced Users
+
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. image:: ../_static/mne_installer_console.png
+           :alt: Terminal Window
+
+        **Already familiar with Python?**
+        Follow our advanced setup instructions for ``pip`` and ``conda``!
+        +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        .. button-ref:: manual-install
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold
+
+            Setup Instructions
+
 
 .. toctree::
-    :maxdepth: 2
+    :hidden:
 
-    pre_install
-    mne_python
-    freesurfer
+    installers
+    manual_install
     advanced
-
-Installation instructions are also provided for MNE-C (the Unix command-line
-tools originally developed by Matti Hämäläinen).
-
-.. toctree::
-    :maxdepth: 2
-
-    mne_c
+    check_installation
+    updating
+    freesurfer
+    mne_tools_suite

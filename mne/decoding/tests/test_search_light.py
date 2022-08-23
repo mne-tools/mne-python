@@ -1,12 +1,12 @@
 # Author: Jean-Remi King, <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
 import pytest
 
-from mne.utils import requires_sklearn
+from mne.utils import requires_sklearn, _record_warnings
 from mne.fixes import _get_args
 from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
 from mne.decoding.transformer import Vectorizer
@@ -30,7 +30,7 @@ def test_search_light():
     from sklearn.linear_model import Ridge, LogisticRegression
     from sklearn.pipeline import make_pipeline
     from sklearn.metrics import roc_auc_score, make_scorer
-    with pytest.warns(None):  # NumPy module import
+    with _record_warnings():  # NumPy module import
         from sklearn.ensemble import BaggingClassifier
     from sklearn.base import is_classifier
 
@@ -121,7 +121,7 @@ def test_search_light():
     assert_array_equal(score_manual, score_sl)
 
     # n_jobs
-    sl = SlidingEstimator(logreg, n_jobs=1, scoring='roc_auc')
+    sl = SlidingEstimator(logreg, n_jobs=None, scoring='roc_auc')
     score_1job = sl.fit(X, y).score(X, y)
     sl.n_jobs = 2
     score_njobs = sl.fit(X, y).score(X, y)
@@ -133,19 +133,14 @@ def test_search_light():
     sl.predict(X[..., [0]])
 
     # pipeline
-
     class _LogRegTransformer(LogisticRegression):
-        # XXX needs transformer in pipeline to get first proba only
-        def __init__(self):
-            super(_LogRegTransformer, self).__init__()
-            self.multi_class = 'ovr'
-            self.random_state = 0
-            self.solver = 'liblinear'
-
         def transform(self, X):
             return super(_LogRegTransformer, self).predict_proba(X)[..., 1]
 
-    pipe = make_pipeline(SlidingEstimator(_LogRegTransformer()),
+    logreg_transformer = _LogRegTransformer(
+        random_state=0, multi_class='ovr', solver='liblinear'
+    )
+    pipe = make_pipeline(SlidingEstimator(logreg_transformer),
                          logreg)
     pipe.fit(X, y)
     pipe.predict(X)

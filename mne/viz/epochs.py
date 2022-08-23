@@ -18,13 +18,15 @@ import warnings
 import numpy as np
 
 from .raw import _setup_channel_selections
+from ..fixes import _sharex
 from ..defaults import _handle_default
 from ..utils import verbose, logger, warn, fill_doc, _check_option
 from ..io.meas_info import create_info, _validate_type
 
 from ..io.pick import (_get_channel_types, _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _VALID_CHANNEL_TYPES)
-from .utils import (tight_layout, _setup_vmin_vmax, plt_show, _check_cov,
+from .utils import (tight_layout, _setup_vmin_vmax, plt_show,
+                    _check_cov, _handle_precompute,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _handle_decim, _set_title_multiple_electrodes,
                     _make_combine_callable, _set_window_title,
@@ -219,7 +221,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         ts_args['show_sensors'] = False
     vlines = [0] if (epochs.times[0] < 0 < epochs.times[-1]) else []
     ts_defaults = dict(colors={'cond': 'k'}, title='', show=False,
-                       truncate_yaxis='auto', truncate_xaxis=False,
+                       truncate_yaxis=False, truncate_xaxis=False,
                        vlines=vlines, legend=False)
     ts_defaults.update(**ts_args)
     ts_args = ts_defaults.copy()
@@ -277,7 +279,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         this_info = create_info(sfreq=epochs.info['sfreq'],
                                 ch_names=list(these_ch_names),
                                 ch_types=[this_ch_type] * len(these_picks))
-        this_info['chs'] = this_ch_info
+        with this_info._unlock():
+            this_info['chs'] = this_ch_info
         this_epochs = EpochsArray(this_data, this_info, tmin=epochs.times[0])
         # apply scalings (only to image, not epochs object), combine channels
         this_image = combine_func(this_data * scalings[this_ch_type])
@@ -349,16 +352,10 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
             ch_type = this_group_dict['ch_type']
             if not manual_ylims:
                 args = auto_ylims[ch_type]
-                func = max
                 if 'invert_y' in ts_args:
                     args = args[::-1]
-                    func = min
                 ax.set_ylim(*args)
-                yticks = np.array(ax.get_yticks())
-                top_tick = func(yticks)
-                ax.spines['left'].set_bounds(top_tick, args[0])
     plt_show(show)
-
     # impose deterministic order of returned objects
     return_order = np.array(sorted(group_by))
     are_ch_types = np.in1d(return_order, _VALID_CHANNEL_TYPES)
@@ -501,6 +498,8 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
                        title=None, evoked=False, ts_args=None, combine=None,
                        combine_given=False, norm=False):
     """Plot epochs image. Helper function for plot_epochs_image."""
+    from matplotlib.ticker import AutoLocator
+
     if cmap is None:
         cmap = 'Reds' if norm else 'RdBu_r'
 
@@ -513,7 +512,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
     # draw the image
     cmap = _setup_cmap(cmap, norm=norm)
     n_epochs = len(image)
-    extent = [1e3 * tmin, 1e3 * tmax, 0, n_epochs]
+    extent = [tmin, tmax, 0, n_epochs]
     im = ax_im.imshow(image, vmin=vmin, vmax=vmax, cmap=cmap[0], aspect='auto',
                       origin='lower', interpolation='nearest', extent=extent)
 
@@ -521,15 +520,16 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
     if style_axes:
         ax_im.set_title(title)
         ax_im.set_ylabel('Epochs')
+        if not evoked:
+            ax_im.set_xlabel('Time (s)')
         ax_im.axis('auto')
         ax_im.axis('tight')
         ax_im.axvline(0, color='k', linewidth=1, linestyle='--')
 
     if overlay_times is not None:
-        ax_im.plot(1e3 * overlay_times, 0.5 + np.arange(n_epochs), 'k',
+        ax_im.plot(overlay_times, 0.5 + np.arange(n_epochs), 'k',
                    linewidth=2)
-        ax_im.set_xlim(1e3 * tmin, 1e3 * tmax)
-
+        ax_im.set_xlim(tmin, tmax)
     # draw the evoked
     if evoked:
         from . import plot_compare_evokeds
@@ -538,8 +538,14 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         plot_compare_evokeds({'cond': list(epochs.iter_evoked(copy=False))},
                              picks=_picks, axes=ax['evoked'],
                              combine=pass_combine, **ts_args)
-        ax['evoked'].set_xlim(tmin, tmax)  # don't multiply by 1e3 here
-        ax_im.set_xticks([])
+        ax['evoked'].set_xlim(tmin, tmax)
+        ax['evoked'].lines[0].set_clip_on(True)
+        ax['evoked'].collections[0].set_clip_on(True)
+        _sharex(ax['evoked'], ax_im)
+        # fix the axes for proper updating during interactivity
+        loc = ax_im.xaxis.get_major_locator()
+        ax['evoked'].xaxis.set_major_locator(loc)
+        ax['evoked'].yaxis.set_major_locator(AutoLocator())
 
     # draw the colorbar
     if colorbar:
@@ -557,8 +563,8 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
     return fig
 
 
-def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
-                  color=(0.8, 0.8, 0.8), width=0.8, ignore=('IGNORED',),
+def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject=None,
+                  color='lightgray', width=0.8, ignore=('IGNORED',),
                   show=True):
     """Show the channel stats based on a drop_log from Epochs.
 
@@ -571,8 +577,15 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
         plot. Default is zero (always plot).
     n_max_plot : int
         Maximum number of channels to show stats for.
-    subject : str
-        The subject name to use in the title of the plot.
+    subject : str | None
+        The subject name to use in the title of the plot. If ``None``, do not
+        display a subject name.
+
+        .. versionchanged:: 0.23
+           Added support for ``None``.
+
+        .. versionchanged:: 1.0
+           Defaults to ``None``.
     color : tuple | str
         Color to use for the bars.
     width : float
@@ -594,12 +607,21 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
         logger.info('Percent dropped epochs < supplied threshold; not '
                     'plotting drop log.')
         return
+    absolute = len([x for x in drop_log if len(x)
+                    if not any(y in ignore for y in x)])
+    n_epochs_before_drop = len([x for x in drop_log
+                                if not any(y in ignore for y in x)])
+
     scores = Counter([ch for d in drop_log for ch in d if ch not in ignore])
     ch_names = np.array(list(scores.keys()))
     counts = np.array(list(scores.values()))
     # init figure, handle easy case (no drops)
     fig, ax = plt.subplots()
-    ax.set_title('{}: {:.1f}%'.format(subject, percent))
+    title = (f'{absolute} of {n_epochs_before_drop} epochs removed '
+             f'({percent:.1f}%)')
+    if subject is not None:
+        title = f'{subject}: {title}'
+    ax.set_title(title)
     if len(ch_names) == 0:
         ax.text(0.5, 0.5, 'No drops', ha='center', fontsize=14)
         return fig
@@ -615,7 +637,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
     ax.set_xticks(x)
     ax.set_xticklabels(ch_names[order[:n_bars]], rotation=45, size=10,
                        horizontalalignment='right')
-    ax.set_ylabel('% of epochs rejected')
+    ax.set_ylabel('% of epochs removed')
     ax.grid(axis='y')
     tight_layout(pad=1, fig=fig)
     plt_show(show)
@@ -624,10 +646,12 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown subj',
 
 @fill_doc
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
-                title=None, events=None, event_colors=None, event_color=None,
+                title=None, events=None, event_color=None,
                 order=None, show=True, block=False, decim='auto',
                 noise_cov=None, butterfly=False, show_scrollbars=True,
-                epoch_colors=None, event_id=None, group_by='type'):
+                show_scalebars=True, epoch_colors=None, event_id=None,
+                group_by='type', precompute=None, use_opengl=None, *,
+                theme=None, overview_mode=None):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -640,17 +664,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     epochs : instance of Epochs
         The epochs object.
     %(picks_good_data)s
-    scalings : dict | 'auto' | None
-        Scaling factors for the traces. If any fields in scalings are 'auto',
-        the scaling factor is set to match the 99.5th percentile of a subset of
-        the corresponding data. If scalings == 'auto', all scalings fields are
-        set to 'auto'. If any fields are 'auto' and data is not preloaded,
-        a subset of epochs up to 100 Mb will be loaded. If None, defaults to::
-
-            dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
-                 emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4,
-                 whitened=10.)
-
+    %(scalings)s
     n_epochs : int
         The number of epochs per view. Defaults to 20.
     n_channels : int
@@ -658,19 +672,15 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     title : str | None
         The title of the window. If None, epochs name will be displayed.
         Defaults to None.
-    events : None, array, shape (n_events, 3)
-        Events to show with vertical bars. If events are provided, the epoch
-        numbers are not shown to prevent overlap. You can toggle epoch
-        numbering through options (press 'o' key). You can use
-        `~mne.viz.plot_events` as a legend for the colors. By default, the
-        coloring scheme is the same.
+    events : None | array, shape (n_events, 3)
+        Events to show with vertical bars. You can use `~mne.viz.plot_events`
+        as a legend for the colors. By default, the coloring scheme is the
+        same. Defaults to ``None``.
 
         .. warning::  If the epochs have been resampled, the events no longer
             align with the data.
 
         .. versionadded:: 0.14.0
-    event_colors : None
-        Deprecated. Use ``event_color`` instead.
     %(event_color)s
         Defaults to ``None``.
     order : array of str | None
@@ -709,6 +719,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
         .. versionadded:: 0.18.0
     %(show_scrollbars)s
+    %(show_scalebars)s
+
+        .. versionadded:: 0.24.0
     epoch_colors : list of (n_epochs) list (of n_channels) | None
         Colors to use for individual epochs. If None, use default colors.
     event_id : dict | None
@@ -719,12 +732,19 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         ``epochs.event_id`` when there are overlapping keys.
 
         .. versionadded:: 0.20
-    %(browse_group_by)s
+    %(group_by_browse)s
+    %(precompute)s
+    %(use_opengl)s
+    %(theme_pg)s
+
+        .. versionadded:: 1.0
+    %(overview_mode)s
+
+        .. versionadded:: 1.1
 
     Returns
     -------
-    fig : instance of matplotlib.figure.Figure
-        The figure.
+    %(browser)s
 
     Notes
     -----
@@ -733,16 +753,17 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     keys, but this depends on the backend matplotlib is configured to use
     (e.g., mpl.use(``TkAgg``) should work). Full screen mode can be toggled
     with f11 key. The amount of epochs and channels per view can be adjusted
-    with home/end and page down/page up keys. These can also be set through
-    options dialog by pressing ``o`` key. ``h`` key plots a histogram of
+    with home/end and page down/page up keys. ``h`` key plots a histogram of
     peak-to-peak values along with the used rejection thresholds. Butterfly
-    plot can be toggled with ``b`` key. Right mouse click adds a vertical line
+    plot can be toggled with ``b`` key. Left mouse click adds a vertical line
     to the plot. Click 'help' button at bottom left corner of the plotter to
     view all the options.
 
+    %(notes_2d_backend)s
+
     .. versionadded:: 0.10.0
     """
-    from ._figure import _browse_figure
+    from ._figure import _get_browser
 
     epochs.drop_bad()
     info = epochs.info.copy()
@@ -750,7 +771,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     projs = info['projs']
     projs_on = np.full_like(projs, epochs.proj, dtype=bool)
     if not epochs.proj:
-        info['projs'] = list()
+        with info._unlock():
+            info['projs'] = list()
 
     # handle defaults / check arg validity
     color = _handle_default('color', None)
@@ -789,28 +811,32 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     # events
     if events is not None:
         event_nums = events[:, 2]
-        boundary_samps = epochs.events[1:, 0] - epochs.time_as_index(0)
-        event_ixs = np.searchsorted(boundary_samps, events[:, 0], side='right')
-        event_samp_offsets = (events[:, 0] - epochs.events[:, 0][event_ixs]
-                              + epochs.time_as_index(0))
-        event_times = ((np.arange(len(epochs)) * len(epochs.times))[event_ixs]
-                       + event_samp_offsets) / sfreq
-        # don't show events that are beyond the range of their epoch
-        mask = event_samp_offsets <= len(epochs.times)
-        event_times = event_times[mask]
-        event_nums = event_nums[mask]
+        event_samps = events[:, 0]
+        epoch_n_samps = len(epochs.times)
+        # handle overlapping epochs (each event may show up in multiple places)
+        boundaries = (epochs.events[:, [0]] + np.array([-1, 1])
+                      * epochs.time_as_index(0))
+        in_bounds = np.logical_and(boundaries[:, [0]] <= event_samps,
+                                   event_samps < boundaries[:, [1]])
+        event_ixs = [np.nonzero(a)[0] for a in in_bounds.T]
+        warned = False
+        event_times = list()
+        event_numbers = list()
+        for samp, num, _ixs in zip(event_samps, event_nums, event_ixs):
+            relevant_epoch_events = epochs.events[:, 0][_ixs]
+            if len(relevant_epoch_events) > 1 and not warned:
+                logger.info('You seem to have overlapping epochs. Some event '
+                            'lines may be duplicated in the plot.')
+                warned = True
+            offsets = samp - relevant_epoch_events + epochs.time_as_index(0)
+            this_event_times = (_ixs * epoch_n_samps + offsets) / sfreq
+            event_times.extend(this_event_times)
+            event_numbers.extend([num] * len(_ixs))
+        event_nums = np.array(event_numbers)
+        event_times = np.array(event_times)
     else:
         event_nums = None
         event_times = None
-    if event_colors is not None:
-        depr_msg = ('event_colors is deprecated and will be replaced by '
-                    'event_color in 0.23.')
-        if event_color is None:
-            event_color = event_colors
-        else:
-            depr_msg += (' Since you passed values for both event_colors and '
-                         'event_color, event_colors will be ignored.')
-        warn(depr_msg, DeprecationWarning)
     event_color_dict = _make_event_color_dict(event_color, events, event_id)
 
     # determine trace order
@@ -834,6 +860,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     elif not isinstance(title, str):
         raise TypeError(f'title must be None or a string, got a {type(title)}')
 
+    precompute = _handle_precompute(precompute)
     params = dict(inst=epochs,
                   info=info,
                   n_epochs=n_epochs,
@@ -851,6 +878,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   duration=duration,
                   n_times=n_times,
                   first_time=0,
+                  time_format='float',
                   decim=decim,
                   boundary_times=boundary_times,
                   # events
@@ -872,7 +900,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   units=units,
                   unit_scalings=unit_scalings,
                   # colors
-                  ch_color_bad=(0.8, 0.8, 0.8),
+                  ch_color_bad='lightgray',
                   ch_color_dict=color,
                   epoch_color_bad=(1, 0, 0),
                   epoch_colors=epoch_colors,
@@ -880,26 +908,17 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   butterfly=butterfly,
                   clipping=None,
                   scrollbars_visible=show_scrollbars,
-                  scalebars_visible=False,
+                  scalebars_visible=show_scalebars,
                   window_title=title,
-                  xlabel='Epoch number')
-    fig = _browse_figure(**params)
-    fig._update_picks()
+                  xlabel='Epoch number',
+                  # pyqtgraph-specific
+                  precompute=precompute,
+                  use_opengl=use_opengl,
+                  theme=theme,
+                  overview_mode=overview_mode)
 
-    # make channel selection dialog, if requested (doesn't work well in init)
-    if group_by in ('selection', 'position'):
-        fig._create_selection_fig()
+    fig = _get_browser(show=show, block=block, **params)
 
-    fig._update_projector()
-    fig._update_trace_offsets()
-    fig._update_data()
-    fig._draw_traces()
-
-    # for blitting
-    fig.canvas.flush_events()
-    fig.mne.bg = fig.canvas.copy_from_bbox(fig.bbox)
-
-    plt_show(show, block=block)
     return fig
 
 
@@ -908,9 +927,9 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     proj=False, bandwidth=None, adaptive=False, low_bias=True,
                     normalization='length', picks=None, ax=None, color='black',
                     xscale='linear', area_mode='std', area_alpha=0.33,
-                    dB=True, estimate='auto', show=True, n_jobs=1,
+                    dB=True, estimate='auto', show=True, n_jobs=None,
                     average=False, line_alpha=None, spatial_colors=True,
-                    sphere=None, verbose=None):
+                    sphere=None, exclude='bads', verbose=None):
     """%(plot_psd_doc)s.
 
     Parameters
@@ -936,25 +955,28 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     low_bias : bool
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
-    normalization : str
-        Either "full" or "length" (default). If "full", the PSD will
-        be normalized by the sampling rate as well as the length of
-        the signal (as in nitime).
-    %(plot_psd_picks_good_data)s
+    %(normalization)s
+    %(picks_plot_psd_good_data)s
     ax : instance of Axes | None
         Axes to plot into. If None, axes will be created.
-    %(plot_psd_color)s
-    %(plot_psd_xscale)s
-    %(plot_psd_area_mode)s
-    %(plot_psd_area_alpha)s
-    %(plot_psd_dB)s
-    %(plot_psd_estimate)s
+    %(color_plot_psd)s
+    %(xscale_plot_psd)s
+    %(area_mode_plot_psd)s
+    %(area_alpha_plot_psd)s
+    %(dB_plot_psd)s
+    %(estimate_plot_psd)s
     %(show)s
     %(n_jobs)s
-    %(plot_psd_average)s
-    %(plot_psd_line_alpha)s
-    %(plot_psd_spatial_colors)s
-    %(topomap_sphere_auto)s
+    %(average_plot_psd)s
+    %(line_alpha_plot_psd)s
+    %(spatial_colors_plot_psd)s
+    %(sphere_topomap_auto)s
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the bad channels
+        are excluded. Pass an empty list to plot all channels (including
+        channels marked "bad", if any).
+
+        .. versionadded:: 0.24.0
     %(verbose)s
 
     Returns
@@ -962,15 +984,18 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
     """
-    from ._figure import _psd_figure
+    from ._mpl_figure import _psd_figure
 
     # generate figure
+    # epochs always use multitaper, not Welch, so no need to allow "window"
+    # param above
     fig = _psd_figure(
         inst=epochs, proj=proj, picks=picks, axes=ax, tmin=tmin, tmax=tmax,
         fmin=fmin, fmax=fmax, sphere=sphere, xscale=xscale, dB=dB,
         average=average, estimate=estimate, area_mode=area_mode,
         line_alpha=line_alpha, area_alpha=area_alpha, color=color,
         spatial_colors=spatial_colors, n_jobs=n_jobs, bandwidth=bandwidth,
-        adaptive=adaptive, low_bias=low_bias, normalization=normalization)
+        adaptive=adaptive, low_bias=low_bias, normalization=normalization,
+        window='hamming', exclude=exclude)
     plt_show(show)
     return fig

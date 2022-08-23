@@ -5,17 +5,18 @@
 #          Clemens Brunner <clemens.brunner@gmail.com>
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import copy as cp
 
 import numpy as np
-from scipy import linalg
 
 from .base import BaseEstimator
 from .mixin import TransformerMixin
 from ..cov import _regularized_covariance
-from ..utils import fill_doc, _check_option, _validate_type
+from ..defaults import _INTERPOLATION_DEFAULT
+from ..fixes import pinv
+from ..utils import fill_doc, _check_option, _validate_type, copy_doc
 
 
 @fill_doc
@@ -62,7 +63,7 @@ class CSP(TransformerMixin, BaseEstimator):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
     component_order : 'mutual_info' | 'alternate' (default 'mutual_info')
@@ -181,7 +182,7 @@ class CSP(TransformerMixin, BaseEstimator):
         eigen_vectors = eigen_vectors[:, ix]
 
         self.filters_ = eigen_vectors.T
-        self.patterns_ = linalg.pinv2(eigen_vectors)
+        self.patterns_ = pinv(eigen_vectors)
 
         pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
@@ -231,6 +232,10 @@ class CSP(TransformerMixin, BaseEstimator):
                 X /= self.std_
         return X
 
+    @copy_doc(TransformerMixin.fit_transform)
+    def fit_transform(self, X, y, **fit_params):  # noqa: D102
+        return super().fit_transform(X, y=y, **fit_params)
+
     @fill_doc
     def plot_patterns(self, info, components=None, ch_type=None,
                       vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
@@ -238,7 +243,7 @@ class CSP(TransformerMixin, BaseEstimator):
                       size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
                       show=True, show_names=False, title=None, mask=None,
                       mask_params=None, outlines='head', contours=6,
-                      image_interp='bilinear', average=None,
+                      image_interp=_INTERPOLATION_DEFAULT, average=None,
                       sphere=None):
         """Plot topographic patterns of components.
 
@@ -247,9 +252,8 @@ class CSP(TransformerMixin, BaseEstimator):
 
         Parameters
         ----------
-        info : instance of Info
-            Info dictionary of the epochs used for fitting.
-            If not possible, consider using ``create_info``.
+        %(info_not_none)s Used for fitting. If not available, consider using
+            :func:`mne.create_info`.
         components : float | array of float | None
            The patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
@@ -309,31 +313,22 @@ class CSP(TransformerMixin, BaseEstimator):
             only significant sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
-        mask : ndarray of bool, shape (n_channels, n_times) | None
-            The channels to be marked as significant at a given time point.
-            Indices set to `True` will be considered. Defaults to None.
-        mask_params : dict | None
-            Additional plotting parameters for plotting significant sensors.
-            Default (None) equals::
-
-                dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                     linewidth=0, markersize=4)
-        %(topomap_outlines)s
+        %(mask_patterns_topomap)s
+        %(mask_params_topomap)s
+        %(outlines_topomap)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
             suitable values for the contour thresholds (may sometimes be
             inaccurate, use array for accuracy). If an array, the values
             represent the levels for the contours. Defaults to 6.
-        image_interp : str
-            The image interpolation to be used.
-            All matplotlib options are accepted.
+        %(image_interp_topomap)s
         average : float | None
             The time window around a given time to be used for averaging
             (seconds). For example, 0.01 would translate into window that
             starts 5 ms before and ends 5 ms after a given time point.
             Defaults to None, which means no averaging.
-        %(topomap_sphere_auto)s
+        %(sphere_topomap_auto)s
 
         Returns
         -------
@@ -346,7 +341,8 @@ class CSP(TransformerMixin, BaseEstimator):
 
         # set sampling frequency to have 1 component per time point
         info = cp.deepcopy(info)
-        info['sfreq'] = 1.
+        with info._unlock():
+            info['sfreq'] = 1.
         # create an evoked
         patterns = EvokedArray(self.patterns_.T, info, tmin=0)
         # the call plot_topomap
@@ -367,7 +363,7 @@ class CSP(TransformerMixin, BaseEstimator):
                      size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None):
+                     image_interp=_INTERPOLATION_DEFAULT, average=None):
         """Plot topographic filters of components.
 
         The filters are used to extract discriminant neural sources from
@@ -375,9 +371,8 @@ class CSP(TransformerMixin, BaseEstimator):
 
         Parameters
         ----------
-        info : instance of Info
-            Info dictionary of the epochs used for fitting.
-            If not possible, consider using ``create_info``.
+        %(info_not_none)s Used for fitting. If not available, consider using
+            :func:`mne.create_info`.
         components : float | array of float | None
            The patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
@@ -446,16 +441,14 @@ class CSP(TransformerMixin, BaseEstimator):
 
                 dict(marker='o', markerfacecolor='w', markeredgecolor='k',
                      linewidth=0, markersize=4)
-        %(topomap_outlines)s
+        %(outlines_topomap)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
             suitable values for the contour thresholds (may sometimes be
             inaccurate, use array for accuracy). If an array, the values
             represent the levels for the contours. Defaults to 6.
-        image_interp : str
-            The image interpolation to be used.
-            All matplotlib options are accepted.
+        %(image_interp_topomap)s
         average : float | None
             The time window around a given time to be used for averaging
             (seconds). For example, 0.01 would translate into window that
@@ -473,7 +466,8 @@ class CSP(TransformerMixin, BaseEstimator):
 
         # set sampling frequency to have 1 component per time point
         info = cp.deepcopy(info)
-        info['sfreq'] = 1.
+        with info._unlock():
+            info['sfreq'] = 1.
         # create an evoked
         filters = EvokedArray(self.filters_.T, info, tmin=0)
         # the call plot_topomap
@@ -532,6 +526,7 @@ class CSP(TransformerMixin, BaseEstimator):
         return cov, weight
 
     def _decompose_covs(self, covs, sample_weights):
+        from scipy import linalg
         n_classes = len(covs)
         if n_classes == 2:
             eigen_values, eigen_vectors = linalg.eigh(covs[0], covs.sum(0))
@@ -708,7 +703,7 @@ class SPoC(CSP):
         Parameters to pass to :func:`mne.compute_covariance`.
 
         .. versionadded:: 0.16
-    %(rank_None)s
+    %(rank_none)s
 
         .. versionadded:: 0.17
 
@@ -761,6 +756,7 @@ class SPoC(CSP):
         self : instance of SPoC
             Returns the modified instance.
         """
+        from scipy import linalg
         self._check_Xy(X, y)
 
         if len(np.unique(y)) < 2:

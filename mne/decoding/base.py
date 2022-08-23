@@ -4,14 +4,14 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
-import time
+import datetime as dt
 import numbers
 from ..parallel import parallel_func
 from ..fixes import BaseEstimator, is_classifier, _get_check_scoring
-from ..utils import logger, warn, fill_doc
+from ..utils import warn, verbose
 
 
 class LinearModel(BaseEstimator):
@@ -144,7 +144,6 @@ class LinearModel(BaseEstimator):
         -------
         y_pred : array, shape (n_samples,)
             The predicted targets.
-
         """
         return self.fit(X, y).transform(X)
 
@@ -232,12 +231,8 @@ def _set_cv(cv, estimator=None, X=None, y=None):
     cv = check_cv(cv=cv, y=y, classifier=est_is_classifier)
 
     # Extract train and test set to retrieve them at predict time
-    if hasattr(cv, 'split'):
-        cv_splits = [(train, test) for train, test in
-                     cv.split(X=np.zeros_like(y), y=y)]
-    else:
-        # XXX support sklearn.cross_validation cv
-        cv_splits = [(train, test) for train, test in cv]
+    cv_splits = [(train, test) for train, test in
+                 cv.split(X=np.zeros_like(y), y=y)]
 
     if not np.all([len(train) for train, _ in cv_splits]):
         raise ValueError('Some folds do not have any train epochs.')
@@ -279,7 +274,7 @@ def _get_inverse_funcs(estimator, terminal=True):
     # and remove it from the transformers.
     if terminal:
         last_is_estimator = inverse_func[-1] is False
-        all_invertible = not(False in inverse_func[:-1])
+        all_invertible = False not in inverse_func[:-1]
         if last_is_estimator and all_invertible:
             # keep all inverse transformation and remove last estimation
             inverse_func = inverse_func[:-1]
@@ -356,9 +351,9 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
     return coef
 
 
-@fill_doc
+@verbose
 def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
-                         cv=None, n_jobs=1, verbose=0, fit_params=None,
+                         cv=None, n_jobs=None, verbose=None, fit_params=None,
                          pre_dispatch='2*n_jobs'):
     """Evaluate a score by cross-validation.
 
@@ -387,7 +382,7 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
 
-        - None, to use the default 3-fold cross validation,
+        - None, to use the default 5-fold cross validation,
         - integer, to specify the number of folds in a ``(Stratified)KFold``,
         - An object to be used as a cross-validation generator.
         - An iterable yielding train, test splits.
@@ -397,8 +392,7 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
         :class:`sklearn.model_selection.StratifiedKFold` is used. In all
         other cases, :class:`sklearn.model_selection.KFold` is used.
     %(n_jobs)s
-    verbose : int, optional
-        The verbosity level.
+    %(verbose)s
     fit_params : dict, optional
         Parameters to pass to the fit method of the estimator.
     pre_dispatch : int, or str, optional
@@ -438,13 +432,16 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
     # Note: this parallelization is implemented using MNE Parallel
     parallel, p_func, n_jobs = parallel_func(_fit_and_score, n_jobs,
                                              pre_dispatch=pre_dispatch)
-    scores = parallel(p_func(clone(estimator), X, y, scorer, train, test,
-                             0, None, fit_params)
-                      for train, test in cv_iter)
+    scores = parallel(
+        p_func(
+            estimator=clone(estimator), X=X, y=y, scorer=scorer, train=train,
+            test=test, parameters=None, fit_params=fit_params
+        ) for train, test in cv_iter
+    )
     return np.array(scores)[:, 0, ...]  # flatten over joblib output.
 
 
-def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
+def _fit_and_score(estimator, X, y, scorer, train, test,
                    parameters, fit_params, return_train_score=False,
                    return_parameters=False, return_n_test_samples=False,
                    return_times=False, error_score='raise'):
@@ -454,14 +451,6 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
     from sklearn.utils.metaestimators import _safe_split
     from sklearn.utils.validation import _num_samples
 
-    if verbose > 1:
-        if parameters is None:
-            msg = ''
-        else:
-            msg = '%s' % (', '.join('%s=%s' % (k, v)
-                          for k, v in parameters.items()))
-        print("[CV] %s %s" % (msg, (64 - len(msg)) * '.'))
-
     # Adjust length of sample weights
     fit_params = fit_params if fit_params is not None else {}
     fit_params = _check_fit_params(X, fit_params, train)
@@ -469,7 +458,7 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
     if parameters is not None:
         estimator.set_params(**parameters)
 
-    start_time = time.time()
+    start_time = dt.datetime.now()
 
     X_train, y_train = _safe_split(estimator, X, y, train)
     X_test, y_test = _safe_split(estimator, X, y, test, train)
@@ -482,8 +471,8 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
 
     except Exception as e:
         # Note fit time as time until error
-        fit_time = time.time() - start_time
-        score_time = 0.0
+        fit_duration = dt.datetime.now() - start_time
+        score_duration = dt.timedelta(0)
         if error_score == 'raise':
             raise
         elif isinstance(error_score, numbers.Number):
@@ -499,25 +488,21 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
                              " make sure that it has been spelled correctly.)")
 
     else:
-        fit_time = time.time() - start_time
+        fit_duration = dt.datetime.now() - start_time
         test_score = _score(estimator, X_test, y_test, scorer)
-        score_time = time.time() - start_time - fit_time
+        score_duration = dt.datetime.now() - start_time - fit_duration
         if return_train_score:
             train_score = _score(estimator, X_train, y_train, scorer)
-
-    if verbose > 2:
-        msg += ", score=%f" % test_score
-    if verbose > 1:
-        total_time = score_time + fit_time
-        end_msg = "%s, total=%s" % (msg, logger.short_format_time(total_time))
-        print("[CV] %s %s" % ((64 - len(end_msg)) * '.', end_msg))
 
     ret = [train_score, test_score] if return_train_score else [test_score]
 
     if return_n_test_samples:
         ret.append(_num_samples(X_test))
     if return_times:
-        ret.extend([fit_time, score_time])
+        ret.extend([
+            fit_duration.total_seconds(),
+            score_duration.total_seconds()
+        ])
     if return_parameters:
         ret.append(parameters)
     return ret

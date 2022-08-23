@@ -1,6 +1,6 @@
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import inspect
 import os
@@ -11,7 +11,6 @@ from numpy.testing import assert_array_equal
 
 from mne.io.kit import read_mrk
 from mne.io._digitization import _write_dig_points
-from mne.utils import _TempDir
 
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -20,9 +19,9 @@ data_dir = os.path.join(parent_dir, 'data')
 mrk_fname = os.path.join(data_dir, 'test_mrk.sqd')
 
 
-def test_io_mrk():
+def test_io_mrk(tmp_path):
     """Test IO for mrk files."""
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
     pts = read_mrk(mrk_fname)
 
     # txt

@@ -1,4 +1,7 @@
 name: 'compat / old'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
+  cancel-in-progress: true
 on:
   push:
     branches:
@@ -8,38 +11,22 @@ on:
       - '*'
 
 jobs:
-  check_skip:
-    runs-on: ubuntu-20.04
-    outputs:
-      skip: ${{ steps.result_step.outputs.ci-skip }}
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - id: result_step
-        uses: mstachniuk/ci-skip@master
-        with:
-          commit-filter: '[skip ci];[ci skip];[skip github]'
-          commit-filter-separator: ';'
-
-  # Old dependencies
   job:
-    needs: check_skip
-    if: ${{ needs.check_skip.outputs.skip == 'false' }}
-    name: 'py3.6'
+    name: 'old 3.7'
     runs-on: ubuntu-18.04
     defaults:
       run:
         shell: bash
     env:
-      CONDA_DEPENDENCIES: 'numpy=1.15.4 scipy=1.1 matplotlib=3.0.3 pandas=0.23.4 scikit-learn=0.20.2'
+      CONDA_DEPENDENCIES: 'numpy=1.18 scipy=1.4 matplotlib=3.1 pandas=1.0 scikit-learn=0.22'
       DISPLAY: ':99.0'
       MNE_LOGGING_LEVEL: 'warning'
       OPENBLAS_NUM_THREADS: '1'
       PYTHONUNBUFFERED: '1'
-      PYTHON_VERSION: '3.6'
+      PYTHON_VERSION: '3.7'
+      MNE_IGNORE_WARNINGS_IN_TESTS: 'true'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: ./tools/setup_xvfb.sh
         name: 'Setup xvfb'
       - uses: conda-incubator/setup-miniconda@v2
@@ -58,6 +45,14 @@ jobs:
         run: ./tools/github_actions_infos.sh
         name: 'Show infos'
       - shell: bash -el {0}
+        run: ./tools/get_testing_version.sh
+        name: 'Get testing version'
+      - uses: actions/cache@v3
+        with:
+          key: ${{ env.TESTING_VERSION }}
+          path: ~/mne_data
+        name: 'Cache testing data'
+      - shell: bash -el {0}
         run: ./tools/github_actions_download.sh
         name: 'Download testing data'
       - shell: bash -el {0}
@@ -66,6 +61,6 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/github_actions_test.sh
         name: 'Run tests'
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v3
         if: success()
         name: 'Upload coverage to CodeCov'

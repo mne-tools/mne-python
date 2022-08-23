@@ -4,7 +4,7 @@
 #          Jussi Nurminen <jnu@iki.fi>
 
 
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections import Counter, OrderedDict
 from functools import partial
@@ -12,7 +12,6 @@ from math import factorial
 from os import path as op
 
 import numpy as np
-from scipy import linalg
 
 from .. import __version__
 from ..annotations import _annotations_starts_stops
@@ -25,7 +24,7 @@ from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
 from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
 from ..io.constants import FIFF, FWD
-from ..io.meas_info import _simplify_info
+from ..io.meas_info import _simplify_info, Info
 from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, DATE_NONE
 from ..io import (_loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray,
@@ -33,13 +32,151 @@ from ..io import (_loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray,
 from ..io.pick import pick_types, pick_info
 from ..utils import (verbose, logger, _clean_names, warn, _time_mask, _pl,
                      _check_option, _ensure_int, _validate_type, use_log_level)
-from ..fixes import _get_args, _safe_svd, einsum, bincount
+from ..fixes import _safe_svd, bincount
 from ..channels.channels import _get_T1T2_mag_inds, fix_mag_coil_types
 
 
 # Note: MF uses single precision and some algorithms might use
 # truncated versions of constants (e.g., μ0), which could lead to small
 # differences between algorithms
+
+
+@verbose
+def maxwell_filter_prepare_emptyroom(
+    raw_er, *, raw, bads='from_raw', annotations='from_raw', meas_date='keep',
+    emit_warning=False, verbose=None
+):
+    """Prepare an empty-room recording for Maxwell filtering.
+
+    Empty-room data by default lacks certain properties that are required to
+    ensure running :func:`~mne.preprocessing.maxwell_filter` will process the
+    empty-room recording the same way as the experimental data. This function
+    preconditions an empty-room raw data instance accordingly so it can be used
+    for Maxwell filtering. Please see the ``Notes`` section for details.
+
+    Parameters
+    ----------
+    raw_er : instance of Raw
+        The empty-room recording. It will not be modified.
+    raw : instance of Raw
+        The experimental recording, typically this will be the reference run
+        used for Maxwell filtering.
+    bads : 'from_raw' | 'union' | 'keep'
+        How to populate the list of bad channel names to be injected into
+        the empty-room recording. If ``'from_raw'`` (default) the list of bad
+        channels will be overwritten with that of ``raw``. If ``'union'``, will
+        use the union of bad channels in ``raw`` and ``raw_er``. Note that
+        this may lead to additional bad channels in the empty-room in
+        comparison to the experimental recording. If ``'keep'``, don't alter
+        the existing list of bad channels.
+
+        .. note::
+           Non-MEG channels are silently dropped from the list of bads.
+    annotations : 'from_raw' | 'union' | 'keep'
+        Whether to copy the annotations over from ``raw`` (default),
+        use the union of the annotations, or to keep them unchanged.
+    meas_date : 'keep' | 'from_raw'
+        Whether to transfer the measurement date from ``raw`` or to keep
+        it as is (default). If you intend to manually transfer annotations
+        from ``raw`` **after** running this function, you should set this to
+        ``'from_raw'``.
+    %(emit_warning)s
+        Unlike :meth:`raw.set_annotations <mne.io.Raw.set_annotations>`, the
+        default here is ``False``, as empty-room recordings are often shorter
+        than raw.
+    %(verbose)s
+
+    Returns
+    -------
+    raw_er_prepared : instance of Raw
+        A copy of the passed empty-room recording, ready for Maxwell filtering.
+
+    Notes
+    -----
+    This function will:
+
+    * Compile the list of bad channels according to the ``bads`` parameter.
+    * Inject the device-to-head transformation matrix from the experimental
+      recording into the empty-room recording.
+    * Set the following properties of the empty-room recording to match the
+      experimental recording:
+
+      * Montage
+      * ``raw.first_time`` and ``raw.first_samp``
+
+    * Adjust annotations according to the ``annotations`` parameter.
+    * Adjust the measurement date according to the ``meas_date`` parameter.
+
+    .. versionadded:: 1.1
+    """  # noqa: E501
+    _validate_type(item=raw_er, types=BaseRaw, item_name='raw_er')
+    _validate_type(item=raw, types=BaseRaw, item_name='raw')
+    _validate_type(item=bads, types=str, item_name='bads')
+    _check_option(
+        parameter='bads', value=bads,
+        allowed_values=['from_raw', 'union', 'keep']
+    )
+    _validate_type(item=annotations, types=str, item_name='annotations')
+    _check_option(
+        parameter='annotations', value=annotations,
+        allowed_values=['from_raw', 'union', 'keep']
+    )
+    _validate_type(item=meas_date, types=str, item_name='meas_date')
+    _check_option(
+        parameter='meas_date', value=annotations,
+        allowed_values=['from_raw', 'keep']
+    )
+
+    raw_er_prepared = raw_er.copy()
+    del raw_er  # just to be sure
+
+    # handle bads; only keep MEG channels
+    if bads == 'from_raw':
+        bads = raw.info['bads']
+    elif bads == 'union':
+        bads = sorted(
+            set(raw.info['bads'] + raw_er_prepared.info['bads'])
+        )
+    elif bads == 'keep':
+        bads = raw_er_prepared.info['bads']
+
+    bads = [ch_name for ch_name in bads
+            if ch_name.startswith('MEG')]
+    raw_er_prepared.info['bads'] = bads
+
+    # handle dev_head_t
+    raw_er_prepared.info['dev_head_t'] = raw.info['dev_head_t']
+
+    # handle montage
+    montage = raw.get_montage()
+    raw_er_prepared.set_montage(montage)
+
+    # handle first_samp
+    raw_er_prepared.annotations.onset += (
+        raw.first_time - raw_er_prepared.first_time
+    )
+    raw_er_prepared._cropped_samp = raw._cropped_samp
+
+    # handle annotations
+    if annotations != 'keep':
+        er_annot = raw_er_prepared.annotations
+        if annotations == 'from_raw':
+            er_annot.delete(np.arange(len(er_annot)))
+        er_annot.append(
+            raw.annotations.onset,
+            raw.annotations.duration,
+            raw.annotations.description,
+            raw.annotations.ch_names
+        )
+        if raw_er_prepared.info['meas_date'] is None:
+            er_annot.onset -= raw_er_prepared.first_time
+        raw_er_prepared.set_annotations(er_annot, emit_warning)
+
+    # handle measurement date
+    if meas_date == 'from_raw':
+        raw_er_prepared.set_meas_date(raw.info['meas_date'])
+
+    return raw_er_prepared
 
 
 # Changes to arguments here should also be made in find_bad_channels_maxwell
@@ -62,11 +199,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                      ``raw.info['bads']`` prior to processing in order to
                      prevent artifact spreading. Manual inspection and use
                      of :func:`~find_bad_channels_maxwell` is recommended.
-    %(maxwell_origin)s
-    %(maxwell_int)s
-    %(maxwell_ext)s
-    %(maxwell_cal)s
-    %(maxwell_cross)s
+    %(origin_maxwell)s
+    %(int_order_maxwell)s
+    %(ext_order_maxwell)s
+    %(calibration_maxwell_cal)s
+    %(cross_talk_maxwell)s
     st_duration : float | None
         If not None, apply spatiotemporal SSS with specified buffer duration
         (in seconds). MaxFilter™'s default is 10.0 seconds in v2.2.
@@ -80,22 +217,22 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     st_correlation : float
         Correlation limit between inner and outer subspaces used to reject
         ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
-    %(maxwell_coord)s
-    %(maxwell_dest)s
-    %(maxwell_reg)s
-    %(maxwell_ref)s
-    %(maxwell_cond)s
-    %(maxwell_pos)s
+    %(coord_frame_maxwell)s
+    %(destination_maxwell_dest)s
+    %(regularize_maxwell_reg)s
+    %(ignore_ref_maxwell)s
+    %(bad_condition_maxwell_cond)s
+    %(head_pos_maxwell)s
 
         .. versionadded:: 0.12
-    %(maxwell_st_fixed_only)s
-    %(maxwell_mag)s
+    %(st_fixed_maxwell_only)s
+    %(mag_scale_maxwell)s
 
         .. versionadded:: 0.13
-    %(maxwell_skip)s
+    %(skip_by_annotation_maxwell)s
 
         .. versionadded:: 0.17
-    %(maxwell_extended)s
+    %(extended_proj_maxwell)s
     %(verbose)s
 
     Returns
@@ -105,7 +242,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     See Also
     --------
-    mne.preprocessing.annotate_flat
+    mne.preprocessing.annotate_amplitude
     mne.preprocessing.find_bad_channels_maxwell
     mne.chpi.filter_chpi
     mne.chpi.read_head_pos
@@ -117,8 +254,9 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     Some of this code was adapted and relicensed (with BSD form) with
     permission from Jussi Nurminen. These algorithms are based on work
-    from [1]_ and [2]_. It will likely use multiple CPU cores, see the
-    :ref:`FAQ <faq_cpu>` for more information.
+    from :footcite:`TauluKajola2005` and :footcite:`TauluSimola2006`.
+    It will likely use multiple CPU cores, see the :ref:`FAQ <faq_cpu>`
+    for more information.
 
     .. warning:: Maxwell filtering in MNE is not designed or certified
                  for clinical use.
@@ -167,7 +305,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
        | Extended external basis (eSSS)                                              | ✓   |           |
        +-----------------------------------------------------------------------------+-----+-----------+
 
-    Epoch-based movement compensation is described in [1]_.
+    Epoch-based movement compensation is described in :footcite:`TauluKajola2005`.
 
     Use of Maxwell filtering routines with non-Neuromag systems is currently
     **experimental**. Worse results for non-Neuromag systems are expected due
@@ -200,15 +338,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     References
     ----------
-    .. [1] Taulu S. and Kajola M. "Presentation of electromagnetic
-           multichannel data: The signal space separation method,"
-           Journal of Applied Physics, vol. 97, pp. 124905 1-10, 2005.
-           https://doi.org/10.1063/1.1935742
-
-    .. [2] Taulu S. and Simola J. "Spatiotemporal signal space separation
-           method for rejecting nearby interference in MEG measurements,"
-           Physics in Medicine and Biology, vol. 51, pp. 1759-1768, 2006.
-           https://doi.org/10.1088/0031-9155/51/7/008
+    .. footbibliography::
     """  # noqa: E501
     logger.info('Maxwell filtering raw data')
     params = _prep_maxwell_filter(
@@ -296,13 +426,13 @@ def _prep_maxwell_filter(
             item = 'extended_proj[%d]' % (pi,)
             _validate_type(proj, Projection, item)
             got_names = proj['data']['col_names']
-            diff = sorted(set(got_names).symmetric_difference(set(good_names)))
-            if diff:
-                raise ValueError('%s channel names (length %d) do not match '
-                                 'the good MEG channel names (length %d):\n%s'
-                                 % (item, len(got_names), len(good_names),
-                                    ', '.join(diff)))
-            extended_proj_.append(proj['data']['data'])
+            missing = sorted(set(good_names) - set(got_names))
+            if missing:
+                raise ValueError('%s channel names were missing some '
+                                 'good MEG channel names:\n%s'
+                                 % (item, ', '.join(missing)))
+            idx = [got_names.index(name) for name in good_names]
+            extended_proj_.append(proj['data']['data'][:, idx])
         extended_proj = np.concatenate(extended_proj_)
         logger.info('    Extending external SSS basis using %d projection '
                     'vectors' % (len(extended_proj),))
@@ -479,6 +609,8 @@ def _run_maxwell_filter(
     logger.info(
         '    Processing %s data chunk%s' % (len(starts), _pl(starts)))
     for ii, (start, stop) in enumerate(zip(starts, stops)):
+        if start == stop:
+            continue  # Skip zero-length annotations
         tsss_valid = (stop - start) >= st_duration
         rel_times = raw_sss.times[start:stop]
         t_str = '%8.3f - %8.3f sec' % tuple(rel_times[[0, -1]])
@@ -654,7 +786,7 @@ def _check_destination(destination, info, head_frame):
 def _prep_mf_coils(info, ignore_ref=True, verbose=None):
     """Get all coil integration information loaded and sorted."""
     coils, comp_coils = _prep_meg_channels(
-        info, accurate=True, head_frame=False,
+        info, head_frame=False,
         ignore_ref=ignore_ref, do_picking=False, verbose=False)[:2]
     mag_mask = _get_mag_mask(coils)
     if len(comp_coils) > 0:
@@ -744,7 +876,7 @@ def _do_tSSS(clean_data, orig_in_data, resid, st_correlation,
     else:
         np.asarray_chkfinite(resid)
         t_proj = _overlap_projector(orig_in_data, resid, st_correlation)
-    # Apply projector according to Eq. 12 in [2]_
+    # Apply projector according to Eq. 12 in :footcite:`TauluSimola2006`
     msg = ('        Projecting %2d intersecting tSSS component%s '
            'for %s' % (t_proj.shape[1], _pl(t_proj.shape[1], ' '), t_str))
     if n_positions > 1:
@@ -758,7 +890,8 @@ def _copy_preload_add_channels(raw, add_channels, copy, info):
     """Load data for processing and (maybe) add cHPI pos channels."""
     if copy:
         raw = raw.copy()
-    raw.info['chs'] = info['chs']  # updated coil types
+    with raw.info._unlock():
+        raw.info['chs'] = info['chs']  # updated coil types
     if add_channels:
         kinds = [FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2, FIFF.FIFFV_QUAT_3,
                  FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5, FIFF.FIFFV_QUAT_6,
@@ -772,7 +905,8 @@ def _copy_preload_add_channels(raw, add_channels, copy, info):
             raw._data = out_data
         else:
             logger.info(msg + 'loading raw data from disk')
-            raw._preload_data(out_data[:len(raw.ch_names)], verbose=False)
+            with use_log_level(False):
+                raw._preload_data(out_data[:len(raw.ch_names)])
             raw._data = out_data
         assert raw.preload is True
         off = len(raw.ch_names)
@@ -840,6 +974,7 @@ def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
                 coil_scale, grad_picks, mag_picks, good_mask, mag_or_fine,
                 bad_condition, t, mag_scale):
     """Get a decomposition matrix and pseudoinverse matrices."""
+    from scipy import linalg
     #
     # Fine calibration processing (point-like magnetometers and calib. coeffs)
     #
@@ -1166,11 +1301,11 @@ def _sss_basis_basic(exp, coils, mag_scale=100., method='standard'):
                         orders_pos_neg.append(-order)
                     for gr, oo in zip(grads_pos_neg, orders_pos_neg):
                         # Gradients dotted w/integration point weighted normals
-                        gr = einsum('ij,ij->i', gr, cosmags)
+                        gr = np.einsum('ij,ij->i', gr, cosmags)
                         vals = np.bincount(bins, gr, len(coils))
                         spc[:, _deg_ord_idx(degree, oo)] = -vals
                 else:
-                    grads = einsum('ij,ij->i', grads, ezs)
+                    grads = np.einsum('ij,ij->i', grads, ezs)
                     v = (np.bincount(bins, grads.real, len(coils)) +
                          1j * np.bincount(bins, grads.imag, len(coils)))
                     spc[:, _deg_ord_idx(degree, order)] = -v
@@ -1513,7 +1648,8 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
         Extended external bases.
     """
     n_in, n_out = _get_n_moments([int_order, ext_order])
-    raw.info['maxshield'] = False
+    with raw.info._unlock():
+        raw.info['maxshield'] = False
     components = np.zeros(n_in + n_out + len(extended_proj)).astype('int32')
     components[reg_moments] = 1
     sss_info_dict = dict(in_order=int_order, out_order=ext_order,
@@ -1531,11 +1667,13 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
         # Reset 'bads' for any MEG channels since they've been reconstructed
         _reset_meg_bads(raw.info)
         # set the reconstruction transform
-        raw.info['dev_head_t'] = recon_trans
+        with raw.info._unlock():
+            raw.info['dev_head_t'] = recon_trans
     block_id = _generate_meas_id()
-    raw.info['proc_history'].insert(0, dict(
-        max_info=max_info_dict, block_id=block_id, date=DATE_NONE,
-        creator='mne-python v%s' % __version__, experimenter=''))
+    with raw.info._unlock():
+        raw.info['proc_history'].insert(0, dict(
+            max_info=max_info_dict, block_id=block_id, date=DATE_NONE,
+            creator='mne-python v%s' % __version__, experimenter=''))
 
 
 def _reset_meg_bads(info):
@@ -1545,9 +1683,7 @@ def _reset_meg_bads(info):
                     if info['ch_names'].index(bad) not in meg_picks]
 
 
-check_disable = dict()  # not available on really old versions of SciPy
-if 'check_finite' in _get_args(linalg.svd):
-    check_disable['check_finite'] = False
+check_disable = dict(check_finite=False)
 
 
 def _orth_overwrite(A):
@@ -1564,18 +1700,21 @@ def _orth_overwrite(A):
 def _overlap_projector(data_int, data_res, corr):
     """Calculate projector for removal of subspace intersection in tSSS."""
     # corr necessary to deal with noise when finding identical signal
-    # directions in the subspace. See the end of the Results section in [2]_
+    # directions in the subspace. See the end of the Results section in
+    # :footcite:`TauluSimola2006`
 
-    # Note that the procedure here is an updated version of [2]_ (and used in
-    # MF's tSSS) that uses residuals instead of internal/external spaces
-    # directly. This provides more degrees of freedom when analyzing for
-    # intersections between internal and external spaces.
+    # Note that the procedure here is an updated version of
+    # :footcite:`TauluSimola2006` (and used in MF's tSSS) that uses residuals
+    # instead of internal/external spaces directly. This provides more degrees
+    # of freedom when analyzing for intersections between internal and
+    # external spaces.
 
     # Normalize data, then compute orth to get temporal bases. Matrices
     # must have shape (n_samps x effective_rank) when passed into svd
     # computation
 
     # we use np.linalg.norm instead of sp.linalg.norm here: ~2x faster!
+    from scipy import linalg
     n = np.linalg.norm(data_int)
     n = 1. if n == 0 else n  # all-zero data should gracefully continue
     data_int = _orth_overwrite((data_int / n).T)
@@ -1598,8 +1737,9 @@ def _overlap_projector(data_int, data_res, corr):
     intersect_mask = (S_intersect >= corr)
     del S_intersect
 
-    # Compute projection operator as (I-LL_T) Eq. 12 in [2]_
-    # V_principal should be shape (n_time_pts x n_retained_inds)
+    # Compute projection operator as (I-LL_T) Eq. 12 in
+    # :footcite:`TauluSimola2006` V_principal should be shape
+    # (n_time_pts x n_retained_inds)
     Vh_intersect = Vh_intersect[intersect_mask].T
     V_principal = np.dot(Q_res, Vh_intersect)
     return V_principal
@@ -1874,15 +2014,14 @@ def _compute_sphere_activation_in(degrees):
     Returns
     -------
     a_power : ndarray
-        The a_lm associated for the associated degrees (see [1]_).
+        The a_lm associated for the associated degrees (see
+        :footcite:`KnuutilaEtAl1993`).
     rho_i : float
         The current density.
 
     References
     ----------
-    .. [1] A 122-channel whole-cortex SQUID system for measuring the brain’s
-       magnetic fields. Knuutila et al. IEEE Transactions on Magnetics,
-       Vol 29 No 6, Nov 1993.
+    .. footbibliography::
     """
     r_in = 0.080  # radius of the randomly-activated sphere
 
@@ -1967,24 +2106,24 @@ def find_bad_channels_maxwell(
                      developers.
 
         .. versionadded:: 0.21
-    %(maxwell_origin)s
-    %(maxwell_int)s
-    %(maxwell_ext)s
-    %(maxwell_cal)s
-    %(maxwell_cross)s
-    %(maxwell_coord)s
-    %(maxwell_reg)s
-    %(maxwell_ref)s
-    %(maxwell_cond)s
-    %(maxwell_pos)s
-    %(maxwell_mag)s
-    %(maxwell_skip)s
+    %(origin_maxwell)s
+    %(int_order_maxwell)s
+    %(ext_order_maxwell)s
+    %(calibration_maxwell_cal)s
+    %(cross_talk_maxwell)s
+    %(coord_frame_maxwell)s
+    %(regularize_maxwell_reg)s
+    %(ignore_ref_maxwell)s
+    %(bad_condition_maxwell_cond)s
+    %(head_pos_maxwell)s
+    %(mag_scale_maxwell)s
+    %(skip_by_annotation_maxwell)s
     h_freq : float | None
         The cutoff frequency (in Hz) of the low-pass filter that will be
         applied before processing the data. This defaults to ``40.``, which
         should provide similar results to MaxFilter. If you do not wish to
         apply a filter, set this to ``None``.
-    %(maxwell_extended)s
+    %(extended_proj_maxwell)s
     %(verbose)s
 
     Returns
@@ -2029,7 +2168,7 @@ def find_bad_channels_maxwell(
 
     See Also
     --------
-    annotate_flat
+    annotate_amplitude
     maxwell_filter
 
     Notes
@@ -2076,11 +2215,12 @@ def find_bad_channels_maxwell(
     .. versionadded:: 0.20
     """
     if h_freq is not None:
-        if raw.info.get('lowpass') and raw.info['lowpass'] < h_freq:
+        if raw.info.get('lowpass') and raw.info['lowpass'] <= h_freq:
+            freq_loc = 'below' if raw.info['lowpass'] < h_freq else 'equal to'
             msg = (f'The input data has already been low-pass filtered with a '
                    f'{raw.info["lowpass"]} Hz cutoff frequency, which is '
-                   f'below the requested cutoff of {h_freq} Hz. Not applying '
-                   f'low-pass filter.')
+                   f'{freq_loc} the requested cutoff of {h_freq} Hz. Not '
+                   f'applying low-pass filter.')
             logger.info(msg)
         else:
             logger.info(f'Applying low-pass filter with {h_freq} Hz cutoff '
@@ -2176,6 +2316,14 @@ def find_bad_channels_maxwell(
         chunk_flats = sorted(all_flats)
         these_picks = [pick for pick in good_meg_picks
                        if raw.ch_names[pick] not in chunk_flats]
+        if len(these_picks) == 0:
+            logger.info(f'            Flat ({len(chunk_flats):2d}): <all>')
+            warn('All-flat segment detected, all channels will be marked as '
+                 f'flat and processing will stop (t={t[0]:0.3f}). '
+                 'Consider using annotate_amplitude before calling this '
+                 'function with skip_by_annotation="bad_flat" (or similar) to '
+                 'properly process all segments.')
+            break  # no reason to continue
         # Bad pass
         chunk_noisy = list()
         params['st_duration'] = int(round(
@@ -2272,3 +2420,69 @@ def _read_cross_talk(cross_talk, ch_names):
         # I have no idea why, but MF transposes this for storage..
         sss_ctc['decoupler'] = sss_ctc['decoupler'].T.tocsc()
     return ctc, sss_ctc
+
+
+@verbose
+def compute_maxwell_basis(info, origin='auto', int_order=8, ext_order=3,
+                          calibration=None, coord_frame='head',
+                          regularize='in', ignore_ref=True,
+                          bad_condition='error', mag_scale=100.,
+                          extended_proj=(), verbose=None):
+    r"""Compute the SSS basis for a given measurement info structure.
+
+    Parameters
+    ----------
+    %(info_not_none)s
+    %(origin_maxwell)s
+    %(int_order_maxwell)s
+    %(ext_order_maxwell)s
+    %(calibration_maxwell_cal)s
+    %(coord_frame_maxwell)s
+    %(regularize_maxwell_reg)s
+    %(ignore_ref_maxwell)s
+    %(bad_condition_maxwell_cond)s
+    %(mag_scale_maxwell)s
+    %(extended_proj_maxwell)s
+    %(verbose)s
+
+    Returns
+    -------
+    S : ndarray, shape (n_meg, n_moments)
+        The basis that can be used to reconstruct the data.
+    pS : ndarray, shape (n_moments, n_good_meg)
+        The (stabilized) pseudoinverse of the S array.
+    reg_moments : ndarray, shape (n_moments,)
+        The moments that were kept after regularization.
+    n_use_in : int
+        The number of kept moments that were in the internal space.
+
+    Notes
+    -----
+    This outputs variants of :math:`\mathbf{S}` and :math:`\mathbf{S^\dagger}`
+    from equations 27 and 37 of :footcite:`TauluKajola2005` with the coil scale
+    for magnetometers already factored in so that the resulting denoising
+    transform of the data to obtain :math:`\hat{\phi}_{in}` from equation
+    38 would be::
+
+        phi_in = S[:, :n_use_in] @ pS[:n_use_in] @ data_meg_good
+
+    .. versionadded:: 0.23
+
+    References
+    ----------
+    .. footbibliography::
+    """
+    from ..io import RawArray
+    _validate_type(info, Info, 'info')
+    raw = RawArray(np.zeros((len(info['ch_names']), 1)), info.copy(),
+                   verbose=False)
+    logger.info('Computing Maxwell basis')
+    params = _prep_maxwell_filter(
+        raw=raw, origin=origin, int_order=int_order, ext_order=ext_order,
+        calibration=calibration, coord_frame=coord_frame, destination=None,
+        regularize=regularize, ignore_ref=ignore_ref,
+        bad_condition=bad_condition, mag_scale=mag_scale,
+        extended_proj=extended_proj)
+    _, S_decomp_full, pS_decomp, reg_moments, n_use_in = \
+        params['_get_this_decomp_trans'](info['dev_head_t'], t=0.)
+    return S_decomp_full, pS_decomp, reg_moments, n_use_in

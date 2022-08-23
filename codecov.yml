@@ -1,4 +1,6 @@
 comment: false
+github_checks:  # too noisy, even though "a" interactively disables them
+  annotations: false
 
 codecov:
   notify:
@@ -8,6 +10,7 @@ coverage:
   status:
     patch:
       default:
+        informational: true
         target: 95%
         if_no_uploads: error
         if_not_found: success
@@ -15,6 +18,7 @@ coverage:
     project:
       default: false
       library:
+        informational: true
         target: 90%
         if_no_uploads: error
         if_not_found: success

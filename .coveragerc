@@ -1,9 +1,7 @@
 [run]
 branch = True
 source = mne
-include = */mne/*
 omit =
-    */mne/externals/*
     */bin/*
     */setup.py
     */mne/fixes*
@@ -14,3 +12,5 @@ omit =
 exclude_lines =
     pragma: no cover
     if __name__ == .__main__.:
+    @abstractmethod
+    @abstractclassmethod

@@ -1,19 +1,24 @@
 # Authors: Joan Massich <mailsik@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 
 import pytest
 
 import numpy as np
 
-from numpy.testing import assert_allclose
+from numpy.testing import (assert_allclose, assert_array_almost_equal,
+                           assert_raises)
 
-from mne.channels import make_standard_montage
-from mne.io._digitization import _get_dig_eeg, _get_fid_coords
+from mne import create_info
+from mne.channels import make_standard_montage, compute_native_head_t
 from mne.channels.montage import get_builtin_montages, HEAD_SIZE_DEFAULT
+from mne.io import RawArray
+from mne.io._digitization import _get_dig_eeg, _get_fid_coords
 from mne.io.constants import FIFF
+from mne.preprocessing.nirs import optical_density, beer_lambert_law
+from mne.transforms import _get_trans, _angle_between_quats, rot_to_quat
 
 
 @pytest.mark.parametrize('kind', get_builtin_montages())
@@ -24,7 +29,11 @@ def test_standard_montages_have_fids(kind):
     for k, v in fids.items():
         assert v is not None, k
     for d in montage.dig:
-        assert d['coord_frame'] == FIFF.FIFFV_COORD_UNKNOWN
+        if kind.startswith(('artinis', 'standard', 'mgh')):
+            want = FIFF.FIFFV_COORD_MRI
+        else:
+            want = FIFF.FIFFV_COORD_UNKNOWN
+        assert d['coord_frame'] == want
 
 
 def test_standard_montage_errors():
@@ -45,6 +54,7 @@ def test_standard_montage_errors():
     ['biosemi256', 1e-8],
     ['biosemi32', 1e-8],
     ['biosemi64', 1e-8],
+    ['brainproducts-RNP-BA-128', 1e-8]
 ])
 def test_standard_montages_on_sphere(kind, tol, head_size):
     """Test some standard montage are on sphere."""
@@ -73,3 +83,163 @@ def test_standard_superset():
     for key, value in m_1020._get_ch_pos().items():
         if key not in ('O10', 'O9'):
             assert_allclose(c_1005[key], value, atol=1e-4, err_msg=key)
+
+
+def _simulate_artinis_octamon():
+    """Simulate artinis OctaMon channel data from numpy data.
+
+    This is to test data that is imported with missing or incorrect montage
+    info. This data can then be used to test the set_montage function.
+    """
+    np.random.seed(42)
+    data = np.absolute(np.random.normal(size=(16, 100)))
+    ch_names = ['S1_D1 760', 'S1_D1 850', 'S2_D1 760', 'S2_D1 850',
+                'S3_D1 760', 'S3_D1 850', 'S4_D1 760', 'S4_D1 850',
+                'S5_D2 760', 'S5_D2 850', 'S6_D2 760', 'S6_D2 850',
+                'S7_D2 760', 'S7_D2 850', 'S8_D2 760', 'S8_D2 850']
+    ch_types = ['fnirs_cw_amplitude' for _ in ch_names]
+    sfreq = 10.  # Hz
+    info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=sfreq)
+    for i, ch_name in enumerate(ch_names):
+        info['chs'][i]['loc'][9] = int(ch_name.split(' ')[1])
+    raw = RawArray(data, info)
+
+    return raw
+
+
+def _simulate_artinis_brite23():
+    """Simulate artinis Brite23 channel data from numpy data.
+
+    This is to test data that is imported with missing or incorrect montage
+    info. This data can then be used to test the set_montage function.
+    """
+    np.random.seed(0)
+    data = np.random.normal(size=(46, 100))
+    sd_names = ['S1_D1', 'S2_D1', 'S3_D1', 'S4_D1', 'S3_D2', 'S4_D2', 'S5_D2',
+                'S4_D3', 'S5_D3', 'S6_D3', 'S5_D4', 'S6_D4', 'S7_D4', 'S6_D5',
+                'S7_D5', 'S8_D5', 'S7_D6', 'S8_D6', 'S9_D6', 'S8_D7', 'S9_D7',
+                'S10_D7', 'S11_D7']
+    ch_names = []
+    ch_types = []
+    for name in sd_names:
+        ch_names.append(name + ' hbo')
+        ch_types.append('hbo')
+        ch_names.append(name + ' hbr')
+        ch_types.append('hbr')
+    sfreq = 10.  # Hz
+    info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=sfreq)
+    raw = RawArray(data, info)
+
+    return raw
+
+
+@pytest.mark.parametrize('kind', ('octamon', 'brite23'))
+def test_set_montage_artinis_fsaverage(kind):
+    """Test that artinis montages match fsaverage's head<->MRI transform."""
+    # Compare OctaMon and Brite23 to fsaverage
+    trans_fs, _ = _get_trans('fsaverage')
+    montage = make_standard_montage(f'artinis-{kind}')
+    trans = compute_native_head_t(montage)
+    assert trans['to'] == trans_fs['to']
+    assert trans['from'] == trans_fs['from']
+    translation = 1000 * np.linalg.norm(trans['trans'][:3, 3] -
+                                        trans_fs['trans'][:3, 3])
+    assert 0 < translation < 1  # mm
+    rotation = np.rad2deg(
+        _angle_between_quats(rot_to_quat(trans['trans'][:3, :3]),
+                             rot_to_quat(trans_fs['trans'][:3, :3])))
+    assert 0 < rotation < 1  # degrees
+
+
+def test_set_montage_artinis_basic():
+    """Test that OctaMon and Brite23 montages are set properly."""
+    # Test OctaMon montage
+    montage_octamon = make_standard_montage('artinis-octamon')
+    montage_brite23 = make_standard_montage('artinis-brite23')
+    raw = _simulate_artinis_octamon()
+    raw_od = optical_density(raw)
+    old_info = raw.info.copy()
+    old_info_od = raw_od.info.copy()
+    raw.set_montage(montage_octamon)
+    raw_od.set_montage(montage_octamon)
+    raw_hb = beer_lambert_law(raw_od, ppf=6)  # montage needed for BLL
+    # Check that the montage was actually modified
+    assert_raises(AssertionError, assert_array_almost_equal,
+                  old_info['chs'][0]['loc'][:9],
+                  raw.info['chs'][0]['loc'][:9])
+    assert_raises(AssertionError, assert_array_almost_equal,
+                  old_info_od['chs'][0]['loc'][:9],
+                  raw_od.info['chs'][0]['loc'][:9])
+
+    # Check a known location
+    assert_array_almost_equal(raw.info['chs'][0]['loc'][:3],
+                              [0.054243, 0.081884, 0.054544])
+    assert_array_almost_equal(raw.info['chs'][8]['loc'][:3],
+                              [-0.03013, 0.105097, 0.055894])
+    assert_array_almost_equal(raw.info['chs'][12]['loc'][:3],
+                              [-0.055681, 0.086566, 0.055858])
+    assert_array_almost_equal(raw_od.info['chs'][12]['loc'][:3],
+                              [-0.055681, 0.086566, 0.055858])
+    assert_array_almost_equal(raw_hb.info['chs'][12]['loc'][:3],
+                              [-0.055681, 0.086566, 0.055858])
+    # Check that locations are identical for a pair of channels (all elements
+    # except the 10th which is the wavelength if not hbo and hbr type)
+    assert_array_almost_equal(raw.info['chs'][0]['loc'][:9],
+                              raw.info['chs'][1]['loc'][:9])
+    assert_array_almost_equal(raw_od.info['chs'][0]['loc'][:9],
+                              raw_od.info['chs'][1]['loc'][:9])
+    assert_array_almost_equal(raw_hb.info['chs'][0]['loc'][:9],
+                              raw_hb.info['chs'][1]['loc'][:9])
+
+    # Test Brite23 montage
+    raw = _simulate_artinis_brite23()
+    old_info = raw.info.copy()
+    raw.set_montage(montage_brite23)
+    # Check that the montage was actually modified
+    assert_raises(AssertionError, assert_array_almost_equal,
+                  old_info['chs'][0]['loc'][:9],
+                  raw.info['chs'][0]['loc'][:9])
+    # Check a known location
+    assert_array_almost_equal(raw.info['chs'][0]['loc'][:3],
+                              [0.068931, 0.046201, 0.072055])
+    assert_array_almost_equal(raw.info['chs'][8]['loc'][:3],
+                              [0.055196, 0.082757, 0.052165])
+    assert_array_almost_equal(raw.info['chs'][12]['loc'][:3],
+                              [0.033592, 0.102607, 0.047423])
+    # Check that locations are identical for a pair of channels (all elements
+    # except the 10th which is the wavelength if not hbo and hbr type)
+    assert_array_almost_equal(raw.info['chs'][0]['loc'][:9],
+                              raw.info['chs'][1]['loc'][:9])
+
+    # Test channel variations
+    raw_old = _simulate_artinis_brite23()
+    # Raw missing some channels that are in the montage: pass
+    raw = raw_old.copy()
+    raw.pick(['S1_D1 hbo', 'S1_D1 hbr'])
+    raw.set_montage('artinis-brite23')
+
+    # Unconventional channel pair: pass
+    raw = raw_old.copy()
+    info_new = create_info(['S11_D1 hbo', 'S11_D1 hbr'], raw.info['sfreq'],
+                           ['hbo', 'hbr'])
+    new = RawArray(np.random.normal(size=(2, len(raw))), info_new)
+    raw.add_channels([new], force_update_info=True)
+    raw.set_montage('artinis-brite23')
+
+    # Source not in montage: fail
+    raw = raw_old.copy()
+    info_new = create_info(['S12_D7 hbo', 'S12_D7 hbr'], raw.info['sfreq'],
+                           ['hbo', 'hbr'])
+    new = RawArray(np.random.normal(size=(2, len(raw))), info_new)
+    raw.add_channels([new], force_update_info=True)
+    with pytest.raises(ValueError, match='is not in list'):
+        raw.set_montage('artinis-brite23')
+
+    # Detector not in montage: fail
+    raw = raw_old.copy()
+    info_new = create_info(['S11_D8 hbo', 'S11_D8 hbr'], raw.info['sfreq'],
+                           ['hbo', 'hbr'])
+    new = RawArray(np.random.normal(size=(2, len(raw))), info_new)
+    raw.add_channels([new], force_update_info=True)
+    with pytest.raises(ValueError, match='is not in list'):
+        raw.set_montage('artinis-brite23')

@@ -1,17 +1,15 @@
 # Authors : Denis A. Engemann <denis.engemann@gmail.com>
 #           Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License : BSD 3-clause
+# License : BSD-3-Clause
 
 from copy import deepcopy
-import math
+
 import numpy as np
-from scipy import fftpack
-# XXX explore cuda optimization at some point.
 
 from ..io.pick import _pick_data_channels, pick_info
 from ..utils import verbose, warn, fill_doc, _validate_type
-from ..parallel import parallel_func, check_n_jobs
+from ..parallel import parallel_func
 from .tfr import AverageTFR, _get_data
 
 
@@ -25,7 +23,7 @@ def _check_input_st(x_in, n_fft):
 
     if n_fft is None or (not _is_power_of_two(n_fft) and n_times > n_fft):
         # Compute next power of 2
-        n_fft = 2 ** int(math.ceil(math.log(n_times, 2)))
+        n_fft = 2 ** int(np.ceil(np.log2(n_times)))
     elif n_fft < n_times:
         raise ValueError("n_fft cannot be smaller than signal size. "
                          "Got %s < %s." % (n_fft, n_times))
@@ -42,7 +40,8 @@ def _check_input_st(x_in, n_fft):
 
 def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
     """Precompute stockwell Gaussian windows (in the freq domain)."""
-    tw = fftpack.fftfreq(n_samp, 1. / sfreq) / n_samp
+    from scipy.fft import fft, fftfreq
+    tw = fftfreq(n_samp, 1. / sfreq) / n_samp
     tw = np.r_[tw[:1], tw[1:][::-1]]
 
     k = width  # 1 for classical stowckwell transform
@@ -55,35 +54,37 @@ def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
             window = ((f / (np.sqrt(2. * np.pi) * k)) *
                       np.exp(-0.5 * (1. / k ** 2.) * (f ** 2.) * tw ** 2.))
         window /= window.sum()  # normalisation
-        windows[i_f] = fftpack.fft(window)
+        windows[i_f] = fft(window)
     return windows
 
 
 def _st(x, start_f, windows):
     """Compute ST based on Ali Moukadem MATLAB code (used in tests)."""
+    from scipy.fft import fft, ifft
     n_samp = x.shape[-1]
     ST = np.empty(x.shape[:-1] + (len(windows), n_samp), dtype=np.complex128)
     # do the work
-    Fx = fftpack.fft(x)
+    Fx = fft(x)
     XF = np.concatenate([Fx, Fx], axis=-1)
     for i_f, window in enumerate(windows):
         f = start_f + i_f
-        ST[..., i_f, :] = fftpack.ifft(XF[..., f:f + n_samp] * window)
+        ST[..., i_f, :] = ifft(XF[..., f:f + n_samp] * window)
     return ST
 
 
 def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     """Aux function."""
+    from scipy.fft import fft, ifft
     n_samp = x.shape[-1]
     n_out = (n_samp - zero_pad)
     n_out = n_out // decim + bool(n_out % decim)
     psd = np.empty((len(W), n_out))
     itc = np.empty_like(psd) if compute_itc else None
-    X = fftpack.fft(x)
+    X = fft(x)
     XX = np.concatenate([X, X], axis=-1)
     for i_f, window in enumerate(W):
         f = start_f + i_f
-        ST = fftpack.ifft(XX[:, f:f + n_samp] * window)
+        ST = ifft(XX[:, f:f + n_samp] * window)
         if zero_pad > 0:
             TFR = ST[:, :-zero_pad:decim]
         else:
@@ -100,7 +101,7 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
 
 @fill_doc
 def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
-                        width=1.0, decim=1, return_itc=False, n_jobs=1):
+                        width=1.0, decim=1, return_itc=False, n_jobs=None):
     """Compute power and intertrial coherence using Stockwell (S) transform.
 
     Same computation as `~mne.time_frequency.tfr_stockwell`, but operates on
@@ -155,6 +156,7 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
     ----------
     .. footbibliography::
     """
+    from scipy.fft import fftfreq
     _validate_type(data, np.ndarray, 'data')
     if data.ndim != 3:
         raise ValueError(
@@ -164,7 +166,7 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
     n_out = data.shape[2] // decim + bool(data.shape[-1] % decim)
     data, n_fft_, zero_pad = _check_input_st(data, n_fft)
 
-    freqs = fftpack.fftfreq(n_fft_, 1. / sfreq)
+    freqs = fftfreq(n_fft_, 1. / sfreq)
     if fmin is None:
         fmin = freqs[freqs > 0][0]
     if fmax is None:
@@ -179,7 +181,7 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
     psd = np.empty((n_channels, n_freq, n_out))
     itc = np.empty((n_channels, n_freq, n_out)) if return_itc else None
 
-    parallel, my_st, _ = parallel_func(_st_power_itc, n_jobs)
+    parallel, my_st, n_jobs = parallel_func(_st_power_itc, n_jobs)
     tfrs = parallel(my_st(data[:, c, :], start_f, return_itc, zero_pad,
                           decim, W)
                     for c in range(n_channels))
@@ -193,7 +195,7 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
 
 @verbose
 def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
-                  width=1.0, decim=1, return_itc=False, n_jobs=1,
+                  width=1.0, decim=1, return_itc=False, n_jobs=None,
                   verbose=None):
     """Compute Time-Frequency Representation (TFR) using Stockwell Transform.
 
@@ -255,7 +257,6 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
     picks = _pick_data_channels(inst.info)
     info = pick_info(inst.info, picks)
     data = data[:, picks, :]
-    n_jobs = check_n_jobs(n_jobs)
     power, itc, freqs = tfr_array_stockwell(data, sfreq=info['sfreq'],
                                             fmin=fmin, fmax=fmax, n_fft=n_fft,
                                             width=width, decim=decim,

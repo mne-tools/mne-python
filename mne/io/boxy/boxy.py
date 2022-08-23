@@ -1,6 +1,6 @@
 # Authors: Kyle Mathewson, Jonathan Kuziek <kuziek@ualberta.ca>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import re as re
 
@@ -9,7 +9,7 @@ import numpy as np
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ..utils import _mult_cal_one
-from ...utils import logger, verbose, fill_doc
+from ...utils import logger, verbose, fill_doc, _check_fname
 from ...annotations import Annotations
 
 
@@ -65,6 +65,7 @@ class RawBOXY(BaseRaw):
         raw_extras = dict()
         raw_extras['offsets'] = list()  # keep track of our offsets
         sfreq = None
+        fname = _check_fname(fname, 'read', True, 'fname')
         with open(fname, 'r') as fid:
             line_num = 0
             i_line = fid.readline()

@@ -2,12 +2,10 @@
 """Compute resolution matrix for linear estimators."""
 # Authors: olaf.hauk@mrc-cbu.cam.ac.uk
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 from copy import deepcopy
 
 import numpy as np
-
-from scipy import linalg
 
 from .. import (pick_channels_forward, EvokedArray, SourceEstimate,
                 VectorSourceEstimate)
@@ -67,8 +65,8 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
 
 
 @verbose
-def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
-                 vector=False, verbose=None):
+def _get_psf_ctf(resmat, src, idx, *, func, mode, n_comp, norm,
+                 return_pca_vars, vector=False, verbose=None):
     """Get point-spread (PSFs) or cross-talk (CTFs) functions.
 
     Parameters
@@ -77,20 +75,20 @@ def _get_psf_ctf(resmat, src, idx, func, mode, n_comp, norm, return_pca_vars,
         Forward Operator.
     src : Source Space
         Source space used to compute resolution matrix.
-    %(pctf_idx)s
+    %(idx_pctf)s
     func : str ('psf' | 'ctf')
         Whether to produce PSFs or CTFs. Defaults to psf.
-    %(pctf_mode)s
-    %(pctf_n_comp)s
-    %(pctf_norm)s
-    %(pctf_return_pca_vars)s
-    %(pctf_vector)s
+    %(mode_pctf)s
+    %(n_comp_pctf_n)s
+    %(norm_pctf)s
+    %(return_pca_vars_pctf)s
+    %(vector_pctf)s
     %(verbose)s
 
     Returns
     -------
-    %(pctf_stcs)s
-    %(pctf_pca_vars)s
+    %(stcs_pctf)s
+    %(pca_vars_pctf)s
     """
     # check for consistencies in input parameters
     _check_get_psf_ctf_params(mode, n_comp, return_pca_vars)
@@ -237,6 +235,7 @@ def _normalise_psf_ctf(funcs, norm):
 
 def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
     """Summarise PSFs/CTFs across vertices."""
+    from scipy import linalg
     s_var = None  # only computed for return_pca_vars=True
 
     if mode == 'maxval':  # pick PSF/CTF with maximum absolute value
@@ -265,7 +264,7 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
 
     elif mode == 'pca':  # SVD across PSFs/CTFs
         # compute SVD of PSFs/CTFs across vertices
-        u, s, _ = linalg.svd(funcs, full_matrices=False, compute_uv=True)
+        u, s, _ = np.linalg.svd(funcs, full_matrices=False, compute_uv=True)
         if n_comp > 1:
             funcs = u[:, :n_comp]
         else:
@@ -280,7 +279,7 @@ def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
 
 
 @verbose
-def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
+def get_point_spread(resmat, src, idx, mode=None, *, n_comp=1, norm=False,
                      return_pca_vars=False, vector=False, verbose=None):
     """Get point-spread (PSFs) functions for vertices.
 
@@ -290,18 +289,18 @@ def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
         Forward Operator.
     src : instance of SourceSpaces
         Source space used to compute resolution matrix.
-    %(pctf_idx)s
-    %(pctf_mode)s
-    %(pctf_n_comp)s
-    %(pctf_norm)s
-    %(pctf_return_pca_vars)s
-    %(pctf_vector)s
+    %(idx_pctf)s
+    %(mode_pctf)s
+    %(n_comp_pctf_n)s
+    %(norm_pctf)s
+    %(return_pca_vars_pctf)s
+    %(vector_pctf)s
     %(verbose)s
 
     Returns
     -------
-    %(pctf_stcs)s
-    %(pctf_pca_vars)s
+    %(stcs_pctf)s
+    %(pca_vars_pctf)s
     """
     return _get_psf_ctf(resmat, src, idx, func='psf', mode=mode, n_comp=n_comp,
                         norm=norm, return_pca_vars=return_pca_vars,
@@ -309,7 +308,7 @@ def get_point_spread(resmat, src, idx, mode=None, n_comp=1, norm=False,
 
 
 @verbose
-def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
+def get_cross_talk(resmat, src, idx, mode=None, *, n_comp=1, norm=False,
                    return_pca_vars=False, vector=False, verbose=None):
     """Get cross-talk (CTFs) function for vertices.
 
@@ -319,18 +318,18 @@ def get_cross_talk(resmat, src, idx, mode=None, n_comp=1, norm=False,
         Forward Operator.
     src : instance of SourceSpaces
         Source space used to compute resolution matrix.
-    %(pctf_idx)s
-    %(pctf_mode)s
-    %(pctf_n_comp)s
-    %(pctf_norm)s
-    %(pctf_return_pca_vars)s
-    %(pctf_vector)s
+    %(idx_pctf)s
+    %(mode_pctf)s
+    %(n_comp_pctf_n)s
+    %(norm_pctf)s
+    %(return_pca_vars_pctf)s
+    %(vector_pctf)s
     %(verbose)s
 
     Returns
     -------
-    %(pctf_stcs)s
-    %(pctf_pca_vars)s
+    %(stcs_pctf)s
+    %(pca_vars_pctf)s
     """
     return _get_psf_ctf(resmat, src, idx, func='ctf', mode=mode, n_comp=n_comp,
                         norm=norm, return_pca_vars=return_pca_vars,
@@ -369,8 +368,9 @@ def _prepare_info(inverse_operator):
     # it's an epoch, see in loop below), uses 'info' from inverse solution
     # because this has all the correct projector information
     info = deepcopy(inverse_operator['info'])
-    info['sfreq'] = 1000.  # necessary
-    info['projs'] = inverse_operator['projs']
+    with info._unlock():
+        info['sfreq'] = 1000.  # necessary
+        info['projs'] = inverse_operator['projs']
     return info
 
 

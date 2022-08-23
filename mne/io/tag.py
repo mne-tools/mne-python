@@ -1,13 +1,12 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from functools import partial
 import struct
 
 import numpy as np
-from scipy import sparse
 
 from .constants import (FIFF, _dig_kind_named, _dig_cardinal_named,
                         _ch_kind_named, _ch_coil_type_named, _ch_unit_named,
@@ -168,6 +167,7 @@ _matrix_bit_dtype = {
 
 def _read_matrix(fid, tag, shape, rlims, matrix_coding):
     """Read a matrix (dense or sparse) tag."""
+    from scipy import sparse
     matrix_coding = matrix_coding >> 16
 
     # This should be easy to implement (see _frombuffer_rows)
@@ -333,6 +333,10 @@ _ch_coord_dict = {
     FIFF.FIFFV_MEG_CH: FIFF.FIFFV_COORD_DEVICE,
     FIFF.FIFFV_REF_MEG_CH: FIFF.FIFFV_COORD_DEVICE,
     FIFF.FIFFV_EEG_CH: FIFF.FIFFV_COORD_HEAD,
+    FIFF.FIFFV_ECOG_CH: FIFF.FIFFV_COORD_HEAD,
+    FIFF.FIFFV_SEEG_CH: FIFF.FIFFV_COORD_HEAD,
+    FIFF.FIFFV_DBS_CH: FIFF.FIFFV_COORD_HEAD,
+    FIFF.FIFFV_FNIRS_CH: FIFF.FIFFV_COORD_HEAD
 }
 
 
@@ -356,12 +360,16 @@ def _read_ch_info_struct(fid, tag, shape, rlims):
     ch_name = ch_name[:np.argmax(ch_name == b'')].tobytes()
     d['ch_name'] = ch_name.decode()
     # coil coordinate system definition
+    _update_ch_info_named(d)
+    return d
+
+
+def _update_ch_info_named(d):
     d['coord_frame'] = _ch_coord_dict.get(d['kind'], FIFF.FIFFV_COORD_UNKNOWN)
     d['kind'] = _ch_kind_named.get(d['kind'], d['kind'])
     d['coil_type'] = _ch_coil_type_named.get(d['coil_type'], d['coil_type'])
     d['unit'] = _ch_unit_named.get(d['unit'], d['unit'])
     d['unit_mul'] = _ch_unit_mul_named.get(d['unit_mul'], d['unit_mul'])
-    return d
 
 
 def _read_old_pack(fid, tag, shape, rlims):
@@ -453,6 +461,8 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
     if pos is not None:
         fid.seek(pos, 0)
     tag = _read_tag_header(fid)
+    if tag is None:
+        return tag
     if tag.size > 0:
         matrix_coding = _is_matrix & tag.type
         if matrix_coding != 0:
@@ -501,3 +511,7 @@ def has_tag(node, kind):
         if d.kind == kind:
             return True
     return False
+
+
+def _rename_list(bads, ch_names_mapping):
+    return [ch_names_mapping.get(bad, bad) for bad in bads]

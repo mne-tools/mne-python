@@ -1,6 +1,6 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import numpy as np
@@ -10,7 +10,7 @@ import pytest
 from mne import Epochs, read_evokeds, pick_types
 from mne.io.compensator import make_compensator, get_current_comp
 from mne.io import read_raw_fif
-from mne.utils import requires_mne, run_subprocess, run_tests_if_main
+from mne.utils import requires_mne, run_subprocess
 
 base_dir = op.join(op.dirname(__file__), 'data')
 ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
@@ -41,7 +41,7 @@ def test_compensation_identity():
 
 @pytest.mark.parametrize('preload', (True, False))
 @pytest.mark.parametrize('pick', (False, True))
-def test_compensation_apply(tmpdir, preload, pick):
+def test_compensation_apply(tmp_path, preload, pick):
     """Test applying compensation."""
     # make sure that changing the comp doesn't modify the original data
     raw = read_raw_fif(ctf_comp_fname, preload=preload)
@@ -56,7 +56,7 @@ def test_compensation_apply(tmpdir, preload, pick):
         assert raw2._comp is None
     else:
         assert raw2._comp.shape == (len(raw2.ch_names),) * 2
-    fname = op.join(tmpdir, 'ctf-raw.fif')
+    fname = op.join(tmp_path, 'ctf-raw.fif')
     raw2.save(fname)
     raw2 = read_raw_fif(fname)
     assert raw2.compensation_grade == 2
@@ -71,7 +71,7 @@ def test_compensation_apply(tmpdir, preload, pick):
 
 
 @requires_mne
-def test_compensation_mne(tmpdir):
+def test_compensation_mne(tmp_path):
     """Test comensation by comparing with MNE."""
     def make_evoked(fname, comp):
         """Make evoked data."""
@@ -93,7 +93,7 @@ def test_compensation_mne(tmpdir):
         return read_evokeds(tmp_fname)[0]
 
     # save evoked response with default compensation
-    fname_default = op.join(tmpdir, 'ctf_default-ave.fif')
+    fname_default = op.join(tmp_path, 'ctf_default-ave.fif')
     make_evoked(ctf_comp_fname, None).save(fname_default)
 
     for comp in [0, 1, 2, 3]:
@@ -107,6 +107,3 @@ def test_compensation_mne(tmpdir):
         chs_c = [evoked_c.info['chs'][ii] for ii in picks_c]
         for ch_py, ch_c in zip(chs_py, chs_c):
             assert ch_py['coil_type'] == ch_c['coil_type']
-
-
-run_tests_if_main()

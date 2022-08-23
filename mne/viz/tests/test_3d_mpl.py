@@ -8,6 +8,7 @@
 # License: Simplified BSD
 
 import os.path as op
+import re
 
 import numpy as np
 import pytest
@@ -16,9 +17,9 @@ from mne import (read_forward_solution, VolSourceEstimate, SourceEstimate,
                  VolVectorSourceEstimate, compute_source_morph)
 from mne.datasets import testing
 from mne.utils import (requires_dipy, requires_nibabel, requires_version,
-                       catch_logging)
+                       catch_logging, _record_warnings)
 from mne.viz import plot_volume_source_estimates
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _fake_keypress
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
@@ -56,7 +57,8 @@ def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
     else:
         assert stype == 's'
         stc = VolSourceEstimate(data, vertices, 1, 1)
-    with pytest.warns(None):  # sometimes get scalars/index warning
+    # sometimes get scalars/index warning
+    with _record_warnings():
         with catch_logging() as log:
             fig = stc.plot(
                 sample_src, subject='sample', subjects_dir=subjects_dir,
@@ -69,12 +71,20 @@ def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
     assert want_str in log, (want_str, init_p)
     for ax_idx in [0, 2, 3, 4]:
         _fake_click(fig, fig.axes[ax_idx], (0.3, 0.5))
-    fig.canvas.key_press_event('left')
-    fig.canvas.key_press_event('shift+right')
+    _fake_keypress(fig, 'left')
+    _fake_keypress(fig, 'shift+right')
     if bg_img is not None:
         with pytest.raises(FileNotFoundError, match='MRI file .* not found'):
             stc.plot(sample_src, subject='sample', subjects_dir=subjects_dir,
                      mode='stat_map', bg_img='junk.mgz')
+    use_ax = None
+    for ax in fig.axes:
+        if ax.get_xlabel().startswith('Time'):
+            use_ax = ax
+            break
+    assert use_ax is not None
+    label = use_ax.get_legend().get_texts()[0].get_text()
+    assert re.match('[0-9]*', label) is not None, label
 
 
 @pytest.mark.slowtest  # can be slow on OSX
@@ -95,7 +105,8 @@ def test_plot_volume_source_estimates_morph():
     morph = compute_source_morph(sample_src, 'sample', 'fsaverage', zooms=5,
                                  subjects_dir=subjects_dir)
     initial_pos = (-0.05, -0.01, -0.006)
-    with pytest.warns(None):  # sometimes get scalars/index warning
+    # sometimes get scalars/index warning
+    with _record_warnings():
         with catch_logging() as log:
             stc.plot(morph, subjects_dir=subjects_dir, mode='glass_brain',
                      initial_pos=initial_pos, verbose=True)

@@ -2,15 +2,17 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from copy import deepcopy
+from pathlib import Path
 from functools import partial
 from io import BytesIO
 import os
 import os.path as op
 import pathlib
 import pickle
+import shutil
 import sys
 
 import numpy as np
@@ -22,13 +24,14 @@ from mne.datasets import testing
 from mne.filter import filter_data
 from mne.io.constants import FIFF
 from mne.io import RawArray, concatenate_raws, read_raw_fif, base
+from mne.io.open import read_tag, read_tag_info
 from mne.io.tag import _read_tag_header
 from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info,
                  pick_info)
 from mne.utils import (requires_pandas, assert_object_equal, _dt_to_stamp,
-                       requires_mne, run_subprocess, run_tests_if_main,
+                       requires_mne, run_subprocess, _record_warnings,
                        assert_and_remove_boundary_annot)
 from mne.annotations import Annotations
 
@@ -51,7 +54,7 @@ hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 
 @testing.requires_testing_data
-def test_acq_skip(tmpdir):
+def test_acq_skip(tmp_path):
     """Test treatment of acquisition skips."""
     raw = read_raw_fif(skip_fname, preload=True)
     picks = [1, 2, 10]
@@ -80,7 +83,7 @@ def test_acq_skip(tmpdir):
     assert_allclose(data, np.concatenate(expected_data, axis=-1), atol=1e-22)
 
     # Check that acquisition skips are handled properly during I/O
-    fname = tmpdir.join('test_raw.fif')
+    fname = tmp_path / 'test_raw.fif'
     raw.save(fname, fmt=raw.orig_format)
     # first: file size should not increase much (orig data is missing
     # 7 of 17 buffers, so if we write them out it should increase the file
@@ -95,7 +98,7 @@ def test_acq_skip(tmpdir):
     assert_allclose(raw_read[:][0], raw[:][0], atol=1e-17)
     # Saving with a bad buffer length emits warning
     raw.pick_channels(raw.ch_names[:2])
-    with pytest.warns(None) as w:
+    with _record_warnings() as w:
         raw.save(fname, buffer_size_sec=0.5, overwrite=True)
     assert len(w) == 0
     with pytest.warns(RuntimeWarning, match='did not fit evenly'):
@@ -104,10 +107,14 @@ def test_acq_skip(tmpdir):
 
 def test_fix_types():
     """Test fixing of channel types."""
-    for fname, change in ((hp_fif_fname, True), (test_fif_fname, False),
-                          (ctf_fname, False)):
+    for fname, change, bads in (
+        (hp_fif_fname, True, ["MEG0111"]),
+        (test_fif_fname, False, []),
+        (ctf_fname, False, [])
+    ):
         raw = read_raw_fif(fname)
-        mag_picks = pick_types(raw.info, meg='mag')
+        raw.info["bads"] = bads
+        mag_picks = pick_types(raw.info, meg='mag', exclude=[])
         other_picks = np.setdiff1d(np.arange(len(raw.ch_names)), mag_picks)
         # we don't actually have any files suffering from this problem, so
         # fake it
@@ -126,12 +133,12 @@ def test_fix_types():
                      FIFF.FIFFV_COIL_VV_MAG_T3).all())
 
 
-def test_concat(tmpdir):
+def test_concat(tmp_path):
     """Test RawFIF concatenation."""
     # we trim the file to save lots of memory and some time
     raw = read_raw_fif(test_fif_fname)
     raw.crop(0, 2.)
-    test_name = tmpdir.join('test_raw.fif')
+    test_name = tmp_path / 'test_raw.fif'
     raw.save(test_name)
     # now run the standard test
     _test_concat(partial(read_raw_fif), test_name)
@@ -166,7 +173,7 @@ def test_maxshield():
 
 
 @testing.requires_testing_data
-def test_subject_info(tmpdir):
+def test_subject_info(tmp_path):
     """Test reading subject information."""
     raw = read_raw_fif(fif_fname).crop(0, 1)
     assert (raw.info['subject_info'] is None)
@@ -178,7 +185,7 @@ def test_subject_info(tmpdir):
     for key, val in zip(keys, vals):
         subject_info[key] = val
     raw.info['subject_info'] = subject_info
-    out_fname = tmpdir.join('test_subj_info_raw.fif')
+    out_fname = tmp_path / 'test_subj_info_raw.fif'
     raw.save(out_fname, overwrite=True)
     raw_read = read_raw_fif(out_fname)
     for key in keys:
@@ -202,7 +209,7 @@ def test_copy_append():
 
 
 @testing.requires_testing_data
-def test_output_formats(tmpdir):
+def test_output_formats(tmp_path):
     """Test saving and loading raw data using multiple formats."""
     formats = ['short', 'int', 'single', 'double']
     tols = [1e-4, 1e-7, 1e-7, 1e-15]
@@ -210,7 +217,7 @@ def test_output_formats(tmpdir):
     # let's fake a raw file with different formats
     raw = read_raw_fif(test_fif_fname).crop(0, 1)
 
-    temp_file = tmpdir.join('raw.fif')
+    temp_file = tmp_path / 'raw.fif'
     for ii, (fmt, tol) in enumerate(zip(formats, tols)):
         # Let's test the overwriting error throwing while we're at it
         if ii > 0:
@@ -232,7 +239,7 @@ def _compare_combo(raw, new, times, n_times):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_multiple_files(tmpdir):
+def test_multiple_files(tmp_path):
     """Test loading multiple files simultaneously."""
     # split file
     raw = read_raw_fif(fif_fname).crop(0, 10)
@@ -250,7 +257,7 @@ def test_multiple_files(tmpdir):
     # going in reverse order so the last fname is the first file (need later)
     raws = [None] * len(tmins)
     for ri in range(len(tmins) - 1, -1, -1):
-        fname = tmpdir.join('test_raw_split-%d_raw.fif' % ri)
+        fname = tmp_path / ('test_raw_split-%d_raw.fif' % ri)
         raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri])
         raws[ri] = read_raw_fif(fname)
         assert (len(raws[ri].times) ==
@@ -358,23 +365,43 @@ def test_multiple_files(tmpdir):
 
 
 @testing.requires_testing_data
+@pytest.mark.parametrize('on_mismatch', ('ignore', 'warn', 'raise'))
+def test_concatenate_raws(on_mismatch):
+    """Test error handling during raw concatenation."""
+    raw = read_raw_fif(fif_fname).crop(0, 10)
+    raws = [raw, raw.copy()]
+    raws[1].info['dev_head_t']['trans'] += 0.1
+    kws = dict(raws=raws, on_mismatch=on_mismatch)
+
+    if on_mismatch == 'ignore':
+        concatenate_raws(**kws)
+    elif on_mismatch == 'warn':
+        with pytest.warns(RuntimeWarning, match='different head positions'):
+            concatenate_raws(**kws)
+    elif on_mismatch == 'raise':
+        with pytest.raises(ValueError, match='different head positions'):
+            concatenate_raws(**kws)
+
+
+@testing.requires_testing_data
 @pytest.mark.parametrize('mod', (
     'meg',
-    pytest.param('raw', marks=[pytest.mark.filterwarnings(
-        'ignore:.*naming conventions.*:RuntimeWarning')]),
+    pytest.param('raw', marks=[
+        pytest.mark.filterwarnings(
+            'ignore:.*naming conventions.*:RuntimeWarning'),
+        pytest.mark.slowtest]),
 ))
-def test_split_files(tmpdir, mod, monkeypatch):
+def test_split_files(tmp_path, mod, monkeypatch):
     """Test writing and reading of split raw files."""
     raw_1 = read_raw_fif(fif_fname, preload=True)
     # Test a very close corner case
-    raw_crop = raw_1.copy().crop(0, 1.)
 
     assert_allclose(raw_1.buffer_size_sec, 10., atol=1e-2)  # samp rate
-    split_fname = tmpdir.join(f'split_raw_{mod}.fif')
+    split_fname = tmp_path / f'split_raw_{mod}.fif'
     # intended filenames
-    split_fname_elekta_part2 = tmpdir.join(f'split_raw_{mod}-1.fif')
-    split_fname_bids_part1 = tmpdir.join(f'split_raw_split-01_{mod}.fif')
-    split_fname_bids_part2 = tmpdir.join(f'split_raw_split-02_{mod}.fif')
+    split_fname_elekta_part2 = tmp_path / f'split_raw_{mod}-1.fif'
+    split_fname_bids_part1 = tmp_path / f'split_raw_split-01_{mod}.fif'
+    split_fname_bids_part2 = tmp_path / f'split_raw_split-02_{mod}.fif'
     raw_1.set_annotations(Annotations([2.], [5.5], 'test'))
 
     # Check that if BIDS is used and no split is needed it defaults to
@@ -409,7 +436,7 @@ def test_split_files(tmpdir, mod, monkeypatch):
 
     annot = Annotations(np.arange(20), np.ones((20,)), 'test')
     raw_1.set_annotations(annot)
-    split_fname = op.join(tmpdir, 'split_raw.fif')
+    split_fname = op.join(tmp_path, 'split_raw.fif')
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
     raw_2 = read_raw_fif(split_fname)
     assert_allclose(raw_2.buffer_size_sec, 1., atol=1e-2)  # samp rate
@@ -433,8 +460,8 @@ def test_split_files(tmpdir, mod, monkeypatch):
     os.remove(split_fname_bids_part2)
     with pytest.raises(ValueError, match='manually renamed'):
         read_raw_fif(split_fname_bids_part1, on_split_missing='raise')
-    with pytest.deprecated_call():
-        read_raw_fif(split_fname_bids_part1)
+    with pytest.warns(RuntimeWarning, match='Split raw file detected'):
+        read_raw_fif(split_fname_bids_part1, on_split_missing='warn')
     read_raw_fif(split_fname_bids_part1, on_split_missing='ignore')
 
     # test the case where we only end up with one buffer to write
@@ -489,18 +516,18 @@ def test_split_files(tmpdir, mod, monkeypatch):
     assert_allclose(raw_crop[:][0], raw_read[:][0])
 
     # proper ending
-    assert op.isdir(tmpdir)
+    assert op.isdir(tmp_path)
     with pytest.raises(ValueError, match='must end with an underscore'):
         raw_crop.save(
-            tmpdir.join('test.fif'), split_naming='bids', verbose='error')
+            tmp_path / 'test.fif', split_naming='bids', verbose='error')
 
     # reserved file is deleted
-    fname = tmpdir.join('test_raw.fif')
+    fname = tmp_path / 'test_raw.fif'
     monkeypatch.setattr(base, '_write_raw_fid', _err)
     with pytest.raises(RuntimeError, match='Killed mid-write'):
         raw_1.save(fname, split_size='10MB', split_naming='bids')
     assert op.isfile(fname)
-    assert not op.isfile(tmpdir.join('test_split-01_raw.fif'))
+    assert not op.isfile(tmp_path / 'test_split-01_raw.fif')
 
 
 def _err(*args, **kwargs):
@@ -512,12 +539,12 @@ def _no_write_file_name(fid, kind, data):
     return
 
 
-def test_split_numbers(tmpdir, monkeypatch):
+def test_split_numbers(tmp_path, monkeypatch):
     """Test handling of split files using numbers instead of names."""
     monkeypatch.setattr(base, 'write_string', _no_write_file_name)
     raw = read_raw_fif(test_fif_fname).pick('eeg')
     # gh-8339
-    dashes_fname = tmpdir.join('sub-1_ses-2_task-3_raw.fif')
+    dashes_fname = tmp_path / 'sub-1_ses-2_task-3_raw.fif'
     raw.save(dashes_fname, split_size='5MB',
              buffer_size_sec=1.)
     assert op.isfile(dashes_fname)
@@ -528,7 +555,7 @@ def test_split_numbers(tmpdir, monkeypatch):
     assert_allclose(raw.get_data(), raw_read.get_data(), atol=1e-16)
 
 
-def test_load_bad_channels(tmpdir):
+def test_load_bad_channels(tmp_path):
     """Test reading/writing of bad channels."""
     # Load correctly marked file (manually done in mne_process_raw)
     raw_marked = read_raw_fif(fif_bad_marked_fname)
@@ -540,8 +567,8 @@ def test_load_bad_channels(tmpdir):
     # Test normal case
     raw.load_bad_channels(bad_file_works)
     # Write it out, read it in, and check
-    raw.save(tmpdir.join('foo_raw.fif'))
-    raw_new = read_raw_fif(tmpdir.join('foo_raw.fif'))
+    raw.save(tmp_path / 'foo_raw.fif')
+    raw_new = read_raw_fif(tmp_path / 'foo_raw.fif')
     assert correct_bads == raw_new.info['bads']
     # Reset it
     raw.info['bads'] = []
@@ -552,21 +579,22 @@ def test_load_bad_channels(tmpdir):
     # Test forcing the bad case
     with pytest.warns(RuntimeWarning, match='1 bad channel'):
         raw.load_bad_channels(bad_file_wrong, force=True)
-        # write it out, read it in, and check
-    raw.save(tmpdir.join('foo_raw.fif'), overwrite=True)
-    raw_new = read_raw_fif(tmpdir.join('foo_raw.fif'))
+
+    # write it out, read it in, and check
+    raw.save(tmp_path / 'foo_raw.fif', overwrite=True)
+    raw_new = read_raw_fif(tmp_path / 'foo_raw.fif')
     assert correct_bads == raw_new.info['bads']
 
     # Check that bad channels are cleared
     raw.load_bad_channels(None)
-    raw.save(tmpdir.join('foo_raw.fif'), overwrite=True)
-    raw_new = read_raw_fif(tmpdir.join('foo_raw.fif'))
+    raw.save(tmp_path / 'foo_raw.fif', overwrite=True)
+    raw_new = read_raw_fif(tmp_path / 'foo_raw.fif')
     assert raw_new.info['bads'] == []
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_io_raw(tmpdir):
+def test_io_raw(tmp_path):
     """Test IO for raw data (Neuromag)."""
     rng = np.random.RandomState(0)
     # test unicode io
@@ -575,7 +603,7 @@ def test_io_raw(tmpdir):
             assert ('Raw' in repr(r))
             assert (op.basename(fif_fname) in repr(r))
             r.info['description'] = chars
-            temp_file = tmpdir.join('raw.fif')
+            temp_file = tmp_path / 'raw.fif'
             r.save(temp_file, overwrite=True)
             with read_raw_fif(temp_file) as r2:
                 desc2 = r2.info['description']
@@ -588,7 +616,7 @@ def test_io_raw(tmpdir):
     data = rng.randn(raw._data.shape[0], raw._data.shape[1])
     raw._data[:, :] = data
     # save it somewhere
-    fname = tmpdir.join('test_copy_raw.fif')
+    fname = tmp_path / 'test_copy_raw.fif'
     raw.save(fname, buffer_size_sec=1.0)
     # read it in, make sure the whole thing matches
     raw = read_raw_fif(fname)
@@ -601,12 +629,12 @@ def test_io_raw(tmpdir):
 
 @pytest.mark.parametrize('fname_in, fname_out', [
     (test_fif_fname, 'raw.fif'),
-    (test_fif_gz_fname, 'raw.fif.gz'),
+    pytest.param(test_fif_gz_fname, 'raw.fif.gz', marks=pytest.mark.slowtest),
     (ctf_fname, 'raw.fif')])
-def test_io_raw_additional(fname_in, fname_out, tmpdir):
+def test_io_raw_additional(fname_in, fname_out, tmp_path):
     """Test IO for raw data (Neuromag + CTF + gz)."""
-    fname_out = tmpdir.join(fname_out)
-    raw = read_raw_fif(fname_in)
+    fname_out = tmp_path / fname_out
+    raw = read_raw_fif(fname_in).crop(0, 2)
 
     nchan = raw.info['nchan']
     ch_names = raw.info['ch_names']
@@ -674,7 +702,7 @@ def test_io_raw_additional(fname_in, fname_out, tmpdir):
         assert_allclose(raw.info['dig'][0]['r'], raw2.info['dig'][0]['r'])
 
     # test warnings on bad filenames
-    raw_badname = tmpdir.join('test-bad-name.fif.gz')
+    raw_badname = tmp_path / 'test-bad-name.fif.gz'
     with pytest.warns(RuntimeWarning, match='raw.fif'):
         raw.save(raw_badname)
     with pytest.warns(RuntimeWarning, match='raw.fif'):
@@ -682,38 +710,28 @@ def test_io_raw_additional(fname_in, fname_out, tmpdir):
 
 
 @testing.requires_testing_data
-def test_io_complex(tmpdir):
+@pytest.mark.parametrize('dtype', ('complex128', 'complex64'))
+def test_io_complex(tmp_path, dtype):
     """Test IO with complex data types."""
     rng = np.random.RandomState(0)
-    dtypes = [np.complex64, np.complex128]
+    n_ch = 5
+    raw = read_raw_fif(fif_fname).crop(0, 1).pick(np.arange(n_ch)).load_data()
+    data_orig = raw.get_data()
+    imag_rand = np.array(1j * rng.randn(n_ch, len(raw.times)), dtype=dtype)
+    raw_cp = raw.copy()
+    raw_cp._data = np.array(raw_cp._data, dtype)
+    raw_cp._data += imag_rand
+    with pytest.warns(RuntimeWarning, match='Saving .* complex data.'):
+        raw_cp.save(tmp_path / 'raw.fif', overwrite=True)
 
-    raw = _test_raw_reader(partial(read_raw_fif),
-                           fname=fif_fname)
-    picks = np.arange(5)
-    start, stop = raw.time_as_index([0, 5])
-
-    data_orig, _ = raw[picks, start:stop]
-
-    for di, dtype in enumerate(dtypes):
-        imag_rand = np.array(1j * rng.randn(data_orig.shape[0],
-                                            data_orig.shape[1]), dtype)
-
-        raw_cp = raw.copy()
-        raw_cp._data = np.array(raw_cp._data, dtype)
-        raw_cp._data[picks, start:stop] += imag_rand
-        with pytest.warns(RuntimeWarning, match='Saving .* complex data.'):
-            raw_cp.save(tmpdir.join('raw.fif'), picks, tmin=0, tmax=5,
-                        overwrite=True)
-
-        raw2 = read_raw_fif(tmpdir.join('raw.fif'))
-        raw2_data, _ = raw2[picks, :]
-        n_samp = raw2_data.shape[1]
-        assert_allclose(raw2_data[:, :n_samp], raw_cp._data[picks, :n_samp])
-        # with preloading
-        raw2 = read_raw_fif(tmpdir.join('raw.fif'), preload=True)
-        raw2_data, _ = raw2[picks, :]
-        n_samp = raw2_data.shape[1]
-        assert_allclose(raw2_data[:, :n_samp], raw_cp._data[picks, :n_samp])
+    raw2 = read_raw_fif(tmp_path / 'raw.fif')
+    raw2_data, _ = raw2[:]
+    assert_allclose(raw2_data, raw_cp._data)
+    # with preloading
+    raw2 = read_raw_fif(tmp_path / 'raw.fif', preload=True)
+    raw2_data, _ = raw2[:]
+    assert_allclose(raw2_data, raw_cp._data)
+    assert_allclose(data_orig, raw_cp._data.real)
 
 
 @testing.requires_testing_data
@@ -743,7 +761,7 @@ def test_getitem():
 
 
 @testing.requires_testing_data
-def test_proj(tmpdir):
+def test_proj(tmp_path):
     """Test SSP proj operations."""
     for proj in [True, False]:
         raw = read_raw_fif(fif_fname, preload=False)
@@ -783,8 +801,8 @@ def test_proj(tmpdir):
         raw = read_raw_fif(fif_fname, preload=preload)
 
         # write the file with proj. activated, make sure proj has been applied
-        raw.save(tmpdir.join('raw.fif'), proj=True, overwrite=True)
-        raw2 = read_raw_fif(tmpdir.join('raw.fif'))
+        raw.save(tmp_path / 'raw.fif', proj=True, overwrite=True)
+        raw2 = read_raw_fif(tmp_path / 'raw.fif')
         data_proj_2, _ = raw2[:, 0:2]
         assert_allclose(data_proj_1, data_proj_2)
         assert (all(p['active'] for p in raw2.info['projs']))
@@ -816,11 +834,11 @@ def test_proj(tmpdir):
 
     # I/O roundtrip of an MEG projector with a Raw that only contains EEG
     # data.
-    out_fname = tmpdir.join('test_raw.fif')
+    out_fname = tmp_path / 'test_raw.fif'
     raw = read_raw_fif(test_fif_fname, preload=True).crop(0, 0.002)
     proj = raw.info['projs'][-1]
     raw.pick_types(meg=False, eeg=True)
-    raw.info['projs'] = [proj]  # Restore, because picking removed it!
+    raw.add_proj(proj)  # Restore, because picking removed it!
     raw._data.fill(0)
     raw._data[-1] = 1.
     raw.save(out_fname)
@@ -831,7 +849,7 @@ def test_proj(tmpdir):
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('preload', [False, True, 'memmap.dat'])
-def test_preload_modify(preload, tmpdir):
+def test_preload_modify(preload, tmp_path):
     """Test preloading and modifying data."""
     rng = np.random.RandomState(0)
     raw = read_raw_fif(fif_fname, preload=preload)
@@ -849,7 +867,7 @@ def test_preload_modify(preload, tmpdir):
         else:
             raise
 
-    tmp_fname = tmpdir.join('raw.fif')
+    tmp_fname = tmp_path / 'raw.fif'
     raw.save(tmp_fname, overwrite=True)
 
     raw_new = read_raw_fif(tmp_fname)
@@ -941,7 +959,8 @@ def test_filter():
     # filter should set the "lowpass" and "highpass" parameters
     raw = RawArray(np.random.randn(3, 1000),
                    create_info(3, 1000., ['eeg'] * 2 + ['stim']))
-    raw.info['lowpass'] = raw.info['highpass'] = None
+    with raw.info._unlock():
+        raw.info['lowpass'] = raw.info['highpass'] = None
     for kind in ('none', 'lowpass', 'highpass', 'bandpass', 'bandstop'):
         print(kind)
         h_freq = l_freq = None
@@ -973,16 +992,16 @@ def test_filter():
 
 def test_filter_picks():
     """Test filtering default channel picks."""
-    ch_types = ['mag', 'grad', 'eeg', 'seeg', 'misc', 'stim', 'ecog', 'hbo',
-                'hbr']
+    ch_types = ['mag', 'grad', 'eeg', 'seeg', 'dbs', 'misc', 'stim', 'ecog',
+                'hbo', 'hbr']
     info = create_info(ch_names=ch_types, ch_types=ch_types, sfreq=256)
     raw = RawArray(data=np.zeros((len(ch_types), 1000)), info=info)
 
     # -- Deal with meg mag grad and fnirs exceptions
-    ch_types = ('misc', 'stim', 'meg', 'eeg', 'seeg', 'ecog')
+    ch_types = ('misc', 'stim', 'meg', 'eeg', 'seeg', 'dbs', 'ecog')
 
     # -- Filter data channels
-    for ch_type in ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr'):
+    for ch_type in ('mag', 'grad', 'eeg', 'seeg', 'dbs', 'ecog', 'hbo', 'hbr'):
         picks = {ch: ch == ch_type for ch in ch_types}
         picks['meg'] = ch_type if ch_type in ('mag', 'grad') else False
         picks['fnirs'] = ch_type if ch_type in ('hbo', 'hbr') else False
@@ -1066,27 +1085,32 @@ def test_resample_equiv():
     assert_allclose(raw._data, raw_preload._data)
 
 
+@pytest.mark.slowtest
 @testing.requires_testing_data
-@pytest.mark.parametrize('preload', (True, False))
-def test_resample(tmpdir, preload):
+@pytest.mark.parametrize('preload, n, npad', [
+    (True, 512, 'auto'),
+    (False, 512, 0),
+])
+def test_resample(tmp_path, preload, n, npad):
     """Test resample (with I/O and multiple files)."""
-    raw = read_raw_fif(fif_fname).crop(0, 3)
+    raw = read_raw_fif(fif_fname)
+    raw.crop(0, raw.times[n - 1])
+    assert len(raw.times) == n
     if preload:
         raw.load_data()
     raw_resamp = raw.copy()
     sfreq = raw.info['sfreq']
     # test parallel on upsample
-    raw_resamp.resample(sfreq * 2, n_jobs=2, npad='auto')
+    raw_resamp.resample(sfreq * 2, n_jobs=2, npad=npad)
     assert raw_resamp.n_times == len(raw_resamp.times)
-    raw_resamp.save(tmpdir.join('raw_resamp-raw.fif'))
-    raw_resamp = read_raw_fif(tmpdir.join('raw_resamp-raw.fif'),
-                              preload=True)
+    raw_resamp.save(tmp_path / 'raw_resamp-raw.fif')
+    raw_resamp = read_raw_fif(tmp_path / 'raw_resamp-raw.fif', preload=True)
     assert sfreq == raw_resamp.info['sfreq'] / 2
     assert raw.n_times == raw_resamp.n_times // 2
     assert raw_resamp.get_data().shape[1] == raw_resamp.n_times
     assert raw.get_data().shape[0] == raw_resamp._data.shape[0]
     # test non-parallel on downsample
-    raw_resamp.resample(sfreq, n_jobs=1, npad='auto')
+    raw_resamp.resample(sfreq, n_jobs=None, npad=npad)
     assert raw_resamp.info['sfreq'] == sfreq
     assert raw.get_data().shape == raw_resamp._data.shape
     assert raw.first_samp == raw_resamp.first_samp
@@ -1109,9 +1133,9 @@ def test_resample(tmpdir, preload):
     raw3 = raw.copy()
     raw4 = raw.copy()
     raw1 = concatenate_raws([raw1, raw2])
-    raw1.resample(10., npad='auto')
-    raw3.resample(10., npad='auto')
-    raw4.resample(10., npad='auto')
+    raw1.resample(10., npad=npad)
+    raw3.resample(10., npad=npad)
+    raw4.resample(10., npad=npad)
     raw3 = concatenate_raws([raw3, raw4])
     assert_array_equal(raw1._data, raw3._data)
     assert_array_equal(raw1._first_samps, raw3._first_samps)
@@ -1129,12 +1153,12 @@ def test_resample(tmpdir, preload):
     # basic decimation
     stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    assert_allclose(raw.resample(8., npad='auto')._data,
+    assert_allclose(raw.resample(8., npad=npad)._data,
                     [[1, 1, 0, 0, 1, 1, 0, 0]])
 
     # decimation of multiple stim channels
     raw = RawArray(2 * [stim], create_info(2, len(stim), 2 * ['stim']))
-    assert_allclose(raw.resample(8., npad='auto', verbose='error')._data,
+    assert_allclose(raw.resample(8., npad=npad, verbose='error')._data,
                     [[1, 1, 0, 0, 1, 1, 0, 0],
                      [1, 1, 0, 0, 1, 1, 0, 0]])
 
@@ -1142,20 +1166,20 @@ def test_resample(tmpdir, preload):
     # done naively
     stim = [0, 0, 0, 1, 1, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    assert_allclose(raw.resample(4., npad='auto')._data,
+    assert_allclose(raw.resample(4., npad=npad)._data,
                     [[0, 1, 1, 0]])
 
     # two events are merged in this case (warning)
     stim = [0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
     with pytest.warns(RuntimeWarning, match='become unreliable'):
-        raw.resample(8., npad='auto')
+        raw.resample(8., npad=npad)
 
     # events are dropped in this case (warning)
     stim = [0, 1, 1, 0, 0, 1, 1, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
     with pytest.warns(RuntimeWarning, match='become unreliable'):
-        raw.resample(4., npad='auto')
+        raw.resample(4., npad=npad)
 
     # test resampling events: this should no longer give a warning
     # we often have first_samp != 0, include it here too
@@ -1167,7 +1191,7 @@ def test_resample(tmpdir, preload):
     raw = RawArray([stim], create_info(1, o_sfreq, ['stim']),
                    first_samp=first_samp)
     events = find_events(raw)
-    raw, events = raw.resample(n_sfreq, events=events, npad='auto')
+    raw, events = raw.resample(n_sfreq, events=events, npad=npad)
     # Try index into raw.times with resampled events:
     raw.times[events[:, 0] - raw.first_samp]
     n_fsamp = int(first_samp * sfreq_ratio)  # how it's calc'd in base.py
@@ -1183,17 +1207,26 @@ def test_resample(tmpdir, preload):
     # test copy flag
     stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
     raw = RawArray([stim], create_info(1, len(stim), ['stim']))
-    raw_resampled = raw.copy().resample(4., npad='auto')
+    raw_resampled = raw.copy().resample(4., npad=npad)
     assert (raw_resampled is not raw)
-    raw_resampled = raw.resample(4., npad='auto')
+    raw_resampled = raw.resample(4., npad=npad)
     assert (raw_resampled is raw)
 
     # resample should still work even when no stim channel is present
     raw = RawArray(np.random.randn(1, 100), create_info(1, 100, ['eeg']))
-    raw.info['lowpass'] = 50.
-    raw.resample(10, npad='auto')
+    with raw.info._unlock():
+        raw.info['lowpass'] = 50.
+    raw.resample(10, npad=npad)
     assert raw.info['lowpass'] == 5.
     assert len(raw) == 10
+
+
+def test_resample_stim():
+    """Test stim_picks argument."""
+    data = np.ones((2, 1000))
+    info = create_info(2, 1000., ('eeg', 'misc'))
+    raw = RawArray(data, info)
+    raw.resample(500., stim_picks='misc')
 
 
 @testing.requires_testing_data
@@ -1250,18 +1283,16 @@ def test_raw_copy():
 def test_to_data_frame():
     """Test raw Pandas exporter."""
     from pandas import Timedelta
-    raw = read_raw_fif(test_fif_fname, preload=True)
-    _, times = raw[0, :10]
+    raw = read_raw_fif(test_fif_fname).crop(0, 1).load_data()
     df = raw.to_data_frame(index='time')
     assert ((df.columns == raw.ch_names).all())
-    assert_array_equal(np.round(times * 1e3), df.index.values[:10])
     df = raw.to_data_frame(index=None)
     assert ('time' in df.columns)
     assert_array_equal(df.values[:, 1], raw._data[0] * 1e13)
     assert_array_equal(df.values[:, 3], raw._data[2] * 1e15)
     # test long format
     df_long = raw.to_data_frame(long_format=True)
-    assert(len(df_long) == raw.get_data().size)
+    assert len(df_long) == raw.get_data().size
     expected = ('time', 'channel', 'ch_type', 'value')
     assert set(expected) == set(df_long.columns)
     # test bad time format
@@ -1278,13 +1309,27 @@ def test_to_data_frame():
 @pytest.mark.parametrize('time_format', (None, 'ms', 'timedelta', 'datetime'))
 def test_to_data_frame_time_format(time_format):
     """Test time conversion in epochs Pandas exporter."""
-    from pandas import Timedelta, Timestamp
+    from pandas import Timedelta, Timestamp, to_timedelta
     raw = read_raw_fif(test_fif_fname, preload=True)
     # test time_format
     df = raw.to_data_frame(time_format=time_format)
     dtypes = {None: np.float64, 'ms': np.int64, 'timedelta': Timedelta,
               'datetime': Timestamp}
     assert isinstance(df['time'].iloc[0], dtypes[time_format])
+    # test values
+    _, times = raw[0, :10]
+    offset = 0.
+    if time_format == 'datetime':
+        times += raw.first_time
+        offset = raw.info['meas_date']
+    elif time_format == 'timedelta':
+        offset = Timedelta(0.)
+    funcs = {None: lambda x: x,
+             'ms': lambda x: np.rint(x * 1e3).astype(int),  # s → ms
+             'timedelta': partial(to_timedelta, unit='s'),
+             'datetime': partial(to_timedelta, unit='s')
+             }
+    assert_array_equal(funcs[time_format](times) + offset, df['time'][:10])
 
 
 def test_add_channels():
@@ -1335,7 +1380,8 @@ def test_add_channels():
 
     # Now test errors
     raw_badsf = raw_eeg.copy()
-    raw_badsf.info['sfreq'] = 3.1415927
+    with raw_badsf.info._unlock():
+        raw_badsf.info['sfreq'] = 3.1415927
     raw_eeg.crop(.5)
 
     pytest.raises(RuntimeError, raw_meg.add_channels, [raw_nopre])
@@ -1346,21 +1392,25 @@ def test_add_channels():
 
 
 @testing.requires_testing_data
-def test_save(tmpdir):
+def test_save(tmp_path):
     """Test saving raw."""
-    raw = read_raw_fif(fif_fname, preload=False)
+    temp_fname = tmp_path / 'test_raw.fif'
+    shutil.copyfile(fif_fname, temp_fname)
+    raw = read_raw_fif(temp_fname, preload=False)
     # can't write over file being read
-    pytest.raises(ValueError, raw.save, fif_fname)
-    raw = read_raw_fif(fif_fname, preload=True)
+    with pytest.raises(ValueError, match='to the same file'):
+        raw.save(temp_fname)
+    raw.load_data()
     # can't overwrite file without overwrite=True
-    pytest.raises(IOError, raw.save, fif_fname)
+    with pytest.raises(IOError, match='file exists'):
+        raw.save(fif_fname)
 
     # test abspath support and annotations
     orig_time = _dt_to_stamp(raw.info['meas_date'])[0] + raw._first_time
     annot = Annotations([10], [5], ['test'], orig_time=orig_time)
     raw.set_annotations(annot)
     annot = raw.annotations
-    new_fname = tmpdir.join('break_raw.fif')
+    new_fname = tmp_path / 'break_raw.fif'
     raw.save(new_fname, overwrite=True)
     new_raw = read_raw_fif(new_fname, preload=False)
     pytest.raises(ValueError, new_raw.save, new_fname)
@@ -1377,7 +1427,7 @@ def test_save(tmpdir):
 
 
 @testing.requires_testing_data
-def test_annotation_crop(tmpdir):
+def test_annotation_crop(tmp_path):
     """Test annotation sync after cropping and concatenating."""
     annot = Annotations([5., 11., 15.], [2., 1., 3.], ['test', 'test', 'test'])
     raw = read_raw_fif(fif_fname, preload=False)
@@ -1403,7 +1453,7 @@ def test_annotation_crop(tmpdir):
                     [1., 1. + 1. / raw.info['sfreq']], atol=1e-3)
 
     # make sure we can overwrite the file we loaded when preload=True
-    new_fname = tmpdir.join('break_raw.fif')
+    new_fname = tmp_path / 'break_raw.fif'
     raw.save(new_fname)
     new_raw = read_raw_fif(new_fname, preload=True)
     new_raw.save(new_fname, overwrite=True)
@@ -1417,7 +1467,7 @@ def test_with_statement():
             print(raw_)
 
 
-def test_compensation_raw(tmpdir):
+def test_compensation_raw(tmp_path):
     """Test Raw compensation."""
     raw_3 = read_raw_fif(ctf_comp_fname)
     assert raw_3.compensation_grade == 3
@@ -1480,7 +1530,7 @@ def test_compensation_raw(tmpdir):
             assert_allclose(data_3, data_3_new, **tols)
 
     # Try IO with compensation
-    temp_file = tmpdir.join('raw.fif')
+    temp_file = tmp_path / 'raw.fif'
     raw_3.save(temp_file, overwrite=True)
     for preload in (True, False):
         raw_read = read_raw_fif(temp_file, preload=preload)
@@ -1516,10 +1566,10 @@ def test_compensation_raw(tmpdir):
 
 
 @requires_mne
-def test_compensation_raw_mne(tmpdir):
+def test_compensation_raw_mne(tmp_path):
     """Test Raw compensation by comparing with MNE-C."""
     def compensate_mne(fname, grad):
-        tmp_fname = tmpdir.join('mne_ctf_test_raw.fif')
+        tmp_fname = tmp_path / 'mne_ctf_test_raw.fif'
         cmd = ['mne_process_raw', '--raw', fname, '--save', tmp_fname,
                '--grad', str(grad), '--projoff', '--filteroff']
         run_subprocess(cmd)
@@ -1607,10 +1657,10 @@ def test_equalize_channels():
         assert ch_names == e.ch_names
 
 
-def test_memmap(tmpdir):
+def test_memmap(tmp_path):
     """Test some interesting memmapping cases."""
     # concatenate_raw
-    memmaps = [tmpdir.join(str(ii)) for ii in range(3)]
+    memmaps = [str(tmp_path / str(ii)) for ii in range(3)]
     raw_0 = read_raw_fif(test_fif_fname, preload=memmaps[0])
     assert raw_0._data.filename == memmaps[0]
     raw_1 = read_raw_fif(test_fif_fname, preload=memmaps[1])
@@ -1649,20 +1699,30 @@ def test_memmap(tmpdir):
     # require them.
 
 
-@pytest.mark.parametrize('split', (False, True))
-@pytest.mark.parametrize('kind', ('file', 'bytes'))
-@pytest.mark.parametrize('preload', (True, str))
-def test_file_like(kind, preload, split, tmpdir):
+# These are slow on Azure Windows so let's do a subset
+@pytest.mark.parametrize('kind', [
+    'file',
+    pytest.param('bytes', marks=pytest.mark.slowtest),
+])
+@pytest.mark.parametrize('preload', [
+    True,
+    pytest.param(str, marks=pytest.mark.slowtest),
+])
+@pytest.mark.parametrize('split', [
+    False,
+    pytest.param(True, marks=pytest.mark.slowtest),
+])
+def test_file_like(kind, preload, split, tmp_path):
     """Test handling with file-like objects."""
     if split:
-        fname = tmpdir.join('test_raw.fif')
+        fname = tmp_path / 'test_raw.fif'
         read_raw_fif(test_fif_fname).save(fname, split_size='5MB')
         assert op.isfile(fname)
         assert op.isfile(str(fname)[:-4] + '-1.fif')
     else:
         fname = test_fif_fname
     if preload is str:
-        preload = str(tmpdir.join('memmap'))
+        preload = str(tmp_path / 'memmap')
     with open(str(fname), 'rb') as file_fid:
         fid = BytesIO(file_fid.read()) if kind == 'bytes' else file_fid
         assert not fid.closed
@@ -1707,4 +1767,66 @@ def test_bad_acq(fname):
             assert tag == ent
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+@pytest.mark.skipif(sys.platform not in ('darwin', 'linux'),
+                    reason='Needs proper symlinking')
+def test_split_symlink(tmp_path):
+    """Test split files with symlinks."""
+    # regression test for gh-9221
+    (tmp_path / 'first').mkdir()
+    first = tmp_path / 'first' / 'test_raw.fif'
+    raw = read_raw_fif(fif_fname).pick('meg').load_data()
+    raw.save(first, buffer_size_sec=1, split_size='10MB', verbose=True)
+    second = str(first)[:-4] + '-1.fif'
+    assert op.isfile(second)
+    assert not op.isfile(str(first)[:-4] + '-2.fif')
+    (tmp_path / 'a').mkdir()
+    (tmp_path / 'b').mkdir()
+    new_first = tmp_path / 'a' / 'test_raw.fif'
+    new_second = tmp_path / 'b' / 'test_raw-1.fif'
+    shutil.move(first, new_first)
+    shutil.move(second, new_second)
+    os.symlink(new_first, first)
+    os.symlink(new_second, second)
+    raw_new = read_raw_fif(first)
+    assert_allclose(raw_new.get_data(), raw.get_data())
+
+
+@testing.requires_testing_data
+def test_corrupted(tmp_path):
+    """Test that a corrupted file can still be read."""
+    # Must be a file written by Neuromag, not us, since we don't write the dir
+    # at the end, so use the skip one (straight from acq).
+    raw = read_raw_fif(skip_fname)
+    with open(skip_fname, 'rb') as fid:
+        tag = read_tag_info(fid)
+        tag = read_tag(fid)
+        dirpos = int(tag.data)
+        assert dirpos == 12641532
+        fid.seek(0)
+        data = fid.read(dirpos)
+    bad_fname = tmp_path / 'test_raw.fif'
+    with open(bad_fname, 'wb') as fid:
+        fid.write(data)
+    with pytest.warns(RuntimeWarning, match='.*tag directory.*corrupt.*'):
+        raw_bad = read_raw_fif(bad_fname)
+    assert_allclose(raw.get_data(), raw_bad.get_data())
+
+
+@testing.requires_testing_data
+def test_expand_user(tmp_path, monkeypatch):
+    """Test that we're expanding `~` before reading and writing."""
+    monkeypatch.setenv('HOME', str(tmp_path))
+    monkeypatch.setenv('USERPROFILE', str(tmp_path))  # Windows
+
+    path_in = Path(fif_fname)
+    path_out = tmp_path / path_in.name
+    path_home = Path('~') / path_in.name
+
+    shutil.copyfile(
+        src=path_in,
+        dst=path_out
+    )
+
+    raw = read_raw_fif(fname=path_home, preload=True)
+    raw.save(fname=path_home, overwrite=True)

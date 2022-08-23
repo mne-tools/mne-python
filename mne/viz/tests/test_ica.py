@@ -4,6 +4,7 @@
 # License: Simplified BSD
 
 import os.path as op
+import sys
 
 import numpy as np
 from numpy.testing import assert_equal, assert_array_equal
@@ -14,10 +15,9 @@ from mne import (read_events, Epochs, read_cov, pick_types, Annotations,
                  make_fixed_length_events)
 from mne.io import read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
-from mne.utils import (requires_sklearn, _click_ch_name, catch_logging,
-                       _close_event)
+from mne.utils import (requires_sklearn, catch_logging, _record_warnings)
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _fake_keypress
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -65,17 +65,17 @@ def test_plot_ica_components():
         ica.fit(raw, picks=ica_picks)
 
     for components in [0, [0], [0, 1], [0, 1] * 2, None]:
-        ica.plot_components(components, image_interp='bilinear',
+        ica.plot_components(components, image_interp='cubic',
                             colorbar=True, **fast_test)
     plt.close('all')
 
     # test interactive mode (passing 'inst' arg)
     with catch_logging() as log:
-        ica.plot_components([0, 1], image_interp='bilinear', inst=raw, res=16,
+        ica.plot_components([0, 1], image_interp='cubic', inst=raw, res=16,
                             verbose='debug', ch_type='grad')
     log = log.getvalue()
     assert 'grad data' in log
-    assert 'Interpolation mode local to mean' in log
+    assert 'extrapolation mode local to mean' in log
     fig = plt.gcf()
 
     # test title click
@@ -104,7 +104,7 @@ def test_plot_ica_components():
 
     topomap_ax = c_fig.axes[labels.index('topomap')]
     title = topomap_ax.get_title()
-    assert (lbl == title)
+    assert (lbl.split(' ')[0] == title.split(' ')[0])
 
     ica.info = None
     with pytest.raises(RuntimeError, match='fit the ICA'):
@@ -117,6 +117,8 @@ def test_plot_ica_properties():
     """Test plotting of ICA properties."""
     raw = _get_raw(preload=True).crop(0, 5)
     raw.add_proj([], remove_existing=True)
+    with raw.info._unlock():
+        raw.info['highpass'] = 1.0  # fake high-pass filtering
     events = make_fixed_length_events(raw)
     picks = _get_picks(raw)[:6]
     pick_names = [raw.ch_names[k] for k in picks]
@@ -142,12 +144,33 @@ def test_plot_ica_properties():
         ica.plot_properties(raw, picks=0, verbose='debug', **topoargs)
     log = log.getvalue()
     assert raw.ch_names[0] == 'MEG 0113'
-    assert 'Interpolation mode local to mean' in log, log
+    assert 'extrapolation mode local to mean' in log, log
     ica.plot_properties(epochs, picks=1, dB=False, plot_std=1.5, **topoargs)
-    ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
-                        topomap_args={'res': 4, 'colorbar': True},
-                        psd_args={'fmax': 65.}, plot_std=False,
-                        figsize=[4.5, 4.5], reject=reject)
+    fig = ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
+                              topomap_args={'res': 4, 'colorbar': True},
+                              psd_args={'fmax': 65.}, plot_std=False,
+                              log_scale=True, figsize=[4.5, 4.5],
+                              reject=reject)[0]
+
+    # test keypresses
+    ax_labels = [ax.get_label() for ax in fig.axes]
+
+    # test topomap change type
+    ax = fig.axes[ax_labels.index('topomap')]
+    assert ax.get_title() == 'ICA001 (mag)'
+    _fake_keypress(fig, 't')
+    assert ax.get_title() == 'ICA001 (grad)'
+    _fake_keypress(fig, 't')
+    assert ax.get_title() == 'ICA001 (mag)'
+
+    # test log scale
+    ax = fig.axes[ax_labels.index('spectrum')]
+    assert ax.get_xscale() == 'log'
+    _fake_keypress(fig, 'l')
+    assert ax.get_xscale() == 'linear'
+    _fake_keypress(fig, 'l')
+    assert ax.get_xscale() == 'log'
+
     plt.close('all')
 
     with pytest.raises(TypeError, match='must be an instance'):
@@ -187,7 +210,8 @@ def test_plot_ica_properties():
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(epochs)
     epochs._data[0] = 0
-    with pytest.warns(None):  # Usually UserWarning: Infinite value .* for epo
+    # Usually UserWarning: Infinite value .* for epo
+    with _record_warnings():
         ica.plot_properties(epochs, **topoargs)
     plt.close('all')
 
@@ -207,9 +231,9 @@ def test_plot_ica_properties():
 
 
 @requires_sklearn
-def test_plot_ica_sources():
+def test_plot_ica_sources(raw_orig, browser_backend, monkeypatch):
     """Test plotting of ICA panel."""
-    raw = read_raw_fif(raw_fname).crop(0, 1).load_data()
+    raw = raw_orig.copy().crop(0, 1)
     picks = _get_picks(raw)
     epochs = _get_epochs()
     raw.pick_channels([raw.ch_names[k] for k in picks])
@@ -218,55 +242,74 @@ def test_plot_ica_sources():
     ica = ICA(n_components=2)
     ica.fit(raw, picks=ica_picks)
     ica.exclude = [1]
+    if sys.platform == 'darwin':  # unknown transformation bug
+        monkeypatch.setenv('MNE_BROWSE_RAW_SIZE', '20,20')
     fig = ica.plot_sources(raw)
-    assert len(plt.get_fignums()) == 1
+    assert browser_backend._get_n_figs() == 1
     # change which component is in ICA.exclude (click data trace to remove
     # current one; click name to add other one)
-    fig.canvas.draw()
+    fig._redraw()
+    assert_array_equal(ica.exclude, [1])
+    assert fig.mne.info['bads'] == [ica._ica_names[1]]
     x = fig.mne.traces[1].get_xdata()[5]
     y = fig.mne.traces[1].get_ydata()[5]
-    _fake_click(fig, fig.mne.ax_main, (x, y), xform='data')  # exclude = []
-    _click_ch_name(fig, ch_index=0, button=1)                # exclude = [0]
-    fig.canvas.key_press_event(fig.mne.close_key)
-    _close_event(fig)
-    assert len(plt.get_fignums()) == 0
+    fig._fake_click((x, y), xform='data')  # exclude = []
+    assert fig.mne.info['bads'] == []
+    assert_array_equal(ica.exclude, [1])  # unchanged
+    fig._click_ch_name(ch_index=0, button=1)  # exclude = [0]
+    assert fig.mne.info['bads'] == [ica._ica_names[0]]
+    assert_array_equal(ica.exclude, [1])
+    fig._fake_keypress(fig.mne.close_key)
+    fig._close_event()
+    assert browser_backend._get_n_figs() == 0
     assert_array_equal(ica.exclude, [0])
-    plt.close('all')
+    # test when picks does not include ica.exclude.
+    ica.plot_sources(raw, picks=[1])
+    assert browser_backend._get_n_figs() == 1
+    browser_backend._close_all()
 
     # dtype can change int->np.int64 after load, test it explicitly
     ica.n_components_ = np.int64(ica.n_components_)
 
     # test clicks on y-label (need >2 secs for plot_properties() to work)
-    long_raw = read_raw_fif(raw_fname).crop(0, 5).load_data()
+    long_raw = raw_orig.crop(0, 5)
     fig = ica.plot_sources(long_raw)
-    assert len(plt.get_fignums()) == 1
-    fig.canvas.draw()
-    _fake_click(fig, fig.mne.ax_main, (-0.1, 0), xform='data', button=3)
+    assert browser_backend._get_n_figs() == 1
+    fig._redraw()
+    fig._click_ch_name(ch_index=0, button=3)
     assert len(fig.mne.child_figs) == 1
-    assert len(plt.get_fignums()) == 2
+    assert browser_backend._get_n_figs() == 2
     # close child fig directly (workaround for mpl issue #18609)
-    fig.mne.child_figs[0].canvas.key_press_event('escape')
-    assert len(plt.get_fignums()) == 1
-    fig.canvas.key_press_event(fig.mne.close_key)
-    assert len(plt.get_fignums()) == 0
+    fig._fake_keypress('escape', fig=fig.mne.child_figs[0])
+    assert browser_backend._get_n_figs() == 1
+    fig._fake_keypress(fig.mne.close_key)
+    assert browser_backend._get_n_figs() == 0
     del long_raw
 
     # test with annotations
     orig_annot = raw.annotations
     raw.set_annotations(Annotations([0.2], [0.1], 'Test'))
     fig = ica.plot_sources(raw)
-    assert len(fig.mne.ax_main.collections) == 1
-    assert len(fig.mne.ax_hscroll.collections) == 1
+    if browser_backend.name == 'matplotlib':
+        assert len(fig.mne.ax_main.collections) == 1
+        assert len(fig.mne.ax_hscroll.collections) == 1
+    else:
+        assert len(fig.mne.regions) == 1
     raw.set_annotations(orig_annot)
 
     # test error handling
-    raw.info['bads'] = ['MEG 0113']
-    with pytest.raises(RuntimeError, match="Raw doesn't match fitted data"):
-        ica.plot_sources(inst=raw)
-    epochs.info['bads'] = ['MEG 0113']
-    with pytest.raises(RuntimeError, match="Epochs don't match fitted data"):
-        ica.plot_sources(inst=epochs)
-    epochs.info['bads'] = []
+    raw_ = raw.copy().load_data()
+    raw_.drop_channels('MEG 0113')
+    with pytest.raises(RuntimeError, match="Raw doesn't match fitted data"), \
+         pytest.warns(RuntimeWarning, match='could not be picked'):
+        ica.plot_sources(inst=raw_)
+    epochs_ = epochs.copy().load_data()
+    epochs_.drop_channels('MEG 0113')
+    with pytest.raises(RuntimeError, match="Epochs don't match fitted data"), \
+         pytest.warns(RuntimeWarning, match='could not be picked'):
+        ica.plot_sources(inst=epochs_)
+    del raw_
+    del epochs_
 
     # test w/ epochs and evokeds
     ica.plot_sources(epochs)
@@ -280,12 +323,19 @@ def test_plot_ica_sources():
                 [line.get_xdata()[0], line.get_ydata()[0]], 'data')
     _fake_click(fig, ax,
                 [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
+
     # plot with bad channels excluded
     ica.exclude = [0]
     ica.plot_sources(evoked)
-    ica.labels_ = dict(eog=[0])
-    ica.labels_['eog/0/crazy-channel'] = [0]
+
+    # pretend find_bads_eog() yielded some results
+    ica.labels_ = {
+        'eog': [0],
+        'eog/0/crazy-channel': [0]
+    }
     ica.plot_sources(evoked)  # now with labels
+
+    # pass an invalid inst
     with pytest.raises(ValueError, match='must be of Raw or Epochs type'):
         ica.plot_sources('meeow')
 
@@ -295,8 +345,13 @@ def test_plot_ica_sources():
 def test_plot_ica_overlay():
     """Test plotting of ICA cleaning."""
     raw = _get_raw(preload=True)
+    with raw.info._unlock():
+        raw.info['highpass'] = 1.0  # fake high-pass filtering
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, random_state=0)
+    # overlay plotting requires a fitted ICA
+    with pytest.raises(RuntimeError, match='need to fit'):
+        ica.plot_overlay(inst=raw)
     # can't use info.normalize_proj here because of how and when ICA and Epochs
     # objects do picking of Raw data
     with pytest.warns(RuntimeWarning, match='projection'):
@@ -316,6 +371,8 @@ def test_plot_ica_overlay():
     # smoke test for CTF
     raw = read_raw_fif(raw_ctf_fname)
     raw.apply_gradient_compensation(3)
+    with raw.info._unlock():
+        raw.info['highpass'] = 1.0  # fake high-pass filtering
     picks = pick_types(raw.info, meg=True, ref_meg=False)
     ica = ICA(n_components=2, )
     ica.fit(raw, picks=picks)
@@ -374,7 +431,7 @@ def test_plot_ica_scores():
 
 
 @requires_sklearn
-def test_plot_instance_components():
+def test_plot_instance_components(browser_backend):
     """Test plotting of components as instances of raw and epochs."""
     raw = _get_raw()
     picks = _get_picks(raw)
@@ -384,24 +441,23 @@ def test_plot_instance_components():
     ica.exclude = [0]
     fig = ica.plot_sources(raw, title='Components')
     keys = ('home', 'home', 'end', 'down', 'up', 'right', 'left', '-', '+',
-            '=', 'd', 'd', 'pageup', 'pagedown', 'z', 'z', 's', 's', 'f11',
-            'b')
+            '=', 'd', 'd', 'pageup', 'pagedown', 'z', 'z', 's', 's', 'b')
     for key in keys:
-        fig.canvas.key_press_event(key)
-    ax = fig.mne.ax_main
-    line = ax.lines[0]
-    _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]],
-                'data')
-    _fake_click(fig, ax, [-0.1, 0.9])  # click on y-label
-    fig.canvas.key_press_event('escape')
-    plt.close('all')
+        fig._fake_keypress(key)
+    x = fig.mne.traces[0].get_xdata()[0]
+    y = fig.mne.traces[0].get_ydata()[0]
+    fig._fake_click((x, y), xform='data')
+    fig._click_ch_name(ch_index=0, button=1)
+    fig._fake_keypress('escape')
+    browser_backend._close_all()
+
     epochs = _get_epochs()
     fig = ica.plot_sources(epochs, title='Components')
     for key in keys:
-        fig.canvas.key_press_event(key)
+        fig._fake_keypress(key)
     # Test a click
-    ax = fig.get_axes()[0]
-    line = ax.lines[0]
-    _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], 'data')
-    _fake_click(fig, ax, [-0.1, 0.9])  # click on y-label
-    fig.canvas.key_press_event('escape')
+    x = fig.mne.traces[0].get_xdata()[0]
+    y = fig.mne.traces[0].get_ydata()[0]
+    fig._fake_click((x, y), xform='data')
+    fig._click_ch_name(ch_index=0, button=1)
+    fig._fake_keypress('escape')

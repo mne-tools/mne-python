@@ -7,13 +7,11 @@ assignees: ''
 ---
 
 **READ THIS FIRST:** If you are having trouble getting MNE-Python to work with
-your own data, you should ask for help on one of our other channels:
-
-- [email list](https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis)
-- [Gitter (chat)](https://gitter.im/mne-tools/mne-python)
+your own data, you should ask for help on the
+[MNE Forum](https://mne.discourse.group).
 
 Our GitHub issue tracker is only used to report bugs and suggest improvements
-to MNE-Python. For any other questions, please use the email list or Gitter.
+to MNE-Python. For any other questions, please use the forum.
 Usage questions that are posted as GitHub issues are usually closed without
 being answered. See
 [the FAQ entry on filing bug reports](https://mne.tools/dev/overview/faq.html#i-think-i-found-a-bug-what-do-i-do)

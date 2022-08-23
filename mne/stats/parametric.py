@@ -43,14 +43,6 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
     To use the "hat" adjustment method :footcite:`RidgwayEtAl2012`, a value
     of ``sigma=1e-3`` may be a reasonable choice.
 
-    You can use the conversion from ``scipy.stats.distributions.t.ppf``::
-
-        thresh = -scipy.stats.distributions.t.ppf(p_thresh, n_samples - 1) / 2.
-
-    to convert a desired p-value threshold to 2-tailed t-value threshold.
-    For one-tailed tests, ``thresh`` in the above should be multiplied by 2
-    (and for ``tail=-1``, multiplied by ``-1``).
-
     References
     ----------
     .. footbibliography::
@@ -122,7 +114,7 @@ def f_oneway(*args):
 
     The one-way ANOVA tests the null hypothesis that 2 or more groups have
     the same population mean. The test is applied to samples from two or
-    more groups, possibly with differing sizes [1]_.
+    more groups, possibly with differing sizes :footcite:`Lowry2014`.
 
     This is a modified version of :func:`scipy.stats.f_oneway` that avoids
     computing the associated p-value.
@@ -144,20 +136,18 @@ def f_oneway(*args):
 
     1. The samples are independent
     2. Each sample is from a normally distributed population
-    3. The population standard deviations of the groups are all equal.  This
-       property is known as homocedasticity.
+    3. The population standard deviations of the groups are all equal. This
+       property is known as homoscedasticity.
 
     If these assumptions are not true for a given set of data, it may still be
     possible to use the Kruskal-Wallis H-test (:func:`scipy.stats.kruskal`)
-    although with some loss of power
+    although with some loss of power.
 
-    The algorithm is from Heiman [2]_, pp.394-7.
+    The algorithm is from Heiman :footcite:`Heiman2002`, pp.394-7.
 
     References
     ----------
-    .. [1] Lowry, Richard.  "Concepts and Applications of Inferential
-           Statistics". Chapter 14.
-    .. [2] Heiman, G.W.  Research Methods in Statistics. 2002.
+    .. footbibliography::
     """
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])
@@ -380,9 +370,11 @@ def f_mway_rm(data, factor_levels, effects='all',
     """
     from scipy.stats import f
 
+    out_reshape = (-1,)
     if data.ndim == 2:  # general purpose support, e.g. behavioural data
         data = data[:, :, np.newaxis]
-    elif data.ndim > 3:  # let's allow for some magic here.
+    elif data.ndim > 3:  # let's allow for some magic here
+        out_reshape = data.shape[2:]
         data = data.reshape(
             data.shape[0], data.shape[1], np.prod(data.shape[2:]))
 
@@ -423,7 +415,8 @@ def f_mway_rm(data, factor_levels, effects='all',
         pvalues.append(pvals)
 
     # handle single effect returns
-    return [np.squeeze(np.asarray(vv)) for vv in (fvalues, pvalues)]
+    return [np.squeeze(np.asarray([v.reshape(out_reshape) for v in vv]))
+            for vv in (fvalues, pvalues)]
 
 
 def _parametric_ci(arr, ci=.95):

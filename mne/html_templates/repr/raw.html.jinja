@@ -1,0 +1,12 @@
+{{ info_repr[:-9] | safe }}
+    {% if filenames %}
+    <tr>
+        <th>Filenames</th>
+        <td>{{ filenames|join('<br>') }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+        <th>Duration</th>
+        <td>{{ duration }} (HH:MM:SS)</td>
+    </tr>
+</table>

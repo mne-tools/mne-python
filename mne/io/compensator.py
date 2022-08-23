@@ -1,7 +1,7 @@
 import numpy as np
-from scipy import linalg
 
 from .constants import FIFF
+from ..utils import fill_doc
 
 
 def get_current_comp(info):
@@ -63,6 +63,7 @@ def _make_compensator(info, grade):
                      ' found' % grade)
 
 
+@fill_doc
 def make_compensator(info, from_, to, exclude_comp_chs=False):
     """Return compensation matrix eg. for CTF system.
 
@@ -71,8 +72,7 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
 
     Parameters
     ----------
-    info : dict
-        The measurement info.
+    %(info_not_none)s
     from_ : int
         Compensation in the input data.
     to : int
@@ -94,7 +94,7 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
     #   s_to   = (I - C2)*(I + C1)*s_from = (I + C1 - C2 - C2*C1)*s_from
     if from_ != 0:
         C1 = _make_compensator(info, from_)
-        comp_from_0 = linalg.inv(np.eye(info['nchan']) - C1)
+        comp_from_0 = np.linalg.inv(np.eye(info['nchan']) - C1)
     if to != 0:
         C2 = _make_compensator(info, to)
         comp_0_to = np.eye(info['nchan']) - C2

@@ -12,11 +12,6 @@ anatomically analogous labels in another. :meth:`mne.SourceMorph.apply` offers
 the capability to transform all subject data to the same space and,
 e.g., compute averages of data across subjects.
 
-.. contents:: Page contents
-   :local:
-   :depth: 2
-
-
 .. NOTE: part of this file is included in doc/overview/implementation.rst.
    Changes here are reflected there. If you want to link to this content, link
    to :ref:`ch_morph` to link to that section of the implementation.rst page.
@@ -28,12 +23,13 @@ e.g., compute averages of data across subjects.
 Why morphing?
 ~~~~~~~~~~~~~
 
-.. sidebar:: Morphing examples in MNE-Python
+.. note:: Morphing examples in MNE-Python
+    :class: sidebar
 
-   Examples of morphing in MNE-Python include :ref:`this tutorial
-   <tut-mne-fixed-free>` on surface source estimation or these examples on
-   :ref:`surface <ex-morph-surface>` and :ref:`volumetric <ex-morph-volume>`
-   source estimation.
+    Examples of morphing in MNE-Python include :ref:`this tutorial
+    <tut-mne-fixed-free>` on surface source estimation or these examples on
+    :ref:`surface <ex-morph-surface>` and :ref:`volumetric <ex-morph-volume>`
+    source estimation.
 
 Modern neuroimaging techniques, such as source reconstruction or fMRI analyses,
 make use of advanced mathematical models and hardware to map brain activity
