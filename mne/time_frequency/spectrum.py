@@ -283,8 +283,7 @@ class ToSpectrumMixin():
             mask_params=mask_params, contours=contours, outlines=outlines,
             sphere=sphere, image_interp=image_interp, extrapolate=extrapolate,
             border=border, res=res, size=size, cmap=cmap, vlim=vlim,
-            cbar_fmt=cbar_fmt, axes=axes, show=show, n_jobs=n_jobs,
-            verbose=verbose)
+            cbar_fmt=cbar_fmt, axes=axes, show=show)
         return fig
 
     def _set_legacy_nfft_default(self, tmin, tmax, method, method_kw):
@@ -703,15 +702,17 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # XXX TODO FIXME
         raise NotImplementedError()
 
-    @verbose
+    @fill_doc
     def plot_topomap(self, bands=None, ch_type=None, *, normalize=False,
-                     agg_fun=None, dB=False, sensors=True, show_names=False,
-                     mask=None, mask_params=None, contours=6, outlines='head',
-                     sphere=None, image_interp=_INTERPOLATION_DEFAULT,
-                     extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT,
-                     res=64, size=1, cmap=None, vlim=(None, None),
-                     colorbar=True, cbar_fmt='auto', units=None, axes=None,
-                     show=True, n_jobs=None, verbose=None):
+                     agg_fun=None, dB=False,  # sensors=True, show_names=False,
+                     # mask=None, mask_params=None, contours=6,
+                     outlines='head',
+                     sphere=None,  # image_interp=_INTERPOLATION_DEFAULT,
+                     # extrapolate=_EXTRAPOLATE_DEFAULT,
+                     # border=_BORDER_DEFAULT, res=64, size=1,
+                     cmap=None, vlim=(None, None),  # colorbar=True,
+                     cbar_fmt='auto', units=None, axes=None,
+                     show=True):
         """Plot scalp topography of PSD for chosen frequency bands.
 
         Parameters
@@ -721,34 +722,35 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
         %(dB_plot_topomap)s
-        %(sensors_topomap)s
-        %(show_names_topomap)s
-        %(mask_evoked_topomap)s
-        %(mask_params_topomap)s
-        %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
-        %(image_interp_topomap)s
-        %(extrapolate_topomap)s
-        %(border_topomap)s
-        %(res_topomap)s
-        %(size_topomap)s
         %(cmap_psd_topo)s
         %(vlim_psd_topo_joint)s
-        %(colorbar_topomap)s
         %(cbar_fmt_psd_topo)s
         %(units_topomap)s
         %(axes_plot_topomap)s
         %(show)s
-        %(n_jobs)s
-        %(verbose)s
 
         Returns
         -------
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
         """
-        # TODO: should replace / deprecate old API entrypoints for topomaps
+        # add after dB
+        # %(sensors_topomap)s
+        # %(show_names_topomap)s
+        # %(mask_evoked_topomap)s
+        # %(mask_params_topomap)s
+        # %(contours_topomap)s
+        # add after sphere
+        # %(image_interp_topomap)s
+        # %(extrapolate_topomap)s
+        # %(border_topomap)s
+        # %(res_topomap)s
+        # %(size_topomap)s
+        # add after vlim
+        # %(colorbar_topomap)s
+
         ch_type = _get_ch_type(self, ch_type)
         if units is None:
             units = _handle_default('units', None)
@@ -768,20 +770,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         if merge_channels:
             psds, names = _merge_ch_data(psds, ch_type, names, method='mean')
 
-        # XXX missing from below call (not in its API yet):
-        # sensors
-        # show_names
-        # mask
-        # mask_params
-        # contours
-        # image_interp
-        # extrapolate
-        # border
-        # res
-        # size
-        # colorbar
-        # n_jobs
-        # verbose
         return plot_psds_topomap(
             psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun,
             bands=bands, cmap=cmap, dB=dB, normalize=normalize,
