@@ -319,13 +319,13 @@ def f1_score(stc_true, stc_est, threshold='90%', per_sample=True):
         a percentage and it should end with the percent character.
     %(per_sample_metric)s
 
-    Notes
-    -----
-    .. versionadded:: 1.2
-
     Returns
     -------
     %(stc_metric)s
+
+    Notes
+    -----
+    .. versionadded:: 1.2
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
     stc_true, stc_est = _thresholding(stc_true, stc_est, threshold)
@@ -364,13 +364,13 @@ def precision_score(stc_true, stc_est, threshold='90%', per_sample=True):
         a percentage and it should end with the percent character.
     %(per_sample_metric)s
 
-    Notes
-    -----
-    .. versionadded:: 1.2
-
     Returns
     -------
     %(stc_metric)s
+
+    Notes
+    -----
+    .. versionadded:: 1.2
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
     stc_true, stc_est = _thresholding(stc_true, stc_est, threshold)
