@@ -28,8 +28,6 @@ from mne.simulation.metrics import (region_localization_error,
                                     peak_position_error,
                                     spatial_deviation_error)
 
-print(__doc__)
-
 random_state = 42  # set random state to make this example deterministic
 
 # Import sample data
@@ -86,7 +84,7 @@ source_time_series = np.sin(2. * np.pi * 18. * np.arange(100) * tstep) * 10e-9
 # WHEN?
 # Define when the activity occurs using events.
 n_events = 50
-events = np.zeros((n_events, 3))
+events = np.zeros((n_events, 3), int)
 events[:, 0] = 200 * np.arange(n_events)  # Events sample.
 events[:, 2] = 1  # All events have the sample id.
 
@@ -136,13 +134,13 @@ mne.simulation.add_noise(raw_dipole, cov, iir_filter=[0.2, -0.2, 0.04],
 # Region
 events = mne.find_events(raw_region, initial_event=True)
 tmax = (len(source_time_series) - 1) * tstep
-epochs = mne.Epochs(raw_region, events, 1, tmin=0, tmax=tmax)
+epochs = mne.Epochs(raw_region, events, 1, tmin=0, tmax=tmax, baseline=None)
 evoked_region = epochs.average()
 
 # Dipole
 events = mne.find_events(raw_dipole, initial_event=True)
 tmax = (len(source_time_series) - 1) * tstep
-epochs = mne.Epochs(raw_dipole, events, 1, tmin=0, tmax=tmax)
+epochs = mne.Epochs(raw_dipole, events, 1, tmin=0, tmax=tmax, baseline=None)
 evoked_dipole = epochs.average()
 
 ###############################################################################
@@ -198,7 +196,7 @@ stc_est_dipole = apply_inverse(evoked_dipole, inverse_operator, lambda2,
 # --------------------------------------------------------------------
 #
 
-thresholds = ['10%', '30%', '50%', '70%', '80%', '90%', '95%', '99%']
+thresholds = [10, 30, 50, 70, 80, 90, 95, 99]
 
 ###############################################################################
 # For region
@@ -214,22 +212,22 @@ scorers = {'RLE': partial(region_localization_error, src=src),
 region_results = {}
 for name, scorer in scorers.items():
     region_results[name] = [scorer(stc_true_region, stc_est_region,
-                                   threshold=thx, per_sample=False)
+                                   threshold=f'{thx}%', per_sample=False)
                             for thx in thresholds]
 
 # Plot the results
-f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col')
+f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(
+    2, 2, sharex='col', constrained_layout=True)
 for ax, (title, results) in zip([ax1, ax2, ax3, ax4], region_results.items()):
-    ax.plot(results, '.-')
+    ax.plot(thresholds, results, '.-')
     ax.set(title=title, ylabel='score', xlabel='Threshold',
-           xticks=range(len(thresholds)), xticklabels=thresholds)
+           xticks=thresholds)
 
 f.suptitle('Performance scores per threshold')  # Add Super title
 ax1.ticklabel_format(axis='y', style='sci', scilimits=(0, 1))  # tweak RLE
 
-
 # Cosine score with respect to time
-f, ax1 = plt.subplots()
+f, ax1 = plt.subplots(constrained_layout=True)
 ax1.plot(stc_true_region.times, cosine_score(stc_true_region, stc_est_region))
 ax1.set(title='Cosine score', xlabel='Time', ylabel='Score')
 
@@ -250,13 +248,13 @@ scorers = {
 dipole_results = {}
 for name, scorer in scorers.items():
     dipole_results[name] = [scorer(stc_true_dipole, stc_est_dipole, src=src,
-                                   threshold=thx, per_sample=False)
+                                   threshold=f'{thx}%', per_sample=False)
                             for thx in thresholds]
 
 
 # Plot the results
 for name, results in dipole_results.items():
-    f, ax1 = plt.subplots()
-    ax1.plot(100 * np.array(results), '.-')
+    f, ax1 = plt.subplots(constrained_layout=True)
+    ax1.plot(thresholds, 100 * np.array(results), '.-')
     ax1.set(title=name, ylabel='Error (cm)', xlabel='Threshold',
-            xticklabels=thresholds)
+            xticks=thresholds)
