@@ -80,7 +80,7 @@ class EOGRegression():
     Employs linear regression to remove signals captured by some channels,
     typically EOG, but it also works with ECG from other channels, as described
     in [1]_. You can also chose to fit the regression coefficients on evoked
-    blink/saccade data and then apply them to continous data, as described in
+    blink/saccade data and then apply them to continuous data, as described in
     [2]_.
 
     Returns
@@ -116,7 +116,7 @@ class EOGRegression():
         -------
         self : EOGRegression
             The fitted ``EOGRegression`` object. The regression coefficients
-            are availabe as the ``.coef_`` and ``.intercep_`` attributes.
+            are available as the ``.coef_`` and ``.intercep_`` attributes.
 
         Notes
         -----
