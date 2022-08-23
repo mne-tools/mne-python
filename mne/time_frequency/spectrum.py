@@ -776,7 +776,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             cbar_fmt=cbar_fmt, outlines=outlines, axes=axes, show=show,
             sphere=sphere, vlim=vlim, unit=unit, ch_type=ch_type)
 
-
     @verbose
     def save(self, fname, *, overwrite=False, verbose=None):
         """Save spectrum data to disk (in HDF5 format).
