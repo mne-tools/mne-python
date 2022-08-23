@@ -13,10 +13,9 @@ import numpy as np
 
 from ..annotations import _annotations_starts_stops
 from ..filter import create_filter
-from ..io.pick import pick_types, _pick_data_channels, pick_info, pick_channels
+from ..io.pick import pick_types, pick_channels
 from ..utils import verbose, _validate_type, _check_option
 from ..defaults import _handle_default
-from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
 from .utils import (plt_show, _compute_scalings, _handle_decim, _check_cov,
                     _shorten_path_from_middle, _handle_precompute,
                     _get_channel_plotting_order, _make_event_color_dict)

@@ -50,7 +50,7 @@ from ..utils import (SizeMixin, TimeMixin, _arange_div, _build_data_frame,
                      _stamp_to_dt, _time_mask, _validate_type, check_fname,
                      copy_doc, copy_function_doc_to_method_doc, fill_doc,
                      logger, sizeof_fmt, verbose, warn)
-from ..viz import _RAW_CLIP_DEF, plot_raw, plot_raw_psd_topo
+from ..viz import _RAW_CLIP_DEF, plot_raw
 
 
 @fill_doc
