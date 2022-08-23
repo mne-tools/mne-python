@@ -11,6 +11,7 @@
 from collections import OrderedDict
 from functools import partial
 import glob
+import json
 import os
 import os.path as op
 from pathlib import Path
@@ -22,7 +23,8 @@ import numpy as np
 from .io.constants import FIFF, FWD
 from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
 from .io.write import (start_and_end_file, start_block, write_float, write_int,
-                       write_float_matrix, write_int_matrix, end_block)
+                       write_float_matrix, write_int_matrix, end_block,
+                       write_string)
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.open import fiff_open
@@ -277,9 +279,6 @@ def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
 def _fwd_bem_linear_collocation_solution(bem):
     """Compute the linear collocation potential solution."""
     # first, add surface geometries
-    for surf in bem['surfs']:
-        _check_complete_surface(surf)
-
     logger.info('Computing the linear collocation solution...')
     logger.info('    Matrix coefficients...')
     coeff = _fwd_bem_lin_pot_coeff(bem['surfs'])
@@ -300,18 +299,43 @@ def _fwd_bem_linear_collocation_solution(bem):
                         'IP approach...')
             _fwd_bem_ip_modify_solution(bem['solution'], ip_solution, ip_mult,
                                         nps)
-    bem['bem_method'] = FWD.BEM_LINEAR_COLL
-    logger.info("Solution ready.")
+    bem['bem_method'] = FIFF.FIFFV_BEM_APPROX_LINEAR
+    bem['solver'] = 'mne'
+
+
+def _import_openmeeg(what='compute a BEM solution using OpenMEEG'):
+    try:
+        import openmeeg as om
+    except Exception as exc:
+        raise ImportError(
+            f'The OpenMEEG module must be installed to {what}, but '
+            f'"import openmeeg" resulted in: {exc}') from None
+    return om
+
+
+def _fwd_bem_openmeeg_solution(bem):
+    om = _import_openmeeg()
+    logger.info('Creating BEM solution using OpenMEEG')
+    assert om  # just to make flake happy
+    # TODO: Actually compute the stuff that we need here instead of just
+    # wrapping to Python
+    _fwd_bem_linear_collocation_solution(bem)
+    bem['solver'] = 'openmeeg'
 
 
 @verbose
-def make_bem_solution(surfs, verbose=None):
+def make_bem_solution(surfs, *, method='mne', verbose=None):
     """Create a BEM solution using the linear collocation approach.
 
     Parameters
     ----------
     surfs : list of dict
         The BEM surfaces to use (from :func:`mne.make_bem_model`).
+    method : str
+        Can be 'mne' (default) to use MNE-Python, or 'openmeeg' to use
+        the :ref:`OpenMEEG <openmeeg:index>` package.
+
+        .. versionadded:: 1.2
     %(verbose)s
 
     Returns
@@ -331,7 +355,8 @@ def make_bem_solution(surfs, verbose=None):
     -----
     .. versionadded:: 0.10.0
     """
-    logger.info('Approximation method : Linear collocation\n')
+    _validate_type(method, str, 'method')
+    _check_option('method', method.lower(), ('mne', 'openmeeg'))
     bem = _ensure_bem_surfaces(surfs)
     _add_gamma_multipliers(bem)
     if len(bem['surfs']) == 3:
@@ -341,7 +366,14 @@ def make_bem_solution(surfs, verbose=None):
     else:
         raise RuntimeError('Only 1- or 3-layer BEM computations supported')
     _check_bem_size(bem['surfs'])
-    _fwd_bem_linear_collocation_solution(bem)
+    for surf in bem['surfs']:
+        _check_complete_surface(surf)
+    if method.lower() == 'openmeeg':
+        _fwd_bem_openmeeg_solution(bem)
+    else:
+        assert method.lower() == 'mne'
+        _fwd_bem_linear_collocation_solution(bem)
+    logger.info("Solution ready.")
     logger.info('BEM geometry computations complete.')
     return bem
 
@@ -1374,7 +1406,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
 
 
 @verbose
-def read_bem_solution(fname, verbose=None):
+def read_bem_solution(fname, *, verbose=None):
     """Read the BEM solution from a file.
 
     Parameters
@@ -1401,6 +1433,8 @@ def read_bem_solution(fname, verbose=None):
         read_hdf5, _ = _import_h5io_funcs()
         logger.info('Loading surfaces and solution...')
         bem = read_hdf5(fname)
+        if 'solver' not in bem:
+            bem['solver'] = 'mne'
     else:
         bem = _read_bem_solution_fif(fname)
 
@@ -1421,18 +1455,22 @@ def read_bem_solution(fname, verbose=None):
             raise RuntimeError('BEM Surfaces not found')
         logger.info('Homogeneous model surface loaded.')
 
-    assert set(bem.keys()) == set(('surfs', 'solution', 'bem_method'))
+    assert set(bem.keys()) == set(
+        ('surfs', 'solution', 'bem_method', 'solver'))
     bem = ConductorModel(bem)
     bem['is_sphere'] = False
     # sanity checks and conversions
-    _check_option('BEM approximation method', bem['bem_method'],
-                  (FIFF.FIFFV_BEM_APPROX_LINEAR, FIFF.FIFFV_BEM_APPROX_CONST))
+    _check_option(
+        'BEM approximation method', bem['bem_method'],
+        (FIFF.FIFFV_BEM_APPROX_LINEAR,))  # CONSTANT not supported
     dim = 0
+    solver = bem.get('solver', 'mne')
+    _check_option('BEM solver', solver, ('mne', 'openmeeg'))
     for surf in bem['surfs']:
-        if bem['bem_method'] == FIFF.FIFFV_BEM_APPROX_LINEAR:
-            dim += surf['np']
-        else:  # method == FIFF.FIFFV_BEM_APPROX_CONST
-            dim += surf['ntri']
+        assert bem['bem_method'] == FIFF.FIFFV_BEM_APPROX_LINEAR
+        dim += surf['np']
+        # else:  # method == FIFF.FIFFV_BEM_APPROX_CONST
+        #     dim += surf['ntri']
     dims = bem['solution'].shape
     if len(dims) != 2:
         raise RuntimeError('Expected a two-dimensional solution matrix '
@@ -1443,11 +1481,8 @@ def read_bem_solution(fname, verbose=None):
     bem['nsol'] = bem['solution'].shape[0]
     # Gamma factors and multipliers
     _add_gamma_multipliers(bem)
-    kind = {
-        FIFF.FIFFV_BEM_APPROX_CONST: 'constant collocation',
-        FIFF.FIFFV_BEM_APPROX_LINEAR: 'linear_collocation',
-    }[bem['bem_method']]
-    logger.info('Loaded %s BEM solution from %s', kind, fname)
+    extra = f'made by {solver}' if solver != 'mne' else ''
+    logger.info(f'Loaded linear collocation BEM solution{extra} from {fname}')
     return bem
 
 
@@ -1457,6 +1492,7 @@ def _read_bem_solution_fif(fname):
 
     # convert from surfaces to solution
     logger.info('\nLoading the solution matrix...\n')
+    solver = 'mne'
     f, tree, _ = fiff_open(fname)
     with f as fid:
         # Find the BEM data
@@ -1466,6 +1502,10 @@ def _read_bem_solution_fif(fname):
         bem_node = nodes[0]
 
         # Approximation method
+        tag = find_tag(f, bem_node, FIFF.FIFF_DESCRIPTION)
+        if tag is not None:
+            tag = json.loads(tag.data)
+            solver = tag['solver']
         tag = find_tag(f, bem_node, FIFF.FIFF_BEM_APPROX)
         if tag is None:
             raise RuntimeError('No BEM solution found in %s' % fname)
@@ -1473,7 +1513,7 @@ def _read_bem_solution_fif(fname):
         tag = find_tag(fid, bem_node, FIFF.FIFF_BEM_POT_SOLUTION)
         sol = tag.data
 
-    return dict(solution=sol, bem_method=method, surfs=surfs)
+    return dict(solution=sol, bem_method=method, surfs=surfs, solver=solver)
 
 
 def _add_gamma_multipliers(bem):
@@ -1545,9 +1585,8 @@ def _bem_find_surface(bem, id_):
 # ############################################################################
 # Write
 
-
 @verbose
-def write_bem_surfaces(fname, surfs, overwrite=False, verbose=None):
+def write_bem_surfaces(fname, surfs, overwrite=False, *, verbose=None):
     """Write BEM surfaces to a fiff file.
 
     Parameters
@@ -1617,7 +1656,7 @@ def _write_bem_surfaces_block(fid, surfs):
 
 
 @verbose
-def write_bem_solution(fname, bem, overwrite=False, verbose=None):
+def write_bem_solution(fname, bem, overwrite=False, *, verbose=None):
     """Write a BEM model with solution.
 
     Parameters
@@ -1649,12 +1688,17 @@ def _write_bem_solution_fif(fname, bem):
         # Coordinate frame (mainly for backward compatibility)
         write_int(fid, FIFF.FIFF_BEM_COORD_FRAME,
                   bem['surfs'][0]['coord_frame'])
+        solver = bem.get('solver', 'mne')
+        if solver != 'mne':
+            write_string(
+                fid, FIFF.FIFF_DESCRIPTION, json.dumps(dict(solver=solver)))
         # Surfaces
         _write_bem_surfaces_block(fid, bem['surfs'])
         # The potential solution
         if 'solution' in bem:
-            if bem['bem_method'] != FWD.BEM_LINEAR_COLL:
-                raise RuntimeError('Only linear collocation supported')
+            _check_option(
+                'bem_method', bem['bem_method'],
+                (FIFF.FIFFV_BEM_APPROX_LINEAR,))
             write_int(fid, FIFF.FIFF_BEM_APPROX, FIFF.FIFFV_BEM_APPROX_LINEAR)
             write_float_matrix(fid, FIFF.FIFF_BEM_POT_SOLUTION,
                                bem['solution'])

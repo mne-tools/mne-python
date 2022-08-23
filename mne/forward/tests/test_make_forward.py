@@ -7,6 +7,7 @@ import pytest
 import numpy as np
 from numpy.testing import assert_equal, assert_allclose, assert_array_equal
 
+from mne.bem import read_bem_surfaces, read_bem_solution, make_bem_solution
 from mne.channels import make_standard_montage
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_kit, read_raw_bti, read_info
@@ -223,13 +224,22 @@ def test_make_forward_solution_kit(tmp_path):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_make_forward_solution():
-    """Test making M-EEG forward solution from python."""
+@pytest.mark.parametrize('method', ('mne', 'openmeeg'))
+def test_make_forward_solution_basic(method):
+    """Test making M-EEG forward solution from python and OpenMEEG."""
+    if method == 'openmeeg':
+        pytest.importorskip('openmeeg')
+        bem_surfaces = read_bem_surfaces(fname_bem)
+        bem = make_bem_solution(bem_surfaces, method=method)
+    else:
+        bem = Path(fname_bem)
+        bem = read_bem_solution(bem)
+    assert bem['solver'] == method
     with catch_logging() as log:
         # make sure everything can be path-like (gh #10872)
         fwd_py = make_forward_solution(
             Path(fname_raw), Path(fname_trans), Path(fname_src),
-            Path(fname_bem), mindist=5., verbose=True)
+            bem, mindist=5., verbose=True)
     log = log.getvalue()
     assert 'Total 258/258 points inside the surface' in log
     assert (isinstance(fwd_py, Forward))

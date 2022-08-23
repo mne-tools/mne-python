@@ -160,7 +160,8 @@ intersphinx_mapping = {
              'https://dipy.org/documentation/latest/objects.inv/'),
     'pooch': ('https://www.fatiando.org/pooch/latest/', None),
     'pybv': ('https://pybv.readthedocs.io/en/latest/', None),
-    'pyqtgraph': ('https://pyqtgraph.readthedocs.io/en/latest/', None)
+    'pyqtgraph': ('https://pyqtgraph.readthedocs.io/en/latest/', None),
+    'openmeeg': ('https://openmeeg.github.io', None),
 }
 
 

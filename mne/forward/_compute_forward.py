@@ -21,12 +21,12 @@ from copy import deepcopy
 
 from ..fixes import jit, bincount
 from ..io.compensator import get_current_comp, make_compensator
-from ..io.constants import FIFF, FWD
+from ..io.constants import FIFF
 from ..io.pick import pick_types
 from ..parallel import parallel_func
 from ..surface import _project_onto_surface, _jit_cross
 from ..transforms import apply_trans
-from ..utils import logger, verbose, _pl, warn, fill_doc
+from ..utils import logger, verbose, _pl, warn, fill_doc, _check_option
 
 
 # #############################################################################
@@ -746,7 +746,7 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
     """
     bem_rr = mults = mri_Q = head_mri_t = None
     if not bem['is_sphere']:
-        if bem['bem_method'] != FWD.BEM_LINEAR_COLL:
+        if bem['bem_method'] != FIFF.FIFFV_BEM_APPROX_LINEAR:
             raise RuntimeError('only linear collocation supported')
         # Store (and apply soon) μ_0/(4π) factor before source computations
         mults = np.repeat(bem['source_mult'] / (4.0 * np.pi),
@@ -918,6 +918,17 @@ def _compute_forwards(rr, bem, coils_list, ccoils_list, infos, coil_types,
     # when e.g. dipole fitting
     fwd_data = dict(coils_list=coils_list, ccoils_list=ccoils_list,
                     infos=infos, coil_types=coil_types)
-    _prep_field_computation(rr, bem, fwd_data, n_jobs)
-    Bs = _compute_forwards_meeg(rr, fwd_data, n_jobs)
+    solver = bem.get('solver', 'mne')
+    _check_option('solver', solver, ('mne', 'openmeeg'))
+    if bem['is_sphere'] or solver == 'mne':
+        _prep_field_computation(rr, bem, fwd_data, n_jobs)
+        Bs = _compute_forwards_meeg(rr, fwd_data, n_jobs)
+    else:
+        # TODO: Do something other than this
+        _prep_field_computation(rr, bem, fwd_data, n_jobs)
+        Bs = _compute_forwards_meeg(rr, fwd_data, n_jobs)
+    n_sensors_want = sum(len(coils) for coils in coils_list)
+    n_sensors = sum(B.shape[1] for B in Bs)
+    n_sources = Bs[0].shape[0]
+    assert (n_sources, n_sensors) == (len(rr) * 3, n_sensors_want)
     return Bs

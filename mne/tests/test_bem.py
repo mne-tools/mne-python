@@ -63,9 +63,10 @@ def _compare_bem_solutions(sol_a, sol_b):
     # compare the actual solutions
     names = ['bem_method', 'field_mult', 'gamma', 'is_sphere',
              'nsol', 'sigma', 'source_mult', 'solution']
-    assert_equal(set(sol_a.keys()), set(sol_b.keys()))
-    assert_equal(set(names + ['surfs']), set(sol_b.keys()))
-    for key in names:
+    assert set(sol_a.keys()) == set(sol_b.keys())
+    assert set(names + ['solver', 'surfs']) == set(sol_b.keys())
+    assert sol_a['solver'] == sol_b['solver']
+    for key in names[:-1]:
         assert_allclose(sol_a[key], sol_b[key], rtol=1e-3, atol=1e-5,
                         err_msg='Mismatch: %s' % key)
 
@@ -201,28 +202,36 @@ def test_bem_model_topology(tmp_path):
     [(0.3, 0.006, 0.3), fname_bem_sol_3],
 ])
 def test_bem_solution(tmp_path, cond, fname):
-    """Test making a BEM solution from Python with I/O."""
+    """Test making a BEM solution from Python and OpenMEEG with I/O."""
     # test degenerate conditions
     surf = read_bem_surfaces(fname_bem_1)[0]
-    pytest.raises(RuntimeError, _ico_downsample, surf, 10)  # bad dec grade
+    with pytest.raises(RuntimeError, match='2 or less'):
+        _ico_downsample(surf, 10)
     s_bad = dict(tris=surf['tris'][1:], ntri=surf['ntri'] - 1, rr=surf['rr'])
-    pytest.raises(RuntimeError, _ico_downsample, s_bad, 1)  # not isomorphic
+    with pytest.raises(RuntimeError, match='Cannot decimate.*isomorphic'):
+        _ico_downsample(s_bad, 1)
     s_bad = dict(tris=surf['tris'].copy(), ntri=surf['ntri'],
                  rr=surf['rr'])  # bad triangulation
     s_bad['tris'][0] = [0, 0, 0]
-    pytest.raises(RuntimeError, _ico_downsample, s_bad, 1)
+    with pytest.raises(RuntimeError, match='ordering is wrong'):
+        _ico_downsample(s_bad, 1)
     s_bad['id'] = 1
-    pytest.raises(RuntimeError, _assert_complete_surface, s_bad)
+    with pytest.raises(RuntimeError, match='is not complete'):
+        _assert_complete_surface(s_bad)
     s_bad = dict(tris=surf['tris'], ntri=surf['ntri'], rr=surf['rr'].copy())
     s_bad['rr'][0] = 0.
-    pytest.raises(RuntimeError, _get_ico_map, surf, s_bad)
+    with pytest.raises(RuntimeError, match='No matching vertex'):
+        _get_ico_map(surf, s_bad)
 
     surfs = read_bem_surfaces(fname_bem_3)
-    pytest.raises(RuntimeError, _assert_inside, surfs[0], surfs[1])  # outside
+    with pytest.raises(RuntimeError, match='is not completely inside'):
+        _assert_inside(surfs[0], surfs[1])  # outside
     surfs[0]['id'] = 100  # bad surfs
-    pytest.raises(RuntimeError, _order_surfaces, surfs)
+    with pytest.raises(RuntimeError, match='bad surface id'):
+        _order_surfaces(surfs)
     surfs[1]['rr'] /= 1000.
-    pytest.raises(RuntimeError, _check_surface_size, surfs[1])
+    with pytest.raises(RuntimeError, match='seem too small'):
+        _check_surface_size(surfs[1])
 
     # actually test functionality
     fname_temp = op.join(str(tmp_path), 'temp-bem-sol.fif')
@@ -234,12 +243,28 @@ def test_bem_solution(tmp_path, cond, fname):
         else:
             model = fname_bem_1 if len(cond) == 1 else fname_bem_3
     solution = make_bem_solution(model, verbose=True)
+    assert solution['solver'] == 'mne'
     solution_c = read_bem_solution(fname)
+    assert solution_c['solver'] == 'mne'
     _compare_bem_solutions(solution, solution_c)
     write_bem_solution(fname_temp, solution)
     solution_read = read_bem_solution(fname_temp)
+    assert solution['solver'] == solution_c['solver'] == 'mne'
+    assert solution_read['solver'] == 'mne'
     _compare_bem_solutions(solution, solution_c)
     _compare_bem_solutions(solution_read, solution_c)
+    # OpenMEEG
+    pytest.importorskip(
+        'openmeeg', '2.5', reason='OpenMEEG required to fully test BEM '
+        'solution computation')
+    with catch_logging() as log:
+        solution = make_bem_solution(model, method='openmeeg', verbose=True)
+    log = log.getvalue()
+    assert 'OpenMEEG' in log
+    write_bem_solution(fname_temp, solution, overwrite=True)
+    solution_read = read_bem_solution(fname_temp)
+    assert solution['solver'] == solution_read['solver'] == 'openmeeg'
+    _compare_bem_solutions(solution_read, solution)
 
 
 def test_fit_sphere_to_headshape():
