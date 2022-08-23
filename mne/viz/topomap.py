@@ -2460,7 +2460,7 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, vmin, vmax,
     data = evoked.data[picks, :]
     data *= _handle_default('scalings')[ch_type]
 
-    norm = min(data) >= 0
+    norm = np.min(data) >= 0
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
 
     fig = plt.figure(figsize=(6, 5))
