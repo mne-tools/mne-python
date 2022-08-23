@@ -922,14 +922,9 @@ def reset_warnings(gallery_conf, fname):
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
-    # matplotlib 3.6
-    # gh-11063, gh-11062
-    warnings.filterwarnings(
-        'ignore', message='.*event function was deprecated in Matplotlib.*')
+    # matplotlib 3.6 in nilearn and pyvista
     warnings.filterwarnings(
         'ignore', message='.*cmap function will be deprecated.*')
-    warnings.filterwarnings(
-        'ignore', message='.*The join function was deprecated in Matplotlib.*')
     # xarray/netcdf4
     warnings.filterwarnings(
         'ignore', message=r'numpy\.ndarray size changed, may indicate.*',
