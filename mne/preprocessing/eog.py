@@ -6,11 +6,11 @@
 
 import numpy as np
 
-from .. import pick_types, pick_channels
-from ..epochs import Epochs
-from ..filter import filter_data
-from ..utils import logger, verbose, _pl, _validate_type
 from ._peak_finder import peak_finder
+from .. import pick_types, pick_channels
+from ..utils import logger, verbose, _pl, _validate_type
+from ..filter import filter_data
+from ..epochs import Epochs
 
 
 @verbose
