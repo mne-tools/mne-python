@@ -222,9 +222,11 @@ def test_make_forward_solution_kit(tmp_path):
     repr(fwd_py)
 
 
-@pytest.mark.slowtest
 @testing.requires_testing_data
-@pytest.mark.parametrize('method', ('mne', 'openmeeg'))
+@pytest.mark.parametrize('method', (
+    pytest.param('mne', marks=pytest.mark.slowtest),
+    'openmeeg',
+))
 def test_make_forward_solution_basic(method):
     """Test making M-EEG forward solution from python and OpenMEEG."""
     if method == 'openmeeg':
