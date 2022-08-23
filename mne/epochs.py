@@ -1121,22 +1121,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            use_opengl=use_opengl, theme=theme,
                            overview_mode=overview_mode)
 
-    @copy_function_doc_to_method_doc(plot_epochs_psd_topomap)
-    def plot_psd_topomap(self, bands=None, tmin=None,
-                         tmax=None, proj=False, bandwidth=None, adaptive=False,
-                         low_bias=True, normalization='length', ch_type=None,
-                         cmap=None, agg_fun=None, dB=True,
-                         n_jobs=None, normalize=False, cbar_fmt='auto',
-                         outlines='head', axes=None, show=True,
-                         sphere=None, vlim=(None, None), verbose=None):
-        return plot_epochs_psd_topomap(
-            self, bands=bands, tmin=tmin, tmax=tmax,
-            proj=proj, bandwidth=bandwidth, adaptive=adaptive,
-            low_bias=low_bias, normalization=normalization, ch_type=ch_type,
-            cmap=cmap, agg_fun=agg_fun, dB=dB, n_jobs=n_jobs,
-            normalize=normalize, cbar_fmt=cbar_fmt, outlines=outlines,
-            axes=axes, show=show, sphere=sphere, vlim=vlim, verbose=verbose)
-
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
     def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,
                         colorbar=None, order=None, cmap='RdBu_r',

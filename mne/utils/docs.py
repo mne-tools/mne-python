@@ -265,14 +265,14 @@ docdict['axes_cov_plot_topomap'] = _axes.format('axes', 'be length 1')
 docdict['axes_evoked_plot_topomap'] = _axes.format(
     'axes',
     'match the number of ``times`` provided (unless ``times`` is ``None``)')
+docdict['axes_plot_topomap'] = _axes.format(
+    'axes', 'match the length of ``bands``')
 docdict['axes_spectrum_plot'] = _axes.format(
     'axes', _ch_types_present.format(':class:`~mne.time_frequency.Spectrum`'))
 docdict['axes_spectrum_plot_topo'] = _axes.format(
     'axes',
     'be length 1 (for efficiency, subplots for each channel are simulated '
     'within a single :class:`~matplotlib.axes.Axes` object)')
-docdict['axes_plot_topomap'] = _axes.format(
-    'axes', 'match the length of ``bands``')
 
 docdict['azimuth'] = """
 azimuth : float
@@ -742,12 +742,12 @@ dB : bool
     ``estimate='auto'``. Plot ASD, in units (amplitude/sqrt(Hz) (dB)), if
     ``dB=True`` and ``estimate='amplitude'``.
 """
-docdict['dB_spectrum_plot'] = _dB.format('', '')
-docdict['dB_spectrum_plot_topo'] = _dB.format(
-    '', ' Ignored if ``normalize=True``.')
 docdict['dB_plot_topomap'] = _dB.format(
     ' following the application of ``agg_fun``',
     ' Ignored if ``normalize=True``.')
+docdict['dB_spectrum_plot'] = _dB.format('', '')
+docdict['dB_spectrum_plot_topo'] = _dB.format(
+    '', ' Ignored if ``normalize=True``.')
 
 docdict['daysback_anonymize_info'] = """
 daysback : int | None
