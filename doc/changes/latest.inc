@@ -24,6 +24,7 @@ Current (1.2.dev0)
 Enhancements
 ~~~~~~~~~~~~
 - EEGLAB files (saved as MAT versions less than v7.3) can now be imported with :func:`mne.io.read_raw_eeglab` without the optional dependency ``pymatreader`` (:gh:`11006` by `Clemens Brunner`_)
+- Add eight source estimate comparison metrics to new submodule :mod:`mne.simulation.metrics` (:gh:`6233` by `Kostiantyn Maksymenko`_ and `Alex Gramfort`_)
 - Add :func:`mne.time_frequency.csd_tfr` to compute cross-spectral density from :class:`mne.time_frequency.EpochsTFR` (:gh:`10986` by `Alex Rockhill`_)
 - Improve ``repr()`` for :class:`mne.minimum_norm.InverseOperator` when loose orientation is used (:gh:`11048` by `Eric Larson`_)
 - Add support for vector source estimates in :func:`mne.minimum_norm.get_point_spread` and :func:`mne.minimum_norm.get_cross_talk` (:gh:`8639` by `Olaf Hauk`_, `Marijn van Vliet`_, `Alex Gramfort`_, and `Eric Larson`_)
