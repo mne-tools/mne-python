@@ -386,16 +386,16 @@ def test_plot_psd_epochs_ctf(raw_ctf):
     """Test plotting CTF epochs psd (+topomap)."""
     evts = make_fixed_length_events(raw_ctf)
     epochs = Epochs(raw_ctf, evts, preload=True)
-    pytest.raises(RuntimeError, epochs.plot_psd_topomap,
-                  bands=[(0, 0.01, 'foo')])  # no freqs in range
-    epochs.plot_psd_topomap()
-
     # EEG060 is flat in this dataset
     for dB in [True, False]:
         with pytest.warns(UserWarning, match='for channel EEG060'):
             epochs.plot_psd(dB=dB)
     epochs.drop_channels(['EEG060'])
     epochs.plot_psd(spatial_colors=False, average=False)
+    with pytest.raises(RuntimeError, match='No frequencies in band'):
+        epochs.plot_psd_topomap(bands=[(0, 0.01, 'foo')])
+    epochs.plot_psd_topomap()
+
 
 
 def test_plot_epochs_selection_butterfly(raw, browser_backend):
