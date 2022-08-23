@@ -8,7 +8,7 @@
 from functools import partial
 
 import numpy as np
-from mne.utils import _check_option, fill_doc
+from mne.utils import _check_option, fill_doc, _validate_type
 
 
 def _check_stc(stc1, stc2):
@@ -20,7 +20,7 @@ def _check_stc(stc1, stc2):
 
 
 def source_estimate_quantification(stc1, stc2, metric='rms'):
-    """Calculate matrix similarities.
+    """Calculate STC similarities across all sources and times.
 
     Parameters
     ----------
@@ -55,11 +55,9 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
     # Calculate root mean square difference between two matrices
     if metric == 'rms':
         score = np.sqrt(np.mean((data1 - data2) ** 2))
-
     # Calculate correlation coefficient between matrix elements
     elif metric == 'cosine':
-        score = 1. - (np.dot(data1.flatten(), data2.flatten()) /
-                      (np.linalg.norm(data1) * np.linalg.norm(data2)))
+        score = 1. - _cosine(data1, data2)
     return score
 
 
@@ -117,13 +115,14 @@ def _apply(func, stc_true, stc_est, per_sample):
 
 
 def _thresholding(stc_true, stc_est, threshold):
-    if isinstance(threshold, str):
-        t = _check_threshold(threshold)
+    relative = isinstance(threshold, str)
+    threshold = _check_threshold(threshold)
+    if relative:
         if stc_true is not None:
             stc_true._data[np.abs(stc_true._data) <=
-                           t * np.max(np.abs(stc_true._data))] = 0.
+                           threshold * np.max(np.abs(stc_true._data))] = 0.
         stc_est._data[np.abs(stc_est._data) <=
-                      t * np.max(np.abs(stc_est._data))] = 0.
+                      threshold * np.max(np.abs(stc_est._data))] = 0.
     else:
         if stc_true is not None:
             stc_true._data[np.abs(stc_true._data) <= threshold] = 0.
@@ -132,12 +131,12 @@ def _thresholding(stc_true, stc_est, threshold):
 
 
 def _cosine(x, y):
-    p = np.reshape(x, (-1, 1))
-    q = np.reshape(y, (-1, 1))
+    p = x.ravel()
+    q = y.ravel()
     p_norm = np.linalg.norm(p)
     q_norm = np.linalg.norm(q)
     if p_norm * q_norm:
-        return (np.dot(p.T, q) / (p_norm * q_norm))[0][0]
+        return (p.T @ q) / (p_norm * q_norm)
     elif p_norm == q_norm:
         return 1
     else:
@@ -163,28 +162,35 @@ def cosine_score(stc_true, stc_est, per_sample=True):
     .. versionadded:: 1.2
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
-    func = partial(_cosine)
-    metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
+    metric = _apply(_cosine, stc_true, stc_est, per_sample=per_sample)
     return metric
 
 
 def _check_threshold(threshold):
     """Accept a float or a string that ends with %."""
+    _validate_type(threshold, ('numeric', str), 'threshold')
     if isinstance(threshold, str):
-        if threshold.endswith("%"):
-            return float(threshold[:-1]) / 100.0
-        else:
+        if not threshold.endswith("%"):
             raise ValueError('Threshold if a string must end with '
                              '"%%". Got %s.' % threshold)
-    else:
-        return threshold
+        threshold = float(threshold[:-1]) / 100.0
+    threshold = float(threshold)
+    if not 0 <= threshold <= 1:
+        raise ValueError(
+            'Threshold proportion must be between 0 and 1 (inclusive), but '
+            f'got {threshold}')
+    return threshold
+
+
+def _abs_col_sum(x):
+    return np.abs(x).sum(axis=1)
 
 
 def _dle(p, q, src, stc):
     """Aux function to compute dipole localization error."""
-    from sklearn.metrics import pairwise_distances
-    p = np.sum(np.abs(p), axis=1)
-    q = np.sum(np.abs(q), axis=1)
+    from scipy.spatial.distance import cdist
+    p = _abs_col_sum(p)
+    q = _abs_col_sum(q)
     idx1 = np.nonzero(p)[0]
     idx2 = np.nonzero(q)[0]
     points = []
@@ -192,7 +198,7 @@ def _dle(p, q, src, stc):
         points.append(src[i]['rr'][stc.vertices[i]])
     points = np.concatenate(points, axis=0)
     if len(idx1) and len(idx2):
-        D = pairwise_distances(points[idx1], points[idx2])
+        D = cdist(points[idx1], points[idx2])
         D_min_1 = np.min(D, axis=0)
         D_min_2 = np.min(D, axis=1)
         return (np.mean(D_min_1) + np.mean(D_min_2)) / 2.
@@ -284,16 +290,13 @@ def roc_auc_score(stc_true, stc_est, per_sample=True):
     .. versionadded:: 1.2
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
-    func = partial(_roc_auc_score)
-    metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
+    metric = _apply(_roc_auc_score, stc_true, stc_est, per_sample=per_sample)
     return metric
 
 
 def _f1_score(p, q):
     from sklearn.metrics import f1_score
-    p = np.sum(np.abs(p), axis=1)
-    q = np.sum(np.abs(q), axis=1)
-    return f1_score(p > 0, q > 0)
+    return f1_score(_abs_col_sum(p) > 0, _abs_col_sum(q) > 0)
 
 
 @fill_doc
@@ -330,16 +333,13 @@ def f1_score(stc_true, stc_est, threshold='90%', per_sample=True):
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
     stc_true, stc_est = _thresholding(stc_true, stc_est, threshold)
-    func = partial(_f1_score)
-    metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
+    metric = _apply(_f1_score, stc_true, stc_est, per_sample=per_sample)
     return metric
 
 
 def _precision_score(p, q):
     from sklearn.metrics import precision_score
-    p = np.sum(np.abs(p), axis=1)
-    q = np.sum(np.abs(q), axis=1)
-    return precision_score(p > 0, q > 0)
+    return precision_score(_abs_col_sum(p) > 0, _abs_col_sum(q) > 0)
 
 
 @fill_doc
@@ -375,16 +375,13 @@ def precision_score(stc_true, stc_est, threshold='90%', per_sample=True):
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
     stc_true, stc_est = _thresholding(stc_true, stc_est, threshold)
-    func = partial(_precision_score)
-    metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
+    metric = _apply(_precision_score, stc_true, stc_est, per_sample=per_sample)
     return metric
 
 
 def _recall_score(p, q):
     from sklearn.metrics import recall_score
-    p = np.sum(np.abs(p), axis=1)
-    q = np.sum(np.abs(q), axis=1)
-    return recall_score(p > 0, q > 0)
+    return recall_score(_abs_col_sum(p) > 0, _abs_col_sum(q) > 0)
 
 
 @fill_doc
@@ -419,8 +416,7 @@ def recall_score(stc_true, stc_est, threshold='90%', per_sample=True):
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
     stc_true, stc_est = _thresholding(stc_true, stc_est, threshold)
-    func = partial(_recall_score)
-    metric = _apply(func, stc_true, stc_est, per_sample=per_sample)
+    metric = _apply(_recall_score, stc_true, stc_est, per_sample=per_sample)
     return metric
 
 
@@ -446,7 +442,7 @@ def _prepare_ppe_sd(stc_true, stc_est, src, threshold='50%'):
 
 
 def _peak_position_error(p, q, r_est, r_true):
-    q = np.sum(np.abs(q), axis=1)
+    q = _abs_col_sum(q)
     if np.sum(q):
         q /= np.sum(q)
         r_est_mean = np.dot(q, r_est)
@@ -509,7 +505,7 @@ def peak_position_error(stc_true, stc_est, src, threshold='50%',
 
 
 def _spatial_deviation(p, q, r_est, r_true):
-    q = np.sum(np.abs(q), axis=1)
+    q = _abs_col_sum(q)
     if np.sum(q):
         q /= np.sum(q)
         r_true_tile = np.tile(r_true, (r_est.shape[0], 1))
