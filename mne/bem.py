@@ -2217,6 +2217,9 @@ def distance_to_bem(pos, bem, trans=None, verbose=None):
     bem : instance of ConductorModel
         Conductor model.
     %(trans)s If None (default), assumes bem is in head coordinates.
+
+        .. versionchanged:: 0.19
+            Support for 'fsaverage' argument.
     %(verbose)s
 
     Returns

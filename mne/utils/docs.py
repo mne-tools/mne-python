@@ -3433,9 +3433,6 @@ docdict['trans'] = f"""
 trans : path-like | dict | instance of Transform | None
     {_trans_base}
     If trans is None, an identity matrix is assumed.
-
-    .. versionchanged:: 0.19
-       Support for 'fsaverage' argument.
 """
 
 docdict['trans_not_none'] = """
