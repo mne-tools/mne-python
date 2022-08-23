@@ -292,6 +292,8 @@
 
 .. _Mathurin Massias: https://mathurinm.github.io/
 
+.. _Mats van Es: https://github.com/matsvanes
+
 .. _Matt Boggess: https://github.com/mattboggess
 
 .. _Matt Courtemanche: https://github.com/mjcourte
