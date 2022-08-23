@@ -607,6 +607,12 @@ def read_csd(fname):
         fname += '.h5'
 
     csd_dict = read_hdf5(fname, title='conpy')
+
+    if csd_dict["projs"] is not None:
+        # Avoid circular import
+        from ..proj import Projection
+        csd_dict["projs"] = [Projection(**proj) for proj in csd_dict["projs"]]
+
     return CrossSpectralDensity(**csd_dict)
 
 

@@ -68,6 +68,8 @@
 
 .. _Cathy Nangini: https://github.com/KatiRG
 
+.. _Chetan Gohil: https://github.com/cgohil8
+
 .. _Chris Bailey: https://github.com/cjayb
 
 .. _Chris Holdgraf: https://chrisholdgraf.com
