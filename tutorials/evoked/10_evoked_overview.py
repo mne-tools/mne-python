@@ -13,7 +13,7 @@ including how to load, query, subset, export, and plot data from an
 object from (possibly simulated) data in a :class:`NumPy array
 <numpy.ndarray>`, see :ref:`tut-creating-data-structures`.
 
-As usual, we'll start by importing the modules we need:
+As usual, we start by importing the modules we need:
 """
 
 # %%
