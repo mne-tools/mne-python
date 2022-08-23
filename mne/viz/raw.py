@@ -391,10 +391,9 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
-    %(reject_by_annotation_raw)s
-    %(picks_plot_psd_good_data)s
-    ax : instance of Axes | None
-        Axes to plot into. If None, axes will be created.
+    %(reject_by_annotation_psd)s
+    %(picks_good_data_noref)s
+    %(ax_plot_psd)s
     %(color_plot_psd)s
     %(xscale_plot_psd)s
     %(area_mode_plot_psd)s

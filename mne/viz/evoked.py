@@ -32,7 +32,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _setup_plot_projector, _prepare_joint_axes, _check_option,
                     _set_title_multiple_electrodes, _check_time_unit,
                     _plot_masked_image, _trim_ticks, _set_window_title,
-                    _prop_kw)
+                    _prop_kw, _get_cmap)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
                      _check_if_nan, _check_ch_locs, fill_doc, _is_numeric,
                      _to_rgb)
@@ -1668,7 +1668,7 @@ def _validate_colors_pce(colors, cmap, conditions, tags):
                         'None or a (list or dict) of (ints or floats); got {}.'
                         .format(', '.join(color_vals)))
     # convert provided ints to sequential, rank-ordered ints
-    all_int = all([isinstance(_color, Integral) for _color in color_vals])
+    all_int = all(isinstance(_color, Integral) for _color in color_vals)
     if all_int:
         colors = deepcopy(colors)
         ranks = {val: ix for ix, val in enumerate(sorted(set(color_vals)))}
@@ -1688,17 +1688,14 @@ def _validate_colors_pce(colors, cmap, conditions, tags):
 
 def _validate_cmap_pce(cmap, colors, color_vals):
     """Check and assign colormap for plot_compare_evokeds."""
-    from matplotlib.cm import get_cmap
     from matplotlib.colors import Colormap
-    all_int = all([isinstance(_color, Integral) for _color in color_vals])
-    lut = len(color_vals) if all_int else None
+    all_int = all(isinstance(_color, Integral) for _color in color_vals)
     colorbar_title = ''
     if isinstance(cmap, (list, tuple, np.ndarray)) and len(cmap) == 2:
         colorbar_title, cmap = cmap
-    if isinstance(cmap, str):
-        cmap = get_cmap(cmap, lut=lut)
-    elif isinstance(cmap, Colormap) and all_int:
-        cmap = cmap._resample(lut)
+    if isinstance(cmap, (str, Colormap)):
+        lut = len(color_vals) if all_int else None
+        cmap = _get_cmap(cmap, lut)
     return cmap, colorbar_title
 
 
@@ -2101,9 +2098,9 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         and confidence bands. If not ``None``, ints or floats in the ``colors``
         parameter are mapped to steps or percentiles (respectively) along the
         colormap. If ``cmap`` is a :class:`str`, it will be passed to
-        :func:`matplotlib.cm.get_cmap`; if ``cmap`` is a tuple, its first
+        ``matplotlib.colormaps``; if ``cmap`` is a tuple, its first
         element will be used as a string to label the colorbar, and its
-        second element will be passed to :func:`matplotlib.cm.get_cmap` (unless
+        second element will be passed to ``matplotlib.colormaps`` (unless
         it is already an instance of :class:`~matplotlib.colors.Colormap`).
 
         .. versionchanged:: 0.19
