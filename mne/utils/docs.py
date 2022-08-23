@@ -726,7 +726,7 @@ cross_talk : str | None
 _dB = """\
 dB : bool
     Whether to plot on a decibel-like scale. If ``True``, plots
-    10 × log₁₀(spectral magnitude){}.{}
+    10 × log₁₀(spectral power){}.{}
 """
 
 docdict['dB_plot_psd'] = """\
