@@ -122,7 +122,7 @@ class EOGRegression():
         Notes
         -----
         If your data contains EEG channels, make sure to apply the desired
-        reference (see :func:`set_eeg_reference`) before performing EOG
+        reference (see :func:`mne.set_eeg_reference`) before performing EOG
         regression.
         """
         self._check_inst(inst)
