@@ -83,8 +83,8 @@ class EOGRegression():
     blink/saccade data and then apply them to continuous data, as described in
     [2]_.
 
-    Returns
-    -------
+    Parameters
+    ----------
     %(picks_good_data)s
     picks_artifact : array-like | str
         Channel picks to use as predictor/explanatory variables capturing
@@ -192,6 +192,7 @@ class EOGRegression():
 
         return inst
 
+    @fill_doc
     def plot(self, ch_type=None, vmin=None, vmax=None, cmap=None, sensors=True,
              colorbar=True, res=64, size=1, cbar_fmt='%3.1f', show=True,
              show_names=False, title='Regression coefficients', mask=None,
@@ -219,7 +220,7 @@ class EOGRegression():
         %(outlines_topomap)s
         %(contours_topomap)s
         %(image_interp_topomap)s
-        %(axes_topomap)s
+        %(axes_evoked_plot_topomap)s
         %(extrapolate_topomap)s
         %(sphere_topomap_auto)s
         %(border_topomap)s
