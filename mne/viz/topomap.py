@@ -1941,16 +1941,19 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
 
 
 @verbose
-def plot_epochs_psd_topomap(
-    epochs, bands=None, tmin=None, tmax=None, proj=False, *,
-    bandwidth=None, adaptive=False, low_bias=True, normalization='length',
-    ch_type=None, normalize=False, agg_fun=None, dB=False,
-    # sensors=True, show_names=False, mask=None, mask_params=None, contours=6,
-    outlines='head', sphere=None,  # image_interp=_INTERPOLATION_DEFAULT,
-    # extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64, size=1,
-    cmap=None, vlim=(None, None),  # colorbar=True,
-    cbar_fmt='auto',  # units=None,
-    axes=None, show=True, n_jobs=None, verbose=None):
+def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
+                            proj=False, *, bandwidth=None, adaptive=False,
+                            low_bias=True, normalization='length',
+                            ch_type=None, normalize=False, agg_fun=None,
+                            dB=False, # sensors=True, show_names=False,
+                            # mask=None, mask_params=None, contours=6,
+                            outlines='head', sphere=None,
+                             # image_interp=_INTERPOLATION_DEFAULT,
+                             # extrapolate=_EXTRAPOLATE_DEFAULT,
+                             # border=_BORDER_DEFAULT, res=64, size=1,
+                             cmap=None, vlim=(None, None),  # colorbar=True,
+                             cbar_fmt='auto',  # units=None,
+                             axes=None, show=True, n_jobs=None, verbose=None):
     """Plot the topomap of the power spectral density across epochs.
 
     Parameters

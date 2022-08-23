@@ -63,7 +63,7 @@ from .utils import (GetEpochsMixin, SizeMixin, _build_data_frame,
                     logger, object_size, sizeof_fmt, verbose, warn)
 from .utils.docs import fill_doc
 from .viz import (plot_drop_log, plot_epochs, plot_epochs_image,
-                  plot_epochs_psd_topomap, plot_topo_image_epochs)
+                  plot_topo_image_epochs)
 
 
 def _pack_reject_params(epochs):

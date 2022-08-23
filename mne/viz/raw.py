@@ -6,7 +6,6 @@
 #
 # License: Simplified BSD
 
-from functools import partial
 from collections import OrderedDict
 
 import numpy as np
