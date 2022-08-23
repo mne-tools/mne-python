@@ -34,7 +34,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_alignment, Figure3D,
                      plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
-from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll
+from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll, _get_cmap
 from mne.utils import requires_nibabel, catch_logging, _record_warnings
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
@@ -542,7 +542,7 @@ def test_process_clim_round_trip():
     # With some positive data
     out = _process_clim('auto', 'auto', True, 1.)
     want = dict(
-        colormap=plt.colormaps['hot'],
+        colormap=_get_cmap('hot'),
         clim=dict(kind='value', lims=[1, 1, 1]),
         transparent=True,)
     _assert_mapdata_equal(out, want)

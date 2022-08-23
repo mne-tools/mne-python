@@ -1045,6 +1045,13 @@ def _is_last_row(ax):
     return ax.get_subplotspec().is_last_row()
 
 
+def _sharex(ax1, ax2):
+    if hasattr(ax1.axes, 'sharex'):
+        ax1.axes.sharex(ax2)
+    else:
+        ax1.get_shared_x_axes().join(ax1, ax2)
+
+
 ###############################################################################
 # SciPy deprecation of pinv + pinvh rcond (never worked properly anyway) in 1.7
 
