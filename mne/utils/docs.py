@@ -3160,10 +3160,18 @@ stc_plot_kwargs : dict
 
 docdict['stcs_pctf'] = """
 stcs : instance of SourceEstimate | list of instances of SourceEstimate
-    PSFs or CTFs as STC objects.
-    All PSFs/CTFs will be returned as successive samples in STC objects,
-    in the order they are specified in idx. STCs for different labels will
-    be returned as a list.
+    The PSFs or CTFs as STC objects. All PSFs/CTFs will be returned as
+    successive samples in STC objects, in the order they are specified
+    in idx. STCs for different labels willbe returned as a list.
+    If resmat was computed with n_orient_inv==3 for CTFs or
+    n_orient_fwd==3 for PSFs then 3 functions per vertex will be returned
+    as successive samples (i.e. one function per orientation).
+    If vector=False (default) and resmat was computed with
+    n_orient_inv==3 for PSFs or n_orient_fwd==3 for CTFs, then the three
+    values per vertex will be combined into one intensity value per
+    vertex in a SourceEstimate object. If vector=True, PSFs or CTFs
+    with 3 values per vertex (one per orientation) will be returned in
+    a VectorSourceEstimate object.
 """
 
 docdict['std_err_by_event_type_returns'] = """
@@ -3511,6 +3519,16 @@ use_opengl : bool | None
 
 # %%
 # V
+
+docdict['vector_pctf'] = """
+vector : bool
+    Whether to return PSF/CTF as vector source estimate (3 values per
+    location) or source estimate object (1 intensity value per location).
+    Only allowed to be True if corresponding dimension of resolution matrix
+    is 3 * n_dipoles. Defaults to False.
+
+    .. versionadded:: 1.2
+"""
 
 docdict['verbose'] = """
 verbose : bool | str | int | None
