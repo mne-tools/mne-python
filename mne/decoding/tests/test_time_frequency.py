@@ -23,6 +23,11 @@ def test_timefrequency():
         pytest.raises(ValueError, TimeFrequency, freqs, output=output)
     tf = clone(tf)
 
+    # Clone estimator
+    freqs_array = np.array(np.asarray(freqs))
+    tf = TimeFrequency(freqs_array, 100, "morlet", freqs_array / 5.)
+    clone(tf)
+
     # Fit
     n_epochs, n_chans, n_times = 10, 2, 100
     X = np.random.rand(n_epochs, n_chans, n_times)

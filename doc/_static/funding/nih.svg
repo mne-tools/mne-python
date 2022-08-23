@@ -1,83 +1,8 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   viewBox="0 0 336.87876 211.03879"
-   version="1.1"
-   id="svg8"
-   width="336.87875"
-   height="211.03879"
-   sodipodi:docname="nih.svg"
-   inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)">
-  <sodipodi:namedview
-     pagecolor="#ffffff"
-     bordercolor="#666666"
-     borderopacity="1"
-     objecttolerance="10"
-     gridtolerance="10"
-     guidetolerance="10"
-     inkscape:pageopacity="0"
-     inkscape:pageshadow="2"
-     inkscape:window-width="1920"
-     inkscape:window-height="2136"
-     id="namedview10"
-     showgrid="false"
-     inkscape:zoom="3.1629674"
-     inkscape:cx="171.74546"
-     inkscape:cy="115.8589"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
-     inkscape:window-maximized="0"
-     inkscape:current-layer="g23279" />
-  <defs
-     id="defs12" />
-  <title
-     id="title2">NIH Intramural Research Program: Our Research Changes Lives</title>
-  <metadata
-     id="metadata5867">
-    <rdf:RDF>
-      <cc:Work
-         rdf:about="">
-        <dc:title>NIH Intramural Research Program: Our Research Changes Lives</dc:title>
-        <dc:format>image/svg+xml</dc:format>
-        <dc:type
-           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-      </cc:Work>
-    </rdf:RDF>
-  </metadata>
-  <rect
-     style="fill:#ffffff;fill-opacity:0.99607843;stroke:none;stroke-width:0;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-     id="rect817"
-     width="210.14456"
-     height="103.73093"
-     x="28.615429"
-     y="53.653931" />
-  <g
-     id="g293534"
-     style="display:inline"
-     transform="translate(30.271816,431.43103)">
-    <g
-       id="g23279"
-       transform="matrix(2.2457257,0,0,2.2144497,-30.271816,-431.43103)">
-      <path
-         style="display:inline;fill:#ffffff"
-         id="path828"
-         d="m 104.48385,95.3 26.1,-47.7 -26,-47.6 h 6.5 c 3.6,0 7.9,2.6 9.6,5.7 l 22.8,41.9 -22.9,41.9 c -1.7,3.2 -6.1,5.7 -9.6,5.7 h -6.5 z"
-         inkscape:connector-curvature="0" />
-      <path
-         d="m 111.00886,95.3 26.1,-47.7 -26,-47.6 h 6.5 c 3.6,0 7.9,2.6 9.6,5.7 l 22.8,41.9 -22.9,41.9 c -1.7,3.2 -6.1,5.7 -9.6,5.7 h -6.5 z"
-         fill="#20558a"
-         id="path4"
-         style="display:inline" />
-      <path
-         id="path22970"
-         d="M 8.6992188,0 C 3.8992188,0 0,3.9007812 0,8.8007812 V 86.5 c 0,4.8 3.8992188,8.800781 8.6992188,8.800781 H 104.5 L 130.59961,47.599609 104.5,0 Z m 5.9003902,26.400391 h 7.800782 l 19.199218,31.40039 h 0.09961 v -31.40039 h 7 V 69 H 40.900391 L 21.800781,37.699219 H 21.599609 V 69 h -7 z m 41.400391,0 h 7.400391 V 69 H 63.300781 56 Z m 14.699219,0 h 7.40039 v 16.90039 h 19.201172 v -16.90039 h 7.298829 V 69 H 97.199219 V 49.800781 H 78.099609 V 69 h -7.40039 z"
-         style="fill:#616265" />
-    </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="336.879" height="211.039">
+  <path style="fill:#fff;fill-opacity:.99607843;stroke:none;stroke-width:0;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" d="M28.615 53.654H238.76v103.731H28.615z"/>
+  <g style="display:inline">
+    <path style="display:inline;fill:#fff" d="m104.484 95.3 26.1-47.7-26-47.6h6.5c3.6 0 7.9 2.6 9.6 5.7l22.8 41.9-22.9 41.9c-1.7 3.2-6.1 5.7-9.6 5.7h-6.5z" transform="scale(2.24573 2.21445)"/>
+    <path d="m111.009 95.3 26.1-47.7-26-47.6h6.5c3.6 0 7.9 2.6 9.6 5.7l22.8 41.9-22.9 41.9c-1.7 3.2-6.1 5.7-9.6 5.7h-6.5z" fill="#20558a" style="display:inline" transform="scale(2.24573 2.21445)"/>
+    <path d="M8.7 0C3.9 0 0 3.9 0 8.8v77.7c0 4.8 3.9 8.8 8.7 8.8h95.8l26.1-47.7L104.5 0Zm5.9 26.4h7.8l19.2 31.4h.1V26.4h7V69h-7.8L21.8 37.7h-.2V69h-7zm41.4 0h7.4V69H56Zm14.7 0h7.4v16.9h19.2V26.4h7.3V69h-7.4V49.8H78.1V69h-7.4z" style="fill:#616265" transform="scale(2.24573 2.21445)"/>
   </g>
 </svg>

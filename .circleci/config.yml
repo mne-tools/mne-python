@@ -18,7 +18,7 @@ jobs:
           type: string
           default: "false"
       docker:
-        - image: cimg/base:stable-20.04
+        - image: cimg/base:current-22.04
       steps:
         - restore_cache:
             keys:
@@ -88,8 +88,8 @@ jobs:
             command: |
               set -e
               ./tools/setup_xvfb.sh
-              sudo apt install -qq graphviz optipng python3.8-venv python3-venv libxft2 ffmpeg
-              python3.8 -m venv ~/python_env
+              sudo apt install -qq graphviz optipng python3.10-venv python3-venv libxft2 ffmpeg
+              python3.10 -m venv ~/python_env
               echo "set -e" >> $BASH_ENV
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               echo "export XDG_RUNTIME_DIR=/tmp/runtime-circleci" >> $BASH_ENV
@@ -127,7 +127,7 @@ jobs:
               - pip-cache
         - restore_cache:
             keys:
-              - user-install-bin-cache
+              - user-install-bin-cache-310
 
         # Hack in uninstalls of libraries as necessary if pip doesn't do the right thing in upgrading for us...
         - run:
@@ -140,9 +140,9 @@ jobs:
             paths:
               - ~/.cache/pip
         - save_cache:
-            key: user-install-bin-cache
+            key: user-install-bin-cache-310
             paths:
-              - ~/.local/lib/python3.8/site-packages
+              - ~/.local/lib/python3.10/site-packages
               - ~/.local/bin
 
         - run:

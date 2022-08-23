@@ -32,6 +32,8 @@
 
 .. _Andrew Dykstra: https://github.com/adykstra
 
+.. _Andrew Quinn: https://github.com/ajquinn
+
 .. _Aniket Pradhan: https://github.com/Aniket-Pradhan
 
 .. _Anna Padee: https://github.com/apadee/
@@ -66,6 +68,8 @@
 
 .. _Cathy Nangini: https://github.com/KatiRG
 
+.. _Chetan Gohil: https://github.com/cgohil8
+
 .. _Chris Bailey: https://github.com/cjayb
 
 .. _Chris Holdgraf: https://chrisholdgraf.com
@@ -87,6 +91,8 @@
 .. _Cristóbal Moënne-Loccoz: https://github.com/cmmoenne
 
 .. _Dan Wakeman: https://github.com/dgwakeman
+
+.. _Daniel Carlström Schad: https://github.com/Dod12
 
 .. _Daniel McCloy: http://dan.mccloy.info
 

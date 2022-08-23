@@ -66,6 +66,12 @@ class InverseOperator(dict):
             FIFF.FIFFV_MNE_FREE_ORI: 'Free'
         }
         src_ori = src_ori_fiff_to_name_map[self['source_ori']]
+        if src_ori == 'Free':  # we need to do some investigation
+            prior = self['orient_prior']
+            if prior is not None:
+                prior = prior['data']
+                if not np.allclose(prior, 1.):
+                    src_ori = f'Loose ({np.min(prior)})'
         return n_chs_meg, n_chs_eeg, src_space_descr, src_ori
 
     def __repr__(self):  # noqa: D105
