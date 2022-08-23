@@ -31,7 +31,7 @@ from ..utils import (_clean_names, _time_mask, verbose, logger, fill_doc,
                      warn)
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
-                    plt_show, _process_times, DraggableColorbar,
+                    plt_show, _process_times, DraggableColorbar, _get_cmap,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
                     _set_3d_axes_equal, _check_type_projs)
 from ..time_frequency import psd_multitaper
@@ -979,9 +979,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     norm = min(data) >= 0
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
     if cmap is None:
-        cmap = plt.get_cmap('Reds' if norm else 'RdBu_r')
-    elif isinstance(cmap, str):
-        cmap = plt.get_cmap(cmap)
+        cmap = 'Reds' if norm else 'RdBu_r'
+    cmap = _get_cmap(cmap)
 
     outlines = _make_head_outlines(sphere, pos, outlines, (0., 0.))
     assert isinstance(outlines, dict)
@@ -1589,7 +1588,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
 
         .. versionchanged:: 1.1
            Support for ``array-like`` input.
-    %(axes_topomap)s
+    %(axes_evoked_plot_topomap)s
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
@@ -1979,14 +1978,13 @@ def plot_epochs_psd_topomap(epochs, bands=None,
         None.
     %(cmap_psd_topo)s
     %(agg_fun_psd_topo)s
-    %(dB_psd_topo)s
+    %(dB_plot_topomap)s
     %(n_jobs)s
     %(normalize_psd_topo)s
     %(cbar_fmt_psd_topo)s
     %(outlines_topomap)s
-    %(axes_psd_topo)s
-    show : bool
-        Show figure if True.
+    %(axes_plot_topomap)s
+    %(show)s
     %(sphere_topomap_auto)s
     %(vlim_psd_topo_joint)s
     %(verbose)s
@@ -2043,11 +2041,11 @@ def plot_psds_topomap(
     %(agg_fun_psd_topo)s
     %(bands_psd_topo)s
     %(cmap_psd_topo)s
-    %(dB_psd_topo)s
+    %(dB_plot_topomap)s
     %(normalize_psd_topo)s
     %(cbar_fmt_psd_topo)s
     %(outlines_topomap)s
-    %(axes_psd_topo)s
+    %(axes_plot_topomap)s
     show : bool
         Show figure if True.
     %(sphere_topomap)s
@@ -2063,21 +2061,30 @@ def plot_psds_topomap(
         Figure with a topomap subplot for each band.
     """
     import matplotlib.pyplot as plt
+    from matplotlib.axes import Axes
     sphere = _check_sphere(sphere)
 
     if cbar_fmt == 'auto':
         cbar_fmt = '%0.1f' if dB else '%0.3f'
 
     if bands is None:
-        bands = [(0, 4, 'Delta (0-4 Hz)'), (4, 8, 'Theta (4-8 Hz)'),
-                 (8, 12, 'Alpha (8-12 Hz)'), (12, 30, 'Beta (12-30 Hz)'),
-                 (30, 45, 'Gamma (30-45 Hz)')]
-    else:  # upconvert single freqs to band upper/lower edges as needed
-        bin_spacing = np.diff(freqs)[0]
-        bin_edges = np.array([0, bin_spacing]) - bin_spacing / 2
-        bands = [tuple(bin_edges + freqs[np.argmin(np.abs(freqs - band[0]))]) +
-                 (band[1],) if len(band) == 2 else band for band in bands]
-
+        bands = {'Delta (0-4 Hz)': (0, 4), 'Theta (4-8 Hz)': (4, 8),
+                 'Alpha (8-12 Hz)': (8, 12), 'Beta (12-30 Hz)': (12, 30),
+                 'Gamma (30-45 Hz)': (30, 45)}
+    elif not hasattr(bands, 'keys'):
+        # convert legacy list-of-tuple input to a dict
+        bands = {band[-1]: band[:-1] for band in bands}
+        logger.info('converting legacy list-of-tuples input to a dict for the '
+                    '`bands` parameter')
+    # upconvert single freqs to band upper/lower edges as needed
+    bin_spacing = np.diff(freqs)[0]
+    bin_edges = np.array([0, bin_spacing]) - bin_spacing / 2
+    for band, _edges in bands.items():
+        if not hasattr(_edges, '__len__'):
+            _edges = (_edges,)
+        if len(_edges) == 1:
+            bands[band] = tuple(bin_edges
+                                + freqs[np.argmin(np.abs(freqs - _edges[0]))])
     if agg_fun is None:
         agg_fun = np.sum if normalize else np.mean
 
@@ -2087,6 +2094,8 @@ def plot_psds_topomap(
 
     n_axes = len(bands)
     if axes is not None:
+        if isinstance(axes, Axes):
+            axes = [axes]
         _validate_if_list_of_axes(axes, n_axes)
         fig = axes[0].figure
     else:
@@ -2097,7 +2106,7 @@ def plot_psds_topomap(
     # handle vmin/vmax
     if vlim == 'joint':
         _freq_masks = [(fmin < freqs) & (freqs < fmax)
-                       for (fmin, fmax, _) in bands]
+                       for (fmin, fmax) in bands.values()]
         _datas = [agg_fun(psds[:, _freq_mask], axis=1)
                   for _freq_mask in _freq_masks]
         _datas = [10 * np.log10(_d) if (dB and not normalize) else _d
@@ -2116,7 +2125,7 @@ def plot_psds_topomap(
         if dB and not normalize:
             unit += ' (dB)'
 
-    for ax, (fmin, fmax, title) in zip(axes, bands):
+    for ax, (title, (fmin, fmax)) in zip(axes, bands.items()):
         freq_mask = (fmin < freqs) & (freqs < fmax)
         if freq_mask.sum() == 0:
             raise RuntimeError('No frequencies in band "%s" (%s, %s)'
@@ -2125,10 +2134,11 @@ def plot_psds_topomap(
         if dB and not normalize:
             data = 10 * np.log10(data)
 
-        _plot_topomap_multi_cbar(data, pos, ax, title=title, vmin=vmin,
-                                 vmax=vmax, cmap=cmap, outlines=outlines,
-                                 colorbar=True, unit=unit, cbar_fmt=cbar_fmt,
-                                 sphere=sphere, ch_type=ch_type)
+        colorbar = vlim != 'joint' or ax == axes[-1]
+        _plot_topomap_multi_cbar(
+            data, pos, ax, title=title, vmin=vmin, vmax=vmax, cmap=cmap,
+            outlines=outlines, colorbar=colorbar, unit=unit, cbar_fmt=cbar_fmt,
+            sphere=sphere, ch_type=ch_type)
     tight_layout(fig=fig)
     fig.canvas.draw()
     plt_show(show)

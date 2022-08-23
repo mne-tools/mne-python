@@ -250,19 +250,23 @@ average : bool, default True
     .. versionadded:: 0.13.0
 """
 
-docdict['axes_psd_topo'] = """
-axes : list of Axes | None
-    List of axes to plot consecutive topographies to. If ``None`` the axes
-    will be created automatically. Defaults to ``None``.
+_axes = """\
+{} : instance of Axes | list of Axes | None
+    The axes to plot to. If ``None``, a new :class:`~matplotlib.figure.Figure`
+    will be created with the correct number of axes. If
+    :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+    a :class:`list` of axes), the number of axes provided must {}.
+    Default is ``None``.
 """
-
-docdict['axes_topomap'] = """
-axes : instance of Axes | list | None
-    The axes to plot to. If list, the list must be a list of Axes of the
-    same length as ``times`` (unless ``times`` is None). If instance of
-    Axes, ``times`` must be a float or a list of one float.
-    Defaults to None.
-"""
+_ch_types_present = ('match the number of channel types present in the {}'
+                     'object.')
+docdict['ax_plot_psd'] = _axes.format('ax', _ch_types_present.format(''))
+docdict['axes_cov_plot_topomap'] = _axes.format('axes', 'be length 1')
+docdict['axes_evoked_plot_topomap'] = _axes.format(
+    'axes',
+    'match the number of ``times`` provided (unless ``times`` is ``None``)')
+docdict['axes_plot_topomap'] = _axes.format(
+    'axes', 'match the length of ``bands``')
 
 docdict['azimuth'] = """
 azimuth : float
@@ -279,18 +283,26 @@ bad_condition : str
 """
 
 docdict['bands_psd_topo'] = """
-bands : list of tuple | None
-    The frequencies or frequency ranges to plot. Length-2 tuples specify
-    a single frequency and a subplot title (e.g.,
-    ``(6.5, 'presentation rate')``); length-3 tuples specify lower and
-    upper band edges and a subplot title. If ``None`` (the default),
-    expands to::
+bands : None | dict | list of tuple
+    The frequencies or frequency ranges to plot. If a :class:`dict`, keys will
+    be used as subplot titles and values should be either a single frequency
+    (e.g., ``{'presentation rate': 6.5}``) or a length-two sequence of lower
+    and upper frequency band edges (e.g., ``{'theta': (4, 8)}``). If a single
+    frequency is provided, the plot will show the frequency bin that is closest
+    to the requested value. If ``None`` (the default), expands to::
 
-        bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
-                 (12, 30, 'Beta'), (30, 45, 'Gamma')]
+        bands = {'Delta (0-4 Hz)': (0, 4), 'Theta (4-8 Hz)': (4, 8),
+                 'Alpha (8-12 Hz)': (8, 12), 'Beta (12-30 Hz)': (12, 30),
+                 'Gamma (30-45 Hz)': (30, 45)}
 
-    In bands where a single frequency is provided, the topomap will reflect
-    the single frequency bin that is closest to the provided value.
+    .. note::
+       For backwards compatibility, :class:`tuples<tuple>` of length 2 or 3 are
+       also accepted, where the last element of the tuple is the subplot title
+       and the other entries are frequency values (a single value or band
+       edges). New code should use :class:`dict` or ``None``.
+
+    .. versionchanged:: 1.2
+       Allow passing a dict and discourage passing tuples.
 """
 
 docdict['base_estimator'] = """
@@ -711,22 +723,25 @@ cross_talk : str | None
 # %%
 # D
 
-docdict['dB_plot_psd'] = """
+_dB = """\
+dB : bool
+    Whether to plot on a decibel-like scale. If ``True``, plots
+    10 × log₁₀(spectral power){}.{}
+"""
+
+docdict['dB_plot_psd'] = """\
 dB : bool
     Plot Power Spectral Density (PSD), in units (amplitude**2/Hz (dB)) if
     ``dB=True``, and ``estimate='power'`` or ``estimate='auto'``. Plot PSD
     in units (amplitude**2/Hz) if ``dB=False`` and,
     ``estimate='power'``. Plot Amplitude Spectral Density (ASD), in units
     (amplitude/sqrt(Hz)), if ``dB=False`` and ``estimate='amplitude'`` or
-    ``estimate='auto'``. Plot ASD, in units (amplitude/sqrt(Hz) (db)), if
+    ``estimate='auto'``. Plot ASD, in units (amplitude/sqrt(Hz) (dB)), if
     ``dB=True`` and ``estimate='amplitude'``.
 """
-
-docdict['dB_psd_topo'] = """
-dB : bool
-    If ``True``, transform data to decibels (with ``10 * np.log10(data)``)
-    following the application of ``agg_fun``. Ignored if ``normalize=True``.
-"""
+docdict['dB_plot_topomap'] = _dB.format(
+    ' following the application of ``agg_fun``',
+    ' Ignored if ``normalize=True``.')
 
 docdict['daysback_anonymize_info'] = """
 daysback : int | None
@@ -1259,6 +1274,15 @@ flat : dict | str | None
     If ``'existing'``, then the flat parameters set during epoch creation are
     used.
 """
+
+_fmin_fmax = """\
+fmin, fmax : float
+    The lower- and upper-bound on frequencies of interest. Default is {}"""
+
+docdict['fmin_fmax_psd'] = _fmin_fmax.format(
+    '``fmin=0, fmax=np.inf`` (spans all frequencies present in the data).')
+
+docdict['fmin_fmax_psd_topo'] = _fmin_fmax.format('``fmin=0, fmax=100``.')
 
 docdict['fmin_fmid_fmax'] = """
 fmin : float
@@ -2337,7 +2361,7 @@ selection : list of str
     Restrict sensor channels (MEG, EEG, etc.) to this list of channel names.
 """
 
-_picks_types = 'str | list | slice | None'
+_picks_types = 'str | array-like | slice | None'
 _picks_header = f'picks : {_picks_types}'
 _picks_desc = 'Channels to include.'
 _picks_int = ('Slices and lists of integers will be interpreted as channel '
@@ -2385,13 +2409,6 @@ picks_trace : {_picks_types}
     Channels to show alongside the projected time courses. Typically
     these are the ground-truth channels for an artifact (e.g., ``'eog'`` or
     ``'ecg'``). {_picks_int} {_picks_str} no channels.
-"""
-
-docdict['picks_plot_psd_good_data'] = \
-    f'{picks_base} good data channels. {reminder}'[:-2] + """
-    Cannot be None if ``ax`` is supplied.If both ``picks`` and ``ax`` are None
-    separate subplots will be created for each standard channel type
-    (``mag``, ``grad``, and ``eeg``).
 """
 
 docdict['pipeline'] = """
@@ -2703,6 +2720,13 @@ reject_by_annotation : bool
     Whether to reject based on annotations. If ``True`` (default), epochs
     overlapping with segments whose description begins with ``'bad'`` are
     rejected. If ``False``, no rejection based on annotations is performed.
+"""
+
+docdict['reject_by_annotation_psd'] = """\
+reject_by_annotation : bool
+    Whether to omit bad spans of data before spectral estimation. If
+    ``True``, spans with annotations whose description begins with
+    ``bad`` will be omitted.
 """
 
 docdict['reject_by_annotation_raw'] = _reject_by_annotation_base + """

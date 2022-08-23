@@ -151,10 +151,10 @@ epochs['visual/right'].plot_psd_topomap()
 # the relative magnitude in each frequency band. You can change which channel
 # type is used  via the ``ch_type`` parameter, and if you want to view
 # different frequency bands than the defaults, the ``bands`` parameter takes a
-# list of tuples, with each tuple containing either a single frequency and a
-# subplot title, or lower/upper frequency limits and a subplot title:
+# :class:`dict`, with keys providing a subplot title and values providing
+# either single frequency bins to plot, or lower/upper frequency band edges:
 
-bands = [(10, '10 Hz'), (15, '15 Hz'), (20, '20 Hz'), (10, 20, '10-20 Hz')]
+bands = {'10 Hz': 10, '15 Hz': 15, '20 Hz': 20, '10-20 Hz': (10, 20)}
 epochs['visual/right'].plot_psd_topomap(bands=bands, vlim='joint',
                                         ch_type='grad')
 

@@ -12,7 +12,7 @@ import warnings
 
 import numpy as np
 
-from .utils import (tight_layout, _make_event_color_dict,
+from .utils import (tight_layout, _make_event_color_dict, _get_cmap,
                     plt_show, _convert_psds, _compute_scalings,
                     _handle_precompute)
 from .topomap import _plot_ica_topomap
@@ -650,7 +650,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
     if labels is not None:
         # differentiate categories by linestyle and components by color
         col_lbs = [it for it in exclude_labels if it is not None]
-        cmap = plt.get_cmap('tab10', len(col_lbs))
+        cmap = _get_cmap('tab10', len(col_lbs))
 
         unique_labels = set()
         for label in exclude_labels:

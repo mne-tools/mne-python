@@ -125,8 +125,8 @@ def _n_colors(n, bytes_=False, cmap='hsv'):
         raise NotImplementedError("Can't produce more than %i unique "
                                   "colors" % n_max)
 
-    from matplotlib.cm import get_cmap
-    cm = get_cmap(cmap, n_max)
+    from .viz.utils import _get_cmap
+    cm = _get_cmap(cmap)
     pos = np.linspace(0, 1, n, False)
     colors = cm(pos, bytes=bytes_)
     if bytes_:

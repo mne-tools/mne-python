@@ -41,7 +41,7 @@ from ..io.proj import setup_proj, Projection
 from ..rank import compute_rank
 from ..utils import (verbose, get_config, _check_ch_locs, _check_option,
                      logger, fill_doc, _pl, _check_sphere, _ensure_int,
-                     _validate_type, _to_rgb, warn)
+                     _validate_type, _to_rgb, warn, check_version)
 from ..transforms import apply_trans
 
 
@@ -743,8 +743,13 @@ class ClickableImage(object):
         return lt
 
 
-def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
+def _old_mpl_events():
+    return not check_version('matplotlib', '3.6')
+
+
+def _fake_click(fig, ax, point, xform='ax', button=1, kind='press', key=None):
     """Fake a click at a relative point within axes."""
+    from matplotlib import backend_bases
     if xform == 'ax':
         x, y = ax.transAxes.transform_point(point)
     elif xform == 'data':
@@ -752,14 +757,47 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
     else:
         assert xform == 'pix'
         x, y = point
-    if kind == 'press':
-        func = partial(fig.canvas.button_press_event, x=x, y=y, button=button)
-    elif kind == 'release':
-        func = partial(fig.canvas.button_release_event, x=x, y=y,
-                       button=button)
-    elif kind == 'motion':
-        func = partial(fig.canvas.motion_notify_event, x=x, y=y)
-    func(guiEvent=None)
+    # This works on 3.6+, but not on <= 3.5.1 (lasso events not propagated)
+    if _old_mpl_events():
+        if kind == 'press':
+            fig.canvas.button_press_event(x=x, y=y, button=button)
+        elif kind == 'release':
+            fig.canvas.button_release_event(x=x, y=y, button=button)
+        elif kind == 'motion':
+            fig.canvas.motion_notify_event(x=x, y=y)
+    else:
+        if kind in ('press', 'release'):
+            kind = f'button_{kind}_event'
+        else:
+            assert kind == 'motion'
+            kind = 'motion_notify_event'
+            button = None
+        fig.canvas.callbacks.process(
+            kind,
+            backend_bases.MouseEvent(
+                name=kind, canvas=fig.canvas, x=x, y=y, button=button,
+                key=key))
+
+
+def _fake_keypress(fig, key):
+    if _old_mpl_events():
+        fig.canvas.key_press_event(key)
+    else:
+        from matplotlib import backend_bases
+        fig.canvas.callbacks.process(
+            'key_press_event',
+            backend_bases.KeyEvent(
+                name='key_press_event', canvas=fig.canvas, key=key))
+
+
+def _fake_scroll(fig, x, y, step):
+    from matplotlib import backend_bases
+    button = 'up' if step >= 0 else 'down'
+    fig.canvas.callbacks.process(
+        'scroll_event',
+        backend_bases.MouseEvent(
+            name='scroll_event', canvas=fig.canvas, x=x, y=y, step=step,
+            button=button))
 
 
 def add_background_image(fig, im, set_ratios=None):
@@ -1345,7 +1383,6 @@ class DraggableColorbar(object):
 
     def key_press(self, event):
         """Handle key press."""
-        # print(event.key)
         scale = self.cbar.norm.vmax - self.cbar.norm.vmin
         perc = 0.03
         if event.key == 'down':
@@ -2476,3 +2513,29 @@ def _check_type_projs(projs):
     for pi, p in enumerate(projs):
         _validate_type(p, Projection, f'projs[{pi}]')
     return projs
+
+
+def _get_cmap(colormap, lut=None):
+    from matplotlib import colors, rcParams
+    try:
+        from matplotlib import colormaps
+    except Exception:
+        from matplotlib.cm import get_cmap
+    else:
+        def get_cmap(cmap):
+            return colormaps[cmap]
+    if colormap is None:
+        colormap = rcParams["image.cmap"]
+    if isinstance(colormap, str) and colormap in ('mne', 'mne_analyze'):
+        from ._3d import mne_analyze_colormap
+        colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
+    elif not isinstance(colormap, colors.Colormap):
+        colormap = get_cmap(colormap)
+    if lut is not None:
+        # triage method for MPL 3.6 ('resampled') or older ('_resample')
+        if hasattr(colormap, 'resampled'):
+            resampled = colormap.resampled
+        else:
+            resampled = colormap._resample
+        colormap = resampled(lut)
+    return colormap

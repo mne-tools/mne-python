@@ -161,7 +161,7 @@ fig, ax = plt.subplots(1)
 mds = MDS(2, random_state=0, dissimilarity='precomputed')
 chance = 0.5
 summary = mds.fit_transform(chance - confusion)
-cmap = plt.get_cmap('rainbow')
+cmap = plt.colormaps['rainbow']
 colors = ['r', 'b']
 names = list(conds['condition'].values)
 for color, name in zip(colors, set(names)):

@@ -635,7 +635,7 @@ def csd_fourier(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
         ``tmin`` and ``tmax`` will be used.
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
-        which means the projectors defined in the Epochs object will by copied.
+        which means the projectors defined in the Epochs object will be copied.
     %(n_jobs)s
     %(verbose)s
 
@@ -1351,7 +1351,8 @@ def _csd_morlet(data, sfreq, wavelets, nfft, tslice=None, use_fft=True,
 
 
 @verbose
-def csd_tfr(epochs_tfr, verbose=None):
+def csd_tfr(epochs_tfr, tmin=None, tmax=None, picks=None, projs=None,
+            verbose=None):
     """Compute covariance matrices across frequencies for TFR epochs.
 
     Parameters
@@ -1359,6 +1360,17 @@ def csd_tfr(epochs_tfr, verbose=None):
     epochs_tfr : EpochsTFR
         The time-frequency resolved epochs over which to compute the
         covariance.
+    tmin : float | None
+        Minimum time instant to consider, in seconds. If ``None`` start at
+        first sample.
+    tmax : float | None
+        Maximum time instant to consider, in seconds. If ``None`` end at last
+        sample.
+    %(picks_good_data_noref)s
+    projs : list of Projection | None
+        List of projectors to store in the CSD object. Defaults to ``None``,
+        which means the projectors defined in the EpochsTFR object will be
+        copied.
     %(verbose)s
 
     Returns
@@ -1367,11 +1379,19 @@ def csd_tfr(epochs_tfr, verbose=None):
         Cross-spectral density restricted to selected channels.
     """
     _validate_type(epochs_tfr, EpochsTFR)
+    epochs_tfr, projs = _prepare_csd(epochs_tfr, tmin, tmax, picks, projs)
+    X = epochs_tfr.data
+    times = epochs_tfr.times
     n_channels, n_freqs = len(epochs_tfr.ch_names), epochs_tfr.freqs.size
     data = np.zeros((n_channels * (n_channels + 1) // 2, n_freqs),
                     dtype=np.complex128)
-    # iterate over epochs
-    for idx, epochs_data in enumerate(epochs_tfr.data):
+
+    # Slice X to the requested time window
+    tstart = None if tmin is None else np.searchsorted(times, tmin - 1e-10)
+    tstop = None if tmax is None else np.searchsorted(times, tmax + 1e-10)
+    X = X[:, :, :, tstart:tstop]
+
+    for idx, epochs_data in enumerate(X):
         # This is equivalent to:
         # csds = np.vstack([np.mean(epochs_data[[i]] * epochs_data_conj[i:],
         #                           axis=2) for i in range(n_channels)])
@@ -1391,6 +1411,6 @@ def csd_tfr(epochs_tfr, verbose=None):
 
     # TO DO: EpochTFR should store n_fft to be consistent
     return CrossSpectralDensity(data=data, ch_names=epochs_tfr.ch_names,
-                                tmin=epochs_tfr.tmin, tmax=epochs_tfr.tmax,
+                                tmin=tmin, tmax=tmax,
                                 frequencies=epochs_tfr.freqs, n_fft=None,
-                                projs=epochs_tfr.info.get('projs', None))
+                                projs=projs)

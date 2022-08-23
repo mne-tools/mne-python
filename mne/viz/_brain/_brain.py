@@ -62,8 +62,11 @@ class Brain(object):
 
     Parameters
     ----------
-    subject_id : str
+    subject : str
         Subject name in Freesurfer subjects dir.
+
+        .. versionchanged:: 1.2
+           This parameter was renamed from ``subject_id`` to ``subject``.
     hemi : str
         Hemisphere id (ie 'lh', 'rh', 'both', or 'split'). In the case
         of 'both', both hemispheres are shown in the same window.
@@ -140,6 +143,8 @@ class Brain(object):
         Display the window as soon as it is ready. Defaults to True.
     block : bool
         If True, start the Qt application event loop. Default to False.
+    subject_id : str | None
+        Deprecated, use ``subject`` instead.
 
     Attributes
     ----------
@@ -233,15 +238,29 @@ class Brain(object):
        +-------------------------------------+--------------+---------------+
     """
 
-    def __init__(self, subject_id, hemi='both', surf='pial', title=None,
+    def __init__(self, subject=None, hemi='both', surf='pial', title=None,
                  cortex="classic", alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
-                 views='auto', offset='auto', show_toolbar=False,
+                 views='auto', *, offset='auto', show_toolbar=None,
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', silhouette=False, theme=None,
-                 show=True, block=False):
+                 show=True, block=False, subject_id=None):
         from ..backends.renderer import backend, _get_renderer
 
+        if show_toolbar is not None:
+            warn('show_toolbar is deprecated and will be removed in 1.3.',
+                 DeprecationWarning)
+        # This and the "if subject is None" conditional should be removed in
+        # 1.3, and the default subject=None switched to subject (no default)
+        if subject_id is not None:
+            warn('subject_id is deprecated and will be removed in 1.3, use '
+                 'subject instead.', DeprecationWarning)
+            subject = subject_id
+        if subject is None:
+            # raise the same error that we'd get if subject had no default
+            raise TypeError("Brain.__init__() missing 1 required positional "
+                            "argument: 'subject'")
+        _validate_type(subject, str, 'subject')
         if hemi is None:
             hemi = 'vol'
         hemi = self._check_hemi(hemi, extras=('both', 'split', 'vol'))
@@ -256,7 +275,7 @@ class Brain(object):
         if figure is not None and not isinstance(figure, int):
             backend._check_3d_figure(figure)
         if title is None:
-            self._title = subject_id
+            self._title = subject
         else:
             self._title = title
         self._interaction = 'trackball'
@@ -286,7 +305,7 @@ class Brain(object):
         self._hemi = hemi
         self._units = units
         self._alpha = float(alpha)
-        self._subject_id = subject_id
+        self._subject = subject
         self._subjects_dir = subjects_dir
         self._views = views
         self._times = None
@@ -350,7 +369,7 @@ class Brain(object):
             if h not in self._hemis:
                 continue  # don't make surface if not chosen
             # Initialize a Surface object as the geometry
-            geo = _Surface(self._subject_id, h, surf, self._subjects_dir,
+            geo = _Surface(self._subject, h, surf, self._subjects_dir,
                            offset, units=self._units, x_dir=self._rigid[0, :3])
             # Load in the geometry and curvature
             geo.load_geometry()
@@ -405,7 +424,7 @@ class Brain(object):
     def _setup_canonical_rotation(self):
         self._rigid = np.eye(4)
         try:
-            xfm = _estimate_talxfm_rigid(self._subject_id, self._subjects_dir)
+            xfm = _estimate_talxfm_rigid(self._subject, self._subjects_dir)
         except Exception:
             logger.info('Could not estimate rigid Talairach alignment, '
                         'using identity matrix')
@@ -947,7 +966,7 @@ class Brain(object):
 
         from ...source_estimate import _get_allowed_label_modes
         from ...label import _read_annot_cands
-        dir_name = op.join(self._subjects_dir, self._subject_id, 'label')
+        dir_name = op.join(self._subjects_dir, self._subject, 'label')
         cands = _read_annot_cands(dir_name, raise_error=False)
         cands = cands + ['None']
         self.annot = cands[0]
@@ -1498,7 +1517,7 @@ class Brain(object):
         if hemi == 'vol':
             hemi_str = 'V'
             xfm = read_talxfm(
-                self._subject_id, self._subjects_dir)
+                self._subject, self._subjects_dir)
             if self._units == 'mm':
                 xfm['trans'][:3, 3] *= 1000.
             ijk = np.unravel_index(
@@ -1511,7 +1530,7 @@ class Brain(object):
                 mni = vertex_to_mni(
                     vertices=vertex_id,
                     hemis=0 if hemi == 'lh' else 1,
-                    subject=self._subject_id,
+                    subject=self._subject,
                     subjects_dir=self._subjects_dir
                 )
             except Exception:
@@ -2135,10 +2154,10 @@ class Brain(object):
                 label_name = label
                 label_fname = ".".join([hemi, label_name, 'label'])
                 if subdir is None:
-                    filepath = op.join(self._subjects_dir, self._subject_id,
+                    filepath = op.join(self._subjects_dir, self._subject,
                                        'label', label_fname)
                 else:
-                    filepath = op.join(self._subjects_dir, self._subject_id,
+                    filepath = op.join(self._subjects_dir, self._subject,
                                        'label', subdir, label_fname)
                 if not os.path.exists(filepath):
                     raise ValueError('Label file %s does not exist'
@@ -2345,7 +2364,7 @@ class Brain(object):
         """
         # load head
         surf = _get_head_surface('seghead' if dense else 'head',
-                                 self._subject_id, self._subjects_dir)
+                                 self._subject, self._subjects_dir)
         verts, triangles = surf['rr'], surf['tris']
         verts *= 1e3 if self._units == 'mm' else 1
         color = _to_rgb(color)
@@ -2378,7 +2397,7 @@ class Brain(object):
         .. versionadded:: 0.24
         """
         surf = _get_skull_surface('outer' if outer else 'inner',
-                                  self._subject_id, self._subjects_dir)
+                                  self._subject, self._subjects_dir)
         verts, triangles = surf['rr'], surf['tris']
         verts *= 1e3 if self._units == 'mm' else 1
         color = _to_rgb(color)
@@ -2435,7 +2454,7 @@ class Brain(object):
         if not aseg.endswith('aseg'):
             raise RuntimeError(
                 f'`aseg` file path must end with "aseg", got {aseg}')
-        aseg = _check_fname(op.join(self._subjects_dir, self._subject_id,
+        aseg = _check_fname(op.join(self._subjects_dir, self._subject,
                                     'mri', aseg + '.mgz'),
                             overwrite='read', must_exist=True)
         aseg_fname = aseg
@@ -2537,7 +2556,7 @@ class Brain(object):
         # Possibly map the foci coords through a surface
         if map_surface is not None:
             from scipy.spatial.distance import cdist
-            foci_surf = _Surface(self._subject_id, hemi, map_surface,
+            foci_surf = _Surface(self._subject, hemi, map_surface,
                                  self._subjects_dir, offset=0,
                                  units=self._units, x_dir=self._rigid[0, :3])
             foci_surf.load_geometry()
@@ -2598,7 +2617,7 @@ class Brain(object):
         if pick_types(info, eeg=True, exclude=()).size > 0 and \
                 'projected' in eeg:
             head_surf = _get_head_surface(
-                'seghead', self._subject_id, self._subjects_dir)
+                'seghead', self._subject, self._subjects_dir)
         else:
             head_surf = None
         # Do the main plotting
@@ -2727,7 +2746,7 @@ class Brain(object):
 
         for hemi in self._hemis:
             labels = read_labels_from_annot(
-                subject=self._subject_id,
+                subject=self._subject,
                 parc=self.annot,
                 hemi=hemi,
                 subjects_dir=self._subjects_dir
@@ -2791,7 +2810,7 @@ class Brain(object):
                 filepaths = []
                 for hemi in hemis:
                     filepath = op.join(self._subjects_dir,
-                                       self._subject_id,
+                                       self._subject,
                                        'label',
                                        ".".join([hemi, annot, 'annot']))
                     if not os.path.exists(filepath):
