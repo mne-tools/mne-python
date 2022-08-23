@@ -2025,7 +2025,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
 
 @fill_doc
 def plot_psds_topomap(
-        psds, freqs, pos, agg_fun=None, bands=None,
+        psds, freqs, pos, *, agg_fun=None, bands=None,
         cmap=None, dB=True, normalize=False, cbar_fmt='%0.3f', outlines='head',
         axes=None, show=True, sphere=None, vlim=(None, None), unit=None,
         ch_type='eeg'):
@@ -2047,8 +2047,7 @@ def plot_psds_topomap(
     %(cbar_fmt_psd_topo)s
     %(outlines_topomap)s
     %(axes_plot_topomap)s
-    show : bool
-        Show figure if True.
+    %(show)s
     %(sphere_topomap)s
     %(vlim_psd_topo_joint)s
     unit : str | None

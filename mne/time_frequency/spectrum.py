@@ -192,13 +192,14 @@ class ToSpectrumMixin():
     @verbose
     def plot_psd_topomap(self, bands=None, tmin=None, tmax=None, proj=False,
                          method='auto', ch_type=None, *, normalize=False,
-                         agg_fun=None, dB=False, sensors=True,
-                         show_names=False, mask=None, mask_params=None,
-                         contours=6, outlines='head', sphere=None,
-                         image_interp=_INTERPOLATION_DEFAULT,
-                         extrapolate=_EXTRAPOLATE_DEFAULT,
-                         border=_BORDER_DEFAULT, res=64, size=1,
-                         cmap=None, vlim=(None, None), colorbar=True,
+                         agg_fun=None, dB=False,  # sensors=True,
+                         # show_names=False, mask=None, mask_params=None,
+                         # contours=6,
+                         outlines='head', sphere=None,
+                         # image_interp=_INTERPOLATION_DEFAULT,
+                         # extrapolate=_EXTRAPOLATE_DEFAULT,
+                         # border=_BORDER_DEFAULT, res=64, size=1,
+                         cmap=None, vlim=(None, None),  # colorbar=True,
                          cbar_fmt='auto', units=None,
                          axes=None, show=True, n_jobs=None, verbose=None,
                          **method_kw):
@@ -214,21 +215,10 @@ class ToSpectrumMixin():
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
         %(dB_plot_topomap)s
-        %(sensors_topomap)s
-        %(show_names_topomap)s
-        %(mask_evoked_topomap)s
-        %(mask_params_topomap)s
-        %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
-        %(image_interp_topomap)s
-        %(extrapolate_topomap)s
-        %(border_topomap)s
-        %(res_topomap)s
-        %(size_topomap)s
         %(cmap_psd_topo)s
         %(vlim_psd_topo_joint)s
-        %(colorbar_topomap)s
         %(cbar_fmt_psd_topo)s
         %(units_topomap)s
         %(axes_plot_topomap)s
@@ -242,17 +232,33 @@ class ToSpectrumMixin():
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
         """
+        # add after dB
+        # %(sensors_topomap)s
+        # %(show_names_topomap)s
+        # %(mask_evoked_topomap)s
+        # %(mask_params_topomap)s
+        # %(contours_topomap)s
+        # add after sphere
+        # %(image_interp_topomap)s
+        # %(extrapolate_topomap)s
+        # %(border_topomap)s
+        # %(res_topomap)s
+        # %(size_topomap)s
+        # add after vlim
+        # %(colorbar_topomap)s
         spectrum = self.compute_psd(
             method=method, tmin=tmin, tmax=tmax, proj=proj,
             n_jobs=n_jobs, verbose=verbose, **method_kw)
 
         fig = spectrum.plot_topomap(
             bands=bands, ch_type=ch_type, normalize=normalize, agg_fun=agg_fun,
-            dB=dB, sensors=sensors, show_names=show_names, mask=mask,
-            mask_params=mask_params, contours=contours, outlines=outlines,
-            sphere=sphere, image_interp=image_interp, extrapolate=extrapolate,
-            border=border, res=res, size=size, cmap=cmap, vlim=vlim,
-            cbar_fmt=cbar_fmt, axes=axes, show=show)
+            dB=dB,  # sensors=sensors, show_names=show_names, mask=mask,
+            # mask_params=mask_params, contours=contours,
+            outlines=outlines, sphere=sphere,
+            # image_interp=image_interp, extrapolate=extrapolate,
+            # border=border, res=res, size=size,
+            cmap=cmap, vlim=vlim,  # colorbar=colorbar,
+            cbar_fmt=cbar_fmt, units=units, axes=axes, show=show)
         return fig
 
     def _set_legacy_nfft_default(self, tmin, tmax, method, method_kw):
@@ -780,10 +786,15 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             psds, names = _merge_ch_data(psds, ch_type, names, method='mean')
 
         return plot_psds_topomap(
-            psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun,
-            bands=bands, cmap=cmap, dB=dB, normalize=normalize,
-            cbar_fmt=cbar_fmt, outlines=outlines, axes=axes, show=show,
-            sphere=sphere, vlim=vlim, unit=unit, ch_type=ch_type)
+            psds=psds, freqs=freqs, pos=pos, bands=bands, ch_type=ch_type,
+            normalize=normalize, agg_fun=agg_fun, dB=dB,  #  sensors=sensors,
+            # show_names=show_names, mask=mask, mask_params=mask_params,
+            # contours=contours,
+            outlines=outlines, sphere=sphere,
+            # image_interp=image_interp, extrapolate=extrapolate,
+            # border=border, res=res, size=size,
+            cmap=cmap, vlim=vlim,  # colorbar=colorbar,
+            cbar_fmt=cbar_fmt, unit=unit, axes=axes, show=show)
 
     @verbose
     def save(self, fname, *, overwrite=False, verbose=None):
