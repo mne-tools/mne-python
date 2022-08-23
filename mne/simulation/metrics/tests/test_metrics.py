@@ -4,9 +4,6 @@
 # License: BSD (3-clause)
 
 
-import os.path as op
-import warnings
-
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
@@ -103,6 +100,7 @@ def test_region_localization_error():
 @requires_sklearn
 def test_precision_score():
     """Test simulation metrics."""
+    from sklearn.exceptions import UndefinedMetricWarning
     src = read_source_spaces(src_fname)
     vert1 = [src[0]['vertno'][0:2], []]
     vert2 = [src[0]['vertno'][1:3], []]
@@ -114,13 +112,12 @@ def test_precision_score():
     stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
     stc_est2 = SourceEstimate(data3, vert3, 0, 0.002, subject='sample')
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        E_unique1 = precision_score(stc_true, stc_est1, per_sample=False)
-        E_unique2 = precision_score(stc_true, stc_est2, per_sample=False)
+    E_unique1 = precision_score(stc_true, stc_est1, per_sample=False)
+    E_unique2 = precision_score(stc_true, stc_est2, per_sample=False)
+    with pytest.warns(UndefinedMetricWarning, match='no predicted samples'):
         E_per_sample1 = precision_score(stc_true, stc_est2)
-        E_per_sample2 = precision_score(stc_true, stc_est2,
-                                        threshold='70%')
+    E_per_sample2 = precision_score(stc_true, stc_est2,
+                                    threshold='70%')
 
     # ### Tests to add
     assert_allclose(E_unique1, 0.5)
@@ -171,12 +168,10 @@ def test_f1_score():
     stc_est1 = SourceEstimate(data2, vert2, 0, 0.002, subject='sample')
     stc_est2 = SourceEstimate(data3, vert3, 0, 0.002, subject='sample')
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        E_unique1 = f1_score(stc_true, stc_est1, per_sample=False)
-        E_unique2 = f1_score(stc_true, stc_est2, per_sample=False)
-        E_per_sample1 = f1_score(stc_true, stc_est2)
-        E_per_sample2 = f1_score(stc_true, stc_est2, threshold='70%')
+    E_unique1 = f1_score(stc_true, stc_est1, per_sample=False)
+    E_unique2 = f1_score(stc_true, stc_est2, per_sample=False)
+    E_per_sample1 = f1_score(stc_true, stc_est2)
+    E_per_sample2 = f1_score(stc_true, stc_est2, threshold='70%')
     assert_allclose(E_unique1, 0.5)
     assert_allclose(E_unique2, 1. / 1.5)
     assert_allclose(E_per_sample1, [0., 1. / 1.5])
