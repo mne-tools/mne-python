@@ -750,7 +750,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # %(size_topomap)s
         # add after vlim
         # %(colorbar_topomap)s
-
         ch_type = _get_ch_type(self, ch_type)
         if units is None:
             units = _handle_default('units', None)
