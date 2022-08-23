@@ -8,7 +8,6 @@
 from functools import partial
 
 import numpy as np
-from scipy.linalg import norm
 from mne.utils import _check_option, fill_doc
 
 
@@ -60,7 +59,7 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
     # Calculate correlation coefficient between matrix elements
     elif metric == 'cosine':
         score = 1. - (np.dot(data1.flatten(), data2.flatten()) /
-                      (norm(data1) * norm(data2)))
+                      (np.linalg.norm(data1) * np.linalg.norm(data2)))
     return score
 
 
@@ -135,9 +134,11 @@ def _thresholding(stc_true, stc_est, threshold):
 def _cosine(x, y):
     p = np.reshape(x, (-1, 1))
     q = np.reshape(y, (-1, 1))
-    if norm(p) * norm(q):
-        return (np.dot(p.T, q) / (norm(p) * norm(q)))[0][0]
-    elif norm(p) == norm(q):
+    p_norm = np.linalg.norm(p)
+    q_norm = np.linalg.norm(q)
+    if p_norm * q_norm:
+        return (np.dot(p.T, q) / (p_norm * q_norm))[0][0]
+    elif p_norm == q_norm:
         return 1
     else:
         return 0
@@ -449,7 +450,7 @@ def _peak_position_error(p, q, r_est, r_true):
     if np.sum(q):
         q /= np.sum(q)
         r_est_mean = np.dot(q, r_est)
-        return norm(r_est_mean - r_true)
+        return np.linalg.norm(r_est_mean - r_true)
     else:
         return np.inf
 
