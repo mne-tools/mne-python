@@ -391,8 +391,8 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     evoked : Evoked | Epochs | Raw
         The measurement file. Need to have info attribute.
     %(trans)s
-        "auto" (default) will load trans from fs directory specified by
-        ``'subject'`` and ``'subjects_dir'`` parameters.
+        "auto" (default) will load trans from the FreeSurfer directory 
+        specified by ``subject`` and ``subjects_dir`` parameters.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT. If None, map for EEG data will not be available.
