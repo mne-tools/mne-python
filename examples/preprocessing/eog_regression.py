@@ -20,7 +20,7 @@ License: BSD (3-clause)
 ###############################################################################
 import mne
 from mne.datasets import sample
-from mne.preprocessing import eog_regression, EOGRegression, regress_artifact
+from mne.preprocessing import EOGRegression, regress_artifact
 from matplotlib import pyplot as plt
 
 print(__doc__)
@@ -30,7 +30,6 @@ raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_filt-0-40_raw.fif'
 
 # Read raw data
 raw = mne.io.Raw(raw_fname, preload=True)
-#raw.set_eeg_reference('average')
 events = mne.find_events(raw, 'STI 014')
 
 # For this example, we only operate on the EEG channels.
@@ -96,10 +95,13 @@ ax[1, 1].set_ylim(-30, 100)
 ax[1, 1].set_title('Blink evoked after EOG regression')
 plt.tight_layout()
 
-# Test if the old interface still works
+# Test if the old interface still works.
+# FIXME This should not be in the actual example.
 raw_clean2, betas = regress_artifact(raw, copy=True)
-mne.Epochs(raw_clean2, events, event_ids, tmin, tmax, baseline=(tmin, 0)).average().plot()
+mne.Epochs(raw_clean2, events, event_ids,
+           tmin, tmax, baseline=(tmin, 0)).average().plot()
 plt.ylim(-6, 6)
 raw_clean3, _ = regress_artifact(raw, betas=betas, copy=True)
-mne.Epochs(raw_clean3, events, event_ids, tmin, tmax, baseline=(tmin, 0)).average().plot()
+mne.Epochs(raw_clean3, events, event_ids,
+           tmin, tmax, baseline=(tmin, 0)).average().plot()
 plt.ylim(-6, 6)
