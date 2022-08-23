@@ -736,6 +736,7 @@ class UpdateChannelsMixin(object):
             idx.append(ii)
         return self._pick_drop_channels(idx)
 
+    @fill_doc
     def drop_channels(self, ch_names, on_missing='raise'):
         """Drop channel(s).
 
