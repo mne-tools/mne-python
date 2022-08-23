@@ -2429,9 +2429,9 @@ def _key_press(event, params):
         params['frame'] = min(params['frame'] + 1, len(params['frames']) - 1)
 
 
-def _topomap_animation(evoked, ch_type, times, frame_rate, vmin, vmax,
-                       butterfly, blit, show, time_unit, sphere,
-                       image_interp, extrapolate, *, verbose=None):
+def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
+                       show, time_unit, sphere, image_interp,
+                       extrapolate, *, vmin, vmax, verbose=None):
     """Make animation of evoked data as topomap timeseries.
 
     See mne.evoked.Evoked.animate_topomap.
@@ -2479,9 +2479,9 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, vmin, vmax,
     extrapolate = _check_extrapolate(extrapolate, ch_type)
 
     params = dict(data=data, pos=pos, all_times=evoked.times, frame=0,
-                  frames=frames, vmin=vmin, vmax=vmax, butterfly=butterfly,
-                  blit=blit, pause=False, times=times, time_unit=time_unit,
-                  clip_origin=clip_origin)
+                  frames=frames, butterfly=butterfly, blit=blit,
+                  pause=False, times=times, time_unit=time_unit,
+                  clip_origin=clip_origin, vmin=vmin, vmax=vmax)
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
                         params=params, merge_channels=merge_channels,
                         sphere=sphere, ch_type=ch_type,
