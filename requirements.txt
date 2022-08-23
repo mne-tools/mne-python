@@ -42,3 +42,4 @@ ipyvtklink
 mne-qt-browser
 darkdetect
 qdarkstyle
+threadpoolctl

@@ -2345,7 +2345,7 @@ selection : list of str
     Restrict sensor channels (MEG, EEG, etc.) to this list of channel names.
 """
 
-_picks_types = 'str | list | slice | None'
+_picks_types = 'str | array-like | slice | None'
 _picks_header = f'picks : {_picks_types}'
 _picks_desc = 'Channels to include.'
 _picks_int = ('Slices and lists of integers will be interpreted as channel '
