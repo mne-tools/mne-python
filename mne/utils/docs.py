@@ -3507,7 +3507,7 @@ use_opengl : bool | None
 docdict['vector_pctf'] = """
 vector : bool
     Whether to return PSF/CTF as vector source estimate (3 values per
-    location) or source esimate object (1 intensity value per location).
+    location) or source estimate object (1 intensity value per location).
     Only allowed to be True if corresponding dimension of resolution matrix
     is 3 * n_dipoles. Defaults to False.
 
