@@ -333,7 +333,7 @@ def make_bem_solution(surfs, *, method='mne', verbose=None):
         The BEM surfaces to use (from :func:`mne.make_bem_model`).
     method : str
         Can be 'mne' (default) to use MNE-Python, or 'openmeeg' to use
-        the :ref:`OpenMEEG <openmeeg:index>` package.
+        the :doc:`OpenMEEG <openmeeg:index>` package.
 
         .. versionadded:: 1.2
     %(verbose)s
