@@ -439,6 +439,9 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     del view_args
     img = brain.screenshot(mode='rgba')
     want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 4])
+    # on macOS sometimes matplotlib is HiDPI and VTK is not...
+    factor = 2 if np.allclose(img.shape[:2], want_size[:2] / 2.) else 1
+    want_size[:2] /= factor
     assert_allclose(img.shape, want_size)
     brain.close()
 
