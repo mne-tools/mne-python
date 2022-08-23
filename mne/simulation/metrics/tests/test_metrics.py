@@ -118,6 +118,8 @@ def test_precision_score():
         E_per_sample1 = precision_score(stc_true, stc_est2)
     E_per_sample2 = precision_score(stc_true, stc_est2,
                                     threshold='70%')
+    with pytest.raises(ValueError, match='0 and 1'):
+        precision_score(stc_true, stc_est2, threshold=2)
 
     # ### Tests to add
     assert_allclose(E_unique1, 0.5)
@@ -145,6 +147,8 @@ def test_recall_score():
     E_unique2 = recall_score(stc_true, stc_est2, per_sample=False)
     E_per_sample1 = recall_score(stc_true, stc_est2)
     E_per_sample2 = recall_score(stc_true, stc_est2, threshold='70%')
+    with pytest.raises(TypeError, match='numeric'):
+        precision_score(stc_true, stc_est2, threshold=None)
 
     # ### Tests to add
     assert_allclose(E_unique1, 0.5)

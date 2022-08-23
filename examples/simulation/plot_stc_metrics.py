@@ -13,8 +13,6 @@ introduction and only highlights the simplest use case.
 #
 # License: BSD (3-clause)
 
-import os.path as op
-
 import numpy as np
 import matplotlib.pyplot as plt
 from functools import partial
@@ -32,15 +30,14 @@ random_state = 42  # set random state to make this example deterministic
 
 # Import sample data
 data_path = sample.data_path()
-subjects_dir = op.join(data_path, 'subjects')
+subjects_dir = data_path / 'subjects'
 subject = 'sample'
-evoked_fname = op.join(data_path, 'MEG', subject, 'sample_audvis-ave.fif')
+evoked_fname = data_path / 'MEG' / subject / 'sample_audvis-ave.fif'
 info = mne.io.read_info(evoked_fname)
 tstep = 1. / info['sfreq']
 
 # Import forward operator and source space
-fwd_fname = op.join(data_path, 'MEG', subject,
-                    'sample_audvis-meg-eeg-oct-6-fwd.fif')
+fwd_fname = data_path / 'MEG' / subject / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
 fwd = mne.read_forward_solution(fwd_fname)
 src = fwd['src']
 
