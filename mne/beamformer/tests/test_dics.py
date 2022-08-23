@@ -368,7 +368,7 @@ def test_apply_dics_csd(_load_forward, idx, inversion, weight_norm):
         assert power.data[source_ind, 1] > power.data[source_ind, 0]
 
 
-@pytest.mark.parametrize('pick_ori', [None, 'normal', 'max-power'])
+@pytest.mark.parametrize('pick_ori', [None, 'normal', 'max-power', 'vector'])
 @pytest.mark.parametrize('inversion', ['single', 'matrix'])
 @idx_param
 def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx):
@@ -395,7 +395,7 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx):
     inds = np.triu_indices(csd.n_channels)
     csd_noise._data[...] = np.eye(csd.n_channels)[inds][:, np.newaxis]
     noise_power, f = apply_dics_csd(csd_noise, filters)
-    want_norm = 3 if pick_ori is None else 1.
+    want_norm = 3 if pick_ori in (None, 'vector') else 1
     assert_allclose(noise_power.data, want_norm, atol=1e-7)
 
     # Test filter with forward normalization instead of weight
