@@ -303,7 +303,7 @@ def f1_score(stc_true, stc_est, threshold='90%', per_sample=True):
     and recall, where an F1 score reaches its best value at 1 and worst score
     at 0. The relative contribution of precision and recall to the F1
     score are equal.
-    The formula for the F1 score is:
+    The formula for the F1 score is::
 
         F1 = 2 * (precision * recall) / (precision + recall)
 
@@ -408,13 +408,13 @@ def recall_score(stc_true, stc_est, threshold='90%', per_sample=True):
         a percentage and it should end with the percent character.
     %(per_sample_metric)s
 
-    Notes
-    -----
-    .. versionadded:: 1.2
-
     Returns
     -------
     %(stc_metric)s
+
+    Notes
+    -----
+    .. versionadded:: 1.2
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
     stc_true, stc_est = _thresholding(stc_true, stc_est, threshold)

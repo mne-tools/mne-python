@@ -23,11 +23,9 @@ from mne.simulation.metrics import (cosine_score,
                                     f1_score, roc_auc_score,
                                     peak_position_error,
                                     spatial_deviation_error)
-from mne.utils import run_tests_if_main
 
 data_path = testing.data_path(download=False)
-src_fname = op.join(data_path, 'subjects', 'sample', 'bem',
-                    'sample-oct-6-src.fif')
+src_fname = data_path / 'subjects' / 'sample' / 'bem' / 'sample-oct-6-src.fif'
 
 
 @testing.requires_testing_data
@@ -246,6 +244,3 @@ def test_spatial_deviation():
     score = spatial_deviation_error(stc_true, stc_est, src,
                                     per_sample=False)
     assert_allclose(score, np.inf)
-
-
-run_tests_if_main()
