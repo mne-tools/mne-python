@@ -248,8 +248,7 @@ class EOGRegression():
         """Helper method to perform some sanity checks on the input."""
         _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), 'inst',
                        'Raw, Epochs, Evoked')
-        info = pick_info(inst.info, self._picks)
-        if _needs_eeg_average_ref_proj(info):
+        if _needs_eeg_average_ref_proj(inst.info):
             raise RuntimeError('No reference for the EEG channels has been '
                                'set. Use inst.set_eeg_reference to do so.')
         if not inst.proj:
