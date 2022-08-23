@@ -274,6 +274,12 @@ docdict['axes_spectrum_plot_topo'] = _axes.format(
     'be length 1 (for efficiency, subplots for each channel are simulated '
     'within a single :class:`~matplotlib.axes.Axes` object)')
 
+docdict['axis_facecolor'] = """\
+axis_facecolor : str | tuple
+    A matplotlib-compatible color to use for the axis background.
+    Defaults to black.
+"""
+
 docdict['azimuth'] = """
 azimuth : float
     The azimuthal angle of the camera rendering the view in degrees.
@@ -373,6 +379,12 @@ docdict['baseline_stc'] = f"""{_baseline_rescale_base}
               the case for normalized estimates (e.g. signal-to-noise ratios,
               dSPM, sLORETA).
 
+"""
+
+docdict['block'] = """\
+block : bool
+    Whether to halt program execution until the figure is closed.
+    May not work on all systems / platforms. Defaults to ``False``.
 """
 
 docdict['border_topomap'] = """
@@ -615,6 +627,12 @@ docdict['color_plot_psd'] = """\
 color : str | tuple
     A matplotlib-compatible color to use. Has no effect when
     spatial_colors=True.
+"""
+
+docdict['color_spectrum_plot_topo'] = """\
+color : str | tuple
+    A matplotlib-compatible color to use for the curves. Defaults to
+    white.
 """
 
 docdict['colorbar_topomap'] = """
@@ -1204,6 +1222,12 @@ fiducials : list | dict | str
     and if absent, falls back to ``'estimated'``.
 """
 
+docdict['fig_facecolor'] = """\
+fig_facecolor : str | tuple
+    A matplotlib-compatible color to use for the figure background.
+    Defaults to black.
+"""
+
 docdict['filter_length'] = """
 filter_length : str | int
     Length of the FIR filter to use (if applicable):
@@ -1723,6 +1747,13 @@ labels : Label | BiHemiLabel | list | tuple | str
 
     .. versionchanged:: 0.21.0
        Support for volume source estimates.
+"""
+
+docdict['layout_spectrum_plot_topo'] = """\
+layout : instance of Layout | None
+    Layout instance specifying sensor positions (does not need to be
+    specified for Neuromag data). If ``None`` (default), the layout is
+    inferred from the data.
 """
 
 docdict['line_alpha_plot_psd'] = """\
