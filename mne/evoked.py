@@ -43,7 +43,6 @@ from .io.write import (start_and_end_file, start_block, end_block,
                        write_id, write_float, write_complex_float_matrix)
 from .io.base import _check_maxshield, _get_ch_factors
 from .parallel import parallel_func
-from .data.html_templates import evoked_template
 
 _aspect_dict = {
     'average': FIFF.FIFFV_ASPECT_AVERAGE,
@@ -351,17 +350,16 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return "<Evoked | %s>" % s
 
     def _repr_html_(self):
+        from .html_templates import repr_templates_env
         if self.baseline is None:
             baseline = 'off'
         else:
             baseline = tuple([f'{b:.3f}' for b in self.baseline])
             baseline = f'{baseline[0]} – {baseline[1]} sec'
-        n_eeg = len(pick_types(self.info, meg=False, eeg=True))
-        n_grad = len(pick_types(self.info, meg='grad'))
-        n_mag = len(pick_types(self.info, meg='mag'))
-        return evoked_template.substitute(evoked=self, baseline=baseline,
-                                          n_eeg=n_eeg, n_grad=n_grad,
-                                          n_mag=n_mag)
+
+        t = repr_templates_env.get_template('evoked.html.jinja')
+        t = t.render(evoked=self, baseline=baseline)
+        return t
 
     @property
     def ch_names(self):
