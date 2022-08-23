@@ -235,7 +235,6 @@ def _normalise_psf_ctf(funcs, norm):
 
 def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
     """Summarise PSFs/CTFs across vertices."""
-    from scipy import linalg
     s_var = None  # only computed for return_pca_vars=True
 
     if mode == 'maxval':  # pick PSF/CTF with maximum absolute value
