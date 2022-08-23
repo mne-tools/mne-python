@@ -100,6 +100,7 @@ class EOGRegression():
            aligned-artifact average solution. Clinical Neurophysiology, 107(6),
            395-401. http://doi.org/10.1016/s0013-4694(98)00087-x
     """
+
     def __init__(self, picks=None, picks_artifact='eog'):
         self._picks = picks
         self._picks_artifact = picks_artifact
@@ -245,7 +246,7 @@ class EOGRegression():
                                border=border, time_format='')
 
     def _check_inst(self, inst):
-        """Helper method to perform some sanity checks on the input."""
+        """Perform some sanity checks on the input."""
         _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), 'inst',
                        'Raw, Epochs, Evoked')
         if _needs_eeg_average_ref_proj(inst.info):
