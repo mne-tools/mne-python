@@ -43,6 +43,7 @@ Enhancements
 - Add :func:`mne.chpi.get_active_chpi` to retrieve the number of active hpi coils for each time point (:gh:`11122` by `Eduard Ort`_)
 - Add example of how to obtain time-frequency decomposition using narrow bandpass Hilbert transforms to :ref:`ex-tfr-comparison` (:gh:`11116` by `Alex Rockhill`_)
 - Add ``==`` and ``!=`` comparison between `mne.Projection` objects (:gh:`11147` by `Mathieu Scheltienne`_)
+- Add forward IIR filtering, using parameters method='iir' and phase='forward' (:gh:`11078` by `Quentin Barthélemy`_)
 
 Bugs
 ~~~~

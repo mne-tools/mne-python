@@ -364,6 +364,8 @@
 
 .. _Qianliang Li: https://www.dtu.dk/english/service/phonebook/person?id=126774
 
+.. _Quentin Barthélemy: https://github.com/qbarthelemy
+
 .. _Quentin Bertrand: https://github.com/QB3
 
 .. _Qunxi Dong: https://github.com/dongqunxi
