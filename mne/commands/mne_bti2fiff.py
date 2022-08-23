@@ -8,7 +8,7 @@ Notes
    the weights or use the low level functions from this module to
    include them by yourself.
 2. The informed guess for the 4D name is E31 for the ECG channel and
-   E63, E63 for the EOG channels. Pleas check and adjust if those channels
+   E63, E63 for the EOG channels. Please check and adjust if those channels
    are present in your dataset but 'ECG 01' and 'EOG 01', 'EOG 02' don't
    appear in the channel names of the raw object.
 
@@ -22,8 +22,8 @@ Examples
 
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Yuval Harpaz <yuvharpaz@gmail.com>
 #
 #          simplified bsd-3 license
@@ -31,6 +31,7 @@ Examples
 
 import sys
 
+import mne
 from mne.io import read_raw_bti
 
 
@@ -89,9 +90,6 @@ def run():
 
     raw.save(out_fname)
     raw.close()
-    if is_main:
-        sys.exit(0)
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+
+mne.utils.run_command_if_main()

@@ -1,6 +1,6 @@
 """Functions to plot M/EEG data on topo (one axes per channel)."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -9,20 +9,20 @@
 
 from copy import deepcopy
 from functools import partial
-from itertools import cycle
 
 import numpy as np
 
 from ..io.pick import channel_type, pick_types
-from ..utils import _clean_names, warn, _check_option, Bunch
-from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
+from ..utils import _clean_names, _check_option, Bunch, fill_doc, _to_rgb
+from ..channels.layout import _merge_ch_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
-from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
+from .utils import (_check_delayed_ssp, _draw_proj_checkbox,
                     add_background_image, plt_show, _setup_vmin_vmax,
-                    DraggableColorbar, _set_ax_facecolor, _setup_ax_spines,
+                    DraggableColorbar, _setup_ax_spines,
                     _check_cov, _plot_masked_image)
 
 
+@fill_doc
 def iter_topography(info, layout=None, on_pick=None, fig=None,
                     fig_facecolor='k', axis_facecolor='k',
                     axis_spinecolor='k', layout_scale=None, legend=False):
@@ -32,19 +32,17 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
     a series of matplotlib axis objects and data / channel
     indices, both corresponding to the sensor positions
     of the related layout passed or inferred from the channel info.
-    `iter_topography`, hence, allows to conveniently realize custom
-    topography plots.
+    Hence, this enables convenient topography plot customization.
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info.
-    layout : instance of mne.layout.Layout | None
-        The layout to use. If None, layout will be guessed
+    %(info_not_none)s
+    layout : instance of mne.channels.Layout | None
+        The layout to use. If None, layout will be guessed.
     on_pick : callable | None
         The callback function to be invoked on clicking one
         of the axes. Is supposed to instantiate the following
-        API: `function(axis, channel_index)`
+        API: ``function(axis, channel_index)``.
     fig : matplotlib.figure.Figure | None
         The figure object to be considered. If None, a new
         figure will be created.
@@ -55,23 +53,23 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
     axis_spinecolor : color
         The axis spine color. Defaults to black. In other words,
         the color of the axis' edge lines.
-    layout_scale: float | None
+    layout_scale : float | None
         Scaling factor for adjusting the relative size of the layout
         on the canvas. If None, nothing will be scaled.
-    legend: bool
+    legend : bool
         If True, an additional axis is created in the bottom right corner
         that can be used to, e.g., construct a legend. The index of this
         axis will be -1.
 
     Returns
     -------
-    A generator that can be unpacked into:
+    gen : generator
+        A generator that can be unpacked into:
 
         ax : matplotlib.axis.Axis
             The current axis of the topo plot.
         ch_dx : int
             The related channel index.
-
     """
     return _iter_topography(info, layout, on_pick, fig, fig_facecolor,
                             axis_facecolor, axis_spinecolor, layout_scale,
@@ -82,8 +80,18 @@ def _legend_axis(pos):
     """Add a legend axis to the bottom right."""
     import matplotlib.pyplot as plt
     left, bottom = pos[:, 0].max(), pos[:, 1].min()
+    # check if legend axis overlaps a data axis
+    overlaps = False
+    for _pos in pos:
+        h_overlap = (_pos[0] <= left <= (_pos[0] + _pos[2]))
+        v_overlap = (_pos[1] <= bottom <= (_pos[1] + _pos[3]))
+        if h_overlap and v_overlap:
+            overlaps = True
+            break
+    if overlaps:
+        left += 1.2 * _pos[2]
     wid, hei = pos[-1, 2:]
-    return plt.axes([left, bottom + .05, wid, hei])
+    return plt.axes([left, bottom, wid, hei])
 
 
 def _iter_topography(info, layout, on_pick, fig, fig_facecolor='k',
@@ -212,7 +220,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
     if axes is None:
         fig = plt.figure()
         axes = plt.axes([0.015, 0.025, 0.97, 0.95])
-        _set_ax_facecolor(axes, fig_facecolor)
+        axes.set_facecolor(fig_facecolor)
     else:
         fig = axes.figure
     if colorbar:
@@ -272,7 +280,7 @@ def _plot_topo_onpick(event, show_func):
         fig, ax = plt.subplots(1)
 
         plt.title(orig_ax._mne_ch_name)
-        _set_ax_facecolor(ax, face_color)
+        ax.set_facecolor(face_color)
 
         # allow custom function to override parameters
         show_func(ax, ch_idx)
@@ -306,7 +314,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
                 tfr=None, freq=None, x_label=None, y_label=None,
                 colorbar=False, cmap=('RdBu_r', True), yscale='auto',
                 mask=None, mask_style="both", mask_cmap="Greys",
-                mask_alpha=0.1, is_jointplot=False):
+                mask_alpha=0.1, is_jointplot=False, cnorm=None):
     """Show time-frequency map as two-dimensional image."""
     from matplotlib import pyplot as plt
     from matplotlib.widgets import RectangleSelector
@@ -319,7 +327,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
     img, t_end = _plot_masked_image(
         ax, tfr[ch_idx], times, mask, yvals=freq, cmap=cmap,
         vmin=vmin, vmax=vmax, mask_style=mask_style, mask_alpha=mask_alpha,
-        mask_cmap=mask_cmap, yscale=yscale)
+        mask_cmap=mask_cmap, yscale=yscale, cnorm=cnorm)
 
     if x_label is not None:
         ax.set_xlabel(x_label)
@@ -329,7 +337,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, onselect, ylim=None,
         if isinstance(colorbar, DraggableColorbar):
             cbar = colorbar.cbar  # this happens with multiaxes case
         else:
-            cbar = plt.colorbar(mappable=img)
+            cbar = plt.colorbar(mappable=img, ax=ax)
         if interactive_cmap:
             ax.CB = DraggableColorbar(cbar, img)
     ax.RS = RectangleSelector(ax, onselect=onselect)  # reference must be kept
@@ -358,12 +366,12 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
                      labels=None):
     """Show time series on topo split across multiple axes."""
     import matplotlib.pyplot as plt
-    from matplotlib.colors import colorConverter
     picker_flag = False
     for data_, color_, times_ in zip(data, color, times):
         if not picker_flag:
             # use large tol for picker so we can click anywhere in the axes
-            ax.plot(times_, data_[ch_idx], color=color_, picker=1e9)
+            line = ax.plot(times_, data_[ch_idx], color=color_, picker=True)[0]
+            line.set_pickradius(1e9)
             picker_flag = True
         else:
             ax.plot(times_, data_[ch_idx], color=color_)
@@ -421,17 +429,16 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
 
     ax._cursorline = None
     # choose cursor color based on perceived brightness of background
-    try:
-        facecol = colorConverter.to_rgb(ax.get_facecolor())
-    except AttributeError:  # older MPL
-        facecol = colorConverter.to_rgb(ax.get_axis_bgcolor())
-    face_brightness = np.dot(facecol, np.array([299, 587, 114]))
+    facecol = _to_rgb(ax.get_facecolor())
+    face_brightness = np.dot(facecol, [299, 587, 114])
     ax._cursorcolor = 'white' if face_brightness < 150 else 'black'
 
     plt.connect('motion_notify_event', _cursor_vline)
     plt.connect('axes_leave_event', _rm_cursor)
 
-    _setup_ax_spines(ax, vline, tmin, tmax)
+    ymin, ymax = ax.get_ylim()
+    # don't pass vline or hline here (this fxn doesn't do hvline_color):
+    _setup_ax_spines(ax, [], tmin, tmax, ymin, ymax, hline=False)
     ax.figure.set_facecolor('k' if hvline_color == 'w' else 'w')
     ax.spines['bottom'].set_color(hvline_color)
     ax.spines['left'].set_color(hvline_color)
@@ -561,11 +568,12 @@ def _erfimage_imshow_unified(bn, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                                 interpolation='nearest'))
 
 
-def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
-                      border='none', ylim=None, scalings=None, title=None,
-                      proj=False, vline=(0.,), hline=(0.,), fig_facecolor='k',
-                      fig_background=None, axis_facecolor='k', font_color='w',
-                      merge_grads=False, legend=True, axes=None, show=True,
+def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
+                      color=None, border='none', ylim=None, scalings=None,
+                      title=None, proj=False, vline=(0.,), hline=(0.,),
+                      fig_facecolor='k', fig_background=None,
+                      axis_facecolor='k', font_color='w', merge_channels=False,
+                      legend=True, axes=None, exclude='bads', show=True,
                       noise_cov=None):
     """Plot 2D topography of evoked responses.
 
@@ -580,24 +588,24 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
         inferred from the data.
-    layout_scale: float
+    layout_scale : float
         Scaling factor for adjusting the relative size of the layout
-        on the canvas
+        on the canvas.
     color : list of color objects | color object | None
         Everything matplotlib accepts to specify colors. If not list-like,
         the color specified will be repeated. If None, colors are
         automatically drawn.
     border : str
-        matplotlib borders style to be used for each sensor plot.
+        Matplotlib borders style to be used for each sensor plot.
     ylim : dict | None
         ylim for plots (after scaling has been applied). The value
         determines the upper and lower subplot limits. e.g.
         ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad. If None,
-        the ylim parameter for each channel is determined by the maximum
-        absolute peak.
+        the ylim parameter for each channel type is determined by the minimum
+        and maximum peak.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
-        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+        defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
     title : str
         Title of the figure.
     proj : bool | 'interactive'
@@ -617,7 +625,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         The face color to be used for each sensor plot. Defaults to black.
     font_color : color
         The color of text in the colorbar and title. Defaults to white.
-    merge_grads : bool
+    merge_channels : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
     legend : bool | int | string | tuple
@@ -630,12 +638,15 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         See matplotlib documentation for more details.
     axes : instance of matplotlib Axes | None
         Axes to plot into. If None, axes will be created.
-    show : bool
-        Show figure if True.
     noise_cov : instance of Covariance | str | None
         Noise covariance used to whiten the data while plotting.
         Whitened data channels names are shown in italic.
         Can be a string to load a covariance from disk.
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded. By default, exclude is set to 'bads'.
+    show : bool
+        Show figure if True.
 
         .. versionadded:: 0.16.0
 
@@ -650,21 +661,6 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
 
-    if type(color) in (tuple, list):
-        if len(color) != len(evoked):
-            raise ValueError('Lists of evoked objects and colors'
-                             ' must have the same length')
-    elif color is None:
-        colors = ['w'] + _get_color_list
-        stop = (slice(len(evoked)) if len(evoked) < len(colors)
-                else slice(len(colors)))
-        color = cycle(colors[stop])
-        if len(evoked) > len(colors):
-            warn('More evoked objects than colors available. You should pass '
-                 'a list of unique colors.')
-    else:
-        color = cycle([color])
-
     noise_cov = _check_cov(noise_cov, evoked[0].info)
     if noise_cov is not None:
         evoked = [whiten_evoked(e, noise_cov) for e in evoked]
@@ -676,20 +672,19 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     if not all(e.ch_names == ch_names for e in evoked):
         raise ValueError('All evoked.picks must be the same')
     ch_names = _clean_names(ch_names)
-    if merge_grads:
-        picks = _pair_grad_sensors(info, topomap_coords=False)
+    if merge_channels:
+        picks = _pair_grad_sensors(info, topomap_coords=False, exclude=exclude)
         chs = list()
         for pick in picks[::2]:
             ch = info['chs'][pick]
             ch['ch_name'] = ch['ch_name'][:-1] + 'X'
             chs.append(ch)
-        info['chs'] = chs
-        info['bads'] = list()  # bads dropped on pair_grad_sensors
-        info._update_redundant()
-        info._check_consistency()
+        with info._unlock(update_redundant=True, check_after=True):
+            info['chs'] = chs
+            info['bads'] = list()   # Bads handled by pair_grad_sensors
         new_picks = list()
         for e in evoked:
-            data = _merge_grad_data(e.data[picks])
+            data, _ = _merge_ch_data(e.data[picks], 'grad', [])
             if noise_cov is None:
                 data *= scalings['grad']
             e.data = data
@@ -700,25 +695,34 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         y_label = 'RMS amplitude (%s)' % unit
 
     if layout is None:
-        layout = find_layout(info)
+        layout = find_layout(info, exclude=exclude)
 
-    if not merge_grads:
+    if not merge_channels:
         # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
-        chs_in_layout = set(layout.names) & set(ch_names)
-        types_used = {channel_type(info, ch_names.index(ch))
-                      for ch in chs_in_layout}
+        chs_in_layout = [ch_name for ch_name in ch_names
+                         if ch_name in layout.names]
+        types_used = [channel_type(info, ch_names.index(ch))
+                      for ch in chs_in_layout]
+        # Using dict conversion to remove duplicates
+        types_used = list(dict.fromkeys(types_used))
         # remove possible reference meg channels
-        types_used = set.difference(types_used, set('ref_meg'))
+        types_used = [types_used for types_used in types_used
+                      if types_used != 'ref_meg']
         # one check for all vendors
-        meg_types = {'mag', 'grad'}
-        is_meg = len(set.intersection(types_used, meg_types)) > 0
+        is_meg = len([x for x in types_used if x in ['mag', 'grad']]) > 0
+        is_nirs = len([x for x in types_used if x in
+                      ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')]) > 0
         if is_meg:
             types_used = list(types_used)[::-1]  # -> restore kwarg order
-            picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
+            picks = [pick_types(info, meg=kk, ref_meg=False, exclude=exclude)
+                     for kk in types_used]
+        elif is_nirs:
+            types_used = list(types_used)[::-1]  # -> restore kwarg order
+            picks = [pick_types(info, fnirs=kk, ref_meg=False, exclude=exclude)
                      for kk in types_used]
         else:
             types_used_kwargs = {t: True for t in types_used}
-            picks = [pick_types(info, meg=False, exclude=[],
+            picks = [pick_types(info, meg=False, exclude=exclude,
                                 **types_used_kwargs)]
         assert isinstance(picks, list) and len(types_used) == len(picks)
 
@@ -742,10 +746,13 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
             y_label.append('Amplitude (%s)' % unit)
 
     if ylim is None:
-        # find maxima over all evoked data for each channel pick
-        ymaxes = np.array([max(np.abs(e.data[t]).max() for e in evoked)
+        # find minima and maxima over all evoked data for each channel pick
+        ymaxes = np.array([max((e.data[t]).max() for e in evoked)
                            for t in picks])
-        ylim_ = (-ymaxes, ymaxes)
+        ymins = np.array([min((e.data[t]).min() for e in evoked)
+                          for t in picks])
+
+        ylim_ = (ymins, ymaxes)
     elif isinstance(ylim, dict):
         ylim_ = _handle_default('ylim', ylim)
         ylim_ = [ylim_[kk] for kk in types_used]
@@ -753,7 +760,10 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         if len(ylim_) == 1:
             ylim_ = ylim_[0]
         else:
-            ylim_ = zip(*[np.array(yl) for yl in ylim_])
+            ylim_ = [np.array(yl) for yl in ylim_]
+            # Transposing to avoid Zipping confusion
+            if is_meg or is_nirs:
+                ylim_ = list(map(list, zip(*ylim_)))
     else:
         raise TypeError('ylim must be None or a dict. Got %s.' % type(ylim))
 
@@ -832,16 +842,16 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     ----------
     epochs : instance of :class:`~mne.Epochs`
         The epochs.
-    layout: instance of Layout
+    layout : instance of Layout
         System specific sensor positions.
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along
         the epoch axis to apply in the image. If 0., no smoothing is applied.
     vmin : float
-        The min value in the image. The unit is uV for EEG channels,
+        The min value in the image. The unit is µV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.
     vmax : float
-        The max value in the image. The unit is uV for EEG channels,
+        The max value in the image. The unit is µV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.
     colorbar : bool | None
         Whether to display a colorbar or not. If ``None`` a colorbar will be
@@ -854,16 +864,16 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         (data.shape[1] == len(times)).
     cmap : colormap
         Colors to be mapped to the values.
-    layout_scale: float
-        scaling factor for adjusting the relative size of the layout
+    layout_scale : float
+        Scaling factor for adjusting the relative size of the layout
         on the canvas.
     title : str
         Title of the figure.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If
-        ``None``, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+        ``None``, defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
     border : str
-        matplotlib borders style to be used for each sensor plot.
+        Matplotlib borders style to be used for each sensor plot.
     fig_facecolor : color
         The figure face color. Defaults to black.
     fig_background : None | array
@@ -896,9 +906,8 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     ch_names = set(layout.names) & set(epochs.ch_names)
     idxs = [epochs.ch_names.index(ch_name) for ch_name in ch_names]
     epochs = epochs.pick(idxs)
-    # iterate over a sequential index to get lists of chan. type & scale coef.
-    ch_idxs = range(epochs.info['nchan'])
-    ch_types = [channel_type(epochs.info, idx) for idx in ch_idxs]
+    # get lists of channel type & scale coefficient
+    ch_types = epochs.get_channel_types()
     scale_coeffs = [scalings.get(ch_type, 1) for ch_type in ch_types]
     # scale the data
     epochs._data *= np.array(scale_coeffs)[:, np.newaxis]

@@ -1,10 +1,9 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          The statsmodels folks for AR yule_walker
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
-from scipy import linalg
 
 from ..defaults import _handle_default
 from ..io.pick import _picks_to_idx, _picks_by_type, pick_info
@@ -16,6 +15,7 @@ def _yule_walker(X, order=1):
 
     Operates in-place.
     """
+    from scipy import linalg
     assert X.ndim == 2
     denom = X.shape[-1] - np.arange(order + 1)
     r = np.zeros(order + 1, np.float64)
@@ -45,9 +45,9 @@ def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None,
     Parameters
     ----------
     raw : Raw object
-        an instance of Raw.
+        An instance of Raw.
     order : int
-        order of the FIR filter.
+        Order of the FIR filter.
     %(picks_good_data)s
     tmin : float
         The beginning of time interval in seconds.
@@ -60,7 +60,7 @@ def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None,
     b : ndarray
         Numerator filter coefficients.
     a : ndarray
-        Denominator filter coefficients
+        Denominator filter coefficients.
     """
     start, stop = None, None
     if tmin is not None:

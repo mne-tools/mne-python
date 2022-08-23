@@ -1,10 +1,11 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 import itertools as itt
+import sys
 
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal, assert_allclose)
@@ -21,15 +22,16 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_types, make_ad_hoc_cov,
-                 make_fixed_length_events)
+                 make_fixed_length_events, create_info, compute_rank)
+from mne.channels import equalize_channels
 from mne.datasets import testing
 from mne.fixes import _get_args
-from mne.io import read_raw_fif, RawArray, read_raw_ctf
-from mne.io.pick import _DATA_CH_TYPES_SPLIT
+from mne.io import read_raw_fif, RawArray, read_raw_ctf, read_info
+from mne.io.pick import _DATA_CH_TYPES_SPLIT, pick_info
 from mne.preprocessing import maxwell_filter
 from mne.rank import _compute_rank_int
-from mne.utils import (requires_version, run_tests_if_main,
-                       catch_logging, assert_snr)
+from mne.utils import (requires_sklearn, catch_logging, assert_snr,
+                       _record_warnings)
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 cov_fname = op.join(base_dir, 'test-cov.fif')
@@ -49,13 +51,14 @@ ctf_fname = op.join(testing.data_path(download=False), 'CTF',
 def test_compute_whitener(proj, pca):
     """Test properties of compute_whitener."""
     raw = read_raw_fif(raw_fname).crop(0, 3).load_data()
-    raw.pick_types(eeg=True, exclude=())
+    raw.pick_types(meg=True, eeg=True, exclude=())
     if proj:
         raw.apply_proj()
     else:
         raw.del_proj()
     with pytest.warns(RuntimeWarning, match='Too few samples'):
         cov = compute_raw_covariance(raw)
+    assert cov['names'] == raw.ch_names
     W, _, C = compute_whitener(cov, raw.info, pca=pca, return_colorer=True,
                                verbose='error')
     n_channels = len(raw.ch_names)
@@ -75,6 +78,26 @@ def test_compute_whitener(proj, pca):
         assert pca is False
         assert_allclose(round_trip, np.eye(n_channels), atol=0.05)
 
+    raw.info['bads'] = [raw.ch_names[0]]
+    picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
+    with pytest.warns(RuntimeWarning, match='Too few samples'):
+        cov2 = compute_raw_covariance(raw, picks=picks)
+        cov3 = compute_raw_covariance(raw, picks=None)
+    assert_allclose(cov2['data'][1:, 1:], cov3['data'])
+    W2, _, C2 = compute_whitener(cov2, raw.info, pca=pca, return_colorer=True,
+                                 picks=picks, verbose='error')
+    W3, _, C3 = compute_whitener(cov3, raw.info, pca=pca, return_colorer=True,
+                                 picks=None, verbose='error')
+    # this tol is not great, but Windows needs it
+    rtol = 1e-3 if sys.platform.startswith('win') else 1e-11
+    assert_allclose(W, W2, rtol=rtol)
+    assert_allclose(C, C2, rtol=rtol)
+    n_channels = len(raw.ch_names) - len(raw.info['bads'])
+    n_reduced = len(raw.ch_names) - len(raw.info['bads'])
+    rank = n_channels - len(raw.info['projs'])
+    n_reduced = rank if pca is True else n_channels
+    assert W3.shape == C3.shape[::-1] == (n_reduced, n_channels)
+
 
 def test_cov_mismatch():
     """Test estimation with MEG<->Head mismatch."""
@@ -93,10 +116,10 @@ def test_cov_mismatch():
             epochs_2.info['dev_head_t'] = None
         pytest.raises(ValueError, compute_covariance, [epochs, epochs_2])
         compute_covariance([epochs, epochs_2], on_mismatch='ignore')
-        with pytest.raises(RuntimeWarning, match='transform mismatch'):
+        with pytest.warns(RuntimeWarning, match='transform mismatch'):
             compute_covariance([epochs, epochs_2], on_mismatch='warn')
-        pytest.raises(ValueError, compute_covariance, epochs,
-                      on_mismatch='x')
+        with pytest.raises(ValueError, match='Invalid value'):
+            compute_covariance(epochs, on_mismatch='x')
     # This should work
     epochs.info['dev_head_t'] = None
     epochs_2.info['dev_head_t'] = None
@@ -146,7 +169,7 @@ def test_cov_order():
     whitener_2, w_ch_names_2, n_nzero_2 = compute_whitener(
         cov_reorder, info, return_rank=True)
     assert_array_equal(w_ch_names_2, w_ch_names)
-    assert_allclose(whitener_2, whitener)
+    assert_allclose(whitener_2, whitener, rtol=1e-6)
     assert n_nzero == n_nzero_2
     # with pca
     assert n_nzero < whitener.shape[0]
@@ -159,7 +182,7 @@ def test_cov_order():
     evoked = read_evokeds(ave_fname)[0]
     evoked_white = whiten_evoked(evoked, cov)
     evoked_white_2 = whiten_evoked(evoked, cov_reorder)
-    assert_allclose(evoked_white_2.data, evoked_white.data)
+    assert_allclose(evoked_white_2.data, evoked_white.data, atol=1e-7)
 
 
 def _assert_reorder(cov_new, cov_orig, order):
@@ -171,9 +194,9 @@ def _assert_reorder(cov_new, cov_orig, order):
                     cov_orig['data'], atol=1e-20)
 
 
-def test_ad_hoc_cov(tmpdir):
+def test_ad_hoc_cov(tmp_path):
     """Test ad hoc cov creation and I/O."""
-    out_fname = op.join(str(tmpdir), 'test-cov.fif')
+    out_fname = tmp_path / 'test-cov.fif'
     evoked = read_evokeds(ave_fname)[0]
     cov = make_ad_hoc_cov(evoked.info)
     cov.save(out_fname)
@@ -182,20 +205,27 @@ def test_ad_hoc_cov(tmpdir):
     assert_array_almost_equal(cov['data'], cov2['data'])
     std = dict(grad=2e-13, mag=10e-15, eeg=0.1e-6)
     cov = make_ad_hoc_cov(evoked.info, std)
-    cov.save(out_fname)
+    cov.save(out_fname, overwrite=True)
     assert 'Covariance' in repr(cov)
     cov2 = read_cov(out_fname)
     assert_array_almost_equal(cov['data'], cov2['data'])
+    cov['data'] = np.diag(cov['data'])
+    with pytest.raises(RuntimeError, match='attributes inconsistent'):
+        cov._get_square()
+    cov['diag'] = False
+    cov._get_square()
+    cov['data'] = np.diag(cov['data'])
+    with pytest.raises(RuntimeError, match='attributes inconsistent'):
+        cov._get_square()
 
 
-def test_io_cov(tmpdir):
+def test_io_cov(tmp_path):
     """Test IO for noise covariance matrices."""
-    tempdir = str(tmpdir)
     cov = read_cov(cov_fname)
     cov['method'] = 'empirical'
     cov['loglik'] = -np.inf
-    cov.save(op.join(tempdir, 'test-cov.fif'))
-    cov2 = read_cov(op.join(tempdir, 'test-cov.fif'))
+    cov.save(tmp_path / 'test-cov.fif')
+    cov2 = read_cov(tmp_path / 'test-cov.fif')
     assert_array_almost_equal(cov.data, cov2.data)
     assert_equal(cov['method'], cov2['method'])
     assert_equal(cov['loglik'], cov2['loglik'])
@@ -203,56 +233,81 @@ def test_io_cov(tmpdir):
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
-    cov2.save(op.join(tempdir, 'test-cov.fif.gz'))
-    cov2 = read_cov(op.join(tempdir, 'test-cov.fif.gz'))
+    cov2.save(tmp_path / 'test-cov.fif.gz')
+    cov2 = read_cov(tmp_path / 'test-cov.fif.gz')
     assert_array_almost_equal(cov.data, cov2.data)
 
     cov['bads'] = ['EEG 039']
     cov_sel = pick_channels_cov(cov, exclude=cov['bads'])
     assert cov_sel['dim'] == (len(cov['data']) - len(cov['bads']))
     assert cov_sel['data'].shape == (cov_sel['dim'], cov_sel['dim'])
-    cov_sel.save(op.join(tempdir, 'test-cov.fif'))
+    cov_sel.save(tmp_path / 'test-cov.fif', overwrite=True)
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
-    cov2.save(op.join(tempdir, 'test-cov.fif.gz'))
-    cov2 = read_cov(op.join(tempdir, 'test-cov.fif.gz'))
+    cov2.save(tmp_path / 'test-cov.fif.gz', overwrite=True)
+    cov2 = read_cov(tmp_path / 'test-cov.fif.gz')
     assert_array_almost_equal(cov.data, cov2.data)
 
     # test warnings on bad filenames
-    cov_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+    cov_badname = tmp_path / 'test-bad-name.fif.gz'
     with pytest.warns(RuntimeWarning, match='-cov.fif'):
         write_cov(cov_badname, cov)
     with pytest.warns(RuntimeWarning, match='-cov.fif'):
         read_cov(cov_badname)
 
 
-@pytest.mark.parametrize('method', (None, ['empirical']))
-def test_cov_estimation_on_raw(method, tmpdir):
+@pytest.mark.parametrize('method', [
+    None,
+    'empirical',
+    pytest.param('shrunk', marks=pytest.mark.slowtest),
+])
+def test_cov_estimation_on_raw(method, tmp_path):
     """Test estimation from raw (typically empty room)."""
-    tempdir = str(tmpdir)
+    if method == 'shrunk':
+        try:
+            import sklearn  # noqa: F401
+        except Exception as exp:
+            pytest.skip('sklearn is required, got %s' % (exp,))
     raw = read_raw_fif(raw_fname, preload=True)
     cov_mne = read_cov(erm_cov_fname)
+    method_params = dict(shrunk=dict(shrinkage=[0]))
 
     # The pure-string uses the more efficient numpy-based method, the
     # the list gets triaged to compute_covariance (should be equivalent
     # but use more memory)
-    with pytest.warns(None):  # can warn about EEG ref
-        cov = compute_raw_covariance(raw, tstep=None, method=method,
-                                     rank='full')
+    with _record_warnings():  # can warn about EEG ref
+        cov = compute_raw_covariance(
+            raw, tstep=None, method=method, rank='full',
+            method_params=method_params)
     assert_equal(cov.ch_names, cov_mne.ch_names)
     assert_equal(cov.nfree, cov_mne.nfree)
-    assert_snr(cov.data, cov_mne.data, 1e4)
+    assert_snr(cov.data, cov_mne.data, 1e6)
+
+    # test equivalence with np.cov
+    cov_np = np.cov(raw.copy().pick_channels(cov['names']).get_data(), ddof=1)
+    if method != 'shrunk':  # can check all
+        off_diag = np.triu_indices(cov_np.shape[0])
+    else:
+        # We explicitly zero out off-diag entries between channel types,
+        # so let's just check MEG off-diag entries
+        off_diag = np.triu_indices(len(pick_types(raw.info, meg=True,
+                                                  exclude=())))
+    for other in (cov_mne, cov):
+        assert_allclose(np.diag(cov_np), np.diag(other.data), rtol=5e-6)
+        assert_allclose(cov_np[off_diag], other.data[off_diag], rtol=4e-3)
+        assert_snr(cov.data, other.data, 1e6)
 
     # tstep=0.2 (default)
-    with pytest.warns(None):  # can warn about EEG ref
-        cov = compute_raw_covariance(raw, method=method, rank='full')
-    assert_equal(cov.nfree, cov_mne.nfree - 119)  # cutoff some samples
-    assert_snr(cov.data, cov_mne.data, 1e2)
+    with _record_warnings():  # can warn about EEG ref
+        cov = compute_raw_covariance(raw, method=method, rank='full',
+                                     method_params=method_params)
+    assert_equal(cov.nfree, cov_mne.nfree - 120)  # cutoff some samples
+    assert_snr(cov.data, cov_mne.data, 170)
 
     # test IO when computation done in Python
-    cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving
-    cov_read = read_cov(op.join(tempdir, 'test-cov.fif'))
+    cov.save(tmp_path / 'test-cov.fif')  # test saving
+    cov_read = read_cov(tmp_path / 'test-cov.fif')
     assert cov_read.ch_names == cov.ch_names
     assert cov_read.nfree == cov.nfree
     assert_array_almost_equal(cov.data, cov_read.data)
@@ -261,36 +316,39 @@ def test_cov_estimation_on_raw(method, tmpdir):
     raw_pick = raw.copy().pick_channels(raw.ch_names[:5])
     raw_pick.info.normalize_proj()
     cov = compute_raw_covariance(raw_pick, tstep=None, method=method,
-                                 rank='full')
+                                 rank='full', method_params=method_params)
     assert cov_mne.ch_names[:5] == cov.ch_names
-    assert_snr(cov.data, cov_mne.data[:5, :5], 1e4)
-    cov = compute_raw_covariance(raw_pick, method=method, rank='full')
+    assert_snr(cov.data, cov_mne.data[:5, :5], 5e6)
+    cov = compute_raw_covariance(raw_pick, method=method, rank='full',
+                                 method_params=method_params)
     assert_snr(cov.data, cov_mne.data[:5, :5], 90)  # cutoff samps
     # make sure we get a warning with too short a segment
     raw_2 = read_raw_fif(raw_fname).crop(0, 1)
     with pytest.warns(RuntimeWarning, match='Too few samples'):
-        cov = compute_raw_covariance(raw_2, method=method)
+        cov = compute_raw_covariance(raw_2, method=method,
+                                     method_params=method_params)
     # no epochs found due to rejection
     pytest.raises(ValueError, compute_raw_covariance, raw, tstep=None,
                   method='empirical', reject=dict(eog=200e-6))
     # but this should work
-    cov = compute_raw_covariance(raw.copy().crop(0, 10.),
-                                 tstep=None, method=method,
-                                 reject=dict(eog=1000e-6),
-                                 verbose='error')
+    with _record_warnings():  # sklearn
+        cov = compute_raw_covariance(
+            raw.copy().crop(0, 10.), tstep=None, method=method,
+            reject=dict(eog=1000e-6), method_params=method_params,
+            verbose='error')
 
 
 @pytest.mark.slowtest
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_cov_estimation_on_raw_reg():
     """Test estimation from raw with regularization."""
     raw = read_raw_fif(raw_fname, preload=True)
-    raw.info['sfreq'] /= 10.
+    with raw.info._unlock():
+        raw.info['sfreq'] /= 10.
     raw = RawArray(raw._data[:, ::10].copy(), raw.info)  # decimate for speed
     cov_mne = read_cov(erm_cov_fname)
     with pytest.warns(RuntimeWarning, match='Too few samples'):
-        # XXX don't use "shrunk" here, for some reason it makes Travis 2.7
-        # hang... "diagonal_fixed" is much faster. Use long epochs for speed.
+        # "diagonal_fixed" is much faster. Use long epochs for speed.
         cov = compute_raw_covariance(raw, tstep=5., method='diagonal_fixed')
     assert_snr(cov.data, cov_mne.data, 5)
 
@@ -306,9 +364,8 @@ def _assert_cov(cov, cov_desired, tol=0.005, nfree=True):
 
 @pytest.mark.slowtest
 @pytest.mark.parametrize('rank', ('full', None))
-def test_cov_estimation_with_triggers(rank, tmpdir):
+def test_cov_estimation_with_triggers(rank, tmp_path):
     """Test estimation from raw with triggers."""
-    tempdir = str(tmpdir)
     raw = read_raw_fif(raw_fname)
     raw.set_eeg_reference(projection=True).load_data()
     events = find_events(raw, stim_channel='STI 014')
@@ -322,7 +379,10 @@ def test_cov_estimation_with_triggers(rank, tmpdir):
                     reject=reject, preload=True)
 
     cov = compute_covariance(epochs, keep_sample_mean=True)
-    _assert_cov(cov, read_cov(cov_km_fname))
+    cov_km = read_cov(cov_km_fname)
+    # adjust for nfree bug
+    cov_km['nfree'] -= 1
+    _assert_cov(cov, cov_km)
 
     # Test with tmin and tmax (different but not too much)
     cov_tmin_tmax = compute_covariance(epochs, tmin=-0.19, tmax=-0.01)
@@ -341,6 +401,7 @@ def test_cov_estimation_with_triggers(rank, tmpdir):
 
     # cov with keep_sample_mean=False using a list of epochs
     cov = compute_covariance(epochs, keep_sample_mean=False)
+    assert cov_km.nfree == cov.nfree
     _assert_cov(cov, read_cov(cov_fname), nfree=False)
 
     method_params = {'empirical': {'assume_centered': False}}
@@ -350,8 +411,8 @@ def test_cov_estimation_with_triggers(rank, tmpdir):
                   keep_sample_mean=False, method='shrunk', rank=rank)
 
     # test IO when computation done in Python
-    cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving
-    cov_read = read_cov(op.join(tempdir, 'test-cov.fif'))
+    cov.save(tmp_path / 'test-cov.fif')  # test saving
+    cov_read = read_cov(tmp_path / 'test-cov.fif')
     _assert_cov(cov, cov_read, 1e-5)
 
     # cov with list of epochs with different projectors
@@ -444,7 +505,7 @@ def test_regularized_covariance():
     assert_allclose(data, evoked.data, atol=1e-20)
 
 
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_auto_low_rank():
     """Test probabilistic low rank estimators."""
     n_samples, n_features, rank = 400, 10, 5
@@ -486,7 +547,7 @@ def test_auto_low_rank():
 
 @pytest.mark.slowtest
 @pytest.mark.parametrize('rank', ('full', None, 'info'))
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_compute_covariance_auto_reg(rank):
     """Test automated regularization."""
     raw = read_raw_fif(raw_fname, preload=True)
@@ -512,20 +573,20 @@ def test_compute_covariance_auto_reg(rank):
     covs = compute_covariance(epochs, method='auto',
                               method_params=method_params,
                               return_estimators=True, rank=rank)
-    # make sure regularization produces structured differencess
+    # make sure regularization produces structured differences
     diag_mask = np.eye(len(epochs.ch_names)).astype(bool)
     off_diag_mask = np.invert(diag_mask)
     for cov_a, cov_b in itt.combinations(covs, 2):
         if (cov_a['method'] == 'diagonal_fixed' and
-                # here we have diagnoal or no regularization.
+                # here we have diagonal or no regularization.
                 cov_b['method'] == 'empirical' and rank == 'full'):
 
             assert not np.any(cov_a['data'][diag_mask] ==
                               cov_b['data'][diag_mask])
 
             # but the rest is the same
-            assert_array_equal(cov_a['data'][off_diag_mask],
-                               cov_b['data'][off_diag_mask])
+            assert_allclose(cov_a['data'][off_diag_mask],
+                            cov_b['data'][off_diag_mask], rtol=1e-12)
 
         else:
             # and here we have shrinkage everywhere.
@@ -583,7 +644,7 @@ def _cov_rank(cov, info, proj=True):
     # ignore warnings about rank mismatches: sometimes we will intentionally
     # violate the computed/info assumption, such as when using SSS with
     # `rank='full'`
-    with pytest.warns(None):
+    with _record_warnings():
         return _compute_rank_int(cov, info=info, proj=proj)
 
 
@@ -598,7 +659,7 @@ def raw_epochs_events():
     return (raw, epochs, events)
 
 
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 @pytest.mark.parametrize('rank', (None, 'full', 'info'))
 def test_low_rank_methods(rank, raw_epochs_events):
     """Test low-rank covariance matrix estimation."""
@@ -633,7 +694,7 @@ def test_low_rank_methods(rank, raw_epochs_events):
             (rank, method)
 
 
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_low_rank_cov(raw_epochs_events):
     """Test additional properties of low rank computations."""
     raw, epochs, events = raw_epochs_events
@@ -663,14 +724,16 @@ def test_low_rank_cov(raw_epochs_events):
     del reg_r_only_cov, reg_r_cov
 
     # test that rank=306 is same as rank='full'
-    epochs_meg = epochs.copy().pick_types()
+    epochs_meg = epochs.copy().pick_types(meg=True)
     assert len(epochs_meg.ch_names) == 306
-    epochs_meg.info.update(bads=[], projs=[])
+    with epochs_meg.info._unlock():
+        epochs_meg.info.update(bads=[], projs=[])
     cov_full = compute_covariance(epochs_meg, method='oas',
                                   rank='full', verbose='error')
     assert _cov_rank(cov_full, epochs_meg.info) == 306
-    with pytest.deprecated_call(match='int is deprecated'):
-        cov_dict = compute_covariance(epochs_meg, method='oas', rank=306)
+    with pytest.warns(RuntimeWarning, match='few samples'):
+        cov_dict = compute_covariance(epochs_meg, method='oas',
+                                      rank=dict(meg=306))
     assert _cov_rank(cov_dict, epochs_meg.info) == 306
     assert_allclose(cov_full['data'], cov_dict['data'])
     cov_dict = compute_covariance(epochs_meg, method='oas',
@@ -697,7 +760,6 @@ def test_low_rank_cov(raw_epochs_events):
                                  verbose='error')
     assert _cov_rank(dia_cov, epochs.info) == rank
     assert_allclose(dia_cov['data'], reg_cov['data'])
-    # test our deprecation: can simply remove later
     epochs.pick_channels(epochs.ch_names[:103])
     # degenerate
     with pytest.raises(ValueError, match='can.*only be used with rank="full"'):
@@ -707,7 +769,7 @@ def test_low_rank_cov(raw_epochs_events):
 
 
 @testing.requires_testing_data
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_cov_ctf():
     """Test basic cov computation on ctf data with/without compensation."""
     raw = read_raw_ctf(ctf_fname).crop(0., 2.).load_data()
@@ -738,4 +800,37 @@ def test_cov_ctf():
     assert raw.info['comps'], 'Comps matrices removed'
 
 
-run_tests_if_main()
+def test_equalize_channels():
+    """Test equalization of channels for instances of Covariance."""
+    cov1 = make_ad_hoc_cov(create_info(['CH1', 'CH2', 'CH3', 'CH4'], sfreq=1.0,
+                                       ch_types='eeg'))
+    cov2 = make_ad_hoc_cov(create_info(['CH5', 'CH1', 'CH2'], sfreq=1.0,
+                                       ch_types='eeg'))
+    cov1, cov2 = equalize_channels([cov1, cov2])
+    assert cov1.ch_names == ['CH1', 'CH2']
+    assert cov2.ch_names == ['CH1', 'CH2']
+
+
+def test_compute_whitener_rank():
+    """Test risky rank options."""
+    info = read_info(ave_fname)
+    info = pick_info(info, pick_types(info, meg=True))
+    with info._unlock():
+        info['projs'] = []
+    # need a square version because the diag one takes shortcuts in
+    # compute_whitener (users shouldn't even need this function so it's
+    # private)
+    cov = make_ad_hoc_cov(info)._as_square()
+    assert len(cov['names']) == 306
+    _, _, rank = compute_whitener(cov, info, rank=None, return_rank=True)
+    assert rank == 306
+    assert compute_rank(cov, info=info, verbose=True) == dict(meg=rank)
+    cov['data'][-1] *= 1e-14  # trivially rank-deficient
+    _, _, rank = compute_whitener(cov, info, rank=None, return_rank=True)
+    assert rank == 305
+    assert compute_rank(cov, info=info, verbose=True) == dict(meg=rank)
+    # this should emit a warning
+    with pytest.warns(RuntimeWarning, match='exceeds the estimated'):
+        _, _, rank = compute_whitener(cov, info, rank=dict(meg=306),
+                                      return_rank=True)
+    assert rank == 306

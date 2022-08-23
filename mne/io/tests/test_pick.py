@@ -1,5 +1,4 @@
 from copy import deepcopy
-import inspect
 import os.path as op
 
 from numpy.testing import assert_array_equal, assert_equal
@@ -8,26 +7,29 @@ import numpy as np
 
 from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels,
-                 pick_info, pick_channels, create_info)
+                 pick_info, pick_channels, create_info, make_ad_hoc_cov)
 from mne import __file__ as _root_init_fname
 from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
                     read_info)
+from mne.channels import make_standard_montage
+from mne.preprocessing import compute_current_source_density
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type, _picks_to_idx,
-                         get_channel_types, _DATA_CH_TYPES_SPLIT,
-                         _contains_ch_type)
+                         _contains_ch_type, pick_channels_cov,
+                         _get_channel_types, get_channel_type_constants,
+                         _DATA_CH_TYPES_SPLIT)
 from mne.io.constants import FIFF
 from mne.datasets import testing
-from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
+from mne.utils import catch_logging, assert_object_equal
 
-io_dir = op.join(op.dirname(inspect.getfile(inspect.currentframe())), '..')
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 fname_mc = op.join(data_path, 'SSS', 'test_move_anon_movecomp_raw_sss.fif')
 
-base_dir = op.join(op.dirname(__file__), 'data')
-ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
+io_dir = op.join(op.dirname(__file__), '..')
+ctf_fname = op.join(io_dir, 'tests', 'data', 'test_ctf_raw.fif')
+fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
 
 
 def _picks_by_type_old(info, meg_combined=False, ref_meg=False,
@@ -68,14 +70,17 @@ def _channel_type_old(info, idx):
     ch = info['chs'][idx]
 
     # iterate through all defined channel types until we find a match with ch
-    for t, rules in get_channel_types().items():
+    # go in order from most specific (most rules entries) to least specific
+    channel_types = sorted(get_channel_type_constants().items(),
+                           key=lambda x: len(x[1]), reverse=True)
+    for t, rules in channel_types:
         for key, vals in rules.items():  # all keys must match the values
             if ch.get(key, None) not in np.array(vals):
                 break  # not channel type t, go to next iteration
         else:
             return t
 
-    raise ValueError('Unknown channel type for {}'.format(ch["ch_name"]))
+    raise ValueError(f'Unknown channel type for {ch["ch_name"]}')
 
 
 def _assert_channel_types(info):
@@ -109,8 +114,10 @@ def test_pick_refs():
     for info in infos:
         info['bads'] = []
         _assert_channel_types(info)
-        pytest.raises(ValueError, pick_types, info, meg='foo')
-        pytest.raises(ValueError, pick_types, info, ref_meg='foo')
+        with pytest.raises(ValueError, match="'planar2'] or bool, not foo"):
+            pick_types(info, meg='foo')
+        with pytest.raises(ValueError, match="'planar2', 'auto'] or bool,"):
+            pick_types(info, ref_meg='foo')
         picks_meg_ref = pick_types(info, meg=True, ref_meg=True)
         picks_meg = pick_types(info, meg=True, ref_meg=False)
         picks_ref = pick_types(info, meg=False, ref_meg=True)
@@ -226,15 +233,42 @@ def test_pick_seeg_ecog():
         assert_equal(channel_type(info, i), types[i])
     raw = RawArray(np.zeros((len(names), 10)), info)
     events = np.array([[1, 0, 0], [2, 0, 0]])
-    epochs = Epochs(raw, events, {'event': 0}, -1e-5, 1e-5)
+    epochs = Epochs(raw, events=events, event_id={'event': 0},
+                    tmin=-1e-5, tmax=1e-5,
+                    baseline=(0, 0))  # only one sample
     evoked = epochs.average(pick_types(epochs.info, meg=True, seeg=True))
     e_seeg = evoked.copy().pick_types(meg=False, seeg=True)
-    for l, r in zip(e_seeg.ch_names, [names[4], names[5], names[7]]):
-        assert_equal(l, r)
+    for lt, rt in zip(e_seeg.ch_names, [names[4], names[5], names[7]]):
+        assert lt == rt
     # Deal with constant debacle
     raw = read_raw_fif(op.join(io_dir, 'tests', 'data',
                                'test_chpi_raw_sss.fif'))
     assert_equal(len(pick_types(raw.info, meg=False, seeg=True, ecog=True)), 0)
+
+
+def test_pick_dbs():
+    """Test picking with DBS."""
+    # gh-8739
+    names = 'A1 A2 Fz O OTp1 OTp2 OTp3'.split()
+    types = 'mag mag eeg eeg dbs dbs dbs'.split()
+    info = create_info(names, 1024., types)
+    picks_by_type = [('mag', [0, 1]), ('eeg', [2, 3]), ('dbs', [4, 5, 6])]
+    assert_indexing(info, picks_by_type)
+    assert_array_equal(pick_types(info, meg=False, dbs=True), [4, 5, 6])
+    for i, t in enumerate(types):
+        assert channel_type(info, i) == types[i]
+    raw = RawArray(np.zeros((len(names), 7)), info)
+    events = np.array([[1, 0, 0], [2, 0, 0]])
+    epochs = Epochs(raw, events=events, event_id={'event': 0},
+                    tmin=-1e-5, tmax=1e-5,
+                    baseline=(0, 0))  # only one sample
+    evoked = epochs.average(pick_types(epochs.info, meg=True, dbs=True))
+    e_dbs = evoked.copy().pick_types(meg=False, dbs=True)
+    for lt, rt in zip(e_dbs.ch_names, [names[4], names[5], names[6]]):
+        assert lt == rt
+    raw = read_raw_fif(op.join(io_dir, 'tests', 'data',
+                               'test_chpi_raw_sss.fif'))
+    assert len(pick_types(raw.info, meg=False, dbs=True)) == 0
 
 
 def test_pick_chpi():
@@ -242,10 +276,20 @@ def test_pick_chpi():
     # Make sure we don't mis-classify cHPI channels
     info = read_info(op.join(io_dir, 'tests', 'data', 'test_chpi_raw_sss.fif'))
     _assert_channel_types(info)
-    channel_types = {channel_type(info, idx) for idx in range(info['nchan'])}
+    channel_types = _get_channel_types(info)
     assert 'chpi' in channel_types
     assert 'seeg' not in channel_types
     assert 'ecog' not in channel_types
+
+
+def test_pick_csd():
+    """Test picking current source density channels."""
+    # Make sure we don't mis-classify cHPI channels
+    names = ['MEG 2331', 'MEG 2332', 'MEG 2333', 'A1', 'A2', 'Fz']
+    types = 'mag mag grad csd csd csd'.split()
+    info = create_info(names, 1024., types)
+    picks_by_type = [('mag', [0, 1]), ('grad', [2]), ('csd', [3, 4, 5])]
+    assert_indexing(info, picks_by_type, all_data=False)
 
 
 def test_pick_bio():
@@ -259,11 +303,13 @@ def test_pick_bio():
 
 def test_pick_fnirs():
     """Test picking fNIRS channels."""
-    names = 'A1 A2 Fz O hbo1 hbo2 hbr1'.split()
-    types = 'mag mag eeg eeg hbo hbo hbr'.split()
+    names = 'A1 A2 Fz O hbo1 hbo2 hbr1 fnirsRaw1 fnirsRaw2 fnirsOD1'.split()
+    types = 'mag mag eeg eeg hbo hbo hbr fnirs_cw_' \
+            'amplitude fnirs_cw_amplitude fnirs_od'.split()
     info = create_info(names, 1024., types)
     picks_by_type = [('mag', [0, 1]), ('eeg', [2, 3]),
-                     ('hbo', [4, 5]), ('hbr', [6])]
+                     ('hbo', [4, 5]), ('hbr', [6]),
+                     ('fnirs_cw_amplitude', [7, 8]), ('fnirs_od', [9])]
     assert_indexing(info, picks_by_type)
 
 
@@ -379,7 +425,8 @@ def test_picks_by_channels():
     assert_equal(pick_list2[0][0], 'mag')
 
     # pick_types type check
-    pytest.raises(ValueError, raw.pick_types, eeg='string')
+    with pytest.raises(ValueError, match='must be of type'):
+        raw.pick_types(eeg='string')
 
     # duplicate check
     names = ['MEG 002', 'MEG 002']
@@ -492,6 +539,99 @@ def test_picks_to_idx():
     assert_array_equal(np.arange(len(info['ch_names'])),
                        _picks_to_idx(info, 'all'))
     assert_array_equal([0], _picks_to_idx(info, 'data'))
+    info = create_info(['a', 'b'], 1000., ['fnirs_cw_amplitude', 'fnirs_od'])
+    assert_array_equal(np.arange(2), _picks_to_idx(info, 'fnirs'))
+    assert_array_equal([0], _picks_to_idx(info, 'fnirs_cw_amplitude'))
+    assert_array_equal([1], _picks_to_idx(info, 'fnirs_od'))
+    info = create_info(['a', 'b'], 1000., ['fnirs_cw_amplitude', 'misc'])
+    assert_array_equal(np.arange(len(info['ch_names'])),
+                       _picks_to_idx(info, 'all'))
+    assert_array_equal([0], _picks_to_idx(info, 'data'))
+    info = create_info(['a', 'b'], 1000., ['fnirs_od', 'misc'])
+    assert_array_equal(np.arange(len(info['ch_names'])),
+                       _picks_to_idx(info, 'all'))
+    assert_array_equal([0], _picks_to_idx(info, 'data'))
 
 
-run_tests_if_main()
+def test_pick_channels_cov():
+    """Test picking channels from a Covariance object."""
+    info = create_info(['CH1', 'CH2', 'CH3'], 1., ch_types='eeg')
+    cov = make_ad_hoc_cov(info)
+    cov['data'] = np.array([1., 2., 3.])
+
+    cov_copy = pick_channels_cov(cov, ['CH2', 'CH1'], ordered=False, copy=True)
+    assert cov_copy.ch_names == ['CH1', 'CH2']
+    assert_array_equal(cov_copy['data'], [1., 2.])
+
+    # Test re-ordering channels
+    cov_copy = pick_channels_cov(cov, ['CH2', 'CH1'], ordered=True, copy=True)
+    assert cov_copy.ch_names == ['CH2', 'CH1']
+    assert_array_equal(cov_copy['data'], [2., 1.])
+
+    # Test picking in-place
+    pick_channels_cov(cov, ['CH2', 'CH1'], copy=False)
+    assert cov.ch_names == ['CH1', 'CH2']
+    assert_array_equal(cov['data'], [1., 2.])
+
+    # Test whether `method` and `loglik` are dropped when None
+    cov['method'] = None
+    cov['loglik'] = None
+    cov_copy = pick_channels_cov(cov, ['CH1', 'CH2'], copy=True)
+    assert 'method' not in cov_copy
+    assert 'loglik' not in cov_copy
+
+
+def test_pick_types_meg():
+    """Test pick_types(meg=True)."""
+    # info with MEG channels at indices 1, 2, and 4
+    info1 = create_info(6, 256, ["eeg", "mag", "grad", "misc", "grad", "hbo"])
+
+    assert list(pick_types(info1, meg=True)) == [1, 2, 4]
+    assert list(pick_types(info1, meg=True, eeg=True)) == [0, 1, 2, 4]
+
+    assert list(pick_types(info1, meg=True)) == [1, 2, 4]
+    assert not list(pick_types(info1, meg=False))  # empty
+    assert list(pick_types(info1, meg='planar1')) == [2]
+    assert not list(pick_types(info1, meg='planar2'))  # empty
+
+    # info without any MEG channels
+    info2 = create_info(6, 256, ["eeg", "eeg", "eog", "misc", "stim", "hbo"])
+
+    assert not list(pick_types(info2))  # empty
+    assert list(pick_types(info2, eeg=True)) == [0, 1]
+
+
+def test_pick_types_csd():
+    """Test pick_types(csd=True)."""
+    # info with laplacian/CSD channels at indices 1, 2
+    names = ['F1', 'F2', 'C1', 'C2', 'A1', 'A2', 'misc1', 'CSD1']
+    info1 = create_info(names, 256, ["eeg", "eeg", "eeg", "eeg", "mag",
+                                     "mag", 'misc', 'csd'])
+    raw = RawArray(np.zeros((8, 512)), info1)
+    raw.set_montage(make_standard_montage('standard_1020'), verbose='error')
+    raw_csd = compute_current_source_density(raw, verbose='error')
+
+    assert_array_equal(pick_types(info1, csd=True), [7])
+
+    # pick from the raw object
+    assert raw_csd.copy().pick_types(csd=True).ch_names == [
+        'F1', 'F2', 'C1', 'C2', 'CSD1']
+
+
+@pytest.mark.parametrize('meg', [True, False, 'grad', 'mag'])
+@pytest.mark.parametrize('eeg', [True, False])
+@pytest.mark.parametrize('ordered', [True, False])
+def test_get_channel_types_equiv(meg, eeg, ordered):
+    """Test equivalence of get_channel_types."""
+    raw = read_raw_fif(fif_fname)
+    pick_types(raw.info, meg=meg, eeg=eeg)
+    picks = pick_types(raw.info, meg=meg, eeg=eeg)
+    if not ordered:
+        picks = np.random.RandomState(0).permutation(picks)
+    if not meg and not eeg:
+        with pytest.raises(ValueError, match='No appropriate channels'):
+            raw.get_channel_types(picks=picks)
+        return
+    types = np.array(raw.get_channel_types(picks=picks))
+    types_iter = np.array([channel_type(raw.info, idx) for idx in picks])
+    assert_array_equal(types, types_iter)

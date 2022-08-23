@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Romain Trachel <trachelr@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
@@ -11,9 +11,9 @@ from .mixin import TransformerMixin
 from .base import BaseEstimator
 
 from .. import pick_types
-from ..filter import filter_data, _triage_filter_params
+from ..filter import filter_data
 from ..time_frequency.psd import psd_array_multitaper
-from ..utils import check_version, fill_doc, _check_option
+from ..utils import fill_doc, _check_option, _validate_type, verbose
 from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
                        _picks_to_idx)
 from ..cov import _check_scalings_user
@@ -56,7 +56,6 @@ def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
     """Reshape epochs and apply function."""
     if not isinstance(X, np.ndarray):
         raise ValueError("data should be an np.ndarray, got %s." % type(X))
-    X = np.atleast_3d(X)
     orig_shape = X.shape
     X = np.reshape(X.transpose(0, 2, 1), (-1, orig_shape[1]))
     X = func(X, *args, **kwargs)
@@ -66,6 +65,7 @@ def _sklearn_reshape_apply(func, return_result, X, *args, **kwargs):
         return X
 
 
+@fill_doc
 class Scaler(TransformerMixin, BaseEstimator):
     u"""Standardize channel data.
 
@@ -78,10 +78,8 @@ class Scaler(TransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    info : instance of Info | None
-        The measurement info. Only necessary if ``scalings`` is a dict or
-        None.
-    scalings : dict, string, default None.
+    %(info)s Only necessary if ``scalings`` is a dict or None.
+    scalings : dict, str, default None
         Scaling method to be applied to data channel wise.
 
         * if scalings is None (default), scales mag by 1e15, grad by 1e13,
@@ -95,10 +93,10 @@ class Scaler(TransformerMixin, BaseEstimator):
           :class:`sklearn.preprocessing.StandardScaler`
           is used.
 
-    with_mean : boolean, default True
+    with_mean : bool, default True
         If True, center the data using mean (or median) before scaling.
         Ignored for channel-type scaling.
-    with_std : boolean, default True
+    with_std : bool, default True
         If True, scale the data to unit variance (``scalings='mean'``),
         quantile range (``scalings='median``), or using channel type
         if ``scalings`` is a dict or None).
@@ -123,13 +121,12 @@ class Scaler(TransformerMixin, BaseEstimator):
             self._scaler = _ConstantScaler(info, scalings, self.with_std)
         elif scalings == 'mean':
             from sklearn.preprocessing import StandardScaler
-            self._scaler = StandardScaler(self.with_mean, self.with_std)
+            self._scaler = StandardScaler(
+                with_mean=self.with_mean, with_std=self.with_std)
         else:  # scalings == 'median':
-            if not check_version('sklearn', '0.17'):
-                raise ValueError("median requires version 0.17 of "
-                                 "sklearn library")
             from sklearn.preprocessing import RobustScaler
-            self._scaler = RobustScaler(self.with_mean, self.with_std)
+            self._scaler = RobustScaler(
+                with_centering=self.with_mean, with_scaling=self.with_std)
 
     def fit(self, epochs_data, y=None):
         """Standardize data across channels.
@@ -144,8 +141,12 @@ class Scaler(TransformerMixin, BaseEstimator):
         Returns
         -------
         self : instance of Scaler
-            Returns the modified instance.
+            The modified instance.
         """
+        _validate_type(epochs_data, np.ndarray, 'epochs_data')
+        if epochs_data.ndim == 2:
+            epochs_data = epochs_data[..., np.newaxis]
+        assert epochs_data.ndim == 3, epochs_data.shape
         _sklearn_reshape_apply(self._scaler.fit, False, epochs_data, y=y)
         return self
 
@@ -154,7 +155,7 @@ class Scaler(TransformerMixin, BaseEstimator):
 
         Parameters
         ----------
-        epochs_data : array, shape (n_epochs, n_channels, n_times)
+        epochs_data : array, shape (n_epochs, n_channels[, n_times])
             The data.
 
         Returns
@@ -167,6 +168,12 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
+        _validate_type(epochs_data, np.ndarray, 'epochs_data')
+        if epochs_data.ndim == 2:  # can happen with SlidingEstimator
+            if self.info is not None:
+                assert len(self.info['ch_names']) == epochs_data.shape[1]
+            epochs_data = epochs_data[..., np.newaxis]
+        assert epochs_data.ndim == 3, epochs_data.shape
         return _sklearn_reshape_apply(self._scaler.transform, True,
                                       epochs_data)
 
@@ -214,6 +221,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
+        assert epochs_data.ndim == 3, epochs_data.shape
         return _sklearn_reshape_apply(self._scaler.inverse_transform, True,
                                       epochs_data)
 
@@ -224,15 +232,15 @@ class Vectorizer(TransformerMixin):
     This class reshapes an n-dimensional array into an n_samples * n_features
     array, usable by the estimators and transformers of scikit-learn.
 
-    Examples
-    --------
-    clf = make_pipeline(SpatialFilter(), _XdawnTransformer(), Vectorizer(),
-                        LogisticRegression())
-
     Attributes
     ----------
     features_shape_ : tuple
          Stores the original shape of data.
+
+    Examples
+    --------
+    clf = make_pipeline(SpatialFilter(), _XdawnTransformer(), Vectorizer(),
+                        LogisticRegression())
     """
 
     def fit(self, X, y=None):
@@ -314,15 +322,15 @@ class Vectorizer(TransformerMixin):
             dimension is of length n_samples.
         """
         X = np.asarray(X)
-        if X.ndim != 2:
-            raise ValueError("X should be of 2 dimensions but given has %s "
-                             "dimension(s)" % X.ndim)
-        return X.reshape((len(X),) + self.features_shape_)
+        if X.ndim not in (2, 3):
+            raise ValueError("X should be of 2 or 3 dimensions but has shape "
+                             "%s" % (X.shape,))
+        return X.reshape(X.shape[:-1] + self.features_shape_)
 
 
 @fill_doc
 class PSDEstimator(TransformerMixin):
-    """Compute power spectrum density (PSD) using a multi-taper method.
+    """Compute power spectral density (PSD) using a multi-taper method.
 
     Parameters
     ----------
@@ -342,10 +350,7 @@ class PSDEstimator(TransformerMixin):
         bandwidth.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
-    normalization : str
-        Either "full" or "length" (default). If "full", the PSD will
-        be normalized by the sampling rate as well as the length of
-        the signal (as in nitime).
+    %(normalization)s
     %(verbose)s
 
     See Also
@@ -353,9 +358,10 @@ class PSDEstimator(TransformerMixin):
     mne.time_frequency.psd_multitaper
     """
 
+    @verbose
     def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
-                 adaptive=False, low_bias=True, n_jobs=1,
-                 normalization='length', verbose=None):  # noqa: D102
+                 adaptive=False, low_bias=True, n_jobs=None,
+                 normalization='length', *, verbose=None):  # noqa: D102
         self.sfreq = sfreq
         self.fmin = fmin
         self.fmax = fmax
@@ -363,23 +369,22 @@ class PSDEstimator(TransformerMixin):
         self.adaptive = adaptive
         self.low_bias = low_bias
         self.n_jobs = n_jobs
-        self.verbose = verbose
         self.normalization = normalization
 
     def fit(self, epochs_data, y):
-        """Compute power spectrum density (PSD) using a multi-taper method.
+        """Compute power spectral density (PSD) using a multi-taper method.
 
         Parameters
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
         y : array, shape (n_epochs,)
-            The label for each epoch
+            The label for each epoch.
 
         Returns
         -------
         self : instance of PSDEstimator
-            returns the modified instance
+            The modified instance.
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
@@ -388,12 +393,12 @@ class PSDEstimator(TransformerMixin):
         return self
 
     def transform(self, epochs_data):
-        """Compute power spectrum density (PSD) using a multi-taper method.
+        """Compute power spectral density (PSD) using a multi-taper method.
 
         Parameters
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
-            The data
+            The data.
 
         Returns
         -------
@@ -431,8 +436,7 @@ class FilterEstimator(TransformerMixin):
 
     Parameters
     ----------
-    info : instance of Info
-        Measurement info.
+    %(info_not_none)s
     %(l_freq)s
     %(h_freq)s
     %(picks_good_data)s
@@ -465,9 +469,9 @@ class FilterEstimator(TransformerMixin):
     """
 
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='auto',
-                 l_trans_bandwidth='auto', h_trans_bandwidth='auto', n_jobs=1,
-                 method='fir', iir_params=None, fir_design='firwin',
-                 verbose=None):  # noqa: D102
+                 l_trans_bandwidth='auto', h_trans_bandwidth='auto',
+                 n_jobs=None, method='fir', iir_params=None,
+                 fir_design='firwin', *, verbose=None):  # noqa: D102
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -493,7 +497,7 @@ class FilterEstimator(TransformerMixin):
         Returns
         -------
         self : instance of FilterEstimator
-            Returns the modified instance
+            The modified instance.
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
@@ -517,14 +521,16 @@ class FilterEstimator(TransformerMixin):
                                              self.l_freq < self.h_freq) and
                                             self.h_freq <
                                             self.info['lowpass']):
-            self.info['lowpass'] = self.h_freq
+            with self.info._unlock():
+                self.info['lowpass'] = self.h_freq
 
         if self.info['highpass'] is None or (self.l_freq is not None and
                                              (self.h_freq is None or
                                               self.l_freq < self.h_freq) and
                                              self.l_freq >
                                              self.info['highpass']):
-            self.info['highpass'] = self.l_freq
+            with self.info._unlock():
+                self.info['highpass'] = self.l_freq
 
         return self
 
@@ -539,7 +545,7 @@ class FilterEstimator(TransformerMixin):
         Returns
         -------
         X : array, shape (n_epochs, n_channels, n_times)
-            The data after filtering
+            The data after filtering.
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
@@ -760,11 +766,12 @@ class TemporalFilter(TransformerMixin):
     mne.filter.filter_data
     """
 
+    @verbose
     def __init__(self, l_freq=None, h_freq=None, sfreq=1.0,
                  filter_length='auto', l_trans_bandwidth='auto',
-                 h_trans_bandwidth='auto', n_jobs=1, method='fir',
+                 h_trans_bandwidth='auto', n_jobs=None, method='fir',
                  iir_params=None, fir_window='hamming', fir_design='firwin',
-                 verbose=None):  # noqa: D102
+                 *, verbose=None):  # noqa: D102
         self.l_freq = l_freq
         self.h_freq = h_freq
         self.sfreq = sfreq
@@ -776,7 +783,6 @@ class TemporalFilter(TransformerMixin):
         self.iir_params = iir_params
         self.fir_window = fir_window
         self.fir_design = fir_design
-        self.verbose = verbose
 
         if not isinstance(self.n_jobs, int) and self.n_jobs == 'cuda':
             raise ValueError('n_jobs must be int or "cuda", got %s instead.'
@@ -796,7 +802,7 @@ class TemporalFilter(TransformerMixin):
         Returns
         -------
         self : instance of TemporalFilter
-            Returns the modified instance.
+            The modified instance.
         """  # noqa: E501
         return self
 
@@ -822,21 +828,11 @@ class TemporalFilter(TransformerMixin):
 
         shape = X.shape
         X = X.reshape(-1, shape[-1])
-        (X, self.sfreq, self.l_freq, self.h_freq, self.l_trans_bandwidth,
-         self.h_trans_bandwidth, self.filter_length, _, self.fir_window,
-         self.fir_design) = \
-            _triage_filter_params(X, self.sfreq, self.l_freq, self.h_freq,
-                                  self.l_trans_bandwidth,
-                                  self.h_trans_bandwidth, self.filter_length,
-                                  self.method, phase='zero',
-                                  fir_window=self.fir_window,
-                                  fir_design=self.fir_design)
         X = filter_data(X, self.sfreq, self.l_freq, self.h_freq,
                         filter_length=self.filter_length,
                         l_trans_bandwidth=self.l_trans_bandwidth,
                         h_trans_bandwidth=self.h_trans_bandwidth,
                         n_jobs=self.n_jobs, method=self.method,
                         iir_params=self.iir_params, copy=False,
-                        fir_window=self.fir_window, fir_design=self.fir_design,
-                        verbose=self.verbose)
+                        fir_window=self.fir_window, fir_design=self.fir_design)
         return X.reshape(shape)

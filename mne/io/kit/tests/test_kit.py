@@ -1,13 +1,12 @@
 # Author: Teon Brooks <teon.brooks@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
-import inspect
 import os.path as op
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose)
 import pytest
 from scipy import linalg
 import scipy.io
@@ -16,17 +15,17 @@ import mne
 from mne import pick_types, Epochs, find_events, read_events
 from mne.datasets.testing import requires_testing_data
 from mne.transforms import apply_trans
-from mne.utils import run_tests_if_main, assert_dig_allclose
+from mne.utils import assert_dig_allclose
 from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
 from mne.io.constants import FIFF
+from mne.io.kit.kit import get_kit_info
 from mne.io.kit.coreg import read_sns
 from mne.io.kit.constants import KIT
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.surface import _get_ico_surface
+from mne.io.kit import __file__ as _KIT_INIT_FILE
 
-FILE = inspect.getfile(inspect.currentframe())
-parent_dir = op.dirname(op.abspath(FILE))
-data_dir = op.join(parent_dir, 'data')
+data_dir = op.join(op.dirname(_KIT_INIT_FILE), 'tests', 'data')
 sqd_path = op.join(data_dir, 'test.sqd')
 sqd_umd_path = op.join(data_dir, 'test_umd-raw.sqd')
 epochs_path = op.join(data_dir, 'test-epoch.raw')
@@ -41,10 +40,23 @@ hsp_path = op.join(data_dir, 'test.hsp')
 
 data_path = mne.datasets.testing.data_path(download=False)
 sqd_as_path = op.join(data_path, 'KIT', 'test_as-raw.con')
+yokogawa_path = op.join(
+    data_path, 'KIT', 'ArtificalSignalData_Yokogawa_1khz.con')
+ricoh_path = op.join(
+    data_path, 'KIT', 'ArtificalSignalData_RICOH_1khz.con')
+ricoh_systems_paths = [op.join(
+    data_path, 'KIT', 'Example_PQA160C_1001-export_anonymyze.con')]
+ricoh_systems_paths += [op.join(
+    data_path, 'KIT', 'Example_RICOH160-1_10020-export_anonymyze.con')]
+ricoh_systems_paths += [op.join(
+    data_path, 'KIT', 'Example_RICOH160-1_10021-export_anonymyze.con')]
+ricoh_systems_paths += [op.join(
+    data_path, 'KIT', '010409_Motor_task_coregist-export_tiny_1s.con')]
+berlin_path = op.join(data_path, 'KIT', 'data_berlin.con')
 
 
 @requires_testing_data
-def test_data():
+def test_data(tmp_path):
     """Test reading raw kit files."""
     pytest.raises(TypeError, read_raw_kit, epochs_path)
     pytest.raises(TypeError, read_epochs_kit, sqd_path)
@@ -56,6 +68,8 @@ def test_data():
     # check functionality
     raw_mrk = read_raw_kit(sqd_path, [mrk2_path, mrk3_path], elp_txt_path,
                            hsp_txt_path)
+    assert raw_mrk.info['description'] == \
+        'NYU 160ch System since Jan24 2009 (34) V2R004 EQ1160C'
     raw_py = _test_raw_reader(read_raw_kit, input_fname=sqd_path, mrk=mrk_path,
                               elp=elp_txt_path, hsp=hsp_txt_path,
                               stim=list(range(167, 159, -1)), slope='+',
@@ -86,10 +100,10 @@ def test_data():
         assert_array_equal(stim1, stim2)
 
     # Binary file only stores the sensor channels
-    py_picks = pick_types(raw_py.info, exclude='bads')
+    py_picks = pick_types(raw_py.info, meg=True, exclude='bads')
     raw_bin = op.join(data_dir, 'test_bin_raw.fif')
     raw_bin = read_raw_fif(raw_bin, preload=True)
-    bin_picks = pick_types(raw_bin.info, stim=True, exclude='bads')
+    bin_picks = pick_types(raw_bin.info, meg=True, stim=True, exclude='bads')
     data_bin, _ = raw_bin[bin_picks]
     data_py, _ = raw_py[py_picks]
 
@@ -100,14 +114,16 @@ def test_data():
 
     assert_array_almost_equal(data_py, data_Ykgw)
 
-    py_picks = pick_types(raw_py.info, stim=True, ref_meg=False,
+    py_picks = pick_types(raw_py.info, meg=True, stim=True, ref_meg=False,
                           exclude='bads')
     data_py, _ = raw_py[py_picks]
     assert_array_almost_equal(data_py, data_bin)
 
     # KIT-UMD data
-    _test_raw_reader(read_raw_kit, input_fname=sqd_umd_path)
+    _test_raw_reader(read_raw_kit, input_fname=sqd_umd_path, test_rank='less')
     raw = read_raw_kit(sqd_umd_path)
+    assert raw.info['description'] == \
+        'University of Maryland/Kanazawa Institute of Technology/160-channel MEG System (53) V2R004 PQ1160R'  # noqa: E501
     assert_equal(raw.info['kit_system_id'], KIT.SYSTEM_UMD_2014_12)
     # check number/kind of channels
     assert_equal(len(raw.info['chs']), 193)
@@ -118,6 +134,8 @@ def test_data():
 
     # KIT Academia Sinica
     raw = read_raw_kit(sqd_as_path, slope='+')
+    assert raw.info['description'] == \
+        'Academia Sinica/Institute of Linguistics//Magnetoencephalograph System (261) V2R004 PQ1160R-N2'  # noqa: E501
     assert_equal(raw.info['kit_system_id'], KIT.SYSTEM_AS_2008)
     assert_equal(raw.info['chs'][100]['ch_name'], 'MEG 101')
     assert_equal(raw.info['chs'][100]['kind'], FIFF.FIFFV_MEG_CH)
@@ -130,6 +148,82 @@ def test_data():
     assert_equal(raw.info['chs'][160]['kind'], FIFF.FIFFV_EEG_CH)
     assert_equal(raw.info['chs'][160]['coil_type'], FIFF.FIFFV_COIL_EEG)
     assert_array_equal(find_events(raw), [[91, 0, 2]])
+
+
+@requires_testing_data
+def test_unknown_format(tmp_path):
+    """Test our warning about an unknown format."""
+    fname = tmp_path / op.basename(ricoh_path)
+    _, kit_info = get_kit_info(ricoh_path, allow_unknown_format=False)
+    n_before = kit_info['dirs'][KIT.DIR_INDEX_SYSTEM]['offset']
+    with open(fname, 'wb') as fout:
+        with open(ricoh_path, 'rb') as fin:
+            fout.write(fin.read(n_before))
+            version, revision = np.fromfile(fin, '<i4', 2)
+            assert version > 2  # good
+            version = 1  # bad
+            np.array([version, revision], '<i4').tofile(fout)
+            fout.write(fin.read())
+    with pytest.raises(ValueError, match='SQD file format V1R000 is not offi'):
+        read_raw_kit(fname)
+    # it's not actually an old file, so it actually raises an exception later
+    # about an unknown datatype
+    with pytest.raises(Exception):
+        with pytest.warns(RuntimeWarning, match='Force loading'):
+            read_raw_kit(fname, allow_unknown_format=True)
+
+
+def _assert_sinusoid(data, t, freq, amp, msg):
+    __tracebackhide__ = True
+    sinusoid = np.exp(2j * np.pi * freq * t) * amp
+    phase = np.angle(np.dot(data, sinusoid))
+    sinusoid = np.cos(2 * np.pi * freq * t - phase) * amp
+    assert_allclose(data, sinusoid, rtol=0.05, atol=amp * 1e-3, err_msg=msg)
+
+
+@requires_testing_data
+@pytest.mark.parametrize('fname, desc', [
+    (yokogawa_path, 'Meg160/Analysis (1001) V3R000 PQA160C'),
+    (ricoh_path, 'Meg160/Analysis (1001) V3R000 PQA160C'),
+])
+def test_ricoh_data(tmp_path, fname, desc):
+    """Test reading channel names and dig information from Ricoh systems."""
+    raw = read_raw_kit(fname, standardize_names=True)
+    assert raw.ch_names[0] == 'MEG 001'
+    raw = read_raw_kit(fname, standardize_names=False, verbose='debug')
+    assert raw.info['description'] == desc
+    assert_allclose(raw.times[-1], 5. - 1. / raw.info['sfreq'])
+    assert raw.ch_names[0] == 'LF31'
+    eeg_picks = pick_types(raw.info, meg=False, eeg=True)
+    assert len(eeg_picks) == 45
+    assert len(raw.info['dig']) == 8 + len(eeg_picks) - 2  # EKG+ and E no pos
+    bad_dig = [ch['ch_name'] for ci, ch in enumerate(raw.info['chs'])
+               if ci in eeg_picks and (ch['loc'][:3] == 0).all()]
+    assert bad_dig == ['EKG+', 'E']
+    assert not any(np.allclose(d['r'], 0.) for d in raw.info['dig'])
+    assert_allclose(
+        raw.info['dev_head_t']['trans'],
+        [[0.998311, -0.056923, 0.01164, 0.001403],
+         [0.054469, 0.986653, 0.153458, 0.0044],
+         [-0.02022, -0.152564, 0.988087, 0.018634],
+         [0., 0., 0., 1.]], atol=1e-5)
+    data = raw.get_data()
+    # 1 pT 10 Hz on the first channel
+    assert raw.info['chs'][0]['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD
+    _assert_sinusoid(data[0], raw.times, 10, 1e-12, '1 pT 10 Hz MEG')
+    assert_allclose(data[1:160], 0., atol=1e-13)
+    # 1 V 5 Hz analog
+    assert raw.info['chs'][186]['coil_type'] == FIFF.FIFFV_COIL_EEG
+    _assert_sinusoid(data[160], raw.times, 5, 1, '1 V 5 Hz analog')
+    assert_allclose(data[161:185], 0., atol=1e-20)
+    # 50 uV 8 Hz plus 1.6 mV offset
+    assert raw.info['chs'][186]['coil_type'] == FIFF.FIFFV_COIL_EEG
+    eeg_data = data[186]
+    assert_allclose(eeg_data.mean(), 1.6e-3, atol=1e-5)  # offset
+    eeg_data = eeg_data - eeg_data.mean()
+    _assert_sinusoid(eeg_data, raw.times, 8, 50e-6, '50 uV 8 Hz EEG')
+    assert_allclose(data[187:-1], 0., atol=1e-20)
+    assert_allclose(data[-1], 254.5, atol=0.51)
 
 
 def test_epochs():
@@ -196,9 +290,11 @@ def test_ch_loc():
     # test when more than one marker file provided
     mrks = [mrk_path, mrk2_path, mrk3_path]
     read_raw_kit(sqd_path, mrks, elp_txt_path, hsp_txt_path, preload=False)
-    # this dataset does not have the equivalent set of points :(
-    raw_bin.info['dig'] = raw_bin.info['dig'][:8]
-    raw_py.info['dig'] = raw_py.info['dig'][:8]
+    # this dataset does not have the equivalent set of points
+    with raw_bin.info._unlock():
+        raw_bin.info['dig'] = raw_bin.info['dig'][:8]
+    with raw_py.info._unlock():
+        raw_py.info['dig'] = raw_py.info['dig'][:8]
     assert_dig_allclose(raw_py.info, raw_bin.info)
 
 
@@ -223,14 +319,14 @@ def test_hsp_elp():
     assert_array_almost_equal(pts_elp_in_dev, pts_txt_in_dev, decimal=5)
 
 
-def test_decimate(tmpdir):
+def test_decimate(tmp_path):
     """Test decimation of digitizer headshapes with too many points."""
     # load headshape and convert to meters
     hsp_mm = _get_ico_surface(5)['rr'] * 100
     hsp_m = hsp_mm / 1000.
 
     # save headshape to a file in mm in temporary directory
-    tempdir = str(tmpdir)
+    tempdir = str(tmp_path)
     sphere_hsp_path = op.join(tempdir, 'test_sphere.txt')
     np.savetxt(sphere_hsp_path, hsp_mm)
 
@@ -254,4 +350,37 @@ def test_decimate(tmpdir):
     assert_array_almost_equal(hsp_rad, hsp_dec_rad, decimal=3)
 
 
-run_tests_if_main()
+@requires_testing_data
+@pytest.mark.parametrize('fname, desc, system_id', [
+    (ricoh_systems_paths[0],
+        'Meg160/Analysis (1001) V2R004 PQA160C', 1001),
+    (ricoh_systems_paths[1],
+        'RICOH MEG System (10020) V3R000 RICOH160-1', 10020),
+    (ricoh_systems_paths[2],
+        'RICOH MEG System (10021) V3R000 RICOH160-1', 10021),
+    (ricoh_systems_paths[3],
+        'Yokogawa Electric Corporation/MEG device for infants/151-channel MEG '
+        'System (903) V2R004 PQ1151R', 903),
+])
+def test_raw_system_id(fname, desc, system_id):
+    """Test reading basics and system IDs."""
+    raw = _test_raw_reader(read_raw_kit, input_fname=fname)
+    assert raw.info['description'] == desc
+    assert raw.info['kit_system_id'] == system_id
+
+
+@requires_testing_data
+def test_berlin():
+    """Test data from Berlin."""
+    # gh-8535
+    raw = read_raw_kit(berlin_path)
+    assert raw.info['description'] == 'Physikalisch Technische Bundesanstalt, Berlin/128-channel MEG System (124) V2R004 PQ1128R-N2'  # noqa: E501
+    assert raw.info['kit_system_id'] == 124
+    assert raw.info['highpass'] == 0.
+    assert raw.info['lowpass'] == 200.
+    assert raw.info['sfreq'] == 500.
+    n = int(round(28.77 * raw.info['sfreq']))
+    meg = raw.get_data('MEG 003', n, n + 1)[0, 0]
+    assert_allclose(meg, -8.89e-12, rtol=1e-3)
+    eeg = raw.get_data('E14', n, n + 1)[0, 0]
+    assert_allclose(eeg, -2.55, rtol=1e-3)

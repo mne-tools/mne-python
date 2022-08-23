@@ -2,7 +2,7 @@
 
 # Author: Eric Larson <larson.eric.d<gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from time import strptime
 from calendar import timegm
@@ -73,7 +73,13 @@ def _pick_isotrak_and_hpi_coils(res4, coils, t):
 
 def _convert_time(date_str, time_str):
     """Convert date and time strings to float time."""
-    for fmt in ("%d/%m/%Y", "%d-%b-%Y", "%a, %b %d, %Y"):
+    if date_str == time_str == '':
+        date_str = '01/01/1970'
+        time_str = '00:00:00'
+        logger.info('No date or time found, setting to the start of the '
+                    'POSIX epoch (1970/01/01 midnight)')
+
+    for fmt in ("%d/%m/%Y", "%d-%b-%Y", "%a, %b %d, %Y", "%Y/%m/%d"):
         try:
             date = strptime(date_str.strip(), fmt)
         except ValueError:
@@ -98,7 +104,7 @@ def _convert_time(date_str, time_str):
         raise RuntimeError('Illegal time: %s' % time_str)
     # MNE-C uses mktime which uses local time, but here we instead decouple
     # conversion location from the process, and instead assume that the
-    # acquisiton was in GMT. This will be wrong for most sites, but at least
+    # acquisition was in GMT. This will be wrong for most sites, but at least
     # the value we obtain here won't depend on the geographical location
     # that the file was converted.
     res = timegm((date.tm_year, date.tm_mon, date.tm_mday,
@@ -134,17 +140,12 @@ def _at_origin(x):
 
 
 def _check_comp_ch(cch, kind, desired=None):
-    if 'reference' in kind.lower():
-        if cch['grad_order_no'] != 0:
-            raise RuntimeError('%s channel with non-zero compensation grade %s'
-                               % (kind, cch['grad_order_no']))
-    else:
-        if desired is None:
-            desired = cch['grad_order_no']
-        if cch['grad_order_no'] != desired:
-            raise RuntimeError('%s channel with inconsistent compensation '
-                               'grade %s, should be %s'
-                               % (kind, cch['grad_order_no'], desired))
+    if desired is None:
+        desired = cch['grad_order_no']
+    if cch['grad_order_no'] != desired:
+        raise RuntimeError('%s channel with inconsistent compensation '
+                           'grade %s, should be %s'
+                           % (kind, cch['grad_order_no'], desired))
     return desired
 
 
@@ -218,17 +219,14 @@ def _convert_channel_info(res4, t, use_eeg_pos):
             # Set the coil type
             if cch['sensor_type_index'] == CTF.CTFV_REF_MAG_CH:
                 ch['kind'] = FIFF.FIFFV_REF_MEG_CH
-                _check_comp_ch(cch, 'Reference magnetometer')
                 ch['coil_type'] = FIFF.FIFFV_COIL_CTF_REF_MAG
                 nref += 1
                 ch['logno'] = nref
             elif cch['sensor_type_index'] == CTF.CTFV_REF_GRAD_CH:
                 ch['kind'] = FIFF.FIFFV_REF_MEG_CH
                 if off_diag:
-                    _check_comp_ch(cch, 'Reference off-diagonal gradiometer')
                     ch['coil_type'] = FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD
                 else:
-                    _check_comp_ch(cch, 'Reference gradiometer')
                     ch['coil_type'] = FIFF.FIFFV_COIL_CTF_REF_GRAD
                 nref += 1
                 ch['logno'] = nref
@@ -239,7 +237,8 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                 nmeg += 1
                 ch['logno'] = nmeg
             # Encode the software gradiometer order
-            ch['coil_type'] = ch['coil_type'] | (cch['grad_order_no'] << 16)
+            ch['coil_type'] = int(
+                ch['coil_type'] | (cch['grad_order_no'] << 16))
             ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
         elif cch['sensor_type_index'] == CTF.CTFV_EEG_CH:
             coord_frame = FIFF.FIFFV_COORD_HEAD
@@ -252,13 +251,14 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                         warn('EEG electrode (%s) location omitted because of '
                              'missing HPI information' % ch['ch_name'])
                         ch['loc'].fill(np.nan)
-                        coord_frame = FIFF.FIFFV_COORD_CTF_HEAD
+                        coord_frame = FIFF.FIFFV_MNE_COORD_CTF_HEAD
                     else:
                         ch['loc'][:3] = apply_trans(
                             t['t_ctf_head_head'], ch['loc'][:3])
             neeg += 1
             ch.update(logno=neeg, kind=FIFF.FIFFV_EEG_CH,
-                      unit=FIFF.FIFF_UNIT_V, coord_frame=coord_frame)
+                      unit=FIFF.FIFF_UNIT_V, coord_frame=coord_frame,
+                      coil_type=FIFF.FIFFV_COIL_EEG)
         elif cch['sensor_type_index'] == CTF.CTFV_STIM_CH:
             nstim += 1
             ch.update(logno=nstim, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
@@ -295,7 +295,7 @@ def _conv_comp(comp, first, last, chs):
     col_names = comp[first]['sensors'][:n_col]
     row_names = [comp[p]['sensor_name'] for p in range(first, last + 1)]
     mask = np.in1d(col_names, ch_names)  # missing channels excluded
-    col_names = np.array(col_names)[mask]
+    col_names = np.array(col_names)[mask].tolist()
     n_col = len(col_names)
     n_row = len(row_names)
     ccomp = dict(ctfkind=np.array([comp[first]['coeff_type']]),
@@ -423,6 +423,7 @@ def _compose_meas_info(res4, coils, trans, eeg):
     info['meas_id']['usecs'] = 0
     info['meas_id']['secs'] = _convert_time(res4['data_date'],
                                             res4['data_time'])
+    info['meas_date'] = (info['meas_id']['secs'], info['meas_id']['usecs'])
     info['experimenter'] = res4['nf_operator']
     info['subject_info'] = dict(his_id=res4['nf_subject_id'])
     for filt in res4['filters']:
@@ -448,6 +449,7 @@ def _compose_meas_info(res4, coils, trans, eeg):
         eeg = _pick_eeg_pos(info)
     _add_eeg_pos(eeg, trans, info)
     logger.info('    Measurement info composed.')
+    info._unlocked = False
     info._update_redundant()
     return info
 
@@ -463,10 +465,11 @@ def _read_bad_chans(directory, info):
     return bad_chans
 
 
-def _annotate_bad_segments(directory, start_time):
+def _annotate_bad_segments(directory, start_time, meas_date):
     fname = op.join(directory, 'bad.segments')
     if not op.exists(fname):
         return None
+
     # read in bad segment file
     onsets = []
     durations = []
@@ -475,10 +478,10 @@ def _annotate_bad_segments(directory, start_time):
         for f in fid.readlines():
             tmp = f.strip().split()
             desc.append('bad_%s' % tmp[0])
-            onsets.append(np.float(tmp[1]) - start_time)
-            durations.append(np.float(tmp[2]) - np.float(tmp[1]))
+            onsets.append(np.float64(tmp[1]) - start_time)
+            durations.append(np.float64(tmp[2]) - np.float64(tmp[1]))
     # return None if there are no bad segments
     if len(onsets) == 0:
         return None
 
-    return Annotations(onsets, durations, desc)
+    return Annotations(onsets, durations, desc, meas_date)

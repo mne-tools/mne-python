@@ -1,0 +1,13 @@
+# requirements for running tests (on top of environment.yml/requirements.txt)
+pytest!=4.6.0
+pytest-cov
+pytest-timeout
+pytest-harvest
+flake8
+flake8-array-spacing
+numpydoc
+codespell
+pydocstyle
+check-manifest
+twine
+wheel

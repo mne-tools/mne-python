@@ -1,12 +1,16 @@
 import numpy as np
 import os.path as op
 from numpy.testing import assert_array_almost_equal, assert_allclose
+from scipy.signal import welch
 import pytest
 
 from mne import pick_types, Epochs, read_events
 from mne.io import RawArray, read_raw_fif
-from mne.utils import run_tests_if_main
-from mne.time_frequency import psd_welch, psd_multitaper, psd_array_welch
+from mne.utils import catch_logging
+from mne.time_frequency import (psd_welch, psd_array_welch, psd_multitaper,
+                                psd_array_multitaper)
+from mne.time_frequency.multitaper import _psd_from_mt
+from mne.time_frequency.psd import _median_biases
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -15,13 +19,13 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 
 def test_psd_nan():
     """Test handling of NaN in psd_array_welch."""
-    n_samples, n_fft, n_overlap = 2048,  1024, 512
+    n_samples, n_fft, n_overlap = 2048, 1024, 512
     x = np.random.RandomState(0).randn(1, n_samples)
-    psds, freqs = psd_array_welch(
-        x[:n_fft + n_overlap], float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
-    x[n_fft + n_overlap:] = np.nan  # what Raw.get_data() will give us
-    psds_2, freqs_2 = psd_array_welch(
-        x, float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
+    psds, freqs = psd_array_welch(x[:, :n_fft + n_overlap], float(n_fft),
+                                  n_fft=n_fft, n_overlap=n_overlap)
+    x[:, n_fft + n_overlap:] = np.nan  # what Raw.get_data() will give us
+    psds_2, freqs_2 = psd_array_welch(x, float(n_fft), n_fft=n_fft,
+                                      n_overlap=n_overlap)
     assert_allclose(freqs, freqs_2)
     assert_allclose(psds, psds_2)
     # 1-d
@@ -29,6 +33,12 @@ def test_psd_nan():
         x[0], float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
     assert_allclose(freqs, freqs_2)
     assert_allclose(psds[0], psds_2)
+    # defaults
+    with catch_logging() as log:
+        psd_array_welch(x, float(n_fft), verbose='debug')
+    log = log.getvalue()
+    assert 'using 256-point FFT on 256 samples with 0 overlap' in log
+    assert 'hamming window' in log
 
 
 def test_psd():
@@ -60,7 +70,15 @@ def test_psd():
     for func, kws in funcs:
         kws = kws.copy()
         kws.update(kws_psd)
-        psds, freqs = func(raw, proj=False, **kws)
+        kws.update(verbose='debug')
+        if func is psd_welch:
+            kws.update(window='hann')
+        with catch_logging() as log:
+            psds, freqs = func(raw, proj=False, **kws)
+        log = log.getvalue()
+        if func is psd_welch:
+            assert f'{n_fft}-point FFT on {n_fft} samples with 0 overl' in log
+            assert 'hann window' in log
         psds_proj, freqs_proj = func(raw, proj=True, **kws)
 
         assert psds.shape == (len(kws['picks']), len(freqs))
@@ -87,13 +105,24 @@ def test_psd():
     assert (len(freqs1) == np.floor(len(freqs2) / 2.))
     assert (psds1.shape[-1] == np.floor(psds2.shape[-1] / 2.))
 
-    # tests ValueError when n_per_seg=None and n_fft > signal length
     kws_psd.update(dict(n_fft=tmax * 1.1 * raw.info['sfreq']))
-    pytest.raises(ValueError, psd_welch, raw, proj=False, n_per_seg=None,
+    with pytest.raises(ValueError, match='n_fft is not allowed to be > n_tim'):
+        psd_welch(raw, proj=False, n_per_seg=None,
                   **kws_psd)
-    # ValueError when n_overlap > n_per_seg
     kws_psd.update(dict(n_fft=128, n_per_seg=64, n_overlap=90))
-    pytest.raises(ValueError, psd_welch, raw, proj=False, **kws_psd)
+    with pytest.raises(ValueError, match='n_overlap cannot be greater'):
+        psd_welch(raw, proj=False, **kws_psd)
+    with pytest.raises(ValueError, match='No frequencies found'):
+        psd_array_welch(np.zeros((1, 1000)), 1000., fmin=10, fmax=1)
+
+    # -- psd_array_multitaper --
+    psd_complex, freq, weights = psd_array_multitaper(
+        raw._data[:4, :500], raw.info['sfreq'], output='complex')
+    psd, freq = psd_array_multitaper(
+        raw._data[:4, :500], raw.info['sfreq'], output='power')
+    assert psd_complex.ndim == 3  # channels x tapers x freqs
+    psd_from_complex = _psd_from_mt(psd_complex, weights)
+    assert_allclose(psd_from_complex, psd)
 
     # -- Epochs/Evoked --
     events = read_events(event_fname)
@@ -159,6 +188,94 @@ def test_psd():
         assert (psds_ev.shape == (len(kws['picks']), len(freqs)))
 
 
+# Copied from SciPy
+def _median_bias(n):
+    ii_2 = 2 * np.arange(1., (n - 1) // 2 + 1)
+    return 1 + np.sum(1. / (ii_2 + 1) - 1. / ii_2)
+
+
+@pytest.mark.parametrize('kind', ('raw', 'epochs', 'evoked'))
+def test_psd_welch_average_kwarg(kind):
+    """Test `average` kwarg of psd_welch()."""
+    raw = read_raw_fif(raw_fname)
+    picks_psd = [0, 1]
+
+    # Populate raw with sinusoids
+    rng = np.random.RandomState(40)
+    data = 0.1 * rng.randn(len(raw.ch_names), raw.n_times)
+    freqs_sig = [8., 50.]
+    for ix, freq in zip(picks_psd, freqs_sig):
+        data[ix, :] += 2 * np.sin(np.pi * 2. * freq * raw.times)
+    first_samp = raw._first_samps[0]
+    raw = RawArray(data, raw.info)
+
+    tmin, tmax = -0.5, 0.5
+    fmin, fmax = 0, np.inf
+    # make these small so that sometimes we get an odd number, sometimes an
+    # even number of estimates
+    n_fft = 64
+    n_per_seg = 32
+    n_overlap = 0
+
+    event_id = 2
+    events = read_events(event_fname)
+    events[:, 0] -= first_samp
+
+    kws = dict(fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, n_fft=n_fft,
+               n_per_seg=n_per_seg, n_overlap=n_overlap, picks=picks_psd)
+
+    if kind == 'raw':
+        inst = raw
+    elif kind == 'epochs':
+        inst = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks_psd,
+                      proj=False, preload=True, baseline=None)
+    elif kind == 'evoked':
+        inst = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks_psd,
+                      proj=False, preload=True, baseline=None).average()
+    else:
+        raise ValueError('Unknown parametrization passed to test, check test '
+                         'for typos.')
+
+    psds_mean, freqs_mean = psd_welch(inst=inst, average='mean', **kws)
+    psds_median, freqs_median = psd_welch(inst=inst, average='median', **kws)
+    psds_unagg, freqs_unagg = psd_welch(inst=inst, average=None, **kws)
+
+    # Frequencies should be equal across all "average" types, as we feed in
+    # the exact same data.
+    assert_allclose(freqs_mean, freqs_median)
+    assert_allclose(freqs_mean, freqs_unagg)
+
+    # For `average=None`, the last dimension contains the un-aggregated
+    # segments.
+    assert psds_mean.shape == psds_median.shape
+    assert psds_mean.shape == psds_unagg.shape[:-1]
+    assert_allclose(psds_mean, psds_unagg.mean(axis=-1))
+
+    # Compare with manual median calculation (_median_bias copied from SciPy)
+
+    bias = _median_bias(psds_unagg.shape[-1])
+    assert_allclose(psds_median, np.median(psds_unagg, axis=-1) / bias)
+    if kind == 'epochs':
+        want_shape = (3, 2, 33, 18)
+    elif kind == 'evoked':
+        want_shape = (2, 33, 18)
+    else:
+        assert kind == 'raw'
+        want_shape = (2, 33, 9)
+    assert psds_unagg.shape == want_shape
+
+
+@pytest.mark.parametrize('n', (2, 3, 5, 8, 12, 13, 14, 15))
+def test_median_biases(n):
+    """Test vectorization of median_biases."""
+    want_biases = np.concatenate(
+        ([1., 1.], [_median_bias(ii) for ii in range(2, n + 1)]))
+    got_biases = _median_biases(n)
+    assert_allclose(want_biases, got_biases)
+    assert_allclose(got_biases[n], _median_bias(n))
+    assert_allclose(got_biases[:3], 1.)
+
+
 @pytest.mark.slowtest
 def test_compares_psd():
     """Test PSD estimation on raw for plt.psd and scipy.signal.welch."""
@@ -177,15 +294,15 @@ def test_compares_psd():
     # Compute psds with the new implementation using Welch
     psds_welch, freqs_welch = psd_welch(raw, tmin=tmin, tmax=tmax, fmin=fmin,
                                         fmax=fmax, proj=False, picks=picks,
-                                        n_fft=n_fft, n_jobs=1)
+                                        n_fft=n_fft, n_jobs=None)
 
     # Compute psds with plt.psd
     start, stop = raw.time_as_index([tmin, tmax])
     data, times = raw[picks, start:(stop + 1)]
-    from matplotlib.pyplot import psd
-    out = [psd(d, Fs=raw.info['sfreq'], NFFT=n_fft) for d in data]
-    freqs_mpl = out[0][1]
-    psds_mpl = np.array([o[0] for o in out])
+    out = [welch(d, fs=raw.info['sfreq'], nperseg=n_fft, noverlap=0)
+           for d in data]
+    freqs_mpl = out[0][0]
+    psds_mpl = np.array([o[1] for o in out])
 
     mask = (freqs_mpl >= fmin) & (freqs_mpl <= fmax)
     freqs_mpl = freqs_mpl[mask]
@@ -202,5 +319,3 @@ def test_compares_psd():
 
     assert (np.sum(psds_welch < 0) == 0)
     assert (np.sum(psds_mpl < 0) == 0)
-
-run_tests_if_main()

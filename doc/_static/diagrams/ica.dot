@@ -1,0 +1,77 @@
+digraph ICAdiagram {
+    /* LAYOUT CONTROL */
+    rankdir=LR
+    newrank=true
+    ranksep=0.75
+    clusterrank=local
+
+    /* GLOBAL STYLES */
+    splines=true
+    fontsize=20
+    fontname="Source Code Pro"
+
+    node [style="filled"
+          fontsize=18
+          fontname="Source Sans Pro"]
+
+    edge [arrowsize=1.2
+          penwidth=2.5
+          color="gray50"
+          fontsize=12
+          fontname="Source Code Pro"]
+
+    /* starting nodes */
+    sensor [label="Sensor data" shape="box" fillcolor="#bbbbbb"]
+    cov [label="Noise cov" shape="box" fillcolor="#bbbbbb"]
+
+    /* ICA.FIT() */
+    subgraph cluster_0 {
+        label="ICA.fit()"
+        color="#009988"
+        fontcolor="#009988"
+        penwidth=1.5
+
+
+        /* PRE-WHITENING */
+        subgraph cluster_1 {
+            label="Whitening"
+            style="dashed"
+            fontname="Source Sans Pro"
+            color="gray50"
+            fontcolor="gray50"
+            /* nodes & edges */
+            pre [label="Pre-\nwhiten" fontsize=11 shape="circle" fillcolor="#ee7733"]
+            pre -> pca
+            pca        [label="PCA"                   shape="circle" fillcolor="#ee7733"]
+            pcs        [label="Principal\ncomponents" shape="box"    fillcolor="#33bbee"]
+            pca -> pcs
+        }
+
+        /* nodes & edges */
+        ica        [label="ICA"                     shape="circle" fillcolor="#ee7733"]
+        ics        [label="Independent\ncomponents" shape="box"    fillcolor="#33bbee"]
+        ica -> ics [label="n_components\r"]
+    }
+
+    /* ICA.APPLY() */
+    subgraph cluster_2 {
+        label="ICA.apply()"
+        color="#ee3377"
+        fontcolor="#ee3377"
+        penwidth=1.5
+        /* ending node */
+        recon [label="Reconstructed\nsensor data" shape="box" fillcolor="#bbbbbb"]
+    }
+
+    /* subgraph-crossing edges */
+    sensor -> pre  [label="all sensor channels\r" fontsize=14 fontname="Source Sans Pro"]
+    cov -> pre     [label="covariance or std. dev.\r" fontsize=14 fontname="Source Sans Pro"]
+    pcs -> ica     [label="n_components\l"]
+    ics -> recon   [constraint=false color="#ee3377"
+                    xlabel="Retained ICs:\ln_components -\llen(ICA.exclude)\l"]
+    pcs -> recon   [constraint=false color="#ee3377"
+                    xlabel="PCA residual:\ln_pca_components\l- n_components\l"]
+
+    /* position recon box where we want it */
+    { rank="same" recon ica }
+}

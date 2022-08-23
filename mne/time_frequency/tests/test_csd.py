@@ -7,11 +7,12 @@ import pickle
 from itertools import product
 
 import mne
-from mne.utils import sum_squared, run_tests_if_main, _TempDir, requires_h5py
+from mne.channels import equalize_channels
+from mne.utils import sum_squared, requires_version
 from mne.time_frequency import (csd_fourier, csd_multitaper,
                                 csd_morlet, csd_array_fourier,
                                 csd_array_multitaper, csd_array_morlet,
-                                tfr_morlet,
+                                tfr_morlet, csd_tfr,
                                 CrossSpectralDensity, read_csd,
                                 pick_channels_csd, psd_multitaper)
 from mne.time_frequency.csd import _sym_mat_to_vector, _vector_to_sym_mat
@@ -57,19 +58,19 @@ def test_csd():
 def test_csd_repr():
     """Test string representation of CrossSpectralDensity."""
     csd = _make_csd()
-    assert str(csd) == ('<CrossSpectralDensity  |  n_channels=3, time=0.0 to '
+    assert str(csd) == ('<CrossSpectralDensity | n_channels=3, time=0.0 to '
                         '1.0 s, frequencies=1.0, 2.0, 3.0, 4.0 Hz.>')
 
-    assert str(csd.mean()) == ('<CrossSpectralDensity  |  n_channels=3, '
+    assert str(csd.mean()) == ('<CrossSpectralDensity | n_channels=3, '
                                'time=0.0 to 1.0 s, frequencies=1.0-4.0 Hz.>')
 
     csd_binned = csd.mean(fmin=[1, 3], fmax=[2, 4])
-    assert str(csd_binned) == ('<CrossSpectralDensity  |  n_channels=3, '
+    assert str(csd_binned) == ('<CrossSpectralDensity | n_channels=3, '
                                'time=0.0 to 1.0 s, frequencies=1.0-2.0, '
                                '3.0-4.0 Hz.>')
 
     csd_binned = csd.mean(fmin=[1, 2], fmax=[1, 4])
-    assert str(csd_binned) == ('<CrossSpectralDensity  |  n_channels=3, '
+    assert str(csd_binned) == ('<CrossSpectralDensity | n_channels=3, '
                                'time=0.0 to 1.0 s, frequencies=1.0, 2.0-4.0 '
                                'Hz.>')
 
@@ -77,7 +78,7 @@ def test_csd_repr():
     csd_no_time.tmin = None
     csd_no_time.tmax = None
     assert str(csd_no_time) == (
-        '<CrossSpectralDensity  |  n_channels=3, time=unknown, '
+        '<CrossSpectralDensity | n_channels=3, time=unknown, '
         'frequencies=1.0, 2.0, 3.0, 4.0 Hz.>'
     )
 
@@ -219,11 +220,11 @@ def test_csd_get_data():
     raises(IndexError, csd.mean().get_data, index=15)
 
 
-@requires_h5py
-def test_csd_save():
+@requires_version('h5io')
+def test_csd_save(tmp_path):
     """Test saving and loading a CrossSpectralDensity."""
     csd = _make_csd()
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
     fname = op.join(tempdir, 'csd.h5')
     csd.save(fname)
     csd2 = read_csd(fname)
@@ -235,10 +236,10 @@ def test_csd_save():
     assert csd._is_sum == csd2._is_sum
 
 
-def test_csd_pickle():
+def test_csd_pickle(tmp_path):
     """Test pickling and unpickling a CrossSpectralDensity."""
     csd = _make_csd()
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
     fname = op.join(tempdir, 'csd.dat')
     with open(fname, 'wb') as f:
         pickle.dump(csd, f)
@@ -281,8 +282,8 @@ def test_sym_mat_to_vector():
     # Test complex values: diagonals should be complex conjugates
     comp_vec = np.arange(3) + 1j
     assert_array_equal(_vector_to_sym_mat(comp_vec),
-                       [[0. + 0.j,  1. + 1.j],
-                        [1. - 1.j,  2. + 0.j]])
+                       [[0. + 0.j, 1. + 1.j],
+                        [1. - 1.j, 2. + 0.j]])
 
     # Test preservation of data type
     assert _sym_mat_to_vector(mat.astype(np.int8)).dtype == np.int8
@@ -535,9 +536,37 @@ def test_csd_morlet():
     # Test baselining warning
     epochs_nobase = epochs.copy()
     epochs_nobase.baseline = None
-    epochs_nobase.info['highpass'] = 0
+    with epochs_nobase.info._unlock():
+        epochs_nobase.info['highpass'] = 0
     with pytest.warns(RuntimeWarning, match='baseline'):
         csd = csd_morlet(epochs_nobase, frequencies=[10], decim=20)
 
 
-run_tests_if_main()
+def test_equalize_channels():
+    """Test equalization of channels for instances of CrossSpectralDensity."""
+    csd1 = _make_csd()
+    csd2 = csd1.copy().pick_channels(['CH2', 'CH1'], ordered=True)
+    csd1, csd2 = equalize_channels([csd1, csd2])
+
+    assert csd1.ch_names == ['CH1', 'CH2']
+    assert csd2.ch_names == ['CH1', 'CH2']
+
+
+def test_csd_tfr():
+    """Test computing cross-spectral density on time-frequency epochs."""
+    rng = np.random.default_rng(11)
+    n_epochs = 6
+    info = mne.io.read_info(raw_fname)
+    info = mne.pick_info(info, mne.pick_types(info, eeg=True))
+    freqs = np.arange(38, 40)
+    times = np.linspace(0, 1, int(round(info['sfreq'])))
+    data = rng.normal(
+        size=(n_epochs, len(info.ch_names), times.size)) * 1e-6
+    epochs = mne.EpochsArray(data, info)
+    csd_test = csd_morlet(epochs, freqs, n_cycles=7, tmin=0.25, tmax=0.75)
+    epochs_tfr = tfr_morlet(epochs, freqs, n_cycles=7,
+                            average=False, return_itc=False,
+                            output='complex')
+    csd = csd_tfr(epochs_tfr, tmin=0.25, tmax=0.75)
+    assert_allclose(csd._data, csd_test._data)
+    assert_array_equal(csd.frequencies, freqs)

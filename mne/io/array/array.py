@@ -2,7 +2,7 @@
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
@@ -18,8 +18,7 @@ class RawArray(BaseRaw):
     ----------
     data : array, shape (n_channels, n_times)
         The channels' time series. See notes for proper units of measure.
-    info : instance of Info
-        Info dictionary. Consider using :func:`mne.create_info` to populate
+    %(info_not_none)s Consider using :func:`mne.create_info` to populate
         this structure. This may be modified in place by the class.
     first_samp : int
         First sample offset used during recording (default 0).
@@ -33,27 +32,27 @@ class RawArray(BaseRaw):
         .. versionadded:: 0.18
     %(verbose)s
 
-    Notes
-    -----
-    Proper units of measure:
-    * V: eeg, eog, seeg, emg, ecg, bio, ecog
-    * T: mag
-    * T/m: grad
-    * M: hbo, hbr
-    * Am: dipole
-    * AU: misc
-
     See Also
     --------
     mne.EpochsArray
     mne.EvokedArray
     mne.create_info
+
+    Notes
+    -----
+    Proper units of measure:
+    * V: eeg, eog, seeg, dbs, emg, ecg, bio, ecog
+    * T: mag
+    * T/m: grad
+    * M: hbo, hbr
+    * Am: dipole
+    * AU: misc
     """
 
     @verbose
     def __init__(self, data, info, first_samp=0, copy='auto',
                  verbose=None):  # noqa: D102
-        _validate_type(info, "info")
+        _validate_type(info, 'info', 'info')
         _check_option('copy', copy, ('data', 'info', 'both', 'auto', None))
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         orig_data = data

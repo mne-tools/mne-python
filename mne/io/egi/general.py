@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os
 from xml.dom.minidom import parse
 import re
 
 import numpy as np
+
+from ...utils import _pl
 
 
 def _extract(tags, filepath=None, obj=None):
@@ -47,7 +49,8 @@ def _get_ep_info(filepath):
     epochfile = filepath + '/epochs.xml'
     epochlist = parse(epochfile)
     epochs = epochlist.getElementsByTagName('epoch')
-    epoch_info = list()
+    keys = ('first_samps', 'last_samps', 'first_blocks', 'last_blocks')
+    epoch_info = {key: list() for key in keys}
     for epoch in epochs:
         ep_begin = int(epoch.getElementsByTagName('beginTime')[0]
                        .firstChild.data)
@@ -56,10 +59,12 @@ def _get_ep_info(filepath):
                           .firstChild.data)
         last_block = int(epoch.getElementsByTagName('lastBlock')[0]
                          .firstChild.data)
-        epoch_info.append({'first_samp': ep_begin,
-                           'last_samp': ep_end,
-                           'first_block': first_block,
-                           'last_block': last_block})
+        epoch_info['first_samps'].append(ep_begin)
+        epoch_info['last_samps'].append(ep_end)
+        epoch_info['first_blocks'].append(first_block)
+        epoch_info['last_blocks'].append(last_block)
+    # Don't turn into ndarray here, keep native int because it can deal with
+    # huge numbers (could use np.uint64 but it's more work)
     return epoch_info
 
 
@@ -123,9 +128,11 @@ def _get_signalfname(filepath):
     binfiles = list(f for f in listfiles if 'signal' in f and
                     f[-4:] == '.bin' and f[0] != '.')
     all_files = {}
+    infofiles = list()
     for binfile in binfiles:
         bin_num_str = re.search(r'\d+', binfile).group()
         infofile = 'info' + bin_num_str + '.xml'
+        infofiles.append(infofile)
         infobjfile = os.path.join(filepath, infofile)
         infobj = parse(infobjfile)
         if len(infobj.getElementsByTagName('EEG')):
@@ -135,6 +142,10 @@ def _get_signalfname(filepath):
         all_files[signal_type] = {
             'signal': 'signal{}.bin'.format(bin_num_str),
             'info': infofile}
+    if 'EEG' not in all_files:
+        raise FileNotFoundError(
+            'Could not find any EEG data in the %d file%s found in %s:\n%s'
+            % (len(infofiles), _pl(infofiles), filepath, '\n'.join(infofiles)))
     return all_files
 
 

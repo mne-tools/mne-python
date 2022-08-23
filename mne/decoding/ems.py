@@ -1,8 +1,8 @@
 # Author: Denis Engemann <denis.engemann@gmail.com>
-#         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Jean-Remi King <jeanremi.king@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections import Counter
 
@@ -19,13 +19,14 @@ from .. import pick_types, pick_info
 class EMS(TransformerMixin, EstimatorMixin):
     """Transformer to compute event-matched spatial filters.
 
-    This version of EMS [1]_ operates on the entire time course. No time
+    This version of EMS :footcite:`SchurgerEtAl2013` operates on the entire
+    time course. No time
     window needs to be specified. The result is a spatial filter at each
     time point and a corresponding time course. Intuitively, the result
     gives the similarity between the filter at each time point and the
     data vector (sensors) at that time point.
 
-    .. note : EMS only works for binary classification.
+    .. note:: EMS only works for binary classification.
 
     Attributes
     ----------
@@ -36,9 +37,7 @@ class EMS(TransformerMixin, EstimatorMixin):
 
     References
     ----------
-    .. [1] Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing
-           multi-sensor data to a single time course that reveals experimental
-           effects", BMC Neuroscience 2013, 14:122
+    .. footbibliography::
     """
 
     def __repr__(self):  # noqa: D105
@@ -93,11 +92,12 @@ class EMS(TransformerMixin, EstimatorMixin):
 
 
 @verbose
-def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
+def compute_ems(epochs, conditions=None, picks=None, n_jobs=None, cv=None,
                 verbose=None):
     """Compute event-matched spatial filter on epochs.
 
-    This version of EMS [1]_ operates on the entire time course. No time
+    This version of EMS :footcite:`SchurgerEtAl2013` operates on the entire
+    time course. No time
     window needs to be specified. The result is a spatial filter at each
     time point and a corresponding time course. Intuitively, the result
     gives the similarity between the filter at each time point and the
@@ -139,9 +139,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
 
     References
     ----------
-    .. [1] Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing
-           multi-sensor data to a single time course that reveals experimental
-           effects", BMC Neuroscience 2013, 14:122
+    .. footbibliography::
     """
     logger.info('...computing surrogate time series. This can take some time')
 
@@ -191,7 +189,7 @@ def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, cv=None,
     y = epochs.events[:, 2]
     _, cv_splits = _set_cv(cv, 'classifier', X=y, y=y)
 
-    parallel, p_func, _ = parallel_func(_run_ems, n_jobs=n_jobs)
+    parallel, p_func, n_jobs = parallel_func(_run_ems, n_jobs=n_jobs)
     # FIXME this parallelization should be removed.
     #   1) it's numpy computation so it's already efficient,
     #   2) it duplicates the data in RAM,

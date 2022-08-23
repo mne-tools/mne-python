@@ -1,16 +1,16 @@
 # Authors: Chris Holdgraf <choldgraf@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 import os.path as op
 
 import pytest
 import numpy as np
 
+from numpy import einsum
+from numpy.fft import rfft, irfft
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
-from mne import io, pick_types
-from mne.fixes import einsum
-from mne.utils import requires_version, requires_sklearn, run_tests_if_main
+from mne.utils import requires_sklearn
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
                                           _times_to_delays, _delays_to_slice)
@@ -26,11 +26,6 @@ tmin, tmax = -0.1, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 
 # Loading raw data
-raw = io.read_raw_fif(raw_fname, preload=True)
-picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                   eog=False, exclude='bads')
-picks = picks[:2]
-
 n_jobs_test = (1, 'cuda')
 
 
@@ -69,9 +64,9 @@ def test_rank_deficiency():
     rng = np.random.RandomState(0)
     eeg = rng.randn(N, 1)
     eeg *= 100
-    eeg = np.fft.rfft(eeg, axis=0)
+    eeg = rfft(eeg, axis=0)
     eeg[N // 4:] = 0  # rank-deficient lowpass
-    eeg = np.fft.irfft(eeg, axis=0)
+    eeg = irfft(eeg, axis=0)
     win = np.hanning(N // 8)
     win /= win.mean()
     y = np.apply_along_axis(np.convolve, 0, eeg, win, mode='same')
@@ -114,7 +109,7 @@ def test_time_delay():
             _delay_time_series(X, tmin, tmax, sfreq=[1])
         # Delays must be int/float
         with pytest.raises(TypeError, match='.*complex.*'):
-            _delay_time_series(X, np.complex(tmin), tmax, 1)
+            _delay_time_series(X, np.complex128(tmin), tmax, 1)
         # Make sure swapaxes works
         start, stop = int(round(tmin * isfreq)), int(round(tmax * isfreq)) + 1
         n_delays = stop - start
@@ -148,6 +143,7 @@ def test_time_delay():
                     assert_array_equal(X_delayed[:ii, :, idx], 0.)
 
 
+@pytest.mark.slowtest  # slow on Azure
 @pytest.mark.parametrize('n_jobs', n_jobs_test)
 @requires_sklearn
 def test_receptive_field_basic(n_jobs):
@@ -537,7 +533,6 @@ def test_inverse_coef():
 
 
 @requires_sklearn
-@requires_version('scipy', '1.0')
 def test_linalg_warning():
     """Test that warnings are issued when no regularization is applied."""
     from sklearn.linear_model import Ridge
@@ -548,6 +543,3 @@ def test_linalg_warning():
         with pytest.warns((RuntimeWarning, UserWarning),
                           match='[Singular|scipy.linalg.solve]'):
             rf.fit(y, X)
-
-
-run_tests_if_main()

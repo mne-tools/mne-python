@@ -1,15 +1,24 @@
-"""Some utility functions for commands (e.g. for cmdline handling)."""
+"""Some utility functions for commands (e.g., for cmdline handling)."""
 
 # Authors: Yaroslav Halchenko <debian@onerussian.com>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
-import sys
+import glob
+import importlib
 import os
-import re
+import os.path as op
 from optparse import OptionParser
+import sys
 
 import mne
+
+
+def _add_verbose_flag(parser):
+    parser.add_option("--verbose", dest='verbose',
+                      help="Enable verbose mode (printing of log messages).",
+                      default=None, action="store_true")
 
 
 def load_module(name, path):
@@ -26,36 +35,17 @@ def load_module(name, path):
     -------
     mod : module
         Imported module.
+
     """
-    if sys.version_info < (3, 3):
-        import imp
-        if path.endswith('.pyc'):
-            return imp.load_compiled(name, path)
-        else:
-            return imp.load_source(name, path)
-    elif sys.version_info < (3, 5):
-        if path.endswith('.pyc'):
-            from importlib.machinery import SourcelessFileLoader
-            return SourcelessFileLoader(name, path).load_module()
-        else:
-            from importlib.machinery import SourceFileLoader
-            return SourceFileLoader(name, path).load_module()
-    else:  # Python 3.5 or greater
-        from importlib.util import spec_from_file_location, module_from_spec
-        spec = spec_from_file_location(name, path)
-        mod = module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod
+    from importlib.util import spec_from_file_location, module_from_spec
+    spec = spec_from_file_location(name, path)
+    mod = module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
-def get_optparser(cmdpath, usage=None):
-    """Create OptionParser with cmd specific settings (e.g. prog value)."""
-    command = os.path.basename(cmdpath)
-    if re.match('mne_(.*).py', command):
-        command = command[4:-3]
-    elif re.match('mne_(.*).pyc', command):
-        command = command[4:-4]
-
+def get_optparser(cmdpath, usage=None, prog_prefix='mne', version=None):
+    """Create OptionParser with cmd specific settings (e.g., prog value)."""
     # Fetch description
     mod = load_module('__temp', cmdpath)
     if mod.__doc__:
@@ -66,11 +56,52 @@ def get_optparser(cmdpath, usage=None):
         if len(doc_lines) > 1:
             epilog = '\n'.join(doc_lines[1:])
 
+    # Get the name of the command
+    command = os.path.basename(cmdpath)
+    command, _ = os.path.splitext(command)
+    command = command[len(prog_prefix) + 1:]  # +1 is for `_` character
+
+    # Set prog
+    prog = prog_prefix + ' {}'.format(command)
+
+    # Set version
+    if version is None:
+        version = mne.__version__
+
     # monkey patch OptionParser to not wrap epilog
     OptionParser.format_epilog = lambda self, formatter: self.epilog
-    parser = OptionParser(prog="mne %s" % command,
-                          version=mne.__version__,
+    parser = OptionParser(prog=prog,
+                          version=version,
                           description=description,
                           epilog=epilog, usage=usage)
 
     return parser
+
+
+def main():
+    """Entrypoint for mne <command> usage."""
+    mne_bin_dir = op.dirname(op.dirname(__file__))
+    valid_commands = sorted(glob.glob(op.join(mne_bin_dir,
+                                              'commands', 'mne_*.py')))
+    valid_commands = [c.split(op.sep)[-1][4:-3] for c in valid_commands]
+
+    def print_help():  # noqa
+        print("Usage : mne command options\n")
+        print("Accepted commands :\n")
+        for c in valid_commands:
+            print("\t- %s" % c)
+        print("\nExample : mne browse_raw --raw sample_audvis_raw.fif")
+        print("\nGetting help example : mne compute_proj_eog -h")
+
+    if len(sys.argv) == 1 or "help" in sys.argv[1] or "-h" in sys.argv[1]:
+        print_help()
+    elif sys.argv[1] == "--version":
+        print("MNE %s" % mne.__version__)
+    elif sys.argv[1] not in valid_commands:
+        print('Invalid command: "%s"\n' % sys.argv[1])
+        print_help()
+    else:
+        cmd = sys.argv[1]
+        cmd = importlib.import_module('.mne_%s' % (cmd,), 'mne.commands')
+        sys.argv = sys.argv[1:]
+        cmd.run()

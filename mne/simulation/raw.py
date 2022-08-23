@@ -3,21 +3,20 @@
 #          Yousra Bekhti <yousra.bekhti@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from collections.abc import Iterable
 
 import numpy as np
 
-from .evoked import add_noise
 from ..event import _get_stim_channel
-from ..filter import _Interp2
+from .._ola import _Interp2
 from ..io.pick import (pick_types, pick_info, pick_channels,
                        pick_channels_forward)
 from ..cov import make_ad_hoc_cov, read_cov, Covariance
 from ..bem import fit_sphere_to_headshape, make_sphere_model, read_bem_solution
 from ..io import RawArray, BaseRaw, Info
-from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, _get_hpi_info,
+from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, get_chpi_info,
                     _get_hpi_initial_fit)
 from ..io.constants import FIFF
 from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
@@ -26,45 +25,36 @@ from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _compute_forwards, _to_forward_dict,
                        restrict_forward_to_stc, _prep_meg_channels)
 from ..transforms import _get_trans, transform_surface_to
-from ..source_space import (_ensure_src, _points_outside_surface,
-                            _set_source_space_vertices,
+from ..source_space import (_ensure_src, _set_source_space_vertices,
                             setup_volume_source_space)
 from ..source_estimate import _BaseSourceEstimate
+from ..surface import _CheckInside
 from ..utils import (logger, verbose, check_random_state, _pl, _validate_type,
-                     warn, _check_preload)
-from ..parallel import check_n_jobs
+                     _check_preload)
+from .source import SourceSimulator
 
 
 def _check_cov(info, cov):
     """Check that the user provided a valid covariance matrix for the noise."""
+    _validate_type(cov, (Covariance, None, dict, str, 'path-like'), 'cov')
     if isinstance(cov, Covariance) or cov is None:
         pass
     elif isinstance(cov, dict):
         cov = make_ad_hoc_cov(info, cov, verbose=False)
-    elif isinstance(cov, str):
+    else:
         if cov == 'simple':
             cov = make_ad_hoc_cov(info, None, verbose=False)
         else:
             cov = read_cov(cov, verbose=False)
-    else:
-        raise TypeError('Covariance matrix type not recognized. Valid input '
-                        'types are: instance of Covariance, dict, str, None. '
-                        ', got %s' % (cov,))
     return cov
 
 
-def _check_stc_iterable(stc, info, n_samples=None):
+def _check_stc_iterable(stc, info):
     # 1. Check that our STC is iterable (or convert it to one using cycle)
     # 2. Do first iter so we can get the vertex subselection
     # 3. Get the list of verts, which must stay the same across iterations
     if isinstance(stc, _BaseSourceEstimate):
-        if n_samples is None:
-            stc = [stc]
-        else:
-            n_samp_stc = stc.times.size
-            n_stc = int(np.ceil(n_samples / n_samp_stc))
-            logger.info('Making %d copies of STC to fit into raw' % (n_stc,))
-            stc = [stc] * n_stc
+        stc = [stc]
     _validate_type(stc, Iterable, 'SourceEstimate, tuple, or iterable')
     stc_enum = enumerate(stc)
     del stc
@@ -116,8 +106,11 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
             raise RuntimeError('All position times must be <= t_end (%0.1f '
                                'sec), found %s/%s bad values (is this a split '
                                'file?)' % (times[-1], bad.sum(), len(bad)))
+    # If it starts close to zero, make it zero (else unique(offset) fails)
+    if len(ts) > 0 and ts[0] < (0.5 / info['sfreq']):
+        ts[0] = 0.
     # If it doesn't start at zero, insert one at t=0
-    if len(ts) == 0 or ts[0] > 0:
+    elif len(ts) == 0 or ts[0] > 0:
         ts = np.r_[[0.], ts]
         dev_head_ts.insert(0, info['dev_head_t']['trans'])
     dev_head_ts = [{'trans': d, 'to': info['dev_head_t']['to'],
@@ -131,11 +124,9 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
 
 
 @verbose
-def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
-                 blink=None, ecg=None, chpi=None, head_pos=None,
-                 mindist=1.0, interp='cos2', iir_filter=None, n_jobs=1,
-                 random_state=None, use_cps=True, forward=None, first_samp=0,
-                 max_iter=10000, raw=None, verbose=None):
+def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
+                 mindist=1.0, interp='cos2', n_jobs=None, use_cps=True,
+                 forward=None, first_samp=0, max_iter=10000, verbose=None):
     u"""Simulate raw data.
 
     Head movements can optionally be simulated using the ``head_pos``
@@ -143,14 +134,11 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
 
     Parameters
     ----------
-    info : instance of Info | instance of Raw
-        The channel information to use for simulation.
-        Can be an instance of :class:`mne.io.Raw`, but this is deprecated and
-        will be removed in 0.19.
+    %(info_not_none)s Used for simulation.
 
         .. versionchanged:: 0.18
            Support for :class:`mne.Info`.
-    stc : iterable | SourceEstimate
+    stc : iterable | SourceEstimate | SourceSimulator
         The source estimates to use to simulate data. Each must have the same
         sample rate as the raw data, and the vertices of all stcs in the
         iterable must match. Each entry in the iterable can also be a tuple of
@@ -159,13 +147,14 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
         See Notes for details.
 
         .. versionchanged:: 0.18
-           Support for tuple, and iterable of tuple or SourceEstimate.
+           Support for tuple, iterable of tuple or `~mne.SourceEstimate`,
+           or `~mne.simulation.SourceSimulator`.
     trans : dict | str | None
         Either a transformation filename (usually made using mne_analyze)
         or an info dict (usually opened using read_trans()).
-        If string, an ending of `.fif` or `.fif.gz` will be assumed to
+        If string, an ending of ``.fif`` or ``.fif.gz`` will be assumed to
         be in FIF format, any other ending will be assumed to be a text
-        file with a 4x4 transformation matrix (like the `--trans` MNE-C
+        file with a 4x4 transformation matrix (like the ``--trans`` MNE-C
         option). If trans is None, an identity transform will be used.
     src : str | instance of SourceSpaces | None
         Source space corresponding to the stc. If string, should be a source
@@ -175,42 +164,14 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
         BEM solution  corresponding to the stc. If string, should be a BEM
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
         Can be None if ``forward`` is provided.
-    cov : instance of Covariance | str | dict of float | None
-        Deprecated and will be removed in 0.18.
-        Use :func:`mne.simulation.add_noise` instead.
-        The sensor covariance matrix used to generate noise. If string, should
-        be a filename or 'simple'. If 'simple', an ad hoc covariance matrix
-        will be generated with default values. If dict, an ad hoc covariance
-        matrix will be generated with the values specified by the dict entries.
-        If None, no noise will be added.
-    blink : bool
-        Deprecated and will be removed in 0.19, use :func:`add_eog` instead.
-        If true, add simulated blink artifacts. See Notes for details.
-    ecg : bool
-        Deprecated and will be removed in 0.19, use :func:`add_ecg` instead.
-        If true, add simulated ECG artifacts. See Notes for details.
-    chpi : bool
-        Deprecated and will be removed in 0.19, use :func:`add_chpi` instead.
-        If true, simulate continuous head position indicator information.
-        Valid cHPI information must encoded in ``raw.info['hpi_meas']``
-        to use this option.
     %(head_pos)s
-        See for example [1]_.
+        See for example :footcite:`LarsonTaulu2017`.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
     %(interp)s
-    iir_filter : None | array
-        Deprecated and will be removed in 0.19. Use :func:`add_noise` instead.
-        IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     %(n_jobs)s
-    random_state : int | None
-      Deprecated and will be removed in 0.19. Use dedicated noise-generation
-      functions :func:`add_noise`, :func:`add_ecg`, and :func:`add_eog`
-      instead.
-    use_cps : None | bool (default True)
-        Whether to use cortical patch statistics to define normal
-        orientations. Only used when surf_ori and/or force_fixed are True.
+    %(use_cps)s
     forward : instance of Forward | None
         The forward operator to use. If None (default) it will be computed
         using ``bem``, ``trans``, and ``src``. If not None,
@@ -226,9 +187,6 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
         This is a sanity parameter to prevent accidental blowups.
 
         .. versionadded:: 0.18
-    raw : instance of Raw
-        Deprecated and will be removed in 0.18. Pass an instance of
-        :class: `mne.Info` to ``info`` instead.
     %(verbose)s
 
     Returns
@@ -278,32 +236,9 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
 
     References
     ----------
-    .. [1] Larson E, Taulu S (2017). "The Importance of Properly Compensating
-           for Head Movements During MEG Acquisition Across Different Age
-           Groups." Brain Topogr 30:172–181
+    .. footbibliography::
     """  # noqa: E501
-    _validate_type(info, (BaseRaw, Info), 'info', 'Raw or Info')
-    if cov is not None:
-        warn('cov is deprecated in 0.18 and will be removed in 0.19, '
-             'use mne.simulation.add_noise instead', DeprecationWarning)
-
-    warn_raw = False
-    if raw is not None:
-        info = raw
-        warn_raw = True
-    del raw
-    if isinstance(info, Info):
-        raw_verbose = verbose
-        n_samples = None
-    else:
-        raw_verbose = info.verbose
-        n_samples = len(info.times)
-        info, first_samp = info.info, info.first_samp
-        warn_raw = True
-    if warn_raw:
-        warn('Passing a raw instance to simulate_raw is deprecated and will '
-             'not work in 0.19, pass an instance of Info as first argument or '
-             'as a keyword argument as info=info', DeprecationWarning)
+    _validate_type(info, Info, 'info')
 
     if len(pick_types(info, meg=False, stim=True)) == 0:
         event_ch = None
@@ -311,8 +246,6 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
         event_ch = pick_channels(info['ch_names'],
                                  _get_stim_channel(None, info))[0]
 
-    n_jobs = check_n_jobs(n_jobs)
-    interper = _Interp2(interp)
     if forward is not None:
         if any(x is not None for x in (trans, src, bem, head_pos)):
             raise ValueError('If forward is not None then trans, src, bem, '
@@ -324,29 +257,21 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
                              'the one in raw.info["dev_head_t"]')
         src = forward['src']
 
-    if blink is not None:
-        warn('blink is deprecated and will be removed in 0.19, use add_eog '
-             'instead', DeprecationWarning)
-    if ecg is not None:
-        warn('ecg is deprecated and will be removed in 0.19, use add_ecg '
-             'instead', DeprecationWarning)
-    if chpi is not None:
-        warn('chpi is deprecated and will be removed in 0.19, use add_chpi '
-             'instead', DeprecationWarning)
     dev_head_ts, offsets = _check_head_pos(head_pos, info, first_samp, None)
 
     src = _ensure_src(src, verbose=False)
     if isinstance(bem, str):
         bem = read_bem_solution(bem, verbose=False)
-    cov = _check_cov(info, cov)
 
     # Extract necessary info
     meeg_picks = pick_types(info, meg=True, eeg=True, exclude=[])
     logger.info('Setting up raw simulation: %s position%s, "%s" interpolation'
                 % (len(dev_head_ts), _pl(dev_head_ts), interp))
 
-    stc_enum, stc_counted, verts = _check_stc_iterable(stc, info, n_samples)
-    # del stc
+    if isinstance(stc, SourceSimulator) and stc.first_samp != first_samp:
+        logger.info('SourceSimulator first_samp does not match argument.')
+
+    stc_enum, stc_counted, verts = _check_stc_iterable(stc, info)
     if forward is not None:
         forward = restrict_forward_to_stc(forward, verts)
         src = forward['src']
@@ -359,99 +284,53 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
     _log_ch('Event information', info, event_ch)
     # don't process these any more if no MEG present
     n = 1
-    for fi, fwd in enumerate(_iter_forward_solutions(
-            info, trans, src, bem, dev_head_ts, mindist, n_jobs, forward,
-            meeg_picks)):
-        # must be fixed orientation
-        # XXX eventually we could speed this up by allowing the forward
-        # solution code to only compute the normal direction
-        fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
-                                       use_cps=use_cps, verbose=False)
-        interper['fwd'] = fwd['sol']['data']
-        assert fwd['sol']['data'].shape[0] == len(meeg_picks)
-        if fi == 0:
-            # Actually restrict the STC based on vertices obtained during calc
-            stc_data, stim_data, _ = _stc_data_event(
-                stc_counted, 1, info['sfreq'], fwd['src'])
-            continue
+    get_fwd = _SimForwards(
+        dev_head_ts, offsets, info, trans, src, bem, mindist, n_jobs,
+        meeg_picks, forward, use_cps)
+    interper = _Interp2(offsets, get_fwd, interp)
 
-        assert 0 <= fi <= len(offsets)
-        start = offsets[fi - 1]
-        stop = np.inf if fi == len(offsets) else offsets[fi]
-        interper.n_samp = stop - start
-        logger.info('   Simulating data for forward operator %d/%d'
-                    % (fi, len(offsets) - 1))
-
-        # To avoid a blowup of memory, process in chunk sizes equal to
-        # STC length (which will hopefully be a reasonable memory / number
-        # of iterations tradeoff)
-        this_start = start
-        while this_start < stop:
-            this_stop = min(this_start + stc_data.shape[1], stop)
-            logger.info('   Interval %0.3f-%0.3f sec'
-                        % (this_start / info['sfreq'],
-                           this_stop / info['sfreq']))
-            n_doing = this_stop - this_start
-            assert n_doing > 0
-            this_data = np.zeros((len(info['ch_names']), n_doing))
-            raw_datas.append(this_data)
-            # Stim channel
-            if event_ch is not None:
-                this_data[event_ch, :] = stim_data[:n_doing]
-            # Brain data
-            interp_sl = slice(this_start - start, this_stop - start)
-            interper.interpolate('fwd', stc_data[:, :n_doing],
-                                 this_data, meeg_picks, interp_sl)
-            # Increment parameters based on what we accomplished
-            this_start += n_doing
-            if n_doing < stc_data.shape[1]:
-                # Shift the buffer
-                stc_data = stc_data[:, n_doing:]
-                stim_data = stim_data[n_doing:]
-            else:
-                # Get more data (if necessary)
-                assert n_doing == stc_data.shape[1]
-                try:
-                    stc_counted = next(stc_enum)
-                except StopIteration:
-                    if n_samples is not None and this_stop < n_samples:
-                        raise RuntimeError('Iterable did not provide stc[%d] '
-                                           'required to cover the raw duration'
-                                           ' %s sec'
-                                           % (stc_counted[0] + 1,
-                                              n_samples / info['sfreq']))
-                    logger.info('    %d STC iteration%s provided'
-                                % (n, _pl(n)))
-                    break
-                n += 1
-                stc_data, stim_data, _ = _stc_data_event(
-                    stc_counted, fi, info['sfreq'], fwd['src'], verts)
-            if n_samples is not None and this_stop >= n_samples - 1:
-                break
-            if n > max_iter:
-                raise RuntimeError('Maximum number of STC iterations (%d) '
-                                   'exceeded' % (n,))
+    this_start = 0
+    for n in range(max_iter):
+        if isinstance(stc_counted[1], (list, tuple)):
+            this_n = stc_counted[1][0].data.shape[1]
+        else:
+            this_n = stc_counted[1].data.shape[1]
+        this_stop = this_start + this_n
+        logger.info('    Interval %0.3f-%0.3f sec'
+                    % (this_start / info['sfreq'],
+                        this_stop / info['sfreq']))
+        n_doing = this_stop - this_start
+        assert n_doing > 0
+        this_data = np.zeros((len(info['ch_names']), n_doing))
+        raw_datas.append(this_data)
+        # Stim channel
+        fwd, fi = interper.feed(this_stop - this_start)
+        fi = fi[0]
+        stc_data, stim_data, _ = _stc_data_event(
+            stc_counted, fi, info['sfreq'], get_fwd.src,
+            None if n == 0 else verts)
+        if event_ch is not None:
+            this_data[event_ch, :] = stim_data[:n_doing]
+        this_data[meeg_picks] = np.einsum('svt,vt->st', fwd, stc_data)
+        try:
+            stc_counted = next(stc_enum)
+        except StopIteration:
+            logger.info('    %d STC iteration%s provided'
+                        % (n + 1, _pl(n + 1)))
+            break
         del fwd
+    else:
+        raise RuntimeError('Maximum number of STC iterations (%d) '
+                           'exceeded' % (n,))
     raw_data = np.concatenate(raw_datas, axis=-1)
     raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
-    if blink:
-        add_eog(raw, head_pos, interp, n_jobs, random_state)
-    if ecg:
-        add_ecg(raw, head_pos, interp, n_jobs, random_state)
-    if chpi:
-        add_chpi(raw, head_pos, interp, n_jobs)
-    if cov is not None:
-        add_noise(raw, cov, iir_filter, random_state)
-    if n_samples is not None:
-        raw.crop(0, (n_samples - 1.) / raw.info['sfreq'])
     raw.set_annotations(raw.annotations)
-    raw.verbose = raw_verbose
-    logger.info('Done')
+    logger.info('[done]')
     return raw
 
 
 @verbose
-def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
+def add_eog(raw, head_pos=None, interp='cos2', n_jobs=None, random_state=None,
             verbose=None):
     """Add blink noise to raw data.
 
@@ -486,7 +365,7 @@ def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
     1. Random activation times are drawn from an inhomogeneous poisson
        process whose blink rate oscillates between 4.5 blinks/minute
        and 17 blinks/minute based on the low (reading) and high (resting)
-       blink rates from [1]_.
+       blink rates from :footcite:`BentivoglioEtAl1997`.
     2. The activation kernel is a 250 ms Hanning window.
     3. Two activated dipoles are located in the z=0 plane (in head
        coordinates) at ±30 degrees away from the y axis (nasion).
@@ -499,14 +378,13 @@ def add_eog(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
 
     References
     ----------
-    .. [1] Bentivoglio et al. "Analysis of blink rate patterns in normal
-           subjects" Movement Disorders, 1997 Nov;12(6):1028-34.
+    .. footbibliography::
     """
     return _add_exg(raw, 'blink', head_pos, interp, n_jobs, random_state)
 
 
 @verbose
-def add_ecg(raw, head_pos=None, interp='cos2', n_jobs=1, random_state=None,
+def add_ecg(raw, head_pos=None, interp='cos2', n_jobs=None, random_state=None,
             verbose=None):
     """Add ECG noise to raw data.
 
@@ -566,7 +444,6 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
     data = raw._data
     meg_picks = pick_types(info, meg=True, eeg=False, exclude=())
     meeg_picks = pick_types(info, meg=True, eeg=True, exclude=())
-    interper = _Interp2(interp)
     R, r0 = fit_sphere_to_headshape(info, units='m', verbose=False)[:2]
     bem = make_sphere_model(r0, head_radius=R,
                             relative_radii=(0.97, 0.98, 0.99, 1.),
@@ -581,14 +458,14 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
         exg_rr *= 0.96 * R
         exg_rr += r0
         # oriented upward
-        blink_nn = np.array([[0., 0., 1.], [0., 0., 1.]])
+        nn = np.array([[0., 0., 1.], [0., 0., 1.]])
         # Blink times drawn from an inhomogeneous poisson process
         # by 1) creating the rate and 2) pulling random numbers
         blink_rate = (1 + np.cos(2 * np.pi * 1. / 60. * times)) / 2.
         blink_rate *= 12.5 / 60.
         blink_rate += 4.5 / 60.
-        blink_data = rng.rand(len(times)) < blink_rate / info['sfreq']
-        blink_data = blink_data * (rng.rand(len(times)) + 0.5)  # varying amps
+        blink_data = rng.uniform(size=len(times)) < blink_rate / info['sfreq']
+        blink_data = blink_data * (rng.uniform(size=len(times)) + 0.5)  # amps
         # Activation kernel is a simple hanning window
         blink_kernel = np.hanning(int(0.25 * info['sfreq']))
         exg_data = np.convolve(blink_data, blink_kernel,
@@ -621,47 +498,36 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
         ch = pick_types(info, meg=False, eeg=False, ecg=True)
         picks = meg_picks
         del cardiac_data, cardiac_kernel, max_beats, cardiac_idx
+        nn = np.zeros_like(exg_rr)
+        nn[:, 0] = 1  # arbitrarily rightward
     del meg_picks, meeg_picks
-    noise = rng.randn(exg_data.shape[1]) * 5e-6
+    noise = rng.standard_normal(exg_data.shape[1]) * 5e-6
     if len(ch) >= 1:
         ch = ch[-1]
         data[ch, :] = exg_data * 1e3 + noise
     else:
         ch = None
-    nn = np.zeros_like(exg_rr)
-    nn[:, 2] = 1
-    src = setup_volume_source_space(pos=dict(rr=exg_rr, nn=nn))
+    src = setup_volume_source_space(pos=dict(rr=exg_rr, nn=nn),
+                                    sphere_units='mm')
     _log_ch('%s simulated and trace' % kind, info, ch)
     del ch, nn, noise
 
     used = np.zeros(len(raw.times), bool)
-    for fi, fwd in enumerate(_iter_forward_solutions(
-            info, trans, src, bem, dev_head_ts, 0.005, n_jobs, None,
-            picks)):
-        fwd = fwd['sol']['data']
-        if kind == 'blink':
-            fwd = np.sum([np.dot(fwd[:, 3 * ii:3 * (ii + 1)], blink_nn[ii])
-                          for ii in range(len(exg_rr))], axis=0,
-                         keepdims=True).T
-        else:
-            # just use one arbitrary direction
-            fwd = fwd[:, [0]]
-        assert fwd.shape == (len(picks), 1)
-        interper['fwd'] = fwd
-        if fi == 0:
-            continue
-        start = offsets[fi - 1]
-        stop = None if fi == len(offsets) else offsets[fi]
-        interper.n_samp = (stop or np.inf) - start
-        interper.interpolate('fwd', exg_data[:, start:stop],
-                             data[:, start:stop], picks)
+    get_fwd = _SimForwards(
+        dev_head_ts, offsets, info, trans, src, bem, 0.005, n_jobs, picks)
+    interper = _Interp2(offsets, get_fwd, interp)
+    proc_lims = np.concatenate([np.arange(0, len(used), 10000), [len(used)]])
+    for start, stop in zip(proc_lims[:-1], proc_lims[1:]):
+        fwd, _ = interper.feed(stop - start)
+        data[picks, start:stop] += np.einsum(
+            'svt,vt->st', fwd, exg_data[:, start:stop])
         assert not used[start:stop].any()
         used[start:stop] = True
     assert used.all()
 
 
 @verbose
-def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
+def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=None, verbose=None):
     """Add cHPI activations to raw data.
 
     Parameters
@@ -689,7 +555,7 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
     if len(meg_picks) == 0:
         raise RuntimeError('Cannot add cHPI if no MEG picks are present')
     dev_head_ts, offsets = _check_head_pos(head_pos, info, first_samp, times)
-    hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(info)
+    hpi_freqs, hpi_pick, hpi_ons = get_chpi_info(info, on_missing='raise')
     hpi_rrs = _get_hpi_initial_fit(info, verbose='error')
     hpi_nns = hpi_rrs / np.sqrt(np.sum(hpi_rrs * hpi_rrs,
                                        axis=1))[:, np.newaxis]
@@ -697,32 +563,46 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=1, verbose=None):
     data = raw._data
     data[hpi_pick, :] = hpi_ons.sum()
     _log_ch('cHPI status bits enbled and', info, hpi_pick)
-    interper = _Interp2(interp)
     sinusoids = 70e-9 * np.sin(2 * np.pi * hpi_freqs[:, np.newaxis] *
                                (np.arange(len(times)) / info['sfreq']))
     info = pick_info(info, meg_picks)
-    info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
+    with info._unlock():
+        info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
     megcoils, _, _, _ = _prep_meg_channels(info, ignore_ref=False)
     used = np.zeros(len(raw.times), bool)
     dev_head_ts.append(dev_head_ts[-1])  # ZOH after time ends
-    for fi, dev_head_t in enumerate(dev_head_ts):
-        _transform_orig_meg_coils(megcoils, dev_head_t)
-        fwd = _magnetic_dipole_field_vec(hpi_rrs, megcoils).T
-        # align cHPI magnetic dipoles in approx. radial direction
-        fwd = np.array([np.dot(fwd[:, 3 * ii:3 * (ii + 1)], hpi_nns[ii])
-                        for ii in range(len(hpi_rrs))]).T
-        interper['fwd'] = fwd
-        if fi == 0:
-            continue
-        start = offsets[fi - 1]
-        stop = None if fi == len(offsets) else offsets[fi]
-        interper.n_samp = (stop or np.inf) - start
-        interper.interpolate('fwd', sinusoids[:, start:stop],
-                             data[:, start:stop], meg_picks)
+    get_fwd = _HPIForwards(offsets, dev_head_ts, megcoils, hpi_rrs, hpi_nns)
+    interper = _Interp2(offsets, get_fwd, interp)
+    lims = np.concatenate([offsets, [len(raw.times)]])
+    for start, stop in zip(lims[:-1], lims[1:]):
+        fwd, = interper.feed(stop - start)
+        data[meg_picks, start:stop] += np.einsum(
+            'svt,vt->st', fwd, sinusoids[:, start:stop])
         assert not used[start:stop].any()
         used[start:stop] = True
     assert used.all()
     return raw
+
+
+class _HPIForwards(object):
+
+    def __init__(self, offsets, dev_head_ts, megcoils, hpi_rrs, hpi_nns):
+        self.offsets = offsets
+        self.dev_head_ts = dev_head_ts
+        self.hpi_rrs = hpi_rrs
+        self.hpi_nns = hpi_nns
+        self.megcoils = megcoils
+        self.idx = 0
+
+    def __call__(self, offset):
+        assert offset == self.offsets[self.idx]
+        _transform_orig_meg_coils(self.megcoils, self.dev_head_ts[self.idx])
+        fwd = _magnetic_dipole_field_vec(self.hpi_rrs, self.megcoils).T
+        # align cHPI magnetic dipoles in approx. radial direction
+        fwd = np.array([np.dot(fwd[:, 3 * ii:3 * (ii + 1)], self.hpi_nns[ii])
+                        for ii in range(len(self.hpi_rrs))]).T
+        self.idx += 1
+        return (fwd,)
 
 
 def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
@@ -755,7 +635,7 @@ def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
     if len(stc.times) <= 2:  # to ensure event encoding works
         raise ValueError('stc must have at least three time points, got %s'
                          % (len(stc.times),))
-    verts_ = stc._vertices_list
+    verts_ = stc.vertices
     if verts is None:
         assert stc_idx == 0
     else:
@@ -774,12 +654,37 @@ def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
     return stc_data, stim_data, verts_
 
 
+class _SimForwards(object):
+
+    def __init__(self, dev_head_ts, offsets, info, trans, src, bem, mindist,
+                 n_jobs, meeg_picks, forward=None, use_cps=True):
+        self.idx = 0
+        self.offsets = offsets
+        self.use_cps = use_cps
+        self.iter = iter(_iter_forward_solutions(
+            info, trans, src, bem, dev_head_ts, mindist, n_jobs, forward,
+            meeg_picks))
+
+    def __call__(self, offset):
+        assert self.offsets[self.idx] == offset
+        self.idx += 1
+        fwd = next(self.iter)
+        self.src = fwd['src']
+        # XXX eventually we could speed this up by allowing the forward
+        # solution code to only compute the normal direction
+        convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
+                                 use_cps=self.use_cps, copy=False,
+                                 verbose=False)
+        return fwd['sol']['data'], np.array(self.idx, float)
+
+
 def _iter_forward_solutions(info, trans, src, bem, dev_head_ts, mindist,
                             n_jobs, forward, picks):
     """Calculate a forward solution for a subject."""
     logger.info('Setting up forward solutions')
     info = pick_info(info, picks)
-    info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
+    with info._unlock():
+        info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
     mri_head_t, trans = _get_trans(trans)
     megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, info, \
         update_kwargs, bem = _prepare_for_forward(
@@ -822,12 +727,12 @@ def _iter_forward_solutions(info, trans, src, bem, dev_head_ts, mindist,
         _transform_orig_meg_coils(compcoils, dev_head_t)
 
         # Make sure our sensors are all outside our BEM
-        coil_rr = [coil['r0'] for coil in megcoils]
+        coil_rr = np.array([coil['r0'] for coil in megcoils])
 
         # Compute forward
         if forward is None:
             if not bem['is_sphere']:
-                outside = _points_outside_surface(coil_rr, bem_surf, n_jobs,
+                outside = ~_CheckInside(bem_surf)(coil_rr, n_jobs,
                                                   verbose=False)
             elif bem.radius is not None:
                 d = coil_rr - bem['r0']

@@ -1,11 +1,11 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 
 from .utils import (sizeof_fmt, logger, get_config, warn, _explain_exception,
-                    verbose)
+                    verbose, fill_doc, _check_option)
 
 
 _cuda_capable = False
@@ -62,13 +62,14 @@ def init_cuda(ignore_config=False, verbose=None):
     # Triage possible errors for informative messaging
     _cuda_capable = False
     try:
-        import cupy
+        import cupy  # noqa
     except ImportError:
         warn('module cupy not found, CUDA not enabled')
         return
+    device_id = int(get_config('MNE_CUDA_DEVICE', '0'))
     try:
         # Initialize CUDA
-        cupy.cuda.Device()
+        _set_cuda_device(device_id, verbose)
     except Exception:
         warn('so CUDA device could be initialized, likely a hardware error, '
              'CUDA not enabled%s' % _explain_exception())
@@ -77,6 +78,35 @@ def init_cuda(ignore_config=False, verbose=None):
     _cuda_capable = True
     # Figure out limit for CUDA FFT calculations
     logger.info('Enabling CUDA with %s available memory' % get_cuda_memory())
+
+
+@verbose
+def set_cuda_device(device_id, verbose=None):
+    """Set the CUDA device temporarily for the current session.
+
+    Parameters
+    ----------
+    device_id : int
+        Numeric ID of the CUDA-capable device you want MNE-Python to use.
+    %(verbose)s
+    """
+    if _cuda_capable:
+        _set_cuda_device(device_id, verbose)
+    elif get_config('MNE_USE_CUDA', 'false').lower() == 'true':
+        init_cuda()
+        _set_cuda_device(device_id, verbose)
+    else:
+        warn('Could not set CUDA device because CUDA is not enabled; either '
+             'run mne.cuda.init_cuda() first, or set the MNE_USE_CUDA config '
+             'variable to "true".')
+
+
+@verbose
+def _set_cuda_device(device_id, verbose=None):
+    """Set the CUDA device."""
+    import cupy
+    cupy.cuda.Device(device_id).use()
+    logger.info('Now using CUDA device {}'.format(device_id))
 
 
 ###############################################################################
@@ -123,9 +153,11 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft,
     -----
     This function is designed to be used with fft_multiply_repeated().
     """
-    cuda_dict = dict(n_fft=n_fft, rfft=np.fft.rfft, irfft=np.fft.irfft,
-                     h_fft=np.fft.rfft(h, n=n_fft))
-    if n_jobs == 'cuda':
+    from scipy.fft import rfft, irfft
+    cuda_dict = dict(n_fft=n_fft, rfft=rfft, irfft=irfft,
+                     h_fft=rfft(h, n=n_fft))
+    if isinstance(n_jobs, str):
+        _check_option('n_jobs', n_jobs, ('cuda',))
         n_jobs = 1
         init_cuda()
         if _cuda_capable:
@@ -137,13 +169,13 @@ def _setup_cuda_fft_multiply_repeated(n_jobs, h, n_fft,
             except Exception as exp:
                 logger.info('CUDA not used, could not instantiate memory '
                             '(arrays may be too large: "%s"), falling back to '
-                            'n_jobs=1' % str(exp))
+                            'n_jobs=None' % str(exp))
             cuda_dict.update(h_fft=h_fft,
                              rfft=_cuda_upload_rfft,
                              irfft=_cuda_irfft_get)
         else:
             logger.info('CUDA not used, CUDA could not be initialized, '
-                        'falling back to n_jobs=1')
+                        'falling back to n_jobs=None')
     return n_jobs, cuda_dict
 
 
@@ -215,13 +247,15 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
     -----
     This function is designed to be used with fft_resample().
     """
-    cuda_dict = dict(use_cuda=False, rfft=np.fft.rfft, irfft=np.fft.irfft)
+    from scipy.fft import rfft, irfft
+    cuda_dict = dict(use_cuda=False, rfft=rfft, irfft=irfft)
     rfft_len_x = len(W) // 2 + 1
     # fold the window onto inself (should be symmetric) and truncate
     W = W.copy()
     W[1:rfft_len_x] = (W[1:rfft_len_x] + W[::-1][:rfft_len_x - 1]) / 2.
     W = W[:rfft_len_x]
-    if n_jobs == 'cuda':
+    if isinstance(n_jobs, str):
+        _check_option('n_jobs', n_jobs, ('cuda',))
         n_jobs = 1
         init_cuda()
         if _cuda_capable:
@@ -233,14 +267,14 @@ def _setup_cuda_fft_resample(n_jobs, W, new_len):
             except Exception:
                 logger.info('CUDA not used, could not instantiate memory '
                             '(arrays may be too large), falling back to '
-                            'n_jobs=1')
+                            'n_jobs=None')
             else:
                 cuda_dict.update(use_cuda=True,
                                  rfft=_cuda_upload_rfft,
                                  irfft=_cuda_irfft_get)
         else:
             logger.info('CUDA not used, CUDA could not be initialized, '
-                        'falling back to n_jobs=1')
+                        'falling back to n_jobs=None')
     cuda_dict['W'] = W
     return n_jobs, cuda_dict
 
@@ -257,6 +291,7 @@ def _cuda_irfft_get(x, n, axis=-1):
     return cupy.fft.irfft(x, n=n, axis=axis).get()
 
 
+@fill_doc
 def _fft_resample(x, new_len, npads, to_removes, cuda_dict=None,
                   pad='reflect_limited'):
     """Do FFT resampling with a filter function (possibly using CUDA).
@@ -274,11 +309,8 @@ def _fft_resample(x, new_len, npads, to_removes, cuda_dict=None,
         Number of samples to remove after resampling.
     cuda_dict : dict
         Dictionary constructed using setup_cuda_multiply_repeated().
-    pad : str
-        The type of padding to use. Supports all :func:`np.pad` ``mode``
-        options. Can also be "reflect_limited" (default), which pads with a
-        reflected version of each vector mirrored on the first and last values
-        of the vector, followed by zeros.
+    %(pad)s
+        The default is ``'reflect_limited'``.
 
         .. versionadded:: 0.15
 

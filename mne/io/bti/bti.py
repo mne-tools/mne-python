@@ -1,7 +1,7 @@
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Yuval Harpaz <yuvharpaz@gmail.com>
 #          Joan Massich <mailsik@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -14,9 +14,10 @@ from itertools import count
 
 import numpy as np
 
-from ...utils import logger, verbose
+from ...utils import logger, verbose, _stamp_to_dt, path_like
 from ...transforms import (combine_transforms, invert_transform,
                            Transform)
+from .._digitization import _make_bti_dig_points
 from ..constants import FIFF
 from .. import BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
 from ..utils import _mult_cal_one, read_str
@@ -26,16 +27,6 @@ from .read import (read_int32, read_int16, read_float, read_double,
                    read_uint32, read_double_matrix, read_float_matrix,
                    read_int16_matrix, read_dev_header)
 
-FIFF_INFO_CHS_FIELDS = ('loc',
-                        'ch_name', 'unit_mul', 'coord_frame', 'coil_type',
-                        'range', 'unit', 'cal',
-                        'scanno', 'kind', 'logno')
-
-FIFF_INFO_CHS_DEFAULTS = (np.array([0, 0, 0, 1] * 3, dtype='f4'),
-                          None, 0, 0, 0,
-                          1.0, FIFF.FIFF_UNIT_V, 1.0,
-                          None, FIFF.FIFFV_ECG_CH, None)
-
 FIFF_INFO_DIG_FIELDS = ('kind', 'ident', 'r', 'coord_frame')
 FIFF_INFO_DIG_DEFAULTS = (None, None, None, FIFF.FIFFV_COORD_HEAD)
 
@@ -44,6 +35,21 @@ BTI_WH2500_REF_GRAD = ('GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA')
 
 dtypes = zip(list(range(1, 5)), ('>i2', '>i4', '>f4', '>f8'))
 DTYPES = {i: np.dtype(t) for i, t in dtypes}
+
+
+def _instantiate_default_info_chs():
+    """Populate entries in info['chs'] with default values."""
+    return dict(loc=np.array([0, 0, 0, 1] * 3, dtype='f4'),
+                ch_name=None,
+                unit_mul=FIFF.FIFF_UNITM_NONE,
+                coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                coil_type=FIFF.FIFFV_COIL_NONE,
+                range=1.0,
+                unit=FIFF.FIFF_UNIT_V,
+                cal=1.0,
+                scanno=None,
+                kind=FIFF.FIFFV_ECG_CH,
+                logno=None)
 
 
 class _bytes_io_mock_context():
@@ -61,7 +67,7 @@ class _bytes_io_mock_context():
 
 def _bti_open(fname, *args, **kwargs):
     """Handle BytesIO."""
-    if isinstance(fname, str):
+    if isinstance(fname, path_like):
         return open(fname, *args, **kwargs)
     elif isinstance(fname, BytesIO):
         return _bytes_io_mock_context(fname)
@@ -141,7 +147,7 @@ def _rename_channels(names, ecg_ch='E31', eog_ch=('E63', 'E64')):
     return new
 
 
-# XXX: This is the guy reading the points
+# read the points
 def _read_head_shape(fname):
     """Read the head shape."""
     with _bti_open(fname, 'rb') as fid:
@@ -150,7 +156,7 @@ def _read_head_shape(fname):
         idx_points = read_double_matrix(fid, BTI.DATA_N_IDX_POINTS, 3)
         dig_points = read_double_matrix(fid, _n_dig_points, 3)
 
-    # XXX : reorder to lpa, rpa, nasion so = is direct.
+    # reorder to lpa, rpa, nasion so = is direct.
     nasion, lpa, rpa = [idx_points[_, :] for _ in [2, 0, 1]]
     hpi = idx_points[3:len(idx_points), :]
 
@@ -571,10 +577,10 @@ def _read_channel(fid):
                 'ymax': read_double(fid),
                 'index': read_int32(fid),
                 'checksum': read_int32(fid),
-                'off_flag': read_str(fid, 16),
+                'off_flag': read_str(fid, 4),
                 'offset': read_float(fid)})
 
-    fid.seek(12, 1)
+    fid.seek(24, 1)
 
     return out
 
@@ -627,7 +633,7 @@ def _read_process(fid):
             fid.seek(32, 1)
         elif ptype in BTI.PROC_BPFILTER:
             this_step['high_freq'] = read_float(fid)
-            this_step['low_frew'] = read_float(fid)
+            this_step['low_freq'] = read_float(fid)
         else:
             jump = this_step['user_space_size'] = read_int32(fid)
             fid.seek(32, 1)
@@ -825,6 +831,10 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
         chans_cfg = [c for c in cfg['chs'] if c['chan_no']
                      in [c_['chan_no'] for c_ in chans]]
 
+        # sort chans_cfg and chans
+        chans = sorted(chans, key=lambda k: k['chan_no'])
+        chans_cfg = sorted(chans_cfg, key=lambda k: k['chan_no'])
+
         # check all pdf channels are present in config
         match = [c['chan_no'] for c in chans_cfg] == \
                 [c['chan_no'] for c in chans]
@@ -845,7 +855,7 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
         if ch_cfg.get('dev', dict()).get('transform', None) is not None:
             ch['loc'] = _coil_trans_to_loc(ch_cfg['dev']['transform'])
         else:
-            ch['loc'] = None
+            ch['loc'] = np.full(12, np.nan)
         if pdf_fname is not None:
             if info['data_format'] <= 2:  # see DTYPES, implies integer
                 ch['cal'] = ch['scale'] * ch['upb'] / float(ch['gain'])
@@ -923,12 +933,7 @@ class RawBTi(BaseRaw):
     eog_ch : tuple of str | None
         The 4D names of the EOG channels. If None, the channels will be treated
         as regular EEG channels.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
 
         .. versionadded:: 0.11
 
@@ -961,7 +966,8 @@ class RawBTi(BaseRaw):
         bti_info = self._raw_extras[fi]
         fname = bti_info['pdf_fname']
         dtype = bti_info['dtype']
-        n_channels = self.info['nchan']
+        assert len(bti_info['chs']) == self._raw_extras[fi]['orig_nchan']
+        n_channels = len(bti_info['chs'])
         n_bytes = np.dtype(dtype).itemsize
         data_left = (stop - start) * n_channels
         read_cals = np.empty((bti_info['total_chans'],))
@@ -993,22 +999,21 @@ class RawBTi(BaseRaw):
 
 def _make_bti_digitization(
         info, head_shape_fname, convert, use_hpi, bti_dev_t, dev_ctf_t):
+    with info._unlock():
+        if head_shape_fname:
+            logger.info('... Reading digitization points from %s' %
+                        head_shape_fname)
 
-    from ...digitization._utils import _make_bti_dig_points
-
-    if head_shape_fname:
-        logger.info('... Reading digitization points from %s' %
-                    head_shape_fname)
-
-        nasion, lpa, rpa, hpi, dig_points = _read_head_shape(head_shape_fname)
-        info['dig'], dev_head_t, ctf_head_t = _make_bti_dig_points(
-            nasion, lpa, rpa, hpi, dig_points,
-            convert, use_hpi, bti_dev_t, dev_ctf_t)
-    else:
-        logger.info('... no headshape file supplied, doing nothing.')
-        info['dig'] = None
-        dev_head_t = Transform('meg', 'head', trans=None)
-        ctf_head_t = Transform('ctf_head', 'head', trans=None)
+            nasion, lpa, rpa, hpi, dig_points = _read_head_shape(
+                head_shape_fname)
+            info['dig'], dev_head_t, ctf_head_t = _make_bti_dig_points(
+                nasion, lpa, rpa, hpi, dig_points,
+                convert, use_hpi, bti_dev_t, dev_ctf_t)
+        else:
+            logger.info('... no headshape file supplied, doing nothing.')
+            info['dig'] = None
+            dev_head_t = Transform('meg', 'head', trans=None)
+            ctf_head_t = Transform('ctf_head', 'head', trans=None)
 
     info.update(dev_head_t=dev_head_t, dev_ctf_t=dev_ctf_t,
                 ctf_head_t=ctf_head_t)
@@ -1092,7 +1097,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
     if pdf_fname is not None:
         info = _empty_info(sfreq)
         date = bti_info['processes'][0]['timestamp']
-        info['meas_date'] = (date, 0)
+        info['meas_date'] = _stamp_to_dt((date, 0))
     else:  # these cannot be guessed from config, see docstring
         info = _empty_info(1.0)
         info['sfreq'] = None
@@ -1134,11 +1139,11 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
 
     logger.info('... Setting channel info structure.')
     for idx, (chan_4d, chan_neuromag) in enumerate(ch_mapping):
-        chan_info = dict(zip(FIFF_INFO_CHS_FIELDS, FIFF_INFO_CHS_DEFAULTS))
+        chan_info = _instantiate_default_info_chs()
         chan_info['ch_name'] = chan_neuromag if rename_channels else chan_4d
         chan_info['logno'] = idx + BTI.FIFF_LOGNO
         chan_info['scanno'] = idx + 1
-        chan_info['cal'] = bti_info['chs'][idx]['scale']
+        chan_info['cal'] = float(bti_info['chs'][idx]['scale'])
 
         if any(chan_4d.startswith(k) for k in ('A', 'M', 'G')):
             loc = bti_info['chs'][idx]['loc']
@@ -1186,10 +1191,10 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
             chan_info['unit'] = FIFF.FIFF_UNIT_V
 
         elif chan_4d == 'RESPONSE':
-            chan_info['kind'] = FIFF.FIFFV_RESP_CH
+            chan_info['kind'] = FIFF.FIFFV_STIM_CH
         elif chan_4d == 'TRIGGER':
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
-        elif chan_4d.startswith('EOG'):
+        elif chan_4d.startswith('EOG') or chan_4d in eog_ch:
             chan_info['kind'] = FIFF.FIFFV_EOG_CH
         elif chan_4d == ecg_ch:
             chan_info['kind'] = FIFF.FIFFV_ECG_CH
@@ -1213,6 +1218,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
         'the 4D "print_table" routine.')
 
     # check that the info is complete
+    info._unlocked = False
     info._update_redundant()
     info._check_consistency()
     return info, bti_info
@@ -1233,7 +1239,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
            the weights or use the low level functions from this module to
            include them by yourself.
         2. The informed guess for the 4D name is E31 for the ECG channel and
-           E63, E63 for the EOG channels. Pleas check and adjust if those
+           E63, E63 for the EOG channels. Please check and adjust if those
            channels are present in your dataset but 'ECG 01' and 'EOG 01',
            'EOG 02' don't appear in the channel names of the raw object.
 
@@ -1264,12 +1270,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
     eog_ch : tuple of str | None
         The 4D names of the EOG channels. If None, the channels will be treated
         as regular EEG channels.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
 
         .. versionadded:: 0.11
     %(verbose)s

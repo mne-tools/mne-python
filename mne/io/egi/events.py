@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 from datetime import datetime
 from glob import glob
@@ -22,19 +22,18 @@ def _read_events(input_fname, info):
     info : dict
         Header info array.
     """
-    mff_events, event_codes = _read_mff_events(input_fname, info['sfreq'],
-                                               info['n_samples'])
+    n_samples = info['last_samps'][-1]
+    mff_events, event_codes = _read_mff_events(input_fname, info['sfreq'])
     info['n_events'] = len(event_codes)
-    info['event_codes'] = np.asarray(event_codes).astype('<U4')
-    events = np.zeros([info['n_events'],
-                      info['n_segments'] * info['n_samples']])
+    info['event_codes'] = event_codes
+    events = np.zeros([info['n_events'], info['n_segments'] * n_samples])
     for n, event in enumerate(event_codes):
         for i in mff_events[event]:
             events[n][i] = n + 1
     return events, info
 
 
-def _read_mff_events(filename, sfreq, nsamples):
+def _read_mff_events(filename, sfreq):
     """Extract the events.
 
     Parameters
@@ -72,8 +71,7 @@ def _read_mff_events(filename, sfreq, nsamples):
     events_tims = dict()
     for ev in code:
         trig_samp = list(c['start_sample'] for n,
-                         c in enumerate(markers) if (c['name'] == ev and
-                         c['start_sample'] < nsamples))
+                         c in enumerate(markers) if c['name'] == ev)
         events_tims.update({ev: trig_samp})
     return events_tims, code
 

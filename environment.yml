@@ -1,49 +1,51 @@
 name: mne
 channels:
-- defaults
+- conda-forge
 dependencies:
-- python<3.7
+- python>=3.8
 - pip
-- mkl
 - numpy
 - scipy
 - matplotlib
-- cython
-- pyqt>=5.9
-- pandas>=0.18
+- tqdm
+- pooch>=1.5
+- decorator
+- h5io
+- packaging
+- numba
+- pandas
 - xlrd
 - scikit-learn
 - h5py
+- jinja2
 - pillow
 - statsmodels
 - jupyter
-- pytest
-- pytest-cov
-- pytest-mock
-- pytest-timeout
 - joblib
 - psutil
-- numpydoc
-- flake8
-- spyder
 - numexpr
-- traits>=4.6.0
-- pyface>=6
-- traitsui>=6
-- testpath<0.4
-- pip:
-  - mne
-  - vtk
-  - pyvista
-  - https://api.github.com/repos/enthought/mayavi/zipball/e2569be1096be3deecb15f8fa8581a3ae3fb77d3
-  - PySurfer[save_movie]
-  - dipy --only-binary dipy
-  - nibabel
-  - nilearn
-  - neo
-  - pytest-faulthandler
-  - pytest-sugar
-  - pydocstyle
-  - codespell
-  - python-picard
-  - pylsl>=1.12
+- imageio
+- spyder-kernels>=1.10.0
+- imageio-ffmpeg>=0.4.1
+- vtk>=9.0.1
+- traitlets
+- pyvista>=0.32,!=0.35.2
+- pyvistaqt>=0.4
+- qdarkstyle
+- darkdetect
+- dipy
+- nibabel
+- nilearn
+- python-picard
+- qtpy
+- pyqt!=5.15.3,!=5.15.4
+- mne
+- mffpy>=0.5.7
+- ipywidgets
+- ipympl
+- ipyvtklink
+- mne-qt-browser
+- pymatreader
+- eeglabio
+- edflib-python
+- pybv

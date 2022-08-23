@@ -1,16 +1,17 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import copy as cp
 
 import numpy as np
 
-from .. import Epochs, compute_proj_evoked, compute_proj_epochs
+from ..epochs import Epochs
+from ..proj import compute_proj_evoked, compute_proj_epochs
 from ..utils import logger, verbose, warn
-from .. import pick_types
+from ..io.pick import pick_types
 from ..io import make_eeg_average_ref_proj
 from .ecg import find_ecg_events
 from .eog import find_eog_events
@@ -68,8 +69,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     # Check to make sure we actually got at least one usable event
     if events.shape[0] < 1:
-        warn('No %s events found, returning None for projs' % mode)
-        return (None, events) + (([],) if return_drop_log else ())
+        warn(f'No {mode} events found')
+        return ([], events) + (([],) if return_drop_log else ())
 
     logger.info('Computing projector')
     my_info = cp.deepcopy(raw.info)
@@ -119,8 +120,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     drop_log = epochs.drop_log
     if epochs.events.shape[0] < 1:
-        warn('No good epochs found, returning None for projs')
-        return (None, events) + ((drop_log,) if return_drop_log else ())
+        warn('No good epochs found')
+        return ([], events) + ((drop_log,) if return_drop_log else ())
 
     if average:
         evoked = epochs.average()
@@ -141,7 +142,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 @verbose
 def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
-                     average=True, filter_length='10s', n_jobs=1,
+                     average=True, filter_length='10s', n_jobs=None,
                      ch_name=None, reject=dict(grad=2000e-13, mag=3000e-15,
                                                eeg=50e-6, eog=250e-6),
                      flat=None, bads=[], avg_ref=False,
@@ -149,9 +150,11 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      tstart=0., qrs_threshold='auto', filter_method='fir',
                      iir_params=None, copy=True, return_drop_log=False,
                      meg='separate', verbose=None):
-    """Compute SSP/PCA projections for ECG artifacts.
+    """Compute SSP (signal-space projection) vectors for ECG artifacts.
 
-    .. note:: raw data will be loaded if it is not already.
+    %(compute_proj_ecg)s
+
+    .. note:: Raw data will be loaded if it hasn't been preloaded already.
 
     Parameters
     ----------
@@ -178,7 +181,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     filter_length : str | int | None
         Number of taps to use for filtering.
     %(n_jobs)s
-    ch_name : string (or None)
+    ch_name : str | None
         Channel to use for ECG detection (Required if no ECG found).
     reject : dict | None
         Epoch rejection configuration (see Epochs).
@@ -255,16 +258,18 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
 @verbose
 def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
-                     average=True, filter_length='10s', n_jobs=1,
+                     average=True, filter_length='10s', n_jobs=None,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6,
                                  eog=np.inf), flat=None, bads=[],
                      avg_ref=False, no_proj=False, event_id=998, eog_l_freq=1,
                      eog_h_freq=10, tstart=0., filter_method='fir',
                      iir_params=None, ch_name=None, copy=True,
                      return_drop_log=False, meg='separate', verbose=None):
-    """Compute SSP/PCA projections for EOG artifacts.
+    """Compute SSP (signal-space projection) vectors for EOG artifacts.
 
-    .. note:: raw data must be preloaded.
+    %(compute_proj_eog)s
+
+    .. note:: Raw data must be preloaded.
 
     Parameters
     ----------
@@ -315,7 +320,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    ch_name: str | None
+    ch_name : str | None
         If not None, specify EOG channel name.
     copy : bool
         If False, filtering raw data is done in place. Defaults to True.

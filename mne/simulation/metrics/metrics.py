@@ -149,13 +149,17 @@ def cosine_score(stc_true, stc_est, per_sample=True):
 
     Parameters
     ----------
-    %(metric_stc_true)s
-    %(metric_stc_est)s
-    %(metric_per_sample)s
+    %(stc_true_metric)s
+    %(stc_est_metric)s
+    %(per_sample_metric)s
 
     Returns
     -------
     %(stc_metric)s
+
+    Notes
+    -----
+    .. versionadded:: 1.2
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
     func = partial(_cosine)
@@ -213,15 +217,15 @@ def region_localization_error(stc_true, stc_est, src, threshold='90%',
 
     Parameters
     ----------
-    %(metric_stc_true)s
-    %(metric_stc_est)s
+    %(stc_true_metric)s
+    %(stc_est_metric)s
     src : instance of SourceSpaces
         The source space on which the source estimates are defined.
     threshold : float | str
         The threshold to apply to source estimates before computing
         the dipole localization error. If a string the threshold is
         a percentage and it should end with the percent character.
-    %(metric_per_sample)s
+    %(per_sample_metric)s
 
     Returns
     -------
@@ -229,12 +233,14 @@ def region_localization_error(stc_true, stc_est, src, threshold='90%',
 
     Notes
     -----
-    Papers [1] and [2] use term Dipole Localization Error (DLE)
+    Papers [1]_ and [2]_ use term Dipole Localization Error (DLE)
     for the same formula.
-    Paper [3] uses term Error Distance (ED) for the same formula.
+    Paper [3]_ uses term Error Distance (ED) for the same formula.
     To unify the terminology and to avoid confusion with other cases
     of using term DLE but for different metric [4], we use term
     Region Localization Error (RLE).
+
+    .. versionadded:: 1.2
 
     References
     ----------
@@ -278,13 +284,17 @@ def roc_auc_score(stc_true, stc_est, per_sample=True):
 
     Parameters
     ----------
-    %(metric_stc_true)s
-    %(metric_stc_est)s
-    %(metric_per_sample)s
+    %(stc_true_metric)s
+    %(stc_est_metric)s
+    %(per_sample_metric)s
 
     Returns
     -------
     %(stc_metric)s
+
+    Notes
+    -----
+    .. versionadded:: 1.2
     """
     stc_true, stc_est = _uniform_stc(stc_true, stc_est)
     func = partial(_roc_auc_score)
@@ -315,13 +325,17 @@ def f1_score(stc_true, stc_est, threshold='90%', per_sample=True):
 
     Parameters
     ----------
-    %(metric_stc_true)s
-    %(metric_stc_est)s
+    %(stc_true_metric)s
+    %(stc_est_metric)s
     threshold : float | str
         The threshold to apply to source estimates before computing
         the f1 score. If a string the threshold is
         a percentage and it should end with the percent character.
-    %(metric_per_sample)s
+    %(per_sample_metric)s
+
+    Notes
+    -----
+    .. versionadded:: 1.2
 
     Returns
     -------
@@ -356,13 +370,17 @@ def precision_score(stc_true, stc_est, threshold='90%', per_sample=True):
 
     Parameters
     ----------
-    %(metric_stc_true)s
-    %(metric_stc_est)s
+    %(stc_true_metric)s
+    %(stc_est_metric)s
     threshold : float | str
         The threshold to apply to source estimates before computing
         the precision. If a string the threshold is
         a percentage and it should end with the percent character.
-    %(metric_per_sample)s
+    %(per_sample_metric)s
+
+    Notes
+    -----
+    .. versionadded:: 1.2
 
     Returns
     -------
@@ -396,13 +414,17 @@ def recall_score(stc_true, stc_est, threshold='90%', per_sample=True):
 
     Parameters
     ----------
-    %(metric_stc_true)s
-    %(metric_stc_est)s
+    %(stc_true_metric)s
+    %(stc_est_metric)s
     threshold : float | str
         The threshold to apply to source estimates before computing
         the recall. If a string the threshold is
         a percentage and it should end with the percent character.
-    %(metric_per_sample)s
+    %(per_sample_metric)s
+
+    Notes
+    -----
+    .. versionadded:: 1.2
 
     Returns
     -------
@@ -468,19 +490,23 @@ def peak_position_error(stc_true, stc_est, src, threshold='50%',
 
     Parameters
     ----------
-    %(metric_stc_true)s
-    %(metric_stc_est)s
+    %(stc_true_metric)s
+    %(stc_est_metric)s
     src : instance of SourceSpaces
         The source space on which the source estimates are defined.
     threshold : float | str
         The threshold to apply to source estimates before computing
         the recall. If a string the threshold is
         a percentage and it should end with the percent character.
-    %(metric_per_sample)s
+    %(per_sample_metric)s
 
     Returns
     -------
     %(stc_metric)s
+
+    Notes
+    -----
+    .. versionadded:: 1.2
 
     References
     ----------
@@ -531,19 +557,23 @@ def spatial_deviation_error(stc_true, stc_est, src, threshold='50%',
 
     Parameters
     ----------
-    %(metric_stc_true)s
-    %(metric_stc_est)s
+    %(stc_true_metric)s
+    %(stc_est_metric)s
     src : instance of SourceSpaces
         The source space on which the source estimates are defined.
     threshold : float | str
         The threshold to apply to source estimates before computing
         the recall. If a string the threshold is
         a percentage and it should end with the percent character.
-    %(metric_per_sample)s
+    %(per_sample_metric)s
 
     Returns
     -------
     %(stc_metric)s
+
+    Notes
+    -----
+    .. versionadded:: 1.2
 
     References
     ----------
@@ -554,7 +584,6 @@ def spatial_deviation_error(stc_true, stc_est, src, threshold='50%',
            Fleureau J., Hämäläinen M.S. (2006), Assessing and improving the
            spatial accuracy in MEG source localization by depth-weighted
            minimum-norm estimates. NeuroImage 31, 160-171
-    %(stc_metric)s
     """
     stc_est, r_true, r_est = _prepare_ppe_sd(stc_true, stc_est, src, threshold)
     func = partial(_spatial_deviation, r_est=r_est, r_true=r_true)

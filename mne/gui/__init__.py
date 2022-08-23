@@ -2,39 +2,29 @@
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
-import os
-
-from ..utils import _check_mayavi_version, verbose, get_config
-from ._backend import _testing_mode
-
-
-def _initialize_gui(frame, view=None):
-    """Initialize GUI depending on testing mode."""
-    if _testing_mode():  # open without entering mainloop
-        return frame.edit_traits(view=view), frame
-    else:
-        frame.configure_traits(view=view)
-        return frame
+from ..utils import verbose, get_config, warn
 
 
 @verbose
 def coregistration(tabbed=False, split=True, width=None, inst=None,
                    subject=None, subjects_dir=None, guess_mri_subject=None,
                    height=None, head_opacity=None, head_high_res=None,
-                   trans=None, scrollable=True, project_eeg=None,
-                   orient_to_surface=None, scale_by_distance=None,
-                   mark_inside=None, interaction=None, scale=None,
-                   advanced_rendering=None, verbose=None):
+                   trans=None, scrollable=True, *,
+                   orient_to_surface=True, scale_by_distance=True,
+                   mark_inside=True, interaction=None, scale=None,
+                   advanced_rendering=None, head_inside=True,
+                   fullscreen=None, show=True, block=False, verbose=None):
     """Coregister an MRI with a subject's head shape.
 
-    The recommended way to use the GUI is through bash with:
+    The GUI can be launched through the command line interface:
 
     .. code-block::  bash
 
         $ mne coreg
 
+    or using a python interpreter as shown in :ref:`tut-source-alignment`.
 
     Parameters
     ----------
@@ -53,9 +43,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         Raw, Epochs, and Evoked files.
     subject : None | str
         Name of the mri subject.
-    subjects_dir : None | str
-        Override the SUBJECTS_DIR environment variable
-        (sys.environ['SUBJECTS_DIR'])
+    %(subjects_dir)s
     guess_mri_subject : bool
         When selecting a new head shape file, guess the subject's name based
         on the filename and change the MRI subject accordingly (default True).
@@ -75,32 +63,28 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         The transform file to use.
     scrollable : bool
         Make the coregistration panel vertically scrollable (default True).
-    project_eeg : bool | None
-        If True (default None), project EEG electrodes to the head surface.
-        This is only for visualization purposes and does not affect fitting.
-
-        .. versionadded:: 0.16
     orient_to_surface : bool | None
-        If True (default None), orient EEG electrode and head shape points
+        If True (default), orient EEG electrode and head shape points
         to the head surface.
 
         .. versionadded:: 0.16
     scale_by_distance : bool | None
-        If True (default None), scale the digitization points by their
+        If True (default), scale the digitization points by their
         distance from the scalp surface.
 
         .. versionadded:: 0.16
     mark_inside : bool | None
-        If True (default None), mark points inside the head surface in a
+        If True (default), mark points inside the head surface in a
         different color.
 
         .. versionadded:: 0.16
-    interaction : str | None
-        Can be 'terrain' (default None), use terrain-style interaction (where
-        "up" is the Z/superior direction), or 'trackball' to use
-        orientationless interactions.
+    %(interaction_scene_none)s
+        Defaults to ``'terrain'``.
 
         .. versionadded:: 0.16
+        .. versionchanged:: 1.0
+           Default interaction mode if ``None`` and no config setting found
+           changed from ``'trackball'`` to ``'terrain'``.
     scale : float | None
         The scaling for the scene.
 
@@ -111,21 +95,55 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         bugs.
 
         .. versionadded:: 0.18
+    head_inside : bool
+        If True (default), add opaque inner scalp head surface to help occlude
+        points behind the head.
+
+        .. versionadded:: 0.23
+    %(fullscreen)s
+        Default is None, which uses ``MNE_COREG_FULLSCREEN`` config value
+        (which defaults to False).
+
+        .. versionadded:: 1.1
+    show : bool
+        Show the GUI if True.
+    block : bool
+        Whether to halt program execution until the figure is closed.
     %(verbose)s
+
+    Returns
+    -------
+    frame : instance of CoregistrationUI
+        The coregistration frame.
 
     Notes
     -----
-    Many parameters (e.g., ``project_eeg``) take None as a parameter,
+    Many parameters (e.g., ``head_opacity``) take None as a parameter,
     which means that the default will be read from the MNE-Python
     configuration file (which gets saved when exiting).
 
-    Step by step instructions for the coregistrations can be accessed as
-    slides, `for subjects with structural MRI
-    <https://www.slideshare.net/mne-python/mnepython-coregistration>`_ and `for
-    subjects for which no MRI is available
-    <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
+    Step by step instructions for the coregistrations are shown below:
+
+    .. youtube:: uK4n5g6DBcg
     """
-    config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
+    unsupported_params = {
+        'tabbed': (tabbed, False),
+        'split': (split, True),
+        'scrollable': (scrollable, True),
+        'head_inside': (head_inside, True),
+        'guess_mri_subject': guess_mri_subject,
+        'scale': scale,
+        'advanced_rendering': advanced_rendering,
+    }
+    for key, val in unsupported_params.items():
+        if isinstance(val, tuple):
+            to_raise = val[0] != val[1]
+        else:
+            to_raise = val is not None
+        if to_raise:
+            warn(f"The parameter {key} is not supported with"
+                 " the pyvistaqt 3d backend. It will be ignored.")
+    config = get_config()
     if guess_mri_subject is None:
         guess_mri_subject = config.get(
             'MNE_COREG_GUESS_MRI_SUBJECT', 'true') == 'true'
@@ -135,7 +153,10 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         advanced_rendering = \
             config.get('MNE_COREG_ADVANCED_RENDERING', 'true') == 'true'
     if head_opacity is None:
-        head_opacity = config.get('MNE_COREG_HEAD_OPACITY', 1.)
+        head_opacity = config.get('MNE_COREG_HEAD_OPACITY', 0.8)
+    if head_inside is None:
+        head_inside = \
+            config.get('MNE_COREG_HEAD_INSIDE', 'true').lower() == 'true'
     if width is None:
         width = config.get('MNE_COREG_WINDOW_WIDTH', 800)
     if height is None:
@@ -145,8 +166,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
             subjects_dir = config['SUBJECTS_DIR']
         elif 'MNE_COREG_SUBJECTS_DIR' in config:
             subjects_dir = config['MNE_COREG_SUBJECTS_DIR']
-    if project_eeg is None:
-        project_eeg = config.get('MNE_COREG_PROJECT_EEG', '') == 'true'
     if orient_to_surface is None:
         orient_to_surface = (config.get('MNE_COREG_ORIENT_TO_SURFACE', '') ==
                              'true')
@@ -154,67 +173,124 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         scale_by_distance = (config.get('MNE_COREG_SCALE_BY_DISTANCE', '') ==
                              'true')
     if interaction is None:
-        interaction = config.get('MNE_COREG_INTERACTION', 'trackball')
+        interaction = config.get('MNE_COREG_INTERACTION', 'terrain')
     if mark_inside is None:
         mark_inside = config.get('MNE_COREG_MARK_INSIDE', '') == 'true'
     if scale is None:
         scale = config.get('MNE_COREG_SCENE_SCALE', 0.16)
+    if fullscreen is None:
+        fullscreen = config.get('MNE_COREG_FULLSCREEN', '') == 'true'
     head_opacity = float(head_opacity)
+    head_inside = bool(head_inside)
     width = int(width)
     height = int(height)
     scale = float(scale)
-    _check_mayavi_version()
-    from ._backend import _check_backend
-    _check_backend()
-    from ._coreg_gui import CoregFrame, _make_view
-    view = _make_view(tabbed, split, width, height, scrollable)
-    frame = CoregFrame(inst, subject, subjects_dir, guess_mri_subject,
-                       head_opacity, head_high_res, trans, config,
-                       project_eeg=project_eeg,
-                       orient_to_surface=orient_to_surface,
-                       scale_by_distance=scale_by_distance,
-                       mark_inside=mark_inside, interaction=interaction,
-                       scale=scale, advanced_rendering=advanced_rendering)
-    return _initialize_gui(frame, view)
+
+    from ..viz.backends.renderer import MNE_3D_BACKEND_TESTING
+    from ._coreg import CoregistrationUI
+    if MNE_3D_BACKEND_TESTING:
+        show = block = False
+    return CoregistrationUI(
+        info_file=inst, subject=subject, subjects_dir=subjects_dir,
+        head_resolution=head_high_res, head_opacity=head_opacity,
+        orient_glyphs=orient_to_surface, scale_by_distance=scale_by_distance,
+        mark_inside=mark_inside, trans=trans, size=(width, height), show=show,
+        block=block, interaction=interaction, fullscreen=fullscreen,
+        verbose=verbose
+    )
 
 
-def fiducials(subject=None, fid_file=None, subjects_dir=None):
-    """Set the fiducials for an MRI subject.
+@verbose
+def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
+                groups=None, show=True, block=False, verbose=None):
+    """Locate intracranial electrode contacts.
 
     Parameters
     ----------
-    subject : str
-        Name of the mri subject.
-    fid_file : None | str
-        Load a fiducials file different form the subject's default
-        ("{subjects_dir}/{subject}/bem/{subject}-fiducials.fif").
-    subjects_dir : None | str
-        Overrule the subjects_dir environment variable.
+    %(info_not_none)s
+    %(trans_not_none)s
+    aligned_ct : path-like | nibabel.spatialimages.SpatialImage
+        The CT image that has been aligned to the Freesurfer T1. Path-like
+        inputs and nibabel image objects are supported.
+    %(subject)s
+    %(subjects_dir)s
+    groups : dict | None
+        A dictionary with channels as keys and their group index as values.
+        If None, the groups will be inferred by the channel names. Channel
+        names must have a format like ``LAMY 7`` where a string prefix
+        like ``LAMY`` precedes a numeric index like ``7``. If the channels
+        are formatted improperly, group plotting will work incorrectly.
+        Group assignments can be adjusted in the GUI.
+    show : bool
+        Show the GUI if True.
+    block : bool
+        Whether to halt program execution until the figure is closed.
+    %(verbose)s
 
-    Notes
-    -----
-    All parameters are optional, since they can be set through the GUI.
-    The functionality in this GUI is also part of :func:`coregistration`.
+    Returns
+    -------
+    gui : instance of IntracranialElectrodeLocator
+        The graphical user interface (GUI) window.
     """
-    _check_mayavi_version()
-    from ._backend import _check_backend
-    _check_backend()
-    from ._fiducials_gui import FiducialsFrame
-    frame = FiducialsFrame(subject, subjects_dir, fid_file=fid_file)
-    return _initialize_gui(frame)
+    from ..viz.backends._utils import _qt_app_exec
+    from ._ieeg_locate import IntracranialElectrodeLocator
+    from qtpy.QtWidgets import QApplication
+    # get application
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(["Intracranial Electrode Locator"])
+    gui = IntracranialElectrodeLocator(
+        info, trans, aligned_ct, subject=subject, subjects_dir=subjects_dir,
+        groups=groups, show=show, verbose=verbose)
+    if block:
+        _qt_app_exec(app)
+    return gui
 
 
-def kit2fiff():
-    """Convert KIT files to the fiff format.
+class _GUIScraper(object):
+    """Scrape GUI outputs."""
 
-    The recommended way to use the GUI is through bash with::
+    def __repr__(self):
+        return '<GUIScraper>'
 
-        $ mne kit2fiff
-
-    """
-    _check_mayavi_version()
-    from ._backend import _check_backend
-    _check_backend()
-    from ._kit2fiff_gui import Kit2FiffFrame
-    frame = Kit2FiffFrame()
-    return _initialize_gui(frame)
+    def __call__(self, block, block_vars, gallery_conf):
+        from ._ieeg_locate import IntracranialElectrodeLocator
+        from ._coreg import CoregistrationUI
+        from sphinx_gallery.scrapers import figure_rst
+        from qtpy import QtGui
+        for gui in block_vars['example_globals'].values():
+            if (isinstance(gui, (IntracranialElectrodeLocator,
+                                 CoregistrationUI)) and
+                    not getattr(gui, '_scraped', False) and
+                    gallery_conf['builder_name'] == 'html'):
+                gui._scraped = True  # monkey-patch but it's easy enough
+                img_fname = next(block_vars['image_path_iterator'])
+                # TODO fix in window refactor
+                window = gui if hasattr(gui, 'grab') else gui._renderer._window
+                # window is QWindow
+                # https://doc.qt.io/qt-5/qwidget.html#grab
+                pixmap = window.grab()
+                if hasattr(gui, '_renderer'):  # if no renderer, no need
+                    # Now the tricky part: we need to get the 3D renderer,
+                    # extract the image from it, and put it in the correct
+                    # place in the pixmap. The easiest way to do this is
+                    # actually to save the 3D image first, then load it
+                    # using QPixmap and Qt geometry.
+                    plotter = gui._renderer.plotter
+                    plotter.screenshot(img_fname)
+                    sub_pixmap = QtGui.QPixmap(img_fname)
+                    # https://doc.qt.io/qt-5/qwidget.html#mapTo
+                    # https://doc.qt.io/qt-5/qpainter.html#drawPixmap-1
+                    QtGui.QPainter(pixmap).drawPixmap(
+                        plotter.mapTo(window, plotter.rect().topLeft()),
+                        sub_pixmap)
+                # https://doc.qt.io/qt-5/qpixmap.html#save
+                pixmap.save(img_fname)
+                try:  # for compatibility with both GUIs, will be refactored
+                    gui._renderer.close()  # TODO should be triggered by close
+                except Exception:
+                    pass
+                gui.close()
+                return figure_rst(
+                    [img_fname], gallery_conf['src_dir'], 'GUI')
+        return ''

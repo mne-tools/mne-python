@@ -21,8 +21,8 @@ BinaryFormat=INT_16
 ; Fields are delimited by commas, some fields might be omitted (empty).
 ; Commas in channel names are coded as "\1".
 Ch1=FP1,,0.5,µV
-Ch2=FP2,,0.5,µV
-Ch3=F3,,0.5,µV
+Ch2=FP2,,0.5,
+Ch3=F3,,0.5
 Ch4=F4,,0.5,µV
 Ch5=C3,,0.5,µV
 Ch6=C4,,0.5,µV

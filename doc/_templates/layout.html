@@ -1,85 +1,80 @@
-{% extends "!layout.html" %}
-
-{% set css_files = css_files + ['_static/reset-syntax.css'] %}
+{%- extends 'pydata_sphinx_theme/layout.html' %}
 
 {% block extrahead %}
-
-    <script type="text/javascript" src="{{ pathto('_static/copybutton.js', 1) }}"></script>
-
-{% if use_google_analytics|tobool %}
-    <script type="text/javascript">
-    var _gaq = _gaq || [];
-    _gaq.push(['_setAccount', 'UA-37225609-1']);
-    _gaq.push(['_trackPageview']);
-
-    (function() {
-        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-    })();
-    </script>
-{% endif %}
-
-    <link rel="stylesheet" href="{{ pathto('_static/style.css', 1) }} " type="text/css" />
-    <link rel="stylesheet" href="{{ pathto('_static/font-awesome.css', 1) }}" type="text/css" />
-    <link rel="stylesheet" href="{{ pathto('_static/flag-icon.css', 1) }}" type="text/css" />
-
-
-{% if (use_twitter|tobool) or (use_media_buttons|tobool) %}
-    <script type="text/javascript">
-    !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);
-    js.id=id;js.src="https://platform.twitter.com/widgets.js";
-    fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");
-    </script>
-{% endif %}
-
-{% if use_media_buttons|tobool %}
-    <script type="text/javascript">
-    (function() {
-    var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
-    po.src = 'https://apis.google.com/js/plusone.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
-    })();
-    </script>
-{% endif %}
-
-{{ super() }}
-
+    <link rel="canonical" href="https://mne.tools/stable/index.html" />
+    {{ super() }}
 {% endblock %}
 
-{% block relbar2 %}{% endblock %}
+{%- block content %}
 
-{% block relbar1 %}
-{% if build_dev_html|tobool %}
-<div class="row devbar alert alert-danger">
-This documentation is for <strong>development version {{ release }}</strong>.
-</div>
-{% endif %}
+  <!-- checkbox to toggle primary sidebar -->
+  <input type="checkbox" class="sidebar-toggle" name="__primary" id="__primary">
+  <label class="overlay overlay-primary" for="__primary"></label>
 
-{{ super() }}
-{% endblock %}
+  <!-- Checkboxes to toggle the secondary sidebar -->
+  <input type="checkbox" class="sidebar-toggle" name="__secondary" id="__secondary">
+  <label class="overlay overlay-secondary" for="__secondary"></label>
 
-{# put the sidebar before the body #}
-{% block sidebar1 %}{{ sidebar() }}{% endblock %}
-{% block sidebar2 %}{% endblock %}
+  <!-- A search field pop-up that will only show when the search button is clicked -->
 
-{%- block footer %}
-<footer class="footer">
-  <div class="container"><img src="{{ pathto('_static/institutions.png', 1) }}" alt="Institutions"></div>
-  <div class="container">
-    <ul class="list-inline">
-      <li><a href="https://github.com/mne-tools/mne-python">GitHub</a></li>
-      <li>·</li>
-      <li><a href="https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis">Mailing list</a></li>
-      <li>·</li>
-      <li><a href="https://gitter.im/mne-tools/mne-python">Gitter</a></li>
-      <li>·</li>
-      <li><a href="whats_new.html">What's new</a></li>
-      <li>·</li>
-      <li><a href="faq.html#cite">Cite MNE</a></li>
-      <li class="pull-right"><a href="#">Back to top</a></li>
-    </ul>
-    <p>&copy; Copyright {{ copyright }}.</p>
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+      {% include "../components/search-field.html" %}
+    </div>
   </div>
-</footer>
+
+  {% include "sections/announcement.html" %}
+
+  {% block docs_navbar %}
+  <nav class="bd-header navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main">
+    {%- include "sections/header.html" %}
+  </nav>
+  {% endblock %}
+
+  <div class="bd-container container-xl">
+    <div class="bd-container__inner row">
+      {% include "sections/sidebar-primary.html" %}
+      <!-- ↓↓↓↓↓ this chunk is customized ↓↓↓↓↓ -->
+      {% if pagename != 'index' %}
+        {% include "sections/sidebar-secondary.html" %}
+      {% endif %}
+      <!-- ↑↑↑ this chunk is customized ↑↑↑ -->
+
+      {% block docs_main %}
+      <div class="bd-content col">
+
+        <div class="bd-header-article">
+            {% include "sections/header-article.html" %}
+        </div>
+
+        <!-- ↓↓↓↓↓ this chunk is customized ↓↓↓↓↓ -->
+        {% block docs_body %}
+          <div>
+            {% block body %} {% endblock %}
+            {% if pagename == 'index' %}
+              {%- include 'homepage.html' -%}
+            {% endif %}
+          </div>
+        {% endblock %}
+        <!-- ↑↑↑ this chunk is customized ↑↑↑ -->
+
+        {% if theme_show_prev_next %}
+        <footer class="bd-footer-article">
+            {% include "sections/footer-article.html" %}
+        </footer>
+        {% endif %}
+      </div>
+      {% endblock %}
+    </div>
+  </div>
+
+  {# Scripts placed at the end of the page to cut down on time to first content #}
+  <!-- ↓↓↓↓↓ this chunk is customized ↓↓↓↓↓ -->
+  {%- block scripts_end %}
+    <script src="https://mne.tools/versionwarning.js"></script>
+    {{ super() }}
+  {%- endblock %}
+  <!-- ↑↑↑ this chunk is customized ↑↑↑ -->
+
 {%- endblock %}

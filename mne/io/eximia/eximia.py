@@ -1,14 +1,14 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Federico Raimondo <federaimondo@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
 from ..base import BaseRaw
 from ..utils import _read_segments_file, _file_size
 from ..meas_info import create_info
-from ...utils import logger, verbose, warn, fill_doc
+from ...utils import logger, verbose, warn, fill_doc, _check_fname
 
 
 @fill_doc
@@ -19,8 +19,7 @@ def read_raw_eximia(fname, preload=False, verbose=None):
     ----------
     fname : str
         Path to the eXimia data file (.nxe).
-    preload : bool
-        If True, all data are loaded at initialization.
+    %(preload)s
     %(verbose)s
 
     Returns
@@ -43,8 +42,7 @@ class RawEximia(BaseRaw):
     ----------
     fname : str
         Path to the eXimia data file (.nxe).
-    preload : bool
-        If True, all data are loaded at initialization.
+    %(preload)s
     %(verbose)s
 
     See Also
@@ -54,6 +52,7 @@ class RawEximia(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
+        fname = _check_fname(fname, 'read', True, 'fname')
         data_name = op.basename(fname)
         logger.info('Loading %s' % data_name)
         # Create vhdr and vmrk files so that we can use mne_brain_vision2fiff
@@ -89,4 +88,5 @@ class RawEximia(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        _read_segments_file(self, data, idx, fi, start, stop, cals, mult)
+        _read_segments_file(
+            self, data, idx, fi, start, stop, cals, mult, dtype='<i2')

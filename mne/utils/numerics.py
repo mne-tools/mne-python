@@ -1,41 +1,42 @@
 # -*- coding: utf-8 -*-
 """Some utility functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Clemens Brunner <clemens.brunner@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
-from contextlib import contextmanager
 import hashlib
-from io import BytesIO, StringIO
-from math import sqrt
 import numbers
 import operator
 import os
-import os.path as op
-from math import ceil
 import shutil
 import sys
+from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
+from io import BytesIO, StringIO
+from math import ceil, sqrt
+from pathlib import Path
 
 import numpy as np
-from scipy import sparse
 
 from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
-from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
-from .docs import deprecated, fill_doc
+from ..fixes import (_infer_dimension_, svd_flip, stable_cumsum, _safe_svd,
+                     jit, has_numba)
+from .docs import fill_doc
 
 
-def split_list(l, n, idx=False):
+def split_list(v, n, idx=False):
     """Split list in n (approx) equal pieces, possibly giving indices."""
     n = int(n)
-    tot = len(l)
+    tot = len(v)
     sz = tot // n
     start = stop = 0
     for i in range(n - 1):
         stop += sz
-        yield (np.arange(start, stop), l[start:stop]) if idx else l[start:stop]
+        yield (np.arange(start, stop), v[start:stop]) if idx else v[start:stop]
         start += sz
-    yield (np.arange(start, tot), l[start:]) if idx else l[start]
+    yield (np.arange(start, tot), v[start:]) if idx else v[start]
 
 
 def array_split_idx(ary, indices_or_sections, axis=0, n_per_split=1):
@@ -68,12 +69,12 @@ def sum_squared(X):
     Parameters
     ----------
     X : array
-        Data whose norm must be found
+        Data whose norm must be found.
 
     Returns
     -------
     value : float
-        Sum of squares of the input array X
+        Sum of squares of the input array X.
     """
     X_flat = X.ravel(order='F' if np.isfortran(X) else 'C')
     return np.dot(X_flat, X_flat)
@@ -87,7 +88,7 @@ def _compute_row_norms(data):
 
 
 def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
-    """Compute a regularized pseudoinverse of a square matrix.
+    """Compute a regularized pseudoinverse of Hermitian matrices.
 
     Regularization is performed by adding a constant value to each diagonal
     element of the matrix before inversion. This is known as "diagonal
@@ -101,8 +102,8 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
 
     Parameters
     ----------
-    x : ndarray, shape (n, n)
-        Square matrix to invert.
+    x : ndarray, shape (..., n, n)
+        Square, Hermitian matrices to invert.
     reg : float
         Regularization parameter. Defaults to 0.
     rank : int | None | 'full'
@@ -122,7 +123,7 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
 
     Returns
     -------
-    x_inv : ndarray, shape (n, n)
+    x_inv : ndarray, shape (..., n, n)
         The inverted matrix.
     loading_factor : float
         Value added to the diagonal of the matrix during regularization.
@@ -134,57 +135,63 @@ def _reg_pinv(x, reg=0, rank='full', rcond=1e-15):
     from ..rank import _estimate_rank_from_s
     if rank is not None and rank != 'full':
         rank = int(operator.index(rank))
-    if x.ndim != 2 or x.shape[0] != x.shape[1]:
+    if x.ndim < 2 or x.shape[-2] != x.shape[-1]:
         raise ValueError('Input matrix must be square.')
-    if not np.allclose(x, x.conj().T):
+    if not np.allclose(x, x.conj().swapaxes(-2, -1)):
         raise ValueError('Input matrix must be Hermitian (symmetric)')
+    assert x.ndim >= 2 and x.shape[-2] == x.shape[-1]
+    n = x.shape[-1]
 
-    # Decompose the matrix
-    U, s, V = _safe_svd(x)
+    # Decompose the matrix, not necessarily positive semidefinite
+    from mne.fixes import svd
+    U, s, Vh = svd(x, hermitian=True)
 
     # Estimate the rank before regularization
-    tol = 'auto' if rcond == 'auto' else rcond * s.max()
+    tol = 'auto' if rcond == 'auto' else rcond * s[..., :1]
     rank_before = _estimate_rank_from_s(s, tol)
 
     # Decompose the matrix again after regularization
-    loading_factor = reg * np.mean(s)
-    U, s, V = _safe_svd(x + loading_factor * np.eye(len(x)))
+    loading_factor = reg * np.mean(s, axis=-1)
+    if reg:
+        U, s, Vh = svd(
+            x + loading_factor[..., np.newaxis, np.newaxis] * np.eye(n),
+            hermitian=True)
 
     # Estimate the rank after regularization
-    tol = 'auto' if rcond == 'auto' else rcond * s.max()
+    tol = 'auto' if rcond == 'auto' else rcond * s[..., :1]
     rank_after = _estimate_rank_from_s(s, tol)
 
     # Warn the user if both all parameters were kept at their defaults and the
     # matrix is rank deficient.
-    if rank_after < len(x) and reg == 0 and rank == 'full' and rcond == 1e-15:
+    if (rank_after < n).any() and reg == 0 and \
+            rank == 'full' and rcond == 1e-15:
         warn('Covariance matrix is rank-deficient and no regularization is '
              'done.')
-    elif isinstance(rank, int) and rank > len(x):
+    elif isinstance(rank, int) and rank > n:
         raise ValueError('Invalid value for the rank parameter (%d) given '
                          'the shape of the input matrix (%d x %d).' %
                          (rank, x.shape[0], x.shape[1]))
 
     # Pick the requested number of singular values
+    mask = np.arange(s.shape[-1]).reshape((1,) * (x.ndim - 2) + (-1,))
     if rank is None:
-        sel_s = s[:rank_before]
+        cmp = ret = rank_before
     elif rank == 'full':
-        sel_s = s[:rank_after]
+        cmp = rank_after
+        ret = rank_before
     else:
-        sel_s = s[:rank]
+        cmp = ret = rank
+    mask = mask < np.asarray(cmp)[..., np.newaxis]
+    mask &= s > 0
 
     # Invert only non-zero singular values
     s_inv = np.zeros(s.shape)
-    nonzero_inds = np.flatnonzero(sel_s != 0)
-    if len(nonzero_inds) > 0:
-        s_inv[nonzero_inds] = 1. / sel_s[nonzero_inds]
+    s_inv[mask] = 1. / s[mask]
 
     # Compute the pseudo inverse
-    x_inv = np.dot(V.T, s_inv[:, np.newaxis] * U.T)
+    x_inv = np.matmul(U * s_inv[..., np.newaxis, :], Vh)
 
-    if rank is None or rank == 'full':
-        return x_inv, loading_factor, rank_before
-    else:
-        return x_inv, loading_factor, rank
+    return x_inv, loading_factor, ret
 
 
 def _gen_events(n_epochs):
@@ -287,7 +294,9 @@ def random_permutation(n_samples, random_state=None):
         Randomly permuted sequence between 0 and n-1.
     """
     rng = check_random_state(random_state)
-    idx = rng.rand(n_samples)
+    # This can't just be rng.permutation(n_samples) because it's not identical
+    # to what MATLAB produces
+    idx = rng.uniform(size=n_samples)
     randperm = np.argsort(idx)
     return randperm
 
@@ -384,33 +393,6 @@ def _check_scaling_inputs(data, picks_list, scalings):
     return scalings_
 
 
-@deprecated('mne.utils.md5sum will be deprecated in 0.19, please use '
-            'mne.utils.hashfunc(... , hash_type="md5") instead.')
-def md5sum(fname, block_size=1048576):  # 2 ** 20
-    """Calculate the md5sum for a file.
-
-    Parameters
-    ----------
-    fname : str
-        Filename.
-    block_size : int
-        Block size to use when reading.
-
-    Returns
-    -------
-    hash_ : str
-        The hexadecimal digest of the hash.
-    """
-    md5 = hashlib.md5()
-    with open(fname, 'rb') as fid:
-        while True:
-            data = fid.read(block_size)
-            if not data:
-                break
-            md5.update(data)
-    return md5.hexdigest()
-
-
 def hashfunc(fname, block_size=1048576, hash_type="md5"):  # 2 ** 20
     """Calculate the hash for a file.
 
@@ -444,7 +426,7 @@ def _replace_md5(fname):
     # adapted from sphinx-gallery
     assert fname.endswith('.new')
     fname_old = fname[:-4]
-    if op.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
+    if os.path.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
         os.remove(fname)
     else:
         shutil.move(fname, fname_old)
@@ -480,7 +462,8 @@ def create_slices(start, stop, step=None, length=1):
     return slices
 
 
-def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
+def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True,
+               include_tmax=True):
     """Safely find sample boundaries."""
     orig_tmin = tmin
     orig_tmax = tmax
@@ -490,20 +473,25 @@ def _time_mask(times, tmin=None, tmax=None, sfreq=None, raise_error=True):
         tmin = times[0]
     if not np.isfinite(tmax):
         tmax = times[-1]
+        include_tmax = True  # ignore this param when tmax is infinite
     if sfreq is not None:
         # Push to a bit past the nearest sample boundary first
         sfreq = float(sfreq)
         tmin = int(round(tmin * sfreq)) / sfreq - 0.5 / sfreq
-        tmax = int(round(tmax * sfreq)) / sfreq + 0.5 / sfreq
+        tmax = int(round(tmax * sfreq)) / sfreq
+        tmax += (0.5 if include_tmax else -0.5) / sfreq
+    else:
+        assert include_tmax  # can only be used when sfreq is known
     if raise_error and tmin > tmax:
         raise ValueError('tmin (%s) must be less than or equal to tmax (%s)'
                          % (orig_tmin, orig_tmax))
     mask = (times >= tmin)
     mask &= (times <= tmax)
     if raise_error and not mask.any():
-        raise ValueError('No samples remain when using tmin=%s and tmax=%s '
+        extra = '' if include_tmax else 'when include_tmax=False '
+        raise ValueError('No samples remain when using tmin=%s and tmax=%s %s'
                          '(original time bounds are [%s, %s])'
-                         % (orig_tmin, orig_tmax, times[0], times[-1]))
+                         % (orig_tmin, orig_tmax, extra, times[0], times[-1]))
     return mask
 
 
@@ -536,19 +524,20 @@ def _freq_mask(freqs, sfreq, fmin=None, fmax=None, raise_error=True):
 
 
 def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
-    """Make grand average of a list evoked or AverageTFR data.
+    """Make grand average of a list of Evoked or AverageTFR data.
 
-    For evoked data, the function interpolates bad channels based on
-    `interpolate_bads` parameter. If `interpolate_bads` is True, the grand
-    average file will contain good channels and the bad channels interpolated
-    from the good MEG/EEG channels.
-    For AverageTFR data, the function takes the subset of channels not marked
-    as bad in any of the instances.
+    For :class:`mne.Evoked` data, the function interpolates bad channels based
+    on the ``interpolate_bads`` parameter. If ``interpolate_bads`` is True,
+    the grand average file will contain good channels and the bad channels
+    interpolated from the good MEG/EEG channels.
+    For :class:`mne.time_frequency.AverageTFR` data, the function takes the
+    subset of channels not marked as bad in any of the instances.
 
-    The grand_average.nave attribute will be equal to the number
+    The ``grand_average.nave`` attribute will be equal to the number
     of evoked datasets used to calculate the grand average.
 
-    Note: Grand average evoked should not be used for source localization.
+    .. note:: A grand average evoked should not be used for source
+              localization.
 
     Parameters
     ----------
@@ -576,7 +565,12 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     from ..evoked import Evoked
     from ..time_frequency import AverageTFR
     from ..channels.channels import equalize_channels
-    assert len(all_inst) > 1
+
+    if not all_inst:
+        raise ValueError('Please pass a list of Evoked or AverageTFR objects.')
+    elif len(all_inst) == 1:
+        warn('Only a single dataset was passed to mne.grand_average().')
+
     inst_type = type(all_inst[0])
     _validate_type(all_inst[0], (Evoked, AverageTFR), 'All elements')
     for inst in all_inst:
@@ -590,7 +584,6 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
         if interpolate_bads:
             all_inst = [inst.interpolate_bads() if len(inst.info['bads']) > 0
                         else inst for inst in all_inst]
-        equalize_channels(all_inst)  # apply equalize_channels
         from ..evoked import combine_evoked as combine
     else:  # isinstance(all_inst[0], AverageTFR):
         from ..time_frequency.tfr import combine_tfr as combine
@@ -601,6 +594,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
             for inst in all_inst:
                 inst.drop_channels(bads)
 
+    equalize_channels(all_inst, copy=False)
     # make grand_average object using combine_[evoked/tfr]
     grand_average = combine(all_inst, weights='equal')
     # change the grand_average.nave to the number of Evokeds
@@ -608,6 +602,18 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     # change comment field
     grand_average.comment = "Grand average (n = %d)" % grand_average.nave
     return grand_average
+
+
+class _HashableNdarray(np.ndarray):
+    def __hash__(self):
+        return object_hash(self)
+
+    def __eq__(self, other):
+        return NotImplementedError  # defer to hash
+
+
+def _hashable_ndarray(x):
+    return x.view(_HashableNdarray)
 
 
 def object_hash(x, h=None):
@@ -626,6 +632,7 @@ def object_hash(x, h=None):
     digest : int
         The digest resulting from the hash.
     """
+    from scipy import sparse
     if h is None:
         h = hashlib.md5()
     if hasattr(x, 'keys'):
@@ -644,7 +651,16 @@ def object_hash(x, h=None):
         x = np.asarray(x)
         h.update(str(x.shape).encode('utf-8'))
         h.update(str(x.dtype).encode('utf-8'))
-        h.update(x.tostring())
+        h.update(x.tobytes())
+    elif isinstance(x, datetime):
+        object_hash(_dt_to_stamp(x))
+    elif sparse.issparse(x):
+        h.update(str(type(x)).encode('utf-8'))
+        if not isinstance(x, (sparse.csr_matrix, sparse.csc_matrix)):
+            raise RuntimeError(f'Unsupported sparse type {type(x)}')
+        h.update(x.data.tobytes())
+        h.update(x.indices.tobytes())
+        h.update(x.indptr.tobytes())
     elif hasattr(x, '__len__'):
         # all other list-like types
         h.update(str(type(x)).encode('utf-8'))
@@ -655,7 +671,7 @@ def object_hash(x, h=None):
     return int(h.hexdigest(), 16)
 
 
-def object_size(x):
+def object_size(x, memo=None):
     """Estimate the size of a reasonable python object.
 
     Parameters
@@ -664,34 +680,47 @@ def object_size(x):
         Object to approximate the size of.
         Can be anything comprised of nested versions of:
         {dict, list, tuple, ndarray, str, bytes, float, int, None}.
+    memo : dict | None
+        The memodict.
 
     Returns
     -------
     size : int
         The estimated size in bytes of the object.
     """
+    from scipy import sparse
     # Note: this will not process object arrays properly (since those only)
     # hold references
-    if isinstance(x, (bytes, str, int, float, type(None))):
+    if memo is None:
+        memo = dict()
+    id_ = id(x)
+    if id_ in memo:
+        return 0  # do not add already existing ones
+    if isinstance(x, (bytes, str, int, float, type(None), Path)):
         size = sys.getsizeof(x)
     elif isinstance(x, np.ndarray):
         # On newer versions of NumPy, just doing sys.getsizeof(x) works,
         # but on older ones you always get something small :(
-        size = sys.getsizeof(np.array([])) + x.nbytes
+        size = sys.getsizeof(np.array([]))
+        if x.base is None or id(x.base) not in memo:
+            size += x.nbytes
     elif isinstance(x, np.generic):
         size = x.nbytes
     elif isinstance(x, dict):
         size = sys.getsizeof(x)
         for key, value in x.items():
-            size += object_size(key)
-            size += object_size(value)
+            size += object_size(key, memo)
+            size += object_size(value, memo)
     elif isinstance(x, (list, tuple)):
-        size = sys.getsizeof(x) + sum(object_size(xx) for xx in x)
+        size = sys.getsizeof(x) + sum(object_size(xx, memo) for xx in x)
+    elif isinstance(x, datetime):
+        size = object_size(_dt_to_stamp(x), memo)
     elif sparse.isspmatrix_csc(x) or sparse.isspmatrix_csr(x):
         size = sum(sys.getsizeof(xx)
                    for xx in [x, x.data, x.indices, x.indptr])
     else:
         raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
+    memo[id_] = size
     return size
 
 
@@ -703,7 +732,19 @@ def _sort_keys(x):
     return keys
 
 
-def object_diff(a, b, pre=''):
+def _array_equal_nan(a, b, allclose=False):
+    try:
+        if allclose:
+            func = np.testing.assert_allclose
+        else:
+            func = np.testing.assert_array_equal
+        func(a, b)
+    except AssertionError:
+        return False
+    return True
+
+
+def object_diff(a, b, pre='', *, allclose=False):
     """Compute all differences between two python variables.
 
     Parameters
@@ -712,19 +753,27 @@ def object_diff(a, b, pre=''):
         Currently supported: dict, list, tuple, ndarray, int, str, bytes,
         float, StringIO, BytesIO.
     b : object
-        Must be same type as x1.
+        Must be same type as ``a``.
     pre : str
         String to prepend to each line.
+    allclose : bool
+        If True (default False), use assert_allclose.
 
     Returns
     -------
     diffs : str
         A string representation of the differences.
     """
+    from scipy import sparse
     out = ''
     if type(a) != type(b):
-        out += pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
-    elif isinstance(a, dict):
+        # Deal with NamedInt and NamedFloat
+        for sub in (int, float):
+            if isinstance(a, sub) and isinstance(b, sub):
+                break
+        else:
+            return pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
+    if isinstance(a, dict):
         k1s = _sort_keys(a)
         k2s = _sort_keys(b)
         m1 = set(k2s) - set(k1s)
@@ -734,25 +783,34 @@ def object_diff(a, b, pre=''):
             if key not in k2s:
                 out += pre + ' right missing key %s\n' % key
             else:
-                out += object_diff(a[key], b[key], pre + '[%s]' % repr(key))
+                out += object_diff(a[key], b[key],
+                                   pre=(pre + '[%s]' % repr(key)),
+                                   allclose=allclose)
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
             out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
         else:
             for ii, (xx1, xx2) in enumerate(zip(a, b)):
-                out += object_diff(xx1, xx2, pre + '[%s]' % ii)
-    elif isinstance(a, (str, int, float, bytes, np.generic)):
+                out += object_diff(
+                    xx1, xx2, pre + '[%s]' % ii, allclose=allclose)
+    elif isinstance(a, float):
+        if not _array_equal_nan(a, b, allclose):
+            out += pre + ' value mismatch (%s, %s)\n' % (a, b)
+    elif isinstance(a, (str, int, bytes, np.generic)):
         if a != b:
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif a is None:
         if b is not None:
             out += pre + ' left is None, right is not (%s)\n' % (b)
     elif isinstance(a, np.ndarray):
-        if not np.array_equal(a, b):
+        if not _array_equal_nan(a, b, allclose):
             out += pre + ' array mismatch\n'
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():
             out += pre + ' StringIO mismatch\n'
+    elif isinstance(a, datetime):
+        if (a - b).total_seconds() != 0:
+            out += pre + ' datetime mismatch\n'
     elif sparse.isspmatrix(a):
         # sparsity and sparse type of b vs a already checked above by type()
         if b.shape != a.shape:
@@ -765,7 +823,8 @@ def object_diff(a, b, pre=''):
                 out += pre + (' sparse matrix a and b differ on %s '
                               'elements' % c.nnz)
     elif hasattr(a, '__getstate__'):
-        out += object_diff(a.__getstate__(), b.__getstate__(), pre)
+        out += object_diff(a.__getstate__(), b.__getstate__(), pre,
+                           allclose=allclose)
     else:
         raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
     return out
@@ -874,3 +933,200 @@ def _mask_to_onsets_offsets(mask):
         offsets = np.concatenate([offsets, [len(mask)]])
     assert len(onsets) == len(offsets)
     return onsets, offsets
+
+
+def _julian_to_dt(jd):
+    """Convert Julian integer to a datetime object.
+
+    Parameters
+    ----------
+    jd : int
+        Julian date - number of days since julian day 0
+        Julian day number 0 assigned to the day starting at
+        noon on January 1, 4713 BC, proleptic Julian calendar
+        November 24, 4714 BC, in the proleptic Gregorian calendar
+
+    Returns
+    -------
+    jd_date : datetime
+        Datetime representation of jd
+
+    """
+    # https://aa.usno.navy.mil/data/docs/JulianDate.php
+    # Thursday, A.D. 1970 Jan 1 12:00:00.0  2440588.000000
+    jd_t0 = 2440588
+    datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0, tzinfo=timezone.utc)
+
+    dt = timedelta(days=(jd - jd_t0))
+    return datetime_t0 + dt
+
+
+def _dt_to_julian(jd_date):
+    """Convert datetime object to a Julian integer.
+
+    Parameters
+    ----------
+    jd_date : datetime
+
+    Returns
+    -------
+    jd : float
+        Julian date corresponding to jd_date
+        - number of days since julian day 0
+        Julian day number 0 assigned to the day starting at
+        noon on January 1, 4713 BC, proleptic Julian calendar
+        November 24, 4714 BC, in the proleptic Gregorian calendar
+
+    """
+    # https://aa.usno.navy.mil/data/docs/JulianDate.php
+    # Thursday, A.D. 1970 Jan 1 12:00:00.0  2440588.000000
+    jd_t0 = 2440588
+    datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0, tzinfo=timezone.utc)
+
+    dt = jd_date - datetime_t0
+    return jd_t0 + dt.days
+
+
+def _cal_to_julian(year, month, day):
+    """Convert calendar date (year, month, day) to a Julian integer.
+
+    Parameters
+    ----------
+    year : int
+        Year as an integer.
+    month : int
+        Month as an integer.
+    day : int
+        Day as an integer.
+
+    Returns
+    -------
+    jd: int
+        Julian date.
+    """
+    return int(_dt_to_julian(datetime(year, month, day, 12, 0, 0,
+                                      tzinfo=timezone.utc)))
+
+
+def _julian_to_cal(jd):
+    """Convert calendar date (year, month, day) to a Julian integer.
+
+    Parameters
+    ----------
+    jd: int, float
+        Julian date.
+
+    Returns
+    -------
+    year : int
+        Year as an integer.
+    month : int
+        Month as an integer.
+    day : int
+        Day as an integer.
+
+    """
+    tmp_date = _julian_to_dt(jd)
+    return tmp_date.year, tmp_date.month, tmp_date.day
+
+
+def _check_dt(dt):
+    if not isinstance(dt, datetime) or dt.tzinfo is None or \
+            dt.tzinfo is not timezone.utc:
+        raise ValueError('Date must be datetime object in UTC: %r' % (dt,))
+
+
+def _dt_to_stamp(inp_date):
+    """Convert a datetime object to a timestamp."""
+    _check_dt(inp_date)
+    return int(inp_date.timestamp() // 1), inp_date.microsecond
+
+
+def _stamp_to_dt(utc_stamp):
+    """Convert timestamp to datetime object in Windows-friendly way."""
+    # The min on windows is 86400
+    stamp = [int(s) for s in utc_stamp]
+    if len(stamp) == 1:  # In case there is no microseconds information
+        stamp.append(0)
+    return (datetime.fromtimestamp(0, tz=timezone.utc) +
+            timedelta(seconds=stamp[0], microseconds=stamp[1]))
+
+
+class _ReuseCycle(object):
+    """Cycle over a variable, preferring to reuse earlier indices.
+
+    Requires the values in ``x`` to be hashable and unique. This holds
+    nicely for matplotlib's color cycle, which gives HTML hex color strings.
+    """
+
+    def __init__(self, x):
+        self.indices = list()
+        self.popped = dict()
+        assert len(x) > 0
+        self.x = x
+
+    def __iter__(self):
+        while True:
+            yield self.__next__()
+
+    def __next__(self):
+        if not len(self.indices):
+            self.indices = list(range(len(self.x)))
+            self.popped = dict()
+        idx = self.indices.pop(0)
+        val = self.x[idx]
+        assert val not in self.popped
+        self.popped[val] = idx
+        return val
+
+    def restore(self, val):
+        try:
+            idx = self.popped.pop(val)
+        except KeyError:
+            warn('Could not find value: %s' % (val,))
+        else:
+            loc = np.searchsorted(self.indices, idx)
+            self.indices.insert(loc, idx)
+
+
+def _arange_div_fallback(n, d):
+    x = np.arange(n, dtype=np.float64)
+    x /= d
+    return x
+
+
+if has_numba:
+    @jit(fastmath=False)
+    def _arange_div(n, d):
+        out = np.empty(n, np.float64)
+        for i in range(n):
+            out[i] = i / d
+        return out
+else:  # pragma: no cover
+    _arange_div = _arange_div_fallback
+
+
+_LRU_CACHES = dict()
+_LRU_CACHE_MAXSIZES = dict()
+
+
+def _custom_lru_cache(maxsize):
+    def dec(fun):
+        fun_hash = hash(fun)
+        this_cache = _LRU_CACHES[fun_hash] = dict()
+        _LRU_CACHE_MAXSIZES[fun_hash] = maxsize
+
+        def cache_fun(*args):
+            hash_ = object_hash(args)
+            if hash_ in this_cache:
+                this_val = this_cache.pop(hash_)
+            else:
+                this_val = fun(*args)
+            this_cache[hash_] = this_val  # (re)insert in last pos
+            while len(this_cache) > _LRU_CACHE_MAXSIZES[fun_hash]:
+                for key in this_cache:  # just an easy way to get first element
+                    this_cache.pop(key)
+                    break  # first in, first out
+            return this_val
+        return cache_fun
+    return dec

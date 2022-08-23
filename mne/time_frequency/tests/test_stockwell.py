@@ -1,14 +1,14 @@
 # Authors : Denis A. Engemann <denis.engemann@gmail.com>
-#           Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#           Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License : BSD 3-clause
+# License : BSD-3-Clause
 
 import os.path as op
 
 import pytest
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
-                           assert_equal)
+                           assert_equal, assert_array_less)
 
 from scipy import fftpack
 
@@ -19,8 +19,8 @@ from mne.time_frequency._stockwell import (tfr_stockwell, _st,
                                            _check_input_st,
                                            _st_power_itc)
 
-from mne.time_frequency.tfr import AverageTFR
-from mne.utils import run_tests_if_main
+from mne.time_frequency import AverageTFR, tfr_array_stockwell
+from mne.utils import _record_warnings
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -43,7 +43,7 @@ def test_stockwell_check_input():
 
     for last_dim in (127, 128):
         data = np.zeros((2, 10, last_dim))
-        with pytest.warns(None):  # n_fft sometimes
+        with _record_warnings():  # n_fft sometimes
             x_in, n_fft, zero_pad = _check_input_st(data, None)
 
         assert_equal(x_in.shape, (2, 10, 128))
@@ -131,6 +131,13 @@ def test_stockwell_api():
     assert (itc.data.max() <= 1.0)
     assert (np.log(power.data.max()) * 20 <= 0.0)
     assert (np.log(power.data.max()) * 20 <= 0.0)
-
-
-run_tests_if_main()
+    with pytest.raises(TypeError, match='ndarray'):
+        tfr_array_stockwell('foo', 1000.)
+    data = np.random.RandomState(0).randn(1, 1024)
+    with pytest.raises(ValueError, match='3D with shape'):
+        tfr_array_stockwell(data, 1000.)
+    data = data[np.newaxis]
+    power, itc, freqs = tfr_array_stockwell(data, 1000., return_itc=True)
+    assert_allclose(itc, np.ones_like(itc))
+    assert power.shape == (1, len(freqs), data.shape[-1])
+    assert_array_less(0, power)

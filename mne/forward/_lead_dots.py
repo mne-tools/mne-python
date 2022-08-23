@@ -1,8 +1,11 @@
-# Authors: Eric Larson <larsoner@uw.edu>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Eric Larson <larsoner@uw.edu>
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
+
+# The computations in this code were primarily derived from Matti Hämäläinen's
+# C code.
 
 import os
 import os.path as op
@@ -10,7 +13,6 @@ import os.path as op
 import numpy as np
 from numpy.polynomial import legendre
 
-from ..fixes import einsum
 from ..parallel import parallel_func
 from ..utils import logger, verbose, _get_extra_data_path, fill_doc
 
@@ -74,7 +76,7 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
         lut = leg_fun(x_interp, n_coeff).astype(np.float32)
         if not force_calc:
             with open(fname, 'wb') as fid:
-                fid.write(lut.tostring())
+                fid.write(lut.tobytes())
     else:
         logger.info('Reading Legendre%s table...' % extra_str)
         with open(fname, 'rb', buffering=0) as fid:
@@ -155,7 +157,7 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
     # sums = np.sum(bbeta[:, :, np.newaxis].T * n_fact * coeffs, axis=1)
     # sums = np.rollaxis(sums, 2)
     # or
-    # sums = einsum('ji,jk,ijk->ki', bbeta, n_fact, lut_fun(ctheta)))
+    # sums = np.einsum('ji,jk,ijk->ki', bbeta, n_fact, lut_fun(ctheta)))
     sums = np.empty((n_fact.shape[1], len(beta)))
     # beta can be e.g. 3 million elements, which ends up using lots of memory
     # so we split up the computations into ~50 MB blocks
@@ -165,8 +167,8 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
         bbeta = np.tile(beta[start:stop][np.newaxis], (n_fact.shape[0], 1))
         bbeta[0] *= beta[start:stop]
         np.cumprod(bbeta, axis=0, out=bbeta)  # run inplace
-        einsum('ji,jk,ijk->ki', bbeta, n_fact, lut_fun(ctheta[start:stop]),
-               out=sums[:, start:stop])
+        np.einsum('ji,jk,ijk->ki', bbeta, n_fact, lut_fun(ctheta[start:stop]),
+                  out=sums[:, start:stop])
     return sums
 
 
@@ -228,7 +230,7 @@ def _fast_sphere_dot_r0(r, rr1_orig, rr2s, lr1, lr2s, cosmags1, cosmags2s,
     cosmags2 = np.concatenate(cosmags2s)
 
     # outer product, sum over coords
-    ct = einsum('ik,jk->ij', rr1_orig, rr2)
+    ct = np.einsum('ik,jk->ij', rr1_orig, rr2)
     np.clip(ct, -1, 1, ct)
 
     # expand axes
@@ -250,11 +252,11 @@ def _fast_sphere_dot_r0(r, rr1_orig, rr2s, lr1, lr2s, cosmags1, cosmags2s,
         # n2c1 = np.sum(cosmags2 * rr1, axis=2)
         # n2c2 = np.sum(cosmags2 * rr2, axis=2)
         # n1n2 = np.sum(cosmags1 * cosmags2, axis=2)
-        n1c1 = einsum('ik,ijk->ij', cosmags1, rr1)
-        n1c2 = einsum('ik,ijk->ij', cosmags1, rr2)
-        n2c1 = einsum('jk,ijk->ij', cosmags2, rr1)
-        n2c2 = einsum('jk,ijk->ij', cosmags2, rr2)
-        n1n2 = einsum('ik,jk->ij', cosmags1, cosmags2)
+        n1c1 = np.einsum('ik,ijk->ij', cosmags1, rr1)
+        n1c2 = np.einsum('ik,ijk->ij', cosmags1, rr2)
+        n2c1 = np.einsum('jk,ijk->ij', cosmags2, rr1)
+        n2c2 = np.einsum('jk,ijk->ij', cosmags2, rr2)
+        n1n2 = np.einsum('ik,jk->ij', cosmags1, cosmags2)
         part1 = ct * n1c1 * n2c2
         part2 = n1c1 * n2c1 + n1c2 * n2c2
 
@@ -313,14 +315,14 @@ def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
         The integration products.
     """
     if ch_type == 'eeg':
-        intrad *= 0.7
+        intrad = intrad * 0.7
     # convert to normalized distances from expansion center
     rmags = [coil['rmag'] - r0[np.newaxis, :] for coil in coils]
     rlens = [np.sqrt(np.sum(r * r, axis=1)) for r in rmags]
     rmags = [r / rl[:, np.newaxis] for r, rl in zip(rmags, rlens)]
     cosmags = [coil['cosmag'] for coil in coils]
     ws = [coil['w'] for coil in coils]
-    parallel, p_fun, _ = parallel_func(_do_self_dots_subset, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(_do_self_dots_subset, n_jobs)
     prods = parallel(p_fun(intrad, rmags, rlens, cosmags,
                            ws, volume, lut, n_fact, ch_type, idx)
                      for idx in np.array_split(np.arange(len(rmags)), n_jobs))
@@ -376,6 +378,8 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
     products : array, shape (n_coils, n_coils)
         The integration products.
     """
+    if ch_type == 'eeg':
+        intrad = intrad * 0.7
     rmags1 = [coil['rmag'] - r0[np.newaxis, :] for coil in coils1]
     rmags2 = [coil['rmag'] - r0[np.newaxis, :] for coil in coils2]
 
@@ -443,7 +447,7 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
     refl = None
     # virt_ref = False
     if ch_type == 'eeg':
-        intrad *= 0.7
+        intrad = intrad * 0.7
         # The virtual ref code is untested and unused, so it is
         # commented out for now
         # if virt_ref:
@@ -457,7 +461,7 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
     this_nn = surf['nn'][sel]
 
     # loop over the coils
-    parallel, p_fun, _ = parallel_func(_do_surface_dots_subset, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(_do_surface_dots_subset, n_jobs)
     prods = parallel(p_fun(intrad, rsurf, rmags, rref, refl, lsurf, rlens,
                            this_nn, cosmags, ws, volume, lut, n_fact, ch_type,
                            idx)

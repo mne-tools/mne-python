@@ -139,6 +139,4 @@ def run():
     clean_ecg_eog(raw_in, raw_out, eog=eog, ecg=ecg, quiet=quiet)
 
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

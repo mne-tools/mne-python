@@ -20,7 +20,7 @@ from mne.preprocessing import maxwell_filter
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
 from mne.rank import _compute_rank_int
-from mne.utils import _TempDir, run_tests_if_main, requires_version
+from mne.utils import _record_warnings
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -88,7 +88,7 @@ def test_bad_proj():
 
 def _check_warnings(raw, events, picks=None, count=3):
     """Count warnings."""
-    with pytest.warns(None) as w:
+    with _record_warnings() as w:
         Epochs(raw, events, dict(aud_l=1, vis_l=3),
                -0.2, 0.5, picks=picks, preload=True, proj=True)
     assert len(w) == count
@@ -144,9 +144,9 @@ def test_sensitivity_maps():
     sensitivity_map(fwd)
 
 
-def test_compute_proj_epochs():
+def test_compute_proj_epochs(tmp_path):
     """Test SSP computation on epochs."""
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
     event_id, tmin, tmax = 1, -0.2, 0.3
 
     raw = read_raw_fif(raw_fname, preload=True)
@@ -158,7 +158,7 @@ def test_compute_proj_epochs():
                     baseline=None, proj=False)
 
     evoked = epochs.average()
-    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=1)
+    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0)
     write_proj(op.join(tempdir, 'test-proj.fif.gz'), projs)
     for p_fname in [proj_fname, proj_gz_fname,
                     op.join(tempdir, 'test-proj.fif.gz')]:
@@ -175,13 +175,14 @@ def test_compute_proj_epochs():
             p2_data = p2['data']['data'] * np.sign(p2['data']['data'][0, 0])
             if bad_ch in p1['data']['col_names']:
                 bad = p1['data']['col_names'].index('MEG 2443')
-                mask = np.ones(p1_data.size, dtype=np.bool)
+                mask = np.ones(p1_data.size, dtype=bool)
                 mask[bad] = False
                 p1_data = p1_data[:, mask]
                 p2_data = p2_data[:, mask]
             corr = np.corrcoef(p1_data, p2_data)[0, 1]
             assert_array_almost_equal(corr, 1.0, 5)
             if p2['explained_var']:
+                assert isinstance(p2['explained_var'], float)
                 assert_array_almost_equal(p1['explained_var'],
                                           p2['explained_var'])
 
@@ -193,7 +194,8 @@ def test_compute_proj_epochs():
     assert U.shape[1] == 2
 
     # test that you can save them
-    epochs.info['projs'] += projs
+    with epochs.info._unlock():
+        epochs.info['projs'] += projs
     evoked = epochs.average()
     evoked.save(op.join(tempdir, 'foo-ave.fif'))
 
@@ -204,7 +206,7 @@ def test_compute_proj_epochs():
     # XXX : test something
 
     # test parallelization
-    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=1,
+    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0,
                                 desc_prefix='foobar')
     assert all('foobar' in x['desc'] for x in projs)
     projs = activate_proj(projs)
@@ -218,11 +220,18 @@ def test_compute_proj_epochs():
     with pytest.warns(RuntimeWarning, match='-proj.fif'):
         read_proj(proj_badname)
 
+    # bad inputs
+    fname = op.join(tempdir, 'out-proj.fif')
+    with pytest.raises(TypeError, match='projs'):
+        write_proj(fname, 'foo')
+    with pytest.raises(TypeError, match=r'projs\[0\] must be .*'):
+        write_proj(fname, ['foo'], overwrite=True)
+
 
 @pytest.mark.slowtest
-def test_compute_proj_raw():
+def test_compute_proj_raw(tmp_path):
     """Test SSP computation on raw."""
-    tempdir = _TempDir()
+    tempdir = str(tmp_path)
     # Test that the raw projectors work
     raw_time = 2.5  # Do shorter amount for speed
     raw = read_raw_fif(raw_fname).crop(0, raw_time)
@@ -240,7 +249,8 @@ def test_compute_proj_raw():
         assert U.shape[1] == 2
 
         # test that you can save them
-        raw.info['projs'] += projs
+        with raw.info._unlock():
+            raw.info['projs'] += projs
         raw.save(op.join(tempdir, 'foo_%d_raw.fif' % ii), overwrite=True)
 
     # Test that purely continuous (no duration) raw projection works
@@ -256,7 +266,8 @@ def test_compute_proj_raw():
     assert U.shape[1] == 2
 
     # test that you can save them
-    raw.info['projs'] += projs
+    with raw.info._unlock():
+        raw.info['projs'] += projs
     raw.save(op.join(tempdir, 'foo_rawproj_continuous_raw.fif'))
 
     # test resampled-data projector, upsampling instead of downsampling
@@ -273,14 +284,17 @@ def test_compute_proj_raw():
     raw.load_bad_channels(bads_fname)  # adds 2 bad mag channels
     with pytest.warns(RuntimeWarning, match='Too few samples'):
         projs = compute_proj_raw(raw, n_grad=0, n_mag=0, n_eeg=1)
+    assert len(projs) == 1
 
-    # test that bad channels can be excluded
-    proj, nproj, U = make_projector(projs, raw.ch_names,
-                                    bads=raw.ch_names)
-    assert_array_almost_equal(proj, np.eye(len(raw.ch_names)))
+    # test that bad channels can be excluded, and empty support
+    for projs_ in (projs, []):
+        proj, nproj, U = make_projector(projs_, raw.ch_names,
+                                        bads=raw.ch_names)
+        assert_array_almost_equal(proj, np.eye(len(raw.ch_names)))
+        assert nproj == 0  # all channels excluded
+        assert U.shape == (len(raw.ch_names), nproj)
 
 
-@requires_version('scipy', '1.0')
 @pytest.mark.parametrize('duration', [1, np.pi / 2.])
 @pytest.mark.parametrize('sfreq', [600.614990234375, 1000.])
 def test_proj_raw_duration(duration, sfreq):
@@ -324,10 +338,11 @@ def test_make_eeg_average_ref_proj():
     reref = raw.copy()
     reref.add_proj(car)
     reref.apply_proj()
-    assert_array_almost_equal(reref._data[eeg].mean(axis=0), 0, decimal=19)
+    assert_array_almost_equal(reref._data[eeg].mean(axis=0), 0, decimal=18)
 
     # Error when custom reference has already been applied
-    raw.info['custom_ref_applied'] = True
+    with raw.info._unlock():
+        raw.info['custom_ref_applied'] = True
     pytest.raises(RuntimeError, make_eeg_average_ref_proj, raw.info)
 
     # test that an average EEG ref is not added when doing proj
@@ -364,17 +379,16 @@ def test_needs_eeg_average_ref_proj():
 
     # Custom ref flag set
     raw = read_raw_fif(raw_fname)
-    raw.info['custom_ref_applied'] = True
+    with raw.info._unlock():
+        raw.info['custom_ref_applied'] = True
     assert not _needs_eeg_average_ref_proj(raw.info)
 
 
 def test_sss_proj():
     """Test `meg` proj option."""
     raw = read_raw_fif(raw_fname)
-    raw.crop(0, 1.0).load_data().pick_types(exclude=())
+    raw.crop(0, 1.0).load_data().pick_types(meg=True, exclude=())
     raw.pick_channels(raw.ch_names[:51]).del_proj()
-    with pytest.raises(ValueError, match='can only be used with Maxfiltered'):
-        compute_proj_raw(raw, meg='combined')
     raw_sss = maxwell_filter(raw, int_order=5, ext_order=2)
     sss_rank = 21  # really low due to channel picking
     assert len(raw_sss.info['projs']) == 0
@@ -395,6 +409,3 @@ def test_sss_proj():
         else:
             mag_names = ch_names[2::3]
             assert this_raw.info['projs'][3]['data']['col_names'] == mag_names
-
-
-run_tests_if_main()

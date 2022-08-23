@@ -3,19 +3,18 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Ross Maddox <ross.maddox@rochester.edu>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
-from scipy import linalg
 
 from .base import BaseEstimator
 from ..cuda import _setup_cuda_fft_multiply_repeated
 from ..filter import next_fast_len
-from ..parallel import check_n_jobs
-from ..utils import warn, ProgressBar
+from ..fixes import jit
+from ..utils import warn, ProgressBar, logger
 
 
-def _compute_corrs(X, y, smin, smax, n_jobs=1, fit_intercept=False,
+def _compute_corrs(X, y, smin, smax, n_jobs=None, fit_intercept=False,
                    edge_correction=True):
     """Compute auto- and cross-correlations."""
     if fit_intercept:
@@ -42,8 +41,9 @@ def _compute_corrs(X, y, smin, smax, n_jobs=1, fit_intercept=False,
 
     n_fft = next_fast_len(2 * X.shape[0] - 1)
 
-    n_jobs, cuda_dict = _setup_cuda_fft_multiply_repeated(
+    _, cuda_dict = _setup_cuda_fft_multiply_repeated(
         n_jobs, [1.], n_fft, 'correlation calculations')
+    del n_jobs  # only used to set as CUDA
 
     # create our Toeplitz indexer
     ij = np.empty((len_trf, len_trf), int)
@@ -54,9 +54,9 @@ def _compute_corrs(X, y, smin, smax, n_jobs=1, fit_intercept=False,
 
     x_xt = np.zeros([n_ch_x * len_trf] * 2)
     x_y = np.zeros((len_trf, n_ch_x, n_ch_y), order='F')
-    pb = ProgressBar(n_epochs * (n_ch_x * (n_ch_x + 1) // 2 + n_ch_x),
-                     mesg='Fit %d epochs, %d channels' % (n_epochs, n_ch_x),
-                     spinner=True, verbose_bool='auto')
+    n = n_epochs * (n_ch_x * (n_ch_x + 1) // 2 + n_ch_x)
+    logger.info('Fitting %d epochs, %d channels' % (n_epochs, n_ch_x))
+    pb = ProgressBar(n, mesg='Sample')
     count = 0
     pb.update(count)
     for ei in range(n_epochs):
@@ -82,18 +82,8 @@ def _compute_corrs(X, y, smin, smax, n_jobs=1, fit_intercept=False,
                 # These adjustments also follow a Toeplitz structure, so we
                 # construct a matrix of what has been left off, compute their
                 # inner products, and remove them.
-                if edge_correction and smax > 0:
-                    tail = _toeplitz_dot(this_X[-1:-smax:-1, ch0],
-                                         this_X[-1:-smax:-1, ch1])
-                    if smin > 0:
-                        tail = tail[smin - 1:, smin - 1:]
-                    this_result[max(-smin + 1, 0):, max(-smin + 1, 0):] -= tail
-                if edge_correction and smin < 0:
-                    head = _toeplitz_dot(this_X[:-smin, ch0],
-                                         this_X[:-smin, ch1])[::-1, ::-1]
-                    if smax < 0:
-                        head = head[:smax, :smax]
-                    this_result[:-smin, :-smin] -= head
+                if edge_correction:
+                    _edge_correct(this_result, this_X, smax, smin, ch0, ch1)
 
                 # Store the results in our output matrix
                 x_xt[ch0 * len_trf:(ch0 + 1) * len_trf,
@@ -114,12 +104,28 @@ def _compute_corrs(X, y, smin, smax, n_jobs=1, fit_intercept=False,
                 x_y[:, ch0] += cc_temp[smin:smax]
             count += 1
             pb.update(count)
-    pb.done()
 
     x_y = np.reshape(x_y, (n_ch_x * len_trf, n_ch_y), order='F')
     return x_xt, x_y, n_ch_x, X_offset, y_offset
 
 
+@jit()
+def _edge_correct(this_result, this_X, smax, smin, ch0, ch1):
+    if smax > 0:
+        tail = _toeplitz_dot(this_X[-1:-smax:-1, ch0],
+                             this_X[-1:-smax:-1, ch1])
+        if smin > 0:
+            tail = tail[smin - 1:, smin - 1:]
+        this_result[max(-smin + 1, 0):, max(-smin + 1, 0):] -= tail
+    if smin < 0:
+        head = _toeplitz_dot(this_X[:-smin, ch0],
+                             this_X[:-smin, ch1])[::-1, ::-1]
+        if smax < 0:
+            head = head[:smax, :smax]
+        this_result[:-smin, :-smin] -= head
+
+
+@jit()
 def _toeplitz_dot(a, b):
     """Create upper triangular Toeplitz matrices & compute the dot product."""
     # This is equivalent to:
@@ -139,6 +145,7 @@ def _toeplitz_dot(a, b):
 def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method='direct',
                            normed=False):
     """Compute regularization parameter from neighbors."""
+    from scipy import linalg
     from scipy.sparse.csgraph import laplacian
     known_types = ('ridge', 'laplacian')
     if isinstance(reg_type, str):
@@ -194,6 +201,7 @@ def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method='direct',
 def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
     """Fit the model using correlation matrices."""
     # do the regularized solving
+    from scipy import linalg
     n_ch_out = x_y.shape[1]
     assert x_y.shape[0] % n_ch_x == 0
     n_delays = x_y.shape[0] // n_ch_x
@@ -204,7 +212,7 @@ def _fit_corrs(x_xt, x_y, n_ch_x, reg_type, alpha, n_ch_in):
         # Note: we must use overwrite_a=False in order to be able to
         #       use the fall-back solution below in case a LinAlgError
         #       is raised
-        w = linalg.solve(mat, x_y, sym_pos=True, overwrite_a=False)
+        w = linalg.solve(mat, x_y, overwrite_a=False, assume_a='pos')
     except np.linalg.LinAlgError:
         warn('Singular matrix in solving dual problem. Using '
              'least-squares solution instead.')
@@ -248,6 +256,10 @@ class TimeDelayingRidge(BaseEstimator):
 
         .. versionadded:: 0.18
 
+    See Also
+    --------
+    mne.decoding.ReceptiveField
+
     Notes
     -----
     This class is meant to be used with :class:`mne.decoding.ReceptiveField`
@@ -255,16 +267,12 @@ class TimeDelayingRidge(BaseEstimator):
     field and input signal sizes, it should be more CPU and memory
     efficient by using frequency-domain methods (FFTs) to compute the
     auto- and cross-correlations.
-
-    See Also
-    --------
-    mne.decoding.ReceptiveField
     """
 
     _estimator_type = "regressor"
 
     def __init__(self, tmin, tmax, sfreq, alpha=0., reg_type='ridge',
-                 fit_intercept=True, n_jobs=1, edge_correction=True):
+                 fit_intercept=True, n_jobs=None, edge_correction=True):
         if tmin > tmax:
             raise ValueError('tmin must be <= tmax, got %s and %s'
                              % (tmin, tmax))
@@ -306,12 +314,11 @@ class TimeDelayingRidge(BaseEstimator):
         else:
             assert X.ndim == 2 and y.ndim == 2
             assert X.shape[0] == y.shape[0]
-        n_jobs = check_n_jobs(self.n_jobs, allow_cuda=True)
         # These are split into two functions because it's possible that we
         # might want to allow people to do them separately (e.g., to test
         # different regularization parameters).
         self.cov_, x_y_, n_ch_x, X_offset, y_offset = _compute_corrs(
-            X, y, self._smin, self._smax, n_jobs, self.fit_intercept,
+            X, y, self._smin, self._smax, self.n_jobs, self.fit_intercept,
             self.edge_correction)
         self.coef_ = _fit_corrs(self.cov_, x_y_, n_ch_x,
                                 self.reg_type, self.alpha, n_ch_x)
@@ -335,6 +342,8 @@ class TimeDelayingRidge(BaseEstimator):
         X : ndarray
             The predicted response.
         """
+        from scipy.signal import fftconvolve
+
         if X.ndim == 2:
             X = X[:, np.newaxis, :]
             singleton = True
@@ -346,7 +355,7 @@ class TimeDelayingRidge(BaseEstimator):
         for ei in range(X.shape[1]):
             for oi in range(self.coef_.shape[0]):
                 for fi in range(self.coef_.shape[1]):
-                    temp = np.convolve(X[:, ei, fi], self.coef_[oi, fi])
+                    temp = fftconvolve(X[:, ei, fi], self.coef_[oi, fi])
                     temp = temp[max(-smin, 0):][:len(out) - offset]
                     out[offset:len(temp) + offset, ei, oi] += temp
         out += self.intercept_

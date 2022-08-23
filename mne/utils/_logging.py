@@ -2,8 +2,11 @@
 """Some utility functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
+import contextlib
+from decorator import FunctionMaker
+import importlib
 import inspect
 from io import StringIO
 import re
@@ -11,16 +14,49 @@ import sys
 import logging
 import os.path as op
 import warnings
+from typing import Any, Callable, TypeVar
 
-from ..fixes import _get_args
-from ..externals.decorator import FunctionMaker
+from .docs import fill_doc
 
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
 
 
-def verbose(function):
+# class to provide frame information (should be low overhead, just on logger
+# calls)
+
+class _FrameFilter(logging.Filter):
+    def __init__(self):
+        self.add_frames = 0
+
+    def filter(self, record):
+        record.frame_info = 'Unknown'
+        if self.add_frames:
+            # 5 is the offset necessary to get out of here and the logging
+            # module, reversal is to put the oldest at the top
+            frame_info = _frame_info(5 + self.add_frames)[5:][::-1]
+            if len(frame_info):
+                frame_info[-1] = (frame_info[-1] + ' :').ljust(30)
+                if len(frame_info) > 1:
+                    frame_info[0] = '┌' + frame_info[0]
+                    frame_info[-1] = '└' + frame_info[-1]
+                for ii, info in enumerate(frame_info[1:-1], 1):
+                    frame_info[ii] = '├' + info
+                record.frame_info = '\n'.join(frame_info)
+        return True
+
+
+_filter = _FrameFilter()
+logger.addFilter(_filter)
+
+
+# Provide help for static type checkers:
+# https://mypy.readthedocs.io/en/stable/generics.html#declaring-decorators
+_FuncT = TypeVar('_FuncT', bound=Callable[..., Any])
+
+
+def verbose(function: _FuncT) -> _FuncT:
     """Verbose decorator to allow functions to override log-level.
 
     Parameters
@@ -31,17 +67,7 @@ def verbose(function):
     Returns
     -------
     dec : callable
-        The decorated function
-
-    Examples
-    --------
-    You can use the ``verbose`` argument to set the verbose level on the fly::
-        >>> import mne
-        >>> cov = mne.compute_raw_covariance(raw, verbose='WARNING')  # doctest: +SKIP
-        >>> cov = mne.compute_raw_covariance(raw, verbose='INFO')  # doctest: +SKIP
-        Using up to 49 segments
-        Number of samples used : 5880
-        [done]
+        The decorated function.
 
     See Also
     --------
@@ -57,62 +83,95 @@ def verbose(function):
     verbosity level for all functions, use :func:`mne.set_log_level`.
 
     This function also serves as a docstring filler.
+
+    Examples
+    --------
+    You can use the ``verbose`` argument to set the verbose level on the fly::
+
+        >>> import mne
+        >>> cov = mne.compute_raw_covariance(raw, verbose='WARNING')  # doctest: +SKIP
+        >>> cov = mne.compute_raw_covariance(raw, verbose='INFO')  # doctest: +SKIP
+        Using up to 49 segments
+        Number of samples used : 5880
+        [done]
     """  # noqa: E501
     # See https://decorator.readthedocs.io/en/latest/tests.documentation.html
     # #dealing-with-third-party-decorators
-    from .docs import fill_doc
-    arg_names = _get_args(function)
     try:
         fill_doc(function)
     except TypeError:  # nothing to add
         pass
 
-    def wrapper(*args, **kwargs):
-        default_level = verbose_level = None
-        if len(arg_names) > 0 and arg_names[0] == 'self':
-            default_level = getattr(args[0], 'verbose', None)
-        if 'verbose' in kwargs:
-            verbose_level = kwargs.pop('verbose')
-        else:
-            try:
-                verbose_level = args[arg_names.index('verbose')]
-            except (IndexError, ValueError):
-                pass
-
-        # This ensures that object.method(verbose=None) will use object.verbose
-        if verbose_level is None:
-            verbose_level = default_level
-        if verbose_level is not None:
-            # set it back if we get an exception
-            with use_log_level(verbose_level):
-                return function(*args, **kwargs)
-        return function(*args, **kwargs)
-    return FunctionMaker.create(
-        function, 'return decfunc(%(signature)s)',
-        dict(decfunc=wrapper), __wrapped__=function,
-        __qualname__=function.__qualname__)
+    # Anything using verbose should have `verbose=None` in the signature.
+    # This code path will raise an error if this is not the case.
+    body = """\
+def %(name)s(%(signature)s):\n
+    try:
+        do_level_change = verbose is not None
+    except (NameError, UnboundLocalError):
+        raise RuntimeError('Function/method %%s does not accept verbose '
+                           'parameter' %% (_function_,)) from None
+    if do_level_change:
+        with _use_log_level_(verbose):
+            return _function_(%(shortsignature)s)
+    else:
+        return _function_(%(shortsignature)s)"""
+    evaldict = dict(
+        _use_log_level_=use_log_level, _function_=function)
+    fm = FunctionMaker(function, None, None, None, None, function.__module__)
+    attrs = dict(__wrapped__=function, __qualname__=function.__qualname__,
+                 __globals__=function.__globals__)
+    return fm.make(body, evaldict, addsource=True, **attrs)
 
 
-class use_log_level(object):
-    """Context handler for logging level.
+@fill_doc
+class use_log_level:
+    """Context manager for logging level.
 
     Parameters
     ----------
-    level : int
-        The level to use.
+    %(verbose)s
+    %(add_frames)s
+
+    See Also
+    --------
+    mne.verbose
+
+    Notes
+    -----
+    See the :ref:`logging documentation <tut-logging>` for details.
+
+    Examples
+    --------
+    >>> from mne import use_log_level
+    >>> from mne.utils import logger
+    >>> with use_log_level(False):
+    ...     # Most MNE logger messages are "info" level, False makes them not
+    ...     # print:
+    ...     logger.info('This message will not be printed')
+    >>> with use_log_level(True):
+    ...     # Using verbose=True in functions, methods, or this context manager
+    ...     # will ensure they are printed
+    ...     logger.info('This message will be printed!')
+    This message will be printed!
     """
 
-    def __init__(self, level):  # noqa: D102
-        self.level = level
+    def __init__(self, verbose, *, add_frames=None):  # noqa: D102
+        self._level = verbose
+        self._add_frames = add_frames
+        self._old_frames = _filter.add_frames
 
     def __enter__(self):  # noqa: D105
-        self.old_level = set_log_level(self.level, True)
+        self._old_level = set_log_level(
+            self._level, return_old_level=True, add_frames=self._add_frames)
 
     def __exit__(self, *args):  # noqa: D105
-        set_log_level(self.old_level)
+        add_frames = self._old_frames if self._add_frames is not None else None
+        set_log_level(self._old_level, add_frames=add_frames)
 
 
-def set_log_level(verbose=None, return_old_level=False):
+@fill_doc
+def set_log_level(verbose=None, return_old_level=False, add_frames=None):
     """Set the logging level.
 
     Parameters
@@ -126,8 +185,16 @@ def set_log_level(verbose=None, return_old_level=False):
         it doesn't exist, defaults to INFO.
     return_old_level : bool
         If True, return the old verbosity level.
+    %(add_frames)s
+
+    Returns
+    -------
+    old_level : int
+        The old level. Only returned if ``return_old_level`` is True.
     """
     from .config import get_config
+    from .check import _check_option, _validate_type
+    _validate_type(verbose, (bool, str, int, None), 'verbose')
     if verbose is None:
         verbose = get_config('MNE_LOGGING_LEVEL', 'INFO')
     elif isinstance(verbose, bool):
@@ -140,12 +207,18 @@ def set_log_level(verbose=None, return_old_level=False):
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
                              WARNING=logging.WARNING, ERROR=logging.ERROR,
                              CRITICAL=logging.CRITICAL)
-        if verbose not in logging_types:
-            raise ValueError('verbose must be of a valid type')
+        _check_option('verbose', verbose, logging_types, '(when a string)')
         verbose = logging_types[verbose]
-    logger = logging.getLogger('mne')
     old_verbose = logger.level
-    logger.setLevel(verbose)
+    if verbose != old_verbose:
+        logger.setLevel(verbose)
+    if add_frames is not None:
+        _filter.add_frames = int(add_frames)
+        fmt = '%(frame_info)s ' if add_frames else ''
+        fmt += '%(message)s'
+        fmt = logging.Formatter(fmt)
+        for handler in logger.handlers:
+            handler.setFormatter(fmt)
     return (old_verbose if return_old_level else None)
 
 
@@ -169,14 +242,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
         but additionally raises a warning to notify the user that log
         entries will be appended.
     """
-    logger = logging.getLogger('mne')
-    handlers = logger.handlers
-    for h in handlers:
-        # only remove our handlers (get along nicely with nose)
-        if isinstance(h, (logging.FileHandler, logging.StreamHandler)):
-            if isinstance(h, logging.FileHandler):
-                h.close()
-            logger.removeHandler(h)
+    _remove_close_handlers(logger)
     if fname is not None:
         if op.isfile(fname) and overwrite is None:
             # Don't use warn() here because we just want to
@@ -199,6 +265,26 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     logger.addHandler(lh)
 
 
+def _remove_close_handlers(logger):
+    for h in list(logger.handlers):
+        # only remove our handlers (get along nicely with nose)
+        if isinstance(h, (logging.FileHandler, logging.StreamHandler)):
+            if isinstance(h, logging.FileHandler):
+                h.close()
+            logger.removeHandler(h)
+
+
+class ClosingStringIO(StringIO):
+    """StringIO that closes after getvalue()."""
+
+    def getvalue(self, close=True):
+        """Get the value."""
+        out = super().getvalue()
+        if close:
+            self.close()
+        return out
+
+
 class catch_logging(object):
     """Store logging.
 
@@ -206,19 +292,36 @@ class catch_logging(object):
     stdout when complete.
     """
 
+    def __init__(self, verbose=None):
+        self.verbose = verbose
+
     def __enter__(self):  # noqa: D105
-        self._data = StringIO()
+        if self.verbose is not None:
+            self._ctx = use_log_level(self.verbose)
+        else:
+            self._ctx = contextlib.nullcontext()
+        self._data = ClosingStringIO()
         self._lh = logging.StreamHandler(self._data)
         self._lh.setFormatter(logging.Formatter('%(message)s'))
         self._lh._mne_file_like = True  # monkey patch for warn() use
-        for lh in logger.handlers:
-            logger.removeHandler(lh)
+        _remove_close_handlers(logger)
         logger.addHandler(self._lh)
+        self._ctx.__enter__()
         return self._data
 
     def __exit__(self, *args):  # noqa: D105
+        self._ctx.__exit__(*args)
         logger.removeHandler(self._lh)
         set_log_file(None)
+
+
+@contextlib.contextmanager
+def _record_warnings():
+    # this is a helper that mostly acts like pytest.warns(None) did before
+    # pytest 7
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        yield w
 
 
 class WrapStdOut(object):
@@ -237,10 +340,11 @@ class WrapStdOut(object):
             raise AttributeError("'file' object has not attribute '%s'" % name)
 
 
-_verbose_dec_re = re.compile('^<.*decorator\\.py:decorator-gen.*>$')
+_verbose_dec_re = re.compile('^<decorator-gen-[0-9]+>$')
 
 
-def warn(message, category=RuntimeWarning, module='mne'):
+def warn(message, category=RuntimeWarning, module='mne',
+         ignore_namespaces=('mne',)):
     """Emit a warning with trace outside the mne namespace.
 
     This function takes arguments like warnings.warn, and sends messages
@@ -257,29 +361,27 @@ def warn(message, category=RuntimeWarning, module='mne'):
         The warning class. Defaults to ``RuntimeWarning``.
     module : str
         The name of the module emitting the warning.
+    ignore_namespaces : list of str
+        Namespaces to ignore when traversing the stack.
+
+        .. versionadded:: 0.24
     """
-    import mne
-    root_dir = op.dirname(mne.__file__)
+    root_dirs = [importlib.import_module(ns) for ns in ignore_namespaces]
+    root_dirs = [op.dirname(ns.__file__) for ns in root_dirs]
     frame = None
     if logger.level <= logging.WARN:
-        last_fname = ''
         frame = inspect.currentframe()
         while frame:
             fname = frame.f_code.co_filename
             lineno = frame.f_lineno
             # in verbose dec
-            if _verbose_dec_re.match(fname) and \
-                    last_fname == op.basename(__file__):
-                last_fname = fname
-                frame = frame.f_back
-                continue
-            # treat tests as scripts
-            # and don't capture unittest/case.py (assert_raises)
-            if not (fname.startswith(root_dir) or
-                    ('unittest' in fname and 'case' in fname)) or \
-                    op.basename(op.dirname(fname)) == 'tests':
-                break
-            last_fname = op.basename(fname)
+            if not _verbose_dec_re.search(fname):
+                # treat tests as scripts
+                # and don't capture unittest/case.py (assert_raises)
+                if not (any(fname.startswith(rd) for rd in root_dirs) or
+                        ('unittest' in fname and 'case' in fname)) or \
+                        op.basename(op.dirname(fname)) == 'tests':
+                    break
             frame = frame.f_back
         del frame
         # We need to use this instead of warn(message, category, stacklevel)
@@ -290,10 +392,23 @@ def warn(message, category=RuntimeWarning, module='mne'):
             globals().get('__warningregistry__', {}))
     # To avoid a duplicate warning print, we only emit the logger.warning if
     # one of the handlers is a FileHandler. See gh-5592
+    # But it's also nice to be able to do:
+    # with mne.utils.use_log_level('warning', add_frames=3):
+    # so also check our add_frames attribute.
     if any(isinstance(h, logging.FileHandler) or getattr(h, '_mne_file_like',
                                                          False)
-           for h in logger.handlers):
+           for h in logger.handlers) or _filter.add_frames:
         logger.warning(message)
+
+
+def _get_call_line():
+    """Get the call line from within a function."""
+    frame = inspect.currentframe().f_back.f_back
+    if _verbose_dec_re.search(frame.f_code.co_filename):
+        frame = frame.f_back
+    context = inspect.getframeinfo(frame).code_context
+    context = 'unknown' if context is None else context[0].strip()
+    return context
 
 
 def filter_out_warnings(warn_record, category=None, match=None):
@@ -309,28 +424,6 @@ def filter_out_warnings(warn_record, category=None, match=None):
 
     match : str | None
         text or regex that matches the error message to filter out
-
-    Examples
-    --------
-    This can be used as::
-
-        >>> import pytest
-        >>> import warnings
-        >>> from mne.utils import filter_out_warnings
-        >>> with pytest.warns(None) as recwarn:
-        ...     warnings.warn("value must be 0 or None", UserWarning)
-        >>> filter_out_warnings(recwarn, match=".* 0 or None")
-        >>> assert len(recwarn.list) == 0
-
-        >>> with pytest.warns(None) as recwarn:
-        ...     warnings.warn("value must be 42", UserWarning)
-        >>> filter_out_warnings(recwarn, match=r'.* must be \d+$')
-        >>> assert len(recwarn.list) == 0
-
-        >>> with pytest.warns(None) as recwarn:
-        ...     warnings.warn("this is not here", UserWarning)
-        >>> filter_out_warnings(recwarn, match=r'.* must be \d+$')
-        >>> assert len(recwarn.list) == 1
     """
     regexp = re.compile('.*' if match is None else match)
     is_category = [w.category == category if category is not None else True
@@ -344,15 +437,51 @@ def filter_out_warnings(warn_record, category=None, match=None):
         warn_record._list.pop(i)
 
 
-class ETSContext(object):
-    """Add more meaningful message to errors generated by ETS Toolkit."""
+@contextlib.contextmanager
+def wrapped_stdout(indent='', cull_newlines=False):
+    """Wrap stdout writes to logger.info, with an optional indent prefix.
 
-    def __enter__(self):  # noqa: D105
-        pass
+    Parameters
+    ----------
+    indent : str
+        The indentation to add.
+    cull_newlines : bool
+        If True, cull any new/blank lines at the end.
+    """
+    orig_stdout = sys.stdout
+    my_out = ClosingStringIO()
+    sys.stdout = my_out
+    try:
+        yield
+    finally:
+        sys.stdout = orig_stdout
+        pending_newlines = 0
+        for line in my_out.getvalue().split('\n'):
+            if not line.strip() and cull_newlines:
+                pending_newlines += 1
+                continue
+            for _ in range(pending_newlines):
+                logger.info('\n')
+            logger.info(indent + line)
 
-    def __exit__(self, type, value, traceback):  # noqa: D105
-        if isinstance(value, SystemExit) and value.code.\
-                startswith("This program needs access to the screen"):
-            value.code += ("\nThis can probably be solved by setting "
-                           "ETS_TOOLKIT=qt4. On bash, type\n\n    $ export "
-                           "ETS_TOOLKIT=qt4\n\nand run the command again.")
+
+def _frame_info(n):
+    frame = inspect.currentframe()
+    try:
+        frame = frame.f_back
+        infos = list()
+        for _ in range(n):
+            try:
+                name = frame.f_globals['__name__']
+            except KeyError:  # in our verbose dec
+                pass
+            else:
+                infos.append(f'{name.lstrip("mne.")}:{frame.f_lineno}')
+            frame = frame.f_back
+            if frame is None:
+                break
+        return infos
+    except Exception:
+        return ['unknown']
+    finally:
+        del frame

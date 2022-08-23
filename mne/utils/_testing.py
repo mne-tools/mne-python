@@ -2,10 +2,8 @@
 """Testing functions."""
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
-from contextlib import contextmanager
-from distutils.version import LooseVersion
 from functools import partial, wraps
 import os
 import inspect
@@ -15,20 +13,13 @@ import sys
 import tempfile
 import traceback
 from unittest import SkipTest
-import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
-from scipy import linalg
 
-from ._logging import warn
+from ._logging import warn, ClosingStringIO
+from .check import check_version
 from .numerics import object_diff
-
-
-def nottest(f):
-    """Mark a function as not a test (decorator)."""
-    f.__test__ = False
-    return f
 
 
 def _explain_exception(start=-1, stop=None, prefix='> '):
@@ -65,18 +56,15 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
-def requires_nibabel(vox2ras_tkr=False):
-    """Check for nibabel."""
-    import pytest
-    extra = ' with vox2ras_tkr support' if vox2ras_tkr else ''
-    return pytest.mark.skipif(not has_nibabel(vox2ras_tkr),
-                              reason='Requires nibabel%s' % extra)
+def requires_nibabel():
+    """Wrap to requires_module with a function call (fewer lines to change)."""
+    return partial(requires_module, name='nibabel')
 
 
 def requires_dipy():
     """Check for dipy."""
     import pytest
-    # for some strange reason on CIs we cane get:
+    # for some strange reason on CIs we can get:
     #
     #     can get weird ImportError: dlopen: cannot load any more object
     #     with static TLS
@@ -87,19 +75,24 @@ def requires_dipy():
         from dipy.align.reslice import reslice  # noqa, analysis:ignore
         from dipy.align.imaffine import AffineMap  # noqa, analysis:ignore
         from dipy.align.imwarp import DiffeomorphicMap  # noqa, analysis:ignore
-    except Exception:
+    except Exception as exc:
         have = False
+        why = str(exc)
     else:
+        why = ''
         have = True
-    return pytest.mark.skipif(not have, reason='Requires dipy >= 0.10.1')
+    return pytest.mark.skipif(
+        not have, reason=f'Requires dipy >= 0.10.1, got: {why}')
 
 
 def requires_version(library, min_version='0.0'):
     """Check for a library version."""
     import pytest
+    reason = f'Requires {library}'
+    if min_version != '0.0':
+        reason += f' version >= {min_version}'
     return pytest.mark.skipif(not check_version(library, min_version),
-                              reason=('Requires %s version >= %s'
-                                      % (library, min_version)))
+                              reason=reason)
 
 
 def requires_module(function, name, call=None):
@@ -118,26 +111,6 @@ def requires_module(function, name, call=None):
     return pytest.mark.skipif(skip, reason=reason)(function)
 
 
-_pandas_call = """
-import pandas
-version = LooseVersion(pandas.__version__)
-if version < '0.8.0':
-    raise ImportError
-"""
-
-_sklearn_call = """
-required_version = '0.14'
-import sklearn
-version = LooseVersion(sklearn.__version__)
-if version < required_version:
-    raise ImportError
-"""
-
-_mayavi_call = """
-with warnings.catch_warnings(record=True):  # traits
-    from mayavi import mlab
-"""
-
 _mne_call = """
 if not has_mne_c():
     raise ImportError
@@ -153,113 +126,51 @@ if 'NEUROMAG2FT_ROOT' not in os.environ:
     raise ImportError
 """
 
-_fs_or_ni_call = """
-if not has_nibabel() and not has_freesurfer():
-    raise ImportError
-"""
-
-requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
+requires_pandas = partial(requires_module, name='pandas')
 requires_pylsl = partial(requires_module, name='pylsl')
-requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
-requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
+requires_sklearn = partial(requires_module, name='sklearn')
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
-requires_freesurfer = partial(requires_module, name='Freesurfer',
-                              call=_fs_call)
+
+
+def requires_freesurfer(arg):
+    """Require Freesurfer."""
+    if isinstance(arg, str):
+        # Calling as  @requires_freesurfer('progname'): return decorator
+        # after checking for progname existence
+        call = """
+from . import run_subprocess
+run_subprocess([%r, '--version'])
+""" % (arg,)
+        return partial(
+            requires_module, name='Freesurfer (%s)' % (arg,), call=call)
+    else:
+        # Calling directly as @requires_freesurfer: return decorated function
+        # and just check env var existence
+        return requires_module(arg, name='Freesurfer', call=_fs_call)
+
+
 requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
                                call=_n2ft_call)
-requires_fs_or_nibabel = partial(requires_module, name='nibabel or Freesurfer',
-                                 call=_fs_or_ni_call)
 
-requires_tvtk = partial(requires_module, name='TVTK',
-                        call='from tvtk.api import tvtk')
-requires_pysurfer = partial(requires_module, name='PySurfer',
-                            call="""import warnings
-with warnings.catch_warnings(record=True):
-    from surfer import Brain""")
 requires_good_network = partial(
     requires_module, name='good network connection',
     call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
          '    raise ImportError')
 requires_nitime = partial(requires_module, name='nitime')
+# just keep this in case downstream packages need it (no coverage hit here)
 requires_h5py = partial(requires_module, name='h5py')
-requires_numpydoc = partial(requires_module, name='numpydoc')
 
 
-def check_version(library, min_version):
-    r"""Check minimum library version required.
-
-    Parameters
-    ----------
-    library : str
-        The library name to import. Must have a ``__version__`` property.
-    min_version : str
-        The minimum version string. Anything that matches
-        ``'(\d+ | [a-z]+ | \.)'``. Can also be empty to skip version
-        check (just check for library presence).
-
-    Returns
-    -------
-    ok : bool
-        True if the library exists with at least the specified version.
-    """
-    ok = True
-    try:
-        library = __import__(library)
-    except ImportError:
-        ok = False
-    else:
-        if min_version:
-            this_version = LooseVersion(
-                getattr(library, '__version__', '0.0').lstrip('v'))
-            if this_version < min_version:
-                ok = False
-    return ok
+def requires_numpydoc(func):
+    """Decorate tests that need numpydoc."""
+    return requires_version('numpydoc', '1.0')(func)  # validate needs 1.0
 
 
-def _check_mayavi_version(min_version='4.3.0'):
-    """Check mayavi version."""
-    if not check_version('mayavi', min_version):
-        raise RuntimeError("Need mayavi >= %s" % min_version)
-
-
-def _import_mlab():
-    """Quietly import mlab."""
-    with warnings.catch_warnings(record=True):
-        from mayavi import mlab
-    return mlab
-
-
-@contextmanager
-def traits_test_context():
-    """Context to raise errors in trait handlers."""
-    from traits.api import push_exception_handler
-
-    push_exception_handler(reraise_exceptions=True)
-    try:
-        yield
-    finally:
-        push_exception_handler(reraise_exceptions=False)
-
-
-def traits_test(test_func):
-    """Raise errors in trait handlers (decorator)."""
-    @wraps(test_func)
-    def dec(*args, **kwargs):
-        with traits_test_context():
-            return test_func(*args, **kwargs)
-    return dec
-
-
-@nottest
-def run_tests_if_main():
-    """Run tests in a given file if it is run as a script."""
+def run_command_if_main():
+    """Run a given command if it's __main__."""
     local_vars = inspect.currentframe().f_back.f_locals
-    if local_vars.get('__name__', '') != '__main__':
-        return
-    import pytest
-    code = pytest.main([local_vars['__file__'], '-v'])
-    if code:
-        raise AssertionError('pytest finished with errors (%d)' % (code,))
+    if local_vars.get('__name__', '') == '__main__':
+        local_vars['run']()
 
 
 class ArgvSetter(object):
@@ -268,8 +179,8 @@ class ArgvSetter(object):
     def __init__(self, args=(), disable_stdout=True,
                  disable_stderr=True):  # noqa: D102
         self.argv = list(('python',) + args)
-        self.stdout = StringIO() if disable_stdout else sys.stdout
-        self.stderr = StringIO() if disable_stderr else sys.stderr
+        self.stdout = ClosingStringIO() if disable_stdout else sys.stdout
+        self.stderr = ClosingStringIO() if disable_stderr else sys.stderr
 
     def __enter__(self):  # noqa: D105
         self.orig_argv = sys.argv
@@ -289,22 +200,22 @@ class ArgvSetter(object):
 class SilenceStdout(object):
     """Silence stdout."""
 
+    def __init__(self, close=True):
+        self.close = close
+
     def __enter__(self):  # noqa: D105
         self.stdout = sys.stdout
         sys.stdout = StringIO()
-        return self
+        return sys.stdout
 
     def __exit__(self, *args):  # noqa: D105
+        if self.close:
+            sys.stdout.close()
         sys.stdout = self.stdout
 
 
-def has_nibabel(vox2ras_tkr=False):
+def has_nibabel():
     """Determine if nibabel is installed.
-
-    Parameters
-    ----------
-    vox2ras_tkr : bool
-        If True, require nibabel has vox2ras_tkr support.
 
     Returns
     -------
@@ -312,15 +223,11 @@ def has_nibabel(vox2ras_tkr=False):
         True if the user has nibabel.
     """
     try:
-        import nibabel
-        out = True
-        if vox2ras_tkr:  # we need MGHHeader to have vox2ras_tkr param
-            out = (getattr(getattr(getattr(nibabel, 'MGHImage', 0),
-                                   'header_class', 0),
-                           'get_vox2ras_tkr', None) is not None)
-        return out
+        import nibabel  # noqa
     except ImportError:
         return False
+    else:
+        return True
 
 
 def has_mne_c():
@@ -367,10 +274,14 @@ def assert_object_equal(a, b):
 
 def _raw_annot(meas_date, orig_time):
     from .. import Annotations, create_info
+    from ..annotations import _handle_meas_date
     from ..io import RawArray
     info = create_info(ch_names=10, sfreq=10.)
     raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
-    raw.info['meas_date'] = meas_date
+    if meas_date is not None:
+        meas_date = _handle_meas_date(meas_date)
+    with raw.info._unlock(check_after=True):
+        raw.info['meas_date'] = meas_date
     annot = Annotations([.5], [.2], ['dummy'], orig_time)
     raw.set_annotations(annotations=annot)
     return raw
@@ -440,9 +351,21 @@ def assert_meg_snr(actual, desired, min_tol, med_tol=500., chpi_med_tol=500.,
 
 def assert_snr(actual, desired, tol):
     """Assert actual and desired arrays are within some SNR tolerance."""
-    snr = (linalg.norm(desired, ord='fro') /
-           linalg.norm(desired - actual, ord='fro'))
+    from scipy import linalg
+    with np.errstate(divide='ignore'):  # allow infinite
+        snr = (linalg.norm(desired, ord='fro') /
+               linalg.norm(desired - actual, ord='fro'))
     assert snr >= tol, '%f < %f' % (snr, tol)
+
+
+def assert_stcs_equal(stc1, stc2):
+    """Check that two STC are equal."""
+    assert_allclose(stc1.times, stc2.times)
+    assert_allclose(stc1.data, stc2.data)
+    assert_array_equal(stc1.vertices[0], stc2.vertices[0])
+    assert_array_equal(stc1.vertices[1], stc2.vertices[1])
+    assert_allclose(stc1.tmin, stc2.tmin)
+    assert_allclose(stc1.tstep, stc2.tstep)
 
 
 def _dig_sort_key(dig):
@@ -454,17 +377,31 @@ def assert_dig_allclose(info_py, info_bin, limit=None):
     """Assert dig allclose."""
     from ..bem import fit_sphere_to_headshape
     from ..io.constants import FIFF
+    from ..io.meas_info import Info
+    from ..channels.montage import DigMontage
     # test dig positions
-    dig_py = sorted(info_py['dig'], key=_dig_sort_key)
-    dig_bin = sorted(info_bin['dig'], key=_dig_sort_key)
+    dig_py, dig_bin = info_py, info_bin
+    if isinstance(dig_py, Info):
+        assert isinstance(dig_bin, Info)
+        dig_py, dig_bin = dig_py['dig'], dig_bin['dig']
+    else:
+        assert isinstance(dig_bin, DigMontage)
+        assert isinstance(dig_py, DigMontage)
+        dig_py, dig_bin = dig_py.dig, dig_bin.dig
+        info_py = info_bin = None
+    assert isinstance(dig_py, list)
+    assert isinstance(dig_bin, list)
+    dig_py = sorted(dig_py, key=_dig_sort_key)
+    dig_bin = sorted(dig_bin, key=_dig_sort_key)
     assert len(dig_py) == len(dig_bin)
     for ii, (d_py, d_bin) in enumerate(zip(dig_py[:limit], dig_bin[:limit])):
         for key in ('ident', 'kind', 'coord_frame'):
-            assert d_py[key] == d_bin[key]
+            assert d_py[key] == d_bin[key], key
         assert_allclose(d_py['r'], d_bin['r'], rtol=1e-5, atol=1e-5,
                         err_msg='Failure on %s:\n%s\n%s'
                         % (ii, d_py['r'], d_bin['r']))
-    if any(d['kind'] == FIFF.FIFFV_POINT_EXTRA for d in dig_py):
+    if any(d['kind'] == FIFF.FIFFV_POINT_EXTRA for d in dig_py) and \
+            info_py is not None:
         r_bin, o_head_bin, o_dev_bin = fit_sphere_to_headshape(
             info_bin, units='m', verbose='error')
         r_py, o_head_py, o_dev_py = fit_sphere_to_headshape(
@@ -474,28 +411,13 @@ def assert_dig_allclose(info_py, info_bin, limit=None):
         assert_allclose(o_head_py, o_head_bin, rtol=1e-5, atol=1e-6)
 
 
-@contextmanager
-def modified_env(**d):
-    """Use a modified os.environ with temporarily replaced key/value pairs.
-
-    Parameters
-    ----------
-    **kwargs : dict
-        The key/value pairs of environment variables to replace.
-    """
-    orig_env = dict()
-    for key, val in d.items():
-        orig_env[key] = os.getenv(key)
-        if val is not None:
-            assert isinstance(val, str)
-            os.environ[key] = val
-        elif key in os.environ:
-            del os.environ[key]
-    try:
-        yield
-    finally:
-        for key, val in orig_env.items():
-            if val is not None:
-                os.environ[key] = val
-            elif key in os.environ:
-                del os.environ[key]
+def _click_ch_name(fig, ch_index=0, button=1):
+    """Click on a channel name in a raw/epochs/ICA browse-style plot."""
+    from ..viz.utils import _fake_click
+    fig.canvas.draw()
+    text = fig.mne.ax_main.get_yticklabels()[ch_index]
+    bbox = text.get_window_extent()
+    x = bbox.intervalx.mean()
+    y = bbox.intervaly.mean()
+    _fake_click(fig, fig.mne.ax_main, (x, y), xform='pix',
+                button=button)

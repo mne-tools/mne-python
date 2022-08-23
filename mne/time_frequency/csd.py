@@ -3,20 +3,66 @@
 #          Susanna Aro <susanna.aro@aalto.fi>
 #          Roman Goj <roman.goj@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import copy as cp
 import numbers
 
 import numpy as np
-from .tfr import cwt, morlet
+
+from .tfr import _cwt_array, morlet, _get_nfft, EpochsTFR
 from ..io.pick import pick_channels, _picks_to_idx
-from ..utils import logger, verbose, warn, copy_function_doc_to_method_doc
+from ..utils import (logger, verbose, warn, copy_function_doc_to_method_doc,
+                     ProgressBar, _check_fname, _import_h5io_funcs,
+                     _validate_type)
 from ..viz.misc import plot_csd
 from ..time_frequency.multitaper import (_compute_mt_params, _mt_spectra,
                                          _csd_from_mt, _psd_from_mt_adaptive)
 from ..parallel import parallel_func
-from ..externals.h5io import read_hdf5, write_hdf5
+
+
+def pick_channels_csd(csd, include=[], exclude=[], ordered=False, copy=True):
+    """Pick channels from cross-spectral density matrix.
+
+    Parameters
+    ----------
+    csd : instance of CrossSpectralDensity
+        The CSD object to select the channels from.
+    include : list of str
+        List of channels to include (if empty, include all available).
+    exclude : list of str
+        Channels to exclude (if empty, do not exclude any).
+    ordered : bool
+        If True (default False), ensure that the order of the channels in the
+        modified instance matches the order of ``include``.
+
+        .. versionadded:: 0.20.0
+    copy : bool
+        If True (the default), return a copy of the CSD matrix with the
+        modified channels. If False, channels are modified in-place.
+
+        .. versionadded:: 0.20.0
+
+    Returns
+    -------
+    res : instance of CrossSpectralDensity
+        Cross-spectral density restricted to selected channels.
+    """
+    if copy:
+        csd = csd.copy()
+
+    sel = pick_channels(csd.ch_names, include=include, exclude=exclude,
+                        ordered=ordered)
+    data = []
+    for vec in csd._data.T:
+        mat = _vector_to_sym_mat(vec)
+        mat = mat[sel, :][:, sel]
+        data.append(_sym_mat_to_vector(mat))
+    ch_names = [csd.ch_names[i] for i in sel]
+
+    csd._data = np.array(data).T
+    csd.ch_names = ch_names
+    return csd
 
 
 class CrossSpectralDensity(object):
@@ -31,9 +77,9 @@ class CrossSpectralDensity(object):
 
     Parameters
     ----------
-    data : ndarray, shape ((n_channels**2 + n_channels) / 2, n_frequencies)
+    data : ndarray, shape ((n_channels**2 + n_channels) // 2, n_frequencies)
         For each frequency, the cross-spectral density matrix in vector format.
-    ch_names : list of string
+    ch_names : list of str
         List of string names for each channel.
     frequencies : float | list of float | list of list of float
         Frequency or frequencies for which the CSD matrix was calculated. When
@@ -91,7 +137,10 @@ class CrossSpectralDensity(object):
         self.frequencies = frequencies
 
         self.n_fft = n_fft
-        self.projs = cp.deepcopy(projs)
+        if projs is None:
+            self.projs = []
+        else:
+            self.projs = cp.deepcopy(projs)
 
     @property
     def n_channels(self):
@@ -133,7 +182,7 @@ class CrossSpectralDensity(object):
             time_str = 'unknown'
 
         return (
-            '<CrossSpectralDensity  |  '
+            '<CrossSpectralDensity | '
             'n_channels={}, time={}, frequencies={}>'
         ).format(self.n_channels, time_str, freq_str)
 
@@ -203,7 +252,7 @@ class CrossSpectralDensity(object):
         csd_out = CrossSpectralDensity(data=new_data, ch_names=self.ch_names,
                                        tmin=self.tmin, tmax=self.tmax,
                                        frequencies=new_frequencies,
-                                       n_fft=self.n_fft)
+                                       n_fft=self.n_fft, projs=self.projs)
         return csd_out
 
     def mean(self, fmin=None, fmax=None):
@@ -294,7 +343,7 @@ class CrossSpectralDensity(object):
 
         return self[index]
 
-    def get_data(self, frequency=None, index=None):
+    def get_data(self, frequency=None, index=None, as_cov=False):
         """Get the CSD matrix for a given frequency as NumPy array.
 
         If there is only one matrix defined in the CSD object, calling this
@@ -310,10 +359,15 @@ class CrossSpectralDensity(object):
         index : int | None
             Return the CSD matrix for the frequency or frequency-bin with the
             given index.
+        as_cov : bool
+            Whether to return the data as a numpy array (`False`, the default),
+            or pack it in a :class:`mne.Covariance` object (`True`).
+
+            .. versionadded:: 0.20
 
         Returns
         -------
-        csd : ndarray, shape (n_channels, n_channels)
+        csd : ndarray, shape (n_channels, n_channels) | instance of Covariance
             The CSD matrix corresponding to the requested frequency.
 
         See Also
@@ -331,7 +385,14 @@ class CrossSpectralDensity(object):
                 raise ValueError('Cannot specify both a frequency and index.')
             index = self._get_frequency_index(frequency)
 
-        return _vector_to_sym_mat(self._data[:, index])
+        data = _vector_to_sym_mat(self._data[:, index])
+        if as_cov:
+            # Pack the data into a Covariance object
+            from ..cov import Covariance  # to avoid circular import
+            return Covariance(data, self.ch_names, bads=[], projs=self.projs,
+                              nfree=self.n_fft)
+        else:
+            return data
 
     @copy_function_doc_to_method_doc(plot_csd)
     def plot(self, info=None, mode='csd', colorbar=True, cmap='viridis',
@@ -340,12 +401,15 @@ class CrossSpectralDensity(object):
                         cmap=cmap, n_cols=n_cols, show=show)
 
     def __setstate__(self, state):  # noqa: D105
+        # Avoid circular import
+        from ..proj import Projection
         self._data = state['data']
         self.tmin = state['tmin']
         self.tmax = state['tmax']
         self.ch_names = state['ch_names']
         self.frequencies = state['frequencies']
         self.n_fft = state['n_fft']
+        self.projs = [Projection(**proj) for proj in state['projs']]
 
     def __getstate__(self):  # noqa: D105
         return dict(
@@ -355,6 +419,7 @@ class CrossSpectralDensity(object):
             ch_names=self.ch_names,
             frequencies=self.frequencies,
             n_fft=self.n_fft,
+            projs=self.projs,
         )
 
     def __getitem__(self, sel):  # noqa: D105
@@ -375,9 +440,11 @@ class CrossSpectralDensity(object):
             tmax=self.tmax,
             frequencies=np.atleast_1d(self.frequencies)[sel].tolist(),
             n_fft=self.n_fft,
+            projs=self.projs,
         )
 
-    def save(self, fname):
+    @verbose
+    def save(self, fname, *, overwrite=False, verbose=None):
         """Save the CSD to an HDF5 file.
 
         Parameters
@@ -385,19 +452,59 @@ class CrossSpectralDensity(object):
         fname : str
             The name of the file to save the CSD to. The extension '.h5' will
             be appended if the given filename doesn't have it already.
+        %(overwrite)s
+
+            .. versionadded:: 1.0
+        %(verbose)s
+
+            .. versionadded:: 1.0
 
         See Also
         --------
         read_csd : For reading CSD objects from a file.
         """
+        _, write_hdf5 = _import_h5io_funcs()
         if not fname.endswith('.h5'):
             fname += '.h5'
 
-        write_hdf5(fname, self.__getstate__(), overwrite=True, title='conpy')
+        fname = _check_fname(fname, overwrite=overwrite)
+        write_hdf5(fname, self.__getstate__(), overwrite=True,
+                   title='conpy')
 
     def copy(self):
-        """Return copy of the CrossSpectralDensity object."""
+        """Return copy of the CrossSpectralDensity object.
+
+        Returns
+        -------
+        copy : instance of CrossSpectralDensity
+            A copy of the object.
+        """
         return cp.deepcopy(self)
+
+    def pick_channels(self, ch_names, ordered=False):
+        """Pick channels from this cross-spectral density matrix.
+
+        Parameters
+        ----------
+        ch_names : list of str
+            List of channels to keep. All other channels are dropped.
+        ordered : bool
+            If True (default False), ensure that the order of the channels
+            matches the order of ``ch_names``.
+
+        Returns
+        -------
+        csd : instance of CrossSpectralDensity.
+            The modified cross-spectral density object.
+
+        Notes
+        -----
+        Operates in-place.
+
+        .. versionadded:: 0.20.0
+        """
+        return pick_channels_csd(self, include=ch_names, exclude=[],
+                                 ordered=ordered, copy=False)
 
 
 def _n_dims_from_triu(n):
@@ -493,8 +600,9 @@ def read_csd(fname):
 
     See Also
     --------
-    CrossSpectralDensity.save : For saving CSD objects
+    CrossSpectralDensity.save : For saving CSD objects.
     """
+    read_hdf5, _ = _import_h5io_funcs()
     if not fname.endswith('.h5'):
         fname += '.h5'
 
@@ -502,44 +610,9 @@ def read_csd(fname):
     return CrossSpectralDensity(**csd_dict)
 
 
-def pick_channels_csd(csd, include=[], exclude=[]):
-    """Pick channels from covariance matrix.
-
-    Parameters
-    ----------
-    csd : instance of CrossSpectralDensity
-        The CSD object to select the channels from.
-    include : list of string
-        List of channels to include (if empty, include all available).
-    exclude : list of string
-        Channels to exclude (if empty, do not exclude any).
-
-    Returns
-    -------
-    res : instance of CrossSpectralDensity
-        Cross-spectral density restricted to selected channels.
-    """
-    sel = pick_channels(csd.ch_names, include=include, exclude=exclude)
-    data = []
-    for vec in csd._data.T:
-        mat = _vector_to_sym_mat(vec)
-        mat = mat[sel, :][:, sel]
-        data.append(_sym_mat_to_vector(mat))
-    ch_names = [csd.ch_names[i] for i in sel]
-
-    return CrossSpectralDensity(
-        data=np.array(data).T,
-        ch_names=ch_names,
-        tmin=csd.tmin,
-        tmax=csd.tmax,
-        frequencies=csd.frequencies,
-        n_fft=csd.n_fft,
-    )
-
-
 @verbose
 def csd_fourier(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
-                n_fft=None, projs=None, n_jobs=1, verbose=None):
+                n_fft=None, projs=None, n_jobs=None, *, verbose=None):
     """Estimate cross-spectral density from an array using short-time fourier.
 
     Parameters
@@ -562,7 +635,7 @@ def csd_fourier(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
         ``tmin`` and ``tmax`` will be used.
     projs : list of Projection | None
         List of projectors to store in the CSD object. Defaults to ``None``,
-        which means the projectors defined in the Epochs object will by copied.
+        which means the projectors defined in the Epochs object will be copied.
     %(n_jobs)s
     %(verbose)s
 
@@ -589,7 +662,7 @@ def csd_fourier(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
 @verbose
 def csd_array_fourier(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
                       tmax=None, ch_names=None, n_fft=None, projs=None,
-                      n_jobs=1, verbose=None):
+                      n_jobs=None, *, verbose=None):
     """Estimate cross-spectral density from an array using short-time fourier.
 
     Parameters
@@ -637,9 +710,7 @@ def csd_array_fourier(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
     csd_morlet
     csd_multitaper
     """
-    # Local import to keep "import mne" fast
-    # from scipy.fftpack import fftfreq
-
+    from scipy.fft import rfftfreq
     X, times, tmin, tmax, fmin, fmax = _prepare_csd_array(
         X, sfreq, t0, tmin, tmax, fmin, fmax)
 
@@ -653,7 +724,7 @@ def csd_array_fourier(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
 
     # Preparing frequencies of interest
     # orig_frequencies = fftfreq(n_fft, 1. / sfreq)
-    orig_frequencies = np.fft.rfftfreq(n_fft, 1. / sfreq)
+    orig_frequencies = rfftfreq(n_fft, 1. / sfreq)
     freq_mask = (orig_frequencies > fmin) & (orig_frequencies < fmax)
     frequencies = orig_frequencies[freq_mask]
 
@@ -672,8 +743,8 @@ def csd_array_fourier(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
 @verbose
 def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                    picks=None, n_fft=None, bandwidth=None, adaptive=False,
-                   low_bias=True, projs=None, n_jobs=1, verbose=None):
-    """Estimate cross-spectral density from epochs using Morlet wavelets.
+                   low_bias=True, projs=None, n_jobs=None, *, verbose=None):
+    """Estimate cross-spectral density from epochs using a multitaper method.
 
     Parameters
     ----------
@@ -731,9 +802,9 @@ def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 @verbose
 def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
                          tmax=None, ch_names=None, n_fft=None, bandwidth=None,
-                         adaptive=False, low_bias=True, projs=None, n_jobs=1,
-                         verbose=None):
-    """Estimate cross-spectral density from an array using Morlet wavelets.
+                         adaptive=False, low_bias=True, projs=None,
+                         n_jobs=None, *, verbose=None):
+    """Estimate cross-spectral density from an array using a multitaper method.
 
     Parameters
     ----------
@@ -787,6 +858,7 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
     csd_morlet
     csd_multitaper
     """
+    from scipy.fft import rfftfreq
     X, times, tmin, tmax, fmin, fmax = _prepare_csd_array(
         X, sfreq, t0, tmin, tmax, fmin, fmax)
 
@@ -802,7 +874,7 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
         _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive)
 
     # Preparing frequencies of interest
-    orig_frequencies = np.fft.rfftfreq(n_fft, 1. / sfreq)
+    orig_frequencies = rfftfreq(n_fft, 1. / sfreq)
     freq_mask = (orig_frequencies > fmin) & (orig_frequencies < fmax)
     frequencies = orig_frequencies[freq_mask]
 
@@ -821,7 +893,7 @@ def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
 
 @verbose
 def csd_morlet(epochs, frequencies, tmin=None, tmax=None, picks=None,
-               n_cycles=7, use_fft=True, decim=1, projs=None, n_jobs=1,
+               n_cycles=7, use_fft=True, decim=1, projs=None, n_jobs=None, *,
                verbose=None):
     """Estimate cross-spectral density from epochs using Morlet wavelets.
 
@@ -838,7 +910,7 @@ def csd_morlet(epochs, frequencies, tmin=None, tmax=None, picks=None,
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
     %(picks_good_data_noref)s
-    n_cycles: float | list of float | None
+    n_cycles : float | list of float | None
         Number of cycles to use when constructing Morlet wavelets. Fixed number
         or one per frequency. Defaults to 7.
     use_fft : bool
@@ -881,7 +953,7 @@ def csd_morlet(epochs, frequencies, tmin=None, tmax=None, picks=None,
 @verbose
 def csd_array_morlet(X, sfreq, frequencies, t0=0, tmin=None, tmax=None,
                      ch_names=None, n_cycles=7, use_fft=True, decim=1,
-                     projs=None, n_jobs=1, verbose=None):
+                     projs=None, n_jobs=None, *, verbose=None):
     """Estimate cross-spectral density from an array using Morlet wavelets.
 
     Parameters
@@ -905,7 +977,7 @@ def csd_array_morlet(X, sfreq, frequencies, t0=0, tmin=None, tmax=None,
     ch_names : list of str | None
         A name for each time series. If ``None`` (the default), the series will
         be named 'SERIES###'.
-    n_cycles: float | list of float | None
+    n_cycles : float | list of float | None
         Number of cycles to use when constructing Morlet wavelets. Fixed number
         or one per frequency. Defaults to 7.
     use_fft : bool
@@ -963,9 +1035,10 @@ def csd_array_morlet(X, sfreq, frequencies, t0=0, tmin=None, tmax=None,
     times = times[csd_tslice]
 
     # Compute the CSD
+    nfft = _get_nfft(wavelets, X, use_fft)
     return _execute_csd_function(X, times, frequencies, _csd_morlet,
-                                 params=[sfreq, wavelets, csd_tslice, use_fft,
-                                         decim],
+                                 params=[sfreq, wavelets, nfft, csd_tslice,
+                                         use_fft, decim],
                                  n_fft=1, ch_names=ch_names, projs=projs,
                                  n_jobs=n_jobs, verbose=verbose)
 
@@ -1034,7 +1107,8 @@ def _prepare_csd_array(X, sfreq, t0, tmin, tmax, fmin=None, fmax=None):
 
 @verbose
 def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
-                          ch_names=None, projs=None, n_jobs=1, verbose=None):
+                          ch_names=None, projs=None, n_jobs=None, *,
+                          verbose=None):
     """Estimate cross-spectral density with a given function.
 
     This function will apply the given CSD function in parallel across epochs.
@@ -1074,22 +1148,17 @@ def _execute_csd_function(X, times, frequencies, csd_function, params, n_fft,
 
     n_freqs = len(frequencies)
     csds_mean = np.zeros((n_channels * (n_channels + 1) // 2, n_freqs),
-                         dtype=np.complex)
+                         dtype=np.complex128)
 
     # Prepare the function that does the actual CSD computation for parallel
     # execution.
-    parallel, my_csd, _ = parallel_func(csd_function, n_jobs, verbose=verbose)
+    parallel, my_csd, n_jobs = parallel_func(
+        csd_function, n_jobs, verbose=verbose)
 
     # Compute CSD for each trial
     n_blocks = int(np.ceil(n_epochs / float(n_jobs)))
-    for i in range(n_blocks):
+    for i in ProgressBar(range(n_blocks), mesg='CSD epoch blocks'):
         epoch_block = X[i * n_jobs:(i + 1) * n_jobs]
-        if n_jobs > 1:
-            logger.info('    Computing CSD matrices for epochs %d..%d'
-                        % (i * n_jobs + 1, (i + 1) * n_jobs))
-        else:
-            logger.info('    Computing CSD matrix for epoch %d' % (i + 1))
-
         csds = parallel(my_csd(this_epoch, *params)
                         for this_epoch in epoch_block)
 
@@ -1216,7 +1285,8 @@ def _csd_multitaper(X, sfreq, n_times, window_fun, eigvals, freq_mask, n_fft,
     return csds
 
 
-def _csd_morlet(data, sfreq, wavelets, tslice=None, use_fft=True, decim=1):
+def _csd_morlet(data, sfreq, wavelets, nfft, tslice=None, use_fft=True,
+                decim=1):
     """Compute cross spectral density (CSD) using the given Morlet wavelets.
 
     Computes the CSD for a single epoch of data.
@@ -1231,6 +1301,8 @@ def _csd_morlet(data, sfreq, wavelets, tslice=None, use_fft=True, decim=1):
     wavelets : list of ndarray
         The Morlet wavelets for which to compute the CSD's. These have been
         created by the `mne.time_frequency.tfr.morlet` function.
+    nfft : int
+        The number of FFT points.
     tslice : slice | None
         The desired time samples to compute the CSD over. If None, defaults to
         including all time samples.
@@ -1253,10 +1325,11 @@ def _csd_morlet(data, sfreq, wavelets, tslice=None, use_fft=True, decim=1):
 
     See Also
     --------
-    _vector_to_sym_mat : For converting the CSD to a full matrix
+    _vector_to_sym_mat : For converting the CSD to a full matrix.
     """
     # Compute PSD
-    psds = cwt(data, wavelets, use_fft=use_fft, decim=decim)
+    psds = _cwt_array(data, wavelets, nfft, mode='same', use_fft=use_fft,
+                      decim=decim)
 
     if tslice is not None:
         tstart = None if tslice.start is None else tslice.start // decim
@@ -1274,5 +1347,70 @@ def _csd_morlet(data, sfreq, wavelets, tslice=None, use_fft=True, decim=1):
 
     # Scaling by sampling frequency for compatibility with Matlab
     csds /= sfreq
-
     return csds
+
+
+@verbose
+def csd_tfr(epochs_tfr, tmin=None, tmax=None, picks=None, projs=None,
+            verbose=None):
+    """Compute covariance matrices across frequencies for TFR epochs.
+
+    Parameters
+    ----------
+    epochs_tfr : EpochsTFR
+        The time-frequency resolved epochs over which to compute the
+        covariance.
+    tmin : float | None
+        Minimum time instant to consider, in seconds. If ``None`` start at
+        first sample.
+    tmax : float | None
+        Maximum time instant to consider, in seconds. If ``None`` end at last
+        sample.
+    %(picks_good_data_noref)s
+    projs : list of Projection | None
+        List of projectors to store in the CSD object. Defaults to ``None``,
+        which means the projectors defined in the EpochsTFR object will be
+        copied.
+    %(verbose)s
+
+    Returns
+    -------
+    res : instance of CrossSpectralDensity
+        Cross-spectral density restricted to selected channels.
+    """
+    _validate_type(epochs_tfr, EpochsTFR)
+    epochs_tfr, projs = _prepare_csd(epochs_tfr, tmin, tmax, picks, projs)
+    X = epochs_tfr.data
+    times = epochs_tfr.times
+    n_channels, n_freqs = len(epochs_tfr.ch_names), epochs_tfr.freqs.size
+    data = np.zeros((n_channels * (n_channels + 1) // 2, n_freqs),
+                    dtype=np.complex128)
+
+    # Slice X to the requested time window
+    tstart = None if tmin is None else np.searchsorted(times, tmin - 1e-10)
+    tstop = None if tmax is None else np.searchsorted(times, tmax + 1e-10)
+    X = X[:, :, :, tstart:tstop]
+
+    for idx, epochs_data in enumerate(X):
+        # This is equivalent to:
+        # csds = np.vstack([np.mean(epochs_data[[i]] * epochs_data_conj[i:],
+        #                           axis=2) for i in range(n_channels)])
+        # There is a redundancy in the calculation here because we don't really
+        # need the lower triangle of the matrix, but it should still be faster
+        # than a loop (hopefully!).
+        csds = np.einsum('xft,yft->xyf', epochs_data, np.conj(epochs_data))
+        csds = csds[np.triu_indices(n_channels) + (slice(None),)]
+        csds /= epochs_data.shape[-1]
+
+        # Scaling by sampling frequency for compatibility with Matlab
+        csds /= epochs_tfr.info['sfreq']
+        data += csds
+
+    # scale to compute mean
+    data /= len(epochs_tfr)
+
+    # TO DO: EpochTFR should store n_fft to be consistent
+    return CrossSpectralDensity(data=data, ch_names=epochs_tfr.ch_names,
+                                tmin=tmin, tmax=tmax,
+                                frequencies=epochs_tfr.freqs, n_fft=None,
+                                projs=projs)

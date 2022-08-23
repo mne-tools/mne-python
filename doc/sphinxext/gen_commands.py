@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import os
 import glob
+from importlib import import_module
+import os
 from os import path as op
-import subprocess
-import sys
 
-from mne.utils import run_subprocess, _replace_md5
+from mne.utils import _replace_md5, ArgvSetter
 
 
 def setup(app):
@@ -25,34 +24,32 @@ def setup_module():
 # 4. -   : Command sections (Examples, Notes)
 
 header = """\
+:orphan:
+
 .. _python_commands:
 
 ===============================
 Command line tools using Python
 ===============================
 
-.. contents:: Contents
-   :local:
-   :depth: 1
-
 """
 
 command_rst = """
 
-.. _gen_%s:
+.. _{0}:
 
-%s
-%s
+{0}
+{1}
 
 .. rst-class:: callout
 
-%s
+{2}
 
 """
 
 
 def generate_commands_rst(app=None):
-    from sphinx_gallery import sphinx_compatibility
+    from sphinx.util import status_iterator
     out_dir = op.abspath(op.join(op.dirname(__file__), '..', 'generated'))
     if not op.isdir(out_dir):
         os.mkdir(out_dir)
@@ -63,17 +60,19 @@ def generate_commands_rst(app=None):
     fnames = sorted([
         op.basename(fname)
         for fname in glob.glob(op.join(command_path, 'mne_*.py'))])
-    iterator = sphinx_compatibility.status_iterator(
+    iterator = status_iterator(
         fnames, 'generating MNE command help ... ', length=len(fnames))
-    with open(out_fname, 'w') as f:
+    with open(out_fname, 'w', encoding='utf8') as f:
         f.write(header)
         for fname in iterator:
             cmd_name = fname[:-3]
-            run_name = op.join(command_path, fname)
-            output, _ = run_subprocess([sys.executable, run_name, '--help'],
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE, verbose=False)
-            output = output.splitlines()
+            module = import_module('.' + cmd_name, 'mne.commands')
+            with ArgvSetter(('mne', cmd_name, '--help')) as out:
+                try:
+                    module.run()
+                except SystemExit:  # this is how these terminate
+                    pass
+            output = out.stdout.getvalue().splitlines()
 
             # Swap usage and title lines
             output[0], output[2] = output[2], output[0]
@@ -97,12 +96,10 @@ def generate_commands_rst(app=None):
                 output.insert(ii + 3, '.. rst-class:: field-list cmd-list')
                 output.insert(ii + 4, '')
             output = '\n'.join(output)
-            f.write(command_rst % (cmd_name,
-                                   cmd_name.replace('mne_', 'mne '),
-                                   '=' * len(cmd_name),
-                                   output))
+            cmd_name_space = cmd_name.replace('mne_', 'mne ')
+            f.write(command_rst.format(
+                cmd_name_space, '=' * len(cmd_name_space), output))
     _replace_md5(out_fname)
-    print('[Done]')
 
 
 # This is useful for testing/iterating to see what the result looks like

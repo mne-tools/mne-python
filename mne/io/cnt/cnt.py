@@ -3,23 +3,22 @@
 # Author: Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #         Joan Massich <mailsik@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 from os import path
 
 import numpy as np
 
-from ...utils import warn, verbose, fill_doc, _check_option
+from ...utils import warn, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
-from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str,
-                     _deprecate_stim_channel, _synthesize_stim_channel)
+from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str)
 from ..meas_info import _empty_info
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw
 from ...annotations import Annotations
 
 
 from ._utils import (_read_teeg, _get_event_parser, _session_date_2_meas_date,
-                     CNTEventType3)
+                     _compute_robust_event_table_position, CNTEventType3)
 
 
 def _read_annotations_cnt(fname, data_format='int16'):
@@ -45,7 +44,6 @@ def _read_annotations_cnt(fname, data_format='int16'):
     # Offsets from SETUP structure in http://paulbourke.net/dataformats/eeg/
     SETUP_NCHANNELS_OFFSET = 370
     SETUP_RATE_OFFSET = 376
-    SETUP_EVENTTABLEPOS_OFFSET = 886
 
     def _translating_function(offset, n_channels, event_type,
                               data_format=data_format):
@@ -63,8 +61,8 @@ def _read_annotations_cnt(fname, data_format='int16'):
         fid.seek(SETUP_RATE_OFFSET)
         (sfreq,) = np.frombuffer(fid.read(2), dtype='<u2')
 
-        fid.seek(SETUP_EVENTTABLEPOS_OFFSET)
-        (event_table_pos,) = np.frombuffer(fid.read(4), dtype='<i4')
+        event_table_pos = _compute_robust_event_table_position(
+            fid=fid, data_format=data_format)
 
     with open(fname, 'rb') as fid:
         teeg = _read_teeg(fid, teeg_offset=event_table_pos)
@@ -85,7 +83,9 @@ def _read_annotations_cnt(fname, data_format='int16'):
                                       n_channels=n_channels,
                                       event_type=type(my_events[0]),
                                       data_format=data_format)
-        duration = np.array([e.Latency for e in my_events], dtype=float)
+        duration = np.array([getattr(e, 'Latency', 0.) for e in my_events],
+                            dtype=float)
+
         description = np.array([str(e.StimType) for e in my_events])
         return Annotations(onset=onset / sfreq,
                            duration=duration,
@@ -94,32 +94,34 @@ def _read_annotations_cnt(fname, data_format='int16'):
 
 
 @fill_doc
-def read_raw_cnt(input_fname, montage=None, eog=(), misc=(), ecg=(), emg=(),
-                 data_format='auto', date_format='mm/dd/yy', preload=False,
-                 stim_channel=False, verbose=None):
+def read_raw_cnt(input_fname, eog=(), misc=(), ecg=(),
+                 emg=(), data_format='auto', date_format='mm/dd/yy',
+                 preload=False, verbose=None):
     """Read CNT data as raw object.
 
     .. Note::
-        If montage is not provided, the x and y coordinates are read from the
-        file header. Channels that are not assigned with keywords ``eog``,
-        ``ecg``, ``emg`` and ``misc`` are assigned as eeg channels. All the eeg
-        channel locations are fit to a sphere when computing the z-coordinates
-        for the channels. If channels assigned as eeg channels have locations
+        2d spatial coordinates (x, y) for EEG channels are read from the file
+        header and fit to a sphere to compute corresponding z-coordinates.
+        If channels assigned as EEG channels have locations
         far away from the head (i.e. x and y coordinates don't fit to a
-        sphere), all the channel locations will be distorted. If you are not
+        sphere), all the channel locations will be distorted
+        (all channels that are not assigned with keywords ``eog``, ``ecg``,
+        ``emg`` and ``misc`` are assigned as EEG channels). If you are not
         sure that the channel locations in the header are correct, it is
-        probably safer to use a (standard) montage. See
-        :func:`mne.channels.read_montage`
+        probably safer to replace them with :meth:`mne.io.Raw.set_montage`.
+        Montages can be created/imported with:
+
+        - Standard montages with :func:`mne.channels.make_standard_montage`
+        - Montages for `Compumedics systems <https://compumedicsneuroscan.com/
+          scan-acquire-configuration-files/>`_ with
+          :func:`mne.channels.read_dig_dat`
+        - Other reader functions are listed under *See Also* at
+          :class:`mne.channels.DigMontage`
 
     Parameters
     ----------
     input_fname : str
         Path to the data file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        xy sensor locations are read from the header (``x_coord`` and
-        ``y_coord`` in ``ELECTLOC``) and fit to a sphere. See the documentation
-        of :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto' | 'header'
         Names of channels or list of indices that should be designated
         EOG channels. If 'header', VEOG and HEOG channels assigned in the file
@@ -142,22 +144,7 @@ def read_raw_cnt(input_fname, montage=None, eog=(), misc=(), ecg=(), emg=(),
         Defaults to 'auto'.
     date_format : 'mm/dd/yy' | 'dd/mm/yy'
         Format of date in the header. Defaults to 'mm/dd/yy'.
-    preload : bool | str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
-    stim_channel : bool | None
-        Add a stim channel from the events. Defaults to None to trigger a
-        future warning.
-
-        .. warning:: This defaults to True in 0.18 but will change to False in
-                     0.19 (when no stim channel synthesis will be allowed)
-                     and be removed in 0.20; migrate code to use
-                     :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.18
+    %(preload)s
     %(verbose)s
 
     Returns
@@ -173,17 +160,13 @@ def read_raw_cnt(input_fname, montage=None, eog=(), misc=(), ecg=(), emg=(),
     -----
     .. versionadded:: 0.12
     """
-    return RawCNT(input_fname, montage=montage, eog=eog, misc=misc, ecg=ecg,
+    return RawCNT(input_fname, eog=eog, misc=misc, ecg=ecg,
                   emg=emg, data_format=data_format, date_format=date_format,
-                  preload=preload, stim_channel=stim_channel, verbose=verbose)
+                  preload=preload, verbose=verbose)
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
-                  stim_channel_toggle):
+def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     """Read the cnt header."""
-    # XXX stim_channel_toggle is used because stim_channel was in use already
-    _deprecate_stim_channel(stim_channel_toggle, removed_in='0.20')
-
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
     # Reading only the fields of interest. Structure of the whole header at
@@ -238,8 +221,10 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
         fid.seek(2, 1)
         highcutoff = np.fromfile(fid, dtype='f4', count=1)[0]
 
-        fid.seek(886)
-        event_offset = np.fromfile(fid, dtype='<i4', count=1)[0]
+        event_offset = _compute_robust_event_table_position(
+            fid=fid, data_format=data_format
+        )
+        fid.seek(890)
         cnt_info['continuous_seconds'] = np.fromfile(fid, dtype='<f4',
                                                      count=1)[0]
 
@@ -261,14 +246,18 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
         else:
             n_bytes = 2 if data_format == 'int16' else 4
             n_samples = data_size // (n_bytes * n_channels)
+
         # Channel offset refers to the size of blocks per channel in the file.
         cnt_info['channel_offset'] = np.fromfile(fid, dtype='<i4', count=1)[0]
         if cnt_info['channel_offset'] > 1:
             cnt_info['channel_offset'] //= n_bytes
         else:
             cnt_info['channel_offset'] = 1
-        ch_names, cals, baselines, chs, pos = (list(), list(), list(), list(),
-                                               list())
+
+        ch_names, cals, baselines, chs, pos = (
+            list(), list(), list(), list(), list()
+        )
+
         bads = list()
         for ch_idx in range(n_channels):  # ELECTLOC fields
             fid.seek(data_offset + 75 * ch_idx)
@@ -287,18 +276,8 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
             fid.seek(data_offset + 75 * ch_idx + 59)
             sensitivity = np.fromfile(fid, dtype='f4', count=1)[0]
             fid.seek(data_offset + 75 * ch_idx + 71)
-            cal = np.fromfile(fid, dtype='f4', count=1)
+            cal = np.fromfile(fid, dtype='f4', count=1)[0]
             cals.append(cal * sensitivity * 1e-6 / 204.8)
-
-        if stim_channel_toggle:
-            data_format = 'int32' if n_bytes == 4 else 'int16'
-            annot = _read_annotations_cnt(input_fname, data_format=data_format)
-            events = (np.stack((annot.onset * sfreq,
-                                annot.duration * sfreq,
-                                annot.description.astype(int)))
-                      .astype(int)
-                      .transpose())
-            stim_channel = _synthesize_stim_channel(events, n_samples)
 
     info = _empty_info(sfreq)
     if lowpass_toggle == 1:
@@ -325,18 +304,6 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
     for ch, loc in zip(chs, locs):
         ch.update(loc=loc)
 
-    if stim_channel_toggle:
-        chan_info = {'cal': 1.0, 'logno': len(chs) + 1, 'scanno': len(chs) + 1,
-                     'range': 1.0, 'unit_mul': 0., 'ch_name': 'STI 014',
-                     'unit': FIFF.FIFF_UNIT_NONE,
-                     'coord_frame': FIFF.FIFFV_COORD_UNKNOWN,
-                     'loc': np.zeros(12),
-                     'coil_type': FIFF.FIFFV_COIL_NONE,
-                     'kind': FIFF.FIFFV_STIM_CH}
-        chs.append(chan_info)
-        baselines.append(0)  # For stim channel
-        cnt_info.update(stim_channel=stim_channel)
-
     cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
                     n_bytes=n_bytes)
 
@@ -344,6 +311,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
     info.update(meas_date=meas_date,
                 description=session_label, bads=bads,
                 subject_info=subject_info, chs=chs)
+    info._unlocked = False
     info._update_redundant()
     return info, cnt_info
 
@@ -353,26 +321,20 @@ class RawCNT(BaseRaw):
     """Raw object from Neuroscan CNT file.
 
     .. Note::
-        If montage is not provided, the x and y coordinates are read from the
-        file header. Channels that are not assigned with keywords ``eog``,
-        ``ecg``, ``emg`` and ``misc`` are assigned as eeg channels. All the eeg
-        channel locations are fit to a sphere when computing the z-coordinates
-        for the channels. If channels assigned as eeg channels have locations
-        far away from the head (i.e. x and y coordinates don't fit to a
-        sphere), all the channel locations will be distorted. If you are not
-        sure that the channel locations in the header are correct, it is
-        probably safer to use a (standard) montage. See
-        :func:`mne.channels.read_montage`
+        The channel positions are read from the file header. Channels that are
+        not assigned with keywords ``eog``, ``ecg``, ``emg`` and ``misc`` are
+        assigned as eeg channels. All the eeg channel locations are fit to a
+        sphere when computing the z-coordinates for the channels. If channels
+        assigned as eeg channels have locations far away from the head (i.e.
+        x and y coordinates don't fit to a sphere), all the channel locations
+        will be distorted. If you are not sure that the channel locations in
+        the header are correct, it is probably safer to use a (standard)
+        montage. See :func:`mne.channels.make_standard_montage`
 
     Parameters
     ----------
     input_fname : str
         Path to the CNT file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        xy sensor locations are read from the header (``x_coord`` and
-        ``y_coord`` in ``ELECTLOC``) and fit to a sphere. See the documentation
-        of :func:`mne.channels.read_montage` for more information.
     eog : list | tuple
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with
@@ -394,12 +356,7 @@ class RawCNT(BaseRaw):
         Defaults to 'auto'.
     date_format : 'mm/dd/yy' | 'dd/mm/yy'
         Format of date in the header. Defaults to 'mm/dd/yy'.
-    preload : bool | str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     stim_channel : bool | None
         Add a stim channel from the events. Defaults to None to trigger a
         future warning.
@@ -417,10 +374,9 @@ class RawCNT(BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
 
-    def __init__(self, input_fname, montage=None, eog=(), misc=(), ecg=(),
-                 emg=(), data_format='auto', date_format='mm/dd/yy',
-                 preload=False, stim_channel=False,
-                 verbose=None):  # noqa: D102
+    def __init__(self, input_fname, eog=(), misc=(),
+                 ecg=(), emg=(), data_format='auto', date_format='mm/dd/yy',
+                 preload=False, verbose=None):  # noqa: D102
 
         _check_option('date_format', date_format, ['mm/dd/yy', 'dd/mm/yy'])
         if date_format == 'dd/mm/yy':
@@ -430,9 +386,8 @@ class RawCNT(BaseRaw):
 
         input_fname = path.abspath(input_fname)
         info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc,
-                                       data_format, _date_format, stim_channel)
+                                       data_format, _date_format)
         last_samps = [cnt_info['n_samples'] - 1]
-        _check_update_montage(info, montage)
         super(RawCNT, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[cnt_info],
             last_samps=last_samps, orig_format='int', verbose=verbose)
@@ -441,44 +396,39 @@ class RawCNT(BaseRaw):
         self.set_annotations(
             _read_annotations_cnt(input_fname, data_format=data_format))
 
-    @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Take a chunk of raw data, multiply by mult or cals, and store."""
-        if 'stim_channel' in self._raw_extras[0]:
-            n_channels = self.info['nchan'] - 1  # Stim channel already read.
-            sel = np.arange(n_channels + 1)[idx]
-            stim_ch = self._raw_extras[0]['stim_channel']
+        n_channels = self._raw_extras[fi]['orig_nchan']
+        if 'stim_channel' in self._raw_extras[fi]:
+            f_channels = n_channels - 1  # Stim channel already read.
+            stim_ch = self._raw_extras[fi]['stim_channel']
         else:
-            n_channels = self.info['nchan']
-            sel = np.arange(n_channels)[idx]
+            f_channels = n_channels
+            stim_ch = None
 
-        channel_offset = self._raw_extras[0]['channel_offset']
-        baselines = self._raw_extras[0]['baselines']
-        n_bytes = self._raw_extras[0]['n_bytes']
+        channel_offset = self._raw_extras[fi]['channel_offset']
+        baselines = self._raw_extras[fi]['baselines']
+        n_bytes = self._raw_extras[fi]['n_bytes']
         dtype = '<i4' if n_bytes == 4 else '<i2'
-        chunk_size = channel_offset * n_channels  # Size of chunks in file.
+        chunk_size = channel_offset * f_channels  # Size of chunks in file.
         # The data is divided into blocks of samples / channel.
         # channel_offset determines the amount of successive samples.
         # Here we use sample offset to align the data because start can be in
         # the middle of these blocks.
-        data_left = (stop - start) * n_channels
+        data_left = (stop - start) * f_channels
         # Read up to 100 MB of data at a time, block_size is in data samples
         block_size = ((int(100e6) // n_bytes) // chunk_size) * chunk_size
         block_size = min(data_left, block_size)
         s_offset = start % channel_offset
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
-            fid.seek(900 + n_channels * (75 + (start - s_offset) * n_bytes))
+            fid.seek(900 + f_channels * (75 + (start - s_offset) * n_bytes))
             for sample_start in np.arange(0, data_left,
-                                          block_size) // n_channels:
-                sample_stop = sample_start + min((block_size // n_channels,
-                                                  data_left // n_channels -
+                                          block_size) // f_channels:
+                sample_stop = sample_start + min((block_size // f_channels,
+                                                  data_left // f_channels -
                                                   sample_start))
                 n_samps = sample_stop - sample_start
-
-                if 'stim_channel' in self._raw_extras[0]:
-                    data_ = np.empty((n_channels + 1, n_samps))
-                else:
-                    data_ = np.empty((n_channels, n_samps))
+                one = np.zeros((n_channels, n_samps))
 
                 # In case channel offset and start time do not align perfectly,
                 # extra sample sets are read here to cover the desired time
@@ -491,31 +441,21 @@ class RawCNT(BaseRaw):
                 count = n_samps // channel_offset * chunk_size + extra_samps
                 n_chunks = count // chunk_size
                 samps = np.fromfile(fid, dtype=dtype, count=count)
-                samps = samps.reshape((n_chunks, n_channels, channel_offset),
+                samps = samps.reshape((n_chunks, f_channels, channel_offset),
                                       order='C')
 
                 # Intermediate shaping to chunk sizes.
-                if 'stim_channel' in self._raw_extras[0]:
-                    block = np.zeros((n_channels + 1,
-                                      channel_offset * n_chunks))
-                else:
-                    block = np.zeros((n_channels, channel_offset * n_chunks))
-
+                block = np.zeros((n_channels, channel_offset * n_chunks))
                 for set_idx, row in enumerate(samps):  # Final shape.
                     block_slice = slice(set_idx * channel_offset,
                                         (set_idx + 1) * channel_offset)
-                    if 'stim_channel' in self._raw_extras[0]:
-                        block[:-1, block_slice] = row
-                    else:
-                        block[:, block_slice] = row
-
-                block = block[sel, s_offset:n_samps + s_offset]
-                data_[sel] = block
-                if 'stim_channel' in self._raw_extras[0]:
+                    block[:f_channels, block_slice] = row
+                if 'stim_channel' in self._raw_extras[fi]:
                     _data_start = start + sample_start
                     _data_stop = start + sample_stop
-                    data_[-1] = stim_ch[_data_start:_data_stop]
+                    block[-1] = stim_ch[_data_start:_data_stop]
+                one[idx] = block[idx, s_offset:n_samps + s_offset]
 
-                data_[sel] -= baselines[sel][:, None]
-                _mult_cal_one(data[:, sample_start:sample_stop], data_, idx,
-                              cals, mult=None)
+                one[idx] -= baselines[idx][:, None]
+                _mult_cal_one(data[:, sample_start:sample_stop], one, idx,
+                              cals, mult)

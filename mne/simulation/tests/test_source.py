@@ -1,7 +1,7 @@
 # Author: Kostiantyn Maksymenko <kostiantyn.maksymenko@gmail.com>
 #         Samuel Deslauriers-Gauthier <sam.deslauriers@gmail.com>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import os.path as op
 
@@ -14,9 +14,8 @@ from mne.datasets import testing
 from mne import (read_label, read_forward_solution, pick_types_forward,
                  convert_forward_solution)
 from mne.label import Label
-from mne.simulation.source import simulate_stc, simulate_sparse_stc
-from mne.simulation.source import SourceSimulator
-from mne.utils import run_tests_if_main
+from mne.simulation import simulate_stc, simulate_sparse_stc, SourceSimulator
+from mne.utils import check_version
 
 
 data_path = testing.data_path(download=False)
@@ -98,6 +97,14 @@ def test_simulate_stc(_get_fwd_labels):
     pytest.raises(RuntimeError, simulate_stc, fwd['src'], label_subset * 2,
                   np.concatenate([data_subset] * 2, axis=0), tmin, tstep, fun)
 
+    i = np.where(fwd['src'][0]['inuse'] == 0)[0][0]
+    label_single_vert = Label(vertices=[i],
+                              pos=fwd['src'][0]['rr'][i:i + 1, :],
+                              hemi='lh')
+    stc = simulate_stc(fwd['src'], [label_single_vert], stc_data[:1], tmin,
+                       tstep)
+    assert_equal(len(stc.lh_vertno), 1)
+
 
 def test_simulate_sparse_stc(_get_fwd_labels):
     """Test generation of sparse source estimate."""
@@ -105,7 +112,7 @@ def test_simulate_sparse_stc(_get_fwd_labels):
     n_times = 10
     tmin = 0
     tstep = 1e-3
-    times = np.arange(n_times, dtype=np.float) * tstep + tmin
+    times = np.arange(n_times, dtype=np.float64) * tstep + tmin
 
     pytest.raises(ValueError, simulate_sparse_stc, fwd['src'], len(labels),
                   times, labels=labels, location='center', subject='sample',
@@ -213,7 +220,7 @@ def test_simulate_sparse_stc_single_hemi(_get_fwd_labels):
     n_times = 10
     tmin = 0
     tstep = 1e-3
-    times = np.arange(n_times, dtype=np.float) * tstep + tmin
+    times = np.arange(n_times, dtype=np.float64) * tstep + tmin
 
     stc_1 = simulate_sparse_stc(fwd['src'], len(labels_single_hemi), times,
                                 labels=labels_single_hemi, random_state=0)
@@ -227,6 +234,12 @@ def test_simulate_sparse_stc_single_hemi(_get_fwd_labels):
 
     assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
     assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
+
+    # smoke test for new API
+    if check_version('numpy', '1.17'):
+        simulate_sparse_stc(fwd['src'], len(labels_single_hemi), times,
+                            labels=labels_single_hemi,
+                            random_state=np.random.default_rng(0))
 
 
 @testing.requires_testing_data
@@ -325,12 +338,12 @@ def test_source_simulator(_get_fwd_labels):
     stc = ss.get_stc()
     stim_channel = ss.get_stim_channel()
 
-    # Stim channel data must have the same size as stc time samples
+    # Make some size checks.
+    assert ss.duration == 1.0
+    assert ss.n_times == 6
+    assert ss.last_samp == 5
+
     assert len(stim_channel) == stc.data.shape[1]
-
-    stim_channel = ss.get_stim_channel(0, 0)
-    assert len(stim_channel) == 0
-
     assert np.all(stc.vertices[0] == verts_lh)
     assert np.all(stc.vertices[1] == verts_rh)
     assert_array_almost_equal(stc.lh_data, output_data_lh)
@@ -343,23 +356,52 @@ def test_source_simulator(_get_fwd_labels):
         counter += 1
     assert counter == 1
 
+    # Check validity of setting duration and start/stop parameters.
     half_ss = SourceSimulator(src, tstep, duration=0.5)
     for i in range(3):
         half_ss.add_data(mylabels[i], wfs[i], events[i])
+    with pytest.raises(TypeError, match='array of integers'):
+        half_ss.add_data(mylabels[0], wfs[0], events[0].astype(float))
     half_stc = half_ss.get_stc()
     assert_array_almost_equal(stc.data[:, :3], half_stc.data)
 
-    ss = SourceSimulator(src)
+    part_stc = ss.get_stc(start_sample=1, stop_sample=4)
+    assert part_stc.shape == (24, 4)
+    assert part_stc.times[0] == tstep
 
+    # Check validity of other arguments.
+    with pytest.raises(ValueError, match='start_sample must be'):
+        ss.get_stc(2, 0)
+    ss = SourceSimulator(src)
     with pytest.raises(ValueError, match='No simulation parameters'):
         ss.get_stc()
-
     with pytest.raises(ValueError, match='label must be a Label'):
         ss.add_data(1, wfs, events)
-
     with pytest.raises(ValueError, match='Number of waveforms and events '
                        'should match'):
         ss.add_data(mylabels[0], wfs[:2], events)
+    with pytest.raises(ValueError, match='duration must be None or'):
+        ss = SourceSimulator(src, tstep, tstep / 2)
+
+    # Verify first_samp functionality.
+    ss = SourceSimulator(src, tstep)
+    offset = 50
+    for i in range(3):  # events are offset, but first_samp = 0
+        events[i][:, 0] += offset
+        ss.add_data(mylabels[i], wfs[i], events[i])
+    offset_stc = ss.get_stc()
+    assert ss.n_times == 56
+    assert ss.first_samp == 0
+    assert offset_stc.data.shape == (stc.data.shape[0],
+                                     stc.data.shape[1] + offset)
+    ss = SourceSimulator(src, tstep, first_samp=offset)
+    for i in range(3):  # events still offset, but first_samp > 0
+        ss.add_data(mylabels[i], wfs[i], events[i])
+    offset_stc = ss.get_stc()
+    assert ss.n_times == 6
+    assert ss.first_samp == offset
+    assert ss.last_samp == offset + 5
+    assert offset_stc.data.shape == stc.data.shape
 
     # Verify that the chunks have the correct length.
     source_simulator = SourceSimulator(src, tstep=tstep, duration=10 * tstep)
@@ -370,6 +412,3 @@ def test_source_simulator(_get_fwd_labels):
     assert len(stcs) == 2
     assert stcs[0].data.shape[1] == 6
     assert stcs[1].data.shape[1] == 4
-
-
-run_tests_if_main()

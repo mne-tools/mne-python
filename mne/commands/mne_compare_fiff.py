@@ -26,6 +26,4 @@ def run():
     mne.viz.compare_fiff(args[0], args[1])
 
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

@@ -3,7 +3,7 @@ import pytest
 from mne import open_docs, grade_to_tris
 from mne.epochs import add_channels_epochs
 from mne.utils import (copy_function_doc_to_method_doc, copy_doc,
-                       linkcode_resolve, deprecated)
+                       linkcode_resolve, deprecated, deprecated_alias)
 import webbrowser
 
 
@@ -13,26 +13,50 @@ def test_doc_filling(obj):
     doc = obj.__doc__
     assert 'verbose : ' in doc
     if obj is add_channels_epochs:
-        assert 'for more). Defaults to True if' in doc
+        assert 'passed as a keyword' in doc
 
 
-@deprecated('message')
+def test_deprecated_alias():
+    """Test deprecated_alias."""
+    def new_func():
+        """Do something."""
+        pass
+
+    deprecated_alias('old_func', new_func)
+    assert old_func  # noqa
+    assert 'has been deprecated in favor of new_func' in old_func.__doc__  # noqa
+    assert 'deprecated' not in new_func.__doc__
+
+
+@deprecated('bad func')
 def deprecated_func():
     """Do something."""
     pass
 
 
-@deprecated('message')
+@deprecated('bad class')
 class deprecated_class(object):
 
     def __init__(self):
         pass
 
+    @deprecated('bad method')
+    def bad(self):
+        pass
+
 
 def test_deprecated():
     """Test deprecated function."""
-    pytest.deprecated_call(deprecated_func)
-    pytest.deprecated_call(deprecated_class)
+    assert 'DEPRECATED' in deprecated_func.__doc__
+    with pytest.deprecated_call(match='bad func'):
+        deprecated_func()
+    assert 'DEPRECATED' in deprecated_class.__init__.__doc__
+    with pytest.deprecated_call(match='bad class'):
+        dep = deprecated_class()
+    assert 'DEPRECATED' in deprecated_class.bad.__doc__
+    assert 'DEPRECATED' in dep.bad.__doc__
+    with pytest.deprecated_call(match='bad method'):
+        dep.bad()
 
 
 def test_copy_doc():
@@ -149,7 +173,7 @@ def test_copy_function_doc_to_method_doc():
 
 def myfun(x):
     """Check url."""
-    assert 'martinos' in x
+    assert 'mne.tools' in x
 
 
 def test_open_docs():

@@ -1,23 +1,15 @@
+# -*- coding: utf-8 -*-
+# Authors: Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD-3-Clause
+
 import os.path as op
-import os
 
 import numpy as np
 import pytest
-from numpy.testing import assert_equal
 
 from mne.datasets import testing
-from mne.io import show_fiff
-from mne.utils import (_TempDir, _url_to_local_path, run_tests_if_main,
-                       buggy_mkl_svd)
-
-
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-fname_evoked = op.join(base_dir, 'test-ave.fif')
-fname_raw = op.join(base_dir, 'test_raw.fif')
-
-data_path = testing.data_path(download=False)
-fname_fsaverage_trans = op.join(data_path, 'subjects', 'fsaverage', 'bem',
-                                'fsaverage-trans.fif')
+from mne.utils import _TempDir, _url_to_local_path, buggy_mkl_svd
 
 
 def test_buggy_mkl():
@@ -28,7 +20,8 @@ def test_buggy_mkl():
     def foo(a, b):
         raise np.linalg.LinAlgError('SVD did not converge')
     with pytest.warns(RuntimeWarning, match='convergence error'):
-        pytest.raises(SkipTest, foo, 1, 2)
+        with pytest.raises(SkipTest):
+            foo(1, 2)
 
     @buggy_mkl_svd
     def bar(c, d, e):
@@ -45,32 +38,20 @@ def test_tempdir():
     assert (not op.isdir(x))
 
 
-@testing.requires_testing_data
-def test_datasets():
+def test_datasets(monkeypatch, tmp_path):
     """Test dataset config."""
     # gh-4192
-    data_path = testing.data_path(download=False)
-    os.environ['MNE_DATASETS_TESTING_PATH'] = op.dirname(data_path)
-    assert testing.data_path(download=False) == data_path
-
-
-@testing.requires_testing_data
-def test_show_fiff():
-    """Test show_fiff."""
-    # this is not exhaustive, but hopefully bugs will be found in use
-    info = show_fiff(fname_evoked)
-    keys = ['FIFF_EPOCH', 'FIFFB_HPI_COIL', 'FIFFB_PROJ_ITEM',
-            'FIFFB_PROCESSED_DATA', 'FIFFB_EVOKED', 'FIFF_NAVE',
-            'FIFF_EPOCH']
-    assert (all(key in info for key in keys))
-    info = show_fiff(fname_raw, read_limit=1024)
-    assert ('COORD_TRANS' in show_fiff(fname_fsaverage_trans))
+    fake_path = tmp_path / 'MNE-testing-data'
+    fake_path.mkdir()
+    with open(fake_path / 'version.txt', 'w') as fid:
+        fid.write('9999.9999')
+    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmp_path))
+    monkeypatch.setenv('MNE_DATASETS_TESTING_PATH', str(tmp_path))
+    got_path = str(testing.data_path(download=False, verbose='debug'))
+    assert got_path == str(fake_path)
 
 
 def test_url_to_local_path():
     """Test URL to local path."""
-    assert_equal(_url_to_local_path('http://google.com/home/why.html', '.'),
-                 op.join('.', 'home', 'why.html'))
-
-
-run_tests_if_main()
+    assert _url_to_local_path('http://google.com/home/why.html', '.') == \
+        op.join('.', 'home', 'why.html')

@@ -1,27 +1,35 @@
 .. -*- mode: rst -*-
 
-
-|Travis|_ |Azure|_ |Circle|_ |Codecov|_ |Zenodo|_
+|GH-Linux|_ |GH-macOS|_ |Azure|_ |Circle|_ |Codecov|_ |PyPI|_ |conda-forge|_ |Zenodo|_
 
 |MNE|_
 
-.. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
-.. _Travis: https://travis-ci.org/mne-tools/mne-python/branches
+.. |GH-Linux| image:: https://github.com/mne-tools/mne-python/workflows/linux%20/%20conda/badge.svg?branch=main
+.. _GH-Linux: https://github.com/mne-tools/mne-python/actions?query=branch:main+event:push
 
-.. |Azure| image:: https://dev.azure.com/mne-tools/mne-python/_apis/build/status/mne-tools.mne-python?branchName=master
-.. _Azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
+.. |GH-macOS| image:: https://github.com/mne-tools/mne-python/workflows/macos%20/%20conda/badge.svg?branch=main
+.. _GH-macOS: https://github.com/mne-tools/mne-python/actions?query=branch:main+event:push
 
-.. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=svg
+.. |Azure| image:: https://dev.azure.com/mne-tools/mne-python/_apis/build/status/mne-tools.mne-python?branchName=main
+.. _Azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=main
+
+.. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=shield
 .. _Circle: https://circleci.com/gh/mne-tools/mne-python
 
-.. |Codecov| image:: https://codecov.io/gh/mne-tools/mne-python/branch/master/graph/badge.svg
+.. |Codecov| image:: https://codecov.io/gh/mne-tools/mne-python/branch/main/graph/badge.svg
 .. _Codecov: https://codecov.io/gh/mne-tools/mne-python
 
-.. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
-.. _Zenodo: https://zenodo.org/badge/latestdoi/5822/mne-tools/mne-python
+.. |PyPI| image:: https://img.shields.io/pypi/dm/mne.svg?label=PyPI%20downloads
+.. _PyPI: https://pypi.org/project/mne/
 
-.. |MNE| image:: https://martinos.org/mne/stable/_static/mne_logo.png
-.. _MNE: https://martinos.org/mne
+.. |conda-forge| image:: https://img.shields.io/conda/dn/conda-forge/mne.svg?label=Conda%20downloads
+.. _conda-forge: https://anaconda.org/conda-forge/mne
+
+.. |Zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.592483.svg
+.. _Zenodo: https://doi.org/10.5281/zenodo.592483
+
+.. |MNE| image:: https://mne.tools/stable/_static/mne_logo.svg
+.. _MNE: https://mne.tools/dev/
 
 MNE-Python
 ==========
@@ -44,14 +52,17 @@ Installing MNE-Python
 
 To install the latest stable version of MNE-Python, you can use pip_ in a terminal:
 
-.. code-block:: bash
+.. code-block:: console
 
-    pip install -U mne
+    $ pip install -U mne
 
-**Note** that MNE-Python 0.17 will be the last release to support Python 2. From MNE-Python 0.18, only Python 3 will be supported.
+- MNE-Python 0.17 was the last release to support Python 2.7
+- MNE-Python 0.18 requires Python 3.5 or higher
+- MNE-Python 0.21 requires Python 3.6 or higher
+- MNE-Python 0.24 requires Python 3.7 or higher
 
 For more complete instructions and more advanced installation methods (e.g. for
-the latest development version), see the `getting started page`_.
+the latest development version), see the `installation guide`_.
 
 
 Get the latest code
@@ -59,18 +70,18 @@ Get the latest code
 
 To install the latest version of the code using pip_ open a terminal and type:
 
-.. code-block:: bash
+.. code-block:: console
 
-    pip install -U https://api.github.com/repos/mne-tools/mne-python/zipball/master
+    $ pip install -U https://github.com/mne-tools/mne-python/archive/main.zip
 
 To get the latest code using `git <https://git-scm.com/>`__, open a terminal and type:
 
-.. code-block:: bash
+.. code-block:: console
 
-    git clone git://github.com/mne-tools/mne-python.git
+    $ git clone https://github.com/mne-tools/mne-python.git
 
 Alternatively, you can also download a
-`zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/master.zip>`__.
+`zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/main.zip>`__.
 
 
 Dependencies
@@ -78,47 +89,56 @@ Dependencies
 
 The minimum required dependencies to run MNE-Python are:
 
-- Python >= 3.5
-- NumPy >= 1.11.3
-- SciPy >= 0.17.1
+- Python >= 3.7
+- NumPy >= 1.18.1
+- SciPy >= 1.4.1
+- Matplotlib >= 3.1.0
+- pooch >= 1.5
+- tqdm
+- Jinja2
+- decorator
 
 For full functionality, some functions require:
 
-- Matplotlib >= 1.5
-- Mayavi >= 4.6
-- PySurfer >= 0.8
-- Scikit-learn >= 0.18
-- NiBabel >= 2.1.0
-- Pandas >= 0.18
+- Scikit-learn >= 0.22.0
+- joblib >= 0.15 (for parallelization control)
+- Numba >= 0.48.0
+- NiBabel >= 2.5.0
+- Pandas >= 1.0.0
 - Picard >= 0.3
-- CuPy >= 4.0 (for NVIDIA CUDA acceleration)
-- DIPY >= 0.10.1
-- PyLSL >= 1.12
-- PyVista >= 0.20.1
+- CuPy >= 7.1.1 (for NVIDIA CUDA acceleration)
+- DIPY >= 1.1.0
+- Imageio >= 2.6.1
+- PyVista >= 0.32
+- pyvistaqt >= 0.4
+- mffpy >= 0.5.7
+- h5py
+- h5io
+- pymatreader
 
 Contributing to MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Please see the documentation on the MNE-Python homepage:
 
-https://martinos.org/mne/contributing.html
+https://mne.tools/dev/install/contributing.html
 
 
-Mailing list
-^^^^^^^^^^^^
+Forum
+^^^^^^
 
-http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
+https://mne.discourse.group
 
 
 Licensing
 ^^^^^^^^^
 
-MNE-Python is **BSD-licenced** (3 clause):
+MNE-Python is **BSD-licenced** (BSD-3-Clause):
 
     This software is OSI Certified Open Source Software.
     OSI Certified is a certification mark of the Open Source Initiative.
 
-    Copyright (c) 2011-2019, authors of MNE-Python.
+    Copyright (c) 2011-2022, authors of MNE-Python.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -149,7 +169,7 @@ MNE-Python is **BSD-licenced** (3 clause):
     damage.**
 
 
-.. _MNE-Python software: https://martinos.org/mne
-.. _MNE documentation: http://martinos.org/mne/documentation.html
-.. _getting started page: https://martinos.org/mne/getting_started.html
+.. _MNE-Python software: https://mne.tools/dev/
+.. _MNE documentation: https://mne.tools/dev/overview/index.html
+.. _installation guide: https://mne.tools/dev/install/index.html
 .. _pip: https://pip.pypa.io/en/stable/

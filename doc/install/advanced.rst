@@ -2,15 +2,20 @@
 
 .. _advanced_setup:
 
-Advanced setup of MNE-Python
-============================
+Advanced setup
+==============
 
-.. contents::
-   :local:
-   :depth: 1
+Working with Jupyter Notebooks and JupyterLab
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Using MNE-Python with IPython / Jupyter notebooks
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+If you like using Jupyter notebooks, you should also update the "base"
+conda environment to include the ``nb_conda_kernels`` package; this will
+make it easier to use MNE-Python in Jupyter Notebooks launched from the
+Anaconda GUI:
+
+.. code-block:: console
+
+    $ conda install --name=base nb_conda_kernels
 
 When using MNE-Python within IPython or a Jupyter notebook, we strongly
 recommend using the Qt matplotlib backend for fast and correct rendering. On
@@ -40,7 +45,7 @@ display, MNE-Python will work with the standard "inline" magic:
 
     In [1]: %matplotlib inline
 
-but some functionality will be lost. For example, mayavi scenes will still
+but some functionality will be lost. For example, PyVista scenes will still
 pop-up a separate window, but only one window at a time is possible, and
 interactivity within the scene is limited in non-blocking plot calls.
 
@@ -48,45 +53,61 @@ interactivity within the scene is limited in non-blocking plot calls.
   :class: note
 
   If you are using MNE-Python on Windows through IPython or Jupyter, you might
-  also have to use the IPython magic command ``%gui qt`` after importing
-  MNE-Python, Mayavi or PySurfer (see `here
+  also have to use the IPython magic command ``%gui qt`` (see `here
   <https://github.com/ipython/ipython/issues/10384>`_). For example:
 
   .. code-block:: ipython
 
-     In [1]: from mayavi import mlab
      In [2]: %gui qt
 
+If you installed the ``nb_conda_kernels`` package into your ``base``
+environment (as recommended), you should be able to launch ``mne``-capable
+notebooks from within the Anaconda Navigator GUI without having to explicitly
+switch to the ``mne`` environment first; look for ``Python [conda env:mne]``
+when choosing which notebook kernel to use. Otherwise, be sure to activate the
+``mne`` environment before launching the notebook.
+
 If you use another Python setup and you encounter some difficulties please
-report them on the `MNE mailing list`_ or on the `GitHub issues page`_ to get
+report them on the `MNE Forum`_ or on the `GitHub issues page`_ to get
 assistance.
 
-.. _installing_master:
+It is also possible to interact with the 3D plots without installing Qt by using
+the notebook 3d backend:
 
-Using the development version of MNE-Python (latest master)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code-block:: ipython
 
-If you want access to the latest features and bugfixes, you can easily switch
-from the stable version of MNE-Python to the current development version.
+   In [1]: import mne
+   In [2]: mne.viz.set_3d_backend("notebook")
 
-.. warning:: In between releases, function and class APIs can change without
-             warning.
 
-For a one-time update to latest master, make sure you're in the ``mne`` conda
-environment (``conda activate mne``), and use ``pip``:
+The notebook 3d backend requires PyVista to be installed along with other packages,
+please follow :ref:`standard-instructions`.
+
+Installing to a headless server
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+With `pyvista`_:
+Download the `server environment file`_ and use it to create the conda
+environment
 
 .. code-block:: console
 
-   $ pip install --upgrade --no-deps git+https://github.com/mne-tools/mne-python.git
+    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
+    $ conda env create -f server_environment.yml
 
-If you plan to contribute to MNE-Python, or just prefer to use git rather than
-pip to make frequent updates, check out the :ref:`contributing guide
-<contributing>`.
+Using the development version
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+See :ref:`installing_main` for how to do a one-time update to the latest
+development version of MNE-Python. If you plan to contribute to MNE-Python, or
+just prefer to use git rather than pip to make frequent updates, there are
+instructions for installing from a ``git clone`` in the :ref:`contributing`.
+
 
 .. _other-py-distros:
 
-Using MNE-Python with other Python distributions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Other Python distributions
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 While the `Anaconda`_ Python distribution provides many conveniences, other
 distributions of Python should also work with MNE-Python.  In particular,
@@ -95,15 +116,30 @@ like Anaconda, Miniconda includes the ``conda`` command line tool for
 installing new packages and managing environments; unlike Anaconda, Miniconda
 starts off with a minimal set of around 30 packages instead of Anaconda's
 hundreds. See the `installation instructions for Miniconda`_ for more info.
+A similar alternative is `MiniForge`_, which uses the ``conda-forge`` channel
+as the default source for package installation (saving you the trouble of
+typing ``--channel=conda-forge`` with each ``conda install`` command).
 
-It is also possible to use a system-level installation of Python (version 3.5
-or higher) and use ``pip`` to install MNE-Python and its dependencies, using
-the provided `requirements file`_:
+.. warning::
+
+    If you have the ``PYTHONPATH`` or ``PYTHONHOME`` environment variables set,
+    you may run into difficulty using Anaconda. See the
+    `Anaconda troubleshooting guide`_ for more information. Note that it is
+    easy to switch between ``conda``-managed Python installations and the
+    system Python installation using the ``conda activate`` and ``conda
+    deactivate`` commands, so you may find that after adopting Anaconda it is
+    possible (indeed, preferable) to leave ``PYTHONPATH`` and ``PYTHONHOME``
+    permanently unset.
+
+
+It is also possible to use a system-level installation of Python (version
+|min_python_version| or higher) and use ``pip`` to install MNE-Python and its
+dependencies, using the provided `requirements file`_:
 
 .. code-block:: console
 
-    curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/requirements.txt
-    pip install --user requirements.txt
+    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/main/requirements.txt
+    $ pip install --user -r requirements.txt
 
 Other configurations will probably also work, but we may be unable to offer
 support if you encounter difficulties related to your particular Python
@@ -111,13 +147,13 @@ installation choices.
 
 .. _CUDA:
 
-Using MNE-Python with CUDA (NVIDIA GPU acceleration)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+GPU acceleration with CUDA
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Some operations in MNE-Python can utilize `NVIDIA CUDA GPU processing`_ to
-speed up some operations (e.g. FIR filtering) by roughly an order of magnitude.
-To use CUDA, first  ensure that you are running the `NVIDIA proprietary
-drivers`_ on your operating system, and then do:
+MNE-Python can utilize `NVIDIA CUDA GPU processing`_ to speed up some
+operations (e.g. FIR filtering) by roughly an order of magnitude. To use CUDA,
+first  ensure that you are running the `NVIDIA proprietary drivers`_ on your
+operating system, and then do:
 
 .. code-block:: console
 
@@ -142,10 +178,10 @@ that state that they allow passing ``n_jobs='cuda'``, such as
 and they should run faster than the CPU-based multithreading such as
 ``n_jobs=8``.
 
-Off-screen rendering in MNE-Python on Linux with MESA
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Off-screen rendering with MESA
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-On remote systems, it might be possible to use MESA software rendering
+On remote Linux systems, it might be possible to use MESA software rendering
 (such as ``llvmpipe`` or ``swr``) for 3D visualization (with some tweaks).
 For example, on CentOS 7.5 you might be able to use an environment variable
 to force MESA to use modern OpenGL by using this before executing
@@ -157,18 +193,91 @@ to force MESA to use modern OpenGL by using this before executing
 
 Also, it's possible that different software rending backends might perform
 better than others, such as using the ``llvmpipe`` backend rather than ``swr``.
+In newer MESA (21+), rendering can be incorrect when using MSAA, so consider
+setting:
 
-Troubleshooting 3D plots in MNE-Python
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code-block:: console
 
-If you run into trouble when visualizing source estimates (or anything else
-using mayavi), you can try setting a couple of environment variables at the
-beginning of your script, session, or notebook::
+    $ export MNE_3D_OPTION_MULTI_SAMPLES=1
 
-    >>> import os
-    >>> os.environ['ETS_TOOLKIT'] = 'qt4'
-    >>> os.environ['QT_API'] = 'pyqt5'
+MESA also can have trouble with full-screen antialiasing, which you can
+disable with:
 
-This will tell mayavi to use Qt backend with PyQt bindings, instead of the
-default PySide. For more information, see
-http://docs.enthought.com/mayavi/mayavi/building_applications.html#integrating-in-a-qt-application.
+.. code-block:: console
+
+    $ export MNE_3D_OPTION_ANTIALIAS=false
+
+or by doing
+:func:`mne.viz.set_3d_options(antialias=False) <mne.viz.set_3d_options>` within
+a given Python session.
+
+Another issue that may come up is that the MESA software itself may be out of date
+in certain operating systems, for example CentOS. This may lead to incomplete
+rendering of some 3D plots. A solution is described in this `Github comment <https://github.com/mne-tools/mne-python/issues/7977#issuecomment-729921035>`_.
+It boils down to building a newer version (e.g., 18.3.6)
+locally following a variant of `these instructions <https://xorg-team.pages.debian.net/xorg/howto/build-mesa.html#_preparing_mesa_sources>`_.
+If you have CentOS 7 or newer, you can also try some `prebuilt binaries <https://osf.io/sp9qg/download>`_ we made.
+After downloading the files, untar them and add them to the appropriate library paths
+using the following commands:
+
+.. code-block:: console
+
+    $ tar xzvf mesa_18.3.6_centos_lib.tgz
+    $ export LIBGL_DRIVERS_PATH="${PWD}/lib"
+    $ export LD_LIBRARY_PATH="${PWD}/lib"
+
+To check that everything went well, type the following:
+
+.. code-block:: console
+
+    $ glxinfo | grep "OpenGL core profile version"
+
+which should give::
+
+    OpenGL core profile version string: 3.3 (Core Profile) Mesa 18.3.6
+
+Another way to check is to type:
+
+.. code-block:: console
+
+    $ mne sys_info
+
+and it should show the right version of MESA::
+
+    ...
+    pyvista:       0.27.4 {pyvistaqt=0.2.0, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 3.4, 256 bits)}
+    ...
+
+.. _troubleshoot_3d:
+
+Troubleshooting 3D plots
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+3D plotting trouble after upgrade on macOS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When upgrading MNE-Python from version 0.19 or lower, some macOS users may end
+up with
+conflicting versions of some of the 3D plotting dependencies. If you plot using
+the pyvista 3D backend and find that you can click-drag to rotate the brain,
+but cannot adjust any of the settings sliders, it is likely that your versions
+of VTK and/or QT are incompatible. This series of commands should fix it:
+
+.. code-block:: console
+
+    $ conda uninstall vtk
+    $ pip uninstall -y pyvista
+    $ conda install vtk
+    $ pip install --no-cache pyvista
+
+If you installed VTK using ``pip`` rather than ``conda``, substitute the first
+line for ``pip uninstall -y vtk``.
+
+
+.. LINKS
+
+.. _environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/environment.yml
+.. _server environment file: https://raw.githubusercontent.com/mne-tools/mne-python/main/server_environment.yml
+.. _`pyvista`: https://docs.pyvista.org/
+.. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
+.. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb

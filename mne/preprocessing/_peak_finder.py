@@ -1,6 +1,6 @@
 import numpy as np
 
-from .. utils import logger, verbose
+from .. utils import logger, verbose, _pl
 
 
 @verbose
@@ -11,10 +11,11 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     ----------
     x0 : 1d array
         A real vector from the maxima will be found (required).
-    thresh : float
+    thresh : float | None
         The amount above surrounding data for a peak to be
-        identified (default = (max(x0)-min(x0))/4). Larger values mean
-        the algorithm is more selective in finding peaks.
+        identified. Larger values mean the algorithm is more selective in
+        finding peaks. If ``None``, use the default of
+        ``(max(x0) - min(x0)) / 4``.
     extrema : {-1, 1}
         1 if maxima are desired, -1 if minima are desired
         (default = maxima, 1).
@@ -23,9 +24,9 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     Returns
     -------
     peak_loc : array
-        The indices of the identified peaks in x0
+        The indices of the identified peaks in x0.
     peak_mag : array
-        The magnitude of the identified peaks
+        The magnitude of the identified peaks.
 
     Notes
     -----
@@ -39,12 +40,11 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     >>> from mne.preprocessing import peak_finder
     >>> t = np.arange(0, 3, 0.01)
     >>> x = np.sin(np.pi*t) - np.sin(0.5*np.pi*t)
-    >>> peak_locs, peak_mags = peak_finder(x)
+    >>> peak_locs, peak_mags = peak_finder(x) # doctest: +SKIP
     >>> peak_locs # doctest: +SKIP
     array([36, 260]) # doctest: +SKIP
     >>> peak_mags # doctest: +SKIP
     array([0.36900026, 1.76007351]) # doctest: +SKIP
-
     """
     x0 = np.asanyarray(x0)
     s = x0.size
@@ -54,6 +54,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
 
     if thresh is None:
         thresh = (np.max(x0) - np.min(x0)) / 4
+        logger.debug('Peak finder automatic threshold: %0.2g' % (thresh,))
 
     assert extrema in [-1, 1]
 
@@ -102,7 +103,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
 
         # Preallocate max number of maxima
         maxPeaks = int(np.ceil(length / 2.0))
-        peak_loc = np.zeros(maxPeaks, dtype=np.int)
+        peak_loc = np.zeros(maxPeaks, dtype=np.int64)
         peak_mag = np.zeros(maxPeaks)
         c_ind = 0
         # Loop through extrema which should be peaks and then valleys
@@ -173,5 +174,8 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     # Plot if no output desired
     if len(peak_inds) == 0:
         logger.info('No significant peaks found')
+    else:
+        logger.info('Found %d significant peak%s'
+                    % (len(peak_inds), _pl(peak_inds)))
 
     return peak_inds, peak_mags

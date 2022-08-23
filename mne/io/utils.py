@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -8,42 +8,14 @@
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
-# License: BSD (3-clause)
+# License: BSD-3-Clause
 
 import numpy as np
 import os
+import os.path as op
 
 from .constants import FIFF
 from .meas_info import _get_valid_units
-from .. import __version__
-from ..utils import warn
-
-
-def _deprecate_stim_channel(stim_channel, removed_in='0.19'):
-    minor_current = int(__version__.split('.')[1])
-    minor_removed_in = int(removed_in.split('.')[1])
-    if minor_current == minor_removed_in - 2:
-        if stim_channel is None:
-            _MSG = (
-                'The parameter `stim_channel` controlling the stim channel'
-                ' synthesis has not been specified. In 0.%s it defaults to'
-                ' True but will change to False in 0.%s (when no stim channel'
-                ' synthesis will be allowed) and be removed in %s; migrate'
-                ' code to use `stim_channel=False` and'
-                ' :func:`mne.events_from_annotations` or set'
-                ' `stim_channel=True` to avoid this warning.'
-                % (minor_removed_in - 2, minor_removed_in - 1, removed_in))
-            warn(_MSG, FutureWarning)
-
-    elif minor_current == minor_removed_in - 1:
-        if stim_channel is not False:
-            _MSG = ('stim_channel must be False or omitted; it will be '
-                    'removed in %s' % removed_in)
-            raise ValueError(_MSG, DeprecationWarning)
-    else:
-        raise RuntimeError('stim_channel was supposed to be removed in version'
-                           ' %s, and it is still present in %s' %
-                           (removed_in, __version__))
 
 
 def _check_orig_units(orig_units):
@@ -79,8 +51,9 @@ def _check_orig_units(orig_units):
 
         # Common "invalid units" can be remapped to their valid equivalent
         remap_dict = dict()
-        remap_dict['uv'] = u'µV'
-        remap_dict[u'μv'] = u'µV'  # greek letter mu vs micro sign. use micro
+        remap_dict['uv'] = 'µV'
+        remap_dict['μv'] = 'µV'  # greek letter mu vs micro sign. use micro
+        remap_dict['\x83\xeav'] = 'µV'  # for shift-jis mu, use micro
         if unit.lower() in remap_dict:
             orig_units_remapped[ch_name] = remap_dict[unit.lower()]
             continue
@@ -105,17 +78,18 @@ def _find_channels(ch_names, ch_type='EOG'):
 def _mult_cal_one(data_view, one, idx, cals, mult):
     """Take a chunk of raw data, multiply by mult or cals, and store."""
     one = np.asarray(one, dtype=data_view.dtype)
-    assert data_view.shape[1] == one.shape[1]
+    assert data_view.shape[1] == one.shape[1], (data_view.shape[1], one.shape[1])  # noqa: E501
     if mult is not None:
-        data_view[:] = np.dot(mult, one)
+        mult.ndim == one.ndim == 2
+        data_view[:] = mult @ one[idx]
     else:
+        assert cals is not None
         if isinstance(idx, slice):
             data_view[:] = one[idx]
         else:
             # faster than doing one = one[idx]
             np.take(one, idx, axis=0, out=data_view)
-        if cals is not None:
-            data_view *= cals
+        data_view *= cals
 
 
 def _blk_read_lims(start, stop, buf_len):
@@ -225,10 +199,10 @@ def _file_size(fname):
 
 
 def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
-                        dtype='<i2', n_channels=None, offset=0,
-                        trigger_ch=None):
+                        dtype, n_channels=None, offset=0, trigger_ch=None):
     """Read a chunk of raw data."""
-    n_channels = raw.info['nchan'] if n_channels is None else n_channels
+    if n_channels is None:
+        n_channels = raw._raw_extras[fi]['orig_nchan']
 
     n_bytes = np.dtype(dtype).itemsize
     # data_offset and data_left count data samples (channels x time points),
@@ -291,8 +265,8 @@ def _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg, misc):
             kind = ch_kind
 
         chan_info = {'cal': cals[idx], 'logno': idx + 1, 'scanno': idx + 1,
-                     'range': 1.0, 'unit_mul': 0., 'ch_name': ch_name,
-                     'unit': FIFF.FIFF_UNIT_V,
+                     'range': 1.0, 'unit_mul': FIFF.FIFF_UNITM_NONE,
+                     'ch_name': ch_name, 'unit': FIFF.FIFF_UNIT_V,
                      'coord_frame': FIFF.FIFFV_COORD_HEAD,
                      'coil_type': coil_type, 'kind': kind, 'loc': np.zeros(12)}
         chs.append(chan_info)
@@ -324,16 +298,18 @@ def _synthesize_stim_channel(events, n_samples):
     return stim_channel
 
 
-def _construct_bids_filename(base, ext, part_idx):
+def _construct_bids_filename(base, ext, part_idx, validate=True):
     """Construct a BIDS compatible filename for split files."""
     # insert index in filename
+    dirname = op.dirname(base)
+    base = op.basename(base)
     deconstructed_base = base.split('_')
-    bids_supported = ['meg', 'eeg', 'ieeg']
-    for mod in bids_supported:
-        if mod in deconstructed_base:
-            idx = deconstructed_base.index(mod)
-            modality = deconstructed_base.pop(idx)
-    base = '_'.join(deconstructed_base)
-    use_fname = '%s_part-%02d_%s%s' % (base, part_idx, modality, ext)
-
+    if len(deconstructed_base) < 2 and validate:
+        raise ValueError('Filename base must end with an underscore followed '
+                         f'by the modality (e.g., _eeg or _meg), got {base}')
+    suffix = deconstructed_base[-1]
+    base = '_'.join(deconstructed_base[:-1])
+    use_fname = '{}_split-{:02}_{}{}'.format(base, part_idx, suffix, ext)
+    if dirname:
+        use_fname = op.join(dirname, use_fname)
     return use_fname
