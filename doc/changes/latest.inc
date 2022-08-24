@@ -32,7 +32,7 @@ Enhancements
 - Add ``starting_affine`` keyword argument to :func:`mne.transforms.compute_volume_registration` to initialize an alignment with an affine (:gh:`11020` by `Alex Rockhill`_)
 - The ``trans`` parameter in :func:`mne.make_field_map` now accepts a :class:`~pathlib.Path` object, and uses standardised loading logic (:gh:`10784` by :newcontrib:`Andrew Quinn`)
 - Allow :func:`mne.beamformer.make_dics` to take ``pick_ori='vector'`` to compute vector source estimates (:gh:`19080` by `Alex Rockhill`_)
-- Add ``on_missing`` functionality to :class:`mne.channels.channels.UpdateChannelsMixin` to tune drop_channels behaviour when specified channel names are not found(:gh:`11043` by `Andrew Quinn`_)
+Add ``on_missing`` functionality to all of our classes that have a ``drop_channels`` method, to control what happens when channel names are not in the object (:gh:`11043` by `Andrew Quinn`_)
 
 Bugs
 ~~~~
