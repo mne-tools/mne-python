@@ -1000,6 +1000,80 @@ def _merge_grad_data(data, method='rms'):
     return data.reshape(data.shape[:1] + orig_shape[1:])
 
 
+def _combine_meg_grads(inst, method='rms'):
+    """Combine pairs of gradiometer channels."""
+    # TODO:
+    # - modify coil_type and kind to a combined gradiometer
+    # - modify units depending on method
+    # - need to handle noise_cov? projections?
+    # - currently assumes inst only contains 'grads'
+    # - outsource return instance creation to specific methods
+
+    picks = _pair_grad_sensors(inst.info, topomap_coords=False, exclude=[])
+    picks = np.array(picks).reshape(-1, 2)  # now [npairs x 2]
+    new_chs = list()
+    new_bads = list()
+    for idx in range(picks.shape[0]):
+        # Get chans
+        ch1 = inst.info['chs'][picks[idx, 0]]
+        ch2 = inst.info['chs'][picks[idx, 1]]
+
+        # Make new chan name
+        new_ch_name = ch1['ch_name'][:-1] + 'X'
+
+        # Check if either ch of pair is bad
+        check = []
+        for bd in inst.info['bads']:
+            check.append(bd in (ch1['ch_name'], ch2['ch_name']))
+        if any(check):
+            new_bads.append(new_ch_name)
+
+        # Make new channel using first of pair as template
+        new_ch = inst.info['chs'][picks[idx, 0]].copy()
+        new_ch['ch_name'] = new_ch_name
+        new_chs.append(new_ch)
+
+    # Check channel names are unique
+    check = np.unique([ch['ch_name'] for ch in new_chs]).shape[0]
+    if check != len(new_chs):
+        raise RuntimeError('Combined channel names not unique...')
+
+    # Modify channels and bads in new info instance
+    new_info = inst.info.copy()
+    with new_info._unlock(update_redundant=True, check_after=True):
+        new_info['chs'] = new_chs
+        new_info['bads'] = new_bads
+
+    from ..io import BaseRaw, RawArray
+    from ..epochs import BaseEpochs, EpochsArray
+    from ..evoked import Evoked, EvokedArray
+    if isinstance(inst, BaseRaw):
+        # We have continuous data - merge in one-shot
+        data = inst.get_data()[picks.reshape(-1)]
+        data = _merge_grad_data(data, method=method)
+        # Make return instance
+        out = RawArray(data, new_info, first_samp=inst.first_samp)
+    elif isinstance(inst, BaseEpochs):
+        # We have epoched data - merge each epoch
+        data = [_merge_grad_data(e, method=method)[None, :, :] for e in inst]
+        data = np.concatenate(data, axis=0)
+        # Make return instance
+        out = EpochsArray(data, new_info,
+                          events=inst.events,
+                          tmin=inst.tmin,
+                          event_id=inst.event_id)
+    elif isinstance(inst, (Evoked, EvokedArray)):
+        # We have evoked data - merge in one-shot
+        data = _merge_grad_data(inst.data, method=method)
+        # Make return instance
+        out = EvokedArray(data, new_info)
+    else:
+        msg = "Input instance type '{0}' not recognised"
+        raise RuntimeError(msg.format(type(inst)))
+
+    return out
+
+
 def _merge_nirs_data(data, merged_names):
     """Merge data from multiple nirs channel using the mean.
 
