@@ -457,8 +457,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def animate_topomap(self, ch_type=None, times=None, frame_rate=None,
                         butterfly=False, blit=True, show=True, time_unit='s',
                         sphere=None, *, image_interp=_INTERPOLATION_DEFAULT,
-                        extrapolate=_EXTRAPOLATE_DEFAULT, verbose=None,
-                        vmin=None, vmax=None):
+                        extrapolate=_EXTRAPOLATE_DEFAULT, vmin=None, vmax=None,
+                        verbose=None):
         """Make animation of evoked data as topomap timeseries.
 
         The animation can be paused/resumed with left mouse button.
@@ -499,9 +499,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(extrapolate_topomap)s
 
             .. versionadded:: 0.22
-        %(verbose)s
-            .. versionadded:: 1.1.0
         %(vmin_vmax_topomap)s
+
+            .. versionadded:: 1.1.0
+        %(verbose)s
+
 
         Returns
         -------
@@ -518,7 +520,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self, ch_type=ch_type, times=times, frame_rate=frame_rate,
             butterfly=butterfly, blit=blit, show=show, time_unit=time_unit,
             sphere=sphere, image_interp=image_interp,
-            extrapolate=extrapolate, verbose=verbose, vmin=vmin, vmax=vmax)
+            extrapolate=extrapolate, vmin=vmin, vmax=vmax, verbose=verbose)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields.
