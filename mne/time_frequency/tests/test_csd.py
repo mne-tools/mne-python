@@ -16,20 +16,30 @@ from mne.time_frequency import (csd_fourier, csd_multitaper,
                                 CrossSpectralDensity, read_csd,
                                 pick_channels_csd, psd_multitaper)
 from mne.time_frequency.csd import _sym_mat_to_vector, _vector_to_sym_mat
+from mne.proj import Projection
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_fname = op.join(base_dir, 'test-eve.fif')
 
 
-def _make_csd():
+def _make_csd(add_proj=False):
     """Make a simple CrossSpectralDensity object."""
     frequencies = [1., 2., 3., 4.]
     n_freqs = len(frequencies)
     names = ['CH1', 'CH2', 'CH3']
     tmin, tmax = (0., 1.)
     data = np.arange(6. * n_freqs).reshape(n_freqs, 6).T
-    return CrossSpectralDensity(data, names, frequencies, 1, tmin, tmax)
+    if add_proj:
+        proj_data = dict(
+            col_names=names, row_names=None, data=np.ones((1, len(names)))
+        )
+        projs = [Projection(data=proj_data)]
+    else:
+        projs = None
+    return CrossSpectralDensity(
+        data, names, frequencies, 1, tmin, tmax, projs=projs
+    )
 
 
 def test_csd():
@@ -223,17 +233,17 @@ def test_csd_get_data():
 @requires_version('h5io')
 def test_csd_save(tmp_path):
     """Test saving and loading a CrossSpectralDensity."""
-    csd = _make_csd()
-    tempdir = str(tmp_path)
-    fname = op.join(tempdir, 'csd.h5')
+    csd = _make_csd(add_proj=True)
+    fname = op.join(str(tmp_path), 'csd.h5')
     csd.save(fname)
     csd2 = read_csd(fname)
     assert_array_equal(csd._data, csd2._data)
+    assert_array_equal(csd.frequencies, csd2.frequencies)
     assert csd.tmin == csd2.tmin
     assert csd.tmax == csd2.tmax
     assert csd.ch_names == csd2.ch_names
-    assert csd.frequencies == csd2.frequencies
     assert csd._is_sum == csd2._is_sum
+    assert isinstance(csd2.projs[0], Projection)
 
 
 def test_csd_pickle(tmp_path):

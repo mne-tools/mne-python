@@ -2237,6 +2237,12 @@ pca_vars : array, shape (n_comp,) | list of array
     returned as list. Only returned if mode='svd' and return_pca_vars=True.
 """
 
+docdict['per_sample_metric'] = """
+per_sample : bool
+    If True the metric is computed for each sample
+    separately. If False, the metric is spatio-temporal.
+"""
+
 docdict['phase'] = """
 phase : str
     Phase of the filter, only used if ``method='fir'``.
@@ -3151,11 +3157,28 @@ static : instance of SpatialImage
     The image to align with ("to" volume).
 """
 
+docdict['stc_est_metric'] = """
+stc_est : instance of (Vol|Mixed)SourceEstimate
+    The source estimates containing estimated values
+    e.g. obtained with a source imaging method.
+"""
+
+docdict['stc_metric'] = """
+metric : float | array, shape (n_times,)
+    The metric. float if per_sample is False, else
+    array with the values computed for each time point.
+"""
+
 docdict['stc_plot_kwargs_report'] = """
 stc_plot_kwargs : dict
     Dictionary of keyword arguments to pass to
     :class:`mne.SourceEstimate.plot`. Only used when plotting in 3D
     mode.
+"""
+
+docdict['stc_true_metric'] = """
+stc_true : instance of (Vol|Mixed)SourceEstimate
+    The source estimates containing correct values.
 """
 
 docdict['stcs_pctf'] = """
@@ -3433,9 +3456,6 @@ docdict['trans'] = f"""
 trans : path-like | dict | instance of Transform | None
     {_trans_base}
     If trans is None, an identity matrix is assumed.
-
-    .. versionchanged:: 0.19
-       Support for 'fsaverage' argument.
 """
 
 docdict['trans_not_none'] = """

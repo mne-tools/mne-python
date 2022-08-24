@@ -2295,11 +2295,13 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere, ch_type,
     logger.info('Initializing animation...')
     data = params['data']
     items = list()
+    vmin = params['vmin'] if 'vmin' in params else None
+    vmax = params['vmax'] if 'vmax' in params else None
     if params['butterfly']:
         all_times = params['all_times']
         for idx in range(len(data)):
             ax_line.plot(all_times, data[idx], color='k', lw=1)
-        vmin, vmax = _setup_vmin_vmax(data, None, None)
+        vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
         ax_line.set(yticks=np.around(np.linspace(vmin, vmax, 5), -1),
                     xlim=all_times[[0, -1]])
         params['line'] = ax_line.axvline(all_times[0], color='r')
@@ -2310,7 +2312,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere, ch_type,
     norm = True if np.min(data) > 0 else False
     cmap = 'Reds' if norm else 'RdBu_r'
 
-    vmin, vmax = _setup_vmin_vmax(data, None, None, norm)
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
 
     outlines = _make_head_outlines(sphere, params['pos'], 'head',
                                    params['clip_origin'])
@@ -2430,7 +2432,7 @@ def _key_press(event, params):
 
 def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
                        show, time_unit, sphere, image_interp,
-                       extrapolate, *, verbose=None):
+                       extrapolate, *, vmin, vmax, verbose=None):
     """Make animation of evoked data as topomap timeseries.
 
     See mne.evoked.Evoked.animate_topomap.
@@ -2459,6 +2461,9 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
     data = evoked.data[picks, :]
     data *= _handle_default('scalings')[ch_type]
 
+    norm = np.min(data) >= 0
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
+
     fig = plt.figure(figsize=(6, 5))
     shape = (8, 12)
     colspan = shape[1] - 1
@@ -2477,7 +2482,7 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
     params = dict(data=data, pos=pos, all_times=evoked.times, frame=0,
                   frames=frames, butterfly=butterfly, blit=blit,
                   pause=False, times=times, time_unit=time_unit,
-                  clip_origin=clip_origin)
+                  clip_origin=clip_origin, vmin=vmin, vmax=vmax)
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
                         params=params, merge_channels=merge_channels,
                         sphere=sphere, ch_type=ch_type,
