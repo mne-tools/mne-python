@@ -1168,11 +1168,11 @@ class QFloatSlider(QSlider):
         if self.orientation() == Qt.Vertical:
             half = (0.5 * sr.height()) + 0.5
             max_ = self.height()
-            pos = max_ - event.y()
+            pos = max_ - event.pos().y()
         else:
             half = (0.5 * sr.width()) + 0.5
             max_ = self.width()
-            pos = event.x()
+            pos = event.pos().x()
         max_ = max_ - 2 * half
         pos = min(max(pos - half, 0), max_) / max_
         val = self.minimum() + (self.maximum() - self.minimum()) * pos

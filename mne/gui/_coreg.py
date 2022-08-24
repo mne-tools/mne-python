@@ -742,7 +742,7 @@ class CoregistrationUI(HasTraits):
         self._update_actor("mri_fids_legend", mri_fids_legend_actor)
 
     @verbose
-    def _redraw(self, verbose=None):
+    def _redraw(self, *, verbose=None):
         if not self._redraws_pending:
             return
         draw_map = dict(
@@ -1161,6 +1161,7 @@ class CoregistrationUI(HasTraits):
 
     def _add_helmet(self):
         if self._helmet:
+            logger.debug('Drawing helmet')
             head_mri_t = _get_trans(self.coreg.trans, 'head', 'mri')[0]
             helmet_actor, _, _ = _plot_helmet(
                 self._renderer, self._info, self._to_cf_t, head_mri_t,
@@ -1199,7 +1200,7 @@ class CoregistrationUI(HasTraits):
     def _fit_icp_real(self, *, update_head):
         with self._lock(params=True, fitting=True):
             self._current_icp_iterations = 0
-            updates = ['hsp', 'hpi', 'eeg', 'head_fids']
+            updates = ['hsp', 'hpi', 'eeg', 'head_fids', 'helmet']
             if update_head:
                 updates.insert(0, 'head')
 
