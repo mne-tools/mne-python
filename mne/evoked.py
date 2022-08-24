@@ -504,7 +504,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             .. versionadded:: 1.1.0
         %(verbose)s
 
-
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
