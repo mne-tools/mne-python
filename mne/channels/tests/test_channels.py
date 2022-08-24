@@ -454,7 +454,7 @@ def test_drop_channels():
     with pytest.raises(ValueError, match='not found, nothing dropped'):
         raw.drop_channels(m_chs)
     # ...but this can be turned to a warning
-    with pytest.raises(RuntimeWarning, match='not found, nothing dropped'):
+    with pytest.warns(RuntimeWarning, match='not found, nothing dropped'):
         raw.drop_channels(m_chs, on_missing='warn')
     # ...or ignored altogether
     raw.drop_channels(m_chs, on_missing='ignore')
