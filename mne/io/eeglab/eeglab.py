@@ -143,9 +143,7 @@ def _get_montage_information(eeg, get_pos):
                         for key in sorted(unknown_types)]))
 
     lpa, rpa, nasion = None, None, None
-    if (hasattr(eeg, "chaninfo") and
-            "nodatchans" in eeg.chaninfo and
-            len(eeg.chaninfo['nodatchans'])):
+    if hasattr(eeg, "chaninfo") and len(eeg.chaninfo.get('nodatchans', [])):
         for item in list(zip(*eeg.chaninfo['nodatchans'].values())):
             d = dict(zip(eeg.chaninfo['nodatchans'].keys(), item))
             if d.get("type", None) != 'FID':

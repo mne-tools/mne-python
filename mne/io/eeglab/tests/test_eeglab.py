@@ -14,6 +14,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 import pytest
 from scipy import io
 
+import mne
 from mne import write_events, read_epochs_eeglab
 from mne.channels import read_custom_montage
 from mne.io import read_raw_eeglab
@@ -470,14 +471,30 @@ def test_get_montage_info_with_ch_type():
 
 
 @testing.requires_testing_data
-def test_fidsposition_information():
+@pytest.mark.parametrize('has_type', (True, False))
+def test_fidsposition_information(monkeypatch, has_type):
     """Test reading file with 3 fiducial locations."""
+    if not has_type:
+        def get_bad_information(eeg, get_pos):
+            del eeg.chaninfo['nodatchans']['type']
+            return _get_montage_information(eeg, get_pos)
+
+        monkeypatch.setattr(mne.io.eeglab.eeglab, '_get_montage_information',
+                            get_bad_information)
     raw = read_raw_eeglab(raw_fname_chanloc_fids)
     montage = raw.get_montage()
     pos = montage.get_positions()
+    n_eeg = 129
+    if not has_type:
+        assert pos['nasion'] is None
+        assert pos['lpa'] is None
+        assert pos['rpa'] is None
+        assert len(raw.info['dig']) == n_eeg
+        return
     assert pos['nasion'] is not None
     assert pos['lpa'] is not None
     assert pos['rpa'] is not None
     assert len(pos['nasion']) == 3
     assert len(pos['lpa']) == 3
     assert len(pos['rpa']) == 3
+    assert len(raw.info['dig']) == n_eeg + 3
