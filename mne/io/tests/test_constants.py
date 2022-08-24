@@ -20,8 +20,8 @@ from mne.utils import requires_good_network
 
 
 # https://github.com/mne-tools/fiff-constants/commits/master
-REPO = 'mne-tools'
-COMMIT = 'aa49e20cff5791fbaf01d77ad4ec2e0ecb69840d'
+REPO = 'ajquinn'
+COMMIT = '2e3cf85d3fb9135057331fd9b7376e83f3c88077'
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
@@ -59,6 +59,7 @@ _missing_coil_def = (
     2001,   # Generic axial gradiometer
     3011,   # VV prototype wirewound planar sensor
     3014,   # Vectorview SQ20950N planar gradiometer
+    3016,   # Vectorview combined planar gradiometer
     3021,   # VV prototype wirewound magnetometer
 )
 # explicit aliases in constants.py
