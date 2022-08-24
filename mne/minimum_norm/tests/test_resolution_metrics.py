@@ -35,8 +35,8 @@ fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 
 
 @testing.requires_testing_data
-def test_resolution_metrics():
-    """Test resolution metrics."""
+def test_resolution_metrics_surface():
+    """Test resolution metrics on surfaces."""
     fwd = mne.read_forward_solution(fname_fwd)
     # forward operator with fixed source orientations
     fwd = mne.convert_forward_solution(fwd, surf_ori=True,

@@ -7,6 +7,8 @@
 
 from copy import deepcopy
 from math import sqrt
+import logging
+
 import numpy as np
 
 from ._eloreta import _compute_eloreta
@@ -54,6 +56,16 @@ class InverseOperator(dict):
         """Return a copy of the InverseOperator."""
         return InverseOperator(deepcopy(self))
 
+    @property
+    def _is_surf_ori(self):
+        surf_ori = False
+        prior = self['orient_prior']
+        if prior is not None:
+            prior = prior['data']
+            if not np.allclose(prior, 1.):
+                surf_ori = True
+        return surf_ori
+
     def _get_chs_and_src_info_for_repr(self):
         n_chs_meg = len(pick_types(self['info'], meg=True, eeg=False))
         n_chs_eeg = len(pick_types(self['info'], meg=False, eeg=True))
@@ -66,12 +78,8 @@ class InverseOperator(dict):
             FIFF.FIFFV_MNE_FREE_ORI: 'Free'
         }
         src_ori = src_ori_fiff_to_name_map[self['source_ori']]
-        if src_ori == 'Free':  # we need to do some investigation
-            prior = self['orient_prior']
-            if prior is not None:
-                prior = prior['data']
-                if not np.allclose(prior, 1.):
-                    src_ori = f'Loose ({np.min(prior)})'
+        if src_ori == 'Free' and self._is_surf_ori:
+            src_ori = f"Loose ({np.min(self['orient_prior']['data'])})"
         return n_chs_meg, n_chs_eeg, src_space_descr, src_ori
 
     def __repr__(self):  # noqa: D105
@@ -1490,8 +1498,9 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     logger.info('Whitening the forward solution.')
     noise_cov = prepare_noise_cov(
         noise_cov, info, info_picked['ch_names'], rank)
+    verbose = False if logger.level <= logging.WARN else None
     whitener, _ = compute_whitener(
-        noise_cov, info, info_picked['ch_names'], pca=pca, verbose=False,
+        noise_cov, info, info_picked['ch_names'], pca=pca, verbose=verbose,
         rank=rank)
     gain = np.dot(whitener, forward['sol']['data'])
 

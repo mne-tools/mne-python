@@ -600,6 +600,11 @@ def _fwd_subvolume(_evoked_cov_sphere):
         evoked.info, fname_trans, src_vol, sphere, mindist=5.0)
 
 
+@pytest.fixture
+def fwd_volume_small(_fwd_subvolume):
+    return _fwd_subvolume.copy()
+
+
 @pytest.fixture(scope='session')
 def _all_src_types_fwd(_fwd_surf, _fwd_subvolume):
     """Create all three forward types (surf, vol, mixed)."""
