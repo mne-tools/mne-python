@@ -55,7 +55,7 @@ _data_path_doc = """Get path to local copy of {name} dataset.
         Path to {name} dataset directory.
 """
 _data_path_doc_accept = _data_path_doc.split('%(verbose)s')
-_data_path_doc_accept[-1] = '%(verbose)s' + _data_path_doc_accept[-1]
+_data_path_doc_accept[-1] = '\n%(verbose)s' + _data_path_doc_accept[-1]
 _data_path_doc_accept.insert(1, '    %(accept)s')
 _data_path_doc_accept = ''.join(_data_path_doc_accept)
 _data_path_doc = _docformat(_data_path_doc, docdict)
