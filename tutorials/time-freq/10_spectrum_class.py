@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# noqa: E501
 """
 .. _tut-spectrum-class:
 
@@ -63,7 +64,7 @@ raw.compute_psd(method='multitaper', tmin=10, tmax=20, fmin=5, fmax=30,
 with mne.use_log_level('WARNING'):  # hide some irrelevant info messages
     events = mne.find_events(raw, stim_channel='STI 014')
     event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-                'visual/right': 4}
+                  'visual/right': 4}
     epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7, event_id=event_dict,
                         preload=True)
 epo_spectrum = epochs.compute_psd()
