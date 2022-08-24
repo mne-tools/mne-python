@@ -213,6 +213,7 @@ def test_io_evoked(tmp_path):
     assert_equal(ave.last, ave2.last)
     assert_equal(ave.first, ave2.first)
     assert (repr(ave))
+    assert (ave._repr_html_())  # test _repr_html_
 
     # test compressed i/o
     ave2 = read_evokeds(fname_gz, 0)

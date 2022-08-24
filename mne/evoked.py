@@ -349,6 +349,18 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         s += ", ~%s" % (sizeof_fmt(self._size),)
         return "<Evoked | %s>" % s
 
+    def _repr_html_(self):
+        from .html_templates import repr_templates_env
+        if self.baseline is None:
+            baseline = 'off'
+        else:
+            baseline = tuple([f'{b:.3f}' for b in self.baseline])
+            baseline = f'{baseline[0]} – {baseline[1]} sec'
+
+        t = repr_templates_env.get_template('evoked.html.jinja')
+        t = t.render(evoked=self, baseline=baseline)
+        return t
+
     @property
     def ch_names(self):
         """Channel names."""
