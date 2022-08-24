@@ -16,11 +16,12 @@ Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 
 License: BSD (3-clause)
 """
+# %%
 # Do imports and load the MNE-Sample data.
-###############################################################################
+
 import mne
 from mne.datasets import sample
-from mne.preprocessing import EOGRegression, regress_artifact
+from mne.preprocessing import EOGRegression
 from matplotlib import pyplot as plt
 
 print(__doc__)
@@ -38,28 +39,39 @@ raw.pick(('eeg', 'eog'))
 # Bandpass filter
 raw.filter(0.3, 30, method='iir', picks=('eeg', 'eog'))
 
+# %%
+# Create a template of a blink
+# ----------------------------
+#
 # Estimate blink onsets and create blink evokeds. EOG regression weights will
 # be computed using this evoked data. This may yield slightly better weights
 # than performing the regression using the raw data, as the averaging procedure
 # yields a more "pure" recording of the EOG artifact with ongoing EEG
 # suppressed.
-###############################################################################
+
 eog_event_id = 512
 eog_events = mne.preprocessing.find_eog_events(raw, eog_event_id)
 blink_epochs = mne.Epochs(raw, eog_events, eog_event_id, tmin=-0.5, tmax=0.5,
                           baseline=(-0.5, -0.3), preload=True)
 blink_evoked = blink_epochs.average('all')
 
+# %%
 # Perform regression and remove EOG
+# ---------------------------------
+# We are now ready to perform the regression. We compute the regression weights
+# on the blink template and apply them to the continuous data.
+
 weights = EOGRegression().fit(blink_evoked)
 raw_clean = weights.apply(raw, copy=True)
 
 # Show the filter weights in a topomap
 weights.plot()
 
+# %%
+# Before-after comparison
+# -----------------------
 # Let's compare the signal before and after cleaning with EOG regression. This
 # is best visualized by cutting epochs and plotting the evoked potential.
-###############################################################################
 
 tmin, tmax = -0.1, 0.5
 event_ids = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR': 4}
@@ -68,16 +80,12 @@ evoked_before = mne.Epochs(raw, events, event_ids, tmin, tmax,
 evoked_after = mne.Epochs(raw_clean, events, event_ids, tmin, tmax,
                           baseline=(tmin, 0)).average()
 
-# Let's also apply EOG regression to the blink epochs, so we can see how much
-# of the eye blink artifact was removed
-blink_evoked_after = weights.apply(blink_evoked).apply_baseline()
-
 # Create epochs after EOG correction
 epochs_after = mne.Epochs(raw_clean, events, event_ids, tmin, tmax,
                           baseline=(tmin, 0))
 evoked_after = epochs_after.average()
 
-fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(12, 7))
+fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(5, 7))
 evoked_before.plot(axes=ax[0, 0])
 ax[0, 0].set_ylim(-6, 6)
 ax[0, 0].set_title('Evoked potential before EOG regression')
@@ -85,23 +93,3 @@ ax[0, 0].set_title('Evoked potential before EOG regression')
 evoked_after.plot(axes=ax[1, 0])
 ax[1, 0].set_ylim(-6, 6)
 ax[1, 0].set_title('Evoked potential after EOG regression')
-
-blink_evoked.pick('eeg').plot(axes=ax[0, 1])
-ax[0, 1].set_ylim(-30, 100)
-ax[0, 1].set_title('Blink evoked before EOG regression')
-
-blink_evoked_after.pick('eeg').plot(axes=ax[1, 1])
-ax[1, 1].set_ylim(-30, 100)
-ax[1, 1].set_title('Blink evoked after EOG regression')
-plt.tight_layout()
-
-# Test if the old interface still works.
-# FIXME This should not be in the actual example.
-raw_clean2, betas = regress_artifact(raw, copy=True)
-mne.Epochs(raw_clean2, events, event_ids,
-           tmin, tmax, baseline=(tmin, 0)).average().plot()
-plt.ylim(-6, 6)
-raw_clean3, _ = regress_artifact(raw, betas=betas, copy=True)
-mne.Epochs(raw_clean3, events, event_ids,
-           tmin, tmax, baseline=(tmin, 0)).average().plot()
-plt.ylim(-6, 6)
