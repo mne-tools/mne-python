@@ -494,8 +494,7 @@ sphinx_gallery_conf = {
         '.*apply\\(\\)|.*decision_function\\(\\)|.*fit\\(\\)|'
         '.*fit_transform\\(\\)|.*get_params\\(\\)|.*predict\\(\\)|'
         '.*predict_proba\\(\\)|.*set_params\\(\\)|.*transform\\(\\)|'
-        '.*.remove.*|.*.write.*)',
-        ')')
+        '.*.remove.*|.*.write.*)')
 }
 
 
