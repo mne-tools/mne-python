@@ -24,7 +24,8 @@ import numpy as np
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..utils import (verbose, logger, warn,
                      _check_preload, _validate_type, fill_doc, _check_option,
-                     _get_stim_channel, _check_fname, _check_dict_keys)
+                     _get_stim_channel, _check_fname, _check_dict_keys,
+                     _on_missing)
 from ..io.constants import FIFF
 from ..io.meas_info import (anonymize_info, Info, MontageMixin, create_info,
                             _rename_comps)
@@ -735,13 +736,15 @@ class UpdateChannelsMixin(object):
             idx.append(ii)
         return self._pick_drop_channels(idx)
 
-    def drop_channels(self, ch_names):
+    @fill_doc
+    def drop_channels(self, ch_names, on_missing='raise'):
         """Drop channel(s).
 
         Parameters
         ----------
         ch_names : iterable or str
             Iterable (e.g. list) of channel name(s) or channel name to remove.
+        %(on_missing_ch_names)s
 
         Returns
         -------
@@ -774,7 +777,7 @@ class UpdateChannelsMixin(object):
         missing = [ch for ch in ch_names if ch not in self.ch_names]
         if len(missing) > 0:
             msg = "Channel(s) {0} not found, nothing dropped."
-            raise ValueError(msg.format(", ".join(missing)))
+            _on_missing(on_missing, msg.format(", ".join(missing)))
 
         bad_idx = [self.ch_names.index(ch) for ch in ch_names
                    if ch in self.ch_names]
