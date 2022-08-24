@@ -1003,7 +1003,6 @@ def _merge_grad_data(data, method='rms'):
 def _combine_meg_grads(inst, method='rms'):
     """Combine pairs of gradiometer channels."""
     # TODO:
-    # - modify coil_type and kind to a combined gradiometer
     # - modify units depending on method
     # - need to handle noise_cov? projections?
     # - currently assumes inst only contains 'grads'
@@ -1031,6 +1030,7 @@ def _combine_meg_grads(inst, method='rms'):
         # Make new channel using first of pair as template
         new_ch = inst.info['chs'][picks[idx, 0]].copy()
         new_ch['ch_name'] = new_ch_name
+        new_ch['coil_type'] = FIFF.FIFFV_COIL_VV_PLANAR_T5
         new_chs.append(new_ch)
 
     # Check channel names are unique
@@ -1043,6 +1043,9 @@ def _combine_meg_grads(inst, method='rms'):
     with new_info._unlock(update_redundant=True, check_after=True):
         new_info['chs'] = new_chs
         new_info['bads'] = new_bads
+
+    new_info._update_redundant()
+    new_info._check_consistency()
 
     from ..io import BaseRaw, RawArray
     from ..epochs import BaseEpochs, EpochsArray

@@ -17,9 +17,9 @@ import matplotlib.pyplot as plt
 from mne.channels import (make_eeg_layout, make_grid_layout, read_layout,
                           find_layout, HEAD_SIZE_DEFAULT)
 from mne.channels.layout import (_box_size, _find_topomap_coords,
-                                 generate_2d_layout)
+                                 generate_2d_layout, _combine_meg_grads)
 from mne import pick_types, pick_info
-from mne.io import read_raw_kit, _empty_info, read_info
+from mne.io import read_raw_kit, _empty_info, read_info, read_raw_fif
 from mne.io.constants import FIFF
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
@@ -369,3 +369,22 @@ def test_generate_2d_layout():
     # Make sure background image normalizing is correct
     lt_bg = generate_2d_layout(xy, bg_image=bg_image)
     assert_allclose(lt_bg.pos[:, :2].max(), xy.max() / float(sbg))
+
+
+def test_combine_grads():
+    """Test gradiometer combining."""
+    # Load test data
+    raw = read_raw_fif(fif_fname).copy().pick_types(meg='grad')
+    assert_equal(len(raw.info['chs']), 204)
+    assert_equal(raw.info['chs'][0]['coil_type'], FIFF.FIFFV_COIL_VV_PLANAR_T1)
+
+    # Run combination with RMS
+    cmb = _combine_meg_grads(raw, method='rms')
+    # half the number of channels
+    assert_equal(len(cmb.info['chs']), 102)
+    # coil type is combined planar
+    assert_equal(cmb.info['chs'][0]['coil_type'], FIFF.FIFFV_COIL_VV_PLANAR_T5)
+    # coil name ends with X
+    assert_equal(cmb.info['chs'][0]['ch_name'][-1], 'X')
+    # combined data is strictly positive
+    assert (cmb.get_data().min() >= 0)
