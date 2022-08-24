@@ -8,7 +8,7 @@
 from contextlib import nullcontext
 import os.path as op
 import numpy as np
-from numpy.testing import (assert_equal, assert_array_almost_equal,
+from numpy.testing import (assert_array_almost_equal,
                            assert_array_equal, assert_allclose)
 import pytest
 
@@ -26,8 +26,6 @@ fname_evoked = op.join(data_path, 'MEG', 'sample',
 # Intentional mismatch here!
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_trunc-meg-vol-7-fwd.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 fname_label = op.join(data_path, 'subjects', 'sample', 'label', 'lh.V1.label')
 
@@ -108,7 +106,7 @@ def test_resolution_matrix_fixed():
     # compute resolution matrix for MNE, fwd fixed and inv free
     forward = mne.read_forward_solution(fname_fwd)
     forward_fxd = mne.convert_forward_solution(forward, surf_ori=True,
-                                            force_fixed=True)
+                                               force_fixed=True)
     noise_cov = mne.read_cov(fname_cov)
     evoked = mne.read_evokeds(fname_evoked, 0)
     inverse_operator = mne.minimum_norm.make_inverse_operator(

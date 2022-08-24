@@ -602,6 +602,7 @@ def _fwd_subvolume(_evoked_cov_sphere):
 
 @pytest.fixture
 def fwd_volume_small(_fwd_subvolume):
+    """Provide a small volumetric source space."""
     return _fwd_subvolume.copy()
 
 
