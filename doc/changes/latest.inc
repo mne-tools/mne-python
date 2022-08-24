@@ -35,6 +35,7 @@ Bugs
 - Fix bug in :class:`mne.viz.Brain` constructor where the first argument was named ``subject_id`` instead of ``subject`` (:gh:`11049` by `Eric Larson`_)
 - Document ``height`` and ``weight`` keys of  ``subject_info`` entry in :class:`mne.Info` (:gh:`11019` by :newcontrib:`Sena Er`)
 - Fixed bug in :func:`mne.viz.plot_filter` when plotting filters created using ``output='ba'`` mode with ``compensation`` turned on. (by `Marian Dovgialo`_)
+- Applying a montage where EEG locations are not in head space (or unknown space) without fiducials will now raise an error message. (:gh:`11080` by `Marijn van Vliet`_)
 
 API changes
 ~~~~~~~~~~~
