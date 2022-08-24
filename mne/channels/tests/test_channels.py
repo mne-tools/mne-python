@@ -451,9 +451,11 @@ def test_drop_channels():
 
     # by default, drop channels raises a ValueError if a channel can't be found
     m_chs = ["MEG 0111", "MEG blahblah"]
-    pytest.raises(ValueError, raw.drop_channels, m_chs)
+    with pytest.raises(ValueError, match='not found, nothing dropped'):
+        raw.drop_channels(m_chs)
     # ...but this can be turned to a warning
-    pytest.warns(RuntimeWarning, raw.drop_channels, m_chs, on_missing='warn')
+    with pytest.raises(RuntimeWarning, match='not found, nothing dropped'):
+        raw.drop_channels(m_chs, on_missing='warn')
     # ...or ignored altogether
     raw.drop_channels(m_chs, on_missing='ignore')
 
