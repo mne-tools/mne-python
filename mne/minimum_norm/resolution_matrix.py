@@ -11,14 +11,15 @@ from .. import pick_channels_forward, EvokedArray, SourceEstimate
 from ..io.constants import FIFF
 from ..utils import logger, verbose
 from ..forward.forward import convert_forward_solution
-from ..minimum_norm import apply_inverse
+from ..minimum_norm import apply_inverse, apply_inverse_cov
 from ..source_estimate import _prepare_label_extraction
 from ..label import Label
 
 
 @verbose
 def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
-                                   lambda2=1. / 9., verbose=None):
+                                   lambda2=1. / 9., cov=None, snr=None,
+                                   verbose=None):
     """Compute resolution matrix for linear inverse operator.
 
     Parameters
@@ -31,6 +32,10 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
         Inverse method to use (MNE, dSPM, sLORETA).
     lambda2 : float
         The regularisation parameter.
+    cov : None | instance of Covariance
+        Noise covariance matrix to compute noise power in source space.
+    snr : None | float
+        Signal-to-noise ratio for source signal vs noise power.
     %(verbose)s
 
     Returns
@@ -40,9 +45,16 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
         The result of applying the inverse operator to the forward operator.
         If source orientations are not fixed, all source components will be
         computed (i.e. for n_orient_inv > 1 or n_orient_fwd > 1).
+        If 'cov' and 'snr' are not None, then 'resmat' will be of shape
+        (n_dipoles, n_orient_fwd * n_dipoles) with values pooled across
+        n_orient_inv source orientations per location.
         The columns of the resolution matrix are the point-spread functions
         (PSFs) and the rows are the cross-talk functions (CTFs).
     """
+    if (cov is None and snr is not None) or (cov is not None and snr is None):
+        msg = 'cov and snr must both be None or not be None.'
+        raise ValueError(msg)
+
     # make sure forward and inverse operator match
     inv = inverse_operator
     fwd = _convert_forward_match_inv(forward, inv)
@@ -60,6 +72,20 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
                                                method=method, lambda2=lambda2)
     resmat = invmat.dot(leadfield)
     logger.info('Dimensions of resolution matrix: %d by %d.' % resmat.shape)
+
+    if cov is not None:
+        print('\n###\nAdding noise to resolution matrix.\n###')
+        info_inv = _prepare_info(inverse_operator)
+        stc = apply_inverse_cov(
+            cov, info_inv, inverse_operator, nave=1, lambda2=lambda2,
+            method=method, pick_ori=None, prepared=False, label=None,
+            method_params=None, use_cps=True, verbose=None)
+
+        # Add square root of source power per column
+        print(stc.data.shape)
+        resmat = np.zeros(resmat.shape)
+        resmat += np.sqrt(stc.data)
+
     return resmat
 
 
