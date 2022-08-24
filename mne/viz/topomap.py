@@ -792,7 +792,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     :doc:`matplotlib docs <matplotlib:tutorials/colors/colormapnorms>`
     for more details on colormap normalization.
     """
-    sphere = _check_sphere(sphere)
+    sphere = _check_sphere(sphere, pos if isinstance(pos, Info) else None)
     from matplotlib.colors import Normalize
     _validate_type(cnorm, (Normalize, None), 'cnorm')
     if cnorm is not None:
