@@ -16,6 +16,15 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
+.. _changes_1_1_1:
+
+Version 1.1.1 (2022-08-24)
+--------------------------
+
+Bug
+---
+- Fix bug in :func:`mne.io.read_raw_eeglab` where unlabeled fiducials caused reading errors (:gh:`11074` by :newcontrib:`Sebastiaan Mathot`)
+
 .. _changes_1_1_0:
 
 Version 1.1.0 (2022-08-03)
