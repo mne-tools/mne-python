@@ -9,7 +9,7 @@ import numpy as np
 
 from ..filter import next_fast_len
 from ..parallel import parallel_func
-from ..utils import _check_option, logger, sum_squared, verbose, warn
+from ..utils import sum_squared, warn, verbose, logger, _check_option
 
 
 def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
@@ -61,7 +61,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     .. footbibliography::
     """
     from scipy import interpolate
-    from scipy.fft import irfft, rfft
+    from scipy.fft import rfft, irfft
     from scipy.signal.windows import dpss as sp_dpss
 
     # This np.int32 business works around a weird Windows bug, see

@@ -785,7 +785,8 @@ class UpdateChannelsMixin(object):
     def _pick_drop_channels(self, idx, *, verbose=None):
         # avoid circular imports
         from ..io import BaseRaw
-        from ..time_frequency import AverageTFR, EpochsTFR, Spectrum
+        from ..time_frequency import AverageTFR, EpochsTFR
+        from ..time_frequency.spectrum import BaseSpectrum
 
         msg = 'adding, dropping, or reordering channels'
         if isinstance(self, BaseRaw):
@@ -810,7 +811,7 @@ class UpdateChannelsMixin(object):
             if mat is not None:
                 setattr(self, key, mat[idx][:, idx])
 
-        if isinstance(self, Spectrum):
+        if isinstance(self, BaseSpectrum):
             axis = self._dims.index('channel')
         elif isinstance(self, (AverageTFR, EpochsTFR)):
             axis = -3

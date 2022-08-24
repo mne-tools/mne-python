@@ -12,39 +12,39 @@ from copy import deepcopy
 
 import numpy as np
 
-from .baseline import _check_baseline, _log_rescale, rescale
-from .channels.channels import (InterpolationMixin, SetChannelsMixin,
-                                UpdateChannelsMixin)
+from .baseline import rescale, _log_rescale, _check_baseline
+from .channels.channels import (UpdateChannelsMixin,
+                                SetChannelsMixin, InterpolationMixin)
 from .channels.layout import _merge_ch_data, _pair_grad_sensors
-from .defaults import (_BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT,
-                       _INTERPOLATION_DEFAULT)
-from .filter import FilterMixin, _check_fun, detrend
-from .io.base import _check_maxshield, _get_ch_factors
+from .defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                       _BORDER_DEFAULT)
+from .filter import detrend, FilterMixin, _check_fun
+from .utils import (check_fname, logger, verbose, warn, sizeof_fmt,
+                    SizeMixin, copy_function_doc_to_method_doc, _validate_type,
+                    fill_doc, _check_option, _build_data_frame,
+                    _check_pandas_installed, _check_pandas_index_arguments,
+                    _convert_times, _scale_dataframe_data, _check_time_format,
+                    _check_preload, _check_fname, TimeMixin)
+from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
+                  plot_evoked_image, plot_evoked_topo)
+from .viz.evoked import plot_evoked_white, plot_evoked_joint
+from .viz.topomap import _topomap_animation
+
 from .io.constants import FIFF
-from .io.meas_info import (ContainsMixin, _ensure_infos_match,
-                           _read_extended_ch_info, _rename_list,
-                           read_meas_info, write_meas_info)
 from .io.open import fiff_open
-from .io.pick import _FNIRS_CH_TYPES_SPLIT, _picks_to_idx, pick_types
-from .io.proj import ProjMixin
 from .io.tag import read_tag
 from .io.tree import dir_tree_find
-from .io.write import (end_block, start_and_end_file, start_block,
-                       write_complex_float_matrix, write_float,
-                       write_float_matrix, write_id, write_int, write_string)
+from .io.pick import pick_types, _picks_to_idx, _FNIRS_CH_TYPES_SPLIT
+from .io.meas_info import (ContainsMixin, read_meas_info, write_meas_info,
+                           _read_extended_ch_info, _rename_list,
+                           _ensure_infos_match)
+from .io.proj import ProjMixin
+from .io.write import (start_and_end_file, start_block, end_block,
+                       write_int, write_string, write_float_matrix,
+                       write_id, write_float, write_complex_float_matrix)
+from .io.base import _check_maxshield, _get_ch_factors
 from .parallel import parallel_func
 from .time_frequency.spectrum import ToSpectrumMixin
-from .utils import (SizeMixin, TimeMixin, _build_data_frame, _check_fname,
-                    _check_option, _check_pandas_index_arguments,
-                    _check_pandas_installed, _check_preload,
-                    _check_time_format, _convert_times, _scale_dataframe_data,
-                    _validate_type, check_fname,
-                    copy_function_doc_to_method_doc, fill_doc, logger,
-                    sizeof_fmt, verbose, warn)
-from .viz import (plot_evoked, plot_evoked_field, plot_evoked_image,
-                  plot_evoked_topo, plot_evoked_topomap)
-from .viz.evoked import plot_evoked_joint, plot_evoked_white
-from .viz.topomap import _topomap_animation
 
 _aspect_dict = {
     'average': FIFF.FIFFV_ASPECT_AVERAGE,

@@ -3654,7 +3654,7 @@ vector : bool
     .. versionadded:: 1.2
 """
 
-docdict['verbose'] = """\
+docdict['verbose'] = """
 verbose : bool | str | int | None
     Control verbosity of the logging output. If ``None``, use the default
     verbosity level. See the :ref:`logging documentation <tut-logging>` and

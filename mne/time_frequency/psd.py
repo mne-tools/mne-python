@@ -7,7 +7,7 @@ from functools import partial
 import numpy as np
 
 from ..parallel import parallel_func
-from ..utils import _check_option, deprecated, logger, verbose
+from ..utils import logger, verbose, deprecated, _check_option
 
 _psd_deprecation_msg = (
     'Function psd_{0}() is deprecated; for Raw/Epochs/Evoked instances use '

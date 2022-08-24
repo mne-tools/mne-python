@@ -7,15 +7,16 @@
 
 import numpy as np
 
+from .mixin import TransformerMixin
+from .base import BaseEstimator
+
 from .. import pick_types
-from ..cov import _check_scalings_user
 from ..filter import filter_data
 from ..time_frequency import psd_array_multitaper
-from ..utils import _check_option, _validate_type, fill_doc, verbose
-from ..io.pick import (_pick_data_channels, _picks_by_type, _picks_to_idx,
-                       pick_info)
-from .base import BaseEstimator
-from .mixin import TransformerMixin
+from ..utils import fill_doc, _check_option, _validate_type, verbose
+from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
+                       _picks_to_idx)
+from ..cov import _check_scalings_user
 
 
 class _ConstantScaler():
