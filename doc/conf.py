@@ -494,10 +494,9 @@ sphinx_gallery_conf = {
         '.*apply\\(\\)|.*decision_function\\(\\)|.*fit\\(\\)|'
         '.*fit_transform\\(\\)|.*get_params\\(\\)|.*predict\\(\\)|'
         '.*predict_proba\\(\\)|.*set_params\\(\\)|.*transform\\(\\)|'
+        # I/O, also related to mixins
         '.*.remove.*|.*.write.*)')
 }
-
-
 # Files were renamed from plot_* with:
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
 
