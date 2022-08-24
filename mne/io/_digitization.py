@@ -300,7 +300,7 @@ def _get_fid_coords(dig, raise_error=True):
     if len(fid_coord_frames) > 0 and raise_error:
         if set(fid_coord_frames.keys()) != set(['nasion', 'lpa', 'rpa']):
             raise ValueError("Some fiducial points are missing (got %s)." %
-                             fid_coords.keys())
+                             fid_coord_frames.keys())
 
         if len(set(fid_coord_frames.values())) > 1:
             raise ValueError(
