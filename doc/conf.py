@@ -237,6 +237,7 @@ numpydoc_xref_aliases = {
     'Coregistration': 'mne.coreg.Coregistration',
     'Figure3D': 'mne.viz.Figure3D',
     'Spectrum': 'mne.time_frequency.Spectrum',
+    'EpochsSpectrum': 'mne.time_frequency.EpochsSpectrum',
     # dipy
     'dipy.align.AffineMap': 'dipy.align.imaffine.AffineMap',
     'dipy.align.DiffeomorphicMap': 'dipy.align.imwarp.DiffeomorphicMap',

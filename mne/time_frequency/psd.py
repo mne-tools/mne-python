@@ -9,6 +9,11 @@ import numpy as np
 from ..parallel import parallel_func
 from ..utils import _check_option, deprecated, logger, verbose
 
+_psd_deprecation_msg = (
+    'Function psd_{0}() is deprecated; for Raw/Epochs/Evoked instances use '
+    'spectrum = instance.compute_psd(method="{0}") instead, followed by '
+    'spectrum.get_data(return_freqs=True).')
+
 
 # adapted from SciPy
 # https://github.com/scipy/scipy/blob/f71e7fad717801c4476312fe1e23f2dfbb4c9d7f/scipy/signal/_spectral_py.py#L2019  # noqa: E501
@@ -181,9 +186,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     return psds, freqs
 
 
-@deprecated('Function psd_welch() is deprecated; for Raw/Epochs/Evoked '
-            'instances use spectrum = instance.compute_psd(method="welch") '
-            'instead, followed by spectrum.get_data(return_freqs=True).')
+@deprecated(_psd_deprecation_msg.format('welch'))
 @verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
               n_overlap=0, n_per_seg=None, picks=None, proj=False, n_jobs=None,
@@ -198,14 +201,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     ----------
     inst : instance of Epochs or Raw or Evoked
         The data for PSD calculation.
-    fmin : float
-        Min frequency of interest.
-    fmax : float
-        Max frequency of interest.
-    tmin : float | None
-        Min time of interest.
-    tmax : float | None
-        Max time of interest.
+    %(fmin_fmax_psd)s
+    %(tmin_tmax_psd)s
     n_fft : int
         The length of FFT used, must be ``>= n_per_seg`` (default: 256).
         The segments will be zero-padded if ``n_fft > n_per_seg``.
@@ -218,8 +215,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         Length of each Welch segment (windowed with a Hamming window). Defaults
         to None, which sets n_per_seg equal to n_fft.
     %(picks_good_data_noref)s
-    proj : bool
-        Whether to apply SSP projection vectors before computing the spectrum.
+    %(proj_psd)s
     %(n_jobs)s
     %(reject_by_annotation_raw)s
 
@@ -246,6 +242,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
 
     See Also
     --------
+    Spectrum
+    EpochsSpectrum
     mne.io.Raw.plot_psd
     mne.Epochs.plot_psd
     psd_multitaper
@@ -262,9 +260,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     return spectrum.get_data(return_freqs=True)
 
 
-@deprecated('Function psd_multitaper() is deprecated; for Raw/Epochs/Evoked '
-            'instances use spectrum = instance.compute_psd(method="multitaper"'
-            ') instead, followed by spectrum.get_data(return_freqs=True).')
+@deprecated(_psd_deprecation_msg.format('multitaper'))
 @verbose
 def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                    bandwidth=None, adaptive=False, low_bias=True,
@@ -281,14 +277,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     ----------
     inst : instance of Epochs or Raw or Evoked
         The data for PSD calculation.
-    fmin : float
-        Min frequency of interest.
-    fmax : float
-        Max frequency of interest.
-    tmin : float | None
-        Min time of interest.
-    tmax : float | None
-        Max time of interest.
+    %(fmin_fmax_psd)s
+    %(tmin_tmax_psd)s
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4.
@@ -300,8 +290,7 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         bandwidth.
     %(normalization)s
     %(picks_good_data_noref)s
-    proj : bool
-        Apply SSP projection vectors. If inst is ndarray this is not used.
+    %(proj_psd)s
     %(n_jobs)s
     %(reject_by_annotation_raw)s
     %(verbose)s
@@ -317,6 +306,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
     See Also
     --------
+    Spectrum
+    EpochsSpectrum
     mne.io.Raw.plot_psd
     mne.Epochs.plot_psd
     psd_array_multitaper
