@@ -11,7 +11,8 @@ from numpy.testing import assert_allclose
 
 from mne.datasets import testing
 from mne.io import read_raw_fif
-from mne.preprocessing import regress_artifact, create_eog_epochs
+from mne.preprocessing import (regress_artifact, create_eog_epochs,
+                               EOGRegression)
 
 data_path = testing.data_path(download=False)
 raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -36,5 +37,49 @@ def test_regress_artifact():
         regress_artifact(epochs, betas=betas[:-1])
     # Regressing channels onto themselves should work
     epochs, betas = regress_artifact(epochs, picks='eog', picks_artifact='eog')
-    assert np.ptp(epochs._data[:, -1, :]) < 1E-15  # constant value
+    assert np.ptp(epochs.get_data('eog')) < 1E-15  # constant value
     assert_allclose(betas, 1)
+
+
+@testing.requires_testing_data
+def test_eog_regression():
+    """Test performing EOG artifact regression."""
+    raw = read_raw_fif(raw_fname).pick(['eeg', 'eog', 'stim'])
+
+    # Test error regarding preloading
+    with pytest.raises(RuntimeError, match='requires raw data to be loaded'):
+        model = EOGRegression().fit(raw)
+
+    raw.load_data()
+
+    # Test regression on raw data
+    model = EOGRegression().fit(raw)
+    assert model.coef_.shape == (59, 1)  # 59 EEG channels, 1 EOG channel
+    raw_clean = model.apply(raw)
+    # Some signal must have been removed
+    assert np.ptp(raw_clean.get_data('eeg')) < np.ptp(raw.get_data('eeg'))
+
+    # Test regression on epochs
+    epochs = create_eog_epochs(raw)
+    model = EOGRegression().fit(epochs)
+    model.apply(epochs)
+
+    # Test regression on evoked
+    evoked = epochs.average('all')
+    model = EOGRegression().fit(evoked)
+    model.apply(evoked)
+
+    # Test regression on evoked and applying to raw, with different ordering of
+    # channels
+    raw_ = raw.copy().drop_channels(['EEG 001'])
+    raw_ = raw_.add_channels([raw.copy().pick(['EEG 001'])])
+    model = EOGRegression().fit(evoked)
+    model.apply(raw_)
+
+    # Test in-place operation
+    raw_ = model.apply(raw, copy=False)
+    assert raw_ is raw
+    assert raw_._data is raw._data
+
+    # Smoke test for plotting
+    model.plot()
