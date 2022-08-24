@@ -357,24 +357,24 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         inst_type_str = self._get_instance_type_string()
         # shape & dimension names
         dims = ' × '.join(
-            [f'{dim[0]} {dim[1]}s'
-             for dim in zip(self._data.shape, self._dims)])
+            [f'{dim[0]} {dim[1]}s' for dim in zip(self.shape, self._dims)])
         freq_range = f'{self.freqs[0]:0.1f}-{self.freqs[-1]:0.1f} Hz'
-        return (f'<{self._data_type} '
-                f'(from {inst_type_str}) | {dims}, {freq_range}>')
+        return (f'<{self._data_type} (from {inst_type_str}, '
+                f'{self.method} method) | {dims}, {freq_range}>')
 
     def _repr_html_(self, caption=None):
         """Build HTML representation of the Spectrum object."""
         from ..html_templates import repr_templates_env
 
         inst_type_str = self._get_instance_type_string()
+        units = ', '.join(
+            f'{ch_type}: {unit}' for ch_type, unit in self.units().items())
         t = repr_templates_env.get_template('spectrum.html.jinja')
-        t = t.render(spectrum=self, inst_type=inst_type_str,
-                     data_type=self._data_type)
+        t = t.render(spectrum=self, inst_type=inst_type_str, units=units)
         return t
 
     def _check_values(self):
-        """Check PSD results for bad values."""
+        """Check PSD results for correct shape and bad values."""
         assert len(self._dims) == self._data.ndim
         assert self._data.shape == self._shape
         # negative values OK if the spectrum is really fourier coefficients
@@ -407,7 +407,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             self._data = psds
         # assign properties (._data already assigned above)
         self._freqs = freqs
-        # this is *expected* shape, but it gets asserted later so it's reliable
+        # this is *expected* shape, it gets asserted later in _check_values()
+        # (and then deleted afterwards)
         self._shape = (len(self.ch_names), len(self.freqs))
         # append n_welch_segments
         if method_kw.get('average', '') in (None, False):
@@ -435,7 +436,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         pre, post = (r'$\mathrm{', r'}$') if latex else ('', '')
         return f'{pre}{unit}{exp}/{denom}{post}'
 
-    def _from_file(self, method, data, freqs, sfreq, shape, dims, data_type,
+    def _from_file(self, method, data, freqs, sfreq, dims, data_type,
                    inst_type_str, info, metadata=None, drop_log=None,
                    event_id=None, events=None, selection=None):
         """Recreate Spectrum object from hdf5 file."""
@@ -447,7 +448,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self._freqs = freqs
         self._dims = dims
         self._sfreq = sfreq
-        self._shape = shape
         self.info = Info(**info)
         self._data_type = data_type
         self.preload = True
@@ -501,7 +501,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     @property
     def shape(self):
-        return self._shape
+        return self._data.shape
 
     def copy(self):
         """Return copy of the Spectrum instance.
@@ -819,7 +819,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         out = dict(method=self.method,
                    data=self.get_data(picks='all', exclude=[]),
                    sfreq=self.sfreq,
-                   shape=self.shape,
                    dims=self._dims,
                    freqs=self.freqs,
                    inst_type_str=inst_type_str,
@@ -1006,8 +1005,9 @@ class Spectrum(BaseSpectrum):
             data = inst.data[self._picks][:, self._time_mask]
         # compute the spectra
         self._compute_spectra(data, fmin, fmax, n_jobs, method_kw, verbose)
-        # check for bad values
+        # check for correct shape and bad values
         self._check_values()
+        del self._shape
 
     def __getitem__(self, item):
         """Get Spectrum data.
@@ -1103,8 +1103,9 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         self._compute_spectra(data, fmin, fmax, n_jobs, method_kw, verbose)
         self._dims = ('epoch',) + self._dims
         self._shape = (len(inst),) + self._shape
-        # check for bad values
+        # check for correct shape and bad values
         self._check_values()
+        del self._shape
         # we need these for to_data_frame()
         self.event_id = inst.event_id.copy()
         self.events = inst.events.copy()
@@ -1114,7 +1115,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         self._metadata = inst.metadata
 
     def __getitem__(self, item):
-        """Get Spectrum data.
+        """Subselect epochs from an EpochsSpectrum.
 
         Parameters
         ----------
