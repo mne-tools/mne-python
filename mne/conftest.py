@@ -609,13 +609,13 @@ def fwd_volume_small(_fwd_subvolume):
 @pytest.fixture(scope='session')
 def _all_src_types_fwd(_fwd_surf, _fwd_subvolume):
     """Create all three forward types (surf, vol, mixed)."""
-    fwds = dict(surface=_fwd_surf, volume=_fwd_subvolume)
+    fwds = dict(surface=_fwd_surf.copy(), volume=_fwd_subvolume.copy())
     with pytest.raises(RuntimeError,
                        match='Invalid source space with kinds'):
         fwds['volume']['src'] + fwds['surface']['src']
 
     # mixed (4)
-    fwd = fwds['surface'].copy()
+    fwd = fwds['surface']
     f2 = fwds['volume']
     for keys, axis in [(('source_rr',), 0),
                        (('source_nn',), 0),
