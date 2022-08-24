@@ -414,6 +414,8 @@
 
 .. _Scott Huberty:  https://orcid.org/0000-0003-2637-031X
 
+.. _Sebastiaan Mathot: http://www.cogsci.nl/smathot
+
 .. _Sebastian Castano: https://github.com/jscastanoc
 
 .. _Sebastian Major: https://github.com/major-s
