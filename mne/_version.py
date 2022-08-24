@@ -3,4 +3,4 @@
 #
 # License: BSD-3-Clause
 
-__version__ = '1.1.0'
+__version__ = '1.1.1'
