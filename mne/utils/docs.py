@@ -2237,6 +2237,12 @@ pca_vars : array, shape (n_comp,) | list of array
     returned as list. Only returned if mode='svd' and return_pca_vars=True.
 """
 
+docdict['per_sample_metric'] = """
+per_sample : bool
+    If True the metric is computed for each sample
+    separately. If False, the metric is spatio-temporal.
+"""
+
 docdict['phase'] = """
 phase : str
     Phase of the filter, only used if ``method='fir'``.
@@ -3151,6 +3157,18 @@ static : instance of SpatialImage
     The image to align with ("to" volume).
 """
 
+docdict['stc_est_metric'] = """
+stc_est : instance of (Vol|Mixed)SourceEstimate
+    The source estimates containing estimated values
+    e.g. obtained with a source imaging method.
+"""
+
+docdict['stc_metric'] = """
+metric : float | array, shape (n_times,)
+    The metric. float if per_sample is False, else
+    array with the values computed for each time point.
+"""
+
 docdict['stc_plot_kwargs_report'] = """
 stc_plot_kwargs : dict
     Dictionary of keyword arguments to pass to
@@ -3158,12 +3176,25 @@ stc_plot_kwargs : dict
     mode.
 """
 
+docdict['stc_true_metric'] = """
+stc_true : instance of (Vol|Mixed)SourceEstimate
+    The source estimates containing correct values.
+"""
+
 docdict['stcs_pctf'] = """
 stcs : instance of SourceEstimate | list of instances of SourceEstimate
-    PSFs or CTFs as STC objects.
-    All PSFs/CTFs will be returned as successive samples in STC objects,
-    in the order they are specified in idx. STCs for different labels will
-    be returned as a list.
+    The PSFs or CTFs as STC objects. All PSFs/CTFs will be returned as
+    successive samples in STC objects, in the order they are specified
+    in idx. STCs for different labels willbe returned as a list.
+    If resmat was computed with n_orient_inv==3 for CTFs or
+    n_orient_fwd==3 for PSFs then 3 functions per vertex will be returned
+    as successive samples (i.e. one function per orientation).
+    If vector=False (default) and resmat was computed with
+    n_orient_inv==3 for PSFs or n_orient_fwd==3 for CTFs, then the three
+    values per vertex will be combined into one intensity value per
+    vertex in a SourceEstimate object. If vector=True, PSFs or CTFs
+    with 3 values per vertex (one per orientation) will be returned in
+    a VectorSourceEstimate object.
 """
 
 docdict['std_err_by_event_type_returns'] = """
@@ -3425,9 +3456,6 @@ docdict['trans'] = f"""
 trans : path-like | dict | instance of Transform | None
     {_trans_base}
     If trans is None, an identity matrix is assumed.
-
-    .. versionchanged:: 0.19
-       Support for 'fsaverage' argument.
 """
 
 docdict['trans_not_none'] = """
@@ -3511,6 +3539,16 @@ use_opengl : bool | None
 
 # %%
 # V
+
+docdict['vector_pctf'] = """
+vector : bool
+    Whether to return PSF/CTF as vector source estimate (3 values per
+    location) or source estimate object (1 intensity value per location).
+    Only allowed to be True if corresponding dimension of resolution matrix
+    is 3 * n_dipoles. Defaults to False.
+
+    .. versionadded:: 1.2
+"""
 
 docdict['verbose'] = """
 verbose : bool | str | int | None

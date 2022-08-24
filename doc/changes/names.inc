@@ -32,6 +32,8 @@
 
 .. _Andrew Dykstra: https://github.com/adykstra
 
+.. _Andrew Quinn: https://github.com/ajquinn
+
 .. _Aniket Pradhan: https://github.com/Aniket-Pradhan
 
 .. _Anna Padee: https://github.com/apadee/
@@ -65,6 +67,8 @@
 .. _Carina Forster: https://github.com/carinafo
 
 .. _Cathy Nangini: https://github.com/KatiRG
+
+.. _Chetan Gohil: https://github.com/cgohil8
 
 .. _Chris Bailey: https://github.com/cjayb
 
@@ -291,6 +295,8 @@
 .. _Mathieu Scheltienne: https://github.com/mscheltienne
 
 .. _Mathurin Massias: https://mathurinm.github.io/
+
+.. _Mats van Es: https://github.com/matsvanes
 
 .. _Matt Boggess: https://github.com/mattboggess
 

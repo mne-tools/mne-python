@@ -38,7 +38,6 @@ jobs:
         with:
           path: ${{ env.CODESPELL_DIRS }}
           skip: ${{ env.CODESPELL_SKIPS }}
-          quiet_level: '3'
           builtin: 'clear,rare,informal,names'
           ignore_words_file: 'ignore_words.txt'
           uri_ignore_words_list: 'bu'
