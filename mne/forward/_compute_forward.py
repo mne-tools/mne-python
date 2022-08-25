@@ -740,8 +740,9 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
     bem : instance of ConductorModel
         Boundary Element Model information
     fwd_data : dict
-        Dict containing sensor information. Gets updated here with BEM and
-        sensor information for later forward calculations
+        Dict containing sensor information in the head coordinate frame.
+        Gets updated here with BEM and sensor information for later forward
+        calculations.
     %(n_jobs)s
     %(verbose)s
     """
@@ -900,7 +901,7 @@ def _compute_forwards(rr, bem, coils_list, ccoils_list, infos, coil_types,
     bem : instance of ConductorModel
         Boundary Element Model information for all surfaces
     coils_list : list
-        List of MEG and/or EEG sensor information dicts
+        List of MEG and/or EEG sensor information dicts in head coords
     ccoils_list : list
         Optional list of MEG compensation information
     coil_types : list of str

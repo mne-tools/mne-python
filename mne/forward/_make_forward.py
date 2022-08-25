@@ -620,6 +620,7 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
                 _coord_frame_name(FIFF.FIFFV_COORD_HEAD))
     logger.info('Free source orientations')
 
+    # Create MEG coils and EEG electrodes in the head coordinate frame
     megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, info, \
         update_kwargs, bem = _prepare_for_forward(
             src, mri_head_t, info, bem, mindist, n_jobs, bem_extra, trans,
