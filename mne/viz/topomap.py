@@ -3069,7 +3069,7 @@ def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
     axes = iter(axes)
 
     for ch_type in ch_types:
-        data_picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
+        data_picks, pos, merge_channels, names, ch_type, sphere, clip_origin =\
             _prepare_topomap_plot(model, ch_type=ch_type, sphere=sphere)
         outlines = _make_head_outlines(sphere, pos, outlines='head',
                                        clip_origin=clip_origin)
