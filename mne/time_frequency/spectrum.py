@@ -82,10 +82,10 @@ class ToSpectrumMixin():
     @verbose
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
                  proj=False, reject_by_annotation=True, *, method='auto',
-                 ax=None, color='black', xscale='linear', area_mode='std',
-                 area_alpha=0.33, dB=True, estimate='auto', show=True,
+                 average=False, dB=True, estimate='auto', xscale='linear',
+                 area_mode='std', area_alpha=0.33, color='black',
                  line_alpha=None, spatial_colors=True, sphere=None,
-                 exclude='bads', n_jobs=1, average=False, verbose=None,
+                 exclude='bads', ax=None, show=True, n_jobs=1, verbose=None,
                  **method_kw):
         """%(plot_psd_doc)s.
 
@@ -97,14 +97,13 @@ class ToSpectrumMixin():
         %(proj_psd)s
         %(reject_by_annotation_psd)s
         %(method_psd)s
-        %(ax_plot_psd)s
-        %(color_plot_psd)s
+        %(average_plot_psd)s
+        %(dB_plot_psd)s
+        %(estimate_plot_psd)s
         %(xscale_plot_psd)s
         %(area_mode_plot_psd)s
         %(area_alpha_plot_psd)s
-        %(dB_plot_psd)s
-        %(estimate_plot_psd)s
-        %(show)s
+        %(color_plot_psd)s
         %(line_alpha_plot_psd)s
         %(spatial_colors_psd)s
         %(sphere_topomap_auto)s
@@ -116,8 +115,9 @@ class ToSpectrumMixin():
             (including channels marked "bad", if any).
 
             .. versionadded:: 0.24.0
+        %(ax_plot_psd)s
+        %(show)s
         %(n_jobs)s
-        %(average_plot_psd)s
         %(verbose)s
         %(method_kw_psd)s
 
