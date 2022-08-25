@@ -990,5 +990,4 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         # these are **method_kw:
         window='hamming', bandwidth=bandwidth, adaptive=adaptive,
         low_bias=low_bias, normalization=normalization)
-    plt_show(show, fig)
     return fig

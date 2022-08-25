@@ -15,7 +15,7 @@ from ..filter import create_filter
 from ..io.pick import pick_types, pick_channels
 from ..utils import verbose, _validate_type, _check_option
 from ..defaults import _handle_default
-from .utils import (plt_show, _compute_scalings, _handle_decim, _check_cov,
+from .utils import (_compute_scalings, _handle_decim, _check_cov,
                     _shorten_path_from_middle, _handle_precompute,
                     _get_channel_plotting_order, _make_event_color_dict)
 
@@ -423,7 +423,6 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
         line_alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
         exclude=exclude, n_jobs=n_jobs, average=average, verbose=verbose,
         n_fft=n_fft, n_overlap=n_overlap, window=window)
-    plt_show(show, fig)
     return fig
 
 
