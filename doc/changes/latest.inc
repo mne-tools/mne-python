@@ -27,6 +27,8 @@ Enhancements
 
 - Add ``starting_affine`` keyword argument to :func:`mne.transforms.compute_volume_registration` to initialize an alignment with an affine (:gh:`11020` by `Alex Rockhill`_)
 
+- Added noisy point-spread functions to mne.minimum_norm.make_inverse_resolution_matrix (:gh:`11058` by `Olaf Hauk`)
+
 Bugs
 ~~~~
 - Fix bug in :func:`mne.decoding.TimeFrequency` that prevented cloning if constructor arguments were modified (:gh:`11004` by :newcontrib:`Daniel Carlström Schad`)

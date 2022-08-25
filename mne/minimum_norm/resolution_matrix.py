@@ -7,18 +7,20 @@ from copy import deepcopy
 
 import numpy as np
 
-from .. import pick_channels_forward, EvokedArray, SourceEstimate
+from .. import pick_types, pick_channels_forward, EvokedArray, SourceEstimate
 from ..io.constants import FIFF
 from ..utils import logger, verbose
 from ..forward.forward import convert_forward_solution
-from ..minimum_norm import apply_inverse, apply_inverse_cov
+from ..minimum_norm import (apply_inverse, apply_inverse_cov,
+                            prepare_inverse_operator)
+from ..minimum_norm.spatial_resolution import _rectify_resolution_matrix
 from ..source_estimate import _prepare_label_extraction
 from ..label import Label
 
 
 @verbose
 def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
-                                   lambda2=1. / 9., cov=None, snr=None,
+                                   lambda2=1. / 9., noise_cov=None, snr=None,
                                    verbose=None):
     """Compute resolution matrix for linear inverse operator.
 
@@ -32,7 +34,7 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
         Inverse method to use (MNE, dSPM, sLORETA).
     lambda2 : float
         The regularisation parameter.
-    cov : None | instance of Covariance
+    noise_cov : None | instance of Covariance
         Noise covariance matrix to compute noise power in source space.
     snr : None | float
         Signal-to-noise ratio for source signal vs noise power.
@@ -41,18 +43,25 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
     Returns
     -------
     resmat: array, shape (n_orient_inv * n_dipoles, n_orient_fwd * n_dipoles)
-        Resolution matrix (inverse operator times forward operator).
+        Resolution matrix (inverse operator times forward operator). The
+        columns of the resolution matrix are the point-spread functions (PSFs)
+        and the rows are the cross-talk functions (CTFs).
         The result of applying the inverse operator to the forward operator.
         If source orientations are not fixed, all source components will be
         computed (i.e. for n_orient_inv > 1 or n_orient_fwd > 1).
-        If 'cov' and 'snr' are not None, then 'resmat' will be of shape
+        If 'noise_cov' and 'snr' are not None, then source noise estimated from
+        noise covariance matrix will be added to columns of the resolution
+        matrix (PSFs). In this case, 'resmat' will be of shape
         (n_dipoles, n_orient_fwd * n_dipoles) with values pooled across
         n_orient_inv source orientations per location.
-        The columns of the resolution matrix are the point-spread functions
-        (PSFs) and the rows are the cross-talk functions (CTFs).
+        Note: If the resolution matrix is computed with a noise covariance
+        matrix then only is columns, i.e. PSFs, can meaningfully be
+        interpreted. It must not be used to compute CTFs or resolution metrics
+        for CTFs!
     """
-    if (cov is None and snr is not None) or (cov is not None and snr is None):
-        msg = 'cov and snr must both be None or not be None.'
+    if ((noise_cov is None and snr is not None) or
+            (noise_cov is not None and snr is None)):
+        msg = 'noise_cov and snr must both be None or not be None.'
         raise ValueError(msg)
 
     # make sure forward and inverse operator match
@@ -71,20 +80,56 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
     invmat = _get_matrix_from_inverse_operator(inv, fwd,
                                                method=method, lambda2=lambda2)
     resmat = invmat.dot(leadfield)
+    resmat_ori = resmat.copy()
     logger.info('Dimensions of resolution matrix: %d by %d.' % resmat.shape)
 
-    if cov is not None:
-        print('\n###\nAdding noise to resolution matrix.\n###')
-        info_inv = _prepare_info(inverse_operator)
+    # add source noise power to columns of resolution matrix
+    if noise_cov is not None:
+        inv = prepare_inverse_operator(inv, 1, lambda2, method, copy='non-src')
+        info = _prepare_info(inv)
+        # compute source noise poweralph
         stc = apply_inverse_cov(
-            cov, info_inv, inverse_operator, nave=1, lambda2=lambda2,
-            method=method, pick_ori=None, prepared=False, label=None,
+            noise_cov, info, inv, nave=1, lambda2=lambda2,
+            method=method, pick_ori=None, prepared=True, label=None,
             method_params=None, use_cps=True, verbose=None)
 
-        # Add square root of source power per column
-        print(stc.data.shape)
-        resmat = np.zeros(resmat.shape)
-        resmat += np.sqrt(stc.data)
+        # output will be square-root of power, so take intensities before
+        # adding noise
+        shape = resmat.shape
+        if not shape[0] == shape[1]:
+            # pool loose/free orientations
+            resmat = _rectify_resolution_matrix(resmat)
+        else:
+            resmat = np.abs(resmat)
+
+        # scaling factor
+
+        idx_ch_types = {}
+        idx_ch_types['eeg'] = pick_types(info, eeg=True, meg=False)
+        idx_ch_types['mag'] = pick_types(info, eeg=False, meg='mag')
+        idx_ch_types['gra'] = pick_types(info, eeg=False, meg='grad')
+
+        # scaling similar to Samuelsson et al., Neuroimage 2021 (p. 4)
+        alphas = {}
+        for cht in idx_ch_types:
+            # signal intensity of all sources across channels of this type
+            alphas[cht] = (
+                np.abs(leadfield[idx_ch_types[cht], :]).mean())
+            # divided by noise intensity across channels of this type
+            alphas[cht] /= (
+                np.sqrt(np.diag(noise_cov.data)[idx_ch_types[cht]].mean()))
+
+        alpha = (alphas['eeg'] + alphas['mag'] + alphas['gra']) / (3 * snr)
+
+        # whitener = inv['whitener']
+        # gain = np.dot(whitener, leadfield)
+        # gram_gain = np.dot(gain, gain.T)
+        # # alpha = np.sqrt(np.trace(gram_gain) / np.trace(noise_cov.data))
+        # alpha = np.sqrt(np.trace(gram_gain))
+
+        # Add square root of source noise power to every column, scale
+        # depending on SNR
+        resmat += alpha * np.sqrt(stc.data)
 
     return resmat
 
@@ -368,7 +413,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
         The inverse operator.
     forward : instance of Forward
         The forward operator.
-    method : 'MNE' | 'dSPM' | 'sLORETA'
+    method : 'MNE' | 'dSPM' | 'sLORETA' | 'eLORETA'
         Inverse methods (for apply_inverse).
     lambda2 : float
         The regularization parameter (for apply_inverse).
