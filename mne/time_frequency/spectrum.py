@@ -328,15 +328,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self._data_type = ('Fourier Coefficients' if 'taper' in self._dims
                            else 'Power Spectrum')
 
-    def __deepcopy__(self, memodict):
-        """Make a deepcopy."""
-        cls = self.__class__
-        result = cls.__new__(cls)
-        for k, v in self.__dict__.items():
-            v = deepcopy(v, memodict)
-            result.__dict__[k] = v
-        return result
-
     def __eq__(self, other):
         """Test equivalence of two Spectrum instances."""
         return object_diff(vars(self), vars(other)) == ''
@@ -356,8 +347,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         from ..html_templates import repr_templates_env
 
         inst_type_str = self._get_instance_type_string()
-        units = [f"{ch_type}: {unit}"
-                 for ch_type, unit in units.items()]
+        units = [f'{ch_type}: {unit}'
+                 for ch_type, unit in self.units().items()]
         t = repr_templates_env.get_template('spectrum.html.jinja')
         t = t.render(spectrum=self, inst_type=inst_type_str, units=units)
         return t
