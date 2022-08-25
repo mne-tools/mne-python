@@ -1105,10 +1105,10 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         """Prepare object for serialization."""
         out = super().__getstate__()
         out.update(metadata=self._metadata,
-                    drop_log=self.drop_log,
-                    event_id=self.event_id,
-                    events=self.events,
-                    selection=self.selection)
+                   drop_log=self.drop_log,
+                   event_id=self.event_id,
+                   events=self.events,
+                   selection=self.selection)
         return out
 
     def __setstate__(self, state):
