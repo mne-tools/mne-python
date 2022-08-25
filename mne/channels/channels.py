@@ -328,7 +328,7 @@ class SetChannelsMixin(MontageMixin):
 
             ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, dbs, stim, syst,
             ecog, hbo, hbr, fnirs_cw_amplitude, fnirs_fd_ac_amplitude,
-            fnirs_fd_phase, fnirs_od
+            fnirs_fd_phase, fnirs_od, temperature, galvanic
 
         .. versionadded:: 0.9.0
         """
@@ -590,11 +590,12 @@ class UpdateChannelsMixin(object):
 
     @verbose
     def pick_types(self, meg=False, eeg=False, stim=False, eog=False,
-                   ecg=False, emg=False, ref_meg='auto', misc=False,
+                   ecg=False, emg=False, ref_meg='auto', *, misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False,
-                   ecog=False, fnirs=False, csd=False, dbs=False, include=(),
-                   exclude='bads', selection=None, verbose=None):
+                   ecog=False, fnirs=False, csd=False, dbs=False,
+                   temperature=False, galvanic=False,
+                   include=(), exclude='bads', selection=None, verbose=None):
         """Pick some channels by type and names.
 
         Parameters
@@ -620,7 +621,8 @@ class UpdateChannelsMixin(object):
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
             ecog=ecog, fnirs=fnirs, csd=csd, dbs=dbs, include=include,
-            exclude=exclude, selection=selection)
+            exclude=exclude, selection=selection, temperature=temperature,
+            galvanic=galvanic)
 
         self._pick_drop_channels(idx)
 

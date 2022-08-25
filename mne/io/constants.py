@@ -202,6 +202,8 @@ FIFF.FIFFV_EXCI_CH      = 920  # flux excitation channel used to be a stimulus c
 FIFF.FIFFV_DIPOLE_WAVE  = 1000  # Dipole time curve (xplotter/xfit)
 FIFF.FIFFV_GOODNESS_FIT = 1001  # Goodness of fit (xplotter/xfit)
 FIFF.FIFFV_FNIRS_CH     = 1100  # Functional near-infrared spectroscopy
+FIFF.FIFFV_TEMPERATURE_CH = 1200  # Functional near-infrared spectroscopy
+FIFF.FIFFV_GALVANIC_CH  = 1300  # Galvanic skin response
 _ch_kind_named = {key: key for key in (
     FIFF.FIFFV_BIO_CH,
     FIFF.FIFFV_MEG_CH,
@@ -223,6 +225,8 @@ _ch_kind_named = {key: key for key in (
     FIFF.FIFFV_DIPOLE_WAVE,
     FIFF.FIFFV_GOODNESS_FIT,
     FIFF.FIFFV_FNIRS_CH,
+    FIFF.FIFFV_GALVANIC_CH,
+    FIFF.FIFFV_TEMPERATURE_CH,
 )}
 
 #
@@ -840,6 +844,7 @@ FIFF.FIFF_UNIT_V   = 107  # volt
 FIFF.FIFF_UNIT_F   = 108  # farad
 FIFF.FIFF_UNIT_OHM = 109  # ohm
 FIFF.FIFF_UNIT_MHO = 110  # one per ohm
+FIFF.FIFF_UNIT_S   = 110  # Siemens (same as moh)
 FIFF.FIFF_UNIT_WB  = 111  # weber
 FIFF.FIFF_UNIT_T   = 112  # tesla
 FIFF.FIFF_UNIT_H   = 113  # Henry
