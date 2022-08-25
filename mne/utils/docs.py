@@ -4042,11 +4042,6 @@ def open_docs(kind=None, version=None):
 
 
 # Following deprecated class copied from scikit-learn
-
-# force show of DeprecationWarning even on python 2.7
-warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
-
-
 class deprecated:
     """Mark a function, class, or method as deprecated (decorator).
 
