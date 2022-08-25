@@ -5,8 +5,6 @@
 from itertools import chain
 
 import numpy as np
-from scipy.sparse import csr_matrix
-from scipy.sparse.csgraph import connected_components
 
 from ..utils import _validate_type, warn
 from ..io import BaseRaw, RawArray
@@ -101,6 +99,9 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
     --------
     mne.preprocessing.compute_bridged_electrodes
     """
+    from scipy.sparse import csr_matrix
+    from scipy.sparse.csgraph import connected_components
+
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked))
     montage = inst.get_montage()
     if montage is None:
