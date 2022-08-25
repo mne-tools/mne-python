@@ -339,18 +339,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     def __eq__(self, other):
         """Test equivalence of two Spectrum instances."""
-        # there is one attr (_inst_type) that object_diff can't handle
-        if self._inst_type != other._inst_type:
-            return False
-        _inst_type = self._inst_type
-        del self._inst_type
-        del other._inst_type
-        try:
-            same = object_diff(vars(self), vars(other)) == ''
-        finally:
-            self._inst_type = _inst_type
-            other._inst_type = _inst_type
-        return same
+        return object_diff(vars(self), vars(other)) == ''
 
     def __repr__(self):
         """Build string representation of the Spectrum object."""

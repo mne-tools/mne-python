@@ -6,6 +6,7 @@
 # License: BSD-3-Clause
 
 import hashlib
+import inspect
 import numbers
 import operator
 import os
@@ -750,8 +751,8 @@ def object_diff(a, b, pre='', *, allclose=False):
     Parameters
     ----------
     a : object
-        Currently supported: dict, list, tuple, ndarray, int, str, bytes,
-        float, StringIO, BytesIO.
+        Currently supported: class, dict, list, tuple, ndarray,
+        int, str, bytes, float, StringIO, BytesIO.
     b : object
         Must be same type as ``a``.
     pre : str
@@ -772,8 +773,11 @@ def object_diff(a, b, pre='', *, allclose=False):
             if isinstance(a, sub) and isinstance(b, sub):
                 break
         else:
-            return pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
-    if isinstance(a, dict):
+            return (f'{pre} type mismatch ({type(a)}, {type(b)})\n')
+    if inspect.isclass(a):
+        if inspect.isclass(b) and a != b:
+            return f'{pre} class mismatch ({a}, {b})\n'
+    elif isinstance(a, dict):
         k1s = _sort_keys(a)
         k2s = _sort_keys(b)
         m1 = set(k2s) - set(k1s)
