@@ -17,12 +17,11 @@ from ..io.pick import pick_types, pick_info
 from ..io.meas_info import _simplify_info
 from ..io.proj import _has_eeg_average_ref_proj, make_projector
 from ..surface import get_head_surf, get_meg_helmet_surf
-from ..transforms import (transform_surface_to, read_trans, _find_trans,
-                          _ensure_trans)
+from ..transforms import transform_surface_to, _find_trans, _get_trans
 from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _do_cross_dots)
-from ..utils import logger, verbose, _check_option, _reg_pinv, _pl, path_like
+from ..utils import logger, verbose, _check_option, _reg_pinv, _pl
 from ..epochs import EpochsArray, BaseEpochs
 from ..evoked import Evoked, EvokedArray
 
@@ -391,11 +390,11 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     ----------
     evoked : Evoked | Epochs | Raw
         The measurement file. Need to have info attribute.
-    trans : str | 'auto' | None
-        The full path to the ``*-trans.fif`` file produced during
-        coregistration. If present or found using 'auto'
-        the maps will be in MRI coordinates.
-        If None, map for EEG data will not be available.
+    %(trans)s "auto" (default) will load trans from the FreeSurfer directory
+        specified by ``subject`` and ``subjects_dir`` parameters.
+
+        .. versionchanged:: 0.19
+            Support for 'fsaverage' argument.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT. If None, map for EEG data will not be available.
@@ -438,21 +437,17 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         _check_option('ch_type', ch_type, ['eeg', 'meg'])
         types = [ch_type]
 
-    if trans == 'auto':
+    if isinstance(trans, str) and trans == 'auto':
         # let's try to do this in MRI coordinates so they're easy to plot
         trans = _find_trans(subject, subjects_dir)
+    trans, trans_type = _get_trans(trans, fro='head', to='mri')
 
-    if 'eeg' in types and trans is None:
+    if 'eeg' in types and trans_type == 'identity':
         logger.info('No trans file available. EEG data ignored.')
         types.remove('eeg')
 
     if len(types) == 0:
         raise RuntimeError('No data available for mapping.')
-
-    if trans is not None:
-        if isinstance(trans, path_like):
-            trans = read_trans(trans)
-        trans = _ensure_trans(trans, 'head', 'mri')
 
     _check_option('meg_surf', meg_surf, ['helmet', 'head'])
 

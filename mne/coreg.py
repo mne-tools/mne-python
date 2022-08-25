@@ -822,7 +822,7 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
         scale = cfg['scale']
     scale = np.atleast_1d(scale)
     if scale.ndim != 1 or scale.shape[0] not in (1, 3):
-        raise ValueError("Invalid shape for scale parameer. Need scalar "
+        raise ValueError("Invalid shape for scale parameter. Need scalar "
                          "or array of length 3. Got shape %s."
                          % (scale.shape,))
     n_params = len(scale)
