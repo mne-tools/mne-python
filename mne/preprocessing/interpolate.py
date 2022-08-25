@@ -137,7 +137,7 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
         if len(group_names) > 4:
             warn(f"The channels {', '.join(group_names)} are bridged together "
                  "and form a large area of bridged electrodes. Interpolation "
-                 "might be innacurate.")
+                 "might be inaccurate.")
 
     # make virtual channels
     virtual_chs = dict()
