@@ -317,7 +317,7 @@ def test_degenerate(tmp_path):
 @pytest.mark.parametrize("fname", [
     raw_fname_mat,
     raw_fname_onefile_mat,
-    # We don't test the h5 varaints here because they are implicitly tested
+    # We don't test the h5 variants here because they are implicitly tested
     # in test_io_set_raw
 ])
 @pytest.mark.filterwarnings('ignore: Complex objects')

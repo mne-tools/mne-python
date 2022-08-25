@@ -1136,7 +1136,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     if op.isfile(T1_mgz):
         new_info = _extract_volume_info(T1_mgz) if has_nibabel() else dict()
         if not new_info:
-            warn('nibabel is not available or the volumn info is invalid.'
+            warn('nibabel is not available or the volume info is invalid.'
                  'Volume info not updated in the written surface.')
         surfs = ['brain', 'inner_skull', 'outer_skull', 'outer_skin']
         for s in surfs:
@@ -1718,7 +1718,7 @@ def _write_echos(mri_dir, flash_echos, angle):
 @verbose
 def convert_flash_mris(subject, flash30=True, unwarp=False,
                        subjects_dir=None, flash5=True, verbose=None):
-    """Synthetize the flash 5 files for use with make_flash_bem.
+    """Synthesize the flash 5 files for use with make_flash_bem.
 
     This function aims to produce a synthesized flash 5 MRI from
     multiecho flash (MEF) MRI data. This function can use MEF data

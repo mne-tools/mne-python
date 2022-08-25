@@ -1027,7 +1027,7 @@ exclude : bool array or None
 docdict['exclude_frontal'] = """
 exclude_frontal : bool
     If True, exclude points that have both negative Z values
-    (below the nasion) and positivy Y values (in front of the LPA/RPA).
+    (below the nasion) and positive Y values (in front of the LPA/RPA).
 """
 
 docdict['export_edf_note'] = """

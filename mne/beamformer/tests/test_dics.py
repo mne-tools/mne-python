@@ -429,7 +429,7 @@ def test_real(_load_forward, idx):
     reg = 1  # Lots of regularization for our toy dataset
     filters_real = make_dics(epochs.info, fwd_surf, csd, label=label, reg=reg,
                              real_filter=True, inversion='single')
-    # Also test here that no warings are thrown - implemented to check whether
+    # Also test here that no warnings are thrown - implemented to check whether
     # src should not be None warning occurs:
     power, f = apply_dics_csd(csd, filters_real)
 
