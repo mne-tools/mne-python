@@ -2248,7 +2248,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
             elif area_mode is None:
                 hyp_limits = None
             else:  # area_mode is float
-                hyp_limits = _ci(psd)
+                hyp_limits = _ci(psd, ci=area_mode)
 
             ax.plot(freqs, psd_mean, color=color, alpha=line_alpha,
                     linewidth=0.5)
