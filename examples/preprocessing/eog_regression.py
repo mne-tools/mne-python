@@ -31,11 +31,8 @@ raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.Raw(raw_fname, preload=True)
 events = mne.find_events(raw, 'STI 014')
 
-# For this example, we only operate on the EEG channels.
-raw.pick(('meg', 'eeg', 'eog'))
-
-# Bandpass filter
-raw.filter(0.3, 30, method='iir', picks='all')
+# Highpass filter to eliminate slow drifts
+raw.filter(0.3, None, picks='all')
 
 # %%
 # Perform regression and remove EOG
@@ -69,7 +66,7 @@ evoked_after = epochs_after.average()
 
 fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(10, 7),
                        sharex=True, sharey='row')
-evoked_before.plot(axes=ax[:, 0])
-evoked_after.plot(axes=ax[:, 1])
+evoked_before.plot(axes=ax[:, 0], spatial_colors=True)
+evoked_after.plot(axes=ax[:, 1], spatial_colors=True)
 fig.suptitle('Before --> After')
 fig.set_tight_layout(True)

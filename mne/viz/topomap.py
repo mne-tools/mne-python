@@ -3021,9 +3021,9 @@ def _set_adjacency(adjacency, both_nodes, value):
 def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
                             cmap=None, sensors=True, colorbar=True, res=64,
                             size=1, cbar_fmt='%.2E', show=True,
-                            show_names=False, title='Regression coefficients',
-                            mask=None, mask_params=None, outlines='head',
-                            axes=None, sphere=None, border=_BORDER_DEFAULT):
+                            show_names=False, title=None, mask=None,
+                            mask_params=None, outlines='head', axes=None,
+                            sphere=None, border=_BORDER_DEFAULT):
     """Plot the regression weights of a fitted EOGRegression model.
 
     Parameters
