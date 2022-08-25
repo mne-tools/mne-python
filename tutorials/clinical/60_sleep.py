@@ -187,7 +187,7 @@ print(epochs_test)
 fig, (ax1, ax2) = plt.subplots(ncols=2)
 
 # iterate over the subjects
-stages = sorted(event_id)
+stages = sorted(event_id.keys())
 for ax, title, epochs in zip([ax1, ax2],
                              ['Alice', 'Bob'],
                              [epochs_train, epochs_test]):

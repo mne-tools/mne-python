@@ -375,7 +375,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     %(tmin_tmax_psd)s
     %(proj_psd)s
     n_fft : int | None
-        Number of points to use in Welch FFT calculations. Default is None,
+        Number of points to use in Welch FFT calculations. Default is ``None``,
         which uses the minimum of 2048 and the number of time points.
     n_overlap : int
         The number of points of overlap between blocks. The default value
