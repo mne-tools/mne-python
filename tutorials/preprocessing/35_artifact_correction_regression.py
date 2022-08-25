@@ -7,7 +7,8 @@ Repairing artifacts with regression
 ===================================
 
 This tutorial covers removal of artifacts using regression as in Gratton et al.
-(1983) :footcite:`GrattonEtAl1983`.
+(1983) :footcite:`GrattonEtAl1983` and Croft & Barry (2000)
+:footcite:`CroftBarry2000`.
 
 Generally speaking, artifacts that result in time waveforms on the sensors
 that are accurately reflected by some reference signal can be removed by
@@ -77,13 +78,12 @@ epochs = mne.Epochs(raw, events, event_id=1, decim=decim, preload=True)
 # need to be time-locked to the stimulus/epoch event timing of the epochs.
 
 # do regression
-_, betas = mne.preprocessing.regress_artifact(epochs.copy().subtract_evoked())
+model = mne.preprocessing.EOGRegression().fit(epochs.copy().subtract_evoked())
 
 # %%
 # We then use those coefficients to remove the EOG signal from the original
 # data:
-
-epochs_clean, _ = mne.preprocessing.regress_artifact(epochs, betas=betas)
+epochs_clean = model.apply(epochs)
 
 # %%
 # Visualize the effect on auditory epochs
@@ -127,9 +127,8 @@ evo_kwargs['ylim'].update(mag=[-4000, 3000], eog=[-600, 100])
 eog_epochs = mne.preprocessing.create_eog_epochs(raw, decim=decim)
 eog_epochs.apply_baseline((None, None))
 
-# regress, using the `betas` we already found above
-eog_epochs_clean, _ = mne.preprocessing.regress_artifact(eog_epochs,
-                                                         betas=betas)
+# regress, using the regresison weights we already found above
+eog_epochs_clean = model.apply(eog_epochs)
 
 # plot original blink epochs
 fig = eog_epochs.average(picks=plot_picks).plot(**evo_kwargs)
@@ -162,7 +161,7 @@ raw_kwargs = dict(events=eog_epochs.events, order=order, start=20, duration=5,
 raw.plot(**raw_kwargs)
 
 # regress (using betas computed above) & plot
-raw_clean, _ = mne.preprocessing.regress_artifact(raw, betas=betas)
+raw_clean = model.apply(raw)
 raw_clean.plot(**raw_kwargs)
 
 # %%

@@ -3015,3 +3015,73 @@ def _set_adjacency(adjacency, both_nodes, value):
 
     with warnings.catch_warnings(record=True):
         adjacency[both_nodes, both_nodes[::-1]] = value
+
+
+@fill_doc
+def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
+                            cmap=None, sensors=True, colorbar=True, res=64,
+                            size=1, cbar_fmt='%.2E', show=True,
+                            show_names=False, title='Regression coefficients',
+                            mask=None, mask_params=None, outlines='head',
+                            axes=None, sphere=None, border=_BORDER_DEFAULT):
+    """Plot the regression weights of a fitted EOGRegression model.
+
+    Parameters
+    ----------
+    model : EOGRegression
+        The fitted EOGRegression model whose weights will be plotted.
+    %(ch_type_evoked_topomap)s
+    %(vmin_vmax_topomap)s
+    %(cmap_topomap)s
+    %(sensors_topomap)s
+    %(colorbar_topomap)s
+    %(res_topomap)s
+    %(size_topomap)s
+    %(cbar_fmt_topomap)s
+    %(show)s
+    %(show_names_topomap)s
+    %(title_none)s
+    %(mask_evoked_topomap)s
+    %(mask_params_topomap)s
+    %(outlines_topomap)s
+    %(axes_evoked_plot_topomap)s
+    %(sphere_topomap_auto)s
+    %(border_topomap)s
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        Figure with a topomap subplot for each channel type.
+    """
+    import matplotlib.pyplot as plt
+    sphere = _check_sphere(sphere)
+    ch_types = _get_channel_types(model.info, unique=True, only_data_chs=True)
+    print(ch_types)
+
+    nrows = len(ch_types)
+    ncols = model.coef_.shape[1]
+    fig, axes = plt.subplots(nrows, ncols,
+                             figsize=(ncols * 2, nrows * 1.5 + 1))
+    if ncols == nrows == 1:
+        axes = [axes]
+    else:
+        axes = axes.ravel()
+    axes = iter(axes)
+
+    for ch_type in ch_types:
+        data_picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
+            _prepare_topomap_plot(model, ch_type=ch_type, sphere=sphere)
+        outlines = _make_head_outlines(sphere, pos, outlines='head',
+                                       clip_origin=clip_origin)
+        coef = model.coef_[data_picks]
+        for data, ch_name in zip(coef.T, model._picks_artifact):
+            if merge_channels:
+                data, names = _merge_ch_data(data, ch_type, names)
+            ax = next(axes)
+
+            _plot_topomap_multi_cbar(
+                data, pos, ax, title=f'{ch_type}/{ch_name}', vmin=vmin,
+                vmax=vmax, cmap=cmap, outlines=outlines, colorbar=colorbar,
+                unit='', cbar_fmt=cbar_fmt, sphere=sphere, ch_type=ch_type)
+    fig.suptitle(title)
+    return fig
