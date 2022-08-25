@@ -79,30 +79,28 @@ class EOGRegression():
 
     Employs linear regression to remove signals captured by some channels,
     typically EOG, but it also works with ECG from other channels, as described
-    in [1]_. You can also chose to fit the regression coefficients on evoked
-    blink/saccade data and then apply them to continuous data, as described in
-    [2]_.
+    in :footcite:`GrattonEtAl1983`. You can also chose to fit the regression
+    coefficients on evoked blink/saccade data and then apply them to continuous
+    data, as described in :footcite:`CroftBarry2000`.
 
     Parameters
     ----------
     %(picks_good_data)s
+    exclude : list | str
+        Set of channels to exclude from the regression, only used when picking
+        based on types (e.g., exclude="bads" when picks="meg").
     picks_artifact : array-like | str
         Channel picks to use as predictor/explanatory variables capturing
         the artifact of interest (default is "eog").
 
     References
     ----------
-    .. [1] Gratton, G. and Coles, M. G. H. and Donchin, E. (1983). A new method
-           for off-line removal of ocular artifact. Electroencephalography and
-           Clinical Neurophysiology, 468-484.
-           https://doi.org/10.1016/0013-4694(83)90135-9
-    .. [2] Croft, R. J. and Barry, R. J. (1998). EOG correction: a new
-           aligned-artifact average solution. Clinical Neurophysiology, 107(6),
-           395-401. http://doi.org/10.1016/s0013-4694(98)00087-x
+    .. footbibliography::
     """
 
-    def __init__(self, picks=None, picks_artifact='eog'):
+    def __init__(self, picks=None, exclude='bads', picks_artifact='eog'):
         self._picks = picks
+        self._exclude = exclude
         self._picks_artifact = picks_artifact
 
     def fit(self, inst):
@@ -126,7 +124,8 @@ class EOGRegression():
         regression.
         """
         self._check_inst(inst)
-        picks = _picks_to_idx(inst.info, self._picks, none='data')
+        picks = _picks_to_idx(inst.info, self._picks, none='data',
+                              exclude=self._exclude)
         picks_artifact = _picks_to_idx(inst.info, self._picks_artifact)
 
         # Calculate regression coefficients. Add a row of ones to also fit the
@@ -155,13 +154,16 @@ class EOGRegression():
         return self
 
     @fill_doc
-    def apply(self, inst, copy=True):
+    def apply(self, inst, taa=False, copy=True):
         """Apply the regression coefficients to some data.
 
         Parameters
         ----------
         inst : Raw | Epochs | Evoked
             The data on which to apply the regression.
+        taa : bool
+            Whether to apply TAA correction as described in equation 9 of
+            :footcite:`CroftBarry2000`. Defaults to ``False``.
         %(copy_df)s
 
         Returns
@@ -172,6 +174,10 @@ class EOGRegression():
         Notes
         -----
         Only works after ``.fit()`` has been used.
+
+        References
+        ----------
+        .. footbibliography::
         """
         self._check_inst(inst)
         # The channels indices may not exactly match those of the object used
@@ -184,11 +190,14 @@ class EOGRegression():
         artifact_data = inst._data[..., picks_artifact, :]
         ref_data = artifact_data - np.mean(artifact_data, -1, keepdims=True)
 
-        # Prepare the data matrix for regression
+        # Prepare the data matrix
         _check_preload(inst, 'artifact regression')
         for pi, pick in enumerate(picks):
             this_data = inst._data[..., pick, :]  # view
             this_data -= (self.coef_[pi] @ ref_data).reshape(this_data.shape)
+            if taa:
+                # TAA correction (Croft & Barry 2000, eqn. 9)
+                this_data /= 1 - np.sum(self.coef_[pi] ** 2)
 
         return inst
 
