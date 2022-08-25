@@ -269,7 +269,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                    sfreq=self.info['sfreq'])
         if self.baseline is not None and baseline is None:
             raise ValueError('The data has already been baseline-corrected. '
-                             'Cannot remove existing basline correction.')
+                             'Cannot remove existing baseline correction.')
         elif baseline is None:
             # Do not rescale
             logger.info(_log_rescale(None))
@@ -348,6 +348,18 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         s += ", %s ch" % self.data.shape[0]
         s += ", ~%s" % (sizeof_fmt(self._size),)
         return "<Evoked | %s>" % s
+
+    def _repr_html_(self):
+        from .html_templates import repr_templates_env
+        if self.baseline is None:
+            baseline = 'off'
+        else:
+            baseline = tuple([f'{b:.3f}' for b in self.baseline])
+            baseline = f'{baseline[0]} – {baseline[1]} sec'
+
+        t = repr_templates_env.get_template('evoked.html.jinja')
+        t = t.render(evoked=self, baseline=baseline)
+        return t
 
     @property
     def ch_names(self):
@@ -457,7 +469,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def animate_topomap(self, ch_type=None, times=None, frame_rate=None,
                         butterfly=False, blit=True, show=True, time_unit='s',
                         sphere=None, *, image_interp=_INTERPOLATION_DEFAULT,
-                        extrapolate=_EXTRAPOLATE_DEFAULT, verbose=None):
+                        extrapolate=_EXTRAPOLATE_DEFAULT, vmin=None, vmax=None,
+                        verbose=None):
         """Make animation of evoked data as topomap timeseries.
 
         The animation can be paused/resumed with left mouse button.
@@ -498,6 +511,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(extrapolate_topomap)s
 
             .. versionadded:: 0.22
+        %(vmin_vmax_topomap)s
+
+            .. versionadded:: 1.1.0
         %(verbose)s
 
         Returns
@@ -515,7 +531,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self, ch_type=ch_type, times=times, frame_rate=frame_rate,
             butterfly=butterfly, blit=blit, show=show, time_unit=time_unit,
             sphere=sphere, image_interp=image_interp,
-            extrapolate=extrapolate, verbose=verbose)
+            extrapolate=extrapolate, vmin=vmin, vmax=vmax, verbose=verbose)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields.

@@ -32,6 +32,8 @@
 
 .. _Andrew Dykstra: https://github.com/adykstra
 
+.. _Andrew Quinn: https://github.com/ajquinn
+
 .. _Aniket Pradhan: https://github.com/Aniket-Pradhan
 
 .. _Anna Padee: https://github.com/apadee/
@@ -66,6 +68,8 @@
 
 .. _Cathy Nangini: https://github.com/KatiRG
 
+.. _Chetan Gohil: https://github.com/cgohil8
+
 .. _Chris Bailey: https://github.com/cjayb
 
 .. _Chris Holdgraf: https://chrisholdgraf.com
@@ -87,6 +91,8 @@
 .. _Cristóbal Moënne-Loccoz: https://github.com/cmmoenne
 
 .. _Dan Wakeman: https://github.com/dgwakeman
+
+.. _Daniel Carlström Schad: https://github.com/Dod12
 
 .. _Daniel McCloy: http://dan.mccloy.info
 
@@ -292,6 +298,8 @@
 
 .. _Mathurin Massias: https://mathurinm.github.io/
 
+.. _Mats van Es: https://github.com/matsvanes
+
 .. _Matt Boggess: https://github.com/mattboggess
 
 .. _Matt Courtemanche: https://github.com/mjcourte
@@ -408,11 +416,15 @@
 
 .. _Scott Huberty:  https://orcid.org/0000-0003-2637-031X
 
+.. _Sebastiaan Mathot: http://www.cogsci.nl/smathot
+
 .. _Sebastian Castano: https://github.com/jscastanoc
 
 .. _Sebastian Major: https://github.com/major-s
 
 .. _Sébastien Marti: https://www.researchgate.net/profile/Sebastien-Marti
+
+.. _Sena Er: https://github.com/sena-neuro
 
 .. _Senwen Deng: https://snwn.de
 

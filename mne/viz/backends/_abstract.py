@@ -870,7 +870,7 @@ class _AbstractAppWindow(ABC):
 
 class _AbstractCanvas(ABC):
 
-    def __init__(self, width, height, dpi):
+    def __init__(self, width=None, height=None, dpi=None):
         """Initialize the matplotlib Canvas."""
         pass
 

@@ -32,12 +32,12 @@ ALLOWED_QUIVER_MODES = ('2darrow', 'arrow', 'cone', 'cylinder', 'sphere',
 
 def _get_colormap_from_array(colormap=None, normalized_colormap=False,
                              default_colormap='coolwarm'):
-    from matplotlib import cm
+    from ..utils import _get_cmap
     from matplotlib.colors import ListedColormap
     if colormap is None:
-        cmap = cm.get_cmap(default_colormap)
+        cmap = _get_cmap(default_colormap)
     elif isinstance(colormap, str):
-        cmap = cm.get_cmap(colormap)
+        cmap = _get_cmap(colormap)
     elif normalized_colormap:
         cmap = ListedColormap(colormap)
     else:

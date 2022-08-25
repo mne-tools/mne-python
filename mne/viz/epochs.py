@@ -18,6 +18,7 @@ import warnings
 import numpy as np
 
 from .raw import _setup_channel_selections
+from ..fixes import _sharex
 from ..defaults import _handle_default
 from ..utils import verbose, logger, warn, fill_doc, _check_option
 from ..io.meas_info import create_info, _validate_type
@@ -540,7 +541,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         ax['evoked'].set_xlim(tmin, tmax)
         ax['evoked'].lines[0].set_clip_on(True)
         ax['evoked'].collections[0].set_clip_on(True)
-        ax['evoked'].get_shared_x_axes().join(ax['evoked'], ax_im)
+        _sharex(ax['evoked'], ax_im)
         # fix the axes for proper updating during interactivity
         loc = ax_im.xaxis.get_major_locator()
         ax['evoked'].xaxis.set_major_locator(loc)
@@ -955,9 +956,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     %(normalization)s
-    %(picks_plot_psd_good_data)s
-    ax : instance of Axes | None
-        Axes to plot into. If None, axes will be created.
+    %(picks_good_data_noref)s
+    %(ax_plot_psd)s
     %(color_plot_psd)s
     %(xscale_plot_psd)s
     %(area_mode_plot_psd)s

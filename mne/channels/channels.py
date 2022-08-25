@@ -24,7 +24,8 @@ import numpy as np
 from ..defaults import HEAD_SIZE_DEFAULT, _handle_default
 from ..utils import (verbose, logger, warn,
                      _check_preload, _validate_type, fill_doc, _check_option,
-                     _get_stim_channel, _check_fname, _check_dict_keys)
+                     _get_stim_channel, _check_fname, _check_dict_keys,
+                     _on_missing)
 from ..io.constants import FIFF
 from ..io.meas_info import (anonymize_info, Info, MontageMixin, create_info,
                             _rename_comps)
@@ -598,64 +599,7 @@ class UpdateChannelsMixin(object):
 
         Parameters
         ----------
-        meg : bool | str
-            If True include MEG channels. If string it can be 'mag', 'grad',
-            'planar1' or 'planar2' to select only magnetometers, all
-            gradiometers, or a specific type of gradiometer.
-        eeg : bool
-            If True include EEG channels.
-        stim : bool
-            If True include stimulus channels.
-        eog : bool
-            If True include EOG channels.
-        ecg : bool
-            If True include ECG channels.
-        emg : bool
-            If True include EMG channels.
-        ref_meg : bool | str
-            If True include CTF / 4D reference channels. If 'auto', reference
-            channels are included if compensations are present and ``meg`` is
-            not False. Can also be the string options for the ``meg``
-            parameter.
-        misc : bool
-            If True include miscellaneous analog channels.
-        resp : bool
-            If ``True`` include respiratory channels.
-        chpi : bool
-            If True include continuous HPI coil channels.
-        exci : bool
-            Flux excitation channel used to be a stimulus channel.
-        ias : bool
-            Internal Active Shielding data (maybe on Triux only).
-        syst : bool
-            System status channel information (on Triux systems only).
-        seeg : bool
-            Stereotactic EEG channels.
-        dipole : bool
-            Dipole time course channels.
-        gof : bool
-            Dipole goodness of fit channels.
-        bio : bool
-            Bio channels.
-        ecog : bool
-            Electrocorticography channels.
-        fnirs : bool | str
-            Functional near-infrared spectroscopy channels. If True include all
-            fNIRS channels. If False (default) include none. If string it can
-            be 'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
-            include channels measuring deoxyhemoglobin).
-        csd : bool
-            EEG-CSD channels.
-        dbs : bool
-            Deep brain stimulation channels.
-        include : list of str
-            List of additional channels to include. If empty do not include
-            any.
-        exclude : list of str | str
-            List of channels to exclude. If 'bads' (default), exclude channels
-            in ``info['bads']``.
-        selection : list of str
-            Restrict sensor channels (MEG, EEG) to this list of channel names.
+        %(pick_types_params)s
         %(verbose)s
 
         Returns
@@ -792,13 +736,15 @@ class UpdateChannelsMixin(object):
             idx.append(ii)
         return self._pick_drop_channels(idx)
 
-    def drop_channels(self, ch_names):
+    @fill_doc
+    def drop_channels(self, ch_names, on_missing='raise'):
         """Drop channel(s).
 
         Parameters
         ----------
         ch_names : iterable or str
             Iterable (e.g. list) of channel name(s) or channel name to remove.
+        %(on_missing_ch_names)s
 
         Returns
         -------
@@ -831,7 +777,7 @@ class UpdateChannelsMixin(object):
         missing = [ch for ch in ch_names if ch not in self.ch_names]
         if len(missing) > 0:
             msg = "Channel(s) {0} not found, nothing dropped."
-            raise ValueError(msg.format(", ".join(missing)))
+            _on_missing(on_missing, msg.format(", ".join(missing)))
 
         bad_idx = [self.ch_names.index(ch) for ch in ch_names
                    if ch in self.ch_names]

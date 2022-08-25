@@ -189,7 +189,7 @@ del CT_resampled
 # here::
 #
 #    reg_affine, _ = mne.transforms.compute_volume_registration(
-#         CT_orig, T1, pipeline='rigids', zooms=dict(translation=5)))
+#         CT_orig, T1, pipeline='rigids')
 #
 # Instead we just hard-code the resulting 4x4 matrix:
 
@@ -230,21 +230,18 @@ del CT_orig
 #
 #     .. code-block:: python
 #
-#         from dipy.align import affine_registration
 #         # load transform
 #         manual_reg_affine_vox = mne.read_lta(op.join(  # the path used above
 #             misc_path, 'seeg', 'sample_seeg_CT_aligned_manual.mgz.lta'))
 #         # convert from vox->vox to ras->ras
 #         manual_reg_affine = \
 #             CT_orig.affine @ np.linalg.inv(manual_reg_affine_vox) \
-#             @ np.linalg.inv(T1.affine)
-#         CT_aligned_fix_img = affine_registration(
-#             moving=np.array(CT_orig.dataobj), static=np.array(T1.dataobj),
-#             moving_affine=CT_orig.affine, static_affine=T1.affine,
-#             pipeline=['rigid'], starting_affine=manual_reg_affine,
-#             level_iters=[100], sigmas=[0], factors=[1])[0]
-#         CT_aligned = nib.MGHImage(
-#             CT_aligned_fix_img.astype(np.float32), T1.affine)
+#             @ np.linalg.inv(CT_orig.affine)
+#         reg_affine, _ = mne.transforms.compute_volume_registration(
+#             CT_orig, T1, pipeline=['rigid'],
+#             starting_affine=manual_reg_affine)
+#         CT_aligned = mne.transforms.apply_volume_registration(
+#             CT_orig, T1, reg_affine, cval='1%')
 #
 #     The rest of the tutorial can then be completed using ``CT_aligned``
 #     from this point on.

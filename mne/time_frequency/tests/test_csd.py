@@ -12,24 +12,34 @@ from mne.utils import sum_squared, requires_version
 from mne.time_frequency import (csd_fourier, csd_multitaper,
                                 csd_morlet, csd_array_fourier,
                                 csd_array_multitaper, csd_array_morlet,
-                                tfr_morlet,
+                                tfr_morlet, csd_tfr,
                                 CrossSpectralDensity, read_csd,
                                 pick_channels_csd, psd_multitaper)
 from mne.time_frequency.csd import _sym_mat_to_vector, _vector_to_sym_mat
+from mne.proj import Projection
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_fname = op.join(base_dir, 'test-eve.fif')
 
 
-def _make_csd():
+def _make_csd(add_proj=False):
     """Make a simple CrossSpectralDensity object."""
     frequencies = [1., 2., 3., 4.]
     n_freqs = len(frequencies)
     names = ['CH1', 'CH2', 'CH3']
     tmin, tmax = (0., 1.)
     data = np.arange(6. * n_freqs).reshape(n_freqs, 6).T
-    return CrossSpectralDensity(data, names, frequencies, 1, tmin, tmax)
+    if add_proj:
+        proj_data = dict(
+            col_names=names, row_names=None, data=np.ones((1, len(names)))
+        )
+        projs = [Projection(data=proj_data)]
+    else:
+        projs = None
+    return CrossSpectralDensity(
+        data, names, frequencies, 1, tmin, tmax, projs=projs
+    )
 
 
 def test_csd():
@@ -223,17 +233,17 @@ def test_csd_get_data():
 @requires_version('h5io')
 def test_csd_save(tmp_path):
     """Test saving and loading a CrossSpectralDensity."""
-    csd = _make_csd()
-    tempdir = str(tmp_path)
-    fname = op.join(tempdir, 'csd.h5')
+    csd = _make_csd(add_proj=True)
+    fname = op.join(str(tmp_path), 'csd.h5')
     csd.save(fname)
     csd2 = read_csd(fname)
     assert_array_equal(csd._data, csd2._data)
+    assert_array_equal(csd.frequencies, csd2.frequencies)
     assert csd.tmin == csd2.tmin
     assert csd.tmax == csd2.tmax
     assert csd.ch_names == csd2.ch_names
-    assert csd.frequencies == csd2.frequencies
     assert csd._is_sum == csd2._is_sum
+    assert isinstance(csd2.projs[0], Projection)
 
 
 def test_csd_pickle(tmp_path):
@@ -550,3 +560,23 @@ def test_equalize_channels():
 
     assert csd1.ch_names == ['CH1', 'CH2']
     assert csd2.ch_names == ['CH1', 'CH2']
+
+
+def test_csd_tfr():
+    """Test computing cross-spectral density on time-frequency epochs."""
+    rng = np.random.default_rng(11)
+    n_epochs = 6
+    info = mne.io.read_info(raw_fname)
+    info = mne.pick_info(info, mne.pick_types(info, eeg=True))
+    freqs = np.arange(38, 40)
+    times = np.linspace(0, 1, int(round(info['sfreq'])))
+    data = rng.normal(
+        size=(n_epochs, len(info.ch_names), times.size)) * 1e-6
+    epochs = mne.EpochsArray(data, info)
+    csd_test = csd_morlet(epochs, freqs, n_cycles=7, tmin=0.25, tmax=0.75)
+    epochs_tfr = tfr_morlet(epochs, freqs, n_cycles=7,
+                            average=False, return_itc=False,
+                            output='complex')
+    csd = csd_tfr(epochs_tfr, tmin=0.25, tmax=0.75)
+    assert_allclose(csd._data, csd_test._data)
+    assert_array_equal(csd.frequencies, freqs)
