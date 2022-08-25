@@ -24,7 +24,7 @@ from ..io.compensator import get_current_comp, make_compensator
 from ..io.constants import FIFF
 from ..io.pick import pick_types
 from ..parallel import parallel_func
-from ..surface import _project_onto_surface, _jit_cross, transform_surface_to
+from ..surface import _project_onto_surface, _jit_cross
 from ..transforms import apply_trans, invert_transform
 from ..utils import logger, verbose, _pl, warn, fill_doc, _check_option
 from ..bem import _make_openmeeg_geometry
@@ -934,23 +934,49 @@ def _compute_forwards(rr, bem, coils_list, ccoils_list, infos, coil_types,
         dipoles = np.c_[
             np.kron(rr.T, np.ones(3)[None, :]).T,
             np.kron(np.ones(len(rr))[:, None],
-                    bem['head_mri_t']["trans"][:3, :3].T),
+                    np.eye(3)),
         ]
         dipoles = om.Matrix(np.asfortranarray(dipoles))
         dsm = om.DipSourceMat(geom, dipoles, "Brain")
         meg_coils, eeg_coils = fwd_data["coils_list"]
-        rmags, _, ws, bins = _concatenate_coils(eeg_coils)
-        # For EEG
-        eeg_sensors = om.Sensors(om.Matrix(np.asfortranarray(rmags)), geom)
-        h2em = om.Head2EEGMat(geom, eeg_sensors)
-        eeg_fwd_full = om.GainEEG(hminv, dsm, h2em).array()
 
-        eeg_fwd = []
-        for x in eeg_fwd_full.T:
-            eeg_fwd.append(bincount(bins, ws * x, bins[-1] + 1))
-        eeg_fwd = np.array(eeg_fwd)
-        meg_fwd = np.zeros((len(rr) * 3, len(meg_coils)))
+        if eeg_coils:
+            rmags, _, ws, bins = _concatenate_coils(eeg_coils)
+            # For EEG
+            eeg_sensors = om.Sensors(om.Matrix(np.asfortranarray(rmags)), geom)
+            h2em = om.Head2EEGMat(geom, eeg_sensors)
+            eeg_fwd_full = om.GainEEG(hminv, dsm, h2em).array()
+            eeg_fwd = []
+            for x in eeg_fwd_full.T:
+                eeg_fwd.append(bincount(bins, ws * x, bins[-1] + 1))
+            eeg_fwd = np.array(eeg_fwd)
+        else:
+            eeg_fwd = np.zeros((len(rr) * 3, len(eeg_coils)))
+
+        if meg_coils:
+            rmags, cosmags, ws, bins = _concatenate_coils(meg_coils)
+            labels = [str(ii) for ii in range(len(rmags))]
+            meg_sensors = om.Sensors(
+                labels,
+                np.asfortranarray(rmags),
+                np.asfortranarray(cosmags),
+                np.ones(len(labels)),  # weights for compatibility with OpenMEEG
+                np.ones(len(labels)),  # radii for compatibility with OpenMEEG
+            )
+            h2mm = om.Head2MEGMat(geom, meg_sensors)
+            ds2mm = om.DipSource2MEGMat(dipoles, meg_sensors)
+            meg_fwd_full = om.GainMEG(hminv, dsm, h2mm, ds2mm).array()
+            meg_fwd = []
+            for x in meg_fwd_full.T:
+                meg_fwd.append(bincount(bins, ws * x, bins[-1] + 1))
+            meg_fwd = np.array(meg_fwd)
+
+            np.savetxt("debug_dipoles.txt", dipoles.array())
+            np.savetxt("debug_meg_sensors.txt", rmags)
+        else:
+            meg_fwd = np.zeros((len(rr) * 3, len(meg_coils)))
         Bs = [meg_fwd, eeg_fwd]
+
     n_sensors_want = sum(len(coils) for coils in coils_list)
     n_sensors = sum(B.shape[1] for B in Bs)
     n_sources = Bs[0].shape[0]

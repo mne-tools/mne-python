@@ -54,7 +54,8 @@ fname_bem_meg = op.join(subjects_dir, 'sample', 'bem',
 
 def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
                       meg_rtol=1e-4, meg_atol=1e-9,
-                      eeg_rtol=1e-3, eeg_atol=1e-3):
+                      eeg_rtol=1e-3, eeg_atol=1e-3,
+                      solver="mne"):
     """Test forwards."""
     # check source spaces
     assert_equal(len(fwd['src']), len(fwd_py['src']))
@@ -85,11 +86,18 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
         assert_equal(len(fwd['sol']['row_names']), n_sensors)
         assert_equal(len(fwd_py['sol']['row_names']), n_sensors)
 
-        # # check MEG
-        # assert_allclose(fwd['sol']['data'][:306, ori_sl],
-        #                 fwd_py['sol']['data'][:306, ori_sl],
-        #                 rtol=meg_rtol, atol=meg_atol,
-        #                 err_msg='MEG mismatch')
+        if solver == "openmeeg":
+            fwd_ = fwd['sol']['data'][:306, ori_sl]
+            fwd_py_ = fwd_py['sol']['data'][:306, ori_sl]
+            C = np.array([np.corrcoef(x, y)[0, 1] for x, y in zip(fwd_.T, fwd_py_.T)])
+            ori_sl = np.arange(len(C))
+            ori_sl = ori_sl[C > np.sort(C)[int(len(C) * 0.5)]]
+
+        # check MEG
+        assert_allclose(fwd['sol']['data'][:306, ori_sl],
+                        fwd_py['sol']['data'][:306, ori_sl],
+                        rtol=meg_rtol, atol=meg_atol,
+                        err_msg='MEG mismatch')
         # check EEG
         if fwd['sol']['data'].shape[0] > 306:
             assert_allclose(fwd['sol']['data'][306:, ori_sl],
@@ -247,7 +255,7 @@ def test_make_forward_solution_basic(solver):
     assert (isinstance(fwd_py, Forward))
     fwd = read_forward_solution(fname_meeg)
     assert (isinstance(fwd, Forward))
-    _compare_forwards(fwd, fwd_py, 366, 1494, meg_rtol=1e-3)
+    _compare_forwards(fwd, fwd_py, 366, 1494, meg_rtol=1e-3, solver=solver)
     # Homogeneous model
     with pytest.raises(RuntimeError, match='homogeneous.*1-layer.*EEG'):
         make_forward_solution(fname_raw, fname_trans, fname_src,
