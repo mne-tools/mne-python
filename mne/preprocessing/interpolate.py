@@ -125,28 +125,26 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
         G_dense[idx1, idx0] = 1
     # look for connected components
     _, labels = connected_components(csr_matrix(G_dense), directed=False)
-    group_idx = [
+    groups_idx = [
         [nodes[j] for j in np.where(labels == k)[0]] for k in set(labels)
     ]
-    group_names = [
-        [inst.info.ch_names[k] for k in group] for group in group_idx
+    groups_names = [
+        [inst.info.ch_names[k] for k in group_idx] for group_idx in groups_idx
     ]
 
     # warn for all bridged areas that include too many electrodes
-    for group in group_names:
-        if len(group) > 4:
-            warn(f"The channels {', '.join(group)} are bridged together and "
-                 "form a large area of bridged electrodes. Interpolation "
+    for group_names in groups_names:
+        if len(group_names) > 4:
+            warn(f"The channels {', '.join(group_names)} are bridged together "
+                 "and form a large area of bridged electrodes. Interpolation "
                  "might be innacurate.")
 
     # make virtual channels
     virtual_chs = dict()
     bads = set()
-    data = inst.get_data()
-    for idx0, idx1 in bridged_idx:
-        ch0 = inst.ch_names[idx0]
-        ch1 = inst.ch_names[idx1]
-        bads = bads.union([ch0, ch1])
+    for k, group_idx in enumerate(groups_idx):
+        group_names = [inst.info.ch_names[k] for k in group_idx]
+        bads = bads.union(group_names)
         # compute midway position in spherical coordinates in "head"
         # (more accurate than cutting though the scalp by using cartesian)
         pos0 = _cart_to_sph(ch_pos[ch0])
