@@ -104,7 +104,7 @@ For full functionality, some functions require:
 - joblib >= 0.15 (for parallelization control)
 - Numba >= 0.48.0
 - NiBabel >= 2.5.0
-- OpenMEEG >= 2.5.3
+- OpenMEEG >= 2.5.4
 - Pandas >= 1.0.0
 - Picard >= 0.3
 - CuPy >= 7.1.1 (for NVIDIA CUDA acceleration)
