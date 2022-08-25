@@ -3,20 +3,24 @@
         <th>Data type</th>
         <td>{{ spectrum._data_type }}</td>
     </tr>
+    {%- for unit in units %}
     <tr>
-        <th>Units</th>
-        <td>{{ units }}</td>
+        {%- if loop.index == 1 %}
+        <th rowspan={{ units | length }}>Units</th>
+        {%- endif %}
+        <td class="justify">{{ unit }}</td>
     </tr>
+    {%- endfor %}
     <tr>
         <th>Data source</th>
         <td>{{ inst_type }}</td>
     </tr>
-    {% if inst_type == "Epochs" %}
+    {%- if inst_type == "Epochs" %}
     <tr>
         <th>Number of epochs</th>
         <td>{{ spectrum.shape[0] }}</td>
     </tr>
-    {% endif %}
+    {% endif -%}
     <tr>
         <th>Dims</th>
         <td>{{ spectrum._dims | join(", ") }}</td>

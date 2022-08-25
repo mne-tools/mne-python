@@ -367,8 +367,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         from ..html_templates import repr_templates_env
 
         inst_type_str = self._get_instance_type_string()
-        units = ', '.join(
-            f'{ch_type}: {unit}' for ch_type, unit in self.units().items())
+        units = [f"{ch_type}: {unit}"
+                 for ch_type, unit in units.items()]
         t = repr_templates_env.get_template('spectrum.html.jinja')
         t = t.render(spectrum=self, inst_type=inst_type_str, units=units)
         return t
