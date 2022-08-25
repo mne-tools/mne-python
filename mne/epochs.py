@@ -2111,8 +2111,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         .. versionadded:: 0.20.0
         """
-        from .forward import _as_meg_type_inst
-        return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
+        if ch_type == 'combined_grad':
+            from .channels.layout import _combine_meg_grads
+            return _combine_meg_grads(self, method=mode)
+        else:
+            from .forward import _as_meg_type_inst
+            return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
 
 def _drop_log_stats(drop_log, ignore=('IGNORED',)):
