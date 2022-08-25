@@ -147,25 +147,33 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
         bads = bads.union(group_names)
         # compute midway position in spherical coordinates in "head"
         # (more accurate than cutting though the scalp by using cartesian)
-        pos0 = _cart_to_sph(ch_pos[ch0])
-        pos1 = _cart_to_sph(ch_pos[ch1])
-        pos_virtual = _sph_to_cart((pos0 + pos1) / 2)
+        sphere_positions = np.zeros((len(group_idx), 3))
+        for i, ch_name in enumerate(group_names):
+            sphere_positions[i, :] = _cart_to_sph(ch_pos[ch_name])
+        pos_virtual = _sph_to_cart(np.average(sphere_positions, axis=0))
+        # create the virtual channel info and set the position
         virtual_info = create_info(
-            [f'{ch0}-{ch1} virtual'], inst.info['sfreq'], 'eeg')
+            [f'virtual {k+1}'], inst.info['sfreq'], 'eeg'
+        )
         virtual_info['chs'][0]['loc'][:3] = pos_virtual
+        # create virtual channel
+        data = inst.get_data(picks=group_names)
+        data = np.average(data, axis=0).reshape(1, -1)
         if isinstance(inst, BaseRaw):
             virtual_ch = RawArray(
-                (data[idx0:idx0 + 1] + data[idx1:idx1 + 1]) / 2,
-                virtual_info, first_samp=inst.first_samp)
+                data, virtual_info, first_samp=inst.first_samp
+            )
         elif isinstance(inst, BaseEpochs):
-            virtual_ch = EpochsArray(
-                (data[:, idx0:idx0 + 1] + data[:, idx1:idx1 + 1]) / 2,
-                virtual_info, tmin=inst.tmin)
+            virtual_ch = EpochsArray(data, virtual_info, tmin=inst.tmin)
         else:  # evoked
             virtual_ch = EvokedArray(
-                (data[idx0:idx0 + 1] + data[idx1:idx1 + 1]) / 2,
-                virtual_info, tmin=inst.tmin, nave=inst.nave, kind=inst.kind)
-        virtual_chs[f'{ch0}-{ch1} virtual'] = virtual_ch
+                data,
+                virtual_info,
+                tmin=inst.tmin,
+                nave=inst.nave,
+                kind=inst.kind,
+            )
+        virtual_chs[f'virtual {k+1}'] = virtual_ch
 
     # add the virtual channels
     inst.add_channels(list(virtual_chs.values()), force_update_info=True)
