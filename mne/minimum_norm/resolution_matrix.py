@@ -80,7 +80,6 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
     invmat = _get_matrix_from_inverse_operator(inv, fwd,
                                                method=method, lambda2=lambda2)
     resmat = invmat.dot(leadfield)
-    resmat_ori = resmat.copy()
     logger.info('Dimensions of resolution matrix: %d by %d.' % resmat.shape)
 
     # add source noise power to columns of resolution matrix
@@ -121,10 +120,10 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
 
         alpha = (alphas['eeg'] + alphas['mag'] + alphas['gra']) / (3 * snr)
 
+        # # previous attempt to compute scaling via whitened gain matrix
         # whitener = inv['whitener']
         # gain = np.dot(whitener, leadfield)
         # gram_gain = np.dot(gain, gain.T)
-        # # alpha = np.sqrt(np.trace(gram_gain) / np.trace(noise_cov.data))
         # alpha = np.sqrt(np.trace(gram_gain))
 
         # Add square root of source noise power to every column, scale
