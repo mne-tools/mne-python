@@ -332,6 +332,36 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         """Test equivalence of two Spectrum instances."""
         return object_diff(vars(self), vars(other)) == ''
 
+    def __getstate__(self):
+        """Prepare object for serialization."""
+        inst_type_str = self._get_instance_type_string()
+        out = dict(method=self.method,
+                   data=self._data,
+                   sfreq=self.sfreq,
+                   dims=self._dims,
+                   freqs=self.freqs,
+                   inst_type_str=inst_type_str,
+                   data_type=self._data_type,
+                   info=self.info)
+        return out
+
+    def __setstate__(self, state):
+        """Unpack from serialized format."""
+        from .. import Epochs, Evoked, Info
+        from ..io import Raw
+
+        self._method = state['method']
+        self._data = state['data']
+        self._freqs = state['freqs']
+        self._dims = state['dims']
+        self._sfreq = state['sfreq']
+        self.info = Info(**state['info'])
+        self._data_type = state['data_type']
+        self.preload = True
+        # instance type
+        inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked)
+        self._inst_type = inst_types[state['inst_type_str']]
+
     def __repr__(self):
         """Build string representation of the Spectrum object."""
         inst_type_str = self._get_instance_type_string()
@@ -415,31 +445,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             exp = ''
         pre, post = (r'$\mathrm{', r'}$') if latex else ('', '')
         return f'{pre}{unit}{exp}/{denom}{post}'
-
-    def _from_file(self, method, data, freqs, sfreq, dims, data_type,
-                   inst_type_str, info, metadata=None, drop_log=None,
-                   event_id=None, events=None, selection=None):
-        """Recreate Spectrum object from hdf5 file."""
-        from .. import Epochs, Evoked, Info
-        from ..io import Raw
-
-        self._method = method
-        self._data = data
-        self._freqs = freqs
-        self._dims = dims
-        self._sfreq = sfreq
-        self.info = Info(**info)
-        self._data_type = data_type
-        self.preload = True
-        if inst_type_str == 'Epochs':
-            self._metadata = metadata
-            self.drop_log = drop_log
-            self.event_id = event_id
-            self.events = events
-            self.selection = selection
-        # instance type
-        inst_types = dict(Raw=Raw, Epochs=Epochs, Evoked=Evoked)
-        self._inst_type = inst_types[inst_type_str]
 
     def _get_instance_type_string(self):
         """Get string representation of the originating instance type."""
@@ -795,21 +800,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         _, write_hdf5 = _import_h5io_funcs()
         check_fname(fname, 'spectrum', ('.h5', '.hdf5'))
         fname = _check_fname(fname, overwrite=overwrite, verbose=verbose)
-        inst_type_str = self._get_instance_type_string()
-        out = dict(method=self.method,
-                   data=self.get_data(picks='all', exclude=[]),
-                   sfreq=self.sfreq,
-                   dims=self._dims,
-                   freqs=self.freqs,
-                   inst_type_str=inst_type_str,
-                   data_type=self._data_type,
-                   info=self.info)
-        if inst_type_str == 'Epochs':
-            out.update(metadata=self._metadata,
-                       drop_log=self.drop_log,
-                       event_id=self.event_id,
-                       events=self.events,
-                       selection=self.selection)
+        out = self.__getstate__()
         write_hdf5(fname, out, overwrite=overwrite, title='mnepython')
 
     @verbose
@@ -969,7 +960,7 @@ class Spectrum(BaseSpectrum):
 
         # triage reading from file
         if isinstance(inst, dict):
-            self._from_file(**inst)
+            self.__setstate__(inst)
             return
         # do the basic setup
         super().__init__(inst, method, fmin, fmax, tmin, tmax, picks, proj,
@@ -1071,7 +1062,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
                  proj, reject_by_annotation, *, n_jobs, verbose, **method_kw):
         # triage reading from file
         if isinstance(inst, dict):
-            self._from_file(**inst)
+            self.__setstate__(inst)
             return
         # do the basic setup
         super().__init__(inst, method, fmin, fmax, tmin, tmax, picks, proj,
@@ -1109,6 +1100,25 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         %(getitem_epochspectrum_return)s
         """
         return super().__getitem__(item)
+
+    def __getstate__(self):
+        """Prepare object for serialization."""
+        out = super().__getstate__()
+        out.update(metadata=self._metadata,
+                    drop_log=self.drop_log,
+                    event_id=self.event_id,
+                    events=self.events,
+                    selection=self.selection)
+        return out
+
+    def __setstate__(self, state):
+        """Unpack from serialized format."""
+        super().__setstate__(state)
+        self._metadata = state['metadata']
+        self.drop_log = state['drop_log']
+        self.event_id = state['event_id']
+        self.events = state['events']
+        self.selection = state['selection']
 
 
 def read_spectrum(fname):
