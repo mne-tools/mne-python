@@ -173,8 +173,7 @@ spectrum.plot_topomap()
 # to plot, or lower/upper frequency band edges:
 
 bands = {'10 Hz': 10, '15 Hz': 15, '20 Hz': 20, '10-20 Hz': (10, 20)}
-epochs['visual/right'].plot_psd_topomap(bands=bands, vlim='joint',
-                                        ch_type='grad')
+spectrum.plot_topomap(bands=bands, vlim='joint', ch_type='grad')
 
 # %%
 # If you prefer untransformed power estimates, you can pass ``dB=False``. It is
