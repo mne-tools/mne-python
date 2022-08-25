@@ -31,7 +31,7 @@ from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
                       _fast_cross_nd_sum, _get_solids, _complete_sphere_surf,
-                      decimate_surface)
+                      decimate_surface, transform_surface_to)
 from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
@@ -67,6 +67,7 @@ class ConductorModel(dict):
         else:
             extra = ('BEM (%s layer%s)' % (len(self['surfs']),
                                            _pl(self['surfs'])))
+            extra += " solver=%s" % self['solver']
         return '<ConductorModel | %s>' % extra
 
     def copy(self):
@@ -313,25 +314,49 @@ def _import_openmeeg(what='compute a BEM solution using OpenMEEG'):
     return om
 
 
+def _make_openmeeg_geometry(bem, mri_head_t=None):
+    # OpenMEEG
+    om = _import_openmeeg()
+    meshes = []
+    for surf in bem['surfs'][::-1]:
+        if mri_head_t is not None:
+            surf = transform_surface_to(surf, "head", mri_head_t, copy=True)
+        points, faces = surf['rr'], surf['tris']
+        faces = faces[:, [1, 0, 2]]  # swap faces
+        meshes.append((points, faces))
+
+    conductivity = bem['sigma'][::-1]
+    geom = om.make_nested_geometry(meshes, conductivity)
+    return geom
+
+
 def _fwd_bem_openmeeg_solution(bem):
     om = _import_openmeeg()
     logger.info('Creating BEM solution using OpenMEEG')
-    assert om  # just to make flake happy
-    # TODO: Actually compute the stuff that we need here instead of just
-    # wrapping to Python
-    _fwd_bem_linear_collocation_solution(bem)
+    logger.info('Computing the openmeeg head matrix solution...')
+    logger.info('    Matrix coefficients...')
+
+    geom = _make_openmeeg_geometry(bem)
+
+    hm = om.HeadMat(geom)
+    bem['nsol'] = hm.nlin()
+
+    logger.info("    Inverting the coefficient matrix...")
+    hm.invert()  # invert inplace
+    bem['solution'] = hm.array_flat()
+    bem['bem_method'] = FIFF.FIFFV_BEM_APPROX_LINEAR
     bem['solver'] = 'openmeeg'
 
 
 @verbose
-def make_bem_solution(surfs, *, method='mne', verbose=None):
+def make_bem_solution(surfs, *, solver='mne', verbose=None):
     """Create a BEM solution using the linear collocation approach.
 
     Parameters
     ----------
     surfs : list of dict
         The BEM surfaces to use (from :func:`mne.make_bem_model`).
-    method : str
+    solver : str
         Can be 'mne' (default) to use MNE-Python, or 'openmeeg' to use
         the :doc:`OpenMEEG <openmeeg:index>` package.
 
@@ -355,8 +380,8 @@ def make_bem_solution(surfs, *, method='mne', verbose=None):
     -----
     .. versionadded:: 0.10.0
     """
-    _validate_type(method, str, 'method')
-    _check_option('method', method.lower(), ('mne', 'openmeeg'))
+    _validate_type(solver, str, 'solver')
+    _check_option('method', solver.lower(), ('mne', 'openmeeg'))
     bem = _ensure_bem_surfaces(surfs)
     _add_gamma_multipliers(bem)
     if len(bem['surfs']) == 3:
@@ -368,10 +393,10 @@ def make_bem_solution(surfs, *, method='mne', verbose=None):
     _check_bem_size(bem['surfs'])
     for surf in bem['surfs']:
         _check_complete_surface(surf)
-    if method.lower() == 'openmeeg':
+    if solver.lower() == 'openmeeg':
         _fwd_bem_openmeeg_solution(bem)
     else:
-        assert method.lower() == 'mne'
+        assert solver.lower() == 'mne'
         _fwd_bem_linear_collocation_solution(bem)
     logger.info("Solution ready.")
     logger.info('BEM geometry computations complete.')
@@ -1472,12 +1497,18 @@ def read_bem_solution(fname, *, verbose=None):
         # else:  # method == FIFF.FIFFV_BEM_APPROX_CONST
         #     dim += surf['ntri']
     dims = bem['solution'].shape
-    if len(dims) != 2:
-        raise RuntimeError('Expected a two-dimensional solution matrix '
-                           'instead of a %d dimensional one' % dims[0])
-    if dims[0] != dim or dims[1] != dim:
-        raise RuntimeError('Expected a %d x %d solution matrix instead of '
-                           'a %d x %d one' % (dim, dim, dims[1], dims[0]))
+    if solver == "openmeeg":
+        if len(dims) != 1:
+            raise RuntimeError('Expected a one-dimensional solution matrix '
+                               'instead of a %d dimensional one with '
+                               'OpenMEEG' % dims[0])
+    else:
+        if len(dims) != 2 and solver != "openmeeg":
+            raise RuntimeError('Expected a two-dimensional solution matrix '
+                            'instead of a %d dimensional one' % dims[0])
+        if dims[0] != dim or dims[1] != dim:
+            raise RuntimeError('Expected a %d x %d solution matrix instead of '
+                            'a %d x %d one' % (dim, dim, dims[1], dims[0]))
     bem['nsol'] = bem['solution'].shape[0]
     # Gamma factors and multipliers
     _add_gamma_multipliers(bem)

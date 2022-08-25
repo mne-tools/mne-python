@@ -258,7 +258,7 @@ def test_bem_solution(tmp_path, cond, fname):
         'openmeeg', '2.5', reason='OpenMEEG required to fully test BEM '
         'solution computation')
     with catch_logging() as log:
-        solution = make_bem_solution(model, method='openmeeg', verbose=True)
+        solution = make_bem_solution(model, solver='openmeeg', verbose=True)
     log = log.getvalue()
     assert 'OpenMEEG' in log
     write_bem_solution(fname_temp, solution, overwrite=True)

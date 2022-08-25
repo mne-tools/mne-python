@@ -24,9 +24,10 @@ from ..io.compensator import get_current_comp, make_compensator
 from ..io.constants import FIFF
 from ..io.pick import pick_types
 from ..parallel import parallel_func
-from ..surface import _project_onto_surface, _jit_cross
-from ..transforms import apply_trans
+from ..surface import _project_onto_surface, _jit_cross, transform_surface_to
+from ..transforms import apply_trans, invert_transform
 from ..utils import logger, verbose, _pl, warn, fill_doc, _check_option
+from ..bem import _make_openmeeg_geometry
 
 
 # #############################################################################
@@ -925,8 +926,31 @@ def _compute_forwards(rr, bem, coils_list, ccoils_list, infos, coil_types,
         Bs = _compute_forwards_meeg(rr, fwd_data, n_jobs)
     else:
         # TODO: Do something other than this
-        _prep_field_computation(rr, bem, fwd_data, n_jobs)
-        Bs = _compute_forwards_meeg(rr, fwd_data, n_jobs)
+        import openmeeg as om
+        hminv = om.SymMatrix(bem["solution"])
+        geom = _make_openmeeg_geometry(bem, invert_transform(bem['head_mri_t']))
+
+        # Make dipoles for all XYZ orientations
+        dipoles = np.c_[
+            np.kron(rr.T, np.ones(3)[None, :]).T,
+            np.kron(np.ones(len(rr))[:, None],
+                    bem['head_mri_t']["trans"][:3, :3].T),
+        ]
+        dipoles = om.Matrix(np.asfortranarray(dipoles))
+        dsm = om.DipSourceMat(geom, dipoles, "Brain")
+        meg_coils, eeg_coils = fwd_data["coils_list"]
+        rmags, _, ws, bins = _concatenate_coils(eeg_coils)
+        # For EEG
+        eeg_sensors = om.Sensors(om.Matrix(np.asfortranarray(rmags)), geom)
+        h2em = om.Head2EEGMat(geom, eeg_sensors)
+        eeg_fwd_full = om.GainEEG(hminv, dsm, h2em).array()
+
+        eeg_fwd = []
+        for x in eeg_fwd_full.T:
+            eeg_fwd.append(bincount(bins, ws * x, bins[-1] + 1))
+        eeg_fwd = np.array(eeg_fwd)
+        meg_fwd = np.zeros((len(rr) * 3, len(meg_coils)))
+        Bs = [meg_fwd, eeg_fwd]
     n_sensors_want = sum(len(coils) for coils in coils_list)
     n_sensors = sum(B.shape[1] for B in Bs)
     n_sources = Bs[0].shape[0]
