@@ -80,18 +80,18 @@ def test_plot_evoked_cov():
     cov = read_cov(cov_fname)
     cov['projs'] = []  # avoid warnings
     with pytest.warns(RuntimeWarning, match='No average EEG reference'):
-        evoked.plot(noise_cov=cov, time_unit='s')
+        evoked.plot(noise_cov=cov, time_unit='s', spatial_colors=False)
     with pytest.raises(TypeError, match='Covariance'):
-        evoked.plot(noise_cov=1., time_unit='s')
+        evoked.plot(noise_cov=1., time_unit='s', spatial_colors=False)
     with pytest.raises(FileNotFoundError, match='File does not exist'):
-        evoked.plot(noise_cov='nonexistent-cov.fif', time_unit='s')
+        evoked.plot(noise_cov='nonexistent-cov.fif', time_unit='s', spatial_colors=False)
     raw = read_raw_fif(raw_sss_fname)
     events = make_fixed_length_events(raw)
     epochs = Epochs(raw, events, picks=default_picks)
     cov = compute_covariance(epochs)
     evoked_sss = epochs.average()
     with pytest.warns(RuntimeWarning, match='relative scaling'):
-        evoked_sss.plot(noise_cov=cov, time_unit='s')
+        evoked_sss.plot(noise_cov=cov, time_unit='s', spatial_colors=False)
     plt.close('all')
 
 
@@ -114,12 +114,12 @@ def test_plot_evoked():
     _fake_click(fig, ax,
                 [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
     # plot with bad channels excluded & spatial_colors & zorder
-    evoked.plot(exclude='bads', time_unit='s')
+    evoked.plot(exclude='bads', time_unit='s', spatial_colors=False)
 
     # test selective updating of dict keys is working.
-    evoked.plot(hline=[1], units=dict(mag='femto foo'), time_unit='s')
+    evoked.plot(hline=[1], units=dict(mag='femto foo'), time_unit='s', spatial_colors=False)
     evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
-    evoked_delayed_ssp.plot(proj='interactive', time_unit='s')
+    evoked_delayed_ssp.plot(proj='interactive', time_unit='s', spatial_colors=False)
     evoked_delayed_ssp.apply_proj()
     pytest.raises(RuntimeError, evoked_delayed_ssp.plot,
                   proj='interactive', time_unit='s')
@@ -133,7 +133,7 @@ def test_plot_evoked():
 
     # test `gfp='only'`: GFP (EEG) and RMS (MEG)
     fig, ax = plt.subplots(3)
-    evoked.plot(gfp='only', time_unit='s', axes=ax)
+    evoked.plot(gfp='only', time_unit='s', axes=ax, spatial_colors=False)
 
     assert len(ax[0].lines) == len(ax[1].lines) == len(ax[2].lines) == 1
 
@@ -150,7 +150,7 @@ def test_plot_evoked():
 
     # Test invalid `gfp`
     with pytest.raises(ValueError):
-        evoked.plot(gfp='foo', time_unit='s')
+        evoked.plot(gfp='foo', time_unit='s', spatial_colors=False)
 
     # plot with bad channels excluded, spatial_colors, zorder & pos. layout
     evoked.rename_channels({'MEG 0133': 'MEG 0000'})
@@ -166,7 +166,7 @@ def test_plot_evoked():
 
     evoked.pick_channels(evoked.ch_names[:4])
     with catch_logging() as log_file:
-        evoked.plot(verbose=True, time_unit='s')
+        evoked.plot(verbose=True, time_unit='s', spatial_colors=False)
     assert 'Need more than one' in log_file.getvalue()
 
     # Test highlight
@@ -181,7 +181,7 @@ def test_plot_evoked():
             assert len(highlighted_areas) == len(np.atleast_2d(highlight))
 
     with pytest.raises(ValueError, match='must be reshapable into a 2D array'):
-        fig = evoked.plot(time_unit='s', highlight=0.1)
+        fig = evoked.plot(time_unit='s', highlight=0.1, spatial_colors=False)
 
 
 def test_constrained_layout():
@@ -190,7 +190,7 @@ def test_constrained_layout():
     assert fig.get_constrained_layout()
     evoked = mne.read_evokeds(evoked_fname)[0]
     evoked.pick(evoked.ch_names[:2])
-    evoked.plot(axes=ax)  # smoke test that it does not break things
+    evoked.plot(axes=ax, spatial_colors=False)  # smoke test that it does not break things
     assert fig.get_constrained_layout()
     plt.close('all')
 
@@ -248,7 +248,7 @@ def test_plot_evoked_reconstruct(picks, rlims, avg_proj):
 
     cov = read_cov(cov_fname)
     with pytest.raises(ValueError, match='Cannot use proj="reconstruct"'):
-        evoked.plot(noise_cov=cov, proj='reconstruct')
+        evoked.plot(noise_cov=cov, proj='reconstruct', spatial_colors=False)
     plt.close('all')
 
 
