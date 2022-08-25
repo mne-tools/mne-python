@@ -35,7 +35,7 @@ def test_psd_nan():
 
 
 def _make_psd_data():
-    """Make noise data with sinusoids in 2 channels."""
+    """Make noise data with sinusoids in 2 out of 7 channels."""
     rng = np.random.default_rng(0)
     n_chan, n_times, sfreq = 7, 8000, 1000
     data = 0.1 * rng.random((n_chan, n_times))
