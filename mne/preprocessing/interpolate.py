@@ -3,9 +3,12 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 
 from itertools import chain
-import numpy as np
 
-from ..utils import _validate_type
+import numpy as np
+from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import connected_components
+
+from ..utils import _validate_type, warn
 from ..io import BaseRaw, RawArray
 from ..io.meas_info import create_info
 from ..epochs import BaseEpochs, EpochsArray
@@ -110,6 +113,31 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
     # store bads orig to put back at the end
     bads_orig = inst.info['bads']
     inst.info['bads'] = list()
+
+    # look for group of bad channels
+    nodes = sorted(set(chain(*bridged_idx)))
+    G_dense = np.zeros((len(nodes), len(nodes)))
+    # fill the edges with a weight of 1
+    for bridge in bridged_idx:
+        idx0 = nodes.index(bridge[0])
+        idx1 = nodes.index(bridge[1])
+        G_dense[idx0, idx1] = 1
+        G_dense[idx1, idx0] = 1
+    # look for connected components
+    _, labels = connected_components(csr_matrix(G_dense), directed=False)
+    group_idx = [
+        [nodes[j] for j in np.where(labels == k)[0]] for k in set(labels)
+    ]
+    group_names = [
+        [inst.info.ch_names[k] for k in group] for group in group_idx
+    ]
+
+    # warn for all bridged areas that include too many electrodes
+    for group in group_names:
+        if len(group) > 4:
+            warn(f"The channels {', '.join(group)} are bridged together and "
+                 "form a large area of bridged electrodes. Interpolation "
+                 "might be innacurate.")
 
     # make virtual channels
     virtual_chs = dict()
