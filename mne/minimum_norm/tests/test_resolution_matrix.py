@@ -167,3 +167,58 @@ def test_resolution_matrix():
         stc_psf_label.data, stc_psf_label2[1].data)
     assert_array_equal(
         stc_psf_label.data, stc_psf_idx.data)
+
+    # test noisy resolution matrix
+    # resmats without noise
+    rm_mne1 = make_inverse_resolution_matrix(
+        forward_fxd, inverse_operator_fxd, method='MNE', lambda2=lambda2,
+        noise_cov=None, snr=None)
+    rm_mne2 = make_inverse_resolution_matrix(
+        forward_fxd, inverse_operator_fxd, method='dSPM', lambda2=lambda2,
+        noise_cov=None, snr=None)
+    rm_mne3 = make_inverse_resolution_matrix(
+        forward_fxd, inverse_operator_fxd, method='sLORETA', lambda2=lambda2,
+        noise_cov=None, snr=None)
+    rm_mne4 = make_inverse_resolution_matrix(
+        forward_fxd, inverse_operator_fxd, method='eLORETA', lambda2=lambda2,
+        noise_cov=None, snr=None)
+
+    # same resmats with noise but very high SNR
+    rm_mne1a = make_inverse_resolution_matrix(
+        forward_fxd, inverse_operator_fxd, method='MNE', lambda2=lambda2,
+        noise_cov=noise_cov, snr=1e30)
+    rm_mne2a = make_inverse_resolution_matrix(
+        forward_fxd, inverse_operator_fxd, method='dSPM', lambda2=lambda2,
+        noise_cov=noise_cov, snr=1e30)
+    rm_mne3a = make_inverse_resolution_matrix(
+        forward_fxd, inverse_operator_fxd, method='sLORETA', lambda2=lambda2,
+        noise_cov=noise_cov, snr=1e30)
+    rm_mne4a = make_inverse_resolution_matrix(
+        forward_fxd, inverse_operator_fxd, method='eLORETA', lambda2=lambda2,
+        noise_cov=noise_cov, snr=1e30)
+
+    # resmats should be very close without noise and at high SNR
+    assert_array_almost_equal(np.abs(rm_mne1), rm_mne1a)
+    assert_array_almost_equal(np.abs(rm_mne2), rm_mne2a)
+    assert_array_almost_equal(np.abs(rm_mne3), rm_mne3a)
+    assert_array_almost_equal(np.abs(rm_mne4), rm_mne4a)
+
+    # rows of resmats (CTFs) should be similar between methods
+    row_corrs = [np.corrcoef(rm_mne1[i, :], rm_mne2[i, :])[0, 1]
+                 for i in np.arange(rm_mne1.shape[0])]
+    assert_allclose(row_corrs, 1)
+    row_corrs = [np.corrcoef(rm_mne1[i, :], rm_mne3[i, :])[0, 1]
+                 for i in np.arange(rm_mne1.shape[0])]
+    assert_allclose(row_corrs, 1)
+    row_corrs = [np.corrcoef(rm_mne1[i, :], rm_mne4[i, :])[0, 1]
+                 for i in np.arange(rm_mne1.shape[0])]
+    assert_allclose(row_corrs, 1, 0.2)  # eLORETA is different
+    row_corrs = [np.corrcoef(rm_mne1a[i, :], rm_mne2a[i, :])[0, 1]
+                 for i in np.arange(rm_mne1.shape[0])]
+    assert_allclose(row_corrs, 1)
+    row_corrs = [np.corrcoef(rm_mne1a[i, :], rm_mne3a[i, :])[0, 1]
+                 for i in np.arange(rm_mne1.shape[0])]
+    assert_allclose(row_corrs, 1)
+    row_corrs = [np.corrcoef(rm_mne1a[i, :], rm_mne4a[i, :])[0, 1]
+                 for i in np.arange(rm_mne1.shape[0])]
+    assert_allclose(row_corrs, 1, 0.2)  # eLORETA is different
