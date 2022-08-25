@@ -10,6 +10,6 @@ assignees: ''
 For example: "add 'foo' to the glossary" or "add my favorite visualization to
 the ERP tutorial".*
 
-#### Proposed documentation ehancement
+#### Proposed documentation enhancement
 *Describe your proposed enhancement in detail. If you are requesting a new
 glossary term, please include a proposed definition.*

@@ -562,7 +562,7 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=None, verbose=None):
     # turn on cHPI in file
     data = raw._data
     data[hpi_pick, :] = hpi_ons.sum()
-    _log_ch('cHPI status bits enbled and', info, hpi_pick)
+    _log_ch('cHPI status bits enabled and', info, hpi_pick)
     sinusoids = 70e-9 * np.sin(2 * np.pi * hpi_freqs[:, np.newaxis] *
                                (np.arange(len(times)) / info['sfreq']))
     info = pick_info(info, meg_picks)
