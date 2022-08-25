@@ -166,7 +166,7 @@ spectrum.plot_topomap()
 # `EpochsSpectrum.plot_topomap()<mne.time_frequency.EpochsSpectrum.plot_topomap>`
 # has a ``vlim='joint'`` option for fixing the colorbar limits jointly across
 # all subplots, to give a better sense of the relative magnitude in each
-# frequency band. You can change which channel type is used  via the
+# frequency band. You can change which channel type is used via the
 # ``ch_type`` parameter, and if you want to view different frequency bands than
 # the defaults, the ``bands`` parameter takes a :class:`dict`, with keys
 # providing a subplot title and values providing either single frequency bins
@@ -179,7 +179,7 @@ spectrum.plot_topomap(bands=bands, vlim='joint', ch_type='grad')
 # If you prefer untransformed power estimates, you can pass ``dB=False``. It is
 # also possible to normalize the power estimates by dividing by the total power
 # across all frequencies, by passing ``normalize=True``. See the docstring of
-# `~mne.Epochs.plot_psd_topomap` for details.
+# `~mne.time_frequency.EpochsSpectrum.plot_topomap` for details.
 #
 #
 # Plotting ``Epochs`` as an image map
