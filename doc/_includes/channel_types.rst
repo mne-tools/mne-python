@@ -68,5 +68,5 @@ syst           System status channel information
 
 temperature    Temperature                               Celcius
 
-galvanic       Galvanic skin response                    Siemens
+gsr            Galvanic skin response                    Siemens
 =============  ========================================= =================

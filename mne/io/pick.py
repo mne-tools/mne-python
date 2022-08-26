@@ -97,8 +97,8 @@ def get_channel_type_constants(include_defaults=False):
                          coil_type=FIFF.FIFFV_COIL_EEG_CSD),
                 temperature=dict(kind=FIFF.FIFFV_TEMPERATURE_CH,
                                  unit=FIFF.FIFF_UNIT_C),
-                galvanic=dict(kind=FIFF.FIFFV_GALVANIC_CH,
-                              unit=FIFF.FIFF_UNIT_S),
+                gsr=dict(kind=FIFF.FIFFV_GALVANIC_CH,
+                         unit=FIFF.FIFF_UNIT_S),
                 )
     if include_defaults:
         coil_none = dict(coil_type=FIFF.FIFFV_COIL_NONE)
@@ -152,7 +152,7 @@ _first_rule = {
     FIFF.FIFFV_ECOG_CH: 'ecog',
     FIFF.FIFFV_FNIRS_CH: 'fnirs',
     FIFF.FIFFV_TEMPERATURE_CH: 'temperature',
-    FIFF.FIFFV_GALVANIC_CH: 'galvanic',
+    FIFF.FIFFV_GALVANIC_CH: 'gsr',
 }
 # How to reduce our categories in channel_type (originally)
 _second_rules = {
@@ -194,7 +194,7 @@ def channel_type(info, idx):
             {'grad', 'mag', 'eeg', 'csd', 'stim', 'eog', 'emg', 'ecg',
              'ref_meg', 'resp', 'exci', 'ias', 'syst', 'misc', 'seeg', 'dbs',
               'bio', 'chpi', 'dipole', 'gof', 'ecog', 'hbo', 'hbr',
-              'temperature', 'galvanic'}
+              'temperature', 'gsr'}
     """
     # This is faster than the original _channel_type_old now in test_pick.py
     # because it uses (at most!) two dict lookups plus one conditional
@@ -379,7 +379,7 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', *, misc=False, resp=False,
                chpi=False, exci=False, ias=False, syst=False, seeg=False,
                dipole=False, gof=False, bio=False, ecog=False, fnirs=False,
-               csd=False, dbs=False, temperature=False, galvanic=False,
+               csd=False, dbs=False, temperature=False, gsr=False,
                include=(), exclude='bads', selection=None):
     """Pick channels by type and names.
 
@@ -409,7 +409,7 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
 
     for param in (eeg, stim, eog, ecg, emg, misc, resp, chpi, exci,
                   ias, syst, seeg, dipole, gof, bio, ecog, csd, dbs,
-                  temperature, galvanic):
+                  temperature, gsr):
         if not isinstance(param, bool):
             w = ('Parameters for all channel types (with the exception of '
                  '"meg", "ref_meg" and "fnirs") must be of type bool, not {}.')
@@ -419,7 +419,7 @@ def pick_types(info, meg=False, eeg=False, stim=False, eog=False, ecg=False,
                       misc=misc, resp=resp, chpi=chpi, exci=exci,
                       ias=ias, syst=syst, seeg=seeg, dbs=dbs, dipole=dipole,
                       gof=gof, bio=bio, ecog=ecog, csd=csd,
-                      temperature=temperature, galvanic=galvanic)
+                      temperature=temperature, gsr=gsr)
     # avoid triage if possible
     if isinstance(meg, bool):
         for key in ('grad', 'mag'):
@@ -922,7 +922,7 @@ _PICK_TYPES_DATA_DICT = dict(
     meg=True, eeg=True, csd=True, stim=False, eog=False, ecg=False, emg=False,
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
     seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True,
-    dbs=True, temperature=False, galvanic=False)
+    dbs=True, temperature=False, gsr=False)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT) + ['ref_meg'])
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
 _FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_cw_amplitude',

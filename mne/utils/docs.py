@@ -2359,7 +2359,7 @@ dbs : bool
     Deep brain stimulation channels.
 temperature : bool
     Temperature channels.
-galvanic : bool
+gsr : bool
     Galvanic skin response channels.
 include : list of str
     List of additional channels to include. If empty do not include

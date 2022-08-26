@@ -328,7 +328,7 @@ class SetChannelsMixin(MontageMixin):
 
             ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, dbs, stim, syst,
             ecog, hbo, hbr, fnirs_cw_amplitude, fnirs_fd_ac_amplitude,
-            fnirs_fd_phase, fnirs_od, temperature, galvanic
+            fnirs_fd_phase, fnirs_od, temperature, gsr
 
         .. versionadded:: 0.9.0
         """
@@ -594,7 +594,7 @@ class UpdateChannelsMixin(object):
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False,
                    ecog=False, fnirs=False, csd=False, dbs=False,
-                   temperature=False, galvanic=False,
+                   temperature=False, gsr=False,
                    include=(), exclude='bads', selection=None, verbose=None):
         """Pick some channels by type and names.
 
@@ -622,7 +622,7 @@ class UpdateChannelsMixin(object):
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
             ecog=ecog, fnirs=fnirs, csd=csd, dbs=dbs, include=include,
             exclude=exclude, selection=selection, temperature=temperature,
-            galvanic=galvanic)
+            gsr=gsr)
 
         self._pick_drop_channels(idx)
 
