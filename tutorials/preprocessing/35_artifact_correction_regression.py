@@ -153,16 +153,19 @@ fig.set_size_inches(6, 6)
 eog_epochs = mne.preprocessing.create_eog_epochs(raw)
 # We need to explicitly specify that we want to average the EOG channel too.
 eog_evoked = eog_epochs.average('all')
-eog_evoked.plot_joint()
+eog_evoked.plot('all', spatial_colors=True)
 
 # perform regression on the evoked blink response
 model_evoked = EOGRegression(picks='eeg', picks_artifact='eog').fit(eog_evoked)
 model_evoked.plot(vmax=0.4)
 
 # apply the regression coefficients to the original epochs
-epochs_clean_evoked = model_plain.apply(epochs)
+epochs_clean_evoked = model_evoked.apply(epochs)
 fig = epochs_clean_evoked.average('all').plot(**plot_kwargs)
 fig.set_size_inches(6, 6)
+
+# for good measure, also show the effect on the blink evoked
+model_evoked.apply(eog_evoked).plot('all', spatial_colors=True)
 
 # %%
 # Visualize the effect on raw data
