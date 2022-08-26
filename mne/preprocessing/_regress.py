@@ -16,8 +16,8 @@ from .. import Evoked
 
 
 @verbose
-def regress_artifact(inst, picks=None, picks_artifact='eog', betas=None,
-                     copy=True, verbose=None):
+def regress_artifact(inst, picks=None, exclude='bads', picks_artifact='eog',
+                     betas=None, taa=False, copy=True, verbose=None):
     """Remove artifacts using regression based on reference channels.
 
     Parameters
@@ -25,12 +25,19 @@ def regress_artifact(inst, picks=None, picks_artifact='eog', betas=None,
     inst : instance of Epochs | Raw
         The instance to process.
     %(picks_good_data)s
+    exclude : list | 'bads'
+        List of channels to exclude from the regression, only used when picking
+        based on types (e.g., exclude="bads" when picks="meg").
+        Specify `'bads'` (the default) to exclude all channels marked as bad.
     picks_artifact : array-like | str
         Channel picks to use as predictor/explanatory variables capturing
         the artifact of interest (default is "eog").
     betas : ndarray, shape (n_picks, n_picks_ref) | None
         The regression coefficients to use. If None (default), they will be
         estimated from the data.
+    taa : bool
+        Whether to apply TAA correction as described in equation 9 of
+        :footcite:`CroftBarry2000`. Defaults to ``False``.
     copy : bool
         If True (default), copy the instance before modifying it.
     %(verbose)s
@@ -59,18 +66,22 @@ def regress_artifact(inst, picks=None, picks_artifact='eog', betas=None,
     .. footbibliography::
     """  # noqa: E501
     if betas is None:
-        betas = EOGRegression(picks, picks_artifact).fit(inst)
+        betas = EOGRegression(picks, exclude, picks_artifact).fit(inst)
     else:
         # Create an EOGRegression object and load the given betas into it.
-        picks = _picks_to_idx(inst.info, picks, none='data')
+        picks = _picks_to_idx(inst.info, picks, exclude=exclude, none='data')
         picks_artifact = _picks_to_idx(inst.info, picks_artifact)
-        betas_shape = (len(picks), len(picks_artifact))
-        _check_option('betas.shape', betas.shape, (betas_shape,))
+        want_betas_shape = (len(picks), len(picks_artifact))
+        _check_option('betas.shape', betas.shape, (want_betas_shape,))
         r = EOGRegression(picks, picks_artifact)
         r.info = pick_info(inst.info, picks)
         r.coef_ = betas
+        r._picks = r.info['ch_names']
+        r._exclude = exclude
+        r._picks = r.info['ch_names']
+        r._picks_artifact = [inst.ch_names[ch] for ch in picks_artifact]
         betas = r
-    return betas.apply(inst, copy=copy), betas.coef_
+    return betas.apply(inst, taa=taa, copy=copy), betas.coef_
 
 
 @fill_doc
@@ -86,9 +97,10 @@ class EOGRegression():
     Parameters
     ----------
     %(picks_good_data)s
-    exclude : list | str
-        Set of channels to exclude from the regression, only used when picking
+    exclude : list | 'bads'
+        List of channels to exclude from the regression, only used when picking
         based on types (e.g., exclude="bads" when picks="meg").
+        Specify `'bads'` (the default) to exclude all channels marked as bad.
     picks_artifact : array-like | str
         Channel picks to use as predictor/explanatory variables capturing
         the artifact of interest (default is "eog").

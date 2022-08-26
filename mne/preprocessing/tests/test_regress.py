@@ -20,7 +20,7 @@ raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 
 @testing.requires_testing_data
 def test_regress_artifact():
-    """Test regressing data."""
+    """Test regressing artifact data."""
     raw = read_raw_fif(raw_fname).pick_types(meg=False, eeg=True, eog=True)
     raw.load_data()
     epochs = create_eog_epochs(raw)
@@ -40,10 +40,16 @@ def test_regress_artifact():
     assert np.ptp(epochs.get_data('eog')) < 1E-15  # constant value
     assert_allclose(betas, 1)
 
+    # Test applying TAA.
+    raw_no_taa, betas = regress_artifact(raw, taa=False)
+    raw_taa, _ = regress_artifact(raw, taa=True, betas=betas)
+    # TAA should have increased signal amplitude
+    assert np.ptp(raw_no_taa.get_data('eeg')) < np.ptp(raw_taa.get_data('eeg'))
+
 
 @testing.requires_testing_data
 def test_eog_regression():
-    """Test performing EOG artifact regression."""
+    """Test regressing artifact data using the EOGRegression class."""
     raw = read_raw_fif(raw_fname).pick(['eeg', 'eog', 'stim'])
 
     # Test error regarding preloading
@@ -62,12 +68,17 @@ def test_eog_regression():
     # Test regression on epochs
     epochs = create_eog_epochs(raw)
     model = EOGRegression().fit(epochs)
-    model.apply(epochs)
+    epochs = model.apply(epochs)
+    # Since these were blinks, they should be mostly gone
+    assert np.ptp(epochs.get_data('eeg')) < 1E-4
 
     # Test regression on evoked
     evoked = epochs.average('all')
     model = EOGRegression().fit(evoked)
-    model.apply(evoked)
+    evoked = model.apply(evoked)
+    assert model.coef_.shape == (59, 1)
+    # Since this was a blink evoked, signal should be mostly gone
+    assert np.ptp(evoked.get_data('eeg')) < 1E-4
 
     # Test regression on evoked and applying to raw, with different ordering of
     # channels
@@ -76,10 +87,38 @@ def test_eog_regression():
     model = EOGRegression().fit(evoked)
     model.apply(raw_)
 
+    # Test applying TAA.
+    raw_no_taa = EOGRegression().fit(raw).apply(raw, taa=False)
+    raw_taa = EOGRegression().fit(raw).apply(raw, taa=True)
+    # TAA should have increased signal amplitude
+    assert np.ptp(raw_no_taa.get_data('eeg')) < np.ptp(raw_taa.get_data('eeg'))
+
     # Test in-place operation
     raw_ = model.apply(raw, copy=False)
     assert raw_ is raw
     assert raw_._data is raw._data
+    raw_ = model.apply(raw, copy=True)
+    assert raw_ is not raw
+    assert raw_._data is not raw._data
 
-    # Smoke test for plotting
-    model.plot()
+    # Test plotting with one channel type
+    fig = model.plot()
+    assert len(fig.axes) == 2  # (one topomap and one colorbar)
+    assert fig.axes[0].title.get_text() == 'eeg/EOG 061'
+
+    # Test plotting with multiple channel types
+    raw = read_raw_fif(raw_fname).pick(['meg', 'eeg', 'eog'])
+    raw.load_data()
+    fig = EOGRegression().fit(raw).plot()
+    assert len(fig.axes) == 6  # (3 topomaps and 3 colorbars)
+    assert fig.axes[0].title.get_text() == 'grad/EOG 061'
+    assert fig.axes[1].title.get_text() == 'mag/EOG 061'
+    assert fig.axes[2].title.get_text() == 'eeg/EOG 061'
+
+    # Test for plotting with multipe channel types, multiple regressors)
+    fig = EOGRegression(picks_artifact=['EEG 001', 'EOG 061']).fit(raw).plot()
+    assert len(fig.axes) == 12  # (6 topomaps and 3 colorbars)
+    assert fig.axes[0].title.get_text() == 'grad/EEG 001'
+    assert fig.axes[1].title.get_text() == 'grad/EOG 061'
+    assert fig.axes[4].title.get_text() == 'eeg/EEG 001'
+    assert fig.axes[5].title.get_text() == 'eeg/EOG 061'
