@@ -739,6 +739,12 @@ def test_plot_bridged_electrodes():
                                                     vmax=1, show_names=True))
     # two bridged lines plus head outlines
     assert len(fig.axes[0].lines) == 6
+    # test with sphere="eeglab"
+    fig = plot_bridged_electrodes(
+        info, bridged_idx, ed_matrix,
+        topomap_args=dict(names=info.ch_names, sphere="eeglab",
+                          vmax=1, show_names=True)
+    )
 
     with pytest.raises(RuntimeError, match='Expected'):
         plot_bridged_electrodes(info, bridged_idx, np.zeros((5, 6, 7)))

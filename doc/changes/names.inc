@@ -32,6 +32,8 @@
 
 .. _Andrew Dykstra: https://github.com/adykstra
 
+.. _Andrew Quinn: https://github.com/ajquinn
+
 .. _Aniket Pradhan: https://github.com/Aniket-Pradhan
 
 .. _Anna Padee: https://github.com/apadee/
@@ -65,6 +67,8 @@
 .. _Carina Forster: https://github.com/carinafo
 
 .. _Cathy Nangini: https://github.com/KatiRG
+
+.. _Chetan Gohil: https://github.com/cgohil8
 
 .. _Chris Bailey: https://github.com/cjayb
 
@@ -292,6 +296,8 @@
 
 .. _Mathurin Massias: https://mathurinm.github.io/
 
+.. _Mats van Es: https://github.com/matsvanes
+
 .. _Matt Boggess: https://github.com/mattboggess
 
 .. _Matt Courtemanche: https://github.com/mjcourte
@@ -407,6 +413,8 @@
 .. _Sara Sommariva: http://www.dima.unige.it/~sommariva/
 
 .. _Scott Huberty:  https://orcid.org/0000-0003-2637-031X
+
+.. _Sebastiaan Mathot: http://www.cogsci.nl/smathot
 
 .. _Sebastian Castano: https://github.com/jscastanoc
 
