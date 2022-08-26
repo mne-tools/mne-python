@@ -107,6 +107,7 @@ def test_interpolate_bridged_electrodes():
         # check closer to regular interpolation than original data
         assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 5.4e-5
 
+    # test bad_limit
     montage = make_standard_montage("standard_1020")
     ch_names = [ch for ch in montage.ch_names
                 if ch not in ["P7", "P8", "T3", "T4", "T5", "T4", "T6"]]
@@ -116,9 +117,20 @@ def test_interpolate_bridged_electrodes():
     raw = io.RawArray(data, info)
     raw.set_montage("standard_1020")
     bridged_idx = list(itertools.combinations(range(5), 2))
-    with pytest.warns(match="The channels Fp1, Fpz, Fp2, AF9, AF7 are bridged "
-                      "together and form a large area of bridged electrodes."):
-        interpolate_bridged_electrodes(raw, bridged_idx)
+    with pytest.raises(
+            RuntimeError,
+            match="The channels Fp1, Fpz, Fp2, AF9, AF7 are bridged "
+            "together and form a large area of bridged electrodes."
+        ):
+        interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=4)
+    # increase the limit to prevent raising
+    interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=5)
+    # invalid argument
+    with pytest.raises(
+            ValueError,
+            match="Argument 'bad_limit' should be a strictly positive integer."
+        ):
+        interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=-4)
 
 
 def test_find_centroid():

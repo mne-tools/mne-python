@@ -73,7 +73,7 @@ def equalize_bads(insts, interp_thresh=1., copy=True):
     return insts
 
 
-def interpolate_bridged_electrodes(inst, bridged_idx):
+def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit: int = 4):
     """Interpolate bridged electrode pairs.
 
     Because bridged electrodes contain brain signal, it's just that the
@@ -89,6 +89,12 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
     bridged_idx : list of tuple
         The indices of channels marked as bridged with each bridged
         pair stored as a tuple.
+    bad_limit : int
+        The maximum number of electrodes that can be bridged together
+        (included) and interpoalted. Above this number, an error will be
+        raised.
+
+        .. versionadded:: 1.2
 
     Returns
     -------
@@ -103,6 +109,12 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
     from scipy.sparse.csgraph import connected_components
 
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked))
+    _validate_type(bad_limit, "int", "bad_limit")
+    if bad_limit <= 0:
+        raise ValueError(
+            "Argument 'bad_limit' should be a strictly positive "
+            f"integer. Provided {bad_limit} is invalid."
+        )
     montage = inst.get_montage()
     if montage is None:
         raise RuntimeError('No channel positions found in ``inst``')
@@ -134,10 +146,12 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
 
     # warn for all bridged areas that include too many electrodes
     for group_names in groups_names:
-        if len(group_names) > 4:
-            warn(f"The channels {', '.join(group_names)} are bridged together "
-                 "and form a large area of bridged electrodes. Interpolation "
-                 "might be inaccurate.")
+        if len(group_names) > bad_limit:
+            raise RuntimeError(
+                f"The channels {', '.join(group_names)} are bridged together "
+                "and form a large area of bridged electrodes. Interpolation "
+                "might be inaccurate."
+            )
 
     # make virtual channels
     virtual_chs = dict()
