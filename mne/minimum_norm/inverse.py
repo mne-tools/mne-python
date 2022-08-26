@@ -27,7 +27,7 @@ from ..io.write import (write_int, write_float_matrix, start_and_end_file,
 from ..io.pick import channel_type, pick_info, pick_types, pick_channels
 from ..cov import (compute_whitener, _read_cov, _write_cov, Covariance,
                    prepare_noise_cov)
-from ..epochs import BaseEpochs
+from ..epochs import BaseEpochs, EpochsArray
 from ..evoked import EvokedArray, Evoked
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        is_fixed_orient, compute_orient_prior,
@@ -1010,6 +1010,14 @@ def _apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori,
     return (stc, residual) if return_residual else stc
 
 
+def _apply_inverse_gen(evoked, inverse_operator, lambda2, method, pick_ori,
+                       prepared, label, method_params, return_residual,
+                       use_cps):
+    yield _apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori,
+                         prepared, label, method_params, return_residual,
+                         use_cps)
+
+
 @verbose
 def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
@@ -1257,7 +1265,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
     Returns
     -------
-    stc : list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)
+    stcs : list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)
         The source estimates for all epochs.
 
     See Also
@@ -1274,6 +1282,76 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         # return a list
         stcs = [stc for stc in stcs]
 
+    return stcs
+
+
+def _apply_inverse_tfr_epochs_gen(epochs_tfr, inverse_operator, lambda2,
+                                  method, label, nave, pick_ori, prepared,
+                                  method_params, use_cps):
+    for freq_idx in range(epochs_tfr.freqs.size):
+        epochs = EpochsArray(epochs_tfr.data[:, :, freq_idx, :],
+                             epochs_tfr.info, events=epochs_tfr.events,
+                             tmin=epochs_tfr.tmin)
+        stcs = _apply_inverse_epochs_gen(
+            epochs, inverse_operator, lambda2, method=method, label=label,
+            nave=nave, pick_ori=pick_ori, prepared=prepared,
+            method_params=method_params, use_cps=use_cps)
+        yield stcs
+
+
+@verbose
+def apply_inverse_tfr_epochs(epochs_tfr, inverse_operator, lambda2,
+                             method="dSPM", label=None, nave=1, pick_ori=None,
+                             return_generator=False, prepared=False,
+                             method_params=None, use_cps=True, verbose=None):
+    """Apply inverse operator to EpochsTFR.
+
+    Parameters
+    ----------
+    epochs_tfr : EpochsTFR object
+        Single trial time-frequency epochs.
+    inverse_operator : dict
+        Inverse operator.
+    lambda2 : float
+        The regularization parameter.
+    method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
+        Use minimum norm, dSPM (default), sLORETA, or eLORETA.
+    label : Label | None
+        Restricts the source estimates to a given label. If None,
+        source estimates will be computed for the entire source space.
+    nave : int
+        Number of averages used to regularize the solution.
+        Set to 1 on single Epoch by default.
+    %(pick_ori)s
+    return_generator : bool
+        Return a generator object instead of a list. This allows iterating
+        over the stcs without having to keep them all in memory.
+    prepared : bool
+        If True, do not call :func:`prepare_inverse_operator`.
+    method_params : dict | None
+        Additional options for eLORETA. See Notes of :func:`apply_inverse`.
+    %(use_cps_restricted)s
+    %(verbose)s
+
+    Returns
+    -------
+    stc : list of list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)  # noqa E501
+        The source estimates for all frequencies (outside list) and for
+        all epochs (inside list).
+
+    See Also
+    --------
+    apply_inverse_raw : Apply inverse operator to raw object.
+    apply_inverse : Apply inverse operator to evoked object.
+    """
+    from ..time_frequency.tfr import _check_tfr_complex
+    _check_tfr_complex(epochs_tfr)
+    stcs = _apply_inverse_tfr_epochs_gen(
+        epochs_tfr, inverse_operator, lambda2,
+        method, label, nave, pick_ori, prepared,
+        method_params, use_cps)
+    if not return_generator:
+        stcs = [[stc for stc in tfr_stcs] for tfr_stcs in stcs]
     return stcs
 
 
