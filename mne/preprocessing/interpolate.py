@@ -218,7 +218,7 @@ def _find_centroid(ch_pos, group_names):
     sphere_pos_centroid = _cart_to_sph(cartesian_pos_centroid)
     # average the radius and overwrite it
     avg_radius = np.average(sphere_positions, axis=0)[0]
-    sphere_pos_centroid[0] = avg_radius
+    sphere_pos_centroid[0, 0] = avg_radius
     # convert back to cartesian
     pos_centroid = _sph_to_cart(sphere_pos_centroid)[0, :]
     return pos_centroid
