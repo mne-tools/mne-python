@@ -8,9 +8,9 @@ import numpy as np
 from numpy.testing import assert_equal, assert_allclose, assert_array_equal
 from numpy.testing import assert_array_less
 
-from mne.bem import read_bem_surfaces, read_bem_solution, make_bem_solution
+from mne.bem import read_bem_surfaces, make_bem_solution
 from mne.channels import make_standard_montage
-from mne.datasets import testing, sample
+from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_kit, read_raw_bti, read_info
 from mne.io.constants import FIFF
 from mne import (read_forward_solution, write_forward_solution,
@@ -19,7 +19,7 @@ from mne import (read_forward_solution, write_forward_solution,
                  make_sphere_model, pick_types_forward, pick_info, pick_types,
                  read_evokeds, read_cov, read_dipole,
                  get_volume_labels_from_aseg)
-from mne.io.pick import pick_channels, pick_channels_forward
+from mne.io.pick import pick_channels_forward
 from mne.surface import _get_ico_surface
 from mne.transforms import Transform
 from mne.utils import (requires_mne, requires_nibabel, run_subprocess,
