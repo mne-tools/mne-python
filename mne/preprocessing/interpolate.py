@@ -105,7 +105,6 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit: int = 4):
     --------
     mne.preprocessing.compute_bridged_electrodes
     """
-    from scipy.sparse import csr_matrix
     from scipy.sparse.csgraph import connected_components
 
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked))
@@ -136,7 +135,7 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit: int = 4):
         G_dense[idx0, idx1] = 1
         G_dense[idx1, idx0] = 1
     # look for connected components
-    _, labels = connected_components(csr_matrix(G_dense), directed=False)
+    _, labels = connected_components(G_dense, directed=False)
     groups_idx = [
         [nodes[j] for j in np.where(labels == k)[0]] for k in set(labels)
     ]
