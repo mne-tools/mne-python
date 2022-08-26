@@ -44,7 +44,7 @@ from .io.write import (start_and_end_file, start_block, end_block,
                        write_id, write_float, write_complex_float_matrix)
 from .io.base import _check_maxshield, _get_ch_factors
 from .parallel import parallel_func
-from .time_frequency.spectrum import ToSpectrumMixin
+from .time_frequency.spectrum import Spectrum, SpectrumMixin
 
 _aspect_dict = {
     'average': FIFF.FIFFV_ASPECT_AVERAGE,
@@ -65,7 +65,7 @@ _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 @fill_doc
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              InterpolationMixin, FilterMixin, TimeMixin, SizeMixin,
-             ToSpectrumMixin):
+             SpectrumMixin):
     """Evoked data.
 
     Parameters
@@ -714,6 +714,38 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             out += (max_amp,)
 
         return out
+
+    @verbose
+    def compute_psd(self, method='multitaper', fmin=0, fmax=np.inf, tmin=None,
+                    tmax=None, picks=None, proj=False, *, n_jobs=1,
+                    verbose=None, **method_kw):
+        """Perform spectral analysis on sensor data.
+
+        Parameters
+        ----------
+        %(method_psd)s
+            Default is ``'multitaper'``.
+        %(fmin_fmax_psd)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_psd)s
+
+        Returns
+        -------
+        spectrum : instance of Spectrum
+            The spectral representation of the data.
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        return Spectrum(
+            self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
+            picks=picks, proj=proj, reject_by_annotation=False, n_jobs=n_jobs,
+            verbose=verbose, **method_kw)
 
     @verbose
     def to_data_frame(self, picks=None, index=None,

@@ -51,13 +51,13 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
 from ..defaults import _handle_default
 from ..viz import plot_raw, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
-from ..time_frequency.spectrum import ToSpectrumMixin
+from ..time_frequency.spectrum import Spectrum, SpectrumMixin
 
 
 @fill_doc
 class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
               InterpolationMixin, TimeMixin, SizeMixin, FilterMixin,
-              ToSpectrumMixin):
+              SpectrumMixin):
     """Base class for Raw data.
 
     Parameters
@@ -1801,6 +1801,40 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             buffer_size_sec = self.buffer_size_sec
         buffer_size_sec = float(buffer_size_sec)
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
+
+    @verbose
+    def compute_psd(self, method='welch', fmin=0, fmax=np.inf, tmin=None,
+                    tmax=None, picks=None, proj=False,
+                    reject_by_annotation=True, *, n_jobs=1, verbose=None,
+                    **method_kw):
+        """Perform spectral analysis on sensor data.
+
+        Parameters
+        ----------
+        %(method_psd)s
+            Default is ``'welch'``.
+        %(fmin_fmax_psd)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(reject_by_annotation_psd)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_psd)s
+
+        Returns
+        -------
+        spectrum : instance of Spectrum
+            The spectral representation of the data.
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        return Spectrum(
+            self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
+            picks=picks, proj=proj, reject_by_annotation=reject_by_annotation,
+            n_jobs=n_jobs, verbose=verbose, **method_kw)
 
     @verbose
     def to_data_frame(self, picks=None, index=None,

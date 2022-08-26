@@ -49,7 +49,7 @@ from .parallel import parallel_func
 from .event import (_read_events_fif, make_fixed_length_events,
                     match_event_names)
 from .fixes import rng_uniform
-from .time_frequency.spectrum import ToSpectrumMixin
+from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin
 from .viz import (plot_epochs, plot_epochs_image,
                   plot_topo_image_epochs, plot_drop_log)
 from .utils import (_check_fname, check_fname, logger, verbose,
@@ -342,7 +342,7 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
                  TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin,
-                 ToSpectrumMixin):
+                 SpectrumMixin):
     """Abstract base class for `~mne.Epochs`-type classes.
 
     .. warning:: This class provides basic functionality and should never be
@@ -1987,6 +1987,38 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self.drop(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return self, indices
+
+    @verbose
+    def compute_psd(self, method='multitaper', fmin=0, fmax=np.inf, tmin=None,
+                    tmax=None, picks=None, proj=False, *, n_jobs=1,
+                    verbose=None, **method_kw):
+        """Perform spectral analysis on sensor data.
+
+        Parameters
+        ----------
+        %(method_psd)s
+            Default is ``'multitaper'``.
+        %(fmin_fmax_psd)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_psd)s
+
+        Returns
+        -------
+        spectrum : instance of EpochsSpectrum
+            The spectral representation of each epoch.
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        return EpochsSpectrum(
+            self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
+            picks=picks, proj=proj, n_jobs=n_jobs, verbose=verbose,
+            **method_kw)
 
     @verbose
     def to_data_frame(self, picks=None, index=None,

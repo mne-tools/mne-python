@@ -37,47 +37,8 @@ def _identity_function(x):
     return x
 
 
-class ToSpectrumMixin():
-    """Mixin class providing spectral methods to sensor-space containers."""
-
-    @verbose
-    def compute_psd(self, method='auto', fmin=0, fmax=np.inf, tmin=None,
-                    tmax=None, picks=None, proj=False,
-                    reject_by_annotation=True, *, n_jobs=1, verbose=None,
-                    **method_kw):
-        """Perform spectral analysis on sensor data.
-
-        Parameters
-        ----------
-        %(method_psd)s
-        %(fmin_fmax_psd)s
-        %(tmin_tmax_psd)s
-        %(picks_good_data_noref)s
-        %(proj_psd)s
-        %(reject_by_annotation_psd)s
-        %(n_jobs)s
-        %(verbose)s
-        %(method_kw_psd)s
-
-        Returns
-        -------
-        spectrum : instance of Spectrum
-            The spectral representation of the data.
-
-        References
-        ----------
-        .. footbibliography::
-        """
-        from .. import BaseEpochs
-        from ..io import BaseRaw
-
-        if method == 'auto':
-            method = 'welch' if isinstance(self, BaseRaw) else 'multitaper'
-        Klass = EpochsSpectrum if isinstance(self, BaseEpochs) else Spectrum
-        return Klass(
-            self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
-            picks=picks, proj=proj, reject_by_annotation=reject_by_annotation,
-            n_jobs=n_jobs, verbose=verbose, **method_kw)
+class SpectrumMixin():
+    """Mixin providing spectral plotting methods to sensor-space containers."""
 
     @verbose
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
@@ -277,7 +238,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     """Base class for Spectrum and EpochsSpectrum."""
 
     def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
-                 proj, reject_by_annotation, *, n_jobs, verbose, **method_kw):
+                 proj, *, n_jobs, verbose, **method_kw):
         # arg checking
         self._sfreq = inst.info['sfreq']
         if np.isfinite(fmax) and (fmax > self.sfreq / 2):
@@ -964,8 +925,7 @@ class Spectrum(BaseSpectrum):
             return
         # do the basic setup
         super().__init__(inst, method, fmin, fmax, tmin, tmax, picks, proj,
-                         reject_by_annotation, n_jobs=n_jobs, verbose=verbose,
-                         **method_kw)
+                         n_jobs=n_jobs, verbose=verbose, **method_kw)
         # get just the data we want
         if isinstance(inst, BaseRaw):
             start, stop = np.where(self._time_mask)[0][[0, -1]]
@@ -1034,7 +994,6 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     %(tmin_tmax_psd)s
     %(picks_good_data_noref)s
     %(proj_psd)s
-    %(reject_by_annotation_psd)s
     %(n_jobs)s
     %(verbose)s
     %(method_kw_psd)s
@@ -1058,16 +1017,15 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     mne.Evoked.compute_psd
     """
 
-    def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
-                 proj, reject_by_annotation, *, n_jobs, verbose, **method_kw):
+    def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks, proj, *,
+                 n_jobs, verbose, **method_kw):
         # triage reading from file
         if isinstance(inst, dict):
             self.__setstate__(inst)
             return
         # do the basic setup
         super().__init__(inst, method, fmin, fmax, tmin, tmax, picks, proj,
-                         reject_by_annotation, n_jobs=n_jobs, verbose=verbose,
-                         **method_kw)
+                         n_jobs=n_jobs, verbose=verbose, **method_kw)
         # get just the data we want
         data = inst.get_data(picks=self._picks)[:, :, self._time_mask]
         # compute the spectra
