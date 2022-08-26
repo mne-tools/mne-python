@@ -39,8 +39,6 @@ raw.filter(0.3, None, picks='all')
 # %%
 # Perform regression and remove EOG
 # ---------------------------------
-# We are now ready to perform the regression. We compute the regression weights
-# on the blink template and apply them to the continuous data.
 
 weights = EOGRegression().fit(raw)
 raw_clean = weights.apply(raw, copy=True)
