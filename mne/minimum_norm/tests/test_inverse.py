@@ -1133,6 +1133,13 @@ def test_apply_inverse_tfr(return_generator):
                                  n_orient, times.size)
                 for these_stcs in stcs for s in these_stcs])
 
+    evoked = EvokedArray(data.mean(axis=(0, 2)), info, epochs_tfr.tmin)
+    stc = apply_inverse(
+        evoked, inverse_operator, lambda2, "dSPM", pick_ori=pick_ori)
+    tfr_stc_data = np.array([[stc.data for stc in tfr_stcs]
+                             for tfr_stcs in stcs])
+    assert_allclose(stc.data, tfr_stc_data.mean(axis=(0, 1)))
+
 
 def test_make_inverse_operator_bads(evoked, noise_cov):
     """Test MNE inverse computation given a mismatch of bad channels."""

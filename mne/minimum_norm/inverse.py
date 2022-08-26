@@ -1010,14 +1010,6 @@ def _apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori,
     return (stc, residual) if return_residual else stc
 
 
-def _apply_inverse_gen(evoked, inverse_operator, lambda2, method, pick_ori,
-                       prepared, label, method_params, return_residual,
-                       use_cps):
-    yield _apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori,
-                         prepared, label, method_params, return_residual,
-                         use_cps)
-
-
 @verbose
 def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
@@ -1335,7 +1327,7 @@ def apply_inverse_tfr_epochs(epochs_tfr, inverse_operator, lambda2,
 
     Returns
     -------
-    stc : list of list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)
+    stcs : list of list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)
         The source estimates for all frequencies (outside list) and for
         all epochs (inside list).
 
