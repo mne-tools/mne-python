@@ -883,6 +883,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     --------
     apply_inverse_raw : Apply inverse operator to raw object.
     apply_inverse_epochs : Apply inverse operator to epochs object.
+    apply_inverse_epochs_tfr: Apply inverse operator to epochs tfr object.
+    apply_inverse_cov : Apply inverse operator to covariance object.
 
     Notes
     -----
@@ -1067,8 +1069,10 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
     See Also
     --------
-    apply_inverse_epochs : Apply inverse operator to epochs object.
     apply_inverse : Apply inverse operator to evoked object.
+    apply_inverse_epochs : Apply inverse operator to epochs object.
+    apply_inverse_epochs_tfr: Apply inverse operator to epochs tfr object.
+    apply_inverse_cov : Apply inverse operator to covariance object.
     """
     _validate_type(raw, BaseRaw, 'raw')
     _check_reference(raw, inverse_operator['info']['ch_names'])
@@ -1264,6 +1268,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     --------
     apply_inverse_raw : Apply inverse operator to raw object.
     apply_inverse : Apply inverse operator to evoked object.
+    apply_inverse_epochs_tfr: Apply inverse operator to epochs tfr object.
+    apply_inverse_cov : Apply inverse operator to a covariance object.
     """
     stcs = _apply_inverse_epochs_gen(
         epochs, inverse_operator, lambda2, method=method, label=label,
@@ -1335,6 +1341,8 @@ def apply_inverse_tfr_epochs(epochs_tfr, inverse_operator, lambda2,
     --------
     apply_inverse_raw : Apply inverse operator to raw object.
     apply_inverse : Apply inverse operator to evoked object.
+    apply_inverse_epochs: Apply inverse operator to epochs object.
+    apply_inverse_cov : Apply inverse operator to a covariance object.
     """  # noqa E501
     from ..time_frequency.tfr import _check_tfr_complex
     _check_tfr_complex(epochs_tfr)
@@ -1389,6 +1397,7 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
     apply_inverse : Apply inverse operator to evoked object.
     apply_inverse_raw : Apply inverse operator to raw object.
     apply_inverse_epochs : Apply inverse operator to epochs object.
+    apply_inverse_epochs_tfr: Apply inverse operator to epochs tfr object.
 
     Notes
     -----
