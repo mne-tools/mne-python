@@ -83,7 +83,7 @@ class RawEDF(BaseRaw):
 
         .. versionadded:: 1.1
     %(preload)s
-    %(units_edf_io)s
+    %(units_edf_bdf_io)s
     %(verbose)s
 
     See Also
@@ -143,6 +143,8 @@ class RawEDF(BaseRaw):
 
         if units is not None and isinstance(units, str):
             units = {ch_name: units for ch_name in info['ch_names']}
+        elif units is None:
+            units = dict()
 
         for k, (this_ch, this_unit) in enumerate(orig_units.items()):
             if this_unit != "" and this_unit in units:
@@ -1337,7 +1339,7 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
 
         .. versionadded:: 1.1
     %(preload)s
-    %(units_edf_io)s
+    %(units_edf_bdf_io)s
     %(verbose)s
 
     Returns
@@ -1406,7 +1408,7 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
 @fill_doc
 def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
                  exclude=(), infer_types=False, include=None, preload=False,
-                 verbose=None):
+                 units=None, *, verbose=None):
     """Reader function for BDF files.
 
     Parameters
@@ -1446,6 +1448,7 @@ def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
 
         .. versionadded:: 1.1
     %(preload)s
+    %(units_edf_bdf_io)s
     %(verbose)s
 
     Returns
@@ -1501,7 +1504,7 @@ def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
     return RawEDF(input_fname=input_fname, eog=eog, misc=misc,
                   stim_channel=stim_channel, exclude=exclude,
                   infer_types=infer_types, preload=preload, include=include,
-                  verbose=verbose)
+                  units=units, verbose=verbose)
 
 
 @fill_doc
