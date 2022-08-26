@@ -3052,6 +3052,10 @@ def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
     -------
     fig : instance of matplotlib.figure.Figure
         Figure with a topomap subplot for each channel type.
+
+    Notes
+    -----
+    .. versionadded:: 1.2
     """
     import matplotlib.pyplot as plt
     sphere = _check_sphere(sphere)

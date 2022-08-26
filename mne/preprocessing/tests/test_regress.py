@@ -115,7 +115,7 @@ def test_eog_regression():
     assert fig.axes[1].title.get_text() == 'mag/EOG 061'
     assert fig.axes[2].title.get_text() == 'eeg/EOG 061'
 
-    # Test for plotting with multipe channel types, multiple regressors)
+    # Test plotting with multipe channel types, multiple regressors)
     fig = EOGRegression(picks_artifact=['EEG 001', 'EOG 061']).fit(raw).plot()
     assert len(fig.axes) == 12  # (6 topomaps and 3 colorbars)
     assert fig.axes[0].title.get_text() == 'grad/EEG 001'

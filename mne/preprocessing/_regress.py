@@ -29,6 +29,8 @@ def regress_artifact(inst, picks=None, exclude='bads', picks_artifact='eog',
         List of channels to exclude from the regression, only used when picking
         based on types (e.g., exclude="bads" when picks="meg").
         Specify `'bads'` (the default) to exclude all channels marked as bad.
+
+        .. versionadded:: 1.2
     picks_artifact : array-like | str
         Channel picks to use as predictor/explanatory variables capturing
         the artifact of interest (default is "eog").
@@ -38,6 +40,8 @@ def regress_artifact(inst, picks=None, exclude='bads', picks_artifact='eog',
     taa : bool
         Whether to apply TAA correction as described in equation 9 of
         :footcite:`CroftBarry2000`. Defaults to ``False``.
+
+        .. versionadded:: 1.2
     copy : bool
         If True (default), copy the instance before modifying it.
     %(verbose)s
@@ -108,6 +112,10 @@ class EOGRegression():
     References
     ----------
     .. footbibliography::
+
+    Notes
+    -----
+    .. versionadded:: 1.2
     """
 
     def __init__(self, picks=None, exclude='bads', picks_artifact='eog'):
