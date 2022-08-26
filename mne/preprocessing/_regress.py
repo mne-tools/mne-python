@@ -109,13 +109,13 @@ class EOGRegression():
         Channel picks to use as predictor/explanatory variables capturing
         the artifact of interest (default is "eog").
 
-    References
-    ----------
-    .. footbibliography::
-
     Notes
     -----
     .. versionadded:: 1.2
+
+    References
+    ----------
+    .. footbibliography::
     """
 
     def __init__(self, picks=None, exclude='bads', picks_artifact='eog'):
