@@ -6,10 +6,11 @@ from pathlib import Path
 import pytest
 import numpy as np
 from numpy.testing import assert_equal, assert_allclose, assert_array_equal
+from numpy.testing import assert_array_less
 
 from mne.bem import read_bem_surfaces, read_bem_solution, make_bem_solution
 from mne.channels import make_standard_montage
-from mne.datasets import testing
+from mne.datasets import testing, sample
 from mne.io import read_raw_fif, read_raw_kit, read_raw_bti, read_info
 from mne.io.constants import FIFF
 from mne import (read_forward_solution, write_forward_solution,
@@ -18,6 +19,7 @@ from mne import (read_forward_solution, write_forward_solution,
                  make_sphere_model, pick_types_forward, pick_info, pick_types,
                  read_evokeds, read_cov, read_dipole,
                  get_volume_labels_from_aseg)
+from mne.io.pick import pick_channels, pick_channels_forward
 from mne.surface import _get_ico_surface
 from mne.transforms import Transform
 from mne.utils import (requires_mne, requires_nibabel, run_subprocess,
@@ -51,11 +53,14 @@ fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
 fname_bem_meg = op.join(subjects_dir, 'sample', 'bem',
                         'sample-1280-bem-sol.fif')
 
+data_path = sample.data_path(download=False)
+subjects_dir = os.path.join(data_path, 'subjects')
+fname_bem = op.join(subjects_dir, 'sample', 'bem',
+                    'sample-5120-5120-5120-bem-sol.fif')
 
 def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
                       meg_rtol=1e-4, meg_atol=1e-9,
-                      eeg_rtol=1e-3, eeg_atol=1e-3,
-                      solver="mne"):
+                      eeg_rtol=1e-3, eeg_atol=1e-3):
     """Test forwards."""
     # check source spaces
     assert_equal(len(fwd['src']), len(fwd_py['src']))
@@ -85,13 +90,6 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
         assert_equal(fwd_py['sol']['data'].shape, (n_sensors, check_src))
         assert_equal(len(fwd['sol']['row_names']), n_sensors)
         assert_equal(len(fwd_py['sol']['row_names']), n_sensors)
-
-        if solver == "openmeeg":
-            fwd_ = fwd['sol']['data'][:306, ori_sl]
-            fwd_py_ = fwd_py['sol']['data'][:306, ori_sl]
-            C = np.array([np.corrcoef(x, y)[0, 1] for x, y in zip(fwd_.T, fwd_py_.T)])
-            ori_sl = np.arange(len(C))
-            ori_sl = ori_sl[C > np.sort(C)[int(len(C) * 0.5)]]
 
         # check MEG
         assert_allclose(fwd['sol']['data'][:306, ori_sl],
@@ -231,20 +229,10 @@ def test_make_forward_solution_kit(tmp_path):
 
 
 @testing.requires_testing_data
-@pytest.mark.parametrize('solver', (
-    pytest.param('mne', marks=pytest.mark.slowtest),
-    'openmeeg',
-))
-def test_make_forward_solution_basic(solver):
-    """Test making M-EEG forward solution from python and OpenMEEG."""
-    if solver == 'openmeeg':
-        pytest.importorskip('openmeeg')
-        bem_surfaces = read_bem_surfaces(fname_bem)
-        bem = make_bem_solution(bem_surfaces, solver=solver)
-    else:
-        bem = Path(fname_bem)
-        bem = read_bem_solution(bem)
-    assert bem['solver'] == solver
+def test_make_forward_solution_basic():
+    """Test making M-EEG forward solution from python."""
+    bem = Path(fname_bem)
+    bem = read_bem_solution(bem)
     with catch_logging() as log:
         # make sure everything can be path-like (gh #10872)
         fwd_py = make_forward_solution(
@@ -260,6 +248,54 @@ def test_make_forward_solution_basic(solver):
     with pytest.raises(RuntimeError, match='homogeneous.*1-layer.*EEG'):
         make_forward_solution(fname_raw, fname_trans, fname_src,
                               fname_bem_meg)
+
+
+@pytest.mark.parametrize("n_layers", [3, 1])
+@testing.requires_testing_data
+def test_make_forward_solution_openmeeg(n_layers):
+    """Test making M-EEG forward solution from OpenMEEG."""
+    solver = "openmeeg"
+    pytest.importorskip('openmeeg')
+    bem_surfaces = read_bem_surfaces(fname_bem)
+    raw = read_raw_fif(fname_raw)
+    n_sensors = 366
+    ch_types = ['eeg', 'meg']
+    if n_layers == 1:
+        ch_types = ['meg']
+        raw.pick(ch_types)
+        bem_surfaces = bem_surfaces[-1:]
+        n_sensors = 306
+    n_sources_kept = 501 // 3
+    fwds = dict()
+    for solver in ["openmeeg", "mne"]:
+        bem = make_bem_solution(bem_surfaces, solver=solver)
+        assert bem['solver'] == solver
+        with catch_logging() as log:
+            # make sure everything can be path-like (gh #10872)
+            fwd = make_forward_solution(
+                raw.info, Path(fname_trans), Path(fname_src),
+                bem, mindist=20., verbose=True)
+        log = log.getvalue()
+        assert 'Total 258/258 points inside the surface' in log
+        assert (isinstance(fwd, Forward))
+        fwds[solver] = fwd
+        del fwd
+    _compare_forwards(fwds["openmeeg"],
+                      fwds["mne"], n_sensors, n_sources_kept * 3,
+                      meg_atol=1, eeg_atol=100,
+                      solver="both")
+    for ch_type in ch_types:
+        ch_names = raw.copy().pick(ch_type).ch_names
+        fwd_om = pick_channels_forward(fwds["openmeeg"], include=ch_names)
+        fwd_mne = pick_channels_forward(fwds["mne"], include=ch_names)
+        fwd_om = fwd_om['sol']['data']
+        fwd_mne = fwd_mne['sol']['data']
+        # To test so-called MAG we use correlation (related to cosine similarity)
+        # and also RDM to test the amplitude mismatch
+        corrs = [np.corrcoef(x, y)[0, 1] for x, y in zip(fwd_om.T, fwd_mne.T)]
+        assert_array_less(0.98, corrs)
+        RDMs = np.linalg.norm(fwd_om, axis=0) / np.linalg.norm(fwd_mne, axis=0)
+        assert_allclose(RDMs, 1, atol=0.1)
 
 
 @testing.requires_testing_data

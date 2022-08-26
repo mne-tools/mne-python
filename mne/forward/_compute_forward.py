@@ -929,7 +929,8 @@ def _compute_forwards(rr, bem, coils_list, ccoils_list, infos, coil_types,
         # TODO: Do something other than this
         import openmeeg as om
         hminv = om.SymMatrix(bem["solution"])
-        geom = _make_openmeeg_geometry(bem, invert_transform(bem['head_mri_t']))
+        geom = _make_openmeeg_geometry(bem,
+                                       invert_transform(bem['head_mri_t']))
 
         # Make dipoles for all XYZ orientations
         dipoles = np.c_[
@@ -961,8 +962,8 @@ def _compute_forwards(rr, bem, coils_list, ccoils_list, infos, coil_types,
                 labels,
                 np.asfortranarray(rmags),
                 np.asfortranarray(cosmags),
-                np.ones(len(labels)),  # weights for compatibility with OpenMEEG
-                np.ones(len(labels)),  # radii for compatibility with OpenMEEG
+                np.ones(len(labels)),  # weights for compatibility w. OpenMEEG
+                np.ones(len(labels)),  # radii for compatibility w. OpenMEEG
             )
             h2mm = om.Head2MEGMat(geom, meg_sensors)
             ds2mm = om.DipSource2MEGMat(dipoles, meg_sensors)

@@ -191,12 +191,15 @@ print(src)
 solver = "openmeeg"
 # solver = "mne"
 ico = 3
-bem_fname = f"{solver}-bem-sol.fif"
-bem_fname = f"{solver}-ico{ico}-bem-sol.fif"
+n_layers = 1
+# n_layers = 3
+bem_fname = f"{solver}-layers{n_layers}-ico{ico}-bem-sol.fif"
 import os.path as op
 if not op.isfile(bem_fname):
-    conductivity = (0.3,)  # for single layer
-    conductivity = (0.3, 0.006, 0.3)  # for three layers
+    if n_layers == 1:
+        conductivity = (0.3,)  # for single layer
+    else:
+        conductivity = (0.3, 0.006, 0.3)  # for three layers
     model = mne.make_bem_model(subject='sample', ico=ico,  # XXX for speed
                                conductivity=conductivity,
                                subjects_dir=subjects_dir)
