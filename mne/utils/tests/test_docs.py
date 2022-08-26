@@ -83,7 +83,7 @@ def test_deprecated_and_legacy(msg, func, klass):
             func()
         log = log.getvalue()
         for kind in ('class', 'method', 'func'):
-            assert f'new code should use replacement_{kind}' in log
+            assert f'New code should use replacement_{kind}' in log
     assert msg.upper() in klass.__init__.__doc__
     assert msg.upper() in klass.bad.__doc__
     assert msg.upper() in _klass.bad.__doc__
