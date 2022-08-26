@@ -1309,7 +1309,7 @@ def apply_inverse_tfr_epochs(epochs_tfr, inverse_operator, lambda2,
     Parameters
     ----------
     epochs_tfr : EpochsTFR object
-        Single trial time-frequency epochs.
+        Single trial, phase-amplitude (complex-valued), time-frequency epochs.
     inverse_operator : dict
         Inverse operator.
     lambda2 : float
