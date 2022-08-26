@@ -71,12 +71,12 @@ epochs = mne.Epochs(raw, events, event_id=event_id, preload=True)
 # any corrections applied.
 
 # we'll try to keep a consistent ylim across figures
-ts_args=dict(ylim=dict(eeg=(-10, 10), eog=(-10, 20)))
+plot_kwargs = dict(picks='all', spatial_colors=True,
+                   ylim=dict(eeg=(-10, 10), eog=(-5, 15)))
 
 # plot the evoked for the EEG and the EOG sensors
-epochs.average().plot_joint(ts_args=ts_args)
-fig = epochs.average('eog').plot('eog', show=False)
-fig.set_size_inches(7.5, 3)
+fig = epochs.average('all').plot(**plot_kwargs)
+fig.set_size_inches(6, 6)
 
 # %%
 # We can see there is some EOG activity that is likely bleeding into the EEG
@@ -105,7 +105,8 @@ model_plain.plot(vmax=0.4)  # Show the regression coefficients as a topomap
 # Now we are ready to use these coefficients to subtract the EOG signal from
 # the EEG signals.
 epochs_clean_plain = model_plain.apply(epochs)
-epochs_clean_plain.average().plot_joint(ts_args=ts_args)
+fig = epochs_clean_plain.average('all').plot(**plot_kwargs)
+fig.set_size_inches(6, 6)
 
 # %%
 # Regressing the EOG signal out of the EEG signals has reduced the peak around
@@ -136,7 +137,8 @@ model_sub.plot(vmax=0.4)
 
 # apply the regression coefficients to the original epochs 
 epochs_clean_sub = model_plain.apply(epochs)
-epochs_clean_sub.average().plot_joint(ts_args=ts_args)
+fig = epochs_clean_sub.average('all').plot(**plot_kwargs)
+fig.set_size_inches(6, 6)
 
 # %%
 # Create EOG evoked before regression
@@ -160,7 +162,8 @@ model_evoked.plot(vmax=0.4)
 
 # apply the regression coefficients to the original epochs 
 epochs_clean_evoked = model_plain.apply(epochs)
-epochs_clean_evoked.average().plot_joint(ts_args=ts_args)
+fig = epochs_clean_evoked.average('all').plot(**plot_kwargs)
+fig.set_size_inches(6, 6)
 
 # %%
 # Visualize the effect on raw data
