@@ -69,4 +69,3 @@ fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(10, 7),
 evoked_before.plot(axes=ax[:, 0], spatial_colors=True)
 evoked_after.plot(axes=ax[:, 1], spatial_colors=True)
 fig.suptitle('Before --> After')
-fig.set_tight_layout(True)
