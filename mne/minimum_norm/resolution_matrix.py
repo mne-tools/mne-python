@@ -118,7 +118,7 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
         for cht in idx_ch_types:
             # signal intensity of all sources across channels of this type
             alphas[cht] = (
-                np.abs(leadfield[idx_ch_types[cht], :]).mean())
+                np.sqrt((leadfield[idx_ch_types[cht], :]**2).mean()))
             # divided by noise intensity across channels of this type
             alphas[cht] /= (
                 np.sqrt(np.diag(noise_cov.data)[idx_ch_types[cht]].mean()))
