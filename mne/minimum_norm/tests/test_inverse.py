@@ -28,7 +28,6 @@ from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
 from mne.io import read_raw_fif, read_info
 from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               apply_inverse_raw, apply_inverse_epochs,
-                              apply_inverse_tfr,
                               apply_inverse_tfr_epochs,
                               make_inverse_operator, apply_inverse_cov,
                               write_inverse_operator, prepare_inverse_operator,
