@@ -19,7 +19,7 @@ import numpy as np
 
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims, _mult_cal_one
-from ..base import BaseRaw
+from ..base import BaseRaw, _get_scaling
 from ..meas_info import _empty_info, _unique_channel_names
 from ..constants import FIFF
 from ...filter import resample
@@ -83,6 +83,7 @@ class RawEDF(BaseRaw):
 
         .. versionadded:: 1.1
     %(preload)s
+    %(units_edf_io)s
     %(verbose)s
 
     See Also
@@ -132,7 +133,7 @@ class RawEDF(BaseRaw):
     @verbose
     def __init__(self, input_fname, eog=None, misc=None, stim_channel='auto',
                  exclude=(), infer_types=False, preload=False, include=None,
-                 verbose=None):
+                 units=None, *, verbose=None):
         logger.info('Extracting EDF parameters from {}...'.format(input_fname))
         input_fname = os.path.abspath(input_fname)
         info, edf_info, orig_units = _get_info(input_fname, stim_channel, eog,
@@ -140,12 +141,27 @@ class RawEDF(BaseRaw):
                                                preload, include)
         logger.info('Creating raw.info structure...')
 
+        if units is not None and isinstance(units, str):
+            units = {ch_name: units for ch_name in info['ch_names']}
+
+        for k, (this_ch, this_unit) in enumerate(orig_units.items()):
+            if this_unit != "" and this_unit in units:
+                raise ValueError(f'Unit for channel {this_ch} is present in the file.'
+                                 ' . Cannot overwrite it with the units argument.')
+            if this_unit == "" and this_ch in units:
+                orig_units[this_ch] = units[this_ch]
+                ch_type = edf_info["ch_types"][k]
+                scaling = _get_scaling(ch_type.lower(), orig_units[this_ch])
+                edf_info["units"][k] /= scaling
+
         # Raw attributes
         last_samps = [edf_info['nsamples'] - 1]
         super().__init__(info, preload, filenames=[input_fname],
                          raw_extras=[edf_info], last_samps=last_samps,
                          orig_format='int', orig_units=orig_units,
                          verbose=verbose)
+
+        import ipdb; ipdb.set_trace()
 
         # Read annotations from file and set it
         onset, duration, desc = list(), list(), list()
@@ -1282,7 +1298,7 @@ def _find_tal_idx(ch_names):
 @fill_doc
 def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
                  exclude=(), infer_types=False, include=None, preload=False,
-                 verbose=None):
+                 units=None, *, verbose=None):
     """Reader function for EDF or EDF+ files.
 
     Parameters
@@ -1322,6 +1338,7 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
 
         .. versionadded:: 1.1
     %(preload)s
+    %(units_edf_io)s
     %(verbose)s
 
     Returns
@@ -1384,7 +1401,7 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
     return RawEDF(input_fname=input_fname, eog=eog, misc=misc,
                   stim_channel=stim_channel, exclude=exclude,
                   infer_types=infer_types, preload=preload, include=include,
-                  verbose=verbose)
+                  units=units, verbose=verbose)
 
 
 @fill_doc
