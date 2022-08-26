@@ -146,12 +146,8 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
     for k, group_idx in enumerate(groups_idx):
         group_names = [inst.info.ch_names[k] for k in group_idx]
         bads = bads.union(group_names)
-        # compute midway position in spherical coordinates in "head"
-        # (more accurate than cutting though the scalp by using cartesian)
-        sphere_positions = np.zeros((len(group_idx), 3))
-        for i, ch_name in enumerate(group_names):
-            sphere_positions[i, :] = _cart_to_sph(ch_pos[ch_name])
-        pos_virtual = _sph_to_cart(np.average(sphere_positions, axis=0))
+        # compute centroid position in spherical "head" coordinates
+        pos_virtual = _find_centroid(ch_pos, group_names)
         # create the virtual channel info and set the position
         virtual_info = create_info(
             [f'virtual {k+1}'], inst.info['sfreq'], 'eeg'
@@ -188,3 +184,41 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
 
     inst.info['bads'] = bads_orig
     return inst
+
+
+def _find_centroid(ch_pos, group_names):
+    """Compute the centroid position between N electrodes.
+
+    The centroid should be determined in spherical "head" coordinates which is
+    more accurante than cutting through the scalp by averaging in cartesian
+    coordinates.
+
+    A simple way is to average the location in cartesian coordinate, convert
+    to spehrical coordinate and replace the radius with the average radius of
+    the N points in spherical coordinates.
+
+    Parameters
+    ----------
+    ch_pos : OrderedDict
+        The position of all channels in cartesian coordinates.
+    group_names :
+        The name of the N electrodes used to determine the centroid.
+
+    Returns
+    -------
+    pos_centroid : array of shape (3,)
+        The position of the centroid in cartesian coordinates.
+    """
+    cartesian_positions = np.zeros((len(group_names), 3))
+    sphere_positions = np.zeros((len(group_names), 3))
+    for i, ch_name in enumerate(group_names):
+        cartesian_positions[i, :] = ch_pos[ch_name]
+        sphere_positions[i, :] = _cart_to_sph(ch_pos[ch_name])
+    cartesian_pos_centroid = np.average(cartesian_positions, axis=0)
+    sphere_pos_centroid = _cart_to_sph(cartesian_pos_centroid)
+    # average the radius and overwrite it
+    avg_radius = np.average(sphere_positions, axis=0)[0]
+    sphere_pos_centroid[0] = avg_radius
+    # convert back to cartesian
+    pos_centroid = _sph_to_cart(sphere_pos_centroid)[0, :]
+    return pos_centroid
