@@ -2357,6 +2357,10 @@ csd : bool
     EEG-CSD channels.
 dbs : bool
     Deep brain stimulation channels.
+temperature : bool
+    Temperature channels.
+gsr : bool
+    Galvanic skin response channels.
 include : list of str
     List of additional channels to include. If empty do not include
     any.
