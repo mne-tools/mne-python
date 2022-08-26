@@ -4139,6 +4139,83 @@ def deprecated_alias(dep_name, func, removed_in=None):
 
 
 ###############################################################################
+# "legacy" decorator for parts of our API retained only for backward compat
+
+class legacy:
+    """Mark a function, class, or method as legacy (decorator).
+
+    Parameters
+    ----------
+    extra : str
+        Extra information beyond just saying the class/function/method
+        is deprecated.
+    """
+
+    def __init__(self, alt, extra=''):  # noqa: D102
+        self.alt = alt
+        self.extra = extra
+        self.msg = 'NOTE: {} is a legacy {}; new code should use {}.'
+
+    def __call__(self, obj):  # noqa: D105
+        """Call.
+
+        Parameters
+        ----------
+        obj : object
+            Object to call.
+
+        Returns
+        -------
+        obj : object
+            The modified object.
+        """
+        if inspect.isclass(obj):
+            kind = 'class'
+        else:
+            # NB: detecting (bound and unbound) methods seems to be impossible
+            assert inspect.isfunction(obj)
+            kind = 'function'
+        msg = self.msg.format(obj.__name__, kind, self.alt)
+        if kind == 'class':
+            obj.__init__ = self._make_fun(obj.__init__, msg)
+            return obj
+        return self._make_fun(obj, msg)
+
+    def _make_fun(self, function, msg):
+        if self.extra:
+            msg = f'{msg}; {self.extra}'
+
+        body = f"""\
+def %(name)s(%(signature)s):\n
+    from mne.utils import logger
+    logger.info({repr(msg)})
+    return _function_(%(shortsignature)s)"""
+        evaldict = dict(_function_=function)
+        fm = FunctionMaker(
+            function, None, None, None, None, function.__module__)
+        attrs = dict(__wrapped__=function, __qualname__=function.__qualname__,
+                     __globals__=function.__globals__)
+        dep = fm.make(body, evaldict, addsource=True, **attrs)
+        dep.__doc__ = self._update_doc(dep.__doc__)
+        dep._deprecated_original = function  # TODO remove this?
+        return dep
+
+    def _update_doc(self, olddoc):
+        newdoc = ".. warning:: LEGACY"
+        if self.extra:
+            newdoc = f'{newdoc}: {self.extra}'
+        newdoc += '.'
+        if olddoc:
+            # Get the spacing right to avoid sphinx warnings
+            n_space = 4
+            for li, line in enumerate(olddoc.split('\n')):
+                if li > 0 and len(line.strip()):
+                    n_space = len(line) - len(line.lstrip())
+                    break
+            newdoc = f"{newdoc}\n\n{' ' * n_space}{olddoc}"
+        return newdoc
+
+###############################################################################
 # The following tools were adapted (mostly trimmed) from SciPy's doccer.py
 
 
