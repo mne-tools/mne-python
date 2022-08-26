@@ -1934,14 +1934,19 @@ docdict['method_kw_psd'] = """\
     :func:`~mne.time_frequency.psd_array_multitaper` for details.
 """
 
-docdict['method_psd'] = """\
-method : 'auto' | 'welch' | 'multitaper'
+_method_psd = """\
+method : 'welch' | 'multitaper'{}
     Spectral estimation method. ``'welch'`` uses Welch's method
     :footcite:`Welch1967`, ``'multitaper'`` uses DPSS tapers
-    :footcite:`Slepian1978`. ``'auto'`` uses Welch's method for
-    continuous data and multitaper for :class:`~mne.Epochs` and
-    :class:`~mne.Evoked` data.
+    :footcite:`Slepian1978`.{}
 """
+docdict['method_plot_psd_auto'] = _method_psd.format(
+    " | 'auto'",
+    (" ``'auto'`` (default) uses Welch's method for continuous data and "
+     "multitaper for :class:`~mne.Epochs` or :class:`~mne.Evoked` data.")
+)
+docdict['method_psd'] = _method_psd.format('', '')
+docdict['method_psd_auto'] = _method_psd.format(" | 'auto'", '')
 
 docdict['mode_eltc'] = """
 mode : str

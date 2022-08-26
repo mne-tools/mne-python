@@ -57,7 +57,7 @@ class SpectrumMixin():
         %(picks_good_data_noref)s
         %(proj_psd)s
         %(reject_by_annotation_psd)s
-        %(method_psd)s
+        %(method_plot_psd_auto)s
         %(average_plot_psd)s
         %(dB_plot_psd)s
         %(estimate_plot_psd)s
@@ -123,7 +123,7 @@ class SpectrumMixin():
         %(tmin_tmax_psd)s
         %(fmin_fmax_psd_topo)s
         %(proj_psd)s
-        %(method_psd)s
+        %(method_plot_psd_auto)s
         %(dB_spectrum_plot_topo)s
         %(layout_spectrum_plot_topo)s
         %(color_spectrum_plot_topo)s
@@ -172,7 +172,7 @@ class SpectrumMixin():
         %(bands_psd_topo)s
         %(tmin_tmax_psd)s
         %(proj_psd)s
-        %(method_psd)s
+        %(method_plot_psd_auto)s
         %(ch_type_psd_topomap)s
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
@@ -886,7 +886,9 @@ class Spectrum(BaseSpectrum):
     ----------
     inst : instance of Raw or Evoked
         The data from which to compute the frequency spectrum.
-    %(method_psd)s
+    %(method_psd_auto)s
+        ``'auto'`` (default) uses Welch's method for continuous data
+        and multitaper for :class:`~mne.Evoked` data.
     %(fmin_fmax_psd)s
     %(tmin_tmax_psd)s
     %(picks_good_data_noref)s
