@@ -224,11 +224,9 @@ def _find_centroid(ch_pos, group_names):
     pos_centroid : array of shape (3,)
         The position of the centroid in cartesian coordinates.
     """
-    cartesian_positions = np.zeros((len(group_names), 3))
-    sphere_positions = np.zeros((len(group_names), 3))
-    for i, ch_name in enumerate(group_names):
-        cartesian_positions[i, :] = ch_pos[ch_name]
-        sphere_positions[i, :] = _cart_to_sph(ch_pos[ch_name])
+    cartesian_positions = np.array([
+        ch_pos[ch_name] for ch_name in group_names])
+    sphere_positions = _cart_to_sph(cartesian_positions)
     cartesian_pos_centroid = np.average(cartesian_positions, axis=0)
     sphere_pos_centroid = _cart_to_sph(cartesian_pos_centroid)
     # average the radius and overwrite it
