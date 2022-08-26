@@ -926,6 +926,9 @@ def _compute_forwards(rr, bem, coils_list, ccoils_list, infos, coil_types,
         _prep_field_computation(rr, bem, fwd_data, n_jobs)
         Bs = _compute_forwards_meeg(rr, fwd_data, n_jobs)
     else:
+        if len(bem["surfs"]) != 3:
+            raise RuntimeError("Only 3-layer BEM is supported for OpenMEEG.")
+
         # TODO: Do something other than this
         import openmeeg as om
         hminv = om.SymMatrix(bem["solution"])
@@ -972,9 +975,6 @@ def _compute_forwards(rr, bem, coils_list, ccoils_list, infos, coil_types,
             for x in meg_fwd_full.T:
                 meg_fwd.append(bincount(bins, ws * x, bins[-1] + 1))
             meg_fwd = np.array(meg_fwd)
-
-            np.savetxt("debug_dipoles.txt", dipoles.array())
-            np.savetxt("debug_meg_sensors.txt", rmags)
         else:
             meg_fwd = np.zeros((len(rr) * 3, len(meg_coils)))
         Bs = [meg_fwd, eeg_fwd]

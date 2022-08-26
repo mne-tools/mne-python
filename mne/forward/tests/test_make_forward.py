@@ -53,10 +53,6 @@ fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
 fname_bem_meg = op.join(subjects_dir, 'sample', 'bem',
                         'sample-1280-bem-sol.fif')
 
-data_path = sample.data_path(download=False)
-subjects_dir = os.path.join(data_path, 'subjects')
-fname_bem = op.join(subjects_dir, 'sample', 'bem',
-                    'sample-5120-5120-5120-bem-sol.fif')
 
 def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
                       meg_rtol=1e-4, meg_atol=1e-9,
@@ -250,7 +246,10 @@ def test_make_forward_solution_basic():
                               fname_bem_meg)
 
 
-@pytest.mark.parametrize("n_layers", [3, 1])
+@pytest.mark.parametrize("n_layers", [
+    3,
+    pytest.param(1, marks=pytest.mark.xfail(raises=RuntimeError)),
+])
 @testing.requires_testing_data
 def test_make_forward_solution_openmeeg(n_layers):
     """Test making M-EEG forward solution from OpenMEEG."""
@@ -262,9 +261,10 @@ def test_make_forward_solution_openmeeg(n_layers):
     ch_types = ['eeg', 'meg']
     if n_layers == 1:
         ch_types = ['meg']
-        raw.pick(ch_types)
         bem_surfaces = bem_surfaces[-1:]
+        assert bem_surfaces[0]['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN
         n_sensors = 306
+    raw.pick(ch_types)
     n_sources_kept = 501 // 3
     fwds = dict()
     for solver in ["openmeeg", "mne"]:
@@ -282,20 +282,20 @@ def test_make_forward_solution_openmeeg(n_layers):
         del fwd
     _compare_forwards(fwds["openmeeg"],
                       fwds["mne"], n_sensors, n_sources_kept * 3,
-                      meg_atol=1, eeg_atol=100,
-                      solver="both")
+                      meg_atol=1, eeg_atol=100)
+    atols = dict(eeg=0.2, meg=0.1)
     for ch_type in ch_types:
         ch_names = raw.copy().pick(ch_type).ch_names
         fwd_om = pick_channels_forward(fwds["openmeeg"], include=ch_names)
         fwd_mne = pick_channels_forward(fwds["mne"], include=ch_names)
         fwd_om = fwd_om['sol']['data']
         fwd_mne = fwd_mne['sol']['data']
-        # To test so-called MAG we use correlation (related to cosine similarity)
-        # and also RDM to test the amplitude mismatch
+        # To test so-called MAG we use correlation (related to cosine
+        # similarity) and also RDM to test the amplitude mismatch
         corrs = [np.corrcoef(x, y)[0, 1] for x, y in zip(fwd_om.T, fwd_mne.T)]
         assert_array_less(0.98, corrs)
         RDMs = np.linalg.norm(fwd_om, axis=0) / np.linalg.norm(fwd_mne, axis=0)
-        assert_allclose(RDMs, 1, atol=0.1)
+        assert_allclose(RDMs, 1, atol=atols[ch_type])
 
 
 @testing.requires_testing_data
