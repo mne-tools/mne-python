@@ -227,19 +227,17 @@ def test_make_forward_solution_kit(tmp_path):
 @testing.requires_testing_data
 def test_make_forward_solution_basic():
     """Test making M-EEG forward solution from python."""
-    bem = Path(fname_bem)
-    bem = read_bem_solution(bem)
     with catch_logging() as log:
         # make sure everything can be path-like (gh #10872)
         fwd_py = make_forward_solution(
             Path(fname_raw), Path(fname_trans), Path(fname_src),
-            bem, mindist=5., verbose=True)
+            Path(fname_bem), mindist=5., verbose=True)
     log = log.getvalue()
     assert 'Total 258/258 points inside the surface' in log
     assert (isinstance(fwd_py, Forward))
     fwd = read_forward_solution(fname_meeg)
     assert (isinstance(fwd, Forward))
-    _compare_forwards(fwd, fwd_py, 366, 1494, meg_rtol=1e-3, solver=solver)
+    _compare_forwards(fwd, fwd_py, 366, 1494, meg_rtol=1e-3)
     # Homogeneous model
     with pytest.raises(RuntimeError, match='homogeneous.*1-layer.*EEG'):
         make_forward_solution(fname_raw, fname_trans, fname_src,
