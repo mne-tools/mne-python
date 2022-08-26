@@ -146,8 +146,9 @@ class RawEDF(BaseRaw):
 
         for k, (this_ch, this_unit) in enumerate(orig_units.items()):
             if this_unit != "" and this_unit in units:
-                raise ValueError(f'Unit for channel {this_ch} is present in the file.'
-                                 ' . Cannot overwrite it with the units argument.')
+                raise ValueError(f'Unit for channel {this_ch} is present in '
+                                 'the file. Cannot overwrite it with the units '
+                                 'argument.')
             if this_unit == "" and this_ch in units:
                 orig_units[this_ch] = units[this_ch]
                 ch_type = edf_info["ch_types"][k]
@@ -160,8 +161,6 @@ class RawEDF(BaseRaw):
                          raw_extras=[edf_info], last_samps=last_samps,
                          orig_format='int', orig_units=orig_units,
                          verbose=verbose)
-
-        import ipdb; ipdb.set_trace()
 
         # Read annotations from file and set it
         onset, duration, desc = list(), list(), list()
