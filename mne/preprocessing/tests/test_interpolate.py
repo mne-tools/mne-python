@@ -118,10 +118,10 @@ def test_interpolate_bridged_electrodes():
     raw.set_montage("standard_1020")
     bridged_idx = list(itertools.combinations(range(5), 2))
     with pytest.raises(
-            RuntimeError,
-            match="The channels Fp1, Fpz, Fp2, AF9, AF7 are bridged "
-            "together and form a large area of bridged electrodes."
-        ):
+        RuntimeError,
+        match="The channels Fp1, Fpz, Fp2, AF9, AF7 are bridged "
+        "together and form a large area of bridged electrodes."
+    ):
         interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=4)
     # increase the limit to prevent raising
     interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=5)

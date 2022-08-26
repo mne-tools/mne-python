@@ -6,7 +6,7 @@ from itertools import chain
 
 import numpy as np
 
-from ..utils import _validate_type, warn
+from ..utils import _validate_type
 from ..io import BaseRaw, RawArray
 from ..io.meas_info import create_info
 from ..epochs import BaseEpochs, EpochsArray
