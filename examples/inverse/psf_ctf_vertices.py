@@ -50,7 +50,6 @@ inverse_operator = mne.minimum_norm.make_inverse_operator(
 # regularisation parameter
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-method = 'MNE'  # can be 'MNE' or 'sLORETA'
 
 # compute resolution matrix for sLORETA
 rm_lor = make_inverse_resolution_matrix(forward, inverse_operator,
