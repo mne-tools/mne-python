@@ -1335,7 +1335,7 @@ def apply_inverse_tfr_epochs(epochs_tfr, inverse_operator, lambda2,
 
     Returns
     -------
-    stc : list of list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)  # noqa E501
+    stc : list of list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)
         The source estimates for all frequencies (outside list) and for
         all epochs (inside list).
 
@@ -1343,7 +1343,7 @@ def apply_inverse_tfr_epochs(epochs_tfr, inverse_operator, lambda2,
     --------
     apply_inverse_raw : Apply inverse operator to raw object.
     apply_inverse : Apply inverse operator to evoked object.
-    """
+    """  # noqa E501
     from ..time_frequency.tfr import _check_tfr_complex
     _check_tfr_complex(epochs_tfr)
     stcs = _apply_inverse_tfr_epochs_gen(
