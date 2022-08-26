@@ -16,7 +16,7 @@ from .. import Evoked
 
 
 @verbose
-def regress_artifact(inst, picks=None, exclude='bads', picks_artifact='eog',
+def regress_artifact(inst, picks=None, *, exclude='bads', picks_artifact='eog',
                      betas=None, taa=False, copy=True, verbose=None):
     """Remove artifacts using regression based on reference channels.
 
