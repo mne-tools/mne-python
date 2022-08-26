@@ -1124,7 +1124,7 @@ def test_apply_inverse_tfr(return_generator):
     n_orient = 3 if pick_ori == 'vector' else 1
     # FIXME
     # because of the round-trip conversion to tstep, this fails
-    # assert_allclose(stc[0][0].times, times)
+    # assert_allclose(stcs[0][0].times, times)
     if return_generator:
         stcs = [[s for s in these_stcs] for these_stcs in stcs]
     assert len(stcs) == freqs.size
