@@ -4145,6 +4145,9 @@ class legacy:
 
     Parameters
     ----------
+    alt : str
+        Description of the alternate, preferred way to achieve a comparable
+        result.
     extra : str
         Extra information beyond just saying the class/function/method
         is deprecated.

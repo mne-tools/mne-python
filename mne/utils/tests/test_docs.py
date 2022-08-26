@@ -53,13 +53,13 @@ class deprecated_class():
 
 
 @legacy('replacement_class')
-class legacy_class():
+class legacy_class():  # noqa D101
 
     def __init__(self):
         pass
 
     @legacy('replacement_method')
-    def bad(self):
+    def bad(self):  # noqa D102
         pass
 
 
