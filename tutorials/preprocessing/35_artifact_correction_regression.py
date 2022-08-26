@@ -60,7 +60,6 @@ raw.filter(0.3, 40)
 
 # make epochs
 events = mne.find_events(raw)
-#event_id = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR': 4}
 event_id = {'VisL': 3, 'VisR': 4}
 epochs = mne.Epochs(raw, events, event_id=event_id, preload=True)
 
@@ -135,7 +134,7 @@ epochs_sub = epochs.copy().subtract_evoked()
 model_sub = EOGRegression(picks='eeg', picks_artifact='eog').fit(epochs_sub)
 model_sub.plot(vmax=0.4)
 
-# apply the regression coefficients to the original epochs 
+# apply the regression coefficients to the original epochs
 epochs_clean_sub = model_plain.apply(epochs)
 fig = epochs_clean_sub.average('all').plot(**plot_kwargs)
 fig.set_size_inches(6, 6)
@@ -160,7 +159,7 @@ eog_evoked.plot_joint()
 model_evoked = EOGRegression(picks='eeg', picks_artifact='eog').fit(eog_evoked)
 model_evoked.plot(vmax=0.4)
 
-# apply the regression coefficients to the original epochs 
+# apply the regression coefficients to the original epochs
 epochs_clean_evoked = model_plain.apply(epochs)
 fig = epochs_clean_evoked.average('all').plot(**plot_kwargs)
 fig.set_size_inches(6, 6)

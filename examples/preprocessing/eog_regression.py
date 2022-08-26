@@ -17,6 +17,7 @@ License: BSD (3-clause)
 """
 # %%
 # Do imports and load the MNE-Sample data.
+import warnings
 
 import mne
 from mne.datasets import sample
@@ -70,3 +71,5 @@ fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(10, 7),
 evoked_before.plot(axes=ax[:, 0], spatial_colors=True)
 evoked_after.plot(axes=ax[:, 1], spatial_colors=True)
 fig.suptitle('Before --> After')
+with warnings.catch_warnings():
+    fig.set_tight_layout(True)

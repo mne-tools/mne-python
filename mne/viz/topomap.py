@@ -3020,7 +3020,7 @@ def _set_adjacency(adjacency, both_nodes, value):
 @fill_doc
 def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
                             cmap=None, sensors=True, colorbar=True, res=64,
-                            size=1, cbar_fmt='%.2E', show=True,
+                            size=1, cbar_fmt='%.2g', show=True,
                             show_names=False, title=None, mask=None,
                             mask_params=None, outlines='head', axes=None,
                             sphere=None, border=_BORDER_DEFAULT):
@@ -3060,17 +3060,13 @@ def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
     import matplotlib.pyplot as plt
     sphere = _check_sphere(sphere)
     ch_types = _get_channel_types(model.info, unique=True, only_data_chs=True)
-    print(ch_types)
 
-    nrows = len(ch_types)
-    ncols = model.coef_.shape[1]
-    fig, axes = plt.subplots(nrows, ncols,
+    nrows = model.coef_.shape[1]
+    ncols = len(ch_types)
+    fig, axes = plt.subplots(nrows, ncols, squeeze=False,
                              figsize=(ncols * 2, nrows * 1.5 + 1))
-    if ncols == nrows == 1:
-        axes = [axes]
-    else:
-        axes = axes.ravel()
-    axes = iter(axes)
+    fig.set_tight_layout(True)
+    axes = iter(axes.T.ravel())
 
     for ch_type in ch_types:
         data_picks, pos, merge_channels, names, ch_type, sphere, clip_origin =\

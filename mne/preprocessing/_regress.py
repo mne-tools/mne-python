@@ -226,7 +226,7 @@ class EOGRegression():
 
     @copy_function_doc_to_method_doc(plot_regression_weights)
     def plot(self, ch_type=None, vmin=None, vmax=None, cmap=None, sensors=True,
-             colorbar=True, res=64, size=1, cbar_fmt='%.2E', show=True,
+             colorbar=True, res=64, size=1, cbar_fmt='%.2g', show=True,
              show_names=False, title=None, mask=None, mask_params=None,
              outlines='head', axes=None, sphere=None, border=_BORDER_DEFAULT):
         return plot_regression_weights(self, ch_type=ch_type, vmin=vmin,
