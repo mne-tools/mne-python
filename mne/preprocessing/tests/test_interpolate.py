@@ -127,9 +127,9 @@ def test_interpolate_bridged_electrodes():
     interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=5)
     # invalid argument
     with pytest.raises(
-            ValueError,
-            match="Argument 'bad_limit' should be a strictly positive integer."
-        ):
+        ValueError,
+        match="Argument 'bad_limit' should be a strictly positive integer."
+    ):
         interpolate_bridged_electrodes(raw, bridged_idx, bad_limit=-4)
 
 
