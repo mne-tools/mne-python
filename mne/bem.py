@@ -1507,7 +1507,7 @@ def read_bem_solution(fname, *, verbose=None):
     else:
         if len(dims) != 2 and solver != "openmeeg":
             raise RuntimeError('Expected a two-dimensional solution matrix '
-                              'instead of a %d dimensional one' % dims[0])
+                               'instead of a %d dimensional one' % dims[0])
         if dims[0] != dim or dims[1] != dim:
             raise RuntimeError('Expected a %d x %d solution matrix instead of '
                                'a %d x %d one' % (dim, dim, dims[1], dims[0]))
