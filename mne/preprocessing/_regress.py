@@ -28,7 +28,7 @@ def regress_artifact(inst, picks=None, exclude='bads', picks_artifact='eog',
     exclude : list | 'bads'
         List of channels to exclude from the regression, only used when picking
         based on types (e.g., exclude="bads" when picks="meg").
-        Specify `'bads'` (the default) to exclude all channels marked as bad.
+        Specify ``'bads'`` (the default) to exclude all channels marked as bad.
 
         .. versionadded:: 1.2
     picks_artifact : array-like | str
@@ -104,7 +104,7 @@ class EOGRegression():
     exclude : list | 'bads'
         List of channels to exclude from the regression, only used when picking
         based on types (e.g., exclude="bads" when picks="meg").
-        Specify `'bads'` (the default) to exclude all channels marked as bad.
+        Specify ``'bads'`` (the default) to exclude all channels marked as bad.
     picks_artifact : array-like | str
         Channel picks to use as predictor/explanatory variables capturing
         the artifact of interest (default is "eog").
