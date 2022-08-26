@@ -1,3 +1,4 @@
+import itertools
 import os.path as op
 
 import numpy as np
@@ -84,16 +85,47 @@ def test_interpolate_bridged_electrodes():
         # check closer to regular interpolation than original data
         assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 5.4e-5
 
+    for inst in (raw, epochs, evoked):
+        idx0 = inst.ch_names.index('EEG 001')
+        idx1 = inst.ch_names.index('EEG 002')
+        idx2 = inst.ch_names.index('EEG 003')
+        ch_names_orig = inst.ch_names.copy()
+        bads_orig = inst.info['bads'].copy()
+        inst2 = inst.copy()
+        inst2.info['bads'] = ['EEG 001', 'EEG 002', 'EEG 003']
+        inst2.interpolate_bads()
+        data_interp_reg = inst2.get_data(
+            picks=['EEG 001', 'EEG 002', 'EEG 003']
+        )
+        inst = interpolate_bridged_electrodes(
+            inst, [(idx0, idx1), (idx0, idx2), (idx1, idx2)]
+        )
+        data_interp = inst.get_data(picks=['EEG 001', 'EEG 002', 'EEG 003'])
+        assert not any(['virtual' in ch for ch in inst.ch_names])
+        assert inst.ch_names == ch_names_orig
+        assert inst.info['bads'] == bads_orig
+        # check closer to regular interpolation than original data
+        assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 5.4e-5
 
-def test_interpolate_N_bridged_electrodes():
-    """Test interpolation with 2<N bridged electrodes."""
-    pass
+    montage = make_standard_montage("standard_1020")
+    ch_names = [ch for ch in montage.ch_names
+                if ch not in ["P7", "P8", "T3", "T4", "T5", "T4", "T6"]]
+    info = create_info(ch_names, sfreq=1024, ch_types="eeg")
+    data = np.random.randn(len(ch_names), 1024)
+    data[:5, :] = np.ones((5, 1024))
+    raw = io.RawArray(data, info)
+    raw.set_montage("standard_1020")
+    bridged_idx = list(itertools.combinations(range(5), 2))
+    with pytest.warns(match="The channels Fp1, Fpz, Fp2, AF9, AF7 are bridged "
+                      "together and form a large area of bridged electrodes."):
+        interpolate_bridged_electrodes(raw, bridged_idx)
 
 
 def test_find_centroid():
     """Test that the centroid is correct."""
     montage = make_standard_montage("standard_1020")
-    ch_names = [ch for ch in montage.ch_names if ch not in ["P7", "P8", "T3", "T4", "T5", "T4", "T6"]]
+    ch_names = [ch for ch in montage.ch_names
+                if ch not in ["P7", "P8", "T3", "T4", "T5", "T4", "T6"]]
     info = create_info(ch_names, sfreq=1024, ch_types="eeg")
     info.set_montage(montage)
     montage = info.get_montage()
