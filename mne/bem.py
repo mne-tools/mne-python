@@ -1494,15 +1494,16 @@ def read_bem_solution(fname, *, verbose=None):
     for si, surf in enumerate(bem['surfs']):
         assert bem['bem_method'] == FIFF.FIFFV_BEM_APPROX_LINEAR
         dim += surf['np']
-        if solver == 'openmeeg' and si != 1:
+        if solver == 'openmeeg' and si != 0:
             dim += surf['ntri']
     dims = bem['solution'].shape
     if solver == "openmeeg":
-        dim = (dim * (dim + 1)) // 2
-        if len(dims) != 1 or dims[0] != dim:
+        sz = (dim * (dim + 1)) // 2
+        if len(dims) != 1 or dims[0] != sz:
             raise RuntimeError(
                 'For the given BEM surfaces, OpenMEEG should produce a '
-                f'solution matrix of shape ({dim},) but got {dims}')
+                f'solution matrix of shape ({sz},) but got {dims}')
+        bem['nsol'] = dim
     else:
         if len(dims) != 2 and solver != "openmeeg":
             raise RuntimeError('Expected a two-dimensional solution matrix '
@@ -1510,7 +1511,7 @@ def read_bem_solution(fname, *, verbose=None):
         if dims[0] != dim or dims[1] != dim:
             raise RuntimeError('Expected a %d x %d solution matrix instead of '
                             'a %d x %d one' % (dim, dim, dims[1], dims[0]))
-    bem['nsol'] = bem['solution'].shape[0]
+        bem['nsol'] = bem['solution'].shape[0]
     # Gamma factors and multipliers
     _add_gamma_multipliers(bem)
     extra = f'made by {solver}' if solver != 'mne' else ''
