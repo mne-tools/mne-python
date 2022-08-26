@@ -38,6 +38,7 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
         Noise covariance matrix to compute noise power in source space.
     snr : None | float
         Signal-to-noise ratio for source signal vs noise power.
+        If None, SNR is inferred from lambda2 (as 1/sqrt(lambda2)).
     %(verbose)s
 
     Returns
@@ -59,10 +60,14 @@ def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
         interpreted. It must not be used to compute CTFs or resolution metrics
         for CTFs!
     """
-    if ((noise_cov is None and snr is not None) or
-            (noise_cov is not None and snr is None)):
-        msg = 'noise_cov and snr must both be None or not be None.'
+    if (noise_cov is None and snr is not None):
+        msg = 'snr should be None if noise_cov is None.'
         raise ValueError(msg)
+
+    if (noise_cov is not None and snr is None):
+        snr = np.sqrt(1. / lambda2)
+        logger.info('Inferring snr from lamdba2 as: %f.' % snr)
+
 
     # make sure forward and inverse operator match
     inv = inverse_operator
