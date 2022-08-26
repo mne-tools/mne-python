@@ -53,10 +53,10 @@ weights.plot()
 # is best visualized by cutting epochs and plotting the evoked potential.
 
 tmin, tmax = -0.1, 0.5
-event_ids = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR': 4}
-evoked_before = mne.Epochs(raw, events, event_ids, tmin, tmax,
+event_id = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR': 4}
+evoked_before = mne.Epochs(raw, events, event_id, tmin, tmax,
                            baseline=(tmin, 0)).average()
-evoked_after = mne.Epochs(raw_clean, events, event_ids, tmin, tmax,
+evoked_after = mne.Epochs(raw_clean, events, event_id, tmin, tmax,
                           baseline=(tmin, 0)).average()
 
 # Create epochs after EOG correction
