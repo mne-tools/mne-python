@@ -465,7 +465,7 @@ sphinx_gallery_conf = {
     'matplotlib_animations': True,
     'compress_images': compress_images,
     'filename_pattern': '^((?!sgskip).)*$',
-    'missing_doc_ignore': (
+    'api_usage_ignore': (
         '('
         '.*__.*__|'  # built-ins
         '.*Base.*|.*Array.*|mne.Vector.*|mne.Mixed.*|mne.Vol.*|'  # inherited
