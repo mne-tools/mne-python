@@ -155,16 +155,18 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
         virtual_info['chs'][0]['loc'][:3] = pos_virtual
         # create virtual channel
         data = inst.get_data(picks=group_names)
-        data = np.average(data, axis=0).reshape(1, -1)
         if isinstance(inst, BaseRaw):
+            data = np.average(data, axis=0).reshape(1, -1)
             virtual_ch = RawArray(
                 data, virtual_info, first_samp=inst.first_samp
             )
         elif isinstance(inst, BaseEpochs):
+            data = np.average(data, axis=1).reshape(len(data), 1, -1)
             virtual_ch = EpochsArray(data, virtual_info, tmin=inst.tmin)
         else:  # evoked
+            data = np.average(data, axis=0).reshape(1, -1)
             virtual_ch = EvokedArray(
-                data,
+                np.average(data, axis=0).reshape(1, -1),
                 virtual_info,
                 tmin=inst.tmin,
                 nave=inst.nave,
