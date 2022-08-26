@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 =======================================
 Reduce EOG artifacts through regression
@@ -7,8 +8,8 @@ Reduce artifacts by regressing the EOG channels onto the rest of the channels
 and then subtracting the EOG signal.
 
 This is a quick example to show the most basic application of the technique.
-See the tutorial for a more thorough explanation that demonstrated more
-advanced approaches.
+See the `tutorial<_tut-artifact-regression>`_ for a more thorough explanation
+that demonstrates more advanced approaches.
 
 Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 
@@ -53,14 +54,14 @@ weights.plot()
 # is best visualized by cutting epochs and plotting the evoked potential.
 
 tmin, tmax = -0.1, 0.5
-event_id = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR': 4}
+event_id = {'VisL': 3, 'VisR': 4}
 evoked_before = mne.Epochs(raw, events, event_id, tmin, tmax,
                            baseline=(tmin, 0)).average()
 evoked_after = mne.Epochs(raw_clean, events, event_id, tmin, tmax,
                           baseline=(tmin, 0)).average()
 
 # Create epochs after EOG correction
-epochs_after = mne.Epochs(raw_clean, events, event_ids, tmin, tmax,
+epochs_after = mne.Epochs(raw_clean, events, event_id, tmin, tmax,
                           baseline=(tmin, 0))
 evoked_after = epochs_after.average()
 

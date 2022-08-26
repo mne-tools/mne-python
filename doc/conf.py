@@ -236,6 +236,7 @@ numpydoc_xref_aliases = {
     'Transform': 'mne.transforms.Transform',
     'Coregistration': 'mne.coreg.Coregistration',
     'Figure3D': 'mne.viz.Figure3D',
+    'EOGRegression': 'mne.preprocessing.EOGRegression',
     # dipy
     'dipy.align.AffineMap': 'dipy.align.imaffine.AffineMap',
     'dipy.align.DiffeomorphicMap': 'dipy.align.imwarp.DiffeomorphicMap',
