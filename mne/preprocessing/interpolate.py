@@ -216,7 +216,7 @@ def _find_centroid(ch_pos, group_names):
     ----------
     ch_pos : OrderedDict
         The position of all channels in cartesian coordinates.
-    group_names :
+    group_names : list | tuple
         The name of the N electrodes used to determine the centroid.
 
     Returns
@@ -225,7 +225,8 @@ def _find_centroid(ch_pos, group_names):
         The position of the centroid in cartesian coordinates.
     """
     cartesian_positions = np.array([
-        ch_pos[ch_name] for ch_name in group_names])
+        ch_pos[ch_name] for ch_name in group_names]
+    )
     sphere_positions = _cart_to_sph(cartesian_positions)
     cartesian_pos_centroid = np.average(cartesian_positions, axis=0)
     sphere_pos_centroid = _cart_to_sph(cartesian_pos_centroid)
