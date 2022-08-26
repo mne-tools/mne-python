@@ -119,6 +119,6 @@ def test_eog_regression():
     fig = EOGRegression(picks_artifact=['EEG 001', 'EOG 061']).fit(raw).plot()
     assert len(fig.axes) == 12  # (6 topomaps and 3 colorbars)
     assert fig.axes[0].title.get_text() == 'grad/EEG 001'
-    assert fig.axes[1].title.get_text() == 'grad/EOG 061'
-    assert fig.axes[4].title.get_text() == 'eeg/EEG 001'
+    assert fig.axes[1].title.get_text() == 'mag/EEG 001'
+    assert fig.axes[4].title.get_text() == 'mag/EOG 061'
     assert fig.axes[5].title.get_text() == 'eeg/EOG 061'
