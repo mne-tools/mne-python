@@ -1,10 +1,13 @@
 import os.path as op
-import numpy as np
 
+import numpy as np
 import pytest
 
+from mne import create_info, io, pick_types, read_events, Epochs
+from mne.channels import make_standard_montage
 from mne.preprocessing import equalize_bads, interpolate_bridged_electrodes
-from mne import io, pick_types, read_events, Epochs
+from mne.preprocessing.interpolate import _find_centroid
+from mne.transforms import _cart_to_sph
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -80,3 +83,58 @@ def test_interpolate_bridged_electrodes():
         assert inst.info['bads'] == bads_orig
         # check closer to regular interpolation than original data
         assert 1e-6 < np.mean(np.abs(data_interp - data_interp_reg)) < 5.4e-5
+
+
+def test_interpolate_N_bridged_electrodes():
+    """Test interpolation with 2<N bridged electrodes."""
+    pass
+
+
+def test_find_centroid():
+    """Test that the centroid is correct."""
+    montage = make_standard_montage("standard_1020")
+    ch_names = [ch for ch in montage.ch_names if ch not in ["P7", "P8", "T3", "T4", "T5", "T4", "T6"]]
+    info = create_info(ch_names, sfreq=1024, ch_types="eeg")
+    info.set_montage(montage)
+    montage = info.get_montage()
+    pos = montage.get_positions()
+    assert pos["coord_frame"] == "head"
+
+    # look for centroid between T7 and TP7, an average in spehrical coordinate
+    # fails and places the average on the wrong side of the head between T8 and
+    # TP8
+    ch_names = ["T7", "TP7"]
+    pos_centroid = _find_centroid(pos["ch_pos"], ch_names)
+    _check_centroid_position(pos, ch_names, pos_centroid)
+
+    # check other positions
+    pairs = [("CPz", "CP2"), ("CPz", "Cz"), ("Fpz", "AFz"), ("AF7", "F7"),
+             ("O1", "O2"), ("M2", "A2"), ("P5", "P9")]
+    for ch_names in pairs:
+        pos_centroid = _find_centroid(pos["ch_pos"], ch_names)
+        _check_centroid_position(pos, ch_names, pos_centroid)
+    triplets = [("CPz", "Cz", "FCz"), ("AF9", "Fpz", "AF10"),
+                ("FT10", "FT8", "T10")]
+    for ch_names in triplets:
+        pos_centroid = _find_centroid(pos["ch_pos"], ch_names)
+        _check_centroid_position(pos, ch_names, pos_centroid)
+
+
+def _check_centroid_position(pos, ch_names, pos_centroid):
+    """Check the centroid distance.
+
+    The cartesian average should be distanced from pos_centroid by the
+    difference between the radii.
+    """
+    radii = list()
+    cartesian_positions = np.zeros((len(ch_names), 3))
+    for i, ch in enumerate(ch_names):
+        radii.append(_cart_to_sph(pos["ch_pos"][ch])[0, 0])
+        cartesian_positions[i, :] = pos["ch_pos"][ch]
+    avg_radius = np.average(radii)
+    avg_cartesian_position = np.average(cartesian_positions, axis=0)
+    avg_cartesian_position_radius = _cart_to_sph(avg_cartesian_position)[0, 0]
+    radius_diff = np.abs(avg_radius - avg_cartesian_position_radius)
+    # distance
+    distance = np.linalg.norm(pos_centroid - avg_cartesian_position)
+    assert np.isclose(radius_diff, distance, atol=1e-6)
