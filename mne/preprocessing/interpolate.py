@@ -130,8 +130,8 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit: int = 4):
     G_dense = np.zeros((len(nodes), len(nodes)))
     # fill the edges with a weight of 1
     for bridge in bridged_idx:
-        idx0 = nodes.index(bridge[0])
-        idx1 = nodes.index(bridge[1])
+        idx0 = np.searchsorted(nodes, bridge[0])
+        idx1 = np.searchsorted(nodes, bridge[1])
         G_dense[idx0, idx1] = 1
         G_dense[idx1, idx0] = 1
     # look for connected components
