@@ -1290,9 +1290,11 @@ def _apply_inverse_tfr_epochs_gen(epochs_tfr, inverse_operator, lambda2,
         epochs = EpochsArray(epochs_tfr.data[:, :, freq_idx, :],
                              epochs_tfr.info, events=epochs_tfr.events,
                              tmin=epochs_tfr.tmin)
+        this_inverse_operator = inverse_operator[freq_idx] if \
+            isinstance(inverse_operator, (list, tuple)) else inverse_operator
         stcs = _apply_inverse_epochs_gen(
-            epochs, inverse_operator, lambda2, method=method, label=label,
-            nave=nave, pick_ori=pick_ori, prepared=prepared,
+            epochs, this_inverse_operator, lambda2, method=method,
+            label=label, nave=nave, pick_ori=pick_ori, prepared=prepared,
             method_params=method_params, use_cps=use_cps)
         yield stcs
 
@@ -1308,8 +1310,9 @@ def apply_inverse_tfr_epochs(epochs_tfr, inverse_operator, lambda2,
     ----------
     epochs_tfr : EpochsTFR object
         Single trial, phase-amplitude (complex-valued), time-frequency epochs.
-    inverse_operator : dict
-        Inverse operator.
+    inverse_operator : list of dict | dict
+        The inverse operator for each frequency or a single inverse operator
+        to use for all frequencies.
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
@@ -1346,6 +1349,10 @@ def apply_inverse_tfr_epochs(epochs_tfr, inverse_operator, lambda2,
     """  # noqa E501
     from ..time_frequency.tfr import _check_tfr_complex
     _check_tfr_complex(epochs_tfr)
+    if isinstance(inverse_operator, (list, tuple)) and \
+            len(inverse_operator) != epochs_tfr.freqs.size:
+        raise ValueError(f'Expected {epochs_tfr.freqs.size} inverse '
+                         f'operators, got {len(inverse_operator)}')
     stcs = _apply_inverse_tfr_epochs_gen(
         epochs_tfr, inverse_operator, lambda2,
         method, label, nave, pick_ori, prepared,

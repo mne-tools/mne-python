@@ -1116,6 +1116,10 @@ def test_apply_inverse_tfr(return_generator):
     epochs_tfr.apply_baseline((0, 0.5))
     pick_ori = 'vector'
 
+    with pytest.raises(ValueError, match='Expected 2 inverse operators, '
+                                         'got 3'):
+        apply_inverse_tfr_epochs(epochs_tfr, [inverse_operator] * 3, lambda2)
+
     # test epochs
     stcs = apply_inverse_tfr_epochs(
         epochs_tfr, inverse_operator, lambda2, "dSPM", pick_ori=pick_ori,
