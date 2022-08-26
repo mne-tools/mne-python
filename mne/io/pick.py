@@ -99,7 +99,7 @@ def get_channel_type_constants(include_defaults=False):
                                  unit=FIFF.FIFF_UNIT_C),
                 galvanic=dict(kind=FIFF.FIFFV_GALVANIC_CH,
                               unit=FIFF.FIFF_UNIT_S),
-    )
+                )
     if include_defaults:
         coil_none = dict(coil_type=FIFF.FIFFV_COIL_NONE)
         unit_none = dict(unit=FIFF.FIFF_UNIT_NONE)
