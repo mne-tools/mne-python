@@ -1491,17 +1491,18 @@ def read_bem_solution(fname, *, verbose=None):
     dim = 0
     solver = bem.get('solver', 'mne')
     _check_option('BEM solver', solver, ('mne', 'openmeeg'))
-    for surf in bem['surfs']:
+    for si, surf in enumerate(bem['surfs']):
         assert bem['bem_method'] == FIFF.FIFFV_BEM_APPROX_LINEAR
         dim += surf['np']
-        # else:  # method == FIFF.FIFFV_BEM_APPROX_CONST
-        #     dim += surf['ntri']
+        if solver == 'openmeeg' and si != 1:
+            dim += surf['ntri']
     dims = bem['solution'].shape
     if solver == "openmeeg":
-        if len(dims) != 1:
-            raise RuntimeError('Expected a one-dimensional solution matrix '
-                               'instead of a %d dimensional one with '
-                               'OpenMEEG' % dims[0])
+        dim = (dim * (dim + 1)) // 2
+        if len(dims) != 1 or dims[0] != dim:
+            raise RuntimeError(
+                'For the given BEM surfaces, OpenMEEG should produce a '
+                f'solution matrix of shape ({dim},) but got {dims}')
     else:
         if len(dims) != 2 and solver != "openmeeg":
             raise RuntimeError('Expected a two-dimensional solution matrix '
