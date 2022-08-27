@@ -91,7 +91,7 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit: int = 4):
         pair stored as a tuple.
     bad_limit : int
         The maximum number of electrodes that can be bridged together
-        (included) and interpoalted. Above this number, an error will be
+        (included) and interpolated. Above this number, an error will be
         raised.
 
         .. versionadded:: 1.2
