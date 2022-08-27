@@ -8,6 +8,7 @@
 #
 #          simplified BSD-3 license
 
+from functools import lru_cache
 import os.path as op
 from io import BytesIO
 from itertools import count
@@ -45,10 +46,10 @@ def _instantiate_default_info_chs():
                 coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                 coil_type=FIFF.FIFFV_COIL_NONE,
                 range=1.0,
-                unit=FIFF.FIFF_UNIT_V,
+                unit=FIFF.FIFF_UNIT_NONE,
                 cal=1.0,
                 scanno=None,
-                kind=FIFF.FIFFV_ECG_CH,
+                kind=FIFF.FIFFV_MISC_CH,
                 logno=None)
 
 
@@ -997,6 +998,23 @@ class RawBTi(BaseRaw):
                 _mult_cal_one(data_view, one, idx, cals, mult)
 
 
+@lru_cache
+def _1020_names():
+    from mne.channels import make_standard_montage
+    return set(ch_name.lower()
+               for ch_name in make_standard_montage('standard_1005').ch_names)
+
+
+def _eeg_like(ch_name):
+    # Some bti recordigs look like "F4-POz", so let's at least mark them
+    # as EEG
+    if ch_name.count('-') != 1:
+        return
+    ch, ref = ch_name.split('-')
+    eeg_names = _1020_names()
+    return ch.lower() in eeg_names and ref.lower() in eeg_names
+
+
 def _make_bti_digitization(
         info, head_shape_fname, convert, use_hpi, bti_dev_t, dev_ctf_t):
     with info._unlock():
@@ -1184,7 +1202,7 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
                 chan_info['coil_type'] = \
                     FIFF.FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD
 
-        elif chan_4d.startswith('EEG'):
+        elif chan_4d.startswith('EEG') or _eeg_like(chan_4d):
             chan_info['kind'] = FIFF.FIFFV_EEG_CH
             chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
             chan_info['coord_frame'] = eeg_frame
@@ -1194,9 +1212,12 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
         elif chan_4d == 'TRIGGER':
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
-        elif chan_4d.startswith('EOG') or chan_4d in eog_ch:
+        elif chan_4d.startswith('EOG') or \
+                chan_4d[:4] in ('HEOG', 'VEOG') or chan_4d in eog_ch:
             chan_info['kind'] = FIFF.FIFFV_EOG_CH
-        elif chan_4d == ecg_ch:
+        elif chan_4d.startswith('EMG'):
+            chan_info['kind'] = FIFF.FIFFV_EMG_CH
+        elif chan_4d == ecg_ch or chan_4d.startswith('ECG'):
             chan_info['kind'] = FIFF.FIFFV_ECG_CH
         elif chan_4d.startswith('X'):
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
