@@ -586,7 +586,7 @@ class SetChannelsMixin(MontageMixin):
 
 
 class UpdateChannelsMixin(object):
-    """Mixin class for Raw, Evoked, Epochs, AverageTFR."""
+    """Mixin class for Raw, Evoked, Epochs, Spectrum, AverageTFR."""
 
     @verbose
     def pick_types(self, meg=False, eeg=False, stim=False, eog=False,
@@ -791,6 +791,7 @@ class UpdateChannelsMixin(object):
         # avoid circular imports
         from ..io import BaseRaw
         from ..time_frequency import AverageTFR, EpochsTFR
+        from ..time_frequency.spectrum import BaseSpectrum
 
         msg = 'adding, dropping, or reordering channels'
         if isinstance(self, BaseRaw):
@@ -815,8 +816,12 @@ class UpdateChannelsMixin(object):
             if mat is not None:
                 setattr(self, key, mat[idx][:, idx])
 
-        # All others (Evoked, Epochs, Raw) have chs axis=-2
-        axis = -3 if isinstance(self, (AverageTFR, EpochsTFR)) else -2
+        if isinstance(self, BaseSpectrum):
+            axis = self._dims.index('channel')
+        elif isinstance(self, (AverageTFR, EpochsTFR)):
+            axis = -3
+        else:  # All others (Evoked, Epochs, Raw) have chs axis=-2
+            axis = -2
         if hasattr(self, '_data'):  # skip non-preloaded Raw
             self._data = self._data.take(idx, axis=axis)
         else:

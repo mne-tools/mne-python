@@ -14,7 +14,7 @@ from mne.time_frequency import (csd_fourier, csd_multitaper,
                                 csd_array_multitaper, csd_array_morlet,
                                 tfr_morlet, csd_tfr,
                                 CrossSpectralDensity, read_csd,
-                                pick_channels_csd, psd_multitaper)
+                                pick_channels_csd)
 from mne.time_frequency.csd import _sym_mat_to_vector, _vector_to_sym_mat
 from mne.proj import Projection
 
@@ -477,8 +477,8 @@ def test_csd_multitaper():
         _test_csd_matrix(csd)
 
     # Test equivalence with PSD
-    psd, psd_freqs = psd_multitaper(epochs, fmin=1e-3,
-                                    normalization='full')  # omit DC
+    spectrum = epochs.compute_psd(fmin=1e-3, normalization='full')  # omit DC
+    psd, psd_freqs = spectrum.get_data(return_freqs=True)
     csd = csd_multitaper(epochs)
     assert_allclose(psd_freqs, csd.frequencies)
     csd = np.array([np.diag(csd.get_data(index=ii))
