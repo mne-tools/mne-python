@@ -3508,6 +3508,14 @@ units : str | dict | None
     channel-type-specific default unit.
 """
 
+docdict['units_edf_bdf_io'] = """
+units : dict | str
+    The units of the channels as stored in the file. This argument
+    is useful only if the units are missing from the original file.
+    If a dict, it must map a channel name to its unit, and if str
+    it is assumed that all channels have the same units.
+"""
+
 docdict['units_topomap'] = """
 units : dict | str | None
     The unit of the channel type used for colorbar label. If
