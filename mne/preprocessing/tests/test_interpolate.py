@@ -7,7 +7,7 @@ import pytest
 from mne import create_info, io, pick_types, read_events, Epochs
 from mne.channels import make_standard_montage
 from mne.preprocessing import equalize_bads, interpolate_bridged_electrodes
-from mne.preprocessing.interpolate import _find_centroid
+from mne.preprocessing.interpolate import _find_centroid_sphere
 from mne.transforms import _cart_to_sph
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -148,19 +148,19 @@ def test_find_centroid():
     # fails and places the average on the wrong side of the head between T8 and
     # TP8
     ch_names = ["T7", "TP7"]
-    pos_centroid = _find_centroid(pos["ch_pos"], ch_names)
+    pos_centroid = _find_centroid_sphere(pos["ch_pos"], ch_names)
     _check_centroid_position(pos, ch_names, pos_centroid)
 
     # check other positions
     pairs = [("CPz", "CP2"), ("CPz", "Cz"), ("Fpz", "AFz"), ("AF7", "F7"),
              ("O1", "O2"), ("M2", "A2"), ("P5", "P9")]
     for ch_names in pairs:
-        pos_centroid = _find_centroid(pos["ch_pos"], ch_names)
+        pos_centroid = _find_centroid_sphere(pos["ch_pos"], ch_names)
         _check_centroid_position(pos, ch_names, pos_centroid)
     triplets = [("CPz", "Cz", "FCz"), ("AF9", "Fpz", "AF10"),
                 ("FT10", "FT8", "T10")]
     for ch_names in triplets:
-        pos_centroid = _find_centroid(pos["ch_pos"], ch_names)
+        pos_centroid = _find_centroid_sphere(pos["ch_pos"], ch_names)
         _check_centroid_position(pos, ch_names, pos_centroid)
 
 

@@ -159,7 +159,7 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
         group_names = [inst.info.ch_names[k] for k in group_idx]
         bads = bads.union(group_names)
         # compute centroid position in spherical "head" coordinates
-        pos_virtual = _find_centroid(pos['ch_pos'], group_names)
+        pos_virtual = _find_centroid_sphere(pos['ch_pos'], group_names)
         # create the virtual channel info and set the position
         virtual_info = create_info(
             [f'virtual {k+1}'], inst.info['sfreq'], 'eeg'
@@ -200,7 +200,7 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
     return inst
 
 
-def _find_centroid(ch_pos, group_names):
+def _find_centroid_sphere(ch_pos, group_names):
     """Compute the centroid position between N electrodes.
 
     The centroid should be determined in spherical "head" coordinates which is
