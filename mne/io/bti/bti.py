@@ -8,7 +8,7 @@
 #
 #          simplified BSD-3 license
 
-from functools import lru_cache
+import functools
 import os.path as op
 from io import BytesIO
 from itertools import count
@@ -998,7 +998,7 @@ class RawBTi(BaseRaw):
                 _mult_cal_one(data_view, one, idx, cals, mult)
 
 
-@lru_cache
+@functools.cache
 def _1020_names():
     from mne.channels import make_standard_montage
     return set(ch_name.lower()
