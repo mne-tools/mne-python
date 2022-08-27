@@ -34,7 +34,6 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     plt_show, _process_times, DraggableColorbar, _get_cmap,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
                     _set_3d_axes_equal, _check_type_projs)
-from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
@@ -758,6 +757,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     %(sphere_topomap)s
     %(border_topomap)s
     %(ch_type_topomap)s
+
+        .. versionadded:: 0.21
     %(cnorm)s
 
         .. versionadded:: 0.24
@@ -1550,7 +1551,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         automatically by checking for local maxima in global field power. If
         "interactive", the time can be set interactively at run-time by using a
         slider.
-    %(ch_type_evoked_topomap)s
+    %(ch_type_topomap)s
     %(vmin_vmax_topomap)s
     %(cmap_topomap)s
     %(sensors_topomap)s
@@ -1940,14 +1941,19 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
 
 
 @verbose
-def plot_epochs_psd_topomap(epochs, bands=None,
-                            tmin=None, tmax=None, proj=False,
-                            bandwidth=None, adaptive=False, low_bias=True,
-                            normalization='length', ch_type=None,
-                            cmap=None, agg_fun=None, dB=False, n_jobs=None,
-                            normalize=False, cbar_fmt='auto',
-                            outlines='head', axes=None, show=True,
-                            sphere=None, vlim=(None, None), verbose=None):
+def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
+                            proj=False, *, bandwidth=None, adaptive=False,
+                            low_bias=True, normalization='length',
+                            ch_type=None, normalize=False, agg_fun=None,
+                            dB=False,  # sensors=True, show_names=False,
+                            # mask=None, mask_params=None, contours=6,
+                            outlines='head', sphere=None,
+                            # image_interp=_INTERPOLATION_DEFAULT,
+                            # extrapolate=_EXTRAPOLATE_DEFAULT,
+                            # border=_BORDER_DEFAULT, res=64, size=1,
+                            cmap=None, vlim=(None, None),  # colorbar=True,
+                            cbar_fmt='auto',  # units=None,
+                            axes=None, show=True, n_jobs=None, verbose=None):
     """Plot the topomap of the power spectral density across epochs.
 
     Parameters
@@ -1955,12 +1961,8 @@ def plot_epochs_psd_topomap(epochs, bands=None,
     epochs : instance of Epochs
         The epochs object.
     %(bands_psd_topo)s
-    tmin : float | None
-        Start time to consider.
-    tmax : float | None
-        End time to consider.
-    proj : bool
-        Apply projection.
+    %(tmin_tmax_psd)s
+    %(proj_psd)s
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4 Hz.
@@ -1971,60 +1973,59 @@ def plot_epochs_psd_topomap(epochs, bands=None,
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     %(normalization)s
-    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-        The channel type to plot. For 'grad', the gradiometers are collected in
-        pairs and the mean for each pair is plotted. If None, then first
-        available channel type from order given above is used. Defaults to
-        None.
-    %(cmap_psd_topo)s
+    %(ch_type_psd_topomap)s
+    %(normalize_psd_topo)s
     %(agg_fun_psd_topo)s
     %(dB_plot_topomap)s
-    %(n_jobs)s
-    %(normalize_psd_topo)s
-    %(cbar_fmt_psd_topo)s
     %(outlines_topomap)s
+    %(sphere_topomap_auto)s
+    %(cmap_psd_topo)s
+    %(vlim_psd_topo_joint)s
+    %(cbar_fmt_psd_topo)s
     %(axes_plot_topomap)s
     %(show)s
-    %(sphere_topomap_auto)s
-    %(vlim_psd_topo_joint)s
+    %(n_jobs)s
     %(verbose)s
 
     Returns
     -------
     fig : instance of Figure
-        Figure distributing one image per channel across sensor topography.
+        Figure showing one scalp topography per frequency band.
     """
-    ch_type = _get_ch_type(epochs, ch_type)
-    units = _handle_default('units', None)
-    scalings = _handle_default('scalings', None)
-    unit = units[ch_type]
-    scaling = scalings[ch_type]
-
-    picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
-        _prepare_topomap_plot(epochs, ch_type, sphere=sphere)
-    outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
-
-    psds, freqs = psd_multitaper(epochs, tmin=tmin, tmax=tmax,
-                                 bandwidth=bandwidth, adaptive=adaptive,
-                                 low_bias=low_bias,
-                                 normalization=normalization, picks=picks,
-                                 proj=proj, n_jobs=n_jobs)
-    psds = np.mean(psds, axis=0)
-    psds *= scaling**2
-
-    if merge_channels:
-        psds, names = _merge_ch_data(psds, ch_type, names, method='mean')
-
-    return plot_psds_topomap(
-        psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun,
-        bands=bands, cmap=cmap, dB=dB, normalize=normalize,
-        cbar_fmt=cbar_fmt, outlines=outlines, axes=axes, show=show,
-        sphere=sphere, vlim=vlim, unit=unit, ch_type=ch_type)
+    # add after dB
+    # %(sensors_topomap)s
+    # %(show_names_topomap)s
+    # %(mask_evoked_topomap)s
+    # %(mask_params_topomap)s
+    # %(contours_topomap)s
+    # add after sphere
+    # %(image_interp_topomap)s
+    # %(extrapolate_topomap)s
+    # %(border_topomap)s
+    # %(res_topomap)s
+    # %(size_topomap)s
+    # add after vlim
+    # %(colorbar_topomap)s
+    # add after cbar_fmt
+    # %(units_topomap)s
+    return epochs.plot_psd_topomap(
+        bands=bands, tmin=tmin, tmax=tmax, proj=proj, method='multitaper',
+        ch_type=ch_type, normalize=normalize, agg_fun=agg_fun, dB=dB,
+        # sensors=sensors, show_names=show_names, mask=mask,
+        # mask_params=mask_params, contours=contours,
+        outlines=outlines,
+        sphere=sphere,  # image_interp=image_interp, extrapolate=extrapolate,
+        # border=border, res=res, size=size,
+        cmap=cmap, vlim=vlim,  # colorbar=colorbar,
+        cbar_fmt=cbar_fmt,  # units=units,
+        axes=None,
+        show=True, n_jobs=None, verbose=None, bandwidth=bandwidth,
+        low_bias=low_bias, adaptive=adaptive, normalization=normalization)
 
 
 @fill_doc
 def plot_psds_topomap(
-        psds, freqs, pos, agg_fun=None, bands=None,
+        psds, freqs, pos, *, agg_fun=None, bands=None,
         cmap=None, dB=True, normalize=False, cbar_fmt='%0.3f', outlines='head',
         axes=None, show=True, sphere=None, vlim=(None, None), unit=None,
         ch_type='eeg'):
@@ -2046,8 +2047,7 @@ def plot_psds_topomap(
     %(cbar_fmt_psd_topo)s
     %(outlines_topomap)s
     %(axes_plot_topomap)s
-    show : bool
-        Show figure if True.
+    %(show)s
     %(sphere_topomap)s
     %(vlim_psd_topo_joint)s
     unit : str | None
@@ -3030,7 +3030,7 @@ def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
     ----------
     model : EOGRegression
         The fitted EOGRegression model whose weights will be plotted.
-    %(ch_type_evoked_topomap)s
+    %(ch_type_topomap)s
     %(vmin_vmax_topomap)s
     %(cmap_topomap)s
     %(sensors_topomap)s

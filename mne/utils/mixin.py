@@ -187,7 +187,7 @@ class GetEpochsMixin(object):
             subset of epochs (and optionally array with kept epoch indices)
         """
         data = self._data
-        del self._data
+        self._data = None
         inst = self.copy() if copy else self
         self._data = inst._data = data
         del self

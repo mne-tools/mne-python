@@ -23,7 +23,6 @@ from ..utils import _validate_type, fill_doc
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types, _picks_to_idx
-from ..time_frequency.psd import psd_multitaper
 from ..utils import _reject_data_segments, verbose
 
 
@@ -465,7 +464,13 @@ def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     if 'fmax' not in psd_args:
         psd_args['fmax'] = min(lp * 1.25, Nyquist)
     plot_lowpass_edge = lp < Nyquist and (psd_args['fmax'] > lp)
-    psds, freqs = psd_multitaper(epochs_src, picks=picks, **psd_args)
+    spectrum = epochs_src.compute_psd(picks=picks, **psd_args)
+    # we've already restricted picks  ↑↑↑↑↑↑↑↑↑↑↑
+    # in the spectrum object, so here we do picks=all  ↓↓↓↓↓↓↓↓↓↓↓
+    psds, freqs = spectrum.get_data(return_freqs=True, picks='all', exclude=[])
+    # we also pass exclude=[] so that when this is called by right-clicking in
+    # a plot_sources() window on an ICA component name that has been marked as
+    # bad, we can still get a plot of it.
 
     def set_title_and_labels(ax, title, xlab, ylab):
         if title:

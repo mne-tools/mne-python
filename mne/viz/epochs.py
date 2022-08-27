@@ -936,16 +936,9 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     ----------
     epochs : instance of Epochs
         The epochs object.
-    fmin : float
-        Start frequency to consider.
-    fmax : float
-        End frequency to consider.
-    tmin : float | None
-        Start time to consider.
-    tmax : float | None
-        End time to consider.
-    proj : bool
-        Apply projection.
+    %(fmin_fmax_psd)s
+    %(tmin_tmax_psd)s
+    %(proj_psd)s
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4.
@@ -968,7 +961,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     %(n_jobs)s
     %(average_plot_psd)s
     %(line_alpha_plot_psd)s
-    %(spatial_colors_plot_psd)s
+    %(spatial_colors_psd)s
     %(sphere_topomap_auto)s
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the bad channels
@@ -982,19 +975,19 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     -------
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
-    """
-    from ._mpl_figure import _psd_figure
 
-    # generate figure
-    # epochs always use multitaper, not Welch, so no need to allow "window"
-    # param above
-    fig = _psd_figure(
-        inst=epochs, proj=proj, picks=picks, axes=ax, tmin=tmin, tmax=tmax,
-        fmin=fmin, fmax=fmax, sphere=sphere, xscale=xscale, dB=dB,
-        average=average, estimate=estimate, area_mode=area_mode,
-        line_alpha=line_alpha, area_alpha=area_alpha, color=color,
-        spatial_colors=spatial_colors, n_jobs=n_jobs, bandwidth=bandwidth,
-        adaptive=adaptive, low_bias=low_bias, normalization=normalization,
-        window='hamming', exclude=exclude)
-    plt_show(show)
+    Notes
+    -----
+    %(notes_plot_*_psd_func)s
+    """
+    fig = epochs.plot_psd(
+        fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
+        proj=proj, method='multitaper',
+        ax=ax, color=color, xscale=xscale, area_mode=area_mode,
+        area_alpha=area_alpha, dB=dB, estimate=estimate, show=show,
+        line_alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
+        exclude=exclude, n_jobs=n_jobs, average=average, verbose=verbose,
+        # these are **method_kw:
+        window='hamming', bandwidth=bandwidth, adaptive=adaptive,
+        low_bias=low_bias, normalization=normalization)
     return fig
