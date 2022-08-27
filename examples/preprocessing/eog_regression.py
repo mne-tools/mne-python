@@ -50,7 +50,7 @@ weights.plot()
 # Before-after comparison
 # -----------------------
 # Let's compare the signal before and after cleaning with EOG regression. This
-# is best visualized by cutting epochs and plotting the evoked potential.
+# is best visualized by extracting epochs and plotting the evoked potential.
 
 tmin, tmax = -0.1, 0.5
 event_id = {'VisL': 3, 'VisR': 4}
