@@ -8,8 +8,8 @@ Reduce artifacts by regressing the EOG channels onto the rest of the channels
 and then subtracting the EOG signal.
 
 This is a quick example to show the most basic application of the technique.
-See the `tutorial<_tut-artifact-regression>`_ for a more thorough explanation
-that demonstrates more advanced approaches.
+See the :ref:`tutorial <tut-artifact-regression>` for a more thorough
+explanation that demonstrates more advanced approaches.
 
 Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 
