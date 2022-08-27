@@ -11,7 +11,6 @@ from .io.pick import _picks_to_idx
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
 from .parallel import parallel_func
-from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, warn, _pl,
                     _check_preload, _validate_type, _check_option, _ensure_int)
 from ._ola import _COLA
@@ -1203,6 +1202,7 @@ def _get_window_thresh(n_times, sfreq, mt_bandwidth, p_value):
     # but if we have a new enough scipy,
     # it's only ~0.175 sec for 8 tapers even with 100000 samples
     from scipy import stats
+    from .time_frequency.multitaper import _compute_mt_params
     dpss_n_times_max = 100000
 
     # figure out what tapers to use
@@ -1297,6 +1297,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     Based on Chronux. If line_freqs is specified, all freqs within notch_width
     of each line_freq is set to zero.
     """
+    from .time_frequency.multitaper import _mt_spectra
     assert x.ndim == 1
     if x.shape[-1] != window_fun.shape[-1]:
         window_fun, threshold = get_thresh(x.shape[-1])

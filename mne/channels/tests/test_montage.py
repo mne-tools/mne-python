@@ -1210,6 +1210,17 @@ def test_transform_to_head_and_compute_dev_head_t():
             montage_polhemus
         ))
 
+    # Test errors when transforming without fiducials explicitly where points
+    # are tagged to be not in head or unknown coord space.
+    montage_without_fids = make_dig_montage(
+        ch_pos={"ch_1": np.array([1, 2, 3]),
+                "ch_2": np.array([4, 5, 6]),
+                "ch_3": np.array([7, 8, 9])},
+        coord_frame="mri")  # MRI coordinate space
+    with pytest.raises(RuntimeError, match='Could not transform EEG channel'):
+        with pytest.warns(RuntimeWarning, match='Fiducial point .* not found'):
+            transform_to_head(montage_without_fids)
+
 
 def test_set_montage_with_mismatching_ch_names():
     """Test setting a DigMontage with mismatching ch_names."""

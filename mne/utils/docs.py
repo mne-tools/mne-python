@@ -4,7 +4,6 @@
 #
 # License: BSD-3-Clause
 
-from copy import deepcopy
 import inspect
 import os
 import os.path as op
@@ -12,11 +11,12 @@ import re
 import sys
 import warnings
 import webbrowser
+from copy import deepcopy
 
 from decorator import FunctionMaker
 
-from ._bunch import BunchConst
 from ..defaults import HEAD_SIZE_DEFAULT
+from ._bunch import BunchConst
 
 
 def _reflow_param_docstring(docstring, has_first_line=True, width=75):
@@ -200,12 +200,12 @@ docdict['applyfun_summary_evoked'] = \
 docdict['applyfun_summary_raw'] = \
     applyfun_summary.format('raw', applyfun_preload)
 
-docdict['area_alpha_plot_psd'] = """
+docdict['area_alpha_plot_psd'] = """\
 area_alpha : float
     Alpha for the area.
 """
 
-docdict['area_mode_plot_psd'] = """
+docdict['area_mode_plot_psd'] = """\
 area_mode : str | None
     Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
     will be plotted. If 'range', the min and max (across channels) will be
@@ -220,7 +220,7 @@ aseg : str
     Freesurfer subject directory.
 """
 
-docdict['average_plot_psd'] = """
+docdict['average_plot_psd'] = """\
 average : bool
     If False, the PSDs of all channels is displayed. No averaging
     is done and parameters area_mode and area_alpha are ignored. When
@@ -228,7 +228,7 @@ average : bool
     drag) to plot a topomap.
 """
 
-docdict['average_psd'] = """
+docdict['average_psd'] = """\
 average : str | None
     How to average the segments. If ``mean`` (default), calculate the
     arithmetic mean. If ``median``, calculate the median, corrected for
@@ -267,6 +267,18 @@ docdict['axes_evoked_plot_topomap'] = _axes.format(
     'match the number of ``times`` provided (unless ``times`` is ``None``)')
 docdict['axes_plot_topomap'] = _axes.format(
     'axes', 'match the length of ``bands``')
+docdict['axes_spectrum_plot'] = _axes.format(
+    'axes', _ch_types_present.format(':class:`~mne.time_frequency.Spectrum`'))
+docdict['axes_spectrum_plot_topo'] = _axes.format(
+    'axes',
+    'be length 1 (for efficiency, subplots for each channel are simulated '
+    'within a single :class:`~matplotlib.axes.Axes` object)')
+
+docdict['axis_facecolor'] = """\
+axis_facecolor : str | tuple
+    A matplotlib-compatible color to use for the axis background.
+    Defaults to black.
+"""
 
 docdict['azimuth'] = """
 azimuth : float
@@ -367,6 +379,12 @@ docdict['baseline_stc'] = f"""{_baseline_rescale_base}
               the case for normalized estimates (e.g. signal-to-noise ratios,
               dSPM, sLORETA).
 
+"""
+
+docdict['block'] = """\
+block : bool
+    Whether to halt program execution until the figure is closed.
+    May not work on all systems / platforms. Defaults to ``False``.
 """
 
 docdict['border_topomap'] = """
@@ -472,12 +490,15 @@ ch_names : list | None
                     ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
 """
 
-docdict['ch_type_evoked_topomap'] = """
+_ch_type_topomap = """\
 ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-    The channel type to plot. For 'grad', the gradiometers are collected in
-    pairs and the RMS for each pair is plotted.
-    If None, then channels are chosen in the order given above.
+    The channel type to plot. For ``'grad'``, the gradiometers are
+    collected in pairs and the {} for each pair is plotted. If
+    ``None`` the first available channel type from order shown above is
+    used. Defaults to ``None``.
 """
+
+docdict['ch_type_psd_topomap'] = _ch_type_topomap.format('mean')
 
 docdict['ch_type_set_eeg_reference'] = """
 ch_type : list of str | str
@@ -489,13 +510,7 @@ ch_type : list of str | str
     .. versionadded:: 0.19
 """
 
-docdict['ch_type_topomap'] = """
-ch_type : str
-    The channel type being plotted. Determines the ``'auto'``
-    extrapolation mode.
-
-    .. versionadded:: 0.21
-"""
+docdict['ch_type_topomap'] = _ch_type_topomap.format('RMS')
 
 chwise = """
 channel_wise : bool
@@ -608,10 +623,16 @@ color : color
     A list of anything matplotlib accepts: string, RGB, hex, etc.
 """
 
-docdict['color_plot_psd'] = """
+docdict['color_plot_psd'] = """\
 color : str | tuple
     A matplotlib-compatible color to use. Has no effect when
     spatial_colors=True.
+"""
+
+docdict['color_spectrum_plot_topo'] = """\
+color : str | tuple
+    A matplotlib-compatible color to use for the curves. Defaults to
+    white.
 """
 
 docdict['colorbar_topomap'] = """
@@ -742,6 +763,9 @@ dB : bool
 docdict['dB_plot_topomap'] = _dB.format(
     ' following the application of ``agg_fun``',
     ' Ignored if ``normalize=True``.')
+docdict['dB_spectrum_plot'] = _dB.format('', '')
+docdict['dB_spectrum_plot_topo'] = _dB.format(
+    '', ' Ignored if ``normalize=True``.')
 
 docdict['daysback_anonymize_info'] = """
 daysback : int | None
@@ -755,7 +779,6 @@ docdict['dbs'] = """
 dbs : bool
     If True (default), show DBS (deep brain stimulation) electrodes.
 """
-
 docdict['decim'] = """
 decim : int
     Factor by which to subsample the data.
@@ -953,7 +976,7 @@ tmin, tmax : float
     time are included. Defaults to ``-0.2`` and ``0.5``, respectively.
 """
 
-docdict['estimate_plot_psd'] = """
+docdict['estimate_plot_psd'] = """\
 estimate : str, {'auto', 'power', 'amplitude'}
     Can be "power" for power spectral density (PSD), "amplitude" for
     amplitude spectrum density (ASD), or "auto" (default), which uses
@@ -1029,6 +1052,17 @@ exclude_frontal : bool
     If True, exclude points that have both negative Z values
     (below the nasion) and positive Y values (in front of the LPA/RPA).
 """
+
+_exclude_spectrum = """\
+exclude : list of str | 'bads'
+    Channel names to exclude{}. If ``'bads'``, channels
+    in ``spectrum.info['bads']`` are excluded; pass an empty list to
+    plot all channels (including "bad" channels, if any).
+"""
+
+docdict['exclude_spectrum_get_data'] = _exclude_spectrum.format('')
+docdict['exclude_spectrum_plot'] = _exclude_spectrum.format(
+    ' from being drawn')
 
 docdict['export_edf_note'] = """
 For EDF exports, only channels measured in Volts are allowed; in MNE-Python
@@ -1186,6 +1220,12 @@ fiducials : list | dict | str
     in a file with the canonical name
     (``{subjects_dir}/{subject}/bem/{subject}-fiducials.fif``)
     and if absent, falls back to ``'estimated'``.
+"""
+
+docdict['fig_facecolor'] = """\
+fig_facecolor : str | tuple
+    A matplotlib-compatible color to use for the figure background.
+    Defaults to black.
 """
 
 docdict['filter_length'] = """
@@ -1371,6 +1411,18 @@ time_as_index : bool
     (False, default).
 """
 
+_getitem_base = """\
+data : ndarray
+    The selected spectral data. Shape will be
+    ``({}n_channels, n_freqs)`` for normal power spectra,
+    ``({}n_channels, n_freqs, n_segments)`` for unaggregated
+    Welch estimates, or ``({}n_channels, n_tapers, n_freqs)``
+    for unaggregated multitaper estimates.
+"""
+_fill_epochs = ['n_epochs, '] * 3
+docdict['getitem_epochspectrum_return'] = _getitem_base.format(*_fill_epochs)
+docdict['getitem_spectrum_return'] = _getitem_base.format('', '', '')
+
 docdict['group_by_browse'] = """
 group_by : str
     How to group channels. ``'type'`` groups by channel type,
@@ -1545,8 +1597,6 @@ index : {} | None
     (depending on the value of ``time_format``). {}
 """
 
-docdict['index_df'] = _index_df_base
-
 datetime = ':class:`pandas.DatetimeIndex`, '
 multiindex = ('If a list of two or more string values, a '
               ':class:`pandas.MultiIndex` will be created. ')
@@ -1699,7 +1749,14 @@ labels : Label | BiHemiLabel | list | tuple | str
        Support for volume source estimates.
 """
 
-docdict['line_alpha_plot_psd'] = """
+docdict['layout_spectrum_plot_topo'] = """\
+layout : instance of Layout | None
+    Layout instance specifying sensor positions (does not need to be
+    specified for Neuromag data). If ``None`` (default), the layout is
+    inferred from the data.
+"""
+
+docdict['line_alpha_plot_psd'] = """\
 line_alpha : float | None
     Alpha for the PSD line. Can be None (default) to use 1.0 when
     ``average=True`` and 0.1 when ``average=False``.
@@ -1708,18 +1765,20 @@ line_alpha : float | None
 _long_format_df_base = """
 long_format : bool
     If True, the DataFrame is returned in long format where each row is one
-    observation of the signal at a unique combination of time point{}.
+    observation of the signal at a unique combination of {}.
     {}Defaults to ``False``.
 """
 
 ch_type = ('For convenience, a ``ch_type`` column is added to facilitate '
            'subsetting the resulting DataFrame. ')
-raw = (' and channel', ch_type)
-epo = (', channel, epoch number, and condition', ch_type)
-stc = (' and vertex', '')
+raw = ('time point and channel', ch_type)
+epo = ('time point, channel, epoch number, and condition', ch_type)
+stc = ('time point and vertex', '')
+spe = ('frequency and channel', ch_type)
 
 docdict['long_format_df_epo'] = _long_format_df_base.format(*epo)
 docdict['long_format_df_raw'] = _long_format_df_base.format(*raw)
+docdict['long_format_df_spe'] = _long_format_df_base.format(*spe)
 docdict['long_format_df_stc'] = _long_format_df_base.format(*stc)
 
 docdict['loose'] = """
@@ -1865,6 +1924,30 @@ method : str
     forward-backward filtering (via filtfilt).
 """
 
+docdict['method_kw_psd'] = """\
+**method_kw
+    Additional keyword arguments passed to the spectral estimation
+    function (e.g., ``n_fft, n_overlap, n_per_seg, average, window``
+    for Welch method, or
+    ``bandwidth, adaptive, low_bias, normalization`` for multitaper
+    method). See :func:`~mne.time_frequency.psd_array_welch` and
+    :func:`~mne.time_frequency.psd_array_multitaper` for details.
+"""
+
+_method_psd = """\
+method : 'welch' | 'multitaper'{}
+    Spectral estimation method. ``'welch'`` uses Welch's method
+    :footcite:`Welch1967`, ``'multitaper'`` uses DPSS tapers
+    :footcite:`Slepian1978`.{}
+"""
+docdict['method_plot_psd_auto'] = _method_psd.format(
+    " | 'auto'",
+    (" ``'auto'`` (default) uses Welch's method for continuous data and "
+     "multitaper for :class:`~mne.Epochs` or :class:`~mne.Evoked` data.")
+)
+docdict['method_psd'] = _method_psd.format('', '')
+docdict['method_psd_auto'] = _method_psd.format(" | 'auto'", '')
+
 docdict['mode_eltc'] = """
 mode : str
     Extraction mode, see Notes.
@@ -1923,7 +2006,7 @@ n_comp : int
     Default n_comp=1.
 """
 
-docdict['n_jobs'] = """
+docdict['n_jobs'] = """\
 n_jobs : int | None
     The number of jobs to run in parallel. If ``-1``, it is set
     to the number of CPU cores. Requires the :mod:`joblib` package.
@@ -2037,6 +2120,15 @@ can set the default for your computer via
           `issues <https://github.com/mne-tools/mne-qt-browser/issues>`_
           of ``mne-qt-browser``.
 """
+
+_notes_plot_psd = """\
+This {} exists to support legacy code; for new code the preferred
+idiom is ``inst.compute_psd().plot()`` (where ``inst`` is an instance
+of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.Evoked`).
+"""
+
+docdict['notes_plot_*_psd_func'] = _notes_plot_psd.format('function')
+docdict['notes_plot_psd_meth'] = _notes_plot_psd.format('method')
 
 docdict['notes_tmax_included_by_default'] = """
 Unlike Python slices, MNE time intervals by default include **both**
@@ -2357,6 +2449,10 @@ csd : bool
     EEG-CSD channels.
 dbs : bool
     Deep brain stimulation channels.
+temperature : bool
+    Temperature channels.
+gsr : bool
+    Galvanic skin response channels.
 include : list of str
     List of additional channels to include. If empty do not include
     any.
@@ -2456,14 +2552,17 @@ pipeline : str | tuple
         the SDR step.
 """
 
-docdict['plot_psd_doc'] = """
-Plot the power spectral density across channels.
+docdict["plot_psd_doc"] = """\
+Plot power or amplitude spectra.
 
-Different channel types are drawn in sub-plots. When the data have been
+Separate plots are drawn for each channel type. When the data have been
 processed with a bandpass, lowpass or highpass filter, dashed lines (╎)
-indicate the boundaries of the filter. The line noise frequency is
-also indicated with a dashed line (⋮)
+indicate the boundaries of the filter. The line noise frequency is also
+indicated with a dashed line (⋮). If ``average=False``, the plot will
+be interactive, and click-dragging on the spectrum will generate a
+scalp topography plot for the chosen frequency range in a new figure
 """
+# lack of trailing . is intentional; it must be in actual docstring ↑↑↑ (D400)
 
 docdict['precompute'] = """
 precompute : bool | str
@@ -2523,6 +2622,12 @@ proj : bool | 'interactive' | 'reconstruct'
 
     .. versionchanged:: 0.21
        Support for 'reconstruct' was added.
+"""
+
+docdict['proj_psd'] = """\
+proj : bool
+    Whether to apply SSP projection vectors before spectral estimation.
+    Default is ``False``.
 """
 
 docdict['proj_topomap_kwargs'] = """
@@ -2960,7 +3065,7 @@ References
 .. footbibliography::
 """
 
-docdict['show'] = """
+docdict['show'] = """\
 show : bool
     Show the figure if ``True``.
 """
@@ -3026,9 +3131,10 @@ smooth : float in [0, 1)
     The smoothing factor to be applied. Default 0 is no smoothing.
 """
 
-docdict['spatial_colors_plot_psd'] = """
+docdict['spatial_colors_psd'] = """\
 spatial_colors : bool
-    Whether to use spatial colors. Only used when ``average=False``.
+    Whether to color spectrum lines by channel location. Ignored if
+    ``average=True``.
 """
 
 _sphere_header = (
@@ -3414,6 +3520,13 @@ tmin : float
     Start time of the raw data to use in seconds (must be >= 0).
 """
 
+docdict['tmin_tmax_psd'] = """\
+tmin, tmax : float | None
+    First and last times to include, in seconds. ``None`` uses the first or
+    last time present in the data. Default is ``tmin=None, tmax=None`` (all
+    times).
+"""
+
 docdict['tol_kind_rank'] = """
 tol_kind : str
     Can be: "absolute" (default) or "relative". Only used if ``tol`` is a
@@ -3504,6 +3617,14 @@ units : str | dict | None
     channel-type-specific default unit.
 """
 
+docdict['units_edf_bdf_io'] = """
+units : dict | str
+    The units of the channels as stored in the file. This argument
+    is useful only if the units are missing from the original file.
+    If a dict, it must map a channel name to its unit, and if str
+    it is assumed that all channels have the same units.
+"""
+
 docdict['units_topomap'] = """
 units : dict | str | None
     The unit of the channel type used for colorbar label. If
@@ -3555,7 +3676,8 @@ verbose : bool | str | int | None
     Control verbosity of the logging output. If ``None``, use the default
     verbosity level. See the :ref:`logging documentation <tut-logging>` and
     :func:`mne.verbose` for details. Should only be passed as a keyword
-    argument."""
+    argument.
+"""
 
 docdict['vertices_volume'] = """
 vertices : list of array of int
@@ -3645,7 +3767,7 @@ weight_norm : str | None
            solution.
 """
 
-docdict['window_psd'] = """
+docdict['window_psd'] = """\
 window : str | float | tuple
     Windowing function to use. See :func:`scipy.signal.get_window`.
 """
@@ -3659,9 +3781,9 @@ window : str | tuple
 # %%
 # X
 
-docdict['xscale_plot_psd'] = """
-xscale : str
-    Can be 'linear' (default) or 'log'.
+docdict['xscale_plot_psd'] = """\
+xscale : 'linear' | 'log'
+    Scale of the frequency axis. Default is ``'linear'``.
 """
 
 # %%

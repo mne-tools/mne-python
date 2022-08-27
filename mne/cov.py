@@ -267,6 +267,8 @@ class Covariance(dict):
         ----------
         %(info_not_none)s
         %(ch_type_topomap)s
+
+            .. versionadded:: 0.21
         %(vmin_vmax_topomap)s
         %(cmap_topomap)s
         %(sensors_topomap)s

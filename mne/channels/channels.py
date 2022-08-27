@@ -328,7 +328,7 @@ class SetChannelsMixin(MontageMixin):
 
             ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, dbs, stim, syst,
             ecog, hbo, hbr, fnirs_cw_amplitude, fnirs_fd_ac_amplitude,
-            fnirs_fd_phase, fnirs_od
+            fnirs_fd_phase, fnirs_od, temperature, gsr
 
         .. versionadded:: 0.9.0
         """
@@ -586,15 +586,16 @@ class SetChannelsMixin(MontageMixin):
 
 
 class UpdateChannelsMixin(object):
-    """Mixin class for Raw, Evoked, Epochs, AverageTFR."""
+    """Mixin class for Raw, Evoked, Epochs, Spectrum, AverageTFR."""
 
     @verbose
     def pick_types(self, meg=False, eeg=False, stim=False, eog=False,
-                   ecg=False, emg=False, ref_meg='auto', misc=False,
+                   ecg=False, emg=False, ref_meg='auto', *, misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False,
-                   ecog=False, fnirs=False, csd=False, dbs=False, include=(),
-                   exclude='bads', selection=None, verbose=None):
+                   ecog=False, fnirs=False, csd=False, dbs=False,
+                   temperature=False, gsr=False,
+                   include=(), exclude='bads', selection=None, verbose=None):
         """Pick some channels by type and names.
 
         Parameters
@@ -620,7 +621,8 @@ class UpdateChannelsMixin(object):
             ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
             ias=ias, syst=syst, seeg=seeg, dipole=dipole, gof=gof, bio=bio,
             ecog=ecog, fnirs=fnirs, csd=csd, dbs=dbs, include=include,
-            exclude=exclude, selection=selection)
+            exclude=exclude, selection=selection, temperature=temperature,
+            gsr=gsr)
 
         self._pick_drop_channels(idx)
 
@@ -789,6 +791,7 @@ class UpdateChannelsMixin(object):
         # avoid circular imports
         from ..io import BaseRaw
         from ..time_frequency import AverageTFR, EpochsTFR
+        from ..time_frequency.spectrum import BaseSpectrum
 
         msg = 'adding, dropping, or reordering channels'
         if isinstance(self, BaseRaw):
@@ -813,8 +816,12 @@ class UpdateChannelsMixin(object):
             if mat is not None:
                 setattr(self, key, mat[idx][:, idx])
 
-        # All others (Evoked, Epochs, Raw) have chs axis=-2
-        axis = -3 if isinstance(self, (AverageTFR, EpochsTFR)) else -2
+        if isinstance(self, BaseSpectrum):
+            axis = self._dims.index('channel')
+        elif isinstance(self, (AverageTFR, EpochsTFR)):
+            axis = -3
+        else:  # All others (Evoked, Epochs, Raw) have chs axis=-2
+            axis = -2
         if hasattr(self, '_data'):  # skip non-preloaded Raw
             self._data = self._data.take(idx, axis=axis)
         else:

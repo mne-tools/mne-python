@@ -16,6 +16,8 @@ Time-Frequency
    AverageTFR
    EpochsTFR
    CrossSpectralDensity
+   Spectrum
+   EpochsSpectrum
 
 Functions that operate on mne-python objects:
 
@@ -36,6 +38,7 @@ Functions that operate on mne-python objects:
    tfr_stockwell
    read_tfrs
    write_tfrs
+   read_spectrum
 
 Functions that operate on ``np.ndarray`` objects:
 
