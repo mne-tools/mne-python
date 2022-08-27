@@ -35,8 +35,8 @@ Prepare the data
 ^^^^^^^^^^^^^^^^
 
 We begin as always by importing the necessary Python modules and loading some
-data. The MNE-Sample has some clear, large blink artifacts, especially during
-the presentation of visual stimuli.
+data. The MNE-Sample dataset has some clear, large blink artifacts, especially
+during the presentation of visual stimuli.
 """
 
 # %%
@@ -60,7 +60,7 @@ raw.filter(0.3, 40)
 
 # make epochs
 events = mne.find_events(raw)
-event_id = {'VisL': 3, 'VisR': 4}
+event_id = {'visual/left': 3, 'visual/right': 4}
 epochs = mne.Epochs(raw, events, event_id=event_id, preload=True)
 
 # %%
