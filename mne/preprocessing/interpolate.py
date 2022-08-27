@@ -73,7 +73,7 @@ def equalize_bads(insts, interp_thresh=1., copy=True):
     return insts
 
 
-def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit: int = 4):
+def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
     """Interpolate bridged electrode pairs.
 
     Because bridged electrodes contain brain signal, it's just that the
