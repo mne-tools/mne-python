@@ -6,7 +6,7 @@ from itertools import chain
 
 import numpy as np
 
-from ..utils import _validate_type
+from ..utils import _validate_type, _ensure_int
 from ..io import BaseRaw, RawArray
 from ..io.meas_info import create_info
 from ..epochs import BaseEpochs, EpochsArray
@@ -108,7 +108,7 @@ def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
     from scipy.sparse.csgraph import connected_components
 
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked))
-    _validate_type(bad_limit, "int", "bad_limit")
+    bad_limit = _ensure_int(bad_limit, "bad_limit")
     if bad_limit <= 0:
         raise ValueError(
             "Argument 'bad_limit' should be a strictly positive "
