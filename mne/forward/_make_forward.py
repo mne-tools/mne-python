@@ -526,13 +526,20 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     update_kwargs = dict(nchan=len(info['ch_names']), nsource=len(rr),
                          info=info, src=src, source_nn=source_nn,
                          source_rr=rr, surf_ori=False, mri_head_t=mri_head_t)
-    return megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, \
-        info, update_kwargs, bem
+    sensors = dict()
+    if len(megcoils):
+        sensors['meg'] = dict(
+            defs=megcoils, comp_defs=compcoils, info=meg_info,
+            ch_names=megnames)
+    if len(eegels):
+        sensors['eeg'] = dict(
+            defs=eegels, ch_names=eegnames)
+    return sensors, rr, info, update_kwargs, bem
 
 
 @verbose
-def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
-                          mindist=0.0, ignore_ref=False, n_jobs=None, *,
+def make_forward_solution(info, trans, src, bem, meg=True, eeg=True, *,
+                          mindist=0.0, ignore_ref=False, n_jobs=None,
                           verbose=None):
     """Calculate a forward solution for a subject.
 
@@ -615,25 +622,25 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
                 _coord_frame_name(FIFF.FIFFV_COORD_HEAD))
     logger.info('Free source orientations')
 
-    megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, info, \
-        update_kwargs, bem = _prepare_for_forward(
-            src, mri_head_t, info, bem, mindist, n_jobs, bem_extra, trans,
-            info_extra, meg, eeg, ignore_ref)
+    sensors, rr, info, update_kwargs, bem = _prepare_for_forward(
+        src, mri_head_t, info, bem, mindist, n_jobs, bem_extra, trans,
+        info_extra, meg, eeg, ignore_ref)
     del (src, mri_head_t, trans, info_extra, bem_extra, mindist,
          meg, eeg, ignore_ref)
 
     # Time to do the heavy lifting: MEG first, then EEG
-    coil_types = ['meg', 'eeg']
-    coils = [megcoils, eegels]
-    ccoils = [compcoils, None]
-    infos = [meg_info, None]
-    megfwd, eegfwd = _compute_forwards(rr, bem, coils, ccoils,
-                                       infos, coil_types, n_jobs)
+    fwds = _compute_forwards(rr, bem=bem, sensors=sensors, n_jobs=n_jobs)
 
     # merge forwards
-    fwd = _merge_meg_eeg_fwds(_to_forward_dict(megfwd, megnames),
-                              _to_forward_dict(eegfwd, eegnames),
-                              verbose=False)
+    for key in ('meg', 'eeg'):
+        if key not in fwds:
+            continue
+        fwds[key] = _to_forward_dict(fwds[key], sensors[key]['ch_names'])
+    fwds = list(fwds.values())  # meg, eeg, or meg then eeg
+    if len(fwds) == 2:
+        fwds = [_merge_meg_eeg_fwds(*fwds, verbose=False)]
+    fwd = fwds[0]
+    del fwds
     logger.info('')
 
     # Don't transform the source spaces back into MRI coordinates (which is
