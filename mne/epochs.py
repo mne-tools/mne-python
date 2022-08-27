@@ -2021,6 +2021,64 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             **method_kw)
 
     @verbose
+    def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
+                 proj=False, *, method='auto', average=False, dB=True,
+                 estimate='auto', xscale='linear', area_mode='std',
+                 area_alpha=0.33, color='black', line_alpha=None,
+                 spatial_colors=True, sphere=None, exclude='bads', ax=None,
+                 show=True, n_jobs=1, verbose=None, **method_kw):
+        """%(plot_psd_doc)s.
+
+        Parameters
+        ----------
+        %(fmin_fmax_psd)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(method_plot_psd_auto)s
+        %(average_plot_psd)s
+        %(dB_plot_psd)s
+        %(estimate_plot_psd)s
+        %(xscale_plot_psd)s
+        %(area_mode_plot_psd)s
+        %(area_alpha_plot_psd)s
+        %(color_plot_psd)s
+        %(line_alpha_plot_psd)s
+        %(spatial_colors_psd)s
+        %(sphere_topomap_auto)s
+
+            .. versionadded:: 0.22.0
+        exclude : list of str | 'bads'
+            Channels names to exclude from being shown. If 'bads', the bad
+            channels are excluded. Pass an empty list to plot all channels
+            (including channels marked "bad", if any).
+
+            .. versionadded:: 0.24.0
+        %(ax_plot_psd)s
+        %(show)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_psd)s
+
+        Returns
+        -------
+        fig : instance of Figure
+            Figure with frequency spectra of the data channels.
+
+        Notes
+        -----
+        %(notes_plot_psd_meth)s
+        """
+        return super().plot_psd(
+            fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
+                 proj=proj, reject_by_annotation=False, method=method,
+                 average=average, dB=dB, estimate=estimate, xscale=xscale,
+                 area_mode=area_mode, area_alpha=area_alpha, color=color,
+                 line_alpha=line_alpha, spatial_colors=spatial_colors,
+                 sphere=sphere, exclude=exclude, ax=ax, show=show,
+                 n_jobs=n_jobs, verbose=verbose, **method_kw)
+
+    @verbose
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, long_format=False,
                       time_format=None, *, verbose=None):

@@ -91,12 +91,18 @@ class SpectrumMixin():
         -----
         %(notes_plot_psd_meth)s
         """
+        from ..io import BaseRaw
+
         self._set_legacy_nfft_default(tmin, tmax, method, method_kw)
+        # triage reject_by_annotation
+        rba = dict()
+        if isinstance(self, BaseRaw):
+            rba = dict(reject_by_annotation=reject_by_annotation)
 
         spectrum = self.compute_psd(
             method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
-            picks=picks, proj=proj, reject_by_annotation=reject_by_annotation,
-            n_jobs=n_jobs, verbose=verbose, **method_kw)
+            picks=picks, proj=proj, n_jobs=n_jobs, verbose=verbose, **rba,
+            **method_kw)
 
         # translate kwargs
         amplitude = 'auto' if estimate == 'auto' else (estimate == 'amplitude')
@@ -245,6 +251,11 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             raise ValueError(
                 f'Requested fmax ({fmax} Hz) must not exceed ½ the sampling '
                 f'frequency of the data ({0.5 * inst.info["sfreq"]} Hz).')
+        # method
+        self._inst_type = type(inst)
+        if method == 'auto':
+            method = ('welch' if self._get_instance_type_string() == 'Raw'
+                      else 'multitaper')
         _check_option('method', method, ('welch', 'multitaper'))
 
         # triage method and kwargs. partial() doesn't check validity of kwargs,
@@ -278,7 +289,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # assign some attributes
         self.preload = True  # needed for __getitem__, doesn't mean anything
         self._method = method
-        self._inst_type = type(inst)
         # self._dims may also get updated by child classes
         self._dims = ('channel', 'freq',)
         if method_kw.get('average', '') in (None, False):
