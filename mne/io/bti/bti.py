@@ -998,7 +998,7 @@ class RawBTi(BaseRaw):
                 _mult_cal_one(data_view, one, idx, cals, mult)
 
 
-@functools.cache
+@functools.lru_cache(1)
 def _1020_names():
     from mne.channels import make_standard_montage
     return set(ch_name.lower()
