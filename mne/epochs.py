@@ -2070,13 +2070,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         %(notes_plot_psd_meth)s
         """
         return super().plot_psd(
-            fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
-                 proj=proj, reject_by_annotation=False, method=method,
-                 average=average, dB=dB, estimate=estimate, xscale=xscale,
-                 area_mode=area_mode, area_alpha=area_alpha, color=color,
-                 line_alpha=line_alpha, spatial_colors=spatial_colors,
-                 sphere=sphere, exclude=exclude, ax=ax, show=show,
-                 n_jobs=n_jobs, verbose=verbose, **method_kw)
+            fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks, proj=proj,
+            reject_by_annotation=False, method=method, average=average, dB=dB,
+            estimate=estimate, xscale=xscale, area_mode=area_mode,
+            area_alpha=area_alpha, color=color, line_alpha=line_alpha,
+            spatial_colors=spatial_colors, sphere=sphere, exclude=exclude,
+            ax=ax, show=show, n_jobs=n_jobs, verbose=verbose, **method_kw)
 
     @verbose
     def to_data_frame(self, picks=None, index=None,
