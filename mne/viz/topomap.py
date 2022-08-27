@@ -3063,7 +3063,7 @@ def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
 
     nrows = model.coef_.shape[1]
     ncols = len(ch_types)
-    fig, axes = plt.subplots(nrows, ncols, squeeze=False,
+    fig, axes = plt.subplots(nrows, ncols, squeeze=False, layout='tight',
                              figsize=(ncols * 2, nrows * 1.5 + 1))
     axes = iter(axes.T.ravel())
 
