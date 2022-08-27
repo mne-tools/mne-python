@@ -17,8 +17,6 @@ License: BSD (3-clause)
 """
 # %%
 # Do imports and load the MNE-Sample data.
-import warnings
-
 import mne
 from mne.datasets import sample
 from mne.preprocessing import EOGRegression
@@ -30,7 +28,7 @@ data_path = sample.data_path()
 raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_filt-0-40_raw.fif'
 
 # Read raw data
-raw = mne.io.Raw(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 events = mne.find_events(raw, 'STI 014')
 
 # Highpass filter to eliminate slow drifts
