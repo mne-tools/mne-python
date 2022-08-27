@@ -46,7 +46,7 @@ def _instantiate_default_info_chs():
                 coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                 coil_type=FIFF.FIFFV_COIL_NONE,
                 range=1.0,
-                unit=FIFF.FIFF_UNIT_NONE,
+                unit=FIFF.FIFF_UNIT_V,
                 cal=1.0,
                 scanno=None,
                 kind=FIFF.FIFFV_MISC_CH,
@@ -1219,10 +1219,10 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
             chan_info['kind'] = FIFF.FIFFV_EMG_CH
         elif chan_4d == ecg_ch or chan_4d.startswith('ECG'):
             chan_info['kind'] = FIFF.FIFFV_ECG_CH
-        elif chan_4d.startswith('X'):
-            chan_info['kind'] = FIFF.FIFFV_MISC_CH
-        elif chan_4d == 'UACurrent':
-            chan_info['kind'] = FIFF.FIFFV_MISC_CH
+        # Our default is now misc, but if we ever change that,
+        # we'll need this:
+        # elif chan_4d.startswith('X') or chan_4d == 'UACurrent':
+        #     chan_info['kind'] = FIFF.FIFFV_MISC_CH
 
         chs.append(chan_info)
 
