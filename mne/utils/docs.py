@@ -4041,7 +4041,7 @@ def open_docs(kind=None, version=None):
 
 
 class _decorator:
-    """Modify the docstring of a class, method, or function."""
+    """Inject code or modify the docstring of a class, method, or function."""
 
     def __init__(self, extra, kind):  # noqa: D102
         self.kind = kind
@@ -4065,7 +4065,7 @@ class _decorator:
             obj_type = 'class'
         else:
             # NB: detecting (bound and unbound) methods seems to be impossible
-            assert inspect.isfunction(obj)
+            assert inspect.isfunction(obj), f'decorator used on {type(obj)}'
             obj_type = 'function'
         msg = self.msg.format(obj.__name__, obj_type)
         if obj_type == 'class':
@@ -4112,10 +4112,12 @@ class deprecated(_decorator):
     Parameters
     ----------
     extra : str
-        Extra information beyond just saying the class/function/method
-        is deprecated. Should be a complete sentence (trailing period will
-        be added automatically).
+        Extra information beyond just saying the class/function/method is
+        deprecated. Should be a complete sentence (trailing period will be
+        added automatically). Will be included in DeprecationWarning messages
+        and in a sphinx warning box in the docstring.
     """
+
     def __init__(self, extra=''):
         super().__init__(extra=extra, kind='deprecated')
 
@@ -4154,8 +4156,10 @@ class legacy(_decorator):
         Description of the alternate, preferred way to achieve a comparable
         result.
     extra : str
-        Extra information beyond just saying the class/function/method
-        is deprecated.
+        Extra information beyond just saying the class/function/method is
+        legacy. Should be a complete sentence (trailing period will be
+        added automatically). Will be included in logger.info messages
+        and in a sphinx warning box in the docstring.
     """
 
     def __init__(self, alt, extra=''):  # noqa: D102
