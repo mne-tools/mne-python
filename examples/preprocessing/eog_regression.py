@@ -53,7 +53,7 @@ weights.plot()
 # is best visualized by extracting epochs and plotting the evoked potential.
 
 tmin, tmax = -0.1, 0.5
-event_id = {'VisL': 3, 'VisR': 4}
+event_id = {'visual/left': 3, 'visual/right': 4}
 evoked_before = mne.Epochs(raw, events, event_id, tmin, tmax,
                            baseline=(tmin, 0)).average()
 evoked_after = mne.Epochs(raw_clean, events, event_id, tmin, tmax,
