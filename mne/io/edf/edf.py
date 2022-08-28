@@ -147,7 +147,7 @@ class RawEDF(BaseRaw):
             units = dict()
 
         for k, (this_ch, this_unit) in enumerate(orig_units.items()):
-            if this_unit != "" and this_unit in units:
+            if this_unit != "" and this_ch in units:
                 raise ValueError(f'Unit for channel {this_ch} is present in '
                                  'the file. Cannot overwrite it with the '
                                  'units argument.')
