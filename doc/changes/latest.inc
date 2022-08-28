@@ -49,7 +49,6 @@ Bugs
 - Fix bug in :func:`mne.viz.plot_filter` when plotting filters created using ``output='ba'`` mode with ``compensation`` turned on. (:gh:`11040` by `Marian Dovgialo`_)
 - Fix bug in :func:`mne.io.read_raw_bti` where EEG, EMG, and H/VEOG channels were not detected properly, and many non-ECG channels were called ECG. The logic has been improved, and any channels of unknown type are now labeled as ``misc`` (:gh:`11102` by `Eric Larson`_)
 - Fix bug in :func:`mne.viz.plot_topomap` when providing ``sphere="eeglab"`` (:gh:`11081` by `Mathieu Scheltienne`_)
-- Applying a montage where EEG locations are not in head space (or unknown space) without fiducials will now raise an error message. (:gh:`11080` by `Marijn van Vliet`_)
 
 API changes
 ~~~~~~~~~~~
