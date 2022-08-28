@@ -96,7 +96,7 @@ def get_channel_type_constants(include_defaults=False):
                          unit=FIFF.FIFF_UNIT_V_M2,
                          coil_type=FIFF.FIFFV_COIL_EEG_CSD),
                 temperature=dict(kind=FIFF.FIFFV_TEMPERATURE_CH,
-                                 unit=FIFF.FIFF_UNIT_C),
+                                 unit=FIFF.FIFF_UNIT_CEL),
                 gsr=dict(kind=FIFF.FIFFV_GALVANIC_CH,
                          unit=FIFF.FIFF_UNIT_S),
                 )
