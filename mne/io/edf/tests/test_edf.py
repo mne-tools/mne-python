@@ -77,6 +77,15 @@ def test_orig_units():
     assert orig_units['A1'] == 'µV'  # formerly 'uV' edit by _check_orig_units
 
 
+def test_units_params():
+    """Test enforcing original channel units."""
+
+    with pytest.raises(ValueError,
+                       match=r"Unit for channel .* is present .* Cannot "
+                       "overwrite it"):
+        raw = read_raw_edf(edf_path, units='V', preload=True)
+
+
 def test_subject_info(tmp_path):
     """Test exposure of original channel units."""
     raw = read_raw_edf(edf_path)
