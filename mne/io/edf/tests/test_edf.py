@@ -83,7 +83,7 @@ def test_units_params():
     with pytest.raises(ValueError,
                        match=r"Unit for channel .* is present .* Cannot "
                        "overwrite it"):
-        raw = read_raw_edf(edf_path, units='V', preload=True)
+        _ = read_raw_edf(edf_path, units='V', preload=True)
 
 
 def test_subject_info(tmp_path):
