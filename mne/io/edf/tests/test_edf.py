@@ -79,7 +79,6 @@ def test_orig_units():
 
 def test_units_params():
     """Test enforcing original channel units."""
-
     with pytest.raises(ValueError,
                        match=r"Unit for channel .* is present .* Cannot "
                        "overwrite it"):
