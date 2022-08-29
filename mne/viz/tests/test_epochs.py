@@ -98,8 +98,12 @@ def test_plot_epochs_scale_bar(epochs, browser_backend):
     fig = epochs.plot()
     texts = fig._get_scale_bar_texts()
     # mag & grad in this instance
-    assert len(texts) == 2
-    wants = ('800.0 fT/cm', '2000.0 fT')
+    if browser_backend.name == 'pyqtgraph':
+        assert len(texts) == 2
+        wants = ('800.0 fT/cm', '2000.0 fT')
+    elif browser_backend.name == 'matplotlib':
+        assert len(texts) == 4
+        wants = ('800.0 fT/cm', '0.55 sec', '2000.0 fT', '0.55 sec')
     assert texts == wants
 
 
@@ -121,7 +125,7 @@ def test_plot_epochs_clicks(epochs, epochs_full, capsys,
     # test vline
     fig._fake_keypress('escape')  # close and drop epochs
     fig._close_event()  # XXX workaround, MPL Agg doesn't trigger close event
-    assert(n_epochs - 1 == len(epochs))
+    assert n_epochs - 1 == len(epochs)
     # test marking bad channels
     # need more than 1 epoch this time
     fig = epochs_full.plot(n_epochs=3)
@@ -167,7 +171,7 @@ def test_plot_epochs_keypresses(epochs_full, browser_backend):
     # test keys
     keys = ('pagedown', 'down', 'up', 'down', 'right', 'left', '-', '+', '=',
             'd', 'd', 'pageup', 'home', 'shift+right', 'end', 'shift+left',
-            'z', 'z', 's', 's', 'f11', '?', 'h', 'j', 'b')
+            'z', 'z', 's', 's', '?', 'h', 'j', 'b')
     for key in keys * 2:  # test twice → once in normal, once in butterfly view
         fig._fake_keypress(key)
     fig._fake_click([x, y], xform='data', button=3)  # remove vlines
@@ -323,7 +327,7 @@ def test_plot_psd_epochs(epochs):
     epochs.plot_psd(average=False, spatial_colors=False)
     # test plot_psd_topomap errors
     with pytest.raises(RuntimeError, match='No frequencies in band'):
-        epochs.plot_psd_topomap(bands=[(0, 0.01, 'foo')])
+        epochs.plot_psd_topomap(bands=dict(foo=(0, 0.01)))
     plt.close('all')
     # test defaults
     fig = epochs.plot_psd_topomap()
@@ -334,7 +338,7 @@ def test_plot_psd_epochs(epochs):
     vmax_0 = fig.axes[0].images[0].norm.vmax
     assert all(vmin_0 == ax.images[0].norm.vmin for ax in fig.axes[1:5])
     assert all(vmax_0 == ax.images[0].norm.vmax for ax in fig.axes[1:5])
-    # test support for single-bin bands
+    # test support for single-bin bands and old-style list-of-tuple input
     fig = epochs.plot_psd_topomap(bands=[(20, '20 Hz'), (15, 25, '15-25 Hz')])
     # test with a flat channel
     err_str = 'for channel %s' % epochs.ch_names[2]
@@ -346,7 +350,7 @@ def test_plot_psd_epochs(epochs):
 
 def test_plot_psdtopo_nirs(fnirs_epochs):
     """Test plotting of PSD topography for nirs data."""
-    bands = [(0.2, '0.2 Hz'), (0.4, '0.4 Hz'), (0.8, '0.8 Hz')]
+    bands = {'0.2 Hz': 0.2, '0.4 Hz': 0.4, '0.8 Hz': 0.8}
     fig = fnirs_epochs.plot_psd_topomap(bands=bands)
     assert len(fig.axes) == 6  # 3 band x (plot + cmap)
 
@@ -364,9 +368,10 @@ def test_plot_epochs_ctf(raw_ctf, browser_backend):
 
     # test butterfly
     fig = epochs.plot(butterfly=True)
+    # leave fullscreen testing to Raw / _figure abstraction (too annoying here)
     keys = ('b', 'b', 'pagedown', 'down', 'up', 'down', 'right', 'left', '-',
             '+', '=', 'd', 'd', 'pageup', 'home', 'end', 'z', 'z', 's', 's',
-            'f11', '?', 'h', 'j')
+            '?', 'h', 'j')
     for key in keys:
         fig._fake_keypress(key)
     fig._fake_scroll(0.5, 0.5, -0.5)  # scroll down
@@ -381,16 +386,15 @@ def test_plot_psd_epochs_ctf(raw_ctf):
     """Test plotting CTF epochs psd (+topomap)."""
     evts = make_fixed_length_events(raw_ctf)
     epochs = Epochs(raw_ctf, evts, preload=True)
-    pytest.raises(RuntimeError, epochs.plot_psd_topomap,
-                  bands=[(0, 0.01, 'foo')])  # no freqs in range
-    epochs.plot_psd_topomap()
-
     # EEG060 is flat in this dataset
     for dB in [True, False]:
         with pytest.warns(UserWarning, match='for channel EEG060'):
             epochs.plot_psd(dB=dB)
     epochs.drop_channels(['EEG060'])
     epochs.plot_psd(spatial_colors=False, average=False)
+    with pytest.raises(RuntimeError, match='No frequencies in band'):
+        epochs.plot_psd_topomap(bands=[(0, 0.01, 'foo')])
+    epochs.plot_psd_topomap()
 
 
 def test_plot_epochs_selection_butterfly(raw, browser_backend):

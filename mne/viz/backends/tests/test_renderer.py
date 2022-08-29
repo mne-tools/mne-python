@@ -198,8 +198,6 @@ def test_set_3d_backend_bad(monkeypatch, tmp_path):
     monkeypatch.setattr('mne.viz.backends.renderer._reload_backend', fail)
     monkeypatch.setattr(
         'mne.viz.backends.renderer.MNE_3D_BACKEND', None)
-    # avoid using the config
-    monkeypatch.setenv('_MNE_FAKE_HOME_DIR', str(tmp_path))
     match = 'Could not load any valid 3D.*\npyvistaqt: .*'
     assert get_3d_backend() is None
     with pytest.raises(RuntimeError, match=match):

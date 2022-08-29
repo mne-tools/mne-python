@@ -7,8 +7,6 @@
 #
 # License: Simplified BSD
 
-import sys
-import os
 from contextlib import contextmanager
 import importlib
 
@@ -33,6 +31,11 @@ def _reload_backend(backend_name):
     backend = importlib.import_module(name=_backend_name_map[backend_name],
                                       package='mne.viz.backends')
     logger.info('Using %s 3d backend.\n' % backend_name)
+
+
+def _get_backend():
+    _get_3d_backend()
+    return backend
 
 
 def _get_renderer(*args, **kwargs):
@@ -125,10 +128,6 @@ def set_3d_backend(backend_name, verbose=None):
     if MNE_3D_BACKEND != backend_name:
         _reload_backend(backend_name)
         MNE_3D_BACKEND = backend_name
-
-    # Qt5 macOS 11 compatibility
-    if sys.platform == 'darwin' and 'QT_MAC_WANTS_LAYER' not in os.environ:
-        os.environ['QT_MAC_WANTS_LAYER'] = '1'
     return old_backend_name
 
 
@@ -169,9 +168,18 @@ def _get_3d_backend():
                     MNE_3D_BACKEND = name
                     break
             else:
+
                 raise RuntimeError(
-                    'Could not load any valid 3D backend:\n' +
-                    "\n".join(f'{key}: {val}' for key, val in errors.items()))
+                    'Could not load any valid 3D backend\n' +
+                    "\n".join(f'{key}: {val}' for key, val in errors.items()) +
+                    "\n".join(('\n\n install pyvistaqt, using pip or conda:',
+                               "'pip install pyvistaqt'",
+                               "'conda install -c conda-forge pyvistaqt'",
+                               '\n or install ipywidgets, ' +
+                               'if using a notebook backend',
+                               "'pip install ipywidgets'",
+                               "'conda install -c conda-forge ipywidgets'")))
+
         else:
             MNE_3D_BACKEND = _check_3d_backend_name(MNE_3D_BACKEND)
             _reload_backend(MNE_3D_BACKEND)
@@ -299,7 +307,7 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
 
     Returns
     -------
-    figure : instance of Figure3D or Renderer
+    figure : instance of Figure3D or ``Renderer``
         The requested empty figure or renderer, depending on ``scene``.
     """
     renderer = _get_renderer(

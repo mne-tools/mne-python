@@ -14,7 +14,6 @@ import pytest
 
 from mne import (SourceEstimate, VolSourceEstimate, MixedSourceEstimate,
                  SourceSpaces)
-from mne.parallel import _force_serial
 from mne.stats import ttest_ind_no_p, combine_adjacency
 from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
                                      permutation_cluster_1samp_test,
@@ -272,7 +271,7 @@ def test_cluster_permutation_t_test(numba_conditional, stat_fun):
 
 
 @requires_sklearn
-def test_cluster_permutation_with_adjacency(numba_conditional):
+def test_cluster_permutation_with_adjacency(numba_conditional, monkeypatch):
     """Test cluster level permutations with adjacency matrix."""
     from sklearn.feature_extraction.image import grid_to_graph
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
@@ -371,10 +370,11 @@ def test_cluster_permutation_with_adjacency(numba_conditional):
         sums_5 = np.sort(sums_5)
         assert_array_almost_equal(sums_4, sums_5)
 
-        if not _force_serial:
-            pytest.raises(ValueError, spatio_temporal_func, X1d_3,
-                          n_permutations=1, adjacency=adjacency,
-                          max_step=1, threshold=1.67, n_jobs=-1000)
+        monkeypatch.delenv('MNE_FORCE_SERIAL', raising=False)
+        with pytest.raises(ValueError, match='must not be less'):
+            spatio_temporal_func(
+                X1d_3, n_permutations=1, adjacency=adjacency,
+                max_step=1, threshold=1.67, n_jobs=-1000)
 
         # not enough TFCE params
         with pytest.raises(KeyError, match='threshold, if dict, must have'):

@@ -58,7 +58,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 bands = dict(alpha=[9, 11], beta=[18, 22])
 
 stcs = source_band_induced_power(epochs, inverse_operator, bands, n_cycles=2,
-                                 use_fft=False, n_jobs=1)
+                                 use_fft=False, n_jobs=None)
 
 for b, stc in stcs.items():
     stc.save('induced_power_%s' % b, overwrite=True)

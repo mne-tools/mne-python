@@ -89,7 +89,8 @@ def _lin_field_coeff(surf, mult, rmags, cosmags, ws, bins, n_jobs):
         Linear coefficients with lead fields for each BEM vertex on each sensor
         (?)
     """
-    parallel, p_fun, _ = parallel_func(_do_lin_field_coeff, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(
+        _do_lin_field_coeff, n_jobs, max_jobs=len(surf['tris']))
     nas = np.array_split
     coeffs = parallel(p_fun(surf['rr'], t, tn, ta, rmags, cosmags, ws, bins)
                       for t, tn, ta in zip(nas(surf['tris'], n_jobs),
@@ -432,7 +433,8 @@ def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
     # Both MEG and EEG have the inifinite-medium potentials
     # This could be just vectorized, but eats too much memory, so instead we
     # reduce memory by chunking within _do_inf_pots and parallelize, too:
-    parallel, p_fun, _ = parallel_func(_do_inf_pots, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(
+        _do_inf_pots, n_jobs, max_jobs=len(rr))
     nas = np.array_split
     B = np.sum(parallel(p_fun(mri_rr, sr.copy(), np.ascontiguousarray(mri_Q),
                               np.array(sol))  # copy and contig
@@ -444,7 +446,7 @@ def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
     # Only MEG coils are sensitive to the primary current distribution.
     if coil_type == 'meg':
         # Primary current contribution (can be calc. in coil/dipole coords)
-        parallel, p_fun, _ = parallel_func(_do_prim_curr, n_jobs)
+        parallel, p_fun, n_jobs = parallel_func(_do_prim_curr, n_jobs)
         pcc = np.concatenate(parallel(p_fun(r, coils)
                                       for r in nas(rr, n_jobs)), axis=0)
         B += pcc
@@ -531,7 +533,8 @@ def _sphere_pot_or_field(rr, mri_rr, mri_Q, coils, sphere, bem_rr,
                          n_jobs, coil_type):
     """Do potential or field for spherical model."""
     fun = _eeg_spherepot_coil if coil_type == 'eeg' else _sphere_field
-    parallel, p_fun, _ = parallel_func(fun, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(
+        fun, n_jobs, max_jobs=len(rr))
     B = np.concatenate(parallel(p_fun(r, coils, sphere)
                                 for r in np.array_split(rr, n_jobs)))
     return B
@@ -839,7 +842,6 @@ def _compute_forwards_meeg(rr, fd, n_jobs, silent=False):
         Each element contains ndarray, shape (3 * n_dipoles, n_sensors) where
         n_sensors depends on which channel types are requested (MEG and/or EEG)
     """
-    n_jobs = max(min(n_jobs, len(rr)), 1)
     Bs = list()
     # The dipole location and orientation must be transformed to mri coords
     mri_rr = None

@@ -88,7 +88,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     w_size = n_cycles / ((fmax + fmin) / 2.)  # in seconds
 
     # Apply band-pass filter to isolate the specified frequencies
-    raw_filter = raw.copy().filter(fmin, fmax, n_jobs=1, fir_design='firwin',
+    raw_filter = raw.copy().filter(fmin, fmax, fir_design='firwin',
                                    skip_by_annotation='edge')
 
     # Extract epochs from filtered data, padded by window size
@@ -100,9 +100,8 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     X = epochs.get_data()
 
     # Save mean scores over folds for each frequency and time window
-    freq_scores[freq] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
-                                                scoring='roc_auc', cv=cv,
-                                                n_jobs=1), axis=0)
+    freq_scores[freq] = np.mean(cross_val_score(
+        estimator=clf, X=X, y=y, scoring='roc_auc', cv=cv), axis=0)
 
 # %%
 # Plot frequency results
@@ -131,7 +130,7 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
     w_size = n_cycles / ((fmax + fmin) / 2.)  # in seconds
 
     # Apply band-pass filter to isolate the specified frequencies
-    raw_filter = raw.copy().filter(fmin, fmax, n_jobs=1, fir_design='firwin',
+    raw_filter = raw.copy().filter(fmin, fmax, fir_design='firwin',
                                    skip_by_annotation='edge')
 
     # Extract epochs from filtered data, padded by window size
@@ -151,9 +150,8 @@ for freq, (fmin, fmax) in enumerate(freq_ranges):
         X = epochs.copy().crop(w_tmin, w_tmax).get_data()
 
         # Save mean scores over folds for each frequency and time window
-        tf_scores[freq, t] = np.mean(cross_val_score(estimator=clf, X=X, y=y,
-                                                     scoring='roc_auc', cv=cv,
-                                                     n_jobs=1), axis=0)
+        tf_scores[freq, t] = np.mean(cross_val_score(
+            estimator=clf, X=X, y=y, scoring='roc_auc', cv=cv), axis=0)
 
 # %%
 # Plot time-frequency results

@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from mne.viz.utils import (compare_fiff, _fake_click, _compute_scalings,
                            _validate_if_list_of_axes, _get_color_list,
                            _setup_vmin_vmax, centers_to_edges,
-                           _make_event_color_dict)
+                           _make_event_color_dict, concatenate_images)
 from mne.viz import ClickableImage, add_background_image, mne_analyze_colormap
 from mne.io import read_raw_fif
 from mne.event import read_events
@@ -143,12 +143,12 @@ def test_validate_if_list_of_axes():
     _validate_if_list_of_axes(ax_flat, 4)
     pytest.raises(ValueError, _validate_if_list_of_axes, ax_flat, 5)
     pytest.raises(ValueError, _validate_if_list_of_axes, ax, 3)
-    pytest.raises(ValueError, _validate_if_list_of_axes, 'error')
-    pytest.raises(ValueError, _validate_if_list_of_axes, ['error'] * 2)
-    pytest.raises(ValueError, _validate_if_list_of_axes, ax[0])
+    pytest.raises(TypeError, _validate_if_list_of_axes, 'error')
+    pytest.raises(TypeError, _validate_if_list_of_axes, ['error'] * 2)
+    pytest.raises(TypeError, _validate_if_list_of_axes, ax[0])
     pytest.raises(ValueError, _validate_if_list_of_axes, ax, 3)
     ax_flat[2] = 23
-    pytest.raises(ValueError, _validate_if_list_of_axes, ax_flat)
+    pytest.raises(TypeError, _validate_if_list_of_axes, ax_flat)
     _validate_if_list_of_axes(ax, 4)
     plt.close('all')
 
@@ -180,3 +180,20 @@ def test_event_color_dict():
     # test error
     with pytest.raises(KeyError, match='must be strictly positive, or -1'):
         _ = _make_event_color_dict({-2: 'r', -1: 'b'})
+
+
+@pytest.mark.parametrize('axis', (0, 1))
+@pytest.mark.parametrize('b_h', (2, 4))
+@pytest.mark.parametrize('b_w', (3, 5))
+@pytest.mark.parametrize('a_h', (2, 4))
+@pytest.mark.parametrize('a_w', (3, 5))
+def test_concatenate_images(a_w, a_h, b_w, b_h, axis):
+    """Test that concat with arbitrary sizes works."""
+    a = np.zeros((a_h, a_w, 3))
+    b = np.zeros((b_h, b_w, 3))
+    img = concatenate_images([a, b], axis=axis)
+    if axis == 0:
+        want_shape = (a_h + b_h, max(a_w, b_w), 3)
+    else:
+        want_shape = (max(a_h, b_h), a_w + b_w, 3)
+    assert img.shape == want_shape

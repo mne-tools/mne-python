@@ -1,6 +1,7 @@
 from itertools import product
 import os
 import os.path as op
+from pathlib import Path
 
 import pytest
 import numpy as np
@@ -225,8 +226,10 @@ def test_make_forward_solution_kit(tmp_path):
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python."""
     with catch_logging() as log:
-        fwd_py = make_forward_solution(fname_raw, fname_trans, fname_src,
-                                       fname_bem, mindist=5., verbose=True)
+        # make sure everything can be path-like (gh #10872)
+        fwd_py = make_forward_solution(
+            Path(fname_raw), Path(fname_trans), Path(fname_src),
+            Path(fname_bem), mindist=5., verbose=True)
     log = log.getvalue()
     assert 'Total 258/258 points inside the surface' in log
     assert (isinstance(fwd_py, Forward))
@@ -390,7 +393,7 @@ def test_make_forward_dipole(tmp_path):
     # Now simulate evoked responses for each of the test dipoles,
     # and fit dipoles to them (sphere model, MEG and EEG)
     times, pos, amplitude, ori, gof = [], [], [], [], []
-    nave = 200  # add a tiny amount of noise to the simulated evokeds
+    nave = 400  # add a tiny amount of noise to the simulated evokeds
     for s in stc:
         evo_test = simulate_evoked(fwd, s, info, cov,
                                    nave=nave, random_state=rng)
@@ -458,6 +461,12 @@ def test_make_forward_dipole(tmp_path):
                                    trans=fname_trans)
     assert isinstance(stc, VolSourceEstimate)
     assert_allclose(stc.times, np.arange(0., 0.003, 0.001))
+
+    # Test passing a list of Dipoles instead of a single Dipole object
+    fwd2, stc2 = make_forward_dipole([dip_even_samp[0], dip_even_samp[1:]],
+                                     sphere, info, trans=fname_trans)
+    assert_array_equal(fwd['sol']['data'], fwd2['sol']['data'])
+    assert_array_equal(stc.data, stc2.data)
 
 
 @testing.requires_testing_data

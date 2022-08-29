@@ -16,7 +16,8 @@ from .tag import find_tag, _rename_list
 from .tree import dir_tree_find
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
-from ..defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT
+from ..defaults import (_INTERPOLATION_DEFAULT, _BORDER_DEFAULT,
+                        _EXTRAPOLATE_DEFAULT)
 from ..utils import logger, verbose, warn, fill_doc, _validate_type
 
 
@@ -72,7 +73,8 @@ class Projection(dict):
     @fill_doc
     def plot_topomap(self, info, cmap=None, sensors=True,
                      colorbar=False, res=64, size=1, show=True,
-                     outlines='head', contours=6, image_interp='bilinear',
+                     outlines='head', contours=6,
+                     image_interp=_INTERPOLATION_DEFAULT,
                      axes=None, vlim=(None, None), sphere=None,
                      border=_BORDER_DEFAULT):
         """Plot topographic maps of SSP projections.
@@ -94,10 +96,11 @@ class Projection(dict):
         .. versionadded:: 0.15.0
         """  # noqa: E501
         from ..viz.topomap import plot_projs_topomap
-        return plot_projs_topomap(self, info, cmap, sensors, colorbar,
-                                  res, size, show, outlines,
-                                  contours, image_interp, axes, vlim,
-                                  sphere=sphere, border=border)
+        return plot_projs_topomap(
+            self, info, cmap, sensors, colorbar=colorbar, res=res, size=size,
+            show=show, outlines=outlines, contours=contours,
+            image_interp=image_interp, axes=axes, vlim=vlim,
+            sphere=sphere, border=border)
 
 
 class ProjMixin(object):
@@ -288,7 +291,7 @@ class ProjMixin(object):
     def plot_projs_topomap(self, ch_type=None, cmap=None,
                            sensors=True, colorbar=False, res=64, size=1,
                            show=True, outlines='head', contours=6,
-                           image_interp='bilinear', axes=None,
+                           image_interp=_INTERPOLATION_DEFAULT, axes=None,
                            vlim=(None, None), sphere=None,
                            extrapolate=_EXTRAPOLATE_DEFAULT,
                            border=_BORDER_DEFAULT):
@@ -303,6 +306,7 @@ class ProjMixin(object):
             ch_types is provided, it will return multiple figures.
         %(proj_topomap_kwargs)s
         %(sphere_topomap_auto)s
+        %(image_interp_topomap)s
         %(extrapolate_topomap)s
 
             .. versionadded:: 0.20

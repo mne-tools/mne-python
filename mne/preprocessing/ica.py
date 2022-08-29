@@ -26,6 +26,7 @@ from .infomax_ import infomax
 
 from ..cov import compute_whitener
 from .. import Covariance, Evoked
+from ..defaults import _INTERPOLATION_DEFAULT
 from ..io.pick import (pick_types, pick_channels, pick_info,
                        _picks_to_idx, _get_channel_types, _DATA_CH_TYPES_SPLIT)
 from ..io.proj import make_projector
@@ -35,7 +36,7 @@ from ..io.write import (write_double_matrix, write_string,
 from ..io.tree import dir_tree_find
 from ..io.open import fiff_open
 from ..io.tag import read_tag
-from ..io.meas_info import write_meas_info, read_meas_info
+from ..io.meas_info import write_meas_info, read_meas_info, ContainsMixin
 from ..io.constants import FIFF
 from ..io.base import BaseRaw
 from ..io.eeglab.eeglab import _get_info, _check_load_mat
@@ -46,7 +47,8 @@ from ..viz import (plot_ica_components, plot_ica_scores,
 from ..viz.ica import plot_ica_properties
 from ..viz.topomap import _plot_corrmap
 
-from ..channels.channels import _contains_ch_type, ContainsMixin
+from ..channels.channels import _contains_ch_type
+from ..channels.layout import _find_topomap_coords
 from ..io.write import start_and_end_file, write_id
 from ..utils import (logger, check_fname, _check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,
@@ -54,7 +56,7 @@ from ..utils import (logger, check_fname, _check_fname, verbose,
                      copy_function_doc_to_method_doc, _pl, warn, Bunch,
                      _check_preload, _check_compensation_grade, fill_doc,
                      _check_option, _PCA, int_like, _require_version,
-                     _check_all_same_channel_names, _VerboseDep)
+                     _check_all_same_channel_names)
 
 from ..fixes import _get_args, _safe_svd
 from ..filter import filter_data
@@ -107,9 +109,13 @@ def get_score_funcs():
     score_funcs.update({n: _make_xy_sfunc(f)
                         for n, f in xy_arg_dist_funcs
                         if _get_args(f) == ['u', 'v']})
+    # In SciPy 1.9+, pearsonr has (u, v, *, alternative='two-sided'), so we
+    # should just look at the positional_only and positional_or_keyword entries
+    exclude = ('var_positional', 'var_keyword', 'keyword_only')
     score_funcs.update({n: _make_xy_sfunc(f, ndim_output=True)
                         for n, f in xy_arg_stats_funcs
-                        if _get_args(f) == ['x', 'y']})
+                        if _get_args(f, exclude=exclude) == ['x', 'y']})
+    assert 'pearsonr' in score_funcs
     return score_funcs
 
 
@@ -136,7 +142,7 @@ _KNOWN_ICA_METHODS = ('fastica', 'infomax', 'picard')
 
 
 @fill_doc
-class ICA(ContainsMixin, _VerboseDep):
+class ICA(ContainsMixin):
     u"""Data decomposition using Independent Component Analysis (ICA).
 
     This object estimates independent components from :class:`mne.io.Raw`,
@@ -1351,7 +1357,7 @@ class ICA(ContainsMixin, _VerboseDep):
 
         See Also
         --------
-        find_bads_eog, find_bads_ref
+        find_bads_eog, find_bads_ref, find_bads_muscle
 
         Notes
         -----
@@ -1486,7 +1492,7 @@ class ICA(ContainsMixin, _VerboseDep):
 
         See Also
         --------
-        find_bads_ecg, find_bads_eog
+        find_bads_ecg, find_bads_eog, find_bads_muscle
 
         Notes
         -----
@@ -1575,11 +1581,108 @@ class ICA(ContainsMixin, _VerboseDep):
             normrats = np.linalg.norm(weights[ref_picks], axis=0) \
                 / np.linalg.norm(weights[meg_picks], axis=0)
             scores = np.log(normrats)
-            self.labels_['ref_meg'] = list(_find_outliers(scores,
-                                           threshold=threshold,
-                                           tail=1))
+            self.labels_['ref_meg'] = list(_find_outliers(
+                scores, threshold=threshold, tail=1))
 
         return self.labels_['ref_meg'], scores
+
+    @verbose
+    def find_bads_muscle(self, inst, threshold=0.5, start=None,
+                         stop=None, l_freq=7, h_freq=45, sphere=None,
+                         verbose=None):
+        """Detect muscle related components.
+
+        Detection is based on :footcite:`DharmapraniEtAl2016` which uses
+        data from a subject who has been temporarily paralyzed
+        :footcite:`WhithamEtAl2007`. The criteria are threefold:
+        1) Positive log-log spectral slope from 7 to 45 Hz
+        2) Peripheral component power (farthest away from the vertex)
+        3) A single focal point measured by low spatial smoothness
+
+        The threshold is relative to the slope, focal point and smoothness
+        of a typical muscle-related ICA component. Note the high frequency
+        of the power spectral density slope was 75 Hz in the reference but
+        has been modified to 45 Hz as a default based on the criteria being
+        more accurate in practice.
+
+        Parameters
+        ----------
+        inst : instance of Raw, Epochs or Evoked
+            Object to compute sources from.
+        threshold : float | str
+            Value above which a component should be marked as muscle-related,
+            relative to a typical muscle component.
+        start : int | float | None
+            First sample to include. If float, data will be interpreted as
+            time in seconds. If None, data will be used from the first sample.
+        stop : int | float | None
+            Last sample to not include. If float, data will be interpreted as
+            time in seconds. If None, data will be used to the last sample.
+        l_freq : float
+            Low frequency for muscle-related power.
+        h_freq : float
+            High frequency for msucle related power.
+        %(sphere_topomap_auto)s
+        %(verbose)s
+
+        Returns
+        -------
+        muscle_idx : list of int
+            The indices of EOG related components, sorted by score.
+        scores : np.ndarray of float, shape (``n_components_``) | list of array
+            The correlation scores.
+
+        See Also
+        --------
+        find_bads_ecg, find_bads_eog, find_bads_ref
+
+        Notes
+        -----
+        .. versionadded:: 1.1
+        """
+        from scipy.spatial.distance import pdist, squareform
+        _validate_type(threshold, 'numeric', 'threshold')
+
+        sources = self.get_sources(inst, start=start, stop=stop)
+        components = self.get_components()
+
+        # compute metric #1: slope of the log-log psd
+        spectrum = sources.compute_psd(fmin=l_freq, fmax=h_freq, picks='misc')
+        psds, freqs = spectrum.get_data(return_freqs=True)
+        slopes = np.polyfit(np.log10(freqs), np.log10(psds).T, 1)[0]
+
+        # compute metric #2: distance from the vertex of focus
+        components_norm = abs(components) / np.max(abs(components), axis=0)
+        pos = _find_topomap_coords(inst.info, picks='data', sphere=sphere)
+        assert pos.shape[0] == components.shape[0]  # pos for each sensor
+        pos -= pos.mean(axis=0)  # center
+        dists = np.linalg.norm(pos, axis=1)
+        dists /= dists.max()
+        focus_dists = np.dot(dists, components_norm)
+
+        # compute metric #3: smoothness
+        smoothnesses = np.zeros((components.shape[1],))
+        dists = squareform(pdist(pos))
+        dists = 1 - (dists / dists.max())  # invert
+        for idx, comp in enumerate(components.T):
+            comp_dists = squareform(pdist(comp[:, np.newaxis]))
+            comp_dists /= comp_dists.max()
+            smoothnesses[idx] = np.multiply(dists, comp_dists).sum()
+
+        # typical muscle slope is ~0.15, non-muscle components negative
+        # so logistic with shift -0.5 and slope 0.25 so -0.5 -> 0.5 and 0->1
+        # focus distance is ~65% of max electrode distance with 10% slope
+        # (assumes typical head size)
+        # smoothnessness is around 150 for muscle and 450 otherwise
+        # so use reversed logistic centered at 300 with 100 slope
+        # multiply so that all three components must be present
+        scores = (1 / (1 + np.exp(-(slopes + 0.5) / 0.25))) * \
+            (1 / (1 + np.exp(-(focus_dists - 0.65) / 0.1))) * \
+            (1 - (1 / (1 + np.exp(-(smoothnesses - 300) / 100))))
+        # scale the threshold by the use of three metrics
+        self.labels_['muscle'] = [idx for idx, score in enumerate(scores)
+                                  if score > threshold**3]
+        return self.labels_['muscle'], scores
 
     @verbose
     def find_bads_eog(self, inst, ch_name=None, threshold=3.0, start=None,
@@ -1928,10 +2031,10 @@ class ICA(ContainsMixin, _VerboseDep):
     def plot_components(self, picks=None, ch_type=None, res=64,
                         vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                         colorbar=False, title=None, show=True, outlines='head',
-                        contours=6, image_interp='bilinear',
-                        inst=None, plot_std=True, topomap_args=None,
-                        image_args=None, psd_args=None, reject='auto',
-                        sphere=None, verbose=None):
+                        contours=6, image_interp=_INTERPOLATION_DEFAULT,
+                        inst=None, plot_std=True,
+                        topomap_args=None, image_args=None, psd_args=None,
+                        reject='auto', sphere=None, verbose=None):
         return plot_ica_components(self, picks=picks, ch_type=ch_type,
                                    res=res, vmin=vmin,
                                    vmax=vmax, cmap=cmap, sensors=sensors,
@@ -1946,11 +2049,13 @@ class ICA(ContainsMixin, _VerboseDep):
 
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
-                        plot_std=True, topomap_args=None, image_args=None,
-                        psd_args=None, figsize=None, show=True, reject='auto',
-                        reject_by_annotation=True, *, verbose=None):
+                        plot_std=True, log_scale=False, topomap_args=None,
+                        image_args=None, psd_args=None, figsize=None,
+                        show=True, reject='auto', reject_by_annotation=True,
+                        *, verbose=None):
         return plot_ica_properties(self, inst, picks=picks, axes=axes,
                                    dB=dB, plot_std=plot_std,
+                                   log_scale=log_scale,
                                    topomap_args=topomap_args,
                                    image_args=image_args, psd_args=psd_args,
                                    figsize=figsize, show=show, reject=reject,
@@ -1962,14 +2067,14 @@ class ICA(ContainsMixin, _VerboseDep):
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True,
                      time_format='float', precompute=None,
-                     use_opengl=None, *, theme=None):
+                     use_opengl=None, *, theme=None, overview_mode=None):
         return plot_ica_sources(self, inst=inst, picks=picks,
                                 start=start, stop=stop, title=title, show=show,
                                 block=block, show_first_samp=show_first_samp,
                                 show_scrollbars=show_scrollbars,
                                 time_format=time_format,
                                 precompute=precompute, use_opengl=use_opengl,
-                                theme=theme)
+                                theme=theme, overview_mode=overview_mode)
 
     @copy_function_doc_to_method_doc(plot_ica_scores)
     def plot_scores(self, scores, exclude=None, labels=None, axhline=None,

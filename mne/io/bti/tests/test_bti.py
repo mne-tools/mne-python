@@ -2,6 +2,7 @@
 #
 # License: BSD-3-Clause
 
+from collections import Counter
 from io import BytesIO
 import os
 import os.path as op
@@ -12,15 +13,15 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
 
+import mne
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_bti
 from mne.io._digitization import _make_bti_dig_points
-from mne.io.bti.bti import (_read_config,
+from mne.io.bti.bti import (_read_config, _read_head_shape,
                             _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info,
                             _loc_to_coil_trans, _convert_coil_trans,
                             _check_nan_dev_head_t, _rename_channels)
-from mne.io.bti.bti import _read_head_shape
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
@@ -38,12 +39,10 @@ exported_fnames = [op.join(base_dir, 'exported4D_%s_raw.fif' % a)
                    for a in archs]
 tmp_raw_fname = op.join(base_dir, 'tmp_raw.fif')
 
-fname_2500 = op.join(testing.data_path(download=False), 'BTi', 'erm_HFH',
-                     'c,rfDC')
-fname_sim = op.join(testing.data_path(download=False), 'BTi', '4Dsim',
-                    'c,rfDC')
-fname_sim_filt = op.join(testing.data_path(download=False), 'BTi', '4Dsim',
-                         'c,rfDC,fn50,o')
+testing_path_bti = testing.data_path(download=False) / 'BTi'
+fname_2500 = testing_path_bti / 'erm_HFH' / 'c,rfDC'
+fname_sim = testing_path_bti / '4Dsim' / 'c,rfDC'
+fname_sim_filt = testing_path_bti / '4Dsim' / 'c,rfDC,fn50,o'
 
 # the 4D exporter doesn't export all channels, so we confine our comparison
 NCH = 248
@@ -53,6 +52,25 @@ NCH = 248
 def test_read_2500():
     """Test reading data from 2500 system."""
     _test_raw_reader(read_raw_bti, pdf_fname=fname_2500, head_shape_fname=None)
+
+
+def test_no_loc_none(monkeypatch):
+    """Test that we don't set loc to None when no trans is found."""
+    ch_name = 'MLzA'
+
+    def _read_config_bad(*args, **kwargs):
+        cfg = _read_config(*args, **kwargs)
+        idx = [ch['name'] for ch in cfg['chs']].index(ch_name)
+        del cfg['chs'][idx]['dev']['transform']
+        return cfg
+
+    monkeypatch.setattr(mne.io.bti.bti, '_read_config', _read_config_bad)
+    kwargs = dict(pdf_fname=pdf_fnames[0], config_fname=config_fnames[0],
+                  head_shape_fname=hs_fnames[0], rename_channels=False,
+                  sort_by_ch_name=False)
+    raw = read_raw_bti(**kwargs)
+    idx = raw.ch_names.index(ch_name)
+    assert_allclose(raw.info['chs'][idx]['loc'], np.full(12, np.nan))
 
 
 def test_read_config():
@@ -364,3 +382,61 @@ def test_bti_set_eog():
                        preload=False,
                        eog_ch=('X65', 'X67', 'X69', 'X66', 'X68'))
     assert_equal(len(pick_types(raw.info, eog=True)), 5)
+
+
+@testing.requires_testing_data
+def test_bti_ecg_eog_emg(monkeypatch):
+    """Test that EOG/ECG/EMG are set properly in BTi."""
+    kwargs = dict(rename_channels=False, head_shape_fname=None)
+    raw = read_raw_bti(fname_2500, **kwargs)
+    ch_types = raw.get_channel_types()
+    got = Counter(ch_types)
+    # Before improving the triaging in gh-, these values were:
+    # want = dict(mag=148, ref_meg=11, ecg=32, stim=2, misc=1)
+    want = dict(mag=148, ref_meg=11, ecg=1, stim=2, misc=1, eeg=31)
+    assert set(want) == set(got)
+    for key in want:
+        assert want[key] == got[key], key
+
+    # replace channel names with some from HCP (starting from the end)
+    # not including UACurrent (misc) or TRIGGER/RESPONSE (stim) b/c they
+    # already exist
+    got_map = dict(zip(raw.ch_names, ch_types))
+    kind_map = dict(
+        stim=['TRIGGER', 'RESPONSE'],
+        misc=['UACurrent'],
+    )
+    for kind, ch_names in kind_map.items():
+        for ch_name in ch_names:
+            assert got_map[ch_name] == kind
+    kind_map = dict(
+        misc=['SA1', 'SA2', 'SA3'],
+        ecg=['ECG+', 'ECG-'],
+        eog=['VEOG+', 'HEOG+', 'VEOG-', 'HEOG-'],
+        emg=['EMG_LF', 'EMG_LH', 'EMG_RF', 'EMG_RH'],
+    )
+    new_names = sum(kind_map.values(), list())
+    assert len(new_names) == 13
+    assert set(new_names).intersection(set(raw.ch_names)) == set()
+
+    def _read_bti_header_2(*args, **kwargs):
+        bti_info = _read_bti_header(*args, **kwargs)
+        for ch_name, ch in zip(new_names, bti_info['chs'][::-1]):
+            ch['chan_label'] = ch_name
+        return bti_info
+
+    monkeypatch.setattr(mne.io.bti.bti, '_read_bti_header', _read_bti_header_2)
+    raw = read_raw_bti(fname_2500, **kwargs)
+    got_map = dict(zip(raw.ch_names, raw.get_channel_types()))
+    got = Counter(got_map.values())
+    want = dict(mag=148, ref_meg=11, misc=1, stim=2, eeg=19)
+    for kind, ch_names in kind_map.items():
+        want[kind] = want.get(kind, 0) + len(ch_names)
+    assert set(want) == set(got)
+    for key in want:
+        assert want[key] == got[key], key
+    for kind, ch_names in kind_map.items():
+        for ch_name in ch_names:
+            assert ch_name in raw.ch_names
+            err_msg = f'{ch_name} type {got_map[ch_name]} !+ {kind}'
+            assert got_map[ch_name] == kind, err_msg

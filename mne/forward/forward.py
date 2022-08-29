@@ -54,12 +54,77 @@ from ..label import Label
 class Forward(dict):
     """Forward class to represent info from forward solution.
 
+    Like :class:`mne.Info`, this data structure behaves like a dictionary.
+    It contains all metadata necessary for a forward solution.
+
+    .. warning::
+        This class should not be modified or created by users.
+        Forward objects should be obtained using
+        :func:`mne.make_forward_solution` or :func:`mne.read_forward_solution`.
+
     Attributes
     ----------
     ch_names : list of str
-        List of channels' names.
+        A convenience wrapper accessible as ``fwd.ch_names`` which wraps
+        ``fwd['info']['ch_names']``.
 
-        .. versionadded:: 0.20.0
+    See Also
+    --------
+    mne.make_forward_solution
+    mne.read_forward_solution
+
+    Notes
+    -----
+    Forward data is accessible via string keys using standard
+    :class:`python:dict` access (e.g., ``fwd['nsource'] == 4096``):
+
+        source_ori : int
+            The source orientation, either ``FIFF.FIFFV_MNE_FIXED_ORI`` or
+            ``FIFF.FIFFV_MNE_FREE_ORI``.
+        coord_frame : int
+            The coordinate frame of the forward solution, usually
+            ``FIFF.FIFFV_COORD_HEAD``.
+        nsource : int
+            The number of source locations.
+        nchan : int
+            The number of channels.
+        sol : dict
+            The forward solution, with entries:
+
+            ``'data'`` : ndarray, shape (n_channels, nsource * n_ori)
+                The forward solution data. The shape will be
+                ``(n_channels, nsource)`` for a fixed-orientation forward and
+                ``(n_channels, nsource * 3)`` for a free-orientation forward.
+            ``'row_names'`` : list of str
+                The channel names.
+        mri_head_t : instance of Transform
+            The mri ↔ head transformation that was used.
+        info : instance of :class:`~mne.Info`
+            The measurement information (with contents reduced compared to that
+            of the original data).
+        src : instance of :class:`~mne.SourceSpaces`
+            The source space used during forward computation. This can differ
+            from the original source space as:
+
+            1. Source points are removed due to proximity to (or existing
+               outside)
+               the inner skull surface.
+            2. The source space will be converted to the ``coord_frame`` of the
+               forward solution, which typically means it gets converted from
+               MRI to head coordinates.
+        source_rr : ndarray, shape (n_sources, 3)
+            The source locations.
+        source_nn : ndarray, shape (n_sources, 3)
+            The source normals. Will be all +Z (``(0, 0, 1.)``) for volume
+            source spaces. For surface source spaces, these are normal to the
+            cortical surface.
+        surf_ori : int
+            Whether ``sol`` is surface-oriented with the surface normal in the
+            Z component (``FIFF.FIFFV_MNE_FIXED_ORI``) or +Z in the given
+            ``coord_frame`` in the Z component (``FIFF.FIFFV_MNE_FREE_ORI``).
+
+    Forward objects also have some attributes that are accessible via ``.``
+    access, like ``fwd.ch_names``.
     """
 
     def copy(self):
@@ -182,7 +247,7 @@ def _block_diag(A, n):
         The block size
     Returns
     -------
-    bd : sparse matrix
+    bd : scipy.sparse.spmatrix
         The block diagonal matrix
     """
     from scipy import sparse
@@ -1025,10 +1090,10 @@ def _triage_loose(src, loose, fixed='auto'):
     del fixed
 
     for key, this_loose in loose.items():
-        if key != 'surface' and this_loose != 1:
+        if key not in ('surface', 'discrete') and this_loose != 1:
             raise ValueError(
-                'loose parameter has to be 1 or "auto" for non-surface '
-                f'source spaces, got loose["{key}"] = {this_loose}')
+                'loose parameter has to be 1 or "auto" for non-surface/'
+                f'discrete source spaces, got loose["{key}"] = {this_loose}')
         if not 0 <= this_loose <= 1:
             raise ValueError(
                 f'loose ({key}) must be between 0 and 1, got {this_loose}')
@@ -1256,7 +1321,7 @@ def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
         ws = np.sort(w)
         weight_limit = limit ** 2
         if limit_depth_chs is False:
-            # match old mne-python behavor
+            # match old mne-python behavior
             # we used to do ind = np.argmin(ws), but this is 0 by sort above
             n_limit = 0
             limit = ws[0] * weight_limit
@@ -1445,7 +1510,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
 
     evoked = EvokedArray(data, info, times[0], nave=1)
 
-    evoked.times = times
+    evoked._set_times(times)
     evoked._update_first_last()
 
     return evoked

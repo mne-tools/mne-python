@@ -111,7 +111,7 @@ class Annotations(object):
         starting time of annotation acquisition. If None (default),
         starting time is determined from beginning of raw data acquisition.
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
-        the annotations with raw data if their acquisiton is started at the
+        the annotations with raw data if their acquisition is started at the
         same time. If it is a string, it should conform to the ISO8601 format.
         More precisely to this '%%Y-%%m-%%d %%H:%%M:%%S.%%f' particular case of
         the ISO8601 format where the delimiter between date and time is ' '.
@@ -230,6 +230,14 @@ class Annotations(object):
              n                        |      |
              e                        +------+
          orig_time                 onset[0]'
+
+    .. warning::
+       This means that when ``raw.info['meas_date'] is None``, doing
+       ``raw.set_annotations(raw.annotations)`` will not alter ``raw`` if and
+       only if ``raw.first_samp == 0``. When it's non-zero,
+       ``raw.set_annotations`` will assume that the "new" annotations refer to
+       the original data (with ``first_samp==0``), and will be re-referenced to
+       the new time offset!
 
     **Specific annotation**
 
@@ -1043,8 +1051,8 @@ def _write_annotations_txt(fname, annot):
 def read_annotations(fname, sfreq='auto', uint16_codec=None):
     r"""Read annotations from a file.
 
-    This function reads a .fif, .fif.gz, .vmrk, .edf, .txt, .csv .cnt, .cef,
-    or .set file and makes an :class:`mne.Annotations` object.
+    This function reads a .fif, .fif.gz, .vmrk, .amrk, .edf, .txt, .csv, .cnt,
+     .cef, or .set file and makes an :class:`mne.Annotations` object.
 
     Parameters
     ----------
@@ -1052,13 +1060,14 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
         The filename.
     sfreq : float | 'auto'
         The sampling frequency in the file. This parameter is necessary for
-        \*.vmrk and \*.cef files as Annotations are expressed in seconds and
-        \*.vmrk/\*.cef files are in samples. For any other file format,
-        ``sfreq`` is omitted. If set to 'auto' then the ``sfreq`` is taken
-        from the respective info file of the same name with according file
-        extension (\*.vhdr for brainvision; \*.dap for Curry 7; \*.cdt.dpa for
-        Curry 8). So data.vmrk looks for sfreq in data.vhdr, data.cef looks in
-        data.dap and data.cdt.cef looks in data.cdt.dpa.
+        \*.vmrk, \*.amrk, and \*.cef files as Annotations are expressed in
+        seconds and \*.vmrk/\*.amrk/\*.cef files are in samples. For any other
+        file format, ``sfreq`` is omitted. If set to 'auto' then the ``sfreq``
+        is taken from the respective info file of the same name with according
+        file extension (\*.vhdr/\*.ahdr for brainvision; \*.dap for Curry 7;
+        \*.cdt.dpa for Curry 8). So data.vmrk/amrk looks for sfreq in
+        data.vhdr/ahdr, data.cef looks in data.dap and data.cdt.cef looks in
+        data.cdt.dpa.
     uint16_codec : str | None
         This parameter is only used in EEGLAB (\*.set) and omitted otherwise.
         If your \*.set file contains non-ascii characters, sometimes reading
@@ -1102,7 +1111,7 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
                                   description=description, orig_time=orig_time,
                                   ch_names=ch_names)
 
-    elif name.endswith('vmrk'):
+    elif name.endswith(('vmrk', 'amrk')):
         annotations = _read_annotations_brainvision(fname, sfreq=sfreq)
 
     elif name.endswith('csv'):
@@ -1187,7 +1196,7 @@ def _read_brainstorm_annotations(fname, orig_time=None):
         starting time of annotation acquisition. If None (default),
         starting time is determined from beginning of raw data acquisition.
         In general, ``raw.info['meas_date']`` (or None) can be used for syncing
-        the annotations with raw data if their acquisiton is started at the
+        the annotations with raw data if their acquisition is started at the
         same time.
 
     Returns

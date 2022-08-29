@@ -123,9 +123,9 @@ def _get_artemis123_info(fname, pos_fname=None):
 
     for k in ['Temporal Filter Active?', 'Decimation Active?',
               'Spatial Filter Active?']:
-        if(header_info[k] != 'FALSE'):
+        if header_info[k] != 'FALSE':
             warn('%s - set to but is not supported' % k)
-    if(header_info['filter_hist']):
+    if header_info['filter_hist']:
         warn('Non-Empty Filter history found, BUT is not supported' % k)
 
     # build mne info struct
@@ -326,7 +326,7 @@ class RawArtemis123(BaseRaw):
 
         super(RawArtemis123, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[header_info],
-            last_samps=last_samps, orig_format=np.float32,
+            last_samps=last_samps, orig_format="single",
             verbose=verbose)
 
         if add_head_trans:

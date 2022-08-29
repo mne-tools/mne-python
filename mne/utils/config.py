@@ -16,11 +16,10 @@ import sys
 import tempfile
 import re
 
-import numpy as np
-
-from .check import (_validate_type, _check_pyqt5_version, _check_option,
+from .check import (_validate_type, _check_qt_version, _check_option,
                     _check_fname)
 from .docs import fill_doc
+from .misc import _pl
 from ._logging import warn, logger
 
 
@@ -70,16 +69,19 @@ def set_memmap_min_size(memmap_min_size):
 known_config_types = (
     'MNE_3D_OPTION_ANTIALIAS',
     'MNE_3D_OPTION_DEPTH_PEELING',
+    'MNE_3D_OPTION_MULTI_SAMPLES',
     'MNE_3D_OPTION_SMOOTH_SHADING',
     'MNE_3D_OPTION_THEME',
     'MNE_BROWSE_RAW_SIZE',
     'MNE_BROWSER_BACKEND',
+    'MNE_BROWSER_OVERVIEW_MODE',
     'MNE_BROWSER_PRECOMPUTE',
     'MNE_BROWSER_THEME',
     'MNE_BROWSER_USE_OPENGL',
     'MNE_CACHE_DIR',
     'MNE_COREG_ADVANCED_RENDERING',
     'MNE_COREG_COPY_ANNOT',
+    'MNE_COREG_FULLSCREEN',
     'MNE_COREG_GUESS_MRI_SUBJECT',
     'MNE_COREG_HEAD_HIGH_RES',
     'MNE_COREG_HEAD_OPACITY',
@@ -413,7 +415,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     stim_channel = list()
     ch_count = 0
     ch = get_config('MNE_STIM_CHANNEL')
-    while(ch is not None and ch in info['ch_names']):
+    while ch is not None and ch in info['ch_names']:
         stim_channel.append(ch)
         ch_count += 1
         ch = get_config('MNE_STIM_CHANNEL_%d' % ch_count)
@@ -446,26 +448,23 @@ def _get_root_dir():
 
 
 def _get_numpy_libs():
-    from ._testing import SilenceStdout
-    with SilenceStdout(close=False) as capture:
-        np.show_config()
-    lines = capture.getvalue().split('\n')
-    capture.close()
-    libs = []
-    for li, line in enumerate(lines):
-        for key in ('lapack', 'blas'):
-            if line.startswith('%s_opt_info' % key):
-                lib = lines[li + 1]
-                if 'NOT AVAILABLE' in lib:
-                    lib = 'unknown'
-                else:
-                    try:
-                        lib = lib.split('[')[1].split("'")[1]
-                    except IndexError:
-                        pass  # keep whatever it was
-                libs += ['%s=%s' % (key, lib)]
-    libs = ', '.join(libs)
-    return libs
+    bad_lib = 'unknown linalg bindings'
+    try:
+        from threadpoolctl import threadpool_info
+    except Exception as exc:
+        return bad_lib + f' (threadpoolctl module not found: {exc})'
+    pools = threadpool_info()
+    rename = dict(
+        openblas='OpenBLAS',
+        mkl='MKL',
+    )
+    for pool in pools:
+        if pool['internal_api'] in ('openblas', 'mkl'):
+            return (
+                f'{rename[pool["internal_api"]]} '
+                f'{pool["version"]} with '
+                f'{pool["num_threads"]} thread{_pl(pool["num_threads"])}')
+    return bad_lib
 
 
 _gpu_cmd = """\
@@ -532,7 +531,8 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
         pandas:        1.0.5
         pyvista:       0.25.3 {pyvistaqt=0.1.1, OpenGL 3.3 (Core Profile) Mesa 18.3.6 via llvmpipe (LLVM 7.0, 256 bits)}
         vtk:           9.0.1
-        PyQt5:         5.15.0
+        qtpy:          2.0.1 {PySide6=6.2.4}
+        pyqtgraph:     0.12.4
         pooch:         v1.5.1
     """  # noqa: E501
     _validate_type(dependencies, str)
@@ -574,8 +574,9 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
                      'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
-                     'PyQt5', 'ipympl', 'pooch', '', 'mne_bids', 'mne_nirs',
-                     'mne_features', 'mne_qt_browser', 'mne_connectivity')
+                     'qtpy', 'ipympl', 'pyqtgraph', 'pooch', '', 'mne_bids',
+                     'mne_nirs', 'mne_features', 'mne_qt_browser',
+                     'mne_connectivity', 'mne_icalabel')
     if dependencies == 'developer':
         use_mod_names += (
             '', 'sphinx', 'sphinx_gallery', 'numpydoc', 'pydata_sphinx_theme',
@@ -601,12 +602,13 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
                             break
                 else:
                     out('unknown')
-            elif mod_name == 'PyQt5':
-                out(_check_pyqt5_version())
             else:
                 out(mod.__version__)
             if mod_name == 'numpy':
                 out(f' {{{libs}}}')
+            elif mod_name == 'qtpy':
+                version, api = _check_qt_version(return_api=True)
+                out(f' {{{api}={version}}}')
             elif mod_name == 'matplotlib':
                 out(f' {{backend={mod.get_backend()}}}')
             elif mod_name == 'pyvista':

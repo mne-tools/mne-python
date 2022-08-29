@@ -4,9 +4,11 @@
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
 
 import operator
+
 import numpy as np
 
-from ..parallel import parallel_func, check_n_jobs
+from ..filter import next_fast_len
+from ..parallel import parallel_func
 from ..utils import sum_squared, warn, verbose, logger, _check_option
 
 
@@ -61,7 +63,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     from scipy import interpolate
     from scipy.fft import rfft, irfft
     from scipy.signal.windows import dpss as sp_dpss
-    from ..filter import next_fast_len
+
     # This np.int32 business works around a weird Windows bug, see
     # gh-5039 and https://github.com/scipy/scipy/pull/8608
     Kmax = np.int32(operator.index(Kmax))
@@ -318,7 +320,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
         x_mt[idx] = rfft(sig[..., np.newaxis, :] * dpss, n=n_fft)
     # Adjust DC and maybe Nyquist, depending on one-sided transform
     x_mt[..., 0] /= np.sqrt(2.)
-    if x.shape[1] % 2 == 0:
+    if n_fft % 2 == 0:
         x_mt[..., -1] /= np.sqrt(2.)
     return x_mt, freqs
 
@@ -362,9 +364,9 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
 
 
 @verbose
-def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
+def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
                          adaptive=False, low_bias=True, normalization='length',
-                         output='power', n_jobs=1, verbose=None):
+                         output='power', n_jobs=None, verbose=None):
     """Compute power spectral density (PSD) using a multi-taper method.
 
     Parameters
@@ -443,8 +445,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         psd = np.zeros((x.shape[0], n_freqs))
 
     # Let's go in up to 50 MB chunks of signals to save memory
-    n_jobs = check_n_jobs(n_jobs)
-    n_chunk = max(50000000 // (len(freq_mask) * len(eigvals) * 16), n_jobs)
+    n_chunk = max(50000000 // (len(freq_mask) * len(eigvals) * 16), 1)
     offsets = np.concatenate((np.arange(0, x.shape[0], n_chunk), [x.shape[0]]))
     for start, stop in zip(offsets[:-1], offsets[1:]):
         x_mt = _mt_spectra(x[start:stop], dpss, sfreq)[0]
@@ -452,9 +453,9 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
             if not adaptive:
                 psd[start:stop] = _psd_from_mt(x_mt[:, :, freq_mask], weights)
             else:
-                n_splits = min(stop - start, n_jobs)
                 parallel, my_psd_from_mt_adaptive, n_jobs = \
-                    parallel_func(_psd_from_mt_adaptive, n_splits)
+                    parallel_func(_psd_from_mt_adaptive, n_jobs)
+                n_splits = min(stop - start, n_jobs)
                 out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
                                for x in np.array_split(x_mt, n_splits))
                 psd[start:stop] = np.concatenate(out)
@@ -479,7 +480,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 @verbose
 def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
                          zero_mean=True, time_bandwidth=None, use_fft=True,
-                         decim=1, output='complex', n_jobs=1,
+                         decim=1, output='complex', n_jobs=None,
                          verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 

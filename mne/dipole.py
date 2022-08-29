@@ -35,13 +35,14 @@ from .bem import _bem_find_surface, _bem_surf_name
 from .source_space import _make_volume_source_space, SourceSpaces
 from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
-                    check_fname, _pl, fill_doc, _check_option, ShiftTimeMixin,
+                    check_fname, _pl, fill_doc, _check_option,
                     _svd_lwork, _repeated_svd, _get_blas_funcs, _validate_type,
-                    _VerboseDep)
+                    copy_function_doc_to_method_doc, TimeMixin)
+from .viz import plot_dipole_locations
 
 
 @fill_doc
-class Dipole(_VerboseDep):
+class Dipole(TimeMixin):
     u"""Dipole class for sequential dipole fits.
 
     .. note:: This class should usually not be instantiated directly,
@@ -101,7 +102,7 @@ class Dipole(_VerboseDep):
     def __init__(self, times, pos, amplitude, ori, gof,
                  name=None, conf=None, khi2=None, nfree=None,
                  *, verbose=None):  # noqa: D102
-        self.times = np.array(times)
+        self._set_times(np.array(times))
         self.pos = np.array(pos)
         self.amplitude = np.array(amplitude)
         self.ori = np.array(ori)
@@ -145,8 +146,8 @@ class Dipole(_VerboseDep):
         else:
             _write_dipole_text(fname, self)
 
-    @fill_doc
-    def crop(self, tmin=None, tmax=None, include_tmax=True):
+    @verbose
+    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
         """Crop data to a given time interval.
 
         Parameters
@@ -156,6 +157,7 @@ class Dipole(_VerboseDep):
         tmax : float | None
             End time of selection in seconds.
         %(include_tmax)s
+        %(verbose)s
 
         Returns
         -------
@@ -167,8 +169,8 @@ class Dipole(_VerboseDep):
             sfreq = 1. / np.median(np.diff(self.times))
         mask = _time_mask(self.times, tmin, tmax, sfreq=sfreq,
                           include_tmax=include_tmax)
-        for attr in ('times', 'pos', 'gof', 'amplitude', 'ori',
-                     'khi2', 'nfree'):
+        self._set_times(self.times[mask])
+        for attr in ('pos', 'gof', 'amplitude', 'ori', 'khi2', 'nfree'):
             if getattr(self, attr) is not None:
                 setattr(self, attr, getattr(self, attr)[mask])
         for key in self.conf.keys():
@@ -186,90 +188,18 @@ class Dipole(_VerboseDep):
         return deepcopy(self)
 
     @verbose
+    @copy_function_doc_to_method_doc(plot_dipole_locations)
     def plot_locations(self, trans, subject, subjects_dir=None,
                        mode='orthoview', coord_frame='mri', idx='gof',
                        show_all=True, ax=None, block=False, show=True,
-                       scale=5e-3, color=(1.0, 0.0, 0.0), fig=None,
-                       verbose=None, title=None):
-        """Plot dipole locations in 3d.
-
-        Parameters
-        ----------
-        trans : dict
-            The mri to head trans.
-        subject : str
-            The subject name corresponding to FreeSurfer environment
-            variable SUBJECT.
-        %(subjects_dir)s
-        mode : str
-            Can be ``'arrow'``, ``'sphere'`` or ``'orthoview'``.
-
-            .. versionadded:: 0.14.0
-        coord_frame : str
-            Coordinate frame to use, 'head' or 'mri'. Defaults to 'mri'.
-
-            .. versionadded:: 0.14.0
-        idx : int | 'gof' | 'amplitude'
-            Index of the initially plotted dipole. Can also be 'gof' to plot
-            the dipole with highest goodness of fit value or 'amplitude' to
-            plot the dipole with the highest amplitude. The dipoles can also be
-            browsed through using up/down arrow keys or mouse scroll. Defaults
-            to 'gof'. Only used if mode equals 'orthoview'.
-
-            .. versionadded:: 0.14.0
-        show_all : bool
-            Whether to always plot all the dipoles. If True (default), the
-            active dipole is plotted as a red dot and it's location determines
-            the shown MRI slices. The the non-active dipoles are plotted as
-            small blue dots. If False, only the active dipole is plotted.
-            Only used if mode equals 'orthoview'.
-
-            .. versionadded:: 0.14.0
-        ax : instance of matplotlib Axes3D | None
-            Axes to plot into. If None (default), axes will be created.
-            Only used if mode equals 'orthoview'.
-
-            .. versionadded:: 0.14.0
-        block : bool
-            Whether to halt program execution until the figure is closed.
-            Defaults to False. Only used if mode equals 'orthoview'.
-
-            .. versionadded:: 0.14.0
-        show : bool
-            Show figure if True. Defaults to True.
-            Only used if mode equals 'orthoview'.
-
-        scale : float
-            The scale of the dipoles if ``mode`` is 'arrow' or 'sphere'.
-        color : tuple
-            The color of the dipoles if ``mode`` is 'arrow' or 'sphere'.
-        fig : instance of Figure3D | None
-            PyVista figure in which to plot the alignment.
-            If ``None``, creates a new 600x600 pixel figure with black
-            background.
-
-            .. versionadded:: 0.14.0
-        %(verbose)s
-        %(title_dipole_locs_fig)s
-
-            .. versionadded:: 0.21.0
-
-        Returns
-        -------
-        fig : instance of Figure3D or matplotlib.figure.Figure
-            The PyVista figure or matplotlib Figure.
-
-        Notes
-        -----
-        .. versionadded:: 0.9.0
-        """
-        _check_option('mode', mode, [None, 'arrow', 'sphere', 'orthoview'])
-
-        from .viz import plot_dipole_locations
+                       scale=None, color=None, *, highlight_color='r',
+                       fig=None, title=None, head_source='seghead',
+                       surf='pial', width=None, verbose=None):
         return plot_dipole_locations(
             self, trans, subject, subjects_dir, mode, coord_frame, idx,
-            show_all, ax, block, show, scale=scale, color=color, fig=fig,
-            title=title)
+            show_all, ax, block, show, scale=scale, color=color,
+            highlight_color=highlight_color, fig=fig, title=title,
+            head_source=head_source, surf=surf, width=width)
 
     @verbose
     def to_mni(self, subject, trans, subjects_dir=None,
@@ -321,6 +251,9 @@ class Dipole(_VerboseDep):
         Parameters
         ----------
         %(trans)s
+
+            .. versionchanged:: 0.19
+                Support for 'fsaverage' argument.
         %(subject)s
         %(aseg)s
         %(subjects_dir)s
@@ -428,7 +361,7 @@ def _read_dipole_fixed(fname):
 
 
 @fill_doc
-class DipoleFixed(ShiftTimeMixin, _VerboseDep):
+class DipoleFixed(TimeMixin):
     """Dipole class for fixed-position dipole fits.
 
     .. note:: This class should usually not be instantiated directly,
@@ -472,7 +405,7 @@ class DipoleFixed(ShiftTimeMixin, _VerboseDep):
         self._aspect_kind = aspect_kind
         self.kind = _aspect_rev.get(aspect_kind, 'unknown')
         self.comment = comment
-        self.times = times
+        self._set_times(np.array(times))
         self.data = data
         self.preload = True
         self._update_first_last()
@@ -789,7 +722,7 @@ def _write_dipole_bdip(fname, dip):
 # #############################################################################
 # Fitting
 
-def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
+def _dipole_forwards(fwd_data, whitener, rr, n_jobs=None):
     """Compute the forward solution and do other nice stuff."""
     B = _compute_forwards_meeg(rr, fwd_data, n_jobs, silent=True)
     B = np.concatenate(B, axis=1)
@@ -810,7 +743,7 @@ def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
 
 
 @verbose
-def _make_guesses(surf, grid, exclude, mindist, n_jobs=1, verbose=None):
+def _make_guesses(surf, grid, exclude, mindist, n_jobs=None, verbose=None):
     """Make a guess space inside a sphere or BEM surface."""
     if 'rr' in surf:
         logger.info('Guess surface (%s) is in %s coordinates'
@@ -900,7 +833,7 @@ def _fit_dipoles(fun, min_dist_to_inner_skull, data, times, guess_rrs,
                  guess_data, fwd_data, whitener, ori, n_jobs, rank, rhoend):
     """Fit a single dipole to the given whitened, projected data."""
     from scipy.optimize import fmin_cobyla
-    parallel, p_fun, _ = parallel_func(fun, n_jobs)
+    parallel, p_fun, n_jobs = parallel_func(fun, n_jobs)
     # parallel over time points
     res = parallel(p_fun(min_dist_to_inner_skull, B, t, guess_rrs,
                          guess_data, fwd_data, whitener,
@@ -1188,7 +1121,7 @@ def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
 
 
 @verbose
-def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
+def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=None,
                pos=None, ori=None, rank=None, accuracy='normal', tol=5e-5,
                verbose=None):
     """Fit a dipole.

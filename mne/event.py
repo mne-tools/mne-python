@@ -301,8 +301,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
 
 
 @verbose
-def write_events(filename, events, *, overwrite=False, event_list=None,
-                 verbose=None):
+def write_events(filename, events, *, overwrite=False, verbose=None):
     """Write :term:`events` to file.
 
     Parameters
@@ -316,20 +315,12 @@ def write_events(filename, events, *, overwrite=False, event_list=None,
         the "time" column (used to be the second column).
     %(events)s
     %(overwrite)s
-    event_list : array, shape (n_events, 3)
-        Deprecated, use argument events instead.
     %(verbose)s
 
     See Also
     --------
     read_events
     """
-    if event_list is not None:
-        warn('Argument "event_list" is deprecated, use "events" instead.',
-             DeprecationWarning)
-        events = event_list
-    del event_list
-
     filename = _check_fname(filename, overwrite=overwrite)
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
                                      '-eve.lst', '-eve.txt', '_eve.fif',

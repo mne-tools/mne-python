@@ -15,11 +15,12 @@ from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_persyst
 from mne.io.tests.test_raw import _test_raw_reader
 
+testing_path = data_path(download=False)
 fname_lay = op.join(
-    data_path(download=False), 'Persyst',
+    testing_path, 'Persyst',
     'sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.lay')
 fname_dat = op.join(
-    data_path(download=False), 'Persyst',
+    testing_path, 'Persyst',
     'sub-pt1_ses-02_task-monitor_acq-ecog_run-01_clip2.dat')
 
 

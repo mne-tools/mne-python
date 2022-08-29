@@ -8,13 +8,13 @@ import os.path as op
 
 import numpy as np
 
+from ._eeglab import _readmat
 from ..pick import _PICK_TYPES_KEYS
 from ..utils import _read_segments_file, _find_channels
 from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
-from ...utils import (logger, verbose, warn, fill_doc, Bunch, _check_fname,
-                      _import_pymatreader_funcs)
+from ...utils import logger, verbose, warn, fill_doc, Bunch, _check_fname
 from ...channels import make_dig_montage
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -57,8 +57,7 @@ def _check_eeglab_fname(fname, dataname):
 
 def _check_load_mat(fname, uint16_codec):
     """Check if the mat struct contains 'EEG'."""
-    read_mat = _import_pymatreader_funcs('EEGLAB I/O')
-    eeg = read_mat(fname, uint16_codec=uint16_codec)
+    eeg = _readmat(fname, uint16_codec=uint16_codec)
     if 'ALLEEG' in eeg:
         raise NotImplementedError(
             'Loading an ALLEEG array is not supported. Please contact'
@@ -134,9 +133,8 @@ def _get_montage_information(eeg, get_pos):
             loc_y = _to_loc(chanloc['Y'])
             loc_z = _to_loc(chanloc['Z'])
             locs = np.r_[-loc_y, loc_x, loc_z]
-            if not np.any(np.isnan(locs)):
-                pos_ch_names.append(chanloc['labels'])
-                pos.append(locs)
+            pos_ch_names.append(chanloc['labels'])
+            pos.append(locs)
 
     # warn if unknown types were provided
     if len(unknown_types):
@@ -144,10 +142,23 @@ def _get_montage_information(eeg, get_pos):
              '\n'.join([f'{key}: {sorted(unknown_types[key])}'
                         for key in sorted(unknown_types)]))
 
+    lpa, rpa, nasion = None, None, None
+    if hasattr(eeg, "chaninfo") and len(eeg.chaninfo.get('nodatchans', [])):
+        for item in list(zip(*eeg.chaninfo['nodatchans'].values())):
+            d = dict(zip(eeg.chaninfo['nodatchans'].keys(), item))
+            if d.get("type", None) != 'FID':
+                continue
+            elif d.get('description', None) == 'Nasion':
+                nasion = np.array([d["X"], d["Y"], d["Z"]])
+            elif d.get('description', None) == 'Right periauricular point':
+                rpa = np.array([d["X"], d["Y"], d["Z"]])
+            elif d.get('description', None) == 'Left periauricular point':
+                lpa = np.array([d["X"], d["Y"], d["Z"]])
+
     if pos_ch_names:
         montage = make_dig_montage(
             ch_pos=dict(zip(ch_names, np.array(pos))),
-            coord_frame='head')
+            coord_frame='head', lpa=lpa, rpa=rpa, nasion=nasion)
     else:
         montage = None
 

@@ -5,15 +5,107 @@
     --pst-font-family-base: 'Source Sans Pro', var(--pst-font-family-base-system);
     --pst-font-family-heading: var(--pst-font-family-base);
     --pst-font-family-monospace: 'Source Code Pro', var(--pst-font-family-monospace-system);
+    /* colors that aren't responsive to light/dark mode */
+    --mne-color-discord: #5865F2;
+    --mne-color-twitter: #55acee;
+    --mne-color-primary: #007bff;
+    --mne-color-primary-text: #fff;
+    --mne-color-primary-highlight: #0063cc;
+    /* font weight */
+    --mne-font-weight-semibold: 600;
+}
 
+
+html[data-theme="light"] {
+    /* topbar logo links */
+    --mne-color-github: #000;
+    --mne-color-discourse: #000;
+    /* code block copy button */
+    --copybtn-opacity: 0.75;
+    /* card header bg color */
+    --mne-color-card-header: rgba(0, 0, 0, 0.05);
+    /* section headings */
+    --mne-color-heading: #003e80;
+    /* pydata-sphinx-theme overrides */
+    --pst-color-primary: var(--mne-color-primary);
+    --pst-color-primary-text: var(--mne-color-primary-text);
+    --pst-color-primary-highlight: var(--mne-color-primary-highlight);
+    --pst-color-info: var(--pst-color-primary);
+    --pst-color-border: #ccc;
+    --pst-color-background: #fff;
+    --pst-color-link: var(--pst-color-primary-highlight);
+    /* sphinx-gallery overrides */
+    --sg-download-a-background-color: var(--pst-color-primary);
+    --sg-download-a-background-image: unset;
+    --sg-download-a-border-color: var(--pst-color-border);
+    --sg-download-a-color: #fff;
+    --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
+    --sg-download-a-hover-box-shadow-1: none;
+    --sg-download-a-hover-box-shadow-2: none;
+}
+html[data-theme="dark"] {
+    /* topbar logo links */
+    --mne-color-github: rgb(240, 246, 252);  /* from their logo SVG */
+    --mne-color-discourse: #FFF9AE;  /* from their logo SVG */
+    /* code block copy button */
+    --copybtn-opacity: 0.25;
+    /* card header bg color */
+    --mne-color-card-header: rgba(255, 255, 255, 0.2);
+    /* section headings */
+    --mne-color-heading: #b8cbe0;
+    /* pydata-sphinx-theme overrides */
+    --pst-color-primary: var(--mne-color-primary);
+    --pst-color-primary-text: var(--mne-color-primary-text);
+    --pst-color-primary-highlight: var(--mne-color-primary-highlight);
+    --pst-color-info: var(--pst-color-primary);
+    --pst-color-border: #333;
+    --pst-color-background: #000;
+    --pst-color-link: #66b0ff;
+    /* sphinx-gallery overrides */
+    --sg-download-a-background-color: var(--pst-color-primary);
+    --sg-download-a-background-image: unset;
+    --sg-download-a-border-color: var(--pst-color-border);
+    --sg-download-a-color: #fff;
+    --sg-download-a-hover-background-color: var(--pst-color-primary-highlight);
+    --sg-download-a-hover-box-shadow-1: none;
+    --sg-download-a-hover-box-shadow-2: none;
+}
+h1, h2, h3, h4, h5, h6 {
+    color: var(--mne-color-heading);
 }
 
 /* ************************************************************ Sphinx fixes */
+
+/* API docs parameter lists */
 dl.field-list {
     grid-template-columns: auto 1fr;
 }
 
-/* ********************************************************** Sphinx-gallery */
+/* make HTML'd pandas dataframes scrollable */
+table.dataframe {
+    display: block;
+    overflow: auto;
+}
+
+/* Long API titles need to wrap for mobile */
+div[id^="mne-"] h1,
+div[id^="examples-using-"] h2 {
+    word-break: break-word;
+}
+
+/* *********************************************** pydata-sphinx-theme fixes */
+
+/* this is most critical for the homepage logos, but affects all images */
+html[data-theme="dark"] img {
+    filter: none;
+}
+
+/* prev/next links */
+.prev-next-area a p.prev-next-title {
+    color: var(--pst-color-link);
+}
+
+/* **************************************************** sphinx-gallery fixes */
 
 /* backreference links: restore hover decoration that SG removes */
 a.sphx-glr-backref-instance:hover {
@@ -25,8 +117,8 @@ a[class^="sphx-glr-backref-module"] {
 }
 /* backreference links: make MNE calls bold and colorful */
 a[class^="sphx-glr-backref-module-mne"] {
-    font-weight: 600;
     color: rgb(var(--pst-color-link));
+    font-weight: var(--mne-font-weight-semibold);
 }
 /* suppress redundant note at top of every tutorial and signature at the end */
 div.sphx-glr-download-link-note,
@@ -38,9 +130,10 @@ p.sphx-glr-signature {
 }
 /* script/notebook download buttons */
 .sphx-glr-download a.download {
-    background-image: none;
-    background-color: rgba(var(--pst-color-info), 0.1);
-    border-color: rgb(var(--pst-color-info));
+    border-radius: 0.5rem;
+    /* ↓↓↓↓↓↓↓ these two rules copied from sphinx-design */
+    box-shadow: 0 .125rem .25rem var(--sd-color-shadow) !important;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
 /* Report embedding */
 iframe.sg_report {
@@ -50,84 +143,111 @@ iframe.sg_report {
     display: block;
     border-style: solid;
 }
-
-/* ******************************** make HTML'd pandas dataframes scrollable */
-table.dataframe {
-    display: block;
-    overflow: auto;
+/* Disable thumbnail tooltips on hover */
+.sphx-glr-thumbcontainer[tooltip]:hover::before,
+.sphx-glr-thumbcontainer[tooltip]:hover::after {
+    display: none;
 }
 
-/* ********************************* Long API titles need to wrap for mobile */
-div[id^="mne-"] h1,
-div[id^="examples-using-"] h2 {
-    word-break: break-word;
+/* ***************************************************** sphinx-design fixes */
+p.btn a {
+    color: unset;
+}
+/* sphinx-design tabs */
+html .bd-content .sd-tab-set > label:hover,
+.bd-content .sd-tab-set > input:not(:checked) + label:hover {
+    opacity: unset;
+    color: var(--pst-color-secondary);
+    border-color: var(--pst-color-secondary);
 }
 
-/* ******************************************* in-text sidebar callout boxes */
-div.sidebar,
-aside.sidebar {
-    margin: 0 0 0.5em 1em;
-    padding: 7px;
-    width: 40%;
-    float: right;
-    clear: right;
-    overflow-x: auto;
-    /* above copied from div.sidebar in basic.css; below are our overrides */
-    background-color: rgba(var(--pst-color-info), 0.1);
-    border: 1px solid rgb(var(--pst-color-info));
-    border-radius: 4px;
+/* ************************************************************* copy button */
+button.copybtn {
+    /* always show; https://sphinx-copybutton.readthedocs.io/en/latest/use.html#modify-the-copy-button-s-css */
+    opacity: var(--copybtn-opacity);
+ }
+
+/* *************************************************** bib reference spacing */
+aside.footnote {
+    margin-bottom: 0.5rem;
+}
+aside.footnote:last-child {
+    margin-bottom: 1rem;
 }
 
-/* **************************************************************** homepage */
+/* ******************************************************** version dropdown */
+.dropdown-toggle {
+    font-weight: var(--mne-font-weight-semibold);
+}
+
+/* ******************************************************* navbar icon links */
+#navbar-icon-links i.fa-github-square::before {
+    color: var(--mne-color-github);
+}
+#navbar-icon-links i.fa-twitter-square::before {
+    color: var(--mne-color-twitter);
+}
+#navbar-icon-links i.fa-discourse::before {
+    color: var(--mne-color-discourse);
+}
+#navbar-icon-links i.fa-discord::before {
+    color: var(--mne-color-discord);
+}
+
+/* ************************************************************ nav elements */
+/* topbar nav inactive */
+.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link {
+    color: var(--pst-color-text-muted);
+}
+/* topbar nav active */
+.bd-header.navbar-light#navbar-main .navbar-nav > li.active > .nav-link {
+    color: var(--pst-color-link);
+    font-weight: var(--mne-font-weight-semibold);
+}
+/* topbar nav hover */
+.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:focus,
+.bd-header.navbar-light#navbar-main .navbar-nav li a.nav-link:hover {
+    color: var(--pst-color-secondary);
+}
+/* sidebar nav */
+nav.bd-links .active > a,
+nav.bd-links .active:hover > a,
+.toc-entry a.nav-link.active,
+.toc-entry a.nav-link.active:hover {
+    color: var(--pst-color-link);
+}
+/* sidebar nav hover */
+nav.bd-links li > a:hover,
+.toc-entry a.nav-link:hover {
+    color: var(--pst-color-secondary);
+}
+
+/* *********************************************************** homepage logo */
 img.logo {
     max-width: 360px;
     width: 100%;
 }
 
-/* ************************************* homepage quick links & funders list */
-ul.quicklinks {
-    font-weight: 600;
+/* **************************************************** homepage quick links */
+ul.quicklinks a {
+    font-weight: var(--mne-font-weight-semibold);
+    color: var(--pst-color-text-base);
 }
 ul.quicklinks a:hover {
     text-decoration: none;
+    color: var(--pst-color-secondary);
 }
-ul.funders li {
-    margin-left: 36px;
-    text-indent: -36px;
-    padding-bottom: 9px;
-}
-ul.funders li img {
-    width: 30px;
-    max-height: 24px;
-    object-fit: contain;
-}
-
-/* these two also affect collapsible divs */
 h5.card-header {
     margin-top: 0px;
     margin-bottom: 0px;
+    color: var(--pst-color-text-base);
 }
 h5.card-header::before {
     height: 0px;
     margin-top: 0px;
 }
 
-/* ************************************************* dev version warning bar */
-.devbar {
-    /* body top padding minus navbar height; */
-    /*might be possible to calc from theme variables */
-    margin-top: -20px;
-}
-
-/* ******************************************************** version dropdown */
-.dropdown {
-    padding: 0 .5rem;  /* match other items in the hamburger menu */
-}
-.dropdown-toggle {
-    font-weight: 600;
-}
-
-/* ***************************************************** front page carousel */
+/* ******************************************************* homepage carousel */
 div.frontpage-gallery {
     overflow: hidden;
     height: 180px;
@@ -156,21 +276,40 @@ div.frontpage-gallery:hover .fadeout {
     opacity: 0.0;
     transition: 200ms linear;
 }
+/* affects the homepage gallery tiles and the homepage sidebar quicklinks card;
+   needed for dark mode. */
+div.card {
+    border: 1px solid var(--pst-color-border);
+    background-color: rgb(var(--pst-color-background));
+}
+.card-header {
+    border-bottom-color: var(--pst-color-border);
+    background-color: var(--mne-color-card-header);
+}
 
-/* ****************************************************** navbar quick links */
+/* *************************************** homepage funder/institution logos */
+div#funder-logos div.card,
+div#institution-logos div.card,
+div#funder-logos div.card img,
+div#institution-logos div.card img {
+    background-color: unset;
+    border: none;
+    border-radius: unset;
+}
 
-i.fa-github-square:before {
-    color: #000;
+/* ************************************************************ funders page */
+ul.funders li {
+    margin-left: 36px;
+    text-indent: -36px;
+    padding-bottom: 9px;
 }
-i.fa-twitter-square:before {
-    color: #55acee;
+ul.funders li img {
+    width: 30px;
+    max-height: 24px;
+    object-fit: contain;
+    background-color: unset !important;
 }
-i.fa-discourse:before {
-    color: #231e20;
-}
-i.fa-discord:before {
-    color: #7289da;  /* 99aab5 is also in-brand for discord */
-}
+
 /* *********************************************************** contrib guide */
 ul.icon-bullets {
     list-style-type: none;
@@ -180,10 +319,14 @@ ul.icon-bullets {
 .small-stack {
     font-size: 0.5em;
 }
+
 /* *********************************************************** miscellaneous */
 .hidden {
     display: none;
 }
 img.hidden {
     visibility: hidden;
+}
+td.justify {
+    text-align-last: justify;
 }

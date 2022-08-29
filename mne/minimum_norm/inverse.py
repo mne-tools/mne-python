@@ -27,7 +27,7 @@ from ..io.write import (write_int, write_float_matrix, start_and_end_file,
 from ..io.pick import channel_type, pick_info, pick_types, pick_channels
 from ..cov import (compute_whitener, _read_cov, _write_cov, Covariance,
                    prepare_noise_cov)
-from ..epochs import BaseEpochs
+from ..epochs import BaseEpochs, EpochsArray
 from ..evoked import EvokedArray, Evoked
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        is_fixed_orient, compute_orient_prior,
@@ -66,6 +66,12 @@ class InverseOperator(dict):
             FIFF.FIFFV_MNE_FREE_ORI: 'Free'
         }
         src_ori = src_ori_fiff_to_name_map[self['source_ori']]
+        if src_ori == 'Free':  # we need to do some investigation
+            prior = self['orient_prior']
+            if prior is not None:
+                prior = prior['data']
+                if not np.allclose(prior, 1.):
+                    src_ori = f'Loose ({np.min(prior)})'
         return n_chs_meg, n_chs_eeg, src_space_descr, src_ori
 
     def __repr__(self):  # noqa: D105
@@ -877,6 +883,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     --------
     apply_inverse_raw : Apply inverse operator to raw object.
     apply_inverse_epochs : Apply inverse operator to epochs object.
+    apply_inverse_tfr_epochs : Apply inverse operator to epochs tfr object.
+    apply_inverse_cov : Apply inverse operator to covariance object.
 
     Notes
     -----
@@ -1061,8 +1069,10 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
     See Also
     --------
-    apply_inverse_epochs : Apply inverse operator to epochs object.
     apply_inverse : Apply inverse operator to evoked object.
+    apply_inverse_epochs : Apply inverse operator to epochs object.
+    apply_inverse_tfr_epochs : Apply inverse operator to epochs tfr object.
+    apply_inverse_cov : Apply inverse operator to covariance object.
     """
     _validate_type(raw, BaseRaw, 'raw')
     _check_reference(raw, inverse_operator['info']['ch_names'])
@@ -1251,13 +1261,15 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
     Returns
     -------
-    stc : list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)
+    stcs : list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)
         The source estimates for all epochs.
 
     See Also
     --------
     apply_inverse_raw : Apply inverse operator to raw object.
     apply_inverse : Apply inverse operator to evoked object.
+    apply_inverse_tfr_epochs : Apply inverse operator to epochs tfr object.
+    apply_inverse_cov : Apply inverse operator to a covariance object.
     """
     stcs = _apply_inverse_epochs_gen(
         epochs, inverse_operator, lambda2, method=method, label=label,
@@ -1268,6 +1280,85 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         # return a list
         stcs = [stc for stc in stcs]
 
+    return stcs
+
+
+def _apply_inverse_tfr_epochs_gen(epochs_tfr, inverse_operator, lambda2,
+                                  method, label, nave, pick_ori, prepared,
+                                  method_params, use_cps):
+    for freq_idx in range(epochs_tfr.freqs.size):
+        epochs = EpochsArray(epochs_tfr.data[:, :, freq_idx, :],
+                             epochs_tfr.info, events=epochs_tfr.events,
+                             tmin=epochs_tfr.tmin)
+        this_inverse_operator = inverse_operator[freq_idx] if \
+            isinstance(inverse_operator, (list, tuple)) else inverse_operator
+        stcs = _apply_inverse_epochs_gen(
+            epochs, this_inverse_operator, lambda2, method=method,
+            label=label, nave=nave, pick_ori=pick_ori, prepared=prepared,
+            method_params=method_params, use_cps=use_cps)
+        yield stcs
+
+
+@verbose
+def apply_inverse_tfr_epochs(epochs_tfr, inverse_operator, lambda2,
+                             method="dSPM", label=None, nave=1, pick_ori=None,
+                             return_generator=False, prepared=False,
+                             method_params=None, use_cps=True, verbose=None):
+    """Apply inverse operator to EpochsTFR.
+
+    Parameters
+    ----------
+    epochs_tfr : EpochsTFR object
+        Single trial, phase-amplitude (complex-valued), time-frequency epochs.
+    inverse_operator : list of dict | dict
+        The inverse operator for each frequency or a single inverse operator
+        to use for all frequencies.
+    lambda2 : float
+        The regularization parameter.
+    method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
+        Use minimum norm, dSPM (default), sLORETA, or eLORETA.
+    label : Label | None
+        Restricts the source estimates to a given label. If None,
+        source estimates will be computed for the entire source space.
+    nave : int
+        Number of averages used to regularize the solution.
+        Set to 1 on single Epoch by default.
+    %(pick_ori)s
+    return_generator : bool
+        Return a generator object instead of a list. This allows iterating
+        over the stcs without having to keep them all in memory.
+    prepared : bool
+        If True, do not call :func:`prepare_inverse_operator`.
+    method_params : dict | None
+        Additional options for eLORETA. See Notes of :func:`apply_inverse`.
+    %(use_cps_restricted)s
+    %(verbose)s
+
+    Returns
+    -------
+    stcs : list of list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)
+        The source estimates for all frequencies (outside list) and for
+        all epochs (inside list).
+
+    See Also
+    --------
+    apply_inverse_raw : Apply inverse operator to raw object.
+    apply_inverse : Apply inverse operator to evoked object.
+    apply_inverse_epochs : Apply inverse operator to epochs object.
+    apply_inverse_cov : Apply inverse operator to a covariance object.
+    """  # noqa E501
+    from ..time_frequency.tfr import _check_tfr_complex
+    _check_tfr_complex(epochs_tfr)
+    if isinstance(inverse_operator, (list, tuple)) and \
+            len(inverse_operator) != epochs_tfr.freqs.size:
+        raise ValueError(f'Expected {epochs_tfr.freqs.size} inverse '
+                         f'operators, got {len(inverse_operator)}')
+    stcs = _apply_inverse_tfr_epochs_gen(
+        epochs_tfr, inverse_operator, lambda2,
+        method, label, nave, pick_ori, prepared,
+        method_params, use_cps)
+    if not return_generator:
+        stcs = [[stc for stc in tfr_stcs] for tfr_stcs in stcs]
     return stcs
 
 
@@ -1313,6 +1404,7 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
     apply_inverse : Apply inverse operator to evoked object.
     apply_inverse_raw : Apply inverse operator to raw object.
     apply_inverse_epochs : Apply inverse operator to epochs object.
+    apply_inverse_tfr_epochs : Apply inverse operator to epochs tfr object.
 
     Notes
     -----
@@ -1395,6 +1487,26 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     loose = _triage_loose(forward['src'], loose, fixed)
     del fixed
 
+    # Figure out what kind of inverse is requested
+    fixed_inverse = all(v == 0. for v in loose.values())
+    constrained_inverse = any(v < 1. for v in loose.values())
+
+    # We only support fixed orientations for surface and discrete source
+    # spaces. Not volume or mixed.
+    if fixed_inverse:
+        if len(loose) > 1:  # Mixed source space
+            raise ValueError('Computing inverse solutions for mixed source '
+                             'spaces with fixed orientations is not '
+                             'supported.')
+        if 'volume' in loose:
+            raise ValueError('Computing inverse solutions for volume source '
+                             'spaces with fixed orientations is not '
+                             'supported.')
+    if loose.get('volume', 1) < 1:
+        raise ValueError('Computing inverse solutions with restricted '
+                         'orientations (loose < 1) is not supported for '
+                         'volume source spaces.')
+
     # Deal with "depth"
     if exp is not None:
         exp = float(exp)
@@ -1403,10 +1515,10 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                              f'equal to 0, got {exp}')
         exp = exp or None  # alias 0. -> None
 
-    # put the forward solution in correct orientation
+    # Put the forward solution in correct orientation.
     # (delaying for the case of fixed ori with depth weighting if
     # allow_fixed_depth is True)
-    if loose.get('surface', 1.) == 0. and len(loose) == 1:
+    if fixed_inverse:
         if not is_fixed_orient(forward):
             if allow_fixed_depth:
                 # can convert now
@@ -1424,7 +1536,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                 'Forward operator has fixed orientation and can only '
                 'be used to make a fixed-orientation inverse '
                 'operator.')
-        if loose.get('surface', 1.) < 1. and not forward['surf_ori']:
+        if constrained_inverse and not forward['surf_ori']:
             logger.info('Converting forward solution to surface orientation')
             convert_forward_solution(
                 forward, surf_ori=True, use_cps=use_cps, copy=False)
@@ -1442,7 +1554,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             rank=rank)
 
     # Deal with fixed orientation forward / inverse
-    if loose.get('surface', 1.) == 0. and len(loose) == 1:
+    if fixed_inverse:
         orient_prior = None
         if not is_fixed_orient(forward):
             if depth_prior is not None:
@@ -1454,8 +1566,8 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             convert_forward_solution(
                 forward, surf_ori=True, force_fixed=True,
                 use_cps=use_cps, copy=False)
-    else:
-        if loose.get('surface', 1.) < 1:
+    else:  # Free or loose orientation
+        if constrained_inverse:
             assert forward['surf_ori']
         # In theory we could have orient_prior=None for loose=1., but
         # the MNE-C code does not do this

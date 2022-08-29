@@ -10,7 +10,8 @@ from math import log
 
 import numpy as np
 
-from .defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT, DEFAULTS
+from .defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                       _BORDER_DEFAULT, DEFAULTS)
 from .io.write import start_and_end_file
 from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _check_projs, _needs_eeg_average_ref_proj,
@@ -36,7 +37,7 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     warn, copy_function_doc_to_method_doc, _pl,
                     _undo_scaling_cov, _scaled_array, _validate_type,
                     _check_option, eigh, fill_doc, _on_missing,
-                    _check_on_missing, _check_fname, _VerboseDep)
+                    _check_on_missing, _check_fname)
 from . import viz
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
@@ -64,7 +65,7 @@ def _get_tslice(epochs, tmin, tmax):
 
 
 @fill_doc
-class Covariance(dict, _VerboseDep):
+class Covariance(dict):
     """Noise covariance matrix.
 
     .. warning:: This class should not be instantiated directly, but
@@ -257,16 +258,17 @@ class Covariance(dict, _VerboseDep):
                      size=1, cbar_fmt="%3.1f",
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
-                     contours=6, image_interp='bilinear',
+                     contours=6, image_interp=_INTERPOLATION_DEFAULT,
                      axes=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
-                     border=_BORDER_DEFAULT,
-                     noise_cov=None, verbose=None):
+                     border=_BORDER_DEFAULT, noise_cov=None, verbose=None):
         """Plot a topomap of the covariance diagonal.
 
         Parameters
         ----------
         %(info_not_none)s
         %(ch_type_topomap)s
+
+            .. versionadded:: 0.21
         %(vmin_vmax_topomap)s
         %(cmap_topomap)s
         %(sensors_topomap)s
@@ -285,7 +287,7 @@ class Covariance(dict, _VerboseDep):
         %(outlines_topomap)s
         %(contours_topomap)s
         %(image_interp_topomap)s
-        %(axes_topomap)s
+        %(axes_cov_plot_topomap)s
         %(extrapolate_topomap)s
         %(sphere_topomap_auto)s
         %(border_topomap)s
@@ -439,9 +441,9 @@ def _check_n_samples(n_samples, n_chan):
 @verbose
 def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
                            flat=None, picks=None, method='empirical',
-                           method_params=None, cv=3, scalings=None, n_jobs=1,
-                           return_estimators=False, reject_by_annotation=True,
-                           rank=None, verbose=None):
+                           method_params=None, cv=3, scalings=None,
+                           n_jobs=None, return_estimators=False,
+                           reject_by_annotation=True, rank=None, verbose=None):
     """Estimate noise covariance matrix from a continuous segment of raw data.
 
     It is typically useful to estimate a noise covariance from empty room
@@ -678,8 +680,9 @@ def _check_method_params(method, method_params, keep_sample_mean=True,
 @verbose
 def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                        projs=None, method='empirical', method_params=None,
-                       cv=3, scalings=None, n_jobs=1, return_estimators=False,
-                       on_mismatch='raise', rank=None, verbose=None):
+                       cv=3, scalings=None, n_jobs=None,
+                       return_estimators=False, on_mismatch='raise',
+                       rank=None, verbose=None):
     """Estimate noise covariance matrix from epochs.
 
     The noise covariance is typically estimated on pre-stimulus periods
@@ -1748,7 +1751,7 @@ def _regularized_covariance(data, reg=None, method_params=None, info=None,
     scalings = _handle_default('scalings_cov_rank', None)
     cov = _compute_covariance_auto(
         data.T, method=method, method_params=method_params,
-        info=info, cv=None, n_jobs=1, stop_early=True,
+        info=info, cv=None, n_jobs=None, stop_early=True,
         picks_list=picks_list, scalings=scalings,
         rank=rank)[reg]['data']
     return cov

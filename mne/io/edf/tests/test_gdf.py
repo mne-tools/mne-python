@@ -137,3 +137,10 @@ def test_gdf_exclude_channels():
     assert 'Cz' not in raw.ch_names
     assert 'Pz' not in raw.ch_names
     assert 'Oz' not in raw.ch_names
+
+
+@testing.requires_testing_data
+def test_gdf_include():
+    """Test reading GDF data with include."""
+    raw = read_raw_gdf(gdf1_path + '.gdf', include=('FP1', 'O1'))
+    assert sorted(raw.ch_names) == ['FP1', 'O1']

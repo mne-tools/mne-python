@@ -24,10 +24,10 @@ from ..fixes import _get_args
 from ._logging import logger, verbose, warn
 
 
-def _pl(x, non_pl=''):
+def _pl(x, non_pl='', pl='s'):
     """Determine if plural should be used."""
     len_x = x if isinstance(x, (int, np.generic)) else len(x)
-    return non_pl if len_x == 1 else 's'
+    return non_pl if len_x == 1 else pl
 
 
 def _explain_exception(start=-1, stop=None, prefix='> '):
@@ -347,7 +347,8 @@ def _assert_no_instances(cls, when=''):
             check = False
         if check:
             if cls.__name__ == 'Brain':
-                ref.append(f'Brain._cleaned = {obj._cleaned}')
+                ref.append(
+                    f'Brain._cleaned = {getattr(obj, "_cleaned", None)}')
             rr = gc.get_referrers(obj)
             count = 0
             for r in rr:
@@ -365,6 +366,12 @@ def _assert_no_instances(cls, when=''):
                         del r_
                     else:
                         rep = repr(r)[:100].replace('\n', ' ')
+                        # If it's a __closure__, get more information
+                        if rep.startswith('<cell at '):
+                            try:
+                                rep += f' ({repr(r.cell_contents)[:100]})'
+                            except Exception:
+                                pass
                     name = _fullname(r)
                     ref.append(f'{name}: {rep}')
                     count += 1

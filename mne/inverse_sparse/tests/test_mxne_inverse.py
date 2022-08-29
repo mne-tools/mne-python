@@ -205,13 +205,13 @@ def test_mxne_vol_sphere():
                                     bem=sphere, eeg=False, meg=True)
 
     alpha = 80.
-    pytest.raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,
-                  loose=0.0, return_residual=False,
-                  maxit=3, tol=1e-8, active_set_size=10)
 
-    pytest.raises(ValueError, mixed_norm, evoked, fwd, cov, alpha,
-                  loose=0.2, return_residual=False,
-                  maxit=3, tol=1e-8, active_set_size=10)
+    # Computing inverse with restricted orientations should also work, since
+    # we have a discrete source space.
+    stc = mixed_norm(evoked_l21, fwd, cov, alpha, loose=0.2,
+                     return_residual=False, maxit=3, tol=1e-8,
+                     active_set_size=10)
+    assert_array_almost_equal(stc.times, evoked_l21.times, 5)
 
     # irMxNE tests
     with catch_logging() as log:

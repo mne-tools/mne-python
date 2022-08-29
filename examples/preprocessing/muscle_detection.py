@@ -31,7 +31,6 @@ surrounding "BAD" annotation.
 
 # %%
 
-import os.path as op
 import matplotlib.pyplot as plt
 import numpy as np
 from mne.datasets.brainstorm import bst_auditory
@@ -41,7 +40,7 @@ from mne.preprocessing import annotate_muscle_zscore
 
 # Load data
 data_path = bst_auditory.data_path()
-raw_fname = op.join(data_path, 'MEG', 'bst_auditory', 'S01_AEF_20131218_01.ds')
+raw_fname = data_path / 'MEG' / 'bst_auditory' / 'S01_AEF_20131218_01.ds'
 
 raw = read_raw_ctf(raw_fname, preload=False)
 
@@ -56,7 +55,7 @@ raw.resample(300, npad="auto")
 #     detecting muscle artifacts. See :ref:`tut-section-line-noise` for an
 #     example.
 
-raw.notch_filter([50, 100])
+raw.notch_filter([60, 120])
 
 # %%
 

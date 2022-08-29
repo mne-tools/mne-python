@@ -91,6 +91,7 @@ def run():
         interaction=options.interaction,
         scale=options.scale,
         advanced_rendering=options.advanced_rendering,
+        show=True, block=True,
         verbose=options.verbose)
 
 

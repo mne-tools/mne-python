@@ -38,6 +38,7 @@ fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
 fname_event = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc_raw-eve.fif')
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
+ctf_fname = op.join(data_path, 'CTF', 'somMDYO-18av.ds')
 
 reject = dict(grad=4000e-13, mag=4e-12)
 
@@ -347,9 +348,6 @@ def test_make_lcmv_bem(tmp_path, reg, proj, kind):
     evoked_ch.pick_channels(evoked_ch.ch_names[1:])
     filters = make_lcmv(evoked.info, forward_vol, data_cov, reg=0.01,
                         noise_cov=noise_cov)
-    with pytest.deprecated_call(match='max_ori_out'):
-        with pytest.raises(ValueError, match='was computed with'):
-            apply_lcmv(evoked_ch, filters, max_ori_out='deprecated')
 
     # Test if discrepancies in channel selection of data and fwd model are
     # handled correctly in apply_lcmv
@@ -523,9 +521,7 @@ def test_lcmv_cov(weight_norm, pick_ori):
 @testing.requires_testing_data
 def test_lcmv_ctf_comp():
     """Test interpolation with compensated CTF data."""
-    ctf_dir = op.join(testing.data_path(download=False), 'CTF')
-    raw_fname = op.join(ctf_dir, 'somMDYO-18av.ds')
-    raw = mne.io.read_raw_ctf(raw_fname, preload=True)
+    raw = mne.io.read_raw_ctf(ctf_fname, preload=True)
     raw.pick(raw.ch_names[:70])
 
     events = mne.make_fixed_length_events(raw, duration=0.2)[:2]
@@ -678,8 +674,8 @@ def test_localization_bias_fixed(bias_params_fixed, reg, weight_norm, use_cov,
         # no reg
         (0.00, 'vector', None, True, None, 23, 24, 0.96, 0.97),
         (0.00, 'vector', 'unit-noise-gain-invariant', True, None, 52, 54, 0.95, 0.96),  # noqa: E501
-        (0.00, 'vector', 'unit-noise-gain', True, None, 44, 46, 0.97, 0.98),
-        (0.00, 'vector', 'nai', True, None, 44, 46, 0.97, 0.98),
+        (0.00, 'vector', 'unit-noise-gain', True, None, 44, 48, 0.97, 0.99),
+        (0.00, 'vector', 'nai', True, None, 44, 48, 0.97, 0.99),
         (0.00, 'max-power', None, True, None, 14, 15, 0, 0),
         (0.00, 'max-power', 'unit-noise-gain-invariant', True, None, 35, 37, 0, 0),  # noqa: E501
         (0.00, 'max-power', 'unit-noise-gain', True, None, 35, 37, 0, 0),

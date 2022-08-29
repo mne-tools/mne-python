@@ -25,12 +25,14 @@ from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  convert_forward_solution, Covariance, combine_evoked,
                  SourceEstimate, make_sphere_model, make_ad_hoc_cov,
                  pick_channels_forward, compute_raw_covariance)
-from mne.io import read_raw_fif
+from mne.io import read_raw_fif, read_info
 from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               apply_inverse_raw, apply_inverse_epochs,
+                              apply_inverse_tfr_epochs,
                               make_inverse_operator, apply_inverse_cov,
                               write_inverse_operator, prepare_inverse_operator,
                               compute_rank_inverse, INVERSE_METHODS)
+from mne.time_frequency import EpochsTFR
 from mne.utils import catch_logging, _record_warnings
 
 test_path = testing.data_path(download=False)
@@ -230,6 +232,7 @@ def test_make_inverse_operator_loose(evoked, tmp_path):
     log = log.getvalue()
     assert 'MEG: rank 302 computed' in log
     assert 'limit = 1/%d' % fwd_op['nsource'] in log
+    assert 'Loose (0.2)' in repr(my_inv_op)
     _compare_io(my_inv_op, tempdir=str(tmp_path))
     assert_equal(inverse_operator['units'], 'Am')
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked,
@@ -332,7 +335,7 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper,
     ('MNE', 89, 92, dict(limit_depth_chs='whiten'), 0.2),  # sparse default
     ('dSPM', 85, 87, 0.8, 0.2),
     ('sLORETA', 100, 100, 0.8, 0.2),
-    ('eLORETA', 99, 100, None, 0.2),
+    pytest.param('eLORETA', 99, 100, None, 0.2, marks=pytest.mark.slowtest),
     pytest.param('eLORETA', 99, 100, 0.8, 0.2, marks=pytest.mark.slowtest),
     pytest.param('eLORETA', 99, 100, 0.8, 0.001, marks=pytest.mark.slowtest),
 ])
@@ -685,6 +688,7 @@ def test_make_inverse_operator_fixed(evoked, noise_cov):
     assert 'MEG: rank 302 computed from 305' in log
     assert 'EEG channels: 0' in repr(inv_op)
     assert 'MEG channels: 305' in repr(inv_op)
+    assert 'Fixed' in repr(inv_op)
     del fwd_fixed
     inverse_operator_nodepth = read_inverse_operator(fname_inv_fixed_nodepth)
     # XXX We should have this but we don't (MNE-C doesn't restrict info):
@@ -725,6 +729,8 @@ def test_make_inverse_operator_free(evoked, noise_cov):
                                      depth=None, loose=1.)
     inv = make_inverse_operator(evoked.info, fwd, noise_cov,
                                 depth=None, loose=1.)
+    assert 'Free' in repr(inv_surf)
+    assert 'Free' in repr(inv)
     _compare_inverses_approx(inv, inv_surf, evoked, rtol=1e-5, atol=1e-8,
                              check_nn=False, check_K=False)
     for pick_ori in (None, 'vector', 'normal'):
@@ -829,6 +835,26 @@ def test_inverse_operator_volume(evoked, tmp_path):
     assert_allclose(np.linalg.norm(stc_vec.data, axis=1), stc.data)
     with pytest.raises(RuntimeError, match='surface or discrete'):
         apply_inverse(evoked, inv_vol, pick_ori='normal')
+
+
+@pytest.mark.slowtest
+def test_inverse_operator_discrete(evoked, tmp_path):
+    """Test MNE inverse computation on discrete source space."""
+    # Make discrete source space
+    src = mne.setup_volume_source_space(
+        pos=dict(rr=[[0, 0, 0.1], [0, -0.01, 0.05]],
+                 nn=[[0, 1, 0], [1, 0, 0]]),
+        bem=fname_bem)
+
+    # Perform inverse
+    fwd = mne.make_forward_solution(
+        evoked.info, mne.Transform('head', 'mri'), src, fname_bem)
+    inv = make_inverse_operator(
+        evoked.info, fwd, make_ad_hoc_cov(evoked.info), loose=0, fixed=True,
+        depth=0)
+    stc = apply_inverse(evoked, inv)
+    assert (isinstance(stc, VolSourceEstimate))
+    assert stc.data.shape == (2, len(evoked.times))
 
 
 @pytest.mark.slowtest
@@ -1071,6 +1097,51 @@ def test_apply_mne_inverse_epochs():
         apply_inverse_epochs(
             EvokedArray(epochs[0].get_data()[0], epochs.info),
             inverse_operator, 1.)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+@pytest.mark.parametrize('return_generator', (True, False))
+def test_apply_inverse_tfr(return_generator):
+    """Test applying an inverse to time-frequency data."""
+    rng = np.random.default_rng(11)
+    n_epochs = 4
+    info = read_info(fname_raw)
+    inverse_operator = read_inverse_operator(fname_full)
+    freqs = np.arange(8, 10)
+    sfreq = info['sfreq']
+    times = np.arange(sfreq) / sfreq  # make epochs 1s long
+    data = rng.random((n_epochs, len(info.ch_names), freqs.size, times.size))
+    data = data + 1j * data  # make complex to simulate amplitude + phase
+    epochs_tfr = EpochsTFR(info, data, times=times, freqs=freqs)
+    epochs_tfr.apply_baseline((0, 0.5))
+    pick_ori = 'vector'
+
+    with pytest.raises(ValueError, match='Expected 2 inverse operators, '
+                                         'got 3'):
+        apply_inverse_tfr_epochs(epochs_tfr, [inverse_operator] * 3, lambda2)
+
+    # test epochs
+    stcs = apply_inverse_tfr_epochs(
+        epochs_tfr, inverse_operator, lambda2, "dSPM", pick_ori=pick_ori,
+        return_generator=return_generator)
+
+    n_orient = 3 if pick_ori == 'vector' else 1
+    if return_generator:
+        stcs = [[s for s in these_stcs] for these_stcs in stcs]
+    assert_allclose(stcs[0][0].times, times)
+    assert len(stcs) == freqs.size
+    assert all([len(s) == len(epochs_tfr) for s in stcs])
+    assert all([s.data.shape == (inverse_operator['nsource'],
+                                 n_orient, times.size)
+                for these_stcs in stcs for s in these_stcs])
+
+    evoked = EvokedArray(data.mean(axis=(0, 2)), info, epochs_tfr.tmin)
+    stc = apply_inverse(
+        evoked, inverse_operator, lambda2, "dSPM", pick_ori=pick_ori)
+    tfr_stc_data = np.array([[stc.data for stc in tfr_stcs]
+                             for tfr_stcs in stcs])
+    assert_allclose(stc.data, tfr_stc_data.mean(axis=(0, 1)))
 
 
 def test_make_inverse_operator_bads(evoked, noise_cov):

@@ -28,7 +28,7 @@ subject-specific MRI, or projection into a surface, see
 how to visualize surface grid channels on the brain.
 
 Please note that this tutorial requires 3D plotting dependencies,
-see :ref:`quick-start`.
+see :ref:`manual-install`.
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
@@ -39,10 +39,7 @@ see :ref:`quick-start`.
 
 # %%
 
-import os.path as op
-
 import numpy as np
-import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import fetch_fsaverage
@@ -51,7 +48,7 @@ from mne.datasets import fetch_fsaverage
 # which is in MNI space
 misc_path = mne.datasets.misc.data_path()
 sample_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(sample_path, 'subjects')
+subjects_dir = sample_path / 'subjects'
 
 # use mne-python's fsaverage data
 fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
@@ -59,7 +56,7 @@ fetch_fsaverage(subjects_dir=subjects_dir, verbose=True)  # downloads if needed
 # %%
 # Let's load some sEEG data with channel locations and make epochs.
 
-raw = mne.io.read_raw(op.join(misc_path, 'seeg', 'sample_seeg_ieeg.fif'))
+raw = mne.io.read_raw(misc_path / 'seeg' / 'sample_seeg_ieeg.fif')
 
 events, event_id = mne.events_from_annotations(raw)
 epochs = mne.Epochs(raw, events, event_id, detrend=1, baseline=None)
@@ -73,13 +70,13 @@ montage = epochs.get_montage()
 
 # first we need a head to mri transform since the data is stored in "head"
 # coordinates, let's load the mri to head transform and invert it
-this_subject_dir = op.join(misc_path, 'seeg')
+this_subject_dir = misc_path / 'seeg'
 head_mri_t = mne.coreg.estimate_head_mri_t('sample_seeg', this_subject_dir)
 # apply the transform to our montage
 montage.apply_trans(head_mri_t)
 
 # now let's load our Talairach transform and apply it
-mri_mni_t = mne.read_talxfm('sample_seeg', op.join(misc_path, 'seeg'))
+mri_mni_t = mne.read_talxfm('sample_seeg', misc_path / 'seeg')
 montage.apply_trans(mri_mni_t)  # mri to mni_tal (MNI Taliarach)
 
 # for fsaverage, "mri" and "mni_tal" are equivalent and, since
@@ -127,8 +124,7 @@ print(f'Electrodes in the dataset: {electrodes}')
 electrodes = ('LPM', 'LSMA')  # choose two for this example
 for elec in electrodes:
     picks = [ch_name for ch_name in epochs.ch_names if elec in ch_name]
-    fig = plt.figure(num=None, figsize=(8, 8), facecolor='black')
-    mne.viz.plot_channel_labels_circle(labels, colors, picks=picks, fig=fig)
+    fig, ax = mne.viz.plot_channel_labels_circle(labels, colors, picks=picks)
     fig.text(0.3, 0.9, 'Anatomical Labels', color='white')
 
 # %%
@@ -162,8 +158,8 @@ epochs.plot()
 # to visualize source activity on the brain in various different formats.
 
 # get standard fsaverage volume (5mm grid) source space
-fname_src = op.join(subjects_dir, 'fsaverage', 'bem',
-                    'fsaverage-vol-5-src.fif')
+fname_src = (subjects_dir / 'fsaverage' / 'bem' /
+             'fsaverage-vol-5-src.fif')
 vol_src = mne.read_source_spaces(fname_src)
 
 evoked = epochs.average()

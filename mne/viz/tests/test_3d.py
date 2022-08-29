@@ -15,6 +15,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 import pytest
 import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap
+from matplotlib.figure import Figure
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate,
@@ -33,7 +34,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_alignment, Figure3D,
                      plot_brain_colorbar, link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll, _get_cmap
 from mne.utils import requires_nibabel, catch_logging, _record_warnings
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
@@ -152,12 +153,12 @@ def test_plot_evoked_field(renderer):
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
-    for t in ['meg', None]:
+    for t, n_contours in zip(['meg', None], [21, 0]):
         with pytest.warns(RuntimeWarning, match='projection'):
             maps = make_field_map(evoked, trans_fname, subject='sample',
-                                  subjects_dir=subjects_dir, n_jobs=1,
+                                  subjects_dir=subjects_dir, n_jobs=None,
                                   ch_type=t)
-        evoked.plot_field(maps, time=0.1)
+        evoked.plot_field(maps, time=0.1, n_contours=n_contours)
 
 
 def _assert_n_actors(fig, renderer, n_actors):
@@ -541,7 +542,7 @@ def test_process_clim_round_trip():
     # With some positive data
     out = _process_clim('auto', 'auto', True, 1.)
     want = dict(
-        colormap=plt.get_cmap('hot'),
+        colormap=_get_cmap('hot'),
         clim=dict(kind='value', lims=[1, 1, 1]),
         transparent=True,)
     _assert_mapdata_equal(out, want)
@@ -595,8 +596,8 @@ def test_stc_mpl():
                    colormap='mne')
     time_viewer = fig.time_viewer
     _fake_click(time_viewer, time_viewer.axes[0], (0.5, 0.5))  # change t
-    time_viewer.canvas.key_press_event('ctrl+right')
-    time_viewer.canvas.key_press_event('left')
+    _fake_keypress(time_viewer, 'ctrl+right')
+    _fake_keypress(time_viewer, 'left')
     pytest.raises(ValueError, stc.plot, subjects_dir=subjects_dir,
                   hemi='both', subject='sample', backend='matplotlib')
     pytest.raises(ValueError, stc.plot, subjects_dir=subjects_dir,
@@ -619,14 +620,38 @@ def test_plot_dipole_mri_orthoview(coord_frame, idx, show_all, title):
                                  coord_frame=coord_frame, idx=idx,
                                  show_all=show_all, title=title,
                                  mode='orthoview')
-    fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
-    fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
-    fig.canvas.key_press_event('up')
-    fig.canvas.key_press_event('down')
-    fig.canvas.key_press_event('a')  # some other key
+    _fake_scroll(fig, 0.5, 0.5, 1)  # scroll up
+    _fake_scroll(fig, 0.5, 0.5, -1)  # scroll down
+    _fake_keypress(fig, 'up')
+    _fake_keypress(fig, 'down')
+    _fake_keypress(fig, 'a')  # some other key
     ax = fig.add_subplot(211)
     with pytest.raises(TypeError, match='instance of Axes3D'):
         dipoles.plot_locations(trans, 'sample', subjects_dir, ax=ax)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('surf, coord_frame, ax, title', [
+    pytest.param('white', 'mri', None, None, marks=pytest.mark.slowtest),
+    pytest.param(None, 'head', None, None, marks=pytest.mark.slowtest),
+    (None, 'mri_rotated', 'mpl', 'check'),
+])
+def test_plot_dipole_mri_outlines(surf, coord_frame, ax, title):
+    """Test mpl dipole plotting."""
+    dipoles = read_dipole(dip_fname)
+    trans = read_trans(trans_fname)
+    if ax is not None:
+        assert isinstance(ax, str) and ax == 'mpl', ax
+        _, ax = plt.subplots(3, 1)
+        ax = list(ax)
+        with pytest.raises(ValueError, match='but the length is 2'):
+            dipoles.plot_locations(
+                trans, 'sample', subjects_dir, ax=ax[:2], mode='outlines')
+    fig = dipoles.plot_locations(
+        trans=trans, subject='sample', subjects_dir=subjects_dir,
+        mode='outlines', coord_frame=coord_frame, surf=surf, ax=ax,
+        title=title)
+    assert isinstance(fig, Figure)
 
 
 @testing.requires_testing_data

@@ -30,7 +30,6 @@ images of faces and body parts.
 
 # %%
 
-import os.path as op
 import numpy as np
 from pandas import read_csv
 import matplotlib.pyplot as plt
@@ -52,7 +51,7 @@ print(__doc__)
 data_path = visual_92_categories.data_path()
 
 # Define stimulus - trigger mapping
-fname = op.join(data_path, 'visual_stimuli.csv')
+fname = data_path / 'visual_stimuli.csv'
 conds = read_csv(fname)
 print(conds.head(5))
 
@@ -79,9 +78,9 @@ event_id['0/human bodypart/human/not-face/animal/natural']
 ##############################################################################
 # Read MEG data
 n_runs = 4  # 4 for full data (use less to speed up computations)
-fname = op.join(data_path, 'sample_subject_%i_tsss_mc.fif')
-raws = [read_raw_fif(fname % block, verbose='error')
-        for block in range(n_runs)]  # ignore filename warnings
+fnames = [data_path / f'sample_subject_{b}_tsss_mc.fif' for b in range(n_runs)]
+raws = [read_raw_fif(fname, verbose='error', on_split_missing='ignore')
+        for fname in fnames]  # ignore filename warnings
 raw = concatenate_raws(raws)
 
 events = mne.find_events(raw, min_duration=.002)
@@ -162,7 +161,7 @@ fig, ax = plt.subplots(1)
 mds = MDS(2, random_state=0, dissimilarity='precomputed')
 chance = 0.5
 summary = mds.fit_transform(chance - confusion)
-cmap = plt.get_cmap('rainbow')
+cmap = plt.colormaps['rainbow']
 colors = ['r', 'b']
 names = list(conds['condition'].values)
 for color, name in zip(colors, set(names)):

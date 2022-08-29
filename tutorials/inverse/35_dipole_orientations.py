@@ -17,8 +17,8 @@ See :ref:`inverse_orientation_constraints` for related information.
 """
 
 # %%
-# Loading data
-# ------------
+# Load data
+# ---------
 # Load everything we need to perform source localization on the sample dataset.
 
 import mne

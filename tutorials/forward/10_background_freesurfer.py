@@ -88,11 +88,10 @@ overlay of an anatomical parcellation (in this case, the parcellation from
 
 # %%
 
-import os
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
-subjects_dir = os.path.join(sample_data_folder, 'subjects')
+subjects_dir = sample_data_folder / 'subjects'
 Brain = mne.viz.get_brain_class()
 brain = Brain('sample', hemi='lh', surf='pial',
               subjects_dir=subjects_dir, size=(800, 600))

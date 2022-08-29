@@ -10,6 +10,7 @@
 
 from copy import deepcopy
 from contextlib import contextmanager
+from pathlib import Path
 import os
 import os.path as op
 
@@ -22,8 +23,7 @@ from ..io.constants import FIFF, FWD
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
                           _get_trans, _print_coord_trans, _coord_frame_name,
                           Transform, invert_transform)
-from ..utils import logger, verbose, warn, _pl, _validate_type
-from ..parallel import check_n_jobs
+from ..utils import logger, verbose, warn, _pl, _validate_type, _check_fname
 from ..source_space import (_ensure_src, _filter_source_spaces,
                             _make_discrete_source_space, _complete_vol_src)
 from ..source_estimate import VolSourceEstimate
@@ -102,7 +102,7 @@ def _read_coil_def_file(fname, use_registry=True):
             for p in range(npts):
                 # get next non-comment line
                 line = lines.pop()
-                while(line[0] == '#'):
+                while line[0] == '#':
                     line = lines.pop()
                 vals = np.fromstring(line, sep=' ')
                 if len(vals) != 7:
@@ -444,8 +444,10 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
 
+    info_trans = str(trans) if isinstance(trans, Path) else trans
     info = Info(chs=info['chs'], comps=info['comps'],
-                dev_head_t=info['dev_head_t'], mri_file=trans, mri_id=mri_id,
+                dev_head_t=info['dev_head_t'], mri_file=info_trans,
+                mri_id=mri_id,
                 meas_file=info_extra, meas_id=None, working_dir=os.getcwd(),
                 command_line=cmd, bads=info['bads'], mri_head_t=mri_head_t)
     info._update_redundant()
@@ -530,7 +532,7 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
 
 @verbose
 def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
-                          mindist=0.0, ignore_ref=False, n_jobs=1,
+                          mindist=0.0, ignore_ref=False, n_jobs=None, *,
                           verbose=None):
     """Calculate a forward solution for a subject.
 
@@ -538,10 +540,13 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
     ----------
     %(info_str)s
     %(trans)s
-    src : str | instance of SourceSpaces
+
+        .. versionchanged:: 0.19
+            Support for 'fsaverage' argument.
+    src : path-like | instance of SourceSpaces
         If string, should be a source space filename. Can also be an
         instance of loaded or generated SourceSpaces.
-    bem : dict | str
+    bem : path-like | dict
         Filename of the BEM (e.g., "sample-5120-5120-5120-bem-sol.fif") to
         use, or a loaded sphere model (dict).
     meg : bool
@@ -586,14 +591,14 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
         bem_extra = 'instance of ConductorModel'
     else:
         bem_extra = bem
-    if not isinstance(info, (Info, str)):
-        raise TypeError('info should be an instance of Info or string')
-    if isinstance(info, str):
+    _validate_type(info, ('path-like', Info), 'info')
+    if not isinstance(info, Info):
         info_extra = op.split(info)[1]
+        info = _check_fname(info, must_exist=True, overwrite='read',
+                            name='info')
         info = read_info(info, verbose=False)
     else:
         info_extra = 'instance of Info'
-    n_jobs = check_n_jobs(n_jobs)
 
     # Report the setup
     logger.info('Source space          : %s' % src)
@@ -640,7 +645,8 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
 
 
 @verbose
-def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
+def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=None, *,
+                        verbose=None):
     """Convert dipole object to source estimate and calculate forward operator.
 
     The instance of Dipole is converted to a discrete source space,
@@ -685,6 +691,10 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     -----
     .. versionadded:: 0.12.0
     """
+    if isinstance(dipole, list):
+        from ..dipole import _concatenate_dipoles  # To avoid circular import
+        dipole = _concatenate_dipoles(dipole)
+
     # Make copies to avoid mangling original dipole
     times = dipole.times.copy()
     pos = dipole.pos.copy()

@@ -90,7 +90,7 @@ def test_plot_joint():
     axes = plt.subplots(nrows=3)[-1].flatten().tolist()
     evoked.plot_joint(times=[0], picks=[6, 7, 8], ts_args=dict(axes=axes[0]),
                       topomap_args={"axes": axes[1:], "time_unit": "s"})
-    with pytest.raises(ValueError, match='array of length 4'):
+    with pytest.raises(ValueError, match='of length 4'):
         evoked.plot_joint(picks=[6, 7, 8], ts_args=dict(axes=axes[0]),
                           topomap_args=dict(axes=axes[2:]))
     plt.close('all')
@@ -131,6 +131,13 @@ def test_plot_topo():
     # should auto-find layout
     plot_evoked_topo([evoked, evoked], merge_grads=True,
                      background_color='w')
+
+    plot_evoked_topo([evoked, evoked], merge_grads=True,
+                     background_color='w', color='blue')
+
+    with pytest.raises(ValueError, match='must be .*tuple, list, str,.*'):
+        plot_evoked_topo([evoked, evoked], merge_grads=True,
+                         color=np.array(["blue", "red"]))
 
     picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
     picked_evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
@@ -267,6 +274,12 @@ def test_plot_tfr_topo():
     data = np.random.RandomState(0).randn(len(epochs.ch_names),
                                           n_freqs, len(epochs.times))
     tfr = AverageTFR(epochs.info, data, epochs.times, np.arange(n_freqs), nave)
+    plt.close('all')
+    fig = tfr.plot_topo(baseline=(None, 0), mode='ratio',
+                        title='Average power', vmin=0., vmax=14.)
+
+    # test complex
+    tfr.data = tfr.data * (1 + 1j)
     plt.close('all')
     fig = tfr.plot_topo(baseline=(None, 0), mode='ratio',
                         title='Average power', vmin=0., vmax=14.)

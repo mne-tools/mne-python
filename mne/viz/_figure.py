@@ -67,7 +67,7 @@ class BrowserBase(ABC):
             raise TypeError('Expected an instance of Raw, Epochs, or ICA, '
                             f'got {type(inst)}.')
 
-        logger.info(f'Opening {self.mne.instance_type}-browser...')
+        logger.debug(f'Opening {self.mne.instance_type} browser...')
 
         self.mne.ica_type = None
         if self.mne.instance_type == 'ica':
@@ -394,7 +394,9 @@ class BrowserBase(ABC):
 
     def _close(self, event):
         """Handle close events (via keypress or window [x])."""
-        logger.info(f'Closing {self.mne.instance_type}-browser...')
+        from matplotlib.pyplot import close
+
+        logger.debug(f'Closing {self.mne.instance_type} browser...')
         # write out bad epochs (after converting epoch numbers to indices)
         if self.mne.instance_type == 'epochs':
             bad_ixs = np.in1d(self.mne.inst.selection,
@@ -420,6 +422,7 @@ class BrowserBase(ABC):
         # Clean up child figures (don't pop(), child figs remove themselves)
         while len(self.mne.child_figs):
             fig = self.mne.child_figs[-1]
+            close(fig)
             self._close_event(fig)
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -555,8 +558,7 @@ class BrowserBase(ABC):
         return fig
 
     def _close_event(self, fig):
-        # This method is a fix for mpl issue #18609, which still seems to
-        # be a problem with matplotlib==3.4.
+        """Look at _close_event in mne.fixes.py for why this exists."""
         pass
 
     def fake_keypress(self, key, fig=None):  # noqa: D400
@@ -626,6 +628,9 @@ def _get_browser(show, block, **kwargs):
     kwargs['splash'] = True if show else False
     if kwargs.get('theme', None) is None:
         kwargs['theme'] = get_config('MNE_BROWSER_THEME', 'auto')
+    if kwargs.get('overview_mode', None) is None:
+        kwargs['overview_mode'] = get_config(
+            'MNE_BROWSER_OVERVIEW_MODE', 'channels')
 
     # Initialize browser backend
     backend_name = get_browser_backend()

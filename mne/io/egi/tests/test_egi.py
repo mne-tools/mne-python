@@ -14,7 +14,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 import pytest
 from scipy import io as sio
 
-from mne import find_events, pick_types
+from mne import find_events, pick_types, pick_channels
 from mne.io import read_raw_egi, read_evokeds_mff, read_raw_fif
 from mne.io.constants import FIFF
 from mne.io.egi.egi import _combine_triggers
@@ -25,7 +25,8 @@ from mne.datasets.testing import data_path, requires_testing_data
 base_dir = op.join(op.dirname(op.abspath(__file__)), 'data')
 egi_fname = op.join(base_dir, 'test_egi.raw')
 egi_txt_fname = op.join(base_dir, 'test_egi.txt')
-egi_path = op.join(data_path(download=False), 'EGI')
+testing_path = data_path(download=False)
+egi_path = op.join(testing_path, 'EGI')
 egi_mff_fname = op.join(egi_path, 'test_egi.mff')
 egi_mff_pns_fname = op.join(egi_path, 'test_egi_pns.mff')
 egi_pause_fname = op.join(egi_path, 'test_egi_multiepoch_paused.mff')
@@ -126,23 +127,33 @@ def test_egi_mff_pause_chunks(fname, tmp_path):
 @requires_testing_data
 def test_io_egi_mff():
     """Test importing EGI MFF simple binary files."""
+    # want vars for n chans
+    n_ref = 1
+    n_eeg = 128
+    n_card = 3
+
     raw = read_raw_egi(egi_mff_fname, include=None)
     assert ('RawMff' in repr(raw))
+    assert raw.orig_format == "single"
     include = ['DIN1', 'DIN2', 'DIN3', 'DIN4', 'DIN5', 'DIN7']
     raw = _test_raw_reader(read_raw_egi, input_fname=egi_mff_fname,
                            include=include, channel_naming='EEG %03d',
                            test_scaling=False,  # XXX probably some bug
                            )
     assert raw.info['sfreq'] == 1000.
-    # The ref here is redundant, but we don't currently have a way in
-    # DigMontage to mark that a given channel is actually the ref so...
-    assert len(raw.info['dig']) == 133  # 129 eeg + 1 ref + 3 cardinal points
-    assert raw.info['dig'][0]['ident'] == 1  # EEG channel E1
-    assert raw.info['dig'][3]['ident'] == 0  # Reference channel
-    assert raw.info['dig'][-1]['ident'] == 129  # Reference channel
-    ref_loc = raw.info['dig'][3]['r']
+    assert len(raw.info['dig']) == n_card + n_eeg + n_ref
+    assert raw.info['dig'][0]['ident'] == FIFF.FIFFV_POINT_LPA
+    assert raw.info['dig'][0]['kind'] == FIFF.FIFFV_POINT_CARDINAL
+    assert raw.info['dig'][3]['kind'] == FIFF.FIFFV_POINT_EEG
+    assert raw.info['dig'][-1]['ident'] == 129
+    assert raw.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
+    ref_loc = raw.info['dig'][-1]['r']
     eeg_picks = pick_types(raw.info, eeg=True)
-    assert len(eeg_picks) == 129
+    assert len(eeg_picks) == n_eeg + n_ref  # 129
+    # ref channel doesn't store its own loc as ref location
+    # so don't test it
+    ref_pick = pick_channels(raw.info['ch_names'], ['VREF'])
+    eeg_picks = np.setdiff1d(eeg_picks, ref_pick)
     for i in eeg_picks:
         loc = raw.info['chs'][i]['loc']
         assert loc[:3].any(), loc[:3]
@@ -150,8 +161,9 @@ def test_io_egi_mff():
     assert raw.info['device_info']['type'] == 'HydroCel GSN 128 1.0'
 
     assert 'eeg' in raw
+    # test our custom channel naming logic functionality
     eeg_chan = [c for c in raw.ch_names if 'EEG' in c]
-    assert len(eeg_chan) == 129
+    assert len(eeg_chan) == n_eeg  # 128: VREF will not match in comprehension
     assert 'STI 014' in raw.ch_names
 
     events = find_events(raw, stim_channel='STI 014')
@@ -197,7 +209,7 @@ def test_io_egi():
                            )
 
     assert 'eeg' in raw
-
+    assert raw.orig_format == "single"
     eeg_chan = [c for c in raw.ch_names if c.startswith('E')]
     assert len(eeg_chan) == 256
     picks = pick_types(raw.info, eeg=True)
@@ -257,7 +269,7 @@ def test_io_egi_pns_mff(tmp_path):
         'Resp_Effort_Abdomen',
         'EMGLeg'
     ]
-    egi_fname_mat = op.join(data_path(), 'EGI', 'test_egi_pns.mat')
+    egi_fname_mat = op.join(testing_path, 'EGI', 'test_egi_pns.mat')
     mc = sio.loadmat(egi_fname_mat)
     for ch_name, ch_idx, mat_name in zip(pns_names, pns_chans, mat_names):
         print('Testing {}'.format(ch_name))
@@ -281,14 +293,14 @@ def test_io_egi_pns_mff(tmp_path):
 @pytest.mark.parametrize('preload', (True, False))
 def test_io_egi_pns_mff_bug(preload):
     """Test importing EGI MFF with PNS data (BUG)."""
-    egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi_pns_bug.mff')
+    egi_fname_mff = op.join(testing_path, 'EGI', 'test_egi_pns_bug.mff')
     with pytest.warns(RuntimeWarning, match='EGI PSG sample bug'):
         raw = read_raw_egi(egi_fname_mff, include=None, preload=preload,
                            verbose='warning')
     assert len(raw.annotations) == 1
     assert_allclose(raw.annotations.duration, [0.004])
     assert_allclose(raw.annotations.onset, [13.948])
-    egi_fname_mat = op.join(data_path(), 'EGI', 'test_egi_pns.mat')
+    egi_fname_mat = op.join(testing_path, 'EGI', 'test_egi_pns.mat')
     mc = sio.loadmat(egi_fname_mat)
     pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)
     pns_names = ['Resp. Temperature'[:15],
@@ -321,26 +333,32 @@ def test_io_egi_pns_mff_bug(preload):
 @requires_testing_data
 def test_io_egi_crop_no_preload():
     """Test crop non-preloaded EGI MFF data (BUG)."""
-    egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi.mff')
-    raw = read_raw_egi(egi_fname_mff, preload=False)
+    raw = read_raw_egi(egi_mff_fname, preload=False)
     raw.crop(17.5, 20.5)
     raw.load_data()
-    raw_preload = read_raw_egi(egi_fname_mff, preload=True)
+    raw_preload = read_raw_egi(egi_mff_fname, preload=True)
     raw_preload.crop(17.5, 20.5)
     raw_preload.load_data()
     assert_allclose(raw._data, raw_preload._data)
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @requires_version('mffpy', '0.5.7')
 @requires_testing_data
 @pytest.mark.parametrize('idx, cond, tmax, signals, bads', [
     (0, 'Category 1', 0.016, egi_txt_evoked_cat1_fname,
      ['E8', 'E11', 'E17', 'E28', 'ECG']),
     (1, 'Category 2', 0.0, egi_txt_evoked_cat2_fname,
-     ['E257', 'EMG'])
+     ['VREF', 'EMG'])
 ])
 def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     """Test reading evoked MFF file."""
+    # expected n channels
+    n_eeg = 256
+    n_ref = 1
+    n_card = 3
+    n_pns = 2  # 1 ECG + 1 EMG
+
     # Test reading all conditions from evokeds
     evokeds = read_evokeds_mff(egi_mff_evoked_fname)
     assert len(evokeds) == 2
@@ -379,20 +397,21 @@ def test_io_egi_evokeds_mff(idx, cond, tmax, signals, bads):
     assert object_diff(evoked_cond.info, evoked_idx.info) == ''
     assert evoked_cond.info['description'] == cond
     assert evoked_cond.info['bads'] == bads
-    assert len(evoked_cond.info['ch_names']) == 259
+    assert len(evoked_cond.info['ch_names']) == n_eeg + n_ref + n_pns  # 259
     assert 'ECG' in evoked_cond.info['ch_names']
     assert 'EMG' in evoked_cond.info['ch_names']
     assert 'ecg' in evoked_cond
     assert 'emg' in evoked_cond
     pick_eeg = pick_types(evoked_cond.info, eeg=True, exclude=[])
-    assert len(pick_eeg) == 257
-    assert evoked_cond.info['nchan'] == 259
+    assert len(pick_eeg) == n_eeg + n_ref  # 257
+    assert evoked_cond.info['nchan'] == n_eeg + n_ref + n_pns  # 259
     assert evoked_cond.info['sfreq'] == 250.0
     assert not evoked_cond.info['custom_ref_applied']
-    assert len(evoked_cond.info['dig']) == 261
+    assert len(evoked_cond.info['dig']) == n_card + n_eeg + n_ref
     assert evoked_cond.info['device_info']['type'] == 'HydroCel GSN 256 1.0'
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @requires_version('mffpy', '0.5.7')
 @requires_testing_data
 def test_read_evokeds_mff_bad_input():
@@ -456,3 +475,20 @@ def test_meas_date(fname, timestamp, utc_offset):
     assert raw.info['meas_date'] == measdate
     assert raw.info['utc_offset'] == utc_offset
     assert local_utc_diff == int(utc_offset[:-2])
+
+
+@requires_testing_data
+@pytest.mark.parametrize('fname, standard_montage', [
+    (egi_mff_fname, 'GSN-HydroCel-129'),  # 129 chan EGI file
+    (egi_mff_pns_fname, 'GSN-HydroCel-257')  # 257 chan EGI file
+])
+def test_set_standard_montage(fname, standard_montage):
+    """Test setting a standard montage."""
+    raw = read_raw_egi(fname, verbose='warning')
+    dig_before_mon = raw.info['dig']
+
+    raw.set_montage(standard_montage, match_alias=True, on_missing='ignore')
+    dig_after_mon = raw.info['dig']
+
+    # No dig entries should have been dropped while setting montage
+    assert len(dig_before_mon) == len(dig_after_mon)

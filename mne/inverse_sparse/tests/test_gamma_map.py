@@ -130,16 +130,14 @@ def test_gamma_map_vol_sphere():
                                     eeg=False, meg=True)
 
     alpha = 0.5
-    pytest.raises(ValueError, gamma_map, evoked, fwd, cov, alpha,
-                  loose=0, return_residual=False)
-
-    pytest.raises(ValueError, gamma_map, evoked, fwd, cov, alpha,
-                  loose=0.2, return_residual=False)
-
     stc = gamma_map(evoked, fwd, cov, alpha, tol=1e-4,
                     xyz_same_gamma=False, update_mode=2,
                     return_residual=False)
+    assert_array_almost_equal(stc.times, evoked.times, 5)
 
+    # Computing inverse with restricted orientations should also work, since
+    # we have a discrete source space.
+    stc = gamma_map(evoked, fwd, cov, alpha, loose=0.2, return_residual=False)
     assert_array_almost_equal(stc.times, evoked.times, 5)
 
     # Compare orientation obtained using fit_dipole and gamma_map

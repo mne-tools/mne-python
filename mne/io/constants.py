@@ -202,6 +202,8 @@ FIFF.FIFFV_EXCI_CH      = 920  # flux excitation channel used to be a stimulus c
 FIFF.FIFFV_DIPOLE_WAVE  = 1000  # Dipole time curve (xplotter/xfit)
 FIFF.FIFFV_GOODNESS_FIT = 1001  # Goodness of fit (xplotter/xfit)
 FIFF.FIFFV_FNIRS_CH     = 1100  # Functional near-infrared spectroscopy
+FIFF.FIFFV_TEMPERATURE_CH = 1200  # Functional near-infrared spectroscopy
+FIFF.FIFFV_GALVANIC_CH  = 1300  # Galvanic skin response
 _ch_kind_named = {key: key for key in (
     FIFF.FIFFV_BIO_CH,
     FIFF.FIFFV_MEG_CH,
@@ -223,6 +225,8 @@ _ch_kind_named = {key: key for key in (
     FIFF.FIFFV_DIPOLE_WAVE,
     FIFF.FIFFV_GOODNESS_FIT,
     FIFF.FIFFV_FNIRS_CH,
+    FIFF.FIFFV_GALVANIC_CH,
+    FIFF.FIFFV_TEMPERATURE_CH,
 )}
 
 #
@@ -839,7 +843,7 @@ FIFF.FIFF_UNIT_C   = 106  # coulomb
 FIFF.FIFF_UNIT_V   = 107  # volt
 FIFF.FIFF_UNIT_F   = 108  # farad
 FIFF.FIFF_UNIT_OHM = 109  # ohm
-FIFF.FIFF_UNIT_MHO = 110  # one per ohm
+FIFF.FIFF_UNIT_S   = 110  # Siemens (same as Moh, what fiff-constants calls it)
 FIFF.FIFF_UNIT_WB  = 111  # weber
 FIFF.FIFF_UNIT_T   = 112  # tesla
 FIFF.FIFF_UNIT_H   = 113  # Henry
@@ -861,7 +865,7 @@ _ch_unit_named = {key: key for key in(
     FIFF.FIFF_UNIT_CD, FIFF.FIFF_UNIT_MOL_M3, FIFF.FIFF_UNIT_HZ,
     FIFF.FIFF_UNIT_N, FIFF.FIFF_UNIT_PA, FIFF.FIFF_UNIT_J, FIFF.FIFF_UNIT_W,
     FIFF.FIFF_UNIT_C, FIFF.FIFF_UNIT_V, FIFF.FIFF_UNIT_F, FIFF.FIFF_UNIT_OHM,
-    FIFF.FIFF_UNIT_MHO, FIFF.FIFF_UNIT_WB, FIFF.FIFF_UNIT_T, FIFF.FIFF_UNIT_H,
+    FIFF.FIFF_UNIT_S, FIFF.FIFF_UNIT_WB, FIFF.FIFF_UNIT_T, FIFF.FIFF_UNIT_H,
     FIFF.FIFF_UNIT_CEL, FIFF.FIFF_UNIT_LM, FIFF.FIFF_UNIT_LX,
     FIFF.FIFF_UNIT_V_M2, FIFF.FIFF_UNIT_T_M, FIFF.FIFF_UNIT_AM,
     FIFF.FIFF_UNIT_AM_M2, FIFF.FIFF_UNIT_AM_M3,
@@ -1056,7 +1060,11 @@ CHANNEL_LOC_ALIASES = {
     'T5': 'T9',
     'T6': 'T10',
     'M1': 'TP9',
-    'M2': 'TP10'
+    'M2': 'TP10',
+    # EGI ref chan is named VREF/Vertex Ref.
+    # In the standard montages for EGI, the ref is named Cz
+    'VREF': 'Cz',
+    'Vertex Reference': 'Cz'
     # add a comment here (with doi of a published source) above any new
     # aliases, as they are added
 }

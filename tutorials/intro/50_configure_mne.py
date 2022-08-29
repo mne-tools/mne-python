@@ -226,7 +226,21 @@ with mne.use_log_level('debug'):
 # Python session, it will fall back to the value of
 # ``mne.get_config('MNE_LOGGING_LEVEL')``.
 #
+# Getting information about your system
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# You can also get information about what ``mne`` imports as dependencies from
+# your system. This can be done via the command line with:
 #
+# .. code-block:: console
+#
+#    $ mne sys_info
+#
+# Or you can use :func:`mne.sys_info` directly, which prints to ``stdout`` by
+# default:
+
+mne.sys_info()
+
+# %%
 # .. LINKS
 #
 # .. _json: https://en.wikipedia.org/wiki/JSON

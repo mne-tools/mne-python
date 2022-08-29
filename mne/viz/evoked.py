@@ -13,6 +13,7 @@
 
 from copy import deepcopy
 from functools import partial
+from itertools import cycle
 from numbers import Integral
 
 import numpy as np
@@ -31,7 +32,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _setup_plot_projector, _prepare_joint_axes, _check_option,
                     _set_title_multiple_electrodes, _check_time_unit,
                     _plot_masked_image, _trim_ticks, _set_window_title,
-                    _prop_kw)
+                    _prop_kw, _get_cmap)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
                      _check_if_nan, _check_ch_locs, fill_doc, _is_numeric,
                      _to_rgb)
@@ -192,16 +193,19 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
     _draw_outlines(ax, outlines)
 
 
-def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
-                 units, scalings, titles, axes, plot_type, cmap=None,
+def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
+                 ylim=None, proj=False, xlim='tight', hline=None,
+                 units=None, scalings=None, titles=None, axes=None,
+                 plot_type='butterfly', cmap=None,
                  gfp=False, window_title=None, spatial_colors=False,
                  selectable=True, zorder='unsorted',
                  noise_cov=None, colorbar=True, mask=None, mask_style=None,
                  mask_cmap=None, mask_alpha=.25, time_unit='s',
-                 show_names=False, group_by=None, sphere=None):
+                 show_names=False, group_by=None, sphere=None, *,
+                 highlight=None, draw=True):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
-    Extra param is:
+    Extra params are:
 
     plot_type : str, value ('butterfly' | 'image')
         The type of graph to plot: 'butterfly' plots each channel as a line
@@ -209,6 +213,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         color depicts the amplitude of each channel at a given time point
         (x axis: time, y axis: channel). In 'image' mode, the plot is not
         interactive.
+    draw : bool
+        If True, draw at the end.
     """
     import matplotlib.pyplot as plt
 
@@ -234,10 +240,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                                  "found in `axes`")
             ax = axes[sel]
             # the unwieldy dict comp below defaults the title to the sel
-            titles = ({channel_type(evoked.info, idx): sel
-                       for idx in group_by[sel]} if titles is None else titles)
+            title = ({channel_type(evoked.info, idx): sel
+                      for idx in group_by[sel]} if titles is None else titles)
             _plot_evoked(evoked, group_by[sel], exclude, unit, show, ylim,
-                         proj, xlim, hline, units, scalings, titles,
+                         proj, xlim, hline, units, scalings, title,
                          ax, plot_type, cmap=cmap, gfp=gfp,
                          window_title=window_title,
                          selectable=selectable, noise_cov=noise_cov,
@@ -245,7 +251,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                          mask_style=mask_style, mask_cmap=mask_cmap,
                          mask_alpha=mask_alpha, time_unit=time_unit,
                          show_names=show_names,
-                         sphere=sphere)
+                         sphere=sphere, draw=False)
             if remove_xlabels and not _is_last_row(ax):
                 ax.set_xticklabels([])
                 ax.set_xlabel("")
@@ -271,6 +277,15 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                            ' for interactive SSP selection.')
 
     _check_option('gfp', gfp, [True, False, 'only'])
+
+    if highlight is not None:
+        highlight = np.array(highlight, dtype=float)
+        highlight = np.atleast_2d(highlight)
+        if highlight.shape[1] != 2:
+            raise ValueError(
+                f'"highlight" must be reshapable into a 2D array with shape '
+                f'(n, 2). Got {highlight.shape}.'
+            )
 
     scalings = _handle_default('scalings', scalings)
     titles = _handle_default('titles', titles)
@@ -350,8 +365,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                     units, scalings, hline, gfp, types, zorder, xlim, ylim,
                     times, bad_ch_idx, titles, ch_types_used, selectable,
                     False, line_alpha=1., nave=evoked.nave,
-                    time_unit=time_unit, sphere=sphere)
-        plt.setp(axes, xlabel='Time (%s)' % time_unit)
+                    time_unit=time_unit, sphere=sphere, highlight=highlight)
+        plt.setp(axes, xlabel=f'Time ({time_unit})')
 
     elif plot_type == 'image':
         for ai, (ax, this_type) in enumerate(zip(axes, ch_types_used)):
@@ -373,7 +388,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
         _draw_proj_checkbox(None, params)
 
     plt.setp(fig.axes[:len(ch_types_used) - 1], xlabel='')
-    fig.canvas.draw()  # for axes plots update axes.
+    if draw:
+        fig.canvas.draw()  # for axes plots update axes.
     plt_show(show)
     return fig
 
@@ -381,7 +397,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 scalings, hline, gfp, types, zorder, xlim, ylim, times,
                 bad_ch_idx, titles, ch_types_used, selectable, psd,
-                line_alpha, nave, time_unit, sphere):
+                line_alpha, nave, time_unit, sphere, *, highlight):
     """Plot data as butterfly plot."""
     from matplotlib import patheffects, pyplot as plt
     from matplotlib.widgets import SpanSelector
@@ -477,6 +493,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                                 linewidth=0.5)[0])
                     line_list[-1].set_pickradius(3.)
 
+            # Plot GFP / RMS
             if gfp:
                 if gfp in [True, 'only']:
                     if this_type == 'eeg':
@@ -529,7 +546,21 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 for h in hline:
                     c = ('grey' if spatial_colors is True else 'r')
                     ax.axhline(h, linestyle='--', linewidth=2, color=c)
+
+            # Plot highlights
+            if highlight is not None:
+                this_ylim = ax.get_ylim() if (ylim is None or this_type not in
+                                              ylim.keys()) else ylim[this_type]
+                for this_highlight in highlight:
+                    ax.fill_betweenx(
+                        this_ylim, this_highlight[0], this_highlight[1],
+                        facecolor='orange', alpha=0.15, zorder=99
+                    )
+                # Put back the y limits as fill_betweenx messes them up
+                ax.set_ylim(this_ylim)
+
         lines.append(line_list)
+
     if selectable:
         for ax in np.array(axes)[selectables]:
             if len(ax.lines) == 1:
@@ -626,7 +657,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
 
     ylabel = 'Channels' if show_names else 'Channel (index)'
     t = titles[this_type] + ' (%d channel%s' % (len(data), _pl(data)) + t_end
-    ax.set(ylabel=ylabel, xlabel='Time (%s)' % (time_unit,), title=t)
+    ax.set(ylabel=ylabel, xlabel=f'Time ({time_unit})', title=t)
     _add_nave(ax, nave)
 
     yticks = np.arange(len(picks))
@@ -642,7 +673,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 scalings=None, titles=None, axes=None, gfp=False,
                 window_title=None, spatial_colors=False, zorder='unsorted',
                 selectable=True, noise_cov=None, time_unit='s', sphere=None,
-                verbose=None):
+                *, highlight=None, verbose=None):
     """Plot evoked data using butterfly plots.
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -743,11 +774,22 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         consider using :meth:`mne.Evoked.plot_white`.
 
         .. versionadded:: 0.16.0
-    time_unit : str
-        The units for the time axis, can be "ms" or "s" (default).
+    %(time_unit)s
 
         .. versionadded:: 0.16
     %(sphere_topomap_auto)s
+    highlight : array-like of float, shape(2,) | array-like of float, shape (n, 2) | None
+        Segments of the data to highlight by means of a light-yellow
+        background color. Can be used to put visual emphasis on certain
+        time periods. The time periods must be specified as ``array-like``
+        objects in the form of ``(t_start, t_end)`` in the unit given by the
+        ``time_unit`` parameter.
+        Multiple time periods can be specified by passing an ``array-like``
+        object of individual time periods (e.g., for 3 time periods, the shape
+        of the passed object would be ``(3, 2)``. If ``None``, no highlighting
+        is applied.
+
+        .. versionadded:: 1.1
     %(verbose)s
 
     Returns
@@ -758,14 +800,14 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     See Also
     --------
     mne.viz.plot_evoked_white
-    """
+    """  # noqa: E501
     return _plot_evoked(
         evoked=evoked, picks=picks, exclude=exclude, unit=unit, show=show,
         ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
         scalings=scalings, titles=titles, axes=axes, plot_type="butterfly",
         gfp=gfp, window_title=window_title, spatial_colors=spatial_colors,
         selectable=selectable, zorder=zorder, noise_cov=noise_cov,
-        time_unit=time_unit, sphere=sphere)
+        time_unit=time_unit, sphere=sphere, highlight=highlight)
 
 
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
@@ -863,13 +905,25 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945,
         fig_facecolor = background_color
         axis_facecolor = background_color
         font_color = 'k'
-    if color is None:
+
+    if isinstance(color, (tuple, list)):
+        if len(color) != len(evoked):
+            raise ValueError('Lists of evoked objects and colors'
+                             ' must have the same length')
+    elif color is None:
         if dark_background:
             color = ['w'] + _get_color_list()
         else:
             color = _get_color_list()
         color = color * ((len(evoked) % len(color)) + 1)
         color = color[:len(evoked)]
+    else:
+        if not isinstance(color, str):
+            raise ValueError(
+                'color must be of type tuple, list, str, or None.'
+            )
+        color = cycle([color])
+
     return _plot_evoked_topo(evoked=evoked, layout=layout,
                              layout_scale=layout_scale, color=color,
                              border=border, ylim=ylim, scalings=scalings,
@@ -1222,7 +1276,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
                     label=label if n_columns > 1 else title,
                     color=color if n_columns > 1 else ch_colors[color_ch],
                     lw=0.5)
-            ax.set(xlabel='Time (%s)' % (time_unit,), ylabel=r'GFP ($\chi^2$)',
+            ax.set(xlabel=f'Time ({time_unit})', ylabel=r'GFP ($\chi^2$)',
                    xlim=[times[0], times[-1]], ylim=(0, 10))
             ax.axhline(1, color='red', linestyle='--', lw=2.)
             if n_columns > 1:
@@ -1458,7 +1512,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                        proj=False, hline=None, units=None, scalings=None,
                        titles=None, gfp=False, window_title=None,
                        spatial_colors=True, zorder='std',
-                       sphere=None)
+                       sphere=None, draw=False)
     ts_args_def.update(ts_args)
     _plot_evoked(evoked, axes=ts_ax, show=False, plot_type='butterfly',
                  exclude=[], **ts_args_def)
@@ -1470,7 +1524,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
 
     # XXX BUG destroys ax -> fig assignment if title & axes are passed
     if title is not None:
-        title_ax = plt.subplot(4, 3, 2)
+        title_ax = fig.add_subplot(4, 3, 2)
         if title == '':
             title = old_title
         title_ax.text(.5, .5, title, transform=title_ax.transAxes,
@@ -1614,7 +1668,7 @@ def _validate_colors_pce(colors, cmap, conditions, tags):
                         'None or a (list or dict) of (ints or floats); got {}.'
                         .format(', '.join(color_vals)))
     # convert provided ints to sequential, rank-ordered ints
-    all_int = all([isinstance(_color, Integral) for _color in color_vals])
+    all_int = all(isinstance(_color, Integral) for _color in color_vals)
     if all_int:
         colors = deepcopy(colors)
         ranks = {val: ix for ix, val in enumerate(sorted(set(color_vals)))}
@@ -1634,17 +1688,14 @@ def _validate_colors_pce(colors, cmap, conditions, tags):
 
 def _validate_cmap_pce(cmap, colors, color_vals):
     """Check and assign colormap for plot_compare_evokeds."""
-    from matplotlib.cm import get_cmap
     from matplotlib.colors import Colormap
-    all_int = all([isinstance(_color, Integral) for _color in color_vals])
-    lut = len(color_vals) if all_int else None
+    all_int = all(isinstance(_color, Integral) for _color in color_vals)
     colorbar_title = ''
     if isinstance(cmap, (list, tuple, np.ndarray)) and len(cmap) == 2:
         colorbar_title, cmap = cmap
-    if isinstance(cmap, str):
-        cmap = get_cmap(cmap, lut=lut)
-    elif isinstance(cmap, Colormap) and all_int:
-        cmap = cmap._resample(lut)
+    if isinstance(cmap, (str, Colormap)):
+        lut = len(color_vals) if all_int else None
+        cmap = _get_cmap(cmap, lut)
     return cmap, colorbar_title
 
 
@@ -1851,7 +1902,7 @@ def _draw_legend_pce(legend, split_legend, styles, linestyles, colors, cmap,
 
 
 def _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis, invert_y,
-                   vlines, tmin, tmax, unit, skip_axlabel=True):
+                   vlines, tmin, tmax, unit, skip_axlabel=True, time_unit='s'):
     """Position, draw, and truncate axes for plot_compare_evokeds."""
     # avoid matplotlib errors
     if ymin == ymax:
@@ -1882,7 +1933,8 @@ def _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis, invert_y,
             raise ValueError('"truncate_yaxis" must be bool or '
                              '"auto", got {}'.format(truncate_yaxis))
     _setup_ax_spines(ax, vlines, tmin, tmax, ybounds[0], ybounds[1], invert_y,
-                     unit, truncate_xaxis, trunc_y, skip_axlabel)
+                     unit, truncate_xaxis, trunc_y, skip_axlabel,
+                     time_unit=time_unit)
 
 
 def _get_data_and_ci(evoked, combine, combine_func, picks, scaling=1,
@@ -1982,7 +2034,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
                          truncate_xaxis=True, ylim=None, invert_y=False,
                          show_sensors=None, legend=True,
                          split_legend=None, axes=None, title=None, show=True,
-                         combine=None, sphere=None):
+                         combine=None, sphere=None, time_unit='s'):
     """Plot evoked time courses for one or more conditions and/or channels.
 
     Parameters
@@ -2046,9 +2098,9 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         and confidence bands. If not ``None``, ints or floats in the ``colors``
         parameter are mapped to steps or percentiles (respectively) along the
         colormap. If ``cmap`` is a :class:`str`, it will be passed to
-        :func:`matplotlib.cm.get_cmap`; if ``cmap`` is a tuple, its first
+        ``matplotlib.colormaps``; if ``cmap`` is a tuple, its first
         element will be used as a string to label the colorbar, and its
-        second element will be passed to :func:`matplotlib.cm.get_cmap` (unless
+        second element will be passed to ``matplotlib.colormaps`` (unless
         it is already an instance of :class:`~matplotlib.colors.Colormap`).
 
         .. versionchanged:: 0.19
@@ -2131,6 +2183,9 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         ``axes='topo'``, in which cases no combining is performed. Defaults to
         ``None``.
     %(sphere_topomap_auto)s
+    %(time_unit)s
+
+        .. versionadded:: 1.1
 
     Returns
     -------
@@ -2236,6 +2291,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     times = one_evoked.times
     info = one_evoked.info
     sphere = _check_sphere(sphere, info)
+    time_unit, times = _check_time_unit(time_unit, one_evoked.times)
     tmin, tmax = times[0], times[-1]
     # set some defaults
     if ylim is None:
@@ -2249,8 +2305,8 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     picks, picked_types = _picks_to_idx(info, picks, return_kind=True)
     # some things that depend on picks:
     ch_names = np.array(one_evoked.ch_names)[picks].tolist()
-    ch_types = list(_get_channel_types(info, picks=picks, unique=True)
-                    .intersection(_DATA_CH_TYPES_SPLIT + ('misc',)))  # miscICA
+    ch_types = [t for t in _get_channel_types(info, picks=picks, unique=True)
+                if t in _DATA_CH_TYPES_SPLIT + ('misc',)]  # miscICA
     picks_by_type = channel_indices_by_type(info, picks)
     # discard picks from non-data channels (e.g., ref_meg)
     good_picks = sum([picks_by_type[ch_type] for ch_type in ch_types], [])
@@ -2453,7 +2509,8 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         # draw axes & vlines
         skip_axlabel = do_topo and (idx != -1)
         _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis,
-                       invert_y, vlines, tmin, tmax, units, skip_axlabel)
+                       invert_y, vlines, tmin, tmax, units, skip_axlabel,
+                       time_unit)
     # add inset scalp plot showing location of sensors picked
     if show_sensors:
         _validate_type(show_sensors, (np.int64, bool, str, type(None)),

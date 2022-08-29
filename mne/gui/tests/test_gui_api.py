@@ -5,16 +5,25 @@
 import sys
 import pytest
 
+from mne.utils import _check_qt_version
+
 # This will skip all tests in this scope
 pytestmark = pytest.mark.skipif(
     sys.platform.startswith('win'), reason='nbexec does not work on Windows')
 
 
-def test_gui_api(renderer_notebook, nbexec):
+def test_gui_api(renderer_notebook, nbexec, n_warn=0):
     """Test GUI API."""
     import contextlib
     import mne
     import warnings
+    import sys
+    try:
+        # Function
+        n_warn  # noqa
+    except Exception:
+        # Notebook standalone mode
+        n_warn = 0
     # nbexec does not expose renderer_notebook so I use a
     # temporary variable to synchronize the tests
     try:
@@ -25,6 +34,8 @@ def test_gui_api(renderer_notebook, nbexec):
     else:
         backend = 'qt'
     renderer = mne.viz.backends.renderer._get_renderer(size=(300, 300))
+
+    # theme
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         renderer._window_set_theme('/does/not/exist')
@@ -33,7 +44,19 @@ def test_gui_api(renderer_notebook, nbexec):
         assert 'not found' in str(w[0].message), str(w[0].message)
     else:
         assert len(w) == 0
-    renderer._window_set_theme('dark')
+    with mne.utils._record_warnings() as w:
+        renderer._window_set_theme('dark')
+    if sys.platform != 'darwin':  # sometimes this is fine
+        assert len(w) == n_warn
+
+    # window without 3d plotter
+    if backend == 'qt':
+        window = renderer._window_create()
+        widget = renderer._window_create()
+        central_layout = renderer._layout_create(orientation='grid')
+        renderer._layout_add_widget(central_layout, widget, row=0, col=0)
+        renderer._window_initialize(window=window,
+                                    central_layout=central_layout)
 
     from unittest.mock import Mock
     mock = Mock()
@@ -147,7 +170,7 @@ def test_gui_api(renderer_notebook, nbexec):
         rng=['foo', 'bar'],
         callback=mock,
     )
-    with _check_widget_trigger(widget, mock, 'foo', 'bar', get_value=False):
+    with _check_widget_trigger(widget, mock, None, None, get_value=False):
         widget.set_value(1, 'bar')
     assert widget.get_value(0) == 'foo'
     assert widget.get_value(1) == 'bar'
@@ -182,7 +205,6 @@ def test_gui_api(renderer_notebook, nbexec):
         name='',
         desc='',
         func=mock,
-        input_text_widget=False,
     )
     widget = renderer._dock_add_file_button(
         name='',
@@ -190,10 +212,7 @@ def test_gui_api(renderer_notebook, nbexec):
         func=mock,
         save=True
     )
-    widget.set_value(0, 'foo')  # modify the text field (not interactive)
-    assert widget.get_value(0) == 'foo'
     # XXX: the internal file dialogs may hang without signals
-    # widget.set_value(1, 'bar')
     widget.set_enabled(False)
 
     renderer._dock_initialize(name='', area='right')
@@ -212,7 +231,6 @@ def test_gui_api(renderer_notebook, nbexec):
         name="default",
         window=None,
     )
-    renderer._tool_bar_load_icons()
 
     # button
     assert 'reset' not in renderer.actions
@@ -248,7 +266,7 @@ def test_gui_api(renderer_notebook, nbexec):
         func=mock,
         shortcut=None,
     )
-    assert 'help' in renderer.actions
+    renderer.actions['help'].trigger()
 
     # play button
     assert 'play' not in renderer.actions
@@ -259,9 +277,6 @@ def test_gui_api(renderer_notebook, nbexec):
         shortcut=None,
     )
     assert 'play' in renderer.actions
-
-    # theme
-    renderer._tool_bar_set_theme()
     # --- END: tool bar ---
 
     # --- BEGIN: menu bar ---
@@ -317,7 +332,7 @@ def test_gui_api(renderer_notebook, nbexec):
     if renderer._kind == 'qt':
         # warning
         buttons = ["Save", "Cancel"]
-        widget = renderer._dialog_warning(
+        widget = renderer._dialog_create(
             title='',
             text='',
             info_text='',
@@ -333,11 +348,12 @@ def test_gui_api(renderer_notebook, nbexec):
 
         # buttons list empty means OK button (default)
         button = 'Ok'
-        widget = renderer._dialog_warning(
+        widget = renderer._dialog_create(
             title='',
             text='',
             info_text='',
             callback=mock,
+            icon='NoIcon',
             modal=False,
         )
         widget.show()
@@ -345,6 +361,15 @@ def test_gui_api(renderer_notebook, nbexec):
             widget.trigger(button=button)
         assert mock.call_args.args == (button,)
     # --- END: dialog ---
+
+    # --- BEGIN: keypress ---
+    renderer._keypress_initialize()
+    renderer._keypress_add('a', mock)
+    # keypress is not supported yet on notebook
+    if renderer._kind == 'qt':
+        with _check_widget_trigger(None, mock, '', '', get_value=False):
+            renderer._keypress_trigger('a')
+    # --- END: keypress ---
 
     renderer.show()
 
@@ -362,4 +387,6 @@ def test_gui_api_qt(renderer_interactive_pyvistaqt):
     """Test GUI API with the Qt backend."""
     import mne
     mne.MNE_PYVISTAQT_BACKEND_TEST = True
-    test_gui_api(None, None)
+    _, api = _check_qt_version(return_api=True)
+    n_warn = int(api in ('PySide6', 'PyQt6'))
+    test_gui_api(None, None, n_warn=n_warn)

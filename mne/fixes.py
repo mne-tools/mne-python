@@ -12,11 +12,10 @@ at which the fix is no longer needed.
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD
 
-import functools
 import inspect
 from math import log
+from pprint import pprint
 import os
-from pathlib import Path
 import warnings
 
 import numpy as np
@@ -72,10 +71,15 @@ def _median_complex(data, axis):
 
 
 # helpers to get function arguments
-def _get_args(function, varargs=False):
+def _get_args(function, varargs=False, *,
+              exclude=('var_positional', 'var_keyword')):
     params = inspect.signature(function).parameters
-    args = [key for key, param in params.items()
-            if param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)]
+    # As of Python 3.10:
+    # https://docs.python.org/3/library/inspect.html#inspect.Parameter.kind
+    # POSITIONAL_ONLY, POSITIONAL_OR_KEYWORD, VAR_POSITIONAL, KEYWORD_ONLY,
+    # VAR_KEYWORD
+    exclude = set(getattr(inspect.Parameter, ex.upper()) for ex in exclude)
+    args = [key for key, param in params.items() if param.kind not in exclude]
     if varargs:
         varargs = [param.name for param in params.values()
                    if param.kind == param.VAR_POSITIONAL]
@@ -456,10 +460,8 @@ class BaseEstimator(object):
         return self
 
     def __repr__(self):
-        from sklearn.base import _pprint
         class_name = self.__class__.__name__
-        return '%s(%s)' % (class_name, _pprint(self.get_params(deep=False),
-                                               offset=len(class_name),),)
+        return '%s(%s)' % (class_name, pprint(self.get_params(deep=False)))
 
     # __getstate__ and __setstate__ are omitted because they only contain
     # conditionals that are not satisfied by our objects (e.g.,
@@ -1016,14 +1018,22 @@ else:
 
 
 ###############################################################################
-# workaround: plt.close() doesn't spawn close_event on Agg backend
-# (check MPL github issue #18609; scheduled to be fixed by MPL 3.4)
+# Matplotlib
 
+# workaround: plt.close() doesn't spawn close_event on Agg backend
+# https://github.com/matplotlib/matplotlib/issues/18609
+# scheduled to be fixed by MPL 3.6
 def _close_event(fig):
     """Force calling of the MPL figure close event."""
+    from .utils import logger
+    from matplotlib import backend_bases
     try:
-        fig.canvas.close_event()
+        fig.canvas.callbacks.process(
+            'close_event', backend_bases.CloseEvent(
+                name='close_event', canvas=fig.canvas))
+        logger.debug(f'Called {fig!r}.canvas.close_event()')
     except ValueError:  # old mpl with Qt
+        logger.debug(f'Calling {fig!r}.canvas.close_event() failed')
         pass  # pragma: no cover
 
 
@@ -1033,6 +1043,13 @@ def _is_last_row(ax):
     except AttributeError:
         return ax.is_last_row()
     return ax.get_subplotspec().is_last_row()
+
+
+def _sharex(ax1, ax2):
+    if hasattr(ax1.axes, 'sharex'):
+        ax1.axes.sharex(ax2)
+    else:
+        ax1.get_shared_x_axes().join(ax1, ax2)
 
 
 ###############################################################################

@@ -17,12 +17,10 @@ from ..io.pick import pick_types, pick_info
 from ..io.meas_info import _simplify_info
 from ..io.proj import _has_eeg_average_ref_proj, make_projector
 from ..surface import get_head_surf, get_meg_helmet_surf
-from ..transforms import (transform_surface_to, read_trans, _find_trans,
-                          _ensure_trans)
+from ..transforms import transform_surface_to, _find_trans, _get_trans
 from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _do_cross_dots)
-from ..parallel import check_n_jobs
 from ..utils import logger, verbose, _check_option, _reg_pinv, _pl
 from ..epochs import EpochsArray, BaseEpochs
 from ..evoked import Evoked, EvokedArray
@@ -173,7 +171,7 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, origin, miss=None):
     logger.info(f'    Computing dot products for {len(coils_from)} '
                 f'{kind.upper()} channel{_pl(coils_from)}...')
     self_dots = _do_self_dots(int_rad, False, coils_from, origin, kind,
-                              lut_fun, n_fact, n_jobs=1)
+                              lut_fun, n_fact, n_jobs=None)
     logger.info(f'    Computing cross products for {len(coils_from)} → '
                 f'{len(coils_to)} {kind.upper()} channel{_pl(coils_to)}...')
     cross_dots = _do_cross_dots(int_rad, False, coils_from, coils_to,
@@ -273,7 +271,7 @@ def _as_meg_type_inst(inst, ch_type='grad', mode='fast'):
 
 @verbose
 def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
-                          n_jobs=1, origin=(0., 0., 0.04), verbose=None):
+                          n_jobs=None, origin=(0., 0., 0.04), verbose=None):
     """Re-map M/EEG data to a surface.
 
     Parameters
@@ -314,7 +312,6 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     # deal with coordinate frames here -- always go to "head" (easiest)
     orig_surf = surf
     surf = transform_surface_to(deepcopy(surf), 'head', trans)
-    n_jobs = check_n_jobs(n_jobs)
     origin = _check_origin(origin, info)
 
     #
@@ -385,18 +382,19 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 @verbose
 def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
                    ch_type=None, mode='fast', meg_surf='helmet',
-                   origin=(0., 0., 0.04), n_jobs=1, verbose=None):
+                   origin=(0., 0., 0.04), n_jobs=None, *,
+                   head_source=('bem', 'head'), verbose=None):
     """Compute surface maps used for field display in 3D.
 
     Parameters
     ----------
     evoked : Evoked | Epochs | Raw
         The measurement file. Need to have info attribute.
-    trans : str | 'auto' | None
-        The full path to the ``*-trans.fif`` file produced during
-        coregistration. If present or found using 'auto'
-        the maps will be in MRI coordinates.
-        If None, map for EEG data will not be available.
+    %(trans)s "auto" (default) will load trans from the FreeSurfer directory
+        specified by ``subject`` and ``subjects_dir`` parameters.
+
+        .. versionchanged:: 0.19
+            Support for 'fsaverage' argument.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT. If None, map for EEG data will not be available.
@@ -420,6 +418,9 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
 
         .. versionadded:: 0.11
     %(n_jobs)s
+    %(head_source)s
+
+        .. versionadded:: 1.1
     %(verbose)s
 
     Returns
@@ -436,21 +437,17 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         _check_option('ch_type', ch_type, ['eeg', 'meg'])
         types = [ch_type]
 
-    if trans == 'auto':
+    if isinstance(trans, str) and trans == 'auto':
         # let's try to do this in MRI coordinates so they're easy to plot
         trans = _find_trans(subject, subjects_dir)
+    trans, trans_type = _get_trans(trans, fro='head', to='mri')
 
-    if 'eeg' in types and trans is None:
+    if 'eeg' in types and trans_type == 'identity':
         logger.info('No trans file available. EEG data ignored.')
         types.remove('eeg')
 
     if len(types) == 0:
         raise RuntimeError('No data available for mapping.')
-
-    if trans is not None:
-        if isinstance(trans, str):
-            trans = read_trans(trans)
-        trans = _ensure_trans(trans, 'head', 'mri')
 
     _check_option('meg_surf', meg_surf, ['helmet', 'head'])
 
@@ -459,7 +456,8 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         if this_type == 'meg' and meg_surf == 'helmet':
             surf = get_meg_helmet_surf(info, trans)
         else:
-            surf = get_head_surf(subject, subjects_dir=subjects_dir)
+            surf = get_head_surf(
+                subject, source=head_source, subjects_dir=subjects_dir)
         surfs.append(surf)
 
     surf_maps = list()

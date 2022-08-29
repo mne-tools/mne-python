@@ -11,10 +11,8 @@
 
 .. mne
 
-.. _`mne-python`: http://mne.tools/mne-python-intro
-.. _`mne-python GitHub`: https://github.com/mne-tools/mne-python
-.. _`mne-python sample dataset`: https://s3.amazonaws.com/mne-python/datasets/MNE-sample-data-processed.tar.gz
-.. _`mne command line utilities`: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/
+.. _`MNE-Python`: http://mne.tools/mne-python-intro
+.. _`MNE-Python GitHub`: https://github.com/mne-tools/mne-python
 .. _`mne-scripts`: https://github.com/mne-tools/mne-scripts/
 .. _`MNE-C manual`: https://mne.tools/mne-c-manual/MNE-manual-2.7.3.pdf
 .. _`GitHub issues page`: https://github.com/mne-tools/mne-python/issues/
@@ -50,7 +48,6 @@
 
 .. _numpy: http://www.numpy.org
 .. _`numpy github`: http://github.com/numpy/numpy
-.. _`numpy style`: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 .. _`numpy mailing list`: http://mail.scipy.org/mailman/listinfo/numpy-discussion
 
 
@@ -135,7 +132,10 @@
 .. _git: https://git-scm.com/
 .. _github: https://github.com
 .. _GitHub Help: https://help.github.com
+.. _GitHub learning lab: https://lab.github.com/
 .. _pro git book: https://git-scm.com/book/
+.. _git bash: https://gitforwindows.org/
+.. _git for Windows: https://gitforwindows.org/
 .. _git clone: http://schacon.github.com/git/git-clone.html
 .. _git checkout: https://schacon.github.io/git/git-checkout.html
 .. _git commit: https://schacon.github.io/git/git-commit.html
@@ -174,15 +174,18 @@
 
 .. python editors
 
-.. _atom: https://atom.io/
 .. _Spyder: https://www.spyder-ide.org/
+.. _`integrated development environment`: https://en.wikipedia.org/wiki/Integrated_development_environment
+.. _`spyder`: https://www.spyder-ide.org/
+.. _`visual studio code`: https://code.visualstudio.com/
+.. _`pycharm`: https://www.jetbrains.com/pycharm/
+
 .. _anaconda: https://www.anaconda.com/products/individual
 .. _miniconda: https://conda.io/en/latest/miniconda.html
 .. _miniforge: https://github.com/conda-forge/miniforge
 .. _installation instructions for Anaconda: http://docs.continuum.io/anaconda/install
 .. _installation instructions for Miniconda: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
 .. _Anaconda troubleshooting guide: http://conda.pydata.org/docs/troubleshooting.html
-.. _sublime text: http://www.sublimetext.com/
 
 .. installation links
 
@@ -191,8 +194,8 @@
 .. _NVIDIA proprietary drivers: https://www.geforce.com/drivers
 
 .. _Sphinx documentation: https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
-.. _sphinx gallery documentation: https://sphinx-gallery.github.io
-.. _NumPy docstring standard: https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
+.. _sphinx-gallery: https://sphinx-gallery.github.io
+.. _NumPy docstring style guidelines: https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard
 .. _Stack Overflow: https://stackoverflow.com/
 
 .. vim: ft=rst

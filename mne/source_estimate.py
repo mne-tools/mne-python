@@ -16,6 +16,7 @@ from .baseline import rescale
 from .cov import Covariance
 from .evoked import _get_peak
 from .filter import resample
+from .fixes import _safe_svd
 from ._freesurfer import (_import_nibabel, _get_mri_info_data,
                           _get_atlas_values, read_freesurfer_lut)
 from .io.constants import FIFF
@@ -32,8 +33,7 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _check_stc_units, _check_pandas_installed,
                     _check_pandas_index_arguments, _convert_times, _ensure_int,
                     _build_data_frame, _check_time_format, _path_like,
-                    sizeof_fmt, object_size, _check_fname, _import_h5io_funcs,
-                    _VerboseDep)
+                    sizeof_fmt, object_size, _check_fname, _import_h5io_funcs)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import TimeMixin
@@ -447,7 +447,7 @@ def _verify_source_estimate_compat(a, b):
                          'names, %r and %r' % (a.subject, b.subject))
 
 
-class _BaseSourceEstimate(TimeMixin, _VerboseDep):
+class _BaseSourceEstimate(TimeMixin):
 
     _data_ndim = 2
 
@@ -706,7 +706,7 @@ class _BaseSourceEstimate(TimeMixin, _VerboseDep):
         return self  # return self for chaining methods
 
     @verbose
-    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=1,
+    def resample(self, sfreq, npad='auto', window='boxcar', n_jobs=None,
                  verbose=None):
         """Resample data.
 
@@ -1202,7 +1202,7 @@ class _BaseSourceEstimate(TimeMixin, _VerboseDep):
 
     @verbose
     def to_data_frame(self, index=None, scalings=None,
-                      long_format=False, time_format='ms', *,
+                      long_format=False, time_format=None, *,
                       verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
@@ -1568,8 +1568,9 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
     See Also
     --------
-    VectorSourceEstimate : A container for vector source estimates.
+    VectorSourceEstimate : A container for vector surface source estimates.
     VolSourceEstimate : A container for volume source estimates.
+    VolVectorSourceEstimate : A container for volume vector source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
     """
@@ -2160,6 +2161,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
+    VectorSourceEstimate : A container for vector surface source estimates.
     VolVectorSourceEstimate : A container for volume vector source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
@@ -2244,7 +2246,8 @@ class VolVectorSourceEstimate(_BaseVolSourceEstimate,
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
-    VectorSourceEstimate : A container for vector source estimates.
+    VectorSourceEstimate : A container for vector surface source estimates.
+    VolSourceEstimate : A container for volume source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
 
@@ -2421,7 +2424,7 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
-    VectorSourceEstimate : A container for vector source estimates.
+    VectorSourceEstimate : A container for vector surface source estimates.
     VolSourceEstimate : A container for volume source estimates.
     VolVectorSourceEstimate : A container for Volume vector source estimates.
 
@@ -2810,8 +2813,7 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
 
 
 def _pca_flip(flip, data):
-    from scipy import linalg
-    U, s, V = linalg.svd(data, full_matrices=False)
+    U, s, V = _safe_svd(data, full_matrices=False)
     # determine sign-flip
     sign = np.sign(np.dot(U[:, 0], flip))
     # use average power in label for scaling
@@ -3213,6 +3215,9 @@ def stc_near_sensors(evoked, trans, subject, distance=0.01, mode='sum',
     evoked : instance of Evoked
         The evoked data. Must contain ECoG, sEEG or DBS channels.
     %(trans)s
+
+        .. versionchanged:: 0.19
+            Support for 'fsaverage' argument.
     subject : str
         The subject name.
     distance : float

@@ -61,6 +61,7 @@ test_generator_bdf = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 test_generator_edf = op.join(data_path, 'EDF', 'test_generator_2.edf')
 edf_annot_sub_s_path = op.join(data_path, 'EDF', 'subsecond_starttime.edf')
 edf_chtypes_path = op.join(data_path, 'EDF', 'chtypes_edf.edf')
+edf_utf8_annotations = op.join(data_path, 'EDF', 'test_utf8_annotations.edf')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -74,6 +75,14 @@ def test_orig_units():
     orig_units = raw._orig_units
     assert len(orig_units) == len(raw.ch_names)
     assert orig_units['A1'] == 'µV'  # formerly 'uV' edit by _check_orig_units
+
+
+def test_units_params():
+    """Test enforcing original channel units."""
+    with pytest.raises(ValueError,
+                       match=r"Unit for channel .* is present .* Cannot "
+                       "overwrite it"):
+        _ = read_raw_edf(edf_path, units='V', preload=True)
 
 
 def test_subject_info(tmp_path):
@@ -276,7 +285,7 @@ def test_to_data_frame(fname):
     _, times = raw[0, :10]
     df = raw.to_data_frame(index='time')
     assert (df.columns == raw.ch_names).all()
-    assert_array_equal(np.round(times * 1e3), df.index.values[:10])
+    assert_array_equal(times, df.index.values[:10])
     df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
     assert 'time' in df.columns
     assert_array_equal(df.values[:, 1], raw._data[0] * 1e13)
@@ -287,7 +296,7 @@ def test_read_raw_edf_stim_channel_input_parameters():
     _MSG = "`read_raw_edf` is not supposed to trigger a deprecation warning"
     with _record_warnings() as recwarn:
         read_raw_edf(edf_path)
-    assert all([w.category != DeprecationWarning for w in recwarn]), _MSG
+    assert all(w.category != DeprecationWarning for w in recwarn), _MSG
 
     for invalid_stim_parameter in ['EDF Annotations', 'BDF Annotations']:
         with pytest.raises(ValueError,
@@ -340,6 +349,14 @@ def test_read_annotations(fname, recwarn):
     """Test IO of annotations from edf and bdf files via regexp."""
     annot = read_annotations(fname)
     assert len(annot.onset) == 2
+
+
+@testing.requires_testing_data
+def test_read_utf8_annotations():
+    """Test if UTF8 annotations can be read."""
+    raw = read_raw_edf(edf_utf8_annotations)
+    assert raw.annotations[0]['description'] == 'RECORD START'
+    assert raw.annotations[1]['description'] == '仰卧'
 
 
 def test_edf_prefilter_parse():
@@ -549,6 +566,20 @@ def test_exclude():
         assert ch not in raw.ch_names
 
 
+def test_include():
+    """Test include parameter."""
+    raw = read_raw_edf(edf_path, include=["I1", "I2"])
+    assert sorted(raw.ch_names) == ["I1", "I2"]
+
+    raw = read_raw_edf(edf_path, include="I[1-4]")
+    assert sorted(raw.ch_names) == ["I1", "I2", "I3", "I4"]
+
+    with pytest.raises(ValueError) as e:
+        raw = read_raw_edf(edf_path, include=["I1", "I2"], exclude="I[1-4]")
+        assert str(e.value) == "'exclude' must be empty" \
+            "if 'include' is assigned."
+
+
 @testing.requires_testing_data
 def test_ch_types():
     """Test reading of channel types from EDF channel label."""
@@ -566,7 +597,7 @@ def test_ch_types():
               'POL $A1', 'POL $A2']
 
     # by default all types are 'eeg'
-    assert(all(t == 'eeg' for t in raw.get_channel_types()))
+    assert all(t == 'eeg' for t in raw.get_channel_types())
     assert raw.ch_names == labels
 
     raw = read_raw_edf(edf_chtypes_path, infer_types=True)

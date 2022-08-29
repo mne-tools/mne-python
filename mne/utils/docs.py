@@ -4,7 +4,6 @@
 #
 # License: BSD-3-Clause
 
-from copy import deepcopy
 import inspect
 import os
 import os.path as op
@@ -12,13 +11,19 @@ import re
 import sys
 import warnings
 import webbrowser
+from copy import deepcopy
 
 from decorator import FunctionMaker
 
 from ..defaults import HEAD_SIZE_DEFAULT
+from ._bunch import BunchConst
 
 
 def _reflow_param_docstring(docstring, has_first_line=True, width=75):
+    """Reflow text to a nice width for terminals.
+
+    WARNING: does not handle gracefully things like .. versionadded::
+    """
     maxsplit = docstring.count('\n') - 1 if has_first_line else -1
     merged = ' '.join(line.strip() for line in
                       docstring.rsplit('\n', maxsplit=maxsplit))
@@ -38,7 +43,7 @@ def _reflow_param_docstring(docstring, has_first_line=True, width=75):
 # are alphabetized (you can look up by the name of the argument). This way
 # the same ``docdict`` entries are easier to reuse.
 
-docdict = dict()
+docdict = BunchConst()
 
 # %%
 # A
@@ -70,16 +75,19 @@ add_frames : int | None
 
 docdict['adjacency_clust'] = """
 adjacency : scipy.sparse.spmatrix | None | False
-    Defines adjacency between locations in the data, where "locations" can
-    be spatial vertices, frequency bins, etc. If ``False``, assumes no
-    adjacency (each location is treated as independent and unconnected).
+    Defines adjacency between locations in the data, where "locations" can be
+    spatial vertices, frequency bins, time points, etc. For spatial vertices,
+    see: :func:`mne.channels.find_ch_adjacency`. If ``False``, assumes
+    no adjacency (each location is treated as independent and unconnected).
     If ``None``, a regular lattice adjacency is assumed, connecting
     each {sp} location to its neighbor(s) along the last dimension
     of {{eachgrp}} ``{{x}}``{lastdim}.
     If ``adjacency`` is a matrix, it is assumed to be symmetric (only the
     upper triangular half is used) and must be square with dimension equal to
     ``{{x}}.shape[-1]`` {parone} or ``{{x}}.shape[-1] * {{x}}.shape[-2]``
-    {partwo}.{memory}
+    {partwo} or (optionally)
+    ``{{x}}.shape[-1] * {{x}}.shape[-2] * {{x}}.shape[-3]``
+    {parthree}.{memory}
 """
 
 mem = (' If spatial adjacency is uniform in time, it is recommended to use '
@@ -88,9 +96,11 @@ mem = (' If spatial adjacency is uniform in time, it is recommended to use '
        'of temporal adjacency to consider when clustering.')
 comb = ' The function `mne.stats.combine_adjacency` may be useful for 4D data.'
 st = dict(sp='spatial', lastdim='', parone='(n_vertices)',
-          partwo='(n_times * n_vertices)', memory=mem)
+          partwo='(n_times * n_vertices)',
+          parthree='(n_times * n_freqs * n_vertices)', memory=mem)
 tf = dict(sp='', lastdim=' (or the last two dimensions if ``{x}`` is 2D)',
-          parone='(for 3D data)', partwo='(for 4D data)', memory=comb)
+          parone='(for 2D data)', partwo='(for 3D data)',
+          parthree='(for 4D data)', memory=comb)
 nogroups = dict(eachgrp='', x='X')
 groups = dict(eachgrp='each group ', x='X[k]')
 docdict['adjacency_clust_1'] = \
@@ -112,6 +122,14 @@ docdict['agg_fun_psd_topo'] = """
 agg_fun : callable
     The function used to aggregate over frequencies. Defaults to
     :func:`numpy.sum` if ``normalize=True``, else :func:`numpy.mean`.
+"""
+
+docdict['align_view'] = """
+align : bool
+    If True, consider view arguments relative to canonical MRI
+    directions (closest to MNI for the subject) rather than native MRI
+    space. This helps when MRIs are not in standard orientation (e.g.,
+    have large rotations).
 """
 
 docdict['allow_empty_eltc'] = """
@@ -182,12 +200,12 @@ docdict['applyfun_summary_evoked'] = \
 docdict['applyfun_summary_raw'] = \
     applyfun_summary.format('raw', applyfun_preload)
 
-docdict['area_alpha_plot_psd'] = """
+docdict['area_alpha_plot_psd'] = """\
 area_alpha : float
     Alpha for the area.
 """
 
-docdict['area_mode_plot_psd'] = """
+docdict['area_mode_plot_psd'] = """\
 area_mode : str | None
     Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
     will be plotted. If 'range', the min and max (across channels) will be
@@ -202,7 +220,7 @@ aseg : str
     Freesurfer subject directory.
 """
 
-docdict['average_plot_psd'] = """
+docdict['average_plot_psd'] = """\
 average : bool
     If False, the PSDs of all channels is displayed. No averaging
     is done and parameters area_mode and area_alpha are ignored. When
@@ -210,7 +228,7 @@ average : bool
     drag) to plot a topomap.
 """
 
-docdict['average_psd'] = """
+docdict['average_psd'] = """\
 average : str | None
     How to average the segments. If ``mean`` (default), calculate the
     arithmetic mean. If ``median``, calculate the median, corrected for
@@ -232,26 +250,34 @@ average : bool, default True
     .. versionadded:: 0.13.0
 """
 
-docdict['average_topomap'] = """
-average : float | None
-    The time window around a given time to be used for averaging (seconds).
-    For example, 0.01 would translate into window that starts 5 ms before
-    and ends 5 ms after a given time point. Defaults to None, which means
-    no averaging.
+_axes = """\
+{} : instance of Axes | list of Axes | None
+    The axes to plot to. If ``None``, a new :class:`~matplotlib.figure.Figure`
+    will be created with the correct number of axes. If
+    :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
+    a :class:`list` of axes), the number of axes provided must {}.
+    Default is ``None``.
 """
+_ch_types_present = ('match the number of channel types present in the {}'
+                     'object.')
+docdict['ax_plot_psd'] = _axes.format('ax', _ch_types_present.format(''))
+docdict['axes_cov_plot_topomap'] = _axes.format('axes', 'be length 1')
+docdict['axes_evoked_plot_topomap'] = _axes.format(
+    'axes',
+    'match the number of ``times`` provided (unless ``times`` is ``None``)')
+docdict['axes_plot_topomap'] = _axes.format(
+    'axes', 'match the length of ``bands``')
+docdict['axes_spectrum_plot'] = _axes.format(
+    'axes', _ch_types_present.format(':class:`~mne.time_frequency.Spectrum`'))
+docdict['axes_spectrum_plot_topo'] = _axes.format(
+    'axes',
+    'be length 1 (for efficiency, subplots for each channel are simulated '
+    'within a single :class:`~matplotlib.axes.Axes` object)')
 
-docdict['axes_psd_topo'] = """
-axes : list of Axes | None
-    List of axes to plot consecutive topographies to. If ``None`` the axes
-    will be created automatically. Defaults to ``None``.
-"""
-
-docdict['axes_topomap'] = """
-axes : instance of Axes | list | None
-    The axes to plot to. If list, the list must be a list of Axes of the
-    same length as ``times`` (unless ``times`` is None). If instance of
-    Axes, ``times`` must be a float or a list of one float.
-    Defaults to None.
+docdict['axis_facecolor'] = """\
+axis_facecolor : str | tuple
+    A matplotlib-compatible color to use for the axis background.
+    Defaults to black.
 """
 
 docdict['azimuth'] = """
@@ -269,18 +295,26 @@ bad_condition : str
 """
 
 docdict['bands_psd_topo'] = """
-bands : list of tuple | None
-    The frequencies or frequency ranges to plot. Length-2 tuples specify
-    a single frequency and a subplot title (e.g.,
-    ``(6.5, 'presentation rate')``); length-3 tuples specify lower and
-    upper band edges and a subplot title. If ``None`` (the default),
-    expands to::
+bands : None | dict | list of tuple
+    The frequencies or frequency ranges to plot. If a :class:`dict`, keys will
+    be used as subplot titles and values should be either a single frequency
+    (e.g., ``{'presentation rate': 6.5}``) or a length-two sequence of lower
+    and upper frequency band edges (e.g., ``{'theta': (4, 8)}``). If a single
+    frequency is provided, the plot will show the frequency bin that is closest
+    to the requested value. If ``None`` (the default), expands to::
 
-        bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
-                 (12, 30, 'Beta'), (30, 45, 'Gamma')]
+        bands = {'Delta (0-4 Hz)': (0, 4), 'Theta (4-8 Hz)': (4, 8),
+                 'Alpha (8-12 Hz)': (8, 12), 'Beta (12-30 Hz)': (12, 30),
+                 'Gamma (30-45 Hz)': (30, 45)}
 
-    In bands where a single frequency is provided, the topomap will reflect
-    the single frequency bin that is closest to the provided value.
+    .. note::
+       For backwards compatibility, :class:`tuples<tuple>` of length 2 or 3 are
+       also accepted, where the last element of the tuple is the subplot title
+       and the other entries are frequency values (a single value or band
+       edges). New code should use :class:`dict` or ``None``.
+
+    .. versionchanged:: 1.2
+       Allow passing a dict and discourage passing tuples.
 """
 
 docdict['base_estimator'] = """
@@ -347,6 +381,12 @@ docdict['baseline_stc'] = f"""{_baseline_rescale_base}
 
 """
 
+docdict['block'] = """\
+block : bool
+    Whether to halt program execution until the figure is closed.
+    May not work on all systems / platforms. Defaults to ``False``.
+"""
+
 docdict['border_topomap'] = """
 border : float | 'mean'
     Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
@@ -361,13 +401,18 @@ brain_kwargs : dict | None
     ``dict(silhouette=True)``).
 """
 
+docdict['browser'] = """
+fig : matplotlib.figure.Figure | mne_qt_browser.figure.MNEQtBrowser
+    Browser instance.
+"""
+
 docdict['buffer_size_clust'] = """
 buffer_size : int | None
     Block size to use when computing test statistics. This can significantly
-    reduce memory usage when n_jobs > 1 and memory sharing between processes is
-    enabled (see :func:`mne.set_cache_dir`), because ``X`` will be shared
-    between processes and each process only needs to allocate space for a small
-    block of locations at a time.
+    reduce memory usage when ``n_jobs > 1`` and memory sharing between
+    processes is enabled (see :func:`mne.set_cache_dir`), because ``X`` will be
+    shared between processes and each process only needs to allocate space for
+    a small block of locations at a time.
 """
 
 docdict['by_event_type'] = """
@@ -445,12 +490,15 @@ ch_names : list | None
                     ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
 """
 
-docdict['ch_type_evoked_topomap'] = """
+_ch_type_topomap = """\
 ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-    The channel type to plot. For 'grad', the gradiometers are collected in
-    pairs and the RMS for each pair is plotted.
-    If None, then channels are chosen in the order given above.
+    The channel type to plot. For ``'grad'``, the gradiometers are
+    collected in pairs and the {} for each pair is plotted. If
+    ``None`` the first available channel type from order shown above is
+    used. Defaults to ``None``.
 """
+
+docdict['ch_type_psd_topomap'] = _ch_type_topomap.format('mean')
 
 docdict['ch_type_set_eeg_reference'] = """
 ch_type : list of str | str
@@ -462,13 +510,7 @@ ch_type : list of str | str
     .. versionadded:: 0.19
 """
 
-docdict['ch_type_topomap'] = """
-ch_type : str
-    The channel type being plotted. Determines the ``'auto'``
-    extrapolation mode.
-
-    .. versionadded:: 0.21
-"""
+docdict['ch_type_topomap'] = _ch_type_topomap.format('RMS')
 
 chwise = """
 channel_wise : bool
@@ -563,15 +605,34 @@ cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
         2 topomaps.
 """
 
+docdict['cmap_topomap_simple'] = """
+cmap : matplotlib colormap | None
+    Colormap to use. If None, 'Reds' is used for all positive data,
+    otherwise defaults to 'RdBu_r'.
+"""
+
+docdict['cnorm'] = """
+cnorm : matplotlib.colors.Normalize | None
+    Colormap normalization, default None means linear normalization. If not
+    None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
+    details.
+"""
+
 docdict['color_matplotlib'] = """
 color : color
     A list of anything matplotlib accepts: string, RGB, hex, etc.
 """
 
-docdict['color_plot_psd'] = """
+docdict['color_plot_psd'] = """\
 color : str | tuple
     A matplotlib-compatible color to use. Has no effect when
     spatial_colors=True.
+"""
+
+docdict['color_spectrum_plot_topo'] = """\
+color : str | tuple
+    A matplotlib-compatible color to use for the curves. Defaults to
+    white.
 """
 
 docdict['colorbar_topomap'] = """
@@ -683,22 +744,28 @@ cross_talk : str | None
 # %%
 # D
 
-docdict['dB_plot_psd'] = """
+_dB = """\
+dB : bool
+    Whether to plot on a decibel-like scale. If ``True``, plots
+    10 × log₁₀(spectral power){}.{}
+"""
+
+docdict['dB_plot_psd'] = """\
 dB : bool
     Plot Power Spectral Density (PSD), in units (amplitude**2/Hz (dB)) if
     ``dB=True``, and ``estimate='power'`` or ``estimate='auto'``. Plot PSD
     in units (amplitude**2/Hz) if ``dB=False`` and,
     ``estimate='power'``. Plot Amplitude Spectral Density (ASD), in units
     (amplitude/sqrt(Hz)), if ``dB=False`` and ``estimate='amplitude'`` or
-    ``estimate='auto'``. Plot ASD, in units (amplitude/sqrt(Hz) (db)), if
+    ``estimate='auto'``. Plot ASD, in units (amplitude/sqrt(Hz) (dB)), if
     ``dB=True`` and ``estimate='amplitude'``.
 """
-
-docdict['dB_psd_topo'] = """
-dB : bool
-    If ``True``, transform data to decibels (with ``10 * np.log10(data)``)
-    following the application of ``agg_fun``. Ignored if ``normalize=True``.
-"""
+docdict['dB_plot_topomap'] = _dB.format(
+    ' following the application of ``agg_fun``',
+    ' Ignored if ``normalize=True``.')
+docdict['dB_spectrum_plot'] = _dB.format('', '')
+docdict['dB_spectrum_plot_topo'] = _dB.format(
+    '', ' Ignored if ``normalize=True``.')
 
 docdict['daysback_anonymize_info'] = """
 daysback : int | None
@@ -712,7 +779,6 @@ docdict['dbs'] = """
 dbs : bool
     If True (default), show DBS (deep brain stimulation) electrodes.
 """
-
 docdict['decim'] = """
 decim : int
     Factor by which to subsample the data.
@@ -795,10 +861,14 @@ dig_kinds : list of str | str
 """
 
 docdict['dipole'] = """
-dipole : instance of Dipole
+dipole : instance of Dipole | list of Dipole
     Dipole object containing position, orientation and amplitude of
     one or more dipoles. Multiple simultaneous dipoles may be defined by
-    assigning them identical times.
+    assigning them identical times. Alternatively, multiple simultaneous
+    dipoles may also be specified as a list of Dipole objects.
+
+    .. versionchanged:: 1.1
+        Added support for a list of :class:`mne.Dipole` instances.
 """
 
 docdict['distance'] = """
@@ -877,6 +947,11 @@ The only modes that work for vector and volume source estimates are ``'mean'``,
 ``'max'``, and ``'auto'``.
 """
 
+docdict['emit_warning'] = """
+emit_warning : bool
+    Whether to emit warnings when cropping or omitting annotations.
+"""
+
 docdict['epochs_preload'] = """
     Load all epochs from disk when creating the object
     or wait before accessing each epoch (more memory
@@ -901,7 +976,7 @@ tmin, tmax : float
     time are included. Defaults to ``-0.2`` and ``0.5``, respectively.
 """
 
-docdict['estimate_plot_psd'] = """
+docdict['estimate_plot_psd'] = """\
 estimate : str, {'auto', 'power', 'amplitude'}
     Can be "power" for power spectral density (PSD), "amplitude" for
     amplitude spectrum density (ASD), or "auto" (default), which uses
@@ -965,11 +1040,29 @@ evoked : instance of Evoked | list of Evoked
     dictionary.
 """
 
+docdict['exclude_clust'] = """
+exclude : bool array or None
+    Mask to apply to the data to exclude certain points from clustering
+    (e.g., medial wall vertices). Should be the same shape as ``X``.
+    If ``None``, no points are excluded.
+"""
+
 docdict['exclude_frontal'] = """
 exclude_frontal : bool
     If True, exclude points that have both negative Z values
-    (below the nasion) and positivy Y values (in front of the LPA/RPA).
+    (below the nasion) and positive Y values (in front of the LPA/RPA).
 """
+
+_exclude_spectrum = """\
+exclude : list of str | 'bads'
+    Channel names to exclude{}. If ``'bads'``, channels
+    in ``spectrum.info['bads']`` are excluded; pass an empty list to
+    plot all channels (including "bad" channels, if any).
+"""
+
+docdict['exclude_spectrum_get_data'] = _exclude_spectrum.format('')
+docdict['exclude_spectrum_plot'] = _exclude_spectrum.format(
+    ' from being drawn')
 
 docdict['export_edf_note'] = """
 For EDF exports, only channels measured in Volts are allowed; in MNE-Python
@@ -994,6 +1087,43 @@ docdict['export_eeglab_note'] = """
 For EEGLAB exports, channel locations are expanded to full EEGLAB format.
 For more details see :func:`eeglabio.utils.cart_to_eeglab`.
 """
+
+_export_fmt_params_base = """\
+Format of the export. Defaults to ``'auto'``, which will infer the format
+    from the filename extension. See supported formats above for more
+    information."""
+
+docdict['export_fmt_params_epochs'] = """
+fmt : 'auto' | 'eeglab'
+    {}
+""".format(_export_fmt_params_base)
+
+docdict['export_fmt_params_evoked'] = """
+fmt : 'auto' | 'mff'
+    {}
+""".format(_export_fmt_params_base)
+
+docdict['export_fmt_params_raw'] = """
+fmt : 'auto' | 'brainvision' | 'edf' | 'eeglab'
+    {}
+""".format(_export_fmt_params_base)
+
+docdict['export_fmt_support_epochs'] = """\
+Supported formats:
+    - EEGLAB (``.set``, uses :mod:`eeglabio`)
+"""
+
+docdict['export_fmt_support_evoked'] = """\
+Supported formats:
+    - MFF (``.mff``, uses :func:`mne.export.export_evokeds_mff`)
+"""
+
+docdict['export_fmt_support_raw'] = """\
+Supported formats:
+    - BrainVision (``.vhdr``, ``.vmrk``, ``.eeg``, uses `pybv <https://github.com/bids-standard/pybv>`_)
+    - EEGLAB (``.set``, uses :mod:`eeglabio`)
+    - EDF (``.edf``, uses `EDFlib-Python <https://gitlab.com/Teuniz/EDFlib-Python>`_)
+"""  # noqa: E501
 
 docdict['export_warning'] = """\
 .. warning::
@@ -1092,6 +1222,12 @@ fiducials : list | dict | str
     and if absent, falls back to ``'estimated'``.
 """
 
+docdict['fig_facecolor'] = """\
+fig_facecolor : str | tuple
+    A matplotlib-compatible color to use for the figure background.
+    Defaults to black.
+"""
+
 docdict['filter_length'] = """
 filter_length : str | int
     Length of the FIR filter to use (if applicable):
@@ -1179,6 +1315,15 @@ flat : dict | str | None
     used.
 """
 
+_fmin_fmax = """\
+fmin, fmax : float
+    The lower- and upper-bound on frequencies of interest. Default is {}"""
+
+docdict['fmin_fmax_psd'] = _fmin_fmax.format(
+    '``fmin=0, fmax=np.inf`` (spans all frequencies present in the data).')
+
+docdict['fmin_fmax_psd_topo'] = _fmin_fmax.format('``fmin=0, fmax=100``.')
+
 docdict['fmin_fmid_fmax'] = """
 fmin : float
     Minimum value in colormap (uses real fmin if None).
@@ -1187,13 +1332,6 @@ fmid : float
     fmax if None).
 fmax : float
     Maximum value in colormap (uses real max if None).
-"""
-
-docdict['fmt_export_params'] = """
-fmt : 'auto' | 'eeglab' | 'edf'
-    Format of the export. Defaults to ``'auto'``, which will infer the format
-    from the filename extension. See supported formats above for more
-    information.
 """
 
 docdict['fname_epochs'] = """
@@ -1226,6 +1364,12 @@ forward : instance of Forward | None
     Forward solution to use. Only used with ``ref_channels='REST'``.
 
     .. versionadded:: 0.21
+"""
+
+docdict['fullscreen'] = """
+fullscreen : bool
+    Whether to start in fullscreen (``True``) or windowed mode
+    (``False``).
 """
 
 applyfun_fun_base = """
@@ -1266,6 +1410,18 @@ time_as_index : bool
     Whether to return the time index (True) instead of the latency
     (False, default).
 """
+
+_getitem_base = """\
+data : ndarray
+    The selected spectral data. Shape will be
+    ``({}n_channels, n_freqs)`` for normal power spectra,
+    ``({}n_channels, n_freqs, n_segments)`` for unaggregated
+    Welch estimates, or ``({}n_channels, n_tapers, n_freqs)``
+    for unaggregated multitaper estimates.
+"""
+_fill_epochs = ['n_epochs, '] * 3
+docdict['getitem_epochspectrum_return'] = _getitem_base.format(*_fill_epochs)
+docdict['getitem_spectrum_return'] = _getitem_base.format('', '', '')
 
 docdict['group_by_browse'] = """
 group_by : str
@@ -1317,6 +1473,12 @@ head_pos : array | None
     If array, movement compensation will be performed.
     The array should be of shape (N, 10), holding the position
     parameters as returned by e.g. ``read_head_pos``.
+"""
+
+docdict['head_source'] = """
+head_source : str | list of str
+    Head source(s) to use. See the ``source`` option of
+    :func:`mne.get_head_surf` for more information.
 """
 
 docdict['hitachi_notes'] = """
@@ -1412,8 +1574,10 @@ image_format : 'png' | 'svg' | 'gif' | None
 
 docdict['image_interp_topomap'] = """
 image_interp : str
-    The image interpolation to be used. All matplotlib options are
-    accepted.
+    The image interpolation to be used. Options are ``'cubic'`` (default)
+    to use :class:`scipy.interpolate.CloughTocher2DInterpolator`,
+    ``'nearest'`` to use :class:`scipy.spatial.Voronoi` or
+    ``'linear'`` to use :class:`scipy.interpolate.LinearNDInterpolator`.
 """
 
 docdict['include_tmax'] = """
@@ -1432,8 +1596,6 @@ index : {} | None
     :class:`pandas.TimedeltaIndex` will be used
     (depending on the value of ``time_format``). {}
 """
-
-docdict['index_df'] = _index_df_base
 
 datetime = ':class:`pandas.DatetimeIndex`, '
 multiindex = ('If a list of two or more string values, a '
@@ -1460,9 +1622,10 @@ info : mne.Info
 """
 
 docdict['info_str'] = f"""
-info : mne.Info | str
-    {_info_base} If ``str``, then it should be a filepath to a file with
-    measurement information (e.g. :class:`mne.io.Raw`).
+info : mne.Info | path-like
+    {_info_base} If ``path-like``, it should be a :class:`str` or
+    :class:`pathlib.Path` to a file with measurement information
+    (e.g. :class:`mne.io.Raw`).
 """
 
 docdict['int_order_maxwell'] = """
@@ -1586,7 +1749,14 @@ labels : Label | BiHemiLabel | list | tuple | str
        Support for volume source estimates.
 """
 
-docdict['line_alpha_plot_psd'] = """
+docdict['layout_spectrum_plot_topo'] = """\
+layout : instance of Layout | None
+    Layout instance specifying sensor positions (does not need to be
+    specified for Neuromag data). If ``None`` (default), the layout is
+    inferred from the data.
+"""
+
+docdict['line_alpha_plot_psd'] = """\
 line_alpha : float | None
     Alpha for the PSD line. Can be None (default) to use 1.0 when
     ``average=True`` and 0.1 when ``average=False``.
@@ -1595,18 +1765,20 @@ line_alpha : float | None
 _long_format_df_base = """
 long_format : bool
     If True, the DataFrame is returned in long format where each row is one
-    observation of the signal at a unique combination of time point{}.
+    observation of the signal at a unique combination of {}.
     {}Defaults to ``False``.
 """
 
 ch_type = ('For convenience, a ``ch_type`` column is added to facilitate '
            'subsetting the resulting DataFrame. ')
-raw = (' and channel', ch_type)
-epo = (', channel, epoch number, and condition', ch_type)
-stc = (' and vertex', '')
+raw = ('time point and channel', ch_type)
+epo = ('time point, channel, epoch number, and condition', ch_type)
+stc = ('time point and vertex', '')
+spe = ('frequency and channel', ch_type)
 
 docdict['long_format_df_epo'] = _long_format_df_base.format(*epo)
 docdict['long_format_df_raw'] = _long_format_df_base.format(*raw)
+docdict['long_format_df_spe'] = _long_format_df_base.format(*spe)
 docdict['long_format_df_stc'] = _long_format_df_base.format(*stc)
 
 docdict['loose'] = """
@@ -1700,17 +1872,15 @@ match_case : bool
     .. versionadded:: 0.20
 """
 
-docdict['max_ori_out_deprecated'] = """
-max_ori_out : None
-    This argument is deprecated and will be removed in 1.1, as signed
-    values are always returned. Do not pass it as an argument.
-"""
-
 docdict['max_step_clust'] = """
 max_step : int
-    Maximum distance along the second dimension (typically this is the "time"
-    axis) between samples that are considered "connected". Only used
-    when ``connectivity`` has shape (n_vertices, n_vertices).
+    Maximum distance between samples along the second axis of ``X`` to be
+    considered adjacent (typically the second axis is the "time" dimension).
+    Only used when ``adjacency`` has shape (n_vertices, n_vertices), that is,
+    when adjacency is only specified for sensors (e.g., via
+    :func:`mne.channels.find_ch_adjacency`), and not via sensors **and**
+    further dimensions such as time points (e.g., via an additional call of
+    :func:`mne.stats.combine_adjacency`).
 """
 
 docdict['measure'] = """
@@ -1754,6 +1924,30 @@ method : str
     forward-backward filtering (via filtfilt).
 """
 
+docdict['method_kw_psd'] = """\
+**method_kw
+    Additional keyword arguments passed to the spectral estimation
+    function (e.g., ``n_fft, n_overlap, n_per_seg, average, window``
+    for Welch method, or
+    ``bandwidth, adaptive, low_bias, normalization`` for multitaper
+    method). See :func:`~mne.time_frequency.psd_array_welch` and
+    :func:`~mne.time_frequency.psd_array_multitaper` for details.
+"""
+
+_method_psd = """\
+method : 'welch' | 'multitaper'{}
+    Spectral estimation method. ``'welch'`` uses Welch's method
+    :footcite:`Welch1967`, ``'multitaper'`` uses DPSS tapers
+    :footcite:`Slepian1978`.{}
+"""
+docdict['method_plot_psd_auto'] = _method_psd.format(
+    " | 'auto'",
+    (" ``'auto'`` (default) uses Welch's method for continuous data and "
+     "multitaper for :class:`~mne.Epochs` or :class:`~mne.Evoked` data.")
+)
+docdict['method_psd'] = _method_psd.format('', '')
+docdict['method_psd_auto'] = _method_psd.format(" | 'auto'", '')
+
 docdict['mode_eltc'] = """
 mode : str
     Extraction mode, see Notes.
@@ -1775,11 +1969,14 @@ mode : None | 'mean' | 'max' | 'svd'
 
 docdict['montage'] = """
 montage : None | str | DigMontage
-    A montage containing channel positions. If str or DigMontage is
-    specified, the channel info will be updated with the channel
-    positions. Default is None. For valid :class:`str` values see documentation
-    of :func:`mne.channels.make_standard_montage`. See also the documentation
-    of :class:`mne.channels.DigMontage` for more information.
+    A montage containing channel positions. If a string or
+    :class:`~mne.channels.DigMontage` is
+    specified, the existing channel information will be updated with the
+    channel positions from the montage. Valid strings are the names of the
+    built-in montages that ship with MNE-Python; you can list those via
+    :func:`mne.channels.get_builtin_montages`.
+    If ``None`` (default), the channel positions will be removed from the
+    :class:`~mne.Info`.
 """
 
 docdict['montage_types'] = """EEG/sEEG/ECoG/DBS/fNIRS"""
@@ -1809,10 +2006,14 @@ n_comp : int
     Default n_comp=1.
 """
 
-docdict['n_jobs'] = """
-n_jobs : int
-    The number of jobs to run in parallel (default ``1``). If ``-1``, it is set
-    to the number of CPU cores. Requires the ``joblib`` package.
+docdict['n_jobs'] = """\
+n_jobs : int | None
+    The number of jobs to run in parallel. If ``-1``, it is set
+    to the number of CPU cores. Requires the :mod:`joblib` package.
+    ``None`` (default) is a marker for 'unset' that will be interpreted
+    as ``n_jobs=1`` (sequential execution) unless the call is performed under
+    a :func:`joblib:joblib.parallel_backend` context manager that sets another
+    value for ``n_jobs``.
 """
 
 docdict['n_jobs_cuda'] = """
@@ -1900,6 +2101,34 @@ normalize : bool
     If True, each band will be divided by the total power. Defaults to
     False.
 """
+
+docdict['notes_2d_backend'] = """\
+MNE-Python provides two different backends for browsing plots (i.e.,
+:meth:`raw.plot()<mne.io.Raw.plot>`, :meth:`epochs.plot()<mne.Epochs.plot>`,
+and :meth:`ica.plot_sources()<mne.preprocessing.ICA.plot_sources>`). One is
+based on :mod:`matplotlib`, and the other is based on
+:doc:`PyQtGraph<pyqtgraph:index>`. You can set the backend temporarily with the
+context manager :func:`mne.viz.use_browser_backend`, you can set it for the
+duration of a Python session using :func:`mne.viz.set_browser_backend`, and you
+can set the default for your computer via
+:func:`mne.set_config('MNE_BROWSER_BACKEND', 'matplotlib')<mne.set_config>`
+(or ``'qt'``).
+
+.. note:: For the PyQtGraph backend to run in IPython with ``block=False``
+          you must run the magic command ``%gui qt5`` first.
+.. note:: To report issues with the PyQtGraph backend, please use the
+          `issues <https://github.com/mne-tools/mne-qt-browser/issues>`_
+          of ``mne-qt-browser``.
+"""
+
+_notes_plot_psd = """\
+This {} exists to support legacy code; for new code the preferred
+idiom is ``inst.compute_psd().plot()`` (where ``inst`` is an instance
+of :class:`~mne.io.Raw`, :class:`~mne.Epochs`, or :class:`~mne.Evoked`).
+"""
+
+docdict['notes_plot_*_psd_func'] = _notes_plot_psd.format('function')
+docdict['notes_plot_psd_meth'] = _notes_plot_psd.format('method')
 
 docdict['notes_tmax_included_by_default'] = """
 Unlike Python slices, MNE time intervals by default include **both**
@@ -2062,6 +2291,14 @@ outlines : 'head' | 'skirt' | dict | None
     Defaults to 'head'.
 """
 
+docdict['overview_mode'] = """
+overview_mode : str | None
+    Can be "channels", "empty", or "hidden" to set the overview bar mode
+    for the ``'qt'`` backend. If None (default), the config option
+    ``MNE_BROWSER_OVERVIEW_MODE`` will be used, defaulting to "channels"
+    if it's not found.
+"""
+
 docdict['overwrite'] = """
 overwrite : bool
     If True (default False), overwrite the destination file if it
@@ -2090,6 +2327,12 @@ pca_vars : array, shape (n_comp,) | list of array
     The explained variances of the first n_comp SVD components across the
     PSFs/CTFs for the specified vertices. Arrays for multiple labels are
     returned as list. Only returned if mode='svd' and return_pca_vars=True.
+"""
+
+docdict['per_sample_metric'] = """
+per_sample : bool
+    If True the metric is computed for each sample
+    separately. If False, the metric is spatio-temporal.
 """
 
 docdict['phase'] = """
@@ -2155,41 +2398,119 @@ docdict['pick_ori_novec'] = """
 pick_ori : None | "normal"
 """ + _pick_ori_novec
 
-picks_header = 'picks : str | list | slice | None'
-picks_intro = ('Channels to include. Slices and lists of integers will be '
-               'interpreted as channel indices.')
-_reminder = ("Note that channels in ``info['bads']`` *will be included* if "
-             "their {}indices are explicitly provided.")
-reminder = _reminder.format('names or ')
-reminder_nostr = _reminder.format('')
-noref = f'(excluding reference MEG channels). {reminder}'
-picks_base = f"""{picks_header}
-    {picks_intro} In lists, channel *type* strings
+docdict['pick_types_params'] = """
+meg : bool | str
+    If True include MEG channels. If string it can be 'mag', 'grad',
+    'planar1' or 'planar2' to select only magnetometers, all
+    gradiometers, or a specific type of gradiometer.
+eeg : bool
+    If True include EEG channels.
+stim : bool
+    If True include stimulus channels.
+eog : bool
+    If True include EOG channels.
+ecg : bool
+    If True include ECG channels.
+emg : bool
+    If True include EMG channels.
+ref_meg : bool | str
+    If True include CTF / 4D reference channels. If 'auto', reference
+    channels are included if compensations are present and ``meg`` is
+    not False. Can also be the string options for the ``meg``
+    parameter.
+misc : bool
+    If True include miscellaneous analog channels.
+resp : bool
+    If ``True`` include respiratory channels.
+chpi : bool
+    If True include continuous HPI coil channels.
+exci : bool
+    Flux excitation channel used to be a stimulus channel.
+ias : bool
+    Internal Active Shielding data (maybe on Triux only).
+syst : bool
+    System status channel information (on Triux systems only).
+seeg : bool
+    Stereotactic EEG channels.
+dipole : bool
+    Dipole time course channels.
+gof : bool
+    Dipole goodness of fit channels.
+bio : bool
+    Bio channels.
+ecog : bool
+    Electrocorticography channels.
+fnirs : bool | str
+    Functional near-infrared spectroscopy channels. If True include all
+    fNIRS channels. If False (default) include none. If string it can
+    be 'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
+    include channels measuring deoxyhemoglobin).
+csd : bool
+    EEG-CSD channels.
+dbs : bool
+    Deep brain stimulation channels.
+temperature : bool
+    Temperature channels.
+gsr : bool
+    Galvanic skin response channels.
+include : list of str
+    List of additional channels to include. If empty do not include
+    any.
+exclude : list of str | str
+    List of channels to exclude. If 'bads' (default), exclude channels
+    in ``info['bads']``.
+selection : list of str
+    Restrict sensor channels (MEG, EEG, etc.) to this list of channel names.
+"""
+
+_picks_types = 'str | array-like | slice | None'
+_picks_header = f'picks : {_picks_types}'
+_picks_desc = 'Channels to include.'
+_picks_int = ('Slices and lists of integers will be interpreted as channel '
+              'indices.')
+_picks_str = """In lists, channel *type* strings
     (e.g., ``['meg', 'eeg']``) will pick channels of those
     types, channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
     will pick the given channels. Can also be the string values
     "all" to pick all channels, or "data" to pick :term:`data channels`.
     None (default) will pick"""
-docdict['picks_all'] = f'{picks_base} all channels. {reminder}'
-docdict['picks_all_data'] = f'{picks_base} all data channels. {reminder}'
-docdict['picks_all_data_noref'] = f'{picks_base} all data channels {noref}'
-docdict['picks_base'] = picks_base      # couple places (e.g., BaseEpochs)
-docdict['picks_good_data'] = f'{picks_base} good data channels. {reminder}'
+_reminder = ("Note that channels in ``info['bads']`` *will be included* if "
+             "their {}indices are explicitly provided.")
+reminder = _reminder.format('names or ')
+reminder_nostr = _reminder.format('')
+noref = f'(excluding reference MEG channels). {reminder}'
+picks_base = f"""{_picks_header}
+    {_picks_desc} {_picks_int} {_picks_str}"""
+docdict['picks_all'] = _reflow_param_docstring(
+    f'{picks_base} all channels. {reminder}')
+docdict['picks_all_data'] = _reflow_param_docstring(
+    f'{picks_base} all data channels. {reminder}')
+docdict['picks_all_data_noref'] = _reflow_param_docstring(
+    f'{picks_base} all data channels {noref}')
+docdict['picks_base'] = _reflow_param_docstring(picks_base)
+docdict['picks_good_data'] = _reflow_param_docstring(
+    f'{picks_base} good data channels. {reminder}')
 docdict['picks_good_data_noref'] = _reflow_param_docstring(
     f'{picks_base} good data channels {noref}')
-docdict['picks_header'] = picks_header  # these get reused as stubs in a
+docdict['picks_header'] = _picks_header
 docdict['picks_ica'] = """
 picks : int | list of int | slice | None
-    Indices of the ICA components to visualize.
+    Indices of the independent components (ICs) to visualize.
+    If an integer, represents the index of the IC to pick.
+    Multiple ICs can be selected using a list of int or a slice.
+    The indices are 0-indexed, so ``picks=1`` will pick the second
+    IC: ``ICA001``. ``None`` will pick all independent components in the order
+    fitted.
 """
 docdict['picks_nostr'] = f"""picks : list | slice | None
-    {picks_intro} None (default) will pick all channels. {reminder_nostr}"""
+    {_picks_desc} {_picks_int}
+    None (default) will pick all channels. {reminder_nostr}"""
 
-docdict['picks_plot_psd_good_data'] = \
-    f'{picks_base} good data channels. {reminder}'[:-2] + """
-    Cannot be None if ``ax`` is supplied.If both ``picks`` and ``ax`` are None
-    separate subplots will be created for each standard channel type
-    (``mag``, ``grad``, and ``eeg``).
+docdict['picks_plot_projs_joint_trace'] = f"""\
+picks_trace : {_picks_types}
+    Channels to show alongside the projected time courses. Typically
+    these are the ground-truth channels for an artifact (e.g., ``'eog'`` or
+    ``'ecg'``). {_picks_int} {_picks_str} no channels.
 """
 
 docdict['pipeline'] = """
@@ -2231,14 +2552,17 @@ pipeline : str | tuple
         the SDR step.
 """
 
-docdict['plot_psd_doc'] = """
-Plot the power spectral density across channels.
+docdict["plot_psd_doc"] = """\
+Plot power or amplitude spectra.
 
-Different channel types are drawn in sub-plots. When the data have been
+Separate plots are drawn for each channel type. When the data have been
 processed with a bandpass, lowpass or highpass filter, dashed lines (╎)
-indicate the boundaries of the filter. The line noise frequency is
-also indicated with a dashed line (⋮)
+indicate the boundaries of the filter. The line noise frequency is also
+indicated with a dashed line (⋮). If ``average=False``, the plot will
+be interactive, and click-dragging on the spectrum will generate a
+scalp topography plot for the chosen frequency range in a new figure
 """
+# lack of trailing . is intentional; it must be in actual docstring ↑↑↑ (D400)
 
 docdict['precompute'] = """
 precompute : bool | str
@@ -2300,6 +2624,12 @@ proj : bool | 'interactive' | 'reconstruct'
        Support for 'reconstruct' was added.
 """
 
+docdict['proj_psd'] = """\
+proj : bool
+    Whether to apply SSP projection vectors before spectral estimation.
+    Default is ``False``.
+"""
+
 docdict['proj_topomap_kwargs'] = """
 cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
     Colormap to use. If tuple, the first value indicates the colormap to
@@ -2342,9 +2672,7 @@ contours : int | array of float
     values for the contour thresholds (may sometimes be inaccurate, use
     array for accuracy). If an array, the values represent the levels for
     the contours. Defaults to 6.
-image_interp : str
-    The image interpolation to be used. All matplotlib options are
-    accepted.
+""" + docdict['image_interp_topomap'] + """
 axes : instance of Axes | list | None
     The axes to plot to. If list, the list must be a list of Axes of
     the same length as the number of projectors. If instance of Axes,
@@ -2505,6 +2833,13 @@ reject_by_annotation : bool
     rejected. If ``False``, no rejection based on annotations is performed.
 """
 
+docdict['reject_by_annotation_psd'] = """\
+reject_by_annotation : bool
+    Whether to omit bad spans of data before spectral estimation. If
+    ``True``, spans with annotations whose description begins with
+    ``bad`` will be omitted.
+"""
+
 docdict['reject_by_annotation_raw'] = _reject_by_annotation_base + """
     Has no effect if ``inst`` is not a :class:`mne.io.Raw` object.
 """
@@ -2646,6 +2981,18 @@ sdr_morph : instance of dipy.align.DiffeomorphicMap
     (SDR) morph.
 """
 
+docdict['section_report'] = """
+section : str | None
+    The name of the section (or content block) to add the content to. This
+    feature is useful for grouping multiple related content elements
+    together under a single, collapsible section. Each content element will
+    retain its own title and functionality, but not appear separately in the
+    table of contents. Hence, using sections is a way to declutter the table
+    of contents, and to easy navigation of the report.
+
+    .. versionadded:: 1.1
+"""
+
 docdict['seed'] = """
 seed : None | int | instance of ~numpy.random.RandomState
     A seed for the NumPy random number generator (RNG). If ``None`` (default),
@@ -2718,7 +3065,7 @@ References
 .. footbibliography::
 """
 
-docdict['show'] = """
+docdict['show'] = """\
 show : bool
     Show the figure if ``True``.
 """
@@ -2784,36 +3131,48 @@ smooth : float in [0, 1)
     The smoothing factor to be applied. Default 0 is no smoothing.
 """
 
-docdict['spatial_colors_plot_psd'] = """
+docdict['spatial_colors_psd'] = """\
 spatial_colors : bool
-    Whether to use spatial colors. Only used when ``average=False``.
+    Whether to color spectrum lines by channel location. Ignored if
+    ``average=True``.
 """
 
-docdict['sphere_topomap'] = """
-sphere : float | array-like | instance of ConductorModel
-    The sphere parameters to use for the cartoon head.
-    Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
-    meters, or a single float to give the radius (origin assumed 0, 0, 0).
-    Can also be a spherical ConductorModel, which will use the origin and
-    radius. Can also be None (default) which is an alias for %s.
-    Currently the head radius does not affect plotting.
+_sphere_header = (
+    'sphere : float | array-like | instance of ConductorModel | None')
+_sphere_desc = (
+    'The sphere parameters to use for the head outline. Can be array-like of '
+    'shape (4,) to give the X/Y/Z origin and radius in meters, or a single '
+    'float to give just the radius (origin assumed 0, 0, 0). Can also be an '
+    'instance of a spherical :class:`~mne.bem.ConductorModel` to use the '
+    'origin and radius from that object.'
+)
+_sphere_topo = _reflow_param_docstring(
+    f"""{_sphere_desc} ``None`` (the default) is equivalent to
+    (0, 0, 0, {HEAD_SIZE_DEFAULT}).
+    Currently the head radius does not affect plotting.""",
+    has_first_line=False)
+_sphere_topo_auto = _reflow_param_docstring(
+    f"""{_sphere_desc} If ``'auto'`` the sphere is fit to digitization points.
+    If ``'eeglab'`` the head circle is defined by EEG electrodes ``'Fpz'``,
+    ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will
+    be approximated from the coordinates of ``'Oz'``). ``None`` (the default)
+    is equivalent to ``'auto'`` when enough extra digitization points are
+    available, and (0, 0, 0, {HEAD_SIZE_DEFAULT}) otherwise. Currently the head
+    radius does not affect plotting.""", has_first_line=False)
+docdict['sphere_topomap'] = f"""
+{_sphere_header}
+    {_sphere_topo}
 
     .. versionadded:: 0.20
-""" % (HEAD_SIZE_DEFAULT,)
+"""
 
-docdict['sphere_topomap_auto'] = """
-sphere : float | array-like | str | None
-    The sphere parameters to use for the cartoon head.
-    Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
-    meters, or a single float to give the radius (origin assumed 0, 0, 0).
-    Can also be a spherical ConductorModel, which will use the origin and
-    radius. Can be "auto" to use a digitization-based fit.
-    Can also be None (default) to use 'auto' when enough extra digitization
-    points are available, and %s otherwise.
-    Currently the head radius does not affect plotting.
+docdict['sphere_topomap_auto'] = f"""\
+{_sphere_header} | 'auto' | 'eeglab'
+    {_sphere_topo_auto}
 
     .. versionadded:: 0.20
-""" % (HEAD_SIZE_DEFAULT,)
+    .. versionchanged:: 1.1 Added ``'eeglab'`` option.
+"""
 
 docdict['split_naming'] = """
 split_naming : 'neuromag' | 'bids'
@@ -2904,6 +3263,18 @@ static : instance of SpatialImage
     The image to align with ("to" volume).
 """
 
+docdict['stc_est_metric'] = """
+stc_est : instance of (Vol|Mixed)SourceEstimate
+    The source estimates containing estimated values
+    e.g. obtained with a source imaging method.
+"""
+
+docdict['stc_metric'] = """
+metric : float | array, shape (n_times,)
+    The metric. float if per_sample is False, else
+    array with the values computed for each time point.
+"""
+
 docdict['stc_plot_kwargs_report'] = """
 stc_plot_kwargs : dict
     Dictionary of keyword arguments to pass to
@@ -2911,12 +3282,25 @@ stc_plot_kwargs : dict
     mode.
 """
 
+docdict['stc_true_metric'] = """
+stc_true : instance of (Vol|Mixed)SourceEstimate
+    The source estimates containing correct values.
+"""
+
 docdict['stcs_pctf'] = """
 stcs : instance of SourceEstimate | list of instances of SourceEstimate
-    PSFs or CTFs as STC objects.
-    All PSFs/CTFs will be returned as successive samples in STC objects,
-    in the order they are specified in idx. STCs for different labels will
-    be returned as a list.
+    The PSFs or CTFs as STC objects. All PSFs/CTFs will be returned as
+    successive samples in STC objects, in the order they are specified
+    in idx. STCs for different labels willbe returned as a list.
+    If resmat was computed with n_orient_inv==3 for CTFs or
+    n_orient_fwd==3 for PSFs then 3 functions per vertex will be returned
+    as successive samples (i.e. one function per orientation).
+    If vector=False (default) and resmat was computed with
+    n_orient_inv==3 for PSFs or n_orient_fwd==3 for CTFs, then the three
+    values per vertex will be combined into one intensity value per
+    vertex in a SourceEstimate object. If vector=True, PSFs or CTFs
+    with 3 values per vertex (one per orientation) will be returned in
+    a VectorSourceEstimate object.
 """
 
 docdict['std_err_by_event_type_returns'] = """
@@ -3029,20 +3413,46 @@ thresh : None or float
 
 _threshold_clust_base = """
 threshold : float | dict | None
+    The so-called "cluster forming threshold" in the form of a test statistic
+    (note: this is not an alpha level / "p-value").
     If numeric, vertices with data values more extreme than ``threshold`` will
-    be used to form clusters. If threshold is ``None``, {} will be chosen
+    be used to form clusters. If ``None``, {} will be chosen
     automatically that corresponds to a p-value of 0.05 for the given number of
     observations (only valid when using {}). If ``threshold`` is a
     :class:`dict` (with keys ``'start'`` and ``'step'``) then threshold-free
     cluster enhancement (TFCE) will be used (see the
     :ref:`TFCE example <tfce_example>` and :footcite:`SmithNichols2009`).
+    See Notes for an example on how to compute a threshold based on
+    a particular p-value for one-tailed or two-tailed tests.
 """
 
 f_test = ('an F-threshold', 'an F-statistic')
 docdict['threshold_clust_f'] = _threshold_clust_base.format(*f_test)
 
+docdict['threshold_clust_f_notes'] = """
+For computing a ``threshold`` based on a p-value, use the conversion
+from :meth:`scipy.stats.rv_continuous.ppf`::
+
+    pval = 0.001  # arbitrary
+    dfn = n_conditions - 1  # degrees of freedom numerator
+    dfd = n_observations - n_conditions  # degrees of freedom denominator
+    thresh = scipy.stats.f.ppf(1 - pval, dfn=dfn, dfd=dfd)  # F distribution
+"""
+
 t_test = ('a t-threshold', 'a t-statistic')
 docdict['threshold_clust_t'] = _threshold_clust_base.format(*t_test)
+
+docdict['threshold_clust_t_notes'] = """
+For computing a ``threshold`` based on a p-value, use the conversion
+from :meth:`scipy.stats.rv_continuous.ppf`::
+
+    pval = 0.001  # arbitrary
+    df = n_observations - 1  # degrees of freedom for the test
+    thresh = scipy.stats.t.ppf(1 - pval / 2, df)  # two-tailed, t distribution
+
+For a one-tailed test (``tail=1``), don't divide the p-value by 2.
+For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
+"""
 
 docdict['time_format'] = """
 time_format : 'float' | 'clock'
@@ -3060,9 +3470,8 @@ time_format : str | None
     remain as float values in seconds. If ``'ms'``, time values will be rounded
     to the nearest millisecond and converted to integers. If ``'timedelta'``,
     time values will be converted to :class:`pandas.Timedelta` values. {}
-    Default is ``'ms'`` in version 0.22, and will change to ``None`` in
-    version 0.23.
-"""  # XXX make sure we deal with this deprecation in 0.23
+    Default is ``None``.
+"""
 
 docdict['time_format_df'] = _time_format_df_base.format('')
 
@@ -3079,17 +3488,15 @@ time_label : str | callable | None
     is more than one time point.
 """
 
+docdict['time_unit'] = """\
+time_unit : str
+    The units for the time axis, can be "s" (default) or "ms".
+"""
+
 docdict['time_viewer_brain_screenshot'] = """
 time_viewer : bool
     If True, include time viewer traces. Only used if
     ``time_viewer=True`` and ``separate_canvas=False``.
-"""
-
-docdict['title_dipole_locs_fig'] = """
-title : str | None
-    The title of the figure if ``mode='orthoview'`` (ignored for all other
-    modes). If ``None``, dipole number and its properties (amplitude,
-    orientation etc.) will be shown. Defaults to ``None``.
 """
 
 docdict['title_none'] = """
@@ -3111,6 +3518,13 @@ tmin : scalar
 docdict['tmin_raw'] = """
 tmin : float
     Start time of the raw data to use in seconds (must be >= 0).
+"""
+
+docdict['tmin_tmax_psd'] = """\
+tmin, tmax : float | None
+    First and last times to include, in seconds. ``None`` uses the first or
+    last time present in the data. Default is ``tmin=None, tmax=None`` (all
+    times).
 """
 
 docdict['tol_kind_rank'] = """
@@ -3151,14 +3565,11 @@ If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
     during coregistration. Can also be ``'fsaverage'`` to use the built-in
     fsaverage transformation."""
 
-docdict['trans'] = """
-trans : str | dict | instance of Transform | None
-    %s
+docdict['trans'] = f"""
+trans : path-like | dict | instance of Transform | None
+    {_trans_base}
     If trans is None, an identity matrix is assumed.
-
-    .. versionchanged:: 0.19
-       Support for 'fsaverage' argument.
-""" % (_trans_base,)
+"""
 
 docdict['trans_not_none'] = """
 trans : str | dict | instance of Transform
@@ -3206,6 +3617,14 @@ units : str | dict | None
     channel-type-specific default unit.
 """
 
+docdict['units_edf_bdf_io'] = """
+units : dict | str
+    The units of the channels as stored in the file. This argument
+    is useful only if the units are missing from the original file.
+    If a dict, it must map a channel name to its unit, and if str
+    it is assumed that all channels have the same units.
+"""
+
 docdict['units_topomap'] = """
 units : dict | str | None
     The unit of the channel type used for colorbar label. If
@@ -3242,12 +3661,23 @@ use_opengl : bool | None
 # %%
 # V
 
+docdict['vector_pctf'] = """
+vector : bool
+    Whether to return PSF/CTF as vector source estimate (3 values per
+    location) or source estimate object (1 intensity value per location).
+    Only allowed to be True if corresponding dimension of resolution matrix
+    is 3 * n_dipoles. Defaults to False.
+
+    .. versionadded:: 1.2
+"""
+
 docdict['verbose'] = """
 verbose : bool | str | int | None
     Control verbosity of the logging output. If ``None``, use the default
     verbosity level. See the :ref:`logging documentation <tut-logging>` and
     :func:`mne.verbose` for details. Should only be passed as a keyword
-    argument."""
+    argument.
+"""
 
 docdict['vertices_volume'] = """
 vertices : list of array of int
@@ -3337,7 +3767,7 @@ weight_norm : str | None
            solution.
 """
 
-docdict['window_psd'] = """
+docdict['window_psd'] = """\
 window : str | float | tuple
     Windowing function to use. See :func:`scipy.signal.get_window`.
 """
@@ -3351,9 +3781,9 @@ window : str | tuple
 # %%
 # X
 
-docdict['xscale_plot_psd'] = """
-xscale : str
-    Can be 'linear' (default) or 'log'.
+docdict['xscale_plot_psd'] = """\
+xscale : 'linear' | 'log'
+    Scale of the frequency axis. Default is ``'linear'``.
 """
 
 # %%
@@ -3361,6 +3791,9 @@ xscale : str
 
 # %%
 # Z
+
+# this is needed in test_docstring_parameters, which reads the file as text
+docdict['¿test—üñɪçøɖɘ_keys*'] = '¿test—üñɪçøɖɘ_values*'
 
 docdict_indented = {}
 
@@ -3730,29 +4163,17 @@ def open_docs(kind=None, version=None):
     webbrowser.open_new_tab('https://mne.tools/%s/%s' % (version, kind))
 
 
-# Following deprecated class copied from scikit-learn
-
-# force show of DeprecationWarning even on python 2.7
+# make DeprecationWarnings actually show up for users
 warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
 
 
-class deprecated:
-    """Mark a function, class, or method as deprecated (decorator).
+class _decorator:
+    """Inject code or modify the docstring of a class, method, or function."""
 
-    Originally adapted from sklearn and
-    http://wiki.python.org/moin/PythonDecoratorLibrary, then modified to make
-    arguments populate properly following our verbose decorator methods based
-    on decorator.
-
-    Parameters
-    ----------
-    extra : str
-        Extra information beyond just saying the class/function/method
-        is deprecated.
-    """
-
-    def __init__(self, extra=''):  # noqa: D102
+    def __init__(self, extra, kind):  # noqa: D102
+        self.kind = kind
         self.extra = extra
+        self.msg = f'{{}} is a {self.kind} {{}}. {self.extra}.'
 
     def __call__(self, obj):  # noqa: D105
         """Call.
@@ -3767,44 +4188,33 @@ class deprecated:
         obj : object
             The modified object.
         """
-        if isinstance(obj, type):
-            return self._decorate_class(obj)
+        if inspect.isclass(obj):
+            obj_type = 'class'
         else:
-            return self._decorate_fun(obj)
+            # NB: detecting (bound and unbound) methods seems to be impossible
+            assert inspect.isfunction(obj), f'decorator used on {type(obj)}'
+            obj_type = 'function'
+        msg = self.msg.format(obj.__name__, obj_type)
+        if obj_type == 'class':
+            obj.__init__ = self._make_fun(obj.__init__, msg)
+            return obj
+        return self._make_fun(obj, msg)
 
-    def _decorate_class(self, cls):
-        msg = f"Class {cls.__name__} is deprecated"
-        cls.__init__ = self._make_fun(cls.__init__, msg)
-        return cls
-
-    def _decorate_fun(self, fun):
-        """Decorate function fun."""
-        msg = f"Function {fun.__name__} is deprecated"
-        return self._make_fun(fun, msg)
-
-    def _make_fun(self, function, msg):
-        if self.extra:
-            msg += "; %s" % self.extra
-
-        body = f"""\
-def %(name)s(%(signature)s):\n
-    import warnings
-    warnings.warn({repr(msg)}, category=DeprecationWarning)
-    return _function_(%(shortsignature)s)"""
-        evaldict = dict(_function_=function)
+    def _make_fun(self, func, body):
+        evaldict = dict(_function_=func)
         fm = FunctionMaker(
-            function, None, None, None, None, function.__module__)
-        attrs = dict(__wrapped__=function, __qualname__=function.__qualname__,
-                     __globals__=function.__globals__)
+            func, None, None, None, None, func.__module__)
+        attrs = dict(__wrapped__=func, __qualname__=func.__qualname__,
+                     __globals__=func.__globals__)
         dep = fm.make(body, evaldict, addsource=True, **attrs)
         dep.__doc__ = self._update_doc(dep.__doc__)
-        dep._deprecated_original = function
+        dep._deprecated_original = func
         return dep
 
     def _update_doc(self, olddoc):
-        newdoc = ".. warning:: DEPRECATED"
+        newdoc = f".. warning:: {self.kind.upper()}"
         if self.extra:
-            newdoc = "%s: %s" % (newdoc, self.extra)
+            newdoc = f'{newdoc}: {self.extra}'
         newdoc += '.'
         if olddoc:
             # Get the spacing right to avoid sphinx warnings
@@ -3813,9 +4223,38 @@ def %(name)s(%(signature)s):\n
                 if li > 0 and len(line.strip()):
                     n_space = len(line) - len(line.lstrip())
                     break
-            newdoc = "%s\n\n%s%s" % (newdoc, ' ' * n_space, olddoc)
-
+            newdoc = f"{newdoc}\n\n{' ' * n_space}{olddoc}"
         return newdoc
+
+
+# Following deprecated class copied from scikit-learn
+class deprecated(_decorator):
+    """Mark a function, class, or method as deprecated (decorator).
+
+    Originally adapted from sklearn and
+    http://wiki.python.org/moin/PythonDecoratorLibrary, then modified to make
+    arguments populate properly following our verbose decorator methods based
+    on decorator.
+
+    Parameters
+    ----------
+    extra : str
+        Extra information beyond just saying the class/function/method is
+        deprecated. Should be a complete sentence (trailing period will be
+        added automatically). Will be included in DeprecationWarning messages
+        and in a sphinx warning box in the docstring.
+    """
+
+    def __init__(self, extra=''):
+        super().__init__(extra=extra, kind='deprecated')
+
+    def _make_fun(self, func, msg):
+        body = f"""\
+def %(name)s(%(signature)s):\n
+    import warnings
+    warnings.warn({repr(msg)}, category=DeprecationWarning)
+    return _function_(%(shortsignature)s)"""
+        return super()._make_fun(func=func, body=body)
 
 
 def deprecated_alias(dep_name, func, removed_in=None):
@@ -3831,6 +4270,37 @@ def deprecated_alias(dep_name, func, removed_in=None):
         f'be removed in {removed_in}.'
     )(deepcopy(func))
 
+
+###############################################################################
+# "legacy" decorator for parts of our API retained only for backward compat
+
+class legacy(_decorator):
+    """Mark a function, class, or method as legacy (decorator).
+
+    Parameters
+    ----------
+    alt : str
+        Description of the alternate, preferred way to achieve a comparable
+        result.
+    extra : str
+        Extra information beyond just saying the class/function/method is
+        legacy. Should be a complete sentence (trailing period will be
+        added automatically). Will be included in logger.info messages
+        and in a sphinx warning box in the docstring.
+    """
+
+    def __init__(self, alt, extra=''):  # noqa: D102
+        period = '. ' if len(extra) else ''
+        extra = f'New code should use {alt}{period}{extra}'
+        super().__init__(extra=extra, kind='legacy')
+
+    def _make_fun(self, func, msg):
+        body = f"""\
+def %(name)s(%(signature)s):\n
+    from mne.utils import logger
+    logger.info({repr(msg)})
+    return _function_(%(shortsignature)s)"""
+        return super()._make_fun(func=func, body=body)
 
 ###############################################################################
 # The following tools were adapted (mostly trimmed) from SciPy's doccer.py

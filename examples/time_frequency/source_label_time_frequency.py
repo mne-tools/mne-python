@@ -76,7 +76,7 @@ for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
     # compute the source space power and the inter-trial coherence
     power, itc = source_induced_power(
         this_epochs, inverse_operator, freqs, label, baseline=(-0.1, 0),
-        baseline_mode='percent', n_cycles=n_cycles, n_jobs=1)
+        baseline_mode='percent', n_cycles=n_cycles, n_jobs=None)
 
     power = np.mean(power, axis=0)  # average over sources
     itc = np.mean(itc, axis=0)  # average over sources

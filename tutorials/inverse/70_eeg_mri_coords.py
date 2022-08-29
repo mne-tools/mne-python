@@ -16,8 +16,6 @@ the electrodes are in MRI voxel coordinates.
 
 # %%
 
-import os.path as op
-
 import nibabel
 from nilearn.plotting import plot_glass_brain
 import numpy as np
@@ -45,15 +43,15 @@ from mne.viz import plot_alignment
 # and thus are stored as part of the ``misc`` dataset).
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(data_path, 'subjects')
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
-bem_dir = op.join(subjects_dir, 'sample', 'bem')
-fname_bem = op.join(bem_dir, 'sample-5120-5120-5120-bem-sol.fif')
-fname_src = op.join(bem_dir, 'sample-oct-6-src.fif')
+subjects_dir = data_path / 'subjects'
+fname_raw = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
+bem_dir = subjects_dir / 'sample' / 'bem'
+fname_bem = bem_dir / 'sample-5120-5120-5120-bem-sol.fif'
+fname_src = bem_dir / 'sample-oct-6-src.fif'
 
 misc_path = mne.datasets.misc.data_path()
-fname_T1_electrodes = op.join(misc_path, 'sample_eeg_mri', 'T1_electrodes.mgz')
-fname_mon = op.join(misc_path, 'sample_eeg_mri', 'sample_mri_montage.elc')
+fname_T1_electrodes = misc_path / 'sample_eeg_mri' / 'T1_electrodes.mgz'
+fname_mon = misc_path / 'sample_eeg_mri' / 'sample_mri_montage.elc'
 
 ##############################################################################
 # Visualizing the MRI
@@ -80,8 +78,9 @@ plot_glass_brain(img_mni, cmap='hot_black_bone', threshold=0., black_bg=True,
 # :func:`mne.channels.read_custom_montage`, making note of the fact that
 # we stored our locations in Freesurfer surface RAS (MRI) coordinates.
 #
-# .. collapse:: |question| What if my electrodes are in MRI voxels?
-#     :class: info
+# .. dropdown:: What if my electrodes are in MRI voxels?
+#     :color: warning
+#     :icon: question
 #
 #     If you have voxel coordinates in MRI voxels, you can transform these to
 #     FreeSurfer surface RAS (called "mri" in MNE) coordinates using the

@@ -333,10 +333,10 @@ def rotation3d_align_z_axis(target_z_axis):
                             target_z_axis[1] * target_z_axis[1])
 
     # assert that r is a rotation matrix r^t * r = I and det(r) = 1
-    assert(np.any((r.dot(r.T) - np.identity(3)) < 1E-12))
-    assert((np.linalg.det(r) - 1.0) < 1E-12)
+    assert np.any((r.dot(r.T) - np.identity(3)) < 1E-12)
+    assert (np.linalg.det(r) - 1.0) < 1E-12
     # assert that r maps [0 0 1] on the device z axis (target_z_axis)
-    assert(np.linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12)
+    assert np.linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12
 
     return r
 
@@ -721,8 +721,8 @@ def _cart_to_sph(cart):
     sph_pts : ndarray, shape (n_points, 3)
         Array containing points in spherical coordinates (rad, azimuth, polar)
     """
-    assert cart.ndim == 2 and cart.shape[1] == 3
     cart = np.atleast_2d(cart)
+    assert cart.ndim == 2 and cart.shape[1] == 3
     out = np.empty((len(cart), 3))
     out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
     norm = np.where(out[:, 0] > 0, out[:, 0], 1)  # protect against / 0
@@ -746,8 +746,8 @@ def _sph_to_cart(sph_pts):
         Array containing points in Cartesian coordinates (x, y, z)
 
     """
-    assert sph_pts.ndim == 2 and sph_pts.shape[1] == 3
     sph_pts = np.atleast_2d(sph_pts)
+    assert sph_pts.ndim == 2 and sph_pts.shape[1] == 3
     cart_pts = np.empty((len(sph_pts), 3))
     cart_pts[:, 2] = sph_pts[:, 0] * np.cos(sph_pts[:, 2])
     xy = sph_pts[:, 0] * np.sin(sph_pts[:, 2])
@@ -1281,11 +1281,12 @@ def _quat_to_affine(quat):
     return affine
 
 
-def _angle_between_quats(x, y):
+def _angle_between_quats(x, y=None):
     """Compute the ang between two quaternions w/3-element representations."""
     # z = conj(x) * y
     # conjugate just negates all but the first element in a 4-element quat,
     # so it's just a negative for us
+    y = np.zeros(3) if y is None else y
     z = _quat_mult(-x, y)
     z0 = _quat_real(z)
     return 2 * np.arctan2(np.linalg.norm(z, axis=-1), z0)
@@ -1625,7 +1626,8 @@ def _reslice_normalize(img, zooms):
 
 @verbose
 def compute_volume_registration(moving, static, pipeline='all', zooms=None,
-                                niter=None, verbose=None):
+                                niter=None, *, starting_affine=None,
+                                verbose=None):
     """Align two volumes using an affine and, optionally, SDR.
 
     Parameters
@@ -1641,6 +1643,10 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
         (each with values that are float`, tuple, or None) to provide separate
         reslicing/accuracy for the steps.
     %(niter)s
+    starting_affine : ndarray
+        The affine to initialize the registration with.
+
+        .. versionadded:: 1.2
     %(verbose)s
 
     Returns
@@ -1657,10 +1663,12 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
     .. versionadded:: 0.24
     """
     return _compute_volume_registration(
-        moving, static, pipeline, zooms, niter)[:2]
+        moving, static, pipeline, zooms, niter,
+        starting_affine=starting_affine)[:2]
 
 
-def _compute_volume_registration(moving, static, pipeline, zooms, niter):
+def _compute_volume_registration(moving, static, pipeline, zooms, niter, *,
+                                 starting_affine=None):
     _require_version('nibabel', 'SDR morph', '2.1.0')
     _require_version('dipy', 'SDR morph', '0.10.1')
     import nibabel as nib
@@ -1681,7 +1689,7 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
     logger.info('Computing registration...')
 
     # affine optimizations
-    reg_affine = None
+    reg_affine = starting_affine
     sdr_morph = None
     pipeline_options = dict(translation=[center_of_mass, translation],
                             rigid=[rigid], affine=[affine])

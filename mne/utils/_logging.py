@@ -485,20 +485,3 @@ def _frame_info(n):
         return ['unknown']
     finally:
         del frame
-
-
-class _VerboseDep:
-    @property
-    def verbose(self):
-        warn('The verbose class attribute has been deprecated in 1.0 and will '
-             'be removed in 1.1, pass verbose to methods as required to '
-             'change log levels instead', DeprecationWarning)
-        return None
-
-    @verbose.setter
-    def verbose(self, v):
-        warn('The verbose class attribute has been deprecated in 1.0 and will '
-             f'be removed in 1.1, the value {repr(v)} will be ignored. Pass '
-             'verbose to methods as required or use the '
-             'mne.utils.use_log_level context manager to change log levels '
-             'instead', DeprecationWarning)

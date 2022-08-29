@@ -18,7 +18,7 @@ from ..utils import (_mask_to_onsets_offsets, logger, verbose, _validate_type,
 
 @verbose
 def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
-                           filter_freq=(110, 140), n_jobs=1, verbose=None):
+                           filter_freq=(110, 140), n_jobs=None, verbose=None):
     """Create annotations for segments that likely contain muscle artifacts.
 
     Detects data segments containing activity in the frequency range given by
