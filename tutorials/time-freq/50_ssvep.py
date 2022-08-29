@@ -141,14 +141,15 @@ fmin = 1.
 fmax = 90.
 sfreq = epochs.info['sfreq']
 
-psds, freqs = mne.time_frequency.psd_welch(
-    epochs,
+spectrum = epochs.compute_psd(
+    'welch',
     n_fft=int(sfreq * (tmax - tmin)),
     n_overlap=0, n_per_seg=None,
     tmin=tmin, tmax=tmax,
     fmin=fmin, fmax=fmax,
     window='boxcar',
     verbose=False)
+psds, freqs = spectrum.get_data(return_freqs=True)
 
 
 # %%
@@ -561,13 +562,14 @@ window_lengths = [i for i in range(2, 21, 2)]
 window_snrs = [[]] * len(window_lengths)
 for i_win, win in enumerate(window_lengths):
     # compute spectrogram
-    windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
-        epochs[str(event_id['12hz'])],
+    this_spectrum = epochs[str(event_id['12hz'])].compute_psd(
+        'welch',
         n_fft=int(sfreq * win),
         n_overlap=0, n_per_seg=None,
         tmin=0, tmax=win,
         window='boxcar',
         fmin=fmin, fmax=fmax, verbose=False)
+    windowed_psd, windowed_freqs = this_spectrum.get_data(return_freqs=True)
     # define a bandwidth of 1 Hz around stimfreq for SNR computation
     bin_width = windowed_freqs[1] - windowed_freqs[0]
     skip_neighbor_freqs = \
@@ -633,14 +635,15 @@ window_snrs = [[]] * len(window_starts)
 
 for i_win, win in enumerate(window_starts):
     # compute spectrogram
-    windowed_psd, windowed_freqs = mne.time_frequency.psd_welch(
-        epochs[str(event_id['12hz'])],
+    this_spectrum = epochs[str(event_id['12hz'])].compute_psd(
+        'welch',
         n_fft=int(sfreq * window_length) - 1,
         n_overlap=0, n_per_seg=None,
         window='boxcar',
         tmin=win, tmax=win + window_length,
         fmin=fmin, fmax=fmax,
         verbose=False)
+    windowed_psd, windowed_freqs = this_spectrum.get_data(return_freqs=True)
     # define a bandwidth of 1 Hz around stimfreq for SNR computation
     bin_width = windowed_freqs[1] - windowed_freqs[0]
     skip_neighbor_freqs = \

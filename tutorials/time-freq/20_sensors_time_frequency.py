@@ -24,7 +24,7 @@ import numpy as np
 
 import mne
 from mne.datasets import somato
-from mne.time_frequency import psd_multitaper, psd_welch, tfr_morlet
+from mne.time_frequency import tfr_morlet
 
 # %%
 # Set parameters
@@ -67,10 +67,7 @@ epochs.plot_psd(fmin=2., fmax=40., average=True, spatial_colors=False)
 epochs.plot_psd_topomap(ch_type='grad', normalize=False)
 
 # %%
-# Alternatively, you can also create PSDs from `~mne.Epochs` with functions
-# that start with ``psd_`` such as
-# :func:`mne.time_frequency.psd_multitaper` and
-# :func:`mne.time_frequency.psd_welch`.
+# Alternatively, you can also create PSDs from `~mne.Epochs` methods directly.
 #
 # .. note::
 #    In contrast to the methods for visualization, those ``psd_*`` functions do
@@ -81,20 +78,21 @@ epochs.plot_psd_topomap(ch_type='grad', normalize=False)
 #    :meth:`~mne.Epochs.plot_psd`).
 
 f, ax = plt.subplots()
-psds, freqs = psd_multitaper(epochs, fmin=2, fmax=40, n_jobs=None)
+spectrum = epochs.compute_psd(fmin=2., fmax=40., tmax=3., n_jobs=None)
+psds, freqs = spectrum.get_data(return_freqs=True)
 psds = 10 * np.log10(psds)  # convert to dB
 psds_mean = psds.mean(0).mean(0)
 psds_std = psds.mean(0).std(0)
 
 ax.plot(freqs, psds_mean, color='k')
 ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
-                color='k', alpha=.5)
+                color='k', alpha=.5, linecolor='none')
 ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency (Hz)',
        ylabel='Power Spectral Density (dB)')
 plt.show()
 
 # %%
-# Notably, :func:`mne.time_frequency.psd_welch` supports the keyword argument
+# Notably, :meth:`mne.Epochs.compute_psd` supports the keyword argument
 # ``average``, which specifies how to estimate the PSD based on the individual
 # windowed segments. The default is ``average='mean'``, which simply calculates
 # the arithmetic mean across segments. Specifying ``average='median'``, in
@@ -103,8 +101,10 @@ plt.show()
 
 # Estimate PSDs based on "mean" and "median" averaging for comparison.
 kwargs = dict(fmin=2, fmax=40, n_jobs=None)
-psds_welch_mean, freqs_mean = psd_welch(epochs, average='mean', **kwargs)
-psds_welch_median, freqs_median = psd_welch(epochs, average='median', **kwargs)
+psds_welch_mean, freqs_mean = epochs.compute_psd(
+    'welch', average='mean', **kwargs).get_data(return_freqs=True)
+psds_welch_median, freqs_median = epochs.compute_psd(
+    'welch', average='median', **kwargs).get_data(return_freqs=True)
 
 # Convert power to dB scale.
 psds_welch_mean = 10 * np.log10(psds_welch_mean)
@@ -128,10 +128,11 @@ plt.show()
 
 # %%
 # Lastly, we can also retrieve the unaggregated segments by passing
-# ``average=None`` to :func:`mne.time_frequency.psd_welch`. The dimensions of
+# ``average=None`` to :meth:`mne.Epochs.compute_psd`. The dimensions of
 # the returned array are ``(n_epochs, n_sensors, n_freqs, n_segments)``.
 
-psds_welch_unagg, freqs_unagg = psd_welch(epochs, average=None, **kwargs)
+psds_welch_unagg, freqs_unagg = epochs.compute_psd(
+    'welch', average=None, **kwargs).get_data(return_freqs=True)
 print(psds_welch_unagg.shape)
 
 # %%
