@@ -468,6 +468,37 @@ sphinx_gallery_conf = {
     'matplotlib_animations': True,
     'compress_images': compress_images,
     'filename_pattern': '^((?!sgskip).)*$',
+    'api_usage_ignore': (
+        '('
+        '.*__.*__|'  # built-ins
+        '.*Base.*|.*Array.*|mne.Vector.*|mne.Mixed.*|mne.Vol.*|'  # inherited
+        'mne.coreg.Coregistration.*|'  # GUI
+        # common
+        '.*utils.*|.*verbose()|.*copy()|.*update()|.*save()|'
+        '.*get_data()|'
+        # mixins
+        '.*add_channels()|.*add_reference_channels()|'
+        '.*anonymize()|.*apply_baseline()|.*apply_function()|'
+        '.*apply_hilbert()|.*as_type()|.*decimate()|'
+        '.*drop()|.*drop_channels()|.*drop_log_stats()|'
+        '.*export()|.*get_channel_types()|'
+        '.*get_montage()|.*interpolate_bads()|.*next()|'
+        '.*pick()|.*pick_channels()|.*pick_types()|'
+        '.*plot_sensors()|.*rename_channels()|'
+        '.*reorder_channels()|.*savgol_filter()|'
+        '.*set_eeg_reference()|.*set_channel_types()|'
+        '.*set_meas_date()|.*set_montage()|.*shift_time()|'
+        '.*time_as_index()|.*to_data_frame()|'
+        # dictionary inherited
+        '.*clear()|.*fromkeys()|.*get()|.*items()|'
+        '.*keys()|.*pop()|.*popitem()|.*setdefault()|'
+        '.*values()|'
+        # sklearn inherited
+        '.*apply()|.*decision_function()|.*fit()|'
+        '.*fit_transform()|.*get_params()|.*predict()|'
+        '.*predict_proba()|.*set_params()|.*transform()|'
+        # I/O, also related to mixins
+        '.*.remove.*|.*.write.*)')
 }
 # Files were renamed from plot_* with:
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa

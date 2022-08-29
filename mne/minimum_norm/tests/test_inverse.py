@@ -25,12 +25,14 @@ from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  convert_forward_solution, Covariance, combine_evoked,
                  SourceEstimate, make_sphere_model, make_ad_hoc_cov,
                  pick_channels_forward, compute_raw_covariance)
-from mne.io import read_raw_fif
+from mne.io import read_raw_fif, read_info
 from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               apply_inverse_raw, apply_inverse_epochs,
+                              apply_inverse_tfr_epochs,
                               make_inverse_operator, apply_inverse_cov,
                               write_inverse_operator, prepare_inverse_operator,
                               compute_rank_inverse, INVERSE_METHODS)
+from mne.time_frequency import EpochsTFR
 from mne.utils import catch_logging, _record_warnings
 
 test_path = testing.data_path(download=False)
@@ -1095,6 +1097,51 @@ def test_apply_mne_inverse_epochs():
         apply_inverse_epochs(
             EvokedArray(epochs[0].get_data()[0], epochs.info),
             inverse_operator, 1.)
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+@pytest.mark.parametrize('return_generator', (True, False))
+def test_apply_inverse_tfr(return_generator):
+    """Test applying an inverse to time-frequency data."""
+    rng = np.random.default_rng(11)
+    n_epochs = 4
+    info = read_info(fname_raw)
+    inverse_operator = read_inverse_operator(fname_full)
+    freqs = np.arange(8, 10)
+    sfreq = info['sfreq']
+    times = np.arange(sfreq) / sfreq  # make epochs 1s long
+    data = rng.random((n_epochs, len(info.ch_names), freqs.size, times.size))
+    data = data + 1j * data  # make complex to simulate amplitude + phase
+    epochs_tfr = EpochsTFR(info, data, times=times, freqs=freqs)
+    epochs_tfr.apply_baseline((0, 0.5))
+    pick_ori = 'vector'
+
+    with pytest.raises(ValueError, match='Expected 2 inverse operators, '
+                                         'got 3'):
+        apply_inverse_tfr_epochs(epochs_tfr, [inverse_operator] * 3, lambda2)
+
+    # test epochs
+    stcs = apply_inverse_tfr_epochs(
+        epochs_tfr, inverse_operator, lambda2, "dSPM", pick_ori=pick_ori,
+        return_generator=return_generator)
+
+    n_orient = 3 if pick_ori == 'vector' else 1
+    if return_generator:
+        stcs = [[s for s in these_stcs] for these_stcs in stcs]
+    assert_allclose(stcs[0][0].times, times)
+    assert len(stcs) == freqs.size
+    assert all([len(s) == len(epochs_tfr) for s in stcs])
+    assert all([s.data.shape == (inverse_operator['nsource'],
+                                 n_orient, times.size)
+                for these_stcs in stcs for s in these_stcs])
+
+    evoked = EvokedArray(data.mean(axis=(0, 2)), info, epochs_tfr.tmin)
+    stc = apply_inverse(
+        evoked, inverse_operator, lambda2, "dSPM", pick_ori=pick_ori)
+    tfr_stc_data = np.array([[stc.data for stc in tfr_stcs]
+                             for tfr_stcs in stcs])
+    assert_allclose(stc.data, tfr_stc_data.mean(axis=(0, 1)))
 
 
 def test_make_inverse_operator_bads(evoked, noise_cov):
