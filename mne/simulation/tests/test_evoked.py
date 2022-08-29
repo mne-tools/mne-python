@@ -153,7 +153,7 @@ def test_rank_deficiency():
     cov = regularize(cov, evoked.info, rank=None)
     cov = pick_channels_cov(cov, evoked.ch_names)
     evoked.data[:] = 0
-    add_noise(evoked, cov)
+    add_noise(evoked, cov, random_state=0)
     cov_new = compute_covariance(
         EpochsArray(evoked.data[np.newaxis], evoked.info), verbose='error')
     assert cov['names'] == cov_new['names']
