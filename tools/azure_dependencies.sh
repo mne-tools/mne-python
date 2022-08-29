@@ -15,7 +15,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	python -m pip install --progress-bar off --upgrade --only-binary ":all:" PyQt6 PyQt6-sip PyQt6-Qt6
 	# SciPy Windows build is missing from conda nightly builds
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy
-	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps scipy vtk
+	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps scipy vtk openmeeg
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps --default-timeout=60 -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" pandas scikit-learn dipy statsmodels
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py Pillow matplotlib
 	python -m pip install --progress-bar off https://github.com/pyvista/pyvista/zipball/main
