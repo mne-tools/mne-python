@@ -255,8 +255,7 @@ def test_make_forward_solution_discrete(tmp_path, small_surf_src):
 n_src_small = 108  # this is the resulting # of verts in fwd
 
 
-@pytest.fixture(scope='module')
-@testing.requires_testing_data
+@pytest.fixture(scope='module', params=[testing._pytest_param()])
 def small_surf_src():
     """Create a small surface source space."""
     src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
