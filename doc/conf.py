@@ -468,8 +468,8 @@ sphinx_gallery_conf = {
     'compress_images': compress_images,
     'filename_pattern': '^((?!sgskip).)*$',
     'exclude_implicit_doc': {
-        r'^mne\.io\.read_raw_fif$', r'^mne\.io\.Raw$',
-        r'^mne\.Epochs$',
+        r'mne\.io\.read_raw_fif', r'mne\.io\.Raw', r'mne\.Epochs',
+        r'mne.datasets.*',
     },
     'api_usage_ignore': (
         '('
