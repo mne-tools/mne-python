@@ -27,7 +27,7 @@ else
 	# We don't install Numba here because it forces an old NumPy version
 	echo "nilearn and openmeeg"
 	pip install $STD_ARGS --pre https://github.com/nilearn/nilearn/zipball/main
-	pip install $STD_ARGS --pre --only-binary ":all:" "openmeeg==2.5.5"
+	pip install $STD_ARGS --pre --only-binary ":all:" -i "https://test.pypi.org/simple" "openmeeg==2.6.0.dev1"
 	echo "VTK"
 	# Have to use our own version until VTK releases a 3.10 build
 	wget -q https://osf.io/ajder/download -O vtk-9.1.20220406.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl

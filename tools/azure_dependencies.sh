@@ -16,7 +16,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	# SciPy Windows build is missing from conda nightly builds
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps scipy vtk
-	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps "openmeeg==2.5.5"
+	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps -i "https://test.pypi.org/simple" "openmeeg==2.6.0.dev1"
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps --default-timeout=60 -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" scikit-learn dipy
 	# as of 2022/08/29, pandas and statsmodels on scipy-wheels-nightly is broken for some reason (intermittent download issue?)
 	python -m pip install --progress-bar off --upgrade --pre --only-binary ":all:" --no-deps pandas statsmodels
