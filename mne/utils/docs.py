@@ -4040,6 +4040,10 @@ def open_docs(kind=None, version=None):
     webbrowser.open_new_tab('https://mne.tools/%s/%s' % (version, kind))
 
 
+# make DeprecationWarnings actually show up for users
+warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
+
+
 class _decorator:
     """Inject code or modify the docstring of a class, method, or function."""
 
