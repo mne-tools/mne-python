@@ -668,19 +668,11 @@ def transform_to_head(montage):
     # Get fiducial points and their coord_frame
     native_head_t = compute_native_head_t(montage)
     montage = montage.copy()  # to avoid inplace modification
-
     if native_head_t['from'] != FIFF.FIFFV_COORD_HEAD:
         for d in montage.dig:
             if d['coord_frame'] == native_head_t['from']:
                 d['r'] = apply_trans(native_head_t, d['r'])
                 d['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-            elif d['kind'] == FIFF.FIFFV_POINT_EEG:
-                raise RuntimeError(
-                    f'Could not transform EEG channel {d["ident"]} position '
-                    f'from {_verbose_frames[d["coord_frame"]]} to head '
-                    'coordinates. Fiducial points are either missing or '
-                    'specified in a different coordinate frame than the EEG '
-                    'channel locations.')
     return montage
 
 
