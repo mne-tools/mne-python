@@ -826,13 +826,13 @@ def _compute_forwards_meeg(rr, *, sensors, fwd_data, n_jobs, silent=False):
     compensators = fwd_data['compensators']
     solutions, csolutions = fwd_data['solutions'], fwd_data['csolutions']
     del fwd_data
-    for coil_type in sensors:
-        coils = sensors[coil_type]['defs']
-        ccoils = sensors[coil_type].get('comp_defs', None)
+    for coil_type, sens in sensors.items():
+        coils = sens['defs']
+        ccoils = sens.get('comp_defs', None)
         solution = solutions.get(coil_type, None)
         compensator = compensators.get(coil_type, None)
         csolution = csolutions.get(coil_type, None)
-        info = sensors.get('info', None)
+        info = sens.get('info', None)
 
         # Do the actual forward calculation for a list MEG/EEG sensors
         if not silent:
