@@ -2658,3 +2658,9 @@ def _preproc_tfr_instance(tfr, picks, tmin, tmax, fmin, fmax, vmin, vmax, dB,
     tfr.data = data
 
     return tfr
+
+
+def _check_tfr_complex(tfr, reason='source space estimation'):
+    """Check that time-frequency epochs or average data is complex."""
+    if not np.iscomplexobj(tfr.data):
+        raise RuntimeError(f'Time-frequency data must be complex for {reason}')

@@ -37,6 +37,7 @@ Enhancements
 - Allow :func:`mne.beamformer.make_dics` to take ``pick_ori='vector'`` to compute vector source estimates (:gh:`19080` by `Alex Rockhill`_)
 - Add ``units`` parameter to :func:`mne.io.read_raw_edf` in case units are missing from the file (:gh:`11099` by `Alex Gramfort`_)
 - Add ``on_missing`` functionality to all of our classes that have a ``drop_channels`` method, to control what happens when channel names are not in the object (:gh:`11077` by `Andrew Quinn`_)
+- Add :func:`mne.minimum_norm.apply_inverse_tfr_epochs` to apply inverse methods to time-frequency resolved epochs (:gh:`11095` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
