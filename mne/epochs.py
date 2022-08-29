@@ -37,7 +37,7 @@ from .io.pick import (channel_indices_by_type, channel_type,
                       pick_channels, pick_info, _pick_data_channels,
                       _DATA_CH_TYPES_SPLIT, _picks_to_idx)
 from .io.proj import setup_proj, ProjMixin
-from .io.base import BaseRaw, _get_ch_factors
+from .io.base import BaseRaw, TimeMixin, _get_ch_factors
 from .bem import _check_origin
 from .evoked import EvokedArray
 from .baseline import rescale, _log_rescale, _check_baseline
@@ -49,13 +49,14 @@ from .parallel import parallel_func
 from .event import (_read_events_fif, make_fixed_length_events,
                     match_event_names)
 from .fixes import rng_uniform
-from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
-                  plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
+from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin
+from .viz import (plot_epochs, plot_epochs_image,
+                  plot_topo_image_epochs, plot_drop_log)
 from .utils import (_check_fname, check_fname, logger, verbose,
                     check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed,
-                    _check_preload, GetEpochsMixin, TimeMixin,
+                    _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
                     _check_combine, _build_data_frame,
@@ -340,7 +341,8 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 @fill_doc
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin):
+                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin,
+                 SpectrumMixin):
     """Abstract base class for `~mne.Epochs`-type classes.
 
     .. warning:: This class provides basic functionality and should never be
@@ -1121,41 +1123,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            group_by=group_by, precompute=precompute,
                            use_opengl=use_opengl, theme=theme,
                            overview_mode=overview_mode)
-
-    @copy_function_doc_to_method_doc(plot_epochs_psd)
-    def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None,
-                 proj=False, bandwidth=None, adaptive=False, low_bias=True,
-                 normalization='length', picks=None, ax=None, color='black',
-                 xscale='linear', area_mode='std', area_alpha=0.33,
-                 dB=True, estimate='auto', show=True, n_jobs=None,
-                 average=False, line_alpha=None, spatial_colors=True,
-                 sphere=None, exclude='bads', verbose=None):
-        return plot_epochs_psd(self, fmin=fmin, fmax=fmax, tmin=tmin,
-                               tmax=tmax, proj=proj, bandwidth=bandwidth,
-                               adaptive=adaptive, low_bias=low_bias,
-                               normalization=normalization, picks=picks, ax=ax,
-                               color=color, xscale=xscale, area_mode=area_mode,
-                               area_alpha=area_alpha, dB=dB, estimate=estimate,
-                               show=show, n_jobs=n_jobs, average=average,
-                               line_alpha=line_alpha,
-                               spatial_colors=spatial_colors, sphere=sphere,
-                               exclude=exclude, verbose=verbose)
-
-    @copy_function_doc_to_method_doc(plot_epochs_psd_topomap)
-    def plot_psd_topomap(self, bands=None, tmin=None,
-                         tmax=None, proj=False, bandwidth=None, adaptive=False,
-                         low_bias=True, normalization='length', ch_type=None,
-                         cmap=None, agg_fun=None, dB=True,
-                         n_jobs=None, normalize=False, cbar_fmt='auto',
-                         outlines='head', axes=None, show=True,
-                         sphere=None, vlim=(None, None), verbose=None):
-        return plot_epochs_psd_topomap(
-            self, bands=bands, tmin=tmin, tmax=tmax,
-            proj=proj, bandwidth=bandwidth, adaptive=adaptive,
-            low_bias=low_bias, normalization=normalization, ch_type=ch_type,
-            cmap=cmap, agg_fun=agg_fun, dB=dB, n_jobs=n_jobs,
-            normalize=normalize, cbar_fmt=cbar_fmt, outlines=outlines,
-            axes=axes, show=show, sphere=sphere, vlim=vlim, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
     def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,
@@ -2020,6 +1987,95 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self.drop(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return self, indices
+
+    @verbose
+    def compute_psd(self, method='multitaper', fmin=0, fmax=np.inf, tmin=None,
+                    tmax=None, picks=None, proj=False, *, n_jobs=1,
+                    verbose=None, **method_kw):
+        """Perform spectral analysis on sensor data.
+
+        Parameters
+        ----------
+        %(method_psd)s
+            Default is ``'multitaper'``.
+        %(fmin_fmax_psd)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_psd)s
+
+        Returns
+        -------
+        spectrum : instance of EpochsSpectrum
+            The spectral representation of each epoch.
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        return EpochsSpectrum(
+            self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
+            picks=picks, proj=proj, n_jobs=n_jobs, verbose=verbose,
+            **method_kw)
+
+    @verbose
+    def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
+                 proj=False, *, method='auto', average=False, dB=True,
+                 estimate='auto', xscale='linear', area_mode='std',
+                 area_alpha=0.33, color='black', line_alpha=None,
+                 spatial_colors=True, sphere=None, exclude='bads', ax=None,
+                 show=True, n_jobs=1, verbose=None, **method_kw):
+        """%(plot_psd_doc)s.
+
+        Parameters
+        ----------
+        %(fmin_fmax_psd)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(method_plot_psd_auto)s
+        %(average_plot_psd)s
+        %(dB_plot_psd)s
+        %(estimate_plot_psd)s
+        %(xscale_plot_psd)s
+        %(area_mode_plot_psd)s
+        %(area_alpha_plot_psd)s
+        %(color_plot_psd)s
+        %(line_alpha_plot_psd)s
+        %(spatial_colors_psd)s
+        %(sphere_topomap_auto)s
+
+            .. versionadded:: 0.22.0
+        exclude : list of str | 'bads'
+            Channels names to exclude from being shown. If 'bads', the bad
+            channels are excluded. Pass an empty list to plot all channels
+            (including channels marked "bad", if any).
+
+            .. versionadded:: 0.24.0
+        %(ax_plot_psd)s
+        %(show)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_psd)s
+
+        Returns
+        -------
+        fig : instance of Figure
+            Figure with frequency spectra of the data channels.
+
+        Notes
+        -----
+        %(notes_plot_psd_meth)s
+        """
+        return super().plot_psd(
+            fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks, proj=proj,
+            reject_by_annotation=False, method=method, average=average, dB=dB,
+            estimate=estimate, xscale=xscale, area_mode=area_mode,
+            area_alpha=area_alpha, color=color, line_alpha=line_alpha,
+            spatial_colors=spatial_colors, sphere=sphere, exclude=exclude,
+            ax=ax, show=show, n_jobs=n_jobs, verbose=verbose, **method_kw)
 
     @verbose
     def to_data_frame(self, picks=None, index=None,
