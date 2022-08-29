@@ -1337,18 +1337,11 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=None,
 
     sensors = dict()
     if 'grad' in ch_types or 'mag' in ch_types:
-        megcoils, compcoils, megnames, meg_info = \
-            _prep_meg_channels(info, exclude='bads',
-                               accuracy=accuracy, verbose=verbose)
-        sensors['meg'] = dict(
-            defs=megcoils, comp_defs=compcoils, info=meg_info,
-            ch_names=megnames)
-        del megcoils, compcoils, megnames, meg_info
+        sensors['meg'] = _prep_meg_channels(
+            info, exclude='bads', accuracy=accuracy, verbose=verbose)
     if 'eeg' in ch_types:
-        eegels, eegnames = _prep_eeg_channels(info, exclude='bads',
-                                              verbose=verbose)
-        sensors['eeg'] = dict(defs=eegels, ch_names=eegnames)
-        del eegels, eegnames
+        sensors['eeg'] = _prep_eeg_channels(
+            info, exclude='bads', verbose=verbose)
 
     # Ensure that MEG and/or EEG channels are present
     if len(sensors) == 0:

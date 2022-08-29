@@ -20,9 +20,7 @@ import numpy as np
 from copy import deepcopy
 
 from ..fixes import jit, bincount
-from ..io.compensator import get_current_comp, make_compensator
 from ..io.constants import FIFF, FWD
-from ..io.pick import pick_types
 from ..parallel import parallel_func
 from ..surface import _project_onto_surface, _jit_cross
 from ..transforms import apply_trans
@@ -265,33 +263,6 @@ def _bem_specify_els(bem, els, mults):
 
 
 # #############################################################################
-# COMPENSATION
-
-def _make_ctf_comp_coils(info, coils):
-    """Get the correct compensator for CTF coils."""
-    # adapted from mne_make_ctf_comp() from mne_ctf_comp.c
-    logger.info('Setting up compensation data...')
-    comp_num = get_current_comp(info)
-    if comp_num is None or comp_num == 0:
-        logger.info('    No compensation set. Nothing more to do.')
-        return None
-
-    # Need to meaningfully populate comp['set'] dict a.k.a. compset
-    n_comp_ch = sum([c['kind'] == FIFF.FIFFV_MEG_CH for c in info['chs']])
-    logger.info('    %d out of %d channels have the compensation set.'
-                % (n_comp_ch, len(coils)))
-
-    # Find the desired compensation data matrix
-    compensator = make_compensator(info, 0, comp_num, True)
-    logger.info('    Desired compensation data (%s) found.' % comp_num)
-    logger.info('    All compensation channels found.')
-    logger.info('    Preselector created.')
-    logger.info('    Compensation data matrix created.')
-    logger.info('    Postselector created.')
-    return compensator
-
-
-# #############################################################################
 # BEM COMPUTATION
 
 _MAG_FACTOR = 1e-7  # μ_0 / (4π)
@@ -529,13 +500,13 @@ def _do_inf_pots(mri_rr, bem_rr, mri_Q, sol):
 # #############################################################################
 # SPHERE COMPUTATION
 
-def _sphere_pot_or_field(rr, mri_rr, mri_Q, coils, sphere, bem_rr,
+def _sphere_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr,
                          n_jobs, coil_type):
     """Do potential or field for spherical model."""
     fun = _eeg_spherepot_coil if coil_type == 'eeg' else _sphere_field
     parallel, p_fun, n_jobs = parallel_func(
         fun, n_jobs, max_jobs=len(rr))
-    B = np.concatenate(parallel(p_fun(r, coils, sphere)
+    B = np.concatenate(parallel(p_fun(r, coils, sphere=solution)
                                 for r in np.array_split(rr, n_jobs)))
     return B
 
@@ -758,16 +729,9 @@ def _prep_field_computation(rr, *, sensors, bem, n_jobs, verbose=None):
         head_mri_t = bem['head_mri_t']
         mri_Q = bem['head_mri_t']['trans'][:3, :3].T
 
-    compensators, solutions, csolutions = dict(), dict(), dict()
+    solutions = dict()
     for coil_type in sensors:
         coils = sensors[coil_type]['defs']
-        ccoils = sensors[coil_type].get('comp_defs', None)
-        compensator = csolution = None
-        if coil_type == 'meg':
-            # Compose a compensation data set if necessary
-            compensator = _make_ctf_comp_coils(
-                sensors[coil_type]['info'], coils)
-
         if not bem['is_sphere']:
             if coil_type == 'meg':
                 # MEG field computation matrices for BEM
@@ -776,25 +740,17 @@ def _prep_field_computation(rr, *, sensors, bem, n_jobs, verbose=None):
                 cf = FIFF.FIFFV_COORD_HEAD
                 # multiply solution by "mults" here for simplicity
                 solution = _bem_specify_coils(bem, coils, cf, mults, n_jobs)
-                if compensator is not None:
-                    logger.info(start + ' (compensation coils)...')
-                    csolution = _bem_specify_coils(
-                        bem, ccoils, cf, mults, n_jobs)
             else:
                 # Compute solution for EEG sensor
                 logger.info('Setting up for EEG...')
                 solution = _bem_specify_els(bem, coils, mults)
         else:
-            solution = csolution = bem
+            solution = bem
             if coil_type == 'eeg':
                 logger.info('Using the equivalent source approach in the '
                             'homogeneous sphere for EEG')
         sensors[coil_type]['defs'] = _triage_coils(coils)
         solutions[coil_type] = solution
-        if ccoils is not None and len(ccoils):
-            sensors[coil_type]['comp_defs'] = _triage_coils(ccoils)
-            compensators[coil_type] = compensator
-            csolutions[coil_type] = csolution
 
     # Get appropriate forward physics function depending on sphere or BEM model
     fun = _sphere_pot_or_field if bem['is_sphere'] else _bem_pot_or_field
@@ -806,10 +762,9 @@ def _prep_field_computation(rr, *, sensors, bem, n_jobs, verbose=None):
     #    fun (_bem_pot_or_field if not 'sphere'; otherwise _sph_pot_or_field)
     #    solutions (len 2 list; [ndarray, shape (n_MEG_sens, n BEM vertices),
     #                            ndarray, shape (n_EEG_sens, n BEM vertices)]
-    #    csolutions (compensation for solution)
     fwd_data = dict(
         bem_rr=bem_rr, mri_Q=mri_Q, head_mri_t=head_mri_t, fun=fun,
-        compensators=compensators, solutions=solutions, csolutions=csolutions)
+        solutions=solutions)
     return fwd_data
 
 
@@ -823,16 +778,13 @@ def _compute_forwards_meeg(rr, *, sensors, fwd_data, n_jobs, silent=False):
         mri_rr = np.ascontiguousarray(
             apply_trans(fwd_data['head_mri_t']['trans'], rr))
     mri_Q, bem_rr, fun = fwd_data['mri_Q'], fwd_data['bem_rr'], fwd_data['fun']
-    compensators = fwd_data['compensators']
-    solutions, csolutions = fwd_data['solutions'], fwd_data['csolutions']
+    solutions = fwd_data['solutions']
     del fwd_data
     for coil_type, sens in sensors.items():
         coils = sens['defs']
-        ccoils = sens.get('comp_defs', None)
+        compensator = sens.get('compensator', None)
+        post_picks = sens.get('post_picks', None)
         solution = solutions.get(coil_type, None)
-        compensator = compensators.get(coil_type, None)
-        csolution = csolutions.get(coil_type, None)
-        info = sens.get('info', None)
 
         # Do the actual forward calculation for a list MEG/EEG sensors
         if not silent:
@@ -840,21 +792,14 @@ def _compute_forwards_meeg(rr, *, sensors, fwd_data, n_jobs, silent=False):
                         '(free orientations)...'
                         % (coil_type.upper(), len(rr), _pl(rr)))
         # Calculate forward solution using spherical or BEM model
-        B = fun(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
-                coil_type)
+        B = fun(rr, mri_rr, mri_Q, coils=coils, solution=solution,
+                bem_rr=bem_rr, n_jobs=n_jobs, coil_type=coil_type)
 
         # Compensate if needed (only done for MEG systems w/compensation)
         if compensator is not None:
-            # Compute the field in the compensation sensors
-            work = fun(rr, mri_rr, mri_Q, ccoils, csolution, bem_rr,
-                       n_jobs, coil_type)
-            # Combine solutions so we can do the compensation
-            both = np.zeros((work.shape[0], B.shape[1] + work.shape[1]))
-            picks = pick_types(info, meg=True, ref_meg=False, exclude=[])
-            both[:, picks] = B
-            picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
-            both[:, picks] = work
-            B = np.dot(both, compensator.T)
+            B = B @ compensator.T
+        if post_picks is not None:
+            B = B[:, post_picks]
         Bs[coil_type] = B
     return Bs
 

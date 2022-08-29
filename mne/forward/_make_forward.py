@@ -18,6 +18,7 @@ import numpy as np
 
 from ._compute_forward import _compute_forwards
 from ..io import read_info, _loc_to_coil_trans, _loc_to_eeg_loc, Info
+from ..io.compensator import get_current_comp, make_compensator
 from ..io.pick import _has_kit_refs, pick_types, pick_info
 from ..io.constants import FIFF, FWD
 from ..transforms import (_ensure_trans, transform_surface_to, apply_trans,
@@ -265,79 +266,57 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False,
 
 
 @verbose
-def _prep_meg_channels(info, accuracy='accurate', exclude=(), ignore_ref=False,
-                       head_frame=True, do_es=False, do_picking=True,
+def _prep_meg_channels(info, accuracy='accurate', exclude=(), *,
+                       ignore_ref=False, head_frame=True, do_es=False,
                        verbose=None):
-    """Prepare MEG coil definitions for forward calculation.
-
-    Parameters
-    ----------
-    %(info_not_none)s
-    accuracy : str
-        Can be "normal" or "accurate" (default).
-    exclude : list of str | str
-        List of channels to exclude. If 'bads', exclude channels in
-        info['bads']
-    ignore_ref : bool
-        If true, ignore compensation coils
-    head_frame : bool
-        If True (default), use head frame coords. Otherwise, use device frame.
-    do_es : bool
-        If True, compute and store ex, ey, ez, and r0_exey.
-    do_picking : bool
-        If True, pick info and return it.
-    %(verbose)s
-
-    Returns
-    -------
-    megcoils : list of dict
-        Information for each prepped MEG coil
-    compcoils : list of dict
-        Information for each prepped MEG coil
-    megnames : list of str
-        Name of each prepped MEG coil
-    meginfo : instance of Info
-        Information subselected for just the set of MEG coils
-    """
-    info_extra = 'info'
-    megnames, megcoils, compcoils = [], [], []
-
+    """Prepare MEG coil definitions for forward calculation."""
     # Find MEG channels
-    picks = pick_types(info, meg=True, eeg=False, ref_meg=False,
-                       exclude=exclude)
+    ref_meg = True if not ignore_ref else False
+    picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)
 
     # Make sure MEG coils exist
-    nmeg = len(picks)
-    if nmeg <= 0:
+    if len(picks) <= 0:
         raise RuntimeError('Could not find any MEG channels')
+    info_meg = pick_info(info, picks)
+    del picks
 
     # Get channel info and names for MEG channels
-    megchs = [info['chs'][pick] for pick in picks]
-    megnames = [info['ch_names'][p] for p in picks]
-    logger.info('Read %3d MEG channels from %s'
-                % (len(picks), info_extra))
+    logger.info(f'Read {len(info_meg["chs"])} MEG channels from info')
 
     # Get MEG compensation channels
+    compensator = post_picks = None
+    ch_names = info_meg['ch_names']
     if not ignore_ref:
-        picks = pick_types(info, meg=False, ref_meg=True, exclude=exclude)
-        ncomp = len(picks)
+        ref_picks = pick_types(info, meg=False, ref_meg=True, exclude=exclude)
+        ncomp = len(ref_picks)
         if (ncomp > 0):
-            compchs = pick_info(info, picks)['chs']
-            logger.info('Read %3d MEG compensation channels from %s'
-                        % (ncomp, info_extra))
+            logger.info(f'Read {ncomp} MEG compensation channels from info')
             # We need to check to make sure these are NOT KIT refs
-            if _has_kit_refs(info, picks):
+            if _has_kit_refs(info, ref_picks):
                 raise NotImplementedError(
                     'Cannot create forward solution with KIT reference '
                     'channels. Consider using "ignore_ref=True" in '
                     'calculation')
-    else:
-        ncomp = 0
-
-    # Make info structure to allow making compensator later
-    ncomp_data = len(info['comps'])
-    ref_meg = True if not ignore_ref else False
-    picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)
+            logger.info(
+                f'{len(info["comps"])} compensation data sets in info')
+            # Compose a compensation data set if necessary
+            # adapted from mne_make_ctf_comp() from mne_ctf_comp.c
+            logger.info('Setting up compensation data...')
+            comp_num = get_current_comp(info)
+            if comp_num is None or comp_num == 0:
+                logger.info('    No compensation set. Nothing more to do.')
+            else:
+                compensator = make_compensator(
+                    info_meg, 0, comp_num, exclude_comp_chs=False)
+                logger.info(
+                    f'    Desired compensation data ({comp_num}) found.')
+                logger.info('    All compensation channels found.')
+                logger.info('    Preselector created.')
+                logger.info('    Compensation data matrix created.')
+                logger.info('    Postselector created.')
+            post_picks = pick_types(
+                info_meg, meg=True, ref_meg=False, exclude=exclude)
+            ch_names = [ch_names[pick] for pick in post_picks]
 
     # Create coil descriptions with transformation to head or device frame
     templates = _read_coil_defs()
@@ -348,14 +327,8 @@ def _prep_meg_channels(info, accuracy='accurate', exclude=(), ignore_ref=False,
     else:
         transform = None
 
-    megcoils = _create_meg_coils(megchs, accuracy, transform, templates,
-                                 do_es=do_es)
-
-    if ncomp > 0:
-        logger.info('%d compensation data sets in %s' % (ncomp_data,
-                                                         info_extra))
-        compcoils = _create_meg_coils(compchs, 'normal', transform, templates,
-                                      do_es=do_es)
+    megcoils = _create_meg_coils(
+        info_meg['chs'], accuracy, transform, templates, do_es=do_es)
 
     # Check that coordinate frame is correct and log it
     if head_frame:
@@ -365,31 +338,14 @@ def _prep_meg_channels(info, accuracy='accurate', exclude=(), ignore_ref=False,
         assert megcoils[0]['coord_frame'] == FIFF.FIFFV_COORD_DEVICE
         logger.info('MEG coil definitions created in device coordinate.')
 
-    out = (megcoils, compcoils, megnames)
-    if do_picking:
-        out = out + (pick_info(info, picks),)
-    return out
+    return dict(
+        defs=megcoils, ch_names=ch_names, compensator=compensator,
+        info=info_meg, post_picks=post_picks)
 
 
 @verbose
 def _prep_eeg_channels(info, exclude=(), verbose=None):
-    """Prepare EEG electrode definitions for forward calculation.
-
-    Parameters
-    ----------
-    %(info_not_none)s
-    exclude : list of str | str
-        List of channels to exclude. If 'bads', exclude channels in
-        info['bads']
-    %(verbose)s
-
-    Returns
-    -------
-    eegels : list of dict
-        Information for each prepped EEG electrode
-    eegnames : list of str
-        Name of each prepped EEG electrode
-    """
+    """Prepare EEG electrode definitions for forward calculation."""
     info_extra = 'info'
 
     # Find EEG electrodes
@@ -410,7 +366,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     eegels = _create_eeg_els(eegchs)
     logger.info('Head coordinate coil definitions created.')
 
-    return eegels, eegnames
+    return dict(defs=eegels, ch_names=eegnames)
 
 
 @verbose
@@ -454,18 +410,14 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     info._check_consistency()
     logger.info('')
 
-    megcoils, compcoils, megnames, meg_info = [], [], [], []
-    eegels, eegnames = [], []
-
+    sensors = dict()
     if meg and len(pick_types(info, meg=True, ref_meg=False, exclude=[])) > 0:
-        megcoils, compcoils, megnames, meg_info = \
-            _prep_meg_channels(info, ignore_ref=ignore_ref)
-    if eeg and len(pick_types(info, meg=False, eeg=True, ref_meg=False,
-                              exclude=[])) > 0:
-        eegels, eegnames = _prep_eeg_channels(info)
+        sensors['meg'] = _prep_meg_channels(info, ignore_ref=ignore_ref)
+    if eeg and len(pick_types(info, eeg=True, exclude=[])) > 0:
+        sensors['eeg'] = _prep_eeg_channels(info)
 
     # Check that some channels were found
-    if len(megcoils + eegels) == 0:
+    if len(sensors) == 0:
         raise RuntimeError('No MEG or EEG channels found.')
 
     # pick out final info
@@ -480,8 +432,10 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                 % _coord_frame_name(s['coord_frame']))
 
     # Prepare the BEM model
+    eegnames = sensors.get('eeg', dict()).get('ch_names', [])
     bem = _setup_bem(bem, bem_extra, len(eegnames), mri_head_t,
                      allow_none=allow_bem_none)
+    del eegnames
 
     # Circumvent numerical problems by excluding points too close to the skull,
     # and check that sensors are not inside any BEM surface
@@ -494,8 +448,7 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
             logger.info('')
             if len(bem['surfs']) == 3:
                 check_surface = 'scalp surface'
-                check_inside = _CheckInside(
-                    _bem_find_surface(bem, 'head'))
+                check_inside = _CheckInside(_bem_find_surface(bem, 'head'))
         else:
             check_surface = 'outermost sphere shell'
             if len(bem['layers']) == 0:
@@ -505,10 +458,10 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                 def check_inside(x):
                     return (np.linalg.norm(x - bem['r0'], axis=1) <
                             bem['layers'][-1]['rad'])
-        if len(megcoils):
+        if 'meg' in sensors:
             meg_loc = apply_trans(
                 invert_transform(mri_head_t),
-                np.array([coil['r0'] for coil in megcoils]))
+                np.array([coil['r0'] for coil in sensors['meg']['defs']]))
             n_inside = check_inside(meg_loc).sum()
             if n_inside:
                 raise RuntimeError(
@@ -526,14 +479,6 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
     update_kwargs = dict(nchan=len(info['ch_names']), nsource=len(rr),
                          info=info, src=src, source_nn=source_nn,
                          source_rr=rr, surf_ori=False, mri_head_t=mri_head_t)
-    sensors = dict()
-    if len(megcoils):
-        sensors['meg'] = dict(
-            defs=megcoils, comp_defs=compcoils, info=meg_info,
-            ch_names=megnames)
-    if len(eegels):
-        sensors['eeg'] = dict(
-            defs=eegels, ch_names=eegnames)
     return sensors, rr, info, update_kwargs, bem
 
 
@@ -781,8 +726,6 @@ def _to_forward_dict(fwd, names, fwd_grad=None,
                      source_ori=FIFF.FIFFV_MNE_FREE_ORI):
     """Convert forward solution matrices to dicts."""
     assert names is not None
-    if len(fwd) == 0:
-        return None
     sol = dict(data=fwd.T, nrow=fwd.shape[1], ncol=fwd.shape[0],
                row_names=names, col_names=[])
     fwd = Forward(sol=sol, source_ori=source_ori, nsource=sol['ncol'],

@@ -568,7 +568,7 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=None, verbose=None):
     info = pick_info(info, meg_picks)
     with info._unlock():
         info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
-    megcoils, _, _, _ = _prep_meg_channels(info, ignore_ref=False)
+    megcoils = _prep_meg_channels(info, ignore_ref=True)['defs']
     used = np.zeros(len(raw.times), bool)
     dev_head_ts.append(dev_head_ts[-1])  # ZOH after time ends
     get_fwd = _HPIForwards(offsets, dev_head_ts, megcoils, hpi_rrs, hpi_nns)
@@ -721,7 +721,7 @@ def _iter_forward_solutions(info, trans, src, bem, dev_head_ts, mindist,
         # make a copy so it isn't mangled in use
         bem_surf = transform_surface_to(bem['surfs'][idx[0]], coord_frame,
                                         mri_head_t, copy=True)
-    megcoils, compcoils = sensors['meg']['defs'], sensors['meg']['comp_defs']
+    megcoils = sensors['meg']['defs']
     if 'eeg' in sensors:
         del sensors['eeg']
     megnames = sensors['meg']['ch_names']
@@ -731,7 +731,6 @@ def _iter_forward_solutions(info, trans, src, bem, dev_head_ts, mindist,
         logger.info('Computing gain matrix for transform #%s/%s'
                     % (ti + 1, len(dev_head_ts)))
         _transform_orig_meg_coils(megcoils, dev_head_t)
-        _transform_orig_meg_coils(compcoils, dev_head_t)
 
         # Make sure our sensors are all outside our BEM
         coil_rr = np.array([coil['r0'] for coil in megcoils])

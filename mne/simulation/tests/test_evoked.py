@@ -58,7 +58,8 @@ def test_simulate_evoked():
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
     evoked = simulate_evoked(fwd, stc, evoked_template.info, cov,
-                             iir_filter=iir_filter, nave=nave)
+                             iir_filter=iir_filter, nave=nave,
+                             random_state=0)
     assert_array_almost_equal(evoked.times, stc.times)
     assert len(evoked.data) == len(fwd['sol']['data'])
     assert_equal(evoked.nave, nave)
