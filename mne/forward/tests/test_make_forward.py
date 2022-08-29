@@ -54,7 +54,7 @@ io_path = Path(__file__).parent.parent.parent / 'io'
 bti_dir = io_path / 'bti' / 'tests' / 'data'
 kit_dir = io_path / 'kit' / 'tests' / 'data'
 trans_path = op.join(kit_dir, 'trans-sample.fif')
-fname_ctf_raw = io_path / 'tests' /  'data' / 'test_ctf_comp_raw.fif'
+fname_ctf_raw = io_path / 'tests' / 'data' / 'test_ctf_comp_raw.fif'
 
 
 def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
