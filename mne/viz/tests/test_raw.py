@@ -816,11 +816,12 @@ def test_plot_raw_psd(raw, raw_orig):
     plt.close('all')
 
     # gh-7631
-    data = 1e-3 * np.random.rand(2, 100)
-    info = create_info(['CH1', 'CH2'], 100)
+    n_times = sfreq = n_fft = 100
+    data = 1e-3 * np.random.rand(2, n_times)
+    info = create_info(['CH1', 'CH2'], sfreq)  # ch_types defaults to 'misc'
     raw = RawArray(data, info)
     picks = pick_types(raw.info, misc=True)
-    raw.plot_psd(picks=picks, spatial_colors=False)
+    raw.plot_psd(picks=picks, spatial_colors=False, n_fft=n_fft)
     plt.close('all')
 
 

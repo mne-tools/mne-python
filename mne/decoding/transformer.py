@@ -12,7 +12,7 @@ from .base import BaseEstimator
 
 from .. import pick_types
 from ..filter import filter_data
-from ..time_frequency.psd import psd_array_multitaper
+from ..time_frequency import psd_array_multitaper
 from ..utils import fill_doc, _check_option, _validate_type, verbose
 from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
                        _picks_to_idx)

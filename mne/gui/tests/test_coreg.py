@@ -218,8 +218,19 @@ def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
 
     # visualization
     assert not coreg._helmet
+    assert coreg._actors['helmet'] is None
     coreg._set_helmet(True)
     assert coreg._helmet
+    with catch_logging() as log:
+        coreg._redraw(verbose='debug')
+    log = log.getvalue()
+    assert 'Drawing helmet' in log
+    coreg._set_point_weight(1., 'nasion')
+    coreg._fit_fiducials()
+    with catch_logging() as log:
+        coreg._redraw(verbose='debug')
+    log = log.getvalue()
+    assert 'Drawing helmet' in log
     assert coreg._orient_glyphs
     assert coreg._scale_by_distance
     assert coreg._mark_inside

@@ -26,7 +26,6 @@ import matplotlib.pyplot as plt
 import mne
 from mne.viz import iter_topography
 from mne import io
-from mne.time_frequency import psd_welch
 from mne.datasets import sample
 
 print(__doc__)
@@ -42,8 +41,9 @@ picks = mne.pick_types(raw.info, meg=True, exclude=[])
 tmin, tmax = 0, 120  # use the first 120s of data
 fmin, fmax = 2, 20  # look at frequencies between 2 and 20Hz
 n_fft = 2048  # the FFT size (n_fft). Ideally a power of 2
-psds, freqs = psd_welch(raw, picks=picks, tmin=tmin, tmax=tmax,
-                        fmin=fmin, fmax=fmax)
+spectrum = raw.compute_psd(
+    picks=picks, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax)
+psds, freqs = spectrum.get_data(exclude=(), return_freqs=True)
 psds = 20 * np.log10(psds)  # scale to dB
 
 
