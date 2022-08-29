@@ -80,7 +80,7 @@ def _get_psf_ctf(resmat, src, idx, *, func, mode, n_comp, norm,
 
     # get relevant vertices in source space
     src_orig = src
-    _validate_type(src_orig, (InverseOperator, SourceSpaces), 'src')
+    _validate_type(src_orig, (InverseOperator, Forward, SourceSpaces), 'src')
     if not isinstance(src, SourceSpaces):
         src = src['src']
     verts_all = _vertices_for_get_psf_ctf(idx, src)
@@ -89,7 +89,7 @@ def _get_psf_ctf(resmat, src, idx, *, func, mode, n_comp, norm,
     src_type = _get_src_type(src, vertno)
     subject = src._subject
     if vector and src_type == 'surface':
-        _validate_type(src_orig, InverseOperator, 'src',
+        _validate_type(src_orig, (Forward, InverseOperator), 'src',
                        extra='when creating a vector surface source estimate')
         nn = src_orig['source_nn']
     else:
@@ -137,7 +137,7 @@ def _get_psf_ctf(resmat, src, idx, *, func, mode, n_comp, norm,
         pca_var = None  # variances computed only if return_pca_vars=True
         if mode is not None:
             funcs, pca_var = _summarise_psf_ctf(funcs, mode, n_comp,
-                                                return_pca_vars)
+                                                return_pca_vars, nn)
 
         if not vector:  # if one value per vertex requested
             if n_verts != n_r:  # if 3 orientations per vertex, combine
@@ -219,7 +219,7 @@ def _normalise_psf_ctf(funcs, norm):
     return funcs
 
 
-def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars):
+def _summarise_psf_ctf(funcs, mode, n_comp, return_pca_vars, nn):
     """Summarise PSFs/CTFs across vertices."""
     s_var = None  # only computed for return_pca_vars=True
 
@@ -272,7 +272,7 @@ def get_point_spread(resmat, src, idx, mode=None, *, n_comp=1, norm=False,
     ----------
     resmat : array, shape (n_dipoles, n_dipoles)
         Forward Operator.
-    src : instance of SourceSpaces | instance of InverseOperator
+    src : instance of SourceSpaces | instance of InverseOperator | instance of Forward
         Source space used to compute resolution matrix.
         Must be an InverseOperator if ``vector=True`` and a surface
         source space is used.
@@ -288,7 +288,7 @@ def get_point_spread(resmat, src, idx, mode=None, *, n_comp=1, norm=False,
     -------
     %(stcs_pctf)s
     %(pca_vars_pctf)s
-    """
+    """  # noqa: E501
     return _get_psf_ctf(resmat, src, idx, func='psf', mode=mode, n_comp=n_comp,
                         norm=norm, return_pca_vars=return_pca_vars,
                         vector=vector)
@@ -303,7 +303,7 @@ def get_cross_talk(resmat, src, idx, mode=None, *, n_comp=1, norm=False,
     ----------
     resmat : array, shape (n_dipoles, n_dipoles)
         Forward Operator.
-    src : instance of SourceSpaces | instance of InverseOperator
+    src : instance of SourceSpaces | instance of InverseOperator | instance of Forward
         Source space used to compute resolution matrix.
         Must be an InverseOperator if ``vector=True`` and a surface
         source space is used.
@@ -319,7 +319,7 @@ def get_cross_talk(resmat, src, idx, mode=None, *, n_comp=1, norm=False,
     -------
     %(stcs_pctf)s
     %(pca_vars_pctf)s
-    """
+    """  # noqa: E501
     return _get_psf_ctf(resmat, src, idx, func='ctf', mode=mode, n_comp=n_comp,
                         norm=norm, return_pca_vars=return_pca_vars,
                         vector=vector)
