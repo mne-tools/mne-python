@@ -4163,29 +4163,17 @@ def open_docs(kind=None, version=None):
     webbrowser.open_new_tab('https://mne.tools/%s/%s' % (version, kind))
 
 
-# Following deprecated class copied from scikit-learn
-
-# force show of DeprecationWarning even on python 2.7
+# make DeprecationWarnings actually show up for users
 warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
 
 
-class deprecated:
-    """Mark a function, class, or method as deprecated (decorator).
+class _decorator:
+    """Inject code or modify the docstring of a class, method, or function."""
 
-    Originally adapted from sklearn and
-    http://wiki.python.org/moin/PythonDecoratorLibrary, then modified to make
-    arguments populate properly following our verbose decorator methods based
-    on decorator.
-
-    Parameters
-    ----------
-    extra : str
-        Extra information beyond just saying the class/function/method
-        is deprecated.
-    """
-
-    def __init__(self, extra=''):  # noqa: D102
+    def __init__(self, extra, kind):  # noqa: D102
+        self.kind = kind
         self.extra = extra
+        self.msg = f'{{}} is a {self.kind} {{}}. {self.extra}.'
 
     def __call__(self, obj):  # noqa: D105
         """Call.
@@ -4200,44 +4188,33 @@ class deprecated:
         obj : object
             The modified object.
         """
-        if isinstance(obj, type):
-            return self._decorate_class(obj)
+        if inspect.isclass(obj):
+            obj_type = 'class'
         else:
-            return self._decorate_fun(obj)
+            # NB: detecting (bound and unbound) methods seems to be impossible
+            assert inspect.isfunction(obj), f'decorator used on {type(obj)}'
+            obj_type = 'function'
+        msg = self.msg.format(obj.__name__, obj_type)
+        if obj_type == 'class':
+            obj.__init__ = self._make_fun(obj.__init__, msg)
+            return obj
+        return self._make_fun(obj, msg)
 
-    def _decorate_class(self, cls):
-        msg = f"Class {cls.__name__} is deprecated"
-        cls.__init__ = self._make_fun(cls.__init__, msg)
-        return cls
-
-    def _decorate_fun(self, fun):
-        """Decorate function fun."""
-        msg = f"Function {fun.__name__} is deprecated"
-        return self._make_fun(fun, msg)
-
-    def _make_fun(self, function, msg):
-        if self.extra:
-            msg += "; %s" % self.extra
-
-        body = f"""\
-def %(name)s(%(signature)s):\n
-    import warnings
-    warnings.warn({repr(msg)}, category=DeprecationWarning)
-    return _function_(%(shortsignature)s)"""
-        evaldict = dict(_function_=function)
+    def _make_fun(self, func, body):
+        evaldict = dict(_function_=func)
         fm = FunctionMaker(
-            function, None, None, None, None, function.__module__)
-        attrs = dict(__wrapped__=function, __qualname__=function.__qualname__,
-                     __globals__=function.__globals__)
+            func, None, None, None, None, func.__module__)
+        attrs = dict(__wrapped__=func, __qualname__=func.__qualname__,
+                     __globals__=func.__globals__)
         dep = fm.make(body, evaldict, addsource=True, **attrs)
         dep.__doc__ = self._update_doc(dep.__doc__)
-        dep._deprecated_original = function
+        dep._deprecated_original = func
         return dep
 
     def _update_doc(self, olddoc):
-        newdoc = ".. warning:: DEPRECATED"
+        newdoc = f".. warning:: {self.kind.upper()}"
         if self.extra:
-            newdoc = "%s: %s" % (newdoc, self.extra)
+            newdoc = f'{newdoc}: {self.extra}'
         newdoc += '.'
         if olddoc:
             # Get the spacing right to avoid sphinx warnings
@@ -4246,9 +4223,38 @@ def %(name)s(%(signature)s):\n
                 if li > 0 and len(line.strip()):
                     n_space = len(line) - len(line.lstrip())
                     break
-            newdoc = "%s\n\n%s%s" % (newdoc, ' ' * n_space, olddoc)
-
+            newdoc = f"{newdoc}\n\n{' ' * n_space}{olddoc}"
         return newdoc
+
+
+# Following deprecated class copied from scikit-learn
+class deprecated(_decorator):
+    """Mark a function, class, or method as deprecated (decorator).
+
+    Originally adapted from sklearn and
+    http://wiki.python.org/moin/PythonDecoratorLibrary, then modified to make
+    arguments populate properly following our verbose decorator methods based
+    on decorator.
+
+    Parameters
+    ----------
+    extra : str
+        Extra information beyond just saying the class/function/method is
+        deprecated. Should be a complete sentence (trailing period will be
+        added automatically). Will be included in DeprecationWarning messages
+        and in a sphinx warning box in the docstring.
+    """
+
+    def __init__(self, extra=''):
+        super().__init__(extra=extra, kind='deprecated')
+
+    def _make_fun(self, func, msg):
+        body = f"""\
+def %(name)s(%(signature)s):\n
+    import warnings
+    warnings.warn({repr(msg)}, category=DeprecationWarning)
+    return _function_(%(shortsignature)s)"""
+        return super()._make_fun(func=func, body=body)
 
 
 def deprecated_alias(dep_name, func, removed_in=None):
@@ -4264,6 +4270,37 @@ def deprecated_alias(dep_name, func, removed_in=None):
         f'be removed in {removed_in}.'
     )(deepcopy(func))
 
+
+###############################################################################
+# "legacy" decorator for parts of our API retained only for backward compat
+
+class legacy(_decorator):
+    """Mark a function, class, or method as legacy (decorator).
+
+    Parameters
+    ----------
+    alt : str
+        Description of the alternate, preferred way to achieve a comparable
+        result.
+    extra : str
+        Extra information beyond just saying the class/function/method is
+        legacy. Should be a complete sentence (trailing period will be
+        added automatically). Will be included in logger.info messages
+        and in a sphinx warning box in the docstring.
+    """
+
+    def __init__(self, alt, extra=''):  # noqa: D102
+        period = '. ' if len(extra) else ''
+        extra = f'New code should use {alt}{period}{extra}'
+        super().__init__(extra=extra, kind='legacy')
+
+    def _make_fun(self, func, msg):
+        body = f"""\
+def %(name)s(%(signature)s):\n
+    from mne.utils import logger
+    logger.info({repr(msg)})
+    return _function_(%(shortsignature)s)"""
+        return super()._make_fun(func=func, body=body)
 
 ###############################################################################
 # The following tools were adapted (mostly trimmed) from SciPy's doccer.py
