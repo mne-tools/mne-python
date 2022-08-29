@@ -86,7 +86,7 @@ psds_std = psds.mean(0).std(0)
 
 ax.plot(freqs, psds_mean, color='k')
 ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
-                color='k', alpha=.5, linecolor='none')
+                color='k', alpha=.5, edgecolor='none')
 ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency (Hz)',
        ylabel='Power Spectral Density (dB)')
 plt.show()
