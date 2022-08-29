@@ -254,9 +254,10 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     .. versionadded:: 0.12.0
     """
     spectrum = inst.compute_psd(
-        'welch', fmin, fmax, tmin, tmax, picks, proj, reject_by_annotation,
-        n_jobs=n_jobs, verbose=verbose, n_fft=n_fft, n_overlap=n_overlap,
-        n_per_seg=n_per_seg, average=average, window=window)
+        'welch', fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
+        proj=proj, n_jobs=n_jobs, verbose=verbose, n_fft=n_fft,
+        n_overlap=n_overlap, n_per_seg=n_per_seg, average=average,
+        window=window)
     return spectrum.get_data(return_freqs=True)
 
 
@@ -323,8 +324,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     .. footbibliography::
     """
     spectrum = inst.compute_psd(
-        'multitaper', fmin, fmax, tmin, tmax, picks, proj,
-        reject_by_annotation, n_jobs=n_jobs, verbose=verbose,
-        bandwidth=bandwidth, adaptive=adaptive, low_bias=low_bias,
-        normalization=normalization)
+        'multitaper', fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
+        proj=proj, reject_by_annotation=reject_by_annotation, n_jobs=n_jobs,
+        verbose=verbose, bandwidth=bandwidth, adaptive=adaptive,
+        low_bias=low_bias, normalization=normalization)
     return spectrum.get_data(return_freqs=True)
