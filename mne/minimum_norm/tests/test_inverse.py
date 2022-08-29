@@ -1109,7 +1109,8 @@ def test_apply_inverse_tfr(return_generator):
     info = read_info(fname_raw)
     inverse_operator = read_inverse_operator(fname_full)
     freqs = np.arange(8, 10)
-    times = np.linspace(0, 1, int(round(info['sfreq'])))
+    sfreq = info['sfreq']
+    times = np.arange(sfreq) / sfreq  # make epochs 1s long
     data = rng.random((n_epochs, len(info.ch_names), freqs.size, times.size))
     data = data + 1j * data  # make complex to simulate amplitude + phase
     epochs_tfr = EpochsTFR(info, data, times=times, freqs=freqs)
@@ -1128,9 +1129,9 @@ def test_apply_inverse_tfr(return_generator):
     n_orient = 3 if pick_ori == 'vector' else 1
     # FIXME
     # because of the round-trip conversion to tstep, this fails
-    # assert_allclose(stcs[0][0].times, times)
     if return_generator:
         stcs = [[s for s in these_stcs] for these_stcs in stcs]
+    assert_allclose(stcs[0][0].times, times)
     assert len(stcs) == freqs.size
     assert all([len(s) == len(epochs_tfr) for s in stcs])
     assert all([s.data.shape == (inverse_operator['nsource'],
