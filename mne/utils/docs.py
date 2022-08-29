@@ -10,6 +10,7 @@ import os
 import os.path as op
 import re
 import sys
+import warnings
 import webbrowser
 
 from decorator import FunctionMaker
