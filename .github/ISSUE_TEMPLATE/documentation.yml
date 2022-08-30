@@ -3,7 +3,7 @@ name: 📄 Documentation
 # See the json schema to help you create / update this form
 # https://json.schemastore.org/github-issue-forms.json
 
-description: Request a new tutorial, an improvement to an existing tutorial, or a new term in our glossary.
+description: Tell us about tutorials you wish we had in our docs, ideas for improving existing tutorials, terms missing from our glossary, or parts of our docstrings that are confusing or inaccurate.
 
 labels: ["DOC"]
 
