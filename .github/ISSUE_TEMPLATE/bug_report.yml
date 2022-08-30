@@ -41,8 +41,6 @@ body:
       description: |
         If you couldn't replicate on a built-in dataset, provide a link to a
         small, anonymized portion of your data that does yield the error.
-      value: |
-        - URL:
 
   - type: textarea
     attributes:
