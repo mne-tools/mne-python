@@ -4163,10 +4163,6 @@ def open_docs(kind=None, version=None):
     webbrowser.open_new_tab('https://mne.tools/%s/%s' % (version, kind))
 
 
-# make DeprecationWarnings actually show up for users
-warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
-
-
 class _decorator:
     """Inject code or modify the docstring of a class, method, or function."""
 
@@ -4241,7 +4237,7 @@ class deprecated(_decorator):
     extra : str
         Extra information beyond just saying the class/function/method is
         deprecated. Should be a complete sentence (trailing period will be
-        added automatically). Will be included in DeprecationWarning messages
+        added automatically). Will be included in FutureWarning messages
         and in a sphinx warning box in the docstring.
     """
 
@@ -4249,7 +4245,7 @@ class deprecated(_decorator):
         body = f"""\
 def %(name)s(%(signature)s):\n
     import warnings
-    warnings.warn({repr(msg)}, category=DeprecationWarning)
+    warnings.warn({repr(msg)}, category=FutureWarning)
     return _function_(%(shortsignature)s)"""
         return super()._make_fun(func=func, body=body)
 
