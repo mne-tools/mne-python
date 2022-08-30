@@ -89,38 +89,20 @@ epochs.average().plot()
 freqs = np.arange(5., 100., 3.)
 vmin, vmax = -3., 3.  # Define our color limits.
 
-# %%
-# **(1) Least smoothing (most variance/background fluctuations).**
-
-n_cycles = freqs / 2.
-time_bandwidth = 2.0  # Least possible frequency-smoothing (1 taper)
-power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
-                       time_bandwidth=time_bandwidth, return_itc=False)
-# Plot results. Baseline correct based on first 100 ms.
-power.plot([0], baseline=(0., 0.1), mode='mean', vmin=vmin, vmax=vmax,
-           title='Sim: Least smoothing, most variance')
-
-# %%
-# **(2) Less frequency smoothing, more time smoothing.**
-
-n_cycles = freqs  # Increase time-window length to 1 second.
-time_bandwidth = 4.0  # Same frequency-smoothing as (1) 3 tapers.
-power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
-                       time_bandwidth=time_bandwidth, return_itc=False)
-# Plot results. Baseline correct based on first 100 ms.
-power.plot([0], baseline=(0., 0.1), mode='mean', vmin=vmin, vmax=vmax,
-           title='Sim: Less frequency smoothing, more time smoothing')
-
-# %%
-# **(3) Less time smoothing, more frequency smoothing.**
-
-n_cycles = freqs / 2.
-time_bandwidth = 8.0  # Same time-smoothing as (1), 7 tapers.
-power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
-                       time_bandwidth=time_bandwidth, return_itc=False)
-# Plot results. Baseline correct based on first 100 ms.
-power.plot([0], baseline=(0., 0.1), mode='mean', vmin=vmin, vmax=vmax,
-           title='Sim: Less time smoothing, more frequency smoothing')
+fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True)
+for n_cycles, time_bandwidth, ax, title in zip(
+        [freqs / 2, freqs, freqs / 2],
+        [2.0, 4.0, 8.0],
+        axs,
+        ['Sim: Least smoothing, most variance',
+         'Sim: Less frequency smoothing,\nmore time smoothing',
+         'Sim: Less time smoothing,\nmore frequency smoothing']):
+    power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
+                           time_bandwidth=time_bandwidth, return_itc=False)
+    ax.set_title(title)
+    # Plot results. Baseline correct based on first 100 ms.
+    power.plot([0], baseline=(0., 0.1), mode='mean', vmin=vmin, vmax=vmax,
+               axes=ax, show=False, colorbar=False)
 
 ##############################################################################
 # Stockwell (S) transform
