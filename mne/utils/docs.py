@@ -9,7 +9,6 @@ import os
 import os.path as op
 import re
 import sys
-import warnings
 import webbrowser
 from copy import deepcopy
 
