@@ -19,6 +19,8 @@ body:
   - type: textarea
     attributes:
       label: Description of the problem
+    validations:
+      required: true
 
   - type: textarea
     attributes:
@@ -29,21 +31,37 @@ body:
         to replicate your problem, using one of the
         [datasets shipped with MNE-Python](https://mne.tools/dev/overview/datasets_index.html),
         preferably the one called [sample](https://mne.tools/dev/overview/datasets_index.html#sample).
-        If you can't replicate on a built-in dataset, provide also a link to a small,
-        anonymized portion of your data that does yield the error.
+      render: Python
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Link to data
+      description: |
+        If you couldn't replicate on a built-in dataset, provide a link to a
+        small, anonymized portion of your data that does yield the error.
+      value: |
+        - URL:
 
   - type: textarea
     attributes:
       label: Expected results
+    validations:
+      required: true
 
   - type: textarea
     attributes:
       label: Actual results
       description: |
         Please provide the actual output, traceback, screenshot, or another description of the results.
+    validations:
+      required: true
 
   - type: textarea
     attributes:
       label: Additional information
       description: |
         Tell us about your system: paste the output of `mne.sys_info()` here.
+    validations:
+      required: true

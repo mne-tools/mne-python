@@ -22,3 +22,5 @@ body:
       description: |
         Describe your proposed enhancement in detail. If you are requesting a new
         glossary term, please include a proposed definition.
+    validations:
+      required: true

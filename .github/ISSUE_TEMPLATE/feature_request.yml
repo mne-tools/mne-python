@@ -21,6 +21,8 @@ body:
       label: Describe the new feature or enhancement
       description: |
         Please provide a clear and concise description of what you want to add or change.
+    validations:
+      required: true
 
   - type: textarea
     attributes:
@@ -29,6 +31,8 @@ body:
         Describe how you think the feature or improvement should be implemented (e.g.,
         as a new method on an existing class? as new capability added to an existing
         method?)
+    validations:
+      required: true
 
   - type: textarea
     attributes:
@@ -37,6 +41,8 @@ body:
         If you've suggested an implementation above, list here any alternative
         implementations you can think of, and brief comments explaining why the chosen
         implementation is better.
+    validations:
+      required: true
 
   - type: textarea
     attributes:
