@@ -48,7 +48,7 @@ n_times = 1024  # Just over 1 second epochs
 n_epochs = 40
 seed = 42
 rng = np.random.RandomState(seed)
-data = rng.randn(len(ch_names), n_times * n_epochs + 100)  # buffer
+data = rng.randn(len(ch_names), n_times * n_epochs + 200)  # buffer
 
 # Add a 50 Hz sinusoidal burst to the noise and ramp it.
 t = np.arange(n_times, dtype=np.float64) / sfreq
@@ -56,7 +56,7 @@ signal = np.sin(np.pi * 2. * 50. * t)  # 50 Hz sinusoid signal
 signal[np.logical_or(t < 0.45, t > 0.55)] = 0.  # Hard windowing
 on_time = np.logical_and(t >= 0.45, t <= 0.55)
 signal[on_time] *= np.hanning(on_time.sum())  # Ramping
-data[:, 50:-50] += np.tile(signal, n_epochs)  # add signal
+data[:, 100:-100] += np.tile(signal, n_epochs)  # add signal
 
 raw = RawArray(data, info)
 events = np.zeros((n_epochs, 3), dtype=int)
@@ -91,8 +91,8 @@ vmin, vmax = -3., 3.  # Define our color limits.
 
 fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True)
 for n_cycles, time_bandwidth, ax, title in zip(
-        [freqs / 2, freqs, freqs / 2],
-        [2.0, 4.0, 8.0],
+        [freqs / 2, freqs, freqs / 2],  # number of cycles
+        [2.0, 4.0, 8.0],  # time bandwidth
         axs,
         ['Sim: Least smoothing, most variance',
          'Sim: Less frequency smoothing,\nmore time smoothing',
@@ -103,6 +103,7 @@ for n_cycles, time_bandwidth, ax, title in zip(
     # Plot results. Baseline correct based on first 100 ms.
     power.plot([0], baseline=(0., 0.1), mode='mean', vmin=vmin, vmax=vmax,
                axes=ax, show=False, colorbar=False)
+plt.tight_layout()
 
 ##############################################################################
 # Stockwell (S) transform
@@ -117,7 +118,7 @@ for n_cycles, time_bandwidth, ax, title in zip(
 
 fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True)
 fmin, fmax = freqs[[0, -1]]
-for width, ax in zip((0.2, .7, 3.0), axs):
+for width, ax in zip((0.2, 0.7, 3.0), axs):
     power = tfr_stockwell(epochs, fmin=fmin, fmax=fmax, width=width)
     power.plot([0], baseline=(0., 0.1), mode='mean', axes=ax, show=False,
                colorbar=False)
@@ -184,7 +185,7 @@ for bandwidth, ax in zip(bandwidths, axs):
     n_cycles = 'scaled by freqs' if not isinstance(n_cycles, int) else n_cycles
     ax.set_title('Sim: Using narrow bandpass filter Hilbert,\n'
                  f'bandwidth = {bandwidth}, '
-                 f'transition bandwidth={4 * bandwidth}')
+                 f'transition bandwidth = {4 * bandwidth}')
 plt.tight_layout()
 
 # %%
