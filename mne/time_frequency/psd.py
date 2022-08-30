@@ -3,12 +3,16 @@
 # License : BSD-3-Clause
 
 from functools import partial
+
 import numpy as np
 
 from ..parallel import parallel_func
-from ..io.pick import _picks_to_idx
-from ..utils import logger, verbose, _time_mask, _check_option
-from .multitaper import psd_array_multitaper
+from ..utils import logger, verbose, deprecated, _check_option
+
+_psd_deprecation_msg = (
+    'Function psd_{0}() is deprecated; for Raw/Epochs/Evoked instances use '
+    'spectrum = instance.compute_psd(method="{0}") instead, followed by '
+    'spectrum.get_data(return_freqs=True).')
 
 
 # adapted from SciPy
@@ -89,36 +93,6 @@ def _check_nfft(n, n_fft, n_per_seg, n_overlap):
     return n_fft, n_per_seg, n_overlap
 
 
-def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
-    """Check PSD data / pull arrays from inst."""
-    from ..io.base import BaseRaw
-    from ..epochs import BaseEpochs
-    from ..evoked import Evoked
-    if not isinstance(inst, (BaseEpochs, BaseRaw, Evoked)):
-        raise ValueError(
-            f'inst must be an instance of Epochs, Raw, or Evoked. Got '
-            f'{type(inst)}'
-        )
-
-    time_mask = _time_mask(inst.times, tmin, tmax, sfreq=inst.info['sfreq'])
-    picks = _picks_to_idx(inst.info, picks, 'data', with_ref_meg=False)
-    if proj:
-        # Copy first so it's not modified
-        inst = inst.copy().apply_proj()
-
-    sfreq = inst.info['sfreq']
-    if isinstance(inst, BaseRaw):
-        start, stop = np.where(time_mask)[0][[0, -1]]
-        rba = 'NaN' if reject_by_annotation else None
-        data = inst.get_data(picks, start, stop + 1, reject_by_annotation=rba)
-    elif isinstance(inst, BaseEpochs):
-        data = inst.get_data(picks=picks)[:, :, time_mask]
-    else:  # Evoked
-        data = inst.data[picks][:, time_mask]
-
-    return data, sfreq
-
-
 @verbose
 def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
                     n_per_seg=None, n_jobs=None, average='mean',
@@ -169,7 +143,9 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     -----
     .. versionadded:: 0.14.0
     """
-    _check_option('average', average, (None, 'mean', 'median'))
+    _check_option('average', average, (None, False, 'mean', 'median'))
+    if average is False:
+        average = None
 
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
@@ -210,6 +186,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     return psds, freqs
 
 
+@deprecated(_psd_deprecation_msg.format('welch'))
 @verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
               n_overlap=0, n_per_seg=None, picks=None, proj=False, n_jobs=None,
@@ -218,20 +195,14 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     """Compute the power spectral density (PSD) using Welch's method.
 
     Calculates periodograms for a sliding window over the time dimension, then
-    averages them together for each channel/epoch.
+    optionally averages them together for each channel/epoch.
 
     Parameters
     ----------
     inst : instance of Epochs or Raw or Evoked
         The data for PSD calculation.
-    fmin : float
-        Min frequency of interest.
-    fmax : float
-        Max frequency of interest.
-    tmin : float | None
-        Min time of interest.
-    tmax : float | None
-        Max time of interest.
+    %(fmin_fmax_psd)s
+    %(tmin_tmax_psd)s
     n_fft : int
         The length of FFT used, must be ``>= n_per_seg`` (default: 256).
         The segments will be zero-padded if ``n_fft > n_per_seg``.
@@ -244,8 +215,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         Length of each Welch segment (windowed with a Hamming window). Defaults
         to None, which sets n_per_seg equal to n_fft.
     %(picks_good_data_noref)s
-    proj : bool
-        Apply SSP projection vectors. If inst is ndarray this is not used.
+    %(proj_psd)s
     %(n_jobs)s
     %(reject_by_annotation_raw)s
 
@@ -272,6 +242,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
 
     See Also
     --------
+    Spectrum
+    EpochsSpectrum
     mne.io.Raw.plot_psd
     mne.Epochs.plot_psd
     psd_multitaper
@@ -281,15 +253,15 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     -----
     .. versionadded:: 0.12.0
     """
-    # Prep data
-    data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj,
-                                  reject_by_annotation=reject_by_annotation)
-    return psd_array_welch(data, sfreq, fmin=fmin, fmax=fmax, n_fft=n_fft,
-                           n_overlap=n_overlap, n_per_seg=n_per_seg,
-                           average=average, n_jobs=n_jobs, window=window,
-                           verbose=verbose)
+    spectrum = inst.compute_psd(
+        'welch', fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
+        proj=proj, n_jobs=n_jobs, verbose=verbose, n_fft=n_fft,
+        n_overlap=n_overlap, n_per_seg=n_per_seg, average=average,
+        window=window)
+    return spectrum.get_data(return_freqs=True)
 
 
+@deprecated(_psd_deprecation_msg.format('multitaper'))
 @verbose
 def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                    bandwidth=None, adaptive=False, low_bias=True,
@@ -306,14 +278,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     ----------
     inst : instance of Epochs or Raw or Evoked
         The data for PSD calculation.
-    fmin : float
-        Min frequency of interest.
-    fmax : float
-        Max frequency of interest.
-    tmin : float | None
-        Min time of interest.
-    tmax : float | None
-        Max time of interest.
+    %(fmin_fmax_psd)s
+    %(tmin_tmax_psd)s
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4.
@@ -325,8 +291,7 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         bandwidth.
     %(normalization)s
     %(picks_good_data_noref)s
-    proj : bool
-        Apply SSP projection vectors. If inst is ndarray this is not used.
+    %(proj_psd)s
     %(n_jobs)s
     %(reject_by_annotation_raw)s
     %(verbose)s
@@ -342,6 +307,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
     See Also
     --------
+    Spectrum
+    EpochsSpectrum
     mne.io.Raw.plot_psd
     mne.Epochs.plot_psd
     psd_array_multitaper
@@ -356,10 +323,9 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     ----------
     .. footbibliography::
     """
-    # Prep data
-    data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj,
-                                  reject_by_annotation=reject_by_annotation)
-    return psd_array_multitaper(data, sfreq, fmin=fmin, fmax=fmax,
-                                bandwidth=bandwidth, adaptive=adaptive,
-                                low_bias=low_bias, normalization=normalization,
-                                n_jobs=n_jobs, verbose=verbose)
+    spectrum = inst.compute_psd(
+        'multitaper', fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
+        proj=proj, reject_by_annotation=reject_by_annotation, n_jobs=n_jobs,
+        verbose=verbose, bandwidth=bandwidth, adaptive=adaptive,
+        low_bias=low_bias, normalization=normalization)
+    return spectrum.get_data(return_freqs=True)

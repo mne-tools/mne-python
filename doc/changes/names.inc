@@ -296,6 +296,8 @@
 
 .. _Mathurin Massias: https://mathurinm.github.io/
 
+.. _Mats van Es: https://github.com/matsvanes
+
 .. _Matt Boggess: https://github.com/mattboggess
 
 .. _Matt Courtemanche: https://github.com/mjcourte
@@ -411,6 +413,8 @@
 .. _Sara Sommariva: http://www.dima.unige.it/~sommariva/
 
 .. _Scott Huberty:  https://orcid.org/0000-0003-2637-031X
+
+.. _Sebastiaan Mathot: http://www.cogsci.nl/smathot
 
 .. _Sebastian Castano: https://github.com/jscastanoc
 

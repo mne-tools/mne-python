@@ -327,3 +327,6 @@ ul.icon-bullets {
 img.hidden {
     visibility: hidden;
 }
+td.justify {
+    text-align-last: justify;
+}

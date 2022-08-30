@@ -49,7 +49,6 @@ from ..viz.topomap import _plot_corrmap
 
 from ..channels.channels import _contains_ch_type
 from ..channels.layout import _find_topomap_coords
-from ..time_frequency import psd_welch, psd_multitaper
 from ..io.write import start_and_end_file, write_id
 from ..utils import (logger, check_fname, _check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,
@@ -1648,8 +1647,8 @@ class ICA(ContainsMixin):
         components = self.get_components()
 
         # compute metric #1: slope of the log-log psd
-        psd_func = psd_welch if isinstance(inst, BaseRaw) else psd_multitaper
-        psds, freqs = psd_func(sources, fmin=l_freq, fmax=h_freq, picks='misc')
+        spectrum = sources.compute_psd(fmin=l_freq, fmax=h_freq, picks='misc')
+        psds, freqs = spectrum.get_data(return_freqs=True)
         slopes = np.polyfit(np.log10(freqs), np.log10(psds).T, 1)[0]
 
         # compute metric #2: distance from the vertex of focus
