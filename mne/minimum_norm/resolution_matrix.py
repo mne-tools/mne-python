@@ -99,7 +99,7 @@ def _get_psf_ctf(resmat, src, idx, *, func, mode, n_comp, norm,
     if (((n_verts != n_r) and (n_r / 3 != n_verts))
             or ((n_verts != n_c) and (n_c / 3 != n_verts))):
         msg = ('Number of vertices (%d) and corresponding dimension of'
-               'resolution matrix ((%d, %d) do not match' %
+               'resolution matrix (%d, %d) do not match' %
                (n_verts, n_r, n_c))
         raise ValueError(msg)
 
