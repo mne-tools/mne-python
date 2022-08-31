@@ -2046,6 +2046,13 @@ n_permutations : int
     The number of permutations to compute.
 """
 
+docdict['names_topomap'] = """\
+names : None | list
+    Labels for the sensors. If a :class:`list`, labels should correspond
+    to the order of channels in ``data``. If ``None`` (default), no channel
+    names are plotted.
+"""
+
 docdict['nirx_notes'] = """
 This function has only been tested with NIRScout and NIRSport devices,
 and with the NIRStar software version 15 and above and Aurora software
@@ -2892,7 +2899,7 @@ replace : bool
 
 docdict['res_topomap'] = """
 res : int
-    The resolution of the topomap image (n pixels along each side).
+    The resolution of the topomap image (number of pixels along each side).
 """
 
 docdict['return_pca_vars_pctf'] = """

@@ -703,13 +703,12 @@ def _get_pos_outlines(info, picks, sphere, to_sphere=True):
 
 
 @fill_doc
-def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
-                 res=64, axes=None, names=None, show_names=False, mask=None,
-                 mask_params=None, outlines='head',
-                 contours=6, image_interp=_INTERPOLATION_DEFAULT, show=True,
-                 onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT,
-                 sphere=None, border=_BORDER_DEFAULT,
-                 ch_type='eeg', cnorm=None):
+def plot_topomap(
+        data, pos, *, ch_type='eeg', sensors=True, show_names=None, names=None,
+        mask=None, mask_params=None, contours=6, outlines='head', sphere=None,
+        image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
+        border=_BORDER_DEFAULT, res=64, size=1, cmap=None, vmin=None,
+        vmax=None, cnorm=None, axes=None, show=True, onselect=None):
     """Plot a topographic map as image.
 
     Parameters
@@ -722,46 +721,48 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         If an `~mne.Info` object, it must contain only one data type and
         exactly ``len(data)`` data channels, and the x/y coordinates will
         be inferred from the montage applied to the `~mne.Info` object.
-    %(vmin_vmax_topomap)s
-    %(cmap_topomap_simple)s
+    %(ch_type_topomap)s
+
+        .. versionadded:: 0.21
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., ``'r+'`` for red plusses). If True (default),
         circles will be used.
-    res : int
-        The resolution of the topomap image (number of pixels along each side).
-    axes : instance of Axes | None
-        The axes to plot to. If None, the current axes will be used.
-    names : list | None
-        List of channel names. If None, channel names are not plotted.
     %(show_names_topomap)s
-        If ``True``, a list of names must be provided (see ``names`` keyword).
+
+        .. deprecated:: v1.2
+           The ``show_names`` parameter will be removed in version 1.3. Please
+           use the ``names`` parameter instead.
+    %(names_topomap)s
     %(mask_topomap)s
     %(mask_params_topomap)s
-    %(outlines_topomap)s
     contours : int | array of float
         The number of contour lines to draw. If ``0``, no contours will be
         drawn. If an array, the values represent the levels for the contours.
         The values are in µV for EEG, fT for magnetometers and fT/m for
         gradiometers. Defaults to ``6``.
+    %(outlines_topomap)s
+    %(sphere_topomap_auto)s
     %(image_interp_topomap)s
+    %(extrapolate_topomap)s
+
+        .. versionadded:: 0.18
+    %(border_topomap)s
+    %(res_topomap)s
+    %(size_topomap)s
+    %(cmap_topomap_simple)s
+    %(vmin_vmax_topomap)s
+    %(cnorm)s
+
+        .. versionadded:: 0.24
+    axes : instance of Axes | None
+        The axes to plot to. If None, the current axes will be used.
     show : bool
         Show figure if True.
     onselect : callable | None
         Handle for a function that is called when the user selects a set of
         channels by rectangle selection (matplotlib ``RectangleSelector``). If
         None interactive selection is disabled. Defaults to None.
-    %(extrapolate_topomap)s
-
-        .. versionadded:: 0.18
-    %(sphere_topomap_auto)s
-    %(border_topomap)s
-    %(ch_type_topomap)s
-
-        .. versionadded:: 0.21
-    %(cnorm)s
-
-        .. versionadded:: 0.24
 
     Returns
     -------
@@ -793,8 +794,12 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     :doc:`matplotlib docs <matplotlib:tutorials/colors/colormapnorms>`
     for more details on colormap normalization.
     """
-    sphere = _check_sphere(sphere, pos if isinstance(pos, Info) else None)
     from matplotlib.colors import Normalize
+
+    if show_names is not None:
+        warn('The "show_names" parameter is deprecated and will be removed in '
+             'version 1.3. Use the "names" parameter instead.', FutureWarning)
+    sphere = _check_sphere(sphere, pos if isinstance(pos, Info) else None)
     _validate_type(cnorm, (Normalize, None), 'cnorm')
     if cnorm is not None:
         if vmin is not None:
@@ -803,11 +808,12 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         if vmax is not None:
             warn(f"vmax={cnorm.vmax} is implicitly defined by cnorm, ignoring "
                  f"vmax={vmax}.")
-    return _plot_topomap(data, pos, vmin, vmax, cmap, sensors, res, axes,
-                         names, show_names, mask, mask_params, outlines,
-                         contours, image_interp, show, onselect, extrapolate,
-                         sphere=sphere, border=border, ch_type=ch_type,
-                         cnorm=cnorm)[:2]
+    return _plot_topomap(
+        data, pos, vmin=vmin, vmax=vmax, cmap=cmap, sensors=sensors, res=res,
+        axes=axes, names=names, mask=mask, mask_params=mask_params,
+        outlines=outlines, contours=contours, image_interp=image_interp,
+        show=show, onselect=onselect, extrapolate=extrapolate, sphere=sphere,
+        border=border, ch_type=ch_type, cnorm=cnorm)[:2]
 
 
 def _setup_interp(pos, res, image_interp, extrapolate, outlines, border):
@@ -908,7 +914,7 @@ def _get_patch(outlines, extrapolate, interp, ax):
 
 
 def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
-                  res=64, axes=None, names=None, show_names=False, mask=None,
+                  res=64, axes=None, names=None, mask=None,
                   mask_params=None, outlines='head', contours=6,
                   image_interp=_INTERPOLATION_DEFAULT, show=True,
                   onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
@@ -1048,21 +1054,12 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     if isinstance(outlines, dict):
         _draw_outlines(ax, outlines)
 
-    if show_names:
-        if names is None:
-            raise ValueError("To show names, a list of names must be provided"
-                             " (see `names` keyword).")
-        if show_names is True:
-            def _show_names(x):
-                return x
-        else:
-            _show_names = show_names
+    if names is not None:
         show_idx = np.arange(len(names)) if mask is None else np.where(mask)[0]
-        for ii, (p, ch_id) in enumerate(zip(pos, names)):
+        for ii, (_pos, _name) in enumerate(zip(pos, names)):
             if ii not in show_idx:
                 continue
-            ch_id = _show_names(ch_id)
-            ax.text(p[0], p[1], ch_id, horizontalalignment='center',
+            ax.text(_pos[0], _pos[1], _name, horizontalalignment='center',
                     verticalalignment='center', size='x-small')
 
     if not ax.figure.get_constrained_layout():
@@ -1916,7 +1913,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
                             proj=False, *, bandwidth=None, adaptive=False,
                             low_bias=True, normalization='length',
                             ch_type=None, normalize=False, agg_fun=None,
-                            dB=False, sensors=True, show_names=False,
+                            dB=False, sensors=True, names=None,
                             mask=None, mask_params=None, contours=6,
                             outlines='head', sphere=None,
                             image_interp=_INTERPOLATION_DEFAULT,
@@ -1949,7 +1946,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
     %(agg_fun_psd_topo)s
     %(dB_plot_topomap)s
     %(sensors_topomap)s
-    %(show_names_topomap)s
+    %(names_topomap)s
     %(mask_evoked_topomap)s
     %(mask_params_topomap)s
     %(contours_topomap)s
@@ -1978,20 +1975,20 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
     return epochs.plot_psd_topomap(
         bands=bands, tmin=tmin, tmax=tmax, proj=proj, method='multitaper',
         ch_type=ch_type, normalize=normalize, agg_fun=agg_fun, dB=dB,
-        sensors=sensors, show_names=show_names, mask=mask,
-        mask_params=mask_params, contours=contours, outlines=outlines,
-        sphere=sphere, image_interp=image_interp, extrapolate=extrapolate,
-        border=border, res=res, size=size, cmap=cmap, vlim=vlim,
-        colorbar=colorbar, cbar_fmt=cbar_fmt, units=units, axes=None,
-        show=True, n_jobs=None, verbose=None, bandwidth=bandwidth,
-        low_bias=low_bias, adaptive=adaptive, normalization=normalization)
+        sensors=sensors, names=names, mask=mask, mask_params=mask_params,
+        contours=contours, outlines=outlines, sphere=sphere,
+        image_interp=image_interp, extrapolate=extrapolate, border=border,
+        res=res, size=size, cmap=cmap, vlim=vlim, colorbar=colorbar,
+        cbar_fmt=cbar_fmt, units=units, axes=None, show=True, n_jobs=None,
+        verbose=None, bandwidth=bandwidth, low_bias=low_bias,
+        adaptive=adaptive, normalization=normalization)
 
 
 @fill_doc
 def plot_psds_topomap(
         psds, freqs, pos, *, bands=None, ch_type='eeg', normalize=False,
-        agg_fun=None, dB=True, sensors=True, show_names=False, mask=None,
-        mask_params=None, contours=6, outlines='head', sphere=None,
+        agg_fun=None, dB=True, sensors=True, names=None, mask=None,
+        mask_params=None, contours=0, outlines='head', sphere=None,
         image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
         border=_BORDER_DEFAULT, res=64, size=1, cmap=None, vlim=(None, None),
         colorbar=True, cbar_fmt='auto', unit=None, axes=None, show=True):
@@ -2011,7 +2008,7 @@ def plot_psds_topomap(
     %(agg_fun_psd_topo)s
     %(dB_plot_topomap)s
     %(sensors_topomap)s
-    %(show_names_topomap)s
+    %(names_topomap)s
     %(mask_evoked_topomap)s
     %(mask_params_topomap)s
     %(contours_topomap)s
