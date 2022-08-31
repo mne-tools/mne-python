@@ -1383,3 +1383,39 @@ def _compute_good_distances(hpi_coil_dists, new_pos, dist_limit=0.005):
             exclude_coils = np.where(use_mask)[0][np.argmax(badness)]
             use_mask[exclude_coils] = False
     return use_mask, these_dists
+
+
+def chpi_on(raw):
+    """ Determines how many cHPI coils were on depending on time.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        Raw data
+    
+            .. versionadded:: 1.2
+    %(verbose)s
+
+    Returns
+    -------
+    times : array, shape (raw.times)
+        The number of active cHPIs for every timepoint in raw.
+    """
+
+    if raw.filenames[0].endswith('.fif'):
+        # extract hpi info
+        chpi_info = get_chpi_info(raw.info)
+
+        # extract hpi time series and infer which one was on
+        chpi_ts = raw[chpi_info[1]][0].astype(int)
+        chpi_active = (chpi_ts & chpi_info[2][:, np.newaxis]).astype(bool)
+        times = chpi_active.sum(axis=0)
+
+    elif raw.filenames[0].endswith('.ds'):
+        chpi_locs = extract_chpi_locs_ctf(raw)
+
+        times= np.zeros(len(raw.times), int)
+    else:
+        times= np.zeros(len(raw.times), int)
+
+    return times
