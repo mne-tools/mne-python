@@ -229,7 +229,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     ----------
     fname : str, or None
         Filename of the log to print to. If None, stdout is used.
-        To suppress log outputs, use set_log_level('WARN').
+        To suppress log outputs, use set_log_level('WARNING').
     output_format : str
         Format of the output messages. See the following for examples:
 

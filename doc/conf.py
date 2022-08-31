@@ -468,6 +468,10 @@ sphinx_gallery_conf = {
     'matplotlib_animations': True,
     'compress_images': compress_images,
     'filename_pattern': '^((?!sgskip).)*$',
+    'exclude_implicit_doc': {
+        r'mne\.io\.read_raw_fif', r'mne\.io\.Raw', r'mne\.Epochs',
+        r'mne.datasets.*',
+    },
     'api_usage_ignore': (
         '('
         '.*__.*__|'  # built-ins

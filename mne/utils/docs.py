@@ -9,7 +9,6 @@ import os
 import os.path as op
 import re
 import sys
-import warnings
 import webbrowser
 from copy import deepcopy
 
@@ -4163,17 +4162,13 @@ def open_docs(kind=None, version=None):
     webbrowser.open_new_tab('https://mne.tools/%s/%s' % (version, kind))
 
 
-# make DeprecationWarnings actually show up for users
-warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
-
-
 class _decorator:
     """Inject code or modify the docstring of a class, method, or function."""
 
-    def __init__(self, extra, kind):  # noqa: D102
-        self.kind = kind
+    def __init__(self, extra):  # noqa: D102
+        self.kind = self.__class__.__name__
         self.extra = extra
-        self.msg = f'{{}} is a {self.kind} {{}}. {self.extra}.'
+        self.msg = f'NOTE: {{}}() is a {self.kind} {{}}. {self.extra}.'
 
     def __call__(self, obj):  # noqa: D105
         """Call.
@@ -4241,18 +4236,15 @@ class deprecated(_decorator):
     extra : str
         Extra information beyond just saying the class/function/method is
         deprecated. Should be a complete sentence (trailing period will be
-        added automatically). Will be included in DeprecationWarning messages
+        added automatically). Will be included in FutureWarning messages
         and in a sphinx warning box in the docstring.
     """
-
-    def __init__(self, extra=''):
-        super().__init__(extra=extra, kind='deprecated')
 
     def _make_fun(self, func, msg):
         body = f"""\
 def %(name)s(%(signature)s):\n
     import warnings
-    warnings.warn({repr(msg)}, category=DeprecationWarning)
+    warnings.warn({repr(msg)}, category=FutureWarning)
     return _function_(%(shortsignature)s)"""
         return super()._make_fun(func=func, body=body)
 
@@ -4292,7 +4284,7 @@ class legacy(_decorator):
     def __init__(self, alt, extra=''):  # noqa: D102
         period = '. ' if len(extra) else ''
         extra = f'New code should use {alt}{period}{extra}'
-        super().__init__(extra=extra, kind='legacy')
+        super().__init__(extra=extra)
 
     def _make_fun(self, func, msg):
         body = f"""\

@@ -785,21 +785,10 @@ def _check_destination(destination, info, head_frame):
 @verbose
 def _prep_mf_coils(info, ignore_ref=True, verbose=None):
     """Get all coil integration information loaded and sorted."""
-    coils, comp_coils = _prep_meg_channels(
-        info, head_frame=False,
-        ignore_ref=ignore_ref, do_picking=False, verbose=False)[:2]
+    meg_sensors = _prep_meg_channels(
+        info, head_frame=False, ignore_ref=ignore_ref, verbose=False)
+    coils = meg_sensors['defs']
     mag_mask = _get_mag_mask(coils)
-    if len(comp_coils) > 0:
-        meg_picks = pick_types(info, meg=True, ref_meg=False, exclude=[])
-        ref_picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
-        inserts = np.searchsorted(meg_picks, ref_picks)
-        # len(inserts) == len(comp_coils)
-        for idx, comp_coil in zip(inserts[::-1], comp_coils[::-1]):
-            coils.insert(idx, comp_coil)
-        # Now we have:
-        # [c['chname'] for c in coils] ==
-        # [info['ch_names'][ii]
-        #  for ii in pick_types(info, meg=True, ref_meg=True)]
 
     # Now coils is a sorted list of coils. Time to do some vectorization.
     n_coils = len(coils)

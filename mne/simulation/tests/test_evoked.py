@@ -58,7 +58,8 @@ def test_simulate_evoked():
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
     evoked = simulate_evoked(fwd, stc, evoked_template.info, cov,
-                             iir_filter=iir_filter, nave=nave)
+                             iir_filter=iir_filter, nave=nave,
+                             random_state=0)
     assert_array_almost_equal(evoked.times, stc.times)
     assert len(evoked.data) == len(fwd['sol']['data'])
     assert_equal(evoked.nave, nave)
@@ -153,7 +154,7 @@ def test_rank_deficiency():
     cov = regularize(cov, evoked.info, rank=None)
     cov = pick_channels_cov(cov, evoked.ch_names)
     evoked.data[:] = 0
-    add_noise(evoked, cov)
+    add_noise(evoked, cov, random_state=0)
     cov_new = compute_covariance(
         EpochsArray(evoked.data[np.newaxis], evoked.info), verbose='error')
     assert cov['names'] == cov_new['names']

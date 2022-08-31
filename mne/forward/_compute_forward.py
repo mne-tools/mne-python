@@ -20,14 +20,12 @@ import numpy as np
 from copy import deepcopy
 
 from ..fixes import jit, bincount
-from ..io.compensator import get_current_comp, make_compensator
 from ..io.constants import FIFF
-from ..io.pick import pick_types
 from ..parallel import parallel_func
 from ..surface import _project_onto_surface, _jit_cross
 from ..transforms import apply_trans, invert_transform
 from ..utils import logger, verbose, _pl, warn, fill_doc, _check_option
-from ..bem import _make_openmeeg_geometry
+from ..bem import _make_openmeeg_geometry, _import_openmeeg
 
 
 # #############################################################################
@@ -263,33 +261,6 @@ def _bem_specify_els(bem, els, mults):
         sol[ii] = weights[start:stop].sum(0)
     sol *= mults
     return sol
-
-
-# #############################################################################
-# COMPENSATION
-
-def _make_ctf_comp_coils(info, coils):
-    """Get the correct compensator for CTF coils."""
-    # adapted from mne_make_ctf_comp() from mne_ctf_comp.c
-    logger.info('Setting up compensation data...')
-    comp_num = get_current_comp(info)
-    if comp_num is None or comp_num == 0:
-        logger.info('    No compensation set. Nothing more to do.')
-        return None
-
-    # Need to meaningfully populate comp['set'] dict a.k.a. compset
-    n_comp_ch = sum([c['kind'] == FIFF.FIFFV_MEG_CH for c in info['chs']])
-    logger.info('    %d out of %d channels have the compensation set.'
-                % (n_comp_ch, len(coils)))
-
-    # Find the desired compensation data matrix
-    compensator = make_compensator(info, 0, comp_num, True)
-    logger.info('    Desired compensation data (%s) found.' % comp_num)
-    logger.info('    All compensation channels found.')
-    logger.info('    Preselector created.')
-    logger.info('    Compensation data matrix created.')
-    logger.info('    Postselector created.')
-    return compensator
 
 
 # #############################################################################
@@ -530,13 +501,13 @@ def _do_inf_pots(mri_rr, bem_rr, mri_Q, sol):
 # #############################################################################
 # SPHERE COMPUTATION
 
-def _sphere_pot_or_field(rr, mri_rr, mri_Q, coils, sphere, bem_rr,
+def _sphere_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr,
                          n_jobs, coil_type):
     """Do potential or field for spherical model."""
     fun = _eeg_spherepot_coil if coil_type == 'eeg' else _sphere_field
     parallel, p_fun, n_jobs = parallel_func(
         fun, n_jobs, max_jobs=len(rr))
-    B = np.concatenate(parallel(p_fun(r, coils, sphere)
+    B = np.concatenate(parallel(p_fun(r, coils, sphere=solution)
                                 for r in np.array_split(rr, n_jobs)))
     return B
 
@@ -727,7 +698,7 @@ def _compute_mdfv(rrs, rmags, cosmags, ws, bins, too_close):
 # MAIN TRIAGING FUNCTION
 
 @verbose
-def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
+def _prep_field_computation(rr, *, sensors, bem, n_jobs, verbose=None):
     """Precompute and store some things that are used for both MEG and EEG.
 
     Calculation includes multiplication factors, coordinate transforms,
@@ -760,51 +731,28 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
         head_mri_t = bem['head_mri_t']
         mri_Q = bem['head_mri_t']['trans'][:3, :3].T
 
-    # Compute solution and compensation for dif sensor types ('meg', 'eeg')
-    if len(set(fwd_data['coil_types'])) != len(fwd_data['coil_types']):
-        raise RuntimeError('Non-unique sensor types found')
-    compensators, solutions, csolutions = [], [], []
-    coils_list, ccoils_list = [], []
-    for coil_type, coils, ccoils, info in zip(fwd_data['coil_types'],
-                                              fwd_data['coils_list'],
-                                              fwd_data['ccoils_list'],
-                                              fwd_data['infos']):
-        compensator = solution = csolution = None
-        if len(coils) > 0:  # Only proceed if sensors exist
+    solutions = dict()
+    for coil_type in sensors:
+        coils = sensors[coil_type]['defs']
+        if not bem['is_sphere']:
             if coil_type == 'meg':
-                # Compose a compensation data set if necessary
-                compensator = _make_ctf_comp_coils(info, coils)
-
-            if not bem['is_sphere']:
-                if coil_type == 'meg':
-                    # MEG field computation matrices for BEM
-                    start = 'Composing the field computation matrix'
-                    logger.info('\n' + start + '...')
-                    cf = FIFF.FIFFV_COORD_HEAD
-                    # multiply solution by "mults" here for simplicity
-                    solution = _bem_specify_coils(bem, coils, cf, mults,
-                                                  n_jobs)
-                    if compensator is not None:
-                        logger.info(start + ' (compensation coils)...')
-                        csolution = _bem_specify_coils(bem, ccoils, cf,
-                                                       mults, n_jobs)
-                else:
-                    # Compute solution for EEG sensor
-                    logger.info('Setting up for EEG...')
-                    solution = _bem_specify_els(bem, coils, mults)
+                # MEG field computation matrices for BEM
+                start = 'Composing the field computation matrix'
+                logger.info('\n' + start + '...')
+                cf = FIFF.FIFFV_COORD_HEAD
+                # multiply solution by "mults" here for simplicity
+                solution = _bem_specify_coils(bem, coils, cf, mults, n_jobs)
             else:
-                solution = csolution = bem
-                if coil_type == 'eeg':
-                    logger.info('Using the equivalent source approach in the '
-                                'homogeneous sphere for EEG')
-            coils = _triage_coils(coils)
-            if ccoils is not None and len(ccoils) > 0:
-                ccoils = _triage_coils(ccoils)
-        coils_list.append(coils)
-        ccoils_list.append(ccoils)
-        compensators.append(compensator)
-        solutions.append(solution)
-        csolutions.append(csolution)
+                # Compute solution for EEG sensor
+                logger.info('Setting up for EEG...')
+                solution = _bem_specify_els(bem, coils, mults)
+        else:
+            solution = bem
+            if coil_type == 'eeg':
+                logger.info('Using the equivalent source approach in the '
+                            'homogeneous sphere for EEG')
+        sensors[coil_type]['defs'] = _triage_coils(coils)
+        solutions[coil_type] = solution
 
     # Get appropriate forward physics function depending on sphere or BEM model
     fun = _sphere_pot_or_field if bem['is_sphere'] else _bem_pot_or_field
@@ -816,50 +764,29 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
     #    fun (_bem_pot_or_field if not 'sphere'; otherwise _sph_pot_or_field)
     #    solutions (len 2 list; [ndarray, shape (n_MEG_sens, n BEM vertices),
     #                            ndarray, shape (n_EEG_sens, n BEM vertices)]
-    #    csolutions (compensation for solution)
-    fwd_data.update(dict(bem_rr=bem_rr, mri_Q=mri_Q, head_mri_t=head_mri_t,
-                         compensators=compensators, solutions=solutions,
-                         csolutions=csolutions, fun=fun,
-                         coils_list=coils_list, ccoils_list=ccoils_list))
+    fwd_data = dict(
+        bem_rr=bem_rr, mri_Q=mri_Q, head_mri_t=head_mri_t, fun=fun,
+        solutions=solutions)
+    return fwd_data
 
 
 @fill_doc
-def _compute_forwards_meeg(rr, fd, n_jobs, silent=False):
-    """Compute MEG and EEG forward solutions for all sensor types.
-
-    Parameters
-    ----------
-    rr : ndarray, shape (n_dipoles, 3)
-        3D dipole positions in head coordinates
-    fd : dict
-        Dict containing forward data after update in _prep_field_computation
-    %(n_jobs)s
-    silent : bool
-        If True, don't emit logger.info.
-        This saves time over ``verbose`` when this function is called a lot.
-
-    Returns
-    -------
-    Bs : list
-        Each element contains ndarray, shape (3 * n_dipoles, n_sensors) where
-        n_sensors depends on which channel types are requested (MEG and/or EEG)
-    """
-    Bs = list()
+def _compute_forwards_meeg(rr, *, sensors, fwd_data, n_jobs, silent=False):
+    """Compute MEG and EEG forward solutions for all sensor types."""
+    Bs = dict()
     # The dipole location and orientation must be transformed to mri coords
     mri_rr = None
-    if fd['head_mri_t'] is not None:
+    if fwd_data['head_mri_t'] is not None:
         mri_rr = np.ascontiguousarray(
-            apply_trans(fd['head_mri_t']['trans'], rr))
-    mri_Q, bem_rr, fun = fd['mri_Q'], fd['bem_rr'], fd['fun']
-    for ci in range(len(fd['coils_list'])):
-        coils, ccoils = fd['coils_list'][ci], fd['ccoils_list'][ci]
-        if len(coils) == 0:  # nothing to do
-            Bs.append(np.zeros((3 * len(rr), 0)))
-            continue
-
-        coil_type, compensator = fd['coil_types'][ci], fd['compensators'][ci]
-        solution, csolution = fd['solutions'][ci], fd['csolutions'][ci]
-        info = fd['infos'][ci]
+            apply_trans(fwd_data['head_mri_t']['trans'], rr))
+    mri_Q, bem_rr, fun = fwd_data['mri_Q'], fwd_data['bem_rr'], fwd_data['fun']
+    solutions = fwd_data['solutions']
+    del fwd_data
+    for coil_type, sens in sensors.items():
+        coils = sens['defs']
+        compensator = sens.get('compensator', None)
+        post_picks = sens.get('post_picks', None)
+        solution = solutions.get(coil_type, None)
 
         # Do the actual forward calculation for a list MEG/EEG sensors
         if not silent:
@@ -867,120 +794,75 @@ def _compute_forwards_meeg(rr, fd, n_jobs, silent=False):
                         '(free orientations)...'
                         % (coil_type.upper(), len(rr), _pl(rr)))
         # Calculate forward solution using spherical or BEM model
-        B = fun(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
-                coil_type)
+        B = fun(rr, mri_rr, mri_Q, coils=coils, solution=solution,
+                bem_rr=bem_rr, n_jobs=n_jobs, coil_type=coil_type)
 
         # Compensate if needed (only done for MEG systems w/compensation)
         if compensator is not None:
-            # Compute the field in the compensation sensors
-            work = fun(rr, mri_rr, mri_Q, ccoils, csolution, bem_rr,
-                       n_jobs, coil_type)
-            # Combine solutions so we can do the compensation
-            both = np.zeros((work.shape[0], B.shape[1] + work.shape[1]))
-            picks = pick_types(info, meg=True, ref_meg=False, exclude=[])
-            both[:, picks] = B
-            picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
-            both[:, picks] = work
-            B = np.dot(both, compensator.T)
-        Bs.append(B)
+            B = B @ compensator.T
+        if post_picks is not None:
+            B = B[:, post_picks]
+        Bs[coil_type] = B
     return Bs
 
 
 @verbose
-def _compute_forwards(rr, bem, coils_list, ccoils_list, infos, coil_types,
-                      n_jobs, verbose=None):
-    """Compute the MEG and EEG forward solutions.
-
-    This effectively combines compute_forward_meg and compute_forward_eeg
-    from MNE-C.
-
-    Parameters
-    ----------
-    rr : ndarray, shape (n_sources, 3)
-        3D dipole in head coordinates
-    bem : instance of ConductorModel
-        Boundary Element Model information for all surfaces
-    coils_list : list
-        List of MEG and/or EEG sensor information dicts in head coords
-    ccoils_list : list
-        Optional list of MEG compensation information
-    coil_types : list of str
-        Sensor types. May contain 'meg' and/or 'eeg'
-    %(n_jobs)s
-    infos : list, len(2)
-        infos[0] is MEG info, infos[1] is EEG info
-
-    Returns
-    -------
-    Bs : list of ndarray
-        Each element contains ndarray, shape (3 * n_dipoles, n_sensors) where
-        n_sensors depends on which channel types are requested (MEG and/or EEG)
-    """
+def _compute_forwards(rr, *, bem, sensors, n_jobs, verbose=None):
+    """Compute the MEG and EEG forward solutions."""
     # Split calculation into two steps to save (potentially) a lot of time
     # when e.g. dipole fitting
-    fwd_data = dict(coils_list=coils_list, ccoils_list=ccoils_list,
-                    infos=infos, coil_types=coil_types)
     solver = bem.get('solver', 'mne')
     _check_option('solver', solver, ('mne', 'openmeeg'))
     if bem['is_sphere'] or solver == 'mne':
-        _prep_field_computation(rr, bem, fwd_data, n_jobs)
-        Bs = _compute_forwards_meeg(rr, fwd_data, n_jobs)
+        fwd_data = _prep_field_computation(
+            rr, sensors=sensors, bem=bem, n_jobs=n_jobs)
+        Bs = _compute_forwards_meeg(
+            rr, sensors=sensors, fwd_data=fwd_data, n_jobs=n_jobs)
     else:
-        if len(bem["surfs"]) != 3:
-            raise RuntimeError("Only 3-layer BEM is supported for OpenMEEG.")
-
-        # TODO: Do something other than this
-        import openmeeg as om
-        hminv = om.SymMatrix(bem["solution"])
-        geom = _make_openmeeg_geometry(bem,
-                                       invert_transform(bem['head_mri_t']))
-
-        # Make dipoles for all XYZ orientations
-        dipoles = np.c_[
-            np.kron(rr.T, np.ones(3)[None, :]).T,
-            np.kron(np.ones(len(rr))[:, None],
-                    np.eye(3)),
-        ]
-        dipoles = om.Matrix(np.asfortranarray(dipoles))
-        dsm = om.DipSourceMat(geom, dipoles, "Brain")
-        meg_coils, eeg_coils = fwd_data["coils_list"]
-
-        if eeg_coils:
-            rmags, _, ws, bins = _concatenate_coils(eeg_coils)
-            # For EEG
-            eeg_sensors = om.Sensors(om.Matrix(np.asfortranarray(rmags)), geom)
-            h2em = om.Head2EEGMat(geom, eeg_sensors)
-            eeg_fwd_full = om.GainEEG(hminv, dsm, h2em).array()
-            eeg_fwd = []
-            for x in eeg_fwd_full.T:
-                eeg_fwd.append(bincount(bins, ws * x, bins[-1] + 1))
-            eeg_fwd = np.array(eeg_fwd)
-        else:
-            eeg_fwd = np.zeros((len(rr) * 3, len(eeg_coils)))
-
-        if meg_coils:
-            rmags, cosmags, ws, bins = _concatenate_coils(meg_coils)
-            labels = [str(ii) for ii in range(len(rmags))]
-            meg_sensors = om.Sensors(
-                labels,
-                np.asfortranarray(rmags),
-                np.asfortranarray(cosmags),
-                np.ones(len(labels)),  # weights for compatibility w. OpenMEEG
-                np.ones(len(labels)),  # radii for compatibility w. OpenMEEG
-            )
-            h2mm = om.Head2MEGMat(geom, meg_sensors)
-            ds2mm = om.DipSource2MEGMat(dipoles, meg_sensors)
-            meg_fwd_full = om.GainMEG(hminv, dsm, h2mm, ds2mm).array()
-            meg_fwd = []
-            for x in meg_fwd_full.T:
-                meg_fwd.append(bincount(bins, ws * x, bins[-1] + 1))
-            meg_fwd = np.array(meg_fwd)
-        else:
-            meg_fwd = np.zeros((len(rr) * 3, len(meg_coils)))
-        Bs = [meg_fwd, eeg_fwd]
-
-    n_sensors_want = sum(len(coils) for coils in coils_list)
-    n_sensors = sum(B.shape[1] for B in Bs)
-    n_sources = Bs[0].shape[0]
+        Bs = _compute_forwards_openmeeg(rr, bem=bem, sensors=sensors)
+    n_sensors_want = sum(len(s['ch_names']) for s in sensors.values())
+    n_sensors = sum(B.shape[1] for B in Bs.values())
+    n_sources = list(Bs.values())[0].shape[0]
     assert (n_sources, n_sensors) == (len(rr) * 3, n_sensors_want)
+    return Bs
+
+
+def _compute_forwards_openmeeg(rr, *, bem, sensors):
+    """Compute the MEG and EEG forward solutions for OpenMEEG."""
+    if len(bem["surfs"]) != 3:
+        raise RuntimeError("Only 3-layer BEM is supported for OpenMEEG.")
+    om = _import_openmeeg('compute a forward solution using OpenMEEG')
+    hminv = om.SymMatrix(bem["solution"])
+    geom = _make_openmeeg_geometry(bem, invert_transform(bem['head_mri_t']))
+
+    # Make dipoles for all XYZ orientations
+    dipoles = np.c_[
+        np.kron(rr.T, np.ones(3)[None, :]).T,
+        np.kron(np.ones(len(rr))[:, None],
+                np.eye(3)),
+    ]
+    dipoles = np.asfortranarray(dipoles)
+    dipoles = om.Matrix(dipoles)
+    dsm = om.DipSourceMat(geom, dipoles, "Brain")
+    Bs = dict()
+    if 'eeg' in sensors:
+        rmags, _, ws, bins = _concatenate_coils(sensors['eeg']['defs'])
+        rmags = np.asfortranarray(rmags.astype(np.float64))
+        eeg_sensors = om.Sensors(om.Matrix(np.asfortranarray(rmags)), geom)
+        h2em = om.Head2EEGMat(geom, eeg_sensors)
+        eeg_fwd_full = om.GainEEG(hminv, dsm, h2em).array()
+        Bs['eeg'] = np.array([bincount(bins, ws * x, bins[-1] + 1)
+                              for x in eeg_fwd_full.T], float)
+    if 'meg' in sensors:
+        rmags, cosmags, ws, bins = _concatenate_coils(sensors['meg']['defs'])
+        rmags = np.asfortranarray(rmags.astype(np.float64))
+        cosmags = np.asfortranarray(cosmags.astype(np.float64))
+        labels = [str(ii) for ii in range(len(rmags))]
+        weights = radii = np.ones(len(labels))
+        meg_sensors = om.Sensors(labels, rmags, cosmags, weights, radii)
+        h2mm = om.Head2MEGMat(geom, meg_sensors)
+        ds2mm = om.DipSource2MEGMat(dipoles, meg_sensors)
+        meg_fwd_full = om.GainMEG(hminv, dsm, h2mm, ds2mm).array()
+        Bs['meg'] = np.array([bincount(bins, ws * x, bins[-1] + 1)
+                              for x in meg_fwd_full.T], float)
     return Bs

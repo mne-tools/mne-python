@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 import numpy as np
-from numpy.testing import assert_equal, assert_allclose, assert_array_equal
+from numpy.testing import assert_allclose, assert_array_equal
 from numpy.testing import assert_array_less
 
 from mne.bem import read_bem_surfaces, make_bem_solution
@@ -53,13 +53,19 @@ fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
 fname_bem_meg = op.join(subjects_dir, 'sample', 'bem',
                         'sample-1280-bem-sol.fif')
 
+io_path = Path(__file__).parent.parent.parent / 'io'
+bti_dir = io_path / 'bti' / 'tests' / 'data'
+kit_dir = io_path / 'kit' / 'tests' / 'data'
+trans_path = op.join(kit_dir, 'trans-sample.fif')
+fname_ctf_raw = io_path / 'tests' / 'data' / 'test_ctf_comp_raw.fif'
+
 
 def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
                       meg_rtol=1e-4, meg_atol=1e-9,
                       eeg_rtol=1e-3, eeg_atol=1e-3):
     """Test forwards."""
     # check source spaces
-    assert_equal(len(fwd['src']), len(fwd_py['src']))
+    assert len(fwd['src']) == len(fwd_py['src'])
     _compare_source_spaces(fwd['src'], fwd_py['src'], mode='approx')
     for surf_ori, force_fixed in product([False, True], [False, True]):
         # use copy here to leave our originals unmodified
@@ -83,9 +89,9 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
         assert_allclose(fwd_py['mri_head_t']['trans'],
                         fwd['mri_head_t']['trans'], rtol=1e-5, atol=1e-8)
 
-        assert_equal(fwd_py['sol']['data'].shape, (n_sensors, check_src))
-        assert_equal(len(fwd['sol']['row_names']), n_sensors)
-        assert_equal(len(fwd_py['sol']['row_names']), n_sensors)
+        assert fwd_py['sol']['data'].shape == (n_sensors, check_src)
+        assert len(fwd['sol']['row_names']) == n_sensors
+        assert len(fwd_py['sol']['row_names']) == n_sensors
 
         # check MEG
         assert_allclose(fwd['sol']['data'][:306, ori_sl],
@@ -127,36 +133,14 @@ def test_magnetic_dipole():
 
 
 @pytest.mark.slowtest  # slow-ish on Travis OSX
-@pytest.mark.timeout(60)  # can take longer than 30 sec on Travis
-@testing.requires_testing_data
 @requires_mne
-def test_make_forward_solution_kit(tmp_path):
-    """Test making fwd using KIT, BTI, and CTF (compensated) files."""
-    kit_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit',
-                      'tests', 'data')
+def test_make_forward_solution_kit(tmp_path, fname_src_small):
+    """Test making fwd using KIT (compensated) files."""
     sqd_path = op.join(kit_dir, 'test.sqd')
     mrk_path = op.join(kit_dir, 'test_mrk.sqd')
     elp_path = op.join(kit_dir, 'test_elp.txt')
     hsp_path = op.join(kit_dir, 'test_hsp.txt')
-    trans_path = op.join(kit_dir, 'trans-sample.fif')
     fname_kit_raw = op.join(kit_dir, 'test_bin_raw.fif')
-
-    bti_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'bti',
-                      'tests', 'data')
-    bti_pdf = op.join(bti_dir, 'test_pdf_linux')
-    bti_config = op.join(bti_dir, 'test_config_linux')
-    bti_hs = op.join(bti_dir, 'test_hs_linux')
-    fname_bti_raw = op.join(bti_dir, 'exported4D_linux_raw.fif')
-
-    fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                            'data', 'test_ctf_comp_raw.fif')
-
-    # first set up a small testing source space
-    fname_src_small = tmp_path / 'sample-oct-2-src.fif'
-    src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
-                             add_dist=False)
-    write_source_spaces(fname_src_small, src)  # to enable working with MNE-C
-    n_src = 108  # this is the resulting # of verts in fwd
 
     # first use mne-C: convert file, make forward solution
     fwd = _do_forward_solution('sample', fname_kit_raw, src=fname_src_small,
@@ -165,9 +149,10 @@ def test_make_forward_solution_kit(tmp_path):
     assert (isinstance(fwd, Forward))
 
     # now let's use python with the same raw file
+    src = read_source_spaces(fname_src_small)
     fwd_py = make_forward_solution(fname_kit_raw, trans_path, src,
                                    fname_bem_meg, eeg=False, meg=True)
-    _compare_forwards(fwd, fwd_py, 157, n_src)
+    _compare_forwards(fwd, fwd_py, 157, n_src_small)
     assert (isinstance(fwd_py, Forward))
 
     # now let's use mne-python all the way
@@ -183,26 +168,38 @@ def test_make_forward_solution_kit(tmp_path):
     fwd_py = make_forward_solution(meg_only_info, src=src, meg=True, eeg=True,
                                    bem=fname_bem_meg, trans=trans_path,
                                    ignore_ref=True)
-    _compare_forwards(fwd, fwd_py, 157, n_src,
+    _compare_forwards(fwd, fwd_py, 157, n_src_small,
                       meg_rtol=1e-3, meg_atol=1e-7)
 
-    # BTI python end-to-end versus C
+
+@requires_mne
+def test_make_forward_solution_bti(fname_src_small):
+    """Test BTI end-to-end versus C."""
+    bti_pdf = bti_dir / 'test_pdf_linux'
+    bti_config = bti_dir / 'test_config_linux'
+    bti_hs = bti_dir / 'test_hs_linux'
+    fname_bti_raw = bti_dir / 'exported4D_linux_raw.fif'
+    raw_py = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
+    src = read_source_spaces(fname_src_small)
+    fwd_py = make_forward_solution(raw_py.info, src=src, eeg=False, meg=True,
+                                   bem=fname_bem_meg, trans=trans_path)
     fwd = _do_forward_solution('sample', fname_bti_raw, src=fname_src_small,
                                bem=fname_bem_meg, mri=trans_path,
                                eeg=False, meg=True, subjects_dir=subjects_dir)
-    raw_py = read_raw_bti(bti_pdf, bti_config, bti_hs, preload=False)
-    fwd_py = make_forward_solution(raw_py.info, src=src, eeg=False, meg=True,
-                                   bem=fname_bem_meg, trans=trans_path)
-    _compare_forwards(fwd, fwd_py, 248, n_src)
+    _compare_forwards(fwd, fwd_py, 248, n_src_small)
 
-    # now let's test CTF w/compensation
+
+@requires_mne
+def test_make_forward_solution_ctf(tmp_path, fname_src_small):
+    """Test CTF w/compensation against C."""
+    src = read_source_spaces(fname_src_small)
     fwd_py = make_forward_solution(fname_ctf_raw, fname_trans, src,
-                                   fname_bem_meg, eeg=False, meg=True)
+                                   fname_bem_meg, eeg=False, verbose=True)
 
     fwd = _do_forward_solution('sample', fname_ctf_raw, mri=fname_trans,
                                src=fname_src_small, bem=fname_bem_meg,
                                eeg=False, meg=True, subjects_dir=subjects_dir)
-    _compare_forwards(fwd, fwd_py, 274, n_src)
+    _compare_forwards(fwd, fwd_py, 274, n_src_small)
 
     # CTF with compensation changed in python
     ctf_raw = read_raw_fif(fname_ctf_raw)
@@ -215,12 +212,12 @@ def test_make_forward_solution_kit(tmp_path):
                                src=fname_src_small, bem=fname_bem_meg,
                                eeg=False, meg=True,
                                subjects_dir=subjects_dir)
-    _compare_forwards(fwd, fwd_py, 274, n_src)
+    _compare_forwards(fwd, fwd_py, 274, n_src_small)
 
     fname_temp = tmp_path / 'test-ctf-fwd.fif'
     write_forward_solution(fname_temp, fwd_py)
     fwd_py2 = read_forward_solution(fname_temp)
-    _compare_forwards(fwd_py, fwd_py2, 274, n_src)
+    _compare_forwards(fwd_py, fwd_py2, 274, n_src_small)
     repr(fwd_py)
 
 
@@ -296,12 +293,10 @@ def test_make_forward_solution_openmeeg(n_layers):
         assert_allclose(RDMs, 1, atol=atols[ch_type])
 
 
-@testing.requires_testing_data
-def test_make_forward_solution_discrete(tmp_path):
+def test_make_forward_solution_discrete(tmp_path, small_surf_src):
     """Test making and converting a forward solution with discrete src."""
     # smoke test for depth weighting and discrete source spaces
-    src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
-                             add_dist=False)
+    src = small_surf_src
     src = src + setup_volume_source_space(
         pos=dict(rr=src[0]['rr'][src[0]['vertno'][:3]].copy(),
                  nn=src[0]['nn'][src[0]['vertno'][:3]].copy()))
@@ -311,21 +306,37 @@ def test_make_forward_solution_discrete(tmp_path):
     convert_forward_solution(fwd, surf_ori=True)
 
 
-@testing.requires_testing_data
-@requires_mne
-@pytest.mark.timeout(90)  # can take longer than 60 sec on Travis
-def test_make_forward_solution_sphere(tmp_path):
-    """Test making a forward solution with a sphere model."""
-    fname_src_small = tmp_path / 'sample-oct-2-src.fif'
+n_src_small = 108  # this is the resulting # of verts in fwd
+
+
+@pytest.fixture(scope='module', params=[testing._pytest_param()])
+def small_surf_src():
+    """Create a small surface source space."""
     src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
                              add_dist=False)
-    write_source_spaces(fname_src_small, src)  # to enable working with MNE-C
+    assert sum(s['nuse'] for s in src) * 3 == n_src_small
+    return src
+
+
+@pytest.fixture()
+def fname_src_small(tmp_path, small_surf_src):
+    """Create a small source space."""
+    fname_src_small = tmp_path / 'sample-oct-2-src.fif'
+    write_source_spaces(fname_src_small, small_surf_src)
+    return fname_src_small
+
+
+@requires_mne
+@pytest.mark.timeout(90)  # can take longer than 60 sec on Travis
+def test_make_forward_solution_sphere(tmp_path, fname_src_small):
+    """Test making a forward solution with a sphere model."""
     out_name = tmp_path / 'tmp-fwd.fif'
     run_subprocess(['mne_forward_solution', '--meg', '--eeg',
                     '--meas', fname_raw, '--src', fname_src_small,
                     '--mri', fname_trans, '--fwd', out_name])
     fwd = read_forward_solution(out_name)
     sphere = make_sphere_model(verbose=True)
+    src = read_source_spaces(fname_src_small)
     fwd_py = make_forward_solution(fname_raw, fname_trans, src, sphere,
                                    meg=True, eeg=True, verbose=True)
     _compare_forwards(fwd, fwd_py, 366, 108,

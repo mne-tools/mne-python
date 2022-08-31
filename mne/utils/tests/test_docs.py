@@ -70,11 +70,11 @@ class legacy_class():  # noqa D101
 def test_deprecated_and_legacy(msg, func, klass):
     """Test deprecated and legacy decorators."""
     if msg == 'deprecated':
-        with pytest.deprecated_call(match=f'{msg} class'):
+        with pytest.warns(FutureWarning, match=f'{msg} class'):
             _klass = klass()
-        with pytest.deprecated_call(match=f'{msg} method'):
+        with pytest.warns(FutureWarning, match=f'{msg} method'):
             _klass.bad()
-        with pytest.deprecated_call(match=f'{msg} func'):
+        with pytest.warns(FutureWarning, match=f'{msg} func'):
             func()
     else:
         with catch_logging(verbose='info') as log:
