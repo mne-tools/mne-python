@@ -3078,11 +3078,11 @@ show : bool
 
 docdict['show_names_topomap'] = """
 show_names : bool | callable
-    If True, show channel names on top of the map. If a callable is
-    passed, channel names will be formatted using the callable; e.g., to
+    If ``True``, show channel names next to each sensor marker. If callable,
+    channel names will be formatted using the callable; e.g., to
     delete the prefix 'MEG ' from all channel names, pass the function
-    ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not None, only
-    significant sensors will be shown.
+    ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+    non-masked sensor names will be shown.
 """
 
 docdict['show_scalebars'] = """

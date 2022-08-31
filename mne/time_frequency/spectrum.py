@@ -721,10 +721,14 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         if merge_channels:
             psds, names = _merge_ch_data(psds, ch_type, names, method='mean')
 
+        if callable(show_names):
+            names = [show_names(name) for name in names]
+        elif not show_names:
+            names = None
         return plot_psds_topomap(
             psds=psds, freqs=freqs, pos=pos, bands=bands, ch_type=ch_type,
             normalize=normalize, agg_fun=agg_fun, dB=dB, sensors=sensors,
-            show_names=show_names, mask=mask, mask_params=mask_params,
+            names=names, mask=mask, mask_params=mask_params,
             contours=contours, outlines=outlines, sphere=sphere,
             image_interp=image_interp, extrapolate=extrapolate, border=border,
             res=res, size=size, cmap=cmap, vlim=vlim, colorbar=colorbar,
