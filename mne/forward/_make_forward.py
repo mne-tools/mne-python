@@ -374,7 +374,18 @@ def _prepare_for_forward(src, mri_head_t, info, bem, mindist, n_jobs,
                          bem_extra='', trans='', info_extra='',
                          meg=True, eeg=True, ignore_ref=False,
                          allow_bem_none=False, verbose=None):
-    """Prepare for forward computation."""
+    """Prepare for forward computation.
+
+    The sensors dict contains keys for each sensor type, e.g. 'meg', 'eeg'.
+    The vale for each of these is a dict that comes from _prep_meg_channels or
+    _prep_eeg_channels. Each dict contains:
+
+    - defs : a list of dicts (one per channel) with 'rmag', 'cosmag', etc.
+    - ch_names: a list of str channel names corresponding to the defs
+    - compensator (optional): the ndarray compensation matrix to apply
+    - post_picks (optional): the ndarray of indices to pick after applying the
+      compensator
+    """
     # Read the source locations
     logger.info('')
     # let's make a copy in case we modify something
