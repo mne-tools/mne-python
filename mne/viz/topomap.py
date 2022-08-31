@@ -35,6 +35,7 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
                     _set_3d_axes_equal, _check_type_projs)
 from ..defaults import _handle_default
+from ..time_frequency.spectrum import _format_units
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
 
@@ -2128,16 +2129,13 @@ def plot_psds_topomap(
         vmax = np.array(_datas).max()
     else:
         vmin, vmax = vlim
-
+    # unit label
     if unit is None:
         unit = 'dB' if dB and not normalize else 'power'
     else:
-        if '/' in unit:
-            unit = '(%s)' % unit
-        unit += '²/Hz'
-        if dB and not normalize:
-            unit += ' (dB)'
-
+        _dB = dB and not normalize
+        unit = _format_units(unit, dB=_dB)
+    # loop over subplots/frequency bands
     for ax, (title, (fmin, fmax)) in zip(axes, bands.items()):
         freq_mask = (fmin < freqs) & (freqs < fmax)
         if freq_mask.sum() == 0:

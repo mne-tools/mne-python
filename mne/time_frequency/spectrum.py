@@ -401,18 +401,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         del self._psd_func
         del self._time_mask
 
-    def _format_units(self, unit, latex, power=True):
-        """Format the measurement units nicely."""
-        unit = f'({unit})' if '/' in unit else unit
-        if power:
-            denom = 'Hz'
-            exp = r'^{2}' if latex else '²'
-        else:
-            denom = r'\sqrt{Hz}' if latex else '√(Hz)'
-            exp = ''
-        pre, post = (r'$\mathrm{', r'}$') if latex else ('', '')
-        return f'{pre}{unit}{exp}/{denom}{post}'
-
     def _get_instance_type_string(self):
         """Get string representation of the originating instance type."""
         from .. import BaseEpochs, Evoked, EvokedArray
@@ -866,8 +854,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         """
         units = _handle_default('si_units', None)
         power = not hasattr(self, '_mt_weights')
-        return {ch_type: self._format_units(units[ch_type], power=power,
-                                            latex=latex)
+        return {ch_type: _format_units(units[ch_type], power=power,
+                                       latex=latex)
                 for ch_type in sorted(self.get_channel_types(unique=True))}
 
 
@@ -1133,3 +1121,17 @@ def _compute_n_welch_segments(n_times, method_kw):
     n_fft, n_per_seg, n_overlap = _check_nfft(n_times, **_defaults)
     # compute expected number of segments
     return n_times // (n_per_seg - n_overlap)
+
+
+def _format_units(unit, latex=False, power=True, dB=False):
+    """Format the measurement units nicely."""
+    unit = f'({unit})' if '/' in unit else unit
+    if power:
+        denom = 'Hz'
+        exp = r'^{2}' if latex else '²'
+    else:
+        denom = r'\sqrt{Hz}' if latex else '√(Hz)'
+        exp = ''
+    pre, post = (r'$\mathrm{', r'}$') if latex else ('', '')
+    db = ' (dB)' if dB else ''
+    return f'{pre}{unit}{exp}/{denom}{post}{db}'
