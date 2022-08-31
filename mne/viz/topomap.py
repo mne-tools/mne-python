@@ -1911,7 +1911,7 @@ def _slider_changed(val, ax, data, times, pos, scaling, func, time_format,
 
 
 def _plot_topomap_multi_cbar(
-        data, pos, ax, *, ch_type='eeg', # sensors=True, show_names=False,
+        data, pos, ax, *, ch_type='eeg',  # sensors=True, show_names=False,
         # mask=None, mask_params=None, contours=6,
         outlines='head', sphere=None,  # image_interp=_INTERPOLATION_DEFAULT,
         # extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
@@ -2073,14 +2073,16 @@ def plot_psds_topomap(
     fig : instance of matplotlib.figure.Figure
         Figure with a topomap subplot for each band.
     """
-    from ..time_frequency.spectrum import _format_units
     import matplotlib.pyplot as plt
     from matplotlib.axes import Axes
-    sphere = _check_sphere(sphere)
 
+    from ..time_frequency.spectrum import _format_units
+
+    # handle some defaults
+    sphere = _check_sphere(sphere)
     if cbar_fmt == 'auto':
         cbar_fmt = '%0.1f' if dB else '%0.3f'
-
+    # make sure `bands` is a dict
     if bands is None:
         bands = {'Delta (0-4 Hz)': (0, 4), 'Theta (4-8 Hz)': (4, 8),
                  'Alpha (8-12 Hz)': (8, 12), 'Beta (12-30 Hz)': (12, 30),
@@ -2099,13 +2101,31 @@ def plot_psds_topomap(
         if len(_edges) == 1:
             bands[band] = tuple(bin_edges
                                 + freqs[np.argmin(np.abs(freqs - _edges[0]))])
-    if agg_fun is None:
-        agg_fun = np.sum if normalize else np.mean
-
+    # normalize data (if requested)
     if normalize:
         psds /= psds.sum(axis=-1, keepdims=True)
         assert np.allclose(psds.sum(axis=-1), 1.)
-
+    # aggregate within bands
+    if agg_fun is None:
+        agg_fun = np.sum if normalize else np.mean
+    freq_masks = [(fmin < freqs) & (freqs < fmax)
+                  for fmin, fmax in bands.values()]
+    band_data = [agg_fun(psds[:, _mask], axis=1) for _mask in freq_masks]
+    if dB and not normalize:
+        band_data = [10 * np.log10(_d) for _d in band_data]
+    # handle vmin/vmax
+    if vlim == 'joint':
+        vmin = np.array(band_data).min()
+        vmax = np.array(band_data).max()
+    else:
+        vmin, vmax = vlim
+    # unit label
+    if unit is None:
+        unit = 'dB' if dB and not normalize else 'power'
+    else:
+        _dB = dB and not normalize
+        unit = _format_units(unit, dB=_dB)
+    # set up figure / axes
     n_axes = len(bands)
     if axes is not None:
         if isinstance(axes, Axes):
@@ -2116,38 +2136,15 @@ def plot_psds_topomap(
         fig, axes = plt.subplots(1, n_axes, figsize=(2 * n_axes, 1.5))
         if n_axes == 1:
             axes = [axes]
-
-    # handle vmin/vmax
-    if vlim == 'joint':
-        _freq_masks = [(fmin < freqs) & (freqs < fmax)
-                       for (fmin, fmax) in bands.values()]
-        _datas = [agg_fun(psds[:, _freq_mask], axis=1)
-                  for _freq_mask in _freq_masks]
-        _datas = [10 * np.log10(_d) if (dB and not normalize) else _d
-                  for _d in _datas]
-        vmin = np.array(_datas).min()
-        vmax = np.array(_datas).max()
-    else:
-        vmin, vmax = vlim
-    # unit label
-    if unit is None:
-        unit = 'dB' if dB and not normalize else 'power'
-    else:
-        _dB = dB and not normalize
-        unit = _format_units(unit, dB=_dB)
     # loop over subplots/frequency bands
-    for ax, (title, (fmin, fmax)) in zip(axes, bands.items()):
-        freq_mask = (fmin < freqs) & (freqs < fmax)
-        if freq_mask.sum() == 0:
-            raise RuntimeError('No frequencies in band "%s" (%s, %s)'
-                               % (title, fmin, fmax))
-        data = agg_fun(psds[:, freq_mask], axis=1)
-        if dB and not normalize:
-            data = 10 * np.log10(data)
-
+    for ax, _mask, _data, (title, (fmin, fmax)) in zip(
+            axes, freq_masks, band_data, bands.items()):
+        if _mask.sum() == 0:
+            raise RuntimeError(
+                f'No frequencies in band "{title}" ({fmin}, {fmax})')
         colorbar = vlim != 'joint' or ax == axes[-1]
         _plot_topomap_multi_cbar(
-            data, pos, ax, ch_type=ch_type,  # sensors=sensors,
+            _data, pos, ax, ch_type=ch_type,  # sensors=sensors,
             # show_names=show_names, mask=mask, mask_params=mask_params,
             # contours=contours,
             outlines=outlines, sphere=sphere,
