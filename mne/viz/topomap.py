@@ -754,7 +754,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
-    %(sphere_topomap)s
+    %(sphere_topomap_auto)s
     %(border_topomap)s
     %(ch_type_topomap)s
 
