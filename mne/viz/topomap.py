@@ -1910,42 +1910,6 @@ def _slider_changed(val, ax, data, times, pos, scaling, func, time_format,
         ax.set_title(time_format % (val * scaling_time))
 
 
-def _plot_topomap_multi_cbar(
-        data, pos, ax, *, ch_type='eeg',  # sensors=True, show_names=False,
-        # mask=None, mask_params=None, contours=6,
-        outlines='head', sphere=None,  # image_interp=_INTERPOLATION_DEFAULT,
-        # extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
-        # size=1
-        cmap=None, vmin=None, vmax=None,  # TODO keep as `vlim`?
-        colorbar=False, cbar_fmt='%3.3f',
-        unit=None,
-        title=None):
-    """Plot topomap multi cbar."""
-    _hide_frame(ax)
-    vmin = np.min(data) if vmin is None else vmin
-    vmax = np.max(data) if vmax is None else vmax
-    # this definition of "norm" allows non-diverging colormap for cases where
-    # min & vmax are both negative (e.g., when they are power in dB)
-    signs = np.sign([vmin, vmax])
-    norm = len(set(signs)) == 1 or np.any(signs == 0)
-
-    cmap = _setup_cmap(cmap, norm=norm)
-    if title is not None:
-        ax.set_title(title, fontsize=10)
-    im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axes=ax,
-                         cmap=cmap[0], image_interp=_INTERPOLATION_DEFAULT,
-                         contours=0, outlines=outlines, show=False,
-                         sphere=sphere, ch_type=ch_type)
-
-    if colorbar:
-        cbar, cax = _add_colorbar(ax, im, cmap, pad=0.25, title=None,
-                                  size="10%", format=cbar_fmt)
-        cbar.set_ticks((vmin, vmax))
-        if unit is not None:
-            cbar.ax.set_ylabel(unit, fontsize=8)
-        cbar.ax.tick_params(labelsize=8)
-
-
 @legacy(alt='Epochs.compute_psd().plot_topomap()')
 @verbose
 def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
@@ -2143,15 +2107,35 @@ def plot_psds_topomap(
             raise RuntimeError(
                 f'No frequencies in band "{title}" ({fmin}, {fmax})')
         colorbar = vlim != 'joint' or ax == axes[-1]
-        _plot_topomap_multi_cbar(
-            _data, pos, ax, ch_type=ch_type,  # sensors=sensors,
-            # show_names=show_names, mask=mask, mask_params=mask_params,
-            # contours=contours,
-            outlines=outlines, sphere=sphere,
-            # image_interp=image_interp, extrapolate=extrapolate,
-            # border=border, res=res, size=size,
-            cmap=cmap, vmin=vmin, vmax=vmax,  # TODO: keep as `vlim`?
-            colorbar=colorbar, cbar_fmt=cbar_fmt, unit=unit, title=title)
+        # ↓↓↓ formerly _plot_topomap_multi_cbar (a one-off middleman func) ↓↓↓
+        _hide_frame(ax)
+        vmin = np.min(_data) if vmin is None else vmin
+        vmax = np.max(_data) if vmax is None else vmax
+        # this definition of "norm" allows non-diverging colormap for cases
+        # where min & vmax are both negative (e.g., when they are power in dB)
+        signs = np.sign([vmin, vmax])
+        norm = len(set(signs)) == 1 or np.any(signs == 0)
+        _cmap = _setup_cmap(cmap, norm=norm)
+        if title is not None:
+            ax.set_title(title, fontsize=10)
+        im, _ = plot_topomap(
+            _data, pos, ch_type=ch_type, sensors=sensors, names=names,
+            mask=mask, mask_params=mask_params, contours=contours,
+            outlines=outlines, sphere=sphere, image_interp=image_interp,
+            extrapolate=extrapolate, border=border, res=res, size=size,
+            cmap=_cmap[0], vmin=vmin, vmax=vmax, cnorm=None, axes=ax,
+            show=False, onselect=None)
+
+        if colorbar:
+            cbar, cax = _add_colorbar(ax, im, cmap, pad=0.25, title=None,
+                                      size="10%", format=cbar_fmt)
+            cbar.set_ticks((vmin, vmax))
+            if unit is not None:
+                cbar.ax.set_ylabel(unit, fontsize=8)
+            cbar.ax.tick_params(labelsize=8)
+        # ↑↑↑ formerly _plot_topomap_multi_cbar (a one-off middleman func) ↑↑↑
+
+    # TODO avoid tight_layout and draw() if possible
     tight_layout(fig=fig)
     fig.canvas.draw()
     plt_show(show)
