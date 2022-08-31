@@ -75,7 +75,7 @@ stc_ctf = get_cross_talk(rm_lor, forward['src'], sources, norm=True)
 del rm_lor
 
 # for the volume, pick a source that was close to the surface location and
-# comute the PSF at that source
+# compute the PSF at that source
 sources_vol = [448]
 stc_psf_vol = get_point_spread(
     rm_lor_vol, forward_vol['src'], sources_vol, norm=True)
