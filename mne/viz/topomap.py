@@ -35,7 +35,6 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
                     _set_3d_axes_equal, _check_type_projs)
 from ..defaults import _handle_default
-from ..time_frequency.spectrum import _format_units
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
 
@@ -2074,6 +2073,7 @@ def plot_psds_topomap(
     fig : instance of matplotlib.figure.Figure
         Figure with a topomap subplot for each band.
     """
+    from ..time_frequency.spectrum import _format_units
     import matplotlib.pyplot as plt
     from matplotlib.axes import Axes
     sphere = _check_sphere(sphere)
