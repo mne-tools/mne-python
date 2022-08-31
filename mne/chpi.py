@@ -1392,7 +1392,7 @@ def chpi_on(raw):
     ----------
     raw : instance of Raw
         Raw data
-    
+
             .. versionadded:: 1.2
     %(verbose)s
 
@@ -1402,6 +1402,7 @@ def chpi_on(raw):
         The number of active cHPIs for every timepoint in raw.
     """
 
+    # processing neuromag files
     if raw.filenames[0].endswith('.fif'):
         # extract hpi info
         chpi_info = get_chpi_info(raw.info)
@@ -1411,11 +1412,12 @@ def chpi_on(raw):
         chpi_active = (chpi_ts & chpi_info[2][:, np.newaxis]).astype(bool)
         times = chpi_active.sum(axis=0)
 
+    # processing CTF files
     elif raw.filenames[0].endswith('.ds'):
-        chpi_locs = extract_chpi_locs_ctf(raw)
+        times = np.zeros(len(raw.times), int)
 
-        times= np.zeros(len(raw.times), int)
+    # processing others
     else:
-        times= np.zeros(len(raw.times), int)
+        times = np.zeros(len(raw.times), int)
 
     return times
