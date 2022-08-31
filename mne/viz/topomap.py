@@ -1910,10 +1910,16 @@ def _slider_changed(val, ax, data, times, pos, scaling, func, time_format,
         ax.set_title(time_format % (val * scaling_time))
 
 
-def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
-                             vmax=None, cmap=None, outlines='head',
-                             colorbar=False, cbar_fmt='%3.3f',
-                             sphere=None, ch_type='eeg'):
+def _plot_topomap_multi_cbar(
+        data, pos, ax, *, ch_type='eeg', # sensors=True, show_names=False,
+        # mask=None, mask_params=None, contours=6,
+        outlines='head', sphere=None,  # image_interp=_INTERPOLATION_DEFAULT,
+        # extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+        # size=1
+        cmap=None, vmin=None, vmax=None,  # TODO keep as `vlim`?
+        colorbar=False, cbar_fmt='%3.3f',
+        unit=None,
+        title=None):
     """Plot topomap multi cbar."""
     _hide_frame(ax)
     vmin = np.min(data) if vmin is None else vmin
@@ -1946,14 +1952,14 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
                             proj=False, *, bandwidth=None, adaptive=False,
                             low_bias=True, normalization='length',
                             ch_type=None, normalize=False, agg_fun=None,
-                            dB=False,  # sensors=True, show_names=False,
-                            # mask=None, mask_params=None, contours=6,
+                            dB=False, sensors=True, show_names=False,
+                            mask=None, mask_params=None, contours=6,
                             outlines='head', sphere=None,
-                            # image_interp=_INTERPOLATION_DEFAULT,
-                            # extrapolate=_EXTRAPOLATE_DEFAULT,
-                            # border=_BORDER_DEFAULT, res=64, size=1,
-                            cmap=None, vlim=(None, None),  # colorbar=True,
-                            cbar_fmt='auto',  # units=None,
+                            image_interp=_INTERPOLATION_DEFAULT,
+                            extrapolate=_EXTRAPOLATE_DEFAULT,
+                            border=_BORDER_DEFAULT, res=64, size=1,
+                            cmap=None, vlim=(None, None), colorbar=True,
+                            cbar_fmt='auto', units=None,
                             axes=None, show=True, n_jobs=None, verbose=None):
     """Plot the topomap of the power spectral density across epochs.
 
@@ -1978,11 +1984,23 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
     %(normalize_psd_topo)s
     %(agg_fun_psd_topo)s
     %(dB_plot_topomap)s
+    %(sensors_topomap)s
+    %(show_names_topomap)s
+    %(mask_evoked_topomap)s
+    %(mask_params_topomap)s
+    %(contours_topomap)s
     %(outlines_topomap)s
     %(sphere_topomap_auto)s
+    %(image_interp_topomap)s
+    %(extrapolate_topomap)s
+    %(border_topomap)s
+    %(res_topomap)s
+    %(size_topomap)s
     %(cmap_psd_topo)s
     %(vlim_psd_topo_joint)s
+    %(colorbar_topomap)s
     %(cbar_fmt_psd_topo)s
+    %(units_topomap)s
     %(axes_plot_topomap)s
     %(show)s
     %(n_jobs)s
@@ -1993,43 +2011,26 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
     fig : instance of Figure
         Figure showing one scalp topography per frequency band.
     """
-    # add after dB
-    # %(sensors_topomap)s
-    # %(show_names_topomap)s
-    # %(mask_evoked_topomap)s
-    # %(mask_params_topomap)s
-    # %(contours_topomap)s
-    # add after sphere
-    # %(image_interp_topomap)s
-    # %(extrapolate_topomap)s
-    # %(border_topomap)s
-    # %(res_topomap)s
-    # %(size_topomap)s
-    # add after vlim
-    # %(colorbar_topomap)s
-    # add after cbar_fmt
-    # %(units_topomap)s
     return epochs.plot_psd_topomap(
         bands=bands, tmin=tmin, tmax=tmax, proj=proj, method='multitaper',
         ch_type=ch_type, normalize=normalize, agg_fun=agg_fun, dB=dB,
-        # sensors=sensors, show_names=show_names, mask=mask,
-        # mask_params=mask_params, contours=contours,
-        outlines=outlines,
-        sphere=sphere,  # image_interp=image_interp, extrapolate=extrapolate,
-        # border=border, res=res, size=size,
-        cmap=cmap, vlim=vlim,  # colorbar=colorbar,
-        cbar_fmt=cbar_fmt,  # units=units,
-        axes=None,
+        sensors=sensors, show_names=show_names, mask=mask,
+        mask_params=mask_params, contours=contours, outlines=outlines,
+        sphere=sphere, image_interp=image_interp, extrapolate=extrapolate,
+        border=border, res=res, size=size, cmap=cmap, vlim=vlim,
+        colorbar=colorbar, cbar_fmt=cbar_fmt, units=units, axes=None,
         show=True, n_jobs=None, verbose=None, bandwidth=bandwidth,
         low_bias=low_bias, adaptive=adaptive, normalization=normalization)
 
 
 @fill_doc
 def plot_psds_topomap(
-        psds, freqs, pos, *, agg_fun=None, bands=None,
-        cmap=None, dB=True, normalize=False, cbar_fmt='%0.3f', outlines='head',
-        axes=None, show=True, sphere=None, vlim=(None, None), unit=None,
-        ch_type='eeg'):
+        psds, freqs, pos, *, bands=None, ch_type='eeg', normalize=False,
+        agg_fun=None, dB=True, sensors=True, show_names=False, mask=None,
+        mask_params=None, contours=6, outlines='head', sphere=None,
+        image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
+        border=_BORDER_DEFAULT, res=64, size=1, cmap=None, vlim=(None, None),
+        colorbar=True, cbar_fmt='auto', unit=None, axes=None, show=True):
     """Plot spatial maps of PSDs.
 
     Parameters
@@ -2040,21 +2041,32 @@ def plot_psds_topomap(
         Frequencies used to compute psds.
     pos : numpy.ndarray of float, shape (n_sensors, 2)
         The positions of the sensors.
-    %(agg_fun_psd_topo)s
     %(bands_psd_topo)s
-    %(cmap_psd_topo)s
-    %(dB_plot_topomap)s
+    %(ch_type_topomap)s
     %(normalize_psd_topo)s
-    %(cbar_fmt_psd_topo)s
+    %(agg_fun_psd_topo)s
+    %(dB_plot_topomap)s
+    %(sensors_topomap)s
+    %(show_names_topomap)s
+    %(mask_evoked_topomap)s
+    %(mask_params_topomap)s
+    %(contours_topomap)s
     %(outlines_topomap)s
-    %(axes_plot_topomap)s
-    %(show)s
-    %(sphere_topomap)s
+    %(sphere_topomap_auto)s
+    %(image_interp_topomap)s
+    %(extrapolate_topomap)s
+    %(border_topomap)s
+    %(res_topomap)s
+    %(size_topomap)s
+    %(cmap_psd_topo)s
     %(vlim_psd_topo_joint)s
+    %(colorbar_topomap)s
+    %(cbar_fmt_psd_topo)s
     unit : str | None
         Measurement unit to be displayed with the colorbar. If ``None``, no
         unit is displayed (only "power" or "dB" as appropriate).
-    %(ch_type_topomap)s
+    %(axes_plot_topomap)s
+    %(show)s
 
     Returns
     -------
@@ -2137,9 +2149,14 @@ def plot_psds_topomap(
 
         colorbar = vlim != 'joint' or ax == axes[-1]
         _plot_topomap_multi_cbar(
-            data, pos, ax, title=title, vmin=vmin, vmax=vmax, cmap=cmap,
-            outlines=outlines, colorbar=colorbar, unit=unit, cbar_fmt=cbar_fmt,
-            sphere=sphere, ch_type=ch_type)
+            data, pos, ax, ch_type=ch_type,  # sensors=sensors,
+            # show_names=show_names, mask=mask, mask_params=mask_params,
+            # contours=contours,
+            outlines=outlines, sphere=sphere,
+            # image_interp=image_interp, extrapolate=extrapolate,
+            # border=border, res=res, size=size,
+            cmap=cmap, vmin=vmin, vmax=vmax,  # TODO: keep as `vlim`?
+            colorbar=colorbar, cbar_fmt=cbar_fmt, unit=unit, title=title)
     tight_layout(fig=fig)
     fig.canvas.draw()
     plt_show(show)
