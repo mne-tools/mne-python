@@ -568,7 +568,7 @@ def add_chpi(raw, head_pos=None, interp='cos2', n_jobs=None, verbose=None):
     info = pick_info(info, meg_picks)
     with info._unlock():
         info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
-    megcoils, _, _, _ = _prep_meg_channels(info, ignore_ref=False)
+    megcoils = _prep_meg_channels(info, ignore_ref=True)['defs']
     used = np.zeros(len(raw.times), bool)
     dev_head_ts.append(dev_head_ts[-1])  # ZOH after time ends
     get_fwd = _HPIForwards(offsets, dev_head_ts, megcoils, hpi_rrs, hpi_nns)
@@ -686,24 +686,27 @@ def _iter_forward_solutions(info, trans, src, bem, dev_head_ts, mindist,
     with info._unlock():
         info.update(projs=[], bads=[])  # Ensure no 'projs' or 'bads'
     mri_head_t, trans = _get_trans(trans)
-    megcoils, meg_info, compcoils, megnames, eegels, eegnames, rr, info, \
-        update_kwargs, bem = _prepare_for_forward(
-            src, mri_head_t, info, bem, mindist, n_jobs, allow_bem_none=True,
-            verbose=False)
+    sensors, rr, info, update_kwargs, bem = _prepare_for_forward(
+        src, mri_head_t, info, bem, mindist, n_jobs, allow_bem_none=True,
+        verbose=False)
     del (src, mindist)
 
-    if forward is None:
-        eegfwd = _compute_forwards(rr, bem, [eegels], [None],
-                                   [None], ['eeg'], n_jobs, verbose=False)[0]
-        eegfwd = _to_forward_dict(eegfwd, eegnames)
+    eegnames = sensors.get('eeg', dict()).get('ch_names', [])
+    if not len(eegnames):
+        eegfwd = None
+    elif forward is not None:
+        eegfwd = pick_channels_forward(forward, eegnames, verbose=False)
     else:
-        if len(eegnames) > 0:
-            eegfwd = pick_channels_forward(forward, eegnames, verbose=False)
-        else:
-            eegfwd = None
+        eegels = sensors.get('eeg', dict()).get('defs', [])
+        this_sensors = dict(eeg=dict(ch_names=eegnames, defs=eegels))
+        eegfwd = _compute_forwards(rr, bem=bem, sensors=this_sensors,
+                                   n_jobs=n_jobs, verbose=False)['eeg']
+        eegfwd = _to_forward_dict(eegfwd, eegnames)
+        del eegels
+    del eegnames
 
     # short circuit here if there are no MEG channels (don't need to iterate)
-    if len(pick_types(info, meg=True)) == 0:
+    if 'meg' not in sensors:
         eegfwd.update(**update_kwargs)
         for _ in dev_head_ts:
             yield eegfwd
@@ -718,13 +721,16 @@ def _iter_forward_solutions(info, trans, src, bem, dev_head_ts, mindist,
         # make a copy so it isn't mangled in use
         bem_surf = transform_surface_to(bem['surfs'][idx[0]], coord_frame,
                                         mri_head_t, copy=True)
+    megcoils = sensors['meg']['defs']
+    if 'eeg' in sensors:
+        del sensors['eeg']
+    megnames = sensors['meg']['ch_names']
     for ti, dev_head_t in enumerate(dev_head_ts):
         # Could be *slightly* more efficient not to do this N times,
         # but the cost here is tiny compared to actual fwd calculation
         logger.info('Computing gain matrix for transform #%s/%s'
                     % (ti + 1, len(dev_head_ts)))
         _transform_orig_meg_coils(megcoils, dev_head_t)
-        _transform_orig_meg_coils(compcoils, dev_head_t)
 
         # Make sure our sensors are all outside our BEM
         coil_rr = np.array([coil['r0'] for coil in megcoils])
@@ -743,9 +749,9 @@ def _iter_forward_solutions(info, trans, src, bem, dev_head_ts, mindist,
                 raise RuntimeError('%s MEG sensors collided with inner skull '
                                    'surface for transform %s'
                                    % (np.sum(~outside), ti))
-            megfwd = _compute_forwards(rr, bem, [megcoils], [compcoils],
-                                       [meg_info], ['meg'], n_jobs,
-                                       verbose=False)[0]
+            megfwd = _compute_forwards(
+                rr, sensors=sensors, bem=bem, n_jobs=n_jobs,
+                verbose=False)['meg']
             megfwd = _to_forward_dict(megfwd, megnames)
         else:
             megfwd = pick_channels_forward(forward, megnames, verbose=False)

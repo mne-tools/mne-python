@@ -1845,15 +1845,13 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     _validate_type(subject, "str", "subject")
 
     # check for meas to exist as string, or try to make evoked
-    if isinstance(meas, str):
-        if not op.isfile(meas):
-            raise IOError('measurement file "%s" could not be found' % meas)
-    elif isinstance(meas, (BaseRaw, BaseEpochs, Evoked)):
+    _validate_type(meas, ('path-like', BaseRaw, BaseEpochs, Evoked), 'meas')
+    if isinstance(meas, (BaseRaw, BaseEpochs, Evoked)):
         meas_file = op.join(temp_dir, 'info.fif')
         write_info(meas_file, meas.info)
         meas = meas_file
     else:
-        raise ValueError('meas must be string, Raw, Epochs, or Evoked')
+        meas = _check_fname(meas, overwrite='read', must_exist=True)
 
     # deal with trans/mri
     if mri is not None and trans is not None:
