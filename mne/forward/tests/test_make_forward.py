@@ -19,11 +19,11 @@ from mne import (read_forward_solution, write_forward_solution,
                  make_sphere_model, pick_types_forward, pick_info, pick_types,
                  read_evokeds, read_cov, read_dipole,
                  get_volume_labels_from_aseg)
-from mne.io.pick import pick_channels_forward
 from mne.surface import _get_ico_surface
 from mne.transforms import Transform
 from mne.utils import (requires_mne, requires_nibabel, run_subprocess,
-                       catch_logging)
+                       catch_logging, requires_mne_mark,
+                       requires_openmeeg_mark)
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
 from mne.forward._compute_forward import _magnetic_dipole_field_vec
 from mne.forward import Forward, _do_forward_solution, use_coil_def
@@ -60,9 +60,35 @@ trans_path = op.join(kit_dir, 'trans-sample.fif')
 fname_ctf_raw = io_path / 'tests' / 'data' / 'test_ctf_comp_raw.fif'
 
 
+def _col_corrs(a, b):
+    """Compute correlation between paired columns, being careful about 0."""
+    a = a - a.mean(0)
+    b = b - b.mean(0)
+    num = (a * b).mean(0)
+    a_std = np.sqrt((a * a).mean(0))
+    b_std = np.sqrt((b * b).mean(0))
+    all_zero = (a_std == 0) & (b_std == 0)
+    num[all_zero] = 1.
+    a_std[all_zero] = 1.
+    b_std[all_zero] = 1.
+    return num / (a_std * b_std)
+
+
+def _rdm(a, b):
+    """Comute the ratio of norms, being careful about 0."""
+    a_norm = np.linalg.norm(a, axis=0)
+    b_norm = np.linalg.norm(b, axis=0)
+    all_zero = (a_norm == 0) & (b_norm == 0)
+    a_norm[all_zero] = 1.
+    b_norm[all_zero] = 1.
+    return a_norm / b_norm
+
+
 def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
                       meg_rtol=1e-4, meg_atol=1e-9,
-                      eeg_rtol=1e-3, eeg_atol=1e-3):
+                      meg_corr_tol=0.99, meg_rdm_tol=0.01,
+                      eeg_rtol=1e-3, eeg_atol=1e-3,
+                      eeg_corr_tol=0.99, eeg_rdm_tol=0.01):
     """Test forwards."""
     # check source spaces
     assert len(fwd['src']) == len(fwd_py['src'])
@@ -94,16 +120,26 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
         assert len(fwd_py['sol']['row_names']) == n_sensors
 
         # check MEG
-        assert_allclose(fwd['sol']['data'][:306, ori_sl],
-                        fwd_py['sol']['data'][:306, ori_sl],
-                        rtol=meg_rtol, atol=meg_atol,
+        fwd_meg = fwd['sol']['data'][:306, ori_sl]
+        fwd_meg_py = fwd_py['sol']['data'][:306, ori_sl]
+        assert_allclose(fwd_meg, fwd_meg_py, rtol=meg_rtol, atol=meg_atol,
                         err_msg='MEG mismatch')
+        meg_corrs = _col_corrs(fwd_meg, fwd_meg_py)
+        assert_array_less(meg_corr_tol, meg_corrs, err_msg='MEG corr/MAG')
+        meg_rdm = _rdm(fwd_meg, fwd_meg_py)
+        assert_allclose(meg_rdm, 1, atol=meg_rdm_tol, err_msg='MEG RDM')
         # check EEG
         if fwd['sol']['data'].shape[0] > 306:
-            assert_allclose(fwd['sol']['data'][306:, ori_sl],
-                            fwd_py['sol']['data'][306:, ori_sl],
-                            rtol=eeg_rtol, atol=eeg_atol,
+            fwd_eeg = fwd['sol']['data'][306:, ori_sl]
+            fwd_eeg_py = fwd['sol']['data'][306:, ori_sl]
+            assert_allclose(fwd_eeg, fwd_eeg_py, rtol=eeg_rtol, atol=eeg_atol,
                             err_msg='EEG mismatch')
+            # To test so-called MAG we use correlation (related to cosine
+            # similarity) and also RDM to test the amplitude mismatch
+            eeg_corrs = _col_corrs(fwd_eeg, fwd_eeg_py)
+            assert_array_less(eeg_corr_tol, eeg_corrs, err_msg='EEG corr/MAG')
+            eeg_rdm = _rdm(fwd_eeg, fwd_eeg_py)
+            assert_allclose(eeg_rdm, 1, atol=eeg_rdm_tol, err_msg='EEG RDM')
 
 
 def test_magnetic_dipole():
@@ -189,35 +225,71 @@ def test_make_forward_solution_bti(fname_src_small):
     _compare_forwards(fwd, fwd_py, 248, n_src_small)
 
 
-@requires_mne
-def test_make_forward_solution_ctf(tmp_path, fname_src_small):
-    """Test CTF w/compensation against C."""
+@pytest.mark.parametrize('other', [
+    pytest.param('MNE-C', marks=requires_mne_mark()),
+    pytest.param('openmeeg', marks=requires_openmeeg_mark()),
+])
+def test_make_forward_solution_ctf(tmp_path, fname_src_small, other):
+    """Test CTF w/compensation against MNE-C or OpenMEEG."""
     src = read_source_spaces(fname_src_small)
-    fwd_py = make_forward_solution(fname_ctf_raw, fname_trans, src,
-                                   fname_bem_meg, eeg=False, verbose=True)
+    raw = read_raw_fif(fname_ctf_raw)
+    assert raw.compensation_grade == 3
+    if other == 'openmeeg':
+        mindist = 20.
+        n_src_want = 51
+    else:
+        assert other == 'MNE-C'
+        mindist = 0.
+        n_src_want = n_src_small == 108
+    mindist = 20. if other == 'openmeeg' else 0.
+    fwd_py = make_forward_solution(
+        fname_ctf_raw, fname_trans, src, fname_bem_meg, eeg=False,
+        mindist=mindist, verbose=True)
 
-    fwd = _do_forward_solution('sample', fname_ctf_raw, mri=fname_trans,
-                               src=fname_src_small, bem=fname_bem_meg,
-                               eeg=False, meg=True, subjects_dir=subjects_dir)
-    _compare_forwards(fwd, fwd_py, 274, n_src_small)
+    if other == 'openmeeg':
+        # TODO: This should be a 1-layer, but it's broken
+        # (some correlations become negative!)...
+        bem_surfaces = read_bem_surfaces(fname_bem)  # fname_bem_meg
+        bem = make_bem_solution(bem_surfaces, solver='openmeeg')
+        # TODO: These tolerances are bad
+        tol_kwargs = dict(meg_atol=1, meg_corr_tol=0.65, meg_rdm_tol=0.6)
+        fwd = make_forward_solution(
+            fname_ctf_raw, fname_trans, src, bem, eeg=False, mindist=mindist,
+            verbose=True)
+    else:
+        assert other == 'MNE-C'
+        bem = None
+        tol_kwargs = dict()
+        fwd = _do_forward_solution(
+            'sample', fname_ctf_raw, mri=fname_trans, src=fname_src_small,
+            bem=fname_bem_meg, eeg=False, meg=True, subjects_dir=subjects_dir,
+            mindist=mindist)
+    _compare_forwards(fwd, fwd_py, 274, n_src_want, **tol_kwargs)
 
     # CTF with compensation changed in python
     ctf_raw = read_raw_fif(fname_ctf_raw)
     ctf_raw.info['bads'] = ['MRO24-2908']  # test that it works with some bads
     ctf_raw.apply_gradient_compensation(2)
 
-    fwd_py = make_forward_solution(ctf_raw.info, fname_trans, src,
-                                   fname_bem_meg, eeg=False, meg=True)
-    fwd = _do_forward_solution('sample', ctf_raw, mri=fname_trans,
-                               src=fname_src_small, bem=fname_bem_meg,
-                               eeg=False, meg=True,
-                               subjects_dir=subjects_dir)
-    _compare_forwards(fwd, fwd_py, 274, n_src_small)
+    fwd_py = make_forward_solution(
+        ctf_raw.info, fname_trans, src, fname_bem_meg, eeg=False, meg=True,
+        mindist=mindist)
+    if other == 'openmeeg':
+        assert bem is not None
+        fwd = make_forward_solution(
+            ctf_raw.info, fname_trans, src, bem, eeg=False, mindist=mindist,
+            verbose=True)
+    else:
+        fwd = _do_forward_solution(
+            'sample', ctf_raw, mri=fname_trans, src=fname_src_small,
+            bem=fname_bem_meg, eeg=False, meg=True, subjects_dir=subjects_dir,
+            mindist=mindist)
+    _compare_forwards(fwd, fwd_py, 274, n_src_want, **tol_kwargs)
 
     fname_temp = tmp_path / 'test-ctf-fwd.fif'
     write_forward_solution(fname_temp, fwd_py)
     fwd_py2 = read_forward_solution(fname_temp)
-    _compare_forwards(fwd_py, fwd_py2, 274, n_src_small)
+    _compare_forwards(fwd_py, fwd_py2, 274, n_src_want, **tol_kwargs)
     repr(fwd_py)
 
 
@@ -241,6 +313,7 @@ def test_make_forward_solution_basic():
                               fname_bem_meg)
 
 
+@requires_openmeeg_mark()
 @pytest.mark.parametrize("n_layers", [
     3,
     pytest.param(1, marks=pytest.mark.xfail(raises=RuntimeError)),
@@ -249,7 +322,6 @@ def test_make_forward_solution_basic():
 def test_make_forward_solution_openmeeg(n_layers):
     """Test making M-EEG forward solution from OpenMEEG."""
     solver = "openmeeg"
-    pytest.importorskip('openmeeg')
     bem_surfaces = read_bem_surfaces(fname_bem)
     raw = read_raw_fif(fname_raw)
     n_sensors = 366
@@ -277,20 +349,9 @@ def test_make_forward_solution_openmeeg(n_layers):
         del fwd
     _compare_forwards(fwds["openmeeg"],
                       fwds["mne"], n_sensors, n_sources_kept * 3,
-                      meg_atol=1, eeg_atol=100)
-    atols = dict(eeg=0.2, meg=0.1)
-    for ch_type in ch_types:
-        ch_names = raw.copy().pick(ch_type).ch_names
-        fwd_om = pick_channels_forward(fwds["openmeeg"], include=ch_names)
-        fwd_mne = pick_channels_forward(fwds["mne"], include=ch_names)
-        fwd_om = fwd_om['sol']['data']
-        fwd_mne = fwd_mne['sol']['data']
-        # To test so-called MAG we use correlation (related to cosine
-        # similarity) and also RDM to test the amplitude mismatch
-        corrs = [np.corrcoef(x, y)[0, 1] for x, y in zip(fwd_om.T, fwd_mne.T)]
-        assert_array_less(0.98, corrs)
-        RDMs = np.linalg.norm(fwd_om, axis=0) / np.linalg.norm(fwd_mne, axis=0)
-        assert_allclose(RDMs, 1, atol=atols[ch_type])
+                      meg_atol=1, eeg_atol=100,
+                      meg_corr_tol=0.98, eeg_corr_tol=0.98,
+                      meg_rdm_tol=0.1, eeg_rdm_tol=0.2)
 
 
 def test_make_forward_solution_discrete(tmp_path, small_surf_src):

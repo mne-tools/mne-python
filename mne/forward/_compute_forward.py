@@ -863,6 +863,13 @@ def _compute_forwards_openmeeg(rr, *, bem, sensors):
         h2mm = om.Head2MEGMat(geom, meg_sensors)
         ds2mm = om.DipSource2MEGMat(dipoles, meg_sensors)
         meg_fwd_full = om.GainMEG(hminv, dsm, h2mm, ds2mm).array()
-        Bs['meg'] = np.array([bincount(bins, ws * x, bins[-1] + 1)
-                              for x in meg_fwd_full.T], float)
+        B = np.array([bincount(bins, ws * x, bins[-1] + 1)
+                      for x in meg_fwd_full.T], float)
+        compensator = sensors['meg'].get('compensator', None)
+        post_picks = sensors['meg'].get('post_picks', None)
+        if compensator is not None:
+            B = B @ compensator.T
+        if post_picks is not None:
+            B = B[:, post_picks]
+        Bs['meg'] = B
     return Bs
