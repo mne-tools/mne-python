@@ -27,7 +27,8 @@ from ..utils.misc import _pl
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import (_make_head_outlines, _prepare_topomap_plot,
                            plot_psds_topomap)
-from ..viz.utils import _plot_psd, plt_show
+from ..viz.utils import (_format_units_psd, _plot_psd, _prepare_sensor_names,
+                         plt_show)
 from . import psd_array_multitaper, psd_array_welch
 from .psd import _check_nfft
 
@@ -721,10 +722,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         if merge_channels:
             psds, names = _merge_ch_data(psds, ch_type, names, method='mean')
 
-        if callable(show_names):
-            names = [show_names(name) for name in names]
-        elif not show_names:
-            names = None
+        names = _prepare_sensor_names(names, show_names)
         return plot_psds_topomap(
             psds=psds, freqs=freqs, pos=pos, bands=bands, ch_type=ch_type,
             normalize=normalize, agg_fun=agg_fun, dB=dB, sensors=sensors,
@@ -858,8 +856,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         """
         units = _handle_default('si_units', None)
         power = not hasattr(self, '_mt_weights')
-        return {ch_type: _format_units(units[ch_type], power=power,
-                                       latex=latex)
+        return {ch_type: _format_units_psd(units[ch_type], power=power,
+                                           latex=latex)
                 for ch_type in sorted(self.get_channel_types(unique=True))}
 
 
@@ -1125,17 +1123,3 @@ def _compute_n_welch_segments(n_times, method_kw):
     n_fft, n_per_seg, n_overlap = _check_nfft(n_times, **_defaults)
     # compute expected number of segments
     return n_times // (n_per_seg - n_overlap)
-
-
-def _format_units(unit, latex=False, power=True, dB=False):
-    """Format the measurement units nicely."""
-    unit = f'({unit})' if '/' in unit else unit
-    if power:
-        denom = 'Hz'
-        exp = r'^{2}' if latex else '²'
-    else:
-        denom = r'\sqrt{Hz}' if latex else '√(Hz)'
-        exp = ''
-    pre, post = (r'$\mathrm{', r'}$') if latex else ('', '')
-    db = ' (dB)' if dB else ''
-    return f'{pre}{unit}{exp}/{denom}{post}{db}'

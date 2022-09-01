@@ -2300,6 +2300,29 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
     return fig
 
 
+def _format_units_psd(unit, latex=False, power=True, dB=False):
+    """Format PSD measurement units nicely."""
+    unit = f'({unit})' if '/' in unit else unit
+    if power:
+        denom = 'Hz'
+        exp = r'^{2}' if latex else '²'
+    else:
+        denom = r'\sqrt{Hz}' if latex else '√(Hz)'
+        exp = ''
+    pre, post = (r'$\mathrm{', r'}$') if latex else ('', '')
+    db = ' (dB)' if dB else ''
+    return f'{pre}{unit}{exp}/{denom}{post}{db}'
+
+
+def _prepare_sensor_names(names, show_names):
+    """Apply callable to sensor names (if provided)."""
+    if callable(show_names):
+        names = [show_names(name) for name in names]
+    elif not show_names:
+        names = None
+    return names
+
+
 def _trim_ticks(ticks, _min, _max):
     """Remove ticks that are more extreme than the given limits."""
     if np.isclose(_min, _max):

@@ -33,7 +33,8 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar, _get_cmap,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit,
-                    _set_3d_axes_equal, _check_type_projs)
+                    _set_3d_axes_equal, _check_type_projs, _format_units_psd,
+                    _prepare_sensor_names)
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
@@ -1656,8 +1657,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     unit = _handle_default('units', units)[key]
     # ch_names (required for NIRS)
     ch_names = names
-    if not show_names:
-        names = None
+    names = _prepare_sensor_names(names, show_names)
     # apply projections before picking. NOTE: the `if proj is True`
     # anti-pattern is needed here to exclude proj='interactive'
     _check_option('proj', proj, (True, False, 'interactive', 'reconstruct'))
@@ -1793,7 +1793,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         _, contours = _set_contour_locator(vmin, vmax, contours)
     # prepare for main loop over times
     kwargs = dict(vmin=vmin, vmax=vmax, sensors=sensors, res=res, names=names,
-                  show_names=show_names, cmap=cmap[0], mask_params=mask_params,
+                  cmap=cmap[0], mask_params=mask_params,
                   outlines=outlines, contours=contours,
                   image_interp=image_interp, show=False,
                   extrapolate=extrapolate, sphere=sphere,
@@ -2037,8 +2037,6 @@ def plot_psds_topomap(
     import matplotlib.pyplot as plt
     from matplotlib.axes import Axes
 
-    from ..time_frequency.spectrum import _format_units
-
     # handle some defaults
     sphere = _check_sphere(sphere)
     if cbar_fmt == 'auto':
@@ -2085,7 +2083,7 @@ def plot_psds_topomap(
         unit = 'dB' if dB and not normalize else 'power'
     else:
         _dB = dB and not normalize
-        unit = _format_units(unit, dB=_dB)
+        unit = _format_units_psd(unit, dB=_dB)
     # set up figure / axes
     n_axes = len(bands)
     if axes is not None:
