@@ -75,7 +75,7 @@ def _col_corrs(a, b):
 
 
 def _rdm(a, b):
-    """Comute the ratio of norms, being careful about 0."""
+    """Compute the ratio of norms, being careful about 0."""
     a_norm = np.linalg.norm(a, axis=0)
     b_norm = np.linalg.norm(b, axis=0)
     all_zero = (a_norm == 0) & (b_norm == 0)
@@ -240,7 +240,8 @@ def test_make_forward_solution_ctf(tmp_path, fname_src_small, other):
     else:
         assert other == 'MNE-C'
         mindist = 0.
-        n_src_want = n_src_small == 108
+        n_src_want = n_src_small
+        assert n_src_want == 108
     mindist = 20. if other == 'openmeeg' else 0.
     fwd_py = make_forward_solution(
         fname_ctf_raw, fname_trans, src, fname_bem_meg, eeg=False,
