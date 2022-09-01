@@ -17,7 +17,6 @@ import os
 import os.path as op
 from pathlib import Path
 import shutil
-import sys
 import tempfile
 
 import numpy as np
@@ -353,9 +352,12 @@ def _make_openmeeg_geometry(bem, mri_head_t=None):
     # does not let go of the file pointer (?). This is not great but hopefully
     # writing files is temporary, and/or we can fix the file pointer bug
     # in OpenMEEG soon.
-    ignore = sys.platform.startswith('win')
-    with tempfile.TemporaryDirectory(prefix='openmeeg-io-',
-                                     ignore_cleanup_errors=ignore) as tmp_path:
+    tmp_dir = tempfile.TemporaryDirectory(prefix='openmeeg-io-')
+    tmp_path = Path(tmp_dir.name)
+    # In 3.10+ we could use this as a context manager as there is a
+    # ignore_cleanup_errors arg, but before this there is not.
+    # so let's just try/finally
+    try:
         tmp_path = Path(tmp_path)
         # write geom_file and three .tri files
         geom_file = tmp_path / 'tmp.geom'
@@ -408,6 +410,11 @@ def _make_openmeeg_geometry(bem, mri_head_t=None):
         with open(cond_file, 'w') as fid:
             fid.write('\n'.join(lines))
         geom = om.Geometry(str(geom_file), str(cond_file))
+    finally:
+        try:
+            tmp_dir.cleanup()
+        except Exception:
+            pass  # ignore any cleanup errors (esp. on Windows)
 
     return geom
 
