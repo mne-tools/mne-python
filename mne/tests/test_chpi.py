@@ -713,5 +713,19 @@ def test_get_active_chpi_ctf():
 @testing.requires_testing_data
 def test_get_active_chpi_neuromag():
     """Test extracting of cHPI positions from neuromag data."""
-    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
-    assert_allclose(get_active_chpi(raw), 5 * np.ones_like(raw.times))
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
+    status_ch = raw.ch_names.index('STI201')
+
+    # make artificial chpi signal
+    first_three_on = 256 + 512 + 1024
+    all_on = 256 + 512 + 1024 + 2048 + 4096
+    raw._data[status_ch][:1000] = 0
+    raw._data[status_ch][1000:2000] = first_three_on
+    raw._data[status_ch][2000:] = all_on
+
+    # build target signal
+    target_signal = 5 * np.ones_like(raw.times)
+    target_signal[:1000] = 0
+    target_signal[1000:2000] = 3
+
+    assert_allclose(get_active_chpi(raw), target_signal)
