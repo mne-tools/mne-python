@@ -21,7 +21,7 @@ from mne.chpi import (compute_chpi_amplitudes, compute_chpi_locs,
                       _chpi_locs_to_times_dig, _compute_good_distances,
                       extract_chpi_locs_ctf, head_pos_to_trans_rot_t,
                       read_head_pos, write_head_pos, filter_chpi,
-                      get_chpi_info, _get_hpi_initial_fit,
+                      get_active_chpi, get_chpi_info, _get_hpi_initial_fit,
                       extract_chpi_locs_kit)
 from mne.datasets import testing
 from mne.simulation import add_chpi
@@ -36,6 +36,7 @@ hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
 data_path = testing.data_path(download=False)
+data_path =  op.join('~', 'mne_data', 'MNE-testing-data')
 sample_fname = op.join(
     data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 chpi_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
@@ -699,3 +700,17 @@ def test_calculate_head_pos_kit():
         extract_chpi_locs_kit(raw_berlin, 'STI 014')
     with pytest.raises(RuntimeError, match='no initial cHPI'):
         compute_head_pos(raw_berlin.info, chpi_locs)
+
+#@testing.requires_testing_data
+def test_get_active_chpi_ctf():
+    """Test extracting of cHPI positions from CTF data."""
+    raw = read_raw_ctf(ctf_chpi_fname)
+    with pytest.raises(NotImplementedError, 
+                       match='not implemented for other systems'):
+        get_active_chpi(raw)
+
+#@testing.requires_testing_data
+def test_get_active_chpi_neuromag():
+    """Test extracting of cHPI positions from neuromag data."""
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
+    assert_allclose(get_active_chpi(raw), 5 * np.ones_like(raw.times))

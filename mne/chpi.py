@@ -26,6 +26,7 @@ import itertools
 
 from .event import find_events
 from .io.base import BaseRaw
+from .channels.channels import _get_meg_system
 from .io.kit.constants import KIT
 from .io.kit.kit import RawKIT as _RawKIT
 from .io.meas_info import _simplify_info, Info
@@ -1385,8 +1386,8 @@ def _compute_good_distances(hpi_coil_dists, new_pos, dist_limit=0.005):
     return use_mask, these_dists
 
 
-def chpi_on(raw):
-    """ Determines how many cHPI coils were on depending on time.
+def get_active_chpi(raw):
+    """Determine how many HPI coils were active for a time point.
 
     Parameters
     ----------
@@ -1394,16 +1395,17 @@ def chpi_on(raw):
         Raw data
 
             .. versionadded:: 1.2
-    %(verbose)s
 
     Returns
     -------
-    times : array, shape (raw.times)
+    times : array, shape (n_times)
         The number of active cHPIs for every timepoint in raw.
     """
+    # get meg system
+    system, _ = _get_meg_system(raw.info)
 
     # processing neuromag files
-    if raw.filenames[0].endswith('.fif'):
+    if system in ['122m', '306m']:
         # extract hpi info
         chpi_info = get_chpi_info(raw.info)
 
@@ -1412,12 +1414,10 @@ def chpi_on(raw):
         chpi_active = (chpi_ts & chpi_info[2][:, np.newaxis]).astype(bool)
         times = chpi_active.sum(axis=0)
 
-    # processing CTF files
-    elif raw.filenames[0].endswith('.ds'):
-        times = np.zeros(len(raw.times), int)
-
-    # processing others
+    # all other systems
     else:
-        times = np.zeros(len(raw.times), int)
+        raise NotImplementedError(('Identifying active HPI channels'
+                                   ' is not implemented for other systems'
+                                   ' than neuromag.'))
 
     return times
