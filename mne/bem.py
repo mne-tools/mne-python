@@ -9,6 +9,7 @@
 # C code.
 
 from collections import OrderedDict
+from copy import deepcopy
 from functools import partial
 import glob
 import json
@@ -16,7 +17,7 @@ import os
 import os.path as op
 from pathlib import Path
 import shutil
-from copy import deepcopy
+import tempfile
 
 import numpy as np
 
@@ -326,7 +327,81 @@ def _make_openmeeg_geometry(bem, mri_head_t=None):
         meshes.append((points, faces))
 
     conductivity = bem['sigma'][::-1]
-    geom = om.make_nested_geometry(meshes, conductivity)
+    # We should be able to do this:
+    #
+    # geom = om.make_nested_geometry(meshes, conductivity)
+    #
+    # But OpenMEEG's NumPy support is iffy. So let's use file IO for now :(
+
+    def _write_tris(fname, mesh):
+        from .surface import complete_surface_info
+        mesh = dict(rr=mesh[0], tris=mesh[1])
+        complete_surface_info(mesh, copy=False, do_neighbor_tri=False)
+        with open(fname, 'w') as fid:
+            fid.write(f'- {len(mesh["rr"])}\n')
+            for r, n in zip(mesh['rr'], mesh['nn']):
+                fid.write(f'{r[0]:.8f} {r[1]:.8f} {r[2]:.8f} '
+                          f'{n[0]:.8f} {n[1]:.8f} {n[2]:.8f}\n')
+            n_tri = len(mesh['tris'])
+            fid.write(f'- {n_tri} {n_tri} {n_tri}\n')
+            for t in mesh['tris']:
+                fid.write(f'{t[0]} {t[1]} {t[2]}\n')
+
+    assert len(conductivity) in (1, 3)
+    with tempfile.TemporaryDirectory(prefix='openmeeg-io-') as tmp_path:
+        tmp_path = Path(tmp_path)
+        # write geom_file and three .tri files
+        geom_file = tmp_path / 'tmp.geom'
+        names = ['inner_skull', 'outer_skull', 'outer_skin']
+        lines = [
+            '# Domain Description 1.1',
+            '',
+            f'Interfaces {len(conductivity)}'
+            '',
+            f'Interface Cortex: "{names[0]}.tri"',
+        ]
+        if len(conductivity) == 3:
+            lines.extend([
+                f'Interface Skull: "{names[1]}.tri"',
+                f'Interface Head: "{names[2]}.tri"',
+            ])
+        lines.extend([
+            '',
+            f'Domains {len(conductivity) + 1}',
+            '',
+            'Domain Brain: -Cortex',
+        ])
+        if len(conductivity) == 1:
+            lines.extend([
+                'Domain Air: Cortex',
+            ])
+        else:
+            lines.extend([
+                'Domain Skull: Cortex -Skull',
+                'Domain Scalp: Skull -Head',
+                'Domain Air: Head',
+            ])
+        with open(geom_file, 'w') as fid:
+            fid.write('\n'.join(lines))
+        for mesh, name in zip(meshes, names):
+            _write_tris(tmp_path / f'{name}.tri', mesh)
+        # write cond_file
+        cond_file = tmp_path / 'tmp.cond'
+        lines = [
+            '# Properties Description 1.0 (Conductivities)',
+            '',
+            f'Brain       {conductivity[0]}',
+        ]
+        if len(conductivity) == 3:
+            lines.extend([
+                f'Skull       {conductivity[1]}',
+                f'Scalp       {conductivity[2]}',
+            ])
+        lines.append('Air         0.0')
+        with open(cond_file, 'w') as fid:
+            fid.write('\n'.join(lines))
+        geom = om.Geometry(str(geom_file), str(cond_file))
+
     return geom
 
 
