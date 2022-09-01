@@ -62,10 +62,6 @@ lambda2 = 1.0 / snr ** 2
 rm_lor = make_inverse_resolution_matrix(forward, inverse_operator,
                                         method='sLORETA', lambda2=lambda2)
 
-# compute resolution matrix for sLORETA for the volume, too
-rm_lor_vol = make_inverse_resolution_matrix(
-    forward_vol, inverse_operator_vol, method='sLORETA', lambda2=lambda2)
-
 # get PSF and CTF for sLORETA at one vertex
 sources = [1000]
 
@@ -76,6 +72,10 @@ del rm_lor
 
 # for the volume, pick a source that was close to the surface location and
 # compute the PSF at that source
+# compute resolution matrix for sLORETA for the volume, too
+rm_lor_vol = make_inverse_resolution_matrix(
+    forward_vol, inverse_operator_vol, method='sLORETA', lambda2=lambda2)
+
 sources_vol = [448]
 stc_psf_vol = get_point_spread(
     rm_lor_vol, forward_vol['src'], sources_vol, norm=True)
