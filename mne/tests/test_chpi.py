@@ -36,7 +36,6 @@ hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
 data_path = testing.data_path(download=False)
-data_path =  op.join('~', 'mne_data', 'MNE-testing-data')
 sample_fname = op.join(
     data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 chpi_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
@@ -701,15 +700,17 @@ def test_calculate_head_pos_kit():
     with pytest.raises(RuntimeError, match='no initial cHPI'):
         compute_head_pos(raw_berlin.info, chpi_locs)
 
-#@testing.requires_testing_data
+
+@testing.requires_testing_data
 def test_get_active_chpi_ctf():
     """Test extracting of cHPI positions from CTF data."""
     raw = read_raw_ctf(ctf_chpi_fname)
-    with pytest.raises(NotImplementedError, 
+    with pytest.raises(NotImplementedError,
                        match='not implemented for other systems'):
         get_active_chpi(raw)
 
-#@testing.requires_testing_data
+
+@testing.requires_testing_data
 def test_get_active_chpi_neuromag():
     """Test extracting of cHPI positions from neuromag data."""
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
