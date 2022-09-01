@@ -2067,8 +2067,14 @@ def plot_psds_topomap(
     # aggregate within bands
     if agg_fun is None:
         agg_fun = np.sum if normalize else np.mean
-    freq_masks = [(fmin < freqs) & (freqs < fmax)
-                  for fmin, fmax in bands.values()]
+    freq_masks = list()
+    for band, (fmin, fmax) in bands.items():
+        _mask = (fmin < freqs) & (freqs < fmax)
+        # make sure no bands are empty
+        if _mask.sum() == 0:
+            raise RuntimeError(
+                f'No frequencies in band "{band}" ({fmin}, {fmax})')
+        freq_masks.append(_mask)
     band_data = [agg_fun(psds[:, _mask], axis=1) for _mask in freq_masks]
     if dB and not normalize:
         band_data = [10 * np.log10(_d) for _d in band_data]
@@ -2098,9 +2104,6 @@ def plot_psds_topomap(
     # loop over subplots/frequency bands
     for ax, _mask, _data, (title, (fmin, fmax)) in zip(
             axes, freq_masks, band_data, bands.items()):
-        if _mask.sum() == 0:
-            raise RuntimeError(
-                f'No frequencies in band "{title}" ({fmin}, {fmax})')
         colorbar = vlim != 'joint' or ax == axes[-1]
         # ↓↓↓ formerly _plot_topomap_multi_cbar (a one-off middleman func) ↓↓↓
         _hide_frame(ax)
