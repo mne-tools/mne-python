@@ -3063,7 +3063,7 @@ def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
 
     nrows = model.coef_.shape[1]
     ncols = len(ch_types)
-    fig, axes = plt.subplots(nrows, ncols, squeeze=False, layout='tight',
+    fig, axes = plt.subplots(nrows, ncols, squeeze=False,
                              figsize=(ncols * 2, nrows * 1.5 + 1))
     axes = iter(axes.T.ravel())
 
@@ -3082,5 +3082,7 @@ def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
                 data, pos, ax, title=f'{ch_type}/{ch_name}', vmin=vmin,
                 vmax=vmax, cmap=cmap, outlines=outlines, colorbar=colorbar,
                 unit='', cbar_fmt=cbar_fmt, sphere=sphere, ch_type=ch_type)
+    fig.subplots_adjust(top=0.88, bottom=0.06, left=0.025, right=0.911,
+                        hspace=0.2, wspace=0.5)
     fig.suptitle(title)
     return fig
