@@ -565,19 +565,17 @@ def test_ctf_plotting():
 
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
-def test_plot_arrowmap():
+def test_plot_arrowmap(evoked):
     """Test arrowmap plotting."""
-    evoked = read_evokeds(evoked_fname, 'Left Auditory',
-                          baseline=(None, 0))
     with pytest.raises(ValueError, match='Multiple channel types'):
         plot_arrowmap(evoked.data[:, 0], evoked.info)
-    evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
+    evoked_eeg = evoked.copy().pick('eeg')
     with pytest.raises(ValueError, match='Multiple channel types'):
         plot_arrowmap(evoked_eeg.data[:, 0], evoked.info)
-    evoked_mag = evoked.copy().pick_types(meg='mag')
-    evoked_grad = evoked.copy().pick_types(meg='grad')
-    plot_arrowmap(evoked_mag.data[:, 0], evoked_mag.info)
-    plot_arrowmap(evoked_grad.data[:, 0], evoked_grad.info,
+    evoked_mag = evoked.copy().pick('mag')
+    evoked_grad = evoked.pick('grad', exclude='bads')
+    plot_arrowmap(evoked_mag.data[:, 0], info_from=evoked_mag.info)
+    plot_arrowmap(evoked_grad.data[:, 0], info_from=evoked_grad.info,
                   info_to=evoked_mag.info)
 
 

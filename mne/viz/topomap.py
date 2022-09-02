@@ -2624,7 +2624,12 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
     axes : instance of Axes | None
         The axes to plot to. If None, a new figure will be created.
     names : list | None
-        List of channel names. If None, channel names are not plotted.
+        List of channel names.
+
+        .. deprecated:: v1.2
+           The ``names`` parameter will be removed in version 1.3. Names will
+           be automatically selected from ``info_from``, and can be hidden,
+           shown, or altered via the ``show_names`` parameter.
     %(show_names_topomap)s
         If ``True``, a list of names must be provided (see ``names`` keyword).
     %(mask_topomap)s
@@ -2666,6 +2671,13 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
     sphere = _check_sphere(sphere, info_from)
     ch_type = _picks_by_type(info_from)
 
+    if names is None:
+        names = _prepare_sensor_names(info_from.ch_names, show_names)
+    else:
+        warn('The ``names`` parameter will be removed in version 1.3. Names '
+             'will be automatically selected from ``info_from``, and can be '
+             'hidden, shown, or altered via the ``show_names`` parameter.',
+             FutureWarning)
     if len(ch_type) > 1:
         raise ValueError('Multiple channel types are not supported.'
                          'All channels must either be of type \'grad\' '
@@ -2707,7 +2719,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
     else:
         fig = axes.figure
     plot_topomap(data, pos, axes=axes, vmin=vmin, vmax=vmax, cmap=cmap,
-                 sensors=sensors, res=res, names=names, show_names=show_names,
+                 sensors=sensors, res=res, names=names,
                  mask=mask, mask_params=mask_params, outlines=outlines,
                  contours=contours, image_interp=image_interp, show=False,
                  onselect=onselect, extrapolate=extrapolate, sphere=sphere,
