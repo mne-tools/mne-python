@@ -160,13 +160,13 @@ for bandwidth, ax in zip(bandwidths, axs):
     data = np.zeros((len(ch_names), freqs.size, epochs.times.size),
                     dtype=complex)
     for idx, freq in enumerate(freqs):
-        # filter raw data and re-epoch to avoid the filter being longer than
-        # the epoch data for low frequencies and short epochs such as here
+        # Filter raw data and re-epoch to avoid the filter being longer than
+        # the epoch data for low frequencies and short epochs, such as here.
         raw_filter = raw.copy()
-        # note: the bandwidths of the filters are changed from their defaults
-        # to exaggerate differences, with the default transition bandwidths,
-        # these are all very similar because the filters are almost the same
-        # in practice, using the default is a wise choice
+        # NOTE: The bandwidths of the filters are changed from their defaults
+        # to exaggerate differences. With the default transition bandwidths,
+        # these are all very similar because the filters are almost the same.
+        # In practice, using the default is usually a wise choice.
         raw_filter.filter(
             l_freq=freq - bandwidth / 2, h_freq=freq + bandwidth / 2,
             # no negative values for large bandwidth and low freq
