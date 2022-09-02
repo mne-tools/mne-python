@@ -138,7 +138,7 @@ raw.info['bads'] = bads
 # In the following, we will generate such visualizations for
 # the automated detection of *noisy* gradiometer channels.
 
-# Only select the data forgradiometer channels.
+# Only select the data for gradiometer channels.
 ch_type = 'grad'
 ch_subset = auto_scores['ch_types'] == ch_type
 ch_names = auto_scores['ch_names'][ch_subset]
@@ -296,7 +296,20 @@ raw_sss.pick(['meg']).plot(duration=2, butterfly=True)
 # If you have information about subject head position relative to the sensors
 # (i.e., continuous head position indicator coils, or :term:`cHPI`), SSS
 # can take that into account when projecting sensor data onto the internal
-# subspace. Head position data can be computed using
+# subspace. In case you are not sure whether you have that information or
+# want to doublecheck, you can use :func:`mne.chpi.get_active_chpi` (currently
+# only implemented for neuromag systems).
+
+chpi_fif_file = os.path.join(mne.datasets.testing.data_path(), 'SSS',
+                             'test_move_anon_raw.fif')
+raw = mne.io.read_raw_fif(chpi_fif_file, allow_maxshield='yes')
+
+# time-resolved information on active HPI coils
+# if all hpi were inactive n_active is a zero-array
+n_active = mne.chpi.get_active_chpi(raw)
+
+# %% 
+# Head position data can be computed using
 # :func:`mne.chpi.compute_chpi_locs` and :func:`mne.chpi.compute_head_pos`,
 # or loaded with the:func:`mne.chpi.read_head_pos` function. The
 # :ref:`example data <sample-dataset>` doesn't include cHPI, so here we'll

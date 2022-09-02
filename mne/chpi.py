@@ -1398,26 +1398,23 @@ def get_active_chpi(raw):
 
     Returns
     -------
-    times : array, shape (n_times)
+    n_active : array, shape (n_times)
         The number of active cHPIs for every timepoint in raw.
     """
     # get meg system
     system, _ = _get_meg_system(raw.info)
 
-    # processing neuromag files
-    if system in ['122m', '306m']:
-        # extract hpi info
-        chpi_info = get_chpi_info(raw.info)
-
-        # extract hpi time series and infer which one was on
-        chpi_ts = raw[chpi_info[1]][0].astype(int)
-        chpi_active = (chpi_ts & chpi_info[2][:, np.newaxis]).astype(bool)
-        times = chpi_active.sum(axis=0)
-
-    # all other systems
-    else:
+    # check whether we have a neuromag system
+    if system not in ['122m', '306m']:
         raise NotImplementedError(('Identifying active HPI channels'
                                    ' is not implemented for other systems'
                                    ' than neuromag.'))
+    # extract hpi info
+    chpi_info = get_chpi_info(raw.info)
 
-    return times
+    # extract hpi time series and infer which one was on
+    chpi_ts = raw[chpi_info[1]][0].astype(int)
+    chpi_active = (chpi_ts & chpi_info[2][:, np.newaxis]).astype(bool)
+    n_active = chpi_active.sum(axis=0)
+
+    return n_active
