@@ -25,8 +25,9 @@ else
 	echo "H5py, pillow, matplotlib"
 	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py pillow matplotlib
 	# We don't install Numba here because it forces an old NumPy version
-	echo "nilearn"
+	echo "nilearn and openmeeg"
 	pip install $STD_ARGS --pre https://github.com/nilearn/nilearn/zipball/main
+	pip install $STD_ARGS --pre --only-binary ":all:" -i "https://test.pypi.org/simple" "openmeeg==2.6.0.dev1"
 	echo "VTK"
 	# Have to use our own version until VTK releases a 3.10 build
 	wget -q https://osf.io/ajder/download -O vtk-9.1.20220406.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl

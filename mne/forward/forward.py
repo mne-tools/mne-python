@@ -426,39 +426,47 @@ def _subject_from_forward(forward):
     return forward['src']._subject
 
 
+# This sets the forward solution order (and gives human-readable names)
+_FWD_ORDER = dict(
+    meg='MEG',
+    eeg='EEG',
+)
+
+
 @verbose
-def _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=None):
-    """Merge loaded MEG and EEG forward dicts into one dict."""
-    if megfwd is not None and eegfwd is not None:
-        if (megfwd['sol']['data'].shape[1] != eegfwd['sol']['data'].shape[1] or
-                megfwd['source_ori'] != eegfwd['source_ori'] or
-                megfwd['nsource'] != eegfwd['nsource'] or
-                megfwd['coord_frame'] != eegfwd['coord_frame']):
-            raise ValueError('The MEG and EEG forward solutions do not match')
-
-        fwd = megfwd
-        fwd['sol']['data'] = np.r_[fwd['sol']['data'], eegfwd['sol']['data']]
-        fwd['_orig_sol'] = np.r_[fwd['_orig_sol'], eegfwd['_orig_sol']]
-        fwd['sol']['nrow'] = fwd['sol']['nrow'] + eegfwd['sol']['nrow']
-
-        fwd['sol']['row_names'] = (fwd['sol']['row_names'] +
-                                   eegfwd['sol']['row_names'])
-        if fwd['sol_grad'] is not None:
-            fwd['sol_grad']['data'] = np.r_[fwd['sol_grad']['data'],
-                                            eegfwd['sol_grad']['data']]
-            fwd['_orig_sol_grad'] = np.r_[fwd['_orig_sol_grad'],
-                                          eegfwd['_orig_sol_grad']]
-            fwd['sol_grad']['nrow'] = (fwd['sol_grad']['nrow'] +
-                                       eegfwd['sol_grad']['nrow'])
-            fwd['sol_grad']['row_names'] = (fwd['sol_grad']['row_names'] +
-                                            eegfwd['sol_grad']['row_names'])
-
-        fwd['nchan'] = fwd['nchan'] + eegfwd['nchan']
-        logger.info('    MEG and EEG forward solutions combined')
-    elif megfwd is not None:
-        fwd = megfwd
-    else:
-        fwd = eegfwd
+def _merge_fwds(fwds, *, verbose=None):
+    """Merge loaded forward dicts into one dict."""
+    fwd = None
+    first_key = None
+    combined = list()
+    for key in _FWD_ORDER:
+        if key not in fwds:
+            continue
+        if fwd is None:  # assign
+            fwd = fwds[key]
+            first_key = key
+            combined.append(_FWD_ORDER[key])
+            continue
+        a = fwd
+        b = fwds[key]
+        a_kind, b_kind = _FWD_ORDER[first_key], _FWD_ORDER[key]
+        combined.append(b_kind)
+        if (a['sol']['data'].shape[1] != b['sol']['data'].shape[1] or
+                a['source_ori'] != b['source_ori'] or
+                a['nsource'] != b['nsource'] or
+                a['coord_frame'] != b['coord_frame']):
+            raise ValueError(
+                f'The {a_kind} and {b_kind} forward solutions do not match')
+        for k in ('sol', 'sol_grad'):
+            if a[k] is None:
+                continue
+            a[k]['data'] = np.r_[a[k]['data'], b[k]['data']]
+            a[f'_orig_{k}'] = np.r_[a[f'_orig_{k}'], b[f'_orig_{k}']]
+            a[k]['nrow'] = a[k]['nrow'] + b[k]['nrow']
+            a[k]['row_names'] = a[k]['row_names'] + b[k]['row_names']
+        a['nchan'] = a['nchan'] + b['nchan']
+    if len(fwds) > 1:
+        logger.info(f'    Forward solutions combined: {", ".join(combined)}')
     return fwd
 
 
@@ -540,8 +548,10 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
             elif tag.data == FIFF.FIFFV_MNE_EEG:
                 eegnode = fwds[k]
 
+        fwds = dict()
         megfwd = _read_one(fid, megnode)
         if megfwd is not None:
+            fwds['meg'] = megfwd
             if is_fixed_orient(megfwd):
                 ori = 'fixed'
             else:
@@ -549,9 +559,11 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
             logger.info('    Read MEG forward solution (%d sources, '
                         '%d channels, %s orientations)'
                         % (megfwd['nsource'], megfwd['nchan'], ori))
+        del megfwd
 
         eegfwd = _read_one(fid, eegnode)
         if eegfwd is not None:
+            fwds['eeg'] = eegfwd
             if is_fixed_orient(eegfwd):
                 ori = 'fixed'
             else:
@@ -559,8 +571,10 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
             logger.info('    Read EEG forward solution (%d sources, '
                         '%d channels, %s orientations)'
                         % (eegfwd['nsource'], eegfwd['nchan'], ori))
+        del eegfwd
 
-        fwd = _merge_meg_eeg_fwds(megfwd, eegfwd)
+        fwd = _merge_fwds(fwds)
+        del fwds
 
         #   Get the MRI <-> head coordinate transformation
         tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
