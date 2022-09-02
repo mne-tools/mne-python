@@ -10,7 +10,7 @@ import os.path as op
 from functools import partial
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_equal
+from numpy.testing import assert_array_equal, assert_equal, assert_almost_equal
 import pytest
 import matplotlib
 import matplotlib.pyplot as plt
@@ -177,8 +177,104 @@ def test_plot_topomap_animation_nirs(fnirs_evoked, capsys):
     plt.close('all')
 
 
+def test_plot_evoked_topomap_errors(evoked, monkeypatch):
+    """Test error handling for evoked topomap plots."""
+    # simplify data and set some params to make the test really fast
+    evoked.pick(['EEG 001', 'EEG 002'])
+    fast_func = partial(evoked.plot_topomap, res=8, contours=0, sensors=False)
+    fast_func_onetime = partial(fast_func, times=0.1)
+    # wrong channel type
+    with pytest.raises(ValueError, match="No channels of type 'mag'"):
+        fast_func(ch_type='mag')
+    # bad times
+    with pytest.raises(ValueError, match='Times should be between 0.0 and'):
+        fast_func(times=[-100])
+    with pytest.raises(ValueError, match='times must be 1D, got 2 dimensions'):
+        fast_func(times=[[0]])
+    # times / average mismatch
+    with pytest.raises(ValueError, match='3 time points.*2 periods for aver'):
+        fast_func([0.05, 0.1, 0.15], ch_type='eeg', average=[0.01, 0.02])
+    # average
+    with pytest.raises(ValueError, match='number of seconds.* got -1000.0'):
+        fast_func_onetime(average=-1e3)
+    with pytest.raises(TypeError, match='number of seconds.* got type:'):
+        fast_func_onetime(average='x')
+    # image_interp
+    with pytest.raises(RuntimeError, match='`image_interp` must be'):
+        fast_func_onetime(image_interp='bilinear')
+    # border
+    with pytest.raises(TypeError, match='be an instance of numeric or str'):
+        fast_func_onetime(extrapolate='head', border=[1, 2, 3])
+    with pytest.raises(ValueError, match="allowed value.*'mean'.*got 'fancy'"):
+        fast_func_onetime(extrapolate='head', border='fancy')
+    # projs
+    with pytest.raises(RuntimeError, match='Projs are already applied.'):
+        fast_func_onetime(proj='interactive')
+    # too many subplots
+    with monkeypatch.context() as m:  # speed it up by not actually plotting
+        m.setattr(topomap, '_plot_topomap',
+                  lambda *args, **kwargs: (None, None, None))
+        with pytest.warns(RuntimeWarning, match='More than 25 topomaps plots'):
+            fast_func([0.1] * 26, colorbar=False)
+    # missing channel locations
+    with evoked.info._unlock():
+        for ch in evoked.info['chs']:
+            ch['loc'][:3] = 0.
+    with pytest.raises(ValueError, match="points.*doesn't match.*channels."):
+        evoked.plot_topomap()
+    with evoked.info._unlock():
+        evoked.info['dig'] = None
+    with pytest.raises(RuntimeError, match='No digitization points found.'):
+        evoked.plot_topomap()
+
+
+@pytest.mark.parametrize('extrapolate', ('box', 'local', 'head'))
+@pytest.mark.parametrize('outlines', ('skirt', 'head'))
+def test_plot_evoked_topomap_extrapolation(evoked, extrapolate, outlines):
+    """Test topomap extrapolation options."""
+    evoked.pick(['EEG 001', 'EEG 002', 'EEG 003'])
+    evoked.plot_topomap(times=0.1, extrapolate=extrapolate, outlines=outlines,
+                        res=8, contours=0, sensors=False)
+
+
+def test_plot_evoked_topomap_border():
+    """Test topomap extrapolation border values."""
+    # make some fake sensor locations: 25 sensors at distances of 0.2 to 1.0
+    # in steps of 0.2 in the ±x, ±y, and +z directions
+    ch_pos = np.array([[[r, 0, 0],   # +x
+                        [-r, 0, 0],  # -x
+                        [0, r, 0],   # +y
+                        [0, -r, 0],  # -y
+                        [0, 0, r],   # +z
+                        ] for r in np.linspace(0.2, 1, 5)]).reshape(-1, 3)
+    info = create_info(len(ch_pos), 250, 'eeg')
+    ch_pos_dict = {name: pos for name, pos in zip(info['ch_names'], ch_pos)}
+    dig = make_dig_montage(ch_pos_dict, coord_frame='head')
+    info.set_montage(dig)
+    # simulate data
+    data = np.full(len(ch_pos), 5)
+    kwargs = dict(res=15, extrapolate='head', sphere=1, sensors=False)
+    idx = kwargs['res'] // 2
+
+    # when border=0...
+    ax, _ = plot_topomap(data, info, border=0, **kwargs)
+    img_data = ax.get_array().data
+    # middle pixel should exactly equal sensor data:
+    assert_equal(img_data[idx, idx], data[0])
+    # corner pixel should be close(ish) to zero:
+    assert img_data[0, 0] < 1.5
+
+    # when border='mean'...
+    ax, _ = plot_topomap(data, info, border='mean', **kwargs)
+    img_data = ax.get_array().data
+    # middle pixel should exactly equal sensor data:
+    assert_equal(img_data[idx, idx], data[0])
+    # and corner pixel should *also* be very close to sensor data:
+    assert_almost_equal(img_data[idx, idx], data[0], decimal=9)
+
+
 @pytest.mark.slowtest
-def test_plot_topomap_basic(monkeypatch):
+def test_plot_topomap_basic():
     """Test basics of topomap plotting."""
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
@@ -189,76 +285,8 @@ def test_plot_topomap_basic(monkeypatch):
     ev_bad.pick_channels(ev_bad.ch_names[:2])
     plt_topomap = partial(ev_bad.plot_topomap, **fast_test)
     plt_topomap(times=ev_bad.times[:2] - 1e-6)  # auto, plots EEG
-    pytest.raises(ValueError, plt_topomap, ch_type='mag')
-    pytest.raises(ValueError, plt_topomap, times=[-100])  # bad time
-    pytest.raises(ValueError, plt_topomap, times=[[0]])  # bad time
-
-    with pytest.raises(RuntimeError, match='`image_interp` must be'):
-        evoked.plot_topomap([0.1], image_interp='bilinear')
-
     evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
                         contours=[-100, 0, 100], time_unit='ms')
-
-    # extrapolation to the edges of the convex hull or the head circle
-    evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
-                        contours=[-100, 0, 100], time_unit='ms',
-                        extrapolate='local')
-    evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
-                        contours=[-100, 0, 100], time_unit='ms',
-                        extrapolate='head')
-    evoked.plot_topomap([0.1], ch_type='eeg', scalings=1, res=res,
-                        contours=[-100, 0, 100], time_unit='ms',
-                        extrapolate='head', outlines='skirt')
-
-    # extrapolation options when < 4 channels:
-    temp_data = np.random.random(3)
-    picks = channel_indices_by_type(evoked.info)['mag'][:3]
-    info_sel = pick_info(evoked.info, picks)
-    plot_topomap(temp_data, info_sel, extrapolate='local', res=res)
-    plot_topomap(temp_data, info_sel, extrapolate='head', res=res)
-
-    # make sure extrapolation works for 3 channels with border='mean'
-    # (if extra points are placed incorrectly some of them have only
-    #  other extra points as neighbours and border='mean' fails)
-    plot_topomap(temp_data, info_sel, extrapolate='local', border='mean',
-                 res=res)
-
-    # border=0 and border='mean':
-    # ---------------------------
-    ch_pos = np.array(sum(([[0, 0, r], [r, 0, 0], [-r, 0, 0],
-                            [0, -r, 0], [0, r, 0]]
-                           for r in np.linspace(0.2, 1.0, 5)), []))
-    rng = np.random.RandomState(23)
-    data = np.full(len(ch_pos), 5) + rng.randn(len(ch_pos))
-    info = create_info(len(ch_pos), 250, 'eeg')
-    ch_pos_dict = {name: pos for name, pos in zip(info['ch_names'], ch_pos)}
-    dig = make_dig_montage(ch_pos_dict, coord_frame='head')
-    info.set_montage(dig)
-
-    # border=0
-    ax, _ = plot_topomap(data, info, extrapolate='head', border=0, sphere=1)
-    img_data = ax.get_array().data
-
-    assert np.abs(img_data[31, 31] - data[0]) < 0.12
-    assert np.abs(img_data[0, 0]) < 1.5
-
-    # border='mean'
-    ax, _ = plot_topomap(data, info, extrapolate='head', border='mean',
-                         sphere=1)
-    img_data = ax.get_array().data
-
-    assert np.abs(img_data[31, 31] - data[0]) < 0.12
-    assert img_data[0, 0] > 5
-
-    # error when not numeric or str:
-    error_msg = 'border must be an instance of numeric or str'
-    with pytest.raises(TypeError, match=error_msg):
-        plot_topomap(data, info, extrapolate='head', border=[1, 2, 3])
-
-    # error when str is not 'mean':
-    error_msg = "The only allowed value is 'mean', but got 'fancy' instead."
-    with pytest.raises(ValueError, match=error_msg):
-        plot_topomap(data, info, extrapolate='head', border='fancy')
 
     # test channel placement when only 'grad' are picked:
     # ---------------------------------------------------
@@ -304,10 +332,6 @@ def test_plot_topomap_basic(monkeypatch):
     plt_topomap(times, ch_type='grad', mask=mask, show_names=True,
                 mask_params={'marker': 'x'})
     plt.close('all')
-    with pytest.raises(ValueError, match='number of seconds.* got -'):
-        plt_topomap(times, ch_type='eeg', average=-1e3)
-    with pytest.raises(TypeError, match='number of seconds.* got type'):
-        plt_topomap(times, ch_type='eeg', average='x')
 
     p = plt_topomap(times, ch_type='grad', image_interp='cubic',
                     show_names=lambda x: x.replace('MEG', ''))
@@ -365,20 +389,10 @@ def test_plot_topomap_basic(monkeypatch):
     for idx, expected_title in enumerate(expected_ax_titles):
         assert p.axes[idx].get_title() == expected_title
 
-    # Test averaging with array-like input, but n_times != n_average
-    averaging_durations = [0.01, 0.02]
-    with pytest.raises(ValueError, match='3 time points.*2 periods'):
-        plt_topomap(
-            averaging_times, ch_type='eeg', average=averaging_durations
-        )
-
     del averaging_times, expected_ax_titles, expected_title
 
     # delaunay triangulation warning
     plt_topomap(times, ch_type='mag')
-    # projs have already been applied
-    pytest.raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
-                  proj='interactive', time_unit='s')
 
     # change to no-proj mode
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
@@ -391,15 +405,6 @@ def test_plot_topomap_basic(monkeypatch):
     _fake_click(fig2, fig2.axes[0], (0.075, 0.775))  # toggle projector
     # make sure projector gets toggled
     assert (np.max(fig1.axes[0].images[0]._A) != data_max)
-
-    with monkeypatch.context() as m:  # speed it up by not actually plotting
-        m.setattr(topomap, '_plot_topomap',
-                  lambda *args, **kwargs: (None, None, None))
-        with pytest.warns(RuntimeWarning, match='More than 25 topomaps plots'):
-            plot_evoked_topomap(evoked, [0.1] * 26, colorbar=False)
-
-    pytest.raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6],
-                  time_unit='s')
 
     for ch in evoked.info['chs']:
         if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:
@@ -446,13 +451,6 @@ def test_plot_topomap_basic(monkeypatch):
     outlines['patch'] = patch
     plot_evoked_topomap(evoked, times, ch_type='eeg', outlines=outlines,
                         **fast_test)
-
-    # Remove digitization points. Now topomap should fail
-    with evoked.info._unlock():
-        evoked.info['dig'] = None
-    pytest.raises(RuntimeError, plot_evoked_topomap, evoked,
-                  times, ch_type='eeg', time_unit='s')
-    plt.close('all')
 
     # Error for missing names
     n_channels = len(pos)
