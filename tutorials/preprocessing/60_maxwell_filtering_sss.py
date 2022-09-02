@@ -308,7 +308,7 @@ raw = mne.io.read_raw_fif(chpi_fif_file, allow_maxshield='yes')
 # if all hpi were inactive n_active is a zero-array
 n_active = mne.chpi.get_active_chpi(raw)
 
-# %% 
+# %%
 # Head position data can be computed using
 # :func:`mne.chpi.compute_chpi_locs` and :func:`mne.chpi.compute_head_pos`,
 # or loaded with the:func:`mne.chpi.read_head_pos` function. The
