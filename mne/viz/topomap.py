@@ -1445,9 +1445,6 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         _prepare_topomap_plot(tfr, ch_type, sphere=sphere)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
-    if not show_names:
-        names = None
-
     data = tfr.data[picks, :, :]
 
     # merging grads before rescaling makes ERDs visible
@@ -1501,10 +1498,12 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     if not isinstance(contours, (list, np.ndarray)):
         _, contours = _set_contour_locator(vmin, vmax, contours)
 
+    names = _prepare_sensor_names(names, show_names)
+
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
                          axes=axes, cmap=cmap[0],
                          image_interp=_INTERPOLATION_DEFAULT,
-                         contours=contours, names=names, show_names=show_names,
+                         contours=contours, names=names,
                          show=False, onselect=selection_callback,
                          sensors=sensors, res=res, ch_type=ch_type,
                          outlines=outlines, sphere=sphere)
