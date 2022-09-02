@@ -734,14 +734,13 @@ def test_plot_bridged_electrodes():
         ed_matrix[i][triu_idx] = rng.random() + rng.random(triu_idx[0].size)
     fig = plot_bridged_electrodes(info, bridged_idx, ed_matrix,
                                   topomap_args=dict(names=info.ch_names,
-                                                    vmax=1, show_names=True))
+                                                    vmax=1))
     # two bridged lines plus head outlines
     assert len(fig.axes[0].lines) == 6
     # test with sphere="eeglab"
     fig = plot_bridged_electrodes(
         info, bridged_idx, ed_matrix,
-        topomap_args=dict(names=info.ch_names, sphere="eeglab",
-                          vmax=1, show_names=True)
+        topomap_args=dict(names=info.ch_names, sphere="eeglab", vmax=1)
     )
 
     with pytest.raises(RuntimeError, match='Expected'):

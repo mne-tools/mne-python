@@ -2777,18 +2777,15 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     topomap_args.setdefault('image_interp', 'nearest')
     topomap_args.setdefault('cmap', 'summer_r')
     topomap_args.setdefault('names', pick_info(info, picks).ch_names)
-    topomap_args.setdefault('show_names', True)
     topomap_args.setdefault('contours', False)
-    sphere = topomap_args['sphere'] if 'sphere' in topomap_args \
-        else _check_sphere(None)
+    sphere = topomap_args.get('sphere', _check_sphere(None))
     if 'axes' not in topomap_args:
         fig, ax = plt.subplots()
         topomap_args['axes'] = ax
     else:
         fig = None
     # handle colorbar here instead of in plot_topomap
-    colorbar = topomap_args.pop('colorbar') if \
-        'colorbar' in topomap_args else True
+    colorbar = topomap_args.pop('colorbar', True)
     if ed_matrix.shape[1:] != (picks.size, picks.size):
         raise RuntimeError(
             f'Expected {(ed_matrix.shape[0], picks.size, picks.size)} '
