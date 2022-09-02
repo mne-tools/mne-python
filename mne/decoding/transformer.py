@@ -11,8 +11,8 @@ from .mixin import TransformerMixin
 from .base import BaseEstimator
 
 from .. import pick_types
-from ..filter import filter_data, _triage_filter_params
-from ..time_frequency.psd import psd_array_multitaper
+from ..filter import filter_data
+from ..time_frequency import psd_array_multitaper
 from ..utils import fill_doc, _check_option, _validate_type, verbose
 from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
                        _picks_to_idx)
@@ -828,15 +828,6 @@ class TemporalFilter(TransformerMixin):
 
         shape = X.shape
         X = X.reshape(-1, shape[-1])
-        (X, self.sfreq, self.l_freq, self.h_freq, self.l_trans_bandwidth,
-         self.h_trans_bandwidth, self.filter_length, _, self.fir_window,
-         self.fir_design) = \
-            _triage_filter_params(X, self.sfreq, self.l_freq, self.h_freq,
-                                  self.l_trans_bandwidth,
-                                  self.h_trans_bandwidth, self.filter_length,
-                                  self.method, phase='zero',
-                                  fir_window=self.fir_window,
-                                  fir_design=self.fir_design)
         X = filter_data(X, self.sfreq, self.l_freq, self.h_freq,
                         filter_length=self.filter_length,
                         l_trans_bandwidth=self.l_trans_bandwidth,

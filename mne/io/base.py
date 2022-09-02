@@ -34,8 +34,9 @@ from .write import (start_and_end_file, start_block, end_block,
                     write_complex64, write_complex128, write_int,
                     write_id, write_string, _get_split_size, _NEXT_FILE_BUFFER)
 
-from ..annotations import (_annotations_starts_stops, _write_annotations,
-                           _handle_meas_date)
+from ..annotations import (Annotations, _annotations_starts_stops,
+                           _combine_annotations, _handle_meas_date,
+                           _sync_onset, _write_annotations)
 from ..filter import (FilterMixin, notch_filter, resample, _resamp_ratio_len,
                       _resample_stim_channels, _check_fun)
 from ..parallel import parallel_func
@@ -46,81 +47,17 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format, _arange_div)
+                     _check_time_format, _arange_div, TimeMixin)
 from ..defaults import _handle_default
-from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
+from ..viz import plot_raw, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
-from ..annotations import Annotations, _combine_annotations, _sync_onset
-
-
-class TimeMixin(object):
-    """Class to add sfreq and time_as_index capabilities to certain classes."""
-
-    # Overridden method signature does not match call...
-    def time_as_index(self, times, use_rounding=False):  # lgtm
-        """Convert time to indices.
-
-        Parameters
-        ----------
-        times : list-like | float | int
-            List of numbers or a number representing points in time.
-        use_rounding : bool
-            If True, use rounding (instead of truncation) when converting
-            times to indices. This can help avoid non-unique indices.
-
-        Returns
-        -------
-        index : ndarray
-            Indices corresponding to the times supplied.
-        """
-        from ..source_estimate import _BaseSourceEstimate
-        if isinstance(self, _BaseSourceEstimate):
-            sfreq = 1. / self.tstep
-        else:
-            sfreq = self.info['sfreq']
-        index = (np.atleast_1d(times) - self.times[0]) * sfreq
-        if use_rounding:
-            index = np.round(index)
-        return index.astype(int)
-
-    def _handle_tmin_tmax(self, tmin, tmax):
-        """Convert seconds to index into data.
-
-        Parameters
-        ----------
-        tmin : int | float | None
-            Start time of data to get in seconds.
-        tmax : int | float | None
-            End time of data to get in seconds.
-
-        Returns
-        -------
-        start : int
-            Integer index into data corresponding to tmin.
-        stop : int
-            Integer index into data corresponding to tmax.
-
-        """
-        _validate_type(tmin, types=('numeric', None), item_name='tmin',
-                       type_name="int, float, None")
-        _validate_type(tmax, types=('numeric', None), item_name='tmax',
-                       type_name='int, float, None')
-
-        # handle tmin/tmax as start and stop indices into data array
-        n_times = self.times.size
-        start = 0 if tmin is None else self.time_as_index(tmin)[0]
-        stop = n_times if tmax is None else self.time_as_index(tmax)[0]
-
-        # truncate start/stop to the open interval [0, n_times]
-        start = min(max(0, start), n_times)
-        stop = min(max(0, stop), n_times)
-
-        return start, stop
+from ..time_frequency.spectrum import Spectrum, SpectrumMixin
 
 
 @fill_doc
 class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
-              InterpolationMixin, TimeMixin, SizeMixin, FilterMixin):
+              InterpolationMixin, TimeMixin, SizeMixin, FilterMixin,
+              SpectrumMixin):
     """Base class for Raw data.
 
     Parameters
@@ -239,6 +176,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                         % self._read_comp_grade)
         self._comp = None
         self._filenames = list(filenames)
+        _validate_type(orig_format, str, "orig_format")
+        _check_option(
+            "orig_format", orig_format, ("double", "single", "int", "short")
+        )
         self.orig_format = orig_format
         # Sanity check and set original units, if provided by the reader:
 
@@ -596,8 +537,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def _last_time(self):
         return self.last_samp / float(self.info['sfreq'])
 
-    # "Overridden method signature does not match call..." in LGTM
-    def time_as_index(self, times, use_rounding=False, origin=None):  # lgtm
+    def time_as_index(self, times, use_rounding=False, origin=None):
         """Convert time to indices.
 
         Parameters
@@ -1105,7 +1045,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         .. note:: If n_jobs > 1, more memory is required as
                   ``len(picks) * n_times`` additional time points need to
-                  be temporaily stored in memory.
+                  be temporarily stored in memory.
 
         For details, see :func:`mne.filter.notch_filter`.
         """
@@ -1124,7 +1064,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     @verbose
     def resample(self, sfreq, npad='auto', window='boxcar', stim_picks=None,
                  n_jobs=None, events=None, pad='reflect_limited',
-                 verbose=None):  # lgtm
+                 verbose=None):
         """Resample all channels.
 
         If appropriate, an anti-aliasing filter is applied before resampling.
@@ -1597,39 +1537,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                         theme=theme, overview_mode=overview_mode,
                         verbose=verbose)
 
-    @verbose
-    @copy_function_doc_to_method_doc(plot_raw_psd)
-    def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
-                 n_fft=None, n_overlap=0, reject_by_annotation=True,
-                 picks=None, ax=None, color='black', xscale='linear',
-                 area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
-                 show=True, n_jobs=None, average=False, line_alpha=None,
-                 spatial_colors=True, sphere=None, window='hamming',
-                 exclude='bads', verbose=None):
-        return plot_raw_psd(self, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
-                            proj=proj, n_fft=n_fft, n_overlap=n_overlap,
-                            reject_by_annotation=reject_by_annotation,
-                            picks=picks, ax=ax, color=color, xscale=xscale,
-                            area_mode=area_mode, area_alpha=area_alpha,
-                            dB=dB, estimate=estimate, show=show, n_jobs=n_jobs,
-                            average=average, line_alpha=line_alpha,
-                            spatial_colors=spatial_colors, sphere=sphere,
-                            window=window, exclude=exclude, verbose=verbose)
-
-    @copy_function_doc_to_method_doc(plot_raw_psd_topo)
-    def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
-                      n_fft=2048, n_overlap=0, layout=None, color='w',
-                      fig_facecolor='k', axis_facecolor='k', dB=True,
-                      show=True, block=False, n_jobs=None, axes=None,
-                      verbose=None):
-        return plot_raw_psd_topo(self, tmin=tmin, tmax=tmax, fmin=fmin,
-                                 fmax=fmax, proj=proj, n_fft=n_fft,
-                                 n_overlap=n_overlap, layout=layout,
-                                 color=color, fig_facecolor=fig_facecolor,
-                                 axis_facecolor=axis_facecolor, dB=dB,
-                                 show=show, block=block, n_jobs=n_jobs,
-                                 axes=axes, verbose=verbose)
-
     @property
     def ch_names(self):
         """Channel names."""
@@ -1896,9 +1803,43 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
     @verbose
+    def compute_psd(self, method='welch', fmin=0, fmax=np.inf, tmin=None,
+                    tmax=None, picks=None, proj=False,
+                    reject_by_annotation=True, *, n_jobs=1, verbose=None,
+                    **method_kw):
+        """Perform spectral analysis on sensor data.
+
+        Parameters
+        ----------
+        %(method_psd)s
+            Default is ``'welch'``.
+        %(fmin_fmax_psd)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(reject_by_annotation_psd)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_psd)s
+
+        Returns
+        -------
+        spectrum : instance of Spectrum
+            The spectral representation of the data.
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        return Spectrum(
+            self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
+            picks=picks, proj=proj, reject_by_annotation=reject_by_annotation,
+            n_jobs=n_jobs, verbose=verbose, **method_kw)
+
+    @verbose
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, start=None, stop=None,
-                      long_format=False, time_format='ms', *,
+                      long_format=False, time_format=None, *,
                       verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 

@@ -218,8 +218,19 @@ def test_coreg_gui_pyvista_basic(tmp_path, renderer_interactive_pyvistaqt,
 
     # visualization
     assert not coreg._helmet
+    assert coreg._actors['helmet'] is None
     coreg._set_helmet(True)
     assert coreg._helmet
+    with catch_logging() as log:
+        coreg._redraw(verbose='debug')
+    log = log.getvalue()
+    assert 'Drawing helmet' in log
+    coreg._set_point_weight(1., 'nasion')
+    coreg._fit_fiducials()
+    with catch_logging() as log:
+        coreg._redraw(verbose='debug')
+    log = log.getvalue()
+    assert 'Drawing helmet' in log
     assert coreg._orient_glyphs
     assert coreg._scale_by_distance
     assert coreg._mark_inside
@@ -280,11 +291,13 @@ def test_coreg_gui_scraper(tmp_path, renderer_interactive_pyvistaqt):
 def test_coreg_gui_notebook(renderer_notebook, nbexec):
     """Test the coregistration UI in a notebook."""
     import os
+    import pytest
     import mne
     from mne.datasets import testing
     from mne.gui import coregistration
     mne.viz.set_3d_backend('notebook')  # set the 3d backend
-    with mne.utils.modified_env(_MNE_FAKE_HOME_DIR=None):
+    with pytest.MonkeyPatch().context() as mp:
+        mp.delenv('_MNE_FAKE_HOME_DIR')
         data_path = testing.data_path(download=False)
     subjects_dir = os.path.join(data_path, 'subjects')
     coregistration(subject='sample', subjects_dir=subjects_dir)

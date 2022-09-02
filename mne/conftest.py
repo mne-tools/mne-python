@@ -95,76 +95,33 @@ def pytest_configure(config):
     #   we should remove them from here.
     # - This list should also be considered alongside reset_warnings in
     #   doc/conf.py.
+    if os.getenv('MNE_IGNORE_WARNINGS_IN_TESTS', '') != 'true':
+        first_kind = 'error'
+    else:
+        first_kind = 'always'
     warning_lines = r"""
-    error::
-    ignore:.*deprecated and ignored since IPython.*:DeprecationWarning
-    ignore::ImportWarning
-    ignore:the matrix subclass:PendingDeprecationWarning
-    ignore:numpy.dtype size changed:RuntimeWarning
-    ignore:.*takes no parameters:DeprecationWarning
-    ignore:joblib not installed:RuntimeWarning
-    ignore:Using a non-tuple sequence for multidimensional indexing:FutureWarning
-    ignore:using a non-integer number instead of an integer will result in an error:DeprecationWarning
-    ignore:Importing from numpy.testing.decorators is deprecated:DeprecationWarning
-    ignore:np.loads is deprecated, use pickle.loads instead:DeprecationWarning
-    ignore:The oldnumeric module will be dropped:DeprecationWarning
-    ignore:Collection picker None could not be converted to float:UserWarning
-    ignore:covariance is not positive-semidefinite:RuntimeWarning
-    ignore:Can only plot ICA components:RuntimeWarning
-    ignore:Matplotlib is building the font cache using fc-list:UserWarning
-    ignore:Using or importing the ABCs from 'collections':DeprecationWarning
-    ignore:`formatargspec` is deprecated:DeprecationWarning
-    # This is only necessary until sklearn updates their wheels for NumPy 1.16
-    ignore:numpy.ufunc size changed:RuntimeWarning
-    ignore:.*mne-realtime.*:DeprecationWarning
-    ignore:.*imp.*:DeprecationWarning
-    ignore:Exception creating Regex for oneOf.*:SyntaxWarning
-    ignore:scipy\.gradient is deprecated.*:DeprecationWarning
-    ignore:The sklearn.*module.*deprecated.*:FutureWarning
-    ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
-    ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning
-    ignore:.*`np.bool` is a deprecated alias.*:DeprecationWarning
-    ignore:.*`np.int` is a deprecated alias.*:DeprecationWarning
-    ignore:.*`np.float` is a deprecated alias.*:DeprecationWarning
-    ignore:.*`np.object` is a deprecated alias.*:DeprecationWarning
-    ignore:.*`np.long` is a deprecated alias:DeprecationWarning
-    ignore:.*Converting `np\.character` to a dtype is deprecated.*:DeprecationWarning
-    ignore:.*sphinx\.util\.smartypants is deprecated.*:
-    ignore:.*pandas\.util\.testing is deprecated.*:
-    ignore:.*tostring.*is deprecated.*:DeprecationWarning
-    ignore:.*QDesktopWidget\.availableGeometry.*:DeprecationWarning
-    ignore:Unable to enable faulthandler.*:UserWarning
-    ignore:Fetchers from the nilearn.*:FutureWarning
-    ignore:SelectableGroups dict interface is deprecated\. Use select\.:DeprecationWarning
-    always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
-    ignore:.*rcParams is deprecated.*global_theme.*:DeprecationWarning
-    ignore:.*distutils\.sysconfig module is deprecated.*:DeprecationWarning
-    ignore:.*numpy\.dual is deprecated.*:DeprecationWarning
-    ignore:.*`np.typeDict` is a deprecated.*:DeprecationWarning
-    ignore:.*Creating an ndarray from ragged.*:numpy.VisibleDeprecationWarning
-    ignore:^Please use.*scipy\..*:DeprecationWarning
-    ignore:.*Passing a schema to Validator.*:DeprecationWarning
-    ignore:.*Found the following unknown channel type.*:RuntimeWarning
-    ignore:.*np\.MachAr.*:DeprecationWarning
-    ignore:.*Passing unrecognized arguments to super.*:DeprecationWarning
-    ignore:.*numpy.ndarray size changed.*:
-    ignore:.*There is no current event loop.*:DeprecationWarning
-    # present in nilearn v 0.8.1, fixed in nilearn main
-    ignore:.*distutils Version classes are deprecated.*:DeprecationWarning
-    ignore:.*pandas\.Int64Index is deprecated.*:FutureWarning
-    always::ResourceWarning
-    # Jupyter notebook stuff
-    ignore:.*unclosed context <zmq\.asyncio\.*:ResourceWarning
-    ignore:.*unclosed event loop <.*:ResourceWarning
-    # https://github.com/dipy/dipy/pull/2558
-    ignore:.*starting_affine overwritten by centre_of_mass transform.*:
+    {0}::
+    # matplotlib->traitlets (notebook)
+    ignore:Passing unrecognized arguments to super.*:DeprecationWarning
+    # notebook tests
+    ignore:There is no current event loop:DeprecationWarning
+    ignore:unclosed <socket\.socket:ResourceWarning
+    ignore:unclosed event loop <:ResourceWarning
+    # ignore if joblib is missing
+    ignore:joblib not installed.*:RuntimeWarning
     # TODO: This is indicative of a problem
     ignore:.*Matplotlib is currently using agg.*:
     # qdarkstyle
     ignore:.*Setting theme=.*:RuntimeWarning
     # scikit-learn using this arg
     ignore:.*The 'sym_pos' keyword is deprecated.*:DeprecationWarning
-    """  # noqa: E501
+    # Should be removable by 2022/07/08, SciPy savemat issue
+    ignore:.*elementwise comparison failed; returning scalar in.*:FutureWarning
+    # numba with NumPy dev
+    ignore:`np.MachAr` is deprecated.*:DeprecationWarning
+    # matplotlib 3.6 and pyvista/nilearn
+    ignore:.*cmap function will be deprecated.*:
+    """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
         if warning_line and not warning_line.startswith('#'):
@@ -643,17 +600,26 @@ def _fwd_subvolume(_evoked_cov_sphere):
         evoked.info, fname_trans, src_vol, sphere, mindist=5.0)
 
 
+@pytest.fixture
+def fwd_volume_small(_fwd_subvolume):
+    """Provide a small volumetric source space."""
+    return _fwd_subvolume.copy()
+
+
 @pytest.fixture(scope='session')
 def _all_src_types_fwd(_fwd_surf, _fwd_subvolume):
     """Create all three forward types (surf, vol, mixed)."""
-    fwds = dict(surface=_fwd_surf, volume=_fwd_subvolume)
+    fwds = dict(
+        surface=_fwd_surf.copy(),
+        volume=_fwd_subvolume.copy())
     with pytest.raises(RuntimeError,
                        match='Invalid source space with kinds'):
         fwds['volume']['src'] + fwds['surface']['src']
 
     # mixed (4)
     fwd = fwds['surface'].copy()
-    f2 = fwds['volume']
+    f2 = fwds['volume'].copy()
+    del _fwd_surf, _fwd_subvolume
     for keys, axis in [(('source_rr',), 0),
                        (('source_nn',), 0),
                        (('sol', 'data'), 1),

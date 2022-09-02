@@ -17,7 +17,7 @@ from mne.io import read_raw_fif
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne.utils import (requires_sklearn, catch_logging, _record_warnings)
 from mne.viz.ica import _create_properties_layout, plot_ica_properties
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _fake_keypress
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -158,17 +158,17 @@ def test_plot_ica_properties():
     # test topomap change type
     ax = fig.axes[ax_labels.index('topomap')]
     assert ax.get_title() == 'ICA001 (mag)'
-    fig.canvas.key_press_event('t')
+    _fake_keypress(fig, 't')
     assert ax.get_title() == 'ICA001 (grad)'
-    fig.canvas.key_press_event('t')
+    _fake_keypress(fig, 't')
     assert ax.get_title() == 'ICA001 (mag)'
 
     # test log scale
     ax = fig.axes[ax_labels.index('spectrum')]
     assert ax.get_xscale() == 'log'
-    fig.canvas.key_press_event('l')
+    _fake_keypress(fig, 'l')
     assert ax.get_xscale() == 'linear'
-    fig.canvas.key_press_event('l')
+    _fake_keypress(fig, 'l')
     assert ax.get_xscale() == 'log'
 
     plt.close('all')

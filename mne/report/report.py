@@ -1693,8 +1693,8 @@ class Report:
             The data to use for visualization of the effects of ICA cleaning.
             To only plot the ICA component topographies, explicitly pass
             ``None``.
-        %(picks_ica)s  If ``None``, plot all components. This only affects
-            the behavior of the component topography and properties plots.
+        %(picks_ica)s This only affects the behavior of the component
+            topography and properties plots.
         ecg_evoked, eog_evoked : path-line | mne.Evoked | None
             Evoked signal based on ECG and EOG epochs, respectively. If passed,
             will be used to visualize the effects of artifact rejection.

@@ -33,6 +33,11 @@ def _reload_backend(backend_name):
     logger.info('Using %s 3d backend.\n' % backend_name)
 
 
+def _get_backend():
+    _get_3d_backend()
+    return backend
+
+
 def _get_renderer(*args, **kwargs):
     _get_3d_backend()
     return backend._Renderer(*args, **kwargs)

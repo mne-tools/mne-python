@@ -44,14 +44,12 @@ References
 # License: BSD-3-Clause
 
 # %%
-import os.path as op
-
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import mne
-from mne.datasets import somato
 from mne.baseline import rescale
+from mne.datasets import somato
 from mne.stats import bootstrap_confidence_interval
 
 # %%
@@ -59,8 +57,8 @@ from mne.stats import bootstrap_confidence_interval
 data_path = somato.data_path()
 subject = '01'
 task = 'somato'
-raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
-                    'sub-{}_task-{}_meg.fif'.format(subject, task))
+raw_fname = (data_path / f'sub-{subject}' / 'meg' /
+             f'sub-{subject}_task-{task}_meg.fif')
 
 # let's explore some frequency bands
 iter_freqs = [
@@ -123,7 +121,7 @@ def stat_fun(x):
 
 # Plot
 fig, axes = plt.subplots(4, 1, figsize=(10, 7), sharex=True, sharey=True)
-colors = plt.get_cmap('winter_r')(np.linspace(0, 1, 4))
+colors = plt.colormaps['winter_r'](np.linspace(0, 1, 4))
 for ((freq_name, fmin, fmax), average), color, ax in zip(
         frequency_map, colors, axes.ravel()[::-1]):
     times = average.times * 1e3

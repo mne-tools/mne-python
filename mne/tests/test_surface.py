@@ -18,11 +18,14 @@ from mne.io.constants import FIFF
 from mne.surface import (_compute_nearest, _tessellate_sphere, fast_cross_3d,
                          get_head_surf, read_curvature, get_meg_helmet_surf,
                          _normal_orth, _read_patch, _marching_cubes,
-                         _voxel_neighbors, warp_montage_volume)
-from mne.transforms import _get_trans, compute_volume_registration, apply_trans
+                         _voxel_neighbors, warp_montage_volume,
+                         _project_onto_surface, _get_ico_surface)
+from mne.transforms import (_get_trans, compute_volume_registration,
+                            apply_trans)
 from mne.utils import (catch_logging, object_diff,
                        requires_freesurfer, requires_nibabel, requires_dipy,
                        _record_warnings)
+
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -405,3 +408,31 @@ def test_warp_montage_volume():
     with pytest.warns(RuntimeWarning, match='not assigned'):
         warp_montage_volume(doubled_montage, CT, reg_affine,
                             None, 'sample', subjects_dir_from=subjects_dir)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('ret_nn', (False, True))
+@pytest.mark.parametrize('method', ('accurate', 'nearest'))
+def test_project_onto_surface(method, ret_nn):
+    """Test _project_onto_surface (gh-10930)."""
+    locs = np.random.default_rng(0).normal(size=(10, 3))
+    locs *= 2 / np.linalg.norm(locs, axis=1)[:, None]  # lie on a sphere rad=2
+    surf = _get_ico_surface(3)
+    assert len(surf['rr']) == 642
+    assert_allclose(np.linalg.norm(surf['rr'], axis=1), 1., rtol=1e-3)  # unit
+    # project
+    weights, tri_idx, *out = _project_onto_surface(
+        locs, surf, project_rrs=True, return_nn=ret_nn, method=method)
+    locs /= 2.  # back to unit
+    assert_allclose(np.linalg.norm(locs, axis=1), 1., rtol=1e-5)
+    assert len(out) == 2 if ret_nn else 1
+    # for a sphere, both the rr (out[0]) and nn (out[1], if exists) should
+    # both be very similar to each other and to our unit-length `locs`
+    for kind, comp in zip(('rr', 'nn'), out):
+        assert_allclose(
+            np.linalg.norm(comp, axis=1), 1., atol=0.05,
+            err_msg=f'{kind} not unit vectors for {method}')
+        cos = np.sum(locs * comp, axis=1)
+        assert_allclose(
+            cos, 1., atol=0.05,  # ico > 3 would be even better tol
+            err_msg=f'{kind} not in same direction as locs for {method}')

@@ -501,7 +501,7 @@ def test_time_as_index():
 
     # Test original (non-rounding) indexing behavior
     orig_inds = raw.time_as_index(raw.times)
-    assert(len(set(orig_inds)) != len(orig_inds))
+    assert len(set(orig_inds)) != len(orig_inds)
 
     # Test new (rounding) indexing behavior
     new_inds = raw.time_as_index(raw.times, use_rounding=True)

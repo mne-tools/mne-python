@@ -163,6 +163,10 @@ _BUILTIN_STANDARD_MONTAGES = [
     _BuiltinStandardMontage(
         name='artinis-brite23',
         description='Artinis Brite23 fNIRS (11 sources, 7 detectors)',
+    ),
+    _BuiltinStandardMontage(
+        name='brainproducts-RNP-BA-128',
+        description='Brain Products with 10-10 electrode names (128 channels)',
     )
 ]
 
@@ -371,7 +375,7 @@ class DigMontage(object):
         system and location values.
         """
         def is_fid_defined(fid):
-            return not(
+            return not (
                 fid.nasion is None and fid.lpa is None and fid.rpa is None
             )
 
@@ -427,6 +431,15 @@ class DigMontage(object):
         out = self.copy()
         out += other
         return out
+
+    def __eq__(self, other):
+        """Compare different DigMontage objects for equality.
+
+        Returns
+        -------
+        Boolean output from comparison of .dig
+        """
+        return self.dig == other.dig and self.ch_names == other.ch_names
 
     def _get_ch_pos(self):
         pos = [d['r'] for d in _get_dig_eeg(self.dig)]
@@ -1099,7 +1112,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     if not custom_eeg_ref_dig:
         refs = set(ch_pos) & {'EEG000', 'REF'}
         assert len(refs) <= 1
-        eeg_ref_pos = np.zeros(3) if not(refs) else ch_pos.pop(refs.pop())
+        eeg_ref_pos = np.zeros(3) if not refs else ch_pos.pop(refs.pop())
 
     # This raises based on info being subset/superset of montage
     info_names = [ch['ch_name'] for ch in chs]

@@ -333,10 +333,10 @@ def rotation3d_align_z_axis(target_z_axis):
                             target_z_axis[1] * target_z_axis[1])
 
     # assert that r is a rotation matrix r^t * r = I and det(r) = 1
-    assert(np.any((r.dot(r.T) - np.identity(3)) < 1E-12))
-    assert((np.linalg.det(r) - 1.0) < 1E-12)
+    assert np.any((r.dot(r.T) - np.identity(3)) < 1E-12)
+    assert (np.linalg.det(r) - 1.0) < 1E-12
     # assert that r maps [0 0 1] on the device z axis (target_z_axis)
-    assert(np.linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12)
+    assert np.linalg.norm(target_z_axis - r.dot([0, 0, 1])) < 1e-12
 
     return r
 
@@ -1626,7 +1626,8 @@ def _reslice_normalize(img, zooms):
 
 @verbose
 def compute_volume_registration(moving, static, pipeline='all', zooms=None,
-                                niter=None, verbose=None):
+                                niter=None, *, starting_affine=None,
+                                verbose=None):
     """Align two volumes using an affine and, optionally, SDR.
 
     Parameters
@@ -1642,6 +1643,10 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
         (each with values that are float`, tuple, or None) to provide separate
         reslicing/accuracy for the steps.
     %(niter)s
+    starting_affine : ndarray
+        The affine to initialize the registration with.
+
+        .. versionadded:: 1.2
     %(verbose)s
 
     Returns
@@ -1658,10 +1663,12 @@ def compute_volume_registration(moving, static, pipeline='all', zooms=None,
     .. versionadded:: 0.24
     """
     return _compute_volume_registration(
-        moving, static, pipeline, zooms, niter)[:2]
+        moving, static, pipeline, zooms, niter,
+        starting_affine=starting_affine)[:2]
 
 
-def _compute_volume_registration(moving, static, pipeline, zooms, niter):
+def _compute_volume_registration(moving, static, pipeline, zooms, niter, *,
+                                 starting_affine=None):
     _require_version('nibabel', 'SDR morph', '2.1.0')
     _require_version('dipy', 'SDR morph', '0.10.1')
     import nibabel as nib
@@ -1682,7 +1689,7 @@ def _compute_volume_registration(moving, static, pipeline, zooms, niter):
     logger.info('Computing registration...')
 
     # affine optimizations
-    reg_affine = None
+    reg_affine = starting_affine
     sdr_morph = None
     pipeline_options = dict(translation=[center_of_mass, translation],
                             rigid=[rigid], affine=[affine])

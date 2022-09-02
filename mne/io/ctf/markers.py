@@ -13,7 +13,7 @@ from .info import _convert_time
 
 def _get_markers(fname):
     def consume(fid, predicate):  # just a consumer to move around conveniently
-        while(predicate(fid.readline())):
+        while predicate(fid.readline()):
             pass
 
     def parse_marker(string):  # XXX: there should be a nicer way to do that

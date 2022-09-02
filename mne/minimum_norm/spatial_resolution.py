@@ -10,7 +10,7 @@ Metrics can be computed for point-spread and cross-talk functions (PSFs/CTFs).
 import numpy as np
 
 from .. import SourceEstimate
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _check_option
 
 
 @verbose
@@ -284,6 +284,8 @@ def _relative_amplitude(resmat, src, function, metric):
 def _get_src_locations(src):
     """Get source positions from src object."""
     # vertices used in forward and inverse operator
+    # for now let's just support surface source spaces
+    _check_option('source space kind', src.kind, ('surface',))
     vertno_lh = src[0]['vertno']
     vertno_rh = src[1]['vertno']
 

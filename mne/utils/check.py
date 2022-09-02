@@ -13,13 +13,12 @@ import os.path as op
 from pathlib import Path
 import re
 import sys
-import warnings
 import numbers
 
 import numpy as np
 
 from ..fixes import _median_complex, _compare_version
-from ._logging import warn, logger, verbose
+from ._logging import warn, logger, verbose, _record_warnings
 
 
 def _ensure_int(x, name='unknown', must_be='an int', *, extra=''):
@@ -273,8 +272,9 @@ def _check_preload(inst, msg):
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..time_frequency import _BaseTFR
+    from ..time_frequency.spectrum import BaseSpectrum
 
-    if isinstance(inst, (_BaseTFR, Evoked)):
+    if isinstance(inst, (_BaseTFR, Evoked, BaseSpectrum)):
         pass
     else:
         name = "epochs" if isinstance(inst, BaseEpochs) else 'raw'
@@ -382,6 +382,15 @@ def _check_edflib_installed(strict=True):
 def _check_pybv_installed(strict=True):
     """Aux function."""
     return _soft_import('pybv', 'exporting to BrainVision', strict=strict)
+
+
+def _check_pymatreader_installed(strict=True):
+    """Aux function."""
+    return _soft_import(
+        'pymatreader',
+        'loading v7.3 (HDF5) .MAT files',
+        strict=strict
+    )
 
 
 def _check_pandas_index_arguments(index, valid):
@@ -996,13 +1005,19 @@ def _safe_input(msg, *, alt=None, use=None):
 
 
 def _ensure_events(events):
-    events_type = type(events)
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter('ignore')  # deprecation for object array
-        events = np.asarray(events)
+    err_msg = f'events should be a NumPy array of integers, got {type(events)}'
+    with _record_warnings():
+        try:
+            events = np.asarray(events)
+        except ValueError as np_err:
+            if str(np_err).startswith(
+                    'setting an array element with a sequence. The requested '
+                    'array has an inhomogeneous shape'):
+                raise TypeError(err_msg) from None
+            else:
+                raise
     if not np.issubdtype(events.dtype, np.integer):
-        raise TypeError('events should be a NumPy array of integers, '
-                        f'got {events_type}')
+        raise TypeError(err_msg)
     if events.ndim != 2 or events.shape[1] != 3:
         raise ValueError(
             f'events must be of shape (N, 3), got {events.shape}')

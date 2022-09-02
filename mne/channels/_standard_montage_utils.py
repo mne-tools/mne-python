@@ -163,6 +163,8 @@ standard_montage_look_up_table = {
                                basename='artinis-octamon.elc'),
     'artinis-brite23': partial(_mgh_or_standard, coord_frame='mri',
                                basename='artinis-brite23.elc'),
+    'brainproducts-RNP-BA-128': partial(
+        _easycap, basename='brainproducts-RNP-BA-128.txt')
 }
 
 
@@ -308,7 +310,7 @@ def _read_theta_phi_in_degrees(fname, head_size, fid_names=None,
 def _read_elp_besa(fname, head_size):
     # This .elp is not the same as polhemus elp. see _read_isotrak_elp_points
     dtype = np.dtype('S8, S8, f8, f8, f8')
-    data = np.loadtxt(fname, dtype=dtype, skiprows=1)
+    data = np.loadtxt(fname, dtype=dtype)
 
     ch_names = data['f1'].astype(str).tolist()
     az = data['f2']

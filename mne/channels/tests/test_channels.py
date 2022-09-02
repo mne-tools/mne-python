@@ -282,14 +282,14 @@ def test_read_ch_adjacency(tmp_path):
 
 def _download_ft_neighbors(target_dir):
     """Download the known neighbors from FieldTrip."""
-    import pooch
-    pooch.get_logger().setLevel('ERROR')  # reduce verbosity
-
     # The entire FT repository is larger than a GB, so we'll just download
     # the few files we need.
     def _download_one_ft_neighbor(
         neighbor: _BuiltinChannelAdjacency
     ):
+        # Log level setting must happen inside the job to work properly
+        import pooch
+        pooch.get_logger().setLevel('ERROR')  # reduce verbosity
         fname = neighbor.fname
         url = neighbor.source_url
 
@@ -448,6 +448,16 @@ def test_drop_channels():
     raw.drop_channels({"MEG 0132", "MEG 0133"})  # set argument
     pytest.raises(ValueError, raw.drop_channels, ["MEG 0111", 5])
     pytest.raises(ValueError, raw.drop_channels, 5)  # must be list or str
+
+    # by default, drop channels raises a ValueError if a channel can't be found
+    m_chs = ["MEG 0111", "MEG blahblah"]
+    with pytest.raises(ValueError, match='not found, nothing dropped'):
+        raw.drop_channels(m_chs)
+    # ...but this can be turned to a warning
+    with pytest.warns(RuntimeWarning, match='not found, nothing dropped'):
+        raw.drop_channels(m_chs, on_missing='warn')
+    # ...or ignored altogether
+    raw.drop_channels(m_chs, on_missing='ignore')
 
 
 def test_pick_channels():

@@ -96,8 +96,8 @@ class RawSNIRF(BaseRaw):
                      "MNE does not support this feature. "
                      "Only the first dataset will be processed.")
 
-            manafacturer = _get_metadata_str(dat, "ManufacturerName")
-            if (optode_frame == "unknown") & (manafacturer == "Gowerlabs"):
+            manufacturer = _get_metadata_str(dat, "ManufacturerName")
+            if (optode_frame == "unknown") & (manufacturer == "Gowerlabs"):
                 optode_frame = "head"
 
             snirf_data_type = np.array(dat.get('nirs/data1/measurementList1'

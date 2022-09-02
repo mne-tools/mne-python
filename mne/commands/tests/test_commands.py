@@ -158,7 +158,7 @@ def test_make_scalp_surfaces(tmp_path, monkeypatch):
     dense_fname = op.join(subj_dir, 'sample-head-dense.fif')
     medium_fname = op.join(subj_dir, 'sample-head-medium.fif')
     with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
-        monkeypatch.delenv('FREESURFER_HOME', None)
+        monkeypatch.delenv('FREESURFER_HOME')
         with pytest.raises(RuntimeError, match='The FreeSurfer environ'):
             mne_make_scalp_surfaces.run()
         shutil.copy(op.join(surf_path, 'lh.seghead'), surf_path_new)
@@ -264,7 +264,7 @@ def test_watershed_bem(tmp_path):
         assert_allclose(vol_info['cras'], Pxyz_c, **kwargs)
 
 
-@pytest.mark.timeout(120)  # took ~70 sec locally
+@pytest.mark.timeout(180)  # took ~70 sec locally
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
 @requires_freesurfer
@@ -307,8 +307,7 @@ def test_flash_bem(tmp_path):
 
     # Test synthesize flash5 with MEF flash5 and flash30 default locations
     flash5_img = convert_flash_mris(
-        subject="sample", subjects_dir=tempdir, convert=False,
-        unwarp=False
+        subject="sample", subjects_dir=tempdir, unwarp=False
     )
     assert flash5_img == (flash_path / "parameter_maps" / "flash5.mgz")
     assert flash5_img.exists()
@@ -421,5 +420,5 @@ def test_anonymize(tmp_path):
     with ArgvSetter(('-f', raw_fname, '-o', out_fname)):
         mne_anonymize.run()
     info = read_info(out_fname)
-    assert(op.exists(out_fname))
+    assert op.exists(out_fname)
     assert info['meas_date'] == _stamp_to_dt((946684800, 0))

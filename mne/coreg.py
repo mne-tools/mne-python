@@ -822,7 +822,7 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
         scale = cfg['scale']
     scale = np.atleast_1d(scale)
     if scale.ndim != 1 or scale.shape[0] not in (1, 3):
-        raise ValueError("Invalid shape for scale parameer. Need scalar "
+        raise ValueError("Invalid shape for scale parameter. Need scalar "
                          "or array of length 3. Got shape %s."
                          % (scale.shape,))
     n_params = len(scale)
@@ -1764,7 +1764,7 @@ class Coregistration(object):
         self._log_dig_mri_distance('Start')
         n_scale_params = self._n_scale_params
         if n_scale_params == 3:
-            # enfore 1 even for 3-axis here (3 points is not enough)
+            # enforce 1 even for 3-axis here (3 points is not enough)
             logger.info("Enforcing 1 scaling parameter for fit "
                         "with fiducials.")
             n_scale_params = 1

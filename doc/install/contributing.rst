@@ -48,6 +48,7 @@ possible.
 
 
 .. dropdown:: Want an example to work through?
+    :color: success
     :icon: rocket
 
     Feel free to just read through the rest of the page, but if you find it
@@ -93,8 +94,8 @@ Setting up your local development environment
 Configuring git
 ~~~~~~~~~~~~~~~
 
-.. sidebar:: Git GUI alternative
-    :class: sd-card sd-shadow-sm
+.. note:: Git GUI alternative
+    :class: sidebar
 
     `GitHub desktop`_ is a GUI alternative to command line git that some users
     appreciate; it is available for |windows| Windows and |apple| MacOS.
@@ -153,31 +154,59 @@ into a terminal and you should see ::
 
    make: *** No targets specified and no makefile found.  Stop.
 
-If you don't see this or something similar:
+If you don't see this or something similar, you may not have ``make`` installed.
 
-.. sidebar:: If you get:
-    :class: sd-card sd-shadow-sm
+.. tab-set::
 
-    *bash: conda: command not found*
+    .. tab-item:: Linux
+        :class-content: text-center
 
-    you need to add
+        .. button-link:: https://www.gnu.org/software/make/
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold mt-3
 
-    - :file:`{path_to_Anaconda}`
-    - :file:`{path_to_Anaconda}\\Scripts`
+            |cloud-download-alt| |ensp| Get make for Linux
 
-    to Windows-PATH.
+    .. tab-item:: macOS
+        :class-content: text-center
 
-- For Linux/MacOS, get `GNU Make`_
-- For Windows, you can install make for git BASH (which comes with `git for Windows`_):
+        .. button-link:: https://www.gnu.org/software/make/
+            :ref-type: ref
+            :color: primary
+            :shadow:
+            :class: font-weight-bold mt-3
 
-  1. Download :file:`make-{newest.version}-without-guile-w32-bin.zip` from `ezwinports`_
-  2. Extract zip-folder
-  3. Copy the contents into :file:`{path_to_git}\\mingw64\\` (e.g. by merging the
-     folders with the equivalent ones already inside)
-  4. For the first time using git BASH, you need to run once (to be able to
-     activate your mnedev-environment): ::
+            |cloud-download-alt| |ensp| Get make for macOS
 
-      $ conda init bash
+    .. tab-item:: Windows
+
+        If you see: ::
+
+            bash: make: command not found
+
+        Install ``make`` for git BASH (which comes with `git for Windows`_):
+
+        1. Download :file:`make-{newest.version}-without-guile-w32-bin.zip` from `ezwinports`_
+        2. Extract zip-folder
+        3. Copy the contents into :file:`{path_to_git}\\mingw64\\` (e.g. by merging the
+           folders with the equivalent ones already inside)
+        4. For the first time using git BASH, you need to run once (to be able to
+           activate your ``mnedev`` environment): ::
+
+            $ conda init bash
+
+        If instead you see an error like: ::
+
+                bash: conda: command not found
+
+        at the top of your git BASH window, you need to add
+
+        - :file:`{path_to_Anaconda}`
+        - :file:`{path_to_Anaconda}\\Scripts`
+
+        to Windows-PATH first.
 
 
 Forking the MNE-Python repository
@@ -204,8 +233,8 @@ of how that structure is set up is given here:
 Creating the virtual environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. sidebar:: Supported Python environments
-    :class: sd-card sd-shadow-sm
+.. note:: Supported Python environments
+    :class: sidebar
 
     We strongly recommend the `Anaconda`_ or `Miniconda`_ environment managers
     for Python. Other setups are possible but are not officially supported by
@@ -342,8 +371,8 @@ feature, you should first synchronize your local ``main`` branch with the
     $ git merge upstream/main      # synchronize local main branch with remote upstream main branch
     $ git checkout -b new-feature-x  # create local branch "new-feature-x" and check it out
 
-.. sidebar:: Alternative
-    :class: sd-card sd-shadow-sm
+.. note:: Alternative
+    :class: sidebar
 
     You can save some typing by using ``git pull upstream/main`` to replace
     the ``fetch`` and ``merge`` lines above.
@@ -517,11 +546,11 @@ like this:
                             'new_param in 0.XX.')
             if new_param is None:
                 new_param = old_param
-                warn(depr_message, DeprecationWarning)
+                warn(depr_message, FutureWarning)
             else:
                 warn(depr_message + ' Since you passed values for both '
                      'old_param and new_param, old_param will be ignored.',
-                     DeprecationWarning)
+                     FutureWarning)
         # Do whatever you have to do with new_param
         return 'foo'
 
@@ -532,13 +561,13 @@ conditions you expect:
 .. code-block:: python
 
     # test deprecation warning for function
-    with pytest.warns(DeprecationWarning, match='my_function is deprecated'):
+    with pytest.warns(FutureWarning, match='my_function is deprecated'):
         my_function()
 
     # test deprecation warning for parameter
-    with pytest.warns(DeprecationWarning, match='values for both old_param'):
+    with pytest.warns(FutureWarning, match='values for both old_param'):
         my_other_function(new_param=1, old_param=2)
-    with pytest.warns(DeprecationWarning, match='old_param is deprecated and'):
+    with pytest.warns(FutureWarning, match='old_param is deprecated and'):
         my_other_function(old_param=2)
 
 You should also search the codebase for any cases where the deprecated function
@@ -829,8 +858,8 @@ to both visualization functions and tutorials/examples.
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. sidebar:: pytest flags
-    :class: sd-card sd-shadow-sm
+.. note:: pytest flags
+    :class: sidebar
 
     The ``-x`` flag exits the pytest run when any test fails; this can speed
     up debugging when running all tests in a file or module.
@@ -886,12 +915,16 @@ all the documentation and additionally execute just your example or tutorial
 you expect).
 
 .. note::
-   On Windows, to use the pattern approach, use the following two lines:
+   If you are using a *Windows command shell*, to use the pattern approach,
+   use the following two lines:
 
-   .. code-block:: python
+   .. code-block:: doscon
 
-      set PATTERN={<REGEX_TO_SELECT_MY_TUTORIAL>}
-      make html_dev-pattern
+      > set PATTERN=<REGEX_TO_SELECT_MY_TUTORIAL>
+      > make html_dev-pattern
+
+   If you are on Windows but using the `git BASH`_ shell, use the same two
+   commands but replace ``set`` with ``export``.
 
 After either of these commands completes, ``make show`` will open the
 locally-rendered documentation site in your browser. Additional ``make``
@@ -1017,7 +1050,6 @@ it can serve as a useful example of what to expect from the PR review process.
 .. git installation
 
 .. _the .dmg installer: https://git-scm.com/download/mac
-.. _git for Windows: https://gitforwindows.org/
 .. _official Linux instructions: https://git-scm.com/download/linux
 .. _more detailed instructions and alternatives: https://www.atlassian.com/git/tutorials/install-git
 .. _Windows subsystem for Linux: https://docs.microsoft.com/en-us/windows/wsl/about
@@ -1027,8 +1059,6 @@ it can serve as a useful example of what to expect from the PR review process.
 
 .. github help pages
 
-.. _GitHub Help: https://help.github.com
-.. _GitHub learning lab: https://lab.github.com/
 .. _fork: https://help.github.com/en/articles/fork-a-repo
 .. _clone: https://help.github.com/en/articles/cloning-a-repository
 .. _push: https://help.github.com/en/articles/pushing-to-a-remote

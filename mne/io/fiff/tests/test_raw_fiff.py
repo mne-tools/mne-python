@@ -1284,17 +1284,15 @@ def test_to_data_frame():
     """Test raw Pandas exporter."""
     from pandas import Timedelta
     raw = read_raw_fif(test_fif_fname).crop(0, 1).load_data()
-    _, times = raw[0, :10]
     df = raw.to_data_frame(index='time')
     assert ((df.columns == raw.ch_names).all())
-    assert_array_equal(np.round(times * 1e3), df.index.values[:10])
     df = raw.to_data_frame(index=None)
     assert ('time' in df.columns)
     assert_array_equal(df.values[:, 1], raw._data[0] * 1e13)
     assert_array_equal(df.values[:, 3], raw._data[2] * 1e15)
     # test long format
     df_long = raw.to_data_frame(long_format=True)
-    assert(len(df_long) == raw.get_data().size)
+    assert len(df_long) == raw.get_data().size
     expected = ('time', 'channel', 'ch_type', 'value')
     assert set(expected) == set(df_long.columns)
     # test bad time format
@@ -1311,13 +1309,27 @@ def test_to_data_frame():
 @pytest.mark.parametrize('time_format', (None, 'ms', 'timedelta', 'datetime'))
 def test_to_data_frame_time_format(time_format):
     """Test time conversion in epochs Pandas exporter."""
-    from pandas import Timedelta, Timestamp
+    from pandas import Timedelta, Timestamp, to_timedelta
     raw = read_raw_fif(test_fif_fname, preload=True)
     # test time_format
     df = raw.to_data_frame(time_format=time_format)
     dtypes = {None: np.float64, 'ms': np.int64, 'timedelta': Timedelta,
               'datetime': Timestamp}
     assert isinstance(df['time'].iloc[0], dtypes[time_format])
+    # test values
+    _, times = raw[0, :10]
+    offset = 0.
+    if time_format == 'datetime':
+        times += raw.first_time
+        offset = raw.info['meas_date']
+    elif time_format == 'timedelta':
+        offset = Timedelta(0.)
+    funcs = {None: lambda x: x,
+             'ms': lambda x: np.rint(x * 1e3).astype(int),  # s → ms
+             'timedelta': partial(to_timedelta, unit='s'),
+             'datetime': partial(to_timedelta, unit='s')
+             }
+    assert_array_equal(funcs[time_format](times) + offset, df['time'][:10])
 
 
 def test_add_channels():

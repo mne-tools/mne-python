@@ -32,12 +32,12 @@ ALLOWED_QUIVER_MODES = ('2darrow', 'arrow', 'cone', 'cylinder', 'sphere',
 
 def _get_colormap_from_array(colormap=None, normalized_colormap=False,
                              default_colormap='coolwarm'):
-    from matplotlib import cm
+    from ..utils import _get_cmap
     from matplotlib.colors import ListedColormap
     if colormap is None:
-        cmap = cm.get_cmap(default_colormap)
+        cmap = _get_cmap(default_colormap)
     elif isinstance(colormap, str):
-        cmap = cm.get_cmap(colormap)
+        cmap = _get_cmap(colormap)
     elif normalized_colormap:
         cmap = ListedColormap(colormap)
     else:
@@ -145,6 +145,10 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         app = QApplication.instance() or QApplication(sys.argv or [app_name])
         app.setApplicationName(app_name)
     app.setOrganizationName(organization_name)
+    try:
+        app.setAttribute(Qt.AA_UseHighDpiPixmaps)  # works on PyQt5 and PySide2
+    except AttributeError:
+        pass  # not required on PyQt6 and PySide6 anyway
 
     if enable_icon or splash:
         icons_path = _qt_init_icons()

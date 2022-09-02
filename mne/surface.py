@@ -331,9 +331,12 @@ def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
         idx = _compute_nearest(surf['rr'], rrs)
         out = (None, None, surf['rr'][idx])
         if return_nn:
+            surf_geom = _get_tri_supp_geom(surf)
             nn = _accumulate_normals(surf['tris'].astype(int), surf_geom['nn'],
                                      len(surf['rr']))
-            out += (nn[idx],)
+            nn = nn[idx]
+            _normalize_vectors(nn)
+            out += (nn,)
     return out
 
 

@@ -19,7 +19,6 @@ tutorial dataset. For comparison, see :footcite:`TadelEtAl2011` and
 
 # %%
 
-import os.path as op
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -37,7 +36,7 @@ print(__doc__)
 # are read to construct instances of :class:`mne.io.Raw`.
 data_path = bst_phantom_elekta.data_path(verbose=True)
 
-raw_fname = op.join(data_path, 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif')
+raw_fname = data_path / 'kojak_all_200nAm_pp_no_chpi_no_ms_raw.fif'
 raw = read_raw_fif(raw_fname)
 
 # %%

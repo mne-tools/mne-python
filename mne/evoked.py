@@ -9,6 +9,7 @@
 # License: BSD-3-Clause
 
 from copy import deepcopy
+
 import numpy as np
 
 from .baseline import rescale, _log_rescale, _check_baseline
@@ -18,12 +19,12 @@ from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
                        _BORDER_DEFAULT)
 from .filter import detrend, FilterMixin, _check_fun
-from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
+from .utils import (check_fname, logger, verbose, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
-                    fill_doc, _check_option, ShiftTimeMixin, _build_data_frame,
+                    fill_doc, _check_option, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
                     _convert_times, _scale_dataframe_data, _check_time_format,
-                    _check_preload, _check_fname)
+                    _check_preload, _check_fname, TimeMixin)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -41,8 +42,9 @@ from .io.proj import ProjMixin
 from .io.write import (start_and_end_file, start_block, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id, write_float, write_complex_float_matrix)
-from .io.base import TimeMixin, _check_maxshield, _get_ch_factors
+from .io.base import _check_maxshield, _get_ch_factors
 from .parallel import parallel_func
+from .time_frequency.spectrum import Spectrum, SpectrumMixin
 
 _aspect_dict = {
     'average': FIFF.FIFFV_ASPECT_AVERAGE,
@@ -63,7 +65,7 @@ _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 @fill_doc
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              InterpolationMixin, FilterMixin, TimeMixin, SizeMixin,
-             ShiftTimeMixin):
+             SpectrumMixin):
     """Evoked data.
 
     Parameters
@@ -128,9 +130,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
         fname = _check_fname(fname=fname, must_exist=True, overwrite='read')
-        self.info, self.nave, self._aspect_kind, self.comment, self.times, \
+        self.info, self.nave, self._aspect_kind, self.comment, times, \
             self.data, self.baseline = _read_evoked(fname, condition, kind,
                                                     allow_maxshield)
+        self._set_times(times)
+        self._raw_times = self.times.copy()
+        self._decim = 1
+
         self._update_first_last()
         self.preload = True
         # project and baseline correct
@@ -266,7 +272,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                    sfreq=self.info['sfreq'])
         if self.baseline is not None and baseline is None:
             raise ValueError('The data has already been baseline-corrected. '
-                             'Cannot remove existing basline correction.')
+                             'Cannot remove existing baseline correction.')
         elif baseline is None:
             # Do not rescale
             logger.info(_log_rescale(None))
@@ -346,109 +352,22 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         s += ", ~%s" % (sizeof_fmt(self._size),)
         return "<Evoked | %s>" % s
 
+    def _repr_html_(self):
+        from .html_templates import repr_templates_env
+        if self.baseline is None:
+            baseline = 'off'
+        else:
+            baseline = tuple([f'{b:.3f}' for b in self.baseline])
+            baseline = f'{baseline[0]} – {baseline[1]} sec'
+
+        t = repr_templates_env.get_template('evoked.html.jinja')
+        t = t.render(evoked=self, baseline=baseline)
+        return t
+
     @property
     def ch_names(self):
         """Channel names."""
         return self.info['ch_names']
-
-    @property
-    def tmin(self):
-        """First time point.
-
-        .. versionadded:: 0.21
-        """
-        return self.times[0]
-
-    @property
-    def tmax(self):
-        """Last time point.
-
-        .. versionadded:: 0.21
-        """
-        return self.times[-1]
-
-    @fill_doc
-    def crop(self, tmin=None, tmax=None, include_tmax=True, verbose=None):
-        """Crop data to a given time interval.
-
-        Parameters
-        ----------
-        tmin : float | None
-            Start time of selection in seconds.
-        tmax : float | None
-            End time of selection in seconds.
-        %(include_tmax)s
-        %(verbose)s
-
-        Returns
-        -------
-        evoked : instance of Evoked
-            The cropped Evoked object, modified in-place.
-
-        Notes
-        -----
-        %(notes_tmax_included_by_default)s
-        """
-        if tmin is None:
-            tmin = self.tmin
-        elif tmin < self.tmin:
-            warn(f'tmin is not in Evoked time interval. tmin is set to '
-                 f'evoked.tmin ({self.tmin:g} sec)')
-            tmin = self.tmin
-
-        if tmax is None:
-            tmax = self.tmax
-        elif tmax > self.tmax:
-            warn(f'tmax is not in Evoked time interval. tmax is set to '
-                 f'evoked.tmax ({self.tmax:g} sec)')
-            tmax = self.tmax
-            include_tmax = True
-
-        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
-                          include_tmax=include_tmax)
-        self.times = self.times[mask]
-        self._update_first_last()
-        self.data = self.data[:, mask]
-
-        return self
-
-    @verbose
-    def decimate(self, decim, offset=0, verbose=None):
-        """Decimate the evoked data.
-
-        Parameters
-        ----------
-        %(decim)s
-        %(offset_decim)s
-        %(verbose)s
-
-        Returns
-        -------
-        evoked : instance of Evoked
-            The decimated Evoked object.
-
-        See Also
-        --------
-        Epochs.decimate
-        Epochs.resample
-        mne.io.Raw.resample
-
-        Notes
-        -----
-        %(decim_notes)s
-
-        .. versionadded:: 0.13.0
-        """
-        decim, offset, new_sfreq = _check_decim(self.info, decim, offset)
-        start_idx = int(round(self.times[0] * (self.info['sfreq'] * decim)))
-        i_start = start_idx % decim + offset
-        decim_slice = slice(i_start, None, decim)
-        with self.info._unlock():
-            self.info['sfreq'] = new_sfreq
-        self.data = self.data[:, decim_slice].copy()
-        self.times = self.times[decim_slice].copy()
-        self._update_first_last()
-        return self
 
     @copy_function_doc_to_method_doc(plot_evoked)
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
@@ -553,7 +472,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def animate_topomap(self, ch_type=None, times=None, frame_rate=None,
                         butterfly=False, blit=True, show=True, time_unit='s',
                         sphere=None, *, image_interp=_INTERPOLATION_DEFAULT,
-                        extrapolate=_EXTRAPOLATE_DEFAULT, verbose=None):
+                        extrapolate=_EXTRAPOLATE_DEFAULT, vmin=None, vmax=None,
+                        verbose=None):
         """Make animation of evoked data as topomap timeseries.
 
         The animation can be paused/resumed with left mouse button.
@@ -594,6 +514,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(extrapolate_topomap)s
 
             .. versionadded:: 0.22
+        %(vmin_vmax_topomap)s
+
+            .. versionadded:: 1.1.0
         %(verbose)s
 
         Returns
@@ -611,7 +534,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self, ch_type=ch_type, times=times, frame_rate=frame_rate,
             butterfly=butterfly, blit=blit, show=show, time_unit=time_unit,
             sphere=sphere, image_interp=image_interp,
-            extrapolate=extrapolate, verbose=verbose)
+            extrapolate=extrapolate, vmin=vmin, vmax=vmax, verbose=verbose)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields.
@@ -809,9 +732,98 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return out
 
     @verbose
+    def compute_psd(self, method='multitaper', fmin=0, fmax=np.inf, tmin=None,
+                    tmax=None, picks=None, proj=False, *, n_jobs=1,
+                    verbose=None, **method_kw):
+        """Perform spectral analysis on sensor data.
+
+        Parameters
+        ----------
+        %(method_psd)s
+            Default is ``'multitaper'``.
+        %(fmin_fmax_psd)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_psd)s
+
+        Returns
+        -------
+        spectrum : instance of Spectrum
+            The spectral representation of the data.
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        return Spectrum(
+            self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
+            picks=picks, proj=proj, reject_by_annotation=False, n_jobs=n_jobs,
+            verbose=verbose, **method_kw)
+
+    @verbose
+    def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
+                 proj=False, *, method='auto', average=False, dB=True,
+                 estimate='auto', xscale='linear', area_mode='std',
+                 area_alpha=0.33, color='black', line_alpha=None,
+                 spatial_colors=True, sphere=None, exclude='bads', ax=None,
+                 show=True, n_jobs=1, verbose=None, **method_kw):
+        """%(plot_psd_doc)s.
+
+        Parameters
+        ----------
+        %(fmin_fmax_psd)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(method_plot_psd_auto)s
+        %(average_plot_psd)s
+        %(dB_plot_psd)s
+        %(estimate_plot_psd)s
+        %(xscale_plot_psd)s
+        %(area_mode_plot_psd)s
+        %(area_alpha_plot_psd)s
+        %(color_plot_psd)s
+        %(line_alpha_plot_psd)s
+        %(spatial_colors_psd)s
+        %(sphere_topomap_auto)s
+
+            .. versionadded:: 0.22.0
+        exclude : list of str | 'bads'
+            Channels names to exclude from being shown. If 'bads', the bad
+            channels are excluded. Pass an empty list to plot all channels
+            (including channels marked "bad", if any).
+
+            .. versionadded:: 0.24.0
+        %(ax_plot_psd)s
+        %(show)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_psd)s
+
+        Returns
+        -------
+        fig : instance of Figure
+            Figure with frequency spectra of the data channels.
+
+        Notes
+        -----
+        %(notes_plot_psd_meth)s
+        """
+        return super().plot_psd(
+            fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks, proj=proj,
+            reject_by_annotation=False, method=method, average=average, dB=dB,
+            estimate=estimate, xscale=xscale, area_mode=area_mode,
+            area_alpha=area_alpha, color=color, line_alpha=line_alpha,
+            spatial_colors=spatial_colors, sphere=sphere, exclude=exclude,
+            ax=ax, show=show, n_jobs=n_jobs, verbose=verbose, **method_kw)
+
+    @verbose
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, long_format=False,
-                      time_format='ms', *, verbose=None):
+                      time_format=None, *, verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
@@ -858,30 +870,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         df = _build_data_frame(self, data, picks, long_format, mindex, index,
                                default_index=['time'])
         return df
-
-
-def _check_decim(info, decim, offset):
-    """Check decimation parameters."""
-    if decim < 1 or decim != int(decim):
-        raise ValueError('decim must be an integer > 0')
-    decim = int(decim)
-    new_sfreq = info['sfreq'] / float(decim)
-    lowpass = info['lowpass']
-    if decim > 1 and lowpass is None:
-        warn('The measurement information indicates data is not low-pass '
-             'filtered. The decim=%i parameter will result in a sampling '
-             'frequency of %g Hz, which can cause aliasing artifacts.'
-             % (decim, new_sfreq))
-    elif decim > 1 and new_sfreq < 3 * lowpass:
-        warn('The measurement information indicates a low-pass frequency '
-             'of %g Hz. The decim=%i parameter will result in a sampling '
-             'frequency of %g Hz, which can cause aliasing artifacts.'
-             % (lowpass, decim, new_sfreq))  # > 50% nyquist lim
-    offset = int(offset)
-    if not 0 <= offset < decim:
-        raise ValueError('decim must be at least 0 and less than %s, got '
-                         '%s' % (decim, offset))
-    return decim, offset, new_sfreq
 
 
 @fill_doc
@@ -942,8 +930,10 @@ class EvokedArray(Evoked):
 
         self.first = int(round(tmin * info['sfreq']))
         self.last = self.first + np.shape(data)[-1] - 1
-        self.times = np.arange(self.first, self.last + 1,
-                               dtype=np.float64) / info['sfreq']
+        self._set_times(np.arange(self.first, self.last + 1,
+                                  dtype=np.float64) / info['sfreq'])
+        self._raw_times = self.times.copy()
+        self._decim = 1
         self.info = info.copy()  # do not modify original info
         self.nave = nave
         self.kind = kind

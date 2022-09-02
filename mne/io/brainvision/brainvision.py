@@ -92,11 +92,12 @@ class RawBrainVision(BaseRaw):
                 offsets = None
                 n_samples = n_samples // (dtype_bytes * n_data_ch)
 
+        orig_format = "single" if isinstance(fmt, dict) else fmt
         raw_extras = dict(
             offsets=offsets, fmt=fmt, order=order, n_samples=n_samples)
         super(RawBrainVision, self).__init__(
             info, last_samps=[n_samples - 1], filenames=[data_fname],
-            orig_format=fmt, preload=preload, verbose=verbose,
+            orig_format=orig_format, preload=preload, verbose=verbose,
             raw_extras=[raw_extras], orig_units=orig_units)
 
         self.set_montage(montage)
@@ -930,7 +931,7 @@ def _parse_impedance(settings, recording_date=None):
     Parameters
     ----------
     settings : list
-        The header settings lines fom the VHDR/AHDR file.
+        The header settings lines from the VHDR/AHDR file.
     recording_date : datetime.datetime | None
         The date of the recording as extracted from the VMRK/AMRK file.
 
@@ -992,7 +993,7 @@ def _parse_impedance_ranges(settings):
     Parameters
     ----------
     settings : list
-        The header settings lines fom the VHDR/AHDR file.
+        The header settings lines from the VHDR/AHDR file.
 
     Returns
     -------

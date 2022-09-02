@@ -32,7 +32,7 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _setup_plot_projector, _prepare_joint_axes, _check_option,
                     _set_title_multiple_electrodes, _check_time_unit,
                     _plot_masked_image, _trim_ticks, _set_window_title,
-                    _prop_kw)
+                    _prop_kw, _get_cmap)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
                      _check_if_nan, _check_ch_locs, fill_doc, _is_numeric,
                      _to_rgb)
@@ -366,7 +366,7 @@ def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                     times, bad_ch_idx, titles, ch_types_used, selectable,
                     False, line_alpha=1., nave=evoked.nave,
                     time_unit=time_unit, sphere=sphere, highlight=highlight)
-        plt.setp(axes, xlabel='Time (%s)' % time_unit)
+        plt.setp(axes, xlabel=f'Time ({time_unit})')
 
     elif plot_type == 'image':
         for ai, (ax, this_type) in enumerate(zip(axes, ch_types_used)):
@@ -657,7 +657,7 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
 
     ylabel = 'Channels' if show_names else 'Channel (index)'
     t = titles[this_type] + ' (%d channel%s' % (len(data), _pl(data)) + t_end
-    ax.set(ylabel=ylabel, xlabel='Time (%s)' % (time_unit,), title=t)
+    ax.set(ylabel=ylabel, xlabel=f'Time ({time_unit})', title=t)
     _add_nave(ax, nave)
 
     yticks = np.arange(len(picks))
@@ -774,8 +774,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         consider using :meth:`mne.Evoked.plot_white`.
 
         .. versionadded:: 0.16.0
-    time_unit : str
-        The units for the time axis, can be "ms" or "s" (default).
+    %(time_unit)s
 
         .. versionadded:: 0.16
     %(sphere_topomap_auto)s
@@ -1277,7 +1276,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
                     label=label if n_columns > 1 else title,
                     color=color if n_columns > 1 else ch_colors[color_ch],
                     lw=0.5)
-            ax.set(xlabel='Time (%s)' % (time_unit,), ylabel=r'GFP ($\chi^2$)',
+            ax.set(xlabel=f'Time ({time_unit})', ylabel=r'GFP ($\chi^2$)',
                    xlim=[times[0], times[-1]], ylim=(0, 10))
             ax.axhline(1, color='red', linestyle='--', lw=2.)
             if n_columns > 1:
@@ -1669,7 +1668,7 @@ def _validate_colors_pce(colors, cmap, conditions, tags):
                         'None or a (list or dict) of (ints or floats); got {}.'
                         .format(', '.join(color_vals)))
     # convert provided ints to sequential, rank-ordered ints
-    all_int = all([isinstance(_color, Integral) for _color in color_vals])
+    all_int = all(isinstance(_color, Integral) for _color in color_vals)
     if all_int:
         colors = deepcopy(colors)
         ranks = {val: ix for ix, val in enumerate(sorted(set(color_vals)))}
@@ -1689,17 +1688,14 @@ def _validate_colors_pce(colors, cmap, conditions, tags):
 
 def _validate_cmap_pce(cmap, colors, color_vals):
     """Check and assign colormap for plot_compare_evokeds."""
-    from matplotlib.cm import get_cmap
     from matplotlib.colors import Colormap
-    all_int = all([isinstance(_color, Integral) for _color in color_vals])
-    lut = len(color_vals) if all_int else None
+    all_int = all(isinstance(_color, Integral) for _color in color_vals)
     colorbar_title = ''
     if isinstance(cmap, (list, tuple, np.ndarray)) and len(cmap) == 2:
         colorbar_title, cmap = cmap
-    if isinstance(cmap, str):
-        cmap = get_cmap(cmap, lut=lut)
-    elif isinstance(cmap, Colormap) and all_int:
-        cmap = cmap._resample(lut)
+    if isinstance(cmap, (str, Colormap)):
+        lut = len(color_vals) if all_int else None
+        cmap = _get_cmap(cmap, lut)
     return cmap, colorbar_title
 
 
@@ -1906,7 +1902,7 @@ def _draw_legend_pce(legend, split_legend, styles, linestyles, colors, cmap,
 
 
 def _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis, invert_y,
-                   vlines, tmin, tmax, unit, skip_axlabel=True):
+                   vlines, tmin, tmax, unit, skip_axlabel=True, time_unit='s'):
     """Position, draw, and truncate axes for plot_compare_evokeds."""
     # avoid matplotlib errors
     if ymin == ymax:
@@ -1937,7 +1933,8 @@ def _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis, invert_y,
             raise ValueError('"truncate_yaxis" must be bool or '
                              '"auto", got {}'.format(truncate_yaxis))
     _setup_ax_spines(ax, vlines, tmin, tmax, ybounds[0], ybounds[1], invert_y,
-                     unit, truncate_xaxis, trunc_y, skip_axlabel)
+                     unit, truncate_xaxis, trunc_y, skip_axlabel,
+                     time_unit=time_unit)
 
 
 def _get_data_and_ci(evoked, combine, combine_func, picks, scaling=1,
@@ -2037,7 +2034,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
                          truncate_xaxis=True, ylim=None, invert_y=False,
                          show_sensors=None, legend=True,
                          split_legend=None, axes=None, title=None, show=True,
-                         combine=None, sphere=None):
+                         combine=None, sphere=None, time_unit='s'):
     """Plot evoked time courses for one or more conditions and/or channels.
 
     Parameters
@@ -2101,9 +2098,9 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         and confidence bands. If not ``None``, ints or floats in the ``colors``
         parameter are mapped to steps or percentiles (respectively) along the
         colormap. If ``cmap`` is a :class:`str`, it will be passed to
-        :func:`matplotlib.cm.get_cmap`; if ``cmap`` is a tuple, its first
+        ``matplotlib.colormaps``; if ``cmap`` is a tuple, its first
         element will be used as a string to label the colorbar, and its
-        second element will be passed to :func:`matplotlib.cm.get_cmap` (unless
+        second element will be passed to ``matplotlib.colormaps`` (unless
         it is already an instance of :class:`~matplotlib.colors.Colormap`).
 
         .. versionchanged:: 0.19
@@ -2186,6 +2183,9 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         ``axes='topo'``, in which cases no combining is performed. Defaults to
         ``None``.
     %(sphere_topomap_auto)s
+    %(time_unit)s
+
+        .. versionadded:: 1.1
 
     Returns
     -------
@@ -2291,6 +2291,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
     times = one_evoked.times
     info = one_evoked.info
     sphere = _check_sphere(sphere, info)
+    time_unit, times = _check_time_unit(time_unit, one_evoked.times)
     tmin, tmax = times[0], times[-1]
     # set some defaults
     if ylim is None:
@@ -2508,7 +2509,8 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         # draw axes & vlines
         skip_axlabel = do_topo and (idx != -1)
         _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis,
-                       invert_y, vlines, tmin, tmax, units, skip_axlabel)
+                       invert_y, vlines, tmin, tmax, units, skip_axlabel,
+                       time_unit)
     # add inset scalp plot showing location of sensors picked
     if show_sensors:
         _validate_type(show_sensors, (np.int64, bool, str, type(None)),

@@ -4,6 +4,7 @@
 #
 # License: BSD-3-Clause
 
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from mne.io import RawArray
 from mne.io.meas_info import create_info
@@ -19,11 +20,12 @@ from mne import (read_epochs_eeglab, Epochs, read_evokeds, read_evokeds_mff,
                  Annotations)
 from mne.datasets import testing, misc
 from mne.export import export_evokeds, export_evokeds_mff
+from mne.fixes import _compare_version
 from mne.io import (read_raw_fif, read_raw_eeglab, read_raw_edf,
                     read_raw_brainvision)
 from mne.utils import (_check_eeglabio_installed, requires_version,
                        object_diff, _check_edflib_installed, _resource_path,
-                       _check_pybv_installed)
+                       _check_pybv_installed, _record_warnings)
 from mne.tests.test_epochs import _get_data
 
 fname_evoked = _resource_path('mne.io.tests.data', 'test-ave.fif')
@@ -340,17 +342,25 @@ def test_export_raw_edf(tmp_path, dataset, format):
         raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
 
 
+@pytest.mark.xfail(reason='eeglabio (usage?) bugs that should be fixed')
 @requires_version('pymatreader')
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
                     reason='eeglabio not installed')
 @pytest.mark.parametrize('preload', (True, False))
 def test_export_epochs_eeglab(tmp_path, preload):
     """Test saving an Epochs instance to EEGLAB's set format."""
+    import eeglabio
     raw, events = _get_data()[:2]
     raw.load_data()
     epochs = Epochs(raw, events, preload=preload)
     temp_fname = op.join(str(tmp_path), 'test.set')
-    epochs.export(temp_fname)
+    # TODO: eeglabio 0.2 warns about invalid events
+    if _compare_version(eeglabio.__version__, '==', '0.0.2-1'):
+        ctx = _record_warnings
+    else:
+        ctx = nullcontext
+    with ctx():
+        epochs.export(temp_fname)
     epochs.drop_channels([ch for ch in ['epoc', 'STI 014']
                           if ch in epochs.ch_names])
     epochs_read = read_epochs_eeglab(temp_fname)
@@ -369,10 +379,12 @@ def test_export_epochs_eeglab(tmp_path, preload):
     # test overwrite
     with pytest.raises(FileExistsError, match='Destination file exists'):
         epochs.export(temp_fname, overwrite=False)
-    epochs.export(temp_fname, overwrite=True)
+    with ctx():
+        epochs.export(temp_fname, overwrite=True)
 
     # test pathlib.Path files
-    epochs.export(Path(temp_fname), overwrite=True)
+    with ctx():
+        epochs.export(Path(temp_fname), overwrite=True)
 
     # test warning with unapplied projectors
     epochs = Epochs(raw, events, preload=preload, proj=False)

@@ -123,9 +123,6 @@ exclude_trees = ['_build']
 # documents.
 default_role = "py:obj"
 
-# The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'default'
-
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['mne.']
 
@@ -141,7 +138,7 @@ intersphinx_mapping = {
     'scipy': ('https://scipy.github.io/devdocs', None),
     'matplotlib': ('https://matplotlib.org/stable', None),
     'sklearn': ('https://scikit-learn.org/stable', None),
-    'numba': ('https://numba.pydata.org/numba-doc/latest', None),
+    'numba': ('https://numba.readthedocs.io/en/latest', None),
     'joblib': ('https://joblib.readthedocs.io/en/latest', None),
     'nibabel': ('https://nipy.org/nibabel', None),
     'nilearn': ('http://nilearn.github.io/stable', None),
@@ -163,6 +160,8 @@ intersphinx_mapping = {
              'https://dipy.org/documentation/latest/objects.inv/'),
     'pooch': ('https://www.fatiando.org/pooch/latest/', None),
     'pybv': ('https://pybv.readthedocs.io/en/latest/', None),
+    'pyqtgraph': ('https://pyqtgraph.readthedocs.io/en/latest/', None),
+    'openmeeg': ('https://openmeeg.github.io', None),
 }
 
 
@@ -171,6 +170,10 @@ intersphinx_mapping = {
 # Define what extra methods numpydoc will document
 docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
 numpydoc_class_members_toctree = False
+numpydoc_show_inherited_class_members = {
+    'mne.SourceSpaces': False,
+    'mne.Forward': False,
+}
 numpydoc_attributes_as_param_list = True
 numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
@@ -180,6 +183,7 @@ numpydoc_xref_aliases = {
     'path-like': ':term:`path-like`',
     'array-like': ':term:`array-like`',
     'Path': ':class:`python:pathlib.Path`',
+    'bool': ':class:`python:bool`',
     # Matplotlib
     'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',
     'color': ':doc:`color <matplotlib:api/colors_api>`',
@@ -233,6 +237,8 @@ numpydoc_xref_aliases = {
     'Transform': 'mne.transforms.Transform',
     'Coregistration': 'mne.coreg.Coregistration',
     'Figure3D': 'mne.viz.Figure3D',
+    'Spectrum': 'mne.time_frequency.Spectrum',
+    'EpochsSpectrum': 'mne.time_frequency.EpochsSpectrum',
     # dipy
     'dipy.align.AffineMap': 'dipy.align.imaffine.AffineMap',
     'dipy.align.DiffeomorphicMap': 'dipy.align.imwarp.DiffeomorphicMap',
@@ -324,6 +330,7 @@ class Resetter(object):
         # turn it off here (otherwise the build can be very slow)
         plt.ioff()
         plt.rcParams['animation.embed_limit'] = 30.
+        plt.rcParams['figure.raise_window'] = False
         # neo holds on to an exception, which in turn holds a stack frame,
         # which will keep alive the global vars during SG execution
         try:
@@ -461,6 +468,41 @@ sphinx_gallery_conf = {
     'matplotlib_animations': True,
     'compress_images': compress_images,
     'filename_pattern': '^((?!sgskip).)*$',
+    'exclude_implicit_doc': {
+        r'mne\.io\.read_raw_fif', r'mne\.io\.Raw', r'mne\.Epochs',
+        r'mne.datasets.*',
+    },
+    'api_usage_ignore': (
+        '('
+        '.*__.*__|'  # built-ins
+        '.*Base.*|.*Array.*|mne.Vector.*|mne.Mixed.*|mne.Vol.*|'  # inherited
+        'mne.coreg.Coregistration.*|'  # GUI
+        # common
+        '.*utils.*|.*verbose()|.*copy()|.*update()|.*save()|'
+        '.*get_data()|'
+        # mixins
+        '.*add_channels()|.*add_reference_channels()|'
+        '.*anonymize()|.*apply_baseline()|.*apply_function()|'
+        '.*apply_hilbert()|.*as_type()|.*decimate()|'
+        '.*drop()|.*drop_channels()|.*drop_log_stats()|'
+        '.*export()|.*get_channel_types()|'
+        '.*get_montage()|.*interpolate_bads()|.*next()|'
+        '.*pick()|.*pick_channels()|.*pick_types()|'
+        '.*plot_sensors()|.*rename_channels()|'
+        '.*reorder_channels()|.*savgol_filter()|'
+        '.*set_eeg_reference()|.*set_channel_types()|'
+        '.*set_meas_date()|.*set_montage()|.*shift_time()|'
+        '.*time_as_index()|.*to_data_frame()|'
+        # dictionary inherited
+        '.*clear()|.*fromkeys()|.*get()|.*items()|'
+        '.*keys()|.*pop()|.*popitem()|.*setdefault()|'
+        '.*values()|'
+        # sklearn inherited
+        '.*apply()|.*decision_function()|.*fit()|'
+        '.*fit_transform()|.*get_params()|.*predict()|'
+        '.*predict_proba()|.*set_params()|.*transform()|'
+        # I/O, also related to mixins
+        '.*.remove.*|.*.write.*)')
 }
 # Files were renamed from plot_* with:
 # find . -type f -name 'plot_*.py' -exec sh -c 'x="{}"; xn=`basename "${x}"`; git mv "$x" `dirname "${x}"`/${xn:5}' \;  # noqa
@@ -580,7 +622,7 @@ html_theme_options = {
     'show_toc_level': 1,
     'navbar_end': ['theme-switcher', 'version-switcher', 'navbar-icon-links'],
     'footer_items': ['copyright'],
-    'google_analytics_id': 'UA-37225609-1',
+    'analytics': dict(google_analytics_id='UA-37225609-1'),
     'switcher': {
         'json_url': 'https://mne.tools/dev/_static/versions.json',
         'version_match': switcher_version_match,
@@ -617,7 +659,7 @@ html_extra_path = [
 
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {
-    'index': ['search-field.html', 'sidebar-quicklinks.html'],
+    'index': ['sidebar-quicklinks.html'],
 }
 
 # If true, links to the reST sources are added to the pages.
@@ -641,12 +683,15 @@ html_context = {
     'pygment_light_style': 'tango',
     'pygment_dark_style': 'native',
     'funders': [
-        dict(img='nih.png', size='3', title='National Institutes of Health'),
+        dict(img='nih.svg', size='3', title='National Institutes of Health'),
         dict(img='nsf.png', size='3.5',
              title='US National Science Foundation'),
-        dict(img='erc.svg', size='3.5', title='European Research Council'),
+        dict(img='erc.svg', size='3.5', title='European Research Council',
+             klass='only-light'),
+        dict(img='erc-dark.svg', size='3.5', title='European Research Council',
+             klass='only-dark'),
         dict(img='doe.svg', size='3', title='US Department of Energy'),
-        dict(img='anr.svg', size='4.5',
+        dict(img='anr.svg', size='3.5',
              title='Agence Nationale de la Recherche'),
         dict(img='cds.png', size='2.25',
              title='Paris-Saclay Center for Data Science'),
@@ -672,9 +717,15 @@ html_context = {
              url='https://web.mit.edu/',
              size=md),
         dict(name='New York University',
-             img='NYU.png',
+             img='NYU.svg',
              url='https://www.nyu.edu/',
-             size=xs),
+             size=xs,
+             klass='only-light'),
+        dict(name='New York University',
+             img='NYU-dark.svg',
+             url='https://www.nyu.edu/',
+             size=xs,
+             klass='only-dark'),
         dict(name='Commissariat à l´énergie atomique et aux énergies alternatives',  # noqa E501
              img='CEA.png',
              url='http://www.cea.fr/',
@@ -682,15 +733,27 @@ html_context = {
         dict(name='Aalto-yliopiston perustieteiden korkeakoulu',
              img='Aalto.svg',
              url='https://sci.aalto.fi/',
-             size=md),
+             size=md,
+             klass='only-light'),
+        dict(name='Aalto-yliopiston perustieteiden korkeakoulu',
+             img='Aalto-dark.svg',
+             url='https://sci.aalto.fi/',
+             size=md,
+             klass='only-dark'),
         dict(name='Télécom ParisTech',
              img='Telecom_Paris_Tech.svg',
              url='https://www.telecom-paris.fr/',
              size=md),
         dict(name='University of Washington',
-             img='Washington.png',
+             img='Washington.svg',
              url='https://www.washington.edu/',
-             size=md),
+             size=md,
+             klass='only-light'),
+        dict(name='University of Washington',
+             img='Washington-dark.svg',
+             url='https://www.washington.edu/',
+             size=md,
+             klass='only-dark'),
         dict(name='Institut du Cerveau et de la Moelle épinière',
              img='ICM.jpg',
              url='https://icm-institute.org/',
@@ -702,54 +765,108 @@ html_context = {
         dict(name='Institut national de la santé et de la recherche médicale',
              img='Inserm.svg',
              url='https://www.inserm.fr/',
-             size=xl),
+             size=xl,
+             klass='only-light'),
+        dict(name='Institut national de la santé et de la recherche médicale',
+             img='Inserm-dark.svg',
+             url='https://www.inserm.fr/',
+             size=xl,
+             klass='only-dark'),
         dict(name='Forschungszentrum Jülich',
              img='Julich.svg',
              url='https://www.fz-juelich.de/',
-             size=xl),
+             size=xl,
+             klass='only-light'),
+        dict(name='Forschungszentrum Jülich',
+             img='Julich-dark.svg',
+             url='https://www.fz-juelich.de/',
+             size=xl,
+             klass='only-dark'),
         dict(name='Technische Universität Ilmenau',
-             img='Ilmenau.gif',
+             img='Ilmenau.svg',
              url='https://www.tu-ilmenau.de/',
-             size=xxl),
+             size=xxl,
+             klass='only-light'),
+        dict(name='Technische Universität Ilmenau',
+             img='Ilmenau-dark.svg',
+             url='https://www.tu-ilmenau.de/',
+             size=xxl,\
+             klass='only-dark'),
         dict(name='Berkeley Institute for Data Science',
-             img='BIDS.png',
+             img='BIDS.svg',
              url='https://bids.berkeley.edu/',
-             size=lg),
+             size=lg,
+             klass='only-light'),
+        dict(name='Berkeley Institute for Data Science',
+             img='BIDS-dark.svg',
+             url='https://bids.berkeley.edu/',
+             size=lg,
+             klass='only-dark'),
         dict(name='Institut national de recherche en informatique et en automatique',  # noqa E501
              img='inria.png',
              url='https://www.inria.fr/',
              size=xl),
         dict(name='Aarhus Universitet',
-             img='Aarhus.png',
+             img='Aarhus.svg',
              url='https://www.au.dk/',
-             size=xl),
+             size=xl,
+             klass='only-light'),
+        dict(name='Aarhus Universitet',
+             img='Aarhus-dark.svg',
+             url='https://www.au.dk/',
+             size=xl,
+             klass='only-dark'),
         dict(name='Karl-Franzens-Universität Graz',
-             img='Graz.jpg',
+             img='Graz.svg',
              url='https://www.uni-graz.at/',
              size=md),
         dict(name='SWPS Uniwersytet Humanistycznospołeczny',
              img='SWPS.svg',
              url='https://www.swps.pl/',
-             size=xl),
+             size=xl,
+             klass='only-light'),
+        dict(name='SWPS Uniwersytet Humanistycznospołeczny',
+             img='SWPS-dark.svg',
+             url='https://www.swps.pl/',
+             size=xl,
+             klass='only-dark'),
         dict(name='Max-Planck-Institut für Bildungsforschung',
              img='MPIB.svg',
              url='https://www.mpib-berlin.mpg.de/',
-             size=xxl),
+             size=xxl,
+             klass='only-light'),
+        dict(name='Max-Planck-Institut für Bildungsforschung',
+             img='MPIB-dark.svg',
+             url='https://www.mpib-berlin.mpg.de/',
+             size=xxl,
+             klass='only-dark'),
         dict(name='Macquarie University',
-             img='Macquarie.png',
+             img='Macquarie.svg',
              url='https://www.mq.edu.au/',
-             size=lg),
+             size=lg,
+             klass='only-light'),
+        dict(name='Macquarie University',
+             img='Macquarie-dark.svg',
+             url='https://www.mq.edu.au/',
+             size=lg,
+             klass='only-dark'),
         dict(name='Children’s Hospital of Philadelphia Research Institute',
              img='CHOP.svg',
-             url='https://imaging.research.chop.edu/',
-             size=xxl),
+             url='https://www.research.chop.edu/imaging',
+             size=xxl,
+             klass='only-light'),
+        dict(name='Children’s Hospital of Philadelphia Research Institute',
+             img='CHOP-dark.svg',
+             url='https://www.research.chop.edu/imaging',
+             size=xxl,
+             klass='only-dark'),
     ],
     # \u00AD is an optional hyphen (not rendered unless needed)
     # If these are changed, the Makefile should be updated, too
     'carousel': [
         dict(title='Source Estimation',
              text='Distributed, sparse, mixed-norm, beam\u00ADformers, dipole fitting, and more.',  # noqa E501
-             url='auto_tutorials/inverse/30_mne_dspm_loreta.html',
+             url='auto_tutorials/inverse/index.html',
              img='sphx_glr_30_mne_dspm_loreta_008.gif',
              alt='dSPM'),
         dict(title='Machine Learning',
@@ -764,7 +881,7 @@ html_context = {
              alt='STRF'),
         dict(title='Statistics',
              text='Parametric and non-parametric, permutation tests and clustering.',  # noqa E501
-             url='auto_tutorials/stats-source-space/20_cluster_1samp_spatiotemporal.html',  # noqa E501
+             url='auto_tutorials/stats-source-space/index.html',
              img='sphx_glr_20_cluster_1samp_spatiotemporal_001.png',
              alt='Clusters'),
         dict(title='Connectivity',
@@ -775,7 +892,7 @@ html_context = {
         dict(title='Data Visualization',
              text='Explore your data from multiple perspectives.',
              url='auto_tutorials/evoked/20_visualize_evoked.html',
-             img='sphx_glr_20_visualize_evoked_007.png',
+             img='sphx_glr_20_visualize_evoked_010.png',
              alt='Visualization'),
     ]
 }
@@ -826,78 +943,31 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings('always', '.*DigMontage is only a subset of.*')
     warnings.filterwarnings(  # xhemi morph (should probably update sample)
         'always', '.*does not exist, creating it and saving it.*')
-    warnings.filterwarnings('default', module='sphinx')  # internal warnings
-    warnings.filterwarnings(
-        'always', '.*converting a masked element to nan.*')  # matplotlib?
+    # internal warnings
+    warnings.filterwarnings('default', module='sphinx')
     # allow these warnings, but don't show them
-    warnings.filterwarnings(
-        'ignore', '.*OpenSSL\\.rand is deprecated.*')
-    warnings.filterwarnings('ignore', '.*is currently using agg.*')
-    warnings.filterwarnings(  # SciPy-related warning (maybe 1.2.0 will fix it)
-        'ignore', '.*the matrix subclass is not the recommended.*')
-    warnings.filterwarnings(  # some joblib warning
-        'ignore', '.*semaphore_tracker: process died unexpectedly.*')
-    warnings.filterwarnings(  # needed until SciPy 1.2.0 is released
-        'ignore', '.*will be interpreted as an array index.*', module='scipy')
-    warnings.filterwarnings(
-        'ignore', '.*invalid escape sequence.*', lineno=90)  # quantities
-    warnings.filterwarnings(
-        'ignore', '.*invalid escape sequence.*', lineno=14)  # mne-connectivity
-    warnings.filterwarnings(
-        'ignore', '.*invalid escape sequence.*', lineno=281)  # mne-conn
-    warnings.filterwarnings(
-        'ignore', '.*"is not" with a literal.*', module='nilearn')
-    warnings.filterwarnings(  # scikit-learn FastICA whiten=True deprecation
-        'ignore', r'.*From version 1\.3 whiten.*')
-    warnings.filterwarnings(  # seaborn -> pandas
-        'ignore', '.*iteritems is deprecated and will be.*')
-    warnings.filterwarnings(  # PyOpenGL for macOS
-        'ignore', '.*PyOpenGL was not found.*')
-    warnings.filterwarnings(  # macOS Epochs
-        'ignore', '.*Plotting epochs on MacOS.*')
-    for key in ('HasTraits', r'numpy\.testing', 'importlib', r'np\.loads',
-                'Using or importing the ABCs from',  # internal modules on 3.7
-                r"it will be an error for 'np\.bool_'",  # ndimage
-                "DocumenterBridge requires a state object",  # sphinx dev
-                "'U' mode is deprecated",  # sphinx io
-                r"joblib is deprecated in 0\.21",  # nilearn
-                'The usage of `cmp` is deprecated and will',  # sklearn/pytest
-                'scipy.* is deprecated and will be removed in',  # dipy
-                r'Converting `np\.character` to a dtype is deprecated',  # vtk
-                r'sphinx\.util\.smartypants is deprecated',
-                'is a deprecated alias for the builtin',  # NumPy
-                'the old name will be removed',  # Jinja, via sphinx
-                r'Passing a schema to Validator\.iter_errors',  # jsonschema
-                "default value of type 'dict' in an Any trait will",  # traits
-                'rcParams is deprecated',  # PyVista rcParams -> global_theme
-                'to mean no clipping',
-                r'the `scipy\.ndimage.*` namespace is deprecated',  # Dipy
-                '`np.MachAr` is deprecated',  # Numba
-                'distutils Version classes are deprecated',  # pydata-sphinx-th
-                'The module matplotlib.tight_layout is deprecated',  # nilearn
-                ):
+    for key in (
+        'The module matplotlib.tight_layout is deprecated',  # nilearn
+        'invalid version and will not be supported',  # pyxdf
+        'distutils Version classes are deprecated',  # seaborn and neo
+        '`np.object` is a deprecated alias for the builtin `object`',  # pyxdf
+        # nilearn, should be fixed in > 0.9.1
+        'In future, it will be an error for \'np.bool_\' scalars to',
+        # sklearn hasn't updated to SciPy's sym_pos dep
+        'The \'sym_pos\' keyword is deprecated',
+        # numba
+        '`np.MachAr` is deprecated',
+    ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
-    warnings.filterwarnings(  # deal with bootstrap-theme bug
-        'ignore', message=".*modify script_files in the theme.*",
-        category=Warning)
-    warnings.filterwarnings(  # nilearn
-        'ignore', message=r'The sklearn.* module is.*', category=FutureWarning)
-    warnings.filterwarnings(  # nilearn
-        'ignore', message=r'Fetchers from the nilea.*', category=FutureWarning)
-    warnings.filterwarnings(  # deal with other modules having bad imports
-        'ignore', message=".*ufunc size changed.*", category=RuntimeWarning)
-    warnings.filterwarnings(  # realtime
-        'ignore', message=".*unclosed file.*", category=ResourceWarning)
-    warnings.filterwarnings('ignore', message='Exception ignored in.*')
-    # allow this ImportWarning, but don't show it
+    # matplotlib 3.6 in nilearn and pyvista
     warnings.filterwarnings(
-        'ignore', message="can't resolve package from", category=ImportWarning)
+        'ignore', message='.*cmap function will be deprecated.*')
+    # xarray/netcdf4
     warnings.filterwarnings(
-        'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
-    warnings.filterwarnings(
-        'ignore', message=r'numpy\.ndarray size changed.*',
+        'ignore', message=r'numpy\.ndarray size changed, may indicate.*',
         category=RuntimeWarning)
+    # qdarkstyle
     warnings.filterwarnings(
         'ignore', message=r'.*Setting theme=.*6 in qdarkstyle.*',
         category=RuntimeWarning)
@@ -924,7 +994,7 @@ fixed_icons = (
 )
 other_icons = (
     'hand-paper', 'question', 'rocket', 'server', 'code', 'desktop',
-    'terminal', 'cloud-download-alt', 'wrench',
+    'terminal', 'cloud-download-alt', 'wrench', 'hourglass'
 )
 icons = dict()
 for icon in brand_icons + fixed_icons + other_icons:
@@ -1092,7 +1162,7 @@ custom_redirects = {
     f'{tu}/{sr}/plot_stats_cluster_spatio_temporal.html': f'{tu}/{sr}/20_cluster_1samp_spatiotemporal.html',  # noqa E501
     f'{tu}/{sr}/plot_stats_cluster_spatio_temporal_2samp.html': f'{tu}/{sr}/30_cluster_ftest_spatiotemporal.html',  # noqa E501
     f'{tu}/{sr}/plot_stats_cluster_spatio_temporal_repeated_measures_anova.html': f'{tu}/{sr}/60_cluster_rmANOVA_spatiotemporal.html',  # noqa E501
-    f'{tu}/{sr}/plot_stats_cluster_time_frequency_repeated_measures_anova.html': f'{tu}/{sr}/70_cluster_rmANOVA_time_freq.html',  # noqa E501
+    f'{tu}/{sr}/plot_stats_cluster_time_frequency_repeated_measures_anova.html': f'{tu}/{sn}/70_cluster_rmANOVA_time_freq.html',  # noqa E501
     f'{tu}/{tf}/plot_sensors_time_frequency.html': f'{tu}/{tf}/20_sensors_time_frequency.html',  # noqa E501
     f'{tu}/{tf}/plot_ssvep.html': f'{tu}/{tf}/50_ssvep.html',
     f'{tu}/{si}/plot_creating_data_structures.html': f'{tu}/{si}/10_array_objs.html',  # noqa E501

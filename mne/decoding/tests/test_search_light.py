@@ -133,19 +133,14 @@ def test_search_light():
     sl.predict(X[..., [0]])
 
     # pipeline
-
     class _LogRegTransformer(LogisticRegression):
-        # XXX needs transformer in pipeline to get first proba only
-        def __init__(self):
-            super(_LogRegTransformer, self).__init__()
-            self.multi_class = 'ovr'
-            self.random_state = 0
-            self.solver = 'liblinear'
-
         def transform(self, X):
             return super(_LogRegTransformer, self).predict_proba(X)[..., 1]
 
-    pipe = make_pipeline(SlidingEstimator(_LogRegTransformer()),
+    logreg_transformer = _LogRegTransformer(
+        random_state=0, multi_class='ovr', solver='liblinear'
+    )
+    pipe = make_pipeline(SlidingEstimator(logreg_transformer),
                          logreg)
     pipe.fit(X, y)
     pipe.predict(X)

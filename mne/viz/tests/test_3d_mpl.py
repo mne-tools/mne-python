@@ -19,7 +19,7 @@ from mne.datasets import testing
 from mne.utils import (requires_dipy, requires_nibabel, requires_version,
                        catch_logging, _record_warnings)
 from mne.viz import plot_volume_source_estimates
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _fake_keypress
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
@@ -71,8 +71,8 @@ def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
     assert want_str in log, (want_str, init_p)
     for ax_idx in [0, 2, 3, 4]:
         _fake_click(fig, fig.axes[ax_idx], (0.3, 0.5))
-    fig.canvas.key_press_event('left')
-    fig.canvas.key_press_event('shift+right')
+    _fake_keypress(fig, 'left')
+    _fake_keypress(fig, 'shift+right')
     if bg_img is not None:
         with pytest.raises(FileNotFoundError, match='MRI file .* not found'):
             stc.plot(sample_src, subject='sample', subjects_dir=subjects_dir,

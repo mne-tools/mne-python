@@ -34,11 +34,8 @@ Please note that this tutorial requires 3D plotting dependencies (see
 
 # %%
 
-import os.path as op
-
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.cm import get_cmap
 from mne_bids import BIDSPath, read_raw_bids
 
 import mne
@@ -49,7 +46,7 @@ print(__doc__)
 # paths to mne datasets - sample ECoG and FreeSurfer subject
 bids_root = mne.datasets.epilepsy_ecog.data_path()
 sample_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(sample_path, 'subjects')
+subjects_dir = sample_path / 'subjects'
 
 # %%
 # Load in data and perform basic preprocessing
@@ -64,7 +61,7 @@ subjects_dir = op.join(sample_path, 'subjects')
 
 # first define the bids path
 bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
-                     task='ictal', datatype='ieeg', extension='vhdr')
+                     task='ictal', datatype='ieeg', extension='.vhdr')
 
 # then we'll use it to load in the sample dataset
 # Here we use a format (iEEG) that is only available in MNE-BIDS 0.7+, so it
@@ -150,7 +147,7 @@ gamma_info = gamma_power_t.info
 xy_pts = np.vstack([xy[ch] for ch in raw.info['ch_names']])
 
 # get a colormap to color nearby points similar colors
-cmap = get_cmap('viridis')
+cmap = plt.colormaps['viridis']
 
 # create the figure of the brain with the electrode positions
 fig, ax = plt.subplots(figsize=(5, 5))
@@ -181,8 +178,8 @@ for i, pos in enumerate(xy_pts):
 
 xyz_pts = np.array([dig['r'] for dig in evoked.info['dig']])
 
-src = mne.read_source_spaces(
-    op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif'))
+src = mne.read_source_spaces(subjects_dir / 'fsaverage' / 'bem' /
+                             'fsaverage-ico-5-src.fif')
 stc = mne.stc_near_sensors(gamma_power_t, trans='fsaverage',
                            subject='fsaverage', subjects_dir=subjects_dir,
                            src=src, surface='pial', mode='nearest',

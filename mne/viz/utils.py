@@ -31,7 +31,6 @@ from ..defaults import _handle_default
 from ..fixes import _get_args
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
-from ..io.meas_info import create_info
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT, _VALID_CHANNEL_TYPES,
@@ -41,7 +40,7 @@ from ..io.proj import setup_proj, Projection
 from ..rank import compute_rank
 from ..utils import (verbose, get_config, _check_ch_locs, _check_option,
                      logger, fill_doc, _pl, _check_sphere, _ensure_int,
-                     _validate_type, _to_rgb, warn)
+                     _validate_type, _to_rgb, warn, check_version)
 from ..transforms import apply_trans
 
 
@@ -743,8 +742,13 @@ class ClickableImage(object):
         return lt
 
 
-def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
+def _old_mpl_events():
+    return not check_version('matplotlib', '3.6')
+
+
+def _fake_click(fig, ax, point, xform='ax', button=1, kind='press', key=None):
     """Fake a click at a relative point within axes."""
+    from matplotlib import backend_bases
     if xform == 'ax':
         x, y = ax.transAxes.transform_point(point)
     elif xform == 'data':
@@ -752,14 +756,47 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
     else:
         assert xform == 'pix'
         x, y = point
-    if kind == 'press':
-        func = partial(fig.canvas.button_press_event, x=x, y=y, button=button)
-    elif kind == 'release':
-        func = partial(fig.canvas.button_release_event, x=x, y=y,
-                       button=button)
-    elif kind == 'motion':
-        func = partial(fig.canvas.motion_notify_event, x=x, y=y)
-    func(guiEvent=None)
+    # This works on 3.6+, but not on <= 3.5.1 (lasso events not propagated)
+    if _old_mpl_events():
+        if kind == 'press':
+            fig.canvas.button_press_event(x=x, y=y, button=button)
+        elif kind == 'release':
+            fig.canvas.button_release_event(x=x, y=y, button=button)
+        elif kind == 'motion':
+            fig.canvas.motion_notify_event(x=x, y=y)
+    else:
+        if kind in ('press', 'release'):
+            kind = f'button_{kind}_event'
+        else:
+            assert kind == 'motion'
+            kind = 'motion_notify_event'
+            button = None
+        fig.canvas.callbacks.process(
+            kind,
+            backend_bases.MouseEvent(
+                name=kind, canvas=fig.canvas, x=x, y=y, button=button,
+                key=key))
+
+
+def _fake_keypress(fig, key):
+    if _old_mpl_events():
+        fig.canvas.key_press_event(key)
+    else:
+        from matplotlib import backend_bases
+        fig.canvas.callbacks.process(
+            'key_press_event',
+            backend_bases.KeyEvent(
+                name='key_press_event', canvas=fig.canvas, key=key))
+
+
+def _fake_scroll(fig, x, y, step):
+    from matplotlib import backend_bases
+    button = 'up' if step >= 0 else 'down'
+    fig.canvas.callbacks.process(
+        'scroll_event',
+        backend_bases.MouseEvent(
+            name='scroll_event', canvas=fig.canvas, x=x, y=y, step=step,
+            button=button))
 
 
 def add_background_image(fig, im, set_ratios=None):
@@ -1345,7 +1382,6 @@ class DraggableColorbar(object):
 
     def key_press(self, event):
         """Handle key press."""
-        # print(event.key)
         scale = self.cbar.norm.vmax - self.cbar.norm.vmin
         perc = 0.03
         if event.key == 'down':
@@ -1693,7 +1729,7 @@ class DraggableLine(object):
 
 def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
                      unit=None, truncate_xaxis=True, truncate_yaxis=True,
-                     skip_axlabel=False, hline=True):
+                     skip_axlabel=False, hline=True, time_unit='s'):
     # don't show zero line if it coincides with x-axis (even if hline=True)
     if hline and ymin != 0.:
         axes.spines['top'].set_position('zero')
@@ -1746,7 +1782,7 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
     else:
         if unit is not None:
             axes.set_ylabel(unit, rotation=90)
-        axes.set_xlabel('Time (s)')
+        axes.set_xlabel(f'Time ({time_unit})')
     # plot vertical lines
     if vlines:
         _ymin, _ymax = axes.get_ylim()
@@ -1764,7 +1800,7 @@ def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
 
 def _handle_decim(info, decim, lowpass):
     """Handle decim parameter for plotters."""
-    from ..evoked import _check_decim
+    from ..utils.mixin import _check_decim
     from ..utils import _ensure_int
     if isinstance(decim, str) and decim == 'auto':
         lp = info['sfreq'] if info['lowpass'] is None else info['lowpass']
@@ -2176,9 +2212,10 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
               units_list, scalings_list, ax_list, make_label, color, area_mode,
               area_alpha, dB, estimate, average, spatial_colors, xscale,
               line_alpha, sphere, xlabels_list):
-    # helper function for plot_raw_psd and plot_epochs_psd
+    # helper function for Spectrum.plot()
     from matplotlib.ticker import ScalarFormatter
     from .evoked import _plot_lines
+    from ..stats import _ci
 
     for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
                        ['--', '--', '-.']):
@@ -2201,15 +2238,17 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         if average:
             # mean across channels
             psd_mean = np.mean(psd, axis=0)
-            if area_mode == 'std':
+            if area_mode in ('sd', 'std'):
                 # std across channels
                 psd_std = np.std(psd, axis=0)
                 hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
             elif area_mode == 'range':
                 hyp_limits = (np.min(psd, axis=0),
                               np.max(psd, axis=0))
-            else:  # area_mode is None
+            elif area_mode is None:
                 hyp_limits = None
+            else:  # area_mode is float
+                hyp_limits = _ci(psd, ci=area_mode)
 
             ax.plot(freqs, psd_mean, color=color, alpha=line_alpha,
                     linewidth=0.5)
@@ -2219,14 +2258,8 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
 
     if not average:
         picks = np.concatenate(picks_list)
-        psd_list = np.concatenate(psd_list)
-        types = np.array(inst.get_channel_types(picks=picks))
-        # Needed because the data do not match the info anymore.
-        info = create_info([inst.ch_names[p] for p in picks],
-                           inst.info['sfreq'], types)
-        with info._unlock():
-            info['chs'] = [inst.info['chs'][p] for p in picks]
-            info['dev_head_t'] = inst.info['dev_head_t']
+        info = pick_info(inst.info, sel=picks, copy=True)
+        types = np.array(info.get_channel_types())
         ch_types_used = list()
         for this_type in _VALID_CHANNEL_TYPES:
             if this_type in types:
@@ -2235,10 +2268,13 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         unit = ''
         units = {t: yl for t, yl in zip(ch_types_used, ylabels)}
         titles = {c: t for c, t in zip(ch_types_used, titles_list)}
-        picks = np.arange(len(psd_list))
+        # here we overwrite `picks` because of how _plot_lines works;
+        # we already have the data, ch_types, etc in sync.
+        psd_array = np.concatenate(psd_list)
+        picks = np.arange(len(psd_array))
         if not spatial_colors:
             spatial_colors = color
-        _plot_lines(psd_list, info, picks, fig, ax_list, spatial_colors,
+        _plot_lines(psd_array, info, picks, fig, ax_list, spatial_colors,
                     unit, units=units, scalings=None, hline=None, gfp=False,
                     types=types, zorder='std', xlim=(freqs[0], freqs[-1]),
                     ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
@@ -2476,3 +2512,29 @@ def _check_type_projs(projs):
     for pi, p in enumerate(projs):
         _validate_type(p, Projection, f'projs[{pi}]')
     return projs
+
+
+def _get_cmap(colormap, lut=None):
+    from matplotlib import colors, rcParams
+    try:
+        from matplotlib import colormaps
+    except Exception:
+        from matplotlib.cm import get_cmap
+    else:
+        def get_cmap(cmap):
+            return colormaps[cmap]
+    if colormap is None:
+        colormap = rcParams["image.cmap"]
+    if isinstance(colormap, str) and colormap in ('mne', 'mne_analyze'):
+        from ._3d import mne_analyze_colormap
+        colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
+    elif not isinstance(colormap, colors.Colormap):
+        colormap = get_cmap(colormap)
+    if lut is not None:
+        # triage method for MPL 3.6 ('resampled') or older ('_resample')
+        if hasattr(colormap, 'resampled'):
+            resampled = colormap.resampled
+        else:
+            resampled = colormap._resample
+        colormap = resampled(lut)
+    return colormap

@@ -809,7 +809,7 @@ def test_check_compensation_consistency():
         with catch_logging() as log:
             Epochs(raw, events, None, -0.2, 0.2, preload=False,
                    picks=picks, verbose=True)
-            assert'Removing 5 compensators' in log.getvalue()
+            assert 'Removing 5 compensators' in log.getvalue()
 
 
 def test_field_round_trip(tmp_path):

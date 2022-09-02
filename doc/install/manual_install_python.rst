@@ -72,6 +72,7 @@ conda to ``/home/user/anaconda3``):
 
 
 .. dropdown:: If you get an error...
+    :color: danger
     :icon: alert-fill
 
     .. rubric:: If you see something like:

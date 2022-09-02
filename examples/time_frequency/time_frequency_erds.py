@@ -58,7 +58,7 @@ raw.rename_channels(lambda x: x.strip('.'))  # remove dots from channel names
 events, _ = mne.events_from_annotations(raw, event_id=dict(T1=2, T2=3))
 
 # %%
-# Now we can create 5s epochs around events of interest.
+# Now we can create 5-second epochs around events of interest.
 tmin, tmax = -1, 4
 event_ids = dict(hands=2, feet=3)  # map event IDs to tasks
 
@@ -69,7 +69,7 @@ epochs = mne.Epochs(raw, events, event_ids, tmin - 0.5, tmax + 0.5,
 # Here we set suitable values for computing ERDS maps.
 freqs = np.arange(2, 36)  # frequencies from 2-35Hz
 vmin, vmax = -1, 1.5  # set min and max ERDS values in plot
-baseline = [-1, 0]  # baseline interval (in s)
+baseline = (-1, 0)  # baseline interval (in s)
 cnorm = TwoSlopeNorm(vmin=vmin, vcenter=0, vmax=vmax)  # min, center & max ERDS
 
 kwargs = dict(n_permutations=100, step_down_p=0.05, seed=1,

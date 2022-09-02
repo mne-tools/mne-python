@@ -137,6 +137,9 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
             logger.info('    The projection vectors do not apply to these '
                         'channels.')
 
+    if np.iscomplexobj(C):
+        C = np.sqrt((C * C.conj()).real)
+
     fig_cov, axes = plt.subplots(1, len(idx_names), squeeze=False,
                                  figsize=(3.8 * len(idx_names), 3.7))
     for k, (idx, name, _, _, _) in enumerate(idx_names):
@@ -1003,7 +1006,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
                 warnings.simplefilter('ignore')
                 gd = group_delay((h['b'], h['a']), omega)[1]
                 if compensate:
-                    gd += group_delay(h['b'].conj(), h['a'].conj(), omega)[1]
+                    gd += group_delay((h['b'].conj(), h['a'].conj()), omega)[1]
             n = estimate_ringing_samples((h['b'], h['a']))
             delta = np.zeros(n)
             delta[0] = 1
@@ -1150,7 +1153,7 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
         >>> from mne.viz import plot_ideal_filter
         >>> freq = [0, 1, 40, 50]
         >>> gain = [0, 1, 1, 0]
-        >>> plot_ideal_filter(freq, gain, flim=(0.1, 100))  #doctest: +ELLIPSIS
+        >>> plot_ideal_filter(freq, gain, flim=(0.1, 100))  #doctest: +SKIP
         <...Figure...>
     """
     import matplotlib.pyplot as plt

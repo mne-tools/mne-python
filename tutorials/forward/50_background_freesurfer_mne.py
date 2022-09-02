@@ -19,8 +19,6 @@ readable on top of an MRI image.
 
 # %%
 
-import os
-
 import numpy as np
 import nibabel
 import matplotlib.pyplot as plt
@@ -42,9 +40,9 @@ from mne.io.constants import FIFF
 # :meth:`~nibabel.spatialimages.SpatialImage.orthoview` method to view it.
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = os.path.join(data_path, 'subjects')
+subjects_dir = data_path / 'subjects'
 subject = 'sample'
-t1_fname = os.path.join(subjects_dir, subject, 'mri', 'T1.mgz')
+t1_fname = subjects_dir / subject / 'mri' / 'T1.mgz'
 t1 = nibabel.load(t1_fname)
 t1.orthoview()
 
@@ -85,7 +83,8 @@ print(data.shape)
 # location ``(x, y, z)`` in the *scanner's native coordinate frame* is saved in
 # the image's *affine transformation*.
 #
-# .. sidebar:: Under the hood
+# .. admonition:: Under the hood
+#     :class: sidebar note
 #
 #     ``mne.transforms.apply_trans`` effectively does a matrix multiplication
 #     (i.e., :func:`numpy.dot`), with a little extra work to handle the shape
@@ -243,22 +242,23 @@ imshow_mri(data, t1, nasion_vox, dict(MRI=nasion_mri),
 #
 # Let's look at the nasion in the head coordinate frame:
 
-info = mne.io.read_info(
-    os.path.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif'))
+info = mne.io.read_info(data_path / 'MEG' / 'sample' /
+                        'sample_audvis_raw.fif')
 nasion_head = [d for d in info['dig'] if
                d['kind'] == FIFF.FIFFV_POINT_CARDINAL and
                d['ident'] == FIFF.FIFFV_POINT_NASION][0]
 print(nasion_head)  # note it's in "head" coordinates
 
 # %%
-# .. sidebar:: Head coordinate frame
+# .. admonition:: Head coordinate frame
+#     :class: sidebar note
 #
-#      The head coordinate frame in MNE is the "Neuromag" head coordinate
-#      frame. The origin is given by the intersection between a line connecting
-#      the LPA and RPA and the line orthogonal to it that runs through the
-#      nasion. It is also in RAS orientation, meaning that +X runs through
-#      the RPA, +Y goes through the nasion, and +Z is orthogonal to these
-#      pointing upward. See :ref:`coordinate_systems` for more information.
+#     The head coordinate frame in MNE is the "Neuromag" head coordinate
+#     frame. The origin is given by the intersection between a line connecting
+#     the LPA and RPA and the line orthogonal to it that runs through the
+#     nasion. It is also in RAS orientation, meaning that +X runs through
+#     the RPA, +Y goes through the nasion, and +Z is orthogonal to these
+#     pointing upward. See :ref:`coordinate_systems` for more information.
 #
 # Notice that in "head" coordinate frame the nasion has values of 0 for the
 # ``x`` and ``z`` directions (which makes sense given that the nasion is used
@@ -273,8 +273,8 @@ print(nasion_head)  # note it's in "head" coordinates
 # :func:`mne.setup_volume_source_space`, and :func:`mne.compute_source_morph`
 # make extensive use of these coordinate frames.
 
-trans = mne.read_trans(
-    os.path.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif'))
+trans = mne.read_trans(data_path / 'MEG' / 'sample' /
+                       'sample_audvis_raw-trans.fif')
 
 # first we transform from head to MRI, and *then* convert to millimeters
 nasion_dig_mri = apply_trans(trans, nasion_head['r']) * 1000
@@ -295,7 +295,7 @@ imshow_mri(data, t1, nasion_dig_vox, dict(MRI=nasion_dig_mri),
 # (``tris``) with shape ``(n_tris, 3)`` defining which vertices in ``rr`` form
 # each triangular facet of the mesh.
 
-fname = os.path.join(subjects_dir, subject, 'surf', 'rh.white')
+fname = subjects_dir / subject / 'surf' / 'rh.white'
 rr_mm, tris = mne.read_surface(fname)
 print(f'rr_mm.shape == {rr_mm.shape}')
 print(f'tris.shape == {tris.shape}')
@@ -346,11 +346,10 @@ renderer_kwargs = dict(bgcolor='w', smooth_shading=False)
 renderer = mne.viz.backends.renderer.create_3d_figure(
     size=(800, 400), scene=False, **renderer_kwargs)
 curvs = [
-    (mne.surface.read_curvature(os.path.join(
-        subjects_dir, subj, 'surf', 'rh.curv'),
-        binary=False) > 0).astype(float)
+    (mne.surface.read_curvature(subjects_dir / subj / 'surf' / 'rh.curv',
+                                binary=False) > 0).astype(float)
     for subj in ('sample', 'fsaverage') for _ in range(2)]
-fnames = [os.path.join(subjects_dir, subj, 'surf', surf)
+fnames = [subjects_dir / subj / 'surf' / surf
           for subj in ('sample', 'fsaverage')
           for surf in ('rh.white', 'rh.sphere')]
 y_shifts = [-450, -150, 450, 150]
@@ -379,7 +378,7 @@ cyan = '#66CCEE'
 purple = '#AA3377'
 renderer = mne.viz.backends.renderer.create_3d_figure(
     size=(800, 800), scene=False, **renderer_kwargs)
-fnames = [os.path.join(subjects_dir, subj, 'surf', 'rh.sphere')
+fnames = [subjects_dir / subj / 'surf' / 'rh.sphere'
           for subj in ('sample', 'fsaverage')]
 colors = [cyan, purple]
 for name, color in zip(fnames, colors):
@@ -405,8 +404,8 @@ renderer.show()
 # load a standard oct-6 source space, and at the same zoom level as before
 # visualize how it subsampled the dense mesh:
 
-src = mne.read_source_spaces(os.path.join(subjects_dir, 'sample', 'bem',
-                                          'sample-oct-6-src.fif'))
+src = mne.read_source_spaces(subjects_dir / 'sample' / 'bem' /
+                             'sample-oct-6-src.fif')
 print(src)
 
 # sphinx_gallery_thumbnail_number = 10

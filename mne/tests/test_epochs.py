@@ -1673,7 +1673,7 @@ def test_indexing_slicing():
     start_index = 1
     end_index = n_good_events - 1
 
-    assert((end_index - start_index) > 0)
+    assert (end_index - start_index) > 0
 
     for preload in [True, False]:
         epochs2 = Epochs(raw, events[:20], event_id, tmin, tmax, picks=picks,
@@ -2247,7 +2247,7 @@ def test_to_data_frame():
     expected = ('condition', 'epoch', 'time', 'channel', 'ch_type', 'value')
     assert set(expected) == set(df_long.columns)
     assert set(epochs.ch_names) == set(df_long['channel'])
-    assert(len(df_long) == epochs.get_data().size)
+    assert len(df_long) == epochs.get_data().size
     # test long format w/ index
     df_long = epochs.to_data_frame(long_format=True, index=['epoch'])
     del df_wide, df_long

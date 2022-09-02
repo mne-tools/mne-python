@@ -124,7 +124,7 @@ class RawCTF(BaseRaw):
         raw_extras = list()
         missing_names = list()
         no_samps = list()
-        while(True):
+        while True:
             suffix = 'meg4' if len(fnames) == 0 else ('%d_meg4' % len(fnames))
             meg4_name, found = _make_ctf_name(
                 directory, suffix, raise_error=False)
@@ -182,8 +182,11 @@ class RawCTF(BaseRaw):
                 samp_offset = (bi + trial_start_idx) * si['res4_nsamp']
                 n_read = min(si['n_samp_tot'] - samp_offset, si['block_size'])
                 # read the chunk of data
-                pos = CTF.HEADER_SIZE
-                pos += samp_offset * si['n_chan'] * 4
+                # have to be careful on Windows and make sure we are using
+                # 64-bit integers here
+                with np.errstate(over='raise'):
+                    pos = np.int64(CTF.HEADER_SIZE)
+                    pos += np.int64(samp_offset) * si['n_chan'] * 4
                 fid.seek(pos, 0)
                 this_data = np.fromfile(fid, '>i4',
                                         count=si['n_chan'] * n_read)

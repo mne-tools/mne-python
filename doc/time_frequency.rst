@@ -16,12 +16,15 @@ Time-Frequency
    AverageTFR
    EpochsTFR
    CrossSpectralDensity
+   Spectrum
+   EpochsSpectrum
 
 Functions that operate on mne-python objects:
 
 .. autosummary::
    :toctree: generated/
 
+   csd_tfr
    csd_fourier
    csd_multitaper
    csd_morlet
@@ -35,6 +38,7 @@ Functions that operate on mne-python objects:
    tfr_stockwell
    read_tfrs
    write_tfrs
+   read_spectrum
 
 Functions that operate on ``np.ndarray`` objects:
 
