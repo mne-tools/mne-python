@@ -50,7 +50,7 @@ raw = mne.io.read_raw_fif(raw_fname)
 raw.pick(['eeg', 'eog', 'stim'])
 raw.load_data()
 
-# The regression technique words regardless of chosen reference. However, it is
+# The regression technique works regardless of chosen reference. However, it is
 # important to choose a reference before proceeding with the analysis.
 raw.set_eeg_reference('average')
 
