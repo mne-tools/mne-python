@@ -287,10 +287,6 @@ numpydoc_validation_exclude = {  # set of regex
     r'\.__sub__', r'\.__add__', r'\.__iter__', r'\.__div__', r'\.__neg__',
     # copied from sklearn
     r'mne\.utils\.deprecated',
-    # deprecations
-    r'mne\.connectivity\.degree', r'mne\.connectivity\.seed_target_indices',
-    r'mne\.viz\.plot_sensors_connectivity',
-    r'mne\.viz\.plot_connectivity_circle',
 }
 
 
@@ -957,6 +953,8 @@ def reset_warnings(gallery_conf, fname):
         'The \'sym_pos\' keyword is deprecated',
         # numba
         '`np.MachAr` is deprecated',
+        # joblib hasn't updated to avoid distutils
+        'distutils package is deprecated',
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
