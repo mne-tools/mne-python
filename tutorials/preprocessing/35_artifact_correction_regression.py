@@ -11,7 +11,7 @@ This tutorial covers removal of artifacts using regression as in Gratton et al.
 
 Generally speaking, artifacts that result in time waveforms on the sensors
 that are accurately reflected by some reference signal can be removed by
-regression. Blink artifacts captured by bipolar EOG channels serve as a good
+regression. Blink artifacts captured by bipolar EOG channels provide a good
 example of this, so we will demonstrate this here.
 
 Although ECG signals are well captured by bipolar ECG electrodes,
