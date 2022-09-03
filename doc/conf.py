@@ -468,10 +468,9 @@ sphinx_gallery_conf = {
         r'mne\.io\.read_raw_fif', r'mne\.io\.Raw', r'mne\.Epochs',
         r'mne.datasets.*',
     },
-    'show_api_usage': False,  # does not seem to work as it's the default...
+    'show_api_usage': False,  # disable for now until graph warning fixed
     'api_usage_ignore': (
         '('
-        '.*|'  # anything for now, see gh-11132
         '.*__.*__|'  # built-ins
         '.*Base.*|.*Array.*|mne.Vector.*|mne.Mixed.*|mne.Vol.*|'  # inherited
         'mne.coreg.Coregistration.*|'  # GUI
