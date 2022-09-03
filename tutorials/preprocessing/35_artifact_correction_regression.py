@@ -175,8 +175,8 @@ model_evoked.apply(eog_evoked).plot('all')
 order = np.concatenate([  # plotting order: EOG first, then EEG
     mne.pick_types(raw.info, meg=False, eog=True),
     mne.pick_types(raw.info, eeg=True)])
-raw_kwargs = dict(events=eog_epochs.events, order=order, start=13, duration=10,
-                  n_channels=10)
+raw_kwargs = dict(events=eog_epochs.events, order=order, start=13, duration=3,
+                  n_channels=10, scalings=dict(eeg=50e-6, eog=250e-6))
 
 # plot original data
 raw.plot(**raw_kwargs)
