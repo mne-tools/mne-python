@@ -722,10 +722,11 @@ def _write_dipole_bdip(fname, dip):
 # #############################################################################
 # Fitting
 
-def _dipole_forwards(fwd_data, whitener, rr, n_jobs=None):
+def _dipole_forwards(*, sensors, fwd_data, whitener, rr, n_jobs=None):
     """Compute the forward solution and do other nice stuff."""
-    B = _compute_forwards_meeg(rr, fwd_data, n_jobs, silent=True)
-    B = np.concatenate(B, axis=1)
+    B = _compute_forwards_meeg(
+        rr, sensors=sensors, fwd_data=fwd_data, n_jobs=n_jobs, silent=True)
+    B = np.concatenate(list(B.values()), axis=1)
     assert np.isfinite(B).all()
     B_orig = B.copy()
 
@@ -763,11 +764,13 @@ def _make_guesses(surf, grid, exclude, mindist, n_jobs=None, verbose=None):
     return SourceSpaces([src])
 
 
-def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None,
-              lwork=None):
+def _fit_eval(rd, B, B2, *, sensors, fwd_data, whitener, lwork, fwd_svd):
     """Calculate the residual sum of squares."""
     if fwd_svd is None:
-        fwd = _dipole_forwards(fwd_data, whitener, rd[np.newaxis, :])[0]
+        assert sensors is not None
+        fwd = _dipole_forwards(
+            sensors=sensors, fwd_data=fwd_data, whitener=whitener,
+            rr=rd[np.newaxis, :])[0]
         uu, sing, vv = _repeated_svd(fwd, lwork, overwrite_a=True)
     else:
         uu, sing, vv = fwd_svd
@@ -791,7 +794,7 @@ def _dipole_gof(uu, sing, vv, B, B2):
     return gof, one
 
 
-def _fit_Q(fwd_data, whitener, B, B2, B_orig, rd, ori=None):
+def _fit_Q(*, sensors, fwd_data, whitener, B, B2, B_orig, rd, ori=None):
     """Fit the dipole moment once the location is known."""
     from scipy import linalg
     if 'fwd' in fwd_data:
@@ -805,8 +808,9 @@ def _fit_Q(fwd_data, whitener, B, B2, B_orig, rd, ori=None):
         assert scales.shape == (3,)
         fwd_svd = fwd_data['fwd_svd'][0]
     else:
-        fwd, fwd_orig, scales = _dipole_forwards(fwd_data, whitener,
-                                                 rd[np.newaxis, :])
+        fwd, fwd_orig, scales = _dipole_forwards(
+            sensors=sensors, fwd_data=fwd_data, whitener=whitener,
+            rr=rd[np.newaxis, :])
         fwd_svd = None
     if ori is None:
         if fwd_svd is None:
@@ -830,15 +834,18 @@ def _fit_Q(fwd_data, whitener, B, B2, B_orig, rd, ori=None):
 
 
 def _fit_dipoles(fun, min_dist_to_inner_skull, data, times, guess_rrs,
-                 guess_data, fwd_data, whitener, ori, n_jobs, rank, rhoend):
+                 guess_data, *, sensors, fwd_data, whitener, ori, n_jobs,
+                 rank, rhoend):
     """Fit a single dipole to the given whitened, projected data."""
     from scipy.optimize import fmin_cobyla
     parallel, p_fun, n_jobs = parallel_func(fun, n_jobs)
     # parallel over time points
-    res = parallel(p_fun(min_dist_to_inner_skull, B, t, guess_rrs,
-                         guess_data, fwd_data, whitener,
-                         fmin_cobyla, ori, rank, rhoend)
-                   for B, t in zip(data.T, times))
+    res = parallel(
+        p_fun(
+            min_dist_to_inner_skull, B, t, guess_rrs, guess_data,
+            sensors=sensors, fwd_data=fwd_data, whitener=whitener,
+            fmin_cobyla=fmin_cobyla, ori=ori, rank=rank, rhoend=rhoend)
+        for B, t in zip(data.T, times))
     pos = np.array([r[0] for r in res])
     amp = np.array([r[1] for r in res])
     ori = np.array([r[2] for r in res])
@@ -948,7 +955,7 @@ def _simplex_minimize(p, ftol, stol, fun, max_eval=1000):
 '''
 
 
-def _fit_confidence(rd, Q, ori, whitener, fwd_data):
+def _fit_confidence(*, rd, Q, ori, whitener, fwd_data, sensors):
     # As describedd in the Xfit manual, confidence intervals can be calculated
     # by examining a linearization of model at the best-fitting location,
     # i.e. taking the Jacobian and using the whitener:
@@ -977,11 +984,15 @@ def _fit_confidence(rd, Q, ori, whitener, fwd_data):
         for delta in deltas:
             this_r = rd[np.newaxis] + delta * direction[ii]
             fwds.append(
-                np.dot(Q, _dipole_forwards(fwd_data, whitener, this_r)[0]))
+                np.dot(Q, _dipole_forwards(
+                    sensors=sensors, fwd_data=fwd_data,
+                    whitener=whitener, rr=this_r)[0]))
         J[:, ii] = np.diff(fwds, axis=0)[0] / np.diff(deltas)[0]
     # Get current (Q) deltas in the dipole directions
     deltas = np.array([-0.01, 0.01]) * np.linalg.norm(Q)
-    this_fwd = _dipole_forwards(fwd_data, whitener, rd[np.newaxis])[0]
+    this_fwd = _dipole_forwards(
+        sensors=sensors, fwd_data=fwd_data, whitener=whitener,
+        rr=rd[np.newaxis])[0]
     for ii in range(3):
         fwds = []
         for delta in deltas:
@@ -1031,8 +1042,8 @@ def _sphere_constraint(rd, r0, R_adj):
 
 
 def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
-                guess_data, fwd_data, whitener, fmin_cobyla, ori, rank,
-                rhoend):
+                guess_data, *, sensors, fwd_data, whitener, fmin_cobyla,
+                ori, rank, rhoend):
     """Fit a single bit of data."""
     B = np.dot(whitener, B_orig)
 
@@ -1053,12 +1064,14 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
         warn('Zero field found for time %s' % t)
         return np.zeros(3), 0, np.zeros(3), 0, B
 
-    idx = np.argmin([_fit_eval(guess_rrs[[fi], :], B, B2, fwd_svd)
-                     for fi, fwd_svd in enumerate(guess_data['fwd_svd'])])
+    idx = np.argmin([
+        _fit_eval(guess_rrs[[fi], :], B, B2, fwd_svd=fwd_svd,
+                  fwd_data=None, sensors=None, whitener=None, lwork=None)
+        for fi, fwd_svd in enumerate(guess_data['fwd_svd'])])
     x0 = guess_rrs[idx]
     lwork = _svd_lwork((3, B.shape[0]))
     fun = partial(_fit_eval, B=B, B2=B2, fwd_data=fwd_data, whitener=whitener,
-                  lwork=lwork)
+                  lwork=lwork, sensors=sensors, fwd_svd=None)
 
     # Tested minimizers:
     #    Simplex, BFGS, CG, COBYLA, L-BFGS-B, Powell, SLSQP, TNC
@@ -1074,14 +1087,17 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
 
     # Compute the dipole moment at the final point
     Q, gof, residual_noproj, n_comp = _fit_Q(
-        fwd_data, whitener, B, B2, B_orig, rd_final, ori=ori)
+        sensors=sensors, fwd_data=fwd_data, whitener=whitener, B=B, B2=B2,
+        B_orig=B_orig, rd=rd_final, ori=ori)
     khi2 = (1 - gof) * B2
     nfree = rank - n_comp
     amp = np.sqrt(np.dot(Q, Q))
     norm = 1. if amp == 0. else amp
     ori = Q / norm
 
-    conf = _fit_confidence(rd_final, Q, ori, whitener, fwd_data)
+    conf = _fit_confidence(
+        sensors=sensors, rd=rd_final, Q=Q, ori=ori, whitener=whitener,
+        fwd_data=fwd_data)
 
     msg = '---- Fitted : %7.1f ms' % (1000. * t)
     if surf is not None:
@@ -1095,7 +1111,7 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
 
 
 def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
-                      guess_data, fwd_data, whitener,
+                      guess_data, *, sensors, fwd_data, whitener,
                       fmin_cobyla, ori, rank, rhoend):
     """Fit a data using a fixed position."""
     B = np.dot(whitener, B_orig)
@@ -1104,8 +1120,9 @@ def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
         warn('Zero field found for time %s' % t)
         return np.zeros(3), 0, np.zeros(3), 0, np.zeros(6)
     # Compute the dipole moment
-    Q, gof, residual_noproj = _fit_Q(guess_data, whitener, B, B2, B_orig,
-                                     rd=None, ori=ori)[:3]
+    Q, gof, residual_noproj = _fit_Q(
+        fwd_data=guess_data, whitener=whitener, B=B, B2=B2, B_orig=B_orig,
+        sensors=sensors, rd=None, ori=ori)[:3]
     if ori is None:
         amp = np.sqrt(np.dot(Q, Q))
         norm = 1. if amp == 0. else amp
@@ -1318,18 +1335,16 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=None,
     # Forward model setup (setup_forward_model from setup.c)
     ch_types = evoked.get_channel_types()
 
-    megcoils, compcoils, megnames, meg_info = [], [], [], None
-    eegels, eegnames = [], []
+    sensors = dict()
     if 'grad' in ch_types or 'mag' in ch_types:
-        megcoils, compcoils, megnames, meg_info = \
-            _prep_meg_channels(info, exclude='bads',
-                               accuracy=accuracy, verbose=verbose)
+        sensors['meg'] = _prep_meg_channels(
+            info, exclude='bads', accuracy=accuracy, verbose=verbose)
     if 'eeg' in ch_types:
-        eegels, eegnames = _prep_eeg_channels(info, exclude='bads',
-                                              verbose=verbose)
+        sensors['eeg'] = _prep_eeg_channels(
+            info, exclude='bads', verbose=verbose)
 
     # Ensure that MEG and/or EEG channels are present
-    if len(megcoils + eegels) == 0:
+    if len(sensors) == 0:
         raise RuntimeError('No MEG or EEG channels found.')
 
     # Whitener for the data
@@ -1378,14 +1393,13 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=None,
                              'skull boundary' % (-1000 * check,))
 
     # C code computes guesses w/sphere model for speed, don't bother here
-    fwd_data = dict(coils_list=[megcoils, eegels], infos=[meg_info, None],
-                    ccoils_list=[compcoils, None], coil_types=['meg', 'eeg'],
-                    inner_skull=inner_skull)
-    # fwd_data['inner_skull'] in head frame, bem in mri, confusing...
-    _prep_field_computation(guess_src['rr'], bem, fwd_data, n_jobs,
-                            verbose=False)
+    fwd_data = _prep_field_computation(
+        guess_src['rr'], sensors=sensors, bem=bem, n_jobs=n_jobs,
+        verbose=False)
+    fwd_data['inner_skull'] = inner_skull
     guess_fwd, guess_fwd_orig, guess_fwd_scales = _dipole_forwards(
-        fwd_data, whitener, guess_src['rr'], n_jobs=fit_n_jobs)
+        sensors=sensors, fwd_data=fwd_data, whitener=whitener,
+        rr=guess_src['rr'], n_jobs=fit_n_jobs)
     # decompose ahead of time
     guess_fwd_svd = [linalg.svd(fwd, full_matrices=False)
                      for fwd in np.array_split(guess_fwd,
@@ -1403,7 +1417,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=None,
     fun = _fit_dipole_fixed if fixed_position else _fit_dipole
     out = _fit_dipoles(
         fun, min_dist_to_inner_skull, data, times, guess_src['rr'],
-        guess_data, fwd_data, whitener, ori, n_jobs, rank, tol)
+        guess_data, sensors=sensors, fwd_data=fwd_data, whitener=whitener,
+        ori=ori, n_jobs=n_jobs, rank=rank, rhoend=tol)
     assert len(out) == 8
     if fixed_position and ori is not None:
         # DipoleFixed

@@ -572,8 +572,8 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     out('\n')
     libs = _get_numpy_libs()
     use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
-                     'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
-                     'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
+                     'numba', 'nibabel', 'nilearn', 'dipy', 'openmeeg', 'cupy',
+                     'pandas', 'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
                      'qtpy', 'ipympl', 'pyqtgraph', 'pooch', '', 'mne_bids',
                      'mne_nirs', 'mne_features', 'mne_qt_browser',
                      'mne_connectivity', 'mne_icalabel')

@@ -249,12 +249,12 @@ class Brain(object):
 
         if show_toolbar is not None:
             warn('show_toolbar is deprecated and will be removed in 1.3.',
-                 DeprecationWarning)
+                 FutureWarning)
         # This and the "if subject is None" conditional should be removed in
         # 1.3, and the default subject=None switched to subject (no default)
         if subject_id is not None:
             warn('subject_id is deprecated and will be removed in 1.3, use '
-                 'subject instead.', DeprecationWarning)
+                 'subject instead.', FutureWarning)
             subject = subject_id
         if subject is None:
             # raise the same error that we'd get if subject had no default

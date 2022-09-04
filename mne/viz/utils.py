@@ -2212,7 +2212,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
               units_list, scalings_list, ax_list, make_label, color, area_mode,
               area_alpha, dB, estimate, average, spatial_colors, xscale,
               line_alpha, sphere, xlabels_list):
-    # helper function for plot_raw_psd and plot_epochs_psd
+    # helper function for Spectrum.plot()
     from matplotlib.ticker import ScalarFormatter
     from .evoked import _plot_lines
     from ..stats import _ci

@@ -13,7 +13,7 @@ import numpy as np
 from ..annotations import _annotations_starts_stops
 from ..filter import create_filter
 from ..io.pick import pick_types, pick_channels
-from ..utils import verbose, _validate_type, _check_option
+from ..utils import legacy, verbose, _validate_type, _check_option
 from ..defaults import _handle_default
 from .utils import (_compute_scalings, _handle_decim, _check_cov,
                     _shorten_path_from_middle, _handle_precompute,
@@ -357,6 +357,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     return fig
 
 
+@legacy(alt='Raw.compute_psd().plot()')
 @verbose
 def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
                  n_fft=None, n_overlap=0, reject_by_annotation=True,
@@ -426,6 +427,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     return fig
 
 
+@legacy(alt='Raw.compute_psd().plot_topo()')
 @verbose
 def plot_raw_psd_topo(raw, tmin=0., tmax=None, fmin=0., fmax=100., proj=False,
                       *, n_fft=2048, n_overlap=0, dB=True, layout=None,

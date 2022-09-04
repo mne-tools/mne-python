@@ -132,6 +132,19 @@ requires_sklearn = partial(requires_module, name='sklearn')
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
 
 
+def requires_mne_mark():
+    """Mark pytest tests that require MNE-C."""
+    import pytest
+    return pytest.mark.skipif(not has_mne_c(), reason='Requires MNE-C')
+
+
+def requires_openmeeg_mark():
+    """Mark pytest tests that require OpenMEEG."""
+    import pytest
+    return pytest.mark.skipif(
+        not check_version('openmeeg', '2.5.5'), reason='Requires OpenMEEG')
+
+
 def requires_freesurfer(arg):
     """Require Freesurfer."""
     if isinstance(arg, str):

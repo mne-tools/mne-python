@@ -9,27 +9,30 @@
 # C code.
 
 from collections import OrderedDict
+from copy import deepcopy
 from functools import partial
 import glob
+import json
 import os
 import os.path as op
 from pathlib import Path
 import shutil
-from copy import deepcopy
+import tempfile
 
 import numpy as np
 
 from .io.constants import FIFF, FWD
 from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
 from .io.write import (start_and_end_file, start_block, write_float, write_int,
-                       write_float_matrix, write_int_matrix, end_block)
+                       write_float_matrix, write_int_matrix, end_block,
+                       write_string)
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
                       _fast_cross_nd_sum, _get_solids, _complete_sphere_surf,
-                      decimate_surface)
+                      decimate_surface, transform_surface_to)
 from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
@@ -65,6 +68,7 @@ class ConductorModel(dict):
         else:
             extra = ('BEM (%s layer%s)' % (len(self['surfs']),
                                            _pl(self['surfs'])))
+            extra += " solver=%s" % self['solver']
         return '<ConductorModel | %s>' % extra
 
     def copy(self):
@@ -277,9 +281,6 @@ def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
 def _fwd_bem_linear_collocation_solution(bem):
     """Compute the linear collocation potential solution."""
     # first, add surface geometries
-    for surf in bem['surfs']:
-        _check_complete_surface(surf)
-
     logger.info('Computing the linear collocation solution...')
     logger.info('    Matrix coefficients...')
     coeff = _fwd_bem_lin_pot_coeff(bem['surfs'])
@@ -300,18 +301,155 @@ def _fwd_bem_linear_collocation_solution(bem):
                         'IP approach...')
             _fwd_bem_ip_modify_solution(bem['solution'], ip_solution, ip_mult,
                                         nps)
-    bem['bem_method'] = FWD.BEM_LINEAR_COLL
-    logger.info("Solution ready.")
+    bem['bem_method'] = FIFF.FIFFV_BEM_APPROX_LINEAR
+    bem['solver'] = 'mne'
+
+
+def _import_openmeeg(what='compute a BEM solution using OpenMEEG'):
+    try:
+        import openmeeg as om
+    except Exception as exc:
+        raise ImportError(
+            f'The OpenMEEG module must be installed to {what}, but '
+            f'"import openmeeg" resulted in: {exc}') from None
+    return om
+
+
+def _make_openmeeg_geometry(bem, mri_head_t=None):
+    # OpenMEEG
+    om = _import_openmeeg()
+    meshes = []
+    for surf in bem['surfs'][::-1]:
+        if mri_head_t is not None:
+            surf = transform_surface_to(surf, "head", mri_head_t, copy=True)
+        points, faces = surf['rr'], surf['tris']
+        faces = faces[:, [1, 0, 2]]  # swap faces
+        meshes.append((points, faces))
+
+    conductivity = bem['sigma'][::-1]
+    # We should be able to do this:
+    #
+    # geom = om.make_nested_geometry(meshes, conductivity)
+    #
+    # But OpenMEEG's NumPy support is iffy. So let's use file IO for now :(
+
+    def _write_tris(fname, mesh):
+        from .surface import complete_surface_info
+        mesh = dict(rr=mesh[0], tris=mesh[1])
+        complete_surface_info(mesh, copy=False, do_neighbor_tri=False)
+        with open(fname, 'w') as fid:
+            fid.write(f'- {len(mesh["rr"])}\n')
+            for r, n in zip(mesh['rr'], mesh['nn']):
+                fid.write(f'{r[0]:.8f} {r[1]:.8f} {r[2]:.8f} '
+                          f'{n[0]:.8f} {n[1]:.8f} {n[2]:.8f}\n')
+            n_tri = len(mesh['tris'])
+            fid.write(f'- {n_tri} {n_tri} {n_tri}\n')
+            for t in mesh['tris']:
+                fid.write(f'{t[0]} {t[1]} {t[2]}\n')
+
+    assert len(conductivity) in (1, 3)
+    # on Windows, the dir can't be cleaned up, presumably because OpenMEEG
+    # does not let go of the file pointer (?). This is not great but hopefully
+    # writing files is temporary, and/or we can fix the file pointer bug
+    # in OpenMEEG soon.
+    tmp_dir = tempfile.TemporaryDirectory(prefix='openmeeg-io-')
+    tmp_path = Path(tmp_dir.name)
+    # In 3.10+ we could use this as a context manager as there is a
+    # ignore_cleanup_errors arg, but before this there is not.
+    # so let's just try/finally
+    try:
+        tmp_path = Path(tmp_path)
+        # write geom_file and three .tri files
+        geom_file = tmp_path / 'tmp.geom'
+        names = ['inner_skull', 'outer_skull', 'outer_skin']
+        lines = [
+            '# Domain Description 1.1',
+            '',
+            f'Interfaces {len(conductivity)}'
+            '',
+            f'Interface Cortex: "{names[0]}.tri"',
+        ]
+        if len(conductivity) == 3:
+            lines.extend([
+                f'Interface Skull: "{names[1]}.tri"',
+                f'Interface Head: "{names[2]}.tri"',
+            ])
+        lines.extend([
+            '',
+            f'Domains {len(conductivity) + 1}',
+            '',
+            'Domain Brain: -Cortex',
+        ])
+        if len(conductivity) == 1:
+            lines.extend([
+                'Domain Air: Cortex',
+            ])
+        else:
+            lines.extend([
+                'Domain Skull: Cortex -Skull',
+                'Domain Scalp: Skull -Head',
+                'Domain Air: Head',
+            ])
+        with open(geom_file, 'w') as fid:
+            fid.write('\n'.join(lines))
+        for mesh, name in zip(meshes, names):
+            _write_tris(tmp_path / f'{name}.tri', mesh)
+        # write cond_file
+        cond_file = tmp_path / 'tmp.cond'
+        lines = [
+            '# Properties Description 1.0 (Conductivities)',
+            '',
+            f'Brain       {conductivity[0]}',
+        ]
+        if len(conductivity) == 3:
+            lines.extend([
+                f'Skull       {conductivity[1]}',
+                f'Scalp       {conductivity[2]}',
+            ])
+        lines.append('Air         0.0')
+        with open(cond_file, 'w') as fid:
+            fid.write('\n'.join(lines))
+        geom = om.Geometry(str(geom_file), str(cond_file))
+    finally:
+        try:
+            tmp_dir.cleanup()
+        except Exception:
+            pass  # ignore any cleanup errors (esp. on Windows)
+
+    return geom
+
+
+def _fwd_bem_openmeeg_solution(bem):
+    om = _import_openmeeg()
+    logger.info('Creating BEM solution using OpenMEEG')
+    logger.info('Computing the openmeeg head matrix solution...')
+    logger.info('    Matrix coefficients...')
+
+    geom = _make_openmeeg_geometry(bem)
+
+    hm = om.HeadMat(geom)
+    bem['nsol'] = hm.nlin()
+
+    logger.info("    Inverting the coefficient matrix...")
+    hm.invert()  # invert inplace
+    bem['solution'] = hm.array_flat()
+    bem['bem_method'] = FIFF.FIFFV_BEM_APPROX_LINEAR
+    bem['solver'] = 'openmeeg'
 
 
 @verbose
-def make_bem_solution(surfs, verbose=None):
+def make_bem_solution(surfs, *, solver='mne', verbose=None):
     """Create a BEM solution using the linear collocation approach.
 
     Parameters
     ----------
     surfs : list of dict
         The BEM surfaces to use (from :func:`mne.make_bem_model`).
+    solver : str
+        Can be 'mne' (default) to use MNE-Python, or 'openmeeg' to use
+        the :doc:`OpenMEEG <openmeeg:index>` package.
+
+        .. versionadded:: 1.2
     %(verbose)s
 
     Returns
@@ -331,7 +469,8 @@ def make_bem_solution(surfs, verbose=None):
     -----
     .. versionadded:: 0.10.0
     """
-    logger.info('Approximation method : Linear collocation\n')
+    _validate_type(solver, str, 'solver')
+    _check_option('method', solver.lower(), ('mne', 'openmeeg'))
     bem = _ensure_bem_surfaces(surfs)
     _add_gamma_multipliers(bem)
     if len(bem['surfs']) == 3:
@@ -341,7 +480,14 @@ def make_bem_solution(surfs, verbose=None):
     else:
         raise RuntimeError('Only 1- or 3-layer BEM computations supported')
     _check_bem_size(bem['surfs'])
-    _fwd_bem_linear_collocation_solution(bem)
+    for surf in bem['surfs']:
+        _check_complete_surface(surf)
+    if solver.lower() == 'openmeeg':
+        _fwd_bem_openmeeg_solution(bem)
+    else:
+        assert solver.lower() == 'mne'
+        _fwd_bem_linear_collocation_solution(bem)
+    logger.info("Solution ready.")
     logger.info('BEM geometry computations complete.')
     return bem
 
@@ -1374,7 +1520,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
 
 
 @verbose
-def read_bem_solution(fname, verbose=None):
+def read_bem_solution(fname, *, verbose=None):
     """Read the BEM solution from a file.
 
     Parameters
@@ -1401,6 +1547,8 @@ def read_bem_solution(fname, verbose=None):
         read_hdf5, _ = _import_h5io_funcs()
         logger.info('Loading surfaces and solution...')
         bem = read_hdf5(fname)
+        if 'solver' not in bem:
+            bem['solver'] = 'mne'
     else:
         bem = _read_bem_solution_fif(fname)
 
@@ -1421,33 +1569,42 @@ def read_bem_solution(fname, verbose=None):
             raise RuntimeError('BEM Surfaces not found')
         logger.info('Homogeneous model surface loaded.')
 
-    assert set(bem.keys()) == set(('surfs', 'solution', 'bem_method'))
+    assert set(bem.keys()) == set(
+        ('surfs', 'solution', 'bem_method', 'solver'))
     bem = ConductorModel(bem)
     bem['is_sphere'] = False
     # sanity checks and conversions
-    _check_option('BEM approximation method', bem['bem_method'],
-                  (FIFF.FIFFV_BEM_APPROX_LINEAR, FIFF.FIFFV_BEM_APPROX_CONST))
+    _check_option(
+        'BEM approximation method', bem['bem_method'],
+        (FIFF.FIFFV_BEM_APPROX_LINEAR,))  # CONSTANT not supported
     dim = 0
-    for surf in bem['surfs']:
-        if bem['bem_method'] == FIFF.FIFFV_BEM_APPROX_LINEAR:
-            dim += surf['np']
-        else:  # method == FIFF.FIFFV_BEM_APPROX_CONST
+    solver = bem.get('solver', 'mne')
+    _check_option('BEM solver', solver, ('mne', 'openmeeg'))
+    for si, surf in enumerate(bem['surfs']):
+        assert bem['bem_method'] == FIFF.FIFFV_BEM_APPROX_LINEAR
+        dim += surf['np']
+        if solver == 'openmeeg' and si != 0:
             dim += surf['ntri']
     dims = bem['solution'].shape
-    if len(dims) != 2:
-        raise RuntimeError('Expected a two-dimensional solution matrix '
-                           'instead of a %d dimensional one' % dims[0])
-    if dims[0] != dim or dims[1] != dim:
-        raise RuntimeError('Expected a %d x %d solution matrix instead of '
-                           'a %d x %d one' % (dim, dim, dims[1], dims[0]))
-    bem['nsol'] = bem['solution'].shape[0]
+    if solver == "openmeeg":
+        sz = (dim * (dim + 1)) // 2
+        if len(dims) != 1 or dims[0] != sz:
+            raise RuntimeError(
+                'For the given BEM surfaces, OpenMEEG should produce a '
+                f'solution matrix of shape ({sz},) but got {dims}')
+        bem['nsol'] = dim
+    else:
+        if len(dims) != 2 and solver != "openmeeg":
+            raise RuntimeError('Expected a two-dimensional solution matrix '
+                               'instead of a %d dimensional one' % dims[0])
+        if dims[0] != dim or dims[1] != dim:
+            raise RuntimeError('Expected a %d x %d solution matrix instead of '
+                               'a %d x %d one' % (dim, dim, dims[1], dims[0]))
+        bem['nsol'] = bem['solution'].shape[0]
     # Gamma factors and multipliers
     _add_gamma_multipliers(bem)
-    kind = {
-        FIFF.FIFFV_BEM_APPROX_CONST: 'constant collocation',
-        FIFF.FIFFV_BEM_APPROX_LINEAR: 'linear_collocation',
-    }[bem['bem_method']]
-    logger.info('Loaded %s BEM solution from %s', kind, fname)
+    extra = f'made by {solver}' if solver != 'mne' else ''
+    logger.info(f'Loaded linear collocation BEM solution{extra} from {fname}')
     return bem
 
 
@@ -1457,6 +1614,7 @@ def _read_bem_solution_fif(fname):
 
     # convert from surfaces to solution
     logger.info('\nLoading the solution matrix...\n')
+    solver = 'mne'
     f, tree, _ = fiff_open(fname)
     with f as fid:
         # Find the BEM data
@@ -1466,6 +1624,10 @@ def _read_bem_solution_fif(fname):
         bem_node = nodes[0]
 
         # Approximation method
+        tag = find_tag(f, bem_node, FIFF.FIFF_DESCRIPTION)
+        if tag is not None:
+            tag = json.loads(tag.data)
+            solver = tag['solver']
         tag = find_tag(f, bem_node, FIFF.FIFF_BEM_APPROX)
         if tag is None:
             raise RuntimeError('No BEM solution found in %s' % fname)
@@ -1473,7 +1635,7 @@ def _read_bem_solution_fif(fname):
         tag = find_tag(fid, bem_node, FIFF.FIFF_BEM_POT_SOLUTION)
         sol = tag.data
 
-    return dict(solution=sol, bem_method=method, surfs=surfs)
+    return dict(solution=sol, bem_method=method, surfs=surfs, solver=solver)
 
 
 def _add_gamma_multipliers(bem):
@@ -1545,9 +1707,8 @@ def _bem_find_surface(bem, id_):
 # ############################################################################
 # Write
 
-
 @verbose
-def write_bem_surfaces(fname, surfs, overwrite=False, verbose=None):
+def write_bem_surfaces(fname, surfs, overwrite=False, *, verbose=None):
     """Write BEM surfaces to a fiff file.
 
     Parameters
@@ -1617,7 +1778,7 @@ def _write_bem_surfaces_block(fid, surfs):
 
 
 @verbose
-def write_bem_solution(fname, bem, overwrite=False, verbose=None):
+def write_bem_solution(fname, bem, overwrite=False, *, verbose=None):
     """Write a BEM model with solution.
 
     Parameters
@@ -1649,12 +1810,17 @@ def _write_bem_solution_fif(fname, bem):
         # Coordinate frame (mainly for backward compatibility)
         write_int(fid, FIFF.FIFF_BEM_COORD_FRAME,
                   bem['surfs'][0]['coord_frame'])
+        solver = bem.get('solver', 'mne')
+        if solver != 'mne':
+            write_string(
+                fid, FIFF.FIFF_DESCRIPTION, json.dumps(dict(solver=solver)))
         # Surfaces
         _write_bem_surfaces_block(fid, bem['surfs'])
         # The potential solution
         if 'solution' in bem:
-            if bem['bem_method'] != FWD.BEM_LINEAR_COLL:
-                raise RuntimeError('Only linear collocation supported')
+            _check_option(
+                'bem_method', bem['bem_method'],
+                (FIFF.FIFFV_BEM_APPROX_LINEAR,))
             write_int(fid, FIFF.FIFF_BEM_APPROX, FIFF.FIFFV_BEM_APPROX_LINEAR)
             write_float_matrix(fid, FIFF.FIFF_BEM_POT_SOLUTION,
                                bem['solution'])
