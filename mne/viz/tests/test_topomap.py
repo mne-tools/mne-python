@@ -320,7 +320,8 @@ def test_plot_topomap_basic():
 
     evoked_grad.plot_topomap(ch_type='grad', times=[0], mask=mask,
                              show_names=proc_names, **fast_test)
-    assert_equal(sorted(names),
+    want_names = np.array(evoked_grad.ch_names)[mask.squeeze()].tolist()
+    assert_equal([f'{name[:-1]}x' for name in want_names],
                  ['MEG 011x', 'MEG 012x', 'MEG 013x', 'MEG 014x'])
     mask = np.zeros_like(evoked.data, dtype=bool)
     mask[[1, 5], :] = True
