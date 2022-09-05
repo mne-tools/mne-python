@@ -546,11 +546,11 @@ like this:
                             'new_param in 0.XX.')
             if new_param is None:
                 new_param = old_param
-                warn(depr_message, DeprecationWarning)
+                warn(depr_message, FutureWarning)
             else:
                 warn(depr_message + ' Since you passed values for both '
                      'old_param and new_param, old_param will be ignored.',
-                     DeprecationWarning)
+                     FutureWarning)
         # Do whatever you have to do with new_param
         return 'foo'
 
@@ -561,13 +561,13 @@ conditions you expect:
 .. code-block:: python
 
     # test deprecation warning for function
-    with pytest.warns(DeprecationWarning, match='my_function is deprecated'):
+    with pytest.warns(FutureWarning, match='my_function is deprecated'):
         my_function()
 
     # test deprecation warning for parameter
-    with pytest.warns(DeprecationWarning, match='values for both old_param'):
+    with pytest.warns(FutureWarning, match='values for both old_param'):
         my_other_function(new_param=1, old_param=2)
-    with pytest.warns(DeprecationWarning, match='old_param is deprecated and'):
+    with pytest.warns(FutureWarning, match='old_param is deprecated and'):
         my_other_function(old_param=2)
 
 You should also search the codebase for any cases where the deprecated function

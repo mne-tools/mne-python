@@ -12,7 +12,7 @@
 
 .. _Alejandro Weinstein: http://ocam.cl
 
-.. _Alessandro Tonin: https://wysscenter.ch/team/alessandro-tonin
+.. _Alessandro Tonin: https://www.linkedin.com/in/alessandro-tonin-7892b046
 
 .. _Alex Ciok: https://github.com/alexCiok
 

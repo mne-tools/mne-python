@@ -8,7 +8,7 @@ from copy import deepcopy
 import numpy as np
 
 from ..io.pick import _pick_data_channels, pick_info
-from ..utils import verbose, warn, fill_doc, _validate_type
+from ..utils import verbose, logger, fill_doc, _validate_type
 from ..parallel import parallel_func
 from .tfr import AverageTFR, _get_data
 
@@ -28,8 +28,8 @@ def _check_input_st(x_in, n_fft):
         raise ValueError("n_fft cannot be smaller than signal size. "
                          "Got %s < %s." % (n_fft, n_times))
     if n_times < n_fft:
-        warn('The input signal is shorter ({}) than "n_fft" ({}). '
-             'Applying zero padding.'.format(x_in.shape[-1], n_fft))
+        logger.info('The input signal is shorter ({}) than "n_fft" ({}). '
+                    'Applying zero padding.'.format(x_in.shape[-1], n_fft))
         zero_pad = n_fft - n_times
         pad_array = np.zeros(x_in.shape[:-1] + (zero_pad,), x_in.dtype)
         x_in = np.concatenate((x_in, pad_array), axis=-1)
