@@ -49,7 +49,7 @@ def annotate_amplitude(raw, peak=None, flat=None, bad_percent=5,
         Above this percentage, the channel involved is return in ``bads``. Note
         the returned ``bads`` are not automatically added to
         :class:`info['bads'] <mne.Info>`.
-        Defaults to ``5`` (%%).
+        Defaults to ``5``, i.e. 5%%.
     min_duration : float
         The minimum duration (sec) required by consecutives samples to be above
         ``peak`` or below ``flat`` thresholds to be considered.
