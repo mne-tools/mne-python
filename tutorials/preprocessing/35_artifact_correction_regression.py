@@ -108,13 +108,13 @@ fig.set_size_inches(6, 6)
 
 # %%
 # Regressing the EOG signal out of the EEG signals has reduced the peak around
-# 250ms that was partly there because of eye artifacts. 
+# 250ms that was partly there because of eye artifacts.
 #
 # In the MNE-Sample dataset, there are no segments of data that are
 # particularily unstable, so the basic form of regression produces robust
 # coefficients. However, this may not be the case in every dataset, so let's
 # explore some variations that may improve the estimation of the regression
-# coefficients. 
+# coefficients.
 #
 # One potential problem is that the EOG sensor does not only pick up eye
 # artifacts, but also a bit of EEG signal. This means we are prone to
