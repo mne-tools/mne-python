@@ -108,13 +108,19 @@ fig.set_size_inches(6, 6)
 
 # %%
 # Regressing the EOG signal out of the EEG signals has reduced the peak around
-# 250ms that was partly there because of eye artifacts.
+# 250ms that was partly there because of eye artifacts. 
 #
-# Now that we've seen the basic technique, let's explore some variations that
-# may improve the estimation of the regression coefficients. One problem is
-# that the EOG sensor will not only pick up eye artifacts, but also a bit of
-# EEG signal. This means we are prone to overestimating the regression
-# coefficients if we perform straight up regression.
+# In the MNE-Sample dataset, there are no segments of data that are
+# particularily unstable, so the basic form of regression produces robust
+# coefficients. However, this may not be the case in every dataset, so let's
+# explore some variations that may improve the estimation of the regression
+# coefficients. 
+#
+# One potential problem is that the EOG sensor does not only pick up eye
+# artifacts, but also a bit of EEG signal. This means we are prone to
+# overestimating the regression coefficients if the EOG sensors are placed too
+# close to the EEG sensors. However, there is a correction we can apply to
+# alleviate this.
 #
 # Subtract the evoked response from the epoch data before regression
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -139,15 +145,22 @@ fig = epochs_clean_sub.average('all').plot(**plot_kwargs)
 fig.set_size_inches(6, 6)
 
 # %%
+# We see that we obtain the same regression coefficients, even with the evoked
+# removed from the epochs.
+#
 # Create EOG evoked before regression
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Croft & Barry (2000) :footcite:`CroftBarry2000` suggest creating epochs based
-# on blink onsets and computing the evoked blink response. The averaging
-# procedure will suppress EEG signals that are not strictly time-locked with
-# the blink response. Ideally, one would create evokeds for both blinks and
-# saccades, and create two separate regression models. However, we will
-# restrict ourselves to just blink epochs, since MNE-Python contains an
-# automated method for creating those.
+# It is preferred to estimate the regression coefficients on a piece of data
+# with lots of EOG activity. As EOG activity is typically much larger than EEG,
+# the EOG artifacts will dominate the signal and the regression coefficients
+# will reflect mostly the influence of the EOG. To amplify this effect, Croft &
+# Barry (2000) :footcite:`CroftBarry2000` suggest creating epochs based on
+# blink onsets and computing the evoked blink response. The averaging procedure
+# will suppress EEG signals that are not strictly time-locked with the blink
+# response. Ideally, one would create evokeds for both blinks and saccades, and
+# create two separate regression models. However, we will restrict ourselves to
+# just blink epochs, since MNE-Python contains an automated method for creating
+# those.
 
 eog_epochs = mne.preprocessing.create_eog_epochs(raw)
 # We need to explicitly specify that we want to average the EOG channel too.
@@ -167,11 +180,14 @@ fig.set_size_inches(6, 6)
 model_evoked.apply(eog_evoked).plot('all')
 
 # %%
+# We see that again, the regression weights have been correctly estimated.
+#
 # Visualize the effect on raw data
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# We can also apply the regression directly to the raw data. Here, we will use
-# the regression weights obtained from the blink evoked above and apply it to
-# the `~mne.io.Raw`.
+# Once we have obtained robust regression weights, we can use them to apply the
+# regression directly to raw, epoched and evoked data. Here, we will use the
+# regression weights obtained from the blink evoked above and apply it to an
+# instance of `~mne.io.Raw`.
 order = np.concatenate([  # plotting order: EOG first, then EEG
     mne.pick_types(raw.info, meg=False, eog=True),
     mne.pick_types(raw.info, eeg=True)])
