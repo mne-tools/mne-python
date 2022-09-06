@@ -111,7 +111,7 @@ fig.set_size_inches(6, 6)
 # 250ms that was partly there because of eye artifacts.
 #
 # In the MNE-Sample dataset, there are no segments of data that are
-# particularily unstable, so the basic form of regression produces robust
+# particularly unstable, so the basic form of regression produces robust
 # coefficients. However, this may not be the case in every dataset, so let's
 # explore some variations that may improve the estimation of the regression
 # coefficients.
