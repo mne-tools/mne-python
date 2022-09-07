@@ -452,10 +452,11 @@ def test_plot_topomap_basic():
     plot_evoked_topomap(evoked, times, ch_type='eeg', outlines=outlines,
                         **fast_test)
 
-    # Error for missing names
+    # deprecated parameter
     n_channels = len(pos)
     data = np.ones(n_channels)
-    pytest.raises(ValueError, plot_topomap, data, pos, show_names=True)
+    with pytest.warns(FutureWarning, match='The "show_names" parameter is'):
+        plot_topomap(data, pos, show_names=True)
 
     # Test error messages for invalid pos parameter
     pos_1d = np.zeros(n_channels)
