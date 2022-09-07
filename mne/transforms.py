@@ -88,8 +88,9 @@ class Transform(dict):
 
     Notes
     -----
-    Valid coordinate frames are 'meg','mri','mri_voxel','head','mri_tal','ras'
-    'fs_tal','ctf_head','ctf_meg','unknown'
+    Valid coordinate frames are ``'meg'``, ``'mri'``, ``'mri_voxel'``,
+    ``'head'``, ``'mri_tal'``, ``'ras'``, ``'fs_tal'``, ``'ctf_head'``,
+    ``'ctf_meg'``, ``'unknown'``.
     """
 
     def __init__(self, fro, to, trans=None):  # noqa: D102
