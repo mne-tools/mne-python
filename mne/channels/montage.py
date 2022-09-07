@@ -1562,14 +1562,14 @@ def compute_dev_head_t(montage):
 
     Parameters
     ----------
-    montage : instance of DigMontage
-        The DigMontage must contain the fiducials in head
+    montage : DigMontage
+        The `~mne.channels.DigMontage` must contain the fiducials in head
         coordinate system and hpi points in both head and
         meg device coordinate system.
 
     Returns
     -------
-    dev_head_t : instance of Transform
+    dev_head_t : Transform
         A Device-to-Head transformation matrix.
     """
     _, coord_frame = _get_fid_coords(montage.dig)
