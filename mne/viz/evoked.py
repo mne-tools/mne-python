@@ -194,7 +194,7 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
 
 
 def _check_spatial_colors(info, picks, spatial_colors):
-    """Set spatial colors True if channel locations exists, False otherwise."""
+    """Use spatial colors if channel locations exist."""
     if spatial_colors == 'auto':
         if picks and len(picks) == 1:
             spatial_colors = False
