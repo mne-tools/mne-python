@@ -20,7 +20,7 @@ import numpy as np
 from .raw import _setup_channel_selections
 from ..fixes import _sharex
 from ..defaults import _handle_default
-from ..utils import verbose, logger, warn, fill_doc, _check_option
+from ..utils import legacy, verbose, logger, warn, fill_doc, _check_option
 from ..io.meas_info import create_info, _validate_type
 
 from ..io.pick import (_get_channel_types, _picks_to_idx, _DATA_CH_TYPES_SPLIT,
@@ -922,6 +922,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     return fig
 
 
+@legacy(alt='Epochs.compute_psd().plot()')
 @verbose
 def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     proj=False, bandwidth=None, adaptive=False, low_bias=True,

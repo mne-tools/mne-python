@@ -4168,7 +4168,7 @@ class _decorator:
     def __init__(self, extra):  # noqa: D102
         self.kind = self.__class__.__name__
         self.extra = extra
-        self.msg = f'{{}} is a {self.kind} {{}}. {self.extra}.'
+        self.msg = f'NOTE: {{}}() is a {self.kind} {{}}. {self.extra}.'
 
     def __call__(self, obj):  # noqa: D105
         """Call.

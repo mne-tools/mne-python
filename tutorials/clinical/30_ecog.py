@@ -61,7 +61,7 @@ subjects_dir = sample_path / 'subjects'
 
 # first define the bids path
 bids_path = BIDSPath(root=bids_root, subject='pt1', session='presurgery',
-                     task='ictal', datatype='ieeg', extension='vhdr')
+                     task='ictal', datatype='ieeg', extension='.vhdr')
 
 # then we'll use it to load in the sample dataset
 # Here we use a format (iEEG) that is only available in MNE-BIDS 0.7+, so it

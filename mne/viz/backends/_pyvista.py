@@ -1094,7 +1094,7 @@ def _close_3d_figure(figure):
         _process_events(plotter)
         # free memory and deregister from the scraper
         plotter.deep_clean()  # remove internal references
-        del _ALL_PLOTTERS[plotter._id_name]
+        _ALL_PLOTTERS.pop(plotter._id_name, None)
         _process_events(plotter)
 
 

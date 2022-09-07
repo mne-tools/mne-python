@@ -21,7 +21,7 @@ from ..io.pick import _pick_data_channels, _picks_to_idx, pick_info
 from ..utils import (GetEpochsMixin, _build_data_frame,
                      _check_pandas_index_arguments, _check_pandas_installed,
                      _check_sphere, _time_mask, _validate_type, fill_doc,
-                     logger, object_diff, verbose, warn)
+                     legacy, logger, object_diff, verbose, warn)
 from ..utils.check import (_check_fname, _check_option, _import_h5io_funcs,
                            _is_numeric, check_fname)
 from ..utils.misc import _pl
@@ -40,6 +40,7 @@ def _identity_function(x):
 class SpectrumMixin():
     """Mixin providing spectral plotting methods to sensor-space containers."""
 
+    @legacy(alt='.compute_psd().plot()')
     @verbose
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
                  proj=False, reject_by_annotation=True, *, method='auto',
@@ -116,6 +117,7 @@ class SpectrumMixin():
             exclude=exclude, axes=ax, show=show)
         return fig
 
+    @legacy(alt='.compute_psd().plot_topo()')
     @verbose
     def plot_psd_topo(self, tmin=None, tmax=None, fmin=0, fmax=100, proj=False,
                       *, method='auto', dB=True, layout=None, color='w',
@@ -157,6 +159,7 @@ class SpectrumMixin():
             dB=dB, layout=layout, color=color, fig_facecolor=fig_facecolor,
             axis_facecolor=axis_facecolor, axes=axes, block=block, show=show)
 
+    @legacy(alt='.compute_psd().plot_topomap()')
     @verbose
     def plot_psd_topomap(self, bands=None, tmin=None, tmax=None, proj=False,
                          method='auto', ch_type=None, *, normalize=False,
