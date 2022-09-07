@@ -80,7 +80,7 @@ def test_orig_units():
 def test_units_params():
     """Test enforcing original channel units."""
     with pytest.raises(ValueError,
-                       match=r"Unit for channel .* is present .* Cannot "
+                       match=r"Unit for channel .* is present .* cannot "
                        "overwrite it"):
         _ = read_raw_edf(edf_path, units='V', preload=True)
 
@@ -601,6 +601,7 @@ def test_ch_types():
     assert raw.ch_names == labels
 
     raw = read_raw_edf(edf_chtypes_path, infer_types=True)
+    data = raw.get_data()
 
     labels = ['Fp1-Ref', 'Fp2-Ref', 'F3-Ref', 'F4-Ref', 'C3-Ref', 'C4-Ref',
               'P3-Ref', 'P4-Ref', 'O1-Ref', 'O2-Ref', 'F7-Ref', 'F8-Ref',
@@ -617,3 +618,9 @@ def test_ch_types():
 
     assert raw.get_channel_types() == types
     assert raw.ch_names == labels
+
+    with pytest.raises(ValueError, match="cannot overwrite"):
+        read_raw_edf(edf_chtypes_path, units='V')
+    raw = read_raw_edf(edf_chtypes_path, units='uV')  # should be okay
+    data_units = raw.get_data()
+    assert_allclose(data, data_units)

@@ -17,7 +17,7 @@ import re
 
 import numpy as np
 
-from ...utils import verbose, logger, warn
+from ...utils import verbose, logger, warn, _validate_type
 from ..utils import _blk_read_lims, _mult_cal_one
 from ..base import BaseRaw, _get_scaling
 from ..meas_info import _empty_info, _unique_channel_names
@@ -141,17 +141,21 @@ class RawEDF(BaseRaw):
                                                preload, include)
         logger.info('Creating raw.info structure...')
 
-        if units is not None and isinstance(units, str):
-            units = {ch_name: units for ch_name in info['ch_names']}
-        elif units is None:
+        _validate_type(units, (str, None, dict), 'units')
+        if units is None:
             units = dict()
+        elif isinstance(units, str):
+            units = {ch_name: units for ch_name in info['ch_names']}
 
         for k, (this_ch, this_unit) in enumerate(orig_units.items()):
-            if this_unit != "" and this_ch in units:
-                raise ValueError(f'Unit for channel {this_ch} is present in '
-                                 'the file. Cannot overwrite it with the '
-                                 'units argument.')
-            if this_unit == "" and this_ch in units:
+            if this_ch not in units:
+                continue
+            if this_unit not in ("", units[this_ch]):
+                raise ValueError(
+                    f'Unit for channel {this_ch} is present in the file as '
+                    f'{repr(this_unit)}, cannot overwrite it with the units '
+                    f'argument {repr(units[this_ch])}.')
+            if this_unit == "":
                 orig_units[this_ch] = units[this_ch]
                 ch_type = edf_info["ch_types"][k]
                 scaling = _get_scaling(ch_type.lower(), orig_units[this_ch])
