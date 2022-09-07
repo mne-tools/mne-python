@@ -167,12 +167,10 @@ def _average_fnirs_overlaps(info, ch_type, sphere):
                 # first listed channel is the one to be replaced with merge
                 overlapping_set = [chs[i]['ch_name'] for i in
                                    np.where(overlapping_mask[chan_idx])[0]]
-                overlapping_set = np.array(overlapping_set).astype('>U20')
-                overlapping_set = np.insert(overlapping_set, 0,
-                                            (chs[chan_idx]['ch_name']))
+                overlapping_set.insert(0,chs[chan_idx]['ch_name'])
                 overlapping_channels.append(overlapping_set)
                 channels_to_exclude.append(overlapping_set[1:])
-
+        overlapping_set = np.array(overlapping_set)
         exclude = list(itertools.chain.from_iterable(channels_to_exclude))
         [exclude.append(bad) for bad in info['bads']]
         picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type,
