@@ -415,15 +415,20 @@ def test_ica_reset(method):
         'pca_mean_',
         'n_iter_'
     )
+
+    ica = ICA(n_components=3, method=method, max_iter=1)
+    assert ica.current_fit == 'unfitted'
     with pytest.warns(UserWarning, match='did not converge'):
-        ica = ICA(
-            n_components=3, method=method, max_iter=1).fit(raw, picks=picks)
+        ica.fit(raw, picks=picks)
 
     assert (all(hasattr(ica, attr) for attr in run_time_attrs))
     assert ica.labels_ is not None
+    assert ica.current_fit == 'raw'
+
     ica._reset()
     assert (not any(hasattr(ica, attr) for attr in run_time_attrs))
     assert ica.labels_ is not None
+    assert ica.current_fit == 'unfitted'
 
 
 @requires_sklearn
