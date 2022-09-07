@@ -752,9 +752,10 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         If True, the lines are color coded by mapping physical sensor
         coordinates into color values. Spatially similar channels will have
         similar colors. Bad channels will be dotted. If False, the good
-        channels are plotted black and bad channels red. If 'auto' uses True if
-        channel locations are present, False if channel locations are not
-        present or there is only one channel. Defaults to 'auto'.
+        channels are plotted black and bad channels red. If ``'auto'``, uses
+        True if channel locations are present, and False if channel locations
+        are missing or if the data contains only a single channel. Defaults to
+        ``'auto'``.
     zorder : str | callable
         Which channels to put in the front or back. Only matters if
         ``spatial_colors`` is used.
