@@ -82,7 +82,7 @@ class Transform(dict):
         The starting coordinate frame. See notes for valid coordinate frames.
     to : str | int
         The ending coordinate frame. See notes for valid coordinate frames.
-    trans : array-like, shape (4, 4) | None
+    trans : array of shape (4, 4) | None
         The transformation matrix. If None, an identity matrix will be
         used.
 
