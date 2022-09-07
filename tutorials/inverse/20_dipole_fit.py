@@ -106,7 +106,7 @@ fig, axes = plt.subplots(nrows=1, ncols=4, figsize=[10., 3.4],
 vmin, vmax = -400, 400  # make sure each plot has same colour range
 
 # first plot the topography at the time of the best fitting (single) dipole
-plot_params = dict(times=best_time, ch_type='mag', outlines='skirt',
+plot_params = dict(times=best_time, ch_type='mag', outlines='head',
                    colorbar=False, time_unit='s')
 evoked.plot_topomap(time_format='Measured field', axes=axes[0], **plot_params)
 

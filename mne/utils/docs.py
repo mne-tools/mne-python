@@ -2295,6 +2295,11 @@ outlines : 'head' | 'skirt' | dict | None
     masking options, either directly or as a function that returns patches
     (required for multi-axis plots). If None, nothing will be drawn.
     Defaults to 'head'.
+
+    .. deprecated:: v1.2
+       The ``outlines='skirt'`` option is no longer supported and will raise an
+       error starting in version 1.3. Pass ``outlines='head'`` for equivalent
+       behavior.
 """
 
 docdict['overview_mode'] = """
@@ -2671,6 +2676,11 @@ outlines : 'head' | 'skirt' | dict | None
     masking options, either directly or as a function that returns patches
     (required for multi-axis plots). If None, nothing will be drawn.
     Defaults to 'head'.
+
+    .. deprecated:: v1.2
+       The ``outlines='skirt'`` option is no longer supported and will raise an
+       error starting in version 1.3. Pass ``outlines='head'`` for equivalent
+       behavior.
 
 contours : int | array of float
     The number of contour lines to draw. If 0, no contours will be drawn.

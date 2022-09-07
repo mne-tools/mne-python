@@ -1583,7 +1583,7 @@ class AverageTFR(_BaseTFR):
             topomap_args = dict()
         topomap_args_pass = {k: v for k, v in topomap_args.items() if
                              k not in ('axes', 'show', 'colorbar')}
-        topomap_args_pass['outlines'] = topomap_args.get('outlines', 'skirt')
+        topomap_args_pass['outlines'] = topomap_args.get('outlines', 'head')
         topomap_args_pass["contours"] = topomap_args.get('contours', 6)
         topomap_args_pass['ch_type'] = ch_type
 

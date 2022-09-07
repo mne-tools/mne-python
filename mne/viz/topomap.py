@@ -42,6 +42,10 @@ from ..io.meas_info import Info, _simplify_info
 
 _fnirs_types = ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')
 
+OUTLINES_WARNING_MSG = (
+    "Passing ``outlines='skirt'`` is deprecated; it no longer has any effect "
+    "different from 'head' and will raise an error starting in version 1.3.")
+
 
 def _adjust_meg_sphere(sphere, info, ch_type):
     sphere = _check_sphere(sphere, info)
@@ -797,6 +801,8 @@ def plot_topomap(
     """
     from matplotlib.colors import Normalize
 
+    if outlines in ('skirt',):
+        warn(OUTLINES_WARNING_MSG, FutureWarning)
     if show_names is not None:
         warn('The "show_names" parameter is deprecated and will be removed in '
              'version 1.3. Use the "names" parameter instead.', FutureWarning)
@@ -1624,6 +1630,11 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     from matplotlib.gridspec import GridSpec
     from matplotlib.widgets import Slider
     from ..evoked import Evoked
+
+    # need to warn here too because this func wraps the private `_plot_topomap`
+    # (not the public `plot_topomap`)
+    if outlines in ('skirt',):
+        warn(OUTLINES_WARNING_MSG, FutureWarning)
 
     _validate_type(evoked, Evoked, 'evoked')
     _validate_type(colorbar, bool, 'colorbar')
@@ -2711,8 +2722,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
 
     _, pos, _, _, _, sphere, clip_origin = \
         _prepare_topomap_plot(info_to, 'mag', sphere=sphere)
-    outlines = _make_head_outlines(
-        sphere, pos, outlines, clip_origin)
+    outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
     if axes is None:
         fig, axes = plt.subplots()
     else:

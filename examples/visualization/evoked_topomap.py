@@ -80,10 +80,9 @@ evoked.plot_topomap(times, ch_type='grad', time_unit='s')
 # * ``cmap`` - to specify the color map
 # * ``res`` - to control the resolution of the topographies (lower resolution
 #   means faster plotting)
-# * ``outlines='skirt'`` to see the topography stretched beyond the head circle
 # * ``contours`` to define how many contour lines should be plotted
 evoked.plot_topomap(times, ch_type='mag', cmap='Spectral_r', res=32,
-                    outlines='skirt', contours=4, time_unit='s')
+                    contours=4, time_unit='s')
 
 # %%
 # If you look at the edges of the head circle of a single topomap you'll see

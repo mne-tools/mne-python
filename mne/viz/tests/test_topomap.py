@@ -216,6 +216,9 @@ def test_plot_evoked_topomap_errors(evoked, monkeypatch):
                   lambda *args, **kwargs: (None, None, None))
         with pytest.warns(RuntimeWarning, match='More than 25 topomaps plots'):
             fast_func([0.1] * 26, colorbar=False)
+    # deprecated parameter
+    with pytest.warns(FutureWarning, match="outlines='skirt'`` is deprecated"):
+        evoked.plot_topomap(outlines='skirt')
     # missing channel locations
     with evoked.info._unlock():
         for ch in evoked.info['chs']:
@@ -229,12 +232,11 @@ def test_plot_evoked_topomap_errors(evoked, monkeypatch):
 
 
 @pytest.mark.parametrize('extrapolate', ('box', 'local', 'head'))
-@pytest.mark.parametrize('outlines', ('skirt', 'head'))
-def test_plot_evoked_topomap_extrapolation(evoked, extrapolate, outlines):
+def test_plot_evoked_topomap_extrapolation(evoked, extrapolate):
     """Test topomap extrapolation options."""
     evoked.pick(['EEG 001', 'EEG 002', 'EEG 003'])
-    evoked.plot_topomap(times=0.1, extrapolate=extrapolate, outlines=outlines,
-                        res=8, contours=0, sensors=False)
+    evoked.plot_topomap(times=0.1, extrapolate=extrapolate, res=8, contours=0,
+                        sensors=False)
 
 
 def test_plot_evoked_topomap_border():
@@ -414,9 +416,6 @@ def test_plot_topomap_basic():
     # Remove extra digitization point, so EEG digitization points
     # correspond with the EEG electrodes
     del evoked.info['dig'][85]
-
-    # Plot skirt
-    evoked.plot_topomap(times, ch_type='eeg', outlines='skirt', **fast_test)
 
     # Pass custom outlines without patch
     eeg_picks = pick_types(evoked.info, meg=False, eeg=True)

@@ -1401,7 +1401,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     topomap_args : None | dict
         A dict of ``kwargs`` that are forwarded to
         :meth:`mne.Evoked.plot_topomap` to style the topomaps.
-        If it is not in this dict, ``outlines='skirt'`` will be passed.
+        If it is not in this dict, ``outlines='head'`` will be passed.
         ``show``, ``times``, ``colorbar`` are illegal.
         If ``None``, no customizable arguments will be passed.
         Defaults to ``None``.
@@ -1548,7 +1548,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     topomap_args_pass = (dict(extrapolate='local') if ch_type == 'seeg'
                          else dict())
     topomap_args_pass.update(topomap_args)
-    topomap_args_pass['outlines'] = topomap_args.get('outlines', 'skirt')
+    topomap_args_pass['outlines'] = topomap_args.get('outlines', 'head')
     topomap_args_pass['contours'] = contours
     evoked.plot_topomap(times=times_sec, axes=map_ax, show=False,
                         colorbar=False, **topomap_args_pass)
