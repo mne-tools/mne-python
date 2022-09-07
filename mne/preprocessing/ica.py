@@ -216,9 +216,8 @@ class ICA(ContainsMixin):
 
     Attributes
     ----------
-    current_fit : str
-        Flag informing about which data type (raw or epochs) was used for the
-        fit.
+    current_fit : 'unfitted' | 'raw' | 'epochs'
+        Which data type was used for the fit.
     ch_names : list-like
         Channel names resulting from initial picking.
     n_components_ : int
@@ -682,6 +681,7 @@ class ICA(ContainsMixin):
                     'pca_mean_', 'n_iter_', 'drop_inds_', 'reject_'):
             if hasattr(self, key):
                 delattr(self, key)
+        self.current_fit = 'unfitted'
 
     def _fit_raw(self, raw, picks, start, stop, decim, reject, flat, tstep,
                  reject_by_annotation, verbose):
