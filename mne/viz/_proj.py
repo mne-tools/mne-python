@@ -157,7 +157,8 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
             ch_traces = evoked.data[picks_trace]
             ch_traces -= np.mean(ch_traces, axis=1, keepdims=True)
             ch_traces /= np.abs(ch_traces).max()
-        _plot_evoked(this_evoked, picks='all', axes=[tr_ax], **pe_kwargs)
+        _plot_evoked(this_evoked, picks='all', axes=[tr_ax], **pe_kwargs,
+                     spatial_colors=False)
         for line in tr_ax.lines:
             line.set(lw=0.5, zorder=3)
         for t in list(tr_ax.texts):
