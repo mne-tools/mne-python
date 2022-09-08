@@ -1392,7 +1392,7 @@ def get_active_chpi(raw):
     Parameters
     ----------
     raw : instance of Raw
-        Raw data
+        Raw data with cHPI information.
 
     Returns
     -------
