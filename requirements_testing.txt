@@ -1,5 +1,5 @@
 # requirements for running tests (on top of environment.yml/requirements.txt)
-pytest!=4.6.0
+pytest
 pytest-cov
 pytest-timeout
 pytest-harvest
