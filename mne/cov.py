@@ -39,6 +39,7 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     _check_option, eigh, fill_doc, _on_missing,
                     _check_on_missing, _check_fname)
 from . import viz
+from .viz.utils import _warn_deprecated_vmin_vmax
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
                     empirical_covariance, log_likelihood)
@@ -314,16 +315,7 @@ class Covariance(dict):
         """
         from .viz.misc import _index_info_cov
 
-        if vmin is not None or vmax is not None:
-            warn('The "vmin" and "vmax" parameters are deprecated and will be '
-                 'removed in version 1.3. Use the "vlim" parameter instead.',
-                 FutureWarning)
-            if vlim[0] is None and vlim[1] is None:
-                vlim = (vmin, vmax)
-            else:
-                warn('You provided either "vmin" or "vmax" (which are '
-                     'deprecated) as well as "vlim". Using "vlim" and '
-                     'ignoring "vmin" and "vmax".')
+        vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
 
         info, C, _, _ = _index_info_cov(info, self, exclude=())
         evoked = EvokedArray(np.diag(C)[:, np.newaxis], info)

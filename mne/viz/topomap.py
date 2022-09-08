@@ -17,6 +17,7 @@ import warnings
 
 import numpy as np
 
+from .utils import _warn_deprecated_vmin_vmax
 from ..baseline import rescale
 from ..channels.channels import _get_ch_type
 from ..channels.layout import (
@@ -1632,6 +1633,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
     from matplotlib.widgets import Slider
     from ..evoked import Evoked
 
+    vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
     # need to warn here too because this func wraps the private `_plot_topomap`
     # (not the public `plot_topomap`)
     if outlines in ('skirt',):
@@ -1794,10 +1796,10 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         else:  # mag, eeg, planar1, planar2
             mask_ = mask[np.ix_(picks, time_idx)]
     # set up colormap
-    vlims = [_setup_vmin_vmax(data[:, i], vmin, vmax, norm=merge_channels)
+    _vlim = [_setup_vmin_vmax(data[:, i], *vlim, norm=merge_channels)
              for i in range(n_times)]
-    vmin = np.min(vlims)
-    vmax = np.max(vlims)
+    vmin = np.min(_vlim)
+    vmax = np.max(_vlim)
     cmap = _setup_cmap(cmap, n_axes=n_times, norm=vmin >= 0)
     # set up contours
     if not isinstance(contours, (list, np.ndarray)):
