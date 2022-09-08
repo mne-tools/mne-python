@@ -297,6 +297,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
             The positional argument ``layout`` was deprecated and replaced
             by ``info``.
     %(proj_topomap_kwargs)s
+    %(vlim_plot_topomap_proj)s
     %(sphere_topomap_auto)s
     %(extrapolate_topomap)s
 
@@ -1968,7 +1969,9 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_psd_topo)s
-    %(vlim_psd_topo_joint)s
+    %(vlim_plot_topomap_psd)s
+
+    .. versionadded:: 0.21
     %(colorbar_topomap)s
     %(cbar_fmt_psd_topo)s
     %(units_topomap)s
@@ -2030,7 +2033,9 @@ def plot_psds_topomap(
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_psd_topo)s
-    %(vlim_psd_topo_joint)s
+    %(vlim_plot_topomap_psd)s
+
+    .. versionadded:: 0.21
     %(colorbar_topomap)s
     %(cbar_fmt_psd_topo)s
     unit : str | None

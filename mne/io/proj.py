@@ -83,6 +83,7 @@ class Projection(dict):
         ----------
         %(info_not_none)s Used to determine the layout.
         %(proj_topomap_kwargs)s
+        %(vlim_plot_topomap_proj)s
         %(sphere_topomap_auto)s
         %(border_topomap)s
 
@@ -305,6 +306,7 @@ class ProjMixin(object):
             (default), it will return all channel types present. If a list of
             ch_types is provided, it will return multiple figures.
         %(proj_topomap_kwargs)s
+        %(vlim_plot_topomap_proj)s
         %(sphere_topomap_auto)s
         %(image_interp_topomap)s
         %(extrapolate_topomap)s

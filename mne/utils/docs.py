@@ -2693,15 +2693,6 @@ axes : instance of Axes | list | None
     The axes to plot to. If list, the list must be a list of Axes of
     the same length as the number of projectors. If instance of Axes,
     there must be only one projector. Defaults to None.
-vlim : tuple of length 2 | 'joint'
-    Colormap limits to use. If :class:`tuple`, specifies the lower and
-    upper bounds of the colormap (in that order); providing ``None`` for
-    either of these will set the corresponding boundary at the min/max of
-    the data (separately for each projector). The keyword value ``'joint'``
-    will compute the colormap limits jointly across all provided
-    projectors of the same channel type, using the min/max of the projector
-    data. If vlim is ``'joint'``, ``info`` must not be ``None``. Defaults
-    to ``(None, None)``.
 """
 
 docdict['projection_set_eeg_reference'] = """
@@ -3703,20 +3694,32 @@ views : str | list
     valid string options.
 """
 
-docdict['vlim_psd_topo_joint'] = """
-vlim : tuple of length 2 | 'joint'
+_vlim = """
+vlim : tuple of length 2{}
     Colormap limits to use. If a :class:`tuple` of floats, specifies the
     lower and upper bounds of the colormap (in that order); providing
     ``None`` for either entry will set the corresponding boundary at the
-    min/max of the data (separately for each topomap). Elements of the
-    :class:`tuple` may also be callable functions which take in a
-    :class:`NumPy array <numpy.ndarray>` and return a scalar.
-    If ``vlim='joint'``, will compute the colormap limits jointly across
-    all topomaps of the same channel type, using the min/max of the data.
-    Defaults to ``(None, None)``.
-
-    .. versionadded:: 0.21
+    min/max of the data{}. {}{}{}Defaults to ``(None, None)``.
 """
+_vlim_joint = _vlim.format(
+    " | 'joint'",
+    " (separately for each {0})",
+    '{1}',
+    "If ``vlim='joint'``, will compute the colormap limits jointly across "
+    "all {0}s of the same channel type, using the min/max of the data for "
+    "that channel type. ",
+    '{2}'
+)
+_vlim_callable = (
+    'Elements of the :class:`tuple` may also be callable functions which '
+    'take in a :class:`NumPy array <numpy.ndarray>` and return a scalar. ')
+
+docdict['vlim_plot_topomap_cov'] = _vlim.format('', '', '', '', '')
+docdict['vlim_plot_topomap_proj'] = _vlim_joint.format(
+    'projector', _vlim_callable,
+    "If vlim is ``'joint'``, ``info`` must not be ``None``. ")
+docdict['vlim_plot_topomap_psd'] = _vlim_joint.format(
+    'topomap', _vlim_callable, '')
 
 docdict['vmin_vmax_topomap'] = """
 vmin, vmax : float | callable | None
