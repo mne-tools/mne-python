@@ -1531,17 +1531,15 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
 
 @fill_doc
-def plot_evoked_topomap(evoked, times="auto", ch_type=None,
-                        vmin=None, vmax=None, cmap=None, sensors=True,
-                        colorbar=True, scalings=None,
-                        units=None, res=64, size=1, cbar_fmt='%3.1f',
-                        time_unit='s', time_format=None, proj=False,
-                        show=True, show_names=False, title=None, mask=None,
-                        mask_params=None, outlines='head', contours=6,
-                        image_interp=_INTERPOLATION_DEFAULT, average=None,
-                        axes=None, extrapolate=_EXTRAPOLATE_DEFAULT,
-                        sphere=None, border=_BORDER_DEFAULT,
-                        nrows=1, ncols='auto'):
+def plot_evoked_topomap(
+        evoked, times="auto", *, average=None, ch_type=None, scalings=None,
+        proj=False, sensors=True, show_names=False, mask=None,
+        mask_params=None, contours=6, outlines='head', sphere=None,
+        image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
+        border=_BORDER_DEFAULT, res=64, size=1, time_unit='s',
+        time_format=None, cmap=None, vlim=(None, None), vmin=None, vmax=None,
+        colorbar=True, cbar_fmt='%3.1f', units=None, axes=None, title=None,
+        nrows=1, ncols='auto', show=True):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters
@@ -1556,33 +1554,6 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         automatically by checking for local maxima in global field power. If
         "interactive", the time can be set interactively at run-time by using a
         slider.
-    %(ch_type_topomap)s
-    %(vmin_vmax_topomap)s
-    %(cmap_topomap)s
-    %(sensors_topomap)s
-    %(colorbar_topomap)s
-    %(scalings_topomap)s
-    %(units_topomap)s
-    %(res_topomap)s
-    %(size_topomap)s
-    %(cbar_fmt_topomap)s
-    time_unit : str
-        The units for the time axis, can be "ms" or "s" (default).
-
-        .. versionadded:: 0.16
-    time_format : str | None
-        String format for topomap values. Defaults (None) to "%%01d ms" if
-        ``time_unit='ms'``, "%%0.3f s" if ``time_unit='s'``, and
-        "%%g" otherwise. Can be an empty string to omit the time label.
-    %(proj_plot)s
-    %(show)s
-    %(show_names_topomap)s
-    %(title_none)s
-    %(mask_evoked_topomap)s
-    %(mask_params_topomap)s
-    %(outlines_topomap)s
-    %(contours_topomap)s
-    %(image_interp_topomap)s
     average : float | array-like of float, shape (n_times,) | None
         The time window (in seconds) around a given time point to be used for
         averaging. For example, 0.2 would translate into a time window that
@@ -1594,12 +1565,45 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
 
         .. versionchanged:: 1.1
            Support for ``array-like`` input.
-    %(axes_evoked_plot_topomap)s
+    %(ch_type_topomap)s
+    %(scalings_topomap)s
+    %(proj_plot)s
+    %(sensors_topomap)s
+    %(show_names_topomap)s
+    %(mask_evoked_topomap)s
+    %(mask_params_topomap)s
+    %(contours_topomap)s
+    %(outlines_topomap)s
+    %(sphere_topomap_auto)s
+    %(image_interp_topomap)s
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.18
-    %(sphere_topomap_auto)s
     %(border_topomap)s
+    %(res_topomap)s
+    %(size_topomap)s
+    time_unit : str
+        The units for the time axis, can be "ms" or "s" (default).
+
+        .. versionadded:: 0.16
+    time_format : str | None
+        String format for topomap values. Defaults (None) to "%%01d ms" if
+        ``time_unit='ms'``, "%%0.3f s" if ``time_unit='s'``, and
+        "%%g" otherwise. Can be an empty string to omit the time label.
+    %(cmap_topomap)s
+    %(vlim_plot_topomap_psd)s
+
+    .. versionadded:: 1.2
+    %(vmin_vmax_topomap)s
+
+    .. deprecated:: v1.2
+       The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
+       Please use the ``vlim`` parameter instead.
+    %(colorbar_topomap)s
+    %(cbar_fmt_topomap)s
+    %(units_topomap)s
+    %(axes_evoked_plot_topomap)s
+    %(title_none)s
     nrows : int | 'auto'
         The number of rows of topographies to plot. Defaults to 1. If 'auto',
         obtains the number of rows depending on the amount of times to plot
@@ -1612,6 +1616,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         and the number of rows. Not valid when times == 'interactive'.
 
         .. versionadded:: 0.20
+    %(show)s
 
     Returns
     -------
