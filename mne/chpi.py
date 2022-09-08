@@ -1394,12 +1394,14 @@ def get_active_chpi(raw):
     raw : instance of Raw
         Raw data
 
-            .. versionadded:: 1.2
-
     Returns
     -------
     n_active : array, shape (n_times)
         The number of active cHPIs for every timepoint in raw.
+
+    Notes
+    -----
+    .. versionadded:: 1.2
     """
     # get meg system
     system, _ = _get_meg_system(raw.info)

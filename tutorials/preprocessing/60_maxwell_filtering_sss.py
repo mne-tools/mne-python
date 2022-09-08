@@ -307,6 +307,7 @@ raw = mne.io.read_raw_fif(chpi_fif_file, allow_maxshield='yes')
 # time-resolved information on active HPI coils
 # if all hpi were inactive n_active is a zero-array
 n_active = mne.chpi.get_active_chpi(raw)
+print(f'Average number of coils active during recording: {n_active.mean()}')
 
 # %%
 # Head position data can be computed using
