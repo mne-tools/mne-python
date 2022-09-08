@@ -13,13 +13,15 @@ else
 	pip uninstall -yq numpy
 	echo "Date utils"
 	# https://pip.pypa.io/en/latest/user_guide/#possible-ways-to-reduce-backtracking-occurring
-	pip install $STD_ARGS --pre --only-binary ":all:" python-dateutil pytz joblib threadpoolctl six
+	#pip install $STD_ARGS --pre --only-binary ":all:" python-dateutil pytz joblib threadpoolctl six
+	pip install $STD_ARGS --only-binary ":all:" python-dateutil pytz joblib threadpoolctl six
 	echo "PyQt6"
 	# XXX: the wheels for PyQt6-sip 13.4 are not available yet from https://www.riverbankcomputing.com/pypi/simple
 	# pip install $STD_ARGS --pre --only-binary ":all:" --no-deps --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6 PyQt6-sip PyQt6-Qt6
 	pip install $STD_ARGS --only-binary ":all:" PyQt6 PyQt6-sip PyQt6-Qt6
 	echo "NumPy/SciPy/pandas etc."
-	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps  --default-timeout=60 -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy scipy scikit-learn dipy
+	#pip install $STD_ARGS --pre --only-binary ":all:" --no-deps  --default-timeout=60 -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy scipy scikit-learn dipy
+	pip install $STD_ARGS --only-binary ":all:" --no-deps  --default-timeout=60 numpy scipy scikit-learn dipy
 	# as of 2022/08/29, pandas and statsmodels on scipy-wheels-nightly is broken for some reason (intermittent download issue?)
 	pip install $STD_ARGS --pre --only-binary ":all:" pandas statsmodels
 	echo "H5py, pillow, matplotlib"
