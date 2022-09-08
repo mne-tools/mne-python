@@ -252,15 +252,15 @@ class Covariance(dict):
                                  show, verbose)
 
     @verbose
-    def plot_topomap(self, info, ch_type=None, vmin=None,
-                     vmax=None, cmap=None, sensors=True, colorbar=True,
-                     scalings=None, units=None, res=64,
-                     size=1, cbar_fmt="%3.1f",
-                     proj=False, show=True, show_names=False, title=None,
-                     mask=None, mask_params=None, outlines='head',
-                     contours=6, image_interp=_INTERPOLATION_DEFAULT,
-                     axes=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
-                     border=_BORDER_DEFAULT, noise_cov=None, verbose=None):
+    def plot_topomap(
+            self, info, ch_type=None, *, scalings=None, proj=False,
+            noise_cov=None, sensors=True, show_names=False, mask=None,
+            mask_params=None, contours=6, outlines='head', sphere=None,
+            image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+            size=1, cmap=None, vlim=(None, None), vmin=None, vmax=None,
+            colorbar=True, cbar_fmt='%3.1f', units=None, axes=None, title=None,
+            show=True, verbose=None):
         """Plot a topomap of the covariance diagonal.
 
         Parameters
@@ -269,31 +269,38 @@ class Covariance(dict):
         %(ch_type_topomap)s
 
             .. versionadded:: 0.21
-        %(vmin_vmax_topomap)s
-        %(cmap_topomap)s
-        %(sensors_topomap)s
-        %(colorbar_topomap)s
         %(scalings_topomap)s
-        %(units_topomap)s
-        %(res_topomap)s
-        %(size_topomap)s
-        %(cbar_fmt_topomap)s
         %(proj_plot)s
-        %(show)s
-        %(show_names_topomap)s
-        %(title_none)s
-        %(mask_topomap)s
-        %(mask_params_topomap)s
-        %(outlines_topomap)s
-        %(contours_topomap)s
-        %(image_interp_topomap)s
-        %(axes_cov_plot_topomap)s
-        %(extrapolate_topomap)s
-        %(sphere_topomap_auto)s
-        %(border_topomap)s
         noise_cov : instance of Covariance | None
             If not None, whiten the instance with ``noise_cov`` before
             plotting.
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+        %(mask_topomap)s
+        %(mask_params_topomap)s
+        %(contours_topomap)s
+        %(outlines_topomap)s
+        %(sphere_topomap_auto)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+        %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cmap_topomap)s
+        %(vlim_plot_topomap_cov)s
+
+        .. versionadded:: 1.2
+        %(vmin_vmax_topomap)s
+
+        .. deprecated:: v1.2
+           The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
+           Please use the ``vlim`` parameter instead.
+        %(colorbar_topomap)s
+        %(cbar_fmt_topomap)s
+        %(units_topomap)s
+        %(axes_cov_plot_topomap)s
+        %(title_none)s
+        %(show)s
         %(verbose)s
 
         Returns
@@ -306,6 +313,18 @@ class Covariance(dict):
         .. versionadded:: 0.21
         """
         from .viz.misc import _index_info_cov
+
+        if vmin is not None or vmax is not None:
+            warn('The "vmin" and "vmax" parameters are deprecated and will be '
+                 'removed in version 1.3. Use the "vlim" parameter instead.',
+                 FutureWarning)
+            if vlim[0] is None and vlim[1] is None:
+                vlim = (vmin, vmax)
+            else:
+                warn('You provided either "vmin" or "vmax" (which are '
+                     'deprecated) as well as "vlim". Using "vlim" and '
+                     'ignoring "vmin" and "vmax".')
+
         info, C, _, _ = _index_info_cov(info, self, exclude=())
         evoked = EvokedArray(np.diag(C)[:, np.newaxis], info)
         if noise_cov is not None:
@@ -321,7 +340,7 @@ class Covariance(dict):
         if scalings is None:
             scalings = {k: v * v for k, v in DEFAULTS['scalings'].items()}
         return evoked.plot_topomap(
-            times=[0], ch_type=ch_type, vmin=vmin, vmax=vmax, cmap=cmap,
+            times=[0], ch_type=ch_type, vmin=vlim[0], vmax=vlim[1], cmap=cmap,
             sensors=sensors, colorbar=colorbar, scalings=scalings,
             units=units, res=res, size=size, cbar_fmt=cbar_fmt,
             proj=proj, show=show, show_names=show_names, title=title,
