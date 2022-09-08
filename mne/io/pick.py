@@ -931,7 +931,7 @@ _DATA_CH_TYPES_ORDER_DEFAULT = (
     'mag', 'grad', 'eeg', 'csd', 'eog', 'ecg', 'resp', 'emg', 'ref_meg',
     'misc', 'stim', 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio', 'ecog',
     'dbs', 'temperature', 'gsr', 'gof', 'dipole',
-    ) + _FNIRS_CH_TYPES_SPLIT + ('whitened',)
+) + _FNIRS_CH_TYPES_SPLIT + ('whitened',)
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = (
     'eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'resp', 'emg', 'dipole', 'gof',
