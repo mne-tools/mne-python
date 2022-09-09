@@ -18,7 +18,8 @@ from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 from ..defaults import (_INTERPOLATION_DEFAULT, _BORDER_DEFAULT,
                         _EXTRAPOLATE_DEFAULT)
-from ..utils import logger, verbose, warn, fill_doc, _validate_type
+from ..utils import (logger, verbose, warn, fill_doc, _validate_type,
+                     object_diff)
 
 
 class Projection(dict):
@@ -74,19 +75,7 @@ class Projection(dict):
         """Equality == method."""
         if not isinstance(other, Projection):
             return False
-        for key in ("desc", "kind", "active", "explained_var"):
-            if self[key] != other[key]:
-                return False
-        if "data" not in other:
-            return False  # sanity-check
-        for key in ("nrow", "ncol", "row_names", "col_names"):
-            if self["data"][key] != other["data"][key]:
-                return False
-        if self["data"]["data"].shape != other["data"]["data"].shape:
-            return False
-        if not np.allclose(self["data"]["data"], other["data"]["data"]):
-            return False
-        return True
+        return True if len(object_diff(self, other)) == 0 else False
 
     def __ne__(self, other):
         """Different != method."""
