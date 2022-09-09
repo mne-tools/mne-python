@@ -18,7 +18,8 @@ from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 from ..defaults import (_INTERPOLATION_DEFAULT, _BORDER_DEFAULT,
                         _EXTRAPOLATE_DEFAULT)
-from ..utils import logger, verbose, warn, fill_doc, _validate_type
+from ..utils import (logger, verbose, warn, fill_doc, _validate_type,
+                     object_diff)
 
 
 class Projection(dict):
@@ -69,6 +70,14 @@ class Projection(dict):
             else:
                 result[k] = v  # kind, active, desc, explained_var immutable
         return result
+
+    def __eq__(self, other):
+        """Equality == method."""
+        return True if len(object_diff(self, other)) == 0 else False
+
+    def __ne__(self, other):
+        """Different != method."""
+        return not self.__eq__(other)
 
     @fill_doc
     def plot_topomap(self, info, cmap=None, sensors=True,
