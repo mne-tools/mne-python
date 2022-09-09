@@ -38,6 +38,7 @@ raw.filter(0.3, None, picks='all')
 # Perform regression and remove EOG
 # ---------------------------------
 
+raw.apply_proj()
 weights = EOGRegression().fit(raw)
 raw_clean = weights.apply(raw, copy=True)
 
