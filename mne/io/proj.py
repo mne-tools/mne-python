@@ -319,15 +319,42 @@ class ProjMixin(object):
         fig : instance of Figure
             Figure distributing one image per channel across sensor topography.
         """
-        if self.info['projs'] is not None or len(self.info['projs']) != 0:
-            from ..viz.topomap import plot_projs_topomap
-            fig = plot_projs_topomap(self.info['projs'], self.info, cmap=cmap,
-                                     sensors=sensors, colorbar=colorbar,
-                                     res=res, size=size, show=show,
-                                     outlines=outlines, contours=contours,
-                                     image_interp=image_interp, axes=axes,
-                                     vlim=vlim, sphere=sphere,
-                                     extrapolate=extrapolate, border=border)
+        _projs = [deepcopy(_proj) for _proj in self.info['projs']]
+        if _projs is not None and len(_projs) > 0:
+            # XXX TODO FIXME there is probably a better way to do this ↓↓↓↓↓↓↓
+            if ch_type is not None:
+                _validate_type(ch_type, (str, list, tuple), 'ch_type')
+                if isinstance(ch_type, str):
+                    ch_type = [ch_type]
+                ch_type = np.array(ch_type)
+                available_ch_types = np.array(self.get_channel_types())
+                bad_ch_types = np.isin(ch_type, available_ch_types,
+                                       invert=True)
+                if any(bad_ch_types):
+                    raise ValueError(
+                        f'ch_type {ch_type[bad_ch_types]} not present in '
+                        f'{self.__class__.__name__}.')
+                for _proj in _projs[::-1]:
+                    idx = np.isin(self.ch_names, _proj['data']['col_names'])
+                    _ch_type = np.unique(available_ch_types[idx])
+                    err_msg = 'Projector contains multiple channel types'
+                    assert len(_ch_type) == 1, err_msg
+                    if _ch_type[0] != ch_type:
+                        _projs.remove(_proj)
+            # XXX TODO FIXME there is probably a better way to do this ↑↑↑↑↑↑↑
+            if len(_projs) > 0:
+                from ..viz.topomap import plot_projs_topomap
+                fig = plot_projs_topomap(_projs, self.info, cmap=cmap,
+                                         sensors=sensors, colorbar=colorbar,
+                                         res=res, size=size, show=show,
+                                         outlines=outlines, contours=contours,
+                                         image_interp=image_interp, axes=axes,
+                                         vlim=vlim, sphere=sphere,
+                                         extrapolate=extrapolate,
+                                         border=border)
+            else:
+                raise ValueError('Nothing to plot (no projectors for channel '
+                                 f'type {ch_type}).')
         else:
             raise ValueError("Info is missing projs. Nothing to plot.")
         return fig
