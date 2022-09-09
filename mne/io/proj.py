@@ -73,8 +73,6 @@ class Projection(dict):
 
     def __eq__(self, other):
         """Equality == method."""
-        if not isinstance(other, Projection):
-            return False
         return True if len(object_diff(self, other)) == 0 else False
 
     def __ne__(self, other):
