@@ -70,6 +70,28 @@ class Projection(dict):
                 result[k] = v  # kind, active, desc, explained_var immutable
         return result
 
+    def __eq__(self, other):
+        """Equality == method."""
+        if not isinstance(other, Projection):
+            return False
+        for key in ("desc", "kind", "active", "explained_var"):
+            if self[key] != other[key]:
+                return False
+        if "data" not in other:
+            return False  # sanity-check
+        for key in ("nrow", "ncol", "row_names", "col_names"):
+            if self["data"][key] != other["data"][key]:
+                return False
+        if self["data"]["data"].shape != other["data"]["data"].shape:
+            return False
+        if not np.allclose(self["data"]["data"], other["data"]["data"]):
+            return False
+        return True
+
+    def __ne__(self, other):
+        """Different != method."""
+        return not self.__eq__(other)
+
     @fill_doc
     def plot_topomap(self, info, cmap=None, sensors=True,
                      colorbar=False, res=64, size=1, show=True,
