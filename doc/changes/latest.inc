@@ -42,7 +42,7 @@ Enhancements
 - Add :func:`mne.minimum_norm.apply_inverse_tfr_epochs` to apply inverse methods to time-frequency resolved epochs (:gh:`11095` by `Alex Rockhill`_)
 - Add :func:`mne.chpi.get_active_chpi` to retrieve the number of active hpi coils for each time point (:gh:`11122` by `Eduard Ort`_)
 - Add example of how to obtain time-frequency decomposition using narrow bandpass Hilbert transforms to :ref:`ex-tfr-comparison` (:gh:`11116` by `Alex Rockhill`_)
-
+- Add ``==`` and ``!=`` comparison between :class:`mne.io.Projection` (:gh:`11147` by `Mathieu Scheltienne`_)
 
 Bugs
 ~~~~
