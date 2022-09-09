@@ -43,7 +43,8 @@ evoked = mne.read_evokeds(fname_evo, 0)
 
 # create a coarse source space
 src_vol = mne.setup_volume_source_space(  # this is a very course resolution!
-    'sample', pos=15., subjects_dir=subjects_dir)
+    'sample', pos=15., subjects_dir=subjects_dir,
+    add_interpolator=False)  # usually you want True, this is just for speed
 
 # compute the forward
 forward_vol = mne.make_forward_solution(  # MEG-only for speed
