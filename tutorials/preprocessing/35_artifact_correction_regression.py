@@ -53,6 +53,7 @@ raw.load_data()
 # The regression technique works regardless of chosen reference. However, it is
 # important to choose a reference before proceeding with the analysis.
 raw.set_eeg_reference('average')
+raw.apply_proj()
 
 # Removing slow drifts makes for more stable regression coefficients. Make sure
 # to apply the same filter to both EEG and EOG channels!
