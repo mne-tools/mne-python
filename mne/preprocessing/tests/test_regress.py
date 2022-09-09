@@ -44,7 +44,10 @@ def test_regress_artifact():
     raw_no_taa, betas = regress_artifact(raw, taa=False)
     raw_taa, _ = regress_artifact(raw, taa=True, betas=betas)
     # TAA should have increased signal amplitude
-    assert np.ptp(raw_no_taa.get_data('eeg')) < np.ptp(raw_taa.get_data('eeg'))
+    assert np.all(
+        np.ptp(raw_no_taa.get_data('eeg'), axis=-1) <
+        np.ptp(raw_taa.get_data('eeg'), axis=-1)
+    )
 
 
 @testing.requires_testing_data
