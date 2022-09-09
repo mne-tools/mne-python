@@ -269,6 +269,8 @@ def _create_chs(ch_names, cals, ch_coil, ch_kind, eog, ecg, emg, misc):
                      'ch_name': ch_name, 'unit': FIFF.FIFF_UNIT_V,
                      'coord_frame': FIFF.FIFFV_COORD_HEAD,
                      'coil_type': coil_type, 'kind': kind, 'loc': np.zeros(12)}
+        if coil_type == FIFF.FIFFV_COIL_EEG:
+            chan_info['loc'][:3] = np.nan
         chs.append(chan_info)
     return chs
 

@@ -1207,6 +1207,9 @@ def _get_bti_info(pdf_fname, config_fname, head_shape_fname, rotation_x,
             chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
             chan_info['coord_frame'] = eeg_frame
             chan_info['unit'] = FIFF.FIFF_UNIT_V
+            # TODO: We should use 'electrodes' to fill this in, and make sure
+            # we turn them into dig as well
+            chan_info['loc'][:3] = np.nan
 
         elif chan_4d == 'RESPONSE':
             chan_info['kind'] = FIFF.FIFFV_STIM_CH

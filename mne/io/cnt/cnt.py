@@ -11,6 +11,7 @@ import numpy as np
 from ...utils import warn, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
+from .._digitization import _make_dig_points
 from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str)
 from ..meas_info import _empty_info
 from ..base import BaseRaw
@@ -301,6 +302,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     coords = _topo_to_sphere(pos, eegs)
     locs = np.full((len(chs), 12), np.nan)
     locs[:, :3] = coords
+    dig = _make_dig_points(dig_ch_pos=dict(zip(ch_names, coords)))
     for ch, loc in zip(chs, locs):
         ch.update(loc=loc)
 
@@ -308,7 +310,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
                     n_bytes=n_bytes)
 
     session_label = None if str(session_label) == '' else str(session_label)
-    info.update(meas_date=meas_date,
+    info.update(meas_date=meas_date, dig=dig,
                 description=session_label, bads=bads,
                 subject_info=subject_info, chs=chs)
     info._unlocked = False

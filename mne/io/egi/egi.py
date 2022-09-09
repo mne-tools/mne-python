@@ -254,7 +254,8 @@ class RawEGI(BaseRaw):
             chs[idx].update({'unit_mul': FIFF.FIFF_UNITM_NONE, 'cal': 1.,
                              'kind': FIFF.FIFFV_STIM_CH,
                              'coil_type': FIFF.FIFFV_COIL_NONE,
-                             'unit': FIFF.FIFF_UNIT_NONE})
+                             'unit': FIFF.FIFF_UNIT_NONE,
+                             'loc': np.zeros(12)})
         info['chs'] = chs
         info._unlocked = False
         info._update_redundant()
