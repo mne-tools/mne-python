@@ -1593,12 +1593,12 @@ def plot_evoked_topomap(
     %(cmap_topomap)s
     %(vlim_plot_topomap_psd)s
 
-    .. versionadded:: 1.2
+        .. versionadded:: 1.2
     %(vmin_vmax_topomap)s
 
-    .. deprecated:: v1.2
-       The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
-       Please use the ``vlim`` parameter instead.
+        .. deprecated:: v1.2
+           The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
+           Please use the ``vlim`` parameter instead.
     %(colorbar_topomap)s
     %(cbar_fmt_topomap)s
     %(units_topomap)s
@@ -1978,7 +1978,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
     %(cmap_psd_topo)s
     %(vlim_plot_topomap_psd)s
 
-    .. versionadded:: 0.21
+        .. versionadded:: 0.21
     %(colorbar_topomap)s
     %(cbar_fmt_psd_topo)s
     %(units_topomap)s
@@ -2042,7 +2042,7 @@ def plot_psds_topomap(
     %(cmap_psd_topo)s
     %(vlim_plot_topomap_psd)s
 
-    .. versionadded:: 0.21
+        .. versionadded:: 0.21
     %(colorbar_topomap)s
     %(cbar_fmt_psd_topo)s
     unit : str | None

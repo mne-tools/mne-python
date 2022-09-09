@@ -290,12 +290,12 @@ class Covariance(dict):
         %(cmap_topomap)s
         %(vlim_plot_topomap_cov)s
 
-        .. versionadded:: 1.2
+            .. versionadded:: 1.2
         %(vmin_vmax_topomap)s
 
-        .. deprecated:: v1.2
-           The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
-           Please use the ``vlim`` parameter instead.
+            .. deprecated:: v1.2
+               The ``vmin`` and ``vmax`` parameters will be removed in version
+               1.3. Please use the ``vlim`` parameter instead.
         %(colorbar_topomap)s
         %(cbar_fmt_topomap)s
         %(units_topomap)s
