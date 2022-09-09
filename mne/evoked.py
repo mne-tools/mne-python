@@ -421,19 +421,18 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             exclude=exclude, show=show)
 
     @copy_function_doc_to_method_doc(plot_evoked_topomap)
-    def plot_topomap(self, times="auto", ch_type=None, vmin=None,
-                     vmax=None, cmap=None, sensors=True, colorbar=True,
-                     scalings=None, units=None, res=64,
-                     size=1, cbar_fmt="%3.1f",
-                     time_unit='s', time_format=None,
-                     proj=False, show=True, show_names=False, title=None,
-                     mask=None, mask_params=None, outlines='head',
-                     contours=6, image_interp=_INTERPOLATION_DEFAULT,
-                     average=None, axes=None,
-                     extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
-                     border=_BORDER_DEFAULT, nrows=1, ncols='auto'):
+    def plot_topomap(
+            self, times="auto", *, average=None, ch_type=None, scalings=None,
+            proj=False, sensors=True, show_names=False, mask=None,
+            mask_params=None, contours=6, outlines='head', sphere=None,
+            image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+            size=1, time_unit='s', time_format=None, cmap=None,
+            vlim=(None, None), vmin=None, vmax=None, colorbar=True,
+            cbar_fmt='%3.1f', units=None, axes=None, title=None, nrows=1,
+            ncols='auto', show=True):
         return plot_evoked_topomap(
-            self, times=times, ch_type=ch_type, vmin=vmin,
+            self, times=times, ch_type=ch_type, vlim=vlim, vmin=vmin,
             vmax=vmax, cmap=cmap, sensors=sensors, colorbar=colorbar,
             scalings=scalings, units=units, res=res,
             size=size, cbar_fmt=cbar_fmt, time_unit=time_unit,

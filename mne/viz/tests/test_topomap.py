@@ -67,7 +67,7 @@ def test_plot_topomap_interactive(constrained_layout):
     fig, ax = plt.subplots(constrained_layout=constrained_layout)
     canvas = fig.canvas
 
-    kwargs = dict(vmin=-240, vmax=240, times=[0.1], colorbar=False, axes=ax,
+    kwargs = dict(vlim=(-240, 240), times=[0.1], colorbar=False, axes=ax,
                   res=8, time_unit='s')
     evoked.copy().plot_topomap(proj=False, **kwargs)
     canvas.draw()
