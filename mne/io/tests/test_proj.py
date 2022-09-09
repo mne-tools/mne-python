@@ -1,13 +1,14 @@
 from copy import deepcopy
 
-from mne.datasets import testing
+from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_fif
 
-directory = testing.data_path() / "MEG" / "sample"
+directory = data_path(download=False) / "MEG" / "sample"
 fname = directory / "sample_audvis_trunc_raw.fif"
 raw = read_raw_fif(fname, preload=False)
 
 
+@requires_testing_data
 def test_eq_ne():
     """Test == and != between projectors."""
     pca1 = deepcopy(raw.info["projs"][0])
