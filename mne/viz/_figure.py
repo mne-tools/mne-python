@@ -254,6 +254,8 @@ class BrowserBase(ABC):
                            self.mne.ch_start + self.mne.n_channels)
             self.mne.picks = self.mne.ch_order[_slice]
             self.mne.n_channels = len(self.mne.picks)
+        assert isinstance(self.mne.picks, np.ndarray)
+        assert self.mne.picks.dtype.kind == 'i'
 
     def _make_butterfly_selections_dict(self):
         """Make an altered copy of the selections dict for butterfly mode."""
