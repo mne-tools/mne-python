@@ -400,8 +400,8 @@ def test_plot_topomap_basic():
     # change to no-proj mode
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0), proj=False)
-    fig1 = evoked.plot_topomap('interactive', 'mag', proj='interactive',
-                               **fast_test)
+    fig1 = evoked.plot_topomap('interactive', ch_type='mag',
+                               proj='interactive', **fast_test)
     _fake_click(fig1, fig1.axes[1], (0.5, 0.5))  # click slider
     data_max = np.max(fig1.axes[0].images[0]._A)
     fig2 = plt.gcf()
