@@ -22,7 +22,7 @@ raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 def test_regress_artifact():
     """Test regressing artifact data."""
     raw = read_raw_fif(raw_fname).pick_types(meg=False, eeg=True, eog=True)
-    raw.load_data()
+    raw.load_data().apply_proj()
     epochs = create_eog_epochs(raw)
     epochs.apply_baseline((None, None))
     orig_data = epochs.get_data('eeg')
@@ -50,12 +50,15 @@ def test_regress_artifact():
 @testing.requires_testing_data
 def test_eog_regression():
     """Test regressing artifact data using the EOGRegression class."""
-    raw = read_raw_fif(raw_fname).pick(['eeg', 'eog', 'stim'])
+    raw_meg_eeg = read_raw_fif(raw_fname)
+    raw = raw_meg_eeg.copy().pick(['eeg', 'eog', 'stim'])
 
-    # Test error regarding preloading
+    # Test various errors
+    with pytest.raises(RuntimeError, match='Projections need to be applied'):
+        model = EOGRegression().fit(raw)
+    raw.apply_proj()
     with pytest.raises(RuntimeError, match='requires raw data to be loaded'):
         model = EOGRegression().fit(raw)
-
     raw.load_data()
 
     # Test regression on raw data
@@ -107,16 +110,16 @@ def test_eog_regression():
     assert fig.axes[0].title.get_text() == 'eeg/EOG 061'
 
     # Test plotting with multiple channel types
-    raw = read_raw_fif(raw_fname).pick(['meg', 'eeg', 'eog'])
-    raw.load_data()
-    fig = EOGRegression().fit(raw).plot()
+    raw_meg_eeg.load_data().apply_proj()
+    fig = EOGRegression().fit(raw_meg_eeg).plot()
     assert len(fig.axes) == 6  # (3 topomaps and 3 colorbars)
     assert fig.axes[0].title.get_text() == 'grad/EOG 061'
     assert fig.axes[1].title.get_text() == 'mag/EOG 061'
     assert fig.axes[2].title.get_text() == 'eeg/EOG 061'
 
     # Test plotting with multiple channel types, multiple regressors)
-    fig = EOGRegression(picks_artifact=['EEG 001', 'EOG 061']).fit(raw).plot()
+    m = EOGRegression(picks_artifact=['EEG 001', 'EOG 061']).fit(raw_meg_eeg)
+    fig = m.plot()
     assert len(fig.axes) == 12  # (6 topomaps and 3 colorbars)
     assert fig.axes[0].title.get_text() == 'grad/EEG 001'
     assert fig.axes[1].title.get_text() == 'mag/EEG 001'

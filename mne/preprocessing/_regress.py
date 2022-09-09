@@ -201,15 +201,17 @@ class EOGRegression():
         ----------
         .. footbibliography::
         """
+        if copy:
+            inst = inst.copy()
+            if not inst.proj:
+                inst.apply_proj()
+
         self._check_inst(inst)
         # The channels indices may not exactly match those of the object used
         # during .fit(). We align then using channel names.
         picks = [inst.ch_names.index(ch) for ch in self._picks]
         picks_artifact = [inst.ch_names.index(ch)
                           for ch in self._picks_artifact]
-
-        if copy:
-            inst = inst.copy()
         artifact_data = inst._data[..., picks_artifact, :]
         ref_data = artifact_data - np.mean(artifact_data, -1, keepdims=True)
 
@@ -244,5 +246,7 @@ class EOGRegression():
         if _needs_eeg_average_ref_proj(inst.info):
             raise RuntimeError('No reference for the EEG channels has been '
                                'set. Use inst.set_eeg_reference to do so.')
-        if not inst.proj:
-            inst.apply_proj()
+        if not inst.proj and len(inst.info.get('projs', [])) > 0:
+            raise RuntimeError('Projections need to be applied before '
+                               'regression can be performed. Use the '
+                               '.apply_proj() method to do so.')

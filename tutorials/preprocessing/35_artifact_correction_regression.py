@@ -35,8 +35,8 @@ Prepare the data
 ^^^^^^^^^^^^^^^^
 
 We begin as always by importing the necessary Python modules and loading some
-data. The MNE-Sample dataset has some clear, large blink artifacts, especially
-during the presentation of visual stimuli.
+data. The :ref:`MNE-Sample <sample-dataset>` dataset has some clear, large
+blink artifacts, especially during the presentation of visual stimuli.
 """
 
 # %%
@@ -110,11 +110,11 @@ fig.set_size_inches(6, 6)
 # Regressing the EOG signal out of the EEG signals has reduced the peak around
 # 250ms that was partly there because of eye artifacts.
 #
-# In the MNE-Sample dataset, there are no segments of data that are
-# particularly unstable, so the basic form of regression produces robust
-# coefficients. However, this may not be the case in every dataset, so let's
-# explore some variations that may improve the estimation of the regression
-# coefficients.
+# In the :ref:`MNE-Sample <mne-sample>` dataset, there are no segments of data
+# that are particularly unstable, so the basic form of regression produces
+# robust coefficients. However, this may not be the case in every dataset, so
+# let's explore some variations that may improve the estimation of the
+# regression coefficients.
 #
 # One potential problem is that the EOG sensor does not only pick up eye
 # artifacts, but also a bit of EEG signal. This means we are prone to
@@ -161,6 +161,19 @@ fig.set_size_inches(6, 6)
 # create two separate regression models. However, we will restrict ourselves to
 # just blink epochs, since MNE-Python contains an automated method for creating
 # those.
+#
+# .. note:: This is very similar to the approach taken by :ref:`SSP
+#           <tut-artifact-ssp>`. The difference is that :ref:`SSP
+#           <tut-artifact-ssp>` estimates signal components that are maximally
+#           correlated with the artifact and removes any data along that
+#           component (thereby reducing the rank of the non-EOG data), whereas
+#           the regression approach uses the ongoing EOG signal to determine
+#           how much data to remove (thereby not necessarily reducing the rank
+#           of the non-EOG data). Generally, SSP tends to error on the side of
+#           removing too much data, eliminating artifacts and true brain
+#           signals alike, whereas regression will error on the side of not
+#           removing enough, leaving some artifact signals still present in the
+#           signal.
 
 eog_epochs = mne.preprocessing.create_eog_epochs(raw)
 # We need to explicitly specify that we want to average the EOG channel too.
