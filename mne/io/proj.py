@@ -289,30 +289,39 @@ class ProjMixin(object):
         return self
 
     @fill_doc
-    def plot_projs_topomap(self, ch_type=None, cmap=None,
-                           sensors=True, colorbar=False, res=64, size=1,
-                           show=True, outlines='head', contours=6,
-                           image_interp=_INTERPOLATION_DEFAULT, axes=None,
-                           vlim=(None, None), sphere=None,
-                           extrapolate=_EXTRAPOLATE_DEFAULT,
-                           border=_BORDER_DEFAULT):
+    def plot_projs_topomap(
+            self, ch_type=None, *, sensors=True, show_names=False, mask=None,
+            mask_params=None, contours=6, outlines='head', sphere=None,
+            image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+            size=1, cmap=None, vlim=(None, None), colorbar=False,
+            cbar_fmt='%3.1f', axes=None, show=True):
         """Plot SSP vector.
 
         Parameters
         ----------
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None | list
-            The channel type to plot. For 'grad', the gradiometers are collec-
-            ted in pairs and the RMS for each pair is plotted. If None
-            (default), it will return all channel types present. If a list of
-            ch_types is provided, it will return multiple figures.
-        %(proj_topomap_kwargs)s
-        %(vlim_plot_topomap_proj)s
+        %(ch_type_topomap_proj)s
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+        %(mask_evoked_topomap)s
+        %(mask_params_topomap)s
+        %(contours_topomap)s
+        %(outlines_topomap)s
         %(sphere_topomap_auto)s
         %(image_interp_topomap)s
         %(extrapolate_topomap)s
 
             .. versionadded:: 0.20
         %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+            Only applies when plotting multiple topomaps at a time.
+        %(cmap_psd_topo)s
+        %(vlim_plot_topomap_proj)s
+        %(colorbar_topomap)s
+        %(cbar_fmt_topomap)s
+        %(axes_plot_projs_topomap)s
+        %(show)s
 
         Returns
         -------

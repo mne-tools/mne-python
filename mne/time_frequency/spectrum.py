@@ -180,7 +180,7 @@ class SpectrumMixin():
         %(tmin_tmax_psd)s
         %(proj_psd)s
         %(method_plot_psd_auto)s
-        %(ch_type_psd_topomap)s
+        %(ch_type_topomap_psd)s
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
         %(dB_plot_topomap)s
@@ -674,7 +674,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         Parameters
         ----------
         %(bands_psd_topo)s
-        %(ch_type_psd_topomap)s
+        %(ch_type_topomap_psd)s
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
         %(dB_plot_topomap)s

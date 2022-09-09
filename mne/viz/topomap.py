@@ -1959,7 +1959,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     %(normalization)s
-    %(ch_type_psd_topomap)s
+    %(ch_type_topomap_psd)s
     %(normalize_psd_topo)s
     %(agg_fun_psd_topo)s
     %(dB_plot_topomap)s

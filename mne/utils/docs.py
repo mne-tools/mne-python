@@ -264,6 +264,8 @@ docdict['axes_cov_plot_topomap'] = _axes.format('axes', 'be length 1')
 docdict['axes_evoked_plot_topomap'] = _axes.format(
     'axes',
     'match the number of ``times`` provided (unless ``times`` is ``None``)')
+docdict['axes_plot_projs_topomap'] = _axes.format(
+    'axes', 'match the number of projectors')
 docdict['axes_plot_topomap'] = _axes.format(
     'axes', 'match the length of ``bands``')
 docdict['axes_spectrum_plot'] = _axes.format(
@@ -445,7 +447,8 @@ cbar_fmt : str
 
 docdict['cbar_fmt_topomap'] = """
 cbar_fmt : str
-    String format for colorbar values.
+    Formatting string for colorbar tick labels. See :py:label:`formatspec` for
+    details.
 """
 
 docdict['center'] = """
@@ -489,16 +492,6 @@ ch_names : list | None
                     ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
 """
 
-_ch_type_topomap = """\
-ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-    The channel type to plot. For ``'grad'``, the gradiometers are
-    collected in pairs and the {} for each pair is plotted. If
-    ``None`` the first available channel type from order shown above is
-    used. Defaults to ``None``.
-"""
-
-docdict['ch_type_psd_topomap'] = _ch_type_topomap.format('mean')
-
 docdict['ch_type_set_eeg_reference'] = """
 ch_type : list of str | str
     The name of the channel type to apply the reference to.
@@ -509,7 +502,22 @@ ch_type : list of str | str
     .. versionadded:: 0.19
 """
 
-docdict['ch_type_topomap'] = _ch_type_topomap.format('RMS')
+_ch_type_topomap_base = """\
+ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None{}
+    The channel type to plot. For ``'grad'``, the gradiometers are
+    collected in pairs and the {} for each pair is plotted. If
+    ``None`` {}. {}Defaults to ``None``.
+"""
+_ch_type_topomap = _ch_type_topomap_base.format(
+    '{}', '{}',
+    'the first available channel type from order shown above is used', '{}')
+docdict['ch_type_topomap'] = _ch_type_topomap.format('', 'RMS', '')
+docdict['ch_type_topomap_proj'] = _ch_type_topomap_base.format(
+    ' | list',
+    'RMS',
+    'it will return all channel types present.',
+    'If a list of ch_types is provided, it will return multiple figures. ')
+docdict['ch_type_topomap_psd'] = _ch_type_topomap.format('', 'mean', '')
 
 chwise = """
 channel_wise : bool
@@ -2298,8 +2306,8 @@ outlines : 'head' | 'skirt' | dict | None
 
     .. deprecated:: v1.2
        The ``outlines='skirt'`` option is no longer supported and will raise an
-       error starting in version 1.3. Pass ``outlines='head'`` for equivalent
-       behavior.
+       error starting in version 1.3. Pass ``outlines='head', sphere='eeglab'``
+       for similar behavior.
 """
 
 docdict['overview_mode'] = """
