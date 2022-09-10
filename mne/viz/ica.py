@@ -23,7 +23,7 @@ from ..utils import _validate_type, fill_doc
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types, _picks_to_idx
-from ..utils import _reject_data_segments, verbose
+from ..utils import _reject_data_segments, verbose, logger
 
 
 @fill_doc
@@ -923,6 +923,15 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
             inst.pick_channels([inst.ch_names[p] for p in picks])
         evoked_cln = ica.apply(inst.copy(), exclude=exclude,
                                n_pca_components=n_pca_components)
+
+        # Ensure input and cleaned data share the same baseline.
+        if inst.baseline is not None:
+            logger.info(
+                f'Original data was baseline-corrected. Applying baseline '
+                f'correction to cleaned data.'
+            )
+            evoked_cln.apply_baseline(inst.baseline)
+
         fig = _plot_ica_overlay_evoked(evoked=inst, evoked_cln=evoked_cln,
                                        title=title, show=show)
 
