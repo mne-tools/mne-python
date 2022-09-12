@@ -985,7 +985,7 @@ class ICA(ContainsMixin):
         be equal to 1. In certain edge cases, the proportion of variance
         explained by a component may even be negative.
 
-        .. versionadded:: 1.1
+        .. versionadded:: 1.2
         """
         _validate_type(
             item=inst, types=(BaseRaw, BaseEpochs, Evoked),
