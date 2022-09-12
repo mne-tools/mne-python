@@ -1597,8 +1597,9 @@ def _read_annotations_edf(annotations, encoding='utf8'):
     """
     pat = '([+-]\\d+\\.?\\d*)(\x15(\\d+\\.?\\d*))?(\x14.*?)\x14\x00'
     if isinstance(annotations, str):
-        with open(annotations, encoding=encoding) as annot_file:
-            triggers = re.findall(pat, annot_file.read())
+        with open(annotations, "rb") as annot_file:
+            triggers = re.findall(pat.encode(), annot_file.read())
+            triggers = [tuple(map(lambda x: x.decode(), t)) for t in triggers]
     else:
         tals = bytearray()
         annotations = np.atleast_2d(annotations)
