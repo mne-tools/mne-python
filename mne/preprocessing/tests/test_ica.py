@@ -977,12 +977,12 @@ def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
     assert round(explained_var_comps_01, 4) == 0.0459
     assert explained_var_comps_all == 1
 
-    # Test wih Raw
+    # Test Raw
     ica.get_explained_variance_ratio(raw)
-    # Test wih Evoked
+    # Test Evoked
     evoked = epochs.average()
     ica.get_explained_variance_ratio(evoked)
-    # Test wih Evoked without baseline correction
+    # Test Evoked without baseline correction
     evoked.baseline = None
     ica.get_explained_variance_ratio(evoked)
 
