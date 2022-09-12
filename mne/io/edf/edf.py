@@ -84,7 +84,7 @@ class RawEDF(BaseRaw):
         .. versionadded:: 1.1
     %(preload)s
     %(units_edf_bdf_io)s
-    %(encoding_edf)
+    %(encoding_edf)s
     %(verbose)s
 
     See Also
@@ -1348,7 +1348,7 @@ def read_raw_edf(input_fname, eog=None, misc=None, stim_channel='auto',
         .. versionadded:: 1.1
     %(preload)s
     %(units_edf_bdf_io)s
-    %(encoding_edf)
+    %(encoding_edf)s
     %(verbose)s
 
     Returns
@@ -1458,7 +1458,7 @@ def read_raw_bdf(input_fname, eog=None, misc=None, stim_channel='auto',
         .. versionadded:: 1.1
     %(preload)s
     %(units_edf_bdf_io)s
-    %(encoding_edf)
+    %(encoding_edf)s
     %(verbose)s
 
     Returns
@@ -1582,7 +1582,7 @@ def _read_annotations_edf(annotations, encoding='utf8'):
     ----------
     annotations : ndarray (n_chans, n_samples) | str
         Channel data in EDF+ TAL format or path to annotation file.
-    %(encoding_edf)
+    %(encoding_edf)s
 
     Returns
     -------
