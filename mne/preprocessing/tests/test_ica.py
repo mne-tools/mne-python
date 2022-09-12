@@ -980,7 +980,11 @@ def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
     # Test wih Raw
     ica.get_explained_variance_ratio(raw)
     # Test wih Evoked
-    ica.get_explained_variance_ratio(epochs.average())
+    evoked = epochs.average()
+    ica.get_explained_variance_ratio(evoked)
+    # Test wih Evoked without baseline correction
+    evoked.baseline = None
+    ica.get_explained_variance_ratio(evoked)
 
 
 @requires_sklearn
