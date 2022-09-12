@@ -952,6 +952,11 @@ def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
     """Test ICA.get_explained_variance_ratio()."""
     raw, epochs, _ = short_raw_epochs
     ica = ICA(max_iter=1)
+
+    # Unfitted ICA should raise an exception
+    with pytest.raises(ValueError, match='ICA must be fitted first'):
+        ica.get_explained_variance_ratio(epochs)
+
     with pytest.warns(RuntimeWarning, match='were baseline-corrected'):
         ica.fit(epochs)
 
