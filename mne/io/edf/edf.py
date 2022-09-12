@@ -1647,11 +1647,6 @@ def _read_annotations_edf(annotations, encoding='utf8'):
     return zip(*events) if events else (list(), list(), list())
 
 
-def _get_edf_default_event_id(descriptions):
-    mapping = {a: n for n, a in enumerate(sorted(set(descriptions)), start=1)}
-    return mapping
-
-
 def _get_annotations_gdf(edf_info, sfreq):
     onset, duration, desc = list(), list(), list()
     events = edf_info.get('events', None)

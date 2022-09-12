@@ -26,7 +26,7 @@ from mne.datasets import testing
 from mne.utils import requires_pandas, _record_warnings
 from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.edf.edf import (_get_edf_default_event_id, _read_annotations_edf,
+from mne.io.edf.edf import (_read_annotations_edf,
                             _read_ch, _parse_prefilter_string, _edf_str,
                             _read_edf_header, _read_header)
 from mne.io.pick import channel_indices_by_type, get_channel_type_constants
@@ -240,7 +240,12 @@ def test_find_events_backward_compatibility():
                        [1280, 0, 2]]
     # test an actual file
     raw = read_raw_edf(edf_path, preload=True)
-    event_id = _get_edf_default_event_id(raw.annotations.description)
+    event_id = {
+        a: n
+        for n, a in enumerate(
+            sorted(set(raw.annotations.description)), start=1
+        )
+    }
     event_id.pop('start')
     events_from_EFA, _ = events_from_annotations(raw, event_id=event_id,
                                                  use_rounding=False)
