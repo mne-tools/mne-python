@@ -8,11 +8,13 @@
 
 from inspect import isfunction
 from collections import namedtuple
+from collections.abc import Sequence
 from copy import deepcopy
 from numbers import Integral
 from time import time
 from dataclasses import dataclass
 from typing import Optional, List
+import warnings
 
 import math
 import json
@@ -452,7 +454,6 @@ class ICA(ContainsMixin):
             fit_n_samples: Optional[int]
             fit_n_components: Optional[int]
             fit_n_pca_components: Optional[int]
-            fit_explained_variance: Optional[float]
             ch_types: List[str]
             excludes: List[str]
 
@@ -470,11 +471,6 @@ class ICA(ContainsMixin):
         fit_n_pca_components = getattr(self, 'pca_components_', None)
         if fit_n_pca_components is not None:
             fit_n_pca_components = len(self.pca_components_)
-        fit_explained_variance = getattr(self, 'pca_explained_variance_', None)
-        if fit_explained_variance is not None:
-            abs_vars = self.pca_explained_variance_
-            rel_vars = abs_vars / abs_vars.sum()
-            fit_explained_variance = rel_vars[:fit_n_components].sum()
 
         if self.info is not None:
             ch_types = [c for c in _DATA_CH_TYPES_SPLIT if c in self]
@@ -493,7 +489,6 @@ class ICA(ContainsMixin):
             fit_n_samples=fit_n_samples,
             fit_n_components=fit_n_components,
             fit_n_pca_components=fit_n_pca_components,
-            fit_explained_variance=fit_explained_variance,
             ch_types=ch_types,
             excludes=excludes
         )
@@ -511,8 +506,6 @@ class ICA(ContainsMixin):
                 f' (fit in {infos.fit_n_iter} iterations on '
                 f'{infos.fit_n_samples} samples), '
                 f'{infos.fit_n_components} ICA components '
-                f'explaining {round(infos.fit_explained_variance * 100, 1)} % '
-                f'of variance '
                 f'({infos.fit_n_pca_components} PCA components available), '
                 f'channel types: {", ".join(infos.ch_types)}, '
                 f'{len(infos.excludes) or "no"} sources marked for exclusion'
@@ -531,7 +524,6 @@ class ICA(ContainsMixin):
             n_samples=infos.fit_n_samples,
             n_components=infos.fit_n_components,
             n_pca_components=infos.fit_n_pca_components,
-            explained_variance=infos.fit_explained_variance,
             ch_types=infos.ch_types,
             excludes=infos.excludes
         )
@@ -961,6 +953,101 @@ class ICA(ContainsMixin):
         """
         return np.dot(self.mixing_matrix_[:, :self.n_components_].T,
                       self.pca_components_[:self.n_components_]).T
+
+    def get_explained_variance_ratio(
+        self, inst, *, components=None
+    ):
+        """Get the proportion of data variance explained by ICA components.
+
+        A value similar to EEGLAB's ``pvaf`` (percent variance accounted for)
+        will be calculated for the specified component(s).
+
+        Parameters
+        ----------
+        inst : mne.io.BaseRaw | mne.BaseEpochs | mne.Evoked
+            The uncleaned data.
+        components : array-like of int | int | None
+            The component(s) for which to do the calculation. If more than one
+            component is specified, explained variance will be calculated
+            jointly across all supplied components. If ``None`` (default), uses
+            all available components.
+
+        Returns
+        -------
+        float
+            The fraction of variance in ``inst`` that can be explained by the
+            ICA components.
+
+        Notes
+        -----
+        Since ICA components cannot be assumed to be aligned orthogonally, the
+        sum of the proportion of variance explained by all components may not
+        be equal to 1. In certain edge cases, the proportion of variance
+        explained by a component may even be negative.
+
+        .. versionadded:: 1.1
+        """
+        _validate_type(
+            item=inst, types=(BaseRaw, BaseEpochs, Evoked),
+            item_name='inst'
+        )
+        _validate_type(
+            item=components, types=(None, 'int-like', Sequence, np.ndarray),
+            item_name='components'
+        )
+        if isinstance(components, (Sequence, np.ndarray)):
+            for item in components:
+                _validate_type(
+                    item=item, types='int-like',
+                    item_name='Elements of "components"'
+                )
+
+        if self.current_fit == 'unfitted':
+            raise ValueError('ICA must be fitted first.')
+
+        if components is None:
+            components = range(self.n_components_)
+
+        # The algorithm implemented below should be equivalent to
+        # https://sccn.ucsd.edu/pipermail/eeglablist/2014/009134.html
+        #
+        # Reconstruct ("back-project") the data using only the specified ICA
+        # components. Don't make use of potential "spare" PCA components in
+        # this process – we're only interested in the contribution of the ICA
+        # components!
+        kwargs = dict(
+            inst=inst.copy(),
+            include=[components],
+            exclude=[],
+            n_pca_components=0,
+            verbose=False,
+        )
+        if (
+            isinstance(inst, (BaseEpochs, Evoked)) and
+            inst.baseline is not None
+        ):
+            # Don't warn if data was baseline-corrected.
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    action='ignore',
+                    message='The data.*was baseline-corrected',
+                    category=RuntimeWarning
+                )
+                inst_recon = self.apply(**kwargs)
+        else:
+            inst_recon = self.apply(**kwargs)
+
+        data_recon = inst_recon.get_data(picks=self.ch_names)
+        data_orig = inst.get_data(picks=self.ch_names)
+        data_diff = data_orig - data_recon
+
+        # To estimate the data variance, we first compute the variance across
+        # channels at each time point, and then we average these variances.
+        mean_var_diff = data_diff.var(axis=0).mean()
+        mean_var_orig = data_orig.var(axis=0).mean()
+
+        var_explained_ratio = 1 - mean_var_diff / mean_var_orig
+        return var_explained_ratio
 
     def get_sources(self, inst, add_channels=None, start=None, stop=None):
         """Estimate sources given the unmixing matrix.
@@ -2246,6 +2333,8 @@ def _find_sources(sources, target, score_func):
 
 def _ica_explained_variance(ica, inst, normalize=False):
     """Check variance accounted for by each component in supplied data.
+
+    This function is only used for sorting the components.
 
     Parameters
     ----------

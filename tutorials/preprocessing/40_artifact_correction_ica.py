@@ -264,6 +264,20 @@ ica
 # when creating epoched data in the :ref:`tut-overview` tutorial).
 #
 # Now we can examine the ICs to see what they captured.
+#
+# Using :meth:`~mne.preprocessing.ICA.get_explained_variance_ratio`, we can
+# retrieve the amount fraction of variance in the original data that is
+# explained by our ICA components:
+
+var_explained_all = ica.get_explained_variance_ratio(filt_raw)
+var_explained_first = ica.get_explained_variance_ratio(
+    filt_raw,
+    components=[0]
+)
+print(f'Var. explained by all components: {round(100*var_explained_all)}%')
+print(f'Var. explained by first component: {round(100*var_explained_first)}%')
+
+# %%
 # `~mne.preprocessing.ICA.plot_sources` will show the time series of the
 # ICs. Note that in our call to `~mne.preprocessing.ICA.plot_sources` we
 # can use the original, unfiltered `~mne.io.Raw` object. A helpful tip is that

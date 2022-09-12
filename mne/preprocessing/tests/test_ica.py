@@ -490,8 +490,6 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components,
     assert 'raw data decomposition' in repr_
     assert f'{ica.n_components_} ICA components' in repr_
     assert 'Available PCA components' in repr_html_
-    assert 'Explained variance' in repr_html_
-
     assert ('mag' in ica)  # should now work without error
 
     # test re-fit
@@ -947,6 +945,37 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     picks = pick_types(raw_.info, eeg=True, exclude=[])
     ica = ICA(n_components=0.99, max_iter='auto')
     ica.fit(raw_, picks=picks, reject_by_annotation=True)
+
+
+@requires_sklearn
+def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
+    """Test ICA.get_explained_variance_ratio()."""
+    _, epochs, _ = short_raw_epochs
+    ica = ICA(max_iter=1)
+    with pytest.warns(RuntimeWarning, match='were baseline-corrected'):
+        ica.fit(epochs)
+
+    # int
+    explained_var_comp_0 = ica.get_explained_variance_ratio(
+        epochs, components=0
+    )
+    # list of int, single element
+    explained_var_comp_1 = ica.get_explained_variance_ratio(
+        epochs, components=[1]
+    )
+    # list of int, multiple elements
+    explained_var_comps_01 = ica.get_explained_variance_ratio(
+        epochs, components=[0, 1]
+    )
+    # None, i.e., all components
+    explained_var_comps_all = ica.get_explained_variance_ratio(
+        epochs, components=None
+    )
+
+    assert round(explained_var_comp_0, 4) == 0.0229
+    assert round(explained_var_comp_1, 4) == 0.0231
+    assert round(explained_var_comps_01, 4) == 0.0459
+    assert explained_var_comps_all == 1
 
 
 @requires_sklearn
