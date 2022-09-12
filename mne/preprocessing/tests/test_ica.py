@@ -950,7 +950,7 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
 @requires_sklearn
 def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
     """Test ICA.get_explained_variance_ratio()."""
-    _, epochs, _ = short_raw_epochs
+    raw, epochs, _ = short_raw_epochs
     ica = ICA(max_iter=1)
     with pytest.warns(RuntimeWarning, match='were baseline-corrected'):
         ica.fit(epochs)
@@ -976,6 +976,11 @@ def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
     assert round(explained_var_comp_1, 4) == 0.0231
     assert round(explained_var_comps_01, 4) == 0.0459
     assert explained_var_comps_all == 1
+
+    # Test wih Raw
+    ica.get_explained_variance_ratio(raw)
+    # Test wih Evoked
+    ica.get_explained_variance_ratio(epochs.average())
 
 
 @requires_sklearn
