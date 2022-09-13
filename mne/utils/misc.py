@@ -427,11 +427,11 @@ def repr_html(f):
     """
     from ..utils import get_config
 
-    def wrapper(*args):
+    def wrapper(*args, **kwargs):
         if get_config("MNE_REPR_HTML", "True") == "False":
             import html
             r = "<pre>" + html.escape(repr(args[0])) + "</pre>"
             return r.replace("\n", "<br/>")
         else:
-            return f(*args)
+            return f(*args, **kwargs)
     return wrapper
