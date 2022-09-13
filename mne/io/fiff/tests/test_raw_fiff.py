@@ -1336,11 +1336,12 @@ def test_add_channels():
     """Test raw splitting / re-appending channel types."""
     rng = np.random.RandomState(0)
     raw = read_raw_fif(test_fif_fname).crop(0, 1).load_data()
+    assert raw._orig_units == {}
     raw_nopre = read_raw_fif(test_fif_fname, preload=False)
     raw_eeg_meg = raw.copy().pick_types(meg=True, eeg=True)
-    raw_eeg = raw.copy().pick_types(meg=False, eeg=True)
-    raw_meg = raw.copy().pick_types(meg=True, eeg=False)
-    raw_stim = raw.copy().pick_types(meg=False, eeg=False, stim=True)
+    raw_eeg = raw.copy().pick_types(eeg=True)
+    raw_meg = raw.copy().pick_types(meg=True)
+    raw_stim = raw.copy().pick_types(stim=True)
     raw_new = raw_meg.copy().add_channels([raw_eeg, raw_stim])
     assert (
         all(ch in raw_new.ch_names

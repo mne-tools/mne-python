@@ -830,6 +830,9 @@ class UpdateChannelsMixin(object):
 
         if isinstance(self, BaseRaw):
             self.annotations._prune_ch_names(self.info, on_missing='ignore')
+            self._orig_units = {
+                k: v for k, v in self._orig_units.items()
+                if k in self.ch_names}
 
         self._pick_projs()
         return self
@@ -944,6 +947,8 @@ class UpdateChannelsMixin(object):
             self._read_picks = [
                 np.concatenate([r, extra_idx]) for r in self._read_picks]
             assert all(len(r) == self.info['nchan'] for r in self._read_picks)
+            for other in add_list:
+                self._orig_units.update(other._orig_units)
         elif isinstance(self, BaseEpochs):
             self.picks = np.arange(self._data.shape[1])
             if hasattr(self, '_projector'):
