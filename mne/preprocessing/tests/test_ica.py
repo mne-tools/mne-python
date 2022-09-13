@@ -960,27 +960,66 @@ def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
     with pytest.warns(RuntimeWarning, match='were baseline-corrected'):
         ica.fit(epochs)
 
-    # int
+    # components = int, ch_type = None
     explained_var_comp_0 = ica.get_explained_variance_ratio(
         epochs, components=0
     )
-    # list of int, single element
+    # components = int, ch_type = str
+    explained_var_comp_0_eeg = ica.get_explained_variance_ratio(
+        epochs, components=0, ch_type='eeg'
+    )
+    # components = int, ch_type = list of str
+    explained_var_comp_0_eeg_mag = ica.get_explained_variance_ratio(
+        epochs, components=0, ch_type=['eeg', 'mag']
+    )
+    # components = list of int, single element, ch_type = None
     explained_var_comp_1 = ica.get_explained_variance_ratio(
         epochs, components=[1]
     )
-    # list of int, multiple elements
+    # components = list of int, multiple elements, ch_type = None
     explained_var_comps_01 = ica.get_explained_variance_ratio(
         epochs, components=[0, 1]
     )
-    # None, i.e., all components
+    # components = None, i.e., all components, ch_type = None
     explained_var_comps_all = ica.get_explained_variance_ratio(
         epochs, components=None
     )
 
-    assert round(explained_var_comp_0, 4) == 0.0229
-    assert round(explained_var_comp_1, 4) == 0.0231
-    assert round(explained_var_comps_01, 4) == 0.0459
-    assert explained_var_comps_all == 1
+    assert 'grad' in explained_var_comp_0
+    assert 'mag' in explained_var_comp_0
+    assert 'eeg' in explained_var_comp_0
+
+    assert isinstance(explained_var_comp_0_eeg, float)
+
+    assert 'mag' in explained_var_comp_0_eeg_mag
+    assert 'eeg' in explained_var_comp_0_eeg_mag
+    assert 'grad' not in explained_var_comp_0_eeg_mag
+
+    assert round(explained_var_comp_0['grad'], 4) == 0.1784
+    assert round(explained_var_comp_0['mag'], 4) == 0.0259
+    assert round(explained_var_comp_0['eeg'], 4) == 0.0229
+
+    assert np.isclose(
+        explained_var_comp_0['eeg'],
+        explained_var_comp_0_eeg
+    )
+    assert np.isclose(
+        explained_var_comp_0['mag'],
+        explained_var_comp_0_eeg_mag['mag']
+    )
+    assert np.isclose(
+        explained_var_comp_0['eeg'],
+        explained_var_comp_0_eeg_mag['eeg']
+    )
+
+    assert round(explained_var_comp_1['eeg'], 4) == 0.0231
+    assert round(explained_var_comps_01['eeg'], 4) == 0.0459
+    assert (
+        explained_var_comps_all['grad'] ==
+        explained_var_comps_all['mag'] ==
+        explained_var_comps_all['eeg'] ==
+        1
+    )
 
     # Test Raw
     ica.get_explained_variance_ratio(raw)
