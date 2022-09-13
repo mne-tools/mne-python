@@ -47,7 +47,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format, _arange_div, TimeMixin)
+                     _check_time_format, _arange_div, TimeMixin, get_config)
 from ..defaults import _handle_default
 from ..viz import plot_raw, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
@@ -1740,6 +1740,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return "<%s | %s>" % (self.__class__.__name__, s)
 
     def _repr_html_(self, caption=None):
+        if get_config("MNE_REPR_HTML", "True") == "False":
+            import html
+            r = "<pre>" + html.escape(repr(self)) + "</pre>"
+            return r.replace("\n", "<br/>")
+
         from ..html_templates import repr_templates_env
         basenames = [
             os.path.basename(f) for f in self._filenames if f is not None

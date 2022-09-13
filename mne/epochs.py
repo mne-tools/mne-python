@@ -52,7 +52,7 @@ from .fixes import rng_uniform
 from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin
 from .viz import (plot_epochs, plot_epochs_image,
                   plot_topo_image_epochs, plot_drop_log)
-from .utils import (_check_fname, check_fname, logger, verbose,
+from .utils import (_check_fname, check_fname, logger, verbose, get_config,
                     check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed,
@@ -1595,6 +1595,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return '<%s | %s>' % (class_name, s)
 
     def _repr_html_(self):
+        if get_config("MNE_REPR_HTML", "True") == "False":
+            import html
+            r = "<pre>" + html.escape(repr(self)) + "</pre>"
+            return r.replace("\n", "<br/>")
+
         from .html_templates import repr_templates_env
         if self.baseline is None:
             baseline = 'off'
