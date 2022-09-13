@@ -1031,6 +1031,10 @@ def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
     evoked.baseline = None
     ica.get_explained_variance_ratio(evoked)
 
+    # Test invalid ch_type
+    with pytest.raises(ValueError, match='only the following channel types'):
+        ica.get_explained_variance_ratio(raw, ch_type='foobar')
+
 
 @requires_sklearn
 @pytest.mark.slowtest

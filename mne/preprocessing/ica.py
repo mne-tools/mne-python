@@ -992,13 +992,16 @@ class ICA(ContainsMixin):
 
         .. versionadded:: 1.2
         """  # noqa: E501
+        if self.current_fit == 'unfitted':
+            raise ValueError('ICA must be fitted first.')
+
         _validate_type(
             item=inst, types=(BaseRaw, BaseEpochs, Evoked),
             item_name='inst'
         )
         _validate_type(
             item=components, types=(None, 'int-like', Sequence, np.ndarray),
-            item_name='components'
+            item_name='components', type_name='int, array-like of int, or None'
         )
         if isinstance(components, (Sequence, np.ndarray)):
             for item in components:
@@ -1007,12 +1010,9 @@ class ICA(ContainsMixin):
                     item_name='Elements of "components"'
                 )
 
-        if self.current_fit == 'unfitted':
-            raise ValueError('ICA must be fitted first.')
-
         _validate_type(
             item=ch_type, types=(Sequence, np.ndarray, str, None),
-            item_name='ch_type'
+            item_name='ch_type', type_name='str, array-like of str, or None'
         )
         if isinstance(ch_type, str):
             ch_types = [ch_type]
@@ -1033,6 +1033,7 @@ class ICA(ContainsMixin):
                 )
         del ch_type
 
+        # Input data validation ends here
         if components is None:
             components = range(self.n_components_)
 
