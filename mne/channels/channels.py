@@ -416,7 +416,7 @@ class SetChannelsMixin(MontageMixin):
             # whatever mapping was provided, now we can just use a dict
             mapping = dict(zip(ch_names_orig, self.info['ch_names']))
             for old_name, new_name in mapping.items():
-                if new_name in self._orig_units:
+                if old_name in self._orig_units:
                     self._orig_units[new_name] = self._orig_units.pop(old_name)
             ch_names = self.annotations.ch_names
             for ci, ch in enumerate(ch_names):

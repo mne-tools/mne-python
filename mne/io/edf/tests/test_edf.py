@@ -75,9 +75,10 @@ def test_orig_units():
     orig_units = raw._orig_units
     assert len(orig_units) == len(raw.ch_names)
     assert orig_units['A1'] == 'µV'  # formerly 'uV' edit by _check_orig_units
+    del orig_units
 
     raw.rename_channels(dict(A1='AA'))
-    assert orig_units['AA'] == 'µV'
+    assert raw._orig_units['AA'] == 'µV'
     raw.rename_channels(dict(AA='A1'))
 
     raw_back = raw.copy().pick(raw.ch_names[:1])  # _pick_drop_channels
