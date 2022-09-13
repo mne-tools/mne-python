@@ -46,6 +46,7 @@ Enhancements
 - Parse automatically temperature channel with :func:`mne.io.read_raw_edf` (:gh:`11150` by `Eric Larson`_ and `Alex Gramfort`_)
 - Add ``encoding`` parameter to :func:`mne.io.read_raw_edf` and :func:`mne.io.read_raw_bdf` to support custom (non-UTF8) annotation channel encodings (:gh:`11154` by `Clemens Brunner`_)
 - :class:`mne.preprocessing.ICA` gained a new method, :meth:`~mne.preprocessing.ICA.get_explained_variance_ratio`, that allows the retrieval of the proportion of variance explained by ICA components (:gh:`11141` by `Richard Höchenberger`_)
+- Add config option ``MNE_REPR_HTML`` to disable HTML repr in notebook environments (:gh:`11159` by `Clemens Brunner`_)
 
 Bugs
 ~~~~
