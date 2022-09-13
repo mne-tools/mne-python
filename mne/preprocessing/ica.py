@@ -1016,7 +1016,6 @@ class ICA(ContainsMixin):
             item=ch_type, types=(Sequence, np.ndarray, str, None),
             item_name='ch_type'
         )
-        allowed_ch_types = ('mag', 'grad', 'planar1', 'planar2', 'eeg')
         if isinstance(ch_type, str):
             ch_types = [ch_type]
         elif ch_type is None:
@@ -1026,6 +1025,7 @@ class ICA(ContainsMixin):
             ch_types = ch_type
 
         assert len(ch_types) >= 1
+        allowed_ch_types = ('mag', 'grad', 'planar1', 'planar2', 'eeg')
         for ch_type in ch_types:
             if ch_type not in allowed_ch_types:
                 raise ValueError(
