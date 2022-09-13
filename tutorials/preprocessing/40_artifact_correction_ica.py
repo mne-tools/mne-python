@@ -272,9 +272,12 @@ ica
 # retrieve the fraction of variance in the original data that is explained by
 # our ICA components in the form of a dictionary:
 
-explained_var = ica.get_explained_variance_ratio(filt_raw)
-for channel_type, ratio in explained_var.items():
-    print(f'{channel_type} variance explained by all components: {ratio}')
+explained_var_ratio = ica.get_explained_variance_ratio(filt_raw)
+for channel_type, ratio in explained_var_ratio.items():
+    print(
+        f'Fraction of {channel_type} variance explained by all components: '
+        f'{ratio}'
+    )
 
 # %%
 # The values were calculated for all ICA components jointly, but separately for
@@ -282,14 +285,17 @@ for channel_type, ratio in explained_var.items():
 #
 # We can also explicitly request for which component(s) and channel type(s) to
 # perform the computation:
-explained_var = ica.get_explained_variance_ratio(
+explained_var_ratio = ica.get_explained_variance_ratio(
     filt_raw,
     components=[0],
     ch_type='eeg'
 )
 # This time, print as percentage.
-ratio_percent = round(100 * explained_var['eeg'])
-print(f'Variance of EEG signal explained by first component: {ratio_percent}%')
+ratio_percent = round(100 * explained_var_ratio['eeg'])
+print(
+    f'Fraction of variance in EEG signal explained by first component: '
+    f'{ratio_percent}%'
+)
 
 # %%
 # `~mne.preprocessing.ICA.plot_sources` will show the time series of the
