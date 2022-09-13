@@ -99,6 +99,22 @@ def test_units_params():
         _ = read_raw_edf(edf_path, units='V', preload=True)
 
 
+def test_edf_temperature(monkeypatch):
+    """Test that we can parse temperature channel type."""
+    raw = read_raw_edf(edf_path)
+    assert raw.get_channel_types()[0] == 'eeg'
+
+    def _first_chan_temp(*args, **kwargs):
+        out, orig_units = _read_edf_header(*args, **kwargs)
+        out['ch_types'][0] = 'TEMP'
+        return out, orig_units
+
+    monkeypatch.setattr(edf.edf, '_read_edf_header', _first_chan_temp)
+    raw = read_raw_edf(edf_path)
+    assert 'temperature' in raw
+    assert raw.get_channel_types()[0] == 'temperature'
+
+
 def test_subject_info(tmp_path):
     """Test exposure of original channel units."""
     raw = read_raw_edf(edf_path)
