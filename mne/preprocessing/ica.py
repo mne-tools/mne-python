@@ -970,16 +970,15 @@ class ICA(ContainsMixin):
             all available components.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | array-like of str | None
             The channel type(s) to include in the calculation. If ``None``, all
-            available channel types will be used. Note that the value of this
-            parameter may change the return type (float or dictionary).
+            available channel types will be used.
 
         Returns
         -------
-        float | dict [str, float]
+        dict (str, float)
             The fraction of variance in ``inst`` that can be explained by the
-            ICA components. If only a single ``ch_type`` was given, a float
-            will be returned. Otherwise, a dictionary with channel types as
-            keys and explained variance ratios as values.
+            ICA components, calculated separately for each channel type.
+            Dictionary keys are the channel types, and corresponding explained
+            variance ratios are the values.
 
         Notes
         -----
@@ -1042,11 +1041,7 @@ class ICA(ContainsMixin):
                 inst=inst, components=components, ch_type=ch_type
             ) for ch_type in ch_types
         ]
-        if len(ch_types) == 1:
-            result = explained_var_ratios[0]
-        else:
-            result = dict(zip(ch_types, explained_var_ratios))
-
+        result = dict(zip(ch_types, explained_var_ratios))
         return result
 
     def _get_explained_variance_ratio_one_ch_type(

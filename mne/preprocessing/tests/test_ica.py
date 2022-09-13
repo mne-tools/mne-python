@@ -989,7 +989,8 @@ def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
     assert 'mag' in explained_var_comp_0
     assert 'eeg' in explained_var_comp_0
 
-    assert isinstance(explained_var_comp_0_eeg, float)
+    assert len(explained_var_comp_0_eeg) == 1
+    assert 'eeg' in explained_var_comp_0_eeg
 
     assert 'mag' in explained_var_comp_0_eeg_mag
     assert 'eeg' in explained_var_comp_0_eeg_mag
@@ -1001,7 +1002,7 @@ def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
 
     assert np.isclose(
         explained_var_comp_0['eeg'],
-        explained_var_comp_0_eeg
+        explained_var_comp_0_eeg['eeg']
     )
     assert np.isclose(
         explained_var_comp_0['mag'],
