@@ -409,7 +409,7 @@ def _resource_path(submodule, filename):
 
 
 def repr_html(f):
-    """Decorator for _repr_html_ methods.
+    """Decorate _repr_html_ methods.
 
     If a _repr_html_ method is decorated with this decorator, the repr in a
     notebook will show HTML or plain text depending on the config value
