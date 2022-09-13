@@ -172,8 +172,6 @@
 
 .. _Hubert Banville: https://github.com/hubertjb
 
-.. _Hüseyin Orkun Elmas: https://github.com/HuseyinOrkun
-
 .. _Ilias Machairas: https://github.com/JungleHippo
 
 .. _Ivana Kojcic: https://github.com/ikojcic

@@ -275,6 +275,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         order = np.concatenate(list(selections.values()))
         default_selection = list(selections)[0]
         n_channels = len(selections[default_selection])
+    assert isinstance(order, np.ndarray)
+    assert order.dtype.kind == 'i'
+    if order.size == 0:
+        raise RuntimeError('No channels found to plot')
 
     # handle event colors
     event_color_dict = _make_event_color_dict(event_color, events, event_id)

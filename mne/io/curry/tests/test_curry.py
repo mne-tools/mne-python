@@ -22,6 +22,7 @@ from mne.io.constants import FIFF
 from mne.io.edf import read_raw_bdf
 from mne.io.bti import read_raw_bti
 from mne.io.curry import read_raw_curry
+from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import check_version, catch_logging, _record_warnings
 from mne.annotations import read_annotations
 from mne.io.curry.curry import (_get_curry_version, _get_curry_file_structure,
@@ -96,6 +97,18 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
         bdf_curry_ref.get_data(picks=picks, start=start, stop=stop),
         rtol=tol)
     assert raw.info['dev_head_t'] is None
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('fname', [
+    pytest.param(curry7_bdf_file, id='curry 7'),
+    pytest.param(curry8_bdf_file, id='curry 8'),
+    pytest.param(curry7_bdf_ascii_file, id='curry 7 ascii'),
+    pytest.param(curry8_bdf_ascii_file, id='curry 8 ascii'),
+])
+def test_read_raw_curry_test_raw(fname):
+    """Test read_raw_curry with _test_raw_reader."""
+    _test_raw_reader(read_raw_curry, fname=fname)
 
 
 # These values taken from a different recording but allow us to test

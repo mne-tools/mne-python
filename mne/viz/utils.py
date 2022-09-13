@@ -386,7 +386,7 @@ def _get_channel_plotting_order(order, ch_types, picks=None):
                          f'"{order}" ({type(order)}).')
     if picks is not None:
         order = [ch for ch in order if ch in picks]
-    return np.asarray(order)
+    return np.asarray(order, int)
 
 
 def _make_event_color_dict(event_color, events=None, event_id=None):
