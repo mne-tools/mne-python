@@ -32,7 +32,7 @@ DEFAULTS = dict(
                   bio=1e6, hbo=1e6, hbr=1e6, ref_meg=1e15,
                   fnirs_cw_amplitude=1.0, fnirs_fd_ac_amplitude=1.0,
                   fnirs_fd_phase=1., fnirs_od=1.0, csd=1e3, whitened=1.,
-                  gsr=1., temperature=1.),
+                  gsr=1., temperature=0.1),
     # rough guess for a good plot
     scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
                            ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc='auto',
@@ -42,7 +42,7 @@ DEFAULTS = dict(
                            fnirs_fd_ac_amplitude=2e-2, fnirs_fd_phase=2e-1,
                            fnirs_od=2e-2, csd=200e-4,
                            dipole=1e-7, gof=1e2,
-                           gsr=1., temperature=1.),
+                           gsr=1., temperature=0.1),
     scalings_cov_rank=dict(mag=1e12, grad=1e11, eeg=1e5,  # ~100x scalings
                            seeg=1e1, dbs=1e4, ecog=1e4, hbo=1e4, hbr=1e4),
     ylim=dict(mag=(-600., 600.), grad=(-200., 200.), eeg=(-200., 200.),
