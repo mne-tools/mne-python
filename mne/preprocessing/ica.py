@@ -969,14 +969,13 @@ class ICA(ContainsMixin):
             jointly across all supplied components. If ``None`` (default), uses
             all available components.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | array-like of str | None
-            The channel type(s) to include in the calculation. If None, all
-            available channel types channel types will be used. Note that the
-            value of this parameter may change the return type (float or
-            dictionary).
+            The channel type(s) to include in the calculation. If ``None``, all
+            available channel types will be used. Note that the value of this
+            parameter may change the return type (float or dictionary).
 
         Returns
         -------
-        float | dict, str -> float
+        float | dict [str, float]
             The fraction of variance in ``inst`` that can be explained by the
             ICA components. If only a single ``ch_type`` was given, a float
             will be returned. Otherwise, a dictionary with channel types as
