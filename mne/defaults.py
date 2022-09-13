@@ -32,7 +32,7 @@ DEFAULTS = dict(
                   bio=1e6, hbo=1e6, hbr=1e6, ref_meg=1e15,
                   fnirs_cw_amplitude=1.0, fnirs_fd_ac_amplitude=1.0,
                   fnirs_fd_phase=1., fnirs_od=1.0, csd=1e3, whitened=1.,
-                  gsr=1., temperature=0.1),
+                  gsr=1., temperature=1.),
     # rough guess for a good plot
     scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
                            ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc='auto',
