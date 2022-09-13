@@ -955,7 +955,7 @@ class ICA(ContainsMixin):
                       self.pca_components_[:self.n_components_]).T
 
     def get_explained_variance_ratio(
-        self, inst, *, components=None
+        self, inst, *, components=None, ch_type=None
     ):
         """Get the proportion of data variance explained by ICA components.
 
@@ -968,12 +968,19 @@ class ICA(ContainsMixin):
             component is specified, explained variance will be calculated
             jointly across all supplied components. If ``None`` (default), uses
             all available components.
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | array-like of str | None
+            The channel type(s) to include in the calculation. If None, all
+            available channel types channel types will be used. Note that the
+            value of this parameter may change the return type (float or
+            dictionary).
 
         Returns
         -------
-        float
+        float | dict, str -> float
             The fraction of variance in ``inst`` that can be explained by the
-            ICA components.
+            ICA components. If only a single ``ch_type`` was given, a float
+            will be returned. Otherwise, a dictionary with channel types as
+            keys and explained variance ratios as values.
 
         Notes
         -----
@@ -986,7 +993,7 @@ class ICA(ContainsMixin):
         explained by a component may even be negative.
 
         .. versionadded:: 1.2
-        """
+        """  # noqa: E501
         _validate_type(
             item=inst, types=(BaseRaw, BaseEpochs, Evoked),
             item_name='inst'
@@ -1005,9 +1012,47 @@ class ICA(ContainsMixin):
         if self.current_fit == 'unfitted':
             raise ValueError('ICA must be fitted first.')
 
+        _validate_type(
+            item=ch_type, types=(Sequence, np.ndarray, str, None),
+            item_name='ch_type'
+        )
+        allowed_ch_types = ('mag', 'grad', 'planar1', 'planar2', 'eeg')
+        if isinstance(ch_type, str):
+            ch_types = [ch_type]
+        elif ch_type is None:
+            ch_types = inst.get_channel_types(unique=True, only_data_chs=True)
+        else:
+            assert isinstance(ch_type, (Sequence, np.ndarray))
+            ch_types = ch_type
+
+        assert len(ch_types) >= 1
+        for ch_type in ch_types:
+            if ch_type not in allowed_ch_types:
+                raise ValueError(
+                    f'You requested operation on the channel type '
+                    f'"{ch_type}", but only the following channel types are '
+                    f'supported: {", ".join(allowed_ch_types)}'
+                )
+        del ch_type
+
         if components is None:
             components = range(self.n_components_)
 
+        explained_var_ratios = [
+            self._get_explained_variance_ratio_one_ch_type(
+                inst=inst, components=components, ch_type=ch_type
+            ) for ch_type in ch_types
+        ]
+        if len(ch_types) == 1:
+            result = explained_var_ratios[0]
+        else:
+            result = dict(zip(ch_types, explained_var_ratios))
+
+        return result
+
+    def _get_explained_variance_ratio_one_ch_type(
+        self, *, inst, components, ch_type
+    ):
         # The algorithm implemented below should be equivalent to
         # https://sccn.ucsd.edu/pipermail/eeglablist/2014/009134.html
         #
@@ -1037,8 +1082,8 @@ class ICA(ContainsMixin):
         else:
             inst_recon = self.apply(**kwargs)
 
-        data_recon = inst_recon.get_data(picks=self.ch_names)
-        data_orig = inst.get_data(picks=self.ch_names)
+        data_recon = inst_recon.get_data(picks=ch_type)
+        data_orig = inst.get_data(picks=ch_type)
         data_diff = data_orig - data_recon
 
         # To estimate the data variance, we first compute the variance across
