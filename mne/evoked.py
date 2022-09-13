@@ -19,7 +19,7 @@ from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
                        _BORDER_DEFAULT)
 from .filter import detrend, FilterMixin, _check_fun
-from .utils import (check_fname, logger, verbose, warn, sizeof_fmt, get_config,
+from .utils import (check_fname, logger, verbose, warn, sizeof_fmt, repr_html,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
                     fill_doc, _check_option, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
@@ -352,12 +352,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         s += ", ~%s" % (sizeof_fmt(self._size),)
         return "<Evoked | %s>" % s
 
+    @repr_html
     def _repr_html_(self):
-        if get_config("MNE_REPR_HTML", "True") == "False":
-            import html
-            r = "<pre>" + html.escape(repr(self)) + "</pre>"
-            return r.replace("\n", "<br/>")
-
         from .html_templates import repr_templates_env
         if self.baseline is None:
             baseline = 'off'

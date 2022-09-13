@@ -18,7 +18,7 @@ from ..channels.layout import _merge_ch_data
 from ..defaults import _handle_default
 from ..io.meas_info import ContainsMixin
 from ..io.pick import _pick_data_channels, _picks_to_idx, pick_info
-from ..utils import (GetEpochsMixin, _build_data_frame, get_config,
+from ..utils import (GetEpochsMixin, _build_data_frame, repr_html,
                      _check_pandas_index_arguments, _check_pandas_installed,
                      _check_sphere, _time_mask, _validate_type, fill_doc,
                      legacy, logger, object_diff, verbose, warn)
@@ -346,13 +346,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         return (f'<{self._data_type} (from {inst_type_str}, '
                 f'{self.method} method) | {dims}, {freq_range}>')
 
+    @repr_html
     def _repr_html_(self, caption=None):
         """Build HTML representation of the Spectrum object."""
-        if get_config("MNE_REPR_HTML", "True") == "False":
-            import html
-            r = "<pre>" + html.escape(repr(self)) + "</pre>"
-            return r.replace("\n", "<br/>")
-
         from ..html_templates import repr_templates_env
 
         inst_type_str = self._get_instance_type_string()
