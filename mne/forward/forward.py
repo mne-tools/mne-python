@@ -178,6 +178,7 @@ class Forward(dict):
 
         return entr
 
+    @repr_html
     def _repr_html_(self):
         from ..html_templates import repr_templates_env
         good_chs, bad_chs, _, _, = self['info']._get_chs_for_repr()

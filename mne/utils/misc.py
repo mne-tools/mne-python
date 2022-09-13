@@ -426,7 +426,7 @@ def repr_html(f):
         The decorated function.
     """
     from ..utils import get_config
-    
+
     def wrapper(*args):
         if get_config("MNE_REPR_HTML", "True") == "False":
             import html
