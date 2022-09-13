@@ -959,9 +959,6 @@ class ICA(ContainsMixin):
     ):
         """Get the proportion of data variance explained by ICA components.
 
-        A value similar to EEGLAB's ``pvaf`` (percent variance accounted for)
-        will be calculated for the specified component(s).
-
         Parameters
         ----------
         inst : mne.io.BaseRaw | mne.BaseEpochs | mne.Evoked
@@ -980,9 +977,12 @@ class ICA(ContainsMixin):
 
         Notes
         -----
+        A value similar to EEGLAB's ``pvaf`` (percent variance accounted for)
+        will be calculated for the specified component(s).
+
         Since ICA components cannot be assumed to be aligned orthogonally, the
         sum of the proportion of variance explained by all components may not
-        be equal to 1. In certain edge cases, the proportion of variance
+        be equal to 1. In certain situations, the proportion of variance
         explained by a component may even be negative.
 
         .. versionadded:: 1.2
