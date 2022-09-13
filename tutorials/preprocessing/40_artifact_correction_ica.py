@@ -213,8 +213,8 @@ ecg_evoked.plot_joint()
 filt_raw = raw.copy().filter(l_freq=1., h_freq=None)
 
 # %%
-# Fitting and plotting the ICA solution
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Fitting ICA
+# ~~~~~~~~~~~
 #
 # .. admonition:: Ignoring the time domain
 #     :class: sidebar hint
@@ -262,20 +262,35 @@ ica
 # speed-up) and ``reject`` (for providing a rejection dictionary for maximum
 # acceptable peak-to-peak amplitudes for each channel type, just like we used
 # when creating epoched data in the :ref:`tut-overview` tutorial).
-#
+
+# %%
+# Looking at the ICA solution
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Now we can examine the ICs to see what they captured.
 #
 # Using :meth:`~mne.preprocessing.ICA.get_explained_variance_ratio`, we can
-# retrieve the amount fraction of variance in the original data that is
-# explained by our ICA components:
+# retrieve the fraction of variance in the original data that is explained by
+# our ICA components:
 
-var_explained_all = ica.get_explained_variance_ratio(filt_raw)
+var_explained = ica.get_explained_variance_ratio(filt_raw)
+print(f'Variance explained by all components: {var_explained}')
+
+# %%
+# The values were calculated for all ICA components jointly, but separately for
+# each channel type (here: magnetometers and EEG).
+#
+# We can also explicitly request for which component(s) and channel type(s) to
+# perform the computation:
 var_explained_first = ica.get_explained_variance_ratio(
     filt_raw,
-    components=[0]
+    components=[0],
+    ch_type='eeg'
 )
-print(f'Var. explained by all components: {round(100*var_explained_all)}%')
-print(f'Var. explained by first component: {round(100*var_explained_first)}%')
+# This time, print as percentage.
+print(
+    f'Variance of EEG signal explained by first component: '
+    f'{round(100 * var_explained_first)}%'
+)
 
 # %%
 # `~mne.preprocessing.ICA.plot_sources` will show the time series of the
