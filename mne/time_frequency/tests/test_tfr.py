@@ -18,7 +18,7 @@ from mne.time_frequency.tfr import (morlet, tfr_morlet, _make_dpss,
                                     write_tfrs, combine_tfr, cwt, _compute_tfr,
                                     EpochsTFR)
 from mne.time_frequency import tfr_array_multitaper, tfr_array_morlet
-from mne.viz.utils import _fake_click
+from mne.viz.utils import _fake_click, _fake_keypress, _fake_scroll
 from mne.tests.test_epochs import assert_metadata_equal
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -154,6 +154,7 @@ def test_time_frequency():
     itc = ret / 23  # test dic
 
     power = power.apply_baseline(baseline=(-0.1, 0), mode='logratio')
+    assert power.baseline == (-0.1, 0)
 
     assert 'meg' in power
     assert 'grad' in power
@@ -419,6 +420,21 @@ def test_crop():
     assert tfr.data.shape[-2] == 2
 
 
+def test_decim():
+    """Test TFR decimation."""
+    data = np.zeros((3, 3, 3, 1000))
+    times = np.linspace(0, 1, 1000)
+    freqs = np.array([.10, .20, .30])
+    info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
+                           ['mag', 'mag', 'mag'])
+    with info._unlock():
+        info['lowpass'] = 100
+    tfr = EpochsTFR(info, data=data, times=times, freqs=freqs)
+    tfr.decimate(3)
+    assert tfr.times.size == 1000 // 3 + 1
+    assert tfr.data.shape == ((3, 3, 3, 1000 // 3 + 1))
+
+
 @requires_version('h5io')
 @requires_pandas
 def test_io(tmp_path):
@@ -533,7 +549,7 @@ def test_init_EpochsTFR():
     freqs_x = freqs[:-1]
     with pytest.raises(ValueError, match="frequencies and data size don't"):
         tfr = EpochsTFR(info, data=data, times=times_x, freqs=freqs_x)
-        del(tfr)
+        del tfr
 
 
 def test_plot():
@@ -594,17 +610,17 @@ def test_plot():
 
     # interactive mode on by default
     fig = tfr.plot(picks=[1], cmap='RdBu_r')[0]
-    fig.canvas.key_press_event('up')
-    fig.canvas.key_press_event(' ')
-    fig.canvas.key_press_event('down')
-    fig.canvas.key_press_event(' ')
-    fig.canvas.key_press_event('+')
-    fig.canvas.key_press_event(' ')
-    fig.canvas.key_press_event('-')
-    fig.canvas.key_press_event(' ')
-    fig.canvas.key_press_event('pageup')
-    fig.canvas.key_press_event(' ')
-    fig.canvas.key_press_event('pagedown')
+    _fake_keypress(fig, 'up')
+    _fake_keypress(fig, ' ')
+    _fake_keypress(fig, 'down')
+    _fake_keypress(fig, ' ')
+    _fake_keypress(fig, '+')
+    _fake_keypress(fig, ' ')
+    _fake_keypress(fig, '-')
+    _fake_keypress(fig, ' ')
+    _fake_keypress(fig, 'pageup')
+    _fake_keypress(fig, ' ')
+    _fake_keypress(fig, 'pagedown')
 
     cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
     ax = cbar.cbar.ax
@@ -616,8 +632,8 @@ def test_plot():
     _fake_click(fig, ax, (0.1, 0.2), button=3, kind='motion')
     _fake_click(fig, ax, (0.1, 0.3), kind='release')
 
-    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
-    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+    _fake_scroll(fig, 0.5, 0.5, -0.5)  # scroll down
+    _fake_scroll(fig, 0.5, 0.5, 0.5)  # scroll up
 
     plt.close('all')
 
@@ -700,7 +716,7 @@ def test_add_channels():
     tfr_badsf = tfr_eeg.copy()
     with tfr_badsf.info._unlock():
         tfr_badsf.info['sfreq'] = 3.1415927
-    tfr_eeg = tfr_eeg.crop(-.1, .1)
+    tfr_eeg = tfr_eeg.crop(.1, .1)
 
     pytest.raises(RuntimeError, tfr_meg.add_channels, [tfr_badsf])
     pytest.raises(AssertionError, tfr_meg.add_channels, [tfr_eeg])
@@ -1052,7 +1068,7 @@ def test_to_data_frame():
                 'value')
     assert set(expected) == set(df_long.columns)
     assert set(tfr.ch_names) == set(df_long['channel'])
-    assert(len(df_long) == tfr.data.size)
+    assert len(df_long) == tfr.data.size
     # test long format w/ index
     df_long = tfr.to_data_frame(long_format=True, index=['freq'])
     del df_wide, df_long
@@ -1062,8 +1078,8 @@ def test_to_data_frame():
     assert_array_equal(df.values[:, 0],
                        data[:, 0, :, :].reshape(1, -1).squeeze())
     # compare arbitrary observation:
-    assert df.loc[('he', slice(None), freqs[1], times[2] * srate),
-                  ch_names[3]].iloc[0] == data[1, 3, 1, 2]
+    assert (df.loc[('he', slice(None), freqs[1], times[2]), ch_names[3]].iat[0]
+            == data[1, 3, 1, 2])
 
     # Check also for AverageTFR:
     tfr = tfr.average()
@@ -1082,7 +1098,7 @@ def test_to_data_frame():
     expected = ('freq', 'time', 'channel', 'ch_type', 'value')
     assert set(expected) == set(df_long.columns)
     assert set(tfr.ch_names) == set(df_long['channel'])
-    assert(len(df_long) == tfr.data.size)
+    assert len(df_long) == tfr.data.size
     # test long format w/ index
     df_long = tfr.to_data_frame(long_format=True, index=['freq'])
     del df_wide, df_long
@@ -1092,8 +1108,7 @@ def test_to_data_frame():
     assert_array_equal(df.values[:, 0],
                        data[0, :, :].reshape(1, -1).squeeze())
     # compare arbitrary observation:
-    assert df.loc[(freqs[1], times[2] * srate), ch_names[3]] == \
-        data[3, 1, 2]
+    assert df.loc[(freqs[1], times[2]), ch_names[3]] == data[3, 1, 2]
 
 
 @requires_pandas

@@ -22,18 +22,20 @@ from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
 from mne.io.proj import make_eeg_average_ref_proj, Projection
 from mne.io import read_raw_fif, read_info, RawArray
 from mne.io.constants import FIFF
-from mne.io.pick import pick_info, channel_indices_by_type
+from mne.io.pick import pick_info, channel_indices_by_type, _picks_to_idx
 from mne.io.compensator import get_current_comp
 from mne.channels import (read_layout, make_dig_montage, make_standard_montage,
                           find_ch_adjacency)
 from mne.datasets import testing
+from mne.preprocessing import compute_bridged_electrodes
 from mne.time_frequency.tfr import AverageTFR
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_arrowmap, plot_psds_topomap,
                              plot_bridged_electrodes, plot_ch_adjacency)
-from mne.viz.utils import _find_peaks, _fake_click
+from mne.viz.utils import (_find_peaks, _fake_click, _fake_keypress,
+                           _fake_scroll)
 from mne.utils import requires_sklearn, check_version
 
 
@@ -419,9 +421,9 @@ def test_plot_topomap_basic(monkeypatch):
     # Test interactive cmap
     fig = plot_evoked_topomap(evoked, times=[0., 0.1], ch_type='eeg',
                               cmap=('Reds', True), title='title', **fast_test)
-    fig.canvas.key_press_event('up')
-    fig.canvas.key_press_event(' ')
-    fig.canvas.key_press_event('down')
+    _fake_keypress(fig, 'up')
+    _fake_keypress(fig, ' ')
+    _fake_keypress(fig, 'down')
     cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
     ax = cbar.cbar.ax
     _fake_click(fig, ax, (0.1, 0.1))
@@ -432,8 +434,8 @@ def test_plot_topomap_basic(monkeypatch):
     _fake_click(fig, ax, (0.1, 0.2), button=3, kind='motion')
     _fake_click(fig, ax, (0.1, 0.3), kind='release')
 
-    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
-    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
+    _fake_scroll(fig, 0.5, 0.5, -0.5)  # scroll down
+    _fake_scroll(fig, 0.5, 0.5, 0.5)  # scroll up
 
     plt.close('all')
 
@@ -507,6 +509,13 @@ def test_plot_tfr_topomap():
     picks = [93, 94, 96, 97, 21, 22, 24, 25, 129, 130, 315, 316, 2, 5, 8, 11]
     info = pick_info(raw.info, picks)
     data = rng.randn(len(picks), n_freqs, len(times))
+
+    # test complex numbers
+    tfr = AverageTFR(info, data * (1 + 1j), times, np.arange(n_freqs), nave)
+    tfr.plot_topomap(ch_type='mag', tmin=0.05, tmax=0.150, fmin=0, fmax=10,
+                     res=res, contours=0)
+
+    # test real numbers
     tfr = AverageTFR(info, data, times, np.arange(n_freqs), nave)
     tfr.plot_topomap(ch_type='mag', tmin=0.05, tmax=0.150, fmin=0, fmax=10,
                      res=res, contours=0)
@@ -686,6 +695,7 @@ def test_plot_topomap_cnorm():
         from matplotlib.colors import TwoSlopeNorm
     else:
         from matplotlib.colors import DivergingNorm as TwoSlopeNorm
+    from matplotlib.colors import PowerNorm
 
     rng = np.random.default_rng(42)
     v = rng.uniform(low=-1, high=2.5, size=64)
@@ -708,6 +718,9 @@ def test_plot_topomap_cnorm():
     with pytest.warns(RuntimeWarning, match=msg):
         plot_topomap(v, info, vmax=10, cnorm=cnorm)
 
+    # try another subclass of mpl.colors.Normalize
+    plot_topomap(v, info, cnorm=PowerNorm(0.5))
+
 
 def test_plot_bridged_electrodes():
     """Test plotting of bridged electrodes."""
@@ -726,9 +739,22 @@ def test_plot_bridged_electrodes():
                                                     vmax=1, show_names=True))
     # two bridged lines plus head outlines
     assert len(fig.axes[0].lines) == 6
+    # test with sphere="eeglab"
+    fig = plot_bridged_electrodes(
+        info, bridged_idx, ed_matrix,
+        topomap_args=dict(names=info.ch_names, sphere="eeglab",
+                          vmax=1, show_names=True)
+    )
 
     with pytest.raises(RuntimeError, match='Expected'):
         plot_bridged_electrodes(info, bridged_idx, np.zeros((5, 6, 7)))
+
+    # test with multiple channel types
+    raw = read_raw_fif(raw_fname, preload=True)
+    picks = _picks_to_idx(raw.info, "eeg")
+    raw._data[picks[0]] = raw._data[picks[1]]  # artificially bridge electrodes
+    bridged_idx, ed_matrix = compute_bridged_electrodes(raw)
+    plot_bridged_electrodes(raw.info, bridged_idx, ed_matrix)
 
 
 def test_plot_ch_adjacency():

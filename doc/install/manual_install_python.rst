@@ -19,70 +19,61 @@ When you are done, if you type the following commands in a command shell,
 you should see outputs similar to the following (assuming you installed
 conda to ``/home/user/anaconda3``):
 
-.. collapse:: |linux| Linux
 
-    .. code-block:: console
+.. tab-set::
+    :class: platform-selector-tabset
 
-        $ conda --version && python --version
-        conda 4.9.2
-        Python 3.7.7 :: Anaconda, Inc.
-        $ which python
-        /home/user/anaconda3/bin/python
-        $ which pip
-        /home/user/anaconda3/bin/pip
+    .. tab-item:: Linux
 
+        .. code-block:: console
 
-.. collapse:: |apple| macOS
-
-    .. code-block:: console
-
-        $ conda --version && python --version
-        conda 4.9.2
-        Python 3.7.7
-        $ which python
-        /Users/user/opt/anaconda3/bin/python
-        $ which pip
-        /Users/user/opt/anaconda3/bin/pip
+            $ conda --version && python --version
+            conda 4.9.2
+            Python 3.7.7 :: Anaconda, Inc.
+            $ which python
+            /home/user/anaconda3/bin/python
+            $ which pip
+            /home/user/anaconda3/bin/pip
 
 
-.. collapse:: |windows| Windows
+    .. tab-item:: macOS
 
-    Most of our instructions start with ``$``, which indicates
-    that the commands are designed to be run from a ``bash`` command shell.
+        .. code-block:: console
 
-    Windows command prompts do not expose the same command-line tools as
-    ``bash`` shells, so commands like ``which`` will not work. You can test
-    your installation in Windows ``cmd.exe`` shells with ``where`` instead:
+            $ conda --version && python --version
+            conda 4.9.2
+            Python 3.7.7
+            $ which python
+            /Users/user/opt/anaconda3/bin/python
+            $ which pip
+            /Users/user/opt/anaconda3/bin/pip
 
-    .. code-block:: doscon
 
-        > where python
-        C:\Users\user\anaconda3\python.exe
-        > where pip
-        C:\Users\user\anaconda3\Scripts\pip.exe
+    .. tab-item:: Windows
+
+        Most of our instructions start with ``$``, which indicates
+        that the commands are designed to be run from a ``bash`` command shell.
+
+        Windows command prompts do not expose the same command-line tools as
+        ``bash`` shells, so commands like ``which`` will not work. You can test
+        your installation in Windows ``cmd.exe`` shells with ``where`` instead:
+
+        .. code-block:: doscon
+
+            > where python
+            C:\Users\user\anaconda3\python.exe
+            > where pip
+            C:\Users\user\anaconda3\Scripts\pip.exe
+
 
 .. raw:: html
 
     <div width="100%" height="0 px" style="margin: 0 0 15px;"></div>
 
-.. javascript below adapted from nilearn
 
-.. raw:: html
-
-     <script type="text/javascript">
-     var OSName="linux-linux";
-     if (navigator.userAgent.indexOf("Win")!=-1) OSName="windows-windows";
-     if (navigator.userAgent.indexOf("Mac")!=-1) OSName="apple-macos";
-     $(document).ready(function(){
-         var element = document.getElementById("collapse_" + OSName);
-         element.className += " show";
-         element.setAttribute("aria-expanded", "true");
-     });
-     </script>
-
-
-.. collapse:: |hand-paper| If you get an error or these look incorrect...
-    :class: danger
+.. dropdown:: If you get an error...
+    :color: danger
+    :icon: alert-fill
 
     .. rubric:: If you see something like:
 
@@ -132,3 +123,28 @@ conda to ``/home/user/anaconda3``):
     You can also consult the Anaconda documentation and search for
     Anaconda install tips (`Stack Overflow`_ results are often helpful)
     to fix these or other problems when ``conda`` does not work.
+
+
+.. raw:: html
+
+    <script type="text/javascript">
+      var platform = "linux";
+      if (navigator.userAgent.indexOf("Win") !== -1) {
+        platform = "windows";
+      }
+      if (navigator.userAgent.indexOf("Mac") !== -1) {
+        platform = "macos";
+      }
+     $(document).ready(function(){
+         let all_tab_nodes = document.querySelectorAll(
+             '.platform-selector-tabset')[0].children;
+         let input_nodes = [...all_tab_nodes].filter(
+             child => child.nodeName === "INPUT");
+         let tab_label_nodes = [...document.querySelectorAll('.sd-tab-label')];
+         let correct_label = tab_label_nodes.filter(
+             label => label.textContent.trim().toLowerCase() === platform)[0];
+         let hash = correct_label.getAttribute('for');
+         let correct_input = input_nodes.filter(node => node.id === hash)[0];
+         correct_input.checked = true;
+     });
+     </script>

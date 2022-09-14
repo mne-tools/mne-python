@@ -4,6 +4,7 @@
 #
 # License: BSD-3-Clause
 
+from contextlib import nullcontext
 from datetime import datetime, timezone
 from mne.io import RawArray
 from mne.io.meas_info import create_info
@@ -19,17 +20,61 @@ from mne import (read_epochs_eeglab, Epochs, read_evokeds, read_evokeds_mff,
                  Annotations)
 from mne.datasets import testing, misc
 from mne.export import export_evokeds, export_evokeds_mff
-from mne.io import read_raw_fif, read_raw_eeglab, read_raw_edf
+from mne.fixes import _compare_version
+from mne.io import (read_raw_fif, read_raw_eeglab, read_raw_edf,
+                    read_raw_brainvision)
 from mne.utils import (_check_eeglabio_installed, requires_version,
-                       object_diff, _check_edflib_installed, _resource_path)
+                       object_diff, _check_edflib_installed, _resource_path,
+                       _check_pybv_installed, _record_warnings)
 from mne.tests.test_epochs import _get_data
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-fname_evoked = op.join(base_dir, 'test-ave.fif')
+fname_evoked = _resource_path('mne.io.tests.data', 'test-ave.fif')
+fname_raw = _resource_path('mne.io.tests.data', 'test_raw.fif')
 
 data_path = testing.data_path(download=False)
 egi_evoked_fname = op.join(data_path, 'EGI', 'test_egi_evoked.mff')
 misc_path = misc.data_path(download=False)
+
+
+@pytest.mark.skipif(not _check_pybv_installed(strict=False),
+                    reason='pybv not installed')
+@pytest.mark.parametrize(
+    ['meas_date', 'orig_time', 'ext'], [
+        [None, None, '.vhdr'],
+        [datetime(2022, 12, 3, 19, 1, 10, 720100, tzinfo=timezone.utc),
+         None,
+         '.eeg'],
+    ])
+def test_export_raw_pybv(tmp_path, meas_date, orig_time, ext):
+    """Test saving a Raw instance to BrainVision format via pybv."""
+    raw = read_raw_fif(fname_raw, preload=True)
+    raw.apply_proj()
+
+    raw.set_meas_date(meas_date)
+
+    # add some annotations
+    annots = Annotations(
+        onset=[3, 6, 9, 12, 14],  # seconds
+        duration=[1, 1, 0.5, 0.25, 9],  # seconds
+        description=[
+            "Stimulus/S  1",
+            "Stimulus/S2.50",
+            "Response/R101",
+            "Look at this",
+            "Comment/And at this",
+        ],
+        ch_names=[(), (), (), ("EEG 001",), ("EEG 001", "EEG 002")],
+        orig_time=orig_time,
+    )
+    raw.set_annotations(annots)
+
+    temp_fname = tmp_path / ('test' + ext)
+    with pytest.warns(RuntimeWarning, match="'short' format. Converting"):
+        raw.export(temp_fname)
+    raw_read = read_raw_brainvision(str(temp_fname).replace('.eeg', '.vhdr'))
+    assert raw.ch_names == raw_read.ch_names
+    assert_allclose(raw.times, raw_read.times)
+    assert_allclose(raw.get_data(), raw_read.get_data())
 
 
 @requires_version('pymatreader')
@@ -37,9 +82,7 @@ misc_path = misc.data_path(download=False)
                     reason='eeglabio not installed')
 def test_export_raw_eeglab(tmp_path):
     """Test saving a Raw instance to EEGLAB's set format."""
-    fname = (Path(__file__).parent.parent.parent /
-             "io" / "tests" / "data" / "test_raw.fif")
-    raw = read_raw_fif(fname, preload=True)
+    raw = read_raw_fif(fname_raw, preload=True)
     raw.apply_proj()
     temp_fname = op.join(str(tmp_path), 'test.set')
     raw.export(temp_fname)
@@ -62,7 +105,7 @@ def test_export_raw_eeglab(tmp_path):
     raw.export(Path(temp_fname), overwrite=True)
 
     # test warning with unapplied projectors
-    raw = read_raw_fif(fname, preload=True)
+    raw = read_raw_fif(fname_raw, preload=True)
     with pytest.warns(RuntimeWarning,
                       match='Raw instance has unapplied projectors.'):
         raw.export(temp_fname, overwrite=True)
@@ -247,8 +290,7 @@ def test_rawarray_edf(tmp_path):
 def test_export_raw_edf(tmp_path, dataset, format):
     """Test saving a Raw instance to EDF format."""
     if dataset == 'test':
-        fname = _resource_path('mne.io.tests.data', 'test_raw.fif')
-        raw = read_raw_fif(fname)
+        raw = read_raw_fif(fname_raw)
     elif dataset == 'misc':
         fname = op.join(misc_path, 'ecog', 'sample_ecog_ieeg.fif')
         raw = read_raw_fif(fname)
@@ -300,17 +342,25 @@ def test_export_raw_edf(tmp_path, dataset, format):
         raw.times, raw_read.times[:orig_raw_len], rtol=0, atol=1e-5)
 
 
+@pytest.mark.xfail(reason='eeglabio (usage?) bugs that should be fixed')
 @requires_version('pymatreader')
 @pytest.mark.skipif(not _check_eeglabio_installed(strict=False),
                     reason='eeglabio not installed')
 @pytest.mark.parametrize('preload', (True, False))
 def test_export_epochs_eeglab(tmp_path, preload):
     """Test saving an Epochs instance to EEGLAB's set format."""
+    import eeglabio
     raw, events = _get_data()[:2]
     raw.load_data()
     epochs = Epochs(raw, events, preload=preload)
     temp_fname = op.join(str(tmp_path), 'test.set')
-    epochs.export(temp_fname)
+    # TODO: eeglabio 0.2 warns about invalid events
+    if _compare_version(eeglabio.__version__, '==', '0.0.2-1'):
+        ctx = _record_warnings
+    else:
+        ctx = nullcontext
+    with ctx():
+        epochs.export(temp_fname)
     epochs.drop_channels([ch for ch in ['epoc', 'STI 014']
                           if ch in epochs.ch_names])
     epochs_read = read_epochs_eeglab(temp_fname)
@@ -329,10 +379,12 @@ def test_export_epochs_eeglab(tmp_path, preload):
     # test overwrite
     with pytest.raises(FileExistsError, match='Destination file exists'):
         epochs.export(temp_fname, overwrite=False)
-    epochs.export(temp_fname, overwrite=True)
+    with ctx():
+        epochs.export(temp_fname, overwrite=True)
 
     # test pathlib.Path files
-    epochs.export(Path(temp_fname), overwrite=True)
+    with ctx():
+        epochs.export(Path(temp_fname), overwrite=True)
 
     # test warning with unapplied projectors
     epochs = Epochs(raw, events, preload=preload, proj=False)
@@ -341,6 +393,7 @@ def test_export_epochs_eeglab(tmp_path, preload):
         epochs.export(Path(temp_fname), overwrite=True)
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @requires_version('mffpy', '0.5.7')
 @testing.requires_testing_data
 @pytest.mark.parametrize('fmt', ('auto', 'mff'))
@@ -366,7 +419,7 @@ def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
     if do_history:
         export_evokeds_mff(export_fname, evoked, history=history)
     else:
-        export_evokeds(export_fname, evoked)
+        export_evokeds(export_fname, evoked, fmt=fmt)
     # Drop non-EEG channels
     evoked = [ave.drop_channels(['ECG', 'EMG']) for ave in evoked]
     evoked_exported = read_evokeds_mff(export_fname)
@@ -396,7 +449,11 @@ def test_export_evokeds_to_mff(tmp_path, fmt, do_history):
     else:
         export_evokeds(export_fname, evoked, overwrite=True)
 
+    # test export from evoked directly
+    evoked[0].export(export_fname, overwrite=True)
 
+
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @requires_version('mffpy', '0.5.7')
 @testing.requires_testing_data
 def test_export_to_mff_no_device():
@@ -407,6 +464,7 @@ def test_export_to_mff_no_device():
         export_evokeds('output.mff', evoked)
 
 
+@pytest.mark.filterwarnings('ignore::FutureWarning')
 @requires_version('mffpy', '0.5.7')
 def test_export_to_mff_incompatible_sfreq():
     """Test non-whole number sampling frequency throws ValueError."""
@@ -418,10 +476,12 @@ def test_export_to_mff_incompatible_sfreq():
 @pytest.mark.parametrize('fmt,ext', [
     ('EEGLAB', 'set'),
     ('EDF', 'edf'),
-    ('BrainVision', 'eeg')
+    ('BrainVision', 'vhdr'),
+    ('auto', 'vhdr')
 ])
 def test_export_evokeds_unsupported_format(fmt, ext):
     """Test exporting evoked dataset to non-supported formats."""
     evoked = read_evokeds(fname_evoked)
-    with pytest.raises(NotImplementedError, match=f'Export to {fmt} not imp'):
-        export_evokeds(f'output.{ext}', evoked)
+    errstr = fmt.lower() if fmt != "auto" else "vhdr"
+    with pytest.raises(ValueError, match=f"Format '{errstr}' is not .*"):
+        export_evokeds(f'output.{ext}', evoked, fmt=fmt)

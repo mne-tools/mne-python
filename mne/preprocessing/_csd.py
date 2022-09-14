@@ -12,7 +12,6 @@
 # License: Relicensed under BSD-3-Clause and adapted with
 #          permission from authors of original GPL code
 
-import warnings
 import numpy as np
 
 from .. import pick_types
@@ -61,6 +60,9 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
 
     Transformation based on spherical spline surface Laplacian
     :footcite:`PerrinEtAl1987,PerrinEtAl1989,Cohen2014,KayserTenke2015`.
+
+    This function can be used to re-reference the signal using a Laplacian
+    (LAP) "reference-free" transformation.
 
     Parameters
     ----------
@@ -193,12 +195,12 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
                                bw_method=None, verbose=None):
     r"""Compute bridged EEG electrodes using the intrinsic Hjorth algorithm.
 
-    First an electrical distance matrix is computed by taking the pairwise
-    variance. Then, a local maximum near 0 :math:`{\mu}V^2` and a
-    a local minimum below 5 :math:`{\mu}V^2` are found, the presence
-    of which is indicative of bridging. Finally, electrode distances below
-    the local minimum are marked as bridged as long as they happen on more
-    than the ``epoch_threshold`` proportion of epochs.
+    First, an electrical distance matrix is computed by taking the pairwise
+    variance between electrodes. Local minimums in this matrix below
+    ``lm_cutoff`` are indicative of bridging between a pair of electrodes.
+    Pairs of electrodes are marked as bridged as long as their electrical
+    distance is below ``lm_cutoff`` on more than the ``epoch_threshold``
+    proportion of epochs.
 
     Based on :footcite:`TenkeKayser2001,GreischarEtAl2004,DelormeMakeig2004`
     and the `EEGLAB implementation
@@ -211,11 +213,12 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
     lm_cutoff : float
         The distance in :math:`{\mu}V^2` cutoff below which to
         search for a local minimum (lm) indicative of bridging.
-        Defaults to 16 :math:`{\mu}V^2` to be conservative based
-        on the distributions in :footcite:`GreischarEtAl2004`.
+        EEGLAB defaults to 5 :math:`{\mu}V^2`. MNE defaults to
+        16 :math:`{\mu}V^2` to be conservative based on the distributions in
+        :footcite:t:`GreischarEtAl2004`.
     epoch_threshold : float
         The proportion of epochs with electrical distance less than
-        ``ed_threshold`` in order to consider the channel bridged.
+        ``lm_cutoff`` in order to consider the channel bridged.
         The default is 0.5.
     l_freq : float
         The low cutoff frequency to use. Default is 0.5 Hz.
@@ -285,9 +288,7 @@ def compute_bridged_electrodes(inst, lm_cutoff=16, epoch_threshold=0.5,
 
     # kernel density estimation
     kde = gaussian_kde(ed_flat[ed_flat < lm_cutoff])
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            'ignore', 'invalid value encountered in true_divide')
+    with np.errstate(invalid='ignore'):
         local_minimum = float(minimize_scalar(
             lambda x: kde(x) if x < lm_cutoff and x > 0 else np.inf).x)
     logger.info(f'Local minimum {local_minimum} found')

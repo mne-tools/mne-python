@@ -152,7 +152,7 @@ def read_raw_egi(input_fname, eog=None, misc=None,
     """
     _validate_type(input_fname, 'path-like', 'input_fname')
     input_fname = str(input_fname)
-    if input_fname.endswith('.mff'):
+    if input_fname.rstrip('/\\').endswith('.mff'):  # allows .mff or .mff/
         return _read_raw_egi_mff(input_fname, eog, misc, include,
                                  exclude, preload, channel_naming, verbose)
     return RawEGI(input_fname, eog, misc, include, exclude, preload,
@@ -254,12 +254,15 @@ class RawEGI(BaseRaw):
             chs[idx].update({'unit_mul': FIFF.FIFF_UNITM_NONE, 'cal': 1.,
                              'kind': FIFF.FIFFV_STIM_CH,
                              'coil_type': FIFF.FIFFV_COIL_NONE,
-                             'unit': FIFF.FIFF_UNIT_NONE})
+                             'unit': FIFF.FIFF_UNIT_NONE,
+                             'loc': np.zeros(12)})
         info['chs'] = chs
         info._unlocked = False
         info._update_redundant()
+        orig_format = egi_info["orig_format"] \
+            if egi_info["orig_format"] != "float" else "single"
         super(RawEGI, self).__init__(
-            info, preload, orig_format=egi_info['orig_format'],
+            info, preload, orig_format=orig_format,
             filenames=[input_fname], last_samps=[egi_info['n_samples'] - 1],
             raw_extras=[egi_info], verbose=verbose)
 

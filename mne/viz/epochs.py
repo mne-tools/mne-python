@@ -18,8 +18,9 @@ import warnings
 import numpy as np
 
 from .raw import _setup_channel_selections
+from ..fixes import _sharex
 from ..defaults import _handle_default
-from ..utils import verbose, logger, warn, fill_doc, _check_option
+from ..utils import legacy, verbose, logger, warn, fill_doc, _check_option
 from ..io.meas_info import create_info, _validate_type
 
 from ..io.pick import (_get_channel_types, _picks_to_idx, _DATA_CH_TYPES_SPLIT,
@@ -540,7 +541,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         ax['evoked'].set_xlim(tmin, tmax)
         ax['evoked'].lines[0].set_clip_on(True)
         ax['evoked'].collections[0].set_clip_on(True)
-        ax['evoked'].get_shared_x_axes().join(ax['evoked'], ax_im)
+        _sharex(ax['evoked'], ax_im)
         # fix the axes for proper updating during interactivity
         loc = ax_im.xaxis.get_major_locator()
         ax['evoked'].xaxis.set_major_locator(loc)
@@ -758,6 +759,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     to the plot. Click 'help' button at bottom left corner of the plotter to
     view all the options.
 
+    %(notes_2d_backend)s
+
     .. versionadded:: 0.10.0
     """
     from ._figure import _get_browser
@@ -919,6 +922,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     return fig
 
 
+@legacy(alt='Epochs.compute_psd().plot()')
 @verbose
 def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     proj=False, bandwidth=None, adaptive=False, low_bias=True,
@@ -933,16 +937,9 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     ----------
     epochs : instance of Epochs
         The epochs object.
-    fmin : float
-        Start frequency to consider.
-    fmax : float
-        End frequency to consider.
-    tmin : float | None
-        Start time to consider.
-    tmax : float | None
-        End time to consider.
-    proj : bool
-        Apply projection.
+    %(fmin_fmax_psd)s
+    %(tmin_tmax_psd)s
+    %(proj_psd)s
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4.
@@ -953,9 +950,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     %(normalization)s
-    %(picks_plot_psd_good_data)s
-    ax : instance of Axes | None
-        Axes to plot into. If None, axes will be created.
+    %(picks_good_data_noref)s
+    %(ax_plot_psd)s
     %(color_plot_psd)s
     %(xscale_plot_psd)s
     %(area_mode_plot_psd)s
@@ -966,7 +962,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     %(n_jobs)s
     %(average_plot_psd)s
     %(line_alpha_plot_psd)s
-    %(spatial_colors_plot_psd)s
+    %(spatial_colors_psd)s
     %(sphere_topomap_auto)s
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the bad channels
@@ -980,19 +976,19 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     -------
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
-    """
-    from ._mpl_figure import _psd_figure
 
-    # generate figure
-    # epochs always use multitaper, not Welch, so no need to allow "window"
-    # param above
-    fig = _psd_figure(
-        inst=epochs, proj=proj, picks=picks, axes=ax, tmin=tmin, tmax=tmax,
-        fmin=fmin, fmax=fmax, sphere=sphere, xscale=xscale, dB=dB,
-        average=average, estimate=estimate, area_mode=area_mode,
-        line_alpha=line_alpha, area_alpha=area_alpha, color=color,
-        spatial_colors=spatial_colors, n_jobs=n_jobs, bandwidth=bandwidth,
-        adaptive=adaptive, low_bias=low_bias, normalization=normalization,
-        window='hamming', exclude=exclude)
-    plt_show(show)
+    Notes
+    -----
+    %(notes_plot_*_psd_func)s
+    """
+    fig = epochs.plot_psd(
+        fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
+        proj=proj, method='multitaper',
+        ax=ax, color=color, xscale=xscale, area_mode=area_mode,
+        area_alpha=area_alpha, dB=dB, estimate=estimate, show=show,
+        line_alpha=line_alpha, spatial_colors=spatial_colors, sphere=sphere,
+        exclude=exclude, n_jobs=n_jobs, average=average, verbose=verbose,
+        # these are **method_kw:
+        window='hamming', bandwidth=bandwidth, adaptive=adaptive,
+        low_bias=low_bias, normalization=normalization)
     return fig

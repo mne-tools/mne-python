@@ -5,8 +5,9 @@
 
 from contextlib import nullcontext
 from itertools import chain
-import os
+from pathlib import Path
 import os.path as op
+import shutil
 
 import pytest
 
@@ -28,7 +29,9 @@ from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_dig_polhemus_isotrak, compute_native_head_t,
                           read_polhemus_fastscan, read_dig_localite,
                           read_dig_hpts)
-from mne.channels.montage import transform_to_head, _check_get_coord_frame
+from mne.channels.montage import (
+    transform_to_head, _check_get_coord_frame, _BUILTIN_STANDARD_MONTAGES
+)
 from mne.utils import assert_dig_allclose, _record_warnings
 from mne.bem import _fit_sphere
 from mne.io.constants import FIFF
@@ -147,27 +150,14 @@ def test_fiducials():
 
 def test_documented():
     """Test that standard montages are documented."""
-    docs = make_standard_montage.__doc__
-    lines = [line[4:] for line in docs.splitlines()]
-    start = stop = None
-    for li, line in enumerate(lines):
-        if line.startswith('====') and li < len(lines) - 2 and \
-                lines[li + 1].startswith('Kind') and\
-                lines[li + 2].startswith('===='):
-            start = li + 3
-        elif start is not None and li > start and line.startswith('===='):
-            stop = li
-            break
-    assert (start is not None)
-    assert (stop is not None)
-    kinds = [line.split(' ')[0] for line in lines[start:stop]]
-    kinds = [kind for kind in kinds if kind != '']
-    montages = os.listdir(op.join(op.dirname(_mne_file), 'channels', 'data',
-                                  'montages'))
-    montages = sorted(op.splitext(m)[0] for m in montages)
-    assert_equal(len(set(montages)), len(montages))
-    assert_equal(len(set(kinds)), len(kinds), err_msg=str(sorted(kinds)))
-    assert_equal(set(montages), set(kinds))
+    montage_dir = Path(_mne_file).parent / 'channels' / 'data' / 'montages'
+    montage_files = Path(montage_dir).glob('*')
+    montage_names = [f.stem for f in montage_files]
+
+    assert len(montage_names) == len(_BUILTIN_STANDARD_MONTAGES)
+    assert set(montage_names) == set(
+        [m.name for m in _BUILTIN_STANDARD_MONTAGES]
+    )
 
 
 @pytest.mark.parametrize('reader, file_content, expected_dig, ext, warning', [
@@ -298,8 +288,7 @@ def test_documented():
 
     pytest.param(
         partial(read_custom_montage, head_size=None),
-        ('346\n'  # XXX: this should actually raise an error 346 != 4
-         'FID\t      LPA\t -120.03\t      0\t      85\n'
+        ('FID\t      LPA\t -120.03\t      0\t      85\n'
          'FID\t      RPA\t  120.03\t      0\t      85\n'
          'FID\t      Nz\t   114.03\t     90\t      85\n'
          'EEG\t      F3\t  -62.027\t -50.053\t     85\n'
@@ -589,9 +578,12 @@ def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmp_path):
     with pytest.raises(ValueError, match='not contain.*Polhemus FastSCAN'):
         _ = read_polhemus_fastscan(fname)
 
+    fname = tmp_path / 'faulty_FastSCAN.bar'
+    with open(fname, 'w') as fid:
+        fid.write(content)
     EXPECTED_ERR_MSG = "allowed value is '.txt', but got '.bar' instead"
     with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
-        _ = read_polhemus_fastscan(fname=tmp_path / 'foo.bar')
+        _ = read_polhemus_fastscan(fname=fname)
 
 
 def test_read_dig_polhemus_isotrak_hsp():
@@ -714,7 +706,9 @@ def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmp_path):
         )
 
     # Check fname extensions
-    fname = op.join(tmp_path, 'foo.bar')
+    fname = op.join(tmp_path, 'test.bar')
+    shutil.copyfile(isotrak_eeg, fname)
+
     with pytest.raises(
         ValueError,
         match="Allowed val.*'.hsp', '.elp', and '.eeg', but got '.bar' instead"
@@ -1566,8 +1560,15 @@ def test_read_dig_hpts():
 
 def test_get_builtin_montages():
     """Test help function to obtain builtin montages."""
-    EXPECTED_NUM = 26
-    assert len(get_builtin_montages()) == EXPECTED_NUM
+    EXPECTED_COUNT = 27
+
+    montages = get_builtin_montages()
+    assert len(montages) == EXPECTED_COUNT
+
+    montages_with_descriptions = get_builtin_montages(descriptions=True)
+    assert len(montages_with_descriptions) == EXPECTED_COUNT
+    for montage_with_description in montages_with_descriptions:
+        assert len(montage_with_description) == 2
 
 
 @testing.requires_testing_data
@@ -1577,6 +1578,20 @@ def test_plot_montage():
     montage = read_dig_captrak(bvct_dig_montage_fname)
     montage.plot()
     plt.close('all')
+
+
+def test_montage_equality():
+    """Test montage equality."""
+    rng = np.random.RandomState(0)
+    fiducials = dict(zip(('nasion', 'lpa', 'rpa'), rng.rand(3, 3)))
+
+    # hsp positions are [1X, 1X, 1X]
+    hsp1 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 11.))
+    hsp2 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 12.))
+    hsp2_identical = make_dig_montage(**fiducials, hsp=np.full((2, 3), 12.))
+
+    assert hsp1 != hsp2
+    assert hsp2 == hsp2_identical
 
 
 @testing.requires_testing_data

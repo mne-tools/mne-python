@@ -5,18 +5,18 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import contextmanager
 import hashlib
-from io import BytesIO, StringIO
-from math import sqrt
+import inspect
 import numbers
 import operator
 import os
-import os.path as op
-from math import ceil
 import shutil
 import sys
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from io import BytesIO, StringIO
+from math import ceil, sqrt
+from pathlib import Path
 
 import numpy as np
 
@@ -427,7 +427,7 @@ def _replace_md5(fname):
     # adapted from sphinx-gallery
     assert fname.endswith('.new')
     fname_old = fname[:-4]
-    if op.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
+    if os.path.isfile(fname_old) and hashfunc(fname) == hashfunc(fname_old):
         os.remove(fname)
     else:
         shutil.move(fname, fname_old)
@@ -697,7 +697,7 @@ def object_size(x, memo=None):
     id_ = id(x)
     if id_ in memo:
         return 0  # do not add already existing ones
-    if isinstance(x, (bytes, str, int, float, type(None))):
+    if isinstance(x, (bytes, str, int, float, type(None), Path)):
         size = sys.getsizeof(x)
     elif isinstance(x, np.ndarray):
         # On newer versions of NumPy, just doing sys.getsizeof(x) works,
@@ -751,8 +751,8 @@ def object_diff(a, b, pre='', *, allclose=False):
     Parameters
     ----------
     a : object
-        Currently supported: dict, list, tuple, ndarray, int, str, bytes,
-        float, StringIO, BytesIO.
+        Currently supported: class, dict, list, tuple, ndarray,
+        int, str, bytes, float, StringIO, BytesIO.
     b : object
         Must be same type as ``a``.
     pre : str
@@ -773,8 +773,11 @@ def object_diff(a, b, pre='', *, allclose=False):
             if isinstance(a, sub) and isinstance(b, sub):
                 break
         else:
-            return pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
-    if isinstance(a, dict):
+            return (f'{pre} type mismatch ({type(a)}, {type(b)})\n')
+    if inspect.isclass(a):
+        if inspect.isclass(b) and a != b:
+            return f'{pre} class mismatch ({a}, {b})\n'
+    elif isinstance(a, dict):
         k1s = _sort_keys(a)
         k2s = _sort_keys(b)
         m1 = set(k2s) - set(k1s)

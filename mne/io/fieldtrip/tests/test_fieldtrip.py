@@ -14,12 +14,14 @@ import numpy as np
 
 import mne
 from mne.datasets import testing
+from mne.io import read_raw_fieldtrip
 from mne.io.fieldtrip.utils import NOINFO_WARNING, _create_events
-from mne.utils import _check_pandas_installed, _record_warnings
 from mne.io.fieldtrip.tests.helpers import (
     check_info_fields, get_data_paths, get_raw_data, get_epochs, get_evoked,
     pandas_not_found_warning_msg, get_raw_info, check_data,
     assert_warning_in_record)
+from mne.io.tests.test_raw import _test_raw_reader
+from mne.utils import _check_pandas_installed, _record_warnings
 
 # missing: KIT: biggest problem here is that the channels do not have the same
 # names.
@@ -145,7 +147,7 @@ def test_read_epochs(cur_system, version, use_info, monkeypatch):
 @pytest.mark.filterwarnings('ignore:.*parse meas date.*:RuntimeWarning')
 @pytest.mark.filterwarnings('ignore:.*number of bytes.*:RuntimeWarning')
 @pytest.mark.parametrize('cur_system, version, use_info', all_test_params_raw)
-def test_raw(cur_system, version, use_info):
+def test_read_raw_fieldtrip(cur_system, version, use_info):
     """Test comparing reading a raw fiff file and the FieldTrip version."""
     # Load the raw fiff file with mne
     test_data_folder_ft = get_data_paths(cur_system)
@@ -177,6 +179,13 @@ def test_raw(cur_system, version, use_info):
     check_data(raw_fiff_mne.get_data(),
                raw_fiff_ft.get_data(),
                cur_system)
+
+    # standard tests
+    with _record_warnings():
+        _test_raw_reader(
+            read_raw_fieldtrip, fname=cur_fname, info=info,
+            test_preloading=False,
+            test_kwargs=False)  # TODO: This should probably work
 
     # Check info field
     check_info_fields(raw_fiff_mne, raw_fiff_ft, use_info)

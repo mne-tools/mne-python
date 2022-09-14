@@ -25,7 +25,7 @@ data (i.e., an average of their epochs). This would then be considered
 an analysis at the "2nd level".
 
 For more information on cluster-based permutation testing in MNE-Python,
-see also: :ref:`tut-cluster-spatiotemporal-sensor`
+see also: :ref:`tut-cluster-spatiotemporal-sensor`.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>

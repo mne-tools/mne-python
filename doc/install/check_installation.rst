@@ -40,8 +40,9 @@ MNE-Python and its dependencies. Typical output looks like this::
     qtpy:          2.0.1 {PySide6=6.2.4}
 
 
-.. collapse:: |hand-paper| If you get an error...
-    :class: danger
+.. dropdown:: If you get an error...
+    :color: danger
+    :icon: alert-fill
 
     .. rubric:: If you see an error like:
 

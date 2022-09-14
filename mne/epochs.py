@@ -39,7 +39,7 @@ from .io.pick import (channel_indices_by_type, channel_type,
 from .io.proj import setup_proj, ProjMixin
 from .io.base import BaseRaw, TimeMixin, _get_ch_factors
 from .bem import _check_origin
-from .evoked import EvokedArray, _check_decim
+from .evoked import EvokedArray
 from .baseline import rescale, _log_rescale, _check_baseline
 from .channels.channels import (UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
@@ -49,16 +49,17 @@ from .parallel import parallel_func
 from .event import (_read_events_fif, make_fixed_length_events,
                     match_event_names)
 from .fixes import rng_uniform
-from .viz import (plot_epochs, plot_epochs_psd, plot_epochs_psd_topomap,
-                  plot_epochs_image, plot_topo_image_epochs, plot_drop_log)
+from .time_frequency.spectrum import EpochsSpectrum, SpectrumMixin
+from .viz import (plot_epochs, plot_epochs_image,
+                  plot_topo_image_epochs, plot_drop_log)
 from .utils import (_check_fname, check_fname, logger, verbose,
-                    _time_mask, check_random_state, warn, _pl,
+                    check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed,
                     _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
-                    _check_combine, ShiftTimeMixin, _build_data_frame,
+                    _check_combine, _build_data_frame,
                     _check_pandas_index_arguments, _convert_times,
                     _scale_dataframe_data, _check_time_format, object_size,
                     _on_missing, _validate_type, _ensure_events,
@@ -338,9 +339,10 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 
 
 @fill_doc
-class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
+class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin):
+                 TimeMixin, SizeMixin, GetEpochsMixin, EpochAnnotationsMixin,
+                 SpectrumMixin):
     """Abstract base class for `~mne.Epochs`-type classes.
 
     .. warning:: This class provides basic functionality and should never be
@@ -648,60 +650,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._raw_times = self.times
         assert self._data.shape[-1] == len(self.times)
         self._raw = None  # shouldn't need it anymore
-        return self
-
-    @verbose
-    def decimate(self, decim, offset=0, verbose=None):
-        """Decimate the epochs.
-
-        Parameters
-        ----------
-        %(decim)s
-        %(offset_decim)s
-        %(verbose)s
-
-        Returns
-        -------
-        epochs : instance of Epochs
-            The decimated Epochs object.
-
-        See Also
-        --------
-        mne.Evoked.decimate
-        mne.Epochs.resample
-        mne.io.Raw.resample
-
-        Notes
-        -----
-        %(decim_notes)s
-
-        If ``decim`` is 1, this method does not copy the underlying data.
-
-        .. versionadded:: 0.10.0
-
-        References
-        ----------
-        .. footbibliography::
-        """
-        decim, offset, new_sfreq = _check_decim(self.info, decim, offset)
-        start_idx = int(round(-self._raw_times[0] * (self.info['sfreq'] *
-                                                     self._decim)))
-        self._decim *= decim
-        i_start = start_idx % self._decim + offset
-        decim_slice = slice(i_start, None, self._decim)
-        with self.info._unlock():
-            self.info['sfreq'] = new_sfreq
-        if self.preload:
-            if decim != 1:
-                self._data = self._data[:, :, decim_slice].copy()
-                self._raw_times = self._raw_times[decim_slice].copy()
-            else:
-                self._data = np.ascontiguousarray(self._data)
-            self._decim_slice = slice(None)
-            self._decim = 1
-        else:
-            self._decim_slice = decim_slice
-        self._set_times(self._raw_times[self._decim_slice])
         return self
 
     @verbose
@@ -1136,7 +1084,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         # the above constructor doesn't recreate the times object precisely
         # due to numerical precision issues
-        evoked.times = self.times.copy()
+        evoked._set_times(self.times.copy())
 
         # pick channels
         picks = _picks_to_idx(self.info, picks, 'data_or_ica', ())
@@ -1175,41 +1123,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                            group_by=group_by, precompute=precompute,
                            use_opengl=use_opengl, theme=theme,
                            overview_mode=overview_mode)
-
-    @copy_function_doc_to_method_doc(plot_epochs_psd)
-    def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None,
-                 proj=False, bandwidth=None, adaptive=False, low_bias=True,
-                 normalization='length', picks=None, ax=None, color='black',
-                 xscale='linear', area_mode='std', area_alpha=0.33,
-                 dB=True, estimate='auto', show=True, n_jobs=None,
-                 average=False, line_alpha=None, spatial_colors=True,
-                 sphere=None, exclude='bads', verbose=None):
-        return plot_epochs_psd(self, fmin=fmin, fmax=fmax, tmin=tmin,
-                               tmax=tmax, proj=proj, bandwidth=bandwidth,
-                               adaptive=adaptive, low_bias=low_bias,
-                               normalization=normalization, picks=picks, ax=ax,
-                               color=color, xscale=xscale, area_mode=area_mode,
-                               area_alpha=area_alpha, dB=dB, estimate=estimate,
-                               show=show, n_jobs=n_jobs, average=average,
-                               line_alpha=line_alpha,
-                               spatial_colors=spatial_colors, sphere=sphere,
-                               exclude=exclude, verbose=verbose)
-
-    @copy_function_doc_to_method_doc(plot_epochs_psd_topomap)
-    def plot_psd_topomap(self, bands=None, tmin=None,
-                         tmax=None, proj=False, bandwidth=None, adaptive=False,
-                         low_bias=True, normalization='length', ch_type=None,
-                         cmap=None, agg_fun=None, dB=True,
-                         n_jobs=None, normalize=False, cbar_fmt='auto',
-                         outlines='head', axes=None, show=True,
-                         sphere=None, vlim=(None, None), verbose=None):
-        return plot_epochs_psd_topomap(
-            self, bands=bands, tmin=tmin, tmax=tmax,
-            proj=proj, bandwidth=bandwidth, adaptive=adaptive,
-            low_bias=low_bias, normalization=normalization, ch_type=ch_type,
-            cmap=cmap, agg_fun=agg_fun, dB=dB, n_jobs=n_jobs,
-            normalize=normalize, cbar_fmt=cbar_fmt, outlines=outlines,
-            axes=axes, show=show, sphere=sphere, vlim=vlim, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
     def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,
@@ -1400,6 +1313,20 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             End time of data to get in seconds.
         %(verbose)s
         """
+        # if called with 'out=False', the call came from 'drop_bad()'
+        # if no reasons to drop, just declare epochs as good and return
+        if not out:
+            # make sure first and last epoch not out of bounds of raw
+            in_bounds = self.preload or (
+                self._get_epoch_from_raw(idx=0) is not None and
+                self._get_epoch_from_raw(idx=-1) is not None)
+            # might be BaseEpochs or Epochs, only the latter has the attribute
+            reject_by_annotation = getattr(self, 'reject_by_annotation', False)
+            if (self.reject is None and self.flat is None and in_bounds and
+                    self._reject_time is None and not reject_by_annotation):
+                logger.debug('_get_data is a noop, returning')
+                self._bad_dropped = True
+                return None
         start, stop = self._handle_tmin_tmax(tmin, tmax)
 
         if item is None:
@@ -1633,31 +1560,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return self
 
     @property
-    def times(self):
-        """Time vector in seconds."""
-        return self._times_readonly
-
-    def _set_times(self, times):
-        """Set self._times_readonly (and make it read only)."""
-        # naming used to indicate that it shouldn't be
-        # changed directly, but rather via this method
-        self._times_readonly = times.copy()
-        self._times_readonly.flags['WRITEABLE'] = False
-
-    @property
-    def tmin(self):
-        """First time point."""
-        return self.times[0]
-
-    @property
     def filename(self):
         """The filename."""
         return self._filename
-
-    @property
-    def tmax(self):
-        """Last time point."""
-        return self.times[-1]
 
     def __repr__(self):
         """Build string representation."""
@@ -1742,26 +1647,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         # XXX this could be made to work on non-preloaded data...
         _check_preload(self, 'Modifying data of epochs')
 
-        if tmin is None:
-            tmin = self.tmin
-        elif tmin < self.tmin:
-            warn('tmin is not in epochs time interval. tmin is set to '
-                 'epochs.tmin')
-            tmin = self.tmin
-
-        if tmax is None:
-            tmax = self.tmax
-        elif tmax > self.tmax:
-            warn('tmax is not in epochs time interval. tmax is set to '
-                 'epochs.tmax')
-            tmax = self.tmax
-            include_tmax = True
-
-        tmask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
-                           include_tmax=include_tmax)
-        self._set_times(self.times[tmask])
-        self._raw_times = self._raw_times[tmask]
-        self._data = self._data[:, :, tmask]
+        super().crop(tmin=tmin, tmax=tmax, include_tmax=include_tmax)
 
         # Adjust rejection period
         if self.reject_tmin is not None and self.reject_tmin < self.tmin:
@@ -1940,14 +1826,14 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     def export(self, fname, fmt='auto', *, overwrite=False, verbose=None):
         """Export Epochs to external formats.
 
-        Supported formats: EEGLAB (set, uses :mod:`eeglabio`)
+        %(export_fmt_support_epochs)s
 
         %(export_warning)s
 
         Parameters
         ----------
         %(fname_export_params)s
-        %(fmt_export_params)s
+        %(export_fmt_params_epochs)s
         %(overwrite)s
 
             .. versionadded:: 0.24.1
@@ -2103,9 +1989,98 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return self, indices
 
     @verbose
+    def compute_psd(self, method='multitaper', fmin=0, fmax=np.inf, tmin=None,
+                    tmax=None, picks=None, proj=False, *, n_jobs=1,
+                    verbose=None, **method_kw):
+        """Perform spectral analysis on sensor data.
+
+        Parameters
+        ----------
+        %(method_psd)s
+            Default is ``'multitaper'``.
+        %(fmin_fmax_psd)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_psd)s
+
+        Returns
+        -------
+        spectrum : instance of EpochsSpectrum
+            The spectral representation of each epoch.
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        return EpochsSpectrum(
+            self, method=method, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
+            picks=picks, proj=proj, n_jobs=n_jobs, verbose=verbose,
+            **method_kw)
+
+    @verbose
+    def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
+                 proj=False, *, method='auto', average=False, dB=True,
+                 estimate='auto', xscale='linear', area_mode='std',
+                 area_alpha=0.33, color='black', line_alpha=None,
+                 spatial_colors=True, sphere=None, exclude='bads', ax=None,
+                 show=True, n_jobs=1, verbose=None, **method_kw):
+        """%(plot_psd_doc)s.
+
+        Parameters
+        ----------
+        %(fmin_fmax_psd)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(method_plot_psd_auto)s
+        %(average_plot_psd)s
+        %(dB_plot_psd)s
+        %(estimate_plot_psd)s
+        %(xscale_plot_psd)s
+        %(area_mode_plot_psd)s
+        %(area_alpha_plot_psd)s
+        %(color_plot_psd)s
+        %(line_alpha_plot_psd)s
+        %(spatial_colors_psd)s
+        %(sphere_topomap_auto)s
+
+            .. versionadded:: 0.22.0
+        exclude : list of str | 'bads'
+            Channels names to exclude from being shown. If 'bads', the bad
+            channels are excluded. Pass an empty list to plot all channels
+            (including channels marked "bad", if any).
+
+            .. versionadded:: 0.24.0
+        %(ax_plot_psd)s
+        %(show)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_psd)s
+
+        Returns
+        -------
+        fig : instance of Figure
+            Figure with frequency spectra of the data channels.
+
+        Notes
+        -----
+        %(notes_plot_psd_meth)s
+        """
+        return super().plot_psd(
+            fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks, proj=proj,
+            reject_by_annotation=False, method=method, average=average, dB=dB,
+            estimate=estimate, xscale=xscale, area_mode=area_mode,
+            area_alpha=area_alpha, color=color, line_alpha=line_alpha,
+            spatial_colors=spatial_colors, sphere=sphere, exclude=exclude,
+            ax=ax, show=show, n_jobs=n_jobs, verbose=verbose, **method_kw)
+
+    @verbose
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, long_format=False,
-                      time_format='ms', *, verbose=None):
+                      time_format=None, *, verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,

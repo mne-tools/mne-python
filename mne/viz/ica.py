@@ -12,7 +12,7 @@ import warnings
 
 import numpy as np
 
-from .utils import (tight_layout, _make_event_color_dict,
+from .utils import (tight_layout, _make_event_color_dict, _get_cmap,
                     plt_show, _convert_psds, _compute_scalings,
                     _handle_precompute)
 from .topomap import _plot_ica_topomap
@@ -23,7 +23,6 @@ from ..utils import _validate_type, fill_doc
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
 from ..io.pick import pick_types, _picks_to_idx
-from ..time_frequency.psd import psd_multitaper
 from ..utils import _reject_data_segments, verbose
 
 
@@ -47,7 +46,7 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
         The ICA solution.
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
-    %(picks_base)s all sources in the order as fitted.
+    %(picks_ica)s
     start, stop : float | int | None
        If ``inst`` is a `~mne.io.Raw` or an `~mne.Evoked` object, the first and
        last time point (in seconds) of the data to plot. If ``inst`` is a
@@ -86,6 +85,8 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     For raw and epoch instances, it is possible to select components for
     exclusion by clicking on the line. The selected components are added to
     ``ica.exclude`` on close.
+
+    %(notes_2d_backend)s
 
     .. versionadded:: 0.10.0
     """
@@ -322,6 +323,10 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         The ICA solution.
     inst : instance of Epochs or Raw
         The data to use in plotting properties.
+
+        .. note::
+           You can interactively cycle through topographic maps for different
+           channel types by pressing :kbd:`T`.
     picks : str | list | slice | None
         Components to include. Slices and lists of integers will be interpreted
         as component indices. ``None`` (default) will use the first five
@@ -343,7 +348,13 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         interval is calculated. To change this, use ``ci`` in ``ts_args`` in
         ``image_args`` (see below).
     log_scale : bool
-        Whether to use a log scale to plot the spectrum. Defaults to False.
+        Whether to use a logarithmic frequency axis to plot the spectrum.
+        Defaults to ``False``.
+
+        .. note::
+           You can interactively toggle this setting by pressing :kbd:`L`.
+
+        .. versionadded:: 1.1
     topomap_args : dict | None
         Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
         additional arguments. Defaults to None.
@@ -453,7 +464,13 @@ def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     if 'fmax' not in psd_args:
         psd_args['fmax'] = min(lp * 1.25, Nyquist)
     plot_lowpass_edge = lp < Nyquist and (psd_args['fmax'] > lp)
-    psds, freqs = psd_multitaper(epochs_src, picks=picks, **psd_args)
+    spectrum = epochs_src.compute_psd(picks=picks, **psd_args)
+    # we've already restricted picks  ↑↑↑↑↑↑↑↑↑↑↑
+    # in the spectrum object, so here we do picks=all  ↓↓↓↓↓↓↓↓↓↓↓
+    psds, freqs = spectrum.get_data(return_freqs=True, picks='all', exclude=[])
+    # we also pass exclude=[] so that when this is called by right-clicking in
+    # a plot_sources() window on an ICA component name that has been marked as
+    # bad, we can still get a plot of it.
 
     def set_title_and_labels(ax, title, xlab, ylab):
         if title:
@@ -638,7 +655,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
     if labels is not None:
         # differentiate categories by linestyle and components by color
         col_lbs = [it for it in exclude_labels if it is not None]
-        cmap = plt.get_cmap('tab10', len(col_lbs))
+        cmap = _get_cmap('tab10', len(col_lbs))
 
         unique_labels = set()
         for label in exclude_labels:

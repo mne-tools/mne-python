@@ -216,7 +216,7 @@ const disableGlobalKeyHandler = () => {
   window.onkeydown = null;
 }
 
-/* Disbale processing global key events when a search box is active */
+/* Disable processing global key events when a search box is active */
 const disableGlobalKeysInSearchBox = () => {
   const searchBoxElements = document.querySelectorAll('input.search-input');
   searchBoxElements.forEach((el) => {

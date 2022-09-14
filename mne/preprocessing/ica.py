@@ -49,7 +49,6 @@ from ..viz.topomap import _plot_corrmap
 
 from ..channels.channels import _contains_ch_type
 from ..channels.layout import _find_topomap_coords
-from ..time_frequency import psd_welch, psd_multitaper
 from ..io.write import start_and_end_file, write_id
 from ..utils import (logger, check_fname, _check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,
@@ -217,9 +216,8 @@ class ICA(ContainsMixin):
 
     Attributes
     ----------
-    current_fit : str
-        Flag informing about which data type (raw or epochs) was used for the
-        fit.
+    current_fit : 'unfitted' | 'raw' | 'epochs'
+        Which data type was used for the fit.
     ch_names : list-like
         Channel names resulting from initial picking.
     n_components_ : int
@@ -683,6 +681,7 @@ class ICA(ContainsMixin):
                     'pca_mean_', 'n_iter_', 'drop_inds_', 'reject_'):
             if hasattr(self, key):
                 delattr(self, key)
+        self.current_fit = 'unfitted'
 
     def _fit_raw(self, raw, picks, start, stop, decim, reject, flat, tstep,
                  reject_by_annotation, verbose):
@@ -1648,8 +1647,8 @@ class ICA(ContainsMixin):
         components = self.get_components()
 
         # compute metric #1: slope of the log-log psd
-        psd_func = psd_welch if isinstance(inst, BaseRaw) else psd_multitaper
-        psds, freqs = psd_func(sources, fmin=l_freq, fmax=h_freq, picks='misc')
+        spectrum = sources.compute_psd(fmin=l_freq, fmax=h_freq, picks='misc')
+        psds, freqs = spectrum.get_data(return_freqs=True)
         slopes = np.polyfit(np.log10(freqs), np.log10(psds).T, 1)[0]
 
         # compute metric #2: distance from the vertex of focus

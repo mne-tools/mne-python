@@ -92,11 +92,12 @@ class RawBrainVision(BaseRaw):
                 offsets = None
                 n_samples = n_samples // (dtype_bytes * n_data_ch)
 
+        orig_format = "single" if isinstance(fmt, dict) else fmt
         raw_extras = dict(
             offsets=offsets, fmt=fmt, order=order, n_samples=n_samples)
         super(RawBrainVision, self).__init__(
             info, last_samps=[n_samples - 1], filenames=[data_fname],
-            orig_format=fmt, preload=preload, verbose=verbose,
+            orig_format=orig_format, preload=preload, verbose=verbose,
             raw_extras=[raw_extras], orig_units=orig_units)
 
         self.set_montage(montage)
@@ -340,7 +341,9 @@ _unit_dict = {'V': 1.,  # V stands for Volt
               'uV': 1e-6,
               'mV': 1e-3,
               'nV': 1e-9,
-              'C': 1,  # C stands for celsius
+              'C': 1,  # C stands for Celsius
+              '°C': 1,  # degrees Celsius
+              'n/a': 1,  # unit "not available" (or applicable)
               'µS': 1e-6,  # S stands for Siemens
               'uS': 1e-6,
               'ARU': 1,  # ARU is the unity for the breathing data
@@ -928,7 +931,7 @@ def _parse_impedance(settings, recording_date=None):
     Parameters
     ----------
     settings : list
-        The header settings lines fom the VHDR/AHDR file.
+        The header settings lines from the VHDR/AHDR file.
     recording_date : datetime.datetime | None
         The date of the recording as extracted from the VMRK/AMRK file.
 
@@ -990,7 +993,7 @@ def _parse_impedance_ranges(settings):
     Parameters
     ----------
     settings : list
-        The header settings lines fom the VHDR/AHDR file.
+        The header settings lines from the VHDR/AHDR file.
 
     Returns
     -------

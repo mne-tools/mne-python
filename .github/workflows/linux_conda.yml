@@ -25,7 +25,7 @@ jobs:
       PYTHONUNBUFFERED: '1'
       PYTHON_VERSION: '3.10'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: ./tools/setup_xvfb.sh
         name: 'Setup xvfb'
       - uses: conda-incubator/setup-miniconda@v2
@@ -55,7 +55,7 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/get_testing_version.sh
         name: 'Get testing version'
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
@@ -69,7 +69,7 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/github_actions_test.sh
         name: 'Run tests'
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v3
         if: success()
         name: 'Upload coverage to CodeCov'
 
@@ -83,7 +83,7 @@ jobs:
       CONDA_ENV: 'server_environment.yml'
       PYTHON_VERSION: '3.8'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: 'mne'
@@ -101,7 +101,7 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/get_testing_version.sh
         name: 'Get testing version'
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
@@ -112,6 +112,6 @@ jobs:
       - shell: bash -el {0}
         run: pytest --tb=short -m "not pgtest" --cov=mne --cov-report=xml --cov-report=html -vv mne/viz
         name: 'Run viz tests'
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v3
         if: success()
         name: 'Upload coverage to CodeCov'

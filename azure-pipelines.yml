@@ -54,7 +54,12 @@ stages:
         python -m pip install --progress-bar off --upgrade pip setuptools wheel
         python -m pip install --progress-bar off -r requirements_base.txt -r requirements_hdf5.txt -r requirements_testing.txt
       displayName: Install dependencies
-      condition: always()
+    - bash: |
+        make flake
+      displayName: make flake
+    - bash: |
+        make codespell-error
+      displayName: make codespell
     - bash: |
         make pydocstyle
       displayName: make pydocstyle
@@ -62,6 +67,7 @@ stages:
     - bash: |
         make docstring
       displayName: make docstring
+      condition: always()
     - bash: |
         make nesting
       displayName: make nesting
@@ -77,7 +83,7 @@ stages:
 
 - stage: Test
   condition: and(succeeded(), eq(dependencies.Check.outputs['Skip.result.start_main'], 'true'))
-  dependsOn: Check
+  dependsOn: ['Style', 'Check']
   variables:
     AZURE_CI: 'true'
   jobs:
@@ -119,6 +125,10 @@ stages:
         mne sys_info -pd
         mne sys_info -pd | grep "qtpy: .*{PySide6=.*}$"
       displayName: Print config
+    # Uncomment if "xcb not found" Qt errors/segfaults come up again
+    # - bash: |
+    #     set -e
+    #     LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
     - task: Cache@2
@@ -165,9 +175,7 @@ stages:
     - bash: |
         set -e
         python -m pip install --progress-bar off --upgrade pip setuptools wheel
-        python -m pip install --progress-bar off --upgrade --only-binary=\"numpy,scipy,matplotlib\" numpy scipy matplotlib
-        wget -q https://osf.io/ajder/download -O vtk-9.1.20220406.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-        python -m pip install --pre --only-binary ":all:" vtk-9.1.20220406.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+        python -m pip install --progress-bar off --upgrade --pre --only-binary=\"numpy,scipy,matplotlib,vtk\" numpy scipy matplotlib vtk
         python -c "import vtk"
         python -m pip install --progress-bar off --upgrade -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt codecov
         python -m pip install -e .
@@ -176,7 +184,7 @@ stages:
         set -e
         which mne
         mne sys_info -pd
-        mne sys_info -pd | grep "^mne: .*dev0.*$"
+        python ./tools/check_mne_location.py
       displayName: Print config
     - bash: source tools/get_testing_version.sh
       displayName: 'Get testing version'
@@ -242,7 +250,6 @@ stages:
       MNE_LOGGING_LEVEL: 'warning'
       MNE_FORCE_SERIAL: 'true'
       OPENBLAS_NUM_THREADS: 1
-      OMP_NUM_THREADS: 1
       MKL_NUM_THREADS: 2
       OMP_DYNAMIC: 'false'
       MKL_DYNAMIC: 'false'
@@ -250,6 +257,7 @@ stages:
       PYTHONIOENCODING: 'utf-8'
       AZURE_CI_WINDOWS: 'true'
       PYTHON_ARCH: 'x64'
+    timeoutInMinutes: 70
     strategy:
       maxParallel: 4
       matrix:
@@ -291,6 +299,11 @@ stages:
     - script: conda env update --name base --file environment.yml
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Setup MNE environment
+    # ipympl is not tested on Windows and even its installation interferes
+    # with basic matplotlib functionality so it must be uninstalled until fixed
+    - script: conda uninstall -y ipympl
+      condition: eq(variables['TEST_MODE'], 'conda')
+      displayName: Remove ipympl
     - bash: |
         set -e
         conda remove -c conda-forge --force -yq mne

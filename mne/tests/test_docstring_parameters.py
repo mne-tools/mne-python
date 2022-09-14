@@ -3,7 +3,6 @@
 #
 # License: BSD-3-Clause
 
-from collections import Counter
 import inspect
 from inspect import getsource
 import os.path as op
@@ -298,18 +297,15 @@ def test_documented():
 
 def test_docdict_order():
     """Test that docdict is alphabetical."""
+    from mne.utils.docs import docdict
+
+    # read the file as text, and get entries via regex
     docs_path = Path(__file__).parent.parent / 'utils' / 'docs.py'
     assert docs_path.is_file(), docs_path
-    with open(docs_path, 'r') as fid:
+    with open(docs_path, 'r', encoding='UTF-8') as fid:
         docs = fid.read()
-    entries = re.findall(r'docdict\[["\']([a-z_\-0-9]+)["\']\] = ', docs)
-    # We can always modify the upper or lower bounds here as entries are made.
-    # This just makes sure our regex is reasonable.
-    # As of 2022/03/02 we're at 346
-    assert 340 < len(entries) < 500
-    # no dups (verbosely describe the error)
-    for key, count in Counter(entries).items():
-        assert count == 1, key
-    # this should be redundant, but why not
-    assert len(set(entries)) == len(entries)
+    entries = re.findall(r'docdict\[["\'](.+)["\']\] = ', docs)
+    # test length & uniqueness
+    assert len(docdict) == len(entries)
+    # test order
     assert sorted(entries) == entries

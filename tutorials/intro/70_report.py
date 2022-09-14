@@ -430,10 +430,39 @@ report.save('report_custom_figure.html', overwrite=True)
 plt.close(fig)
 
 # %%
-# The :meth:`mne.Report.add_figure` method can add multiple figures at once. In
-# this case, a slider will appear, allowing users to intuitively browse the
-# figures. To make this work, you need to provide a collection of figures,
-# a title, and optionally a collection of captions.
+# Multiple figures can be grouped into a single section via the ``section``
+# parameter.
+
+fig_1, ax_1 = plt.subplots()
+ax_1.plot([1, 2, 3])
+
+fig_2, ax_2 = plt.subplots()
+ax_2.plot([3, 2, 1])
+
+section = 'Section example'
+
+report = mne.Report(title='Figure section example')
+report.add_figure(
+    fig=fig_1,
+    title='Figure 1',
+    section=section,
+    tags='fig-1'
+)
+report.add_figure(
+    fig=fig_2,
+    title='Figure 2',
+    section=section,
+    tags='fig-2'
+)
+report.save('report_custom_figure_sections.html', overwrite=True)
+plt.close(fig_1)
+plt.close(fig_2)
+
+# %%
+# The :meth:`mne.Report.add_figure` method can also add multiple figures at
+# once. In this case, a slider will appear, allowing users to intuitively
+# browse the figures. To make this work, you need to provide a collection o
+# figures, a title, and optionally a collection of captions.
 #
 # In the following example, we will read the MNE logo as a Matplotlib figure
 # and rotate it with different angles. Each rotated figure and its respective
@@ -682,4 +711,4 @@ N1 ERP component</li>
 """
 
 report.add_html(title='Hypothesis', html=my_html)
-report.save('report_add_html.html')
+report.save('report_add_html.html', overwrite=True)

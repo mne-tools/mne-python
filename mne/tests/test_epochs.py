@@ -509,6 +509,15 @@ def test_reject():
             assert_equal(epochs.drop_log[4][0], 'BAD')
         raw.set_annotations(None)
 
+        # rejection with all None / False arguments: no loading / dropping
+        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=[0],
+                        reject=None, flat=None, reject_by_annotation=False,
+                        reject_tmin=None, reject_tmax=None)
+        with catch_logging() as log:
+            epochs.drop_bad(verbose='debug')
+        log = log.getvalue()
+        assert 'is a noop' in log
+
 
 def test_reject_by_annotations_reject_tmin_reject_tmax():
     """Test reject_by_annotations with reject_tmin and reject_tmax defined."""
@@ -1664,7 +1673,7 @@ def test_indexing_slicing():
     start_index = 1
     end_index = n_good_events - 1
 
-    assert((end_index - start_index) > 0)
+    assert (end_index - start_index) > 0
 
     for preload in [True, False]:
         epochs2 = Epochs(raw, events[:20], event_id, tmin, tmax, picks=picks,
@@ -2238,7 +2247,7 @@ def test_to_data_frame():
     expected = ('condition', 'epoch', 'time', 'channel', 'ch_type', 'value')
     assert set(expected) == set(df_long.columns)
     assert set(epochs.ch_names) == set(df_long['channel'])
-    assert(len(df_long) == epochs.get_data().size)
+    assert len(df_long) == epochs.get_data().size
     # test long format w/ index
     df_long = epochs.to_data_frame(long_format=True, index=['epoch'])
     del df_wide, df_long
@@ -2969,7 +2978,7 @@ def test_default_values():
 @requires_pandas
 def test_metadata(tmp_path):
     """Test metadata support with pandas."""
-    from pandas import DataFrame
+    from pandas import DataFrame, Series, NA
 
     data = np.random.randn(10, 2, 2000)
     chs = ['a', 'b']
@@ -3153,6 +3162,23 @@ def test_metadata(tmp_path):
         epochs.drop_bad()
         assert len(epochs) == 1
         assert len(epochs.metadata) == 1
+
+    # gh-10705: support boolean columns
+    metadata = DataFrame(
+        {"A": Series([True, True, True, False, False, NA], dtype="boolean")}
+    )
+    rng = np.random.default_rng()
+    epochs = mne.EpochsArray(
+        data=rng.standard_normal(size=(6, 8, 500)),
+        info=mne.create_info(8, 250, "eeg"),
+        event_id={"A": 1},
+        metadata=metadata
+    )
+
+    assert len(epochs["A"]) == 6  # epochs of event type A
+    assert len(epochs["A == True"]) == 3  # epochs for which column A == True
+    assert len(epochs["not A"]) == 2  # epochs for which column A == False
+    assert len(epochs["A.isna()"]) == 1  # epochs for NA in column A
 
 
 def assert_metadata_equal(got, exp):

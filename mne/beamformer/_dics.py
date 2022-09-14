@@ -117,6 +117,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
                 The normalization of the weights.
             'src_type' : str
                 Type of source space.
+            'source_nn' : ndarray, shape (n_sources, 3)
+                For each source location, the surface normal.
             'is_free_ori' : bool
                 Whether the filter was computed in a fixed direction
                 (pick_ori='max-power', pick_ori='normal') or not.
@@ -162,7 +164,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     .. footbibliography::
     """  # noqa: E501
     rank = _check_rank(rank)
-    _check_option('pick_ori', pick_ori, [None, 'normal', 'max-power'])
+    _check_option('pick_ori', pick_ori,
+                  [None, 'vector', 'normal', 'max-power'])
     _check_option('inversion', inversion, ['single', 'matrix'])
     _validate_type(weight_norm, (str, None), 'weight_norm')
 
@@ -210,8 +213,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     max_oris = []
     for i, freq in enumerate(frequencies):
         if n_freqs > 1:
-            logger.info('    computing DICS spatial filter at %sHz (%d/%d)' %
-                        (freq, i + 1, n_freqs))
+            logger.info('    computing DICS spatial filter at '
+                        f'{round(freq, 2)} Hz ({i + 1}/{n_freqs})')
 
         Cm = csd.get_data(index=i)
 
@@ -244,8 +247,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         kind='DICS', weights=Ws, csd=csd, ch_names=ch_names, proj=proj,
         vertices=vertices, n_sources=n_sources, subject=subject,
         pick_ori=pick_ori, inversion=inversion, weight_norm=weight_norm,
-        src_type=src_type, is_free_ori=is_free_ori, whitener=whitener,
-        max_power_ori=max_oris)
+        src_type=src_type, source_nn=forward['source_nn'].copy(),
+        is_free_ori=is_free_ori, whitener=whitener, max_power_ori=max_oris)
 
     return filters
 
@@ -289,7 +292,7 @@ def _apply_dics(data, filters, info, tmin):
             # project to source space using beamformer weights
             sol = np.dot(W, M)
 
-            if filters['is_free_ori']:
+            if filters['is_free_ori'] and filters['pick_ori'] != 'vector':
                 logger.info('combining the current components...')
                 sol = combine_xyz(sol)
 
@@ -298,6 +301,8 @@ def _apply_dics(data, filters, info, tmin):
             stcs.append(_make_stc(sol, vertices=filters['vertices'],
                                   src_type=filters['src_type'], tmin=tmin,
                                   tstep=tstep, subject=subject,
+                                  vector=(filters['pick_ori'] == 'vector'),
+                                  source_nn=filters['source_nn'],
                                   warn_text=warn_text))
         if one_freq:
             yield stcs[0]
@@ -429,6 +434,12 @@ def apply_dics_csd(csd, filters, verbose=None):
     (CSD) object to estimate source power in time and frequency windows
     specified in the CSD object :footcite:`GrossEtAl2001`.
 
+    .. note:: Only power can computed from the cross-spectral density, not
+              complex phase-amplitude, so vector DICS filters will be
+              converted to scalar source estimates since power is strictly
+              positive and so 3D directions cannot be combined meaningfully
+              (the direction would be confined to the positive quadrant).
+
     Parameters
     ----------
     csd : instance of CrossSpectralDensity
@@ -472,8 +483,8 @@ def apply_dics_csd(csd, filters, verbose=None):
     logger.info('Computing DICS source power...')
     for i, freq in enumerate(frequencies):
         if n_freqs > 1:
-            logger.info('    applying DICS spatial filter at %sHz (%d/%d)' %
-                        (freq, i + 1, n_freqs))
+            logger.info('    applying DICS spatial filter at '
+                        f'{round(freq, 2)} Hz ({i + 1}/{n_freqs})')
 
         Cm = csd.get_data(index=i)
         Cm = Cm[csd_picks, :][:, csd_picks]

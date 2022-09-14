@@ -16,11 +16,10 @@ import sys
 import tempfile
 import re
 
-import numpy as np
-
 from .check import (_validate_type, _check_qt_version, _check_option,
                     _check_fname)
 from .docs import fill_doc
+from .misc import _pl
 from ._logging import warn, logger
 
 
@@ -82,6 +81,7 @@ known_config_types = (
     'MNE_CACHE_DIR',
     'MNE_COREG_ADVANCED_RENDERING',
     'MNE_COREG_COPY_ANNOT',
+    'MNE_COREG_FULLSCREEN',
     'MNE_COREG_GUESS_MRI_SUBJECT',
     'MNE_COREG_HEAD_HIGH_RES',
     'MNE_COREG_HEAD_OPACITY',
@@ -415,7 +415,7 @@ def _get_stim_channel(stim_channel, info, raise_error=True):
     stim_channel = list()
     ch_count = 0
     ch = get_config('MNE_STIM_CHANNEL')
-    while(ch is not None and ch in info['ch_names']):
+    while ch is not None and ch in info['ch_names']:
         stim_channel.append(ch)
         ch_count += 1
         ch = get_config('MNE_STIM_CHANNEL_%d' % ch_count)
@@ -448,26 +448,23 @@ def _get_root_dir():
 
 
 def _get_numpy_libs():
-    from ._testing import SilenceStdout
-    with SilenceStdout(close=False) as capture:
-        np.show_config()
-    lines = capture.getvalue().split('\n')
-    capture.close()
-    libs = []
-    for li, line in enumerate(lines):
-        for key in ('lapack', 'blas'):
-            if line.startswith('%s_opt_info' % key):
-                lib = lines[li + 1]
-                if 'NOT AVAILABLE' in lib:
-                    lib = 'unknown'
-                else:
-                    try:
-                        lib = lib.split('[')[1].split("'")[1]
-                    except IndexError:
-                        pass  # keep whatever it was
-                libs += ['%s=%s' % (key, lib)]
-    libs = ', '.join(libs)
-    return libs
+    bad_lib = 'unknown linalg bindings'
+    try:
+        from threadpoolctl import threadpool_info
+    except Exception as exc:
+        return bad_lib + f' (threadpoolctl module not found: {exc})'
+    pools = threadpool_info()
+    rename = dict(
+        openblas='OpenBLAS',
+        mkl='MKL',
+    )
+    for pool in pools:
+        if pool['internal_api'] in ('openblas', 'mkl'):
+            return (
+                f'{rename[pool["internal_api"]]} '
+                f'{pool["version"]} with '
+                f'{pool["num_threads"]} thread{_pl(pool["num_threads"])}')
+    return bad_lib
 
 
 _gpu_cmd = """\
@@ -575,8 +572,8 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     out('\n')
     libs = _get_numpy_libs()
     use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
-                     'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
-                     'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
+                     'numba', 'nibabel', 'nilearn', 'dipy', 'openmeeg', 'cupy',
+                     'pandas', 'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
                      'qtpy', 'ipympl', 'pyqtgraph', 'pooch', '', 'mne_bids',
                      'mne_nirs', 'mne_features', 'mne_qt_browser',
                      'mne_connectivity', 'mne_icalabel')

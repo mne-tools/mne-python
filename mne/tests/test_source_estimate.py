@@ -698,7 +698,8 @@ def test_extract_label_time_course(kind, vector):
             with pytest.raises(ValueError, match='when using a vector'):
                 extract_label_time_course(stcs, labels, src, mode=mode)
             continue
-        label_tc = extract_label_time_course(stcs, labels, src, mode=mode)
+        with _record_warnings():  # SVD convergence on arm64
+            label_tc = extract_label_time_course(stcs, labels, src, mode=mode)
         label_tc_method = [stc.extract_label_time_course(labels, src,
                                                          mode=mode)
                            for stc in stcs]
@@ -1096,7 +1097,7 @@ def test_to_data_frame():
         assert_array_equal(df.values.T[2:], stc.data)
         # test long format
         df_long = stc.to_data_frame(long_format=True)
-        assert(len(df_long) == stc.data.size)
+        assert len(df_long) == stc.data.size
         expected = ('subject', 'time', 'source', 'value')
         assert set(expected) == set(df_long.columns)
 
@@ -1150,7 +1151,7 @@ def test_get_peak(kind, vector, n_times):
     with pytest.raises(ValueError, match='out of bounds'):
         stc.get_peak(tmax=90)
     with pytest.raises(ValueError,
-                       match='smaller or equal' if n_times > 1 else 'out of'):
+                       match='must be <=' if n_times > 1 else 'out of'):
         stc.get_peak(tmin=0.002, tmax=0.001)
 
     vert_idx, time_idx = stc.get_peak()

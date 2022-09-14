@@ -3,9 +3,10 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 
 from itertools import chain
+
 import numpy as np
 
-from ..utils import _validate_type
+from ..utils import _validate_type, _ensure_int
 from ..io import BaseRaw, RawArray
 from ..io.meas_info import create_info
 from ..epochs import BaseEpochs, EpochsArray
@@ -72,7 +73,7 @@ def equalize_bads(insts, interp_thresh=1., copy=True):
     return insts
 
 
-def interpolate_bridged_electrodes(inst, bridged_idx):
+def interpolate_bridged_electrodes(inst, bridged_idx, bad_limit=4):
     """Interpolate bridged electrode pairs.
 
     Because bridged electrodes contain brain signal, it's just that the
@@ -88,13 +89,31 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
     bridged_idx : list of tuple
         The indices of channels marked as bridged with each bridged
         pair stored as a tuple.
+    bad_limit : int
+        The maximum number of electrodes that can be bridged together
+        (included) and interpolated. Above this number, an error will be
+        raised.
+
+        .. versionadded:: 1.2
 
     Returns
     -------
     inst : instance of Epochs, Evoked, or Raw
         The modified data object.
+
+    See Also
+    --------
+    mne.preprocessing.compute_bridged_electrodes
     """
+    from scipy.sparse.csgraph import connected_components
+
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked))
+    bad_limit = _ensure_int(bad_limit, "bad_limit")
+    if bad_limit <= 0:
+        raise ValueError(
+            "Argument 'bad_limit' should be a strictly positive "
+            f"integer. Provided {bad_limit} is invalid."
+        )
     montage = inst.get_montage()
     if montage is None:
         raise RuntimeError('No channel positions found in ``inst``')
@@ -102,40 +121,70 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
     if pos['coord_frame'] != 'head':
         raise RuntimeError('Montage channel positions must be in ``head``'
                            'got {}'.format(pos['coord_frame']))
-    ch_pos = pos['ch_pos']
     # store bads orig to put back at the end
     bads_orig = inst.info['bads']
     inst.info['bads'] = list()
 
+    # look for group of bad channels
+    nodes = sorted(set(chain(*bridged_idx)))
+    G_dense = np.zeros((len(nodes), len(nodes)))
+    # fill the edges with a weight of 1
+    for bridge in bridged_idx:
+        idx0 = np.searchsorted(nodes, bridge[0])
+        idx1 = np.searchsorted(nodes, bridge[1])
+        G_dense[idx0, idx1] = 1
+        G_dense[idx1, idx0] = 1
+    # look for connected components
+    _, labels = connected_components(G_dense, directed=False)
+    groups_idx = [
+        [nodes[j] for j in np.where(labels == k)[0]] for k in set(labels)
+    ]
+    groups_names = [
+        [inst.info.ch_names[k] for k in group_idx] for group_idx in groups_idx
+    ]
+
+    # warn for all bridged areas that include too many electrodes
+    for group_names in groups_names:
+        if len(group_names) > bad_limit:
+            raise RuntimeError(
+                f"The channels {', '.join(group_names)} are bridged together "
+                "and form a large area of bridged electrodes. Interpolation "
+                "might be inaccurate."
+            )
+
     # make virtual channels
     virtual_chs = dict()
     bads = set()
-    data = inst.get_data()
-    for idx0, idx1 in bridged_idx:
-        ch0 = inst.ch_names[idx0]
-        ch1 = inst.ch_names[idx1]
-        bads = bads.union([ch0, ch1])
-        # compute midway position in spherical coordinates in "head"
-        # (more accurate than cutting though the scalp by using cartesian)
-        pos0 = _cart_to_sph(ch_pos[ch0])
-        pos1 = _cart_to_sph(ch_pos[ch1])
-        pos_virtual = _sph_to_cart((pos0 + pos1) / 2)
+    for k, group_idx in enumerate(groups_idx):
+        group_names = [inst.info.ch_names[k] for k in group_idx]
+        bads = bads.union(group_names)
+        # compute centroid position in spherical "head" coordinates
+        pos_virtual = _find_centroid_sphere(pos['ch_pos'], group_names)
+        # create the virtual channel info and set the position
         virtual_info = create_info(
-            [f'{ch0}-{ch1} virtual'], inst.info['sfreq'], 'eeg')
+            [f'virtual {k+1}'], inst.info['sfreq'], 'eeg'
+        )
         virtual_info['chs'][0]['loc'][:3] = pos_virtual
+        # create virtual channel
+        data = inst.get_data(picks=group_names)
         if isinstance(inst, BaseRaw):
+            data = np.average(data, axis=0).reshape(1, -1)
             virtual_ch = RawArray(
-                (data[idx0:idx0 + 1] + data[idx1:idx1 + 1]) / 2,
-                virtual_info, first_samp=inst.first_samp)
+                data, virtual_info, first_samp=inst.first_samp
+            )
         elif isinstance(inst, BaseEpochs):
-            virtual_ch = EpochsArray(
-                (data[:, idx0:idx0 + 1] + data[:, idx1:idx1 + 1]) / 2,
-                virtual_info, tmin=inst.tmin)
+            data = np.average(data, axis=1).reshape(len(data), 1, -1)
+            virtual_ch = EpochsArray(data, virtual_info, tmin=inst.tmin)
         else:  # evoked
+            data = np.average(data, axis=0).reshape(1, -1)
             virtual_ch = EvokedArray(
-                (data[idx0:idx0 + 1] + data[idx1:idx1 + 1]) / 2,
-                virtual_info, tmin=inst.tmin, nave=inst.nave, kind=inst.kind)
-        virtual_chs[f'{ch0}-{ch1} virtual'] = virtual_ch
+                np.average(data, axis=0).reshape(1, -1),
+                virtual_info,
+                tmin=inst.tmin,
+                nave=inst.nave,
+                kind=inst.kind,
+            )
+        virtual_chs[f'virtual {k+1}'] = virtual_ch
 
     # add the virtual channels
     inst.add_channels(list(virtual_chs.values()), force_update_info=True)
@@ -149,3 +198,40 @@ def interpolate_bridged_electrodes(inst, bridged_idx):
 
     inst.info['bads'] = bads_orig
     return inst
+
+
+def _find_centroid_sphere(ch_pos, group_names):
+    """Compute the centroid position between N electrodes.
+
+    The centroid should be determined in spherical "head" coordinates which is
+    more accurante than cutting through the scalp by averaging in cartesian
+    coordinates.
+
+    A simple way is to average the location in cartesian coordinate, convert
+    to spehrical coordinate and replace the radius with the average radius of
+    the N points in spherical coordinates.
+
+    Parameters
+    ----------
+    ch_pos : OrderedDict
+        The position of all channels in cartesian coordinates.
+    group_names : list | tuple
+        The name of the N electrodes used to determine the centroid.
+
+    Returns
+    -------
+    pos_centroid : array of shape (3,)
+        The position of the centroid in cartesian coordinates.
+    """
+    cartesian_positions = np.array([
+        ch_pos[ch_name] for ch_name in group_names]
+    )
+    sphere_positions = _cart_to_sph(cartesian_positions)
+    cartesian_pos_centroid = np.average(cartesian_positions, axis=0)
+    sphere_pos_centroid = _cart_to_sph(cartesian_pos_centroid)
+    # average the radius and overwrite it
+    avg_radius = np.average(sphere_positions, axis=0)[0]
+    sphere_pos_centroid[0, 0] = avg_radius
+    # convert back to cartesian
+    pos_centroid = _sph_to_cart(sphere_pos_centroid)[0, :]
+    return pos_centroid

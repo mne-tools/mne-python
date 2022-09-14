@@ -66,6 +66,16 @@ def test_plot_filter():
     iir = create_filter(data, sfreq, l_freq, h_freq, method='iir')
     plot_filter(iir, sfreq)
     plt.close('all')
+    iir = create_filter(data, sfreq, l_freq, h_freq,
+                        method='iir', iir_params={'output': 'ba'}
+                        )
+    plot_filter(iir, sfreq, compensate=True)
+    plt.close('all')
+    iir = create_filter(data, sfreq, l_freq, h_freq,
+                        method='iir', iir_params={'output': 'sos'}
+                        )
+    plot_filter(iir, sfreq, compensate=True)
+    plt.close('all')
     plot_filter(iir, sfreq, freq, gain)
     plt.close('all')
     iir_ba = create_filter(data, sfreq, l_freq, h_freq, method='iir',
@@ -113,6 +123,10 @@ def test_plot_cov():
     cov = read_cov(cov_fname)
     with pytest.warns(RuntimeWarning, match='projection'):
         fig1, fig2 = cov.plot(raw.info, proj=True, exclude=raw.ch_names[6:])
+
+    # test complex numbers
+    cov['data'] = cov.data * (1 + 1j)
+    fig1, fig2 = cov.plot(raw.info)
 
 
 @testing.requires_testing_data

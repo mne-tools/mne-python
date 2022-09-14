@@ -18,7 +18,7 @@ from mne import (pick_channels, pick_types, Epochs, read_events,
                  make_forward_solution, setup_volume_source_space,
                  pick_channels_forward, read_evokeds,
                  find_events)
-from mne.epochs import BaseEpochs
+from mne.epochs import BaseEpochs, make_fixed_length_epochs
 from mne.io import RawArray, read_raw_fif
 from mne.io.constants import FIFF
 from mne.io.proj import _has_eeg_average_ref_proj, Projection
@@ -618,6 +618,19 @@ def test_add_reference():
         add_reference_channels(raw, raw.ch_names[:1])
     with pytest.raises(TypeError, match='instance of'):
         add_reference_channels(raw, 1)
+
+    # gh-10878
+    raw = read_raw_fif(raw_fname).crop(0, 1, include_tmax=False).load_data()
+    data = raw.copy().add_reference_channels(['REF']).pick_types(eeg=True)
+    data = data.get_data()
+    epochs = make_fixed_length_epochs(raw).load_data()
+    data_2 = epochs.copy().add_reference_channels(['REF']).pick_types(eeg=True)
+    data_2 = data_2.get_data()[0]
+    assert_allclose(data, data_2)
+    evoked = epochs.average()
+    data_3 = evoked.copy().add_reference_channels(['REF']).pick_types(eeg=True)
+    data_3 = data_3.get_data()
+    assert_allclose(data, data_3)
 
 
 @pytest.mark.parametrize('n_ref', (1, 2))

@@ -24,7 +24,6 @@ References
 
 # %%
 
-import os.path as op
 import numpy as np
 
 import mne
@@ -43,8 +42,7 @@ raw = mne.io.read_raw_fif(raw_fname)
 # First we compute an empty-room covariance, which captures noise from the
 # sensors and environment.
 
-raw_empty_room_fname = op.join(
-    data_path, 'MEG', 'sample', 'ernoise_raw.fif')
+raw_empty_room_fname = data_path / 'MEG' / 'sample' / 'ernoise_raw.fif'
 raw_empty_room = mne.io.read_raw_fif(raw_empty_room_fname)
 raw_empty_room.crop(0, 30)  # cropped just for speed
 raw_empty_room.info['bads'] = ['MEG 2443']
@@ -111,7 +109,6 @@ data_cov.plot_topomap(evoked.info, 'grad', noise_cov=noise_cov,
 # Read the forward solution and compute the inverse operator
 fname_fwd = meg_path / 'sample_audvis-meg-oct-6-fwd.fif'
 fwd = mne.read_forward_solution(fname_fwd)
-
 # make an MEG inverse operator
 info = evoked.info
 inverse_operator = make_inverse_operator(info, fwd, noise_cov,

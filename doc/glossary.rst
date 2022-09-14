@@ -124,7 +124,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         Event arrays can be created with :func:`mne.make_fixed_length_events`,
         :func:`mne.read_events`, and :func:`mne.find_events`.
         See :ref:`tut-events-vs-annotations` for a short tutorial.
-        See also :term:`events`.
+        See also :term:`annotations`.
 
     evoked
         Evoked data are obtained by averaging epochs. Typically, an evoked object
@@ -174,6 +174,8 @@ general neuroimaging concepts. If you think a term is missing, please consider
         conductivity model of the head, which encapsulates the geometries and
         electrical conductivities of the different tissue compartments (see
         :term:`boundary element model` and :class:`bem.ConductorModel`).
+        For information about the Forward object and the data it stores, see
+        :class:`mne.Forward`.
 
     GFP
     global field power
@@ -362,11 +364,12 @@ general neuroimaging concepts. If you think a term is missing, please consider
     source space
         A source space specifies where in the brain source amplitudes are
         estimated. It corresponds to locations of a set of
-        candidate :term:`equivalent current dipoles<ECD>`. MNE-Python mostly works
-        with source spaces defined on the cortical surfaces estimated
+        candidate :term:`equivalent current dipoles<ECD>`. MNE-Python mostly
+        works with source spaces defined on the cortical surfaces estimated
         by FreeSurfer from a T1-weighted MRI image. See :ref:`tut-forward`
         to read about how to compute a forward operator in a source space.
-        See :class:`SourceSpaces` for the class definition.
+        See :class:`SourceSpaces` for the class definition and information
+        about the data it contains.
 
     stim channel
     trigger channel
@@ -376,6 +379,12 @@ general neuroimaging concepts. If you think a term is missing, please consider
         onset of a stimulus or a subject response). Stim channels are often
         prefixed with ``STI`` to distinguish them from other channel types. See
         :ref:`stim-channel-defined` for more details.
+
+    template montage
+        An idealized EEG :term:`montage`, often provided by the manufacturer
+        of the EEG system or cap. The electrode positions were not actually
+        measured on the participants' heads, but rather were calculated
+        assuming optimal theoretical placement on a sphere.
 
     tfr
         A time-frequency representation (TFR) is often a spectrogram (STFT) or

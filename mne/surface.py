@@ -331,9 +331,12 @@ def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
         idx = _compute_nearest(surf['rr'], rrs)
         out = (None, None, surf['rr'][idx])
         if return_nn:
+            surf_geom = _get_tri_supp_geom(surf)
             nn = _accumulate_normals(surf['tris'].astype(int), surf_geom['nn'],
                                      len(surf['rr']))
-            out += (nn[idx],)
+            nn = nn[idx]
+            _normalize_vectors(nn)
+            out += (nn,)
     return out
 
 
@@ -2025,7 +2028,7 @@ def warp_montage_volume(montage, base_image, reg_affine, sdr_morph,
                 image_from[voxel] = i + 1
 
     # apply the mapping
-    image_from = nib.Nifti1Image(image_from, fs_from_img.affine)
+    image_from = nib.spatialimages.SpatialImage(image_from, fs_from_img.affine)
     _warn_missing_chs(montage, image_from, after_warp=False)
 
     template_brain = nib.load(

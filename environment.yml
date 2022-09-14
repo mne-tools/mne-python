@@ -29,12 +29,13 @@ dependencies:
 - imageio-ffmpeg>=0.4.1
 - vtk>=9.0.1
 - traitlets
-- pyvista>=0.32
+- pyvista>=0.32,!=0.35.2
 - pyvistaqt>=0.4
 - qdarkstyle
 - darkdetect
 - dipy
 - nibabel
+- openmeeg>=2.5.5
 - nilearn
 - python-picard
 - qtpy
@@ -42,8 +43,10 @@ dependencies:
 - mne
 - mffpy>=0.5.7
 - ipywidgets
+- ipympl
 - ipyvtklink
 - mne-qt-browser
 - pymatreader
 - eeglabio
 - edflib-python
+- pybv

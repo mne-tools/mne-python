@@ -49,6 +49,7 @@ Projections:
    make_eeg_layout
    make_grid_layout
    find_ch_adjacency
+   get_builtin_ch_adjacencies
    read_ch_adjacency
    equalize_channels
    rename_channels
@@ -183,6 +184,7 @@ EEG referencing:
    extract_chpi_locs_ctf
    extract_chpi_locs_kit
    filter_chpi
+   get_active_chpi
    get_chpi_info
    head_pos_to_trans_rot_t
    read_head_pos

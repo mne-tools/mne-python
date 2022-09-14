@@ -16,17 +16,17 @@ import numpy as np
 
 from .multitaper import dpss_windows
 
-from ..baseline import rescale
+from ..baseline import rescale, _check_baseline
 from ..filter import next_fast_len
 from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
-                     sizeof_fmt, GetEpochsMixin, _prepare_read_metadata,
-                     fill_doc, _prepare_write_metadata, _check_event_id,
-                     _gen_events, SizeMixin, _is_numeric, _check_option,
-                     _validate_type, _check_combine, _check_pandas_installed,
-                     _check_pandas_index_arguments, _check_time_format,
-                     _convert_times, _build_data_frame, warn,
-                     _import_h5io_funcs)
+                     sizeof_fmt, GetEpochsMixin, TimeMixin,
+                     _prepare_read_metadata, fill_doc, _prepare_write_metadata,
+                     _check_event_id, _gen_events, SizeMixin, _is_numeric,
+                     _check_option, _validate_type, _check_combine,
+                     _check_pandas_installed, _check_pandas_index_arguments,
+                     _check_time_format, _convert_times, _build_data_frame,
+                     warn, _import_h5io_funcs)
 from ..channels.channels import UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
@@ -901,8 +901,11 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
 # TFR(s) class
 
-class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
+class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin, TimeMixin):
     """Base TFR class."""
+
+    def __init__(self):
+        self.baseline = None
 
     @property
     def data(self):
@@ -943,13 +946,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         inst : instance of AverageTFR
             The modified instance.
         """
-        if tmin is not None or tmax is not None:
-            time_mask = _time_mask(
-                self.times, tmin, tmax, sfreq=self.info['sfreq'],
-                include_tmax=include_tmax)
-
-        else:
-            time_mask = slice(None)
+        super().crop(tmin=tmin, tmax=tmax, include_tmax=include_tmax)
 
         if fmin is not None or fmax is not None:
             freq_mask = _freq_mask(self.freqs, sfreq=self.info['sfreq'],
@@ -957,14 +954,12 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         else:
             freq_mask = slice(None)
 
-        self.times = self.times[time_mask]
         self.freqs = self.freqs[freq_mask]
         # Deal with broadcasting (boolean arrays do not broadcast, but indices
         # do, so we need to convert freq_mask to make use of broadcasting)
-        if isinstance(time_mask, np.ndarray) and \
-                isinstance(freq_mask, np.ndarray):
-            freq_mask = np.where(freq_mask)[0][:, np.newaxis]
-        self.data = self.data[..., freq_mask, time_mask]
+        if isinstance(freq_mask, np.ndarray):
+            freq_mask = np.where(freq_mask)[0]
+        self._data = self._data[..., freq_mask, :]
         return self
 
     def copy(self):
@@ -1012,7 +1007,9 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         inst : instance of AverageTFR
             The modified instance.
         """  # noqa: E501
-        rescale(self.data, self.times, baseline, mode, copy=False)
+        self.baseline = _check_baseline(baseline, times=self.times,
+                                        sfreq=self.info['sfreq'])
+        rescale(self.data, self.times, self.baseline, mode, copy=False)
         return self
 
     @verbose
@@ -1034,7 +1031,7 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
 
     @verbose
     def to_data_frame(self, picks=None, index=None, long_format=False,
-                      time_format='ms', *, verbose=None):
+                      time_format=None, *, verbose=None):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
@@ -1154,6 +1151,7 @@ class AverageTFR(_BaseTFR):
     @verbose
     def __init__(self, info, data, times, freqs, nave, comment=None,
                  method=None, verbose=None):  # noqa: D102
+        super().__init__()
         self.info = info
         if data.ndim != 3:
             raise ValueError('data should be 3d. Got %d.' % data.ndim)
@@ -1168,7 +1166,8 @@ class AverageTFR(_BaseTFR):
             raise ValueError("Number of times and data size don't match"
                              " (%d != %d)." % (n_times, len(times)))
         self.data = data
-        self.times = np.array(times, dtype=float)
+        self._set_times(np.array(times, dtype=float))
+        self._raw_times = self.times.copy()
         self.freqs = np.array(freqs, dtype=float)
         self.nave = nave
         self.comment = comment
@@ -1286,13 +1285,13 @@ class AverageTFR(_BaseTFR):
             If ``None``, defaults to ``'both'`` if ``mask`` is not None, and is
             ignored otherwise.
 
-             .. versionadded:: 0.17
+            .. versionadded:: 0.17
         mask_cmap : matplotlib colormap | (colormap, bool) | 'interactive'
             The colormap chosen for masked parts of the image (see below), if
             ``mask`` is not ``None``. If None, ``cmap`` is reused. Defaults to
             ``'Greys'``. Not interactive. Otherwise, as ``cmap``.
 
-             .. versionadded:: 0.17
+            .. versionadded:: 0.17
         mask_alpha : float
             A float between 0 and 1. If ``mask`` is not None, this sets the
             alpha level (degree of transparency) for the masked-out segments.
@@ -1306,10 +1305,7 @@ class AverageTFR(_BaseTFR):
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list.
-        cnorm : matplotlib.colors.Normalize | None
-            Colormap normalization, default None means linear normalization. If
-            not None, ``vmin`` and ``vmax`` arguments are ignored. See
-            :func:`mne.viz.plot_topomap` for more details.
+        %(cnorm)s
 
             .. versionadded:: 0.24
         %(verbose)s
@@ -2187,6 +2183,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
                  events=None, event_id=None, selection=None,
                  drop_log=None, metadata=None, verbose=None):
         # noqa: D102
+        super().__init__()
         self.info = info
         if data.ndim != 4:
             raise ValueError('data should be 4d. Got %d.' % data.ndim)
@@ -2220,7 +2217,9 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
             (len(dl) == 0 for dl in drop_log))
         event_id = _check_event_id(event_id, events)
         self.data = data
-        self.times = np.array(times, dtype=float)
+        self._set_times(np.array(times, dtype=float))
+        self._raw_times = self.times.copy()  # needed for decimate
+        self._decim = 1
         self.freqs = np.array(freqs, dtype=float)
         self.events = events
         self.event_id = event_id
@@ -2324,7 +2323,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
                              events=self.events, event_id=self.event_id)
         else:
             self.data = data
-            self.times = times
+            self._set_times(times)
             self.freqs = freqs
             return self
 
@@ -2436,6 +2435,9 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
         copy = baseline is not None
     data = rescale(data, times, baseline, mode, copy=copy)
 
+    if np.iscomplexobj(data):
+        data = np.sqrt((data * data.conj()).real)
+
     # crop time
     itmin, itmax = None, None
     idx = np.where(_time_mask(times, tmin, tmax, sfreq=sfreq))[0]
@@ -2460,7 +2462,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     data = data[:, ifmin:ifmax, itmin:itmax]
 
     if dB:
-        data = 10 * np.log10((data * data.conj()).real)
+        data = 20 * np.log10(data)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
     return data, times, freqs, vmin, vmax
@@ -2651,8 +2653,14 @@ def _preproc_tfr_instance(tfr, picks, tmin, tmax, fmin, fmax, vmin, vmax, dB,
         tfr.data, tfr.times, tfr.freqs, tmin, tmax, fmin, fmax, mode,
         baseline, vmin, vmax, dB, tfr.info['sfreq'], copy=False)
 
-    tfr.times = times
+    tfr._set_times(times)
     tfr.freqs = freqs
     tfr.data = data
 
     return tfr
+
+
+def _check_tfr_complex(tfr, reason='source space estimation'):
+    """Check that time-frequency epochs or average data is complex."""
+    if not np.iscomplexobj(tfr.data):
+        raise RuntimeError(f'Time-frequency data must be complex for {reason}')

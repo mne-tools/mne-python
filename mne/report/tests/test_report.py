@@ -133,7 +133,7 @@ def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     # This can take forever, so let's make it fast
     # Also, make sure crop range is wide enough to avoid rendering bug
     evoked = epochs.average()
-    with pytest.warns(RuntimeWarning, match='tmax is not in Evoked'):
+    with pytest.warns(RuntimeWarning, match='tmax is not in time interval'):
         evoked.crop(0.1, 0.2)
     evoked.save(evoked_fname)
 
@@ -153,12 +153,12 @@ def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     titles = [op.basename(x) for x in fnames if not x.endswith('-ave.fif')]
     titles.append(f'{op.basename(evoked_fname)}: {evoked.comment}')
 
-    content_names = [element.name for element in report._content]
+    _, _, content_titles, _ = report._content_as_html()
     for title in titles:
-        assert title in content_names
+        assert title in content_titles
         assert (''.join(report.html).find(title) != -1)
 
-    assert len(report._content) == len(fnames)
+    assert len(content_titles) == len(fnames)
 
     # Check saving functionality
     report.data_path = tempdir
@@ -170,8 +170,6 @@ def test_render_report(renderer_pyvistaqt, tmp_path, invisible_fig):
     assert f'{op.basename(evoked_fname)}: {evoked.comment}' in html
     assert 'Topographies' in html
     assert 'Global field power' in html
-
-    assert len(report._content) == len(fnames)
 
     # Check saving same report to new filename
     report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
@@ -248,7 +246,7 @@ def test_render_report_extra(renderer_pyvistaqt, tmp_path, invisible_fig):
     assert op.isfile(fname)
     html = Path(fname).read_text(encoding='utf-8')
     # Projectors in Raw.info
-    assert 'SSP Projectors' in html
+    assert 'Projectors' in html
 
 
 def test_add_custom_css(tmp_path):
@@ -306,12 +304,12 @@ def test_render_non_fiff(tmp_path):
                         raw_butterfly=False)
 
     # Check correct paths and filenames
-    content_names = [element.name for element in report._content]
-    for fname in fnames_out:
+    _, _, content_titles, _ = report._content_as_html()
+    for fname in content_titles:
         assert (op.basename(fname) in
-                [op.basename(x) for x in content_names])
+                [op.basename(x) for x in content_titles])
 
-    assert len(report._content) == len(fnames_out)
+    assert len(content_titles) == len(fnames_out)
 
     report.data_path = tempdir
     fname = op.join(tempdir, 'report.html')
@@ -812,15 +810,18 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     for ch in evoked_no_ch_locs.info['chs']:
         ch['loc'][:3] = np.nan
 
-    with pytest.warns(RuntimeWarning, match='No EEG channel locations'):
+    with pytest.warns(
+        RuntimeWarning,
+        match='No EEG channel locations found, cannot create joint plot'
+    ):
         r.add_evokeds(
             evokeds=evoked_no_ch_locs, titles=['evoked no chan locs'],
-            tags=('evoked',), projs=True, n_time_points=1
+            tags=('evoked',), projs=False, n_time_points=1
         )
     assert 'Time course' not in r._content[-1].html
     assert 'Topographies' not in r._content[-1].html
     assert evoked.info['projs']  # only then the following test makes sense
-    assert 'SSP' not in r._content[-1].html
+    assert 'Projectors' not in r._content[-1].html
     assert 'Global field power' in r._content[-1].html
 
     # Drop locations from Info used for projs
@@ -828,7 +829,10 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     for ch in info_no_ch_locs['chs']:
         ch['loc'][:3] = np.nan
 
-    with pytest.warns(RuntimeWarning, match='No channel locations found'):
+    with pytest.raises(
+        ValueError,
+        match='does not contain.*channel locations'
+    ):
         r.add_projs(info=info_no_ch_locs, title='Projs no chan locs')
 
     # Drop locations from ICA

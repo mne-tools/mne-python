@@ -10,6 +10,9 @@ on:
     branches:
       - '*'
 
+permissions:
+  contents: read
+
 jobs:
   # PIP-pre + non-default stim channel + log level info
   job:
@@ -26,10 +29,10 @@ jobs:
       PYTHONUNBUFFERED: '1'
       PYTHON_VERSION: '3.10'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: ./tools/setup_xvfb.sh
         name: 'Setup xvfb'
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
         name: 'Setup python'
@@ -47,10 +50,13 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/github_actions_infos.sh
         name: 'Show infos'
+      # Uncomment if "xcb not found" Qt errors/segfaults come up again
+      # - shell: bash -el {0}
+      #   run: LD_DEBUG=libs python -c "from PyQt6.QtWidgets import QApplication, QWidget; app = QApplication([]); import matplotlib; matplotlib.use('QtAgg'); import matplotlib.pyplot as plt; plt.figure()"
       - shell: bash -el {0}
         run: ./tools/get_testing_version.sh
         name: 'Get testing version'
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           key: ${{ env.TESTING_VERSION }}
           path: ~/mne_data
@@ -64,6 +70,6 @@ jobs:
       - shell: bash -el {0}
         run: ./tools/github_actions_test.sh
         name: 'Run tests'
-      - uses: codecov/codecov-action@v1
+      - uses: codecov/codecov-action@v3
         if: success()
         name: 'Upload coverage to CodeCov'

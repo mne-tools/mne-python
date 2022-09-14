@@ -241,12 +241,16 @@ def add_reference_channels(inst, ref_channels, copy=True):
                      'loc': ref_dig_array}
         inst.info['chs'].append(chan_info)
         inst.info._update_redundant()
+    range_ = np.arange(1, len(ref_channels) + 1)
     if isinstance(inst, BaseRaw):
         inst._cals = np.hstack((inst._cals, [1] * len(ref_channels)))
-        range_ = np.arange(1, len(ref_channels) + 1)
         for pi, picks in enumerate(inst._read_picks):
             inst._read_picks[pi] = np.concatenate(
                 [picks, np.max(picks) + range_])
+    elif isinstance(inst, BaseEpochs):
+        picks = inst.picks
+        inst.picks = np.concatenate(
+            [picks, np.max(picks) + range_])
     inst.info._check_consistency()
     set_eeg_reference(inst, ref_channels=ref_channels, copy=False,
                       verbose=False)
@@ -279,6 +283,10 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     This can be either an existing electrode or a new virtual channel.
     This function will re-reference the data according to the desired
     reference.
+
+    Note that it is also possible to re-reference the signal using a
+    Laplacian (LAP) "reference-free" transformation using the
+    :func:`.compute_current_source_density` function.
 
     Parameters
     ----------

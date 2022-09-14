@@ -11,7 +11,7 @@
 from collections import OrderedDict
 import os
 import os.path as op
-from pathlib import WindowsPath, PosixPath
+from pathlib import Path
 import sys
 import zipfile
 import tempfile
@@ -20,7 +20,7 @@ import numpy as np
 
 from .config import _hcp_mmp_license_text, MNE_DATASETS
 from ..label import read_labels_from_annot, Label, write_labels_to_annot
-from ..utils import (get_config, set_config, logger, _validate_type, warn,
+from ..utils import (get_config, set_config, logger, _validate_type,
                      verbose, get_subjects_dir, _pl, _safe_input)
 from ..utils.docs import docdict, _docformat
 
@@ -101,7 +101,7 @@ def _get_path(path, key, name):
                    f"not exist. Either create this directory manually and try "
                    f"again, or set MNE_DATA to an existing directory.")
             raise FileNotFoundError(msg)
-        return _mne_path(path)
+        return Path(path)
     # 4. ~/mne_data (but use a fake home during testing so we don't
     #    unnecessarily create ~/mne_data)
     logger.info('Using default location ~/mne_data for %s...' % name)
@@ -117,7 +117,7 @@ def _get_path(path, key, name):
                           "argument to data_path() where user has "
                           "write permissions, for ex:data_path"
                           "('/home/xyz/me2/')" % (path))
-    return _mne_path(path)
+    return Path(path)
 
 
 def _do_path_update(path, update_path, key, name):
@@ -524,33 +524,3 @@ def _manifest_check_download(manifest_path, destination, url, hash_):
                     ff.extract(name, path=destination)
         logger.info('Successfully extracted %d file%s'
                     % (len(need), _pl(need)))
-
-
-# Adapted from pathlib.Path.__new__
-def _mne_path(path):
-    klass = MNEWindowsPath if os.name == 'nt' else MNEPosixPath
-    out = klass._from_parts((path,))
-    if not out._flavour.is_supported:
-        raise NotImplementedError("cannot instantiate %r on your system"
-                                  % (klass.__name__,))
-    return out
-
-
-class _PathAdd:
-
-    def __add__(self, other):
-        if isinstance(other, str):
-            warn('data_path functions now return pathlib.Path objects which '
-                 'do not natively support the plus (+) operator, switch to '
-                 'using forward slash (/) instead. Support for plus will be '
-                 'removed in 1.2.', DeprecationWarning)
-            return f'{str(self)}{op.sep}{other}'
-        raise NotImplementedError
-
-
-class MNEWindowsPath(_PathAdd, WindowsPath):  # noqa: D101
-    pass
-
-
-class MNEPosixPath(_PathAdd, PosixPath):  # noqa: D101
-    pass

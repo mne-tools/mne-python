@@ -26,7 +26,7 @@ from mne.datasets import testing
 from mne.utils import requires_pandas, _record_warnings
 from mne.io import read_raw_edf, read_raw_bdf, read_raw_fif, edf, read_raw_gdf
 from mne.io.tests.test_raw import _test_raw_reader
-from mne.io.edf.edf import (_get_edf_default_event_id, _read_annotations_edf,
+from mne.io.edf.edf import (_read_annotations_edf,
                             _read_ch, _parse_prefilter_string, _edf_str,
                             _read_edf_header, _read_header)
 from mne.io.pick import channel_indices_by_type, get_channel_type_constants
@@ -61,6 +61,7 @@ test_generator_bdf = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 test_generator_edf = op.join(data_path, 'EDF', 'test_generator_2.edf')
 edf_annot_sub_s_path = op.join(data_path, 'EDF', 'subsecond_starttime.edf')
 edf_chtypes_path = op.join(data_path, 'EDF', 'chtypes_edf.edf')
+edf_utf8_annotations = op.join(data_path, 'EDF', 'test_utf8_annotations.edf')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -74,6 +75,44 @@ def test_orig_units():
     orig_units = raw._orig_units
     assert len(orig_units) == len(raw.ch_names)
     assert orig_units['A1'] == 'µV'  # formerly 'uV' edit by _check_orig_units
+    del orig_units
+
+    raw.rename_channels(dict(A1='AA'))
+    assert raw._orig_units['AA'] == 'µV'
+    raw.rename_channels(dict(AA='A1'))
+
+    raw_back = raw.copy().pick(raw.ch_names[:1])  # _pick_drop_channels
+    assert raw_back.ch_names == ['A1']
+    assert set(raw_back._orig_units) == {'A1'}
+    raw_back.add_channels([raw.copy().pick(raw.ch_names[1:])])
+    assert raw_back.ch_names == raw.ch_names
+    assert set(raw_back._orig_units) == set(raw.ch_names)
+    raw_back.reorder_channels(raw.ch_names[::-1])
+    assert set(raw_back._orig_units) == set(raw.ch_names)
+
+
+def test_units_params():
+    """Test enforcing original channel units."""
+    with pytest.raises(ValueError,
+                       match=r"Unit for channel .* is present .* cannot "
+                       "overwrite it"):
+        _ = read_raw_edf(edf_path, units='V', preload=True)
+
+
+def test_edf_temperature(monkeypatch):
+    """Test that we can parse temperature channel type."""
+    raw = read_raw_edf(edf_path)
+    assert raw.get_channel_types()[0] == 'eeg'
+
+    def _first_chan_temp(*args, **kwargs):
+        out, orig_units = _read_edf_header(*args, **kwargs)
+        out['ch_types'][0] = 'TEMP'
+        return out, orig_units
+
+    monkeypatch.setattr(edf.edf, '_read_edf_header', _first_chan_temp)
+    raw = read_raw_edf(edf_path)
+    assert 'temperature' in raw
+    assert raw.get_channel_types()[0] == 'temperature'
 
 
 def test_subject_info(tmp_path):
@@ -231,7 +270,12 @@ def test_find_events_backward_compatibility():
                        [1280, 0, 2]]
     # test an actual file
     raw = read_raw_edf(edf_path, preload=True)
-    event_id = _get_edf_default_event_id(raw.annotations.description)
+    event_id = {
+        a: n
+        for n, a in enumerate(
+            sorted(set(raw.annotations.description)), start=1
+        )
+    }
     event_id.pop('start')
     events_from_EFA, _ = events_from_annotations(raw, event_id=event_id,
                                                  use_rounding=False)
@@ -276,7 +320,7 @@ def test_to_data_frame(fname):
     _, times = raw[0, :10]
     df = raw.to_data_frame(index='time')
     assert (df.columns == raw.ch_names).all()
-    assert_array_equal(np.round(times * 1e3), df.index.values[:10])
+    assert_array_equal(times, df.index.values[:10])
     df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
     assert 'time' in df.columns
     assert_array_equal(df.values[:, 1], raw._data[0] * 1e13)
@@ -340,6 +384,54 @@ def test_read_annotations(fname, recwarn):
     """Test IO of annotations from edf and bdf files via regexp."""
     annot = read_annotations(fname)
     assert len(annot.onset) == 2
+
+
+@testing.requires_testing_data
+def test_read_utf8_annotations():
+    """Test if UTF8 annotations can be read."""
+    raw = read_raw_edf(edf_utf8_annotations)
+    assert raw.annotations[0]['description'] == 'RECORD START'
+    assert raw.annotations[1]['description'] == '仰卧'
+
+
+def test_read_latin1_annotations(tmp_path):
+    """Test if annotations encoded as Latin-1 can be read.
+
+    Note that the correct encoding according to the EDF+ standard should be
+    UTF8, but many real-world files are saved with the Latin-1 encoding.
+    """
+    annot = (
+        b"+1.1\x14\xe9\x14\x00\x00"  # +1.1 é
+        b"+1.2\x14\xe0\x14\x00\x00"  # +1.2 à
+        b"+1.3\x14\xe8\x14\x00\x00"  # +1.3 è
+        b"+1.4\x14\xf9\x14\x00\x00"  # +1.4 ù
+        b"+1.5\x14\xe2\x14\x00\x00"  # +1.5 â
+        b"+1.6\x14\xea\x14\x00\x00"  # +1.6 ê
+        b"+1.7\x14\xee\x14\x00\x00"  # +1.7 î
+        b"+1.8\x14\xf4\x14\x00\x00"  # +1.8 ô
+        b"+1.9\x14\xfb\x14\x00\x00"  # +1.9 û
+    )
+    annot_file = tmp_path / "annotations.txt"
+    with open(annot_file, "wb") as f:
+        f.write(annot)
+    with open(annot_file, "rb") as f:
+        tal_channel = _read_ch(
+            f,
+            subtype='EDF',
+            dtype='<i2',
+            samp=-1,
+            dtype_byte=None,
+        )
+    onset, duration, description = _read_annotations_edf(
+        tal_channel,
+        encoding="latin1",
+    )
+    assert onset == (1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9)
+    assert not any(duration)  # all durations are 0
+    assert description == ("é", "à", "è", "ù", "â", "ê", "î", "ô", "û")
+
+    with pytest.raises(Exception, match="Encountered invalid byte in"):
+        _read_annotations_edf(tal_channel)  # default encoding="utf8" fails
 
 
 def test_edf_prefilter_parse():
@@ -549,6 +641,20 @@ def test_exclude():
         assert ch not in raw.ch_names
 
 
+def test_include():
+    """Test include parameter."""
+    raw = read_raw_edf(edf_path, include=["I1", "I2"])
+    assert sorted(raw.ch_names) == ["I1", "I2"]
+
+    raw = read_raw_edf(edf_path, include="I[1-4]")
+    assert sorted(raw.ch_names) == ["I1", "I2", "I3", "I4"]
+
+    with pytest.raises(ValueError) as e:
+        raw = read_raw_edf(edf_path, include=["I1", "I2"], exclude="I[1-4]")
+        assert str(e.value) == "'exclude' must be empty" \
+            "if 'include' is assigned."
+
+
 @testing.requires_testing_data
 def test_ch_types():
     """Test reading of channel types from EDF channel label."""
@@ -566,10 +672,11 @@ def test_ch_types():
               'POL $A1', 'POL $A2']
 
     # by default all types are 'eeg'
-    assert(all(t == 'eeg' for t in raw.get_channel_types()))
+    assert all(t == 'eeg' for t in raw.get_channel_types())
     assert raw.ch_names == labels
 
     raw = read_raw_edf(edf_chtypes_path, infer_types=True)
+    data = raw.get_data()
 
     labels = ['Fp1-Ref', 'Fp2-Ref', 'F3-Ref', 'F4-Ref', 'C3-Ref', 'C4-Ref',
               'P3-Ref', 'P4-Ref', 'O1-Ref', 'O2-Ref', 'F7-Ref', 'F8-Ref',
@@ -586,3 +693,9 @@ def test_ch_types():
 
     assert raw.get_channel_types() == types
     assert raw.ch_names == labels
+
+    with pytest.raises(ValueError, match="cannot overwrite"):
+        read_raw_edf(edf_chtypes_path, units='V')
+    raw = read_raw_edf(edf_chtypes_path, units='uV')  # should be okay
+    data_units = raw.get_data()
+    assert_allclose(data, data_units)

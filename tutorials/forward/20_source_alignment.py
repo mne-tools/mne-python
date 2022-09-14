@@ -15,7 +15,6 @@ Let's start out by loading some data.
 """
 
 # %%
-import os.path as op
 
 import numpy as np
 import nibabel as nib
@@ -25,17 +24,17 @@ import mne
 from mne.io.constants import FIFF
 
 data_path = mne.datasets.sample.data_path()
-subjects_dir = op.join(data_path, 'subjects')
-raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
-trans_fname = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_raw-trans.fif')
+subjects_dir = data_path / 'subjects'
+raw_fname = data_path / 'MEG' / 'sample' / 'sample_audvis_raw.fif'
+trans_fname = (data_path / 'MEG' / 'sample' /
+               'sample_audvis_raw-trans.fif')
 raw = mne.io.read_raw_fif(raw_fname)
 trans = mne.read_trans(trans_fname)
-src = mne.read_source_spaces(op.join(subjects_dir, 'sample', 'bem',
-                                     'sample-oct-6-src.fif'))
+src = mne.read_source_spaces(subjects_dir / 'sample' / 'bem' /
+                             'sample-oct-6-src.fif')
 
 # Load the T1 file and change the header information to the correct units
-t1w = nib.load(op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz'))
+t1w = nib.load(data_path / 'subjects' / 'sample' / 'mri' / 'T1.mgz')
 t1w = nib.Nifti1Image(t1w.dataobj, t1w.affine)
 t1w.header['xyzt_units'] = np.array(10, dtype='uint8')
 t1_mgh = nib.MGHImage(t1w.dataobj, t1w.affine)
@@ -209,8 +208,8 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
 
 # The head surface is stored in "mri" coordinate frame
 # (origin at center of volume, units=mm)
-seghead_rr, seghead_tri = mne.read_surface(
-    op.join(subjects_dir, 'sample', 'surf', 'lh.seghead'))
+seghead_rr, seghead_tri = mne.read_surface(subjects_dir / 'sample' /
+                                           'surf' / 'lh.seghead')
 
 # To put the scalp in the "head" coordinate frame, we apply the inverse of
 # the precomputed `trans` (which maps head → mri)
@@ -298,34 +297,34 @@ renderer.show()
 # You can try creating the head↔MRI transform yourself using
 # :func:`mne.gui.coregistration`.
 #
-# * First you must load the digitization data from the raw file
-#   (``Head Shape Source``). The MRI data is already loaded if you provide the
-#   ``subject`` and ``subjects_dir``. Toggle ``Always Show Head Points`` to see
-#   the digitization points.
-# * To set the landmarks, toggle ``Edit`` radio button in ``MRI Fiducials``.
+# * To set the MRI fiducials, make sure ``Lock Fiducials`` is toggled off.
 # * Set the landmarks by clicking the radio button (LPA, Nasion, RPA) and then
 #   clicking the corresponding point in the image.
-# * After doing this for all the landmarks, toggle ``Lock`` radio button. You
-#   can omit outlier points, so that they don't interfere with the finetuning.
 #
-#   .. note:: You can save the fiducials to a file and pass
-#             ``mri_fiducials=True`` to plot them in
-#             :func:`mne.viz.plot_alignment`. The fiducials are saved to the
-#             subject's bem folder by default.
-# * Click ``Fit Head Shape``. This will align the digitization points to the
+# .. note::
+#    The position of each fiducial used is the center of the octahedron icon.
+#
+# * After doing this for all the landmarks, toggle ``Lock Fiducials`` radio
+#   button and optionally pressing ``Save MRI Fid.`` which will save to a
+#   default location in the ``bem`` folder of the Freesurfer subject directory.
+# * Then you can load the digitization data from the raw file
+#   (``Path to info``).
+# * Click ``Fit ICP``. This will align the digitization points to the
 #   head surface. Sometimes the fitting algorithm doesn't find the correct
 #   alignment immediately. You can try first fitting using LPA/RPA or fiducials
 #   and then align according to the digitization. You can also finetune
 #   manually with the controls on the right side of the panel.
-# * Click ``Save As...`` (lower right corner of the panel), set the filename
+# * Click ``Save`` (lower right corner of the panel), set the filename
 #   and read it with :func:`mne.read_trans`.
 #
-# For more information, see step by step instructions
-# `in these slides
-# <https://www.slideshare.net/mne-python/mnepython-coregistration>`_.
-# Uncomment the following line to align the data yourself.
+# For more information, see this video:
+#
+# .. youtube:: ALV5qqMHLlQ
+#
+# .. note::
+#     Coregistration can also be automated as shown in :ref:`tut-auto-coreg`.
 
-# mne.gui.coregistration(subject='sample', subjects_dir=subjects_dir)
+mne.gui.coregistration(subject='sample', subjects_dir=subjects_dir)
 
 # %%
 # .. _tut-source-alignment-without-mri:
