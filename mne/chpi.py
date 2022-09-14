@@ -48,7 +48,6 @@ from .transforms import (apply_trans, invert_transform, _angle_between_quats,
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
                     _validate_type, ProgressBar, _check_option, _pl,
                     _on_missing)
-from .utils.docs import fill_doc
 
 # Eventually we should add:
 #   hpicons
