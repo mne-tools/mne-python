@@ -216,7 +216,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             # Final check of orig_units, editing a unit if it is not a valid
             # unit
             orig_units = _check_orig_units(orig_units)
-        self._orig_units = orig_units
+        self._orig_units = orig_units or dict()  # always a dict
         self._projectors = list()
         self._projector = None
         self._dtype_ = dtype
