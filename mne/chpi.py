@@ -48,6 +48,7 @@ from .transforms import (apply_trans, invert_transform, _angle_between_quats,
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
                     _validate_type, ProgressBar, _check_option, _pl,
                     _on_missing)
+from .utils.docs import fill_doc
 
 # Eventually we should add:
 #   hpicons
@@ -1386,6 +1387,7 @@ def _compute_good_distances(hpi_coil_dists, new_pos, dist_limit=0.005):
     return use_mask, these_dists
 
 
+@fill_doc
 def get_active_chpi(raw, on_missing='raise'):
     """Determine how many HPI coils were active for a time point.
 
