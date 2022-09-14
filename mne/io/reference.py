@@ -181,7 +181,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
             raise ValueError("Channel %s already specified in inst." % ch)
 
     # Once CAR is applied (active), don't allow adding channels
-    if _has_eeg_average_ref_proj(inst.info['projs'], check_active=True):
+    if _has_eeg_average_ref_proj(inst.info, check_active=True):
         raise RuntimeError('Average reference already applied to data.')
 
     if copy:
@@ -323,7 +323,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
             raise ValueError('Setting projection=True is only supported for '
                              'ref_channels="average", got %r.'
                              % (ref_channels,))
-        if _has_eeg_average_ref_proj(inst.info['projs']):
+        if _has_eeg_average_ref_proj(inst.info):
             warn('An average reference projection was already added. The data '
                  'has been left untouched.')
         else:

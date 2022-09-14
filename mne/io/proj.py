@@ -7,6 +7,7 @@
 
 from copy import deepcopy
 from itertools import count
+import re
 
 import numpy as np
 
@@ -19,7 +20,7 @@ from .write import (write_int, write_float, write_string, write_name_list,
 from ..defaults import (_INTERPOLATION_DEFAULT, _BORDER_DEFAULT,
                         _EXTRAPOLATE_DEFAULT)
 from ..utils import (logger, verbose, warn, fill_doc, _validate_type,
-                     object_diff)
+                     object_diff, _check_option)
 
 
 class Projection(dict):
@@ -354,8 +355,7 @@ class ProjMixin(object):
             info_to = info_from.copy()
             with info_to._unlock():
                 info_to['projs'] = []
-                if kind == 'eeg' and _has_eeg_average_ref_proj(
-                        info_from['projs']):
+                if kind == 'eeg' and _has_eeg_average_ref_proj(info_from):
                     info_to['projs'] = [
                         make_eeg_average_ref_proj(info_to, verbose=False)]
             mapping = _map_meg_or_eeg_channels(
@@ -787,8 +787,12 @@ def deactivate_proj(projs, copy=True, verbose=None):
     return projs
 
 
+# Keep in sync with doc below
+_EEG_AVREF_PICK_DICT = {k: True for k in ('eeg', 'seeg', 'ecog', 'dbs')}
+
+
 @verbose
-def make_eeg_average_ref_proj(info, activate=True, ch_type='eeg',
+def make_eeg_average_ref_proj(info, activate=True, *, ch_type='eeg',
                               verbose=None):
     """Create an EEG average reference SSP projection vector.
 
@@ -800,11 +804,13 @@ def make_eeg_average_ref_proj(info, activate=True, ch_type='eeg',
     ch_type : str
         The channel type to use for reference projection.
         Valid types are 'eeg', 'ecog', 'seeg' and 'dbs'.
+
+        .. versionadded:: 1.2
     %(verbose)s
 
     Returns
     -------
-    eeg_proj: instance of Projection
+    proj: instance of Projection
         The SSP/PCA projector.
     """
     if info.get('custom_ref_applied', False):
@@ -813,44 +819,69 @@ def make_eeg_average_ref_proj(info, activate=True, ch_type='eeg',
                            'mne.io.set_eeg_reference function to move from '
                            'one EEG reference to another.')
 
-    if ch_type not in ('eeg', 'seeg', 'ecog', 'dbs'):
-        raise ValueError("ch_type should be 'eeg', 'seeg', 'ecog' or 'dbs'. "
-                         "Got %s." % ch_type)
+    _validate_type(ch_type, (list, tuple, str), 'ch_type')
+    singleton = False
+    if isinstance(ch_type, str):
+        ch_type = [ch_type]
+        singleton = True
+    for ci, this_ch_type in enumerate(ch_type):
+        _check_option('ch_type' + ('' if singleton else f'[{ci}]'),
+                      this_ch_type, list(_EEG_AVREF_PICK_DICT))
 
-    logger.info(f"Adding average {ch_type.upper()} reference projection.")
+    ch_type_name = '/'.join(c.upper() for c in ch_type)
+    logger.info(f"Adding average {ch_type_name} reference projection.")
 
-    ch_dict = {ch_type: True, 'meg': False, 'ref_meg': False}
+    ch_dict = {c: True for c in ch_type}
+    for c in ch_type:
+        one_picks = pick_types(info, exclude='bads', **{c: True})
+        if len(one_picks) == 0:
+            raise ValueError(f'Cannot create {ch_type_name} average reference '
+                             f'projector (no {c.upper()} data found)')
+    del ch_type
     ch_sel = pick_types(info, **ch_dict, exclude='bads')
     ch_names = info['ch_names']
     ch_names = [ch_names[k] for k in ch_sel]
     n_chs = len(ch_sel)
-    if n_chs == 0:
-        raise ValueError(f'Cannot create {ch_type.upper()} average reference '
-                         f'projector (no {ch_type.upper()} data found)')
     vec = np.ones((1, n_chs))
     vec /= np.sqrt(n_chs)
     explained_var = None
-    eeg_proj_data = dict(col_names=ch_names, row_names=None,
-                         data=vec, nrow=1, ncol=n_chs)
-    eeg_proj = Projection(active=activate, data=eeg_proj_data,
-                          desc=f'Average {ch_type.upper()} reference',
-                          kind=FIFF.FIFFV_PROJ_ITEM_EEG_AVREF,
-                          explained_var=explained_var)
-    return eeg_proj
+    proj_data = dict(col_names=ch_names, row_names=None,
+                     data=vec, nrow=1, ncol=n_chs)
+    proj = Projection(
+        active=activate, data=proj_data, explained_var=explained_var,
+        desc=f'Average {ch_type_name} reference',
+        kind=FIFF.FIFFV_PROJ_ITEM_EEG_AVREF)
+    return proj
 
 
-def _has_eeg_average_ref_proj(projs, check_active=False):
+def _has_eeg_average_ref_proj(info, *, projs=None, check_active=False):
     """Determine if a list of projectors has an average EEG ref.
 
     Optionally, set check_active=True to additionally check if the CAR
     has already been applied.
     """
+    from .meas_info import Info
+    _validate_type(info, Info, 'info')
+    projs = info.get('projs', []) if projs is None else projs
+    want_names = [
+        info['ch_names'][pick] for pick in pick_types(
+            info, **_EEG_AVREF_PICK_DICT, exclude='bads')]
+    if not want_names:
+        return False
+    found_names = list()
     for proj in projs:
-        if (proj['desc'] == 'Average EEG reference' or
-                proj['kind'] == FIFF.FIFFV_PROJ_ITEM_EEG_AVREF):
+        if (proj['kind'] == FIFF.FIFFV_PROJ_ITEM_EEG_AVREF or
+                re.match('^Average .* reference$', proj['desc'])):
             if not check_active or proj['active']:
-                return True
-    return False
+                found_names.extend(proj['data']['col_names'])
+    # If some are missing we have a problem (keep order for the message,
+    # otherwise we could use set logic)
+    missing = [name for name in want_names if name not in found_names]
+    if missing:
+        if found_names:  # found some but not all: warn
+            warn(f'Incomplete EEG projector, missing channel(s) {missing}')
+        return False
+    return True
 
 
 def _needs_eeg_average_ref_proj(info):
@@ -859,15 +890,20 @@ def _needs_eeg_average_ref_proj(info):
     This returns True if no custom reference has been applied and no average
     reference projection is present in the list of projections.
     """
-    eeg_sel = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                         exclude='bads')
-    return (len(eeg_sel) > 0 and
-            not info['custom_ref_applied'] and
-            not _has_eeg_average_ref_proj(info['projs']))
+    if info['custom_ref_applied']:
+        return False
+    have = [ch_type for ch_type in _EEG_AVREF_PICK_DICT
+            if len(pick_types(info, exclude='bads', **{ch_type: True}))]
+    if not have:
+        return False
+    if _has_eeg_average_ref_proj(info):
+        return False
+    return True
 
 
 @verbose
-def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
+def setup_proj(info, add_eeg_ref=True, activate=True, *, eeg_ref_ch_type='eeg',
+               verbose=None):
     """Set up projection for Raw and Epochs.
 
     Parameters
@@ -878,6 +914,11 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
         already exists).
     activate : bool
         If True projections are activated.
+    eeg_ref_ch_type : str
+        The channel type to use for reference projection.
+        Valid types are 'eeg', 'ecog', 'seeg' and 'dbs'.
+
+        .. versionadded:: 1.2
     %(verbose)s
 
     Returns
@@ -889,7 +930,8 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
     """
     # Add EEG ref reference proj if necessary
     if add_eeg_ref and _needs_eeg_average_ref_proj(info):
-        eeg_proj = make_eeg_average_ref_proj(info, activate=activate)
+        eeg_proj = make_eeg_average_ref_proj(
+            info, activate=activate, eeg_ref_ch_type=eeg_ref_ch_type)
         info['projs'].append(eeg_proj)
 
     # Create the projector
