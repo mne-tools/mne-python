@@ -1386,13 +1386,14 @@ def _compute_good_distances(hpi_coil_dists, new_pos, dist_limit=0.005):
     return use_mask, these_dists
 
 
-def get_active_chpi(raw):
+def get_active_chpi(raw, on_missing='raise'):
     """Determine how many HPI coils were active for a time point.
 
     Parameters
     ----------
     raw : instance of Raw
         Raw data with cHPI information.
+    %(on_missing_chpi)s
 
     Returns
     -------
@@ -1403,8 +1404,11 @@ def get_active_chpi(raw):
     -----
     .. versionadded:: 1.2
     """
+    _check_option(parameter='on_missing', value=on_missing,
+                  allowed_values=['ignore', 'raise', 'warn'])
+
     # get meg system
-    system, _ = _get_meg_system(raw.info)
+    system, _ = _get_meg_system(raw.info, on_missing=on_missing)
 
     # check whether we have a neuromag system
     if system not in ['122m', '306m']:
