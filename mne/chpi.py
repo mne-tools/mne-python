@@ -1408,7 +1408,7 @@ def get_active_chpi(raw, on_missing='raise'):
                   allowed_values=['ignore', 'raise', 'warn'])
 
     # get meg system
-    system, _ = _get_meg_system(raw.info, on_missing=on_missing)
+    system, _ = _get_meg_system(raw.info)
 
     # check whether we have a neuromag system
     if system not in ['122m', '306m']:
@@ -1416,7 +1416,7 @@ def get_active_chpi(raw, on_missing='raise'):
                                    ' is not implemented for other systems'
                                    ' than neuromag.'))
     # extract hpi info
-    chpi_info = get_chpi_info(raw.info)
+    chpi_info = get_chpi_info(raw.info, on_missing=on_missing)
 
     # extract hpi time series and infer which one was on
     chpi_ts = raw[chpi_info[1]][0].astype(int)
