@@ -1406,9 +1406,6 @@ def get_active_chpi(raw, on_missing='raise'):
     -----
     .. versionadded:: 1.2
     """
-    _check_option(parameter='on_missing', value=on_missing,
-                  allowed_values=['ignore', 'raise', 'warn'])
-
     # get meg system
     system, _ = _get_meg_system(raw.info)
 
