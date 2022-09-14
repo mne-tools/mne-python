@@ -1386,8 +1386,8 @@ def _compute_good_distances(hpi_coil_dists, new_pos, dist_limit=0.005):
     return use_mask, these_dists
 
 
-@fill_doc
-def get_active_chpi(raw, on_missing='raise'):
+@verbose
+def get_active_chpi(raw, *, on_missing='raise', verbose=None):
     """Determine how many HPI coils were active for a time point.
 
     Parameters
