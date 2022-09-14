@@ -1414,7 +1414,7 @@ def get_active_chpi(raw, on_missing='raise'):
                                    ' is not implemented for other systems'
                                    ' than neuromag.'))
     # extract hpi info
-    chpi_info = get_chpi_info(raw.info, on_missing=on_missing)
+    chpi_info = get_chpi_info(raw.info, on_missing=on_missing, verbose=verbose)
 
     # extract hpi time series and infer which one was on
     chpi_ts = raw[chpi_info[1]][0].astype(int)
