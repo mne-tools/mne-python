@@ -1395,6 +1395,7 @@ def get_active_chpi(raw, *, on_missing='raise', verbose=None):
     raw : instance of Raw
         Raw data with cHPI information.
     %(on_missing_chpi)s
+    %(verbose)s
 
     Returns
     -------
