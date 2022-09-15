@@ -182,6 +182,13 @@ def test_plot_evoked():
     with pytest.raises(ValueError, match='must be reshapable into a 2D array'):
         fig = evoked.plot(time_unit='s', highlight=0.1)
 
+    # test butterfly plot handling of nan location values
+    evoked = _get_epochs().load_data().average('grad')  # reload data
+    evoked.info['chs'][0]['loc'][:] = np.nan  # erase spatial location info
+    fig = evoked.plot(time_unit='s', spatial_colors=True)  # plot evoked with topography
+    line_clr = [x.get_color() for x in fig.axes[0].get_lines()]  # get line colors
+    assert not np.all(np.isnan(line_clr) & (line_clr == 0))  # confirm not all lines are black / nan
+
 
 def test_constrained_layout():
     """Test that we handle constrained layouts correctly."""
