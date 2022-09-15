@@ -758,12 +758,10 @@ def plot_topomap(
     %(cnorm)s
 
         .. versionadded:: 0.24
-    %(axes_plot_topomap)
+    %(axes_plot_topomap)s
         .. versionchanged:: 1.2
            If ``axes=None``, a new :class:`~matplotlib.figure.Figure` is
            created instead of plotting into the current axes.
-    axes : instance of Axes | None
-        The axes to plot to. If None, the current axes will be used.
     %(show)s
     onselect : callable | None
         A function to be called when the user selects a set of channels by
