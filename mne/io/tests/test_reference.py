@@ -264,18 +264,10 @@ def test_set_eeg_reference_ch_type(ch_type, msg, projection):
     else:
         ref_ch = raw.copy().pick(picks=ch_type).ch_names
 
-    if projection and not isinstance(ch_type, str) and len(ch_type) > 1:
-        with pytest.raises(ValueError, match='Multiple channel types are '
-                           'not supported when using projection'):
-            set_eeg_reference(raw, ch_type=ch_type,
-                              projection=projection,
-                              verbose=True)
-        return  # Stop here
-    else:
-        with catch_logging() as log:
-            reref, ref_data = set_eeg_reference(raw.copy(), ch_type=ch_type,
-                                                projection=projection,
-                                                verbose=True)
+    with catch_logging() as log:
+        reref, ref_data = set_eeg_reference(raw.copy(), ch_type=ch_type,
+                                            projection=projection,
+                                            verbose=True)
 
     if not projection:
         assert f"Applying a custom {msg}" in log.getvalue()

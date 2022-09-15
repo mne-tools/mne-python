@@ -507,6 +507,8 @@ ch_type : list of str | str
     that is found (in that order) will be selected.
 
     .. versionadded:: 0.19
+    .. versionchanged:: 1.2
+       ``list-of-str`` is now supported with ``projection=True``.
 """
 
 docdict['ch_type_topomap'] = _ch_type_topomap.format('RMS')
@@ -1695,7 +1697,7 @@ docdict['joint_set_eeg_reference'] = """
 joint : bool
     How to handle list-of-str ``ch_type``. If False (default), one projector
     is created per channel type. If True, one projector is created across
-    all channel types.
+    all channel types. This is only used when ``projection=True``.
 
     .. versionadded:: 1.2
 """
