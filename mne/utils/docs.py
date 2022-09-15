@@ -441,17 +441,14 @@ calibration : str | None
     This file is machine/site-specific.
 """
 
-docdict['cbar_fmt_psd_topo'] = """
-cbar_fmt : str
-    Format string for the colorbar tick labels. If ``'auto'``, is equivalent
-    to '%0.3f' if ``dB=False`` and '%0.1f' if ``dB=True``. Defaults to
-    ``'auto'``.
-"""
-
-docdict['cbar_fmt_topomap'] = """
+docdict['cbar_fmt_topomap'] = """\
 cbar_fmt : str
     Formatting string for colorbar tick labels. See :py:label:`formatspec` for
     details.
+"""
+docdict['cbar_fmt_topomap_psd'] = docdict['cbar_fmt_topomap'] + """\
+    If ``'auto'``, is equivalent to '%0.3f' if ``dB=False`` and '%0.1f' if
+    ``dB=True``. Defaults to ``'auto'``.
 """
 
 docdict['center'] = """

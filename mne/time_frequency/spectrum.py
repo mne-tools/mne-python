@@ -199,7 +199,7 @@ class SpectrumMixin():
         %(cmap_topomap)s
         %(vlim_plot_topomap_psd)s
         %(colorbar_topomap)s
-        %(cbar_fmt_psd_topo)s
+        %(cbar_fmt_topomap_psd)s
         %(units_topomap)s
         %(axes_spectrum_plot_topomap)s
         %(show)s
@@ -693,7 +693,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(cmap_topomap)s
         %(vlim_plot_topomap_psd)s
         %(colorbar_topomap)s
-        %(cbar_fmt_psd_topo)s
+        %(cbar_fmt_topomap_psd)s
         %(units_topomap)s
         %(axes_spectrum_plot_topomap)s
         %(show)s

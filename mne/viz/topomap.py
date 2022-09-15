@@ -1372,14 +1372,12 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=0., fmax=np.inf,
         The unit of the channel type used for colorbar labels.
     %(res_topomap)s
     %(size_topomap)s
-    cbar_fmt : str
-        String format for colorbar values.
+    %(cbar_fmt_topomap)s
     %(show_names_topomap)s
     title : str | None
         Plot title. If None (default), no title is displayed.
     %(axes_plot_topomap)s
-    show : bool
-        Show figure if True.
+    %(show)s
     %(outlines_topomap)s
     %(contours_topomap)s
     %(sphere_topomap_auto)s
@@ -1921,7 +1919,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
 
         .. versionadded:: 0.21
     %(colorbar_topomap)s
-    %(cbar_fmt_psd_topo)s
+    %(cbar_fmt_topomap_psd)s
     %(units_topomap)s
     %(axes_spectrum_plot_topomap)s
     %(show)s
@@ -1984,7 +1982,7 @@ def plot_psds_topomap(
 
         .. versionadded:: 0.21
     %(colorbar_topomap)s
-    %(cbar_fmt_psd_topo)s
+    %(cbar_fmt_topomap_psd)s
     unit : str | None
         Measurement unit to be displayed with the colorbar. If ``None``, no
         unit is displayed (only "power" or "dB" as appropriate).
