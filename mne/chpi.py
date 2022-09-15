@@ -1386,13 +1386,16 @@ def _compute_good_distances(hpi_coil_dists, new_pos, dist_limit=0.005):
     return use_mask, these_dists
 
 
-def get_active_chpi(raw):
+@verbose
+def get_active_chpi(raw, *, on_missing='raise', verbose=None):
     """Determine how many HPI coils were active for a time point.
 
     Parameters
     ----------
     raw : instance of Raw
         Raw data with cHPI information.
+    %(on_missing_chpi)s
+    %(verbose)s
 
     Returns
     -------
@@ -1412,7 +1415,7 @@ def get_active_chpi(raw):
                                    ' is not implemented for other systems'
                                    ' than neuromag.'))
     # extract hpi info
-    chpi_info = get_chpi_info(raw.info)
+    chpi_info = get_chpi_info(raw.info, on_missing=on_missing, verbose=verbose)
 
     # extract hpi time series and infer which one was on
     chpi_ts = raw[chpi_info[1]][0].astype(int)
