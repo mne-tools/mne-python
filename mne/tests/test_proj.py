@@ -388,7 +388,8 @@ def test_has_eeg_average_ref_proj(ch_type):
             assert not _needs_eeg_average_ref_proj(raw.info)
             if ch_type == 'auto':
                 with pytest.warns(RuntimeWarning, match='added.*untouched'):
-                    raw.set_eeg_reference(projection=True, ch_type=ch_type)
+                    raw.set_eeg_reference(
+                        projection=True, ch_type=ch_type)
                 raw.del_proj()
         desc = raw.info['projs'][0]['desc'].lower()
         assert ch_type in desc
@@ -400,7 +401,12 @@ def test_has_eeg_average_ref_proj(ch_type):
     # len(all_ref_ch_types) projs
 
     # One big joint proj
-    raw.set_eeg_reference(projection=True, ch_type=set_eeg_ref_ch_type)
+    raw.set_eeg_reference(
+        projection=True, ch_type=set_eeg_ref_ch_type)
+    assert len(raw.info['projs']) == len(all_ref_ch_types)
+    raw.del_proj()
+    raw.set_eeg_reference(
+        projection=True, ch_type=set_eeg_ref_ch_type, joint=True)
     assert len(raw.info['projs']) == 1
     assert _has_eeg_average_ref_proj(raw.info)
     assert not _needs_eeg_average_ref_proj(raw.info)
@@ -439,7 +445,8 @@ def test_has_eeg_average_ref_proj(ch_type):
     # If this changes we'll have to make this check better
     assert len(all_ref_ch_types) % 2 == 0
     data_nz = raw.del_proj().set_eeg_reference(
-        projection=True, ch_type=all_ref_ch_types).apply_proj()[picks][0]
+        projection=True, ch_type=all_ref_ch_types,
+        joint=True).apply_proj()[picks][0]
     assert not np.isclose(data_nz, 0.).any()
 
 

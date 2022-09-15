@@ -276,7 +276,7 @@ def _check_can_reref(inst):
 @verbose
 def set_eeg_reference(inst, ref_channels='average', copy=True,
                       projection=False, ch_type='auto', forward=None,
-                      verbose=None):
+                      *, joint=False, verbose=None):
     """Specify which reference to use for EEG data.
 
     Use this function to explicitly specify the desired reference for EEG.
@@ -299,6 +299,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     %(projection_set_eeg_reference)s
     %(ch_type_set_eeg_reference)s
     %(forward_set_eeg_reference)s
+    %(joint_set_eeg_reference)s
     %(verbose)s
 
     Returns
@@ -315,6 +316,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     from ..forward import Forward
     _check_can_reref(inst)
 
+    ch_type_orig = ch_type
     ch_type = _get_ch_type(inst, ch_type)
 
     if projection:  # average reference projector
@@ -336,9 +338,15 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
                 with inst.info._unlock():
                     inst.info['custom_ref_applied'] = \
                         FIFF.FIFFV_MNE_CUSTOM_REF_OFF
-                inst.add_proj(
-                    make_eeg_average_ref_proj(
-                        inst.info, ch_type=ch_type, activate=False))
+                if joint:
+                    inst.add_proj(
+                        make_eeg_average_ref_proj(
+                            inst.info, ch_type=ch_type, activate=False))
+                else:
+                    for ch_typ in ch_type:
+                        inst.add_proj(
+                            make_eeg_average_ref_proj(
+                                inst.info, ch_type=ch_typ, activate=False))
             except Exception:
                 with inst.info._unlock():
                     inst.info['custom_ref_applied'] = custom_ref_applied
