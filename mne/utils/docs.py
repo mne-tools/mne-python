@@ -507,6 +507,8 @@ ch_type : list of str | str
     that is found (in that order) will be selected.
 
     .. versionadded:: 0.19
+    .. versionchanged:: 1.2
+       Support for list-of-str to create joint projectors.
 """
 
 docdict['ch_type_topomap'] = _ch_type_topomap.format('RMS')
