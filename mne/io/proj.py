@@ -71,21 +71,36 @@ class Projection(dict):
         return result
 
     @fill_doc
-    def plot_topomap(self, info, cmap=None, sensors=True,
-                     colorbar=False, res=64, size=1, show=True,
-                     outlines='head', contours=6,
-                     image_interp=_INTERPOLATION_DEFAULT,
-                     axes=None, vlim=(None, None), sphere=None,
-                     border=_BORDER_DEFAULT):
+    def plot_topomap(
+            self, info, *, sensors=True, show_names=False, contours=6,
+            outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+            size=1, cmap=None, vlim=(None, None), colorbar=False, axes=None,
+            show=True):
         """Plot topographic maps of SSP projections.
 
         Parameters
         ----------
         %(info_not_none)s Used to determine the layout.
-        %(proj_topomap_kwargs)s
-        %(vlim_plot_topomap_proj)s
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+
+            .. versionadded:: 1.2
+        %(contours_topomap)s
+        %(outlines_topomap)s
         %(sphere_topomap_auto)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+
+            .. versionadded:: 1.2
         %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cmap_topomap)s
+        %(vlim_plot_topomap_proj)s
+        %(colorbar_topomap)s
+        %(axes_plot_projs_topomap)s
+        %(show)s
 
         Returns
         -------
@@ -98,10 +113,11 @@ class Projection(dict):
         """  # noqa: E501
         from ..viz.topomap import plot_projs_topomap
         return plot_projs_topomap(
-            self, info, sensors=sensors, colorbar=colorbar, res=res, size=size,
-            show=show, outlines=outlines, contours=contours,
-            image_interp=image_interp, axes=axes, cmap=cmap, vlim=vlim,
-            sphere=sphere, border=border)
+            self, info, sensors=sensors, show_names=show_names,
+            contours=contours, outlines=outlines, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate, border=border,
+            res=res, size=size, cmap=cmap, vlim=vlim, colorbar=colorbar,
+            axes=axes, show=show)
 
 
 class ProjMixin(object):

@@ -338,13 +338,11 @@ def plot_projs_topomap(
     return fig
 
 
-def _plot_projs_topomap(projs, info, cmap=None, sensors=True, show_names=False,
-                        colorbar=False, res=64, size=1, show=True,
-                        outlines='head', contours=6,
-                        image_interp=_INTERPOLATION_DEFAULT,
-                        axes=None, vlim=(None, None),
-                        sphere=None, extrapolate=_EXTRAPOLATE_DEFAULT,
-                        border=_BORDER_DEFAULT):
+def _plot_projs_topomap(
+        projs, info, sensors=True, show_names=False, contours=6,
+        outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+        extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+        size=1, cmap=None, vlim=(None, None), colorbar=False, axes=None):
     import matplotlib.pyplot as plt
     sphere = _check_sphere(sphere, info)
     projs = _check_type_projs(projs)
@@ -393,7 +391,8 @@ def _plot_projs_topomap(projs, info, cmap=None, sensors=True, show_names=False,
     n_projs = len(projs)
     if axes is None:
         fig, axes, ncols, nrows = _prepare_trellis(
-            n_projs, ncols='auto', nrows='auto', sharex=True, sharey=True)
+            n_projs, ncols='auto', nrows='auto', size=size,
+            sharex=True, sharey=True)
     elif isinstance(axes, plt.Axes):
         axes = [axes]
     _validate_if_list_of_axes(axes, n_projs)
@@ -818,7 +817,7 @@ def plot_topomap(
     from matplotlib.colors import Normalize
 
     if axes is None:
-        _, axes = plt.subplots()
+        _, axes = plt.subplots(figsize=(size, size))
     if outlines in ('skirt',):
         warn(OUTLINES_WARNING_MSG, FutureWarning)
     if show_names is not None:
