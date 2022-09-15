@@ -3014,9 +3014,10 @@ seeg : bool
 
 docdict['sensors_topomap'] = """
 sensors : bool | str
-    Add markers for sensor locations to the plot. Accepts matplotlib plot
-    format string (e.g., 'r+' for red plusses). If True (default),
-    circles will be used.
+    Whether to add markers for sensor locations. If :class:`str`, should be a
+    valid matplotlib format string (e.g., ``'r+`` for red plusses, see the
+    Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+    default), black circles will be used.
 """
 
 docdict['set_eeg_reference_see_also_notes'] = """
@@ -3115,7 +3116,7 @@ show_traces : bool | str | float
 
 docdict['size_topomap'] = """
 size : float
-    Side length per topomap in inches.
+    Side length of each subplot in inches.
 """
 
 docdict['skip_by_annotation_maxwell'] = """
