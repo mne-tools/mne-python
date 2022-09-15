@@ -851,33 +851,24 @@ class UpdateChannelsMixin(object):
         return self
 
     def add_channels(self, add_list, force_update_info=False):
-        """Append new channels to the instance.
+        """Concatenate channels from multiple instances in-place.
+
+        .. note::
+            This docstring should be overridden by more specific docstrings in
+            the children of this class.
 
         Parameters
         ----------
         add_list : list
-            A list of objects to append to self. Must contain all the same
-            type as the current object.
+            The instances to concatenate.
         force_update_info : bool
-            If True, force the info for objects to be appended to match the
-            values in ``self``. This should generally only be used when adding
-            stim channels for which important metadata won't be overwritten.
-
-            .. versionadded:: 0.12
+            Whether to disable sanity checks on the info objects of the
+            instances before concatenation.
 
         Returns
         -------
-        inst : instance of Raw, Epochs, or Evoked
+        inst
             The modified instance.
-
-        See Also
-        --------
-        drop_channels
-
-        Notes
-        -----
-        If ``self`` is a Raw instance that has been preloaded into a
-        :obj:`numpy.memmap` instance, the memmap will be resized.
         """
         # avoid circular imports
         from ..io import BaseRaw, _merge_info

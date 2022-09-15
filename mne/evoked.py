@@ -198,6 +198,16 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         return data
 
+    @fill_doc
+    def add_channels(self, add_list, force_update_info=False):
+        """Concatenate multiple :class:`~mne.Evoked` instances along the channel axis.
+
+        %(add_channels_evoked)s
+        """  # noqa: E501
+        super().add_channels(
+            add_list=add_list, force_update_info=force_update_info
+        )
+
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=None,
                        verbose=None, **kwargs):
@@ -951,6 +961,16 @@ class EvokedArray(Evoked):
         self.baseline = baseline
         if self.baseline is not None:  # omit log msg if not baselining
             self.apply_baseline(self.baseline)
+
+    @fill_doc
+    def add_channels(self, add_list, force_update_info=False):
+        """Concatenate multiple :class:`~mne.EvokedArray` instances along the channel axis.
+
+        %(add_channels_evokedarray)s
+        """  # noqa: E501
+        super().add_channels(
+            add_list=add_list, force_update_info=force_update_info
+        )
 
 
 def _get_entries(fid, evoked_node, allow_maxshield=False):

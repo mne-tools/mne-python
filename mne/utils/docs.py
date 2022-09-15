@@ -59,6 +59,104 @@ add_ch_type : bool
     ``False``.
 """
 
+add_channels = """    This method will append the channels from the passed objects to the
+    current {data_type} instance. The operation can be thought of as a
+    concatenation along the "channel axis". {concat_along_time}
+
+    Parameters
+    ----------
+    add_list : list of {data_type}
+        A list of objects to append to the current instance.
+    force_update_info : bool
+        MNE-Python performs sanity checks on the `~mne.Info` objects attached
+        to the data in ``add_list``, and will refuse to perform the
+        concatenation if required fields are not matching. You may override
+        this behavior by setting this parameter to ``True`` (default is
+        ``False``).
+
+        .. warning::
+           This should generally only be used when adding ``stim`` channels,
+           for which important metadata won't be overwritten.
+
+        .. versionadded:: 0.12
+
+    Returns
+    -------
+    inst : instance of {data_type}
+        The modified instance (modified in-place).
+
+    See Also
+    --------
+    drop_channels{see_also_and_notes}
+"""  # noqa: E501
+
+docdict['add_channels_averagetfr'] = add_channels.format(
+    **{
+        'data_type': ':class:`~mne.time_frequency.AverageTFR`',
+        'concat_along_time': '',
+        'see_also_and_notes': '',
+    }
+)
+
+docdict['add_channels_epochs'] = add_channels.format(
+    **{
+        'data_type': ':class:`~mne.Epochs`',
+        'concat_along_time': 'For concatenation along the time axis, see '
+                             ':func:`~mne.concatenate_epochs`',
+        'see_also_and_notes': '''
+    :func:`~mne.concatenate_epochs`'''
+    }
+)
+
+docdict['add_channels_epochstfr'] = add_channels.format(
+    **{
+        'data_type': ':class:`~mne.time_frequency.EpochsTFR`',
+        'concat_along_time': '',
+        'see_also_and_notes': '',
+    }
+)
+
+docdict['add_channels_evoked'] = add_channels.format(
+    **{
+        'data_type': ':class:`~mne.Evoked`',
+        'concat_along_time': '',
+        'see_also_and_notes': ''
+    }
+)
+
+docdict['add_channels_evokedarray'] = add_channels.format(
+    **{
+        'data_type': ':class:`~mne.EvokedArray`',
+        'concat_along_time': '',
+        'see_also_and_notes': ''
+    }
+)
+
+docdict['add_channels_raw'] = add_channels.format(
+    **{
+        'data_type': ':class:`~mne.io.Raw`',
+        'concat_along_time': 'For concatenation along the time axis, see '
+                             ':meth:`~mne.io.BaseRaw.append` and '
+                             ':func:`~mne.concatenate_raws`',
+        'see_also_and_notes': '''
+    :meth:`~mne.io.BaseRaw.append`
+    :func:`~mne.concatenate_raws`
+
+    Notes
+    -----
+    If the data has been preloaded into a :obj:`numpy.memmap` instance, the
+    memmap will be resized.'''
+    }
+)
+
+docdict['add_channels_spectrum'] = add_channels.format(
+    **{
+        'data_type': ':class:`~mne.time_frequency.Spectrum`',
+        'concat_along_time': '',
+        'see_also_and_notes': ''
+    }
+)
+
 docdict['add_data_kwargs'] = """
 add_data_kwargs : dict | None
     Additional arguments to brain.add_data (e.g.,

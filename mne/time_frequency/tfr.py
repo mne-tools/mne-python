@@ -1174,6 +1174,16 @@ class AverageTFR(_BaseTFR):
         self.method = method
         self.preload = True
 
+    @fill_doc
+    def add_channels(self, add_list, force_update_info=False):
+        """Concatenate multiple :class:`~mne.time_frequency.AverageTFR` instances along the channel axis.
+
+        %(add_channels_averagetfr)s
+        """  # noqa: E501
+        super().add_channels(
+            add_list=add_list, force_update_info=force_update_info
+        )
+
     @verbose
     def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
@@ -2247,6 +2257,16 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         epochs = self.copy()
         epochs.data = np.abs(self.data)
         return epochs
+
+    @fill_doc
+    def add_channels(self, add_list, force_update_info=False) -> None:
+        """Concatenate multiple :class:`~mne.time_frequency.EpochsTFR` instances along the channel axis.
+
+        %(add_channels_epochstfr)s
+        """  # noqa: E501
+        super().add_channels(
+            add_list=add_list, force_update_info=force_update_info
+        )
 
     def average(self, method='mean', dim='epochs', copy=False):
         """Average the data across epochs.

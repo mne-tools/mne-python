@@ -1616,6 +1616,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             logger.info(f'No channels updated. Bads are: {prev_bads}')
 
     @fill_doc
+    def add_channels(self, add_list, force_update_info=False):
+        """Concatenate multiple :class:`~mne.io.Raw` instances along the channel axis.
+
+        %(add_channels_raw)s
+        """  # noqa: E501
+        super().add_channels(
+            add_list=add_list, force_update_info=force_update_info
+        )
+
+    @fill_doc
     def append(self, raws, preload=None):
         """Concatenate raw instances as if they were continuous.
 

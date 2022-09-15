@@ -652,6 +652,16 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self._raw = None  # shouldn't need it anymore
         return self
 
+    @fill_doc
+    def add_channels(self, add_list, force_update_info=False):
+        """Concatenate multiple :class:`~mne.Epochs` instances along the channel axis.
+
+        %(add_channels_epochs)s
+        """  # noqa: E501
+        super().add_channels(
+            add_list=add_list, force_update_info=force_update_info
+        )
+
     @verbose
     def apply_baseline(self, baseline=(None, 0), *, verbose=None):
         """Baseline correct epochs.

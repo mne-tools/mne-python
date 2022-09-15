@@ -443,6 +443,16 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         """Provide compatibility with __iter__."""
         return list()
 
+    @fill_doc
+    def add_channels(self, add_list, force_update_info=False):
+        """Concatenate multiple :class:`~mne.time_frequency.Spectrum` instances along the channel axis.
+
+        %(add_channels_spectrum)s
+        """  # noqa: E501
+        super().add_channels(
+            add_list=add_list, force_update_info=force_update_info
+        )
+
     @property
     def ch_names(self):
         return self.info['ch_names']
