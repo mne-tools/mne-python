@@ -3153,8 +3153,7 @@ sphere : float | array-like | instance of ConductorModel | None  | 'auto' | 'eeg
     ``'Fpz'``, ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present,
     it will be approximated from the coordinates of ``'Oz'``). ``None`` (the
     default) is equivalent to ``'auto'`` when enough extra digitization points
-    are available, and (0, 0, 0, {HEAD_SIZE_DEFAULT}) otherwise. Currently the
-    head radius does not affect plotting.
+    are available, and (0, 0, 0, {HEAD_SIZE_DEFAULT}) otherwise.
 
     .. versionadded:: 0.20
     .. versionchanged:: 1.1 Added ``'eeglab'`` option.
