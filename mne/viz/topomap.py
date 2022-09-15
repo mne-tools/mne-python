@@ -806,13 +806,9 @@ def plot_topomap(
              'version 1.3. Use the "names" parameter instead.', FutureWarning)
     sphere = _check_sphere(sphere, pos if isinstance(pos, Info) else None)
     _validate_type(cnorm, (Normalize, None), 'cnorm')
-    if cnorm is not None:
-        if vmin is not None:
-            warn(f"vmin={cnorm.vmin} is implicitly defined by cnorm, ignoring "
-                 f"vmin={vmin}.")
-        if vmax is not None:
-            warn(f"vmax={cnorm.vmax} is implicitly defined by cnorm, ignoring "
-                 f"vmax={vmax}.")
+    if cnorm is not None and (vmin is not None or vmax is not None):
+        warn(f'Provided cnorm implicitly defines vmin={cnorm.vmin} and '
+             f'vmax={cnorm.vmax}; ignoring additional vmin/vmax params.')
     return _plot_topomap(
         data, pos, vmin=vmin, vmax=vmax, cmap=cmap, sensors=sensors, res=res,
         axes=axes, names=names, mask=mask, mask_params=mask_params,

@@ -706,13 +706,11 @@ def test_plot_topomap_cnorm():
     plot_topomap(v, info, cnorm=cnorm)
 
     # pass cnorm and vmin
-    msg = "vmin=-1.* is implicitly defined by cnorm, ignoring vmin=-10.*"
-    with pytest.warns(RuntimeWarning, match=msg):
+    with pytest.warns(RuntimeWarning, match='implicitly defines vmin=-1'):
         plot_topomap(v, info, vmin=-10, cnorm=cnorm)
 
     # pass cnorm and vmax
-    msg = "vmax=2.5 is implicitly defined by cnorm, ignoring vmax=10.*"
-    with pytest.warns(RuntimeWarning, match=msg):
+    with pytest.warns(RuntimeWarning, match='implicitly defines .* vmax=2.5'):
         plot_topomap(v, info, vmax=10, cnorm=cnorm)
 
     # try another subclass of mpl.colors.Normalize
