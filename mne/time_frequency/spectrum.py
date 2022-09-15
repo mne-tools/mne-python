@@ -201,7 +201,7 @@ class SpectrumMixin():
         %(colorbar_topomap)s
         %(cbar_fmt_psd_topo)s
         %(units_topomap)s
-        %(axes_plot_topomap)s
+        %(axes_spectrum_plot_topomap)s
         %(show)s
         %(n_jobs)s
         %(verbose)s
@@ -536,7 +536,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(spatial_colors_psd)s
         %(sphere_topomap_auto)s
         %(exclude_spectrum_plot)s
-        %(axes_plot_topomap)s
+        %(axes_spectrum_plot_topomap)s
         %(show)s
 
         Returns
@@ -695,7 +695,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(colorbar_topomap)s
         %(cbar_fmt_psd_topo)s
         %(units_topomap)s
-        %(axes_plot_topomap)s
+        %(axes_spectrum_plot_topomap)s
         %(show)s
 
         Returns

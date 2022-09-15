@@ -758,6 +758,10 @@ def plot_topomap(
     %(cnorm)s
 
         .. versionadded:: 0.24
+    %(axes_plot_topomap)
+        .. versionchanged:: 1.2
+           If ``axes=None``, a new :class:`~matplotlib.figure.Figure` is
+           created instead of plotting into the current axes.
     axes : instance of Axes | None
         The axes to plot to. If None, the current axes will be used.
     %(show)s
@@ -797,8 +801,11 @@ def plot_topomap(
     :doc:`matplotlib docs <matplotlib:tutorials/colors/colormapnorms>`
     for more details on colormap normalization.
     """
+    import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
 
+    if axes is None:
+        _, axes = plt.subplots()
     if outlines in ('skirt',):
         warn(OUTLINES_WARNING_MSG, FutureWarning)
     if show_names is not None:
@@ -915,11 +922,11 @@ def _get_patch(outlines, extrapolate, interp, ax):
 
 
 def _plot_topomap(
-        data, pos, *, ch_type='eeg', sensors=True, names=None, mask=None,
+        data, pos, axes, *, ch_type='eeg', sensors=True, names=None, mask=None,
         mask_params=None, contours=6, outlines='head', sphere=None,
         image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
         border=_BORDER_DEFAULT, res=64, cmap=None, vmin=None, vmax=None,
-        cnorm=None, axes=None, show=True, onselect=None):
+        cnorm=None, show=True, onselect=None):
     from matplotlib.colors import Normalize
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
@@ -993,9 +1000,7 @@ def _plot_topomap(
     outlines = _make_head_outlines(sphere, pos, outlines, (0., 0.))
     assert isinstance(outlines, dict)
 
-    # TODO should probably not plot into "current axes"?
-    ax = axes if axes else plt.gca()
-    _prepare_topomap(pos, ax)
+    _prepare_topomap(pos, axes)
 
     mask_params = _handle_default('mask_params', mask_params)
 
@@ -1006,7 +1011,7 @@ def _plot_topomap(
     Zi = interp.set_locations(Xi, Yi)()
 
     # plot outline
-    patch_ = _get_patch(outlines, extrapolate, interp, ax)
+    patch_ = _get_patch(outlines, extrapolate, interp, axes)
 
     # get colormap normalization
     if cnorm is None:
@@ -1014,11 +1019,11 @@ def _plot_topomap(
 
     # plot interpolated map
     if image_interp == 'nearest':  # plot over with Voronoi, more accurate
-        im = _voronoi_topomap(data, pos=pos, outlines=outlines, ax=ax,
+        im = _voronoi_topomap(data, pos=pos, outlines=outlines, ax=axes,
                               cmap=cmap, norm=cnorm, extent=extent, res=res)
     else:
-        im = ax.imshow(Zi, cmap=cmap, origin='lower', aspect='equal',
-                       extent=extent, interpolation='bilinear', norm=cnorm)
+        im = axes.imshow(Zi, cmap=cmap, origin='lower', aspect='equal',
+                         extent=extent, interpolation='bilinear', norm=cnorm)
 
     # gh-1432 had a workaround for no contours here, but we'll remove it
     # because mpl has probably fixed it
@@ -1031,8 +1036,8 @@ def _plot_topomap(
     if cont:
         with warnings.catch_warnings(record=True):
             warnings.simplefilter('ignore')
-            cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
-                              linewidths=linewidth / 2.)
+            cont = axes.contour(Xi, Yi, Zi, contours, colors='k',
+                                linewidths=linewidth / 2.)
 
     if patch_ is not None:
         im.set_clip_path(patch_)
@@ -1043,35 +1048,35 @@ def _plot_topomap(
     pos_x, pos_y = pos.T
     mask = mask.astype(bool, copy=False) if mask is not None else None
     if sensors is not False and mask is None:
-        _topomap_plot_sensors(pos_x, pos_y, sensors=sensors, ax=ax)
+        _topomap_plot_sensors(pos_x, pos_y, sensors=sensors, ax=axes)
     elif sensors and mask is not None:
         idx = np.where(mask)[0]
-        ax.plot(pos_x[idx], pos_y[idx], **mask_params)
+        axes.plot(pos_x[idx], pos_y[idx], **mask_params)
         idx = np.where(~mask)[0]
-        _topomap_plot_sensors(pos_x[idx], pos_y[idx], sensors=sensors, ax=ax)
+        _topomap_plot_sensors(pos_x[idx], pos_y[idx], sensors=sensors, ax=axes)
     elif not sensors and mask is not None:
         idx = np.where(mask)[0]
-        ax.plot(pos_x[idx], pos_y[idx], **mask_params)
+        axes.plot(pos_x[idx], pos_y[idx], **mask_params)
 
     if isinstance(outlines, dict):
-        _draw_outlines(ax, outlines)
+        _draw_outlines(axes, outlines)
 
     if names is not None:
         show_idx = np.arange(len(names)) if mask is None else np.where(mask)[0]
         for ii, (_pos, _name) in enumerate(zip(pos, names)):
             if ii not in show_idx:
                 continue
-            ax.text(_pos[0], _pos[1], _name, horizontalalignment='center',
-                    verticalalignment='center', size='x-small')
+            axes.text(_pos[0], _pos[1], _name, horizontalalignment='center',
+                      verticalalignment='center', size='x-small')
 
-    if not ax.figure.get_constrained_layout():
+    if not axes.figure.get_constrained_layout():
         plt.subplots_adjust(top=.95)
 
     if onselect is not None:
-        lim = ax.dataLim
+        lim = axes.dataLim
         x0, y0, width, height = lim.x0, lim.y0, lim.width, lim.height
-        ax.RS = RectangleSelector(ax, onselect=onselect)
-        ax.set(xlim=[x0, x0 + width], ylim=[y0, y0 + height])
+        axes.RS = RectangleSelector(axes, onselect=onselect)
+        axes.set(xlim=[x0, x0 + width], ylim=[y0, y0 + height])
     plt_show(show)
     return im, cont, interp
 
@@ -1975,7 +1980,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
     %(colorbar_topomap)s
     %(cbar_fmt_psd_topo)s
     %(units_topomap)s
-    %(axes_plot_topomap)s
+    %(axes_spectrum_plot_topomap)s
     %(show)s
     %(n_jobs)s
     %(verbose)s
@@ -2041,7 +2046,7 @@ def plot_psds_topomap(
     unit : str | None
         Measurement unit to be displayed with the colorbar. If ``None``, no
         unit is displayed (only "power" or "dB" as appropriate).
-    %(axes_plot_topomap)s
+    %(axes_spectrum_plot_topomap)s
     %(show)s
 
     Returns

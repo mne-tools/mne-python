@@ -249,28 +249,31 @@ average : bool, default True
     .. versionadded:: 0.13.0
 """
 
-_axes = """\
-{} : instance of Axes | list of Axes | None
+_axes_base = """\
+{} : instance of Axes | {}None
     The axes to plot to. If ``None``, a new :class:`~matplotlib.figure.Figure`
-    will be created with the correct number of axes. If
-    :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
-    a :class:`list` of axes), the number of axes provided must {}.
-    Default is ``None``.
+    will be created{}. {}Default is ``None``.
 """
+_axes_num = ('If :class:`~matplotlib.axes.Axes` are provided (either as a '
+             'single instance or a :class:`list` of axes), the number of axes '
+             'provided must {}.')
+_axes_list = _axes_base.format(
+    '{}', 'list of Axes | ', ' with the correct number of axes', _axes_num)
 _ch_types_present = ('match the number of channel types present in the {}'
                      'object.')
-docdict['ax_plot_psd'] = _axes.format('ax', _ch_types_present.format(''))
-docdict['axes_cov_plot_topomap'] = _axes.format('axes', 'be length 1')
-docdict['axes_evoked_plot_topomap'] = _axes.format(
+docdict['ax_plot_psd'] = _axes_list.format('ax', _ch_types_present.format(''))
+docdict['axes_cov_plot_topomap'] = _axes_list.format('axes', 'be length 1')
+docdict['axes_evoked_plot_topomap'] = _axes_list.format(
     'axes',
     'match the number of ``times`` provided (unless ``times`` is ``None``)')
-docdict['axes_plot_projs_topomap'] = _axes.format(
+docdict['axes_plot_projs_topomap'] = _axes_list.format(
     'axes', 'match the number of projectors')
-docdict['axes_plot_topomap'] = _axes.format(
+docdict['axes_plot_topomap'] = _axes_base.format('axes', '', '', '')
+docdict['axes_spectrum_plot_topomap'] = _axes_list.format(
     'axes', 'match the length of ``bands``')
-docdict['axes_spectrum_plot'] = _axes.format(
+docdict['axes_spectrum_plot'] = _axes_list.format(
     'axes', _ch_types_present.format(':class:`~mne.time_frequency.Spectrum`'))
-docdict['axes_spectrum_plot_topo'] = _axes.format(
+docdict['axes_spectrum_plot_topo'] = _axes_list.format(
     'axes',
     'be length 1 (for efficiency, subplots for each channel are simulated '
     'within a single :class:`~matplotlib.axes.Axes` object)')
