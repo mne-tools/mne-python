@@ -136,9 +136,9 @@ known_config_types = {
     'MNE_SKIP_TESTING_DATASET_TESTS': '',
     'MNE_STIM_CHANNEL': '',
     'MNE_TQDM': '',
-    'MNE_USE_CUDA': '',
-    'MNE_USE_NUMBA': '',
-    'SUBJECTS_DIR': '',
+    'MNE_USE_CUDA': 'boolean, use GPU for filtering/resampling',
+    'MNE_USE_NUMBA': 'boolean, use Numba just-in-time compiler for some of our intensive computations',
+    'SUBJECTS_DIR': 'path-like, directory of freesurfer MRI files for each subject',
 }
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
