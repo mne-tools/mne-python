@@ -1328,13 +1328,12 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
 
 @fill_doc
-def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=0., fmax=np.inf, *,
-                     ch_type=None, baseline=None, mode='mean',
-                     vmin=None, vmax=None, cmap=None, sensors=True,
-                     colorbar=True, unit=None, res=64, size=2,
-                     cbar_fmt='%1.1e', show_names=False, title=None,
-                     axes=None, show=True, outlines='head',
-                     contours=6, sphere=None):
+def plot_tfr_topomap(
+        tfr, tmin=None, tmax=None, fmin=0., fmax=np.inf, *, ch_type=None,
+        baseline=None, mode='mean', sensors=True, show_names=False, contours=6,
+        outlines='head', sphere=None, res=64, size=2, cmap=None,
+        vmin=None, vmax=None, colorbar=True,
+        cbar_fmt='%1.1e', unit=None, axes=None, title=None, show=True):
     """Plot topographic maps of specific time-frequency intervals of TFR data.
 
     Parameters
@@ -1364,23 +1363,23 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=0., fmax=np.inf, *,
             by the standard deviation of the baseline power ('zlogratio')
 
         If None no baseline correction is applied.
-    %(vmin_vmax_topomap)s
-    %(cmap_topomap)s
     %(sensors_topomap)s
-    %(colorbar_topomap)s
-    unit : str | None
-        The unit of the channel type used for colorbar labels.
+    %(show_names_topomap)s
+    %(contours_topomap)s
+    %(outlines_topomap)s
+    %(sphere_topomap_auto)s
     %(res_topomap)s
     %(size_topomap)s
+    %(cmap_topomap)s
+    %(vmin_vmax_topomap)s
+    %(colorbar_topomap)s
     %(cbar_fmt_topomap)s
-    %(show_names_topomap)s
+    unit : str | None
+        The unit of the channel type used for colorbar labels.
+    %(axes_plot_topomap)s
     title : str | None
         Plot title. If None (default), no title is displayed.
-    %(axes_plot_topomap)s
     %(show)s
-    %(outlines_topomap)s
-    %(contours_topomap)s
-    %(sphere_topomap_auto)s
 
     Returns
     -------
