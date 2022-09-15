@@ -316,7 +316,6 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     from ..forward import Forward
     _check_can_reref(inst)
 
-    ch_type_orig = ch_type
     ch_type = _get_ch_type(inst, ch_type)
 
     if projection:  # average reference projector
