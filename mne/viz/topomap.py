@@ -993,6 +993,7 @@ def _plot_topomap(
     outlines = _make_head_outlines(sphere, pos, outlines, (0., 0.))
     assert isinstance(outlines, dict)
 
+    # TODO should probably not plot into "current axes"?
     ax = axes if axes else plt.gca()
     _prepare_topomap(pos, ax)
 
