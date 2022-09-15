@@ -289,7 +289,7 @@ def set_config(key, value, home_dir=None, set_env=True):
     if value is not None:
         value = str(value)
 
-    if key not in known_config_types.keys() and not \
+    if key not in known_config_types and not \
             any(key.startswith(k) for k in known_config_wildcards):
         warn('Setting non-standard config type: "%s"' % key)
 
