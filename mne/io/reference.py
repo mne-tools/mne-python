@@ -315,7 +315,6 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     from ..forward import Forward
     _check_can_reref(inst)
 
-    ch_type_orig = ch_type
     ch_type = _get_ch_type(inst, ch_type)
 
     if projection:  # average reference projector
@@ -323,7 +322,9 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
             raise ValueError('Setting projection=True is only supported for '
                              'ref_channels="average", got %r.'
                              % (ref_channels,))
-        if _has_eeg_average_ref_proj(inst.info):
+        # We need verbose='error' here in case we add projs sequentially
+        if _has_eeg_average_ref_proj(
+                inst.info, ch_type=ch_type, verbose='error'):
             warn('An average reference projection was already added. The data '
                  'has been left untouched.')
         else:
@@ -331,19 +332,13 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
             # sure that the custom_ref_applied flag is left untouched.
             custom_ref_applied = inst.info['custom_ref_applied']
 
-            if len(ch_type) > 1:
-                assert len(ch_type_orig) > 1  # only have 2 if 2 were passed
-                raise ValueError('Multiple channel types are not supported '
-                                 f'when using projection. Got {ch_type_orig}.')
-
             try:
                 with inst.info._unlock():
                     inst.info['custom_ref_applied'] = \
                         FIFF.FIFFV_MNE_CUSTOM_REF_OFF
-                for ch_typ in ch_type:
-                    inst.add_proj(make_eeg_average_ref_proj(inst.info,
-                                                            ch_type=ch_typ,
-                                                            activate=False))
+                inst.add_proj(
+                    make_eeg_average_ref_proj(
+                        inst.info, ch_type=ch_type, activate=False))
             except Exception:
                 with inst.info._unlock():
                     inst.info['custom_ref_applied'] = custom_ref_applied

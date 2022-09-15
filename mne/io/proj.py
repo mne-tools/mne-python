@@ -854,7 +854,9 @@ def make_eeg_average_ref_proj(info, activate=True, *, ch_type='eeg',
     return proj
 
 
-def _has_eeg_average_ref_proj(info, *, projs=None, check_active=False):
+@verbose
+def _has_eeg_average_ref_proj(
+        info, *, projs=None, check_active=False, ch_type=None, verbose=None):
     """Determine if a list of projectors has an average EEG ref.
 
     Optionally, set check_active=True to additionally check if the CAR
@@ -863,9 +865,15 @@ def _has_eeg_average_ref_proj(info, *, projs=None, check_active=False):
     from .meas_info import Info
     _validate_type(info, Info, 'info')
     projs = info.get('projs', []) if projs is None else projs
+    if ch_type is None:
+        pick_kwargs = _EEG_AVREF_PICK_DICT
+    else:
+        ch_type = [ch_type] if isinstance(ch_type, str) else ch_type
+        pick_kwargs = {ch_type: True for ch_type in ch_type}
+    ch_type = '/'.join(c.upper() for c in pick_kwargs)
     want_names = [
         info['ch_names'][pick] for pick in pick_types(
-            info, **_EEG_AVREF_PICK_DICT, exclude='bads')]
+            info, exclude='bads', **pick_kwargs)]
     if not want_names:
         return False
     found_names = list()
@@ -879,7 +887,8 @@ def _has_eeg_average_ref_proj(info, *, projs=None, check_active=False):
     missing = [name for name in want_names if name not in found_names]
     if missing:
         if found_names:  # found some but not all: warn
-            warn(f'Incomplete EEG projector, missing channel(s) {missing}')
+            warn(f'Incomplete {ch_type} projector, '
+                 f'missing channel(s) {missing}')
         return False
     return True
 

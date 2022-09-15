@@ -15,7 +15,7 @@ from mne.cov import regularize, compute_whitener
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray
 from mne.io.proj import (make_projector, activate_proj,
-                         _needs_eeg_average_ref_proj)
+                         _needs_eeg_average_ref_proj, _EEG_AVREF_PICK_DICT)
 from mne.preprocessing import maxwell_filter
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
@@ -347,20 +347,100 @@ def test_make_eeg_average_ref_proj():
 
     # test that an average EEG ref is not added when doing proj
     raw.set_eeg_reference(projection=True)
-    assert _has_eeg_average_ref_proj(raw.info['projs'])
+    assert _has_eeg_average_ref_proj(raw.info)
     raw.del_proj(idx=-1)
-    assert not _has_eeg_average_ref_proj(raw.info['projs'])
+    assert not _has_eeg_average_ref_proj(raw.info)
     raw.apply_proj()
-    assert not _has_eeg_average_ref_proj(raw.info['projs'])
+    assert not _has_eeg_average_ref_proj(raw.info)
 
 
-def test_has_eeg_average_ref_proj():
-    """Test checking whether an EEG average reference exists."""
-    assert not _has_eeg_average_ref_proj([])
+@pytest.mark.parametrize('ch_type', tuple(_EEG_AVREF_PICK_DICT) + ('all',))
+def test_has_eeg_average_ref_proj(ch_type):
+    """Test checking whether an (i)EEG average reference exists."""
+    all_ref_ch_types = list(_EEG_AVREF_PICK_DICT)
+    if ch_type == 'all':
+        ch_types = all_ref_ch_types
+        set_eeg_ref_ch_type = all_ref_ch_types
+    else:
+        ch_types = [ch_type] * len(all_ref_ch_types)
+        set_eeg_ref_ch_type = ch_type
+    empty_info = create_info(len(all_ref_ch_types), 1000., ch_types)
+    assert not _has_eeg_average_ref_proj(empty_info)
 
     raw = read_raw_fif(raw_fname)
-    raw.set_eeg_reference(projection=True)
-    assert _has_eeg_average_ref_proj(raw.info['projs'])
+    raw.del_proj()
+    raw.load_data()
+    picks = pick_types(raw.info, eeg=True)
+    assert len(picks) == 60
+    # repeat `ch_types` over and over again
+    ch_types = sum(
+        [ch_types] * (len(picks) // len(ch_types) + 1), [])[:len(picks)]
+    raw.set_channel_types(
+        {raw.ch_names[pick]: ch_type
+         for pick, ch_type in zip(picks, ch_types)})
+    raw._data[picks] = 1.  # set all to unity
+    # For individual channel types, set them and return from the test early
+    if ch_type != 'all':
+        for ch_type in ('auto', set_eeg_ref_ch_type):
+            raw.set_eeg_reference(projection=True, ch_type=ch_type)
+            assert len(raw.info['projs']) == 1
+            assert _has_eeg_average_ref_proj(raw.info)
+            assert not _needs_eeg_average_ref_proj(raw.info)
+            if ch_type == 'auto':
+                with pytest.warns(RuntimeWarning, match='added.*untouched'):
+                    raw.set_eeg_reference(projection=True, ch_type=ch_type)
+                raw.del_proj()
+        desc = raw.info['projs'][0]['desc'].lower()
+        assert ch_type in desc
+        data = raw.copy().apply_proj()[picks][0]
+        assert_allclose(data, 0., atol=1e-12)  # zeroed out
+        return
+
+    # Now for ch_type == 'all', ensure that we can make one proj or
+    # len(all_ref_ch_types) projs
+
+    # One big joint proj
+    raw.set_eeg_reference(projection=True, ch_type=set_eeg_ref_ch_type)
+    assert len(raw.info['projs']) == 1
+    assert _has_eeg_average_ref_proj(raw.info)
+    assert not _needs_eeg_average_ref_proj(raw.info)
+    desc = raw.info['projs'][0]['desc'].lower()
+    assert all(ch_type in desc for ch_type in all_ref_ch_types)
+    for ch_type in all_ref_ch_types + [all_ref_ch_types]:
+        with pytest.warns(RuntimeWarning, match='already added.*untouch'):
+            raw.set_eeg_reference(projection=True, ch_type=ch_type)
+    data = raw.copy().apply_proj()[picks][0]
+    assert_allclose(data, 0., atol=1e-12)  # zeroed out
+    raw.del_proj()
+
+    # len(all_kinds) separate projs, with data for each channel type that
+    # is a different non-zero integer (EEG=1, SEEG=2, ...)
+    for ci, ch_type in enumerate(all_ref_ch_types):
+        raw._data[pick_types(raw.info, **{ch_type: True})] = ci + 1
+    for ci, ch_type in enumerate(all_ref_ch_types):
+        raw.set_eeg_reference(projection=True, ch_type=ch_type)
+        assert len(raw.info['projs']) == ci + 1
+        if ci < len(all_ref_ch_types) < 1:
+            assert not _has_eeg_average_ref_proj(raw.info)
+            assert _needs_eeg_average_ref_proj(raw.info)
+    assert len(raw.info['projs']) == len(all_ref_ch_types)
+    assert _has_eeg_average_ref_proj(raw.info)
+    assert not _needs_eeg_average_ref_proj(raw.info)
+    descs = [p['desc'].lower() for p in raw.info['projs']]
+    assert len(descs) == len(all_ref_ch_types)
+    for desc, ch_type in zip(descs, all_ref_ch_types):
+        assert ch_type in desc
+    assert_allclose(raw[picks][0], raw[all_ref_ch_types][0], atol=1e-12)
+    data = raw.copy().apply_proj()[picks][0]
+    assert len(data) == len(picks)
+    assert_allclose(data, 0., atol=1e-12)  # zeroed out
+    # a single joint proj will *not* zero out given these integer 1/2/3...
+    # values per channel type assuming we have an even number of channels.
+    # If this changes we'll have to make this check better
+    assert len(all_ref_ch_types) % 2 == 0
+    data_nz = raw.del_proj().set_eeg_reference(
+        projection=True, ch_type=all_ref_ch_types).apply_proj()[picks][0]
+    assert not np.isclose(data_nz, 0.).any()
 
 
 def test_needs_eeg_average_ref_proj():
