@@ -2572,6 +2572,14 @@ scalp topography plot for the chosen frequency range in a new figure
 """
 # lack of trailing . is intentional; it must be in actual docstring ↑↑↑ (D400)
 
+_pos_topomap = """\
+pos : array, shape (n_channels, 2){}
+    Location information for the channels. If an array, should provide the x
+    and y coordinates for plotting the channels in 2D.
+"""
+docdict['pos_topomap'] = _pos_topomap.format(' | instance of Info')
+docdict['pos_topomap_psd'] = _pos_topomap.format('')
+
 docdict['precompute'] = """
 precompute : bool | str
     Whether to load all data (not just the visible portion) into RAM and

@@ -735,19 +735,14 @@ def plot_topomap(
     ----------
     data : array, shape (n_chan,)
         The data values to plot.
-    pos : array, shape (n_chan, 2) | instance of Info
-        Location information for the data points(/channels).
-        If an array, for each data point, the x and y coordinates.
-        If an `~mne.Info` object, it must contain only one data type and
-        exactly ``len(data)`` data channels, and the x/y coordinates will
-        be inferred from the montage applied to the `~mne.Info` object.
+    %(pos_topomap)s
+        If an :class:`~mne.Info` object it must contain only one channel type
+        and exactly ``len(data)`` channels; the x/y coordinates will
+        be inferred from the montage in the :class:`~mne.Info` object.
     %(ch_type_topomap)s
 
         .. versionadded:: 0.21
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., ``'r+'`` for red plusses). If True (default),
-        circles will be used.
+    %(sensors_topomap)s
     %(show_names_topomap)s
 
         .. deprecated:: v1.2
@@ -1158,43 +1153,17 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     ica : instance of mne.preprocessing.ICA
         The ICA solution.
     %(picks_ica)s
-    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-        The channel type to plot. For 'grad', the gradiometers are
-        collected in pairs and the RMS for each pair is plotted.
-        If None, then channels are chosen in the order given above.
-    res : int
-        The resolution of the topomap image (n pixels along each side).
+    %(ch_type_topomap)s
+    %(res_topomap)s
     %(vmin_vmax_topomap)s
-    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-        Colormap to use. If tuple, the first value indicates the colormap to
-        use and the second value is a boolean defining interactivity. In
-        interactive mode the colors are adjustable by clicking and dragging the
-        colorbar with left and right mouse button. Left mouse button moves the
-        scale up and down and right mouse button adjusts the range. Hitting
-        space bar resets the range. Up and down arrows can be used to change
-        the colormap. If None, 'Reds' is used for all positive data,
-        otherwise defaults to 'RdBu_r'. If 'interactive', translates to
-        (None, True). Defaults to 'RdBu_r'.
-
-        .. warning::  Interactive mode works smoothly only for a small amount
-                      of topomaps.
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib
-        plot format string (e.g., 'r+' for red plusses). If True (default),
-        circles  will be used.
-    colorbar : bool
-        Plot a colorbar.
+    %(cmap_topomap)s
+    %(sensors_topomap)s
+    %(colorbar_topomap)s
     title : str | None
         Title to use.
-    show : bool
-        Show figure if True.
+    %(show)s
     %(outlines_topomap)s
-    contours : int | array of float
-        The number of contour lines to draw. If 0, no contours will be drawn.
-        When an integer, matplotlib ticker locator is used to find suitable
-        values for the contour thresholds (may sometimes be inaccurate, use
-        array for accuracy). If an array, the values represent the levels for
-        the contours. Defaults to 6.
+    %(contours_topomap)s
     %(image_interp_topomap)s
     inst : Raw | Epochs | None
         To be able to see component properties after clicking on component
@@ -1384,10 +1353,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     fmax : None | float
         The last frequency to display. If None the last frequency available is
         used.
-    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-        The channel type to plot. For 'grad', the gradiometers are collected in
-        pairs and the mean for each pair is plotted. If None, then channels are
-        chosen in the order given above.
+    %(ch_type_topomap_psd)s
     baseline : tuple or list of length 2
         The time interval to apply rescaling / baseline correction. If None do
         not apply it. If baseline is (a, b) the interval is between "a (s)" and
@@ -1409,45 +1375,23 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
         If None no baseline correction is applied.
     %(vmin_vmax_topomap)s
-    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-        Colormap to use. If tuple, the first value indicates the colormap to
-        use and the second value is a boolean defining interactivity. In
-        interactive mode the colors are adjustable by clicking and dragging the
-        colorbar with left and right mouse button. Left mouse button moves the
-        scale up and down and right mouse button adjusts the range. Hitting
-        space bar resets the range. Up and down arrows can be used to change
-        the colormap. If None (default), 'Reds' is used for all positive data,
-        otherwise defaults to 'RdBu_r'. If 'interactive', translates to
-        (None, True).
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+'). If True (default), circles will be used.
-    colorbar : bool
-        Plot a colorbar.
+    %(cmap_topomap)s
+    %(sensors_topomap)s
+    %(colorbar_topomap)s
     unit : str | None
         The unit of the channel type used for colorbar labels.
-    res : int
-        The resolution of the topomap image (n pixels along each side).
-    size : float
-        Side length per topomap in inches (only applies when plotting multiple
-        topomaps at a time).
+    %(res_topomap)s
+    %(size_topomap)s
     cbar_fmt : str
         String format for colorbar values.
     %(show_names_topomap)s
     title : str | None
         Plot title. If None (default), no title is displayed.
-    axes : instance of Axes | None
-        The axes to plot to. If None the axes is defined automatically.
+    %(axes_plot_topomap)s
     show : bool
         Show figure if True.
     %(outlines_topomap)s
-    contours : int | array of float
-        The number of contour lines to draw. If 0, no contours will be drawn.
-        When an integer, matplotlib ticker locator is used to find suitable
-        values for the contour thresholds (may sometimes be inaccurate, use
-        array for accuracy). If an array, the values represent the levels for
-        the contours. If colorbar=True, the ticks in colorbar correspond to the
-        contour levels. Defaults to 6.
+    %(contours_topomap)s
     %(sphere_topomap_auto)s
 
     Returns
@@ -2025,12 +1969,11 @@ def plot_psds_topomap(
 
     Parameters
     ----------
-    psds : np.ndarray of float, shape (n_channels, n_freqs)
-        Power spectral densities
-    freqs : np.ndarray of float, shape (n_freqs)
+    psds : array of float, shape (n_channels, n_freqs)
+        Power spectral densities.
+    freqs : array of float, shape (n_freqs,)
         Frequencies used to compute psds.
-    pos : numpy.ndarray of float, shape (n_sensors, 2)
-        The positions of the sensors.
+    %(pos_topomap_psd)s
     %(bands_psd_topo)s
     %(ch_type_topomap)s
     %(normalize_psd_topo)s
@@ -2646,16 +2589,10 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
         To scale the arrows.
     %(vmin_vmax_topomap)s
     %(cmap_topomap_simple)s
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True (default), circles
-        will be used.
-    res : int
-        The resolution of the topomap image (n pixels along each side).
-    axes : instance of Axes | None
-        The axes to plot to. If None, a new figure will be created.
-    names : list | None
-        List of channel names.
+    %(sensors_topomap)s
+    %(res_topomap)s
+    %(axes_plot_topomap)s
+    %(names_topomap)s
 
         .. deprecated:: v1.2
            The ``names`` parameter will be removed in version 1.3. Names will
@@ -2666,14 +2603,9 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
     %(mask_topomap)s
     %(mask_params_topomap)s
     %(outlines_topomap)s
-    contours : int | array of float
-        The number of contour lines to draw. If 0, no contours will be drawn.
-        If an array, the values represent the levels for the contours. The
-        values are in µV for EEG, fT for magnetometers and fT/m for
-        gradiometers. Defaults to 6.
+    %(contours_topomap)s
     %(image_interp_topomap)s
-    show : bool
-        Show figure if True.
+    %(show)s
     onselect : callable | None
         Handle for a function that is called when the user selects a set of
         channels by rectangle selection (matplotlib ``RectangleSelector``). If
