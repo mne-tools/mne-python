@@ -259,16 +259,16 @@ def test_plot_evoked_topomap_border():
     idx = kwargs['res'] // 2
 
     # when border=0...
-    ax, _ = plot_topomap(data, info, border=0, **kwargs)
-    img_data = ax.get_array().data
+    img, _ = plot_topomap(data, info, border=0, **kwargs)
+    img_data = img.get_array().data
     # middle pixel should exactly equal sensor data:
     assert_equal(img_data[idx, idx], data[0])
     # corner pixel should be close(ish) to zero:
     assert img_data[0, 0] < 1.5
 
     # when border='mean'...
-    ax, _ = plot_topomap(data, info, border='mean', **kwargs)
-    img_data = ax.get_array().data
+    img, _ = plot_topomap(data, info, border='mean', **kwargs)
+    img_data = img.get_array().data
     # middle pixel should exactly equal sensor data:
     assert_equal(img_data[idx, idx], data[0])
     # and corner pixel should *also* be very close to sensor data:
