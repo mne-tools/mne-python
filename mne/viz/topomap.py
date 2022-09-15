@@ -1328,7 +1328,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
 
 @fill_doc
-def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
+def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=0., fmax=np.inf,
                      ch_type=None, baseline=None, mode='mean',
                      vmin=None, vmax=None, cmap=None, sensors=True,
                      colorbar=True, unit=None, res=64, size=2,
@@ -1341,18 +1341,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     ----------
     tfr : AverageTFR
         The AverageTFR object.
-    tmin : None | float
-        The first time instant to display. If None the first time point
-        available is used.
-    tmax : None | float
-        The last time instant to display. If None the last time point available
-        is used.
-    fmin : None | float
-        The first frequency to display. If None the first frequency available
-        is used.
-    fmax : None | float
-        The last frequency to display. If None the last frequency available is
-        used.
+    %(tmin_tmax_psd)s
+    %(fmin_fmax_psd)s
     %(ch_type_topomap_psd)s
     baseline : tuple or list of length 2
         The time interval to apply rescaling / baseline correction. If None do
@@ -1428,10 +1418,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     # crop freqs
     ifmin, ifmax = None, None
     idx = np.where(_time_mask(tfr.freqs, fmin, fmax))[0]
-    if fmin is not None:
-        ifmin = idx[0]
-    if fmax is not None:
-        ifmax = idx[-1] + 1
+    ifmin = idx[0]
+    ifmax = idx[-1] + 1
 
     data = data[:, ifmin:ifmax, itmin:itmax]
     data = np.mean(np.mean(data, axis=2), axis=1)[:, np.newaxis]
