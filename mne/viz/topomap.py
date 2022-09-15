@@ -325,7 +325,6 @@ def plot_projs_topomap(
     -----
     .. versionadded:: 0.9.0
     """
-
     fig = _plot_projs_topomap(
         projs, info, sensors=sensors, show_names=show_names, contours=contours,
         outlines=outlines, sphere=sphere, image_interp=image_interp,
