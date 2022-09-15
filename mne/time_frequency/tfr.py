@@ -1910,7 +1910,7 @@ class AverageTFR(_BaseTFR):
         return fig
 
     @fill_doc
-    def plot_topomap(self, tmin=None, tmax=None, fmin=0, fmax=np.inf,
+    def plot_topomap(self, tmin=None, tmax=None, fmin=0, fmax=np.inf, *,
                      ch_type=None, baseline=None, mode='mean',
                      vmin=None, vmax=None, cmap=None, sensors=True,
                      colorbar=True, unit=None, res=64, size=2,

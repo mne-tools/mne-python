@@ -1328,7 +1328,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
 
 @fill_doc
-def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=0., fmax=np.inf,
+def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=0., fmax=np.inf, *,
                      ch_type=None, baseline=None, mode='mean',
                      vmin=None, vmax=None, cmap=None, sensors=True,
                      colorbar=True, unit=None, res=64, size=2,
