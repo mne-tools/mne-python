@@ -743,11 +743,7 @@ def plot_topomap(
     %(names_topomap)s
     %(mask_topomap)s
     %(mask_params_topomap)s
-    contours : int | array of float
-        The number of contour lines to draw. If ``0``, no contours will be
-        drawn. If an array, the values represent the levels for the contours.
-        The values are in µV for EEG, fT for magnetometers and fT/m for
-        gradiometers. Defaults to ``6``.
+    %(contours_topomap)s
     %(outlines_topomap)s
     %(sphere_topomap_auto)s
     %(image_interp_topomap)s
@@ -764,12 +760,12 @@ def plot_topomap(
         .. versionadded:: 0.24
     axes : instance of Axes | None
         The axes to plot to. If None, the current axes will be used.
-    show : bool
-        Show figure if True.
+    %(show)s
     onselect : callable | None
-        Handle for a function that is called when the user selects a set of
-        channels by rectangle selection (matplotlib ``RectangleSelector``). If
-        None interactive selection is disabled. Defaults to None.
+        A function to be called when the user selects a set of channels by
+        click-dragging (uses a matplotlib
+        :class:`~matplotlib.widgets.RectangleSelector`). If ``None``
+        interactive channel selection is disabled. Defaults to ``None``.
 
     Returns
     -------

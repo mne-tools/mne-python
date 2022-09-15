@@ -700,14 +700,14 @@ noise from the data.
 """
 
 docdict['contours_topomap'] = """
-contours : int | array of float
-    The number of contour lines to draw. If 0, no contours will be drawn.
-    When an integer, matplotlib ticker locator is used to find suitable
-    values for the contour thresholds (may sometimes be inaccurate, use
-    array for accuracy). If an array, the values represent the levels for
-    the contours. The values are in µV for EEG, fT for magnetometers and
-    fT/m for gradiometers. If colorbar=True, the ticks in colorbar
-    correspond to the contour levels. Defaults to 6.
+contours : int | array-like
+    The number of contour lines to draw. If ``0``, no contours will be drawn.
+    If a positive integer, that number of contour levelss are chosen using the
+    matplotlib tick locator (may sometimes be inaccurate, use array for
+    accuracy). If array-like, the array values are used as the contour levels.
+    The values should be in µV for EEG, fT for magnetometers and fT/m for
+    gradiometers. If ``colorbar=True``, the colorbar will have ticks
+    corresponding to the contour levels. Default is ``6``.
 """
 
 docdict['coord_frame_maxwell'] = """
