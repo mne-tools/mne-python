@@ -279,13 +279,12 @@ def _eliminate_zeros(proj):
 
 
 @fill_doc
-def plot_projs_topomap(projs, info, cmap=None, sensors=True,
-                       colorbar=False, res=64, size=1, show=True,
-                       outlines='head', contours=6,
-                       image_interp=_INTERPOLATION_DEFAULT,
-                       axes=None, vlim=(None, None),
-                       sphere=None, extrapolate=_EXTRAPOLATE_DEFAULT,
-                       border=_BORDER_DEFAULT):
+def plot_projs_topomap(
+        projs, info, *, sensors=True, show_names=False, contours=6,
+        outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+        extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+        size=1, cmap=None, vlim=(None, None), colorbar=False, axes=None,
+        show=True):
     """Plot topographic maps of SSP projections.
 
     Parameters
@@ -297,13 +296,25 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
         .. versionchanged:: 0.20
             The positional argument ``layout`` was deprecated and replaced
             by ``info``.
-    %(proj_topomap_kwargs)s
-    %(vlim_plot_topomap_proj)s
+    %(sensors_topomap)s
+    %(show_names_topomap)s
+
+        .. versionadded:: 1.2
+    %(contours_topomap)s
+    %(outlines_topomap)s
     %(sphere_topomap_auto)s
+    %(image_interp_topomap)s
     %(extrapolate_topomap)s
 
         .. versionadded:: 0.20
     %(border_topomap)s
+    %(res_topomap)s
+    %(size_topomap)s
+    %(cmap_topomap)s
+    %(vlim_plot_topomap_proj)s
+    %(colorbar_topomap)s
+    %(axes_plot_projs_topomap)s
+    %(show)s
 
     Returns
     -------
@@ -314,11 +325,12 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
     -----
     .. versionadded:: 0.9.0
     """
+
     fig = _plot_projs_topomap(
-        projs, info, cmap=cmap, sensors=sensors, colorbar=colorbar, res=res,
-        size=size, outlines=outlines, contours=contours,
-        image_interp=image_interp, axes=axes, vlim=vlim, sphere=sphere,
-        extrapolate=extrapolate, border=border)
+        projs, info, sensors=sensors, show_names=show_names, contours=contours,
+        outlines=outlines, sphere=sphere, image_interp=image_interp,
+        extrapolate=extrapolate, border=border, res=res, size=size, cmap=cmap,
+        vlim=vlim, colorbar=colorbar, axes=axes)
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('ignore')
         tight_layout(fig=fig)
@@ -326,7 +338,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
     return fig
 
 
-def _plot_projs_topomap(projs, info, cmap=None, sensors=True,
+def _plot_projs_topomap(projs, info, cmap=None, sensors=True, show_names=False,
                         colorbar=False, res=64, size=1, show=True,
                         outlines='head', contours=6,
                         image_interp=_INTERPOLATION_DEFAULT,
@@ -404,6 +416,9 @@ def _plot_projs_topomap(projs, info, cmap=None, sensors=True,
     # plot
     for proj, ax, _data, _pos, _vlim, _sphere, _outlines, _ch_type in zip(
             projs, axes, datas, poss, vlims, spheres, outliness, ch_typess):
+        # ch_names
+        names = [info['ch_names'][k] for k in _picks_to_idx(info, _ch_type)]
+        names = _prepare_sensor_names(names, show_names)
         # title
         title = proj['desc']
         title = '\n'.join(title[ii:ii + 22] for ii in range(0, len(title), 22))
@@ -411,7 +426,7 @@ def _plot_projs_topomap(projs, info, cmap=None, sensors=True,
         # plot
         vmin, vmax = _vlim
         im = plot_topomap(_data, _pos[:, :2], vmin=vmin, vmax=vmax, cmap=cmap,
-                          sensors=sensors, res=res, axes=ax,
+                          sensors=sensors, names=names, res=res, axes=ax,
                           outlines=_outlines, contours=contours,
                           image_interp=image_interp, show=False,
                           extrapolate=extrapolate, sphere=_sphere,

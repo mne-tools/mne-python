@@ -98,9 +98,9 @@ class Projection(dict):
         """  # noqa: E501
         from ..viz.topomap import plot_projs_topomap
         return plot_projs_topomap(
-            self, info, cmap, sensors, colorbar=colorbar, res=res, size=size,
+            self, info, sensors=sensors, colorbar=colorbar, res=res, size=size,
             show=show, outlines=outlines, contours=contours,
-            image_interp=image_interp, axes=axes, vlim=vlim,
+            image_interp=image_interp, axes=axes, cmap=cmap, vlim=vlim,
             sphere=sphere, border=border)
 
 
@@ -353,14 +353,12 @@ class ProjMixin(object):
             # XXX TODO FIXME there is probably a better way to do this ↑↑↑↑↑↑↑
             if len(_projs) > 0:
                 from ..viz.topomap import plot_projs_topomap
-                fig = plot_projs_topomap(_projs, self.info, cmap=cmap,
-                                         sensors=sensors, colorbar=colorbar,
-                                         res=res, size=size, show=show,
-                                         outlines=outlines, contours=contours,
-                                         image_interp=image_interp, axes=axes,
-                                         vlim=vlim, sphere=sphere,
-                                         extrapolate=extrapolate,
-                                         border=border)
+                fig = plot_projs_topomap(
+                    _projs, self.info, sensors=sensors, show_names=show_names,
+                    contours=contours, outlines=outlines, sphere=sphere,
+                    image_interp=image_interp, extrapolate=extrapolate,
+                    border=border, res=res, size=size, cmap=cmap, vlim=vlim,
+                    colorbar=colorbar, axes=axes, show=show)
             else:
                 raise ValueError('Nothing to plot (no projectors for channel '
                                  f'type {ch_type}).')

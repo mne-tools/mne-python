@@ -60,4 +60,5 @@ API changes
 - The ``show_toolbar`` argument to :class:`mne.viz.Brain` is being removed by deprecation (:gh:`11049` by `Eric Larson`_)
 - New classes :class:`~mne.time_frequency.Spectrum` and :class:`~mne.time_frequency.EpochsSpectrum`, created via new methods :meth:`Raw.compute_psd()<mne.io.Raw.compute_psd>`, :meth:`Epochs.compute_psd()<mne.Epochs.compute_psd>`, and :meth:`Evoked.compute_psd()<mne.Evoked.compute_psd>` (:gh:`10184` by `Daniel McCloy`_)
 - In :func:`mne.viz.plot_topomap`, passing ``axes=None`` will now create a new :class:`~matplotlib.figure.Figure` instead of plotting into the current axes (:gh:`11123` by `Daniel McCloy`_)
+- Functions/methods for plotting projector topomaps now have a ``show_names`` parameter (:gh:`11123` by `Daniel McCloy`_)
 - The PSD functions that operate on Raw/Epochs/Evoked instances (``mne.time_frequency.psd_welch`` and ``mne.time_frequency.psd_multitaper``) are deprecated; for equivalent functionality create :class:`~mne.time_frequency.Spectrum` or :class:`~mne.time_frequency.EpochsSpectrum` objects instead and then run ``spectrum.get_data(return_freqs=True)`` (:gh:`10184` by `Daniel McCloy`_)
