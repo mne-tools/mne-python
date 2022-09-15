@@ -914,12 +914,12 @@ def _get_patch(outlines, extrapolate, interp, ax):
     return patch_
 
 
-def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
-                  res=64, axes=None, names=None, mask=None,
-                  mask_params=None, outlines='head', contours=6,
-                  image_interp=_INTERPOLATION_DEFAULT, show=True,
-                  onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
-                  border=_BORDER_DEFAULT, ch_type='eeg', cnorm=None):
+def _plot_topomap(
+        data, pos, *, ch_type='eeg', sensors=True, names=None, mask=None,
+        mask_params=None, contours=6, outlines='head', sphere=None,
+        image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
+        border=_BORDER_DEFAULT, res=64, cmap=None, vmin=None, vmax=None,
+        cnorm=None, axes=None, show=True, onselect=None):
     from matplotlib.colors import Normalize
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
