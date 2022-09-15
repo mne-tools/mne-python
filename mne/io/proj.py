@@ -316,7 +316,7 @@ class ProjMixin(object):
         %(res_topomap)s
         %(size_topomap)s
             Only applies when plotting multiple topomaps at a time.
-        %(cmap_psd_topo)s
+        %(cmap_topomap)s
         %(vlim_plot_topomap_proj)s
         %(colorbar_topomap)s
         %(cbar_fmt_topomap)s

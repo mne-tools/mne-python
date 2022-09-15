@@ -1971,7 +1971,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
     %(border_topomap)s
     %(res_topomap)s
     %(size_topomap)s
-    %(cmap_psd_topo)s
+    %(cmap_topomap)s
     %(vlim_plot_topomap_psd)s
 
         .. versionadded:: 0.21
@@ -2035,7 +2035,7 @@ def plot_psds_topomap(
     %(border_topomap)s
     %(res_topomap)s
     %(size_topomap)s
-    %(cmap_psd_topo)s
+    %(cmap_topomap)s
     %(vlim_plot_topomap_psd)s
 
         .. versionadded:: 0.21

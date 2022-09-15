@@ -584,7 +584,7 @@ clim : str | dict
     ``pos_lims``, as the surface plot must show the magnitude.
 """
 
-docdict['cmap_psd_topo'] = """
+docdict['cmap_topomap'] = """
 cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
     Colormap to use. If :class:`tuple`, the first value indicates the colormap
     to use and the second value is a boolean defining interactivity. In
@@ -595,20 +595,6 @@ cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
     the colormap. If ``None``, ``'Reds'`` is used for data that is either
     all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
     ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
-"""
-
-docdict['cmap_topomap'] = """
-cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-    Colormap to use. If tuple, the first value indicates the colormap to
-    use and the second value is a boolean defining interactivity. In
-    interactive mode the colors are adjustable by clicking and dragging the
-    colorbar with left and right mouse button. Left mouse button moves the
-    scale up and down and right mouse button adjusts the range (zoom).
-    The mouse scroll can also be used to adjust the range. Hitting space
-    bar resets the range. Up and down arrows can be used to change the
-    colormap. If None (default), 'Reds' is used for all positive data,
-    otherwise defaults to 'RdBu_r'. If 'interactive', translates to
-    (None, True).
 
     .. warning::  Interactive mode works smoothly only for a small amount
         of topomaps. Interactive mode is disabled by default for more than
