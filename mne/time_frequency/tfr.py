@@ -29,6 +29,8 @@ from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      warn, _import_h5io_funcs)
 from ..channels.channels import UpdateChannelsMixin
 from ..channels.layout import _merge_ch_data, _pair_grad_sensors
+from ..defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                        _BORDER_DEFAULT)
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
                        _get_channel_types)
 from ..io.meas_info import Info, ContainsMixin
@@ -1910,13 +1912,15 @@ class AverageTFR(_BaseTFR):
         return fig
 
     @fill_doc
-    def plot_topomap(self, tmin=None, tmax=None, fmin=0, fmax=np.inf, *,
-                     ch_type=None, baseline=None, mode='mean',
-                     vmin=None, vmax=None, cmap=None, sensors=True,
-                     colorbar=True, unit=None, res=64, size=2,
-                     cbar_fmt='%1.1e', show_names=False, title=None,
-                     axes=None, show=True, outlines='head',
-                     contours=6, sphere=None):
+    def plot_topomap(
+            self, tmin=None, tmax=None, fmin=0., fmax=np.inf, *, ch_type=None,
+            baseline=None, mode='mean', sensors=True, show_names=False,
+            mask=None, mask_params=None, contours=6, outlines='head',
+            sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+            size=2, cmap=None, vlim=(None, None), vmin=None, vmax=None,
+            colorbar=True, cbar_fmt='%1.1e', unit=None, axes=None, title=None,
+            show=True):
         """Plot topographic maps of time-frequency intervals of TFR data.
 
         Parameters
@@ -1946,24 +1950,35 @@ class AverageTFR(_BaseTFR):
             - dividing by the mean of baseline values, taking the log, and
               dividing by the standard deviation of log baseline values
               ('zlogratio')
-        %(vmin_vmax_topomap)s
-        %(cmap_topomap)s
         %(sensors_topomap)s
-        %(colorbar_topomap)s
-        unit : dict | str | None
-            The unit of the channel type used for colorbar label. If
-            scale is None the unit is automatically determined.
+        %(show_names_topomap)s
+        %(mask_evoked_topomap)s
+        %(mask_params_topomap)s
+        %(contours_topomap)s
+        %(outlines_topomap)s
+        %(sphere_topomap_auto)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+        %(border_topomap)s
         %(res_topomap)s
         %(size_topomap)s
+        %(cmap_topomap)s
+        %(vlim_plot_topomap_cov)s
+
+            .. versionadded:: 1.2
+        %(vmin_vmax_topomap)s
+
+            .. deprecated:: v1.2
+               The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
+               Please use the ``vlim`` parameter instead.
+        %(colorbar_topomap)s
         %(cbar_fmt_topomap)s
-        %(show_names_topomap)s
-        title : str | None
-            Title. If None (default), no title is displayed.
+        unit : str | None
+            The unit of the channel type used for colorbar labels.
         %(axes_plot_topomap)s
+        title : str | None
+            Plot title. If None (default), no title is displayed.
         %(show)s
-        %(outlines_topomap)s
-        %(contours_topomap)s
-        %(sphere_topomap_auto)s
 
         Returns
         -------
@@ -1971,15 +1986,15 @@ class AverageTFR(_BaseTFR):
             The figure containing the topography.
         """  # noqa: E501
         from ..viz import plot_tfr_topomap
-        return plot_tfr_topomap(self, tmin=tmin, tmax=tmax, fmin=fmin,
-                                fmax=fmax, ch_type=ch_type, baseline=baseline,
-                                mode=mode, vmin=vmin, vmax=vmax,
-                                cmap=cmap, sensors=sensors, colorbar=colorbar,
-                                unit=unit, res=res, size=size,
-                                cbar_fmt=cbar_fmt, show_names=show_names,
-                                title=title, axes=axes, show=show,
-                                outlines=outlines,
-                                contours=contours, sphere=sphere)
+        return plot_tfr_topomap(
+            self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, ch_type=ch_type,
+            baseline=baseline, mode=mode, sensors=sensors,
+            show_names=show_names, mask=mask, mask_params=mask_params,
+            contours=contours, outlines=outlines, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate, border=border,
+            res=res, size=size, cmap=cmap, vlim=vlim, vmin=vmin, vmax=vmax,
+            colorbar=colorbar, cbar_fmt=cbar_fmt, unit=unit, axes=axes,
+            title=title, show=show)
 
     def _check_compat(self, tfr):
         """Check that self and tfr have the same time-frequency ranges."""

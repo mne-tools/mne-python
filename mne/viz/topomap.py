@@ -1330,9 +1330,11 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 @fill_doc
 def plot_tfr_topomap(
         tfr, tmin=None, tmax=None, fmin=0., fmax=np.inf, *, ch_type=None,
-        baseline=None, mode='mean', sensors=True, show_names=False, contours=6,
-        outlines='head', sphere=None, res=64, size=2, cmap=None,
-        vmin=None, vmax=None, colorbar=True,
+        baseline=None, mode='mean', sensors=True, show_names=False, mask=None,
+        mask_params=None, contours=6, outlines='head', sphere=None,
+        image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
+        border=_BORDER_DEFAULT, res=64, size=2, cmap=None,
+        vlim=(None, None), vmin=None, vmax=None, colorbar=True,
         cbar_fmt='%1.1e', unit=None, axes=None, title=None, show=True):
     """Plot topographic maps of specific time-frequency intervals of TFR data.
 
@@ -1365,13 +1367,25 @@ def plot_tfr_topomap(
         If None no baseline correction is applied.
     %(sensors_topomap)s
     %(show_names_topomap)s
+    %(mask_evoked_topomap)s
+    %(mask_params_topomap)s
     %(contours_topomap)s
     %(outlines_topomap)s
     %(sphere_topomap_auto)s
+    %(image_interp_topomap)s
+    %(extrapolate_topomap)s
+    %(border_topomap)s
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
+    %(vlim_plot_topomap_cov)s
+
+        .. versionadded:: 1.2
     %(vmin_vmax_topomap)s
+
+        .. deprecated:: v1.2
+           The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
+           Please use the ``vlim`` parameter instead.
     %(colorbar_topomap)s
     %(cbar_fmt_topomap)s
     unit : str | None
@@ -1388,6 +1402,8 @@ def plot_tfr_topomap(
     """  # noqa: E501
     import matplotlib.pyplot as plt
     ch_type = _get_ch_type(tfr, ch_type)
+
+    vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
 
     picks, pos, merge_channels, names, _, sphere, clip_origin = \
         _prepare_topomap_plot(tfr, ch_type, sphere=sphere)
@@ -1446,13 +1462,13 @@ def plot_tfr_topomap(
 
     names = _prepare_sensor_names(names, show_names)
 
-    im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
-                         axes=axes, cmap=cmap[0],
-                         image_interp=_INTERPOLATION_DEFAULT,
-                         contours=contours, names=names,
-                         show=False, onselect=selection_callback,
-                         sensors=sensors, res=res, ch_type=ch_type,
-                         outlines=outlines, sphere=sphere)
+    im, _ = plot_topomap(
+        data[:, 0], pos, ch_type=ch_type, sensors=sensors, names=names,
+        mask=mask, mask_params=mask_params, contours=contours,
+        outlines=outlines, sphere=sphere, image_interp=image_interp,
+        extrapolate=extrapolate, border=border, res=res, size=size,
+        cmap=cmap[0], vmin=vlim[0], vmax=vlim[1], axes=axes,  # TODO cnorm?
+        show=False, onselect=selection_callback)
 
     if colorbar:
         from matplotlib import ticker
