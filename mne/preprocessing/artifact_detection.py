@@ -266,7 +266,7 @@ def compute_average_dev_head_t(raw, pos):
 
     Returns
     -------
-    dev_head_t : array
+    dev_head_t : array of shape (4, 4)
         New trans matrix using the averaged good head positions.
     """
     sfreq = raw.info['sfreq']

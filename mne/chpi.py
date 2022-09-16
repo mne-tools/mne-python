@@ -26,6 +26,7 @@ import itertools
 
 from .event import find_events
 from .io.base import BaseRaw
+from .channels.channels import _get_meg_system
 from .io.kit.constants import KIT
 from .io.kit.kit import RawKIT as _RawKIT
 from .io.meas_info import _simplify_info, Info
@@ -1383,3 +1384,42 @@ def _compute_good_distances(hpi_coil_dists, new_pos, dist_limit=0.005):
             exclude_coils = np.where(use_mask)[0][np.argmax(badness)]
             use_mask[exclude_coils] = False
     return use_mask, these_dists
+
+
+@verbose
+def get_active_chpi(raw, *, on_missing='raise', verbose=None):
+    """Determine how many HPI coils were active for a time point.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        Raw data with cHPI information.
+    %(on_missing_chpi)s
+    %(verbose)s
+
+    Returns
+    -------
+    n_active : array, shape (n_times)
+        The number of active cHPIs for every timepoint in raw.
+
+    Notes
+    -----
+    .. versionadded:: 1.2
+    """
+    # get meg system
+    system, _ = _get_meg_system(raw.info)
+
+    # check whether we have a neuromag system
+    if system not in ['122m', '306m']:
+        raise NotImplementedError(('Identifying active HPI channels'
+                                   ' is not implemented for other systems'
+                                   ' than neuromag.'))
+    # extract hpi info
+    chpi_info = get_chpi_info(raw.info, on_missing=on_missing, verbose=verbose)
+
+    # extract hpi time series and infer which one was on
+    chpi_ts = raw[chpi_info[1]][0].astype(int)
+    chpi_active = (chpi_ts & chpi_info[2][:, np.newaxis]).astype(bool)
+    n_active = chpi_active.sum(axis=0)
+
+    return n_active

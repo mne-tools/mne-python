@@ -415,15 +415,20 @@ def test_ica_reset(method):
         'pca_mean_',
         'n_iter_'
     )
+
+    ica = ICA(n_components=3, method=method, max_iter=1)
+    assert ica.current_fit == 'unfitted'
     with pytest.warns(UserWarning, match='did not converge'):
-        ica = ICA(
-            n_components=3, method=method, max_iter=1).fit(raw, picks=picks)
+        ica.fit(raw, picks=picks)
 
     assert (all(hasattr(ica, attr) for attr in run_time_attrs))
     assert ica.labels_ is not None
+    assert ica.current_fit == 'raw'
+
     ica._reset()
     assert (not any(hasattr(ica, attr) for attr in run_time_attrs))
     assert ica.labels_ is not None
+    assert ica.current_fit == 'unfitted'
 
 
 @requires_sklearn
@@ -485,8 +490,6 @@ def test_ica_core(method, n_components, noise_cov, n_pca_components,
     assert 'raw data decomposition' in repr_
     assert f'{ica.n_components_} ICA components' in repr_
     assert 'Available PCA components' in repr_html_
-    assert 'Explained variance' in repr_html_
-
     assert ('mag' in ica)  # should now work without error
 
     # test re-fit
@@ -942,6 +945,95 @@ def test_ica_additional(method, tmp_path, short_raw_epochs):
     picks = pick_types(raw_.info, eeg=True, exclude=[])
     ica = ICA(n_components=0.99, max_iter='auto')
     ica.fit(raw_, picks=picks, reject_by_annotation=True)
+
+
+@requires_sklearn
+def test_get_explained_variance_ratio(tmp_path, short_raw_epochs):
+    """Test ICA.get_explained_variance_ratio()."""
+    raw, epochs, _ = short_raw_epochs
+    ica = ICA(max_iter=1)
+
+    # Unfitted ICA should raise an exception
+    with pytest.raises(ValueError, match='ICA must be fitted first'):
+        ica.get_explained_variance_ratio(epochs)
+
+    with pytest.warns(RuntimeWarning, match='were baseline-corrected'):
+        ica.fit(epochs)
+
+    # components = int, ch_type = None
+    explained_var_comp_0 = ica.get_explained_variance_ratio(
+        epochs, components=0
+    )
+    # components = int, ch_type = str
+    explained_var_comp_0_eeg = ica.get_explained_variance_ratio(
+        epochs, components=0, ch_type='eeg'
+    )
+    # components = int, ch_type = list of str
+    explained_var_comp_0_eeg_mag = ica.get_explained_variance_ratio(
+        epochs, components=0, ch_type=['eeg', 'mag']
+    )
+    # components = list of int, single element, ch_type = None
+    explained_var_comp_1 = ica.get_explained_variance_ratio(
+        epochs, components=[1]
+    )
+    # components = list of int, multiple elements, ch_type = None
+    explained_var_comps_01 = ica.get_explained_variance_ratio(
+        epochs, components=[0, 1]
+    )
+    # components = None, i.e., all components, ch_type = None
+    explained_var_comps_all = ica.get_explained_variance_ratio(
+        epochs, components=None
+    )
+
+    assert 'grad' in explained_var_comp_0
+    assert 'mag' in explained_var_comp_0
+    assert 'eeg' in explained_var_comp_0
+
+    assert len(explained_var_comp_0_eeg) == 1
+    assert 'eeg' in explained_var_comp_0_eeg
+
+    assert 'mag' in explained_var_comp_0_eeg_mag
+    assert 'eeg' in explained_var_comp_0_eeg_mag
+    assert 'grad' not in explained_var_comp_0_eeg_mag
+
+    assert round(explained_var_comp_0['grad'], 4) == 0.1784
+    assert round(explained_var_comp_0['mag'], 4) == 0.0259
+    assert round(explained_var_comp_0['eeg'], 4) == 0.0229
+
+    assert np.isclose(
+        explained_var_comp_0['eeg'],
+        explained_var_comp_0_eeg['eeg']
+    )
+    assert np.isclose(
+        explained_var_comp_0['mag'],
+        explained_var_comp_0_eeg_mag['mag']
+    )
+    assert np.isclose(
+        explained_var_comp_0['eeg'],
+        explained_var_comp_0_eeg_mag['eeg']
+    )
+
+    assert round(explained_var_comp_1['eeg'], 4) == 0.0231
+    assert round(explained_var_comps_01['eeg'], 4) == 0.0459
+    assert (
+        explained_var_comps_all['grad'] ==
+        explained_var_comps_all['mag'] ==
+        explained_var_comps_all['eeg'] ==
+        1
+    )
+
+    # Test Raw
+    ica.get_explained_variance_ratio(raw)
+    # Test Evoked
+    evoked = epochs.average()
+    ica.get_explained_variance_ratio(evoked)
+    # Test Evoked without baseline correction
+    evoked.baseline = None
+    ica.get_explained_variance_ratio(evoked)
+
+    # Test invalid ch_type
+    with pytest.raises(ValueError, match='only the following channel types'):
+        ica.get_explained_variance_ratio(raw, ch_type='foobar')
 
 
 @requires_sklearn

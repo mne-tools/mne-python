@@ -119,7 +119,8 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             data1, times1 = raw[picks, sl_time]
             for other_raw in other_raws:
                 data2, times2 = other_raw[picks, sl_time]
-                assert_allclose(data1, data2)
+                assert_allclose(
+                    data1, data2, err_msg='Data mismatch with preload')
                 assert_allclose(times1, times2)
 
         # test projection vs cals and data units
@@ -415,6 +416,17 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
                 use_kwargs = kwargs.copy()
                 use_kwargs['preload'] = True
                 _test_raw_crop(reader, t_prop, use_kwargs)
+
+    # make sure EEG locations show up as dig points
+    if 'eeg' in raw:
+        eeg_picks = pick_types(raw.info, eeg=True, exclude=())
+        eeg_loc = np.array([
+            raw.info['chs'][pick]['loc'][:3] for pick in eeg_picks])
+        eeg_loc = eeg_loc[np.isfinite(eeg_loc).all(axis=1)]
+        if len(eeg_loc):
+            eeg_dig = np.array([d['r'] for d in (raw.info['dig'] or [])
+                                if d['kind'] == FIFF.FIFFV_POINT_EEG])
+            assert len(eeg_dig) >= len(eeg_loc)  # could have some excluded
 
     return raw
 

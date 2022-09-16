@@ -82,14 +82,15 @@ class Transform(dict):
         The starting coordinate frame. See notes for valid coordinate frames.
     to : str | int
         The ending coordinate frame. See notes for valid coordinate frames.
-    trans : array-like, shape (4, 4) | None
+    trans : array of shape (4, 4) | None
         The transformation matrix. If None, an identity matrix will be
         used.
 
     Notes
     -----
-    Valid coordinate frames are 'meg','mri','mri_voxel','head','mri_tal','ras'
-    'fs_tal','ctf_head','ctf_meg','unknown'
+    Valid coordinate frames are ``'meg'``, ``'mri'``, ``'mri_voxel'``,
+    ``'head'``, ``'mri_tal'``, ``'ras'``, ``'fs_tal'``, ``'ctf_head'``,
+    ``'ctf_meg'``, ``'unknown'``.
     """
 
     def __init__(self, fro, to, trans=None):  # noqa: D102

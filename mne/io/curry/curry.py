@@ -11,6 +11,7 @@ import re
 import numpy as np
 from datetime import datetime, timezone
 
+from .._digitization import _make_dig_points
 from ..base import BaseRaw
 from ..meas_info import create_info
 from ..tag import _coil_trans_to_loc
@@ -21,8 +22,7 @@ from ...surface import _normal_orth
 from ...transforms import (apply_trans, Transform, get_ras_to_neuromag_trans,
                            combine_transforms, invert_transform,
                            _angle_between_quats, rot_to_quat)
-from ...utils import (check_fname, check_version, logger, verbose, warn,
-                      _check_fname)
+from ...utils import check_fname, logger, verbose, _check_fname
 from ...annotations import Annotations
 
 FILE_EXTENSIONS = {
@@ -227,6 +227,7 @@ def _read_curry_info(curry_paths):
     assert len(labels) == len(sensors) == len(normals)
 
     all_chans = list()
+    dig_ch_pos = dict()
     for key in ["meg", "eeg", "misc"]:
         chanidx_is_explicit = (len(curry_params.chanidx_in_file["CHAN_IN_FILE"
                                    + CHANTYPES[key]]) > 0)    # channel index
@@ -260,6 +261,7 @@ def _read_curry_info(curry_paths):
                 ch['loc'] = loc
                 # XXX need to check/ensure this
                 ch['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+                dig_ch_pos[chan] = loc[:3]
             elif key == 'meg':
                 pos = np.array(sensors["SENSORS" + CHANTYPES[key]][ind], float)
                 pos /= 1000.  # to meters
@@ -275,6 +277,8 @@ def _read_curry_info(curry_paths):
                 ch['loc'] = _coil_trans_to_loc(trans)
                 ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
             all_chans.append(ch)
+    dig = _make_dig_points(dig_ch_pos=dig_ch_pos)
+    del dig_ch_pos
 
     ch_count = len(all_chans)
     assert (ch_count == curry_params.n_chans)  # ensure that we have assembled
@@ -291,6 +295,7 @@ def _read_curry_info(curry_paths):
     info = create_info(ch_names, curry_params.sfreq)
     with info._unlock():
         info['meas_date'] = curry_params.dt_start  # for Git issue #8398
+        info['dig'] = dig
     _make_trans_dig(curry_paths, info, curry_dev_dev_t)
 
     for ind, ch_dict in enumerate(info["chs"]):
@@ -525,16 +530,10 @@ class RawCurry(BaseRaw):
         if self._raw_extras[fi]['is_ascii']:
             if isinstance(idx, slice):
                 idx = np.arange(idx.start, idx.stop)
-            kwargs = dict(skiprows=start, usecols=idx)
-            if check_version("numpy", "1.16.0"):
-                kwargs['max_rows'] = stop - start
-            else:
-                warn("Data reading might take longer for ASCII files. Update "
-                     "numpy to version 1.16.0 or greater for more efficient "
-                     "data reading.")
-            block = np.loadtxt(self._filenames[0], **kwargs)[:stop - start].T
-            data_view = data[:, :block.shape[1]]
-            _mult_cal_one(data_view, block, idx, cals, mult)
+            block = np.loadtxt(
+                self._filenames[0], skiprows=start, max_rows=stop - start,
+                ndmin=2).T
+            _mult_cal_one(data, block, idx, cals, mult)
 
         else:
             _read_segments_file(

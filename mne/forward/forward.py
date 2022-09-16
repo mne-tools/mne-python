@@ -47,7 +47,7 @@ from ..transforms import (transform_surface_to, invert_transform,
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose, fill_doc,
                      _validate_type, _check_compensation_grade, _check_option,
-                     _check_stc_units, _stamp_to_dt, _on_missing)
+                     _check_stc_units, _stamp_to_dt, _on_missing, repr_html)
 from ..label import Label
 
 
@@ -178,6 +178,7 @@ class Forward(dict):
 
         return entr
 
+    @repr_html
     def _repr_html_(self):
         from ..html_templates import repr_templates_env
         good_chs, bad_chs, _, _, = self['info']._get_chs_for_repr()
