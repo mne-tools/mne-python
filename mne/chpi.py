@@ -1419,10 +1419,10 @@ def get_active_chpi(raw, on_missing='raise'):
                                    ' than neuromag.'))
     # extract hpi info
     chpi_info = get_chpi_info(raw.info, on_missing=on_missing)
-
-    # extract hpi time series and infer which one was on
-    chpi_ts = raw[chpi_info[1]][0].astype(int)
-    chpi_active = (chpi_ts & chpi_info[2][:, np.newaxis]).astype(bool)
-    n_active = chpi_active.sum(axis=0)
-
-    return n_active
+    if len(chpi_info[2]) == 0:
+        return np.zeros_like(raw.times)
+    else:
+        # extract hpi time series and infer which one was on
+        chpi_ts = raw[chpi_info[1]][0].astype(int)
+        chpi_active = (chpi_ts & chpi_info[2][:, np.newaxis]).astype(bool)
+        return chpi_active.sum(axis=0)

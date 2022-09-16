@@ -728,4 +728,8 @@ def test_get_active_chpi_neuromag():
     target_signal[:1000] = 0
     target_signal[1000:2000] = 3
 
-    assert_allclose(get_active_chpi(raw), target_signal)
+    assert_allclose(get_active_chpi(raw, on_missing='ignore'), target_signal)
+
+    raw_no_chpi = read_raw_fif(sample_fname)
+    assert_allclose(get_active_chpi(raw_no_chpi, on_missing='ignore'),
+                    np.zeros_like(raw_no_chpi.times))
