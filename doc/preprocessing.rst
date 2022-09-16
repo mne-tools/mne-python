@@ -100,6 +100,7 @@ Projections:
    oversampled_temporal_projection
    peak_finder
    read_ica
+   read_eog_regression
    realign_raw
    regress_artifact
    corrmap

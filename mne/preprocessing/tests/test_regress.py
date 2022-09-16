@@ -7,12 +7,12 @@ import os.path as op
 
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 
 from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.preprocessing import (regress_artifact, create_eog_epochs,
-                               EOGRegression)
+                               EOGRegression, read_eog_regression)
 
 data_path = testing.data_path(download=False)
 raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -22,7 +22,7 @@ raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 def test_regress_artifact():
     """Test regressing artifact data."""
     raw = read_raw_fif(raw_fname).pick_types(meg=False, eeg=True, eog=True)
-    raw.load_data().apply_proj()
+    raw.load_data()
     epochs = create_eog_epochs(raw)
     epochs.apply_baseline((None, None))
     orig_data = epochs.get_data('eeg')
@@ -51,21 +51,24 @@ def test_regress_artifact():
 
 
 @testing.requires_testing_data
-def test_eog_regression():
+def test_eog_regression(tmp_path):
     """Test regressing artifact data using the EOGRegression class."""
     raw_meg_eeg = read_raw_fif(raw_fname)
     raw = raw_meg_eeg.copy().pick(['eeg', 'eog', 'stim'])
 
     # Test various errors
     with pytest.raises(RuntimeError, match='Projections need to be applied'):
-        model = EOGRegression().fit(raw)
-    raw.apply_proj()
+        model = EOGRegression(proj=False).fit(raw)
     with pytest.raises(RuntimeError, match='requires raw data to be loaded'):
         model = EOGRegression().fit(raw)
     raw.load_data()
 
     # Test regression on raw data
-    model = EOGRegression().fit(raw)
+    model = EOGRegression()
+    assert str(model) == '<EOGRegression | not fitted, TAA=False>'
+    model.fit(raw)
+    assert (str(model) ==
+            '<EOGRegression | fitted to 1 artifact channel, TAA=False>')
     assert model.coef_.shape == (59, 1)  # 59 EEG channels, 1 EOG channel
     raw_clean = model.apply(raw)
     # Some signal must have been removed
@@ -94,8 +97,11 @@ def test_eog_regression():
     model.apply(raw_)
 
     # Test applying TAA.
-    raw_no_taa = EOGRegression().fit(raw).apply(raw, taa=False)
-    raw_taa = EOGRegression().fit(raw).apply(raw, taa=True)
+    raw_no_taa = EOGRegression(taa=False).fit(raw).apply(raw)
+    model_taa = EOGRegression(taa=True).fit(raw)
+    assert (str(model_taa) ==
+            '<EOGRegression | fitted to 1 artifact channel, TAA=True>')
+    raw_taa = model_taa.apply(raw)
     # TAA should have increased signal amplitude
     assert np.ptp(raw_no_taa.get_data('eeg')) < np.ptp(raw_taa.get_data('eeg'))
 
@@ -113,7 +119,7 @@ def test_eog_regression():
     assert fig.axes[0].title.get_text() == 'eeg/EOG 061'
 
     # Test plotting with multiple channel types
-    raw_meg_eeg.load_data().apply_proj()
+    raw_meg_eeg.load_data()
     fig = EOGRegression().fit(raw_meg_eeg).plot()
     assert len(fig.axes) == 6  # (3 topomaps and 3 colorbars)
     assert fig.axes[0].title.get_text() == 'grad/EOG 061'
@@ -122,9 +128,21 @@ def test_eog_regression():
 
     # Test plotting with multiple channel types, multiple regressors)
     m = EOGRegression(picks_artifact=['EEG 001', 'EOG 061']).fit(raw_meg_eeg)
+    assert (str(m) ==
+            '<EOGRegression | fitted to 2 artifact channels, TAA=False>')
     fig = m.plot()
     assert len(fig.axes) == 12  # (6 topomaps and 3 colorbars)
     assert fig.axes[0].title.get_text() == 'grad/EEG 001'
     assert fig.axes[1].title.get_text() == 'mag/EEG 001'
     assert fig.axes[4].title.get_text() == 'mag/EOG 061'
     assert fig.axes[5].title.get_text() == 'eeg/EOG 061'
+
+    # Test saving and loading
+    model.save(tmp_path / 'weights.h5', overwrite=True)
+    model2 = read_eog_regression(tmp_path / 'weights.h5')
+    assert_array_equal(model._picks, model2._picks)
+    assert_array_equal(model._picks_artifact, model2._picks_artifact)
+    assert_array_equal(model._exclude, model2._exclude)
+    assert_array_equal(model.coef_, model2.coef_)
+    assert model.taa == model2.taa
+    assert model.proj == model2.proj
