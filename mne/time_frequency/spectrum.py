@@ -452,6 +452,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         super().add_channels(
             add_list=add_list, force_update_info=force_update_info
         )
+        return self
 
     @property
     def ch_names(self):

@@ -1183,6 +1183,7 @@ class AverageTFR(_BaseTFR):
         super().add_channels(
             add_list=add_list, force_update_info=force_update_info
         )
+        return self
 
     @verbose
     def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
@@ -2259,7 +2260,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         return epochs
 
     @fill_doc
-    def add_channels(self, add_list, force_update_info=False) -> None:
+    def add_channels(self, add_list, force_update_info=False):
         """Concatenate multiple :class:`~mne.time_frequency.EpochsTFR` instances along the channel axis.
 
         %(add_channels_epochstfr)s
@@ -2267,6 +2268,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         super().add_channels(
             add_list=add_list, force_update_info=force_update_info
         )
+        return self
 
     def average(self, method='mean', dim='epochs', copy=False):
         """Average the data across epochs.

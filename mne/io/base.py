@@ -1624,6 +1624,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         super().add_channels(
             add_list=add_list, force_update_info=force_update_info
         )
+        return self
 
     @fill_doc
     def append(self, raws, preload=None):

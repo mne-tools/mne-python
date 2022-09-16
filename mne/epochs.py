@@ -661,6 +661,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         super().add_channels(
             add_list=add_list, force_update_info=force_update_info
         )
+        return self
 
     @verbose
     def apply_baseline(self, baseline=(None, 0), *, verbose=None):

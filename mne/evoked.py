@@ -207,6 +207,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         super().add_channels(
             add_list=add_list, force_update_info=force_update_info
         )
+        return self
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=None,
@@ -971,6 +972,7 @@ class EvokedArray(Evoked):
         super().add_channels(
             add_list=add_list, force_update_info=force_update_info
         )
+        return self
 
 
 def _get_entries(fid, evoked_node, allow_maxshield=False):
