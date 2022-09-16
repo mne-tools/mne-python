@@ -1105,6 +1105,17 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         self.events = state['events']
         self.selection = state['selection']
 
+    @fill_doc
+    def add_channels(self, add_list, force_update_info=False):
+        """Concatenate multiple :class:`~mne.time_frequency.EpochsSpectrum` instances along the channel axis.
+
+        %(add_channels_epochsspectrum)s
+        """  # noqa: E501
+        super().add_channels(
+            add_list=add_list, force_update_info=force_update_info
+        )
+        return self
+
 
 def read_spectrum(fname):
     """Load a :class:`mne.time_frequency.Spectrum` object from disk.

@@ -108,6 +108,14 @@ docdict['add_channels_epochs'] = add_channels.format(
     }
 )
 
+docdict['add_channels_epochsspectrum'] = add_channels.format(
+    **{
+        'data_type': ':class:`~mne.time_frequency.EpochsSpectrum`',
+        'concat_along_time': '',
+        'see_also_and_notes': ''
+    }
+)
+
 docdict['add_channels_epochstfr'] = add_channels.format(
     **{
         'data_type': ':class:`~mne.time_frequency.EpochsTFR`',
