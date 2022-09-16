@@ -223,7 +223,8 @@ class SetChannelsMixin(MontageMixin):
 
     @verbose
     def set_eeg_reference(self, ref_channels='average', projection=False,
-                          ch_type='auto', forward=None, verbose=None):
+                          ch_type='auto', forward=None, *, joint=False,
+                          verbose=None):
         """Specify which reference to use for EEG data.
 
         Use this function to explicitly specify the desired reference for EEG.
@@ -237,6 +238,7 @@ class SetChannelsMixin(MontageMixin):
         %(projection_set_eeg_reference)s
         %(ch_type_set_eeg_reference)s
         %(forward_set_eeg_reference)s
+        %(joint_set_eeg_reference)s
         %(verbose)s
 
         Returns
@@ -250,7 +252,7 @@ class SetChannelsMixin(MontageMixin):
         from ..io.reference import set_eeg_reference
         return set_eeg_reference(self, ref_channels=ref_channels, copy=False,
                                  projection=projection, ch_type=ch_type,
-                                 forward=forward)[0]
+                                 forward=forward, joint=joint)[0]
 
     def _get_channel_positions(self, picks=None):
         """Get channel locations from info.

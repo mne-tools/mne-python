@@ -15,3 +15,4 @@ pyxdf
 https://github.com/mne-tools/mne-connectivity/archive/main.zip
 pytest
 graphviz
+pyzmq!=24.0.0

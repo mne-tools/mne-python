@@ -182,6 +182,13 @@ def test_plot_evoked():
     with pytest.raises(ValueError, match='must be reshapable into a 2D array'):
         fig = evoked.plot(time_unit='s', highlight=0.1)
 
+    # set one channel location to nan, confirm spatial_colors still works
+    evoked = _get_epochs().load_data().average('grad')  # reload data
+    evoked.info['chs'][0]['loc'][:] = np.nan
+    fig = evoked.plot(time_unit='s', spatial_colors=True)
+    line_clr = [x.get_color() for x in fig.axes[0].get_lines()]
+    assert not np.all(np.isnan(line_clr) & (line_clr == 0))
+
 
 def test_constrained_layout():
     """Test that we handle constrained layouts correctly."""

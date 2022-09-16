@@ -42,7 +42,7 @@ from ..surface import _normal_orth
 from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn, _validate_type,
-                     _check_compensation_grade, _check_option,
+                     _check_compensation_grade, _check_option, repr_html,
                      _check_depth, _check_src_normal, _check_fname)
 
 
@@ -95,6 +95,7 @@ class InverseOperator(dict):
         entr += '>'
         return entr
 
+    @repr_html
     def _repr_html_(self):
         from ..html_templates import repr_templates_env
         repr_info = self._get_chs_and_src_info_for_repr()

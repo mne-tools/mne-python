@@ -1423,3 +1423,4 @@ def get_active_chpi(raw, *, on_missing='raise', verbose=None):
         chpi_ts = raw[chpi_info[1]][0].astype(int)
         chpi_active = (chpi_ts & chpi_info[2][:, np.newaxis]).astype(bool)
         return chpi_active.sum(axis=0)
+

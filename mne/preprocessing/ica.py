@@ -54,7 +54,7 @@ from ..channels.layout import _find_topomap_coords
 from ..io.write import start_and_end_file, write_id
 from ..utils import (logger, check_fname, _check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,
-                     compute_corr, _get_inst_data, _ensure_int,
+                     compute_corr, _get_inst_data, _ensure_int, repr_html,
                      copy_function_doc_to_method_doc, _pl, warn, Bunch,
                      _check_preload, _check_compensation_grade, fill_doc,
                      _check_option, _PCA, int_like, _require_version,
@@ -513,6 +513,7 @@ class ICA(ContainsMixin):
 
         return f'<ICA | {s}>'
 
+    @repr_html
     def _repr_html_(self):
         from ..html_templates import repr_templates_env
         infos = self._get_infos_for_repr()

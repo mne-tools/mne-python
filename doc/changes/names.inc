@@ -322,6 +322,8 @@
 
 .. _Mohammad Daneshzand: https://github.com/mdaneshzand
 
+.. _Moritz Gerster: https://github.com/moritz-gerster
+
 .. _Natalie Klein: https://github.com/natalieklein
 
 .. _Nathalie Gayraud: https://github.com/ngayraud

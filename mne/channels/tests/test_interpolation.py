@@ -60,7 +60,7 @@ def test_interpolation_eeg(offset, avg_proj, ctol, atol, method):
     """Test interpolation of EEG channels."""
     raw, epochs_eeg = _load_data('eeg')
     epochs_eeg = epochs_eeg.copy()
-    assert not _has_eeg_average_ref_proj(epochs_eeg.info['projs'])
+    assert not _has_eeg_average_ref_proj(epochs_eeg.info)
     # Offsetting the coordinate frame should have no effect on the output
     for inst in (raw, epochs_eeg):
         for ch in inst.info['chs']:
