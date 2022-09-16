@@ -63,11 +63,11 @@ inv_op = read_inverse_operator(fname_inv)
 
 raw = mne.io.read_raw_fif(op.join(data_path, 'MEG', 'sample',
                                   'sample_audvis_raw.fif'))
+raw.info['bads'] = []
 raw.set_eeg_reference(projection=True)
 events = mne.find_events(raw)
 event_id = {'Auditory/Left': 1, 'Auditory/Right': 2}
 epochs = mne.Epochs(raw, events, event_id, baseline=(None, 0), preload=True)
-epochs.info['bads'] = []
 evoked = epochs.average()
 
 labels = mne.read_labels_from_annot('sample', subjects_dir=subjects_dir)
