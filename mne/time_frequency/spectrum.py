@@ -17,10 +17,10 @@ from ..defaults import (_BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT,
                         _INTERPOLATION_DEFAULT, _handle_default)
 from ..io.meas_info import ContainsMixin
 from ..io.pick import _pick_data_channels, _picks_to_idx, pick_info
-from ..utils import (GetEpochsMixin, _build_data_frame, repr_html,
+from ..utils import (GetEpochsMixin, _build_data_frame,
                      _check_pandas_index_arguments, _check_pandas_installed,
                      _check_sphere, _time_mask, _validate_type, fill_doc,
-                     legacy, logger, object_diff, verbose, warn)
+                     legacy, logger, object_diff, repr_html, verbose, warn)
 from ..utils.check import (_check_fname, _check_option, _import_h5io_funcs,
                            _is_numeric, check_fname)
 from ..utils.misc import _pl
