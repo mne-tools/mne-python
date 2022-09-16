@@ -121,6 +121,8 @@ def pytest_configure(config):
     ignore:`np.MachAr` is deprecated.*:DeprecationWarning
     # matplotlib 3.6 and pyvista/nilearn
     ignore:.*cmap function will be deprecated.*:
+    # joblib hasn't updated to avoid distutils
+    ignore:.*distutils package is deprecated.*:DeprecationWarning
     """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()

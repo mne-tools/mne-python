@@ -168,8 +168,8 @@ def _topo_closed(events, ax, lines, fill):
 def _rgb(x, y, z):
     """Transform x, y, z values into RGB colors."""
     rgb = np.array([x, y, z]).T
-    rgb -= rgb.min(0)
-    rgb /= np.maximum(rgb.max(0), 1e-16)  # avoid div by zero
+    rgb -= np.nanmin(rgb, 0)
+    rgb /= np.maximum(np.nanmax(rgb, 0), 1e-16)  # avoid div by zero
     return rgb
 
 

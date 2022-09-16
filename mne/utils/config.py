@@ -130,6 +130,7 @@ known_config_types = (
     'MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD',
     'MNE_LOGGING_LEVEL',
     'MNE_MEMMAP_MIN_SIZE',
+    'MNE_REPR_HTML',
     'MNE_SKIP_FTP_TESTS',
     'MNE_SKIP_NETWORK_TESTS',
     'MNE_SKIP_TESTING_DATASET_TESTS',
@@ -572,8 +573,8 @@ def sys_info(fid=None, show_paths=False, *, dependencies='user'):
     out('\n')
     libs = _get_numpy_libs()
     use_mod_names = ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
-                     'numba', 'nibabel', 'nilearn', 'dipy', 'cupy', 'pandas',
-                     'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
+                     'numba', 'nibabel', 'nilearn', 'dipy', 'openmeeg', 'cupy',
+                     'pandas', 'pyvista', 'pyvistaqt', 'ipyvtklink', 'vtk',
                      'qtpy', 'ipympl', 'pyqtgraph', 'pooch', '', 'mne_bids',
                      'mne_nirs', 'mne_features', 'mne_qt_browser',
                      'mne_connectivity', 'mne_icalabel')

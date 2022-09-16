@@ -123,8 +123,8 @@ def _set_dig_kit(mrk, elp, hsp, eeg):
     -------
     dig_points : list
         List of digitizer points for info['dig'].
-    dev_head_t : dict
-        A dictionary describe the device-head transformation.
+    dev_head_t : Transform
+        A dictionary describing the device-head transformation.
     hpi_results : list
         The hpi results.
     """

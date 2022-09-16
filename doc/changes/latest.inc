@@ -24,6 +24,8 @@ Current (1.2.dev0)
 Enhancements
 ~~~~~~~~~~~~
 - Add ``vmin`` and ``vmax`` parameters to :meth:`mne.Evoked.animate_topomap` (:gh:`11073` by :newcontrib:`Mats van Es`)
+- Enable common average reference projection for ECoG, sEEG, and DBS data (optionally jointly with ``joint=True``) in :meth:`~mne.io.Raw.set_eeg_reference` and related functions/methods (:gh:`10656` by :newcontrib:`Moritz Gerster` and `Eric Larson`_)
+- Add support for computing forward solutions using OpenMEEG_ (:gh:`11011` by `Alex Gramfort`_ and `Eric Larson`_)
 - EEGLAB files (saved as MAT versions less than v7.3) can now be imported with :func:`mne.io.read_raw_eeglab` without the optional dependency ``pymatreader`` (:gh:`11006` by `Clemens Brunner`_)
 - Add eight source estimate comparison metrics to new submodule :mod:`mne.simulation.metrics` (:gh:`6233` by `Kostiantyn Maksymenko`_ and `Alex Gramfort`_)
 - Add :func:`mne.time_frequency.csd_tfr` to compute cross-spectral density from :class:`mne.time_frequency.EpochsTFR` (:gh:`10986` by `Alex Rockhill`_)
@@ -39,6 +41,13 @@ Enhancements
 - Add ``on_missing`` functionality to all of our classes that have a ``drop_channels`` method, to control what happens when channel names are not in the object (:gh:`11077` by `Andrew Quinn`_)
 - Improve interpolation of bridged electrodes with `~mne.preprocessing.interpolate_bridged_electrodes` (:gh:`11094` by `Mathieu Scheltienne`_)
 - Add :func:`mne.minimum_norm.apply_inverse_tfr_epochs` to apply inverse methods to time-frequency resolved epochs (:gh:`11095` by `Alex Rockhill`_)
+- Add :func:`mne.chpi.get_active_chpi` to retrieve the number of active hpi coils for each time point (:gh:`11122` by `Eduard Ort`_)
+- Add example of how to obtain time-frequency decomposition using narrow bandpass Hilbert transforms to :ref:`ex-tfr-comparison` (:gh:`11116` by `Alex Rockhill`_)
+- Add ``==`` and ``!=`` comparison between `mne.Projection` objects (:gh:`11147` by `Mathieu Scheltienne`_)
+- Parse automatically temperature channel with :func:`mne.io.read_raw_edf` (:gh:`11150` by `Eric Larson`_ and `Alex Gramfort`_)
+- Add ``encoding`` parameter to :func:`mne.io.read_raw_edf` and :func:`mne.io.read_raw_bdf` to support custom (non-UTF8) annotation channel encodings (:gh:`11154` by `Clemens Brunner`_)
+- :class:`mne.preprocessing.ICA` gained a new method, :meth:`~mne.preprocessing.ICA.get_explained_variance_ratio`, that allows the retrieval of the proportion of variance explained by ICA components (:gh:`11141` by `Richard Höchenberger`_)
+- Add config option ``MNE_REPR_HTML`` to disable HTML repr in notebook environments (:gh:`11159` by `Clemens Brunner`_)
 
 Bugs
 ~~~~
@@ -47,10 +56,14 @@ Bugs
 - Fix bug in :func:`mne.decoding.TimeFrequency` that prevented cloning if constructor arguments were modified (:gh:`11004` by :newcontrib:`Daniel Carlström Schad`)
 - Fix bug in :class:`mne.viz.Brain` constructor where the first argument was named ``subject_id`` instead of ``subject`` (:gh:`11049` by `Eric Larson`_)
 - Fix bug in :ref:`mne coreg` where the MEG helmet position was not updated during ICP fitting (:gh:`11084` by `Eric Larson`_)
+- Fix bug in :func:`~mne.io.read_raw_curry`, and :func:`~mne.io.read_raw_cnt` where digitization points were not read properly (:gh:`11145` by `Eric Larson`_)
 - Document ``height`` and ``weight`` keys of  ``subject_info`` entry in :class:`mne.Info` (:gh:`11019` by :newcontrib:`Sena Er`)
 - Fix bug in :func:`mne.viz.plot_filter` when plotting filters created using ``output='ba'`` mode with ``compensation`` turned on. (:gh:`11040` by `Marian Dovgialo`_)
+- Fix bugs in documentation of surface :class:`~mne.SourceSpaces` (:gh:`11171` by `Eric Larson`_)
 - Fix bug in :func:`mne.io.read_raw_bti` where EEG, EMG, and H/VEOG channels were not detected properly, and many non-ECG channels were called ECG. The logic has been improved, and any channels of unknown type are now labeled as ``misc`` (:gh:`11102` by `Eric Larson`_)
 - Fix bug in :func:`mne.viz.plot_topomap` when providing ``sphere="eeglab"`` (:gh:`11081` by `Mathieu Scheltienne`_)
+- The string and HTML representation of :class:`mne.preprocessing.ICA` reported incorrect values for the explained variance. This information has been removed from the representations, and should instead be retrieved via the new :meth:`~mne.preprocessing.ICA.get_explained_variance_ratio` method (:gh:`11141` by `Richard Höchenberger`_)
+- Fix bug in :meth:`mne.Evoked.plot` and related methods where a ``np.nan`` location value in any channel causes spatial colours to fail (:gh:`6870` by `Simeon Wong`_)
 
 API changes
 ~~~~~~~~~~~

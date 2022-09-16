@@ -31,7 +31,8 @@ from ..source_estimate import VolSourceEstimate
 from ..surface import _normalize_vectors, _CheckInside
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
 
-from .forward import Forward, _merge_meg_eeg_fwds, convert_forward_solution
+from .forward import (Forward, _merge_fwds, convert_forward_solution,
+                      _FWD_ORDER)
 
 
 _accuracy_dict = dict(normal=FWD.COIL_ACCURACY_NORMAL,
@@ -541,6 +542,14 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True, *,
 
     To create a fixed-orientation forward solution, use this function
     followed by :func:`mne.convert_forward_solution`.
+
+    .. note::
+        If the BEM solution was computed with :doc:`OpenMEEG <openmeeg:index>`
+        in :func:`mne.make_bem_solution`, then OpenMEEG will automatically
+        be used to compute the forward solution.
+
+    .. versionchanged:: 1.2
+       Added support for OpenMEEG-based forward solution calculations.
     """
     # Currently not (sup)ported:
     # 1. --grad option (gradients of the field, not used much)
@@ -578,6 +587,7 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True, *,
                 _coord_frame_name(FIFF.FIFFV_COORD_HEAD))
     logger.info('Free source orientations')
 
+    # Create MEG coils and EEG electrodes in the head coordinate frame
     sensors, rr, info, update_kwargs, bem = _prepare_for_forward(
         src, mri_head_t, info, bem, mindist, n_jobs, bem_extra, trans,
         info_extra, meg, eeg, ignore_ref)
@@ -588,14 +598,9 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True, *,
     fwds = _compute_forwards(rr, bem=bem, sensors=sensors, n_jobs=n_jobs)
 
     # merge forwards
-    for key in ('meg', 'eeg'):
-        if key not in fwds:
-            continue
-        fwds[key] = _to_forward_dict(fwds[key], sensors[key]['ch_names'])
-    fwds = list(fwds.values())  # meg, eeg, or meg then eeg
-    if len(fwds) == 2:
-        fwds = [_merge_meg_eeg_fwds(*fwds, verbose=False)]
-    fwd = fwds[0]
+    fwds = {key: _to_forward_dict(fwds[key], sensors[key]['ch_names'])
+            for key in _FWD_ORDER if key in fwds}
+    fwd = _merge_fwds(fwds, verbose=False)
     del fwds
     logger.info('')
 

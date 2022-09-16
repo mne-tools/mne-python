@@ -109,10 +109,10 @@ def test_cov_rank_estimation(rank_method, proj, meg):
 
     # Now do some more comprehensive tests
     raw_sample = read_raw_fif(raw_fname)
-    assert not _has_eeg_average_ref_proj(raw_sample.info['projs'])
+    assert not _has_eeg_average_ref_proj(raw_sample.info)
 
     raw_sss = read_raw_fif(hp_fif_fname)
-    assert not _has_eeg_average_ref_proj(raw_sss.info['projs'])
+    assert not _has_eeg_average_ref_proj(raw_sss.info)
     raw_sss.add_proj(compute_proj_raw(raw_sss, meg=meg))
 
     cov_sample = compute_raw_covariance(raw_sample)

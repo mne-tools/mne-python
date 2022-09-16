@@ -112,14 +112,12 @@ def test_stockwell_api():
     epochs = Epochs(raw, events,  # XXX pick 2 has epochs of zeros.
                     event_id, tmin, tmax, picks=[0, 1, 3])
     for fmin, fmax in [(None, 50), (5, 50), (5, None)]:
-        with pytest.warns(RuntimeWarning, match='padding'):
-            power, itc = tfr_stockwell(epochs, fmin=fmin, fmax=fmax,
-                                       return_itc=True)
+        power, itc = tfr_stockwell(epochs, fmin=fmin, fmax=fmax,
+                                   return_itc=True)
         if fmax is not None:
             assert (power.freqs.max() <= fmax)
-        with pytest.warns(RuntimeWarning, match='padding'):
-            power_evoked = tfr_stockwell(epochs.average(), fmin=fmin,
-                                         fmax=fmax, return_itc=False)
+        power_evoked = tfr_stockwell(epochs.average(), fmin=fmin,
+                                     fmax=fmax, return_itc=False)
         # for multitaper these don't necessarily match, but they seem to
         # for stockwell... if this fails, this maybe could be changed
         # just to check the shape

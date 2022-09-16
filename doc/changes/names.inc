@@ -12,7 +12,7 @@
 
 .. _Alejandro Weinstein: http://ocam.cl
 
-.. _Alessandro Tonin: https://wysscenter.ch/team/alessandro-tonin
+.. _Alessandro Tonin: https://www.linkedin.com/in/alessandro-tonin-7892b046
 
 .. _Alex Ciok: https://github.com/alexCiok
 
@@ -321,6 +321,8 @@
 .. _Mingjian He: https://github.com/mh105
 
 .. _Mohammad Daneshzand: https://github.com/mdaneshzand
+
+.. _Moritz Gerster: https://github.com/moritz-gerster
 
 .. _Natalie Klein: https://github.com/natalieklein
 

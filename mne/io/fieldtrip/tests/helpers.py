@@ -9,7 +9,6 @@ import os
 import numpy as np
 
 import mne
-from mne.io.constants import FIFF
 from mne.utils import object_diff
 
 
@@ -17,7 +16,8 @@ info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
                        'meas_date', 'highpass', 'lowpass', 'subject_info',
                        'hpi_subsystem', 'experimenter', 'description',
                        'proj_id', 'proj_name', 'line_freq', 'gantry_angle',
-                       'dev_head_t', 'bads', 'ctf_head_t', 'dev_ctf_t')
+                       'dev_head_t', 'bads', 'ctf_head_t', 'dev_ctf_t',
+                       'dig')
 
 ch_ignore_fields = ('logno', 'cal', 'range', 'scanno', 'coil_type', 'kind',
                     'loc', 'coord_frame', 'unit')
@@ -70,18 +70,6 @@ def _remove_ignored_info_fields(info):
             del info[cur_field]
 
     _remove_ignored_ch_fields(info)
-    _remove_bad_dig_fields(info)
-
-
-def _remove_bad_dig_fields(info):
-    # The reference location appears to be lost, so we cannot add it.
-    # Similarly, fiducial locations do not appear to be stored, so we
-    # cannot add those, either. Same with HPI coils.
-    if info['dig'] is not None:
-        with info._unlock():
-            info['dig'] = [d for d in info['dig']
-                           if d['kind'] == FIFF.FIFFV_POINT_EEG and
-                           d['ident'] != 0]  # ref
 
 
 def get_data_paths(system):
@@ -200,7 +188,7 @@ def check_info_fields(expected, actual, has_raw_info, ignore_long=True):
     # we annoyingly have two ways of representing this, so just always use
     # an empty list here
     for obj in (expected, actual):
-        if obj['dig'] is None:
+        if obj.get('dig', None) is None:
             with obj._unlock():
                 obj['dig'] = []
 

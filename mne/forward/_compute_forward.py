@@ -20,11 +20,12 @@ import numpy as np
 from copy import deepcopy
 
 from ..fixes import jit, bincount
-from ..io.constants import FIFF, FWD
+from ..io.constants import FIFF
 from ..parallel import parallel_func
 from ..surface import _project_onto_surface, _jit_cross
-from ..transforms import apply_trans
-from ..utils import logger, verbose, _pl, warn, fill_doc
+from ..transforms import apply_trans, invert_transform
+from ..utils import logger, verbose, _pl, warn, fill_doc, _check_option
+from ..bem import _make_openmeeg_geometry, _import_openmeeg
 
 
 # #############################################################################
@@ -710,14 +711,15 @@ def _prep_field_computation(rr, *, sensors, bem, n_jobs, verbose=None):
     bem : instance of ConductorModel
         Boundary Element Model information
     fwd_data : dict
-        Dict containing sensor information. Gets updated here with BEM and
-        sensor information for later forward calculations
+        Dict containing sensor information in the head coordinate frame.
+        Gets updated here with BEM and sensor information for later forward
+        calculations.
     %(n_jobs)s
     %(verbose)s
     """
     bem_rr = mults = mri_Q = head_mri_t = None
     if not bem['is_sphere']:
-        if bem['bem_method'] != FWD.BEM_LINEAR_COLL:
+        if bem['bem_method'] != FIFF.FIFFV_BEM_APPROX_LINEAR:
             raise RuntimeError('only linear collocation supported')
         # Store (and apply soon) μ_0/(4π) factor before source computations
         mults = np.repeat(bem['source_mult'] / (4.0 * np.pi),
@@ -809,8 +811,65 @@ def _compute_forwards(rr, *, bem, sensors, n_jobs, verbose=None):
     """Compute the MEG and EEG forward solutions."""
     # Split calculation into two steps to save (potentially) a lot of time
     # when e.g. dipole fitting
-    fwd_data = _prep_field_computation(
-        rr, sensors=sensors, bem=bem, n_jobs=n_jobs)
-    Bs = _compute_forwards_meeg(
-        rr, sensors=sensors, fwd_data=fwd_data, n_jobs=n_jobs)
+    solver = bem.get('solver', 'mne')
+    _check_option('solver', solver, ('mne', 'openmeeg'))
+    if bem['is_sphere'] or solver == 'mne':
+        fwd_data = _prep_field_computation(
+            rr, sensors=sensors, bem=bem, n_jobs=n_jobs)
+        Bs = _compute_forwards_meeg(
+            rr, sensors=sensors, fwd_data=fwd_data, n_jobs=n_jobs)
+    else:
+        Bs = _compute_forwards_openmeeg(rr, bem=bem, sensors=sensors)
+    n_sensors_want = sum(len(s['ch_names']) for s in sensors.values())
+    n_sensors = sum(B.shape[1] for B in Bs.values())
+    n_sources = list(Bs.values())[0].shape[0]
+    assert (n_sources, n_sensors) == (len(rr) * 3, n_sensors_want)
+    return Bs
+
+
+def _compute_forwards_openmeeg(rr, *, bem, sensors):
+    """Compute the MEG and EEG forward solutions for OpenMEEG."""
+    if len(bem["surfs"]) != 3:
+        raise RuntimeError("Only 3-layer BEM is supported for OpenMEEG.")
+    om = _import_openmeeg('compute a forward solution using OpenMEEG')
+    hminv = om.SymMatrix(bem["solution"])
+    geom = _make_openmeeg_geometry(bem, invert_transform(bem['head_mri_t']))
+
+    # Make dipoles for all XYZ orientations
+    dipoles = np.c_[
+        np.kron(rr.T, np.ones(3)[None, :]).T,
+        np.kron(np.ones(len(rr))[:, None],
+                np.eye(3)),
+    ]
+    dipoles = np.asfortranarray(dipoles)
+    dipoles = om.Matrix(dipoles)
+    dsm = om.DipSourceMat(geom, dipoles, "Brain")
+    Bs = dict()
+    if 'eeg' in sensors:
+        rmags, _, ws, bins = _concatenate_coils(sensors['eeg']['defs'])
+        rmags = np.asfortranarray(rmags.astype(np.float64))
+        eeg_sensors = om.Sensors(om.Matrix(np.asfortranarray(rmags)), geom)
+        h2em = om.Head2EEGMat(geom, eeg_sensors)
+        eeg_fwd_full = om.GainEEG(hminv, dsm, h2em).array()
+        Bs['eeg'] = np.array([bincount(bins, ws * x, bins[-1] + 1)
+                              for x in eeg_fwd_full.T], float)
+    if 'meg' in sensors:
+        rmags, cosmags, ws, bins = _concatenate_coils(sensors['meg']['defs'])
+        rmags = np.asfortranarray(rmags.astype(np.float64))
+        cosmags = np.asfortranarray(cosmags.astype(np.float64))
+        labels = [str(ii) for ii in range(len(rmags))]
+        weights = radii = np.ones(len(labels))
+        meg_sensors = om.Sensors(labels, rmags, cosmags, weights, radii)
+        h2mm = om.Head2MEGMat(geom, meg_sensors)
+        ds2mm = om.DipSource2MEGMat(dipoles, meg_sensors)
+        meg_fwd_full = om.GainMEG(hminv, dsm, h2mm, ds2mm).array()
+        B = np.array([bincount(bins, ws * x, bins[-1] + 1)
+                      for x in meg_fwd_full.T], float)
+        compensator = sensors['meg'].get('compensator', None)
+        post_picks = sensors['meg'].get('post_picks', None)
+        if compensator is not None:
+            B = B @ compensator.T
+        if post_picks is not None:
+            B = B[:, post_picks]
+        Bs['meg'] = B
     return Bs

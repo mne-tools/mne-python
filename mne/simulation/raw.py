@@ -19,7 +19,7 @@ from ..io import RawArray, BaseRaw, Info
 from ..chpi import (read_head_pos, head_pos_to_trans_rot_t, get_chpi_info,
                     _get_hpi_initial_fit)
 from ..io.constants import FIFF
-from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
+from ..forward import (_magnetic_dipole_field_vec, _merge_fwds,
                        _stc_src_sel, convert_forward_solution,
                        _prepare_for_forward, _transform_orig_meg_coils,
                        _compute_forwards, _to_forward_dict,
@@ -725,6 +725,10 @@ def _iter_forward_solutions(info, trans, src, bem, dev_head_ts, mindist,
     if 'eeg' in sensors:
         del sensors['eeg']
     megnames = sensors['meg']['ch_names']
+    fwds = dict()
+    if eegfwd is not None:
+        fwds['eeg'] = eegfwd
+    del eegfwd
     for ti, dev_head_t in enumerate(dev_head_ts):
         # Could be *slightly* more efficient not to do this N times,
         # but the cost here is tiny compared to actual fwd calculation
@@ -755,7 +759,8 @@ def _iter_forward_solutions(info, trans, src, bem, dev_head_ts, mindist,
             megfwd = _to_forward_dict(megfwd, megnames)
         else:
             megfwd = pick_channels_forward(forward, megnames, verbose=False)
-        fwd = _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=False)
+        fwds['meg'] = megfwd
+        fwd = _merge_fwds(fwds, verbose=False)
         fwd.update(**update_kwargs)
 
         yield fwd

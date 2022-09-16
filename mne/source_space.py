@@ -149,16 +149,59 @@ class SourceSpaces(list):
             surfaces) between source points.
         dist_limit : float
             The maximum distance allowed for inclusion in ``nearest``.
-        pinfo : dict
-            Information about the patch of cortex represented by a vertex in
-            the subsampled surface.
-        patch_inds : list of ndarray
+        pinfo : list of ndarray
             For each vertex in the subsampled surface, the indices of the
             vertices in the dense surface that it represents (i.e., is closest
-            to of all subsampled indices).
+            to of all subsampled indices), e.g. for the left hemisphere
+            (here constructed for ``sample`` with ``spacing='oct-6'``),
+            which vertices did we choose? Note the first is 14::
+
+                >>> src[0]['vertno']  # doctest:+SKIP
+                array([    14,     54,     59, ..., 155295, 155323, 155330])
+
+            And which dense surface verts did our vertno[0] (14 on dense) represent? ::
+
+                >>> src[0]['pinfo'][0]  # doctest:+SKIP
+                array([  6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,
+                        19,  20,  21,  22,  23,  24,  25,  29,  30,  31,  39, 134, 135,
+                       136, 137, 138, 139, 141, 142, 143, 144, 149, 150, 151, 152, 156,
+                       162, 163, 173, 174, 185, 448, 449, 450, 451, 452, 453, 454, 455,
+                       456, 462, 463, 464, 473, 474, 475, 485, 496, 497, 512, 864, 876,
+                       881, 889, 890, 904])
+
+        patch_inds : ndarray, shape (n_src_remaining,)
+            The patch indices that have been retained (if relevant, following
+            forward computation. After just :func:`mne.setup_source_space`,
+            this will be ``np.arange(src[0]['nuse'])``. After forward
+            computation, some vertices can be excluded, in which case this
+            tells you which patches (of the original ``np.arange(nuse)``)
+            are still in use. So if some vertices have been excluded, the
+            line above for ``pinfo`` for completeness should be (noting that
+            the first subsampled vertex ([0]) represents the following dense
+            vertices)::
+
+                >>> src[0]['pinfo'][src[0]['patch_inds'][0]]  # doctest:+SKIP
+                array([  6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,
+                        19,  20,  21,  22,  23,  24,  25,  29,  30,  31,  39, 134, 135,
+                       136, 137, 138, 139, 141, 142, 143, 144, 149, 150, 151, 152, 156,
+                       162, 163, 173, 174, 185, 448, 449, 450, 451, 452, 453, 454, 455,
+                       456, 462, 463, 464, 473, 474, 475, 485, 496, 497, 512, 864, 876,
+                       881, 889, 890, 904])
+
         nearest : ndarray, shape (np,)
             For each vertex on the dense surface, this gives the vertex index
-            on the subsampled surface that it's closest to.
+            (in the dense surface) that each dense surface vertex is closest to
+            of the vertices chosen for subsampling. This is essentially the
+            reverse map off ``pinfo``, e.g.::
+
+                >>> src[0]['nearest'].shape  # doctest:+SKIP
+                (115407,)
+
+            Based on ``pinfo`` above, this should be 14:
+
+                >>> src[0]['nearest'][6]  # doctest:+SKIP
+                14
+
         nearest_dist : ndarray, shape (np,)
             The distances corresponding to ``nearest``.
 
@@ -194,7 +237,7 @@ class SourceSpaces(list):
 
     Source spaces also have some attributes that are accessible via ``.``
     access, like ``src.kind``.
-    """
+    """  # noqa: E501
 
     def __init__(self, source_spaces, info=None):  # noqa: D102
         # First check the types is actually a valid config

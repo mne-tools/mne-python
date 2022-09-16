@@ -406,3 +406,32 @@ def _resource_path(submodule, filename):
     except ImportError:
         from pkg_resources import resource_filename
         return resource_filename(submodule, filename)
+
+
+def repr_html(f):
+    """Decorate _repr_html_ methods.
+
+    If a _repr_html_ method is decorated with this decorator, the repr in a
+    notebook will show HTML or plain text depending on the config value
+    MNE_REPR_HTML (by default "true", which will render HTML).
+
+    Parameters
+    ----------
+    f : function
+        The function to decorate.
+
+    Returns
+    -------
+    wrapper : function
+        The decorated function.
+    """
+    from ..utils import get_config
+
+    def wrapper(*args, **kwargs):
+        if get_config("MNE_REPR_HTML", "true").lower() == "false":
+            import html
+            r = "<pre>" + html.escape(repr(args[0])) + "</pre>"
+            return r.replace("\n", "<br/>")
+        else:
+            return f(*args, **kwargs)
+    return wrapper

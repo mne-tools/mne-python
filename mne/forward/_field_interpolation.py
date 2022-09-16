@@ -73,7 +73,7 @@ def _compute_mapping_matrix(fmd, info):
     mapping_mat = np.dot(fmd['surface_dots'], inv_whitened_proj)
 
     # Optionally apply the average electrode reference to the final field map
-    if fmd['kind'] == 'eeg' and _has_eeg_average_ref_proj(projs):
+    if fmd['kind'] == 'eeg' and _has_eeg_average_ref_proj(info):
         logger.info(
             '    The map has an average electrode reference '
             f'({mapping_mat.shape[0]} channels)')
@@ -157,8 +157,8 @@ def _map_meg_or_eeg_channels(info_from, info_to, mode, origin, miss=None):
         coils_to = _create_eeg_els(info_to['chs'])
         pinv_method = 'tikhonov'
         miss = 1e-1
-        if _has_eeg_average_ref_proj(info_from['projs']) and \
-                not _has_eeg_average_ref_proj(info_to['projs']):
+        if _has_eeg_average_ref_proj(info_from) and \
+                not _has_eeg_average_ref_proj(info_to):
             raise RuntimeError(
                 'info_to must have an average EEG reference projector if '
                 'info_from has one')

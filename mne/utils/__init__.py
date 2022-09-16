@@ -39,7 +39,7 @@ from ._logging import (verbose, logger, set_log_level, set_log_file,
 from .misc import (run_subprocess, _pl, _clean_names, pformat, _file_like,
                    _explain_exception, _get_argvalues, sizeof_fmt,
                    running_subprocess, _DefaultEventParser,
-                   _assert_no_instances, _resource_path)
+                   _assert_no_instances, _resource_path, repr_html)
 from .progressbar import ProgressBar
 from ._testing import (run_command_if_main, requires_sklearn,
                        requires_version, requires_nibabel, requires_mne,
@@ -47,11 +47,12 @@ from ._testing import (run_command_if_main, requires_sklearn,
                        ArgvSetter, SilenceStdout, has_freesurfer, has_mne_c,
                        _TempDir, has_nibabel, buggy_mkl_svd,
                        requires_numpydoc, requires_freesurfer,
-                       requires_nitime, requires_dipy,
+                       requires_nitime, requires_dipy, requires_mne_mark,
                        requires_neuromag2ft, requires_pylsl,
                        assert_object_equal, assert_and_remove_boundary_annot,
                        _raw_annot, assert_dig_allclose, assert_meg_snr,
-                       assert_snr, assert_stcs_equal, _click_ch_name)
+                       assert_snr, assert_stcs_equal, _click_ch_name,
+                       requires_openmeeg_mark)
 from .numerics import (hashfunc, _compute_row_norms,
                        _reg_pinv, random_permutation, _reject_data_segments,
                        compute_corr, _get_inst_data, array_split_idx,

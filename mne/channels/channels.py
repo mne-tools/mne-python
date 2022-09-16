@@ -223,7 +223,8 @@ class SetChannelsMixin(MontageMixin):
 
     @verbose
     def set_eeg_reference(self, ref_channels='average', projection=False,
-                          ch_type='auto', forward=None, verbose=None):
+                          ch_type='auto', forward=None, *, joint=False,
+                          verbose=None):
         """Specify which reference to use for EEG data.
 
         Use this function to explicitly specify the desired reference for EEG.
@@ -237,6 +238,7 @@ class SetChannelsMixin(MontageMixin):
         %(projection_set_eeg_reference)s
         %(ch_type_set_eeg_reference)s
         %(forward_set_eeg_reference)s
+        %(joint_set_eeg_reference)s
         %(verbose)s
 
         Returns
@@ -250,7 +252,7 @@ class SetChannelsMixin(MontageMixin):
         from ..io.reference import set_eeg_reference
         return set_eeg_reference(self, ref_channels=ref_channels, copy=False,
                                  projection=projection, ch_type=ch_type,
-                                 forward=forward)[0]
+                                 forward=forward, joint=joint)[0]
 
     def _get_channel_positions(self, picks=None):
         """Get channel locations from info.
@@ -415,11 +417,9 @@ class SetChannelsMixin(MontageMixin):
         if isinstance(self, BaseRaw):
             # whatever mapping was provided, now we can just use a dict
             mapping = dict(zip(ch_names_orig, self.info['ch_names']))
-            if self._orig_units is not None:
-                for old_name, new_name in mapping.items():
-                    if old_name != new_name:
-                        self._orig_units[new_name] = self._orig_units[old_name]
-                        del self._orig_units[old_name]
+            for old_name, new_name in mapping.items():
+                if old_name in self._orig_units:
+                    self._orig_units[new_name] = self._orig_units.pop(old_name)
             ch_names = self.annotations.ch_names
             for ci, ch in enumerate(ch_names):
                 ch_names[ci] = tuple(mapping.get(name, name) for name in ch)
@@ -830,6 +830,9 @@ class UpdateChannelsMixin(object):
 
         if isinstance(self, BaseRaw):
             self.annotations._prune_ch_names(self.info, on_missing='ignore')
+            self._orig_units = {
+                k: v for k, v in self._orig_units.items()
+                if k in self.ch_names}
 
         self._pick_projs()
         return self
@@ -944,6 +947,8 @@ class UpdateChannelsMixin(object):
             self._read_picks = [
                 np.concatenate([r, extra_idx]) for r in self._read_picks]
             assert all(len(r) == self.info['nchan'] for r in self._read_picks)
+            for other in add_list:
+                self._orig_units.update(other._orig_units)
         elif isinstance(self, BaseEpochs):
             self.picks = np.arange(self._data.shape[1])
             if hasattr(self, '_projector'):
