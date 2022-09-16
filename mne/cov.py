@@ -1532,7 +1532,7 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
         eig[picks], eigvec[np.ix_(picks, picks)], mask[picks] = e, ev, m
         # XXX : also handle ref for sEEG and ECoG
         if ch_type == 'eeg' and _needs_eeg_average_ref_proj(info) and not \
-                _has_eeg_average_ref_proj(projs):
+                _has_eeg_average_ref_proj(info, projs=projs):
             warn('No average EEG reference present in info["projs"], '
                  'covariance may be adversely affected. Consider recomputing '
                  'covariance using with an average eeg reference projector '

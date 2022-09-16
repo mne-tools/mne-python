@@ -399,7 +399,8 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
 
     # Make sure EEG has average
     if ch_type == 'eeg':
-        if projs is None or not _has_eeg_average_ref_proj(projs):
+        if projs is None or not _has_eeg_average_ref_proj(
+                fwd['info'], projs=projs):
             eeg_ave = [make_eeg_average_ref_proj(fwd['info'])]
         else:
             eeg_ave = []
