@@ -60,6 +60,6 @@ plt.xlim(stc.times[0], stc.times[-1])
 labels = ['LH: center of mass = %s' % mni_lh.round(2),
           'RH: center of mass = %s' % mni_rh.round(2),
           'Combined LH & RH']
-plt.figlegend([hl, hr, hb], labels, 'lower center')
+plt.figlegend([hl, hr, hb], labels, loc='lower center')
 plt.suptitle('Average activation in auditory cortex labels', fontsize=20)
 plt.show()
