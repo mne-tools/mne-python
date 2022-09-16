@@ -48,7 +48,6 @@ from .transforms import (apply_trans, invert_transform, _angle_between_quats,
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
                     _validate_type, ProgressBar, _check_option, _pl,
                     _on_missing)
-from .utils.docs import fill_doc
 
 # Eventually we should add:
 #   hpicons
@@ -1387,8 +1386,8 @@ def _compute_good_distances(hpi_coil_dists, new_pos, dist_limit=0.005):
     return use_mask, these_dists
 
 
-@fill_doc
-def get_active_chpi(raw, on_missing='raise'):
+@verbose
+def get_active_chpi(raw, *, on_missing='raise', verbose=None):
     """Determine how many HPI coils were active for a time point.
 
     Parameters
@@ -1396,6 +1395,7 @@ def get_active_chpi(raw, on_missing='raise'):
     raw : instance of Raw
         Raw data with cHPI information.
     %(on_missing_chpi)s
+    %(verbose)s
 
     Returns
     -------
@@ -1406,9 +1406,6 @@ def get_active_chpi(raw, on_missing='raise'):
     -----
     .. versionadded:: 1.2
     """
-    _check_option(parameter='on_missing', value=on_missing,
-                  allowed_values=['ignore', 'raise', 'warn'])
-
     # get meg system
     system, _ = _get_meg_system(raw.info)
 
