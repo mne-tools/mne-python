@@ -72,7 +72,9 @@ known_config_types = {
     'MNE_3D_OPTION_MULTI_SAMPLES': '',
     'MNE_3D_OPTION_SMOOTH_SHADING': '',
     'MNE_3D_OPTION_THEME': '',
-    'MNE_BROWSE_RAW_SIZE': 'Width and height of the raw browser window (in inches), specified by a tuple of two floats.',
+    'MNE_BROWSE_RAW_SIZE': (
+        'tuple, width and height of the raw browser window (in inches)'
+    ),
     'MNE_BROWSER_BACKEND': '',
     'MNE_BROWSER_OVERVIEW_MODE': '',
     'MNE_BROWSER_PRECOMPUTE': '',
@@ -130,15 +132,23 @@ known_config_types = {
     'MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD': '',
     'MNE_LOGGING_LEVEL': '',
     'MNE_MEMMAP_MIN_SIZE': '',
-    'MNE_REPR_HTML': 'If "True" (default), objects will be represented as rich HTML in a notebook environment (if supported by the object). If "False", all objects will be represented by plain text in a notebook, just like in a regular Python REPL.',
+    'MNE_REPR_HTML': (
+        'bool, represent some of our objects with rich HTML in a notebook '
+        'environment (default "true")'
+    ),
     'MNE_SKIP_FTP_TESTS': '',
     'MNE_SKIP_NETWORK_TESTS': '',
     'MNE_SKIP_TESTING_DATASET_TESTS': '',
     'MNE_STIM_CHANNEL': '',
     'MNE_TQDM': '',
-    'MNE_USE_CUDA': 'boolean, use GPU for filtering/resampling',
-    'MNE_USE_NUMBA': 'boolean, use Numba just-in-time compiler for some of our intensive computations',
-    'SUBJECTS_DIR': 'path-like, directory of freesurfer MRI files for each subject',
+    'MNE_USE_CUDA': 'bool, use GPU for filtering/resampling',
+    'MNE_USE_NUMBA': (
+        'bool, use Numba just-in-time compiler for some of our intensive '
+        'computations'
+    ),
+    'SUBJECTS_DIR': (
+        'path-like, directory of freesurfer MRI files for each subject'
+    ),
 }
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
