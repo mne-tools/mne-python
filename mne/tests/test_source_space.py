@@ -162,6 +162,39 @@ def test_add_patch_info(monkeypatch):
         _compare_source_spaces(src, src_new, 'approx')
 
 
+# We could test "src_py" here, but we can rely on our existing tests to
+# make sure the pinfo/patch_inds/nearest match
+@testing.requires_testing_data
+@pytest.mark.parametrize('src_kind', ['fwd', 'src'])
+def test_surface_source_space_doc(src_kind):
+    """Test surface source space docstring."""
+    # make sure we're correct about this stuff for both kinds!
+    if src_kind == 'fwd':
+        src = mne.read_source_spaces(fname_fwd)
+    else:
+        assert src_kind == 'src'
+        src = mne.read_source_spaces(fname_src)
+    for s in src:
+        if src_kind == 'src':  # original
+            assert len(s['pinfo']) == s['nuse']
+            assert_array_equal(s['patch_inds'], np.arange(s['nuse']))
+        else:  # pts removed
+            assert len(s['pinfo']) > s['nuse']
+        all_pinfo = np.concatenate(s['pinfo'])
+        assert_array_equal(np.sort(all_pinfo), np.arange(s['np']))
+        assert len(s['patch_inds']) == s['nuse']
+        assert len(s['vertno']) == s['nuse']
+        assert len(s['patch_inds']) == s['nuse']
+        for idx in (0, 42, 173):
+            this_dense_vertex = s['vertno'][idx]
+            # 'pinfo'
+            this_vertex_represents = s['pinfo'][s['patch_inds'][idx]]
+            assert len(this_vertex_represents) > 1
+            # 'nearest'
+            for other in this_vertex_represents:
+                assert s['nearest'][other] == this_dense_vertex
+
+
 @testing.requires_testing_data
 def test_add_source_space_distances_limited(tmp_path):
     """Test adding distances to source space with a dist_limit."""
