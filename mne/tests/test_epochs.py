@@ -1384,17 +1384,17 @@ def test_epochs_proj(tmp_path):
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     proj=True)
     epochs.set_eeg_reference(projection=True).apply_proj()
-    assert (_has_eeg_average_ref_proj(epochs.info['projs']))
+    assert _has_eeg_average_ref_proj(epochs.info)
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     proj=True)
-    assert (not _has_eeg_average_ref_proj(epochs.info['projs']))
+    assert not _has_eeg_average_ref_proj(epochs.info)
 
     # make sure we don't add avg ref when a custom ref has been applied
     with raw.info._unlock():
         raw.info['custom_ref_applied'] = True
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     proj=True)
-    assert (not _has_eeg_average_ref_proj(epochs.info['projs']))
+    assert not _has_eeg_average_ref_proj(epochs.info)
 
     # From GH#2200:
     # This has no problem
