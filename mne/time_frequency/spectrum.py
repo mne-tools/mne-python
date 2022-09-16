@@ -1094,6 +1094,42 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         self.events = state['events']
         self.selection = state['selection']
 
+    def average(self, method='mean'):
+        """Average the spectra across epochs.
+
+        Parameters
+        ----------
+        method : 'mean' | 'median' | callable
+            How to aggregate spectra across epochs. If callable, must take a
+            :class:`NumPy array<numpy.ndarray>` of shape
+            ``(n_epochs, n_channels, n_freqs)`` and return an array of shape
+            ``(n_channels, n_freqs)``. Default is ``'mean'``.
+
+        Returns
+        -------
+        spectrum : instance of Spectrum
+            The aggregated spectrum object.
+        """
+        if isinstance(method, str):
+            method = getattr(np, method)  # mean, median, std, etc
+            method = partial(method, axis=0)
+        if not callable(method):
+            raise ValueError('"method" must be a valid string or callable, '
+                             f'got a {type(method).__name__} ({method}).')
+        if hasattr(self, '_mt_weights'):
+            raise NotImplementedError(
+                'Averaging complex spectra is not (yet) supported.')
+        state = super().__getstate__()
+        state['data'] = method(state['data'])
+        state['dims'] = state['dims'][1:]
+        state['data_type'] = f'Averaged {state["data_type"]}'
+        state['inst_type_str'] = 'Evoked'
+        defaults = dict(
+            method=None, fmin=None, fmax=None, tmin=None, tmax=None,
+            picks=None, proj=None, reject_by_annotation=None, n_jobs=None,
+            verbose=None)
+        return Spectrum(state, **defaults)
+
 
 def read_spectrum(fname):
     """Load a :class:`mne.time_frequency.Spectrum` object from disk.

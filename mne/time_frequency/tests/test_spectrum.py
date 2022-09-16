@@ -87,6 +87,15 @@ def test_spectrum_getitem_epochs(epochs):
     assert_array_equal(want, got)
 
 
+@pytest.mark.parametrize('method', ('mean', partial(np.std, axis=0)))
+def test_epochs_spectrum_average(epochs, method):
+    """Test EpochsSpectrum.average()."""
+    spect = epochs.compute_psd(method=method)
+    avg_spect = spect.average()
+    assert avg_spect.shape == spect.shape[1:]
+    assert avg_spect._dims == ('channel', 'freq')  # no 'epoch'
+
+
 def _agg_helper(df, weights, group_cols):
     """Aggregate complex multitaper spectrum after conversion to DataFrame."""
     from pandas import Series
