@@ -3,14 +3,14 @@
 # License: BSD-3-Clause
 
 import numpy as np
-from h5io import read_hdf5, write_hdf5
 
 from ..defaults import _BORDER_DEFAULT
 from ..epochs import BaseEpochs
 from ..io.pick import _picks_to_idx, pick_info
 from ..io.base import BaseRaw
 from ..utils import (_check_preload, _validate_type, _check_option, verbose,
-                     fill_doc, copy_function_doc_to_method_doc, _check_fname)
+                     fill_doc, copy_function_doc_to_method_doc, _check_fname,
+                     _import_h5io_funcs)
 from ..minimum_norm.inverse import _needs_eeg_average_ref_proj
 from ..viz import plot_regression_weights
 from .. import Evoked
@@ -285,6 +285,7 @@ class EOGRegression():
             The file to write the regression weights to. Should end in ``.h5``.
         %(overwrite)s
         """
+        _, write_hdf5 = _import_h5io_funcs()
         _validate_type(fname, 'path-like', 'fname')
         fname = _check_fname(fname, overwrite=overwrite, name='fname')
         write_hdf5(fname, self.__dict__, overwrite=overwrite)
@@ -307,6 +308,7 @@ def read_eog_regression(fname):
     -----
     .. versionadded:: 1.2
     """
+    read_hdf5, _ = _import_h5io_funcs()
     _validate_type(fname, 'path-like', 'fname')
     fname = _check_fname(fname, overwrite='read', must_exist=True,
                          name='fname')

@@ -13,6 +13,7 @@ from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.preprocessing import (regress_artifact, create_eog_epochs,
                                EOGRegression, read_eog_regression)
+from mne.utils import requires_version
 
 data_path = testing.data_path(download=False)
 raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -51,7 +52,7 @@ def test_regress_artifact():
 
 
 @testing.requires_testing_data
-def test_eog_regression(tmp_path):
+def test_eog_regression():
     """Test regressing artifact data using the EOGRegression class."""
     raw_meg_eeg = read_raw_fif(raw_fname)
     raw = raw_meg_eeg.copy().pick(['eeg', 'eog', 'stim'])
@@ -137,7 +138,15 @@ def test_eog_regression(tmp_path):
     assert fig.axes[4].title.get_text() == 'mag/EOG 061'
     assert fig.axes[5].title.get_text() == 'eeg/EOG 061'
 
-    # Test saving and loading
+
+@requires_version('h5io')
+@testing.requires_testing_data
+def test_read_eog_regression(tmp_path):
+    """Test saving and loading an EOGRegression object."""
+    raw = read_raw_fif(raw_fname).pick(['eeg', 'eog'])
+    raw.load_data()
+    model = EOGRegression().fit(raw)
+
     model.save(tmp_path / 'weights.h5', overwrite=True)
     model2 = read_eog_regression(tmp_path / 'weights.h5')
     assert_array_equal(model._picks, model2._picks)
