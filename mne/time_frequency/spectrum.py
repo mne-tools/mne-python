@@ -279,6 +279,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # apply proj if desired
         if proj:
             inst = inst.copy().apply_proj()
+        self.inst = inst
 
         # prep times and picks
         self._time_mask = _time_mask(inst.times, tmin, tmax, sfreq=self.sfreq)
@@ -943,18 +944,20 @@ class Spectrum(BaseSpectrum):
         super().__init__(inst, method, fmin, fmax, tmin, tmax, picks, proj,
                          n_jobs=n_jobs, verbose=verbose, **method_kw)
         # get just the data we want
-        if isinstance(inst, BaseRaw):
+        if isinstance(self.inst, BaseRaw):
             start, stop = np.where(self._time_mask)[0][[0, -1]]
             rba = 'NaN' if reject_by_annotation else None
-            data = inst.get_data(self._picks, start, stop + 1,
-                                 reject_by_annotation=rba)
+            data = self.inst.get_data(self._picks, start, stop + 1,
+                                      reject_by_annotation=rba)
         else:  # Evoked
-            data = inst.data[self._picks][:, self._time_mask]
+            data = self.inst.data[self._picks][:, self._time_mask]
         # compute the spectra
         self._compute_spectra(data, fmin, fmax, n_jobs, method_kw, verbose)
         # check for correct shape and bad values
         self._check_values()
         del self._shape
+        # save memory
+        del self.inst
 
     def __getitem__(self, item):
         """Get Spectrum data.
@@ -1043,21 +1046,23 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         super().__init__(inst, method, fmin, fmax, tmin, tmax, picks, proj,
                          n_jobs=n_jobs, verbose=verbose, **method_kw)
         # get just the data we want
-        data = inst.get_data(picks=self._picks)[:, :, self._time_mask]
+        data = self.inst.get_data(picks=self._picks)[:, :, self._time_mask]
         # compute the spectra
         self._compute_spectra(data, fmin, fmax, n_jobs, method_kw, verbose)
         self._dims = ('epoch',) + self._dims
-        self._shape = (len(inst),) + self._shape
+        self._shape = (len(self.inst),) + self._shape
         # check for correct shape and bad values
         self._check_values()
         del self._shape
         # we need these for to_data_frame()
-        self.event_id = inst.event_id.copy()
-        self.events = inst.events.copy()
-        self.selection = inst.selection.copy()
+        self.event_id = self.inst.event_id.copy()
+        self.events = self.inst.events.copy()
+        self.selection = self.inst.selection.copy()
         # we need these for __getitem__()
-        self.drop_log = deepcopy(inst.drop_log)
-        self._metadata = inst.metadata
+        self.drop_log = deepcopy(self.inst.drop_log)
+        self._metadata = self.inst.metadata
+        # save memory
+        del self.inst
 
     def __getitem__(self, item):
         """Subselect epochs from an EpochsSpectrum.
