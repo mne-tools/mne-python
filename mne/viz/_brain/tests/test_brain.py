@@ -643,7 +643,7 @@ def test_brain_time_viewer(renderer_interactive_pyvistaqt, pixel_ratio,
     brain.show_view(azimuth=180., elevation=90.)
     img = brain.screenshot(mode='rgb')
     want_shape = np.array([300 * pixel_ratio, 300 * pixel_ratio, 3])
-    assert_allclose(img.shape, want_shape)
+    assert_allclose(img.shape, want_shape, atol=30)
     brain.close()
 
 
