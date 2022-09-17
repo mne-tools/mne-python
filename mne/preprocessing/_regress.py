@@ -301,7 +301,7 @@ def read_eog_regression(fname):
 
     Returns
     -------
-    model | EOGRegression
+    model : EOGRegression
         The regression model read from the file.
 
     Notes
