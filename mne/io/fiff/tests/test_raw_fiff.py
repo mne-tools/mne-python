@@ -1387,7 +1387,7 @@ def test_add_channels():
 
     pytest.raises(RuntimeError, raw_meg.add_channels, [raw_nopre])
     pytest.raises(RuntimeError, raw_meg.add_channels, [raw_badsf])
-    pytest.raises(AssertionError, raw_meg.add_channels, [raw_eeg])
+    pytest.raises(ValueError, raw_meg.add_channels, [raw_eeg])
     pytest.raises(ValueError, raw_meg.add_channels, [raw_meg])
     pytest.raises(TypeError, raw_meg.add_channels, raw_badsf)
 

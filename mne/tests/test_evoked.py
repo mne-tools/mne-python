@@ -808,7 +808,7 @@ def test_add_channels():
     evoked_eeg = evoked_eeg.crop(-.1, .1)
 
     pytest.raises(RuntimeError, evoked_meg.add_channels, [evoked_badsf])
-    pytest.raises(AssertionError, evoked_meg.add_channels, [evoked_eeg])
+    pytest.raises(ValueError, evoked_meg.add_channels, [evoked_eeg])
     pytest.raises(ValueError, evoked_meg.add_channels, [evoked_meg])
     pytest.raises(TypeError, evoked_meg.add_channels, evoked_badsf)
 
