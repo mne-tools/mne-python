@@ -428,10 +428,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             mask_params=None, contours=6, outlines='head', sphere=None,
             image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
-            size=1, time_unit='s', time_format=None, cmap=None,
-            vlim=(None, None), vmin=None, vmax=None, colorbar=True,
-            cbar_fmt='%3.1f', units=None, axes=None, title=None, nrows=1,
-            ncols='auto', show=True):
+            size=1, cmap=None, vlim=(None, None), vmin=None, vmax=None,
+            colorbar=True, cbar_fmt='%3.1f', units=None, axes=None,
+            time_unit='s', time_format=None, title=None, nrows=1, ncols='auto',
+            show=True):
         return plot_evoked_topomap(
             self, times=times, ch_type=ch_type, vlim=vlim, vmin=vmin,
             vmax=vmax, cmap=cmap, sensors=sensors, colorbar=colorbar,

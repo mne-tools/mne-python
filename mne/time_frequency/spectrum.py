@@ -161,8 +161,8 @@ class SpectrumMixin():
 
     @legacy(alt='.compute_psd().plot_topomap()')
     @verbose
-    def plot_psd_topomap(self, bands=None, tmin=None, tmax=None, proj=False,
-                         method='auto', ch_type=None, *, normalize=False,
+    def plot_psd_topomap(self, bands=None, tmin=None, tmax=None, ch_type=None,
+                         *, proj=False, method='auto', normalize=False,
                          agg_fun=None, dB=False, sensors=True,
                          show_names=False, mask=None, mask_params=None,
                          contours=6, outlines='head', sphere=None,
@@ -178,9 +178,9 @@ class SpectrumMixin():
         ----------
         %(bands_psd_topo)s
         %(tmin_tmax_psd)s
+        %(ch_type_topomap_psd)s
         %(proj_psd)s
         %(method_plot_psd_auto)s
-        %(ch_type_topomap_psd)s
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
         %(dB_plot_topomap)s

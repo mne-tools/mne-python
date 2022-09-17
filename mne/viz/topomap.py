@@ -1490,9 +1490,9 @@ def plot_evoked_topomap(
         proj=False, sensors=True, show_names=False, mask=None,
         mask_params=None, contours=6, outlines='head', sphere=None,
         image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
-        border=_BORDER_DEFAULT, res=64, size=1, time_unit='s',
-        time_format=None, cmap=None, vlim=(None, None), vmin=None, vmax=None,
-        colorbar=True, cbar_fmt='%3.1f', units=None, axes=None, title=None,
+        border=_BORDER_DEFAULT, res=64, size=1, cmap=None, vlim=(None, None),
+        vmin=None, vmax=None, colorbar=True, cbar_fmt='%3.1f', units=None,
+        axes=None, time_unit='s', time_format=None, title=None,
         nrows=1, ncols='auto', show=True):
     """Plot topographic maps of specific time points of evoked data.
 
@@ -1536,14 +1536,6 @@ def plot_evoked_topomap(
     %(border_topomap)s
     %(res_topomap)s
     %(size_topomap)s
-    time_unit : str
-        The units for the time axis, can be "ms" or "s" (default).
-
-        .. versionadded:: 0.16
-    time_format : str | None
-        String format for topomap values. Defaults (None) to "%%01d ms" if
-        ``time_unit='ms'``, "%%0.3f s" if ``time_unit='s'``, and
-        "%%g" otherwise. Can be an empty string to omit the time label.
     %(cmap_topomap)s
     %(vlim_plot_topomap_psd)s
 
@@ -1557,6 +1549,14 @@ def plot_evoked_topomap(
     %(cbar_fmt_topomap)s
     %(units_topomap)s
     %(axes_evoked_plot_topomap)s
+    time_unit : str
+        The units for the time axis, can be "ms" or "s" (default).
+
+        .. versionadded:: 0.16
+    time_format : str | None
+        String format for topomap values. Defaults (None) to "%%01d ms" if
+        ``time_unit='ms'``, "%%0.3f s" if ``time_unit='s'``, and
+        "%%g" otherwise. Can be an empty string to omit the time label.
     %(title_none)s
     nrows : int | 'auto'
         The number of rows of topographies to plot. Defaults to 1. If 'auto',
