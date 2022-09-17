@@ -15,7 +15,7 @@ import mne
 from mne.datasets import testing
 from mne.label import read_label, label_sign_flip
 from mne.event import read_events
-from mne.epochs import Epochs, EpochsArray
+from mne.epochs import Epochs, EpochsArray, make_fixed_length_epochs
 from mne.forward import restrict_forward_to_stc, apply_forward, is_fixed_orient
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne.source_space import _get_src_nn
@@ -206,15 +206,35 @@ def _compare_io(inv_op, *, out_file_ext='.fif', tempdir):
 def test_warn_inverse_operator(evoked, noise_cov):
     """Test MNE inverse warning without average EEG projection."""
     bad_info = evoked.info
+    data = evoked.data
+    tmax = evoked.tmax
+    del evoked
     with bad_info._unlock():
         bad_info['projs'] = list()
+    assert bad_info['bads'] == ['MEG 2443', 'EEG 053']
     fwd_op = convert_forward_solution(read_forward_solution(fname_fwd),
                                       surf_ori=True, copy=False)
     with pytest.raises(ValueError, match='greater than or'):
         make_inverse_operator(bad_info, fwd_op, noise_cov, depth=-0.1)
     noise_cov['projs'].pop(-1)  # get rid of avg EEG ref proj
     with pytest.warns(RuntimeWarning, match='reference'):
-        make_inverse_operator(bad_info, fwd_op, noise_cov)
+        inv = make_inverse_operator(bad_info, fwd_op, noise_cov)
+    # Create MEG-only forward, create inverse (should not warn)
+    fwd_meg = pick_channels_forward(fwd_op, bad_info['ch_names'][:306])
+    inv_meg = make_inverse_operator(bad_info, fwd_meg, noise_cov)
+    # Create MEG-only inverse, apply to M/EEG data (raw, epochs, evoked)
+    raw = mne.io.RawArray(data, bad_info)
+    epochs = make_fixed_length_epochs(raw, duration=tmax).load_data()
+    assert len(epochs) == 1
+    evoked = epochs.average()
+    assert 'eeg' in raw
+    assert 'meg' in raw
+    for (func, inst) in ((apply_inverse_raw, raw),
+                         (apply_inverse_epochs, epochs),
+                         (apply_inverse, evoked)):
+        with pytest.raises(ValueError, match='reference'):
+            func(inst, inv, 1. / 9.)
+        func(inst, inv_meg, 1. / 9.)  # no warning
 
 
 @pytest.mark.slowtest
