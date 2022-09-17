@@ -440,9 +440,9 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     img = brain.screenshot(mode='rgba')
     want_size = np.array([size[0] * pixel_ratio, size[1] * pixel_ratio, 4])
     # on macOS sometimes matplotlib is HiDPI and VTK is not...
-    factor = 2 if np.allclose(img.shape[:2], want_size[:2] / 2.) else 1
-    want_size[:2] /= factor
-    assert_allclose(img.shape, want_size)
+    div = 2 if np.allclose(img.shape[:2], want_size[:2] / 2., atol=15) else 1
+    want_size[:2] /= div
+    assert_allclose(img.shape, want_size, atol=15)
     brain.close()
 
 
@@ -886,8 +886,10 @@ def test_brain_scraper(renderer_interactive_pyvistaqt, brain_gc, tmp_path):
     img = image.imread(fname)
     w = img.shape[1]
     w0 = size[0]
-    assert np.isclose(w, w0, atol=10) or \
-        np.isclose(w, w0 * 2, atol=10), f'w ∉ {{{w0}, {2 * w0}}}'  # HiDPI
+    # With matplotlib 3.6 on Linux+conda we get a width of 624,
+    # similar tweak in test_brain_init above
+    assert np.isclose(w, w0, atol=30) or \
+        np.isclose(w, w0 * 2, atol=30), f'w ∉ {{{w0}, {2 * w0}}}'  # HiDPI
 
 
 @testing.requires_testing_data
