@@ -480,7 +480,7 @@ def test_plot_compare_evokeds():
         [red, blue], picks=[0], ci=lambda x: [x.std(axis=0), -x.std(axis=0)])
     # reasonable legend lengths
     leg_texts = [t.get_text() for t in fig.axes[0].get_legend().get_texts()]
-    assert all(len(lt) < 40 for lt in leg_texts)
+    assert all(len(lt) < 50 for lt in leg_texts)
     plot_compare_evokeds([list(evoked_dict.values())], picks=[0],
                          ci=_parametric_ci)
     # smoke test for tmin >= 0 (from mailing list)
