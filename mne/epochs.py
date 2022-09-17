@@ -56,7 +56,7 @@ from .utils import (_check_fname, check_fname, logger, verbose, repr_html,
                     check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed,
-                    _check_preload, GetEpochsMixin,
+                    _check_preload, GetEpochsMixin, deprecated,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
                     _check_combine, _build_data_frame,
@@ -3379,6 +3379,8 @@ def _check_merge_epochs(epochs_list):
         raise NotImplementedError("Epochs with unequal values for baseline")
 
 
+@deprecated('add_channels_epochs is deprecated and will be removed in 1.3, '
+            'use epochs.add_channels instead')
 @verbose
 def add_channels_epochs(epochs_list, verbose=None):
     """Concatenate channels, info and data from two Epochs objects.

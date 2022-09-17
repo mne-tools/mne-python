@@ -908,9 +908,9 @@ class UpdateChannelsMixin(object):
         shapes = np.array([dat.shape for dat in data])[:, compare_axes]
         for shape in shapes:
             if not ((shapes[0] - shape) == 0).all():
-                raise AssertionError('All data dimensions except channels '
-                                     'must match, got %s != %s'
-                                     % (shapes[0], shape))
+                raise ValueError(
+                    'All data dimensions except channels must match, got '
+                    f'{shapes[0]} != {shape}')
         del shapes
 
         # Create final data / info objects

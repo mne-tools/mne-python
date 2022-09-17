@@ -1,20 +1,17 @@
 import pytest
 
 from mne import open_docs, grade_to_tris
-from mne.epochs import add_channels_epochs
 from mne.utils import (copy_function_doc_to_method_doc, copy_doc,
                        linkcode_resolve, deprecated, deprecated_alias, legacy,
                        catch_logging)
 import webbrowser
 
 
-@pytest.mark.parametrize('obj', (grade_to_tris, add_channels_epochs))
+@pytest.mark.parametrize('obj', (grade_to_tris,))
 def test_doc_filling(obj):
     """Test that docs are filled properly."""
     doc = obj.__doc__
     assert 'verbose : ' in doc
-    if obj is add_channels_epochs:
-        assert 'passed as a keyword' in doc
 
 
 def test_deprecated_alias():

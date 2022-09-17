@@ -2628,7 +2628,7 @@ def test_add_channels_epochs():
         epochs_meg.info._check_consistency()
         epochs_eeg.info._check_consistency()
 
-        epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])
+        epochs2 = epochs_meg.copy().add_channels([epochs_eeg])
 
         assert_equal(len(epochs.info['projs']), len(epochs2.info['projs']))
         assert_equal(len(epochs.info.keys()), len(epochs_meg.info.keys()))
@@ -2648,78 +2648,33 @@ def test_add_channels_epochs():
     assert not epochs_meg.times.flags['WRITEABLE']
     assert not epochs_meg2.times.flags['WRITEABLE']
     epochs_meg2.set_meas_date(0)
-    add_channels_epochs([epochs_meg2, epochs_eeg])
+    epochs_meg2.copy().add_channels([epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
-    epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])
+    epochs2 = epochs_meg.copy().add_channels([epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.events[3, 2] -= 1
-    pytest.raises(ValueError, add_channels_epochs, [epochs_meg2, epochs_eeg])
 
-    pytest.raises(ValueError, add_channels_epochs,
-                  [epochs_meg, epochs_eeg[:2]])
-
-    epochs_meg.info['chs'].pop(0)
-    epochs_meg.info._update_redundant()
-    pytest.raises(RuntimeError, add_channels_epochs, [epochs_meg, epochs_eeg])
-
-    epochs_meg2 = epochs_meg.copy()
-    with epochs_meg2.info._unlock():
-        epochs_meg2.info['sfreq'] = None
-    pytest.raises(RuntimeError, add_channels_epochs, [epochs_meg2, epochs_eeg])
+    with pytest.raises(ValueError, match='must match'):
+        epochs_meg.add_channels([epochs_eeg[:2]])
 
     epochs_meg2 = epochs_meg.copy()
     with epochs_meg2.info._unlock():
         epochs_meg2.info['sfreq'] += 10
-    pytest.raises(RuntimeError, add_channels_epochs, [epochs_meg2, epochs_eeg])
+    assert 'eeg' not in epochs_meg
+    assert 'meg' not in epochs_eeg
+    with pytest.raises(RuntimeError, match='how to merge'):
+        epochs_meg2.add_channels([epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
     with epochs_meg2.info._unlock():
         epochs_meg2.info['chs'][1]['ch_name'] = epochs_meg2.info['ch_names'][0]
     epochs_meg2.info._update_redundant()
-    with pytest.warns(RuntimeWarning, match='not unique'):
-        pytest.raises(RuntimeError, add_channels_epochs,
-                      [epochs_meg2, epochs_eeg])
-
-    epochs_meg2 = epochs_meg.copy()
-    with epochs_meg2.info._unlock():
-        epochs_meg2.info['dev_head_t']['to'] += 1
-    pytest.raises(ValueError, add_channels_epochs, [epochs_meg2, epochs_eeg])
-
-    epochs_meg2 = epochs_meg.copy()
-    with epochs_meg2.info._unlock():
-        epochs_meg2.info['dev_head_t']['to'] += 1
-    pytest.raises(ValueError, add_channels_epochs, [epochs_meg2, epochs_eeg])
-
-    epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['experimenter'] = 'foo'
-    pytest.raises(RuntimeError, add_channels_epochs, [epochs_meg2, epochs_eeg])
-
-    epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.preload = False
-    pytest.raises(ValueError, add_channels_epochs, [epochs_meg2, epochs_eeg])
-
-    epochs_meg2 = epochs_meg.copy()
-    epochs_meg2._set_times(epochs_meg.times + 0.4)
-    pytest.raises(NotImplementedError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
-
-    epochs_meg2 = epochs_meg.copy()
-    epochs_meg2._set_times(epochs_meg2.times + 0.5)
-    assert not epochs_meg2.times.flags['WRITEABLE']
-    pytest.raises(NotImplementedError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
-
-    epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.baseline = None
-    pytest.raises(NotImplementedError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
-
-    epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.event_id['b'] = 2
-    pytest.raises(NotImplementedError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
+    # There are other error modes, but let the other add_channels test validate
+    # them.
+    with pytest.warns(FutureWarning, match=r'epochs\.add_channels'):
+        add_channels_epochs([epochs_meg, epochs_eeg])
 
     # use delayed projection, add channel, ensure projectors match
     epochs_meg2 = make_epochs(picks=picks_meg, proj='delayed')
@@ -2947,7 +2902,7 @@ def test_add_channels():
     epoch_meg.load_data()
     pytest.raises(RuntimeError, epoch_meg.add_channels, [epoch_nopre])
     pytest.raises(RuntimeError, epoch_meg.add_channels, [epoch_badsf])
-    pytest.raises(AssertionError, epoch_meg.add_channels, [epoch_eeg])
+    pytest.raises(ValueError, epoch_meg.add_channels, [epoch_eeg])
     pytest.raises(ValueError, epoch_meg.add_channels, [epoch_meg])
     pytest.raises(TypeError, epoch_meg.add_channels, epoch_badsf)
 
