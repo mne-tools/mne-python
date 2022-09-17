@@ -443,7 +443,7 @@ calibration : str | None
 
 docdict['cbar_fmt_topomap'] = """\
 cbar_fmt : str
-    Formatting string for colorbar tick labels. See :py:label:`formatspec` for
+    Formatting string for colorbar tick labels. See :ref:`formatspec` for
     details.
 """
 docdict['cbar_fmt_topomap_psd'] = docdict['cbar_fmt_topomap'] + """\
