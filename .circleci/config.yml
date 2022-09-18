@@ -521,8 +521,7 @@ workflows:
             - build_docs_main
     triggers:
       - schedule:
-          # "At 00:00" (once a day) should be enough "0 0 * * *",
-          # But for testing at first, let's do once an hour (6 AM GMT)
+          # "At 6:00 AM GMT every day"
           cron: "0 6 * * *"
           filters:
             branches:
@@ -536,8 +535,8 @@ workflows:
           scheduled: "true"
     triggers:
       - schedule:
-          # "At 00:00 on Sunday" should be often enough
-          cron: "0 0 * * 0"
+          # "At 6:00 AM GMT on the first day of each month" is often enough
+          cron: "0 6 1 * *"
           filters:
             branches:
               only:
