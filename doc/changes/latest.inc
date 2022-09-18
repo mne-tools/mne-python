@@ -41,6 +41,7 @@ Enhancements
 - Add ``on_missing`` functionality to all of our classes that have a ``drop_channels`` method, to control what happens when channel names are not in the object (:gh:`11077` by `Andrew Quinn`_)
 - Improve interpolation of bridged electrodes with `~mne.preprocessing.interpolate_bridged_electrodes` (:gh:`11094` by `Mathieu Scheltienne`_)
 - Add :func:`mne.minimum_norm.apply_inverse_tfr_epochs` to apply inverse methods to time-frequency resolved epochs (:gh:`11095` by `Alex Rockhill`_)
+- Add support for multiple probes via multiple CSV files passed to :func:`mne.io.read_raw_hitachi` (:gh:`11186` by `Eric Larson`_)
 - Add :func:`mne.chpi.get_active_chpi` to retrieve the number of active hpi coils for each time point (:gh:`11122` by `Eduard Ort`_)
 - Add example of how to obtain time-frequency decomposition using narrow bandpass Hilbert transforms to :ref:`ex-tfr-comparison` (:gh:`11116` by `Alex Rockhill`_)
 - Add ``==`` and ``!=`` comparison between `mne.Projection` objects (:gh:`11147` by `Mathieu Scheltienne`_)

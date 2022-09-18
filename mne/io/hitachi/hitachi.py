@@ -9,7 +9,7 @@ import numpy as np
 
 from ..base import BaseRaw
 from ..constants import FIFF
-from ..meas_info import create_info
+from ..meas_info import create_info, _merge_info
 from ..nirx.nirx import _read_csv_rows_cols
 from ..utils import _mult_cal_one
 from ...utils import (logger, verbose, fill_doc, warn, _check_fname,
@@ -22,8 +22,7 @@ def read_raw_hitachi(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        Path to the Hitachi CSV file.
+    %(hitachi_fname)s
     %(preload)s
     %(verbose)s
 
@@ -54,8 +53,7 @@ class RawHitachi(BaseRaw):
 
     Parameters
     ----------
-    fname : str
-        Path to the Hitachi CSV file.
+    %(hitachi_fname)s
     %(preload)s
     %(verbose)s
 
@@ -70,9 +68,46 @@ class RawHitachi(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, *, verbose=None):
-        fname = _check_fname(fname, 'read', True, 'fname')
-        logger.info('Loading %s' % fname)
+        if not isinstance(fname, (list, tuple)):
+            fname = [fname]
+        fname = list(fname)  # our own list that we can modify
+        for fi, this_fname in enumerate(fname):
+            fname[fi] = _check_fname(this_fname, 'read', True, f'fname[{fi}]')
+        infos = list()
+        probes = list()
+        last_samps = list()
+        S_offset = D_offset = 0
+        ignore_names = ['Time']
+        for this_fname in fname:
+            info, extra, last_samp, offsets = self._get_hitachi_info(
+                this_fname, S_offset, D_offset, ignore_names)
+            ignore_names = list(set(ignore_names + info['ch_names']))
+            S_offset += offsets[0]
+            D_offset += offsets[1]
+            infos.append(info)
+            probes.append(extra)
+            last_samps.append(last_samp)
+        # combine infos
+        if len(fname) > 1:
+            info = _merge_info(infos)
+        else:
+            info = infos[0]
+        if len(set(last_samps)) != 1:
+            raise RuntimeError('All files must have the same number of '
+                               'samples, got: {last_samps}')
+        last_samps = [last_samps[0]]
+        raw_extras = [dict(probes=probes)]
+        # One representative filename is good enough here
+        # (additional filenames indicate temporal concat, not ch concat)
+        filenames = [fname[0]]
+        super().__init__(
+            info, preload, filenames=filenames, last_samps=last_samps,
+            raw_extras=raw_extras, verbose=verbose)
 
+    # This could be a function, but for the sake of indentation, let's make it
+    # a method instead
+    def _get_hitachi_info(self, fname, S_offset, D_offset, ignore_names):
+        logger.info('Loading %s' % fname)
         raw_extra = dict(fname=fname)
         info_extra = dict()
         subject_info = dict()
@@ -177,7 +212,10 @@ class RawHitachi(BaseRaw):
         assert len(fnirs_wavelengths) == 2
         ch_names = lines[li + 1].rstrip(',\r\n').split(',')
         # cull to correct ones
-        raw_extra['keep_mask'] = ~np.in1d(ch_names, ['Probe1', 'Time'])
+        raw_extra['keep_mask'] = ~np.in1d(ch_names, list(ignore_names))
+        for ci, ch_name in enumerate(ch_names):
+            if re.match('Probe[0-9]+', ch_name):
+                raw_extra['keep_mask'][ci] = False
         # set types
         ch_names = [ch_name for ci, ch_name in enumerate(ch_names)
                     if raw_extra['keep_mask'][ci]]
@@ -212,7 +250,12 @@ class RawHitachi(BaseRaw):
             sidx, didx = pairs[ii // 2]
             nom_freq = fnirs_wavelengths[np.argmin(np.abs(
                 acc_freq - fnirs_wavelengths))]
-            ch_names[idx] = f'S{sidx + 1}_D{didx + 1} {nom_freq}'
+            ch_names[idx] = (
+                f'S{S_offset + sidx + 1}_'
+                f'D{D_offset + didx + 1} '
+                f'{nom_freq}'
+            )
+        offsets = np.array(pairs, int).max(axis=0) + 1
 
         # figure out bounds
         bounds = raw_extra['bounds'] = bounds[li + 2:]
@@ -235,22 +278,22 @@ class RawHitachi(BaseRaw):
             info['meas_date'] = meas_date
             for li, loc in enumerate(locs):
                 info['chs'][li]['loc'][:] = loc
-
-        super().__init__(
-            info, preload, filenames=[fname], last_samps=[last_samp],
-            raw_extras=[raw_extra], verbose=verbose)
+        return info, raw_extra, last_samp, offsets
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""
-        this_data = _read_csv_rows_cols(
-            self._raw_extras[fi]['fname'],
-            start, stop, self._raw_extras[fi]['keep_mask'],
-            self._raw_extras[fi]['bounds'], sep=',',
-            replace=lambda x:
-                x.replace('\r', '\n')
-                .replace('\n\n', '\n')
-                .replace('\n', ',')
-                .replace(':', '')).T
+        this_data = list()
+        for this_probe in self._raw_extras[fi]['probes']:
+            this_data.append(_read_csv_rows_cols(
+                this_probe['fname'],
+                start, stop, this_probe['keep_mask'],
+                this_probe['bounds'], sep=',',
+                replace=lambda x:
+                    x.replace('\r', '\n')
+                    .replace('\n\n', '\n')
+                    .replace('\n', ',')
+                    .replace(':', '')).T)
+        this_data = np.concatenate(this_data, axis=0)
         _mult_cal_one(data, this_data, idx, cals, mult)
         return data
 
