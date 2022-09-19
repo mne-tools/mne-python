@@ -3022,7 +3022,7 @@ def _set_adjacency(adjacency, both_nodes, value):
 @fill_doc
 def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
                             cmap=None, colorbar=True, cbar_fmt='%.2g',
-                            show=True, outlines='head', axes=None,
+                            show=True, title=None, outlines='head', axes=None,
                             sphere=None):
     """Plot the regression weights of a fitted EOGRegression model.
 
@@ -3036,6 +3036,7 @@ def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
     %(colorbar_topomap)s
     %(cbar_fmt_topomap)s
     %(show)s
+    %(title_none)s
     %(outlines_topomap)s
     %(axes_evoked_plot_topomap)s
     %(sphere_topomap_auto)s

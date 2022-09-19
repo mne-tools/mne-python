@@ -18,7 +18,7 @@ from .. import Evoked
 
 @verbose
 def regress_artifact(inst, picks=None, *, exclude='bads', picks_artifact='eog',
-                     betas=None, taa=False, proj=True, copy=True,
+                     betas=None, approx_adjust=False, proj=True, copy=True,
                      verbose=None):
     """Remove artifacts using regression based on reference channels.
 
@@ -39,9 +39,9 @@ def regress_artifact(inst, picks=None, *, exclude='bads', picks_artifact='eog',
     betas : ndarray, shape (n_picks, n_picks_ref) | None
         The regression coefficients to use. If None (default), they will be
         estimated from the data.
-    taa : bool
-        Whether to apply TAA correction as described in equation 9 of
-        :footcite:`CroftBarry2000`. Defaults to ``False``.
+    approx_adjust : bool
+        Whether to apply the approximation adjustment as described in equation
+        9 of :footcite:`CroftBarry2000`. Defaults to ``False``.
 
         .. versionadded:: 1.2
     proj : bool
@@ -76,8 +76,8 @@ def regress_artifact(inst, picks=None, *, exclude='bads', picks_artifact='eog',
     """  # noqa: E501
     if betas is None:
         model = EOGRegression(picks=picks, exclude=exclude,
-                              picks_artifact=picks_artifact, taa=taa,
-                              proj=proj)
+                              picks_artifact=picks_artifact,
+                              approx_adjust=approx_adjust, proj=proj)
         model.fit(inst)
     else:
         # Create an EOGRegression object and load the given betas into it.
@@ -85,7 +85,8 @@ def regress_artifact(inst, picks=None, *, exclude='bads', picks_artifact='eog',
         picks_artifact = _picks_to_idx(inst.info, picks_artifact)
         want_betas_shape = (len(picks), len(picks_artifact))
         _check_option('betas.shape', betas.shape, (want_betas_shape,))
-        model = EOGRegression(picks, picks_artifact, taa=taa, proj=proj)
+        model = EOGRegression(picks, picks_artifact,
+                              approx_adjust=approx_adjust, proj=proj)
         all_picks = np.unique(np.hstack((picks, picks_artifact)))
         model.info_ = pick_info(inst.info, all_picks)
         model.coef_ = betas
@@ -112,9 +113,9 @@ class EOGRegression():
     picks_artifact : array-like | str
         Channel picks to use as predictor/explanatory variables capturing
         the artifact of interest (default is "eog").
-    taa : bool
-        Whether to apply TAA correction as described in equation 9 of
-        :footcite:`CroftBarry2000`. Defaults to ``False``.
+    approx_adjust : bool
+        Whether to apply the approximation adjustment as described in equation
+        9 of :footcite:`CroftBarry2000`. Defaults to ``False``.
     proj : bool
         Whether to automatically apply SSP projection vectors before fitting
         and applying the regression. Default is ``True``.
@@ -145,11 +146,11 @@ class EOGRegression():
     """
 
     def __init__(self, picks=None, exclude='bads', picks_artifact='eog',
-                 taa=False, proj=True):
+                 approx_adjust=False, proj=True):
         self.picks = picks
         self.exclude = exclude
         self.picks_artifact = picks_artifact
-        self.taa = taa
+        self.approx_adjust = approx_adjust
         self.proj = proj
 
     def fit(self, inst):
@@ -181,7 +182,8 @@ class EOGRegression():
         # intercept.
         _check_preload(inst, 'artifact regression')
         artifact_data = inst._data[..., picks_artifact, :]
-        ref_data = artifact_data - np.mean(artifact_data, axis=-1, keepdims=True)
+        ref_data = artifact_data - np.mean(artifact_data, axis=-1,
+                                           keepdims=True)
         if ref_data.ndim == 3:
             ref_data = ref_data.transpose(1, 0, 2)
             ref_data = ref_data.reshape(len(picks_artifact), -1)
@@ -255,21 +257,21 @@ class EOGRegression():
         for pi, pick in enumerate(picks):
             this_data = inst._data[..., pick, :]  # view
             this_data -= (self.coef_[pi] @ ref_data).reshape(this_data.shape)
-            if self.taa:
-                # TAA correction (Croft & Barry 2000, eqn. 9)
+            if self.approx_adjust:
+                # Approximation adjustment correction (Croft&Barry 2000, eqn.9)
                 this_data /= 1 - np.sum(self.coef_[pi] ** 2)
 
         return inst
 
     @copy_function_doc_to_method_doc(plot_regression_weights)
     def plot(self, ch_type=None, vmin=None, vmax=None, cmap=None,
-             colorbar=True, cbar_fmt='%.2g', show=True, outlines='head',
-             axes=None, sphere=None):
+             colorbar=True, cbar_fmt='%.2g', show=True, title=None,
+             outlines='head', axes=None, sphere=None):
         return plot_regression_weights(self, ch_type=ch_type, vmin=vmin,
                                        vmax=vmax, cmap=cmap, colorbar=colorbar,
                                        cbar_fmt=cbar_fmt, show=show,
-                                       outlines=outlines, axes=axes,
-                                       sphere=sphere)
+                                       title=title, outlines=outlines,
+                                       axes=axes, sphere=sphere)
 
     def _check_inst(self, inst):
         """Perform some sanity checks on the input."""
@@ -294,7 +296,7 @@ class EOGRegression():
             s += f'fitted to {n_art} artifact channel{plural}, '
         else:
             s += 'not fitted, '
-        s += f'TAA={self.taa}>'
+        s += f'approx_adjust={self.approx_adjust}>'
         return s
 
     @fill_doc
