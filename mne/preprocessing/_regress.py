@@ -168,7 +168,7 @@ class EOGRegression():
         # intercept.
         _check_preload(inst, 'artifact regression')
         artifact_data = inst._data[..., picks_artifact, :]
-        ref_data = artifact_data - np.mean(artifact_data, -1, keepdims=True)
+        ref_data = artifact_data - np.mean(artifact_data, axis=-1, keepdims=True)
         if ref_data.ndim == 3:
             ref_data = ref_data.transpose(1, 0, 2)
             ref_data = ref_data.reshape(len(picks_artifact), -1)
