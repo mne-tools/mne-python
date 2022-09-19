@@ -16,7 +16,7 @@ from .transforms import (apply_trans, invert_transform, combine_transforms,
                          _ensure_trans, read_ras_mni_t, Transform)
 from .surface import read_surface, _read_mri_surface
 from .utils import (verbose, _validate_type, _check_fname, _check_option,
-                    get_subjects_dir, _require_version, logger)
+                    get_subjects_dir, _require_version, logger, warn)
 
 
 def _check_subject_dir(subject, subjects_dir):
@@ -253,12 +253,9 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False,
 
 
 @verbose
-def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
-                verbose=None):
+def head_to_mri(pos, subject, mri_head_t, subjects_dir=None, *,
+                kind=None, unscale=False, verbose=None):
     """Convert pos from head coordinate system to MRI ones.
-
-    This function converts to MRI RAS coordinates and not to surface
-    RAS.
 
     Parameters
     ----------
@@ -268,6 +265,18 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
     mri_head_t : instance of Transform
         MRI<->Head coordinate transformation.
     %(subjects_dir)s
+    kind : str
+        The  MRI coordinate frame kind, can be ``'ras'`` (default in 1.2) to
+        use MRI RAS (scanner RAS) or ``'mri'`` (default in 1.3) for
+        FreeSurfer surface RAS.
+
+        .. versionadded:: 1.2
+    unscale : bool
+        For surrogate MRIs (e.g., scaled using ``mne coreg``), if True
+        (default False), use the MRI scaling parameters to obtain points in
+        the original/surrogate subject's MRI space.
+
+        .. versionadded:: 1.2
     %(verbose)s
 
     Returns
@@ -279,12 +288,30 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
     -----
     This function requires nibabel.
     """
+    from .coreg import read_mri_cfg
+    if kind is None:
+        warn('kind defaults to "ras" in 1.2 and will change to "mri" in 1.3, '
+             'set it explicitly to avoid this warning', FutureWarning)
+        kind = 'ras'
+    _validate_type(kind, str, 'kind')
+    _check_option('kind', kind, ('ras', 'mri'))
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     head_mri_t = _ensure_trans(mri_head_t, 'head', 'mri')
-    _, _, mri_ras_t, _, _ = _read_mri_info(t1_fname)
-    head_ras_t = combine_transforms(head_mri_t, mri_ras_t, 'head', 'ras')
-    return 1e3 * apply_trans(head_ras_t, pos)  # mm
+    if kind == 'ras':
+        _, _, mri_ras_t, _, _ = _read_mri_info(t1_fname)
+        head_ras_t = combine_transforms(head_mri_t, mri_ras_t, 'head', 'ras')
+        head_dest_t = head_ras_t
+    else:
+        assert kind == 'mri'
+        head_dest_t = head_mri_t
+    pos_dest = apply_trans(head_dest_t, pos)
+    # unscale if requested
+    if unscale:
+        params = read_mri_cfg(subject, subjects_dir)
+        pos_dest *= params['scale']
+    pos_dest *= 1e3  # mm
+    return pos_dest
 
 
 ##############################################################################

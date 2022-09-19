@@ -1163,6 +1163,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               use_cps=True, verbose=None):
     """Generate inverse solutions for epochs. Used in apply_inverse_epochs."""
     _validate_type(epochs, BaseEpochs, 'epochs')
+    _check_reference(epochs, inverse_operator['info']['ch_names'])
     _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'],
                inverse_operator['src'])
