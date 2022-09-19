@@ -18,8 +18,7 @@ from .. import Evoked
 
 @verbose
 def regress_artifact(inst, picks=None, *, exclude='bads', picks_artifact='eog',
-                     betas=None, approx_adjust=False, proj=True, copy=True,
-                     verbose=None):
+                     betas=None, proj=True, copy=True, verbose=None):
     """Remove artifacts using regression based on reference channels.
 
     Parameters
@@ -39,11 +38,6 @@ def regress_artifact(inst, picks=None, *, exclude='bads', picks_artifact='eog',
     betas : ndarray, shape (n_picks, n_picks_ref) | None
         The regression coefficients to use. If None (default), they will be
         estimated from the data.
-    approx_adjust : bool
-        Whether to apply the approximation adjustment as described in equation
-        9 of :footcite:`CroftBarry2000`. Defaults to ``False``.
-
-        .. versionadded:: 1.2
     proj : bool
         Whether to automatically apply SSP projection vectors before performing
         the regression. Default is ``True``.
@@ -76,8 +70,7 @@ def regress_artifact(inst, picks=None, *, exclude='bads', picks_artifact='eog',
     """  # noqa: E501
     if betas is None:
         model = EOGRegression(picks=picks, exclude=exclude,
-                              picks_artifact=picks_artifact,
-                              approx_adjust=approx_adjust, proj=proj)
+                              picks_artifact=picks_artifact, proj=proj)
         model.fit(inst)
     else:
         # Create an EOGRegression object and load the given betas into it.
@@ -85,8 +78,7 @@ def regress_artifact(inst, picks=None, *, exclude='bads', picks_artifact='eog',
         picks_artifact = _picks_to_idx(inst.info, picks_artifact)
         want_betas_shape = (len(picks), len(picks_artifact))
         _check_option('betas.shape', betas.shape, (want_betas_shape,))
-        model = EOGRegression(picks, picks_artifact,
-                              approx_adjust=approx_adjust, proj=proj)
+        model = EOGRegression(picks, picks_artifact, proj=proj)
         all_picks = np.unique(np.hstack((picks, picks_artifact)))
         model.info_ = pick_info(inst.info, all_picks)
         model.coef_ = betas
@@ -113,9 +105,6 @@ class EOGRegression():
     picks_artifact : array-like | str
         Channel picks to use as predictor/explanatory variables capturing
         the artifact of interest (default is "eog").
-    approx_adjust : bool
-        Whether to apply the approximation adjustment as described in equation
-        9 of :footcite:`CroftBarry2000`. Defaults to ``False``.
     proj : bool
         Whether to automatically apply SSP projection vectors before fitting
         and applying the regression. Default is ``True``.
@@ -146,11 +135,10 @@ class EOGRegression():
     """
 
     def __init__(self, picks=None, exclude='bads', picks_artifact='eog',
-                 approx_adjust=False, proj=True):
+                 proj=True):
         self.picks = picks
         self.exclude = exclude
         self.picks_artifact = picks_artifact
-        self.approx_adjust = approx_adjust
         self.proj = proj
 
     def fit(self, inst):
@@ -257,10 +245,6 @@ class EOGRegression():
         for pi, pick in enumerate(picks):
             this_data = inst._data[..., pick, :]  # view
             this_data -= (self.coef_[pi] @ ref_data).reshape(this_data.shape)
-            if self.approx_adjust:
-                # Approximation adjustment correction (Croft&Barry 2000, eqn.9)
-                this_data /= 1 - np.sum(self.coef_[pi] ** 2)
-
         return inst
 
     @copy_function_doc_to_method_doc(plot_regression_weights)
@@ -293,10 +277,9 @@ class EOGRegression():
         if hasattr(self, 'coef_'):
             n_art = self.coef_.shape[1]
             plural = 's' if n_art > 1 else ''
-            s += f'fitted to {n_art} artifact channel{plural}, '
+            s += f'fitted to {n_art} artifact channel{plural}>'
         else:
-            s += 'not fitted, '
-        s += f'approx_adjust={self.approx_adjust}>'
+            s += 'not fitted>'
         return s
 
     @fill_doc

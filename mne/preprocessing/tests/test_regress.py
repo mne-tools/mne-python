@@ -41,15 +41,6 @@ def test_regress_artifact():
     assert np.ptp(epochs.get_data('eog')) < 1E-15  # constant value
     assert_allclose(betas, 1)
 
-    # Test applying the approximation adjustment.
-    raw_no_taa, betas = regress_artifact(raw, approx_adjust=False)
-    raw_taa, _ = regress_artifact(raw, approx_adjust=True, betas=betas)
-    # Approximation adjustment should have increased signal amplitude
-    assert np.all(
-        np.ptp(raw_no_taa.get_data('eeg'), axis=-1) <
-        np.ptp(raw_taa.get_data('eeg'), axis=-1)
-    )
-
 
 @testing.requires_testing_data
 def test_eog_regression():
@@ -66,11 +57,9 @@ def test_eog_regression():
 
     # Test regression on raw data
     model = EOGRegression()
-    assert str(model) == '<EOGRegression | not fitted, approx_adjust=False>'
+    assert str(model) == '<EOGRegression | not fitted>'
     model.fit(raw)
-    assert (
-        str(model) ==
-        '<EOGRegression | fitted to 1 artifact channel, approx_adjust=False>')
+    assert str(model) == '<EOGRegression | fitted to 1 artifact channel>'
     assert model.coef_.shape == (59, 1)  # 59 EEG channels, 1 EOG channel
     raw_clean = model.apply(raw)
     # Some signal must have been removed
@@ -99,16 +88,6 @@ def test_eog_regression():
     with pytest.raises(ValueError, match='data channels are not compatible'):
         model.apply(raw_)
 
-    # Test applying approximation adjustment.
-    raw_no_taa = EOGRegression(approx_adjust=False).fit(raw).apply(raw)
-    model_taa = EOGRegression(approx_adjust=True).fit(raw)
-    assert (
-        str(model_taa) ==
-        '<EOGRegression | fitted to 1 artifact channel, approx_adjust=True>')
-    raw_taa = model_taa.apply(raw)
-    # TAA should have increased signal amplitude
-    assert np.ptp(raw_no_taa.get_data('eeg')) < np.ptp(raw_taa.get_data('eeg'))
-
     # Test in-place operation
     raw_ = model.apply(raw, copy=False)
     assert raw_ is raw
@@ -132,9 +111,7 @@ def test_eog_regression():
 
     # Test plotting with multiple channel types, multiple regressors)
     m = EOGRegression(picks_artifact=['EEG 001', 'EOG 061']).fit(raw_meg_eeg)
-    assert (
-        str(m) ==
-        '<EOGRegression | fitted to 2 artifact channels, approx_adjust=False>')
+    assert str(m) == '<EOGRegression | fitted to 2 artifact channels>'
     fig = m.plot()
     assert len(fig.axes) == 12  # (6 topomaps and 3 colorbars)
     assert fig.axes[0].title.get_text() == 'grad/EEG 001'
