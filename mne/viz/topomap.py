@@ -6,6 +6,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Robert Luke <mail@robertluke.net>
 #          Mikołaj Magnuski <mmagnuski@swps.edu.pl>
+#          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: Simplified BSD
 
@@ -3020,11 +3021,9 @@ def _set_adjacency(adjacency, both_nodes, value):
 
 @fill_doc
 def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
-                            cmap=None, sensors=True, colorbar=True, res=64,
-                            size=1, cbar_fmt='%.2g', show=True,
-                            show_names=False, title=None, mask=None,
-                            mask_params=None, outlines='head', axes=None,
-                            sphere=None, border=_BORDER_DEFAULT):
+                            cmap=None, colorbar=True, cbar_fmt='%.2g',
+                            show=True, outlines='head', axes=None,
+                            sphere=None):
     """Plot the regression weights of a fitted EOGRegression model.
 
     Parameters
@@ -3034,20 +3033,12 @@ def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
     %(ch_type_topomap)s
     %(vmin_vmax_topomap)s
     %(cmap_topomap)s
-    %(sensors_topomap)s
     %(colorbar_topomap)s
-    %(res_topomap)s
-    %(size_topomap)s
     %(cbar_fmt_topomap)s
     %(show)s
-    %(show_names_topomap)s
-    %(title_none)s
-    %(mask_evoked_topomap)s
-    %(mask_params_topomap)s
     %(outlines_topomap)s
     %(axes_evoked_plot_topomap)s
     %(sphere_topomap_auto)s
-    %(border_topomap)s
 
     Returns
     -------
@@ -3061,7 +3052,7 @@ def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
     import matplotlib
     import matplotlib.pyplot as plt
     sphere = _check_sphere(sphere)
-    ch_types = _get_channel_types(model.info, unique=True, only_data_chs=True)
+    ch_types = _get_channel_types(model.info_, unique=True, only_data_chs=True)
 
     nrows = model.coef_.shape[1]
     ncols = len(ch_types)
@@ -3080,13 +3071,19 @@ def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
                          f'length {len(axes)} ({axes}).')
     axes = iter(axes)
 
+    data_picks = _picks_to_idx(model.info_, model.picks, exclude=model.exclude)
+    data_info = pick_info(model.info_, data_picks)
+    artifact_ch_names = [
+        model.info_['chs'][idx]['ch_name']
+        for idx in _picks_to_idx(model.info_, model.picks_artifact)]
+
     for ch_type in ch_types:
         data_picks, pos, merge_channels, names, ch_type, sphere, clip_origin =\
-            _prepare_topomap_plot(model, ch_type=ch_type, sphere=sphere)
-        outlines = _make_head_outlines(sphere, pos, outlines='head',
+            _prepare_topomap_plot(data_info, ch_type=ch_type, sphere=sphere)
+        outlines = _make_head_outlines(sphere, pos, outlines=outlines,
                                        clip_origin=clip_origin)
         coef = model.coef_[data_picks]
-        for data, ch_name in zip(coef.T, model._picks_artifact):
+        for data, ch_name in zip(coef.T, artifact_ch_names):
             if merge_channels:
                 data, names = _merge_ch_data(data, ch_type, names)
             ax = next(axes)
@@ -3099,4 +3096,5 @@ def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
         fig.suptitle(title)
         fig.subplots_adjust(top=0.88, bottom=0.06, left=0.025, right=0.911,
                             hspace=0.2, wspace=0.5)
+    plt_show(show)
     return fig

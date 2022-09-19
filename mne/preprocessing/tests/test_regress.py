@@ -91,11 +91,12 @@ def test_eog_regression():
     assert np.ptp(evoked.get_data('eeg')) < 1E-4
 
     # Test regression on evoked and applying to raw, with different ordering of
-    # channels
+    # channels. This should not work.
     raw_ = raw.copy().drop_channels(['EEG 001'])
     raw_ = raw_.add_channels([raw.copy().pick(['EEG 001'])])
     model = EOGRegression().fit(evoked)
-    model.apply(raw_)
+    with pytest.raises(ValueError, match='data channels are not compatible'):
+        model.apply(raw_)
 
     # Test applying TAA.
     raw_no_taa = EOGRegression(taa=False).fit(raw).apply(raw)
@@ -149,9 +150,10 @@ def test_read_eog_regression(tmp_path):
 
     model.save(tmp_path / 'weights.h5', overwrite=True)
     model2 = read_eog_regression(tmp_path / 'weights.h5')
-    assert_array_equal(model._picks, model2._picks)
-    assert_array_equal(model._picks_artifact, model2._picks_artifact)
-    assert_array_equal(model._exclude, model2._exclude)
+    assert_array_equal(model.picks, model2.picks)
+    assert_array_equal(model.picks_artifact, model2.picks_artifact)
+    assert_array_equal(model.exclude, model2.exclude)
     assert_array_equal(model.coef_, model2.coef_)
     assert model.taa == model2.taa
     assert model.proj == model2.proj
+    assert model.info_.keys() == model2.info_.keys()

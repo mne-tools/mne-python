@@ -1,10 +1,10 @@
 # Authors: Eric Larson <larson.eric.d@gmail.com>
+#          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: BSD-3-Clause
 
 import numpy as np
 
-from ..defaults import _BORDER_DEFAULT
 from ..epochs import BaseEpochs
 from ..io.pick import _picks_to_idx, pick_info
 from ..io.base import BaseRaw
@@ -86,12 +86,9 @@ def regress_artifact(inst, picks=None, *, exclude='bads', picks_artifact='eog',
         want_betas_shape = (len(picks), len(picks_artifact))
         _check_option('betas.shape', betas.shape, (want_betas_shape,))
         model = EOGRegression(picks, picks_artifact, taa=taa, proj=proj)
-        model.info = pick_info(inst.info, picks)
+        all_picks = np.unique(np.hstack((picks, picks_artifact)))
+        model.info_ = pick_info(inst.info, all_picks)
         model.coef_ = betas
-        model._picks = model.info['ch_names']
-        model._exclude = exclude
-        model._picks = model.info['ch_names']
-        model._picks_artifact = [inst.ch_names[ch] for ch in picks_artifact]
     return model.apply(inst, copy=copy), model.coef_
 
 
@@ -133,9 +130,9 @@ class EOGRegression():
 
     def __init__(self, picks=None, exclude='bads', picks_artifact='eog',
                  taa=False, proj=True):
-        self._picks = picks
-        self._exclude = exclude
-        self._picks_artifact = picks_artifact
+        self.picks = picks
+        self.exclude = exclude
+        self.picks_artifact = picks_artifact
         self.taa = taa
         self.proj = proj
 
@@ -160,9 +157,9 @@ class EOGRegression():
         regression.
         """
         self._check_inst(inst)
-        picks = _picks_to_idx(inst.info, self._picks, none='data',
-                              exclude=self._exclude)
-        picks_artifact = _picks_to_idx(inst.info, self._picks_artifact)
+        picks = _picks_to_idx(inst.info, self.picks, none='data',
+                              exclude=self.exclude)
+        picks_artifact = _picks_to_idx(inst.info, self.picks_artifact)
 
         # Calculate regression coefficients. Add a row of ones to also fit the
         # intercept.
@@ -185,10 +182,9 @@ class EOGRegression():
             coef[pi] = np.linalg.solve(cov_ref, ref_data @ cov_data.T).T[0]
 
         # Store relevant parameters in the object.
-        self.info = pick_info(inst.info, picks)
         self.coef_ = coef
-        self._picks = [inst.ch_names[ch] for ch in picks]
-        self._picks_artifact = [inst.ch_names[ch] for ch in picks_artifact]
+        all_picks = np.unique(np.hstack((picks, picks_artifact)))
+        self.info_ = pick_info(inst.info, all_picks)
         return self
 
     @fill_doc
@@ -217,16 +213,29 @@ class EOGRegression():
         if copy:
             inst = inst.copy()
         self._check_inst(inst)
-        # The channels indices may not exactly match those of the object used
-        # during .fit(). We align then using channel names.
-        picks = [inst.ch_names.index(ch) for ch in self._picks]
-        picks_artifact = [inst.ch_names.index(ch)
-                          for ch in self._picks_artifact]
+        picks = _picks_to_idx(inst.info, self.picks, none='data',
+                              exclude=self.exclude)
+        picks_artifact = _picks_to_idx(inst.info, self.picks_artifact)
+
+        # Check that the channels are compatible with the regression weights.
+        ref_picks = _picks_to_idx(self.info_, self.picks, none='data',
+                                  exclude=self.exclude)
+        ref_picks_artifact = _picks_to_idx(self.info_, self.picks_artifact)
+        if any(inst.ch_names[ch1] != self.info_['chs'][ch2]['ch_name']
+               for ch1, ch2 in zip(picks, ref_picks)):
+            raise ValueError('Selected data channels are not compatible with '
+                             'the regression weights. Make sure the all data '
+                             'channels are present and in the correct order.')
+        if any(inst.ch_names[ch1] != self.info_['chs'][ch2]['ch_name']
+               for ch1, ch2 in zip(picks_artifact, ref_picks_artifact)):
+            raise ValueError('Selected artifact channels are not compatible '
+                             'with the regression weights. Make sure the all '
+                             'artifact channels are present and in the '
+                             'correct order.')
+
+        _check_preload(inst, 'artifact regression')
         artifact_data = inst._data[..., picks_artifact, :]
         ref_data = artifact_data - np.mean(artifact_data, -1, keepdims=True)
-
-        # Prepare the data matrix
-        _check_preload(inst, 'artifact regression')
         for pi, pick in enumerate(picks):
             this_data = inst._data[..., pick, :]  # view
             this_data -= (self.coef_[pi] @ ref_data).reshape(this_data.shape)
@@ -237,17 +246,14 @@ class EOGRegression():
         return inst
 
     @copy_function_doc_to_method_doc(plot_regression_weights)
-    def plot(self, ch_type=None, vmin=None, vmax=None, cmap=None, sensors=True,
-             colorbar=True, res=64, size=1, cbar_fmt='%.2g', show=True,
-             show_names=False, title=None, mask=None, mask_params=None,
-             outlines='head', axes=None, sphere=None, border=_BORDER_DEFAULT):
+    def plot(self, ch_type=None, vmin=None, vmax=None, cmap=None,
+             colorbar=True, cbar_fmt='%.2g', show=True, outlines='head',
+             axes=None, sphere=None):
         return plot_regression_weights(self, ch_type=ch_type, vmin=vmin,
-                                       vmax=vmax, cmap=cmap, sensors=sensors,
-                                       res=res, show=show,
-                                       show_names=show_names, mask=mask,
-                                       mask_params=mask_params,
+                                       vmax=vmax, cmap=cmap, colorbar=colorbar,
+                                       cbar_fmt=cbar_fmt, show=show,
                                        outlines=outlines, axes=axes,
-                                       sphere=sphere, border=border)
+                                       sphere=sphere)
 
     def _check_inst(self, inst):
         """Perform some sanity checks on the input."""
