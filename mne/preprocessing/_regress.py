@@ -151,7 +151,7 @@ class EOGRegression():
         -------
         self : EOGRegression
             The fitted ``EOGRegression`` object. The regression coefficients
-            are available as the ``.coef_`` and ``.intercep_`` attributes.
+            are available as the ``.coef_`` and ``.intercept_`` attributes.
 
         Notes
         -----
