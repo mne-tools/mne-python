@@ -119,6 +119,22 @@ class EOGRegression():
         Whether to automatically apply SSP projection vectors before fitting
         and applying the regression. Default is ``True``.
 
+    Attributes
+    ----------
+    coef_ : ndarray, shape (n, n)
+        The regression coefficients. Only available after fitting.
+    info_ : Info
+        Channel information corresponding to the regression weights.
+        Only available after fitting.
+    picks : array-like | str
+        Channels to perform the regression on.
+    exclude : list | 'bads'
+        Channels to exclude from the regression.
+    picks_artifact : array-like | str
+        The channels designated as containing the artifacts of interest.
+    proj : bool
+        Whether projections will be applied before performing the regression.
+
     Notes
     -----
     .. versionadded:: 1.2
