@@ -397,8 +397,9 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         # len(kwargs) == 0 for the fake arange reader
         if len(kwargs):
             assert key is not None, sorted(kwargs.keys())
-            dirname = op.dirname(fname)
-            these_kwargs[key] = op.basename(fname)
+            this_fname = fname[0] if isinstance(fname, list) else fname
+            dirname = op.dirname(this_fname)
+            these_kwargs[key] = op.basename(this_fname)
             these_kwargs['preload'] = False
             orig_dir = os.getcwd()
             try:

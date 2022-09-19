@@ -39,12 +39,12 @@ def beer_lambert_law(raw, ppf=6.):
     freqs = np.array(
         [raw.info['chs'][pick]['loc'][9] for pick in picks], float)
     abs_coef = _load_absorption(freqs)
-    distances = source_detector_distances(raw.info)
-    if (distances == 0).any():
+    distances = source_detector_distances(raw.info, picks='all')
+    if (distances[picks] == 0).any():
         warn('Source-detector distances are zero, some resulting '
              'concentrations will be zero. Consider setting a montage '
              'with raw.set_montage.')
-    if (distances > 0.1).any():
+    if (distances[picks] > 0.1).any():
         warn('Source-detector distances are greater than 10 cm. '
              'Large distances will result in invalid data, and are '
              'likely due to optode locations being stored in a '
