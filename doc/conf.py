@@ -970,6 +970,10 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(
         'ignore', message=r'.*Setting theme=.*6 in qdarkstyle.*',
         category=RuntimeWarning)
+    # pandas, via seaborn (examples/time_frequency/time_frequency_erds.py)
+    warnings.filterwarnings(
+        'ignore', message=r'iteritems is deprecated.*Use \.items instead\.',
+        category=FutureWarning)
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:

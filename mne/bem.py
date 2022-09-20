@@ -38,7 +38,7 @@ from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
                     _on_missing, _import_h5io_funcs, _ensure_int,
-                    _path_like)
+                    _path_like, _verbose_safe_false)
 
 
 # ############################################################################
@@ -264,7 +264,8 @@ def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
 
 
 def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
-    surf = complete_surface_info(surf, copy=copy, verbose=False)
+    surf = complete_surface_info(
+        surf, copy=copy, verbose=_verbose_safe_false())
     fewer = np.where([len(t) < 3 for t in surf['neighbor_tri']])[0]
     if len(fewer) > 0:
         fewer = list(fewer)
@@ -1141,8 +1142,8 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
             raise ValueError('origin must be a numerical array, or "auto", '
                              'not %s' % (origin,))
         if coord_frame == 'head':
-            R, origin = fit_sphere_to_headshape(info, verbose=False,
-                                                units='m')[:2]
+            R, origin = fit_sphere_to_headshape(
+                info, verbose=_verbose_safe_false(), units='m')[:2]
             logger.info('    Automatic origin fit: head of radius %0.1f mm'
                         % (R * 1000.,))
             del R
@@ -1610,7 +1611,8 @@ def read_bem_solution(fname, *, verbose=None):
 
 def _read_bem_solution_fif(fname):
     logger.info('Loading surfaces...')
-    surfs = read_bem_surfaces(fname, patch_stats=True, verbose=False)
+    surfs = read_bem_surfaces(
+        fname, patch_stats=True, verbose=_verbose_safe_false())
 
     # convert from surfaces to solution
     logger.info('\nLoading the solution matrix...\n')

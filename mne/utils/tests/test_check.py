@@ -18,7 +18,8 @@ from mne.io.pick import pick_channels_cov, _picks_to_idx
 from mne.utils import (check_random_state, _check_fname, check_fname, _suggest,
                        _check_subject, _check_info_inv, _check_option, Bunch,
                        check_version, _path_like, _validate_type, _on_missing,
-                       requires_nibabel, _safe_input, _check_ch_locs)
+                       requires_nibabel, _safe_input, _check_ch_locs,
+                       _check_sphere)
 
 data_path = testing.data_path(download=False)
 base_dir = op.join(data_path, 'MEG', 'sample')
@@ -300,3 +301,15 @@ def test_strip_dev(version, want, have_unstripped, monkeypatch):
     assert 'rc' not in simpler_version
     assert not simpler_version.endswith('.')
     assert looks_stable(simpler_version)
+
+
+@testing.requires_testing_data
+def test_check_sphere_verbose():
+    """Test that verbose is handled properly in _check_sphere."""
+    info = mne.io.read_info(fname_raw)
+    with info._unlock():
+        info['dig'] = info['dig'][:20]
+    with pytest.warns(RuntimeWarning, match='may be inaccurate'):
+        _check_sphere('auto', info)
+    with mne.use_log_level('error'):
+        _check_sphere('auto', info)

@@ -6,8 +6,8 @@
 Compute and visualize ERDS maps
 ===============================
 
-This example calculates and displays ERDS maps of event-related EEG data. ERDS
-(sometimes also written as ERD/ERS) is short for event-related
+This example calculates and displays ERDS maps of event-related EEG data.
+ERDS (sometimes also written as ERD/ERS) is short for event-related
 desynchronization (ERD) and event-related synchronization (ERS)
 :footcite:`PfurtschellerLopesdaSilva1999`. Conceptually, ERD corresponds to a
 decrease in power in a specific frequency band relative to a baseline.
