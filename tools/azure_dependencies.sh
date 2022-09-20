@@ -20,6 +20,7 @@ elif [ "${TEST_MODE}" == "pip-pre" ]; then
 	python -m pip install --progress-bar off https://github.com/pyvista/pyvistaqt/zipball/main
 	python -m pip install --progress-bar off --upgrade --pre imageio-ffmpeg xlrd mffpy python-picard patsy pillow
 	EXTRA_ARGS="--pre"
+	./tools/check_qt_import.sh PyQt6
 else
 	echo "Unknown run type ${TEST_MODE}"
 	exit 1
