@@ -37,7 +37,7 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     warn, copy_function_doc_to_method_doc, _pl,
                     _undo_scaling_cov, _scaled_array, _validate_type,
                     _check_option, eigh, fill_doc, _on_missing,
-                    _check_on_missing, _check_fname)
+                    _check_on_missing, _check_fname, _verbose_safe_false)
 from . import viz
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
@@ -569,7 +569,8 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         pick_mask = slice(None)
         picks = _picks_to_idx(raw.info, picks)
     epochs = Epochs(raw, events, 1, 0, tstep_m1, baseline=None,
-                    picks=picks, reject=reject, flat=flat, verbose=False,
+                    picks=picks, reject=reject, flat=flat,
+                    verbose=_verbose_safe_false(),
                     preload=False, proj=False,
                     reject_by_annotation=reject_by_annotation)
     if method is None:
@@ -1019,8 +1020,9 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     """Compute covariance auto mode."""
     # rescale to improve numerical stability
     orig_rank = rank
-    rank = compute_rank(RawArray(data.T, info, copy=None, verbose=False),
-                        rank, scalings, info)
+    rank = compute_rank(
+        RawArray(data.T, info, copy=None, verbose=_verbose_safe_false()),
+        rank, scalings, info)
     with _scaled_array(data.T, picks_list, scalings):
         C = np.dot(data.T, data)
         _, eigvec, mask = _smart_eigh(C, info, rank, proj_subspace=True,
@@ -2086,5 +2088,5 @@ def _ensure_cov(cov, name='cov', *, verbose=None):
     _validate_type(cov, ('path-like', Covariance), name)
     logger.info('Noise covariance  : %s' % (cov,))
     if not isinstance(cov, Covariance):
-        cov = read_cov(cov, verbose=False)
+        cov = read_cov(cov, verbose=_verbose_safe_false())
     return cov

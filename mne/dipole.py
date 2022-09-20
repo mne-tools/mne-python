@@ -37,7 +37,8 @@ from .parallel import parallel_func
 from .utils import (logger, verbose, _time_mask, warn, _check_fname,
                     check_fname, _pl, fill_doc, _check_option,
                     _svd_lwork, _repeated_svd, _get_blas_funcs, _validate_type,
-                    copy_function_doc_to_method_doc, TimeMixin)
+                    copy_function_doc_to_method_doc, TimeMixin,
+                    _verbose_safe_false)
 from .viz import plot_dipole_locations
 
 
@@ -1251,7 +1252,8 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=None,
         logger.info('BEM               : %s' % bem_extra)
     mri_head_t, trans = _get_trans(trans)
     logger.info('MRI transform     : %s' % trans)
-    bem = _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=False)
+    safe_false = _verbose_safe_false()
+    bem = _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=safe_false)
     if not bem['is_sphere']:
         # Find the best-fitting sphere
         inner_skull = _bem_find_surface(bem, 'inner_skull')
@@ -1396,7 +1398,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=None,
     # C code computes guesses w/sphere model for speed, don't bother here
     fwd_data = _prep_field_computation(
         guess_src['rr'], sensors=sensors, bem=bem, n_jobs=n_jobs,
-        verbose=False)
+        verbose=safe_false)
     fwd_data['inner_skull'] = inner_skull
     guess_fwd, guess_fwd_orig, guess_fwd_scales = _dipole_forwards(
         sensors=sensors, fwd_data=fwd_data, whitener=whitener,

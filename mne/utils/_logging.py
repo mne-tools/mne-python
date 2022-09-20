@@ -369,7 +369,7 @@ def warn(message, category=RuntimeWarning, module='mne',
     root_dirs = [importlib.import_module(ns) for ns in ignore_namespaces]
     root_dirs = [op.dirname(ns.__file__) for ns in root_dirs]
     frame = None
-    if logger.level <= logging.WARN:
+    if logger.level <= logging.WARNING:
         frame = inspect.currentframe()
         while frame:
             fname = frame.f_code.co_filename
@@ -485,3 +485,7 @@ def _frame_info(n):
         return ['unknown']
     finally:
         del frame
+
+
+def _verbose_safe_false():
+    return False if logger.level <= logging.WARNING else None
