@@ -7,7 +7,6 @@
 
 from copy import deepcopy
 from math import sqrt
-import logging
 
 import numpy as np
 
@@ -43,7 +42,8 @@ from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn, _validate_type,
                      _check_compensation_grade, _check_option, repr_html,
-                     _check_depth, _check_src_normal, _check_fname)
+                     _check_depth, _check_src_normal, _check_fname,
+                     _verbose_safe_false)
 
 
 INVERSE_METHODS = ('MNE', 'dSPM', 'sLORETA', 'eLORETA')
@@ -1586,10 +1586,9 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     logger.info('Whitening the forward solution.')
     noise_cov = prepare_noise_cov(
         noise_cov, info, info_picked['ch_names'], rank)
-    verbose = False if logger.level <= logging.WARN else None
     whitener, _ = compute_whitener(
-        noise_cov, info, info_picked['ch_names'], pca=pca, verbose=verbose,
-        rank=rank)
+        noise_cov, info, info_picked['ch_names'], pca=pca, rank=rank,
+        verbose=_verbose_safe_false())
     gain = np.dot(whitener, forward['sol']['data'])
 
     logger.info('Creating the source covariance matrix')

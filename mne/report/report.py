@@ -41,7 +41,7 @@ from .._freesurfer import _reorient_image, _mri_orientation
 from ..utils import (logger, verbose, get_subjects_dir, warn, _ensure_int,
                      fill_doc, _check_option, _validate_type, _safe_input,
                      _path_like, use_log_level, _check_fname,
-                     _check_ch_locs, _import_h5io_funcs)
+                     _check_ch_locs, _import_h5io_funcs, _verbose_safe_false)
 from ..viz import (plot_events, plot_alignment, plot_cov, plot_projs_topomap,
                    plot_compare_evokeds, set_3d_view, get_3d_backend,
                    Figure3D, use_browser_backend)
@@ -2963,7 +2963,7 @@ class Report:
                      f'create joint plot')
                 continue
 
-            with use_log_level(False):
+            with use_log_level(_verbose_safe_false(level='error')):
                 fig = evoked.copy().pick(ch_type, verbose=False).plot_joint(
                     ts_args=dict(gfp=True),
                     title=None,
@@ -3082,12 +3082,13 @@ class Report:
                 func=self._plot_one_evoked_topomap_timepoint,
                 n_jobs=n_jobs, max_jobs=len(times),
             )
-            fig_arrays = parallel(
-                p_fun(
-                    evoked=evoked, time=time, ch_types=ch_types,
-                    vmin=vmin, vmax=vmax, topomap_kwargs=topomap_kwargs
-                ) for time in times
-            )
+            with use_log_level(_verbose_safe_false(level='error')):
+                fig_arrays = parallel(
+                    p_fun(
+                        evoked=evoked, time=time, ch_types=ch_types,
+                        vmin=vmin, vmax=vmax, topomap_kwargs=topomap_kwargs
+                    ) for time in times
+                )
 
             captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
             self._add_slider(
@@ -3118,14 +3119,15 @@ class Report:
         if len(ch_types) == 1:
             ax = [ax]
         for idx, ch_type in enumerate(ch_types):
-            plot_compare_evokeds(
-                evokeds={
-                    label: evoked.copy().pick(ch_type, verbose=False)
-                },
-                ci=None, truncate_xaxis=False,
-                truncate_yaxis=False, legend=False,
-                axes=ax[idx], show=False
-            )
+            with use_log_level(_verbose_safe_false(level='error')):
+                plot_compare_evokeds(
+                    evokeds={
+                        label: evoked.copy().pick(ch_type, verbose=False)
+                    },
+                    ci=None, truncate_xaxis=False,
+                    truncate_yaxis=False, legend=False,
+                    axes=ax[idx], show=False
+                )
             ax[idx].set_title(ch_type)
 
             # Hide x axis label for all but the last subplot
@@ -3442,7 +3444,7 @@ class Report:
         epochs.load_data()
 
         for ch_type in ch_types:
-            with use_log_level(False):
+            with use_log_level(_verbose_safe_false(level='error')):
                 figs = epochs.copy().pick(ch_type, verbose=False).plot_image(
                     show=False
                 )
