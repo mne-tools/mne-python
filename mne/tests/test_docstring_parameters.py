@@ -193,7 +193,10 @@ def test_tabs():
     for _, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
         # because we don't import e.g. mne.tests w/mne
         if not ispkg and modname not in tab_ignores:
-            mod = importlib.import_module(modname)
+            try:
+                mod = importlib.import_module(modname)
+            except Exception:  # e.g., mne.export not having pybv
+                continue
             source = getsource(mod)
             assert '\t' not in source, ('"%s" has tabs, please remove them '
                                         'or add it to the ignore list'
