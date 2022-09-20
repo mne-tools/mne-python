@@ -1919,8 +1919,8 @@ class AverageTFR(_BaseTFR):
             sphere=None, image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
             size=2, cmap=None, vlim=(None, None), vmin=None, vmax=None,
-            colorbar=True, cbar_fmt='%1.1e', unit=None, axes=None, title=None,
-            show=True):
+            cnorm=None, colorbar=True, cbar_fmt='%1.1e', unit=None, axes=None,
+            title=None, show=True):
         """Plot topographic maps of time-frequency intervals of TFR data.
 
         Parameters
@@ -1971,6 +1971,9 @@ class AverageTFR(_BaseTFR):
             .. deprecated:: v1.2
                The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
                Please use the ``vlim`` parameter instead.
+        %(cnorm)s
+
+            .. versionadded:: 1.2
         %(colorbar_topomap)s
         %(cbar_fmt_topomap)s
         unit : str | None
@@ -1993,8 +1996,8 @@ class AverageTFR(_BaseTFR):
             contours=contours, outlines=outlines, sphere=sphere,
             image_interp=image_interp, extrapolate=extrapolate, border=border,
             res=res, size=size, cmap=cmap, vlim=vlim, vmin=vmin, vmax=vmax,
-            colorbar=colorbar, cbar_fmt=cbar_fmt, unit=unit, axes=axes,
-            title=title, show=show)
+            cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt, unit=unit,
+            axes=axes, title=title, show=show)
 
     def _check_compat(self, tfr):
         """Check that self and tfr have the same time-frequency ranges."""

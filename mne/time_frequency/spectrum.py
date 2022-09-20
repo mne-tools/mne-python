@@ -169,9 +169,9 @@ class SpectrumMixin():
                          image_interp=_INTERPOLATION_DEFAULT,
                          extrapolate=_EXTRAPOLATE_DEFAULT,
                          border=_BORDER_DEFAULT, res=64, size=1, cmap=None,
-                         vlim=(None, None), colorbar=True, cbar_fmt='auto',
-                         units=None, axes=None, show=True, n_jobs=None,
-                         verbose=None, **method_kw):
+                         vlim=(None, None), cnorm=None, colorbar=True,
+                         cbar_fmt='auto', units=None, axes=None, show=True,
+                         n_jobs=None, verbose=None, **method_kw):
         """Plot scalp topography of PSD for chosen frequency bands.
 
         Parameters
@@ -198,6 +198,9 @@ class SpectrumMixin():
         %(size_topomap)s
         %(cmap_topomap)s
         %(vlim_plot_topomap_psd)s
+        %(cnorm)s
+
+            .. versionadded:: 1.2
         %(colorbar_topomap)s
         %(cbar_fmt_topomap_psd)s
         %(units_topomap)s
@@ -222,8 +225,8 @@ class SpectrumMixin():
             mask_params=mask_params, contours=contours, outlines=outlines,
             sphere=sphere, image_interp=image_interp, extrapolate=extrapolate,
             border=border, res=res, size=size, cmap=cmap, vlim=vlim,
-            colorbar=colorbar, cbar_fmt=cbar_fmt, units=units, axes=axes,
-            show=show)
+            cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt, units=units,
+            axes=axes, show=show)
         return fig
 
     def _set_legacy_nfft_default(self, tmin, tmax, method, method_kw):
@@ -667,7 +670,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
                      mask=None, mask_params=None, contours=6, outlines='head',
                      sphere=None, image_interp=_INTERPOLATION_DEFAULT,
                      extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT,
-                     res=64, size=1, cmap=None, vlim=(None, None),
+                     res=64, size=1, cmap=None, vlim=(None, None), cnorm=None,
                      colorbar=True, cbar_fmt='auto', units=None, axes=None,
                      show=True):
         """Plot scalp topography of PSD for chosen frequency bands.
@@ -693,6 +696,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(size_topomap)s
         %(cmap_topomap)s
         %(vlim_plot_topomap_psd)s
+        %(cnorm)s
         %(colorbar_topomap)s
         %(cbar_fmt_topomap_psd)s
         %(units_topomap)s
@@ -730,8 +734,9 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             names=names, mask=mask, mask_params=mask_params,
             contours=contours, outlines=outlines, sphere=sphere,
             image_interp=image_interp, extrapolate=extrapolate, border=border,
-            res=res, size=size, cmap=cmap, vlim=vlim, colorbar=colorbar,
-            cbar_fmt=cbar_fmt, unit=unit, axes=axes, show=show)
+            res=res, size=size, cmap=cmap, vlim=vlim, cnorm=cnorm,
+            colorbar=colorbar, cbar_fmt=cbar_fmt, unit=unit, axes=axes,
+            show=show)
 
     @verbose
     def save(self, fname, *, overwrite=False, verbose=None):

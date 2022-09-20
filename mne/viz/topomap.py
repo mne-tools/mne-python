@@ -783,29 +783,6 @@ def plot_topomap(
         The interpolated data.
     cn : matplotlib.contour.ContourSet
         The fieldlines.
-
-    Notes
-    -----
-    The ``cnorm`` parameter can be used to implement custom colormap
-    normalization. By default, a linear mapping from vmin to vmax is used,
-    which correspond to the first and last colors in the colormap. This might
-    be undesired when vmin and vmax are not symmetrical around zero (or a value
-    that can be interpreted as some midpoint). For example, assume we want to
-    use the RdBu colormap (red to white to blue) for values ranging from -1 to
-    3, and 0 should be white. However, white corresponds to the midpoint in the
-    data by default, i.e. 1. Therefore, we use the following colormap
-    normalization ``cnorm`` and pass it as the the ``cnorm`` argument:
-
-    .. code-block:: python
-
-        from matplotlib.colors import TwoSlopeNorm
-        cnorm = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=3)
-
-    Note that because we define ``vmin`` and ``vmax`` in the normalization,
-    arguments ``vmin`` and ``vmax`` to ``plot_topomap`` will be ignored if a
-    normalization is provided. See the
-    :doc:`matplotlib docs <matplotlib:tutorials/colors/colormapnorms>`
-    for more details on colormap normalization.
     """
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
@@ -1491,8 +1468,8 @@ def plot_evoked_topomap(
         mask_params=None, contours=6, outlines='head', sphere=None,
         image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
         border=_BORDER_DEFAULT, res=64, size=1, cmap=None, vlim=(None, None),
-        vmin=None, vmax=None, colorbar=True, cbar_fmt='%3.1f', units=None,
-        axes=None, time_unit='s', time_format=None, title=None,
+        vmin=None, vmax=None, cnorm=None, colorbar=True, cbar_fmt='%3.1f',
+        units=None, axes=None, time_unit='s', time_format=None, title=None,
         nrows=1, ncols='auto', show=True):
     """Plot topographic maps of specific time points of evoked data.
 
@@ -1545,6 +1522,9 @@ def plot_evoked_topomap(
         .. deprecated:: v1.2
            The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
            Please use the ``vlim`` parameter instead.
+    %(cnorm)s
+
+        .. versionadded:: 1.2
     %(colorbar_topomap)s
     %(cbar_fmt_topomap)s
     %(units_topomap)s
@@ -1765,7 +1745,7 @@ def plot_evoked_topomap(
         _, contours = _set_contour_locator(vmin, vmax, contours)
     # prepare for main loop over times
     kwargs = dict(vmin=vmin, vmax=vmax, sensors=sensors, res=res, names=names,
-                  cmap=cmap[0], mask_params=mask_params,
+                  cmap=cmap[0], cnorm=cnorm, mask_params=mask_params,
                   outlines=outlines, contours=contours,
                   image_interp=image_interp, show=False,
                   extrapolate=extrapolate, sphere=sphere,
@@ -1891,8 +1871,8 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
                             image_interp=_INTERPOLATION_DEFAULT,
                             extrapolate=_EXTRAPOLATE_DEFAULT,
                             border=_BORDER_DEFAULT, res=64, size=1,
-                            cmap=None, vlim=(None, None), colorbar=True,
-                            cbar_fmt='auto', units=None,
+                            cmap=None, vlim=(None, None), cnorm=None,
+                            colorbar=True, cbar_fmt='auto', units=None,
                             axes=None, show=True, n_jobs=None, verbose=None):
     """Plot the topomap of the power spectral density across epochs.
 
@@ -1933,6 +1913,9 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
     %(vlim_plot_topomap_psd)s
 
         .. versionadded:: 0.21
+    %(cnorm)s
+
+        .. versionadded:: 1.2
     %(colorbar_topomap)s
     %(cbar_fmt_topomap_psd)s
     %(units_topomap)s
@@ -1952,10 +1935,10 @@ def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
         sensors=sensors, names=names, mask=mask, mask_params=mask_params,
         contours=contours, outlines=outlines, sphere=sphere,
         image_interp=image_interp, extrapolate=extrapolate, border=border,
-        res=res, size=size, cmap=cmap, vlim=vlim, colorbar=colorbar,
-        cbar_fmt=cbar_fmt, units=units, axes=None, show=True, n_jobs=None,
-        verbose=None, bandwidth=bandwidth, low_bias=low_bias,
-        adaptive=adaptive, normalization=normalization)
+        res=res, size=size, cmap=cmap, vlim=vlim, cnorm=cnorm,
+        colorbar=colorbar, cbar_fmt=cbar_fmt, units=units, axes=None,
+        show=True, n_jobs=None, verbose=None, bandwidth=bandwidth,
+        low_bias=low_bias, adaptive=adaptive, normalization=normalization)
 
 
 @fill_doc
@@ -1965,7 +1948,8 @@ def plot_psds_topomap(
         mask_params=None, contours=0, outlines='head', sphere=None,
         image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
         border=_BORDER_DEFAULT, res=64, size=1, cmap=None, vlim=(None, None),
-        colorbar=True, cbar_fmt='auto', unit=None, axes=None, show=True):
+        cnorm=None, colorbar=True, cbar_fmt='auto', unit=None, axes=None,
+        show=True):
     """Plot spatial maps of PSDs.
 
     Parameters
@@ -1996,6 +1980,9 @@ def plot_psds_topomap(
     %(vlim_plot_topomap_psd)s
 
         .. versionadded:: 0.21
+    %(cnorm)s
+
+        .. versionadded:: 1.2
     %(colorbar_topomap)s
     %(cbar_fmt_topomap_psd)s
     unit : str | None
@@ -2096,7 +2083,7 @@ def plot_psds_topomap(
             mask=mask, mask_params=mask_params, contours=contours,
             outlines=outlines, sphere=sphere, image_interp=image_interp,
             extrapolate=extrapolate, border=border, res=res, size=size,
-            cmap=_cmap[0], vmin=vmin, vmax=vmax, cnorm=None, axes=ax,
+            cmap=_cmap[0], vmin=vmin, vmax=vmax, cnorm=cnorm, axes=ax,
             show=False, onselect=None)
 
         if colorbar:

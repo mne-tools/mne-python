@@ -260,8 +260,8 @@ class Covariance(dict):
             image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
             size=1, cmap=None, vlim=(None, None), vmin=None, vmax=None,
-            colorbar=True, cbar_fmt='%3.1f', units=None, axes=None, title=None,
-            show=True, verbose=None):
+            cnorm=None, colorbar=True, cbar_fmt='%3.1f', units=None,
+            axes=None, title=None, show=True, verbose=None):
         """Plot a topomap of the covariance diagonal.
 
         Parameters
@@ -296,6 +296,9 @@ class Covariance(dict):
             .. deprecated:: v1.2
                The ``vmin`` and ``vmax`` parameters will be removed in version
                1.3. Please use the ``vlim`` parameter instead.
+        %(cnorm)s
+
+            .. versionadded:: 1.2
         %(colorbar_topomap)s
         %(cbar_fmt_topomap)s
         %(units_topomap)s
@@ -333,7 +336,7 @@ class Covariance(dict):
             scalings = {k: v * v for k, v in DEFAULTS['scalings'].items()}
         return evoked.plot_topomap(
             times=[0], ch_type=ch_type, vmin=vlim[0], vmax=vlim[1], cmap=cmap,
-            sensors=sensors, colorbar=colorbar, scalings=scalings,
+            sensors=sensors, cnorm=cnorm, colorbar=colorbar, scalings=scalings,
             units=units, res=res, size=size, cbar_fmt=cbar_fmt,
             proj=proj, show=show, show_names=show_names, title=title,
             mask=mask, mask_params=mask_params, outlines=outlines,

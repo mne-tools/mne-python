@@ -608,9 +608,11 @@ cmap : matplotlib colormap | None
 
 docdict['cnorm'] = """
 cnorm : matplotlib.colors.Normalize | None
-    Colormap normalization, default None means linear normalization. If not
-    None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
-    details.
+    How to normalize the colormap. If ``None``, standard linear normalization
+    is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+    See :doc:`Matplotlib docs <matplotlib:tutorials/colors/colormapnorms>`
+    for more details on colormap normalization, and :ref:`cnorm-example` for
+    an example of its use.
 """
 
 docdict['color_matplotlib'] = """
