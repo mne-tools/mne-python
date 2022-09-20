@@ -283,8 +283,8 @@ def plot_projs_topomap(
         projs, info, *, sensors=True, show_names=False, contours=6,
         outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
         extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
-        size=1, cmap=None, vlim=(None, None), colorbar=False, axes=None,
-        show=True):
+        size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=False,
+        axes=None, show=True):
     """Plot topographic maps of SSP projections.
 
     Parameters
@@ -312,6 +312,9 @@ def plot_projs_topomap(
     %(size_topomap)s
     %(cmap_topomap)s
     %(vlim_plot_topomap_proj)s
+    %(cnorm)s
+
+        .. versionadded:: 1.2
     %(colorbar_topomap)s
     %(axes_plot_projs_topomap)s
     %(show)s
@@ -329,7 +332,7 @@ def plot_projs_topomap(
         projs, info, sensors=sensors, show_names=show_names, contours=contours,
         outlines=outlines, sphere=sphere, image_interp=image_interp,
         extrapolate=extrapolate, border=border, res=res, size=size, cmap=cmap,
-        vlim=vlim, colorbar=colorbar, axes=axes)
+        vlim=vlim, cnorm=cnorm, colorbar=colorbar, axes=axes)
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('ignore')
         tight_layout(fig=fig)
@@ -1311,7 +1314,7 @@ def plot_tfr_topomap(
         mask_params=None, contours=6, outlines='head', sphere=None,
         image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
         border=_BORDER_DEFAULT, res=64, size=2, cmap=None,
-        vlim=(None, None), vmin=None, vmax=None, colorbar=True,
+        vlim=(None, None), vmin=None, vmax=None, cnorm=None, colorbar=True,
         cbar_fmt='%1.1e', unit=None, axes=None, title=None, show=True):
     """Plot topographic maps of specific time-frequency intervals of TFR data.
 
@@ -1363,6 +1366,9 @@ def plot_tfr_topomap(
         .. deprecated:: v1.2
            The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
            Please use the ``vlim`` parameter instead.
+    %(cnorm)s
+
+        .. versionadded:: 1.2
     %(colorbar_topomap)s
     %(cbar_fmt_topomap)s
     unit : str | None
@@ -1444,7 +1450,7 @@ def plot_tfr_topomap(
         mask=mask, mask_params=mask_params, contours=contours,
         outlines=outlines, sphere=sphere, image_interp=image_interp,
         extrapolate=extrapolate, border=border, res=res, size=size,
-        cmap=cmap[0], vmin=vlim[0], vmax=vlim[1], axes=axes,  # TODO cnorm?
+        cmap=cmap[0], vmin=vlim[0], vmax=vlim[1], cnorm=cnorm, axes=axes,
         show=False, onselect=selection_callback)
 
     if colorbar:
