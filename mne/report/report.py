@@ -3082,12 +3082,13 @@ class Report:
                 func=self._plot_one_evoked_topomap_timepoint,
                 n_jobs=n_jobs, max_jobs=len(times),
             )
-            fig_arrays = parallel(
-                p_fun(
-                    evoked=evoked, time=time, ch_types=ch_types,
-                    vmin=vmin, vmax=vmax, topomap_kwargs=topomap_kwargs
-                ) for time in times
-            )
+            with use_log_level(_verbose_safe_false(level='error')):
+                fig_arrays = parallel(
+                    p_fun(
+                        evoked=evoked, time=time, ch_types=ch_types,
+                        vmin=vmin, vmax=vmax, topomap_kwargs=topomap_kwargs
+                    ) for time in times
+                )
 
             captions = [f'Time point: {round(t, 3):0.3f} s' for t in times]
             self._add_slider(
@@ -3118,14 +3119,15 @@ class Report:
         if len(ch_types) == 1:
             ax = [ax]
         for idx, ch_type in enumerate(ch_types):
-            plot_compare_evokeds(
-                evokeds={
-                    label: evoked.copy().pick(ch_type, verbose=False)
-                },
-                ci=None, truncate_xaxis=False,
-                truncate_yaxis=False, legend=False,
-                axes=ax[idx], show=False
-            )
+            with use_log_level(_verbose_safe_false(level='error')):
+                plot_compare_evokeds(
+                    evokeds={
+                        label: evoked.copy().pick(ch_type, verbose=False)
+                    },
+                    ci=None, truncate_xaxis=False,
+                    truncate_yaxis=False, legend=False,
+                    axes=ax[idx], show=False
+                )
             ax[idx].set_title(ch_type)
 
             # Hide x axis label for all but the last subplot
