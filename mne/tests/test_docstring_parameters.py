@@ -3,13 +3,13 @@
 #
 # License: BSD-3-Clause
 
+import importlib
 import inspect
 from inspect import getsource
 import os.path as op
 from pathlib import Path
 from pkgutil import walk_packages
 import re
-import sys
 
 import pytest
 
@@ -119,6 +119,31 @@ def check_parameters_match(func, cls=None):
                  for err in validate(name)['errors']
                  if err[0] not in error_ignores and
                  (name.split('.')[-1], err[0]) not in error_ignores_specific]
+    # Add a check that all public functions and methods that have "verbose"
+    # set the default verbose=None
+    if cls is None:
+        mod_or_class = importlib.import_module('.'.join(name.split('.')[:-1]))
+    else:
+        mod_or_class = importlib.import_module('.'.join(name.split('.')[:-2]))
+        mod_or_class = getattr(mod_or_class, cls.__name__.split('.')[-1])
+    callable_ = getattr(mod_or_class, name.split('.')[-1])
+    try:
+        sig = inspect.signature(callable_)
+    except ValueError as exc:
+        msg = str(exc)
+        # E   ValueError: no signature found for builtin type
+        #     <class 'mne.forward.forward.Forward'>
+        if inspect.isclass(callable_) and 'no signature found for buil' in msg:
+            pass
+        else:
+            raise
+    else:
+        if 'verbose' in sig.parameters:
+            verbose_default = sig.parameters['verbose'].default
+            if verbose_default is not None:
+                incorrect += [
+                    f'{name} : verbose default is not None, '
+                    f'got: {verbose_default}']
     return incorrect
 
 
@@ -168,17 +193,11 @@ def test_tabs():
     for _, modname, ispkg in walk_packages(mne.__path__, prefix='mne.'):
         # because we don't import e.g. mne.tests w/mne
         if not ispkg and modname not in tab_ignores:
-            # mod = importlib.import_module(modname)  # not py26 compatible!
             try:
-                with _record_warnings():
-                    __import__(modname)
-            except Exception:  # can't import properly
+                mod = importlib.import_module(modname)
+            except Exception:  # e.g., mne.export not having pybv
                 continue
-            mod = sys.modules[modname]
-            try:
-                source = getsource(mod)
-            except IOError:  # user probably should have run "make clean"
-                continue
+            source = getsource(mod)
             assert '\t' not in source, ('"%s" has tabs, please remove them '
                                         'or add it to the ignore list'
                                         % modname)
