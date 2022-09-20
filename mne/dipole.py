@@ -241,7 +241,8 @@ class Dipole(TimeMixin):
         """
         mri_head_t, trans = _get_trans(trans)
         return head_to_mri(self.pos, subject, mri_head_t,
-                           subjects_dir=subjects_dir, verbose=verbose)
+                           subjects_dir=subjects_dir, verbose=verbose,
+                           kind='mri')
 
     @verbose
     def to_volume_labels(self, trans, subject='fsaverage', aseg='aparc+aseg',

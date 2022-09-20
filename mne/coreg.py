@@ -26,6 +26,7 @@ from .io._digitization import _get_data_as_dict_from_dig
 # namespace, too)
 from ._freesurfer import (_read_mri_info, get_mni_fiducials,  # noqa: F401
                           estimate_head_mri_t)  # noqa: F401
+from ._freesurfer import _import_nibabel
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,  # noqa: E501,F401
                            write_source_spaces)
@@ -1170,12 +1171,7 @@ def _scale_mri(subject_to, mri_fname, subject_from, scale, subjects_dir):
     """Scale an MRI by setting its affine."""
     subjects_dir, subject_from, scale, _ = _scale_params(
         subject_to, subject_from, scale, subjects_dir)
-
-    if not has_nibabel():
-        warn('Skipping MRI scaling for %s, please install nibabel')
-        return
-
-    import nibabel
+    nibabel = _import_nibabel('scale an MRI')
     fname_from = op.join(mri_dirname.format(
         subjects_dir=subjects_dir, subject=subject_from), mri_fname)
     fname_to = op.join(mri_dirname.format(

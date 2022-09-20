@@ -719,7 +719,7 @@ def test_add_channels():
     tfr_eeg = tfr_eeg.crop(.1, .1)
 
     pytest.raises(RuntimeError, tfr_meg.add_channels, [tfr_badsf])
-    pytest.raises(AssertionError, tfr_meg.add_channels, [tfr_eeg])
+    pytest.raises(ValueError, tfr_meg.add_channels, [tfr_eeg])
     pytest.raises(ValueError, tfr_meg.add_channels, [tfr_meg])
     pytest.raises(TypeError, tfr_meg.add_channels, tfr_badsf)
 

@@ -44,15 +44,19 @@ def test_spectrum_params(method, fmin, fmax, tmin, tmax, picks, proj, n_fft,
     raw.compute_psd(**kwargs)
 
 
+def _get_inst(inst, request, evoked):
+    # ↓ XXX workaround:
+    # ↓ parametrized fixtures are not accessible via request.getfixturevalue
+    # ↓ https://github.com/pytest-dev/pytest/issues/4666#issuecomment-456593913
+    return evoked if inst == 'evoked' else request.getfixturevalue(inst)
+
+
 @requires_h5py
 @pytest.mark.parametrize('inst', ('raw', 'epochs', 'evoked'))
 def test_spectrum_io(inst, tmp_path, request, evoked):
     """Test save/load of spectrum objects."""
     fname = tmp_path / f'{inst}-spectrum.h5'
-    # ↓ XXX workaround:
-    # ↓ parametrized fixtures are not accessible via request.getfixturevalue
-    # ↓ https://github.com/pytest-dev/pytest/issues/4666#issuecomment-456593913
-    inst = evoked if inst == 'evoked' else request.getfixturevalue(inst)
+    inst = _get_inst(inst, request, evoked)
     orig = inst.compute_psd()
     orig.save(fname)
     loaded = read_spectrum(fname)
@@ -145,10 +149,7 @@ def test_spectrum_to_data_frame(inst, request, evoked):
 
     # setup
     is_epochs = inst == 'epochs'
-    # ↓ XXX workaround:
-    # ↓ parametrized fixtures are not accessible via request.getfixturevalue
-    # ↓ https://github.com/pytest-dev/pytest/issues/4666#issuecomment-456593913
-    inst = evoked if inst == 'evoked' else request.getfixturevalue(inst)
+    inst = _get_inst(inst, request, evoked)
     extra_dim = () if is_epochs else (1,)
     extra_cols = ['freq', 'condition', 'epoch'] if is_epochs else ['freq']
     # compute PSD
@@ -182,3 +183,18 @@ def test_spectrum_to_data_frame(inst, request, evoked):
     _pick_first = spectrum.pick(picks).to_data_frame()
     _pick_last = spectrum.to_data_frame(picks=picks)
     assert_frame_equal(_pick_first, _pick_last)
+
+
+# not testing with Evoked because it already has projs applied
+@pytest.mark.parametrize('inst', ('raw', 'epochs'))
+def test_spectrum_proj(inst, request):
+    """Test that proj is applied correctly (gh 11177)."""
+    inst = request.getfixturevalue(inst)
+    has_proj = inst.compute_psd(proj=True)
+    no_proj = inst.compute_psd(proj=False)
+    assert not np.array_equal(has_proj.get_data(), no_proj.get_data())
+    # make sure only the data (and the projs) were different
+    has_proj._data = no_proj._data
+    with has_proj.info._unlock():
+        has_proj.info['projs'] = no_proj.info['projs']
+    assert has_proj == no_proj

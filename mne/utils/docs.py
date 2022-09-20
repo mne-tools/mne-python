@@ -1484,6 +1484,15 @@ head_source : str | list of str
     :func:`mne.get_head_surf` for more information.
 """
 
+docdict['hitachi_fname'] = """
+fname : list | str
+    Path(s) to the Hitachi CSV file(s). This should only be a list for
+    multiple probes that were acquired simultaneously.
+
+    .. versionchanged:: 1.2
+        Added support for list-of-str.
+"""
+
 docdict['hitachi_notes'] = """
 Hitachi does not encode their channel positions, so you will need to
 create a suitable mapping using :func:`mne.channels.make_standard_montage`

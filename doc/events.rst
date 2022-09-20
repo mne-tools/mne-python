@@ -50,7 +50,6 @@ Events
 .. autosummary::
    :toctree: generated/
 
-   add_channels_epochs
    average_movements
    combine_event_ids
    equalize_epoch_counts
