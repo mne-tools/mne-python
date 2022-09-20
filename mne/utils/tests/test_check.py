@@ -303,6 +303,7 @@ def test_strip_dev(version, want, have_unstripped, monkeypatch):
     assert looks_stable(simpler_version)
 
 
+@testing.requires_testing_data
 def test_check_sphere_verbose():
     """Test that verbose is handled properly in _check_sphere."""
     info = mne.io.read_info(fname_raw)
