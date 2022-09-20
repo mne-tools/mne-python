@@ -3747,7 +3747,7 @@ _vlim_callable = (
     'Elements of the :class:`tuple` may also be callable functions which '
     'take in a :class:`NumPy array <numpy.ndarray>` and return a scalar. ')
 
-docdict['vlim_plot_topomap_cov'] = _vlim.format('', '', '', '', '')
+docdict['vlim_plot_topomap'] = _vlim.format('', '', '', '', '')
 docdict['vlim_plot_topomap_proj'] = _vlim_joint.format(
     'projector', _vlim_callable,
     "If vlim is ``'joint'``, ``info`` must not be ``None``. ")

@@ -136,10 +136,10 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
             title = ch_type
         this_data = np.average(this_data, axis=1)
         axarr[0][idx].set_title(title)
-        vmin = min(this_data) if psd else None
-        vmax = max(this_data) if psd else None  # All negative for dB psd.
+        # can be all negative for dB PSD
+        vlim = (min(this_data), max(this_data)) if psd else (None, None)
         cmap = 'Reds' if psd else None
-        plot_topomap(this_data, pos, cmap=cmap, vmin=vmin, vmax=vmax,
+        plot_topomap(this_data, pos, cmap=cmap, vlim=vlim,
                      axes=axarr[0][idx], show=False, sphere=this_sphere,
                      outlines=outlines)
 

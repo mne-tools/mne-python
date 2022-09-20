@@ -36,7 +36,8 @@ from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
 from ..io.meas_info import Info, ContainsMixin
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _connection_line, _prepare_joint_axes,
-                         _setup_vmin_vmax, _set_title_multiple_electrodes)
+                         _setup_vmin_vmax, _set_title_multiple_electrodes,
+                         _warn_deprecated_vmin_vmax)
 
 
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
@@ -1449,18 +1450,8 @@ class AverageTFR(_BaseTFR):
             rendered in log-scale, zlogratio is the same as zscore but data
             is rendered in log-scale first.
             If None no baseline correction is applied.
-        tmin : None | float
-            The first time instant to display. If None the first time point
-            available is used.
-        tmax : None | float
-            The last time instant to display. If None the last time point
-            available is used.
-        fmin : None | float
-            The first frequency to display. If None the first frequency
-            available is used.
-        fmax : None | float
-            The last frequency to display. If None the last frequency
-            available is used.
+        %(tmin_tmax_psd)s
+        %(fmin_fmax_psd)s
         vmin : float | None
             The minimum value of the color scale for the image (for
             topomaps, see ``topomap_args``). If vmin is None, the data
@@ -1692,10 +1683,18 @@ class AverageTFR(_BaseTFR):
 
         # passing args to the topomap calls
         max_lim = max(vlims)
-        topomap_args_pass["vmin"] = vmin = topomap_args.get('vmin', -max_lim)
-        topomap_args_pass["vmax"] = vmax = topomap_args.get('vmax', max_lim)
+        _vlim = topomap_args.get('vlim', (None, None))
+        # TODO v1.3: remove next 3 lines (vmin/vmax gone from plot_topomap)
+        _vmin = topomap_args.get('vmin', None)
+        _vmax = topomap_args.get('vmax', None)
+        _vlim = list(_warn_deprecated_vmin_vmax(_vlim, _vmin, _vmax))
+        # fall back on ± max_lim
+        for sign, index in zip((-1, 1), (0, 1)):
+            if _vlim[index] is None:
+                _vlim[index] = sign * max_lim
+        topomap_args_pass['vlim'] = tuple(_vlim)
         locator, contours = _set_contour_locator(
-            vmin, vmax, topomap_args_pass["contours"])
+            *_vlim, topomap_args_pass["contours"])
         topomap_args_pass['contours'] = contours
 
         for ax, title, data, pos in zip(map_ax, titles, all_data, all_pos):
@@ -1772,7 +1771,7 @@ class AverageTFR(_BaseTFR):
                 None, None, None, None, None, self.info['sfreq'])[0]
             data = data.mean(-1).mean(-1)
             vmax = np.abs(data).max()
-            im, _ = plot_topomap(data, self.info, vmin=-vmax, vmax=vmax,
+            im, _ = plot_topomap(data, self.info, vlim=(-vmax, vmax),
                                  cmap=cmap[0], axes=ax, show=False,
                                  **topomap_args)
             _add_colorbar(ax, im, cmap, title="AU", pad=.1)
@@ -1963,7 +1962,7 @@ class AverageTFR(_BaseTFR):
         %(res_topomap)s
         %(size_topomap)s
         %(cmap_topomap)s
-        %(vlim_plot_topomap_cov)s
+        %(vlim_plot_topomap)s
 
             .. versionadded:: 1.2
         %(vmin_vmax_topomap)s

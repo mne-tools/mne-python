@@ -344,7 +344,8 @@ def _plot_projs_topomap(
         projs, info, sensors=True, show_names=False, contours=6,
         outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
         extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
-        size=1, cmap=None, vlim=(None, None), colorbar=False, axes=None):
+        size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=False,
+        axes=None):
     import matplotlib.pyplot as plt
     sphere = _check_sphere(sphere, info)
     projs = _check_type_projs(projs)
@@ -425,10 +426,9 @@ def _plot_projs_topomap(
         title = '\n'.join(title[ii:ii + 22] for ii in range(0, len(title), 22))
         ax.set_title(title, fontsize=10)
         # plot
-        vmin, vmax = _vlim
-        im = plot_topomap(_data, _pos[:, :2], vmin=vmin, vmax=vmax, cmap=cmap,
+        im = plot_topomap(_data, _pos[:, :2], vlim=_vlim, cmap=cmap,
                           sensors=sensors, names=names, res=res, axes=ax,
-                          outlines=_outlines, contours=contours,
+                          outlines=_outlines, contours=contours, cnorm=cnorm,
                           image_interp=image_interp, show=False,
                           extrapolate=extrapolate, sphere=_sphere,
                           border=border, ch_type=_ch_type)[0]
@@ -730,8 +730,8 @@ def plot_topomap(
         data, pos, *, ch_type='eeg', sensors=True, show_names=None, names=None,
         mask=None, mask_params=None, contours=6, outlines='head', sphere=None,
         image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
-        border=_BORDER_DEFAULT, res=64, size=1, cmap=None, vmin=None,
-        vmax=None, cnorm=None, axes=None, show=True, onselect=None):
+        border=_BORDER_DEFAULT, res=64, size=1, cmap=None, vlim=(None, None),
+        vmin=None, vmax=None, cnorm=None, axes=None, show=True, onselect=None):
     """Plot a topographic map as image.
 
     Parameters
@@ -765,7 +765,14 @@ def plot_topomap(
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap_simple)s
+    %(vlim_plot_topomap)s
+
+        .. versionadded:: 1.2
     %(vmin_vmax_topomap)s
+
+        .. deprecated:: v1.2
+           The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
+           Please use the ``vlim`` parameter instead.
     %(cnorm)s
 
         .. versionadded:: 0.24
@@ -799,12 +806,13 @@ def plot_topomap(
              'version 1.3. Use the "names" parameter instead.', FutureWarning)
     sphere = _check_sphere(sphere, pos if isinstance(pos, Info) else None)
     _validate_type(cnorm, (Normalize, None), 'cnorm')
-    if cnorm is not None and (vmin is not None or vmax is not None):
+    vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
+    if cnorm is not None and (vlim[0] is not None or vlim[1] is not None):
         warn(f'Provided cnorm implicitly defines vmin={cnorm.vmin} and '
-             f'vmax={cnorm.vmax}; ignoring additional vmin/vmax params.')
+             f'vmax={cnorm.vmax}; ignoring additional vlim/vmin/vmax params.')
     return _plot_topomap(
-        data, pos, vmin=vmin, vmax=vmax, cmap=cmap, sensors=sensors, res=res,
-        axes=axes, names=names, mask=mask, mask_params=mask_params,
+        data, pos, vmin=vlim[0], vmax=vlim[1], cmap=cmap, sensors=sensors,
+        res=res, axes=axes, names=names, mask=mask, mask_params=mask_params,
         outlines=outlines, contours=contours, image_interp=image_interp,
         show=show, onselect=onselect, extrapolate=extrapolate, sphere=sphere,
         border=border, ch_type=ch_type, cnorm=cnorm)[:2]
@@ -1102,9 +1110,9 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64,
     if len(set(ica.get_channel_types())) > 1:
         topo_title += f' ({ch_type})'
     axes.set_title(topo_title, fontsize=12)
-    vmin_, vmax_ = _setup_vmin_vmax(data, vmin, vmax)
+    vlim = _setup_vmin_vmax(data, vmin, vmax)
     im = plot_topomap(
-        data.ravel(), pos, vmin=vmin_, vmax=vmax_, res=res, axes=axes,
+        data.ravel(), pos, vlim=vlim, res=res, axes=axes,
         cmap=cmap, outlines=outlines, contours=contours, sensors=sensors,
         image_interp=image_interp, show=show, extrapolate=extrapolate,
         sphere=sphere, border=border, ch_type=ch_type)[0]
@@ -1112,7 +1120,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64,
         cbar, cax = _add_colorbar(axes, im, cmap, pad=.05, title="AU",
                                   format='%3.2f')
         cbar.ax.tick_params(labelsize=12)
-        cbar.set_ticks((vmin_, vmax_))
+        cbar.set_ticks(vlim)
     _hide_frame(axes)
 
 
@@ -1248,9 +1256,9 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         titles.append(ax.set_title(comp_title, fontsize=12, **kwargs))
         if merge_channels:
             data_, names_ = _merge_ch_data(data_, ch_type, names.copy())
-        vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
+        vlim = _setup_vmin_vmax(data_, vmin, vmax)
         im = plot_topomap(
-            data_.flatten(), pos, vmin=vmin_, vmax=vmax_, res=res, axes=ax,
+            data_.flatten(), pos, vlim=vlim, res=res, axes=ax,
             cmap=cmap[0], outlines=outlines, contours=contours,
             image_interp=image_interp, show=False, sensors=sensors,
             ch_type=ch_type, **topomap_args)[0]
@@ -1259,7 +1267,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
             cbar, cax = _add_colorbar(ax, im, cmap, title="AU",
                                       side="right", pad=.05, format='%3.2f')
             cbar.ax.tick_params(labelsize=12)
-            cbar.set_ticks((vmin_, vmax_))
+            cbar.set_ticks(vlim)
         _hide_frame(ax)
     del pos
     tight_layout(fig=fig)
@@ -1358,7 +1366,7 @@ def plot_tfr_topomap(
     %(res_topomap)s
     %(size_topomap)s
     %(cmap_topomap)s
-    %(vlim_plot_topomap_cov)s
+    %(vlim_plot_topomap)s
 
         .. versionadded:: 1.2
     %(vmin_vmax_topomap)s
@@ -1450,7 +1458,7 @@ def plot_tfr_topomap(
         mask=mask, mask_params=mask_params, contours=contours,
         outlines=outlines, sphere=sphere, image_interp=image_interp,
         extrapolate=extrapolate, border=border, res=res, size=size,
-        cmap=cmap[0], vmin=vlim[0], vmax=vlim[1], cnorm=cnorm, axes=axes,
+        cmap=cmap[0], vlim=vlim, cnorm=cnorm, axes=axes,
         show=False, onselect=selection_callback)
 
     if colorbar:
@@ -1743,14 +1751,13 @@ def plot_evoked_topomap(
     # set up colormap
     _vlim = [_setup_vmin_vmax(data[:, i], *vlim, norm=merge_channels)
              for i in range(n_times)]
-    vmin = np.min(_vlim)
-    vmax = np.max(_vlim)
-    cmap = _setup_cmap(cmap, n_axes=n_times, norm=vmin >= 0)
+    _vlim = (np.min(_vlim), np.max(_vlim))
+    cmap = _setup_cmap(cmap, n_axes=n_times, norm=_vlim[0] >= 0)
     # set up contours
     if not isinstance(contours, (list, np.ndarray)):
-        _, contours = _set_contour_locator(vmin, vmax, contours)
+        _, contours = _set_contour_locator(*_vlim, contours)
     # prepare for main loop over times
-    kwargs = dict(vmin=vmin, vmax=vmax, sensors=sensors, res=res, names=names,
+    kwargs = dict(sensors=sensors, res=res, names=names,
                   cmap=cmap[0], cnorm=cnorm, mask_params=mask_params,
                   outlines=outlines, contours=contours,
                   image_interp=image_interp, show=False,
@@ -1767,7 +1774,8 @@ def plot_evoked_topomap(
         ax_idx = average_idx + 1 if adjust_for_cbar else average_idx
         tp, cn, interp = _plot_topomap(
             data[:, average_idx], pos, axes=axes[ax_idx],
-            mask=mask_[:, average_idx] if mask is not None else None, **kwargs)
+            mask=mask_[:, average_idx] if mask is not None else None,
+            vmin=_vlim[0], vmax=_vlim[1], **kwargs)
 
         images.append(tp)
         if cn is not None:
@@ -1786,6 +1794,7 @@ def plot_evoked_topomap(
             axes[ax_idx].set_title(axes_title)
 
     if interactive:
+        kwargs.update(vlim=_vlim)
         axes.append(plt.subplot(gs[1, :-1]))
         slider = Slider(axes[-1], 'Time', evoked.times[0], evoked.times[-1],
                         times[0], valfmt='%1.2fs')
@@ -2048,10 +2057,8 @@ def plot_psds_topomap(
         band_data = [10 * np.log10(_d) for _d in band_data]
     # handle vmin/vmax
     if vlim == 'joint':
-        vmin = np.array(band_data).min()
-        vmax = np.array(band_data).max()
-    else:
-        vmin, vmax = vlim
+        vlim = (np.array(band_data).min(),
+                np.array(band_data).max())
     # unit label
     if unit is None:
         unit = 'dB' if dB and not normalize else 'power'
@@ -2075,11 +2082,11 @@ def plot_psds_topomap(
         colorbar = vlim != 'joint' or ax == axes[-1]
         # ↓↓↓ formerly _plot_topomap_multi_cbar (a one-off middleman func) ↓↓↓
         _hide_frame(ax)
-        vmin = np.min(_data) if vmin is None else vmin
-        vmax = np.max(_data) if vmax is None else vmax
+        _vlim = (np.min(_data) if vlim[0] is None else vlim[0],
+                 np.max(_data) if vlim[1] is None else vlim[1])
         # this definition of "norm" allows non-diverging colormap for cases
         # where min & vmax are both negative (e.g., when they are power in dB)
-        signs = np.sign([vmin, vmax])
+        signs = np.sign(_vlim)
         norm = len(set(signs)) == 1 or np.any(signs == 0)
         _cmap = _setup_cmap(cmap, norm=norm)
         if title is not None:
@@ -2089,13 +2096,13 @@ def plot_psds_topomap(
             mask=mask, mask_params=mask_params, contours=contours,
             outlines=outlines, sphere=sphere, image_interp=image_interp,
             extrapolate=extrapolate, border=border, res=res, size=size,
-            cmap=_cmap[0], vmin=vmin, vmax=vmax, cnorm=cnorm, axes=ax,
+            cmap=_cmap[0], vlim=_vlim, cnorm=cnorm, axes=ax,
             show=False, onselect=None)
 
         if colorbar:
             cbar, cax = _add_colorbar(ax, im, cmap, pad=0.25, title=None,
                                       size="10%", format=cbar_fmt)
-            cbar.set_ticks((vmin, vmax))
+            cbar.set_ticks(_vlim)
             if unit is not None:
                 cbar.ax.set_ylabel(unit, fontsize=8)
             cbar.ax.tick_params(labelsize=8)
@@ -2550,9 +2557,10 @@ def _trigradient(x, y, z):
 
 
 @fill_doc
-def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
-                  vmax=None, cmap=None, sensors=True, res=64, axes=None,
-                  names=None, show_names=False, mask=None, mask_params=None,
+def plot_arrowmap(data, info_from, info_to=None, scale=3e-10,
+                  vlim=(None, None), vmin=None, vmax=None, cnorm=None,
+                  cmap=None, sensors=True, res=64, axes=None, names=None,
+                  show_names=False, mask=None, mask_params=None,
                   outlines='head', contours=6,
                   image_interp=_INTERPOLATION_DEFAULT, show=True,
                   onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT,
@@ -2581,7 +2589,17 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
         to be the same as info_from.
     scale : float, default 3e-10
         To scale the arrows.
+    %(vlim_plot_topomap)s
+
+        .. versionadded:: 1.2
     %(vmin_vmax_topomap)s
+
+        .. deprecated:: v1.2
+           The ``vmin`` and ``vmax`` parameters will be removed in version
+           1.3. Please use the ``vlim`` parameter instead.
+    %(cnorm)s
+
+        .. versionadded:: 1.2
     %(cmap_topomap_simple)s
     %(sensors_topomap)s
     %(res_topomap)s
@@ -2627,6 +2645,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
 
     sphere = _check_sphere(sphere, info_from)
     ch_type = _picks_by_type(info_from)
+    vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
 
     if names is None:
         names = _prepare_sensor_names(info_from.ch_names, show_names)
@@ -2674,7 +2693,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
         fig, axes = plt.subplots()
     else:
         fig = axes.figure
-    plot_topomap(data, pos, axes=axes, vmin=vmin, vmax=vmax, cmap=cmap,
+    plot_topomap(data, pos, axes=axes, vlim=vlim, cmap=cmap, cnorm=cnorm,
                  sensors=sensors, res=res, names=names,
                  mask=mask, mask_params=mask_params, outlines=outlines,
                  contours=contours, image_interp=image_interp, show=False,
@@ -2753,6 +2772,14 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     for epo_idx in range(ed_matrix.shape[0]):
         ed_matrix[epo_idx][tril_idx] = ed_matrix[epo_idx].T[tril_idx]
     elec_dists = np.median(np.nanmin(ed_matrix, axis=1), axis=0)
+
+    # TODO v1.3: remove next 5 lines (vmin/vmax gone from plot_topomap)
+    _vlim = topomap_args.get('vlim', (None, None))
+    _vmin = topomap_args.get('vmin', None)
+    _vmax = topomap_args.get('vmax', None)
+    _vlim = _warn_deprecated_vmin_vmax(_vlim, _vmin, _vmax)
+    topomap_args.setdefault('vlim', _vlim)
+
     im, cn = plot_topomap(elec_dists, pick_info(info, picks), **topomap_args)
     fig = im.figure if fig is None else fig
     # add bridged connections

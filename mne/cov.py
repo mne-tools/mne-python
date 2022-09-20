@@ -288,7 +288,7 @@ class Covariance(dict):
         %(res_topomap)s
         %(size_topomap)s
         %(cmap_topomap)s
-        %(vlim_plot_topomap_cov)s
+        %(vlim_plot_topomap)s
 
             .. versionadded:: 1.2
         %(vmin_vmax_topomap)s

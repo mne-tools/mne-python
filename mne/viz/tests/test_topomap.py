@@ -707,11 +707,11 @@ def test_plot_topomap_cnorm():
 
     # pass cnorm and vmin
     with pytest.warns(RuntimeWarning, match='implicitly defines vmin=-1'):
-        plot_topomap(v, info, vmin=-10, cnorm=cnorm)
+        plot_topomap(v, info, vlim=(-10, None), cnorm=cnorm)
 
     # pass cnorm and vmax
     with pytest.warns(RuntimeWarning, match='implicitly defines .* vmax=2.5'):
-        plot_topomap(v, info, vmax=10, cnorm=cnorm)
+        plot_topomap(v, info, vlim=(None, 10), cnorm=cnorm)
 
     # try another subclass of mpl.colors.Normalize
     plot_topomap(v, info, cnorm=PowerNorm(0.5))
@@ -731,13 +731,13 @@ def test_plot_bridged_electrodes():
         ed_matrix[i][triu_idx] = rng.random() + rng.random(triu_idx[0].size)
     fig = plot_bridged_electrodes(info, bridged_idx, ed_matrix,
                                   topomap_args=dict(names=info.ch_names,
-                                                    vmax=1))
+                                                    vlim=(None, 1)))
     # two bridged lines plus head outlines
     assert len(fig.axes[0].lines) == 6
     # test with sphere="eeglab"
     fig = plot_bridged_electrodes(
         info, bridged_idx, ed_matrix,
-        topomap_args=dict(names=info.ch_names, sphere="eeglab", vmax=1)
+        topomap_args=dict(names=info.ch_names, sphere="eeglab", vlim=(None, 1))
     )
 
     with pytest.raises(RuntimeError, match='Expected'):
