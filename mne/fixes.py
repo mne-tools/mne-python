@@ -15,6 +15,7 @@ at which the fix is no longer needed.
 import inspect
 from math import log
 from pprint import pprint
+from io import StringIO
 import os
 import warnings
 
@@ -460,8 +461,11 @@ class BaseEstimator(object):
         return self
 
     def __repr__(self):
+        params = StringIO()
+        pprint(self.get_params(deep=False), params)
+        params.seek(0)
         class_name = self.__class__.__name__
-        return '%s(%s)' % (class_name, pprint(self.get_params(deep=False)))
+        return '%s(%s)' % (class_name, params.read().strip())
 
     # __getstate__ and __setstate__ are omitted because they only contain
     # conditionals that are not satisfied by our objects (e.g.,
