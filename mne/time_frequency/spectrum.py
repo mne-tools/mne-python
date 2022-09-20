@@ -247,7 +247,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     """Base class for Spectrum and EpochsSpectrum."""
 
     def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
-                 proj, *, n_jobs, verbose, **method_kw):
+                 proj, *, n_jobs, verbose=None, **method_kw):
         # arg checking
         self._sfreq = inst.info['sfreq']
         if np.isfinite(fmax) and (fmax > self.sfreq / 2):
@@ -933,7 +933,8 @@ class Spectrum(BaseSpectrum):
     """
 
     def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
-                 proj, reject_by_annotation, *, n_jobs, verbose, **method_kw):
+                 proj, reject_by_annotation, *, n_jobs, verbose=None,
+                 **method_kw):
         from ..io import BaseRaw
 
         # triage reading from file
@@ -1037,7 +1038,7 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     """
 
     def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks, proj, *,
-                 n_jobs, verbose, **method_kw):
+                 n_jobs, verbose=None, **method_kw):
         # triage reading from file
         if isinstance(inst, dict):
             self.__setstate__(inst)
