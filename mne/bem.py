@@ -1098,6 +1098,8 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
              'percentile for adult head size' % (1e3 * radius,))
     # > 2 cm away from head center in X or Y is strange
     if np.linalg.norm(origin_head[:2]) > 0.02:
+        if logger.level < 40:
+            raise RuntimeError(logger.level)
         warn('(X, Y) fit (%0.1f, %0.1f) more than 20 mm from '
              'head frame origin' % tuple(1e3 * origin_head[:2]))
     logger.info('Origin head coordinates:'.ljust(30) +

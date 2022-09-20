@@ -171,8 +171,9 @@ class use_log_level:
 
 
 _LOGGING_TYPES = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
-                        WARNING=logging.WARNING, ERROR=logging.ERROR,
-                        CRITICAL=logging.CRITICAL)
+                      WARNING=logging.WARNING, ERROR=logging.ERROR,
+                      CRITICAL=logging.CRITICAL)
+
 
 @fill_doc
 def set_log_level(verbose=None, return_old_level=False, add_frames=None):
