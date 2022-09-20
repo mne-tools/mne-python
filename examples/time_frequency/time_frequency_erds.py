@@ -66,8 +66,7 @@ epochs = mne.Epochs(raw, events, event_ids, tmin - 0.5, tmax + 0.5,
                     picks=('C3', 'Cz', 'C4'), baseline=None, preload=True)
 
 # %%
-#
-# .. _cnorm-example::
+# .. _cnorm-example:
 #
 # Here we set suitable values for computing ERDS maps. Note especially the
 # ``cnorm`` variable, which sets up an *asymmetric* colormap where the middle
