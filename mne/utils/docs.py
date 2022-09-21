@@ -611,8 +611,8 @@ cnorm : matplotlib.colors.Normalize | None
     How to normalize the colormap. If ``None``, standard linear normalization
     is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
     See :doc:`Matplotlib docs <matplotlib:tutorials/colors/colormapnorms>`
-    for more details on colormap normalization, and :ref:`cnorm-example` for
-    an example of its use.
+    for more details on colormap normalization, and
+    :ref:`the ERDs example<cnorm-example>` for an example of its use.
 """
 
 docdict['color_matplotlib'] = """

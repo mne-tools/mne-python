@@ -777,6 +777,7 @@ def plot_topomap(
 
         .. versionadded:: 0.24
     %(axes_plot_topomap)s
+
         .. versionchanged:: 1.2
            If ``axes=None``, a new :class:`~matplotlib.figure.Figure` is
            created instead of plotting into the current axes.
