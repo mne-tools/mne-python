@@ -2737,7 +2737,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg", *,
             sphere=None, cmap=None, plot=True, show=True, verbose=None):
     """Find similar Independent Components across subjects by map similarity.
 
-    Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
+    Corrmap :footcite:p:`CamposViolaEtAl2009` identifies the best group
     match to a supplied template. Typically, feed it a list of fitted ICAs and
     a template IC, for example, the blink for the first subject, to identify
     specific ICs across subjects.
@@ -2804,6 +2804,10 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg", *,
         Figure showing the template.
     labelled_ics : Figure
         Figure showing the labelled ICs in all ICA decompositions.
+
+    References
+    ----------
+    .. footbibliography::
     """
     if not isinstance(plot, bool):
         raise ValueError("`plot` must be of type `bool`")
