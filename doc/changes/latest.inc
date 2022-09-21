@@ -64,6 +64,7 @@ Bugs
 - Fix bug in :func:`mne.minimum_norm.apply_inverse_epochs` where the average EEG projector was not checked properly (:gh:`11182` by `Eric Larson`_)
 - Fix bug in :func:`mne.viz.plot_filter` when plotting filters created using ``output='ba'`` mode with ``compensation`` turned on. (:gh:`11040` by `Marian Dovgialo`_)
 - Fix bugs in documentation of surface :class:`~mne.SourceSpaces` (:gh:`11171` by `Eric Larson`_)
+- Fix bug in :func:`mne.viz.plot_compare_evokeds` where automatic legend labels could be excessively long; they are now abbreviated with ``...`` when necessary (:gh:`11181` by `Eric Larson`_)
 - Fix bugs with ``verbose='error'`` not being used properly and allowing warnings through (:gh:`11193` by `Eric Larson`_)
 - Fix bug in :func:`mne.io.read_raw_bti` where EEG, EMG, and H/VEOG channels were not detected properly, and many non-ECG channels were called ECG. The logic has been improved, and any channels of unknown type are now labeled as ``misc`` (:gh:`11102` by `Eric Larson`_)
 - Fix bug in :func:`mne.viz.plot_topomap` when providing ``sphere="eeglab"`` (:gh:`11081` by `Mathieu Scheltienne`_)
