@@ -1907,7 +1907,7 @@ _LABEL_LIMIT = 40
 # don't let labels be excessively long
 def _abbreviate_label(label):
     if len(label) > _LABEL_LIMIT:
-        label = label[:_LABEL_LIMIT] + ' ...'
+        label = label[:_LABEL_LIMIT] + ' …'
     return label
 
 
