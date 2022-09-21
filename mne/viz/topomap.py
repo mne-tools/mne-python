@@ -2533,8 +2533,8 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
             ax.set_title('Subj. {}'.format(subject))
         if merge_channels:
             data_, _ = _merge_ch_data(data_, ch_type, [])
-        vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
-        plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
+        _vlim = _setup_vmin_vmax(data_, None, None)
+        plot_topomap(data_.flatten(), pos, vlim=_vlim,
                      res=64, axes=ax, cmap=cmap, outlines=outlines,
                      contours=contours, show=False,
                      image_interp=_INTERPOLATION_DEFAULT)[0]
