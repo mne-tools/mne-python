@@ -692,7 +692,7 @@ noise from the data.
 docdict['contours_topomap'] = """
 contours : int | array-like
     The number of contour lines to draw. If ``0``, no contours will be drawn.
-    If a positive integer, that number of contour levelss are chosen using the
+    If a positive integer, that number of contour levels are chosen using the
     matplotlib tick locator (may sometimes be inaccurate, use array for
     accuracy). If array-like, the array values are used as the contour levels.
     The values should be in µV for EEG, fT for magnetometers and fT/m for
@@ -3051,7 +3051,7 @@ seeg : bool
 docdict['sensors_topomap'] = """
 sensors : bool | str
     Whether to add markers for sensor locations. If :class:`str`, should be a
-    valid matplotlib format string (e.g., ``'r+`` for red plusses, see the
+    valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
     Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
     default), black circles will be used.
 """
