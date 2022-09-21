@@ -2491,8 +2491,9 @@ def _set_contour_locator(vmin, vmax, contours):
     return locator, contours
 
 
-def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
-                  cmap, contours, template=False, sphere=None):
+def _plot_corrmap(data, subjs, indices, ch_type, ica, label, *, show, outlines,
+                  cmap, contours, sensors=False, template=False, sphere=None,
+                  show_names=False):
     """Customize ica.plot_components for corrmap."""
     if not template:
         title = 'Detected components'
@@ -2507,8 +2508,9 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
     if len(picks) > p:  # plot components by sets of 20
         n_components = len(picks)
         figs = [_plot_corrmap(data[k:k + p], subjs[k:k + p],
-                              indices[k:k + p], ch_type, ica, label, show,
-                              outlines=outlines, cmap=cmap, contours=contours)
+                              indices[k:k + p], ch_type, ica, label, show=show,
+                              outlines=outlines, cmap=cmap, contours=contours,
+                              sensors=sensors, show_names=show_names)
                 for k in range(0, n_components, p)]
         return figs
     elif np.isscalar(picks):
@@ -2516,6 +2518,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
 
     data_picks, pos, merge_channels, names, _, sphere, clip_origin = \
         _prepare_topomap_plot(ica, ch_type, sphere=sphere)
+    names = _prepare_sensor_names(names, show_names)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
     data = np.atleast_2d(data)
@@ -2534,10 +2537,9 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
         if merge_channels:
             data_, _ = _merge_ch_data(data_, ch_type, [])
         _vlim = _setup_vmin_vmax(data_, None, None)
-        plot_topomap(data_.flatten(), pos, vlim=_vlim,
+        plot_topomap(data_.flatten(), pos, vlim=_vlim, names=names,
                      res=64, axes=ax, cmap=cmap, outlines=outlines,
-                     contours=contours, show=False,
-                     image_interp=_INTERPOLATION_DEFAULT)[0]
+                     contours=contours, show=False, sensors=sensors)
         _hide_frame(ax)
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.8)

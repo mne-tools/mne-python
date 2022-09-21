@@ -2732,9 +2732,9 @@ def _find_max_corrs(all_maps, target, threshold):
 
 
 @verbose
-def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
-            plot=True, show=True, outlines='head',
-            sensors=True, contours=6, cmap=None, sphere=None, verbose=None):
+def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg", *,
+            sensors=True, show_names=False, contours=6, outlines='head',
+            sphere=None, cmap=None, plot=True, show=True, verbose=None):
     """Find similar Independent Components across subjects by map similarity.
 
     Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
@@ -2786,15 +2786,16 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         and the supplied ICs are not changed.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
         The channel type to plot. Defaults to 'eeg'.
+    %(sensors_topomap)s
+    %(show_names_topomap)s
+    %(contours_topomap)s
+    %(outlines_topomap)s
+    %(sphere_topomap_auto)s
+    %(cmap_topomap_simple)s
     plot : bool
         Should constructed template and selected maps be plotted? Defaults
         to True.
     %(show)s
-    %(outlines_topomap)s
-    %(sensors_topomap)s
-    %(contours_topomap)s
-    %(cmap_topomap_simple)s
-    %(sphere_topomap_auto)s
     %(verbose)s
 
     Returns
@@ -2900,10 +2901,10 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
                     % (_pl(nones), nones))
 
     if plot is True:
-        labelled_ics = _plot_corrmap(allmaps, subjs, indices, ch_type, ica,
-                                     label, outlines=outlines, cmap=cmap,
-                                     contours=contours,
-                                     show=show, sphere=sphere)
+        labelled_ics = _plot_corrmap(
+            allmaps, subjs, indices, ch_type, ica, label, outlines=outlines,
+            cmap=cmap, sensors=sensors, contours=contours, sphere=sphere,
+            show=show, show_names=show_names)
         return template_fig, labelled_ics
     else:
         return None
