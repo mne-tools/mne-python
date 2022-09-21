@@ -1689,7 +1689,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
     @verbose
     def save(self, fname, split_size='2GB', fmt='single', overwrite=False,
-             split_naming='neuromag', verbose=True):
+             split_naming='neuromag', verbose=None):
         """Save epochs in a fif file.
 
         Parameters

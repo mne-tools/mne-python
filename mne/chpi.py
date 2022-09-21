@@ -47,7 +47,7 @@ from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          _quat_to_affine, als_ras_trans)
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
                     _validate_type, ProgressBar, _check_option, _pl,
-                    _on_missing)
+                    _on_missing, _verbose_safe_false)
 
 # Eventually we should add:
 #   hpicons
@@ -243,12 +243,13 @@ def extract_chpi_locs_kit(raw, stim_channel='MISC 064', *, verbose=None):
     _validate_type(stim_channel, str, 'stim_channel')
     _check_option('stim_channel', stim_channel, stim_chs)
     idx = raw.ch_names.index(stim_channel)
+    safe_false = _verbose_safe_false()
     events_on = find_events(
         raw, stim_channel=raw.ch_names[idx], output='onset',
-        verbose=False)[:, 0]
+        verbose=safe_false)[:, 0]
     events_off = find_events(
         raw, stim_channel=raw.ch_names[idx], output='offset',
-        verbose=False)[:, 0]
+        verbose=safe_false)[:, 0]
     bad = False
     if len(events_on) == 0 or len(events_off) == 0:
         bad = True
@@ -648,7 +649,7 @@ def _setup_ext_proj(info, ext_order):
     with info._unlock():
         info['projs'] = [proj]
     proj_op, _ = setup_proj(
-        info, add_eeg_ref=False, activate=False, verbose=False)
+        info, add_eeg_ref=False, activate=False, verbose=_verbose_safe_false())
     assert proj_op.shape == (len(meg_picks),) * 2
     return proj, proj_op, meg_picks
 
@@ -1177,13 +1178,14 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
     meg_coils = _concatenate_coils(_create_meg_coils(info['chs'], 'accurate'))
 
     # Set up external model for interference suppression
-    cov = make_ad_hoc_cov(info, verbose=False)
-    whitener, _ = compute_whitener(cov, info, verbose=False)
+    safe_false = _verbose_safe_false()
+    cov = make_ad_hoc_cov(info, verbose=safe_false)
+    whitener, _ = compute_whitener(cov, info, verbose=safe_false)
 
     # Make some location guesses (1 cm grid)
     R = np.linalg.norm(meg_coils[0], axis=1).min()
     guesses = _make_guesses(dict(R=R, r0=np.zeros(3)), 0.01, 0., 0.005,
-                            verbose=False)[0]['rr']
+                            verbose=safe_false)[0]['rr']
     logger.info('Computing %d HPI location guesses (1 cm grid in a %0.1f cm '
                 'sphere)' % (len(guesses), R * 100))
     fwd = _magnetic_dipole_field_vec(guesses, meg_coils, too_close)
@@ -1311,7 +1313,7 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window='auto',
                            'None, consider setting it to the line frequency')
     hpi = _setup_hpi_amplitude_fitting(
         raw.info, t_window, remove_aliased=True, ext_order=ext_order,
-        allow_empty=allow_line_only, verbose=False)
+        allow_empty=allow_line_only, verbose=_verbose_safe_false())
 
     fit_idxs = np.arange(0, len(raw.times) + hpi['n_window'] // 2, n_step)
     n_freqs = len(hpi['freqs'])

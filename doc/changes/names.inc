@@ -116,6 +116,8 @@
 
 .. _Dominik Welke: https://github.com/dominikwelke/
 
+.. _Dominik Wetzel: https://github.com/schmetzler
+
 .. _Dominique Makowski: https://dominiquemakowski.github.io/
 
 .. _Eberhard Eich: https://github.com/ebeich

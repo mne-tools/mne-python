@@ -156,7 +156,7 @@ class use_log_level:
     This message will be printed!
     """
 
-    def __init__(self, verbose, *, add_frames=None):  # noqa: D102
+    def __init__(self, verbose=None, *, add_frames=None):  # noqa: D102
         self._level = verbose
         self._add_frames = add_frames
         self._old_frames = _filter.add_frames
@@ -168,6 +168,11 @@ class use_log_level:
     def __exit__(self, *args):  # noqa: D105
         add_frames = self._old_frames if self._add_frames is not None else None
         set_log_level(self._old_level, add_frames=add_frames)
+
+
+_LOGGING_TYPES = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
+                      WARNING=logging.WARNING, ERROR=logging.ERROR,
+                      CRITICAL=logging.CRITICAL)
 
 
 @fill_doc
@@ -204,11 +209,8 @@ def set_log_level(verbose=None, return_old_level=False, add_frames=None):
             verbose = 'WARNING'
     if isinstance(verbose, str):
         verbose = verbose.upper()
-        logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
-                             WARNING=logging.WARNING, ERROR=logging.ERROR,
-                             CRITICAL=logging.CRITICAL)
-        _check_option('verbose', verbose, logging_types, '(when a string)')
-        verbose = logging_types[verbose]
+        _check_option('verbose', verbose, _LOGGING_TYPES, '(when a string)')
+        verbose = _LOGGING_TYPES[verbose]
     old_verbose = logger.level
     if verbose != old_verbose:
         logger.setLevel(verbose)
@@ -369,7 +371,7 @@ def warn(message, category=RuntimeWarning, module='mne',
     root_dirs = [importlib.import_module(ns) for ns in ignore_namespaces]
     root_dirs = [op.dirname(ns.__file__) for ns in root_dirs]
     frame = None
-    if logger.level <= logging.WARN:
+    if logger.level <= logging.WARNING:
         frame = inspect.currentframe()
         while frame:
             fname = frame.f_code.co_filename
@@ -485,3 +487,8 @@ def _frame_info(n):
         return ['unknown']
     finally:
         del frame
+
+
+def _verbose_safe_false(*, level='warning'):
+    lev = _LOGGING_TYPES[level.upper()]
+    return lev if logger.level <= lev else None

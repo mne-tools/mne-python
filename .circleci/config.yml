@@ -147,8 +147,8 @@ jobs:
 
         - run:
             name: Check Qt
-            command: LD_DEBUG=libs python -c "from PySide6.QtWidgets import QApplication, QWidget; app = QApplication([])"
-
+            command: |
+              ./tools/check_qt_import.sh PySide6
         # Load tiny cache so that ~/.mne does not need to be created below
         - restore_cache:
             keys:

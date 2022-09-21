@@ -31,7 +31,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
                          niter_affine=(100, 100, 10), niter_sdr=(5, 5, 3),
                          spacing=5, smooth=None, warn=True, xhemi=False,
                          sparse=False, src_to=None, precompute=False,
-                         verbose=False):
+                         verbose=None):
     """Create a SourceMorph from one subject to another.
 
     Method is based on spherical morphing by FreeSurfer for surface

@@ -18,7 +18,8 @@ import numbers
 import numpy as np
 
 from ..fixes import _median_complex, _compare_version
-from ._logging import warn, logger, verbose, _record_warnings
+from ._logging import (warn, logger, verbose, _record_warnings,
+                       _verbose_safe_false)
 
 
 def _ensure_int(x, name='unknown', must_be='an int', *, extra=''):
@@ -864,7 +865,8 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
         assert info is not None
 
         if sphere == 'auto':
-            R, r0, _ = fit_sphere_to_headshape(info, verbose=False, units='m')
+            R, r0, _ = fit_sphere_to_headshape(
+                info, verbose=_verbose_safe_false(), units='m')
             sphere = tuple(r0) + (R,)
             sphere_units = 'm'
         elif sphere == 'eeglab':
