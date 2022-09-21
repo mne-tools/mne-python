@@ -301,7 +301,7 @@ class Covariance(dict):
             .. versionadded:: 1.2
         %(colorbar_topomap)s
         %(cbar_fmt_topomap)s
-        %(units_topomap)s
+        %(units_topomap_evoked)s
         %(axes_cov_plot_topomap)s
         %(title_none)s
         %(show)s

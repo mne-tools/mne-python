@@ -1918,8 +1918,8 @@ class AverageTFR(_BaseTFR):
             sphere=None, image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
             size=2, cmap=None, vlim=(None, None), vmin=None, vmax=None,
-            cnorm=None, colorbar=True, cbar_fmt='%1.1e', unit=None, axes=None,
-            title=None, show=True):
+            cnorm=None, colorbar=True, cbar_fmt='%1.1e', unit=None, units=None,
+            axes=None, title=None, show=True):
         """Plot topographic maps of time-frequency intervals of TFR data.
 
         Parameters
@@ -1977,6 +1977,11 @@ class AverageTFR(_BaseTFR):
         %(cbar_fmt_topomap)s
         unit : str | None
             The unit of the channel type used for colorbar labels.
+
+            .. deprectaed:: v1.2
+               The "unit" parameter is deprecated and will be removed in v1.3.
+               Use "units" instead.
+        %(units_topomap)s
         %(axes_plot_topomap)s
         title : str | None
             Plot title. If None (default), no title is displayed.

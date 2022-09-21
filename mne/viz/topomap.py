@@ -1324,7 +1324,8 @@ def plot_tfr_topomap(
         image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
         border=_BORDER_DEFAULT, res=64, size=2, cmap=None,
         vlim=(None, None), vmin=None, vmax=None, cnorm=None, colorbar=True,
-        cbar_fmt='%1.1e', unit=None, axes=None, title=None, show=True):
+        cbar_fmt='%1.1e', unit=None, units=None, axes=None, title=None,
+        show=True):
     """Plot topographic maps of specific time-frequency intervals of TFR data.
 
     Parameters
@@ -1382,6 +1383,11 @@ def plot_tfr_topomap(
     %(cbar_fmt_topomap)s
     unit : str | None
         The unit of the channel type used for colorbar labels.
+
+        .. deprectaed:: v1.2
+           The "unit" parameter is deprecated and will be removed in v1.3.
+           Use "units" instead.
+    %(units_topomap)s
     %(axes_plot_topomap)s
     title : str | None
         Plot title. If None (default), no title is displayed.
@@ -1395,6 +1401,9 @@ def plot_tfr_topomap(
     import matplotlib.pyplot as plt
     ch_type = _get_ch_type(tfr, ch_type)
 
+    if unit is not None:
+        warn('The "unit" parameter is deprecated and will be removed in v1.3. '
+             'Use "units" instead.', FutureWarning)
     vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
 
     picks, pos, merge_channels, names, _, sphere, clip_origin = \
@@ -1542,7 +1551,7 @@ def plot_evoked_topomap(
         .. versionadded:: 1.2
     %(colorbar_topomap)s
     %(cbar_fmt_topomap)s
-    %(units_topomap)s
+    %(units_topomap_evoked)s
     %(axes_evoked_plot_topomap)s
     time_unit : str
         The units for the time axis, can be "ms" or "s" (default).

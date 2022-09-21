@@ -3646,11 +3646,16 @@ units : dict | str
     it is assumed that all channels have the same units.
 """
 
-docdict['units_topomap'] = """
-units : dict | str | None
-    The unit of the channel type used for colorbar label. If
-    scale is None the unit is automatically determined.
+_units = """
+units : {}str | None
+    The units of the channel type; used for the colorbar label. Ignored if
+    ``colorbar=False``. If ``None`` {}the label will be "AU" indicating
+    arbitrary units. Default is ``None``.
 """
+docdict['units_topomap'] = _units.format('', '')
+docdict['units_topomap_evoked'] = _units.format(
+    'dict | ',
+    'and ``scalings=None`` the unit is automatically determined, otherwise ')
 
 docdict['use_cps'] = """
 use_cps : bool
