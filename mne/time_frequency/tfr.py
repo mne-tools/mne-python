@@ -1983,8 +1983,12 @@ class AverageTFR(_BaseTFR):
                Use "units" instead.
         %(units_topomap)s
         %(axes_plot_topomap)s
-        title : str | None
-            Plot title. If None (default), no title is displayed.
+        %(title_none)s
+
+            .. deprecated:: v1.2
+               The ``title`` parameter will be removed in version 1.3. Please
+               use :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
+               instead.
         %(show)s
 
         Returns

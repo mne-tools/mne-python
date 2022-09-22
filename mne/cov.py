@@ -304,6 +304,11 @@ class Covariance(dict):
         %(units_topomap_evoked)s
         %(axes_cov_plot_topomap)s
         %(title_none)s
+
+            .. deprecated:: v1.2
+               The ``title`` parameter will be removed in version 1.3. Please
+               use :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
+               instead.
         %(show)s
         %(verbose)s
 

@@ -46,7 +46,9 @@ _fnirs_types = ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')
 OUTLINES_WARNING_MSG = (
     "Passing ``outlines='skirt'`` is deprecated; it no longer has any effect "
     "different from 'head' and will raise an error starting in version 1.3.")
-
+TITLE_WARNING_MSG = (
+    'The "title" parameter is deprecated and will be removed in version 1.3. '
+    'Use "fig.suptitle()" instead.')
 
 def _adjust_meg_sphere(sphere, info, ch_type):
     sphere = _check_sphere(sphere, info)
@@ -1388,8 +1390,12 @@ def plot_tfr_topomap(
            Use "units" instead.
     %(units_topomap)s
     %(axes_plot_topomap)s
-    title : str | None
-        Plot title. If None (default), no title is displayed.
+    %(title_none)s
+
+        .. deprecated:: v1.2
+           The ``title`` parameter will be removed in version 1.3. Please
+           use :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
+           instead.
     %(show)s
 
     Returns
@@ -1408,6 +1414,8 @@ def plot_tfr_topomap(
         else:
             warn('Both "unit" (deprecated) and "units" were provided. '
                  'Ignoring "unit".')
+    if title is not None:
+        warn(TITLE_WARNING_MSG, FutureWarning)
 
     vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
 
@@ -1567,6 +1575,11 @@ def plot_evoked_topomap(
         ``time_unit='ms'``, "%%0.3f s" if ``time_unit='s'``, and
         "%%g" otherwise. Can be an empty string to omit the time label.
     %(title_none)s
+
+        .. deprecated:: v1.2
+           The ``title`` parameter will be removed in version 1.3. Please
+           use :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
+           instead.
     nrows : int | 'auto'
         The number of rows of topographies to plot. Defaults to 1. If 'auto',
         obtains the number of rows depending on the amount of times to plot
@@ -1606,6 +1619,8 @@ def plot_evoked_topomap(
     # (not the public `plot_topomap`)
     if outlines in ('skirt',):
         warn(OUTLINES_WARNING_MSG, FutureWarning)
+    if title is not None:
+        warn(TITLE_WARNING_MSG, FutureWarning)
 
     _validate_type(evoked, Evoked, 'evoked')
     _validate_type(colorbar, bool, 'colorbar')
