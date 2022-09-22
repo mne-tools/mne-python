@@ -413,7 +413,7 @@ def _plot_projs_topomap(
         # make sure we got a vlim for all projs
         assert all([vl is not None for vl in vlims])
     else:
-        vlims = [vlim for _ in range(len(datas))]
+        vlims = [vlim] * len(datas)
 
     # plot
     for proj, ax, _data, _pos, _vlim, _sphere, _outlines, _ch_type in zip(
@@ -426,18 +426,17 @@ def _plot_projs_topomap(
         title = '\n'.join(title[ii:ii + 22] for ii in range(0, len(title), 22))
         ax.set_title(title, fontsize=10)
         # plot
-        im = plot_topomap(_data, _pos[:, :2], vlim=_vlim, cmap=cmap,
-                          sensors=sensors, names=names, res=res, axes=ax,
-                          outlines=_outlines, contours=contours, cnorm=cnorm,
-                          image_interp=image_interp, show=False,
-                          extrapolate=extrapolate, sphere=_sphere,
-                          border=border, ch_type=_ch_type)[0]
+        im, _ = plot_topomap(
+            _data, _pos[:, :2], vlim=_vlim, cmap=cmap, sensors=sensors,
+            names=names, res=res, axes=ax, outlines=_outlines,
+            contours=contours, cnorm=cnorm, image_interp=image_interp,
+            show=False, extrapolate=extrapolate, sphere=_sphere, border=border,
+            ch_type=_ch_type)
 
         if colorbar:
             _add_colorbar(ax, im, cmap)
 
-    fig = ax.get_figure()
-    return fig
+    return ax.get_figure()
 
 
 def _make_head_outlines(sphere, pos, outlines, clip_origin):
