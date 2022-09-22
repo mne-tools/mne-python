@@ -54,8 +54,7 @@ events = mne.find_events(raw, stim_channel='STI 014')
 events[:, 2] = 1
 raw.plot(events=events)
 
-topo_kwargs = dict(times=[0, 0.1, 0.2], ch_type='mag', vmin=-500, vmax=500,
-                   time_unit='s')
+topo_kwargs = dict(times=[0, 0.1, 0.2], ch_type='mag', vlim=(-500, 500))
 
 # %%
 # First, take the average of stationary data (bilateral auditory patterns).
