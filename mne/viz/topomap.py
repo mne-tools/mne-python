@@ -1403,6 +1403,12 @@ def plot_tfr_topomap(
     if unit is not None:
         warn('The "unit" parameter is deprecated and will be removed in v1.3. '
              'Use "units" instead.', FutureWarning)
+        if units is None:
+            units = unit
+        else:
+            warn('Both "unit" (deprecated) and "units" were provided. '
+                 'Ignoring "unit".')
+
     vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
 
     picks, pos, merge_channels, names, _, sphere, clip_origin = \
@@ -1472,8 +1478,8 @@ def plot_tfr_topomap(
 
     if colorbar:
         from matplotlib import ticker
-        unit = _handle_default('units', unit)['misc']
-        cbar, cax = _add_colorbar(axes, im, cmap, title=unit, format=cbar_fmt)
+        units = _handle_default('units', units)['misc']
+        cbar, cax = _add_colorbar(axes, im, cmap, title=units, format=cbar_fmt)
         if locator is None:
             locator = ticker.MaxNLocator(nbins=5)
         cbar.locator = locator
