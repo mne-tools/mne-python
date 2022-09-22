@@ -322,11 +322,10 @@ class ProjMixin(object):
 
     @fill_doc
     def plot_projs_topomap(
-            self, ch_type=None, *, sensors=True, show_names=False, mask=None,
-            mask_params=None, contours=6, outlines='head', sphere=None,
-            image_interp=_INTERPOLATION_DEFAULT,
+            self, ch_type=None, *, sensors=True, show_names=False, contours=6,
+            outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
-            size=1, cmap=None, vlim=(None, None), colorbar=False,
+            size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=False,
             cbar_fmt='%3.1f', axes=None, show=True):
         """Plot SSP vector.
 
@@ -335,8 +334,8 @@ class ProjMixin(object):
         %(ch_type_topomap_proj)s
         %(sensors_topomap)s
         %(show_names_topomap)s
-        %(mask_evoked_topomap)s
-        %(mask_params_topomap)s
+
+            .. versionadded:: 1.2
         %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
@@ -350,8 +349,13 @@ class ProjMixin(object):
             Only applies when plotting multiple topomaps at a time.
         %(cmap_topomap)s
         %(vlim_plot_topomap_proj)s
+        %(cnorm)s
+
+            .. versionadded:: 1.2
         %(colorbar_topomap)s
         %(cbar_fmt_topomap)s
+
+            .. versionadded:: 1.2
         %(axes_plot_projs_topomap)s
         %(show)s
 
@@ -390,7 +394,8 @@ class ProjMixin(object):
                     contours=contours, outlines=outlines, sphere=sphere,
                     image_interp=image_interp, extrapolate=extrapolate,
                     border=border, res=res, size=size, cmap=cmap, vlim=vlim,
-                    colorbar=colorbar, axes=axes, show=show)
+                    cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt,
+                    axes=axes, show=show)
             else:
                 raise ValueError('Nothing to plot (no projectors for channel '
                                  f'type {ch_type}).')
