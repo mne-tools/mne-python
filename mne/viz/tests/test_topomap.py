@@ -361,7 +361,8 @@ def test_plot_topomap_basic():
 
     p = plt_topomap(times, ch_type='eeg', average=0.01)
     assert_equal(len(get_texts(p)), 0)
-    p = plt_topomap(times, ch_type='eeg', title='Custom')
+    with pytest.warns(FutureWarning, match='"title" parameter is deprecated'):
+        p = plt_topomap(times, ch_type='eeg', title='Custom')
     texts = get_texts(p)
     assert_equal(len(texts), 1)
     assert_equal(texts[0], 'Custom')
@@ -425,7 +426,7 @@ def test_plot_topomap_basic():
 
     # Test interactive cmap
     fig = plot_evoked_topomap(evoked, times=[0., 0.1], ch_type='eeg',
-                              cmap=('Reds', True), title='title', **fast_test)
+                              cmap=('Reds', True), **fast_test)
     _fake_keypress(fig, 'up')
     _fake_keypress(fig, ' ')
     _fake_keypress(fig, 'down')

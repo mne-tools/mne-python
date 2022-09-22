@@ -286,7 +286,7 @@ def plot_projs_topomap(
         outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
         extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
         size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=False,
-        units=None, axes=None, show=True):
+        cbar_fmt='%3.1f', units=None, axes=None, show=True):
     """Plot topographic maps of SSP projections.
 
     Parameters
@@ -318,6 +318,9 @@ def plot_projs_topomap(
 
         .. versionadded:: 1.2
     %(colorbar_topomap)s
+    %(cbar_fmt_topomap)s
+
+        .. versionadded:: 1.2
     %(units_topomap)s
 
         .. versionadded:: 1.2
@@ -337,7 +340,8 @@ def plot_projs_topomap(
         projs, info, sensors=sensors, show_names=show_names, contours=contours,
         outlines=outlines, sphere=sphere, image_interp=image_interp,
         extrapolate=extrapolate, border=border, res=res, size=size, cmap=cmap,
-        vlim=vlim, cnorm=cnorm, colorbar=colorbar, units=units, axes=axes)
+        vlim=vlim, cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt,
+        units=units, axes=axes)
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('ignore')
         tight_layout(fig=fig)
@@ -350,7 +354,7 @@ def _plot_projs_topomap(
         outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
         extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
         size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=False,
-        units=None, axes=None):
+        cbar_fmt='%3.1f', units=None, axes=None):
     import matplotlib.pyplot as plt
     sphere = _check_sphere(sphere, info)
     projs = _check_type_projs(projs)
@@ -439,7 +443,7 @@ def _plot_projs_topomap(
             ch_type=_ch_type)
 
         if colorbar:
-            _add_colorbar(ax, im, cmap, title=units)
+            _add_colorbar(ax, im, cmap, title=units, format=cbar_fmt)
 
     return ax.get_figure()
 
