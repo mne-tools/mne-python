@@ -86,7 +86,7 @@ class Projection(dict):
             outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
             size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=False,
-            axes=None, show=True):
+            cbar_fmt='%3.1f', axes=None, show=True):
         """Plot topographic maps of SSP projections.
 
         Parameters
@@ -112,6 +112,9 @@ class Projection(dict):
 
             .. versionadded:: 1.2
         %(colorbar_topomap)s
+        %(cbar_fmt_topomap)s
+
+            .. versionadded:: 1.2
         %(axes_plot_projs_topomap)s
         %(show)s
 
@@ -130,7 +133,7 @@ class Projection(dict):
             contours=contours, outlines=outlines, sphere=sphere,
             image_interp=image_interp, extrapolate=extrapolate, border=border,
             res=res, size=size, cmap=cmap, vlim=vlim, cnorm=cnorm,
-            colorbar=colorbar, axes=axes, show=show)
+            colorbar=colorbar, cbar_fmt=cbar_fmt, axes=axes, show=show)
 
 
 class ProjMixin(object):
