@@ -86,7 +86,7 @@ class Projection(dict):
             outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
             size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=False,
-            cbar_fmt='%3.1f', axes=None, show=True):
+            cbar_fmt='%3.1f', units=None, axes=None, show=True):
         """Plot topographic maps of SSP projections.
 
         Parameters
@@ -115,6 +115,9 @@ class Projection(dict):
         %(cbar_fmt_topomap)s
 
             .. versionadded:: 1.2
+        %(units_topomap)s
+
+            .. versionadded:: 1.2
         %(axes_plot_projs_topomap)s
         %(show)s
 
@@ -133,7 +136,8 @@ class Projection(dict):
             contours=contours, outlines=outlines, sphere=sphere,
             image_interp=image_interp, extrapolate=extrapolate, border=border,
             res=res, size=size, cmap=cmap, vlim=vlim, cnorm=cnorm,
-            colorbar=colorbar, cbar_fmt=cbar_fmt, axes=axes, show=show)
+            colorbar=colorbar, cbar_fmt=cbar_fmt, units=units, axes=axes,
+            show=show)
 
 
 class ProjMixin(object):
@@ -326,7 +330,7 @@ class ProjMixin(object):
             outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
             size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=False,
-            cbar_fmt='%3.1f', axes=None, show=True):
+            cbar_fmt='%3.1f', units=None, axes=None, show=True):
         """Plot SSP vector.
 
         Parameters
@@ -354,6 +358,9 @@ class ProjMixin(object):
             .. versionadded:: 1.2
         %(colorbar_topomap)s
         %(cbar_fmt_topomap)s
+
+            .. versionadded:: 1.2
+        %(units_topomap)s
 
             .. versionadded:: 1.2
         %(axes_plot_projs_topomap)s
@@ -395,7 +402,7 @@ class ProjMixin(object):
                     image_interp=image_interp, extrapolate=extrapolate,
                     border=border, res=res, size=size, cmap=cmap, vlim=vlim,
                     cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt,
-                    axes=axes, show=show)
+                    units=units, axes=axes, show=show)
             else:
                 raise ValueError('Nothing to plot (no projectors for channel '
                                  f'type {ch_type}).')
