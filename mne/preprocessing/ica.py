@@ -2831,11 +2831,6 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg", *,
                          "montage. Consider interpolating bad channels before "
                          "running ICA.")
 
-    if label is None and not plot:
-        warn('Nothing to do: when label=None and plot=False, corrmap() '
-             'returns None and the inputs are unchanged.', UserWarning)
-        return
-
     threshold_extra = ''
     if threshold == 'auto':
         threshold = np.arange(60, 95, dtype=np.float64) / 100.
