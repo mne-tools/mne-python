@@ -2919,7 +2919,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg", *,
             allmaps, subjs, indices, ch_type, ica, label, outlines=outlines,
             cmap=cmap, sensors=sensors, contours=contours, sphere=sphere,
             image_interp=image_interp, extrapolate=extrapolate,
-            border=border,show=show, show_names=show_names)
+            border=border, show=show, show_names=show_names)
         return template_fig, labelled_ics
     else:
         return None
