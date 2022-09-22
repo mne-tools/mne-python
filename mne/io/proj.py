@@ -372,42 +372,40 @@ class ProjMixin(object):
             Figure distributing one image per channel across sensor topography.
         """
         _projs = [deepcopy(_proj) for _proj in self.info['projs']]
-        if _projs is not None and len(_projs) > 0:
-            # XXX TODO FIXME there is probably a better way to do this ↓↓↓↓↓↓↓
-            if ch_type is not None:
-                _validate_type(ch_type, (str, list, tuple), 'ch_type')
-                if isinstance(ch_type, str):
-                    ch_type = [ch_type]
-                ch_type = np.array(ch_type)
-                available_ch_types = np.array(self.get_channel_types())
-                bad_ch_types = np.isin(ch_type, available_ch_types,
-                                       invert=True)
-                if any(bad_ch_types):
-                    raise ValueError(
-                        f'ch_type {ch_type[bad_ch_types]} not present in '
-                        f'{self.__class__.__name__}.')
-                for _proj in _projs[::-1]:
-                    idx = np.isin(self.ch_names, _proj['data']['col_names'])
-                    _ch_type = np.unique(available_ch_types[idx])
-                    err_msg = 'Projector contains multiple channel types'
-                    assert len(_ch_type) == 1, err_msg
-                    if _ch_type[0] != ch_type:
-                        _projs.remove(_proj)
-            # XXX TODO FIXME there is probably a better way to do this ↑↑↑↑↑↑↑
-            if len(_projs) > 0:
-                from ..viz.topomap import plot_projs_topomap
-                fig = plot_projs_topomap(
-                    _projs, self.info, sensors=sensors, show_names=show_names,
-                    contours=contours, outlines=outlines, sphere=sphere,
-                    image_interp=image_interp, extrapolate=extrapolate,
-                    border=border, res=res, size=size, cmap=cmap, vlim=vlim,
-                    cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt,
-                    units=units, axes=axes, show=show)
-            else:
+        if _projs is None or len(_projs) == 0:
+            raise ValueError('No projectors in Info; nothing to plot.')
+        if ch_type is not None:
+            # make sure the requested channel type(s) exist
+            _validate_type(ch_type, (str, list, tuple), 'ch_type')
+            if isinstance(ch_type, str):
+                ch_type = [ch_type]
+            bad_ch_types = [_type not in self for _type in ch_type]
+            if any(bad_ch_types):
+                raise ValueError(f'ch_type {ch_type[bad_ch_types]} not '
+                                 f'present in {self.__class__.__name__}.')
+            # remove projs from unrequested channel types. This is a bit
+            # convoluted because Projection objects don't store channel types,
+            # only channel names
+            available_ch_types = np.array(self.get_channel_types())
+            for _proj in _projs[::-1]:
+                idx = np.isin(self.ch_names, _proj['data']['col_names'])
+                proj_ch_type = np.unique(available_ch_types[idx])
+                err_msg = 'Projector contains multiple channel types'
+                assert len(proj_ch_type) == 1, err_msg
+                if proj_ch_type[0] != ch_type:
+                    _projs.remove(_proj)
+            if len(_projs) == 0:
                 raise ValueError('Nothing to plot (no projectors for channel '
                                  f'type {ch_type}).')
-        else:
-            raise ValueError("Info is missing projs. Nothing to plot.")
+        # now we have non-empty _projs list with correct channel type(s)
+        from ..viz.topomap import plot_projs_topomap
+        fig = plot_projs_topomap(
+            _projs, self.info, sensors=sensors, show_names=show_names,
+            contours=contours, outlines=outlines, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate,
+            border=border, res=res, size=size, cmap=cmap, vlim=vlim,
+            cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt,
+            units=units, axes=axes, show=show)
         return fig
 
     def _reconstruct_proj(self, mode='accurate', origin='auto'):
