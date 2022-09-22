@@ -28,7 +28,8 @@ from .infomax_ import infomax
 
 from ..cov import compute_whitener
 from .. import Covariance, Evoked
-from ..defaults import _INTERPOLATION_DEFAULT
+from ..defaults import (_BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                        _INTERPOLATION_DEFAULT)
 from ..io.pick import (pick_types, pick_channels, pick_info,
                        _picks_to_idx, _get_channel_types, _DATA_CH_TYPES_SPLIT)
 from ..io.proj import make_projector
@@ -2734,7 +2735,9 @@ def _find_max_corrs(all_maps, target, threshold):
 @verbose
 def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg", *,
             sensors=True, show_names=False, contours=6, outlines='head',
-            sphere=None, cmap=None, plot=True, show=True, verbose=None):
+            sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT,
+            cmap=None, plot=True, show=True, verbose=None):
     """Find similar Independent Components across subjects by map similarity.
 
     Corrmap :footcite:p:`CamposViolaEtAl2009` identifies the best group
@@ -2791,6 +2794,15 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg", *,
     %(contours_topomap)s
     %(outlines_topomap)s
     %(sphere_topomap_auto)s
+    %(image_interp_topomap)s
+
+        .. versionadded:: 1.2
+    %(extrapolate_topomap)s
+
+        .. versionadded:: 1.2
+    %(border_topomap)s
+
+        .. versionadded:: 1.2
     %(cmap_topomap_simple)s
     plot : bool
         Should constructed template and selected maps be plotted? Defaults
@@ -2846,12 +2858,11 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg", *,
                 outlines=outlines, cmap=cmap, contours=contours,
                 show=show, topomap_args=dict(sphere=sphere))
         else:  # plotting an array
-            template_fig = _plot_corrmap([template], [0], [0], ch_type,
-                                         icas[0].copy(), "Template",
-                                         outlines=outlines, cmap=cmap,
-                                         contours=contours,
-                                         show=show, template=True,
-                                         sphere=sphere)
+            template_fig = _plot_corrmap(
+                [template], [0], [0], ch_type, icas[0].copy(), "Template",
+                outlines=outlines, cmap=cmap, contours=contours,
+                image_interp=image_interp, extrapolate=extrapolate,
+                border=border, show=show, template=True, sphere=sphere)
         template_fig.subplots_adjust(top=0.8)
         template_fig.canvas.draw()
 
@@ -2907,7 +2918,8 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg", *,
         labelled_ics = _plot_corrmap(
             allmaps, subjs, indices, ch_type, ica, label, outlines=outlines,
             cmap=cmap, sensors=sensors, contours=contours, sphere=sphere,
-            show=show, show_names=show_names)
+            image_interp=image_interp, extrapolate=extrapolate,
+            border=border,show=show, show_names=show_names)
         return template_fig, labelled_ics
     else:
         return None

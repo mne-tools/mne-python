@@ -2502,6 +2502,8 @@ def _set_contour_locator(vmin, vmax, contours):
 
 def _plot_corrmap(data, subjs, indices, ch_type, ica, label, *, show, outlines,
                   cmap, contours, sensors=False, template=False, sphere=None,
+                  image_interp=_INTERPOLATION_DEFAULT,
+                  extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT,
                   show_names=False):
     """Customize ica.plot_components for corrmap."""
     if not template:
@@ -2519,7 +2521,9 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, *, show, outlines,
         figs = [_plot_corrmap(data[k:k + p], subjs[k:k + p],
                               indices[k:k + p], ch_type, ica, label, show=show,
                               outlines=outlines, cmap=cmap, contours=contours,
-                              sensors=sensors, show_names=show_names)
+                              sensors=sensors, image_interp=image_interp,
+                              extrapolate=extrapolate, border=border,
+                              show_names=show_names)
                 for k in range(0, n_components, p)]
         return figs
     elif np.isscalar(picks):
@@ -2548,7 +2552,9 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, *, show, outlines,
         _vlim = _setup_vmin_vmax(data_, None, None)
         plot_topomap(data_.flatten(), pos, vlim=_vlim, names=names,
                      res=64, axes=ax, cmap=cmap, outlines=outlines,
-                     contours=contours, show=False, sensors=sensors)
+                     contours=contours, show=False, sensors=sensors,
+                     image_interp=image_interp, extrapolate=extrapolate,
+                     border=border)
         _hide_frame(ax)
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.8)
