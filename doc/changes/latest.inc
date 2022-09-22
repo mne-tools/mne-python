@@ -72,6 +72,7 @@ Bugs
 - Fix bug in :meth:`epochs.save <mne.Epochs.save>` where the ``verbose`` parameter defaulted to ``True`` instead of ``None`` (:gh:`11191` by `Eric Larson`_)
 - The string and HTML representation of :class:`mne.preprocessing.ICA` reported incorrect values for the explained variance. This information has been removed from the representations, and should instead be retrieved via the new :meth:`~mne.preprocessing.ICA.get_explained_variance_ratio` method (:gh:`11141` by `Richard Höchenberger`_)
 - Fix bug in :meth:`mne.Evoked.plot` and related methods where a ``np.nan`` location value in any channel causes spatial colours to fail (:gh:`6870` by `Simeon Wong`_)
+- Fix bug in :meth:`mne.preprocessing.find_bads_muscle` where epochs caused an error when passed as the ``inst`` (:gh:`11197` by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~
