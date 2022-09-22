@@ -50,6 +50,7 @@ TITLE_WARNING_MSG = (
     'The "title" parameter is deprecated and will be removed in version 1.3. '
     'Use "fig.suptitle()" instead.')
 
+
 def _adjust_meg_sphere(sphere, info, ch_type):
     sphere = _check_sphere(sphere, info)
     assert ch_type is not None
