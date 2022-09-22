@@ -1384,7 +1384,7 @@ def plot_tfr_topomap(
     unit : str | None
         The unit of the channel type used for colorbar labels.
 
-        .. deprectaed:: v1.2
+        .. deprecated:: v1.2
            The "unit" parameter is deprecated and will be removed in v1.3.
            Use "units" instead.
     %(units_topomap)s
