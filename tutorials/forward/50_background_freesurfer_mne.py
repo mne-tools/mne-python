@@ -114,8 +114,7 @@ print('Our voxel has real-world coordinates {}, {}, {} (mm)'
 ras_coords_mm = np.array([1, -17, -18])
 inv_affine = np.linalg.inv(t1.affine)
 i_, j_, k_ = np.round(apply_trans(inv_affine, ras_coords_mm)).astype(int)
-print('Our real-world coordinates correspond to voxel ({}, {}, {})'
-      .format(i_, j_, k_))
+print(f'Our real-world coordinates correspond to voxel ({i_}, {j_}, {k_})')
 
 # %%
 # Let's write a short function to visualize where our voxel lies in an
