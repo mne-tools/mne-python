@@ -1419,6 +1419,14 @@ def test_ica_labels():
     assert ica.labels_['muscle'] == [0]
     assert_allclose(scores, [0.56, 0.01, 0.03, 0.00], atol=0.03)
 
+    events = np.array([[6000, 0, 0], [8000, 0, 0]])
+    epochs = Epochs(raw, events=events, baseline=None, preload=True)
+    # move up threhsold more noise because less data
+    scores = ica.find_bads_muscle(epochs, threshold=0.8)[1]
+    assert 'muscle' in ica.labels_
+    assert ica.labels_['muscle'] == [0]
+    assert_allclose(scores, [0.81, 0.14, 0.37, 0.05], atol=0.03)
+
 
 @requires_sklearn
 @testing.requires_testing_data

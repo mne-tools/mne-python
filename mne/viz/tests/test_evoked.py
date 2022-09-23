@@ -364,6 +364,7 @@ def test_plot_compare_evokeds():
         assert fig[0].axes[0].get_title().endswith(_t)
     # test passing more than one evoked
     red, blue = evoked.copy(), evoked.copy()
+    red.comment = red.comment + '*' * 100
     red.data *= 1.5
     blue.data /= 1.5
     evoked_dict = {'aud/l': blue, 'aud/r': red, 'vis': evoked}
@@ -475,8 +476,11 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds(csd, picks='csd', axes='topo')
     # old tests
     red.info['chs'][0]['loc'][:2] = 0  # test plotting channel at zero
-    plot_compare_evokeds([red, blue], picks=[0],
-                         ci=lambda x: [x.std(axis=0), -x.std(axis=0)])
+    fig, = plot_compare_evokeds(
+        [red, blue], picks=[0], ci=lambda x: [x.std(axis=0), -x.std(axis=0)])
+    # reasonable legend lengths
+    leg_texts = [t.get_text() for t in fig.axes[0].get_legend().get_texts()]
+    assert all(len(lt) < 50 for lt in leg_texts)
     plot_compare_evokeds([list(evoked_dict.values())], picks=[0],
                          ci=_parametric_ci)
     # smoke test for tmin >= 0 (from mailing list)

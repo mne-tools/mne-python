@@ -1897,8 +1897,18 @@ def _draw_legend_pce(legend, split_legend, styles, linestyles, colors, cmap,
         legend_params.update(loc='lower right', bbox_to_anchor=(1, 1))
     # draw the legend
     if any([draw_styles, draw_colors, draw_linestyles]):
-        labels = [line.get_label() for line in lines]
+        labels = [_abbreviate_label(line.get_label()) for line in lines]
         ax.legend(lines, labels, **legend_params)
+
+
+_LABEL_LIMIT = 40
+
+
+# don't let labels be excessively long
+def _abbreviate_label(label):
+    if len(label) > _LABEL_LIMIT:
+        label = label[:_LABEL_LIMIT] + ' …'
+    return label
 
 
 def _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis, invert_y,

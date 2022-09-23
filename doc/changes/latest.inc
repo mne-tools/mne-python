@@ -25,6 +25,7 @@ Enhancements
 ~~~~~~~~~~~~
 - Add ``vmin`` and ``vmax`` parameters to :meth:`mne.Evoked.animate_topomap` (:gh:`11073` by :newcontrib:`Mats van Es`)
 - Enable common average reference projection for ECoG, sEEG, and DBS data (optionally jointly with ``joint=True``) in :meth:`~mne.io.Raw.set_eeg_reference` and related functions/methods (:gh:`10656` by :newcontrib:`Moritz Gerster` and `Eric Larson`_)
+- The ``trans`` parameter in :func:`mne.make_field_map` now accepts a :class:`~pathlib.Path` object, and uses standardised loading logic (:gh:`10784` by :newcontrib:`Andrew Quinn`)
 - Add support for computing forward solutions using OpenMEEG_ (:gh:`11011` by `Alex Gramfort`_ and `Eric Larson`_)
 - EEGLAB files (saved as MAT versions less than v7.3) can now be imported with :func:`mne.io.read_raw_eeglab` without the optional dependency ``pymatreader`` (:gh:`11006` by `Clemens Brunner`_)
 - Add eight source estimate comparison metrics to new submodule :mod:`mne.simulation.metrics` (:gh:`6233` by `Kostiantyn Maksymenko`_ and `Alex Gramfort`_)
@@ -33,7 +34,6 @@ Enhancements
 - Add support for vector and volume source estimates in :func:`mne.minimum_norm.get_point_spread` and :func:`mne.minimum_norm.get_cross_talk` (:gh:`8639`, :gh:`11083` by `Olaf Hauk`_, `Marijn van Vliet`_, `Alex Gramfort`_, and `Eric Larson`_)
 - :meth:`mne.Epochs.plot_psd_topomap` now suppresses redundant colorbars when ``vlim='joint'`` (:gh:`11051` by `Daniel McCloy`_)
 - Add ``starting_affine`` keyword argument to :func:`mne.transforms.compute_volume_registration` to initialize an alignment with an affine (:gh:`11020` by `Alex Rockhill`_)
-- The ``trans`` parameter in :func:`mne.make_field_map` now accepts a :class:`~pathlib.Path` object, and uses standardised loading logic (:gh:`10784` by :newcontrib:`Andrew Quinn`)
 - Add HTML representation for `~mne.Evoked` in Jupyter Notebooks (:gh:`11075` by `Valerii Chirkov`_ and `Andrew Quinn`_)
 - Add support for ``temperature`` and ``gsr`` (galvanic skin response, i.e., electrodermal activity) channel types (:gh:`11090`, :gh:`11108` by `Eric Larson`_ and `Richard Höchenberger`_)
 - Allow :func:`mne.beamformer.make_dics` to take ``pick_ori='vector'`` to compute vector source estimates (:gh:`19080` by `Alex Rockhill`_)
@@ -56,13 +56,15 @@ Bugs
 - Fix bug in :func:`mne.io.read_raw_eeglab` where unlabeled fiducials causde reading errors (:gh:`11074` by :newcontrib:`Sebastiaan Mathot`)
 - Fix bug in :func:`mne.time_frequency.read_csd` that returned ``projs`` as a list of dict instead of :class:`mne.Projection` (:gh:`11072` by :newcontrib:`Chetan Gohil`)
 - Fix bug in :func:`mne.decoding.TimeFrequency` that prevented cloning if constructor arguments were modified (:gh:`11004` by :newcontrib:`Daniel Carlström Schad`)
+- Fix bug in ``repr`` of decoding estimator classes (e.g., :class:`mne.decoding.SlidingEstimator`) where the parameters where not stored in the result string but instead just printed to ``sys.stdout`` (:gh:`11190` by :newcontrib:`Dominik Wetzel`)
+- Document ``height`` and ``weight`` keys of  ``subject_info`` entry in :class:`mne.Info` (:gh:`11019` by :newcontrib:`Sena Er`)
 - Fix bug in :class:`mne.viz.Brain` constructor where the first argument was named ``subject_id`` instead of ``subject`` (:gh:`11049` by `Eric Larson`_)
 - Fix bug in :ref:`mne coreg` where the MEG helmet position was not updated during ICP fitting (:gh:`11084` by `Eric Larson`_)
 - Fix bug in :func:`~mne.io.read_raw_curry`, and :func:`~mne.io.read_raw_cnt` where digitization points were not read properly (:gh:`11145` by `Eric Larson`_)
 - Fix bug in :func:`mne.minimum_norm.apply_inverse_epochs` where the average EEG projector was not checked properly (:gh:`11182` by `Eric Larson`_)
-- Document ``height`` and ``weight`` keys of  ``subject_info`` entry in :class:`mne.Info` (:gh:`11019` by :newcontrib:`Sena Er`)
 - Fix bug in :func:`mne.viz.plot_filter` when plotting filters created using ``output='ba'`` mode with ``compensation`` turned on. (:gh:`11040` by `Marian Dovgialo`_)
 - Fix bugs in documentation of surface :class:`~mne.SourceSpaces` (:gh:`11171` by `Eric Larson`_)
+- Fix bug in :func:`mne.viz.plot_compare_evokeds` where automatic legend labels could be excessively long; they are now abbreviated with ``...`` when necessary (:gh:`11181` by `Eric Larson`_)
 - Fix bugs with ``verbose='error'`` not being used properly and allowing warnings through (:gh:`11193` by `Eric Larson`_)
 - Fix bug in :func:`mne.io.read_raw_bti` where EEG, EMG, and H/VEOG channels were not detected properly, and many non-ECG channels were called ECG. The logic has been improved, and any channels of unknown type are now labeled as ``misc`` (:gh:`11102` by `Eric Larson`_)
 - Fix bug in :func:`mne.viz.plot_topomap` when providing ``sphere="eeglab"`` (:gh:`11081` by `Mathieu Scheltienne`_)
@@ -70,6 +72,7 @@ Bugs
 - Fix bug in :meth:`epochs.save <mne.Epochs.save>` where the ``verbose`` parameter defaulted to ``True`` instead of ``None`` (:gh:`11191` by `Eric Larson`_)
 - The string and HTML representation of :class:`mne.preprocessing.ICA` reported incorrect values for the explained variance. This information has been removed from the representations, and should instead be retrieved via the new :meth:`~mne.preprocessing.ICA.get_explained_variance_ratio` method (:gh:`11141` by `Richard Höchenberger`_)
 - Fix bug in :meth:`mne.Evoked.plot` and related methods where a ``np.nan`` location value in any channel causes spatial colours to fail (:gh:`6870` by `Simeon Wong`_)
+- Fix bug in :meth:`mne.preprocessing.ICA.find_bads_muscle` where epochs caused an error when passed as the ``inst`` (:gh:`11197` by `Alex Rockhill`_)
 
 API changes
 ~~~~~~~~~~~
