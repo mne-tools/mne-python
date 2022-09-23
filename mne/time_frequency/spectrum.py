@@ -1116,14 +1116,21 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         if not callable(method):
             raise ValueError('"method" must be a valid string or callable, '
                              f'got a {type(method).__name__} ({method}).')
+        # averaging unaggregated spectral estimates are not supported
         if hasattr(self, '_mt_weights'):
             raise NotImplementedError(
-                'Averaging complex spectra is not (yet) supported.')
+                'Averaging complex spectra is not supported. Consider '
+                'averaging the signals before computing the complex spectrum.')
+        elif 'segment' in self._dims:
+            raise NotImplementedError(
+                'Averaging individual Welch segments across epochs is not '
+                'supported. Consider averaging the signals before computing '
+                'the Welch spectrum estimates.')
+        # serialize the object and update data, dims, and data type
         state = super().__getstate__()
         state['data'] = method(state['data'])
         state['dims'] = state['dims'][1:]
         state['data_type'] = f'Averaged {state["data_type"]}'
-        state['inst_type_str'] = 'Evoked'
         defaults = dict(
             method=None, fmin=None, fmax=None, tmin=None, tmax=None,
             picks=None, proj=None, reject_by_annotation=None, n_jobs=None,
