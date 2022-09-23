@@ -59,7 +59,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 # %%
 # Let's first check out all channel types by averaging across epochs.
-epochs.plot_psd(fmin=2., fmax=40., average=True, spatial_colors=False)
+epochs.plot_psd(fmin=2., fmax=40., average=True)
 
 # %%
 # Now, let's take a look at the spatial distributions of the PSD, averaged
@@ -77,19 +77,21 @@ epochs.plot_psd_topomap(ch_type='grad', normalize=False)
 #    ``(T/m)²/Hz`` (instead of ``(fT/cm)²/Hz`` via
 #    :meth:`~mne.Epochs.plot_psd`).
 
-f, ax = plt.subplots()
+_, ax = plt.subplots()
 spectrum = epochs.compute_psd(fmin=2., fmax=40., tmax=3., n_jobs=None)
-psds, freqs = spectrum.get_data(return_freqs=True)
-psds = 10 * np.log10(psds)  # convert to dB
-psds_mean = psds.mean(0).mean(0)
-psds_std = psds.mean(0).std(0)
+# average across epochs first
+mean_spectrum = spectrum.average()
+psds, freqs = mean_spectrum.get_data(return_freqs=True)
+# then convert to dB and take mean & standard deviation across channels
+psds = 10 * np.log10(psds)
+psds_mean = psds.mean(axis=0)
+psds_std = psds.std(axis=0)
 
 ax.plot(freqs, psds_mean, color='k')
 ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
                 color='k', alpha=.5, edgecolor='none')
 ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency (Hz)',
        ylabel='Power Spectral Density (dB)')
-plt.show()
 
 # %%
 # Notably, :meth:`mne.Epochs.compute_psd` supports the keyword argument
@@ -121,19 +123,17 @@ ax.plot(freqs_mean, psds_welch_mean[epo_idx, ch_idx, :], color='k',
 ax.plot(freqs_median, psds_welch_median[epo_idx, ch_idx, :], color='k',
         ls='--', label='median of segments')
 
-ax.set(title='Welch PSD ({}, Epoch {})'.format(ch_name, epo_idx),
+ax.set(title=f'Welch PSD ({ch_name}, Epoch {epo_idx})',
        xlabel='Frequency (Hz)', ylabel='Power Spectral Density (dB)')
 ax.legend(loc='upper right')
-plt.show()
 
 # %%
 # Lastly, we can also retrieve the unaggregated segments by passing
 # ``average=None`` to :meth:`mne.Epochs.compute_psd`. The dimensions of
 # the returned array are ``(n_epochs, n_sensors, n_freqs, n_segments)``.
 
-psds_welch_unagg, freqs_unagg = epochs.compute_psd(
-    'welch', average=None, **kwargs).get_data(return_freqs=True)
-print(psds_welch_unagg.shape)
+welch_unagg = epochs.compute_psd('welch', average=None, **kwargs)
+print(welch_unagg.shape)
 
 # %%
 # .. _inter-trial-coherence:
@@ -172,15 +172,13 @@ power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
 power.plot_topo(baseline=(-0.5, 0), mode='logratio', title='Average power')
 power.plot([82], baseline=(-0.5, 0), mode='logratio', title=power.ch_names[82])
 
-fig, axis = plt.subplots(1, 2, figsize=(7, 4))
-power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=8, fmax=12,
-                   baseline=(-0.5, 0), mode='logratio', axes=axis[0],
-                   title='Alpha', show=False)
-power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=13, fmax=25,
-                   baseline=(-0.5, 0), mode='logratio', axes=axis[1],
-                   title='Beta', show=False)
-mne.viz.tight_layout()
-plt.show()
+fig, axes = plt.subplots(1, 2, figsize=(7, 4))
+topomap_kw = dict(ch_type='grad', tmin=0.5, tmax=1.5, baseline=(-0.5, 0),
+                  mode='logratio', show=False)
+power.plot_topomap(fmin=8, fmax=12, axes=axes[0], title='Alpha', **topomap_kw)
+power.plot_topomap(fmin=13, fmax=25, axes=axes[1], title='Beta', **topomap_kw)
+fig.tight_layout()
+fig.show()
 
 # %%
 # Joint Plot
@@ -190,7 +188,7 @@ plt.show()
 # a quick overview regarding oscillatory effects across time and space.
 
 power.plot_joint(baseline=(-0.5, 0), mode='mean', tmin=-.5, tmax=2,
-                 timefreqs=[(.5, 10), (1.3, 8)])
+                 timefreqs=[(0.5, 10), (1.3, 8)])
 
 # %%
 # Inspect ITC
@@ -201,7 +199,9 @@ itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
 # .. note::
 #     Baseline correction can be applied to power or done in plots.
 #     To illustrate the baseline correction in plots, the next line is
-#     commented power.apply_baseline(baseline=(-0.5, 0), mode='logratio')
+#     commented::
+#
+#     # power.apply_baseline(baseline=(-0.5, 0), mode='logratio')
 #
 # Exercise
 # --------
