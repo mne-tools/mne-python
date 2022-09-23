@@ -195,8 +195,10 @@ def _plot_legend(pos, colors, axis, bads, outlines, loc, size=30):
 
 def _check_spatial_colors(info, picks, spatial_colors):
     """Use spatial colors if channel locations exist."""
+    # NB: this assumes `picks`` has already been through _picks_to_idx()
+    # and it reflects *just the picks for the current subplot*
     if spatial_colors == 'auto':
-        if picks and len(picks) == 1:
+        if len(picks) == 1:
             spatial_colors = False
         else:
             spatial_colors = _check_ch_locs(info)
@@ -228,7 +230,6 @@ def _plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     """
     import matplotlib.pyplot as plt
     _check_option('spatial_colors', spatial_colors, [True, False, 'auto'])
-    spatial_colors = _check_spatial_colors(evoked.info, picks, spatial_colors)
     # For evoked.plot_image ...
     # First input checks for group_by and axes if any of them is not None.
     # Either both must be dicts, or neither.
@@ -463,19 +464,19 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
                 locs3d = np.array([ch['loc'][:3] for ch in chs])
-                if (spatial_colors is True and
-                        not _check_ch_locs(info=info, picks=idx)):
+                _spat_col = _check_spatial_colors(info, idx, spatial_colors)
+                if (_spat_col and not _check_ch_locs(info=info, picks=idx)):
                     warn('Channel locations not available. Disabling spatial '
                          'colors.')
-                    spatial_colors = selectable = False
-                if spatial_colors is True and len(idx) != 1:
+                    _spat_col = selectable = False
+                if _spat_col and len(idx) != 1:
                     x, y, z = locs3d.T
                     colors = _rgb(x, y, z)
                     _handle_spatial_colors(colors, info, idx, this_type, psd,
                                            ax, sphere)
                 else:
-                    if isinstance(spatial_colors, (tuple, str)):
-                        col = [spatial_colors]
+                    if isinstance(_spat_col, (tuple, str)):
+                        col = [_spat_col]
                     else:
                         col = ['k']
                     colors = col * len(idx)
@@ -500,7 +501,7 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 for ch_idx, z in enumerate(z_ord):
                     line_list.append(
                         ax.plot(times, D[ch_idx], picker=True,
-                                zorder=z + 1 if spatial_colors is True else 1,
+                                zorder=z + 1 if _spat_col else 1,
                                 color=colors[ch_idx], alpha=line_alpha,
                                 linewidth=0.5)[0])
                     line_list[-1].set_pickradius(3.)
