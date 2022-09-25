@@ -73,6 +73,7 @@ Bugs
 - The string and HTML representation of :class:`mne.preprocessing.ICA` reported incorrect values for the explained variance. This information has been removed from the representations, and should instead be retrieved via the new :meth:`~mne.preprocessing.ICA.get_explained_variance_ratio` method (:gh:`11141` by `Richard Höchenberger`_)
 - Fix bug in :meth:`mne.Evoked.plot` and related methods where a ``np.nan`` location value in any channel causes spatial colours to fail (:gh:`6870` by `Simeon Wong`_)
 - Fix bug in :meth:`mne.preprocessing.ICA.find_bads_muscle` where epochs caused an error when passed as the ``inst`` (:gh:`11197` by `Alex Rockhill`_)
+- The duration of raw data sometimes wasn't displayed correctly in Jupyter notebooks by omitting fractions of a second. We now always round up to the next full second so a duration of less than 1 second will not be displayed as a duration of zero anymore (:gh:`11203` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~
