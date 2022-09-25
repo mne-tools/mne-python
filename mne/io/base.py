@@ -1747,7 +1747,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ]
 
         # https://stackoverflow.com/a/10981895
-        duration = timedelta(seconds=raw.times[-1])
+        duration = timedelta(seconds=self.times[-1])
         hours, remainder = divmod(duration.seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         seconds += duration.microseconds / 1e6
