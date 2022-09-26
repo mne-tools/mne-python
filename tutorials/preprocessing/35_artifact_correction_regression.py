@@ -71,7 +71,8 @@ epochs = mne.Epochs(raw, events, event_id=event_id, preload=True)
 # any corrections applied.
 
 # we'll try to keep a consistent ylim across figures
-plot_kwargs = dict(picks='all', ylim=dict(eeg=(-10, 10), eog=(-5, 15)))
+plot_kwargs = dict(picks='all', ylim=dict(eeg=(-10, 10), eog=(-5, 15)),
+                   spatial_colors=True)
 
 # plot the evoked for the EEG and the EOG sensors
 fig = epochs.average('all').plot(**plot_kwargs)
@@ -93,10 +94,11 @@ fig.set_size_inches(6, 6)
 # Perform regression using the EOG sensor as independent variable and the EEG
 # sensors as dependent variables.
 model_plain = EOGRegression(picks='eeg', picks_artifact='eog').fit(epochs)
-model_plain.plot(vmax=0.4)  # Show the regression coefficients as a topomap
+fig = model_plain.plot(vmax=0.4)  # Show the regression coefficients as a topomap
+fig.set_size_inches(3, 2)
 
 # %%
-# The regression coefficients shows the linear relationship between each EEG
+# The regression coefficients show the linear relationship between each EEG
 # sensor and the EOG sensor. Note that occipital sensors have a positive
 # relationship, as we set a common-average reference when we loaded the data
 # above.
@@ -104,6 +106,9 @@ model_plain.plot(vmax=0.4)  # Show the regression coefficients as a topomap
 # Now we are ready to use these coefficients to subtract the EOG signal from
 # the EEG signals.
 epochs_clean_plain = model_plain.apply(epochs)
+# After regression, we should redo the baseline correction
+epochs_clean_plain.apply_baseline()
+# Show the evoked potential computed on the corrected data
 fig = epochs_clean_plain.average('all').plot(**plot_kwargs)
 fig.set_size_inches(6, 6)
 
@@ -111,7 +116,7 @@ fig.set_size_inches(6, 6)
 # Regressing the EOG signal out of the EEG signals has reduced the peak around
 # 250ms that was partly there because of eye artifacts.
 #
-# In the :ref:`MNE-Sample <sample-dataset>` dataset, there are no segments of
+# In the :ref:`MNE-Sample dataset <sample-dataset>`, there are no segments of
 # data that are particularly unstable, so the basic form of regression produces
 # robust coefficients. However, this may not be the case in every dataset, so
 # let's explore some variations that may improve the estimation of the
@@ -138,10 +143,11 @@ epochs_sub = epochs.copy().subtract_evoked()
 
 # perform regression
 model_sub = EOGRegression(picks='eeg', picks_artifact='eog').fit(epochs_sub)
-model_sub.plot(vmax=0.4)
+fig = model_sub.plot(vmax=0.4)
+fig.set_size_inches(3, 2)
 
 # apply the regression coefficients to the original epochs
-epochs_clean_sub = model_plain.apply(epochs)
+epochs_clean_sub = model_plain.apply(epochs).apply_baseline()
 fig = epochs_clean_sub.average('all').plot(**plot_kwargs)
 fig.set_size_inches(6, 6)
 
@@ -151,7 +157,7 @@ fig.set_size_inches(6, 6)
 #
 # Create EOG evoked before regression
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# It is preferred to estimate the regression coefficients on a piece of data
+# It is advantageous to estimate the regression coefficients on a piece of data
 # with lots of EOG activity. As EOG activity is typically much larger than EEG,
 # the EOG artifacts will dominate the signal and the regression coefficients
 # will reflect mostly the influence of the EOG. To amplify this effect, Croft &
@@ -170,28 +176,29 @@ fig.set_size_inches(6, 6)
 #           component (thereby reducing the rank of the non-EOG data), whereas
 #           the regression approach uses the ongoing EOG signal to determine
 #           how much data to remove (thereby not necessarily reducing the rank
-#           of the non-EOG data). Generally, SSP tends to error on the side of
+#           of the non-EOG data). Generally, SSP tends to err on the side of
 #           removing too much data, eliminating artifacts and true brain
-#           signals alike, whereas regression will error on the side of not
+#           signals alike, whereas regression will err on the side of not
 #           removing enough, leaving some artifact signals still present in the
 #           signal.
 
 eog_epochs = mne.preprocessing.create_eog_epochs(raw)
 # We need to explicitly specify that we want to average the EOG channel too.
 eog_evoked = eog_epochs.average('all')
-eog_evoked.plot('all')
+eog_evoked.plot('all', spatial_colors=True)
 
 # perform regression on the evoked blink response
 model_evoked = EOGRegression(picks='eeg', picks_artifact='eog').fit(eog_evoked)
-model_evoked.plot(vmax=0.4)
+fig = model_evoked.plot(vmax=0.4)
+fig.set_size_inches(3, 2)
 
 # apply the regression coefficients to the original epochs
-epochs_clean_evoked = model_evoked.apply(epochs)
+epochs_clean_evoked = model_evoked.apply(epochs).apply_baseline()
 fig = epochs_clean_evoked.average('all').plot(**plot_kwargs)
 fig.set_size_inches(6, 6)
 
 # for good measure, also show the effect on the blink evoked
-model_evoked.apply(eog_evoked).plot('all')
+model_evoked.apply(eog_evoked).apply_baseline().plot('all', spatial_colors=True)
 
 # %%
 # We see that again, the regression weights have been correctly estimated.
@@ -199,19 +206,20 @@ model_evoked.apply(eog_evoked).plot('all')
 # Visualize the effect on raw data
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Once we have obtained robust regression weights, we can use them to apply the
-# regression directly to raw, epoched and evoked data. Here, we will use the
-# regression weights obtained from the blink evoked above and apply it to an
-# instance of `~mne.io.Raw`.
+# regression directly to raw, epoched, and evoked data. Here, we will use the
+# regression weights obtained from the blink evoked and apply it to an instance
+# of `~mne.io.Raw`.
 order = np.concatenate([  # plotting order: EOG first, then EEG
     mne.pick_types(raw.info, meg=False, eog=True),
-    mne.pick_types(raw.info, eeg=True)])
+    mne.pick_types(raw.info, meg=False, eeg=True),
+])
 raw_kwargs = dict(events=eog_epochs.events, order=order, start=13, duration=3,
                   n_channels=10, scalings=dict(eeg=50e-6, eog=250e-6))
 
 # plot original data
 raw.plot(**raw_kwargs)
 
-# regress (using betas computed above) & plot
+# regress (using coefficients computed previously) and plot
 raw_clean = model_evoked.apply(raw)
 raw_clean.plot(**raw_kwargs)
 

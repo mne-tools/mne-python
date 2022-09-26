@@ -90,10 +90,10 @@ class EOGRegression():
     """Remove EOG artifact signals from other channels by regression.
 
     Employs linear regression to remove signals captured by some channels,
-    typically EOG, but it also works with ECG from other channels, as described
-    in :footcite:`GrattonEtAl1983`. You can also chose to fit the regression
-    coefficients on evoked blink/saccade data and then apply them to continuous
-    data, as described in :footcite:`CroftBarry2000`.
+    typically EOG, as described in :footcite:`GrattonEtAl1983`. You can also
+    choose to fit the regression coefficients on evoked blink/saccade data and
+    then apply them to continuous data, as described in
+    :footcite:`CroftBarry2000`.
 
     Parameters
     ----------
@@ -195,7 +195,7 @@ class EOGRegression():
 
     @fill_doc
     def apply(self, inst, copy=True):
-        """Apply the regression coefficients to some data.
+        """Apply the regression coefficients to data.
 
         Parameters
         ----------
@@ -230,12 +230,12 @@ class EOGRegression():
         if any(inst.ch_names[ch1] != self.info_['chs'][ch2]['ch_name']
                for ch1, ch2 in zip(picks, ref_picks)):
             raise ValueError('Selected data channels are not compatible with '
-                             'the regression weights. Make sure the all data '
+                             'the regression weights. Make sure that all data '
                              'channels are present and in the correct order.')
         if any(inst.ch_names[ch1] != self.info_['chs'][ch2]['ch_name']
                for ch1, ch2 in zip(picks_artifact, ref_picks_artifact)):
             raise ValueError('Selected artifact channels are not compatible '
-                             'with the regression weights. Make sure the all '
+                             'with the regression weights. Make sure that all '
                              'artifact channels are present and in the '
                              'correct order.')
 
@@ -263,7 +263,7 @@ class EOGRegression():
                        'Raw, Epochs, Evoked')
         if _needs_eeg_average_ref_proj(inst.info):
             raise RuntimeError('No reference for the EEG channels has been '
-                               'set. Use inst.set_eeg_reference to do so.')
+                               'set. Use inst.set_eeg_reference() to do so.')
         if self.proj and not inst.proj:
             inst.apply_proj()
         if not inst.proj and len(inst.info.get('projs', [])) > 0:

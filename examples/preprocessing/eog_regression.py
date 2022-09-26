@@ -15,8 +15,10 @@ Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 
 License: BSD (3-clause)
 """
+
 # %%
-# Do imports and load the MNE-Sample data.
+# Import packages and load the MNE sample data.
+
 import mne
 from mne.datasets import sample
 from mne.preprocessing import EOGRegression
@@ -38,7 +40,7 @@ raw.filter(0.3, None, picks='all')
 # Perform regression and remove EOG
 # ---------------------------------
 
-raw.apply_proj()
+# Fit the regression model
 weights = EOGRegression().fit(raw)
 raw_clean = weights.apply(raw, copy=True)
 
@@ -46,7 +48,7 @@ raw_clean = weights.apply(raw, copy=True)
 weights.plot()
 
 # %%
-# Before-after comparison
+# Before/after comparison
 # -----------------------
 # Let's compare the signal before and after cleaning with EOG regression. This
 # is best visualized by extracting epochs and plotting the evoked potential.
