@@ -1078,7 +1078,7 @@ def test_crop():
     data = np.zeros((1, 100))
     info = create_info(1, 100)
     raw = RawArray(data, info)
-    with pytest.raises(ValueError, 'tmax (1s) must be less than or equal'):
+    with pytest.raises(ValueError, match='tmax \\(1\\) must be less than or equal'):
         raw.copy().crop(tmax=1, include_tmax=True)
     raw1 = raw.copy().crop(tmax=1 - 1/raw.info['sfreq'], include_tmax=True)
     assert raw.n_times == raw1.n_times
