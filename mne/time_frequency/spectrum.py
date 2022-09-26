@@ -922,7 +922,8 @@ class Spectrum(BaseSpectrum):
         have been computed.
     %(info_not_none)s
     method : str
-        The method used to compute the spectrum ('welch' or 'multitaper').
+        The method used to compute the spectrum (``'welch'`` or
+        ``'multitaper'``).
 
     See Also
     --------
