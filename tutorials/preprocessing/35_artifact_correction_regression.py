@@ -94,7 +94,7 @@ fig.set_size_inches(6, 6)
 # Perform regression using the EOG sensor as independent variable and the EEG
 # sensors as dependent variables.
 model_plain = EOGRegression(picks='eeg', picks_artifact='eog').fit(epochs)
-fig = model_plain.plot(vmax=0.4)  # Show the regression coefficients as a topomap
+fig = model_plain.plot(vmax=0.4)  # Show regression coefficients as a topomap
 fig.set_size_inches(3, 2)
 
 # %%
@@ -186,6 +186,7 @@ eog_epochs = mne.preprocessing.create_eog_epochs(raw)
 # We need to explicitly specify that we want to average the EOG channel too.
 eog_evoked = eog_epochs.average('all')
 eog_evoked.plot('all', spatial_colors=True)
+fig.set_size_inches(6, 6)
 
 # perform regression on the evoked blink response
 model_evoked = EOGRegression(picks='eeg', picks_artifact='eog').fit(eog_evoked)
@@ -198,7 +199,10 @@ fig = epochs_clean_evoked.average('all').plot(**plot_kwargs)
 fig.set_size_inches(6, 6)
 
 # for good measure, also show the effect on the blink evoked
-model_evoked.apply(eog_evoked).apply_baseline().plot('all', spatial_colors=True)
+eog_evoked_clean = model_evoked.apply(eog_evoked)
+eog_evoked_clean.apply_baseline()
+eog_evoked_clean.plot('all', spatial_colors=True)
+fig.set_size_inches(6, 6)
 
 # %%
 # We see that again, the regression weights have been correctly estimated.
