@@ -1263,7 +1263,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                              % (tmin, tmax))
         if tmin < 0.0:
             raise ValueError('tmin (%s) must be >= 0' % (tmin,))
-        elif tmax > max_time:
+        elif tmax - int(not include_tmax) / self.info['sfreq'] > max_time:
             raise ValueError('tmax (%s) must be less than or equal to the max '
                              'time (%0.4f sec)' % (tmax, max_time))
 
