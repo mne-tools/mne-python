@@ -1049,7 +1049,7 @@ def test_crop():
     tmaxs /= sfreq
     tmins /= sfreq
 
-    # going in revere order so the last fname is the first file (need it later)
+    # going in reverse order so the last fname is the first file (need it later)
     raws = [None] * len(tmins)
     for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
         raws[ri] = raw.copy().crop(tmin, tmax)
@@ -1073,6 +1073,19 @@ def test_crop():
     # degenerate
     with pytest.raises(ValueError, match='No samples.*when include_tmax=Fals'):
         raw.crop(0, 0, include_tmax=False)
+
+    # edge cases cropping to exact duration +/- 1 sample
+    data = np.zeros((1, 100))
+    info = create_info(1, 100)
+    raw = RawArray(data, info)
+    with pytest.raises(ValueError, 'tmax (1s) must be less than or equal'):
+        raw.copy().crop(tmax=1, include_tmax=True)
+    raw1 = raw.copy().crop(tmax=1 - 1/raw.info['sfreq'], include_tmax=True)
+    assert raw.n_times == raw1.n_times
+    raw2 = raw.copy().crop(tmax=1, include_tmax=False)
+    assert raw.n_times == raw2.n_times
+    raw3 = raw.copy().crop(tmax=1 - 1/raw.info['sfreq'], include_tmax=False)
+    assert raw.n_times - 1 == raw3.n_times
 
 
 @testing.requires_testing_data
