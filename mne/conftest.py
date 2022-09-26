@@ -426,7 +426,6 @@ def _check_pyqtgraph(request):
             pytest.skip(f'mne_qt_browser {ver} requires PyQt5, API is {api}')
 
 
-@pytest.mark.pgtest
 @pytest.fixture
 def pg_backend(request, garbage_collect):
     """Use for pyqtgraph-specific test-functions."""
