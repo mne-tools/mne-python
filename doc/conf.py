@@ -974,6 +974,10 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(
         'ignore', message=r'iteritems is deprecated.*Use \.items instead\.',
         category=FutureWarning)
+    # pandas in 50_epochs_to_data_frame.py
+    warnings.filterwarnings(
+        'ignore', message=r'invalid value encountered in cast',
+        category=RuntimeWarning)
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:
