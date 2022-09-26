@@ -1964,9 +1964,9 @@ docdict['method_kw_psd'] = """\
 
 _method_psd = """\
 method : ``'welch'`` | ``'multitaper'``{}
-    Spectral estimation method. ``'welch'`` uses Welch's method
-    :footcite:`Welch1967`, ``'multitaper'`` uses DPSS tapers
-    :footcite:`Slepian1978`.{}
+    Spectral estimation method. ``'welch'`` uses Welch's method\
+    :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS tapers\
+    :footcite:p:`Slepian1978`.{}
 """
 docdict['method_plot_psd_auto'] = _method_psd.format(
     " | ``'auto'``",
