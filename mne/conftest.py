@@ -123,6 +123,9 @@ def pytest_configure(config):
     ignore:.*cmap function will be deprecated.*:
     # joblib hasn't updated to avoid distutils
     ignore:.*distutils package is deprecated.*:DeprecationWarning
+    # nbclient
+    ignore:Passing a schema to Validator\.iter_errors is deprecated.*:
+    ignore:Unclosed context <zmq.asyncio.Context.*:ResourceWarning
     """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
@@ -872,7 +875,10 @@ def _nbclient():
 }""", as_version=4)
     client = NotebookClient(nb, km=km)
     yield client
-    client._cleanup_kernel()
+    try:
+        client._cleanup_kernel()
+    except Exception:
+        pass
 
 
 @pytest.fixture(scope='function')
