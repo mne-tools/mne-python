@@ -9,6 +9,7 @@ if [[ "$CIRCLE_JOB" == "linkcheck"* ]]; then
 	python -m pip install --progress-bar off pillow pytest -r requirements_base.txt -r requirements_doc.txt
 else  # standard doc build
 	echo "Installing doc build dependencies"
+	python -m pip install --upgrade --progress-bar off PyQt6
 	python -m pip install --upgrade --progress-bar off --only-binary "numpy,scipy,matplotlib,pandas,statsmodels" -r requirements.txt -r requirements_testing.txt -r requirements_doc.txt
 	python -m pip uninstall -yq sphinx-gallery mne-qt-browser
 	# TODO: Revert to upstream/main once https://github.com/mne-tools/mne-qt-browser/pull/105 is merged
