@@ -967,7 +967,6 @@ def test_plotting_temperature_gsr(browser_backend):
 def test_plotting_memory_garbage_collection(raw, pg_backend):
     """Test that memory can be garbage collected properly."""
     raw.plot().close()
-    pg_backend._close_all()
     import mne_qt_browser
     from mne_qt_browser._pg_figure import MNEQtBrowser
     assert len(mne_qt_browser._browser_instances) == 0

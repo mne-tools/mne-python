@@ -441,6 +441,7 @@ def pg_backend(request, garbage_collect):
         mne_qt_browser._browser_instances.clear()
         _assert_no_instances(MNEQtBrowser, f'Closure of {request.node.name}')
 
+
 @pytest.fixture(params=[
     'matplotlib',
     pytest.param('qt', marks=pytest.mark.pgtest),
