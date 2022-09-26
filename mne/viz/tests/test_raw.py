@@ -18,7 +18,8 @@ from mne.annotations import _sync_onset
 from mne.datasets import testing
 from mne.io import RawArray
 from mne.io.pick import _DATA_CH_TYPES_ORDER_DEFAULT, _PICK_TYPES_DATA_DICT
-from mne.utils import _dt_to_stamp, _record_warnings, get_config, set_config
+from mne.utils import (_dt_to_stamp, _record_warnings, get_config, set_config,
+                       _assert_no_instances)
 from mne.viz import plot_raw, plot_sensors
 from mne.viz.utils import _fake_click, _fake_keypress
 
@@ -961,3 +962,13 @@ def test_plotting_temperature_gsr(browser_backend):
     fig = raw.plot()
     tick_texts = fig._get_ticklabels('y')
     assert len(tick_texts) == 2
+
+
+def test_plotting_memory_garbage_collection(raw, pg_backend):
+    """Test that memory can be garbage collected properly."""
+    raw.plot().close()
+    pg_backend._close_all()
+    import mne_qt_browser
+    from mne_qt_browser._pg_figure import MNEQtBrowser
+    assert len(mne_qt_browser._browser_instances) == 0
+    _assert_no_instances(MNEQtBrowser, 'after closing')

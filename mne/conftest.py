@@ -431,6 +431,7 @@ def _check_pyqtgraph(request):
 def pg_backend(request, garbage_collect):
     """Use for pyqtgraph-specific test-functions."""
     _check_pyqtgraph(request)
+    from mne_qt_browser._pg_figure import MNEQtBrowser
     with use_browser_backend('qt') as backend:
         backend._close_all()
         yield backend
@@ -438,7 +439,7 @@ def pg_backend(request, garbage_collect):
         # This shouldn't be necessary, but let's make sure nothing is stale
         import mne_qt_browser
         mne_qt_browser._browser_instances.clear()
-
+        _assert_no_instances(MNEQtBrowser, f'Closure of {request.node.name}')
 
 @pytest.fixture(params=[
     'matplotlib',
