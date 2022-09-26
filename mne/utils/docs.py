@@ -1962,7 +1962,7 @@ docdict['method_kw_psd'] = """\
     :func:`~mne.time_frequency.psd_array_multitaper` for details.
 """
 
-_method_psd = """\
+_method_psd = r"""
 method : ``'welch'`` | ``'multitaper'``{}
     Spectral estimation method. ``'welch'`` uses Welch's
     method\ :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
