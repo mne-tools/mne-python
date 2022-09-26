@@ -369,6 +369,9 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
                          output='power', n_jobs=None, verbose=None):
     """Compute power spectral density (PSD) using a multi-taper method.
 
+    The power spectral density is computed with DPSS
+    tapers\ :footcite:p:`Slepian1978`.
+
     Parameters
     ----------
     x : array, shape=(..., n_times)
@@ -417,6 +420,10 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
     Notes
     -----
     .. versionadded:: 0.14.0
+
+    References
+    ----------
+    .. footbibliography::
     """
     from scipy.fft import rfftfreq
     _check_option('normalization', normalization, ['length', 'full'])
