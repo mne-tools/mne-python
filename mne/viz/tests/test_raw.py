@@ -964,6 +964,7 @@ def test_plotting_temperature_gsr(browser_backend):
     assert len(tick_texts) == 2
 
 
+@pytest.mark.pgtest
 def test_plotting_memory_garbage_collection(raw, pg_backend):
     """Test that memory can be garbage collected properly."""
     raw.plot().close()

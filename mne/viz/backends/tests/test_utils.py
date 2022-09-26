@@ -51,6 +51,7 @@ def test_check_color():
         _check_color(None)
 
 
+@pytest.mark.pgtest
 @pytest.mark.parametrize('theme', ('auto', 'light', 'dark'))
 def test_theme_colors(pg_backend, theme, monkeypatch, tmp_path):
     """Test that theme colors propagate properly."""
