@@ -117,6 +117,8 @@ stages:
         set -e
         python -m pip install --progress-bar off --upgrade pip setuptools wheel codecov
         python -m pip install --progress-bar off mne-qt-browser[opengl] pyvista scikit-learn pytest-error-for-skips python-picard "PySide6!=6.3.0" qtpy
+        # TODO: Revert
+        python -m pip install --progress-bar off https://github.com/larsoner/mne-qt-browser/zipball/weak
         python -m pip uninstall -yq mne
         python -m pip install --progress-bar off --upgrade -e .[test]
       displayName: 'Install dependencies with pip'
@@ -312,7 +314,7 @@ stages:
       displayName: Remove old MNE
     - script: pip install -e .
       displayName: 'Install MNE-Python dev'
-    - script: pip install --progress-bar off -e .[test] codecov
+    - script: pip install --progress-bar off -e .[test] codecov https://github.com/larsoner/mne-qt-browser/zipball/weak
       condition: eq(variables['TEST_MODE'], 'conda')
       displayName: Install testing requirements
     - script: mne sys_info -pd
