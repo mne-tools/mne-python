@@ -10,11 +10,11 @@ and then subtracting the EOG signal.
 This is a quick example to show the most basic application of the technique.
 See the :ref:`tutorial <tut-artifact-regression>` for a more thorough
 explanation that demonstrates more advanced approaches.
-
-Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-
-License: BSD (3-clause)
 """
+
+# Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
+#
+# License: BSD (3-clause)
 
 # %%
 # Import packages and load the MNE sample data.
