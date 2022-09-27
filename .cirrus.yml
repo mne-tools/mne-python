@@ -1,19 +1,28 @@
-macos_instance:
-  image: ghcr.io/cirruslabs/macos-monterey-base:latest
-
-test_macos_arm64_task:
+# cibuildwheel FAQ helps:
+# https://cibuildwheel.readthedocs.io/en/stable/faq/
+macos_arm64_task:
+  name: macOS arm64 (M1) tests
+  auto_cancellation: $CIRRUS_PR != ''
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-monterey-base:latest
+  env:
+    PATH: /opt/homebrew/opt/python@3.10/bin:$PATH
   # https://cirrus-ci.org/guide/writing-tasks/#supported-instructions
   # [skip ci] or [skip cirrus] supported natively
   # Auto-cancel PR builds
-  auto_cancellation: $CIRRUS_PR != ''
+  install_pre_requirements_script:
+    - brew install python@3.10
   pip_cache:
     folder: ~/.cache/pip
-    fingerprint_script: echo $PYTHON_VERSION && cat requirements.txt
-    populate_script: pip install -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt
+    fingerprint_script:
+      - echo $PYTHON_VERSION && cat requirements.txt
+    populate_script:
+      - pip install -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt
   install_script:
     - pip install -ve .
     - mne sys_info
-  test_script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml -vv mne
+  test_script:
+    - pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml -vv mne
   # https://cirrus-ci.org/guide/writing-tasks/#artifact-parsing
   always:
     upload_results_artifacts:
