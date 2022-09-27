@@ -922,7 +922,8 @@ class Spectrum(BaseSpectrum):
         have been computed.
     %(info_not_none)s
     method : str
-        The method used to compute the spectrum ('welch' or 'multitaper').
+        The method used to compute the spectrum (``'welch'`` or
+        ``'multitaper'``).
 
     See Also
     --------
@@ -930,6 +931,10 @@ class Spectrum(BaseSpectrum):
     mne.io.Raw.compute_psd
     mne.Epochs.compute_psd
     mne.Evoked.compute_psd
+
+    References
+    ----------
+    .. footbibliography::
     """
 
     def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks,
@@ -1035,6 +1040,10 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
     mne.io.Raw.compute_psd
     mne.Epochs.compute_psd
     mne.Evoked.compute_psd
+
+    References
+    ----------
+    .. footbibliography::
     """
 
     def __init__(self, inst, method, fmin, fmax, tmin, tmax, picks, proj, *,

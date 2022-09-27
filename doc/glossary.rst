@@ -22,13 +22,6 @@ general neuroimaging concepts. If you think a term is missing, please consider
         :ref:`tut-events-vs-annotations` for a short tutorial.
         See also :term:`events`.
 
-    array-like
-        Something that acts like – or can be converted to – a
-        :class:`NumPy array <numpy.ndarray>`.
-        This includes (but is not limited to)
-        :class:`arrays <numpy.ndarray>`, `lists <list>`, and
-        `tuples <tuple>`.
-
     beamformer
         A beamformer is a popular source estimation approach that uses a set of
         spatial filters (beamformer weights) to compute time courses of sources
