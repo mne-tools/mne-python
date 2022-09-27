@@ -12,12 +12,8 @@ macos_arm64_task:
     image: ghcr.io/cirruslabs/macos-monterey-base:latest
   env:
     PATH: /opt/homebrew/opt/python@3.10/libexec/bin:$PATH
-  brew_cache:
-    folder: /opt/homebrew/opt
-    fingerprint_script:
-      - cat ./tools/cirrus_install_python.sh
-    populate_script:
-      - ./tools/cirrus_install_python.sh
+  python_script:
+    - ./tools/cirrus_install_python.sh
   pip_cache:
     folder: ~/Library/Caches/pip
     fingerprint_script:
