@@ -1,7 +1,7 @@
-arm_container:
-  image: python:slim
+macos_instance:
+  image: ghcr.io/cirruslabs/macos-monterey-base:latest
 
-test_task:
+test_macos_arm64_task:
   # https://cirrus-ci.org/guide/writing-tasks/#supported-instructions
   # [skip ci] or [skip cirrus] supported natively
   # Auto-cancel PR builds
