@@ -237,6 +237,7 @@ numpydoc_xref_aliases = {
     'Transform': 'mne.transforms.Transform',
     'Coregistration': 'mne.coreg.Coregistration',
     'Figure3D': 'mne.viz.Figure3D',
+    'EOGRegression': 'mne.preprocessing.EOGRegression',
     'Spectrum': 'mne.time_frequency.Spectrum',
     'EpochsSpectrum': 'mne.time_frequency.EpochsSpectrum',
     # dipy
