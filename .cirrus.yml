@@ -1,5 +1,5 @@
-# cibuildwheel FAQ helps:
-# https://cibuildwheel.readthedocs.io/en/stable/faq/
+# cibuildwheel FAQ helps (search "cirrus"):
+# https://cibuildwheel.readthedocs.io/en/stable/faq/#apple-silicon
 macos_arm64_task:
   name: macOS arm64 (M1) tests
   auto_cancellation: $CIRRUS_PR != ''
@@ -10,8 +10,12 @@ macos_arm64_task:
   # https://cirrus-ci.org/guide/writing-tasks/#supported-instructions
   # [skip ci] or [skip cirrus] supported natively
   # Auto-cancel PR builds
-  install_pre_requirements_script:
-    - brew install python@3.10
+  brew_cache:
+    folder: /opt/homebrew/opt
+    fingerprint_script:
+      - cat ./tools/cirrusci_install_python.sh
+    populate_script:
+      - ./tools/cirrusci_install_python.sh
   pip_cache:
     folder: ~/.cache/pip
     fingerprint_script:
