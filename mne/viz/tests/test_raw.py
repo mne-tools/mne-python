@@ -967,6 +967,7 @@ def test_plotting_temperature_gsr(browser_backend):
 @pytest.mark.pgtest
 def test_plotting_memory_garbage_collection(raw, pg_backend):
     """Test that memory can be garbage collected properly."""
+    pytest.importorskip('mne_qt_browser', minversion='0.4')
     raw.plot().close()
     import mne_qt_browser
     from mne_qt_browser._pg_figure import MNEQtBrowser

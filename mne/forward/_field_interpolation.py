@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Eric Larson <larsoner@uw.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
 
 # The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.

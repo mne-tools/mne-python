@@ -4,7 +4,6 @@ STD_ARGS="--progress-bar off --upgrade"
 EXTRA_ARGS=""
 if [ ! -z "$CONDA_ENV" ]; then
 	pip uninstall -yq mne
-	pip install --progress-bar off https://github.com/larsoner/mne-qt-browser/zipball/weak
 elif [ ! -z "$CONDA_DEPENDENCIES" ]; then
 	conda install -y $CONDA_DEPENDENCIES
 else
@@ -41,7 +40,7 @@ else
 	  pip install --progress-bar off pyobjc-framework-Cocoa>=5.2.0
 	fi
 	echo "mne-qt-browser"
-	pip install --progress-bar off https://github.com/larsoner/mne-qt-browser/zipball/weak
+	pip install --progress-bar off https://github.com/mne-tools/mne-qt-browser/zipball/main
 	EXTRA_ARGS="--pre"
 fi
 # for compat_minimal and compat_old, we don't want to --upgrade
