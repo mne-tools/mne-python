@@ -19,7 +19,7 @@ macos_arm64_task:
     populate_script:
       - ./tools/cirrus_install_python.sh
   pip_cache:
-    folder: ~/.cache/pip
+    folder: ~/Library/Caches/pip
     fingerprint_script:
       - echo $PYTHON_VERSION && cat requirements.txt && cat requirements_testing.txt && cat requirements_testing_extra.txt
     populate_script:
@@ -35,7 +35,7 @@ macos_arm64_task:
     populate_script:
       - python -c "import mne; mne.datasets.testing.data_path(force_update=True, verbose=True)"
   test_script:
-    - pytest -m "not slowtest" --tb=short --cov=mne --cov-report=xml -vv mne
+    - pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml -vv mne
   # https://cirrus-ci.org/guide/writing-tasks/#artifact-parsing
   always:
     upload_results_artifacts:
