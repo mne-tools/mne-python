@@ -168,9 +168,10 @@ def _assert_n_actors(fig, renderer, n_actors):
 
 
 @pytest.mark.slowtest  # Slow on Azure
+@testing.requires_testing_data  # all use trans + head surf
 @pytest.mark.parametrize('system', [
     'Neuromag',
-    pytest.param('CTF', marks=testing._pytest_mark()),
+    'CTF',
     'BTi',
     'KIT',
 ])
