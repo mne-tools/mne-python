@@ -25,7 +25,7 @@ python-picard
 statsmodels
 joblib
 psutil
-dipy
+dipy; sys_platform != 'darwin' or platform_machine != 'arm64'
 vtk
 nilearn
 xlrd

@@ -13,18 +13,18 @@ macos_arm64_task:
   brew_cache:
     folder: /opt/homebrew/opt
     fingerprint_script:
-      - cat ./tools/cirrusci_install_python.sh
+      - cat ./tools/cirrus_install_python.sh
     populate_script:
-      - ./tools/cirrusci_install_python.sh
+      - ./tools/cirrus_install_python.sh
   pip_cache:
     folder: ~/.cache/pip
     fingerprint_script:
-      - echo $PYTHON_VERSION && cat requirements.txt
+      - echo $PYTHON_VERSION && cat requirements.txt && cat requirements_testing.txt && cat requirements_testing_extra.txt
     populate_script:
-      - pip install -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt
+      - ./tools/cirrus_dependencies.sh
   install_script:
     - pip install -ve .
-    - mne sys_info
+    - mne sys_info -pd
   test_script:
     - pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml -vv mne
   # https://cirrus-ci.org/guide/writing-tasks/#artifact-parsing

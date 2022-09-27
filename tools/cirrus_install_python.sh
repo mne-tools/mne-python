@@ -1,4 +1,4 @@
-#!/bin/bash -ef
+#!/bin/bash -e
 
 if ! -f /opt/homebrew/opt/python@3.10/bin/python; then
     brew install python@3.10
