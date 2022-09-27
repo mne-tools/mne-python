@@ -17,7 +17,11 @@ explanation that demonstrates more advanced approaches.
 # License: BSD (3-clause)
 
 # %%
-# Import packages and load the MNE sample data.
+# Import packages and load data
+# -----------------------------
+#
+# We begin as always by importing the necessary Python modules and loading some
+# data, in this case the :ref:`MNE sample dataset <sample-dataset>`.
 
 import mne
 from mne.datasets import sample
