@@ -15,11 +15,6 @@ re-importing them. We will also give a simple example of how to use
 
 Much of this tutorial is based on
 https://github.com/ezemikulan/blender_freesurfer by Ezequiel Mikulan.
-
-.. contents:: Page contents
-   :local:
-   :depth: 3
-
 """
 
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
