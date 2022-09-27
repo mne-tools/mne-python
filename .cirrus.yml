@@ -1,0 +1,23 @@
+arm_container:
+  image: python:slim
+
+test_task:
+  # https://cirrus-ci.org/guide/writing-tasks/#supported-instructions
+  # [skip ci] or [skip cirrus] supported natively
+  # Auto-cancel PR builds
+  auto_cancellation: $CIRRUS_PR != ''
+  pip_cache:
+    folder: ~/.cache/pip
+    fingerprint_script: echo $PYTHON_VERSION && cat requirements.txt
+    populate_script: pip install -r requirements.txt -r requirements_testing.txt -r requirements_testing_extra.txt
+  install_script:
+    - pip install -ve .
+    - mne sys_info
+  test_script: pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml -vv mne
+  # https://cirrus-ci.org/guide/writing-tasks/#artifact-parsing
+  always:
+    upload_results_artifacts:
+      path: ./*.xml
+      format: junit
+      type: text/xml
+    codecov_script: bash <(curl -s https://codecov.io/bash)
