@@ -195,11 +195,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         self.tube_n_sides = 20
         self.antialias = _get_3d_option('antialias')
         self.depth_peeling = _get_3d_option('depth_peeling')
-        # smooth_shading=True fails on MacOS CIs
-        if sys.platform == 'darwin':
-            self.smooth_shading = _get_3d_option('smooth_shading')
-        else:
-            self.smooth_shading = smooth_shading
+        self.smooth_shading = smooth_shading
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
             # Restore only active plotter
