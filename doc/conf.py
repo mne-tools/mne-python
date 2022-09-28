@@ -389,6 +389,7 @@ else:
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             import pyvista
         pyvista.OFF_SCREEN = False
+        pyvista.BUILDING_GALLERY = True
         scrapers += (
             mne.gui._GUIScraper(),
             mne.viz._brain._BrainScraper(),

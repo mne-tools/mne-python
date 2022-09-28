@@ -11,6 +11,7 @@ from contextlib import contextmanager
 import importlib
 
 from ._utils import VALID_3D_BACKENDS
+from .._3d import _get_3d_option
 from ...utils import (logger, verbose, get_config, _check_option, fill_doc,
                       _validate_type)
 
@@ -277,7 +278,7 @@ def set_3d_title(figure, title, size=40):
     backend._set_3d_title(figure=figure, title=title, size=size)
 
 
-def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
+def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=None,
                      handle=None, *, scene=True, show=False):
     """Return an empty figure based on the current 3d backend.
 
@@ -292,8 +293,9 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
         The dimensions of the 3d figure (width, height).
     bgcolor : tuple
         The color of the background.
-    smooth_shading : bool
-        If True, smooth shading is enabled. Defaults to True.
+    smooth_shading : bool | None
+        Whether to enable smooth shading. If ``None``, uses the config value
+        ``MNE_3D_OPTION_SMOOTH_SHADING``. Defaults to ``None``.
     handle : int | None
         The figure identifier.
     scene : bool
@@ -310,6 +312,9 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), smooth_shading=True,
     figure : instance of Figure3D or ``Renderer``
         The requested empty figure or renderer, depending on ``scene``.
     """
+    _validate_type(smooth_shading, (bool, None), 'smooth_shading')
+    if smooth_shading is None:
+        smooth_shading = _get_3d_option('smooth_shading')
     renderer = _get_renderer(
         fig=handle,
         size=size,
