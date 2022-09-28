@@ -577,8 +577,8 @@ class _BoxLayout(object):
         if isinstance(widget, Plotter):
             widget = widget.show(
                 jupyter_backend='ipyvtklink', return_viewer=True)
-            widget.layout.width = None  # unlock the fixed layout
         if hasattr(widget, 'layout'):
+            widget.layout.width = None  # unlock the fixed layout
             widget.layout.margin = "2px 0px 2px 0px"
             if not isinstance(widget, Play):
                 widget.layout.min_width = "0px"

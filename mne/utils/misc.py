@@ -356,7 +356,7 @@ def _assert_no_instances(cls, when=''):
                         r is not globals() and \
                         r is not locals() and \
                         not inspect.isframe(r):
-                    if isinstance(r, (list, dict)):
+                    if isinstance(r, (list, dict, tuple)):
                         rep = f'len={len(r)}'
                         r_ = gc.get_referrers(r)
                         types = (_fullname(x) for x in r_)

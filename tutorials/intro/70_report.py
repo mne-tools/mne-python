@@ -114,8 +114,8 @@ report.add_events(events=events, title='Events from "events"', sfreq=sfreq)
 report.save('report_events.html', overwrite=True)
 
 # %%
-# Adding `~mne.Epochs`
-# ^^^^^^^^^^^^^^^^^^^^
+# Adding :class:`~mne.Epochs`
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Epochs can be added via :meth:`mne.Report.add_epochs`. Note that although
 # this method accepts a path to an epochs file too, in the following example

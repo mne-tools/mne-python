@@ -27,7 +27,7 @@ from mne.fixes import has_numba, _compare_version
 from mne.io import read_raw_fif, read_raw_ctf, read_raw_nirx, read_raw_snirf
 from mne.stats import cluster_level
 from mne.utils import (_pl, _assert_no_instances, numerics, Bunch,
-                       _check_qt_version, _TempDir)
+                       _check_qt_version, _TempDir, check_version)
 
 # data from sample dataset
 from mne.viz._figure import use_browser_backend
@@ -123,6 +123,9 @@ def pytest_configure(config):
     ignore:.*cmap function will be deprecated.*:
     # joblib hasn't updated to avoid distutils
     ignore:.*distutils package is deprecated.*:DeprecationWarning
+    # nbclient
+    ignore:Passing a schema to Validator\.iter_errors is deprecated.*:
+    ignore:Unclosed context <zmq.asyncio.Context.*:ResourceWarning
     """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
@@ -426,11 +429,11 @@ def _check_pyqtgraph(request):
             pytest.skip(f'mne_qt_browser {ver} requires PyQt5, API is {api}')
 
 
-@pytest.mark.pgtest
 @pytest.fixture
 def pg_backend(request, garbage_collect):
     """Use for pyqtgraph-specific test-functions."""
     _check_pyqtgraph(request)
+    from mne_qt_browser._pg_figure import MNEQtBrowser
     with use_browser_backend('qt') as backend:
         backend._close_all()
         yield backend
@@ -438,6 +441,9 @@ def pg_backend(request, garbage_collect):
         # This shouldn't be necessary, but let's make sure nothing is stale
         import mne_qt_browser
         mne_qt_browser._browser_instances.clear()
+        if check_version('mne_qt_browser', min_version='0.4'):
+            _assert_no_instances(
+                MNEQtBrowser, f'Closure of {request.node.name}')
 
 
 @pytest.fixture(params=[
@@ -872,7 +878,10 @@ def _nbclient():
 }""", as_version=4)
     client = NotebookClient(nb, km=km)
     yield client
-    client._cleanup_kernel()
+    try:
+        client._cleanup_kernel()
+    except Exception:
+        pass
 
 
 @pytest.fixture(scope='function')

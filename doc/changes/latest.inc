@@ -53,6 +53,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bug in :meth:`mne.io.Raw.crop` where argument ``include_tmax`` was not considered in checking ``tmax`` in bounds (:gh:`11196` by `Lukas Gemein`_)
 - Fix bug in :func:`mne.io.read_raw_eeglab` where unlabeled fiducials causde reading errors (:gh:`11074` by :newcontrib:`Sebastiaan Mathot`)
 - Fix bug in :func:`mne.time_frequency.read_csd` that returned ``projs`` as a list of dict instead of :class:`mne.Projection` (:gh:`11072` by :newcontrib:`Chetan Gohil`)
 - Fix bug in :func:`mne.decoding.TimeFrequency` that prevented cloning if constructor arguments were modified (:gh:`11004` by :newcontrib:`Daniel Carlström Schad`)
@@ -73,6 +74,7 @@ Bugs
 - The string and HTML representation of :class:`mne.preprocessing.ICA` reported incorrect values for the explained variance. This information has been removed from the representations, and should instead be retrieved via the new :meth:`~mne.preprocessing.ICA.get_explained_variance_ratio` method (:gh:`11141` by `Richard Höchenberger`_)
 - Fix bug in :meth:`mne.Evoked.plot` and related methods where a ``np.nan`` location value in any channel causes spatial colours to fail (:gh:`6870` by `Simeon Wong`_)
 - Fix bug in :meth:`mne.preprocessing.ICA.find_bads_muscle` where epochs caused an error when passed as the ``inst`` (:gh:`11197` by `Alex Rockhill`_)
+- The duration of raw data sometimes wasn't displayed correctly in Jupyter notebooks by omitting fractions of a second. We now always round up to the next full second so a duration of less than 1 second will not be displayed as a duration of zero anymore (:gh:`11203` by `Richard Höchenberger`_)
 
 API changes
 ~~~~~~~~~~~
@@ -83,3 +85,5 @@ API changes
 - New classes :class:`~mne.time_frequency.Spectrum` and :class:`~mne.time_frequency.EpochsSpectrum`, created via new methods :meth:`Raw.compute_psd()<mne.io.Raw.compute_psd>`, :meth:`Epochs.compute_psd()<mne.Epochs.compute_psd>`, and :meth:`Evoked.compute_psd()<mne.Evoked.compute_psd>` (:gh:`10184` by `Daniel McCloy`_)
 - The ``mne.epochs.add_channels_epochs`` function has been deprecated in favor of :meth:`epochs.add_channels <mne.Epochs.add_channels>` (:gh:`11180` by `Eric Larson`_)
 - The PSD functions that operate on Raw/Epochs/Evoked instances (``mne.time_frequency.psd_welch`` and ``mne.time_frequency.psd_multitaper``) are deprecated; for equivalent functionality create :class:`~mne.time_frequency.Spectrum` or :class:`~mne.time_frequency.EpochsSpectrum` objects instead and then run ``spectrum.get_data(return_freqs=True)`` (:gh:`10184` by `Daniel McCloy`_)
+- Added new class  :class:`mne.preprocessing.EOGRegression` to allow more flexibility when using regression to reduce EOG artifacts (:gh:`11046` by `Marijn van Vliet`_)
+- New parameter ``exclude`` added to :func:`mne.preprocessing.regress_artifact` to prevent regression from being applied to certain channels (:gh:`11046` by `Marijn van Vliet`_)
