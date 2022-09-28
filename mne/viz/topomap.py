@@ -1913,6 +1913,39 @@ def _slider_changed(val, ax, data, times, pos, scaling, func, time_format,
         ax.set_title(time_format % (val * scaling_time))
 
 
+def _plot_topomap_multi_cbar(data, pos, ax, *, vlim, title, unit,
+                             cmap, outlines, colorbar, cbar_fmt,
+                             sphere, ch_type, sensors, names, mask,
+                             mask_params, contours, image_interp,
+                             extrapolate, border, res, size, cnorm):
+    _hide_frame(ax)
+    _vlim = (np.min(data) if vlim[0] is None else vlim[0],
+             np.max(data) if vlim[1] is None else vlim[1])
+    # this definition of "norm" allows non-diverging colormap for cases
+    # where min & vmax are both negative (e.g., when they are power in dB)
+    signs = np.sign(_vlim)
+    norm = len(set(signs)) == 1 or np.any(signs == 0)
+
+    _cmap = _setup_cmap(cmap, norm=norm)
+    if title is not None:
+        ax.set_title(title, fontsize=10)
+    im, _ = plot_topomap(
+        data, pos, ch_type=ch_type, sensors=sensors, names=names,
+        mask=mask, mask_params=mask_params, contours=contours,
+        outlines=outlines, sphere=sphere, image_interp=image_interp,
+        extrapolate=extrapolate, border=border, res=res, size=size,
+        cmap=_cmap[0], vlim=_vlim, cnorm=cnorm, axes=ax,
+        show=False, onselect=None)
+
+    if colorbar:
+        cbar, cax = _add_colorbar(ax, im, cmap, pad=0.25, title=None,
+                                  size="10%", format=cbar_fmt)
+        cbar.set_ticks(_vlim)
+        if unit is not None:
+            cbar.ax.set_ylabel(unit, fontsize=8)
+        cbar.ax.tick_params(labelsize=8)
+
+
 @legacy(alt='Epochs.compute_psd().plot_topomap()')
 @verbose
 def plot_epochs_psd_topomap(epochs, bands=None, tmin=None, tmax=None,
@@ -2119,33 +2152,13 @@ def plot_psds_topomap(
     for ax, _mask, _data, (title, (fmin, fmax)) in zip(
             axes, freq_masks, band_data, bands.items()):
         colorbar = vlim != 'joint' or ax == axes[-1]
-        # ↓↓↓ formerly _plot_topomap_multi_cbar (a one-off middleman func) ↓↓↓
-        _hide_frame(ax)
-        _vlim = (np.min(_data) if vlim[0] is None else vlim[0],
-                 np.max(_data) if vlim[1] is None else vlim[1])
-        # this definition of "norm" allows non-diverging colormap for cases
-        # where min & vmax are both negative (e.g., when they are power in dB)
-        signs = np.sign(_vlim)
-        norm = len(set(signs)) == 1 or np.any(signs == 0)
-        _cmap = _setup_cmap(cmap, norm=norm)
-        if title is not None:
-            ax.set_title(title, fontsize=10)
-        im, _ = plot_topomap(
-            _data, pos, ch_type=ch_type, sensors=sensors, names=names,
+        _plot_topomap_multi_cbar(
+            _data, pos, ax, title=title, vlim=vlim, cmap=cmap,
+            outlines=outlines, colorbar=colorbar, unit=unit, cbar_fmt=cbar_fmt,
+            sphere=sphere, ch_type=ch_type, sensors=sensors, names=names,
             mask=mask, mask_params=mask_params, contours=contours,
-            outlines=outlines, sphere=sphere, image_interp=image_interp,
-            extrapolate=extrapolate, border=border, res=res, size=size,
-            cmap=_cmap[0], vlim=_vlim, cnorm=cnorm, axes=ax,
-            show=False, onselect=None)
-
-        if colorbar:
-            cbar, cax = _add_colorbar(ax, im, cmap, pad=0.25, title=None,
-                                      size="10%", format=cbar_fmt)
-            cbar.set_ticks(_vlim)
-            if unit is not None:
-                cbar.ax.set_ylabel(unit, fontsize=8)
-            cbar.ax.tick_params(labelsize=8)
-        # ↑↑↑ formerly _plot_topomap_multi_cbar (a one-off middleman func) ↑↑↑
+            image_interp=image_interp, extrapolate=extrapolate, border=border,
+            res=res, size=size, cnorm=cnorm)
 
     # TODO avoid tight_layout and draw() if possible
     tight_layout(fig=fig)
@@ -3052,10 +3065,13 @@ def _set_adjacency(adjacency, both_nodes, value):
 
 
 @fill_doc
-def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
-                            cmap=None, colorbar=True, cbar_fmt='%.2g',
-                            show=True, title=None, outlines='head', axes=None,
-                            sphere=None):
+def plot_regression_weights(
+        model, *, ch_type=None, sensors=True, names=None,
+        mask=None, mask_params=None, contours=6, outlines='head', sphere=None,
+        image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
+        border=_BORDER_DEFAULT, res=64, size=1, cmap=None, vlim=(None, None),
+        cnorm=None, axes=None, colorbar=True, cbar_fmt='%1.1e', title=None,
+        show=True):
     """Plot the regression weights of a fitted EOGRegression model.
 
     Parameters
@@ -3063,15 +3079,26 @@ def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
     model : EOGRegression
         The fitted EOGRegression model whose weights will be plotted.
     %(ch_type_topomap)s
-    %(vmin_vmax_topomap)s
+    %(sensors_topomap)s
+    %(names_topomap)s
+    %(mask_topomap)s
+    %(mask_params_topomap)s
+    %(contours_topomap)s
+    %(outlines_topomap)s
+    %(sphere_topomap_auto)s
+    %(image_interp_topomap)s
+    %(extrapolate_topomap)s
+    %(border_topomap)s
+    %(res_topomap)s
+    %(size_topomap)s
     %(cmap_topomap)s
+    %(vlim_plot_topomap)s
+    %(cnorm)s
+    %(axes_evoked_plot_topomap)s
     %(colorbar_topomap)s
     %(cbar_fmt_topomap)s
-    %(show)s
     %(title_none)s
-    %(outlines_topomap)s
-    %(axes_evoked_plot_topomap)s
-    %(sphere_topomap_auto)s
+    %(show)s
 
     Returns
     -------
@@ -3085,7 +3112,12 @@ def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
     import matplotlib
     import matplotlib.pyplot as plt
     sphere = _check_sphere(sphere)
-    ch_types = _get_channel_types(model.info_, unique=True, only_data_chs=True)
+    if ch_type is None:
+        ch_types = _get_channel_types(
+            model.info_, unique=True, only_data_chs=True)
+    else:
+        ch_types = [ch_type]
+    del ch_type
 
     nrows = model.coef_.shape[1]
     ncols = len(ch_types)
@@ -3122,9 +3154,13 @@ def plot_regression_weights(model, ch_type=None, vmin=None, vmax=None,
             ax = next(axes)
 
             _plot_topomap_multi_cbar(
-                data, pos, ax, title=f'{ch_type}/{ch_name}', vmin=vmin,
-                vmax=vmax, cmap=cmap, outlines=outlines, colorbar=colorbar,
-                unit='', cbar_fmt=cbar_fmt, sphere=sphere, ch_type=ch_type)
+                data, pos, ax, title=f'{ch_type}/{ch_name}', vlim=vlim,
+                cmap=cmap, outlines=outlines, colorbar=colorbar,
+                unit='', cbar_fmt=cbar_fmt, sphere=sphere, ch_type=ch_type,
+                sensors=sensors, names=names, mask=mask,
+                mask_params=mask_params, contours=contours,
+                image_interp=image_interp, extrapolate=extrapolate,
+                border=border, res=res, size=size, cnorm=cnorm)
     if axes_was_none:
         fig.suptitle(title)
         fig.subplots_adjust(top=0.88, bottom=0.06, left=0.025, right=0.911,

@@ -5,6 +5,8 @@
 
 import numpy as np
 
+from ..defaults import (_INTERPOLATION_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                        _BORDER_DEFAULT)
 from ..epochs import BaseEpochs
 from ..io.pick import _picks_to_idx, pick_info
 from ..io.base import BaseRaw
@@ -248,14 +250,19 @@ class EOGRegression():
         return inst
 
     @copy_function_doc_to_method_doc(plot_regression_weights)
-    def plot(self, ch_type=None, vmin=None, vmax=None, cmap=None,
-             colorbar=True, cbar_fmt='%.2g', show=True, title=None,
-             outlines='head', axes=None, sphere=None):
-        return plot_regression_weights(self, ch_type=ch_type, vmin=vmin,
-                                       vmax=vmax, cmap=cmap, colorbar=colorbar,
-                                       cbar_fmt=cbar_fmt, show=show,
-                                       title=title, outlines=outlines,
-                                       axes=axes, sphere=sphere)
+    def plot(self, ch_type=None, sensors=True, names=None,
+             mask=None, mask_params=None, contours=6, outlines='head',
+             sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+             size=1, cmap=None, vlim=(None, None), cnorm=None, axes=None,
+             colorbar=True, cbar_fmt='%1.1e', title=None, show=True):
+        return plot_regression_weights(
+            self, ch_type=ch_type, sensors=sensors, names=names, mask=mask,
+            mask_params=mask_params, contours=contours, outlines=outlines,
+            sphere=sphere, image_interp=image_interp, extrapolate=extrapolate,
+            border=border, res=res, size=size, cmap=cmap, vlim=vlim,
+            cnorm=cnorm, axes=axes, colorbar=colorbar, cbar_fmt=cbar_fmt,
+            title=title, show=show)
 
     def _check_inst(self, inst):
         """Perform some sanity checks on the input."""

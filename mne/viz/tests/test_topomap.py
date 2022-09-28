@@ -95,8 +95,9 @@ def test_plot_topomap_interactive(constrained_layout):
         assert not line.get_visible()
     _fake_click(proj_fig, proj_fig.axes[0], [0.5, 0.5], xform='data')
     assert len(proj_fig.axes[0].lines) == 2
-    for line in proj_fig.axes[0].lines:
-        assert line.get_visible()
+    proj_fig.canvas.draw_idle()
+    for li, line in enumerate(proj_fig.axes[0].lines):
+        assert line.get_visible(), f'line {li} not visible'
     canvas.draw()
     image_interactive_click = np.frombuffer(
         canvas.tostring_rgb(), dtype='uint8')
