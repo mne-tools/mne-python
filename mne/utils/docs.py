@@ -1211,7 +1211,7 @@ t_power : float
 """
 
 docdict['fiducials'] = """
-fiducials : list | dict | str
+fiducials : list | dict | str
     The fiducials given in the MRI (surface RAS) coordinate
     system. If a dictionary is provided, it must contain the **keys**
     ``'lpa'``, ``'rpa'``, and ``'nasion'``, with **values** being the
@@ -1958,19 +1958,19 @@ docdict['method_kw_psd'] = """\
     :func:`~mne.time_frequency.psd_array_multitaper` for details.
 """
 
-_method_psd = """\
-method : 'welch' | 'multitaper'{}
-    Spectral estimation method. ``'welch'`` uses Welch's method
-    :footcite:`Welch1967`, ``'multitaper'`` uses DPSS tapers
-    :footcite:`Slepian1978`.{}
+_method_psd = r"""
+method : ``'welch'`` | ``'multitaper'``{}
+    Spectral estimation method. ``'welch'`` uses Welch's
+    method\ :footcite:p:`Welch1967`, ``'multitaper'`` uses DPSS
+    tapers\ :footcite:p:`Slepian1978`.{}
 """
 docdict['method_plot_psd_auto'] = _method_psd.format(
-    " | 'auto'",
+    " | ``'auto'``",
     (" ``'auto'`` (default) uses Welch's method for continuous data and "
      "multitaper for :class:`~mne.Epochs` or :class:`~mne.Evoked` data.")
 )
 docdict['method_psd'] = _method_psd.format('', '')
-docdict['method_psd_auto'] = _method_psd.format(" | 'auto'", '')
+docdict['method_psd_auto'] = _method_psd.format(" | ``'auto'``", '')
 
 docdict['mode_eltc'] = """
 mode : str

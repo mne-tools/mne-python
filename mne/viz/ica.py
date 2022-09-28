@@ -1006,12 +1006,12 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
     fig.suptitle(title)
     axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
 
-    evoked.plot(axes=axes, show=False, time_unit='s')
+    evoked.plot(axes=axes, show=False, time_unit='s', spatial_colors=False)
     for ax in fig.axes:
         for line in ax.get_lines():
             line.set_color('r')
     fig.canvas.draw()
-    evoked_cln.plot(axes=axes, show=False, time_unit='s')
+    evoked_cln.plot(axes=axes, show=False, time_unit='s', spatial_colors=False)
     tight_layout(fig=fig)
 
     fig.subplots_adjust(top=0.90)

@@ -17,6 +17,7 @@ import pytest
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.collections import PolyCollection
+from mpl_toolkits.axes_grid1.parasite_axes import HostAxes  # spatial_colors
 
 import mne
 from mne import (read_events, Epochs, read_cov, compute_covariance,
@@ -174,7 +175,8 @@ def test_plot_evoked():
         [(0, 0.1), (0.1, 0.2)]
     ]:
         fig = evoked.plot(time_unit='s', highlight=highlight)
-        for ax in fig.get_axes():
+        regular_axes = [ax for ax in fig.axes if not isinstance(ax, HostAxes)]
+        for ax in regular_axes:
             highlighted_areas = [child for child in ax.get_children()
                                  if isinstance(child, PolyCollection)]
             assert len(highlighted_areas) == len(np.atleast_2d(highlight))
@@ -196,14 +198,19 @@ def test_constrained_layout():
     assert fig.get_constrained_layout()
     evoked = mne.read_evokeds(evoked_fname)[0]
     evoked.pick(evoked.ch_names[:2])
-    evoked.plot(axes=ax)  # smoke test that it does not break things
+
+    # smoke test that it does not break things
+    evoked.plot(axes=ax)
     assert fig.get_constrained_layout()
     plt.close('all')
 
 
 def _get_amplitudes(fig):
-    amplitudes = [line.get_ydata() for ax in fig.axes
+    # ignore the spatial_colors parasite axes
+    regular_axes = [ax for ax in fig.axes if not isinstance(ax, HostAxes)]
+    amplitudes = [line.get_ydata() for ax in regular_axes
                   for line in ax.get_lines()]
+    # this will exclude hlines, which are lists not arrays
     amplitudes = np.array(
         [line for line in amplitudes if isinstance(line, np.ndarray)])
     return amplitudes

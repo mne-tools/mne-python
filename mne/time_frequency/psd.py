@@ -99,6 +99,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
                     window='hamming', *, verbose=None):
     """Compute power spectral density (PSD) using Welch's method.
 
+    Welch's method is described in :footcite:t:`Welch1967`.
+
     Parameters
     ----------
     x : array, shape=(..., n_times)
@@ -142,6 +144,10 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     Notes
     -----
     .. versionadded:: 0.14.0
+
+    References
+    ----------
+    .. footbibliography::
     """
     _check_option('average', average, (None, False, 'mean', 'median'))
     if average is False:

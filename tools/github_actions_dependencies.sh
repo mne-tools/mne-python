@@ -39,6 +39,8 @@ else
 	  echo "pyobjc-framework-Cocoa"
 	  pip install --progress-bar off pyobjc-framework-Cocoa>=5.2.0
 	fi
+	echo "mne-qt-browser"
+	pip install --progress-bar off https://github.com/mne-tools/mne-qt-browser/zipball/main
 	EXTRA_ARGS="--pre"
 fi
 # for compat_minimal and compat_old, we don't want to --upgrade

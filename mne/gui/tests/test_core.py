@@ -43,6 +43,7 @@ def _slice_browser(renderer_interactive_pyvistaqt):
 
 
 @requires_nibabel()
+@testing.requires_testing_data
 def test_slice_browser_io(_slice_browser):
     """Test the input/output of the slice browser GUI."""
     import nibabel as nib

@@ -1263,7 +1263,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                              % (tmin, tmax))
         if tmin < 0.0:
             raise ValueError('tmin (%s) must be >= 0' % (tmin,))
-        elif tmax > max_time:
+        elif tmax - int(not include_tmax) / self.info['sfreq'] > max_time:
             raise ValueError('tmax (%s) must be less than or equal to the max '
                              'time (%0.4f sec)' % (tmax, max_time))
 
@@ -1745,9 +1745,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         basenames = [
             os.path.basename(f) for f in self._filenames if f is not None
         ]
-        m, s = divmod(self._last_time - self.first_time, 60)
-        h, m = divmod(m, 60)
-        duration = f'{int(h):02d}:{int(m):02d}:{int(s):02d}'
+
+        # https://stackoverflow.com/a/10981895
+        duration = timedelta(seconds=self.times[-1])
+        hours, remainder = divmod(duration.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        seconds += duration.microseconds / 1e6
+        seconds = np.ceil(seconds)  # always take full seconds
+
+        duration = f'{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}'
         raw_template = repr_templates_env.get_template('raw.html.jinja')
         return raw_template.render(
             info_repr=self.info._repr_html_(caption=caption),

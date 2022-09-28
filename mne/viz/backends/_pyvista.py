@@ -195,8 +195,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         self.tube_n_sides = 20
         self.antialias = _get_3d_option('antialias')
         self.depth_peeling = _get_3d_option('depth_peeling')
-        # smooth_shading=True fails on MacOS CIs
-        self.smooth_shading = _get_3d_option('smooth_shading')
+        self.smooth_shading = smooth_shading
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
             # Restore only active plotter
@@ -346,13 +345,16 @@ class _PyVistaRenderer(_AbstractRenderer):
             if 'rgba' in kwargs:
                 rgba = kwargs["rgba"]
                 kwargs.pop('rgba')
+            smooth_shading = self.smooth_shading
+            if representation == 'wireframe':
+                smooth_shading = False  # never use smooth shading for wf
             actor = _add_mesh(
                 plotter=self.plotter,
-                mesh=mesh, color=color, scalars=scalars,
+                mesh=mesh, color=color, scalars=scalars, edge_color=color,
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
                 rng=[vmin, vmax], show_scalar_bar=False,
-                smooth_shading=self.smooth_shading,
+                smooth_shading=smooth_shading,
                 interpolate_before_map=interpolate_before_map,
                 style=representation, line_width=line_width, **kwargs,
             )
@@ -420,7 +422,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 rng=[vmin, vmax],
                 cmap=colormap,
                 opacity=opacity,
-                smooth_shading=self.smooth_shading
+                smooth_shading=self.smooth_shading,
             )
             return actor, contour
 
@@ -1010,7 +1012,7 @@ def _set_3d_view(figure, azimuth=None, elevation=None, focalpoint='auto',
     position = np.array(figure.plotter.camera_position[0])
     bounds = np.array(figure.plotter.renderer.ComputeVisiblePropBounds())
     if reset_camera:
-        figure.plotter.reset_camera()
+        figure.plotter.reset_camera(render=False)
 
     # focalpoint: if 'auto', we use the center of mass of the visible
     # bounds, if None, we use the existing camera focal point otherwise
