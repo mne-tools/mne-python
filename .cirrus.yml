@@ -20,6 +20,8 @@ macos_arm64_task:
       - echo $PYTHON_VERSION && cat requirements.txt && cat requirements_testing.txt && cat requirements_testing_extra.txt
     populate_script:
       - ./tools/cirrus_dependencies.sh
+  pip_script:  # now we actually run it (possibly another time) to install deps
+    - ./tools/cirrus_dependencies.sh
   install_script:
     - pip install -ve .
   info_script:
