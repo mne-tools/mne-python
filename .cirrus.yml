@@ -8,6 +8,7 @@ macos_arm64_task:
   name: macOS arm64 (M1) tests
   # Auto-cancel PR builds
   auto_cancellation: $CIRRUS_PR != ''
+  only_if: $CIRRUS_REPO_FULL_NAME == "mne-tools/mne-python"
   macos_instance:
     image: ghcr.io/cirruslabs/macos-monterey-base:latest
   env:
