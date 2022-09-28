@@ -464,12 +464,15 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             if not gfp_only:
                 chs = [info['chs'][i] for i in idx]
                 locs3d = np.array([ch['loc'][:3] for ch in chs])
+                # _plot_psd can pass spatial_colors=color (e.g., "black") so
+                # we need to use "is True" here
                 _spat_col = _check_spatial_colors(info, idx, spatial_colors)
-                if (_spat_col and not _check_ch_locs(info=info, picks=idx)):
+                if (_spat_col is True and
+                        not _check_ch_locs(info=info, picks=idx)):
                     warn('Channel locations not available. Disabling spatial '
                          'colors.')
                     _spat_col = selectable = False
-                if _spat_col and len(idx) != 1:
+                if _spat_col is True and len(idx) != 1:
                     x, y, z = locs3d.T
                     colors = _rgb(x, y, z)
                     _handle_spatial_colors(colors, info, idx, this_type, psd,
