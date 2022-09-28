@@ -8,11 +8,12 @@ macos_arm64_task:
   name: macOS arm64 (M1) tests
   # Auto-cancel PR builds
   auto_cancellation: $CIRRUS_PR != ''
+  only_if: $CIRRUS_REPO_FULL_NAME == "mne-tools/mne-python"
   macos_instance:
     image: ghcr.io/cirruslabs/macos-monterey-base:latest
   env:
     PATH: /opt/homebrew/opt/python@3.10/libexec/bin:$PATH
-  python_script:
+  python_install_script:
     - ./tools/cirrus_install_python.sh
   pip_cache:
     folder: ~/Library/Caches/pip
@@ -20,9 +21,11 @@ macos_arm64_task:
       - echo $PYTHON_VERSION && cat requirements.txt && cat requirements_testing.txt && cat requirements_testing_extra.txt
     populate_script:
       - ./tools/cirrus_dependencies.sh
-  install_script:
+  pip_install_script:  # now we actually run it (possibly another time) to install deps
+    - ./tools/cirrus_dependencies.sh
+  mne_install_script:
     - pip install -ve .
-  info_script:
+  mne_sys_info_script:
     - mne sys_info -pd
   testing_cache:
     folder: ~/mne_data
@@ -30,8 +33,8 @@ macos_arm64_task:
       - ./tools/get_testing_version.sh
     populate_script:
       - python -c "import mne; mne.datasets.testing.data_path(force_update=True, verbose=True)"
-  test_script:
-    - pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml -vv mne
+  pytest_script:
+    - pytest -m "not slowtest" --tb=short --cov=mne --cov-report=xml -vv mne
   # https://cirrus-ci.org/guide/writing-tasks/#artifact-parsing
   always:
     upload_results_artifacts:
