@@ -33,7 +33,7 @@ macos_arm64_task:
     populate_script:
       - python -c "import mne; mne.datasets.testing.data_path(force_update=True, verbose=True)"
   pytest_script:
-    - pytest -m "not ultraslowtest" --tb=short --cov=mne --cov-report=xml -vv mne
+    - pytest -m "not slowtest" --tb=short --cov=mne --cov-report=xml -vv mne
   # https://cirrus-ci.org/guide/writing-tasks/#artifact-parsing
   always:
     upload_results_artifacts:
