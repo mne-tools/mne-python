@@ -928,5 +928,8 @@ def pytest_runtest_call(item):
 def nirx_snirf(request):
     """Return a (raw_nirx, raw_snirf) matched pair."""
     pytest.importorskip('h5py')
+    skipper = request.param[2].marks[0].mark
+    if skipper.args[0]:  # will skip
+        pytest.skip(skipper.kwargs['reason'])
     return (read_raw_nirx(request.param[0], preload=True),
             read_raw_snirf(request.param[1], preload=True))
