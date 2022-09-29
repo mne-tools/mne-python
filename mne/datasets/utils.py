@@ -185,7 +185,7 @@ def _check_in_testing_and_raise(name, download):
         del frame
     if check and download is not False:
         raise RuntimeError(
-            f'Cannot download dataset {repr(name)} in tests, pass '
+            f'Do not download dataset {repr(name)} in tests, pass '
             f'{func}(download=False) to prevent accidental downloads')
 
 
