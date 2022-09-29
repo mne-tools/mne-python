@@ -3,6 +3,7 @@
 #
 # License: BSD-3-Clause
 import os.path as op
+from inspect import signature
 
 import pytest
 import numpy as np
@@ -67,7 +68,7 @@ def _real_vec_stc():
 
 def test_sourcemorph_consistency():
     """Test SourceMorph class consistency."""
-    assert _get_args(SourceMorph.__init__)[1:-1] == \
+    assert list(signature(SourceMorph.__init__).parameters)[1:-1] == \
         mne.morph._SOURCE_MORPH_ATTRIBUTES
 
 
