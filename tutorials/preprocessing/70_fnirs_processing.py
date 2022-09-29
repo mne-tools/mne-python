@@ -204,7 +204,7 @@ epochs.plot_drop_log()
 # trials, and the consistent dip in HbR that is slightly delayed relative to
 # the HbO peak.
 
-epochs['Tapping'].plot_image(combine='mean', vlim=(-30, 30),
+epochs['Tapping'].plot_image(combine='mean', vmin=-30, vmax=30,
                              ts_args=dict(ylim=dict(hbo=[-15, 15],
                                                     hbr=[-15, 15])))
 
@@ -213,7 +213,7 @@ epochs['Tapping'].plot_image(combine='mean', vlim=(-30, 30),
 # We can also view the epoched data for the control condition and observe
 # that it does not show the expected morphology.
 
-epochs['Control'].plot_image(combine='mean', vlim=(-30, 30),
+epochs['Control'].plot_image(combine='mean', vmin=-30, vmax=30,
                              ts_args=dict(ylim=dict(hbo=[-15, 15],
                                                     hbr=[-15, 15])))
 
