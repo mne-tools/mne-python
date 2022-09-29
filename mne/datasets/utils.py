@@ -154,7 +154,7 @@ def _check_in_testing_and_raise(name, download):
     root_dirs = [
         importlib.import_module(ns)
         for ns in _MODULES_TO_ENSURE_DOWNLOAD_IS_FALSE_IN_TESTS]
-    root_dirs = [Path(ns.__file__).parent for ns in root_dirs]
+    root_dirs = [str(Path(ns.__file__).parent) for ns in root_dirs]
     check = False
     func = None
     frame = inspect.currentframe()
@@ -172,7 +172,8 @@ def _check_in_testing_and_raise(name, download):
             if fname is not None:
                 fname = Path(fname)
                 # in mne namespace, and
-                if any(fname.is_relative_to(rd) for rd in root_dirs) and (
+                # (can't use is_relative_to here until 3.9)
+                if any(str(fname).startswith(rd) for rd in root_dirs) and (
                         # in tests/*.py
                         fname.parent.stem == 'tests' or
                         # or in a conftest.py
