@@ -9,6 +9,8 @@
 # License: BSD Style.
 
 from collections import OrderedDict
+import importlib
+import inspect
 import os
 import os.path as op
 from pathlib import Path
@@ -142,11 +144,59 @@ def _do_path_update(path, update_path, key, name):
     return path
 
 
+# This is meant to be semi-public: let packages like mne-bids use it to make
+# sure they don't accidentally set download=True in their tests, too
+_MODULES_TO_ENSURE_DOWNLOAD_IS_FALSE_IN_TESTS = ('mne',)
+
+
+def _check_in_testing_and_raise(name, download):
+    """Check if we're in an MNE test and raise an error if download!=False."""
+    root_dirs = [
+        importlib.import_module(ns)
+        for ns in _MODULES_TO_ENSURE_DOWNLOAD_IS_FALSE_IN_TESTS]
+    root_dirs = [Path(ns.__file__).parent for ns in root_dirs]
+    check = False
+    func = None
+    frame = inspect.currentframe()
+    try:
+        # First, traverse out of the data_path() call
+        while frame:
+            if frame.f_code.co_name in ('data_path', 'load_data'):
+                func = frame.f_code.co_name
+                frame = frame.f_back.f_back  # out of verbose decorator
+                break
+            frame = frame.f_back
+        # Next, see what the caller was
+        while frame:
+            fname = frame.f_code.co_filename
+            if fname is not None:
+                fname = Path(fname)
+                # in mne namespace, and
+                if any(fname.is_relative_to(rd) for rd in root_dirs) and (
+                        # in tests/*.py
+                        fname.parent.stem == 'tests' or
+                        # or in a conftest.py
+                        fname.stem == 'conftest.py'):
+                    check = True
+                    break
+            frame = frame.f_back
+    finally:
+        del frame
+    if check and download is not False:
+        raise RuntimeError(
+            f'Cannot download dataset {repr(name)} in tests, pass '
+            f'{func}(download=False) to prevent accidental downloads')
+
+
+
+
 def _download_mne_dataset(name, processor, path, force_update,
                           update_path, download, accept=False):
     """Aux function for downloading internal MNE datasets."""
     import pooch
     from mne.datasets._fetch import fetch_dataset
+
+    _check_in_testing_and_raise(name, download)
 
     # import pooch library for handling the dataset downloading
     dataset_params = MNE_DATASETS[name]
