@@ -188,8 +188,6 @@ def _check_in_testing_and_raise(name, download):
             f'{func}(download=False) to prevent accidental downloads')
 
 
-
-
 def _download_mne_dataset(name, processor, path, force_update,
                           update_path, download, accept=False):
     """Aux function for downloading internal MNE datasets."""
