@@ -74,6 +74,11 @@ def test_downloads(tmp_path, monkeypatch, capsys):
     # that we're hitting (https://github.com/pytest-dev/pytest/issues/5997)
     # now that we use pooch
     with capsys.disabled():
+        with pytest.raises(RuntimeError, match='Do not download .* in tests'):
+            path = datasets._fake.data_path(update_path=False, **kwargs)
+        monkeypatch.setattr(
+            datasets.utils,
+            '_MODULES_TO_ENSURE_DOWNLOAD_IS_FALSE_IN_TESTS', ())
         path = datasets._fake.data_path(update_path=False, **kwargs)
     assert op.isdir(path)
     assert op.isfile(op.join(path, 'bar'))
