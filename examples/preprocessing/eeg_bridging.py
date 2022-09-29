@@ -339,7 +339,7 @@ cmap = LinearSegmentedColormap.from_list(name='impedance_cmap',
                                          colors=['g', 'y', 'r'], N=256)
 fig, ax = plt.subplots(figsize=(5, 5))
 im, cn = mne.viz.plot_topomap(impedances, raw.info, axes=ax,
-                              cmap=cmap, vmin=25, vmax=75)
+                              cmap=cmap, vlim=(25, 75))
 ax.set_title('Electrode Impendances')
 cax = fig.colorbar(im, ax=ax)
 cax.set_label(r'Impedance (k$\Omega$)')

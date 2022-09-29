@@ -398,7 +398,7 @@ snrs_12hz_chaverage = snrs_12hz.mean(axis=0)
 
 # plot SNR topography
 fig, ax = plt.subplots(1)
-mne.viz.plot_topomap(snrs_12hz_chaverage, epochs.info, vmin=1., axes=ax)
+mne.viz.plot_topomap(snrs_12hz_chaverage, epochs.info, vlim=(1, None), axes=ax)
 
 print("sub 2, 12 Hz trials, SNR at 12 Hz")
 print("average SNR (all channels): %f" % snrs_12hz_chaverage.mean())

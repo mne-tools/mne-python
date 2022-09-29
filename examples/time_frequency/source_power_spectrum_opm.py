@@ -166,8 +166,8 @@ def plot_band(kind, band):
     """Plot activity within a frequency band on the subject's brain."""
     title = "%s %s\n(%d-%d Hz)" % ((titles[kind], band,) + freq_bands[band])
     topos[kind][band].plot_topomap(
-        times=0., scalings=1., cbar_fmt='%0.1f', vmin=0, cmap='inferno',
-        time_format=title)
+        times=0., scalings=1., cbar_fmt='%0.1f', vlim=(0, None),
+        cmap='inferno', time_format=title)
     brain = stcs[kind][band].plot(
         subject=subject, subjects_dir=subjects_dir, views='cau', hemi='both',
         time_label=title, title=title, colormap='inferno',

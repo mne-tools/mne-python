@@ -71,7 +71,7 @@ stats_picks = mne.pick_channels(evoked.ch_names, significant_sensors_names)
 mask = p_values[:, np.newaxis] <= 0.05
 
 evoked.plot_topomap(ch_type='grad', times=[0], scalings=1,
-                    time_format=None, cmap='Reds', vmin=0., vmax=np.max,
+                    time_format=None, cmap='Reds', vlim=(0., np.max),
                     units='-log10(p)', cbar_fmt='-%0.1f', mask=mask,
                     size=3, show_names=lambda x: x[4:] + ' ' * 20,
                     time_unit='s')

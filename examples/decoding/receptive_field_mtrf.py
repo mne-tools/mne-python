@@ -137,7 +137,7 @@ time_plot = 0.180  # For highlighting a specific time.
 fig, ax = plt.subplots(figsize=(4, 8))
 max_coef = mean_coefs.max()
 ax.pcolormesh(times, ix_chs, mean_coefs, cmap='RdBu_r',
-              vmin=-max_coef, vmax=max_coef, shading='gouraud')
+              vlim=(-max_coef, max_coef), shading='gouraud')
 ax.axvline(time_plot, ls='--', color='k', lw=2)
 ax.set(xlabel='Delay (s)', ylabel='Channel', title="Mean Model\nCoefficients",
        xlim=times[[0, -1]], ylim=[len(ix_chs) - 1, 0],
@@ -149,7 +149,7 @@ mne.viz.tight_layout()
 ix_plot = np.argmin(np.abs(time_plot - times))
 fig, ax = plt.subplots()
 mne.viz.plot_topomap(mean_coefs[:, ix_plot], pos=info, axes=ax, show=False,
-                     vmin=-max_coef, vmax=max_coef)
+                     vlim=(-max_coef, max_coef))
 ax.set(title="Topomap of model coefficients\nfor delay %s" % time_plot)
 mne.viz.tight_layout()
 
@@ -250,13 +250,13 @@ ix_plot = np.arange(np.argmin(np.abs(time_plot[0] - times)),
 fig, ax = plt.subplots(1, 2)
 mne.viz.plot_topomap(np.mean(mean_coefs[:, ix_plot], axis=1),
                      pos=info, axes=ax[0], show=False,
-                     vmin=-max_coef, vmax=max_coef)
+                     vlim=(-max_coef, max_coef))
 ax[0].set(title="Model coefficients\nbetween delays %s and %s"
           % (time_plot[0], time_plot[1]))
 
 mne.viz.plot_topomap(np.mean(mean_patterns[:, ix_plot], axis=1),
                      pos=info, axes=ax[1],
-                     show=False, vmin=-max_patterns, vmax=max_patterns)
+                     show=False, vlim=(-max_patterns, max_patterns))
 ax[1].set(title="Inverse-transformed coefficients\nbetween delays %s and %s"
           % (time_plot[0], time_plot[1]))
 mne.viz.tight_layout()
