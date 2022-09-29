@@ -29,7 +29,6 @@ from mne.source_space import _add_interpolator, _grid_interp
 from mne.transforms import quat_to_rot
 from mne.utils import (requires_nibabel, check_version, requires_version,
                        requires_dipy, catch_logging, _record_warnings)
-from mne.fixes import _get_args
 
 # Setup paths
 
