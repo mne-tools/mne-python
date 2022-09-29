@@ -13,7 +13,12 @@ def _do_widget_tests(backend):
     widget_checks = set()
 
     def callback(x=None):
-        widget_checks.add('click' if x is None else x)
+        add = x
+        if add is None:
+            add = 'click'
+        elif isinstance(add, str):
+            add = add.lstrip('&')  # new notebooks can add this
+        widget_checks.add(add)
 
     window = backend._AppWindow()
     central_layout = backend._VBoxLayout(scroll=(500, 500))
