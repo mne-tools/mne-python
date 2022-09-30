@@ -33,6 +33,16 @@ Steering Council
 * `Robert Luke`_
 * `Stefan Appelhoff`_
 
+
+Community Participation Guidelines Response Leads
+-------------------------------------------------
+
+See our `Community Participation Guidelines<https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md>`_ for explanation. Current Response Leads are:
+
+* `Daniel McCloy`_
+* `Eric Larson`_
+
+
 Institutional Partners
 ----------------------
 
