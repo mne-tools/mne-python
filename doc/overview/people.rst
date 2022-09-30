@@ -34,6 +34,8 @@ Steering Council
 * `Stefan Appelhoff`_
 
 
+.. _governance-cpgrl:
+
 Community Participation Guidelines Response Leads
 -------------------------------------------------
 
