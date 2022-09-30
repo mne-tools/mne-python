@@ -6,7 +6,7 @@
 #
 # License: BSD-3-Clause
 
-from inspect import isfunction, signature
+from inspect import isfunction, signature, Parameter
 from collections import namedtuple
 from collections.abc import Sequence
 from copy import deepcopy
@@ -111,11 +111,12 @@ def get_score_funcs():
     score_funcs.update({n: _make_xy_sfunc(f)
                         for n, f in xy_arg_dist_funcs
                         if signature(f).parameters == ['u', 'v']})
-    # In SciPy 1.9+, pearsonr has (u, v, *, alternative='two-sided'), so we
+    # In SciPy 1.9+, pearsonr has (x, y, *, alternative='two-sided'), so we
     # should just look at the positional_only and positional_or_keyword entries
     for n, f in xy_arg_stats_funcs:
         params = [name for name, param in signature(f).parameters.items()
-                  if param.POSITIONAL_ONLY or param.POSITIONAL_OR_KEYWORD]
+                  if param.kind in
+                  (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD)]
         if params == ['x', 'y']:
             score_funcs.update({n: _make_xy_sfunc(f, ndim_output=True)})
     assert 'pearsonr' in score_funcs
