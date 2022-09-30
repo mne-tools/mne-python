@@ -35,9 +35,6 @@ and statistically separate 12 Hz and 15 Hz responses in the different trials.
 Since the evoked response is mainly generated in early visual areas of the
 brain the statistical analysis will be carried out on an occipital
 ROI.
-
-.. contents:: Outline
-   :depth: 2
 """  # noqa: E501
 # Authors: Dominik Welke <dominik.welke@web.de>
 #          Evgenii Kalenkovich <e.kalenkovich@gmail.com>
