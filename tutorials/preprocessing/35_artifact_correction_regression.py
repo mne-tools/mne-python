@@ -92,7 +92,7 @@ fig.set_size_inches(6, 6)
 # Perform regression using the EOG sensor as independent variable and the EEG
 # sensors as dependent variables.
 model_plain = EOGRegression(picks='eeg', picks_artifact='eog').fit(epochs)
-fig = model_plain.plot(vmax=0.4)  # Show regression coefficients as a topomap
+fig = model_plain.plot(vlim=(None, 0.4))  # regression coefficients as topomap
 fig.set_size_inches(3, 2)
 
 # %%
@@ -141,7 +141,7 @@ epochs_sub = epochs.copy().subtract_evoked()
 
 # perform regression
 model_sub = EOGRegression(picks='eeg', picks_artifact='eog').fit(epochs_sub)
-fig = model_sub.plot(vmax=0.4)
+fig = model_sub.plot(vlim=(None, 0.4))
 fig.set_size_inches(3, 2)
 
 # apply the regression coefficients to the original epochs
@@ -188,7 +188,7 @@ fig.set_size_inches(6, 6)
 
 # perform regression on the evoked blink response
 model_evoked = EOGRegression(picks='eeg', picks_artifact='eog').fit(eog_evoked)
-fig = model_evoked.plot(vmax=0.4)
+fig = model_evoked.plot(vlim=(None, 0.4))
 fig.set_size_inches(3, 2)
 
 # apply the regression coefficients to the original epochs

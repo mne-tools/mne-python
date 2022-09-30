@@ -136,10 +136,10 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
             title = ch_type
         this_data = np.average(this_data, axis=1)
         axarr[0][idx].set_title(title)
-        vmin = min(this_data) if psd else None
-        vmax = max(this_data) if psd else None  # All negative for dB psd.
+        # can be all negative for dB PSD
+        vlim = (min(this_data), max(this_data)) if psd else (None, None)
         cmap = 'Reds' if psd else None
-        plot_topomap(this_data, pos, cmap=cmap, vmin=vmin, vmax=vmax,
+        plot_topomap(this_data, pos, cmap=cmap, vlim=vlim,
                      axes=axarr[0][idx], show=False, sphere=this_sphere,
                      outlines=outlines)
 
@@ -1420,7 +1420,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     topomap_args : None | dict
         A dict of ``kwargs`` that are forwarded to
         :meth:`mne.Evoked.plot_topomap` to style the topomaps.
-        If it is not in this dict, ``outlines='skirt'`` will be passed.
+        If it is not in this dict, ``outlines='head'`` will be passed.
         ``show``, ``times``, ``colorbar`` are illegal.
         If ``None``, no customizable arguments will be passed.
         Defaults to ``None``.
@@ -1567,7 +1567,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     topomap_args_pass = (dict(extrapolate='local') if ch_type == 'seeg'
                          else dict())
     topomap_args_pass.update(topomap_args)
-    topomap_args_pass['outlines'] = topomap_args.get('outlines', 'skirt')
+    topomap_args_pass['outlines'] = topomap_args.get('outlines', 'head')
     topomap_args_pass['contours'] = contours
     evoked.plot_topomap(times=times_sec, axes=map_ax, show=False,
                         colorbar=False, **topomap_args_pass)

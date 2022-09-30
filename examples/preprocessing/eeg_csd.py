@@ -83,7 +83,7 @@ for i, lambda2 in enumerate([0, 1e-7, 1e-5, 1e-3]):
         this_evoked_csd = mne.preprocessing.compute_current_source_density(
             evoked, stiffness=m, lambda2=lambda2)
         this_evoked_csd.plot_topomap(
-            0.1, axes=ax[i, j], outlines='skirt', contours=4, time_unit='s',
+            0.1, axes=ax[i, j], contours=4, time_unit='s',
             colorbar=False, show=False)
         ax[i, j].set_title('stiffness=%i\nλ²=%s' % (m, lambda2))
 

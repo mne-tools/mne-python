@@ -140,7 +140,7 @@ def plot_projs_joint(projs, evoked, picks_trace=None, *, topomap_kwargs=None,
         tr_ax = plt.subplot2grid(
             shape, (ri, n_col - cs_trace), colspan=cs_trace, fig=fig)
         # topomaps
-        _plot_projs_topomap(these_projs, info=info, show=False,
+        _plot_projs_topomap(these_projs, info=info,
                             axes=topo_axes, **topomap_kwargs)
         for idx, proj, ax_ in zip(these_idxs, these_projs, topo_axes):
             ax_.set_title('')  # could use proj['desc'] but it's long

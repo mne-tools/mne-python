@@ -13,22 +13,22 @@ import numpy as np
 
 from ..channels.channels import UpdateChannelsMixin, _get_ch_type
 from ..channels.layout import _merge_ch_data
-# from ..defaults import (_BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT,
-#                         _INTERPOLATION_DEFAULT)
-from ..defaults import _handle_default
+from ..defaults import (_BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                        _INTERPOLATION_DEFAULT, _handle_default)
 from ..io.meas_info import ContainsMixin
 from ..io.pick import _pick_data_channels, _picks_to_idx, pick_info
-from ..utils import (GetEpochsMixin, _build_data_frame, repr_html,
+from ..utils import (GetEpochsMixin, _build_data_frame,
                      _check_pandas_index_arguments, _check_pandas_installed,
                      _check_sphere, _time_mask, _validate_type, fill_doc,
-                     legacy, logger, object_diff, verbose, warn)
+                     legacy, logger, object_diff, repr_html, verbose, warn)
 from ..utils.check import (_check_fname, _check_option, _import_h5io_funcs,
                            _is_numeric, check_fname)
 from ..utils.misc import _pl
 from ..viz.topo import _plot_timeseries, _plot_timeseries_unified, _plot_topo
 from ..viz.topomap import (_make_head_outlines, _prepare_topomap_plot,
                            plot_psds_topomap)
-from ..viz.utils import _plot_psd, plt_show
+from ..viz.utils import (_format_units_psd, _plot_psd, _prepare_sensor_names,
+                         plt_show)
 from . import psd_array_multitaper, psd_array_welch
 from .psd import _check_nfft
 
@@ -161,38 +161,50 @@ class SpectrumMixin():
 
     @legacy(alt='.compute_psd().plot_topomap()')
     @verbose
-    def plot_psd_topomap(self, bands=None, tmin=None, tmax=None, proj=False,
-                         method='auto', ch_type=None, *, normalize=False,
-                         agg_fun=None, dB=False,  # sensors=True,
-                         # show_names=False, mask=None, mask_params=None,
-                         # contours=6,
-                         outlines='head', sphere=None,
-                         # image_interp=_INTERPOLATION_DEFAULT,
-                         # extrapolate=_EXTRAPOLATE_DEFAULT,
-                         # border=_BORDER_DEFAULT, res=64, size=1,
-                         cmap=None, vlim=(None, None),  # colorbar=True,
-                         cbar_fmt='auto', units=None,
-                         axes=None, show=True, n_jobs=None, verbose=None,
-                         **method_kw):
+    def plot_psd_topomap(self, bands=None, tmin=None, tmax=None, ch_type=None,
+                         *, proj=False, method='auto', normalize=False,
+                         agg_fun=None, dB=False, sensors=True,
+                         show_names=False, mask=None, mask_params=None,
+                         contours=0, outlines='head', sphere=None,
+                         image_interp=_INTERPOLATION_DEFAULT,
+                         extrapolate=_EXTRAPOLATE_DEFAULT,
+                         border=_BORDER_DEFAULT, res=64, size=1, cmap=None,
+                         vlim=(None, None), cnorm=None, colorbar=True,
+                         cbar_fmt='auto', units=None, axes=None, show=True,
+                         n_jobs=None, verbose=None, **method_kw):
         """Plot scalp topography of PSD for chosen frequency bands.
 
         Parameters
         ----------
         %(bands_psd_topo)s
         %(tmin_tmax_psd)s
+        %(ch_type_topomap_psd)s
         %(proj_psd)s
         %(method_plot_psd_auto)s
-        %(ch_type_psd_topomap)s
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
         %(dB_plot_topomap)s
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+        %(mask_evoked_topomap)s
+        %(mask_params_topomap)s
+        %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
-        %(cmap_psd_topo)s
-        %(vlim_psd_topo_joint)s
-        %(cbar_fmt_psd_topo)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+        %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cmap_topomap)s
+        %(vlim_plot_topomap_psd)s
+        %(cnorm)s
+
+            .. versionadded:: 1.2
+        %(colorbar_topomap)s
+        %(cbar_fmt_topomap_psd)s
         %(units_topomap)s
-        %(axes_plot_topomap)s
+        %(axes_spectrum_plot_topomap)s
         %(show)s
         %(n_jobs)s
         %(verbose)s
@@ -203,33 +215,18 @@ class SpectrumMixin():
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
         """
-        # add after dB
-        # %(sensors_topomap)s
-        # %(show_names_topomap)s
-        # %(mask_evoked_topomap)s
-        # %(mask_params_topomap)s
-        # %(contours_topomap)s
-        # add after sphere
-        # %(image_interp_topomap)s
-        # %(extrapolate_topomap)s
-        # %(border_topomap)s
-        # %(res_topomap)s
-        # %(size_topomap)s
-        # add after vlim
-        # %(colorbar_topomap)s
         spectrum = self.compute_psd(
             method=method, tmin=tmin, tmax=tmax, proj=proj,
             n_jobs=n_jobs, verbose=verbose, **method_kw)
 
         fig = spectrum.plot_topomap(
             bands=bands, ch_type=ch_type, normalize=normalize, agg_fun=agg_fun,
-            dB=dB,  # sensors=sensors, show_names=show_names, mask=mask,
-            # mask_params=mask_params, contours=contours,
-            outlines=outlines, sphere=sphere,
-            # image_interp=image_interp, extrapolate=extrapolate,
-            # border=border, res=res, size=size,
-            cmap=cmap, vlim=vlim,  # colorbar=colorbar,
-            cbar_fmt=cbar_fmt, units=units, axes=axes, show=show)
+            dB=dB, sensors=sensors, show_names=show_names, mask=mask,
+            mask_params=mask_params, contours=contours, outlines=outlines,
+            sphere=sphere, image_interp=image_interp, extrapolate=extrapolate,
+            border=border, res=res, size=size, cmap=cmap, vlim=vlim,
+            cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt, units=units,
+            axes=axes, show=show)
         return fig
 
     def _set_legacy_nfft_default(self, tmin, tmax, method, method_kw):
@@ -410,18 +407,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         del self._psd_func
         del self._time_mask
 
-    def _format_units(self, unit, latex, power=True):
-        """Format the measurement units nicely."""
-        unit = f'({unit})' if '/' in unit else unit
-        if power:
-            denom = 'Hz'
-            exp = r'^{2}' if latex else '²'
-        else:
-            denom = r'\sqrt{Hz}' if latex else '√(Hz)'
-            exp = ''
-        pre, post = (r'$\mathrm{', r'}$') if latex else ('', '')
-        return f'{pre}{unit}{exp}/{denom}{post}'
-
     def _get_instance_type_string(self):
         """Get string representation of the originating instance type."""
         from .. import BaseEpochs, Evoked, EvokedArray
@@ -556,7 +541,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(spatial_colors_psd)s
         %(sphere_topomap_auto)s
         %(exclude_spectrum_plot)s
-        %(axes_plot_topomap)s
+        %(axes_spectrum_plot_topomap)s
         %(show)s
 
         Returns
@@ -682,31 +667,41 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     @fill_doc
     def plot_topomap(self, bands=None, ch_type=None, *, normalize=False,
-                     agg_fun=None, dB=False,  # sensors=True, show_names=False,
-                     # mask=None, mask_params=None, contours=6,
-                     outlines='head',
-                     sphere=None,  # image_interp=_INTERPOLATION_DEFAULT,
-                     # extrapolate=_EXTRAPOLATE_DEFAULT,
-                     # border=_BORDER_DEFAULT, res=64, size=1,
-                     cmap=None, vlim=(None, None),  # colorbar=True,
-                     cbar_fmt='auto', units=None, axes=None,
+                     agg_fun=None, dB=False, sensors=True, show_names=False,
+                     mask=None, mask_params=None, contours=6, outlines='head',
+                     sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+                     extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT,
+                     res=64, size=1, cmap=None, vlim=(None, None), cnorm=None,
+                     colorbar=True, cbar_fmt='auto', units=None, axes=None,
                      show=True):
         """Plot scalp topography of PSD for chosen frequency bands.
 
         Parameters
         ----------
         %(bands_psd_topo)s
-        %(ch_type_psd_topomap)s
+        %(ch_type_topomap_psd)s
         %(normalize_psd_topo)s
         %(agg_fun_psd_topo)s
         %(dB_plot_topomap)s
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+        %(mask_evoked_topomap)s
+        %(mask_params_topomap)s
+        %(contours_topomap)s
         %(outlines_topomap)s
         %(sphere_topomap_auto)s
-        %(cmap_psd_topo)s
-        %(vlim_psd_topo_joint)s
-        %(cbar_fmt_psd_topo)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+        %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cmap_topomap)s
+        %(vlim_plot_topomap_psd)s
+        %(cnorm)s
+        %(colorbar_topomap)s
+        %(cbar_fmt_topomap_psd)s
         %(units_topomap)s
-        %(axes_plot_topomap)s
+        %(axes_spectrum_plot_topomap)s
         %(show)s
 
         Returns
@@ -714,20 +709,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         fig : instance of Figure
             Figure showing one scalp topography per frequency band.
         """
-        # add after dB
-        # %(sensors_topomap)s
-        # %(show_names_topomap)s
-        # %(mask_evoked_topomap)s
-        # %(mask_params_topomap)s
-        # %(contours_topomap)s
-        # add after sphere
-        # %(image_interp_topomap)s
-        # %(extrapolate_topomap)s
-        # %(border_topomap)s
-        # %(res_topomap)s
-        # %(size_topomap)s
-        # add after vlim
-        # %(colorbar_topomap)s
         ch_type = _get_ch_type(self, ch_type)
         if units is None:
             units = _handle_default('units', None)
@@ -747,16 +728,16 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         if merge_channels:
             psds, names = _merge_ch_data(psds, ch_type, names, method='mean')
 
+        names = _prepare_sensor_names(names, show_names)
         return plot_psds_topomap(
             psds=psds, freqs=freqs, pos=pos, bands=bands, ch_type=ch_type,
-            normalize=normalize, agg_fun=agg_fun, dB=dB,  # sensors=sensors,
-            # show_names=show_names, mask=mask, mask_params=mask_params,
-            # contours=contours,
-            outlines=outlines, sphere=sphere,
-            # image_interp=image_interp, extrapolate=extrapolate,
-            # border=border, res=res, size=size,
-            cmap=cmap, vlim=vlim,  # colorbar=colorbar,
-            cbar_fmt=cbar_fmt, unit=unit, axes=axes, show=show)
+            normalize=normalize, agg_fun=agg_fun, dB=dB, sensors=sensors,
+            names=names, mask=mask, mask_params=mask_params,
+            contours=contours, outlines=outlines, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate, border=border,
+            res=res, size=size, cmap=cmap, vlim=vlim, cnorm=cnorm,
+            colorbar=colorbar, cbar_fmt=cbar_fmt, unit=unit, axes=axes,
+            show=show)
 
     @verbose
     def save(self, fname, *, overwrite=False, verbose=None):
@@ -882,8 +863,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         """
         units = _handle_default('si_units', None)
         power = not hasattr(self, '_mt_weights')
-        return {ch_type: self._format_units(units[ch_type], power=power,
-                                            latex=latex)
+        return {ch_type: _format_units_psd(units[ch_type], power=power,
+                                           latex=latex)
                 for ch_type in sorted(self.get_channel_types(unique=True))}
 
 

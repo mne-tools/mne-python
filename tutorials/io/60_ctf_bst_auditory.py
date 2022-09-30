@@ -272,11 +272,13 @@ evoked_dev.plot(window_title='Deviant', gfp=True, time_unit='s')
 # %%
 # Show activations as topography figures.
 times = np.arange(0.05, 0.301, 0.025)
-evoked_std.plot_topomap(times=times, title='Standard', time_unit='s')
+fig = evoked_std.plot_topomap(times=times)
+fig.suptitle('Standard')
 
 # %%
 
-evoked_dev.plot_topomap(times=times, title='Deviant', time_unit='s')
+fig = evoked_dev.plot_topomap(times=times)
+fig.suptitle('Deviant')
 
 # %%
 # We can see the MMN effect more clearly by looking at the difference between

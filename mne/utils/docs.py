@@ -249,29 +249,34 @@ average : bool, default True
     .. versionadded:: 0.13.0
 """
 
-_axes = """\
-{} : instance of Axes | list of Axes | None
+_axes_base = """\
+{} : instance of Axes | {}None
     The axes to plot to. If ``None``, a new :class:`~matplotlib.figure.Figure`
-    will be created with the correct number of axes. If
-    :class:`~matplotlib.axes.Axes` are provided (either as a single instance or
-    a :class:`list` of axes), the number of axes provided must {}.
-    Default is ``None``.
+    will be created{}. {}Default is ``None``.
 """
+_axes_num = ('If :class:`~matplotlib.axes.Axes` are provided (either as a '
+             'single instance or a :class:`list` of axes), the number of axes '
+             'provided must {}.')
+_axes_list = _axes_base.format(
+    '{}', 'list of Axes | ', ' with the correct number of axes', _axes_num)
 _ch_types_present = ('match the number of channel types present in the {}'
                      'object.')
-docdict['ax_plot_psd'] = _axes.format('ax', _ch_types_present.format(''))
-docdict['axes_cov_plot_topomap'] = _axes.format('axes', 'be length 1')
-docdict['axes_evoked_plot_topomap'] = _axes.format(
+docdict['ax_plot_psd'] = _axes_list.format('ax', _ch_types_present.format(''))
+docdict['axes_cov_plot_topomap'] = _axes_list.format('axes', 'be length 1')
+docdict['axes_evoked_plot_topomap'] = _axes_list.format(
     'axes',
     'match the number of ``times`` provided (unless ``times`` is ``None``)')
-docdict['axes_plot_topomap'] = _axes.format(
-    'axes', 'match the length of ``bands``')
-docdict['axes_spectrum_plot'] = _axes.format(
+docdict['axes_plot_projs_topomap'] = _axes_list.format(
+    'axes', 'match the number of projectors')
+docdict['axes_plot_topomap'] = _axes_base.format('axes', '', '', '')
+docdict['axes_spectrum_plot'] = _axes_list.format(
     'axes', _ch_types_present.format(':class:`~mne.time_frequency.Spectrum`'))
-docdict['axes_spectrum_plot_topo'] = _axes.format(
+docdict['axes_spectrum_plot_topo'] = _axes_list.format(
     'axes',
     'be length 1 (for efficiency, subplots for each channel are simulated '
     'within a single :class:`~matplotlib.axes.Axes` object)')
+docdict['axes_spectrum_plot_topomap'] = _axes_list.format(
+    'axes', 'match the length of ``bands``')
 
 docdict['axis_facecolor'] = """\
 axis_facecolor : str | tuple
@@ -436,16 +441,14 @@ calibration : str | None
     This file is machine/site-specific.
 """
 
-docdict['cbar_fmt_psd_topo'] = """
+docdict['cbar_fmt_topomap'] = """\
 cbar_fmt : str
-    Format string for the colorbar tick labels. If ``'auto'``, is equivalent
-    to '%0.3f' if ``dB=False`` and '%0.1f' if ``dB=True``. Defaults to
-    ``'auto'``.
+    Formatting string for colorbar tick labels. See :ref:`formatspec` for
+    details.
 """
-
-docdict['cbar_fmt_topomap'] = """
-cbar_fmt : str
-    String format for colorbar values.
+docdict['cbar_fmt_topomap_psd'] = docdict['cbar_fmt_topomap'] + """\
+    If ``'auto'``, is equivalent to '%0.3f' if ``dB=False`` and '%0.1f' if
+    ``dB=True``. Defaults to ``'auto'``.
 """
 
 docdict['center'] = """
@@ -489,16 +492,6 @@ ch_names : list | None
                     ch_names=[[], ['MEG0111', 'MEG2563'], ['MEG1443']])
 """
 
-_ch_type_topomap = """\
-ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-    The channel type to plot. For ``'grad'``, the gradiometers are
-    collected in pairs and the {} for each pair is plotted. If
-    ``None`` the first available channel type from order shown above is
-    used. Defaults to ``None``.
-"""
-
-docdict['ch_type_psd_topomap'] = _ch_type_topomap.format('mean')
-
 docdict['ch_type_set_eeg_reference'] = """
 ch_type : list of str | str
     The name of the channel type to apply the reference to.
@@ -511,7 +504,22 @@ ch_type : list of str | str
        ``list-of-str`` is now supported with ``projection=True``.
 """
 
-docdict['ch_type_topomap'] = _ch_type_topomap.format('RMS')
+_ch_type_topomap_base = """\
+ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None{}
+    The channel type to plot. For ``'grad'``, the gradiometers are
+    collected in pairs and the {} for each pair is plotted. If
+    ``None`` {}. {}Defaults to ``None``.
+"""
+_ch_type_topomap = _ch_type_topomap_base.format(
+    '{}', '{}',
+    'the first available channel type from order shown above is used', '{}')
+docdict['ch_type_topomap'] = _ch_type_topomap.format('', 'RMS', '')
+docdict['ch_type_topomap_proj'] = _ch_type_topomap_base.format(
+    ' | list',
+    'RMS',
+    'it will return all channel types present.',
+    'If a list of ch_types is provided, it will return multiple figures. ')
+docdict['ch_type_topomap_psd'] = _ch_type_topomap.format('', 'mean', '')
 
 chwise = """
 channel_wise : bool
@@ -575,7 +583,7 @@ clim : str | dict
     ``pos_lims``, as the surface plot must show the magnitude.
 """
 
-docdict['cmap_psd_topo'] = """
+docdict['cmap_topomap'] = """
 cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
     Colormap to use. If :class:`tuple`, the first value indicates the colormap
     to use and the second value is a boolean defining interactivity. In
@@ -586,20 +594,6 @@ cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
     the colormap. If ``None``, ``'Reds'`` is used for data that is either
     all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
     ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
-"""
-
-docdict['cmap_topomap'] = """
-cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-    Colormap to use. If tuple, the first value indicates the colormap to
-    use and the second value is a boolean defining interactivity. In
-    interactive mode the colors are adjustable by clicking and dragging the
-    colorbar with left and right mouse button. Left mouse button moves the
-    scale up and down and right mouse button adjusts the range (zoom).
-    The mouse scroll can also be used to adjust the range. Hitting space
-    bar resets the range. Up and down arrows can be used to change the
-    colormap. If None (default), 'Reds' is used for all positive data,
-    otherwise defaults to 'RdBu_r'. If 'interactive', translates to
-    (None, True).
 
     .. warning::  Interactive mode works smoothly only for a small amount
         of topomaps. Interactive mode is disabled by default for more than
@@ -614,9 +608,11 @@ cmap : matplotlib colormap | None
 
 docdict['cnorm'] = """
 cnorm : matplotlib.colors.Normalize | None
-    Colormap normalization, default None means linear normalization. If not
-    None, ``vmin`` and ``vmax`` arguments are ignored. See Notes for more
-    details.
+    How to normalize the colormap. If ``None``, standard linear normalization
+    is performed. If not ``None``, ``vmin`` and ``vmax`` will be ignored.
+    See :doc:`Matplotlib docs <matplotlib:tutorials/colors/colormapnorms>`
+    for more details on colormap normalization, and
+    :ref:`the ERDs example<cnorm-example>` for an example of its use.
 """
 
 docdict['color_matplotlib'] = """
@@ -694,14 +690,14 @@ noise from the data.
 """
 
 docdict['contours_topomap'] = """
-contours : int | array of float
-    The number of contour lines to draw. If 0, no contours will be drawn.
-    When an integer, matplotlib ticker locator is used to find suitable
-    values for the contour thresholds (may sometimes be inaccurate, use
-    array for accuracy). If an array, the values represent the levels for
-    the contours. The values are in µV for EEG, fT for magnetometers and
-    fT/m for gradiometers. If colorbar=True, the ticks in colorbar
-    correspond to the contour levels. Defaults to 6.
+contours : int | array-like
+    The number of contour lines to draw. If ``0``, no contours will be drawn.
+    If a positive integer, that number of contour levels are chosen using the
+    matplotlib tick locator (may sometimes be inaccurate, use array for
+    accuracy). If array-like, the array values are used as the contour levels.
+    The values should be in µV for EEG, fT for magnetometers and fT/m for
+    gradiometers. If ``colorbar=True``, the colorbar will have ticks
+    corresponding to the contour levels. Default is ``6``.
 """
 
 docdict['coord_frame_maxwell'] = """
@@ -2075,6 +2071,13 @@ n_permutations : int
     The number of permutations to compute.
 """
 
+docdict['names_topomap'] = """\
+names : None | list
+    Labels for the sensors. If a :class:`list`, labels should correspond
+    to the order of channels in ``data``. If ``None`` (default), no channel
+    names are plotted.
+"""
+
 docdict['nirx_notes'] = """
 This function has only been tested with NIRScout and NIRSport devices,
 and with the NIRStar software version 15 and above and Aurora software
@@ -2317,6 +2320,11 @@ outlines : 'head' | 'skirt' | dict | None
     masking options, either directly or as a function that returns patches
     (required for multi-axis plots). If None, nothing will be drawn.
     Defaults to 'head'.
+
+    .. deprecated:: v1.2
+       The ``outlines='skirt'`` option is no longer supported and will raise an
+       error starting in version 1.3. Pass ``outlines='head', sphere='eeglab'``
+       for similar behavior.
 """
 
 docdict['overview_mode'] = """
@@ -2592,6 +2600,14 @@ scalp topography plot for the chosen frequency range in a new figure
 """
 # lack of trailing . is intentional; it must be in actual docstring ↑↑↑ (D400)
 
+_pos_topomap = """\
+pos : array, shape (n_channels, 2){}
+    Location information for the channels. If an array, should provide the x
+    and y coordinates for plotting the channels in 2D.
+"""
+docdict['pos_topomap'] = _pos_topomap.format(' | instance of Info')
+docdict['pos_topomap_psd'] = _pos_topomap.format('')
+
 docdict['precompute'] = """
 precompute : bool | str
     Whether to load all data (not just the visible portion) into RAM and
@@ -2694,6 +2710,11 @@ outlines : 'head' | 'skirt' | dict | None
     (required for multi-axis plots). If None, nothing will be drawn.
     Defaults to 'head'.
 
+    .. deprecated:: v1.2
+       The ``outlines='skirt'`` option is no longer supported and will raise an
+       error starting in version 1.3. Pass ``outlines='head'`` for equivalent
+       behavior.
+
 contours : int | array of float
     The number of contour lines to draw. If 0, no contours will be drawn.
     When an integer, matplotlib ticker locator is used to find suitable
@@ -2705,15 +2726,6 @@ axes : instance of Axes | list | None
     The axes to plot to. If list, the list must be a list of Axes of
     the same length as the number of projectors. If instance of Axes,
     there must be only one projector. Defaults to None.
-vlim : tuple of length 2 | 'joint'
-    Colormap limits to use. If :class:`tuple`, specifies the lower and
-    upper bounds of the colormap (in that order); providing ``None`` for
-    either of these will set the corresponding boundary at the min/max of
-    the data (separately for each projector). The keyword value ``'joint'``
-    will compute the colormap limits jointly across all provided
-    projectors of the same channel type, using the min/max of the projector
-    data. If vlim is ``'joint'``, ``info`` must not be ``None``. Defaults
-    to ``(None, None)``.
 """
 
 docdict['projection_set_eeg_reference'] = """
@@ -2921,7 +2933,7 @@ replace : bool
 
 docdict['res_topomap'] = """
 res : int
-    The resolution of the topomap image (n pixels along each side).
+    The resolution of the topomap image (number of pixels along each side).
 """
 
 docdict['return_pca_vars_pctf'] = """
@@ -3038,9 +3050,10 @@ seeg : bool
 
 docdict['sensors_topomap'] = """
 sensors : bool | str
-    Add markers for sensor locations to the plot. Accepts matplotlib plot
-    format string (e.g., 'r+' for red plusses). If True (default),
-    circles will be used.
+    Whether to add markers for sensor locations. If :class:`str`, should be a
+    valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
+    Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
+    default), black circles will be used.
 """
 
 docdict['set_eeg_reference_see_also_notes'] = """
@@ -3100,11 +3113,11 @@ show : bool
 
 docdict['show_names_topomap'] = """
 show_names : bool | callable
-    If True, show channel names on top of the map. If a callable is
-    passed, channel names will be formatted using the callable; e.g., to
+    If ``True``, show channel names next to each sensor marker. If callable,
+    channel names will be formatted using the callable; e.g., to
     delete the prefix 'MEG ' from all channel names, pass the function
-    ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not None, only
-    significant sensors will be shown.
+    ``lambda x: x.replace('MEG ', '')``. If ``mask`` is not ``None``, only
+    non-masked sensor names will be shown.
 """
 
 docdict['show_scalebars'] = """
@@ -3139,7 +3152,7 @@ show_traces : bool | str | float
 
 docdict['size_topomap'] = """
 size : float
-    Side length per topomap in inches.
+    Side length of each subplot in inches.
 """
 
 docdict['skip_by_annotation_maxwell'] = """
@@ -3165,42 +3178,22 @@ spatial_colors : bool
     ``average=True``.
 """
 
-_sphere_header = (
-    'sphere : float | array-like | instance of ConductorModel | None')
-_sphere_desc = (
-    'The sphere parameters to use for the head outline. Can be array-like of '
-    'shape (4,) to give the X/Y/Z origin and radius in meters, or a single '
-    'float to give just the radius (origin assumed 0, 0, 0). Can also be an '
-    'instance of a spherical :class:`~mne.bem.ConductorModel` to use the '
-    'origin and radius from that object.'
-)
-_sphere_topo = _reflow_param_docstring(
-    f"""{_sphere_desc} ``None`` (the default) is equivalent to
-    (0, 0, 0, {HEAD_SIZE_DEFAULT}).
-    Currently the head radius does not affect plotting.""",
-    has_first_line=False)
-_sphere_topo_auto = _reflow_param_docstring(
-    f"""{_sphere_desc} If ``'auto'`` the sphere is fit to digitization points.
-    If ``'eeglab'`` the head circle is defined by EEG electrodes ``'Fpz'``,
-    ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present, it will
-    be approximated from the coordinates of ``'Oz'``). ``None`` (the default)
-    is equivalent to ``'auto'`` when enough extra digitization points are
-    available, and (0, 0, 0, {HEAD_SIZE_DEFAULT}) otherwise. Currently the head
-    radius does not affect plotting.""", has_first_line=False)
-docdict['sphere_topomap'] = f"""
-{_sphere_header}
-    {_sphere_topo}
-
-    .. versionadded:: 0.20
-"""
-
 docdict['sphere_topomap_auto'] = f"""\
-{_sphere_header} | 'auto' | 'eeglab'
-    {_sphere_topo_auto}
+sphere : float | array-like | instance of ConductorModel | None  | 'auto' | 'eeglab'
+    The sphere parameters to use for the head outline. Can be array-like of
+    shape (4,) to give the X/Y/Z origin and radius in meters, or a single float
+    to give just the radius (origin assumed 0, 0, 0). Can also be an instance
+    of a spherical :class:`~mne.bem.ConductorModel` to use the origin and
+    radius from that object. If ``'auto'`` the sphere is fit to digitization
+    points. If ``'eeglab'`` the head circle is defined by EEG electrodes
+    ``'Fpz'``, ``'Oz'``, ``'T7'``, and ``'T8'`` (if ``'Fpz'`` is not present,
+    it will be approximated from the coordinates of ``'Oz'``). ``None`` (the
+    default) is equivalent to ``'auto'`` when enough extra digitization points
+    are available, and (0, 0, 0, {HEAD_SIZE_DEFAULT}) otherwise.
 
     .. versionadded:: 0.20
     .. versionchanged:: 1.1 Added ``'eeglab'`` option.
-"""
+"""  # noqa E501
 
 docdict['split_naming'] = """
 split_naming : 'neuromag' | 'bids'
@@ -3653,11 +3646,16 @@ units : dict | str
     it is assumed that all channels have the same units.
 """
 
-docdict['units_topomap'] = """
-units : dict | str | None
-    The unit of the channel type used for colorbar label. If
-    scale is None the unit is automatically determined.
+_units = """
+units : {}str | None
+    The units of the channel type; used for the colorbar label. Ignored if
+    ``colorbar=False``. If ``None`` {}the label will be "AU" indicating
+    arbitrary units. Default is ``None``.
 """
+docdict['units_topomap'] = _units.format('', '')
+docdict['units_topomap_evoked'] = _units.format(
+    'dict | ',
+    'and ``scalings=None`` the unit is automatically determined, otherwise ')
 
 docdict['use_cps'] = """
 use_cps : bool
@@ -3734,20 +3732,32 @@ views : str | list
     valid string options.
 """
 
-docdict['vlim_psd_topo_joint'] = """
-vlim : tuple of length 2 | 'joint'
+_vlim = """
+vlim : tuple of length 2{}
     Colormap limits to use. If a :class:`tuple` of floats, specifies the
     lower and upper bounds of the colormap (in that order); providing
     ``None`` for either entry will set the corresponding boundary at the
-    min/max of the data (separately for each topomap). Elements of the
-    :class:`tuple` may also be callable functions which take in a
-    :class:`NumPy array <numpy.ndarray>` and return a scalar.
-    If ``vlim='joint'``, will compute the colormap limits jointly across
-    all topomaps of the same channel type, using the min/max of the data.
-    Defaults to ``(None, None)``.
-
-    .. versionadded:: 0.21
+    min/max of the data{}. {}{}{}Defaults to ``(None, None)``.
 """
+_vlim_joint = _vlim.format(
+    " | 'joint'",
+    " (separately for each {0})",
+    '{1}',
+    "If ``vlim='joint'``, will compute the colormap limits jointly across "
+    "all {0}s of the same channel type, using the min/max of the data for "
+    "that channel type. ",
+    '{2}'
+)
+_vlim_callable = (
+    'Elements of the :class:`tuple` may also be callable functions which '
+    'take in a :class:`NumPy array <numpy.ndarray>` and return a scalar. ')
+
+docdict['vlim_plot_topomap'] = _vlim.format('', '', '', '', '')
+docdict['vlim_plot_topomap_proj'] = _vlim_joint.format(
+    'projector', _vlim_callable,
+    "If vlim is ``'joint'``, ``info`` must not be ``None``. ")
+docdict['vlim_plot_topomap_psd'] = _vlim_joint.format(
+    'topomap', _vlim_callable, '')
 
 docdict['vmin_vmax_topomap'] = """
 vmin, vmax : float | callable | None

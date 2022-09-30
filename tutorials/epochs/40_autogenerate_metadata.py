@@ -389,9 +389,8 @@ mne.viz.plot_compare_evokeds({'Correct Response': resp_erp_correct,
                              title='ERPs at FCz, time-locked to response')
 
 # topoplot of average field from time 0.0-0.1 s
-resp_erp_incorrect.plot_topomap(times=0.05, average=0.05, size=3,
-                                title='Avg. topography 0–100 ms after '
-                                      'incorrect responses')
+fig = resp_erp_incorrect.plot_topomap(times=0.05, average=0.05, size=3)
+fig.suptitle('Avg. topography 0–100 ms after incorrect responses', fontsize=16)
 
 # %%
 # We can see a strong negative deflection immediately after incorrect

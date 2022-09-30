@@ -81,20 +81,45 @@ class Projection(dict):
         return not self.__eq__(other)
 
     @fill_doc
-    def plot_topomap(self, info, cmap=None, sensors=True,
-                     colorbar=False, res=64, size=1, show=True,
-                     outlines='head', contours=6,
-                     image_interp=_INTERPOLATION_DEFAULT,
-                     axes=None, vlim=(None, None), sphere=None,
-                     border=_BORDER_DEFAULT):
+    def plot_topomap(
+            self, info, *, sensors=True, show_names=False, contours=6,
+            outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+            size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=False,
+            cbar_fmt='%3.1f', units=None, axes=None, show=True):
         """Plot topographic maps of SSP projections.
 
         Parameters
         ----------
         %(info_not_none)s Used to determine the layout.
-        %(proj_topomap_kwargs)s
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+
+            .. versionadded:: 1.2
+        %(contours_topomap)s
+        %(outlines_topomap)s
         %(sphere_topomap_auto)s
+        %(image_interp_topomap)s
+        %(extrapolate_topomap)s
+
+            .. versionadded:: 1.2
         %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+        %(cmap_topomap)s
+        %(vlim_plot_topomap_proj)s
+        %(cnorm)s
+
+            .. versionadded:: 1.2
+        %(colorbar_topomap)s
+        %(cbar_fmt_topomap)s
+
+            .. versionadded:: 1.2
+        %(units_topomap)s
+
+            .. versionadded:: 1.2
+        %(axes_plot_projs_topomap)s
+        %(show)s
 
         Returns
         -------
@@ -107,10 +132,12 @@ class Projection(dict):
         """  # noqa: E501
         from ..viz.topomap import plot_projs_topomap
         return plot_projs_topomap(
-            self, info, cmap, sensors, colorbar=colorbar, res=res, size=size,
-            show=show, outlines=outlines, contours=contours,
-            image_interp=image_interp, axes=axes, vlim=vlim,
-            sphere=sphere, border=border)
+            self, info, sensors=sensors, show_names=show_names,
+            contours=contours, outlines=outlines, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate, border=border,
+            res=res, size=size, cmap=cmap, vlim=vlim, cnorm=cnorm,
+            colorbar=colorbar, cbar_fmt=cbar_fmt, units=units, axes=axes,
+            show=show)
 
 
 class ProjMixin(object):
@@ -298,46 +325,87 @@ class ProjMixin(object):
         return self
 
     @fill_doc
-    def plot_projs_topomap(self, ch_type=None, cmap=None,
-                           sensors=True, colorbar=False, res=64, size=1,
-                           show=True, outlines='head', contours=6,
-                           image_interp=_INTERPOLATION_DEFAULT, axes=None,
-                           vlim=(None, None), sphere=None,
-                           extrapolate=_EXTRAPOLATE_DEFAULT,
-                           border=_BORDER_DEFAULT):
+    def plot_projs_topomap(
+            self, ch_type=None, *, sensors=True, show_names=False, contours=6,
+            outlines='head', sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
+            size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=False,
+            cbar_fmt='%3.1f', units=None, axes=None, show=True):
         """Plot SSP vector.
 
         Parameters
         ----------
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None | list
-            The channel type to plot. For 'grad', the gradiometers are collec-
-            ted in pairs and the RMS for each pair is plotted. If None
-            (default), it will return all channel types present. If a list of
-            ch_types is provided, it will return multiple figures.
-        %(proj_topomap_kwargs)s
+        %(ch_type_topomap_proj)s
+        %(sensors_topomap)s
+        %(show_names_topomap)s
+
+            .. versionadded:: 1.2
+        %(contours_topomap)s
+        %(outlines_topomap)s
         %(sphere_topomap_auto)s
         %(image_interp_topomap)s
         %(extrapolate_topomap)s
 
             .. versionadded:: 0.20
         %(border_topomap)s
+        %(res_topomap)s
+        %(size_topomap)s
+            Only applies when plotting multiple topomaps at a time.
+        %(cmap_topomap)s
+        %(vlim_plot_topomap_proj)s
+        %(cnorm)s
+
+            .. versionadded:: 1.2
+        %(colorbar_topomap)s
+        %(cbar_fmt_topomap)s
+
+            .. versionadded:: 1.2
+        %(units_topomap)s
+
+            .. versionadded:: 1.2
+        %(axes_plot_projs_topomap)s
+        %(show)s
 
         Returns
         -------
         fig : instance of Figure
             Figure distributing one image per channel across sensor topography.
         """
-        if self.info['projs'] is not None or len(self.info['projs']) != 0:
-            from ..viz.topomap import plot_projs_topomap
-            fig = plot_projs_topomap(self.info['projs'], self.info, cmap=cmap,
-                                     sensors=sensors, colorbar=colorbar,
-                                     res=res, size=size, show=show,
-                                     outlines=outlines, contours=contours,
-                                     image_interp=image_interp, axes=axes,
-                                     vlim=vlim, sphere=sphere,
-                                     extrapolate=extrapolate, border=border)
-        else:
-            raise ValueError("Info is missing projs. Nothing to plot.")
+        _projs = [deepcopy(_proj) for _proj in self.info['projs']]
+        if _projs is None or len(_projs) == 0:
+            raise ValueError('No projectors in Info; nothing to plot.')
+        if ch_type is not None:
+            # make sure the requested channel type(s) exist
+            _validate_type(ch_type, (str, list, tuple), 'ch_type')
+            if isinstance(ch_type, str):
+                ch_type = [ch_type]
+            bad_ch_types = [_type not in self for _type in ch_type]
+            if any(bad_ch_types):
+                raise ValueError(f'ch_type {ch_type[bad_ch_types]} not '
+                                 f'present in {self.__class__.__name__}.')
+            # remove projs from unrequested channel types. This is a bit
+            # convoluted because Projection objects don't store channel types,
+            # only channel names
+            available_ch_types = np.array(self.get_channel_types())
+            for _proj in _projs[::-1]:
+                idx = np.isin(self.ch_names, _proj['data']['col_names'])
+                proj_ch_type = np.unique(available_ch_types[idx])
+                err_msg = 'Projector contains multiple channel types'
+                assert len(proj_ch_type) == 1, err_msg
+                if proj_ch_type[0] != ch_type:
+                    _projs.remove(_proj)
+            if len(_projs) == 0:
+                raise ValueError('Nothing to plot (no projectors for channel '
+                                 f'type {ch_type}).')
+        # now we have non-empty _projs list with correct channel type(s)
+        from ..viz.topomap import plot_projs_topomap
+        fig = plot_projs_topomap(
+            _projs, self.info, sensors=sensors, show_names=show_names,
+            contours=contours, outlines=outlines, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate,
+            border=border, res=res, size=size, cmap=cmap, vlim=vlim,
+            cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt,
+            units=units, axes=axes, show=show)
         return fig
 
     def _reconstruct_proj(self, mode='accurate', origin='auto'):

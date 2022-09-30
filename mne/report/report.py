@@ -3010,7 +3010,7 @@ class Report:
         for ch_type in ch_types:
             evoked.plot_topomap(
                 times=[time], ch_type=ch_type,
-                vmin=vmin[ch_type], vmax=vmax[ch_type],
+                vlim=(vmin[ch_type], vmax[ch_type]),
                 axes=ch_type_ax_map[ch_type], show=False,
                 **topomap_kwargs
             )
