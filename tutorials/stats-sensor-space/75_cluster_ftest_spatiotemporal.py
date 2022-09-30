@@ -321,7 +321,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     # plot average test statistic and mark significant sensors
     f_evoked = mne.EvokedArray(f_map[:, np.newaxis], epochs.info, tmin=0)
     f_evoked.plot_topomap(times=0, mask=mask, axes=ax_topo, cmap='Reds',
-                          show=False, colorbar=False,
+                          vlim=(np.min, np.max), show=False, colorbar=False,
                           mask_params=dict(markersize=10))
     image = ax_topo.images[0]
 
