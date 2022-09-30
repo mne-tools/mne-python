@@ -3066,7 +3066,7 @@ def _set_adjacency(adjacency, both_nodes, value):
 
 @fill_doc
 def plot_regression_weights(
-        model, *, ch_type=None, sensors=True, names=None,
+        model, *, ch_type=None, sensors=True, show_names=False, names=None,
         mask=None, mask_params=None, contours=6, outlines='head', sphere=None,
         image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
         border=_BORDER_DEFAULT, res=64, size=1, cmap=None, vlim=(None, None),
@@ -3080,7 +3080,15 @@ def plot_regression_weights(
         The fitted EOGRegression model whose weights will be plotted.
     %(ch_type_topomap)s
     %(sensors_topomap)s
+    %(show_names_topomap)s
+
+        .. versionadded:: 1.2
     %(names_topomap)s
+
+        .. deprecated:: v1.2
+           The ``names`` parameter will be removed in version 1.3. Names will
+           be automatically selected from ``model.info_``, and can be hidden,
+           shown, or altered via the ``show_names`` parameter.
     %(mask_topomap)s
     %(mask_params_topomap)s
     %(contours_topomap)s
@@ -3119,6 +3127,12 @@ def plot_regression_weights(
         ch_types = [ch_type]
     del ch_type
 
+    if names is not None:
+        warn('The ``names`` parameter will be removed in version 1.3. Names '
+             'will be automatically selected from ``model.info_``, and can be '
+             'hidden, shown, or altered via the ``show_names`` parameter.',
+             FutureWarning)
+
     nrows = model.coef_.shape[1]
     ncols = len(ch_types)
 
@@ -3152,6 +3166,7 @@ def plot_regression_weights(
             if merge_channels:
                 data, names = _merge_ch_data(data, ch_type, names)
             ax = next(axes)
+            names = _prepare_sensor_names(data_info.ch_names, show_names)
 
             _plot_topomap_multi_cbar(
                 data, pos, ax, title=f'{ch_type}/{ch_name}', vlim=vlim,

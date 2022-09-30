@@ -80,7 +80,7 @@ API changes
 ~~~~~~~~~~~
 - In meth:`mne.Evoked.plot`, the default value of the ``spatial_colors`` parameter has been changed to ``'auto'``, which will use spatial colors if channel locations are available (:gh:`11201` by :newcontrib:`Hüseyin Orkun Elmas` and `Daniel McCloy`_)
 - Starting with this release we now follow the Python convention of using ``FutureWarning`` instead of ``DeprecationWarning`` to signal user-facing changes to our API (:gh:`11120` by `Daniel McCloy`_)
-- The ``names`` parameter of :func:`mne.viz.plot_arrowmap` has been deprecated; sensor names will be automatically drawn from the ``info_from`` parameter, and can be hidden, shown, or altered via the ``show_names`` parameter (:gh:`11123` by `Daniel McCloy`_)
+- The ``names`` parameter of :func:`mne.viz.plot_arrowmap` and :func:`mne.viz.plot_regression_weights` has been deprecated; sensor names will be automatically drawn from the ``info_from`` or ``model`` parameter (respectively), and can be hidden, shown, or altered via the ``show_names`` parameter (:gh:`11123` by `Daniel McCloy`_)
 - The ``bands`` parameter of :meth:`mne.Epochs.plot_psd_topomap` now accepts :class:`dict` input; legacy :class:`tuple` input is supported, but discouraged for new code (:gh:`11050` by `Daniel McCloy`_)
 - The :func:`mne.head_to_mri` new function parameter ``kind`` default will change from ``'ras'`` to ``'mri'`` (:gh:`11185` by `Eric Larson`_)
 - The ``show_toolbar`` argument to :class:`mne.viz.Brain` is being removed by deprecation (:gh:`11049` by `Eric Larson`_)
