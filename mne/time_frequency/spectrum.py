@@ -165,7 +165,7 @@ class SpectrumMixin():
                          *, proj=False, method='auto', normalize=False,
                          agg_fun=None, dB=False, sensors=True,
                          show_names=False, mask=None, mask_params=None,
-                         contours=6, outlines='head', sphere=None,
+                         contours=0, outlines='head', sphere=None,
                          image_interp=_INTERPOLATION_DEFAULT,
                          extrapolate=_EXTRAPOLATE_DEFAULT,
                          border=_BORDER_DEFAULT, res=64, size=1, cmap=None,
