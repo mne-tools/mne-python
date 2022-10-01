@@ -11,7 +11,6 @@ from io import StringIO
 from shutil import rmtree
 import sys
 import tempfile
-from tkinter.filedialog import LoadFileDialog
 import traceback
 from unittest import SkipTest
 
