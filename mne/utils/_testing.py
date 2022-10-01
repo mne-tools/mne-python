@@ -437,13 +437,81 @@ def _click_ch_name(fig, ch_index=0, button=1):
                 button=button)
 
 
+# copied from sklearn and adapted to arbitrary dimensionality of X
+def check_dont_overwrite_parameters_3d(name, estimator_orig):
+    from sklearn.base import clone
+    from sklearn.utils.estimator_checks import _pairwise_estimator_convert_X, _enforce_estimator_tags_y, set_random_state, _is_public_parameter
+    # check that fit method only changes or sets private attributes
+    if hasattr(estimator_orig.__init__, "deprecated_original"):
+        # to not check deprecated classes
+        return
+    estimator = clone(estimator_orig)
+    rnd = np.random.RandomState(0)
+    X = 3 * rnd.uniform(size=(20, 20, 3))
+    X = _pairwise_estimator_convert_X(X, estimator_orig)
+    y = X[:,0,0].astype(int)
+    y = _enforce_estimator_tags_y(estimator, y)
+
+    if hasattr(estimator, "n_components"):
+        estimator.n_components = 1
+    if hasattr(estimator, "n_clusters"):
+        estimator.n_clusters = 1
+
+    set_random_state(estimator, 1)
+    dict_before_fit = estimator.__dict__.copy()
+    estimator.fit(X, y)
+
+    dict_after_fit = estimator.__dict__
+
+    public_keys_after_fit = [
+        key for key in dict_after_fit.keys() if _is_public_parameter(key)
+    ]
+
+    attrs_added_by_fit = [
+        key for key in public_keys_after_fit if key not in dict_before_fit.keys()
+    ]
+
+    # check that fit doesn't add any public attribute
+    assert not attrs_added_by_fit, (
+        "Estimator adds public attribute(s) during"
+        " the fit method."
+        " Estimators are only allowed to add private attributes"
+        " either started with _ or ended"
+        " with _ but %s added"
+        % ", ".join(attrs_added_by_fit)
+    )
+
+    # check that fit doesn't change any public attribute
+    attrs_changed_by_fit = [
+        key
+        for key in public_keys_after_fit
+        if (dict_before_fit[key] is not dict_after_fit[key])
+    ]
+
+    assert not attrs_changed_by_fit, (
+        "Estimator changes public attribute(s) during"
+        " the fit method. Estimators are only allowed"
+        " to change attributes started"
+        " or ended with _, but"
+        " %s changed"
+        % ", ".join(attrs_changed_by_fit)
+    )
+
+
 def _check_sklearn_estimator(estimator):
     """Check if estimator meets sklearn requirements."""
     from sklearn.utils.estimator_checks import (check_no_attributes_set_in_init, check_parameters_default_constructible,
-                                                check_dont_overwrite_parameters, check_get_params_invariance, check_set_params)
+                                                check_get_params_invariance, check_set_params)
+    from sklearn.utils.estimator_checks import check_dont_overwrite_parameters as check_dont_overwrite_parameters_2d
     import pytest
 
-    checks = (check_no_attributes_set_in_init, check_parameters_default_constructible, check_dont_overwrite_parameters, check_get_params_invariance, check_set_params)
     name = type(estimator).__name__
-    for check in checks:
-        check(name, estimator) 
+
+    check_no_attributes_set_in_init(name, estimator)
+    check_parameters_default_constructible(name, estimator)
+    if "2darray" in estimator._get_tags()["X_types"]:
+        check_dont_overwrite_parameters_2d(name, estimator)
+    if "3darray" in estimator._get_tags()["X_types"]:
+        check_dont_overwrite_parameters_3d(name, estimator)
+    check_get_params_invariance(name, estimator)
+    check_set_params(name, estimator)
