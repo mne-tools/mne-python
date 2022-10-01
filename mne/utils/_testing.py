@@ -501,17 +501,26 @@ def check_dont_overwrite_parameters_3d(name, estimator_orig):
 def _check_sklearn_estimator(estimator):
     """Check if estimator meets sklearn requirements."""
     from sklearn.utils.estimator_checks import (check_no_attributes_set_in_init, check_parameters_default_constructible,
-                                                check_get_params_invariance, check_set_params)
+                                                check_get_params_invariance, check_set_params, _maybe_skip)
     from sklearn.utils.estimator_checks import check_dont_overwrite_parameters as check_dont_overwrite_parameters_2d
     import pytest
+    from functools import partial
 
     name = type(estimator).__name__
 
-    check_no_attributes_set_in_init(name, estimator)
-    check_parameters_default_constructible(name, estimator)
+    checks = [check_no_attributes_set_in_init, check_parameters_default_constructible, check_get_params_invariance, check_set_params]
+    
     if "2darray" in estimator._get_tags()["X_types"]:
-        check_dont_overwrite_parameters_2d(name, estimator)
+        checks.append(check_dont_overwrite_parameters_2d)
     if "3darray" in estimator._get_tags()["X_types"]:
-        check_dont_overwrite_parameters_3d(name, estimator)
-    check_get_params_invariance(name, estimator)
-    check_set_params(name, estimator)
+        checks.append(check_dont_overwrite_parameters_3d)
+
+    
+    for check in checks:
+        check = _maybe_skip(estimator, check)
+        try:
+            check(name, estimator)
+        except SkipTest as skipped:
+            pass
+        except Exception as err:
+            pytest.fail('%s failed check %s: %s' % (name, check.__name__, err))
