@@ -11,6 +11,7 @@ from io import StringIO
 from shutil import rmtree
 import sys
 import tempfile
+from tkinter.filedialog import LoadFileDialog
 import traceback
 from unittest import SkipTest
 
@@ -434,3 +435,15 @@ def _click_ch_name(fig, ch_index=0, button=1):
     y = bbox.intervaly.mean()
     _fake_click(fig, fig.mne.ax_main, (x, y), xform='pix',
                 button=button)
+
+
+def _check_sklearn_estimator(estimator):
+    """Check if estimator meets sklearn requirements."""
+    from sklearn.utils.estimator_checks import (check_no_attributes_set_in_init, check_parameters_default_constructible,
+                                                check_dont_overwrite_parameters, check_get_params_invariance, check_set_params)
+    import pytest
+
+    checks = (check_no_attributes_set_in_init, check_parameters_default_constructible, check_dont_overwrite_parameters, check_get_params_invariance, check_set_params)
+    name = type(estimator).__name__
+    for check in checks:
+        check(name, estimator) 
