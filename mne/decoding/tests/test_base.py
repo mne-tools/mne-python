@@ -7,6 +7,7 @@ import numpy as np
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_equal, assert_allclose, assert_array_less)
 import pytest
+from sklearn.linear_model import LogisticRegression
 
 from mne import create_info, EpochsArray
 from mne.fixes import is_regressor, is_classifier
@@ -67,7 +68,7 @@ def test_get_coef():
     from sklearn.linear_model import Ridge
     from sklearn.model_selection import GridSearchCV
 
-    lm_classification = LinearModel()
+    lm_classification = LinearModel(LogisticRegression())
     assert (is_classifier(lm_classification))
 
     lm_regression = LinearModel(Ridge())
@@ -149,19 +150,19 @@ def test_get_coef():
         # Retrieve final linear model
         filters = get_coef(clf, 'filters_', False)
         if hasattr(clf, 'steps'):
-            if hasattr(clf.steps[-1][-1].model, 'best_estimator_'):
+            if hasattr(clf.steps[-1][-1].model_, 'best_estimator_'):
                 # Linear Model with GridSearchCV
-                coefs = clf.steps[-1][-1].model.best_estimator_.coef_
+                coefs = clf.steps[-1][-1].model_.best_estimator_.coef_
             else:
                 # Standard Linear Model
-                coefs = clf.steps[-1][-1].model.coef_
+                coefs = clf.steps[-1][-1].model_.coef_
         else:
-            if hasattr(clf.model, 'best_estimator_'):
+            if hasattr(clf.model_, 'best_estimator_'):
                 # Linear Model with GridSearchCV
-                coefs = clf.model.best_estimator_.coef_
+                coefs = clf.model_.best_estimator_.coef_
             else:
                 # Standard Linear Model
-                coefs = clf.model.coef_
+                coefs = clf.model_.coef_
         if coefs.ndim == 2 and coefs.shape[0] == 1:
             coefs = coefs[0]
         assert_array_equal(filters, coefs)
@@ -331,6 +332,12 @@ def test_linearmodel():
     with pytest.raises(ValueError):
         wrong_X = rng.rand(n, n_features, 99)
         clf.fit(wrong_X, y)
+
+    with pytest.raises(ValueError):
+        lm = LinearModel("foo")
+        lm.fit(X, y)
+    
+    LinearModel().fit(X, y)
 
     # check categorical target fit in standard linear model with GridSearchCV
     from sklearn import svm

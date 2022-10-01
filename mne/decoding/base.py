@@ -53,12 +53,20 @@ class LinearModel(BaseEstimator):
     .. footbibliography::
     """
 
-    def __init__(self, model=LogisticRegression()):  # noqa: D102
+    def __init__(self, model=None):  # noqa: D102
         self.model = model
         self._estimator_type = getattr(self.model, "_estimator_type", None)
 
+    def _more_tags(self):
+        return {'_xfail_checks': {'check_no_attributes_set_in_init': 'Estimator sets _estimator_type in init.'}}
+
     def _check_params(self):
-        pass
+        if self.model is None:
+            self.model_ = LogisticRegression()
+        else:
+            self.model_ = self.model
+        _check_estimator(self.model_)
+        self._estimator_type = getattr(self.model_, "_estimator_type", None)
 
     def _check_X_y(self, X, y):
         """Validate input arrays. Will convert data as needed."""
@@ -88,7 +96,7 @@ class LinearModel(BaseEstimator):
         self._check_params()
 
         # fit the Model
-        self.model.fit(X, y, **fit_params)
+        self.model_.fit(X, y, **fit_params)
 
         # Computes patterns using Haufe's trick: A = Cov_X . W . Precision_Y
 
@@ -103,12 +111,12 @@ class LinearModel(BaseEstimator):
 
     @property
     def filters_(self):
-        if hasattr(self.model, 'coef_'):
+        if hasattr(self.model_, 'coef_'):
             # Standard Linear Model
-            filters = self.model.coef_
-        elif hasattr(self.model.best_estimator_, 'coef_'):
+            filters = self.model_.coef_
+        elif hasattr(self.model_.best_estimator_, 'coef_'):
             # Linear Model with GridSearchCV
-            filters = self.model.best_estimator_.coef_
+            filters = self.model_.best_estimator_.coef_
         else:
             raise ValueError('model does not have a `coef_` attribute.')
         if filters.ndim == 2 and filters.shape[0] == 1:
@@ -128,7 +136,7 @@ class LinearModel(BaseEstimator):
         y_pred : array, shape (n_samples,)
             The predicted targets.
         """
-        return self.model.transform(X)
+        return self.model_.transform(X)
 
     def fit_transform(self, X, y):
         """Fit the data and transform it using the linear model.
@@ -160,7 +168,7 @@ class LinearModel(BaseEstimator):
         y_pred : array, shape (n_samples,)
             The predictions.
         """
-        return self.model.predict(X)
+        return self.model_.predict(X)
 
     def predict_proba(self, X):
         """Compute probabilistic predictions of y from X.
@@ -175,7 +183,7 @@ class LinearModel(BaseEstimator):
         y_pred : array, shape (n_samples, n_classes)
             The probabilities.
         """
-        return self.model.predict_proba(X)
+        return self.model_.predict_proba(X)
 
     def decision_function(self, X):
         """Compute distance from the decision function of y from X.
@@ -190,7 +198,7 @@ class LinearModel(BaseEstimator):
         y_pred : array, shape (n_samples, n_classes)
             The distances.
         """
-        return self.model.decision_function(X)
+        return self.model_.decision_function(X)
 
     def score(self, X, y):
         """Score the linear model computed on the given test data.
@@ -207,7 +215,7 @@ class LinearModel(BaseEstimator):
         score : float
             Score of the linear model.
         """
-        return self.model.score(X, y)
+        return self.model_.score(X, y)
 
 
 def _set_cv(cv, estimator=None, X=None, y=None):
