@@ -6,7 +6,7 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
 import pytest
 
-from mne.utils import requires_sklearn, _record_warnings
+from mne.utils import requires_sklearn, _record_warnings, _check_sklearn_estimator 
 from mne.fixes import _get_args
 from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
 from mne.decoding.transformer import Vectorizer
@@ -40,7 +40,8 @@ def test_search_light():
     X, y = make_data()
     n_epochs, _, n_time = X.shape
     # init
-    pytest.raises(ValueError, SlidingEstimator, 'foo')
+    sl = SlidingEstimator("foo")
+    pytest.raises(ValueError, sl.fit, X, y)
     sl = SlidingEstimator(Ridge())
     assert (not is_classifier(sl))
     sl = SlidingEstimator(LogisticRegression(solver='liblinear'))
@@ -52,6 +53,8 @@ def test_search_light():
     pytest.raises(ValueError, sl.fit, X[1:], y)
     pytest.raises(ValueError, sl.fit, X[:, :, 0], y)
     sl.fit(X, y, sample_weight=np.ones_like(y))
+
+    _check_sklearn_estimator(sl)
 
     # transforms
     pytest.raises(ValueError, sl.predict, X[:, :, :2])
@@ -183,6 +186,8 @@ def test_generalization_light():
     assert_equal(repr(gl)[:23], '<GeneralizingEstimator(')
     gl.fit(X, y)
     gl.fit(X, y, sample_weight=np.ones_like(y))
+
+    _check_sklearn_estimator(gl)
 
     assert_equal(gl.__repr__()[-28:], ', fitted with 10 estimators>')
     # transforms

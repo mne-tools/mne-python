@@ -3,6 +3,7 @@
 # License: BSD-3-Clause
 
 import numpy as np
+from sklearn.utils import check_X_y, check_array
 
 from .mixin import TransformerMixin
 from .base import BaseEstimator, _check_estimator
@@ -34,9 +35,8 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
     """
 
     @verbose
-    def __init__(self, base_estimator, scoring=None, n_jobs=None, *,
+    def __init__(self, base_estimator=None, scoring=None, n_jobs=None, *,
                  verbose=None):  # noqa: D102
-        _check_estimator(base_estimator)
         self._estimator_type = getattr(base_estimator, "_estimator_type", None)
         self.base_estimator = base_estimator
         self.n_jobs = n_jobs
@@ -48,6 +48,19 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             repr_str = repr_str[:-1]
             repr_str += ', fitted with %i estimators' % len(self.estimators_)
         return repr_str + '>'
+
+    def _more_tags(self):
+        """Add estimator tags."""
+        return {'X_types': ['3darray'], '_xfail_checks': {'check_no_attributes_set_in_init': '_estimator_type is set in init'}}
+
+    def _check_X_y(self, X, y=None):
+        """Aux. function to check input data."""
+        if y is None:
+            X = check_array(X, ensure_2d=False, allow_nd=True)
+            return np.asarray(X), y
+        else:
+            X, y = check_X_y(X, y, multi_output=True, ensure_2d=False, allow_nd=True, estimator=self)
+            return np.asarray(X), np.asarray(y)
 
     def fit(self, X, y, **fit_params):
         """Fit a series of independent estimators to the dataset.
@@ -69,11 +82,12 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         self : object
             Return self.
         """
-        self._check_Xy(X, y)
+        self._check_X_y(X, y)
+        _check_estimator(self.base_estimator)
         parallel, p_func, n_jobs = parallel_func(
             _sl_fit, self.n_jobs, max_jobs=X.shape[-1], verbose=False)
         self.estimators_ = list()
-        self.fit_params = fit_params
+        self.fit_params_ = fit_params
         # For fitting, the parallelization is across estimators.
         mesg = 'Fitting %s' % (self.__class__.__name__,)
         with ProgressBar(X.shape[-1], mesg=mesg) as pb:
@@ -118,7 +132,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation."""
-        self._check_Xy(X)
+        self._check_X_y(X)
         method = _check_method(self.base_estimator, method)
         if X.shape[-1] != len(self.estimators_):
             raise ValueError('The number of estimators does not match '
@@ -227,14 +241,6 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         """  # noqa: E501
         return self._transform(X, 'decision_function')
 
-    def _check_Xy(self, X, y=None):
-        """Aux. function to check input data."""
-        if y is not None:
-            if len(X) != len(y) or len(y) < 1:
-                raise ValueError('X and y must have the same length.')
-        if X.ndim < 3:
-            raise ValueError('X must have at least 3 dimensions.')
-
     def score(self, X, y):
         """Score each estimator on each task.
 
@@ -260,7 +266,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         """  # noqa: E501
         check_scoring = _get_check_scoring()
 
-        self._check_Xy(X)
+        self._check_X_y(X)
         if X.shape[-1] != len(self.estimators_):
             raise ValueError('The number of estimators does not match '
                              'X.shape[-1]')
@@ -427,7 +433,7 @@ class GeneralizingEstimator(SlidingEstimator):
 
     def _transform(self, X, method):
         """Aux. function to make parallel predictions/transformation."""
-        self._check_Xy(X)
+        self._check_X_y(X)
         method = _check_method(self.base_estimator, method)
         mesg = 'Transforming %s' % (self.__class__.__name__,)
         parallel, p_func, n_jobs = parallel_func(
@@ -543,7 +549,7 @@ class GeneralizingEstimator(SlidingEstimator):
             Score for each estimator / data slice couple.
         """  # noqa: E501
         check_scoring = _get_check_scoring()
-        self._check_Xy(X)
+        self._check_X_y(X)
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
         mesg = 'Scoring %s' % (self.__class__.__name__,)
