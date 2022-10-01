@@ -122,7 +122,7 @@ class CSP(TransformerMixin, BaseEstimator):
         self.component_order = component_order
 
     def _more_tags(self):
-        return {"X_types": ['3darray'], "binary_only": True} # Binary only forces test values for y to occur in both classes, making sure that the covariance computations work correctly
+        return {"X_types": ['3darray'], "binary_only": True}  # Needed for cov
 
     def _check_params(self):
         if not isinstance(self.n_components, int):
@@ -140,17 +140,20 @@ class CSP(TransformerMixin, BaseEstimator):
                 raise ValueError('log must be a None if transform_into == '
                                  '"csp_space".')
 
-        _ = _check_option('transform_into', self.transform_into, ['average_power', 'csp_space'])
+        _ = _check_option('transform_into', self.transform_into,
+                          ('average_power', 'csp_space'))
         _validate_type(self.norm_trace, bool, 'norm_trace')
-        _ = _check_option('component_order', self.component_order, ('mutual_info', 'alternate'))
+        _ = _check_option('component_order', self.component_order,
+                          ('mutual_info', 'alternate'))
 
     def _check_X_y(self, X, y):
         """Validate input arrays. Will convert data as needed."""
-        if not isinstance(X, np.ndarray): 
+        if not isinstance(X, np.ndarray):
             raise ValueError('X must be an ndarray')
-        if not isinstance(y, np.ndarray): 
+        if not isinstance(y, np.ndarray):
             raise ValueError('y must be an ndarray')
-        X, y = check_X_y(X, y, multi_output=True, ensure_2d=False, allow_nd=True, estimator=self)
+        X, y = check_X_y(X, y, multi_output=True, ensure_2d=False,
+                         allow_nd=True, estimator=self)
         if X.ndim < 3:
             raise ValueError('X must have at least 3 dimensions.')
         return np.asarray(X), np.asarray(y)

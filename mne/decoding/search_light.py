@@ -51,7 +51,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
     def _more_tags(self):
         """Add estimator tags."""
-        return {'X_types': ['3darray'], '_xfail_checks': {'check_no_attributes_set_in_init': '_estimator_type is set in init'}}
+        return {'X_types': ['3darray'], '_xfail_checks': {'check_no_attributes_set_in_init': '_estimator_type is set in init'}}  # noqa: E501
 
     def _check_X_y(self, X, y=None):
         """Aux. function to check input data."""
@@ -59,7 +59,8 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             X = check_array(X, ensure_2d=False, allow_nd=True)
             return np.asarray(X), y
         else:
-            X, y = check_X_y(X, y, multi_output=True, ensure_2d=False, allow_nd=True, estimator=self)
+            X, y = check_X_y(X, y, multi_output=True, ensure_2d=False,
+                             allow_nd=True, estimator=self)
             return np.asarray(X), np.asarray(y)
 
     def fit(self, X, y, **fit_params):

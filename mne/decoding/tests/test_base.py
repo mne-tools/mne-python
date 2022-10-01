@@ -336,7 +336,7 @@ def test_linearmodel():
     with pytest.raises(ValueError):
         lm = LinearModel("foo")
         lm.fit(X, y)
-    
+
     LinearModel().fit(X, y)
 
     # check categorical target fit in standard linear model with GridSearchCV

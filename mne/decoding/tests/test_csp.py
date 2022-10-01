@@ -103,7 +103,8 @@ def test_csp():
     _check_sklearn_estimator(CSP())
 
     # Init
-    pytest.raises(ValueError, CSP(n_components='foo', norm_trace=False).fit, epochs_data, y)
+    csp = CSP(n_components='foo', norm_trace=False)
+    pytest.raises(ValueError, csp.fit, epochs_data, y)
     for reg in ['foo', -0.1, 1.1]:
         csp = CSP(reg=reg, norm_trace=False)
         pytest.raises(ValueError, csp.fit, epochs_data, epochs.events[:, -1])
@@ -182,7 +183,7 @@ def test_csp():
     assert (np.sum((X_trans['True'] - X_trans['False']) ** 2) > 1.)
     # Check wrong inputs
     csp = CSP(transform_into="average_power", log="foo")
-    pytest.raises(ValueError, csp.fit, epochs_data, epochs.events[:,1])
+    pytest.raises(ValueError, csp.fit, epochs_data, epochs.events[:, 1])
 
     # Test csp space transform
     csp = CSP(transform_into='csp_space', norm_trace=False)

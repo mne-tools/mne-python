@@ -440,7 +440,10 @@ def _click_ch_name(fig, ch_index=0, button=1):
 # copied from sklearn and adapted to arbitrary dimensionality of X
 def check_dont_overwrite_parameters_3d(name, estimator_orig):
     from sklearn.base import clone
-    from sklearn.utils.estimator_checks import _pairwise_estimator_convert_X, _enforce_estimator_tags_y, set_random_state, _is_public_parameter
+    from sklearn.utils.estimator_checks import (_pairwise_estimator_convert_X,
+                                                _enforce_estimator_tags_y,
+                                                set_random_state,
+                                                _is_public_parameter)
     # check that fit method only changes or sets private attributes
     if hasattr(estimator_orig.__init__, "deprecated_original"):
         # to not check deprecated classes
@@ -449,7 +452,7 @@ def check_dont_overwrite_parameters_3d(name, estimator_orig):
     rnd = np.random.RandomState(0)
     X = 3 * rnd.uniform(size=(20, 20, 3))
     X = _pairwise_estimator_convert_X(X, estimator_orig)
-    y = X[:,0,0].astype(int)
+    y = X[:, 0, 0].astype(int)
     y = _enforce_estimator_tags_y(estimator, y)
 
     if hasattr(estimator, "n_components"):
@@ -468,7 +471,7 @@ def check_dont_overwrite_parameters_3d(name, estimator_orig):
     ]
 
     attrs_added_by_fit = [
-        key for key in public_keys_after_fit if key not in dict_before_fit.keys()
+        key for key in public_keys_after_fit if key not in dict_before_fit.keys()  # noqa: E501
     ]
 
     # check that fit doesn't add any public attribute
@@ -500,27 +503,30 @@ def check_dont_overwrite_parameters_3d(name, estimator_orig):
 
 def _check_sklearn_estimator(estimator):
     """Check if estimator meets sklearn requirements."""
-    from sklearn.utils.estimator_checks import (check_no_attributes_set_in_init, check_parameters_default_constructible,
-                                                check_get_params_invariance, check_set_params, _maybe_skip)
-    from sklearn.utils.estimator_checks import check_dont_overwrite_parameters as check_dont_overwrite_parameters_2d
+    from sklearn.utils.estimator_checks import (check_no_attributes_set_in_init,  # noqa: E501
+                                                check_parameters_default_constructible,  # noqa: E501
+                                                check_get_params_invariance,  # noqa: E501
+                                                check_set_params, _maybe_skip)  # noqa: E501
+    from sklearn.utils.estimator_checks import check_dont_overwrite_parameters as check_dont_overwrite_parameters_2d  # noqa: E501
     import pytest
-    from functools import partial
 
     name = type(estimator).__name__
 
-    checks = [check_no_attributes_set_in_init, check_parameters_default_constructible, check_get_params_invariance, check_set_params]
-    
+    checks = [check_no_attributes_set_in_init,
+              check_parameters_default_constructible,
+              check_get_params_invariance,
+              check_set_params]
+
     if "2darray" in estimator._get_tags()["X_types"]:
         checks.append(check_dont_overwrite_parameters_2d)
     if "3darray" in estimator._get_tags()["X_types"]:
         checks.append(check_dont_overwrite_parameters_3d)
 
-    
     for check in checks:
         check = _maybe_skip(estimator, check)
         try:
             check(name, estimator)
-        except SkipTest as skipped:
+        except SkipTest:
             pass
         except Exception as err:
             pytest.fail('%s failed check %s: %s' % (name, check.__name__, err))

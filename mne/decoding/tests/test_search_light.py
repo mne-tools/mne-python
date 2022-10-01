@@ -8,7 +8,9 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
 import pytest
 
-from mne.utils import requires_sklearn, _record_warnings
+from mne.utils import (requires_sklearn,
+                       _record_warnings,
+                       _check_sklearn_estimator)
 from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
 from mne.decoding.transformer import Vectorizer
 

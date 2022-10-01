@@ -104,8 +104,8 @@ class ReceptiveField(BaseEstimator):
     """  # noqa E501
 
     @verbose
-    def __init__(self, tmin=None, tmax=None, sfreq=None, feature_names=None, estimator=0.,
-                 fit_intercept=None, scoring='r2', patterns=False,
+    def __init__(self, tmin=None, tmax=None, sfreq=None, feature_names=None,
+                 estimator=0, fit_intercept=None, scoring='r2', patterns=False,
                  n_jobs=None, edge_correction=True, verbose=None):
         self.feature_names = feature_names
         self.sfreq = sfreq
@@ -228,7 +228,8 @@ class ReceptiveField(BaseEstimator):
         n_delays = len(self.delays_)
 
         # Update feature names if we have none
-        if ((self.feature_names is not None) and (len(self.feature_names) != n_feats)):
+        if ((self.feature_names is not None) and
+                (len(self.feature_names) != n_feats)):
             raise ValueError('n_features in X does not match feature names '
                              '(%s != %s)' % (n_feats, len(self.feature_names)))
 

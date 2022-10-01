@@ -58,7 +58,7 @@ class LinearModel(BaseEstimator):
         self._estimator_type = getattr(self.model, "_estimator_type", None)
 
     def _more_tags(self):
-        return {'_xfail_checks': {'check_no_attributes_set_in_init': 'Estimator sets _estimator_type in init.'}}
+        return {'_xfail_checks': {'check_no_attributes_set_in_init': 'Estimator sets _estimator_type in init.'}}  # noqa: E501
 
     def _check_params(self):
         if self.model is None:
@@ -70,7 +70,8 @@ class LinearModel(BaseEstimator):
 
     def _check_X_y(self, X, y):
         """Validate input arrays. Will convert data as needed."""
-        return check_X_y(np.asarray(X), np.asarray(y), multi_output=True, estimator=self)
+        return check_X_y(np.asarray(X), np.asarray(y),
+                         multi_output=True, estimator=self)
 
     def fit(self, X, y, **fit_params):
         """Estimate the coefficients of the linear model.
