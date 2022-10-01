@@ -437,7 +437,7 @@ def _click_ch_name(fig, ch_index=0, button=1):
 
 
 # copied from sklearn and adapted to arbitrary dimensionality of X
-def check_dont_overwrite_parameters_3d(name, estimator_orig):
+def _check_dont_overwrite_parameters_3d(name, estimator_orig):
     from sklearn.base import clone
     from sklearn.utils.estimator_checks import (_pairwise_estimator_convert_X,
                                                 _enforce_estimator_tags_y,
@@ -519,7 +519,7 @@ def _check_sklearn_estimator(estimator):
     if "2darray" in estimator._get_tags()["X_types"]:
         checks.append(check_dont_overwrite_parameters_2d)
     if "3darray" in estimator._get_tags()["X_types"]:
-        checks.append(check_dont_overwrite_parameters_3d)
+        checks.append(_check_dont_overwrite_parameters_3d)
 
     for check in checks:
         check = _maybe_skip(estimator, check)
