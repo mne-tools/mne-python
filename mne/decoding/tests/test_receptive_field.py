@@ -10,7 +10,7 @@ from numpy import einsum
 from numpy.fft import rfft, irfft
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
-from mne.utils import requires_sklearn
+from mne.utils import requires_sklearn, _check_sklearn_estimator
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
                                           _times_to_delays, _delays_to_slice)
@@ -172,6 +172,8 @@ def test_receptive_field_basic(n_jobs):
                         patterns=True)
     rf.fit(X, y)
     assert_array_equal(rf.delays_, np.arange(tmin, tmax + 1))
+
+    _check_sklearn_estimator(rf)
 
     y_pred = rf.predict(X)
     assert_allclose(y[rf.valid_samples_], y_pred[rf.valid_samples_], atol=1e-2)
