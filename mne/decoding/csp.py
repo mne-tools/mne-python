@@ -122,7 +122,7 @@ class CSP(TransformerMixin, BaseEstimator):
         self.component_order = component_order
 
     def _more_tags(self):
-        return {"X_types": ['3darray']}
+        return {"X_types": ['3darray'], "binary_only": True} # Binary only forces test values for y to occur in both classes, making sure that the covariance computations work correctly
 
     def _check_params(self):
         if not isinstance(self.n_components, int):
