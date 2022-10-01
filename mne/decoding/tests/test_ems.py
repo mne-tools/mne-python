@@ -8,7 +8,7 @@ from numpy.testing import assert_array_almost_equal, assert_equal
 import pytest
 
 from mne import io, Epochs, read_events, pick_types
-from mne.utils import requires_sklearn
+from mne.utils import requires_sklearn, _check_sklearn_estimator
 from mne.decoding import compute_ems, EMS
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -26,6 +26,8 @@ def test_ems():
     """Test event-matched spatial filters."""
     from sklearn.model_selection import StratifiedKFold
     raw = io.read_raw_fif(raw_fname, preload=False)
+
+    _check_sklearn_estimator(EMS())
 
     # create unequal number of events
     events = read_events(event_name)
