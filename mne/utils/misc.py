@@ -20,7 +20,6 @@ import traceback
 import numpy as np
 
 from ..utils import _check_option, _validate_type
-from ..fixes import _get_args
 from ._logging import logger, verbose, warn
 
 
@@ -166,7 +165,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
     elif p.returncode:
         print(output)
         err_fun = subprocess.CalledProcessError.__init__
-        if 'output' in _get_args(err_fun):
+        if 'output' in inspect.signature(err_fun).parameters:
             raise subprocess.CalledProcessError(p.returncode, command, output)
         else:
             raise subprocess.CalledProcessError(p.returncode, command)

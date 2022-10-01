@@ -12,6 +12,7 @@ Actual implementation of _Renderer and _Projection classes.
 # License: Simplified BSD
 
 from contextlib import contextmanager
+from inspect import signature
 import os
 import re
 import sys
@@ -22,7 +23,7 @@ import numpy as np
 from ._abstract import _AbstractRenderer, Figure3D
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
                      ALLOWED_QUIVER_MODES, _init_mne_qtapp)
-from ...fixes import _get_args, _point_data, _cell_data, _compare_version
+from ...fixes import _point_data, _cell_data, _compare_version
 from ...transforms import apply_trans
 from ...utils import (copy_base_doc_to_subclass_doc, _check_option,
                       _require_version, _validate_type)
@@ -103,7 +104,7 @@ class PyVistaFigure(Figure3D):
             self.store['toolbar'] = False
             self.store['update_app_icon'] = False
             self._plotter_class = BackgroundPlotter
-            if 'app_window_class' in _get_args(BackgroundPlotter):
+            if 'app_window_class' in signature(BackgroundPlotter).parameters:
                 from ._qt import _MNEMainWindow
                 self.store['app_window_class'] = _MNEMainWindow
         else:
@@ -636,7 +637,8 @@ class _PyVistaRenderer(_AbstractRenderer):
                 name=text,
                 shape_opacity=0,
             )
-            if 'always_visible' in _get_args(self.plotter.add_point_labels):
+            if ('always_visible'
+                    in signature(self.plotter.add_point_labels).parameters):
                 kwargs['always_visible'] = True
             actor = self.plotter.add_point_labels(**kwargs)
         _hide_testing_actor(actor)

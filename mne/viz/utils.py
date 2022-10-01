@@ -14,6 +14,7 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
+from inspect import signature
 import difflib
 from functools import partial
 import math
@@ -28,7 +29,6 @@ from decorator import decorator
 import numpy as np
 
 from ..defaults import _handle_default
-from ..fixes import _get_args
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
@@ -2490,7 +2490,7 @@ def _prop_kw(kind, val):
     # Can be removed in when we depend on matplotlib 3.4.3+
     # https://github.com/matplotlib/matplotlib/pull/20585
     from matplotlib.widgets import SpanSelector
-    pre = '' if 'props' in _get_args(SpanSelector) else kind
+    pre = '' if 'props' in signature(SpanSelector).parameters else kind
     return {pre + 'props': val}
 
 
