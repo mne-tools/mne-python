@@ -316,6 +316,10 @@ def test_linearmodel():
     """Test LinearModel class for computing filters and patterns."""
     # check categorical target fit in standard linear model
     from sklearn.linear_model import LinearRegression
+    from mne.utils import _check_sklearn_estimator
+
+    _check_sklearn_estimator(LinearModel())
+
     rng = np.random.RandomState(0)
     clf = LinearModel()
     n, n_features = 20, 3

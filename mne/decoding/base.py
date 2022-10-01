@@ -9,6 +9,8 @@
 import numpy as np
 import datetime as dt
 import numbers
+from sklearn.utils import check_X_y
+from sklearn.linear_model import LogisticRegression
 from ..parallel import parallel_func
 from ..fixes import BaseEstimator, is_classifier, _get_check_scoring
 from ..utils import warn, verbose
@@ -51,13 +53,16 @@ class LinearModel(BaseEstimator):
     .. footbibliography::
     """
 
-    def __init__(self, model=None):  # noqa: D102
-        if model is None:
-            from sklearn.linear_model import LogisticRegression
-            model = LogisticRegression(solver='liblinear')
-
+    def __init__(self, model=LogisticRegression()):  # noqa: D102
         self.model = model
-        self._estimator_type = getattr(model, "_estimator_type", None)
+        self._estimator_type = getattr(self.model, "_estimator_type", None)
+
+    def _check_params(self):
+        pass
+
+    def _check_X_y(self, X, y):
+        """Validate input arrays. Will convert data as needed."""
+        return check_X_y(np.asarray(X), np.asarray(y), multi_output=True, estimator=self)
 
     def fit(self, X, y, **fit_params):
         """Estimate the coefficients of the linear model.
@@ -79,13 +84,8 @@ class LinearModel(BaseEstimator):
         self : instance of LinearModel
             Returns the modified instance.
         """
-        X, y = np.asarray(X), np.asarray(y)
-        if X.ndim != 2:
-            raise ValueError('LinearModel only accepts 2-dimensional X, got '
-                             '%s instead.' % (X.shape,))
-        if y.ndim > 2:
-            raise ValueError('LinearModel only accepts up to 2-dimensional y, '
-                             'got %s instead.' % (y.shape,))
+        X, y = self._check_X_y(X, y)
+        self._check_params()
 
         # fit the Model
         self.model.fit(X, y, **fit_params)
