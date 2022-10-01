@@ -138,7 +138,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                 except Empty:
                     break
                 else:
-                    out = out.decode('utf-8')
+                    out = out.decode('utf-8').rstrip('\n')
                     logger.info(out)
                     all_out += out
             while True:
@@ -147,7 +147,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                 except Empty:
                     break
                 else:
-                    err = err.decode('utf-8')
+                    err = err.decode('utf-8').rstrip('\n')
                     # Leave this as logger.warning rather than warn(...) to
                     # mirror the logger.info above for stdout. This function
                     # is basically just a version of subprocess.call, and
