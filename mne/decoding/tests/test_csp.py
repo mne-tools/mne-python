@@ -14,7 +14,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 
 from mne import io, Epochs, read_events, pick_types
 from mne.decoding.csp import CSP, _ajd_pham, SPoC
-from mne.utils import requires_sklearn
+from mne.utils import requires_sklearn, _check_sklearn_estimator
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
@@ -100,19 +100,25 @@ def test_csp():
     n_channels = epochs_data.shape[1]
     y = epochs.events[:, -1]
 
+    _check_sklearn_estimator(CSP())
+
     # Init
-    pytest.raises(ValueError, CSP, n_components='foo', norm_trace=False)
+    pytest.raises(ValueError, CSP(n_components='foo', norm_trace=False).fit, epochs_data, y)
     for reg in ['foo', -0.1, 1.1]:
         csp = CSP(reg=reg, norm_trace=False)
         pytest.raises(ValueError, csp.fit, epochs_data, epochs.events[:, -1])
     for reg in ['oas', 'ledoit_wolf', 0, 0.5, 1.]:
-        CSP(reg=reg, norm_trace=False)
+        csp = CSP(reg=reg, norm_trace=False)
+        csp.fit(epochs_data, epochs.events[:, -1])
     for cov_est in ['foo', None]:
-        pytest.raises(ValueError, CSP, cov_est=cov_est, norm_trace=False)
+        csp = CSP(cov_est=cov_est, norm_trace=False)
+        pytest.raises(ValueError, csp.fit, epochs_data, epochs.events[:, -1])
     with pytest.raises(TypeError, match='instance of bool'):
-        CSP(norm_trace='foo')
+        csp = CSP(norm_trace='foo')
+        csp.fit(epochs_data, epochs.events[:, -1])
     for cov_est in ['concat', 'epoch']:
-        CSP(cov_est=cov_est, norm_trace=False)
+        csp = CSP(cov_est=cov_est, norm_trace=False)
+        csp.fit(epochs_data, epochs.events[:, -1])
 
     n_components = 3
     # Fit
@@ -175,14 +181,15 @@ def test_csp():
     # Different normalization return different transform
     assert (np.sum((X_trans['True'] - X_trans['False']) ** 2) > 1.)
     # Check wrong inputs
-    pytest.raises(ValueError, CSP, transform_into='average_power', log='foo')
+    csp = CSP(transform_into="average_power", log="foo")
+    pytest.raises(ValueError, csp.fit, epochs_data, epochs.events[:,1])
 
     # Test csp space transform
     csp = CSP(transform_into='csp_space', norm_trace=False)
     assert (csp.transform_into == 'csp_space')
     for log in ('foo', True, False):
-        pytest.raises(ValueError, CSP, transform_into='csp_space', log=log,
-                      norm_trace=False)
+        csp = CSP(transform_into='csp_space', log=log, norm_trace=False)
+        pytest.raises(ValueError, csp.fit, epochs_data, epochs.events[:, 2])
     n_components = 2
     csp = CSP(n_components=n_components, transform_into='csp_space',
               norm_trace=False)
@@ -296,10 +303,12 @@ def test_spoc():
     assert_array_equal(spoc.filters_.shape, [10, 10])
     assert_array_equal(spoc.patterns_.shape, [10, 10])
 
+    _check_sklearn_estimator(SPoC())
+
     # check y
     pytest.raises(ValueError, spoc.fit, X, y * 0)
 
-    # Check that doesn't take CSP-spcific input
+    # Check that doesn't take CSP-specific input
     pytest.raises(TypeError, SPoC, cov_est='epoch')
 
     # Check mixing matrix on simulated data
@@ -341,7 +350,8 @@ def test_csp_component_ordering():
     """Test that CSP component ordering works as expected."""
     x, y = deterministic_toy_data(['class_a', 'class_b'])
 
-    pytest.raises(ValueError, CSP, component_order='invalid')
+    csp = CSP(component_order="invalid")
+    pytest.raises(ValueError, csp.fit, x, y)
 
     # component_order='alternate' only works with two classes
     csp = CSP(component_order='alternate')
