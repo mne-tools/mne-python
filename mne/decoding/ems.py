@@ -41,9 +41,6 @@ class EMS(TransformerMixin, BaseEstimator):
     .. footbibliography::
     """
 
-    def __init__(self, fake_param=None):
-        self.fake_param = fake_param
-
     def __repr__(self):  # noqa: D105
         if hasattr(self, 'filters_'):
             return '<EMS: fitted with %i filters on %i classes.>' % (
