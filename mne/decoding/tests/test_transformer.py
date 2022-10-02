@@ -14,7 +14,7 @@ from mne import io, read_events, Epochs, pick_types
 from mne.decoding import (Scaler, FilterEstimator, PSDEstimator, Vectorizer,
                           UnsupervisedSpatialFilter, TemporalFilter)
 from mne.defaults import DEFAULTS
-from mne.utils import requires_sklearn, check_version, use_log_level
+from mne.utils import requires_sklearn, check_version, use_log_level, _check_sklearn_estimator
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
@@ -48,12 +48,13 @@ def test_scaler(info, method):
     if method in ('mean', 'median'):
         if not check_version('sklearn'):
             with pytest.raises(ImportError, match='No module'):
-                Scaler(info, method)
+                Scaler(info, method).fit(epochs_data, y)
             return
 
     if info:
         info = epochs.info
     scaler = Scaler(info, method)
+    _check_sklearn_estimator(scaler, epochs_data.shape, y.shape)
     X = scaler.fit_transform(epochs_data, y)
     assert_equal(X.shape, epochs_data.shape)
     if method is None or isinstance(method, dict):
@@ -82,7 +83,7 @@ def test_scaler(info, method):
     assert_array_almost_equal(epochs_data, Xi)
 
     # Test init exception
-    pytest.raises(ValueError, Scaler, None, None)
+    pytest.raises(ValueError, Scaler(None, None).fit, epochs_data, y)
     pytest.raises(TypeError, scaler.fit, epochs, y)
     pytest.raises(TypeError, scaler.transform, epochs)
     epochs_bad = Epochs(raw, events, event_id, 0, 0.01, baseline=None,
@@ -191,7 +192,7 @@ def test_unsupervised_spatial_filter():
                     preload=True, baseline=None, verbose=False)
 
     # Test estimator
-    pytest.raises(ValueError, UnsupervisedSpatialFilter, KernelRidge(2))
+    pytest.raises(ValueError, UnsupervisedSpatialFilter(KernelRidge(2)).fit, epochs.get_data())
 
     # Test fit
     X = epochs.get_data()
@@ -210,7 +211,7 @@ def test_unsupervised_spatial_filter():
     # Test with average param
     usf = UnsupervisedSpatialFilter(PCA(4), average=True)
     usf.fit_transform(X)
-    pytest.raises(ValueError, UnsupervisedSpatialFilter, PCA(4), 2)
+    pytest.raises(ValueError, UnsupervisedSpatialFilter(PCA(4), 2).fit, X)
 
 
 def test_temporal_filter():
