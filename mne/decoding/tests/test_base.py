@@ -7,7 +7,6 @@ import numpy as np
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_equal, assert_allclose, assert_array_less)
 import pytest
-from sklearn.linear_model import LogisticRegression
 
 from mne import create_info, EpochsArray
 from mne.fixes import is_regressor, is_classifier
@@ -67,6 +66,7 @@ def test_get_coef():
     from sklearn import svm
     from sklearn.linear_model import Ridge
     from sklearn.model_selection import GridSearchCV
+    from sklearn.linear_model import LogisticRegression
 
     lm_classification = LinearModel(LogisticRegression())
     assert (is_classifier(lm_classification))
