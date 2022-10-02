@@ -437,7 +437,7 @@ def _click_ch_name(fig, ch_index=0, button=1):
 
 
 # copied from sklearn and adapted to arbitrary dimensionality of X
-def _check_dont_overwrite_parameters_3d(name, estimator_orig):
+def _check_dont_overwrite_parameters(name, estimator_orig, x_shape=(20, 3), y_shape=(20,)):
     from sklearn.base import clone
     from sklearn.utils.estimator_checks import (_pairwise_estimator_convert_X,
                                                 _enforce_estimator_tags_y,
@@ -449,9 +449,9 @@ def _check_dont_overwrite_parameters_3d(name, estimator_orig):
         return
     estimator = clone(estimator_orig)
     rnd = np.random.RandomState(0)
-    X = 3 * rnd.uniform(size=(20, 20, 3))
+    X = 3 * rnd.uniform(size=x_shape)
     X = _pairwise_estimator_convert_X(X, estimator_orig)
-    y = X[:, 0, 0].astype(int)
+    y = rnd.randint(0, 2, y_shape)
     y = _enforce_estimator_tags_y(estimator, y)
 
     if hasattr(estimator, "n_components"):
@@ -500,13 +500,12 @@ def _check_dont_overwrite_parameters_3d(name, estimator_orig):
     )
 
 
-def _check_sklearn_estimator(estimator):
+def _check_sklearn_estimator(estimator, x_shape=None, y_shape=None):
     """Check if estimator meets sklearn requirements."""
     from sklearn.utils.estimator_checks import (check_no_attributes_set_in_init,  # noqa: E501
                                                 check_parameters_default_constructible,  # noqa: E501
                                                 check_get_params_invariance,  # noqa: E501
                                                 check_set_params, _maybe_skip)  # noqa: E501
-    from sklearn.utils.estimator_checks import check_dont_overwrite_parameters as check_dont_overwrite_parameters_2d  # noqa: E501
     import pytest
 
     name = type(estimator).__name__
@@ -516,10 +515,18 @@ def _check_sklearn_estimator(estimator):
               check_get_params_invariance,
               check_set_params]
 
-    if "2darray" in estimator._get_tags()["X_types"]:
-        checks.append(check_dont_overwrite_parameters_2d)
-    if "3darray" in estimator._get_tags()["X_types"]:
-        checks.append(_check_dont_overwrite_parameters_3d)
+    if x_shape is None or y_shape is None:
+        if "2darray" in estimator._get_tags()["X_types"]:
+            checks.append(lambda name, estimator: _check_dont_overwrite_parameters(name, estimator, (20, 3), (20,)))
+            checks[-1].__name__ = "check_dont_overwrite_parameters"
+        if "3darray" in estimator._get_tags()["X_types"]:
+            checks.append(lambda name, estimator: _check_dont_overwrite_parameters(name, estimator, (20, 20, 3), (20,)))
+            checks[-1].__name__ = "check_dont_overwrite_parameters"
+    elif x_shape is not None and y_shape is not None:
+        checks.append(lambda name, estimator: _check_dont_overwrite_parameters(name, estimator, x_shape, y_shape))
+        checks[-1].__name__ = "check_dont_overwrite_parameters"
+    else:
+        raise ValueError("x_shape and y_shape must either both be None or both not None")
 
     for check in checks:
         check = _maybe_skip(estimator, check)
