@@ -110,7 +110,8 @@ class Scaler(TransformerMixin, BaseEstimator):
         self.scalings = scalings
 
     def _check_params(self):
-        if not (self.scalings is None or isinstance(self.scalings, (dict, str))):
+        if not (self.scalings is None or
+                isinstance(self.scalings, (dict, str))):
             raise ValueError('scalings type should be dict, str, or None, '
                              'got %s' % type(self.scalings))
         if isinstance(self.scalings, str):
@@ -119,7 +120,8 @@ class Scaler(TransformerMixin, BaseEstimator):
             if self.info is None:
                 raise ValueError('Need to specify "info" if scalings is'
                                  '%s' % type(self.scalings))
-            self._scaler = _ConstantScaler(self.info, self.scalings, self.with_std)
+            self._scaler = _ConstantScaler(self.info, self.scalings,
+                                           self.with_std)
         elif self.scalings == 'mean':
             from sklearn.preprocessing import StandardScaler
             self._scaler = StandardScaler(
@@ -588,7 +590,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
             for attr in ('fit', 'transform', 'fit_transform'):
                 if not hasattr(self.estimator, attr):
                     raise ValueError('estimator must be a scikit-learn '
-                                    'transformer, missing %s method' % attr)
+                                     'transformer, missing %s method' % attr)
 
         if not isinstance(self.average, bool):
             raise ValueError("average parameter must be of bool type, got "

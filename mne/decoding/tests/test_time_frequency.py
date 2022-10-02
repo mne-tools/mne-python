@@ -14,13 +14,13 @@ from mne.decoding.time_frequency import TimeFrequency
 @requires_sklearn
 def test_timefrequency():
     """Test TimeFrequency."""
-    from sklearn.base import clone
     # Init
     n_freqs = 3
     freqs = [20, 21, 22]
     tf = TimeFrequency(freqs, sfreq=100)
     for output in ['avg_power', 'foo', None]:
-        pytest.raises(ValueError, TimeFrequency(freqs, output=output).fit, np.random.rand(10, 2, 100))
+        pytest.raises(ValueError, TimeFrequency(freqs, output=output).fit,
+                      np.random.rand(10, 2, 100))
     _check_sklearn_estimator(tf)
 
     # Clone estimator

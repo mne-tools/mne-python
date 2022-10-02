@@ -14,7 +14,8 @@ from mne import io, read_events, Epochs, pick_types
 from mne.decoding import (Scaler, FilterEstimator, PSDEstimator, Vectorizer,
                           UnsupervisedSpatialFilter, TemporalFilter)
 from mne.defaults import DEFAULTS
-from mne.utils import requires_sklearn, check_version, use_log_level, _check_sklearn_estimator
+from mne.utils import (requires_sklearn, check_version,
+                       use_log_level, _check_sklearn_estimator)
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
@@ -192,7 +193,8 @@ def test_unsupervised_spatial_filter():
                     preload=True, baseline=None, verbose=False)
 
     # Test estimator
-    pytest.raises(ValueError, UnsupervisedSpatialFilter(KernelRidge(2)).fit, epochs.get_data())
+    pytest.raises(ValueError, UnsupervisedSpatialFilter(KernelRidge(2)).fit,
+                  epochs.get_data())
 
     # Test fit
     X = epochs.get_data()

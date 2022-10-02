@@ -105,12 +105,12 @@ def test_ssd():
     # check non-boolean return_filtered
     with pytest.raises(ValueError, match='return_filtered'):
         SSD(info, filt_params_signal, filt_params_noise,
-                  return_filtered=0).fit(X)
+            return_filtered=0).fit(X)
 
     # check non-boolean sort_by_spectral_ratio
     with pytest.raises(ValueError, match='sort_by_spectral_ratio'):
         SSD(info, filt_params_signal, filt_params_noise,
-                  sort_by_spectral_ratio=0).fit(X)
+            sort_by_spectral_ratio=0).fit(X)
 
     # More than 1 channel type
     ch_types = np.reshape([['mag'] * 10, ['eeg'] * 10], n_channels)

@@ -78,10 +78,11 @@ class SSD(BaseEstimator, TransformerMixin):
     .. footbibliography::
     """
 
-    def __init__(self, info=None, filt_params_signal=None, filt_params_noise=None,
-                 reg=None, n_components=None, picks=None,
-                 sort_by_spectral_ratio=True, return_filtered=False,
-                 n_fft=None, cov_method_params=None, rank=None):
+    def __init__(self, info=None, filt_params_signal=None,
+                 filt_params_noise=None, reg=None, n_components=None,
+                 picks=None, sort_by_spectral_ratio=True,
+                 return_filtered=False, n_fft=None, cov_method_params=None,
+                 rank=None):
         """Initialize instance."""
         self.info = info
         self.filt_params_signal = filt_params_signal
@@ -98,13 +99,15 @@ class SSD(BaseEstimator, TransformerMixin):
     def _check_params(self):
         """Check input parameters."""
         if self.info is None:
-            raise TypeError("Info parameter must be an instance of type 'mne.Info'.")
+            raise TypeError("Info parameter must be an"
+                            " instance of type 'mne.Info'.")
         if self.filt_params_signal is None:
             raise ValueError('Filt_params_signal must be provided.')
         if self.filt_params_noise is None:
             raise ValueError('Filt_params_noise must be provided.')
 
-        dicts = {"signal": self.filt_params_signal, "noise": self.filt_params_noise}
+        dicts = {"signal": self.filt_params_signal,
+                 "noise": self.filt_params_noise}
         for param, dd in [('l', 0), ('h', 0), ('l', 1), ('h', 1)]:
             key = ('signal', 'noise')[dd]
             if param + '_freq' not in dicts[key]:
@@ -115,21 +118,25 @@ class SSD(BaseEstimator, TransformerMixin):
             if not isinstance(val, (int, float)):
                 _validate_type(val, ('numeric',), f'{key} {param}_freq')
         # check freq bands
-        if (self.filt_params_noise['l_freq'] > self.filt_params_signal['l_freq'] or
-                self.filt_params_signal['h_freq'] > self.filt_params_noise['h_freq']):
+        if (self.filt_params_noise['l_freq'] >
+            self.filt_params_signal['l_freq'] or
+            self.filt_params_signal['h_freq'] >
+                self.filt_params_noise['h_freq']):
             raise ValueError('Wrongly specified frequency bands!\n'
                              'The signal band-pass must be within the noise '
                              'band-pass!')
-        self.picks_ = _picks_to_idx(self.info, self.picks, none='data', exclude='bads')
-        ch_types = _get_channel_types(self.info, picks=self.picks_, unique=True)
+        self.picks_ = _picks_to_idx(self.info, self.picks, none='data',
+                                    exclude='bads')
+        ch_types = _get_channel_types(self.info, picks=self.picks_,
+                                      unique=True)
         if len(ch_types) > 1:
             raise ValueError('At this point SSD only supports fitting '
                              'single channel types. Your info has %i types' %
                              (len(ch_types)))
         self.freqs_signal_ = (self.filt_params_signal['l_freq'],
-                             self.filt_params_signal['h_freq'])
+                              self.filt_params_signal['h_freq'])
         self.freqs_noise_ = (self.filt_params_noise['l_freq'],
-                            self.filt_params_noise['h_freq'])
+                             self.filt_params_noise['h_freq'])
 
         # check if boolean
         if not isinstance(self.sort_by_spectral_ratio, (bool)):

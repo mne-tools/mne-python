@@ -271,8 +271,9 @@ class TimeDelayingRidge(BaseEstimator):
 
     _estimator_type = "regressor"
 
-    def __init__(self, tmin=None, tmax=None, sfreq=None, alpha=0., reg_type='ridge',
-                 fit_intercept=True, n_jobs=None, edge_correction=True):
+    def __init__(self, tmin=None, tmax=None, sfreq=None,
+                 alpha=0., reg_type='ridge', fit_intercept=True,
+                 n_jobs=None, edge_correction=True):
         self.tmin = tmin
         self.tmax = tmax
         self.sfreq = sfreq

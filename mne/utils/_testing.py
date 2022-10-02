@@ -437,7 +437,8 @@ def _click_ch_name(fig, ch_index=0, button=1):
 
 
 # copied from sklearn and adapted to arbitrary dimensionality of X
-def _check_dont_overwrite_parameters(name, estimator_orig, x_shape=(20, 3), y_shape=(20,)):
+def _check_dont_overwrite_parameters(name, estimator_orig, x_shape=(20, 3),
+                                     y_shape=(20,)):
     from sklearn.base import clone
     from sklearn.utils.estimator_checks import (_pairwise_estimator_convert_X,
                                                 _enforce_estimator_tags_y,
@@ -517,16 +518,32 @@ def _check_sklearn_estimator(estimator, x_shape=None, y_shape=None):
 
     if x_shape is None or y_shape is None:
         if "2darray" in estimator._get_tags()["X_types"]:
-            checks.append(lambda name, estimator: _check_dont_overwrite_parameters(name, estimator, (20, 3), (20,)))
+            checks.append(
+                lambda name, estimator:
+                _check_dont_overwrite_parameters(
+                    name, estimator, (20, 3), (20,)
+                )
+            )
             checks[-1].__name__ = "check_dont_overwrite_parameters"
         if "3darray" in estimator._get_tags()["X_types"]:
-            checks.append(lambda name, estimator: _check_dont_overwrite_parameters(name, estimator, (20, 20, 3), (20,)))
+            checks.append(
+                lambda name, estimator:
+                _check_dont_overwrite_parameters(
+                    name, estimator, (20, 20, 3), (20,)
+                )
+            )
             checks[-1].__name__ = "check_dont_overwrite_parameters"
     elif x_shape is not None and y_shape is not None:
-        checks.append(lambda name, estimator: _check_dont_overwrite_parameters(name, estimator, x_shape, y_shape))
+        checks.append(
+            lambda name, estimator:
+            _check_dont_overwrite_parameters(
+                name, estimator, x_shape, y_shape
+            )
+        )
         checks[-1].__name__ = "check_dont_overwrite_parameters"
     else:
-        raise ValueError("x_shape and y_shape must either both be None or both not None")
+        raise ValueError("x_shape and y_shape must either"
+                         " both be None or both not None")
 
     for check in checks:
         check = _maybe_skip(estimator, check)
