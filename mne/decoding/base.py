@@ -9,8 +9,6 @@
 import numpy as np
 import datetime as dt
 import numbers
-from sklearn.utils import check_X_y
-from sklearn.linear_model import LogisticRegression
 from ..parallel import parallel_func
 from ..fixes import BaseEstimator, is_classifier, _get_check_scoring
 from ..utils import warn, verbose
@@ -62,6 +60,7 @@ class LinearModel(BaseEstimator):
 
     def _check_params(self):
         if self.model is None:
+            from sklearn.linear_model import LogisticRegression
             self.model_ = LogisticRegression()
         else:
             self.model_ = self.model
@@ -70,6 +69,8 @@ class LinearModel(BaseEstimator):
 
     def _check_X_y(self, X, y):
         """Validate input arrays. Will convert data as needed."""
+        from sklearn.utils import check_X_y
+
         return check_X_y(np.asarray(X), np.asarray(y),
                          multi_output=True, estimator=self)
 
