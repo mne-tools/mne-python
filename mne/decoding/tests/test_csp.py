@@ -347,6 +347,7 @@ def test_spoc():
     assert np.abs(corr) > 0.85
 
 
+@requires_sklearn
 def test_csp_twoclass_symmetry():
     """Test that CSP is symmetric when swapping classes."""
     x, y = deterministic_toy_data(['class_a', 'class_b'])
@@ -363,6 +364,7 @@ def test_csp_twoclass_symmetry():
                               log_power_ratio_ba)
 
 
+@requires_sklearn
 def test_csp_component_ordering():
     """Test that CSP component ordering works as expected."""
     x, y = deterministic_toy_data(['class_a', 'class_b'])
