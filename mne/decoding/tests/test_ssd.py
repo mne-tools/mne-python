@@ -8,7 +8,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal)
 from mne import io
 from mne.time_frequency import psd_array_welch
 from mne.decoding.ssd import SSD
-from mne.utils import requires_sklearn
+from mne.utils import requires_sklearn, _check_sklearn_estimator
 from mne.filter import filter_data
 from mne import create_info
 from mne.decoding import CSP
@@ -66,6 +66,8 @@ def test_ssd():
     filt_params_noise = dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
                              l_trans_bandwidth=1, h_trans_bandwidth=1)
     ssd = SSD(info, filt_params_signal, filt_params_noise)
+
+    _check_sklearn_estimator(ssd, X.shape, (len(X),))
     # freq no int
     freq = 'foo'
     filt_params_signal = dict(l_freq=freq, h_freq=freqs_sig[1],
@@ -73,7 +75,7 @@ def test_ssd():
     filt_params_noise = dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
                              l_trans_bandwidth=1, h_trans_bandwidth=1)
     with pytest.raises(TypeError, match='must be an instance '):
-        ssd = SSD(info, filt_params_signal, filt_params_noise)
+        SSD(info, filt_params_signal, filt_params_noise).fit(X)
 
     # Wrongly specified noise band
     freq = 2
@@ -82,13 +84,13 @@ def test_ssd():
     filt_params_noise = dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
                              l_trans_bandwidth=1, h_trans_bandwidth=1)
     with pytest.raises(ValueError, match='Wrongly specified '):
-        ssd = SSD(info, filt_params_signal, filt_params_noise)
+        SSD(info, filt_params_signal, filt_params_noise).fit(X)
 
     # filt param no dict
     filt_params_signal = freqs_sig
     filt_params_noise = freqs_noise
     with pytest.raises(ValueError, match='must be defined'):
-        ssd = SSD(info, filt_params_signal, filt_params_noise)
+        SSD(info, filt_params_signal, filt_params_noise).fit(X)
 
     # Data type
     filt_params_signal = dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
@@ -102,20 +104,20 @@ def test_ssd():
 
     # check non-boolean return_filtered
     with pytest.raises(ValueError, match='return_filtered'):
-        ssd = SSD(info, filt_params_signal, filt_params_noise,
-                  return_filtered=0)
+        SSD(info, filt_params_signal, filt_params_noise,
+                  return_filtered=0).fit(X)
 
     # check non-boolean sort_by_spectral_ratio
     with pytest.raises(ValueError, match='sort_by_spectral_ratio'):
-        ssd = SSD(info, filt_params_signal, filt_params_noise,
-                  sort_by_spectral_ratio=0)
+        SSD(info, filt_params_signal, filt_params_noise,
+                  sort_by_spectral_ratio=0).fit(X)
 
     # More than 1 channel type
     ch_types = np.reshape([['mag'] * 10, ['eeg'] * 10], n_channels)
     info_2 = create_info(ch_names=n_channels, sfreq=sf, ch_types=ch_types)
 
     with pytest.raises(ValueError, match='At this point SSD'):
-        ssd = SSD(info_2, filt_params_signal, filt_params_noise)
+        ssd = SSD(info_2, filt_params_signal, filt_params_noise).fit(X)
 
     # Number of channels
     info_3 = create_info(ch_names=n_channels + 1, sfreq=sf, ch_types='eeg')
@@ -280,7 +282,7 @@ def test_sorting():
     ssd.fit(Xtr)
 
     # check sorters
-    sorter_in = ssd.sorter_spec
+    sorter_in = ssd.sorter_spec_
     ssd = SSD(info, filt_params_signal, filt_params_noise,
               n_components=None, sort_by_spectral_ratio=False)
     ssd.fit(Xtr)
