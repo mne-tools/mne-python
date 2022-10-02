@@ -11,8 +11,6 @@ import copy as cp
 
 import numpy as np
 
-from sklearn.utils import check_X_y
-
 from .base import BaseEstimator
 from .mixin import TransformerMixin
 from ..cov import _regularized_covariance
@@ -148,6 +146,8 @@ class CSP(TransformerMixin, BaseEstimator):
 
     def _check_X_y(self, X, y):
         """Validate input arrays. Will convert data as needed."""
+        from sklearn.utils import check_X_y
+
         if not isinstance(X, np.ndarray):
             raise ValueError('X must be an ndarray')
         if not isinstance(y, np.ndarray):

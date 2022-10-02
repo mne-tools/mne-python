@@ -3,7 +3,6 @@
 # License: BSD-3-Clause
 
 import numpy as np
-from sklearn.utils import check_X_y, check_array
 
 from .mixin import TransformerMixin
 from .base import BaseEstimator, _check_estimator
@@ -55,6 +54,8 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
     def _check_X_y(self, X, y=None):
         """Aux. function to check input data."""
+        from sklearn.utils import check_X_y, check_array
+
         if y is None:
             X = check_array(X, ensure_2d=False, allow_nd=True)
             return np.asarray(X), y
