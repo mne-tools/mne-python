@@ -84,13 +84,14 @@ def deterministic_toy_data(classes=('class_a', 'class_b')):
 
     return x, y
 
+
 @requires_sklearn
 def test_csp_params():
     try:
         from mne.utils import _check_sklearn_estimator
         _check_sklearn_estimator(CSP())
     except ImportError:
-        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
 
 
 @requires_sklearn
@@ -301,7 +302,7 @@ def test_spoc_params():
         from mne.utils import _check_sklearn_estimator
         _check_sklearn_estimator(SPoC())
     except ImportError:
-        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
 
 
 @requires_sklearn

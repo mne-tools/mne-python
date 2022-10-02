@@ -150,8 +150,8 @@ def test_receptive_field_params():
         from sklearn.linear_model import Ridge
         _check_sklearn_estimator(
             ReceptiveField(-10., 0, 1,
-            ['feature_%i' % ii for ii in [0, 1, 2]],
-            Ridge(), patterns=True)
+                           ['feature_%i' % ii for ii in [0, 1, 2]],
+                           Ridge(), patterns=True)
         )
     except ImportError:
         pytest.xfail('Cannot find sklearn utils for checking parameters')

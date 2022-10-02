@@ -59,17 +59,16 @@ def test_ssd_params():
         sf = 250
         n_channels = X.shape[0]
         info = create_info(ch_names=n_channels, sfreq=sf, ch_types='eeg')
-        n_components_true = 5
 
         # Init
         filt_params_signal = dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
-                                l_trans_bandwidth=1, h_trans_bandwidth=1)
+                                  l_trans_bandwidth=1, h_trans_bandwidth=1)
         filt_params_noise = dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
-                                l_trans_bandwidth=1, h_trans_bandwidth=1)
+                                 l_trans_bandwidth=1, h_trans_bandwidth=1)
         ssd = SSD(info, filt_params_signal, filt_params_noise)
         _check_sklearn_estimator(ssd, X.shape, (len(X),))
     except ImportError:
-        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
 
 
 @requires_sklearn

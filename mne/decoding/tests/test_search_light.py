@@ -40,7 +40,7 @@ def test_search_light_params():
             )
         )
     except ImportError:
-        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
 
 
 @requires_sklearn
@@ -201,7 +201,8 @@ def test_generalization_params():
             )
         )
     except ImportError:
-        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
+
 
 @requires_sklearn
 def test_generalization_light():

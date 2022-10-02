@@ -27,7 +27,7 @@ def test_ems_params():
         from mne.utils import _check_sklearn_estimator
         _check_sklearn_estimator(EMS())
     except ImportError:
-        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
 
 
 @requires_sklearn

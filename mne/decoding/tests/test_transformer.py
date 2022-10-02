@@ -47,9 +47,10 @@ def test_scaler_params(info, method):
         info = epochs.info
     try:
         from mne.utils import _check_sklearn_estimator
-        _check_sklearn_estimator(Scaler(info, method), epochs_data.shape, y.shape)
+        _check_sklearn_estimator(Scaler(info, method),
+                                 epochs_data.shape, y.shape)
     except ImportError:
-        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
 
 
 @requires_sklearn
@@ -206,7 +207,7 @@ def test_vectorizer():
 
 
 @requires_sklearn
-def test_scaler_params():
+def test_unsupervised_spatial_filter_params():
     try:
         from mne.utils import _check_sklearn_estimator
         from sklearn.decomposition import PCA
@@ -214,7 +215,7 @@ def test_scaler_params():
             UnsupervisedSpatialFilter(PCA(2))
         )
     except ImportError:
-        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
+        pytest.xfail('Cannot find sklearn utils for checking parameters')
 
 
 @requires_sklearn

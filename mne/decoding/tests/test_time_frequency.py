@@ -18,7 +18,7 @@ def test_timefrequency_params():
         from mne.utils import _check_sklearn_estimator
         _check_sklearn_estimator(TimeFrequency(freqs, sfreq=100))
     except ImportError:
-        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
 
 
 @requires_sklearn

@@ -16,4 +16,4 @@ def test_time_delaying_ridge_params():
         _check_sklearn_estimator(TimeDelayingRidge(smin, smax, 1),
                                  x.shape, y.shape)
     except ImportError:
-        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
