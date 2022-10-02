@@ -8,9 +8,7 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
 import pytest
 
-from mne.utils import (requires_sklearn,
-                       _record_warnings,
-                       _check_sklearn_estimator)
+from mne.utils import requires_sklearn, _record_warnings
 from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
 from mne.decoding.transformer import Vectorizer
 
@@ -25,6 +23,24 @@ def make_data():
         X[y == 0, :, ii] += coef
         X[y == 1, :, ii] -= coef
     return X, y
+
+
+@requires_sklearn
+def test_search_light_params():
+    try:
+        from mne.utils import _check_sklearn_estimator
+        from sklearn.linear_model import LogisticRegression
+        _check_sklearn_estimator(
+            SlidingEstimator(
+                LogisticRegression(
+                    solver="liblinear",
+                    multi_class="ovr",
+                    random_state=0
+                )
+            )
+        )
+    except ImportError:
+        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
 
 
 @requires_sklearn
@@ -56,8 +72,6 @@ def test_search_light():
     pytest.raises(ValueError, sl.fit, X[1:], y)
     pytest.raises(ValueError, sl.fit, X[:, :, 0], y)
     sl.fit(X, y, sample_weight=np.ones_like(y))
-
-    _check_sklearn_estimator(sl)
 
     # transforms
     pytest.raises(ValueError, sl.predict, X[:, :, :2])
@@ -173,6 +187,23 @@ def test_search_light():
 
 
 @requires_sklearn
+def test_generalization_params():
+    try:
+        from mne.utils import _check_sklearn_estimator
+        from sklearn.linear_model import LogisticRegression
+        _check_sklearn_estimator(
+            GeneralizingEstimator(
+                LogisticRegression(
+                    solver="liblinear",
+                    multi_class="ovr",
+                    random_state=0
+                )
+            )
+        )
+    except ImportError:
+        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
+
+@requires_sklearn
 def test_generalization_light():
     """Test GeneralizingEstimator."""
     from sklearn.pipeline import make_pipeline
@@ -189,8 +220,6 @@ def test_generalization_light():
     assert_equal(repr(gl)[:23], '<GeneralizingEstimator(')
     gl.fit(X, y)
     gl.fit(X, y, sample_weight=np.ones_like(y))
-
-    _check_sklearn_estimator(gl)
 
     assert_equal(gl.__repr__()[-28:], ', fitted with 10 estimators>')
     # transforms

@@ -7,8 +7,18 @@ import numpy as np
 from numpy.testing import assert_array_equal
 import pytest
 
-from mne.utils import requires_sklearn, _check_sklearn_estimator
+from mne.utils import requires_sklearn
 from mne.decoding.time_frequency import TimeFrequency
+
+
+@requires_sklearn
+def test_timefrequency_params():
+    freqs = [20, 21, 22]
+    try:
+        from mne.utils import _check_sklearn_estimator
+        _check_sklearn_estimator(TimeFrequency(freqs, sfreq=100))
+    except ImportError:
+        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
 
 
 @requires_sklearn
@@ -21,12 +31,10 @@ def test_timefrequency():
     for output in ['avg_power', 'foo', None]:
         pytest.raises(ValueError, TimeFrequency(freqs, output=output).fit,
                       np.random.rand(10, 2, 100))
-    _check_sklearn_estimator(tf)
 
     # Clone estimator
     freqs_array = np.array(np.asarray(freqs))
     tf = TimeFrequency(freqs_array, 100, "morlet", freqs_array / 5.)
-    _check_sklearn_estimator(tf)
 
     # Fit
     n_epochs, n_chans, n_times = 10, 2, 100

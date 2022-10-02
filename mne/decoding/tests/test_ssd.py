@@ -8,7 +8,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal)
 from mne import io
 from mne.time_frequency import psd_array_welch
 from mne.decoding.ssd import SSD
-from mne.utils import requires_sklearn, _check_sklearn_estimator
+from mne.utils import requires_sklearn
 from mne.filter import filter_data
 from mne import create_info
 from mne.decoding import CSP
@@ -51,6 +51,28 @@ def simulate_data(freqs_sig=[9, 12], n_trials=100, n_channels=20,
     return X, mixing_mat, S
 
 
+@requires_sklearn
+def test_ssd_params():
+    try:
+        from mne.utils import _check_sklearn_estimator
+        X, A, S = simulate_data()
+        sf = 250
+        n_channels = X.shape[0]
+        info = create_info(ch_names=n_channels, sfreq=sf, ch_types='eeg')
+        n_components_true = 5
+
+        # Init
+        filt_params_signal = dict(l_freq=freqs_sig[0], h_freq=freqs_sig[1],
+                                l_trans_bandwidth=1, h_trans_bandwidth=1)
+        filt_params_noise = dict(l_freq=freqs_noise[0], h_freq=freqs_noise[1],
+                                l_trans_bandwidth=1, h_trans_bandwidth=1)
+        ssd = SSD(info, filt_params_signal, filt_params_noise)
+        _check_sklearn_estimator(ssd, X.shape, (len(X),))
+    except ImportError:
+        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
+
+
+@requires_sklearn
 @pytest.mark.slowtest
 def test_ssd():
     """Test Common Spatial Patterns algorithm on raw data."""
@@ -67,7 +89,6 @@ def test_ssd():
                              l_trans_bandwidth=1, h_trans_bandwidth=1)
     ssd = SSD(info, filt_params_signal, filt_params_noise)
 
-    _check_sklearn_estimator(ssd, X.shape, (len(X),))
     # freq no int
     freq = 'foo'
     filt_params_signal = dict(l_freq=freq, h_freq=freqs_sig[1],

@@ -14,7 +14,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 
 from mne import io, Epochs, read_events, pick_types
 from mne.decoding.csp import CSP, _ajd_pham, SPoC
-from mne.utils import requires_sklearn, _check_sklearn_estimator
+from mne.utils import requires_sklearn
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
@@ -84,7 +84,16 @@ def deterministic_toy_data(classes=('class_a', 'class_b')):
 
     return x, y
 
+@requires_sklearn
+def test_csp_params():
+    try:
+        from mne.utils import _check_sklearn_estimator
+        _check_sklearn_estimator(CSP())
+    except ImportError:
+        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
 
+
+@requires_sklearn
 @pytest.mark.slowtest
 def test_csp():
     """Test Common Spatial Patterns algorithm on epochs."""
@@ -99,8 +108,6 @@ def test_csp():
     epochs_data = epochs.get_data()
     n_channels = epochs_data.shape[1]
     y = epochs.events[:, -1]
-
-    _check_sklearn_estimator(CSP())
 
     # Init
     csp = CSP(n_components='foo', norm_trace=False)
@@ -288,6 +295,16 @@ def test_ajd():
     assert_array_almost_equal(V, V_matlab)
 
 
+@requires_sklearn
+def test_spoc_params():
+    try:
+        from mne.utils import _check_sklearn_estimator
+        _check_sklearn_estimator(SPoC())
+    except ImportError:
+        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
+
+
+@requires_sklearn
 def test_spoc():
     """Test SPoC."""
     X = np.random.randn(10, 10, 20)
@@ -303,8 +320,6 @@ def test_spoc():
     assert_array_equal(Xt.shape, [10, 4, 20])
     assert_array_equal(spoc.filters_.shape, [10, 10])
     assert_array_equal(spoc.patterns_.shape, [10, 10])
-
-    _check_sklearn_estimator(SPoC())
 
     # check y
     pytest.raises(ValueError, spoc.fit, X, y * 0)

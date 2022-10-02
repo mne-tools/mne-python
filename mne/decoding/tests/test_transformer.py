@@ -14,8 +14,7 @@ from mne import io, read_events, Epochs, pick_types
 from mne.decoding import (Scaler, FilterEstimator, PSDEstimator, Vectorizer,
                           UnsupervisedSpatialFilter, TemporalFilter)
 from mne.defaults import DEFAULTS
-from mne.utils import (requires_sklearn, check_version,
-                       use_log_level, _check_sklearn_estimator)
+from mne.utils import requires_sklearn, check_version, use_log_level
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
@@ -26,6 +25,34 @@ raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
 
 
+@pytest.mark.parametrize('info, method', [
+    (True, None),
+    (True, dict(mag=5, grad=10, eeg=20)),
+    (False, 'mean'),
+    (False, 'median'),
+])
+@requires_sklearn
+def test_scaler_params(info, method):
+    raw = io.read_raw_fif(raw_fname)
+    events = read_events(event_name)
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')
+    picks = picks[1:13:3]
+
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
+    epochs_data = epochs.get_data()
+    y = epochs.events[:, -1]
+    if info:
+        info = epochs.info
+    try:
+        from mne.utils import _check_sklearn_estimator
+        _check_sklearn_estimator(Scaler(info, method), epochs_data.shape, y.shape)
+    except ImportError:
+        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
+
+
+@requires_sklearn
 @pytest.mark.parametrize('info, method', [
     (True, None),
     (True, dict(mag=5, grad=10, eeg=20)),
@@ -55,7 +82,6 @@ def test_scaler(info, method):
     if info:
         info = epochs.info
     scaler = Scaler(info, method)
-    _check_sklearn_estimator(scaler, epochs_data.shape, y.shape)
     X = scaler.fit_transform(epochs_data, y)
     assert_equal(X.shape, epochs_data.shape)
     if method is None or isinstance(method, dict):
@@ -177,6 +203,18 @@ def test_vectorizer():
     pytest.raises(ValueError, vect.transform, np.random.rand(105, 12, 3, 1))
     pytest.raises(ValueError, vect.inverse_transform,
                   np.random.rand(102, 12, 12))
+
+
+@requires_sklearn
+def test_scaler_params():
+    try:
+        from mne.utils import _check_sklearn_estimator
+        from sklearn.decomposition import PCA
+        _check_sklearn_estimator(
+            UnsupervisedSpatialFilter(PCA(2))
+        )
+    except ImportError:
+        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
 
 
 @requires_sklearn

@@ -313,13 +313,19 @@ def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
 
 
 @requires_sklearn
+def test_linerarmodel_params():
+    try:
+        from mne.utils import _check_sklearn_estimator
+        _check_sklearn_estimator(LinearModel())
+    except ImportError:
+        pytest.xfail('Cannot find sklearn utils needed for checking parameters')
+
+
+@requires_sklearn
 def test_linearmodel():
     """Test LinearModel class for computing filters and patterns."""
     # check categorical target fit in standard linear model
     from sklearn.linear_model import LinearRegression
-    from mne.utils import _check_sklearn_estimator
-
-    _check_sklearn_estimator(LinearModel())
 
     rng = np.random.RandomState(0)
     clf = LinearModel()
