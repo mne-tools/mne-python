@@ -494,7 +494,7 @@
 
 .. _Xiaokai Xia: https://github.com/dddd1007
 
-.. _Yaroslav Halchenko: http://www.onerussian.com/
+.. _Yaroslav Halchenko: http://haxbylab.dartmouth.edu/ppl/yarik.html
 
 .. _Yousra Bekhti: https://www.linkedin.com/pub/yousra-bekhti/56/886/421
 
