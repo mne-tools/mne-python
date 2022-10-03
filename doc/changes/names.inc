@@ -38,7 +38,7 @@
 
 .. _Anna Padee: https://github.com/apadee/
 
-.. _Annalisa Pascarella: http://www.iac.rm.cnr.it/~pasca/
+.. _Annalisa Pascarella: https://www.dima.unige.it/~pascarel/html/cv.html
 
 .. _Anne-Sophie Dubarry: https://github.com/annesodub
 
