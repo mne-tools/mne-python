@@ -39,7 +39,7 @@ Steering Council
 Community Participation Guidelines Response Leads
 -------------------------------------------------
 
-See our `Community Participation Guidelines<https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md>`__ for explanation. Current Response Leads are:
+See our `Community Participation Guidelines <https://github.com/mne-tools/.github/blob/main/CODE_OF_CONDUCT.md>`__ for explanation. Current Response Leads are:
 
 * `Daniel McCloy`_
 * `Eric Larson`_
