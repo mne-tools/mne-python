@@ -132,22 +132,49 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
         while True:
             do_break = p.poll() is not None
             # read all current lines without blocking
-            while True:
+            while True:  # process stdout
                 try:
                     out = out_q.get(timeout=0.01)
                 except Empty:
                     break
                 else:
+                    # Strip newline at end of the string, otherwise we'll end
+                    # up with two subsequent newlines (as the logger adds one)
+                    #
+                    # XXX Once we drop support for Python <3.9, uncomment the
+                    # following line and remove the if/else block below.
+                    #
+                    # out = out.decode('utf-8').removesuffix('\n')
                     out = out.decode('utf-8')
+                    if sys.version_info[:2] >= (3, 9):
+                        out = out.removesuffix('\n')
+                    else:
+                        if out.endswith('\n'):
+                            out = out[:-1]
+
                     logger.info(out)
                     all_out += out
-            while True:
+
+            while True:  # process stderr
                 try:
                     err = err_q.get(timeout=0.01)
                 except Empty:
                     break
                 else:
+                    # Strip newline at end of the string, otherwise we'll end
+                    # up with two subsequent newlines (as the logger adds one)
+                    #
+                    # XXX Once we drop support for Python <3.9, uncomment the
+                    # following line and remove the if/else block below.
+                    #
+                    # err = err.decode('utf-8').removesuffix('\n')
                     err = err.decode('utf-8')
+                    if sys.version_info[:2] >= (3, 9):
+                        err = err.removesuffix('\n')
+                    else:
+                        if err.endswith('\n'):
+                            err = err[:-1]
+
                     # Leave this as logger.warning rather than warn(...) to
                     # mirror the logger.info above for stdout. This function
                     # is basically just a version of subprocess.call, and
@@ -156,6 +183,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     # emit a warning if it wants).
                     logger.warning(err)
                     all_err += err
+
             if do_break:
                 break
     output = (all_out, all_err)
