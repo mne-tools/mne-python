@@ -6,7 +6,7 @@
 #
 # License: BSD-3-Clause
 
-from inspect import isfunction
+from inspect import isfunction, signature, Parameter
 from collections import namedtuple
 from collections.abc import Sequence
 from copy import deepcopy
@@ -61,7 +61,7 @@ from ..utils import (logger, check_fname, _check_fname, verbose,
                      _check_option, _PCA, int_like, _require_version,
                      _check_all_same_channel_names)
 
-from ..fixes import _get_args, _safe_svd
+from ..fixes import _safe_svd
 from ..filter import filter_data
 from .bads import _find_outliers
 from .ctps_ import ctps
@@ -111,13 +111,15 @@ def get_score_funcs():
                           n not in _BLOCKLIST]
     score_funcs.update({n: _make_xy_sfunc(f)
                         for n, f in xy_arg_dist_funcs
-                        if _get_args(f) == ['u', 'v']})
-    # In SciPy 1.9+, pearsonr has (u, v, *, alternative='two-sided'), so we
+                        if signature(f).parameters == ['u', 'v']})
+    # In SciPy 1.9+, pearsonr has (x, y, *, alternative='two-sided'), so we
     # should just look at the positional_only and positional_or_keyword entries
-    exclude = ('var_positional', 'var_keyword', 'keyword_only')
-    score_funcs.update({n: _make_xy_sfunc(f, ndim_output=True)
-                        for n, f in xy_arg_stats_funcs
-                        if _get_args(f, exclude=exclude) == ['x', 'y']})
+    for n, f in xy_arg_stats_funcs:
+        params = [name for name, param in signature(f).parameters.items()
+                  if param.kind in
+                  (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD)]
+        if params == ['x', 'y']:
+            score_funcs.update({n: _make_xy_sfunc(f, ndim_output=True)})
     assert 'pearsonr' in score_funcs
     return score_funcs
 
@@ -2634,7 +2636,7 @@ def read_ica(fname, verbose=None):
         return x.astype(np.float64)
 
     ica_init = {k: v for k, v in ica_init.items()
-                if k in _get_args(ICA.__init__)}
+                if k in signature(ICA.__init__).parameters}
     ica = ICA(**ica_init)
     ica.current_fit = current_fit
     ica.ch_names = ch_names.split(':')
