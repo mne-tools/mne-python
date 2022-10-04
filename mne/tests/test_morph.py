@@ -3,6 +3,7 @@
 #
 # License: BSD-3-Clause
 import os.path as op
+from inspect import signature
 
 import pytest
 import numpy as np
@@ -28,7 +29,6 @@ from mne.source_space import _add_interpolator, _grid_interp
 from mne.transforms import quat_to_rot
 from mne.utils import (requires_nibabel, check_version, requires_version,
                        requires_dipy, catch_logging, _record_warnings)
-from mne.fixes import _get_args
 
 # Setup paths
 
@@ -67,7 +67,7 @@ def _real_vec_stc():
 
 def test_sourcemorph_consistency():
     """Test SourceMorph class consistency."""
-    assert _get_args(SourceMorph.__init__)[1:-1] == \
+    assert list(signature(SourceMorph.__init__).parameters)[1:-1] == \
         mne.morph._SOURCE_MORPH_ATTRIBUTES
 
 

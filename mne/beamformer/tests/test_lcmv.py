@@ -1,4 +1,5 @@
 from copy import deepcopy
+from inspect import signature
 import os.path as op
 
 import pytest
@@ -18,7 +19,6 @@ from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
                             read_beamformer, apply_lcmv_cov, make_dics)
 from mne.beamformer._compute_beamformer import _prepare_beamformer_input
 from mne.datasets import testing
-from mne.fixes import _get_args
 from mne.io.compensator import set_current_comp
 from mne.io.constants import FIFF
 from mne.minimum_norm import make_inverse_operator, apply_inverse
@@ -920,8 +920,8 @@ def _assert_weight_norm(filters, G):
 
 def test_api():
     """Test LCMV/DICS API equivalence."""
-    lcmv_names = _get_args(make_lcmv)
-    dics_names = _get_args(make_dics)
+    lcmv_names = list(signature(make_lcmv).parameters)
+    dics_names = list(signature(make_dics).parameters)
     dics_names[dics_names.index('csd')] = 'data_cov'
     dics_names[dics_names.index('noise_csd')] = 'noise_cov'
     dics_names.pop(dics_names.index('real_filter'))  # not a thing for LCMV

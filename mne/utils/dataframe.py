@@ -4,11 +4,12 @@
 #
 # License: BSD-3-Clause
 
+from inspect import signature
+
 import numpy as np
 
 from ._logging import logger, verbose
 from ..defaults import _handle_default
-from ..fixes import _get_args
 
 
 @verbose
@@ -51,7 +52,7 @@ def _convert_times(inst, times, time_format):
 def _inplace(df, method, **kwargs):
     """Handle transition: inplace=True (pandas <1.5) → copy=False (>=1.5)."""
     _meth = getattr(df, method)  # used for set_index() and rename()
-    if 'copy' in _get_args(_meth):
+    if 'copy' in signature(_meth).parameters:
         return _meth(**kwargs, copy=False)
     else:
         _meth(**kwargs, inplace=True)

@@ -2,12 +2,13 @@
 #
 # License: BSD-3-Clause
 
+from inspect import signature
+
 import numpy as np
 from numpy.testing import assert_array_equal, assert_equal
 import pytest
 
 from mne.utils import requires_sklearn, _record_warnings
-from mne.fixes import _get_args
 from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
 from mne.decoding.transformer import Vectorizer
 
@@ -85,7 +86,7 @@ def test_search_light():
     with pytest.raises(ValueError, match='for two-class'):
         sl.score(X, y)
     # But check that valid ones should work with new enough sklearn
-    if 'multi_class' in _get_args(roc_auc_score):
+    if 'multi_class' in signature(roc_auc_score).parameters:
         scoring = make_scorer(
             roc_auc_score, needs_proba=True, multi_class='ovo')
         sl = SlidingEstimator(logreg, scoring=scoring)

@@ -14,6 +14,7 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime
+from inspect import signature
 import difflib
 from functools import partial
 import math
@@ -28,7 +29,6 @@ from decorator import decorator
 import numpy as np
 
 from ..defaults import _handle_default
-from ..fixes import _get_args
 from ..io import show_fiff, Info
 from ..io.constants import FIFF
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
@@ -99,6 +99,20 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
         warn(warn_msg.format(**warn_val), UserWarning)
 
     return vmin, vmax
+
+
+def _warn_deprecated_vmin_vmax(vlim, vmin, vmax):
+    if vmin is not None or vmax is not None:
+        warn('The "vmin" and "vmax" parameters are deprecated and will be '
+             'removed in version 1.3. Use the "vlim" parameter instead.',
+             FutureWarning)
+        if vlim[0] is None and vlim[1] is None:
+            vlim = (vmin, vmax)
+        else:
+            warn('You provided either "vmin" or "vmax" (which are '
+                 'deprecated) as well as "vlim". Using "vlim" and '
+                 'ignoring "vmin" and "vmax".')
+    return vlim
 
 
 def plt_show(show=True, fig=None, **kwargs):
@@ -2300,6 +2314,29 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
     return fig
 
 
+def _format_units_psd(unit, latex=False, power=True, dB=False):
+    """Format PSD measurement units nicely."""
+    unit = f'({unit})' if '/' in unit else unit
+    if power:
+        denom = 'Hz'
+        exp = r'^{2}' if latex else '²'
+    else:
+        denom = r'\sqrt{Hz}' if latex else '√(Hz)'
+        exp = ''
+    pre, post = (r'$\mathrm{', r'}$') if latex else ('', '')
+    db = ' (dB)' if dB else ''
+    return f'{pre}{unit}{exp}/{denom}{post}{db}'
+
+
+def _prepare_sensor_names(names, show_names):
+    """Apply callable to sensor names (if provided)."""
+    if callable(show_names):
+        names = [show_names(name) for name in names]
+    elif not show_names:
+        names = None
+    return names
+
+
 def _trim_ticks(ticks, _min, _max):
     """Remove ticks that are more extreme than the given limits."""
     if np.isclose(_min, _max):
@@ -2453,7 +2490,7 @@ def _prop_kw(kind, val):
     # Can be removed in when we depend on matplotlib 3.4.3+
     # https://github.com/matplotlib/matplotlib/pull/20585
     from matplotlib.widgets import SpanSelector
-    pre = '' if 'props' in _get_args(SpanSelector) else kind
+    pre = '' if 'props' in signature(SpanSelector).parameters else kind
     return {pre + 'props': val}
 
 

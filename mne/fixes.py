@@ -71,26 +71,6 @@ def _median_complex(data, axis):
     return data
 
 
-# helpers to get function arguments
-def _get_args(function, varargs=False, *,
-              exclude=('var_positional', 'var_keyword')):
-    params = inspect.signature(function).parameters
-    # As of Python 3.10:
-    # https://docs.python.org/3/library/inspect.html#inspect.Parameter.kind
-    # POSITIONAL_ONLY, POSITIONAL_OR_KEYWORD, VAR_POSITIONAL, KEYWORD_ONLY,
-    # VAR_KEYWORD
-    exclude = set(getattr(inspect.Parameter, ex.upper()) for ex in exclude)
-    args = [key for key, param in params.items() if param.kind not in exclude]
-    if varargs:
-        varargs = [param.name for param in params.values()
-                   if param.kind == param.VAR_POSITIONAL]
-        if len(varargs) == 0:
-            varargs = None
-        return args, varargs
-    else:
-        return args
-
-
 def _safe_svd(A, **kwargs):
     """Wrapper to get around the SVD did not converge error of death"""
     # Intel has a bug with their GESVD driver:

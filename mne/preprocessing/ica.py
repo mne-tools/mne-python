@@ -6,7 +6,7 @@
 #
 # License: BSD-3-Clause
 
-from inspect import isfunction
+from inspect import isfunction, signature, Parameter
 from collections import namedtuple
 from collections.abc import Sequence
 from copy import deepcopy
@@ -28,7 +28,8 @@ from .infomax_ import infomax
 
 from ..cov import compute_whitener
 from .. import Covariance, Evoked
-from ..defaults import _INTERPOLATION_DEFAULT
+from ..defaults import (_BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT,
+                        _INTERPOLATION_DEFAULT)
 from ..io.pick import (pick_types, pick_channels, pick_info,
                        _picks_to_idx, _get_channel_types, _DATA_CH_TYPES_SPLIT)
 from ..io.proj import make_projector
@@ -60,7 +61,7 @@ from ..utils import (logger, check_fname, _check_fname, verbose,
                      _check_option, _PCA, int_like, _require_version,
                      _check_all_same_channel_names)
 
-from ..fixes import _get_args, _safe_svd
+from ..fixes import _safe_svd
 from ..filter import filter_data
 from .bads import _find_outliers
 from .ctps_ import ctps
@@ -110,13 +111,15 @@ def get_score_funcs():
                           n not in _BLOCKLIST]
     score_funcs.update({n: _make_xy_sfunc(f)
                         for n, f in xy_arg_dist_funcs
-                        if _get_args(f) == ['u', 'v']})
-    # In SciPy 1.9+, pearsonr has (u, v, *, alternative='two-sided'), so we
+                        if signature(f).parameters == ['u', 'v']})
+    # In SciPy 1.9+, pearsonr has (x, y, *, alternative='two-sided'), so we
     # should just look at the positional_only and positional_or_keyword entries
-    exclude = ('var_positional', 'var_keyword', 'keyword_only')
-    score_funcs.update({n: _make_xy_sfunc(f, ndim_output=True)
-                        for n, f in xy_arg_stats_funcs
-                        if _get_args(f, exclude=exclude) == ['x', 'y']})
+    for n, f in xy_arg_stats_funcs:
+        params = [name for name, param in signature(f).parameters.items()
+                  if param.kind in
+                  (Parameter.POSITIONAL_ONLY, Parameter.POSITIONAL_OR_KEYWORD)]
+        if params == ['x', 'y']:
+            score_funcs.update({n: _make_xy_sfunc(f, ndim_output=True)})
     assert 'pearsonr' in score_funcs
     return score_funcs
 
@@ -2633,7 +2636,7 @@ def read_ica(fname, verbose=None):
         return x.astype(np.float64)
 
     ica_init = {k: v for k, v in ica_init.items()
-                if k in _get_args(ICA.__init__)}
+                if k in signature(ICA.__init__).parameters}
     ica = ICA(**ica_init)
     ica.current_fit = current_fit
     ica.ch_names = ch_names.split(':')
@@ -2734,12 +2737,14 @@ def _find_max_corrs(all_maps, target, threshold):
 
 
 @verbose
-def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
-            plot=True, show=True, outlines='head',
-            sensors=True, contours=6, cmap=None, sphere=None, verbose=None):
+def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg", *,
+            sensors=True, show_names=False, contours=6, outlines='head',
+            sphere=None, image_interp=_INTERPOLATION_DEFAULT,
+            extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT,
+            cmap=None, plot=True, show=True, verbose=None):
     """Find similar Independent Components across subjects by map similarity.
 
-    Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
+    Corrmap :footcite:p:`CamposViolaEtAl2009` identifies the best group
     match to a supplied template. Typically, feed it a list of fitted ICAs and
     a template IC, for example, the blink for the first subject, to identify
     specific ICs across subjects.
@@ -2788,26 +2793,25 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         and the supplied ICs are not changed.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
         The channel type to plot. Defaults to 'eeg'.
+    %(sensors_topomap)s
+    %(show_names_topomap)s
+    %(contours_topomap)s
+    %(outlines_topomap)s
+    %(sphere_topomap_auto)s
+    %(image_interp_topomap)s
+
+        .. versionadded:: 1.2
+    %(extrapolate_topomap)s
+
+        .. versionadded:: 1.2
+    %(border_topomap)s
+
+        .. versionadded:: 1.2
+    %(cmap_topomap_simple)s
     plot : bool
         Should constructed template and selected maps be plotted? Defaults
         to True.
-    show : bool
-        Show figures if True.
-    %(outlines_topomap)s
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True, a circle will be
-        used (via .add_artist). Defaults to True.
-    contours : int | array of float
-        The number of contour lines to draw. If 0, no contours will be drawn.
-        When an integer, matplotlib ticker locator is used to find suitable
-        values for the contour thresholds (may sometimes be inaccurate, use
-        array for accuracy). If an array, the values represent the levels for
-        the contours. Defaults to 6.
-    cmap : None | matplotlib colormap
-        Colormap for the plot. If ``None``, defaults to 'Reds_r' for norm data,
-        otherwise to 'RdBu_r'.
-    %(sphere_topomap_auto)s
+    %(show)s
     %(verbose)s
 
     Returns
@@ -2816,6 +2820,10 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         Figure showing the template.
     labelled_ics : Figure
         Figure showing the labelled ICs in all ICA decompositions.
+
+    References
+    ----------
+    .. footbibliography::
     """
     if not isinstance(plot, bool):
         raise ValueError("`plot` must be of type `bool`")
@@ -2854,12 +2862,11 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
                 outlines=outlines, cmap=cmap, contours=contours,
                 show=show, topomap_args=dict(sphere=sphere))
         else:  # plotting an array
-            template_fig = _plot_corrmap([template], [0], [0], ch_type,
-                                         icas[0].copy(), "Template",
-                                         outlines=outlines, cmap=cmap,
-                                         contours=contours,
-                                         show=show, template=True,
-                                         sphere=sphere)
+            template_fig = _plot_corrmap(
+                [template], [0], [0], ch_type, icas[0].copy(), "Template",
+                outlines=outlines, cmap=cmap, contours=contours,
+                image_interp=image_interp, extrapolate=extrapolate,
+                border=border, show=show, template=True, sphere=sphere)
         template_fig.subplots_adjust(top=0.8)
         template_fig.canvas.draw()
 
@@ -2908,15 +2915,15 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     if len(nones) == 0:
         logger.info('At least 1 IC detected for each subject.')
     else:
-        logger.info('No maps selected for subject%s %s, '
-                    'consider a more liberal threshold.'
-                    % (_pl(nones), nones))
+        logger.info(f'No maps selected for subject{_pl(nones)} {nones}, '
+                    'consider a more liberal threshold.')
 
     if plot is True:
-        labelled_ics = _plot_corrmap(allmaps, subjs, indices, ch_type, ica,
-                                     label, outlines=outlines, cmap=cmap,
-                                     contours=contours,
-                                     show=show, sphere=sphere)
+        labelled_ics = _plot_corrmap(
+            allmaps, subjs, indices, ch_type, ica, label, outlines=outlines,
+            cmap=cmap, sensors=sensors, contours=contours, sphere=sphere,
+            image_interp=image_interp, extrapolate=extrapolate,
+            border=border, show=show, show_names=show_names)
         return template_fig, labelled_ics
     else:
         return None

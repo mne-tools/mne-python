@@ -38,13 +38,13 @@ evoked = mne.read_evokeds(fname, condition='Left Auditory', baseline=(None, 0))
 
 # go from grad + mag to mag and plot original mag
 virt_evoked = evoked.as_type('mag')
-evoked.plot_topomap(ch_type='mag', title='mag (original)', time_unit='s')
-
+fig = evoked.plot_topomap(ch_type='mag')
+fig.suptitle('mag (original)')
 # %%
 
 # plot interpolated grad + mag
-virt_evoked.plot_topomap(ch_type='mag', time_unit='s',
-                         title='mag (interpolated from mag + grad)')
+fig = virt_evoked.plot_topomap(ch_type='mag')
+fig.suptitle('mag (interpolated from mag + grad)')
 
 # %%
 # Now, we remap magnometers to gradiometers, and plot
@@ -52,10 +52,11 @@ virt_evoked.plot_topomap(ch_type='mag', time_unit='s',
 
 # go from grad + mag to grad and plot original grad
 virt_evoked = evoked.as_type('grad')
-evoked.plot_topomap(ch_type='grad', title='grad (original)', time_unit='s')
+fig = evoked.plot_topomap(ch_type='grad')
+fig.suptitle('grad (original)')
 
 # %%
 
 # plot interpolated grad + mag
-virt_evoked.plot_topomap(ch_type='grad', time_unit='s',
-                         title='grad (interpolated from mag + grad)')
+fig = virt_evoked.plot_topomap(ch_type='grad')
+fig.suptitle('grad (interpolated from mag + grad)')

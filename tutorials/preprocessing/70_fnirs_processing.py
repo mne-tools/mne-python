@@ -297,32 +297,27 @@ epochs['Tapping/Right'].average(picks='hbr').plot_topomap(
 
 fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(9, 5),
                          gridspec_kw=dict(width_ratios=[1, 1, 1, 0.1]))
-vmin, vmax, ts = -8, 8, 9.0
+vlim = (-8, 8)
+ts = 9.0
 
 evoked_left = epochs['Tapping/Left'].average()
 evoked_right = epochs['Tapping/Right'].average()
 
 evoked_left.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 0],
-                         vmin=vmin, vmax=vmax, colorbar=False,
-                         **topomap_args)
+                         vlim=vlim, colorbar=False, **topomap_args)
 evoked_left.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 0],
-                         vmin=vmin, vmax=vmax, colorbar=False,
-                         **topomap_args)
+                         vlim=vlim, colorbar=False, **topomap_args)
 evoked_right.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 1],
-                          vmin=vmin, vmax=vmax, colorbar=False,
-                          **topomap_args)
+                          vlim=vlim, colorbar=False, **topomap_args)
 evoked_right.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 1],
-                          vmin=vmin, vmax=vmax, colorbar=False,
-                          **topomap_args)
+                          vlim=vlim, colorbar=False, **topomap_args)
 
 evoked_diff = mne.combine_evoked([evoked_left, evoked_right], weights=[1, -1])
 
 evoked_diff.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 2:],
-                         vmin=vmin, vmax=vmax, colorbar=True,
-                         **topomap_args)
+                         vlim=vlim, colorbar=True, **topomap_args)
 evoked_diff.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 2:],
-                         vmin=vmin, vmax=vmax, colorbar=True,
-                         **topomap_args)
+                         vlim=vlim, colorbar=True, **topomap_args)
 
 for column, condition in enumerate(
         ['Tapping Left', 'Tapping Right', 'Left-Right']):
