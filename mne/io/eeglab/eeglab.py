@@ -15,7 +15,7 @@ from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
 from ...utils import logger, verbose, warn, fill_doc, Bunch, _check_fname
-from ...channels import make_dig_montage, compute_native_head_t
+from ...channels import make_dig_montage
 from ...epochs import BaseEpochs
 from ...event import read_events
 from ...annotations import Annotations, read_annotations

@@ -239,6 +239,7 @@ class RawHitachi(BaseRaw):
         pairs = _compute_pairs(n_row, n_col, n=1 + (mode == '3x3'))
         assert n_nirs == len(pairs) * 2
         locs = np.zeros((len(ch_names), 12))
+        locs[:, :9] = np.nan
         idxs = np.where(np.array(ch_types, 'U') == 'fnirs_cw_amplitude')[0]
         for ii, idx in enumerate(idxs):
             ch_name = ch_names[idx]

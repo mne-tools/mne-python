@@ -143,7 +143,7 @@ def _create_info_chs_dig(ft_struct):
             # Ref gets ident=0 and we don't have it, so start at 1
             counter += 1
             d = DigPoint(
-                r=cur_ch['loc'][:3], coord_frame=FIFF.FIFFV_COORD_HEAD,
+                r=cur_ch['loc'][:3], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                 kind=FIFF.FIFFV_POINT_EEG, ident=counter)
             dig.append(d)
         elif grad and cur_channel_label in grad['label']:

@@ -1238,17 +1238,19 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     # Next line modifies info['dig'] in place
     with info._unlock():
         info['dig'] = _format_dig_points(digpoints, enforce_order=True)
+    del digpoints
 
     # _get_montage_in_head will warn if going from unknown to head without
-    # fids but do it anyway. MNE-BIDS has problems if info['dig'] is in head
+    # fids but proceed anyway. MNE-BIDS has problems if info['dig'] is in head
     # but no fids are present. So let's comply with what they want (the
-    # enforce_order should ensure that our first three are fids if present):
+    # enforce_order should ensure that our first three are fids if present,
+    # so this check is probably good enough):
     missing_fids = sum(
-        d['kind'] == _dig_kind_dict['cardinal'] for d in info['dig'][:3]) == 3
+        d['kind'] == _dig_kind_dict['cardinal'] for d in info['dig'][:3]) != 3
     # TODO: this is not great because it creates an inconsistency between
     # info['chs'][ii]['coord_frame'] and info['dig'][jj]['coord_frame']
     if missing_fids:
-        for d in digpoints:
+        for d in info['dig']:
             if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
                 d['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
 
