@@ -10,7 +10,8 @@ from .constants import FIFF
 from .meas_info import _check_ch_keys
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .proj import setup_proj
-from .pick import pick_types, pick_channels, pick_channels_forward
+from .pick import (pick_types, pick_channels, pick_channels_forward,
+                   _ELECTRODE_CH_TYPES)
 from .base import BaseRaw
 from ..evoked import Evoked
 from ..epochs import BaseEpochs
@@ -388,7 +389,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
 
 def _get_ch_type(inst, ch_type):
     _validate_type(ch_type, (str, list, tuple), 'ch_type')
-    valid_ch_types = ('auto', 'eeg', 'ecog', 'seeg', 'dbs')
+    valid_ch_types = ('auto',) + _ELECTRODE_CH_TYPES
     if isinstance(ch_type, str):
         _check_option('ch_type', ch_type, valid_ch_types)
         if ch_type != 'auto':
@@ -402,7 +403,7 @@ def _get_ch_type(inst, ch_type):
     # if ch_type is 'auto', search through list to find first reasonable
     # reference-able channel type.
     if ch_type == 'auto':
-        for type_ in ['eeg', 'ecog', 'seeg', 'dbs']:
+        for type_ in _ELECTRODE_CH_TYPES:
             if type_ in inst:
                 ch_type = [type_]
                 logger.info('%s channel type selected for '

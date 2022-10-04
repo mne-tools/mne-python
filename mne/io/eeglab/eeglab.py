@@ -15,7 +15,7 @@ from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
 from ...utils import logger, verbose, warn, fill_doc, Bunch, _check_fname
-from ...channels import make_dig_montage
+from ...channels import make_dig_montage, compute_native_head_t
 from ...epochs import BaseEpochs
 from ...event import read_events
 from ...annotations import Annotations, read_annotations
@@ -158,7 +158,7 @@ def _get_montage_information(eeg, get_pos):
     if pos_ch_names:
         montage = make_dig_montage(
             ch_pos=dict(zip(ch_names, np.array(pos))),
-            coord_frame='head', lpa=lpa, rpa=rpa, nasion=nasion)
+            coord_frame='unknown', lpa=lpa, rpa=rpa, nasion=nasion)
     else:
         montage = None
 
@@ -213,9 +213,9 @@ def _set_dig_montage_in_init(self, montage):
             list(missing_channels),
             np.full((len(missing_channels), 3), np.nan)
         ))
-        self.set_montage(
-            montage + make_dig_montage(ch_pos=ch_pos, coord_frame='head')
-        )
+        second_montage = make_dig_montage(
+            ch_pos=ch_pos, coord_frame='unknown')
+        self.set_montage(montage + second_montage)
 
 
 @fill_doc

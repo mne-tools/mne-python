@@ -4,6 +4,7 @@
 #
 # License: BSD-3-Clause
 
+from contextlib import nullcontext
 from copy import deepcopy
 import os.path as op
 import shutil
@@ -207,7 +208,7 @@ def test_io_set_raw_more(tmp_path):
                                      'X': 6.3023, 'Z': -2.9423},
                         'times': eeg.times[:3], 'pnts': 3}},
                appendmat=False, oned_as='row')
-    read_raw_eeglab(input_fname=one_chan_fname, preload=True)
+    read_raw_eeglab(input_fname=one_chan_fname, preload=True, verbose='error')
 
     # test reading file with 3 channels - one without position information
     # first, create chanlocs structured array
@@ -281,11 +282,13 @@ def test_io_set_epochs_events(tmp_path):
     write_events(out_fname, events)
     event_id = {'S255/S8': 1, 'S8': 2, 'S255/S9': 3}
     out_fname = op.join(tmp_path, 'test-eve.fif')
-    epochs = read_epochs_eeglab(epochs_fname_mat, events, event_id)
+    epochs = read_epochs_eeglab(
+        epochs_fname_mat, events, event_id, verbose='error')
     assert_equal(len(epochs.events), 4)
     assert epochs.preload
     assert epochs._bad_dropped
-    epochs = read_epochs_eeglab(epochs_fname_mat, out_fname, event_id)
+    epochs = read_epochs_eeglab(
+        epochs_fname_mat, out_fname, event_id, verbose='error')
     pytest.raises(ValueError, read_epochs_eeglab, epochs_fname_mat,
                   None, event_id)
     pytest.raises(ValueError, read_epochs_eeglab, epochs_fname_mat,
@@ -342,7 +345,8 @@ def test_eeglab_read_annotations():
                               expected_onset, decimal=2)
 
     # test if event durations are imported correctly
-    raw = read_raw_eeglab(raw_fname_event_duration, preload=True)
+    raw = read_raw_eeglab(
+        raw_fname_event_duration, preload=True, verbose='error')
     # file contains 3 annotations with 0.5 s (64 samples) duration each
     assert_allclose(raw.annotations.duration, np.ones(3) * 0.5)
 
@@ -414,7 +418,11 @@ def test_position_information(one_chanpos_fname):
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
     ])
 
-    raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
+    raw = read_raw_eeglab(
+        input_fname=one_chanpos_fname,
+        preload=True,
+        verbose='error',  # ignore fid missing -> unknown frame
+    )
     assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
                        EXPECTED_LOCATIONS_FROM_FILE)
 
@@ -425,6 +433,7 @@ def test_position_information(one_chanpos_fname):
     raw = read_raw_eeglab(
         input_fname=one_chanpos_fname,
         preload=True,
+        verbose='error',
     ).set_montage(None)  # Flush the montage builtin within input_fname
 
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
@@ -481,7 +490,12 @@ def test_fidsposition_information(monkeypatch, has_type):
 
         monkeypatch.setattr(mne.io.eeglab.eeglab, '_get_montage_information',
                             get_bad_information)
-    raw = read_raw_eeglab(raw_fname_chanloc_fids)
+        ctx = pytest.warns(
+            RuntimeWarning, match='Fiducial point nasion not found')
+    else:
+        ctx = nullcontext()
+    with ctx:
+        raw = read_raw_eeglab(raw_fname_chanloc_fids)
     montage = raw.get_montage()
     pos = montage.get_positions()
     n_eeg = 129

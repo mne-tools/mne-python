@@ -30,7 +30,7 @@ from ..io._digitization import (_count_points_by_type,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
                                 _get_fid_coords, _coord_frame_const,
-                                _get_data_as_dict_from_dig)
+                                _get_data_as_dict_from_dig, _dig_kind_dict)
 from ..io.meas_info import create_info
 from ..io.open import fiff_open
 from ..io.pick import pick_types, _picks_to_idx, channel_type
@@ -1234,9 +1234,23 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
         # in the old dig
         if ref_dig_point in old_dig:
             digpoints.append(ref_dig_point)
+
     # Next line modifies info['dig'] in place
     with info._unlock():
         info['dig'] = _format_dig_points(digpoints, enforce_order=True)
+
+    # _get_montage_in_head will warn if going from unknown to head without
+    # fids but do it anyway. MNE-BIDS has problems if info['dig'] is in head
+    # but no fids are present. So let's comply with what they want (the
+    # enforce_order should ensure that our first three are fids if present):
+    missing_fids = sum(
+        d['kind'] == _dig_kind_dict['cardinal'] for d in info['dig'][:3]) == 3
+    # TODO: this is not great because it creates an inconsistency between
+    # info['chs'][ii]['coord_frame'] and info['dig'][jj]['coord_frame']
+    if missing_fids:
+        for d in digpoints:
+            if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
+                d['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
 
     # Handle fNIRS with source, detector and channel
     fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)
@@ -1597,7 +1611,8 @@ def compute_dev_head_t(montage):
     return Transform(fro='meg', to='head', trans=trans)
 
 
-def compute_native_head_t(montage):
+@verbose
+def compute_native_head_t(montage, *, on_missing='warn', verbose=None):
     """Compute the native-to-head transformation for a montage.
 
     This uses the fiducials in the native space to transform to compute the
@@ -1607,6 +1622,10 @@ def compute_native_head_t(montage):
     ----------
     montage : instance of DigMontage
         The montage.
+    %(on_missing_fiducials)s
+
+        .. versionadded:: 1.2
+    %(verbose)s
 
     Returns
     -------
@@ -1623,9 +1642,10 @@ def compute_native_head_t(montage):
         fid_keys = ('nasion', 'lpa', 'rpa')
         for key in fid_keys:
             if fid_coords[key] is None:
-                warn('Fiducial point %s not found, assuming identity %s to '
-                     'head transformation'
-                     % (key, _verbose_frames[coord_frame],))
+                msg = (
+                    f'Fiducial point {key} not found, assuming identity '
+                    f'{_verbose_frames[coord_frame]} to head transformation')
+                _on_missing(on_missing, msg, error_klass=RuntimeError)
                 native_head_t = np.eye(4)
                 break
         else:

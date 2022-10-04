@@ -2255,6 +2255,11 @@ on_missing : 'raise' | 'warn' | 'ignore'
     .. versionadded:: 0.21
 """
 
+docdict['on_missing_fiducials'] = f"""
+on_missing : 'raise' | 'warn' | 'ignore'
+    {_on_missing_base} some necessary fiducial points are missing.
+"""
+
 docdict['on_missing_fwd'] = f"""
 on_missing : 'raise' | 'warn' | 'ignore'
     {_on_missing_base} ``stc`` has vertices that are not in ``fwd``.

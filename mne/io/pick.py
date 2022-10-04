@@ -938,6 +938,8 @@ _VALID_CHANNEL_TYPES = (
     'bio', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT + ('misc', 'csd')
 _DATA_CH_TYPES_SPLIT = (
     'mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog', 'dbs') + _FNIRS_CH_TYPES_SPLIT
+# Electrode types (e.g., can be average-referenced together or separately)
+_ELECTRODE_CH_TYPES = ('eeg', 'ecog', 'seeg', 'dbs')
 
 
 def _pick_data_channels(info, exclude='bads', with_ref_meg=True,
