@@ -435,7 +435,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         eeg_loc = eeg_loc[np.isfinite(eeg_loc).all(axis=1)]
         if len(eeg_loc):
             if 'fnirs_cw_amplitude' in raw:
-                assert 2 * len(eeg_dig) == len(eeg_loc)
+                assert 2 * len(eeg_dig) >= len(eeg_loc)
             else:
                 assert len(eeg_dig) >= len(eeg_loc)  # could have some excluded
     # make sure that dig points in head coords implies that fiducials are
