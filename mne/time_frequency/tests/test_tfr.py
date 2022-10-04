@@ -112,17 +112,19 @@ def test_time_frequency():
     # the other is average of the squared magnitudes (epochs PSD)
     # so values shouldn't match, but shapes should
     assert_array_equal(power.data.shape, power_evoked.data.shape)
-    pytest.raises(AssertionError, assert_allclose,
-                  power.data, power_evoked.data)
+    with pytest.raises(AssertionError, match='Not equal to tolerance'):
+        assert_allclose(power.data, power_evoked.data)
 
     # complex output
-    pytest.raises(ValueError, tfr_morlet, epochs, freqs, n_cycles,
-                  return_itc=False, average=True, output="complex")
-    pytest.raises(ValueError, tfr_morlet, epochs, freqs, n_cycles,
-                  output="complex", average=False, return_itc=True)
-    epochs_power_complex = tfr_morlet(epochs, freqs, n_cycles,
-                                      output="complex", average=False,
-                                      return_itc=False)
+    with pytest.raises(ValueError, match='must be "power" if average=True'):
+        tfr_morlet(epochs, freqs, n_cycles, return_itc=False, average=True,
+                   output='complex')
+    with pytest.raises(ValueError, match='Inter-trial coher.*average=False'):
+        tfr_morlet(epochs, freqs, n_cycles, return_itc=True, average=False,
+                   output='complex')
+    epochs_power_complex = tfr_morlet(
+        epochs, freqs, n_cycles, return_itc=False, average=False,
+        output='complex')
     epochs_amplitude_2 = abs(epochs_power_complex)
     epochs_amplitude_3 = epochs_amplitude_2.copy()
     epochs_amplitude_3.data[:] = np.inf  # test that it's actually copied
