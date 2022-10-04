@@ -554,6 +554,27 @@ def test_init_EpochsTFR():
         del tfr
 
 
+def test_dB_computation():
+    """Test dB computation in plot methods (gh 11091)."""
+    data = np.full((3, 2, 3), 4.)              # dB will be 10 log10(4)
+    complex_data = np.full((3, 2, 3), 2 + 0j)  # dB will be 20 log10(2)
+    times = np.array([.1, .2, .3])
+    freqs = np.array([.10, .20])
+    info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
+                           ['mag', 'mag', 'mag'])
+    kwargs = dict(times=times, freqs=freqs, nave=20, comment='test',
+                  method='crazy-tfr')
+    tfr = AverageTFR(info, data=data, **kwargs)
+    complex_tfr = AverageTFR(info, data=complex_data, **kwargs)
+    plot_kwargs = dict(dB=True, combine='mean', vmin=0, vmax=7)
+    fig1 = tfr.plot(**plot_kwargs)[0]
+    fig2 = complex_tfr.plot(**plot_kwargs)[0]
+    # since we're fixing vmin/vmax, equal colors should mean ~equal input data
+    quadmesh1 = fig1.axes[0].collections[0]._mapped_colors
+    quadmesh2 = fig2.axes[0].collections[0]._mapped_colors
+    assert_array_equal(quadmesh1, quadmesh2)
+
+
 def test_plot():
     """Test TFR plotting."""
     data = np.zeros((3, 2, 3))
