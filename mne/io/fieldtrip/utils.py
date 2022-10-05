@@ -166,8 +166,7 @@ def _create_info_chs_dig(ft_struct):
                 cur_ch['coil_type'] = FIFF.FIFFV_COIL_NONE
 
         chs.append(cur_ch)
-    if dig:
-        _ensure_fiducials_head(dig)
+    _ensure_fiducials_head(dig)
 
     return chs, dig
 

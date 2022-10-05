@@ -1251,12 +1251,17 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
         info['dig'] = _format_dig_points(digpoints, enforce_order=True)
     del digpoints
 
-    missing_fids = sum(
-        d['kind'] == FIFF.FIFFV_POINT_CARDINAL for d in info['dig'][:3]) != 3
-    if missing_fids:
-        raise RuntimeError(
-            'Could not find all three fiducials in the montage, this should '
-            'not happen. Please contact MNE-Python developers.')
+    # TODO: Ideally we would have a check like this, but read_raw_bids for ECoG
+    # allows for a montage to be set without any fiducials, then silently the
+    # info['dig'] can end up in the MNI_TAL frame... only because in our
+    # coversion code, UNKNOWN is treated differently from any other frame
+    # (e.g., MNI_TAL). We should clean this up at some point...
+    # missing_fids = sum(
+    #     d['kind'] == FIFF.FIFFV_POINT_CARDINAL for d in info['dig'][:3]) != 3
+    # if missing_fids:
+    #     raise RuntimeError(
+    #         'Could not find all three fiducials in the montage, this should '
+    #         'not happen. Please contact MNE-Python developers.')
 
     # Handle fNIRS with source, detector and channel
     fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)

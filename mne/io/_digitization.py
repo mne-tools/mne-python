@@ -253,9 +253,12 @@ def _ensure_fiducials_head(dig):
     for ident, name in _cardinal_ident_mapping.items():
         if name not in fids:
             if radius is None:
-                radius = np.mean([
+                radius = [
                     np.linalg.norm(d['r']) for d in dig
-                    if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD])
+                    if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+                if not radius:
+                    return  # can't complete, no head points
+                radius = np.mean(radius)
             dig.append(DigPoint(
                 kind=FIFF.FIFFV_POINT_CARDINAL, ident=ident,
                 r=np.array(mults[name], float) * radius,

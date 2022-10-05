@@ -163,7 +163,10 @@ def _init_mne_qtapp(enable_icon=True, pg_app=False, splash=False):
         pixmap = QPixmap(f"{icons_path}/mne_splash.png")
         pixmap.setDevicePixelRatio(
             QGuiApplication.primaryScreen().devicePixelRatio())
-        qsplash = QSplashScreen(pixmap, Qt.WindowStaysOnTopHint)
+        args = (pixmap,)
+        if _should_raise_window():
+            args += (Qt.WindowStaysOnTopHint,)
+        qsplash = QSplashScreen(*args)
         qsplash.setAttribute(Qt.WA_ShowWithoutActivating, True)
         if isinstance(splash, str):
             alignment = int(Qt.AlignBottom | Qt.AlignHCenter)
@@ -300,14 +303,14 @@ QToolBar::handle:vertical {
     return stylesheet
 
 
+def _should_raise_window():
+    from matplotlib import rcParams
+    return rcParams['figure.raise_window']
+
+
 def _qt_raise_window(widget):
     # Set raise_window like matplotlib if possible
-    try:
-        from matplotlib import rcParams
-        raise_window = rcParams['figure.raise_window']
-    except ImportError:
-        raise_window = True
-    if raise_window:
+    if _should_raise_window():
         widget.activateWindow()
         widget.raise_()
 

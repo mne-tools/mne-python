@@ -980,6 +980,10 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(
         'ignore', message=r'invalid value encountered in cast',
         category=RuntimeWarning)
+    # xarray _SixMetaPathImporter (?)
+    warnings.filterwarnings(
+        'ignore', message=r'falling back to find_module',
+        category=ImportWarning)
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:
