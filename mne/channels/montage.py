@@ -662,7 +662,7 @@ def transform_to_head(montage):
     Notes
     -----
     This function requires that the LPA, RPA and Nasion fiducial
-    point are available. If they are not, they will be added based by
+    points are available. If they are not, they will be added based by
     projecting the fiducials onto a sphere with radius equal to the average
     distance of each point to the origin (in the given coordinate frame).
 
