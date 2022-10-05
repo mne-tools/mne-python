@@ -202,8 +202,10 @@ def test_set_eeg_reference():
     with reref.info._unlock():
         reref.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
     reref.pick_types(meg=True, eeg=False)  # Cause making average ref fail
-    pytest.raises(ValueError, set_eeg_reference, reref, projection=True)
-    assert reref.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
+    # should have turned it off
+    assert reref.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_OFF
+    with pytest.raises(ValueError, match='found to rereference'):
+        set_eeg_reference(reref, projection=True)
 
     # Test moving from average to custom reference
     reref, ref_data = set_eeg_reference(raw, projection=True)

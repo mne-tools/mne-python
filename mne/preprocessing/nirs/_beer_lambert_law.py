@@ -40,10 +40,13 @@ def beer_lambert_law(raw, ppf=6.):
         [raw.info['chs'][pick]['loc'][9] for pick in picks], float)
     abs_coef = _load_absorption(freqs)
     distances = source_detector_distances(raw.info, picks='all')
-    if (distances[picks] == 0).any():
-        warn('Source-detector distances are zero, some resulting '
+    bad = ~np.isfinite(distances[picks])
+    bad |= distances[picks] <= 0
+    if bad.any():
+        warn('Source-detector distances are zero on NaN, some resulting '
              'concentrations will be zero. Consider setting a montage '
              'with raw.set_montage.')
+    distances[picks[bad]] = 0.
     if (distances[picks] > 0.1).any():
         warn('Source-detector distances are greater than 10 cm. '
              'Large distances will result in invalid data, and are '

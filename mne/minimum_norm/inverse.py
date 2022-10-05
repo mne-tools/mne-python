@@ -19,7 +19,7 @@ from ..io.tag import find_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
 from ..io.proj import (_read_proj, make_projector, _write_proj,
-                       _needs_eeg_average_ref_proj)
+                       _needs_eeg_average_ref_proj, _electrode_types)
 from ..io.tree import dir_tree_find
 from ..io.write import (write_int, write_float_matrix, start_and_end_file,
                         start_block, end_block, write_float,
@@ -831,7 +831,7 @@ def _check_reference(inst, ch_names=None):
         raise ValueError(
             'EEG average reference (using a projector) is mandatory for '
             'modeling, use the method set_eeg_reference(projection=True)')
-    if info.get('custom_ref_applied', False):
+    if _electrode_types(info) and info.get('custom_ref_applied', False):
         raise ValueError('Custom EEG reference is not allowed for inverse '
                          'modeling.')
 

@@ -12,7 +12,7 @@ import re
 import numpy as np
 
 from .constants import FIFF
-from .pick import pick_types, pick_info
+from .pick import pick_types, pick_info, _electrode_types, _ELECTRODE_CH_TYPES
 from .tag import find_tag, _rename_list
 from .tree import dir_tree_find
 from .write import (write_int, write_float, write_string, write_name_list,
@@ -856,7 +856,7 @@ def deactivate_proj(projs, copy=True, verbose=None):
 
 
 # Keep in sync with doc below
-_EEG_AVREF_PICK_DICT = {k: True for k in ('eeg', 'seeg', 'ecog', 'dbs')}
+_EEG_AVREF_PICK_DICT = {k: True for k in _ELECTRODE_CH_TYPES}
 
 
 @verbose
@@ -969,9 +969,7 @@ def _needs_eeg_average_ref_proj(info):
     """
     if info['custom_ref_applied']:
         return False
-    have = [ch_type for ch_type in _EEG_AVREF_PICK_DICT
-            if len(pick_types(info, exclude='bads', **{ch_type: True}))]
-    if not have:
+    if not _electrode_types(info):
         return False
     if _has_eeg_average_ref_proj(info):
         return False

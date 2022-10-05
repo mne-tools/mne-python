@@ -26,7 +26,7 @@ from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, Transform,
                           _verbose_frames, _fit_matched_points,
                           _quat_to_affine, _ensure_trans)
-from ..io._digitization import (_count_points_by_type,
+from ..io._digitization import (_count_points_by_type, _ensure_fiducials_head,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
                                 _get_fid_coords, _coord_frame_const,
@@ -648,12 +648,6 @@ def _check_unit_and_get_scaling(unit):
 def transform_to_head(montage):
     """Transform a DigMontage object into head coordinate.
 
-    It requires that the LPA, RPA and Nasion fiducial
-    point are available. It requires that all fiducial
-    points are in the same coordinate e.g. 'unknown'
-    and it will convert all the point in this coordinate
-    system to Neuromag head coordinate system.
-
     Parameters
     ----------
     montage : instance of DigMontage
@@ -664,6 +658,21 @@ def transform_to_head(montage):
     montage : instance of DigMontage
         The montage after transforming the points to head
         coordinate system.
+
+    Notes
+    -----
+    This function requires that the LPA, RPA and Nasion fiducial
+    points are available. If they are not, they will be added based by
+    projecting the fiducials onto a sphere with radius equal to the average
+    distance of each point to the origin (in the given coordinate frame).
+
+    This function assumes that all fiducial points are in the same coordinate
+    frame (e.g. 'unknown') and it will convert all the point in this coordinate
+    system to Neuromag head coordinate system.
+
+    .. versionchanged:: 1.2
+       Fiducial points will be added automatically if the montage does not
+       have them.
     """
     # Get fiducial points and their coord_frame
     native_head_t = compute_native_head_t(montage)
@@ -673,6 +682,7 @@ def transform_to_head(montage):
             if d['coord_frame'] == native_head_t['from']:
                 d['r'] = apply_trans(native_head_t, d['r'])
                 d['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+    _ensure_fiducials_head(montage.dig)
     return montage
 
 
@@ -995,10 +1005,12 @@ def read_dig_localite(fname, nasion=None, lpa=None, rpa=None):
 
 def _get_montage_in_head(montage):
     coords = set([d['coord_frame'] for d in montage.dig])
+    montage = montage.copy()
     if len(coords) == 1 and coords.pop() == FIFF.FIFFV_COORD_HEAD:
+        _ensure_fiducials_head(montage.dig)
         return montage
     else:
-        return transform_to_head(montage.copy())
+        return transform_to_head(montage)
 
 
 def _set_montage_fnirs(info, montage):
@@ -1237,6 +1249,19 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     # Next line modifies info['dig'] in place
     with info._unlock():
         info['dig'] = _format_dig_points(digpoints, enforce_order=True)
+    del digpoints
+
+    # TODO: Ideally we would have a check like this, but read_raw_bids for ECoG
+    # allows for a montage to be set without any fiducials, then silently the
+    # info['dig'] can end up in the MNI_TAL frame... only because in our
+    # conversion code, UNKNOWN is treated differently from any other frame
+    # (e.g., MNI_TAL). We should clean this up at some point...
+    # missing_fids = sum(
+    #     d['kind'] == FIFF.FIFFV_POINT_CARDINAL for d in info['dig'][:3]) != 3
+    # if missing_fids:
+    #     raise RuntimeError(
+    #         'Could not find all three fiducials in the montage, this should '
+    #         'not happen. Please contact MNE-Python developers.')
 
     # Handle fNIRS with source, detector and channel
     fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)
@@ -1597,7 +1622,8 @@ def compute_dev_head_t(montage):
     return Transform(fro='meg', to='head', trans=trans)
 
 
-def compute_native_head_t(montage):
+@verbose
+def compute_native_head_t(montage, *, on_missing='warn', verbose=None):
     """Compute the native-to-head transformation for a montage.
 
     This uses the fiducials in the native space to transform to compute the
@@ -1607,6 +1633,10 @@ def compute_native_head_t(montage):
     ----------
     montage : instance of DigMontage
         The montage.
+    %(on_missing_fiducials)s
+
+        .. versionadded:: 1.2
+    %(verbose)s
 
     Returns
     -------
@@ -1623,9 +1653,10 @@ def compute_native_head_t(montage):
         fid_keys = ('nasion', 'lpa', 'rpa')
         for key in fid_keys:
             if fid_coords[key] is None:
-                warn('Fiducial point %s not found, assuming identity %s to '
-                     'head transformation'
-                     % (key, _verbose_frames[coord_frame],))
+                msg = (
+                    f'Fiducial point {key} not found, assuming identity '
+                    f'{_verbose_frames[coord_frame]} to head transformation')
+                _on_missing(on_missing, msg, error_klass=RuntimeError)
                 native_head_t = np.eye(4)
                 break
         else:
