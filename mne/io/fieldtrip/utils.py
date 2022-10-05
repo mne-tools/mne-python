@@ -5,7 +5,7 @@
 # License: BSD-3-Clause
 import numpy as np
 
-from .._digitization import DigPoint
+from .._digitization import DigPoint, _ensure_fiducials_head
 from ..constants import FIFF
 from ..meas_info import create_info
 from ..pick import pick_info
@@ -103,7 +103,7 @@ def _remove_missing_channels_from_trial(trial, missing_chan_idx):
 def _create_info_chs_dig(ft_struct):
     """Create the chs info field from the FieldTrip structure."""
     all_channels = ft_struct['label']
-    ch_defaults = dict(coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+    ch_defaults = dict(coord_frame=FIFF.FIFFV_COORD_HEAD,
                        cal=1.0,
                        range=1.0,
                        unit_mul=FIFF.FIFF_UNITM_NONE,
@@ -143,7 +143,7 @@ def _create_info_chs_dig(ft_struct):
             # Ref gets ident=0 and we don't have it, so start at 1
             counter += 1
             d = DigPoint(
-                r=cur_ch['loc'][:3], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                r=cur_ch['loc'][:3], coord_frame=FIFF.FIFFV_COORD_HEAD,
                 kind=FIFF.FIFFV_POINT_EEG, ident=counter)
             dig.append(d)
         elif grad and cur_channel_label in grad['label']:
@@ -165,6 +165,8 @@ def _create_info_chs_dig(ft_struct):
                 cur_ch['coil_type'] = FIFF.FIFFV_COIL_NONE
 
         chs.append(cur_ch)
+    if dig:
+        _ensure_fiducials_head(dig)
 
     return chs, dig
 

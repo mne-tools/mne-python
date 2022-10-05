@@ -304,7 +304,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     locs[:, :3] = coords
     dig = _make_dig_points(
         dig_ch_pos=dict(zip(ch_names, coords)),
-        coord_frame="unknown"
+        coord_frame="head", add_missing_fiducials=True,
     )
     for ch, loc in zip(chs, locs):
         ch.update(loc=loc)

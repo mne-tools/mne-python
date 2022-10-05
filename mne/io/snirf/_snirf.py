@@ -333,10 +333,15 @@ class RawSNIRF(BaseRaw):
                     else:
                         extra_ps[f'EEG{len(extra_ps) + 1:03d}'] = \
                             diglocs[idx, :3]
+                add_missing_fiducials = (
+                    coord_frame == FIFF.FIFFV_COORD_HEAD and
+                    lpa is None and rpa is None and nasion is None
+                )
                 dig = _make_dig_points(
                     nasion=nasion, lpa=lpa, rpa=rpa, hpi=hpi,
                     dig_ch_pos=extra_ps,
-                    coord_frame=_frame_to_str[coord_frame])
+                    coord_frame=_frame_to_str[coord_frame],
+                    add_missing_fiducials=add_missing_fiducials)
             else:
                 ch_locs = [info['chs'][idx]['loc'][0:3]
                            for idx in range(len(channels))]

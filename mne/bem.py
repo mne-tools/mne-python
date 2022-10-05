@@ -1060,16 +1060,9 @@ def get_fitting_dig(info, dig_kinds='auto', exclude_frontal=True,
         raise ValueError(
             f'No digitization points found for dig_kinds={dig_kinds}')
     if any(p['coord_frame'] != FIFF.FIFFV_COORD_HEAD for p in dig):
-        # TODO: We need to add a special case here -- we permit EEG data dig
-        # to be in "unknown" coords actually (e.g., when reading from a format
-        # where we don't know if it's actually head coords). So if these dig
-        # points are all EEG... we tolerate it :(
-        if not all(p['kind'] == FIFF.FIFFV_POINT_EEG and
-                   p['coord_frame'] == FIFF.FIFFV_COORD_UNKNOWN
-                   for p in dig):
-            raise RuntimeError(
-                f'Digitization points dig_kinds={dig_kinds} not in head '
-                'coordinates, contact mne-python developers')
+        raise RuntimeError(
+            f'Digitization points dig_kinds={dig_kinds} not in head '
+            'coordinates, contact mne-python developers')
     hsp = [p['r'] for p in dig]
     del dig
 

@@ -9,10 +9,11 @@ import os.path as op
 import numpy as np
 
 from ._eeglab import _readmat
-from ..pick import _PICK_TYPES_KEYS
-from ..utils import _read_segments_file, _find_channels
+from .._digitization import _ensure_fiducials_head
 from ..constants import FIFF
 from ..meas_info import create_info
+from ..pick import _PICK_TYPES_KEYS
+from ..utils import _read_segments_file, _find_channels
 from ..base import BaseRaw
 from ...utils import logger, verbose, warn, fill_doc, Bunch, _check_fname
 from ...channels import make_dig_montage
@@ -158,7 +159,8 @@ def _get_montage_information(eeg, get_pos):
     if pos_ch_names:
         montage = make_dig_montage(
             ch_pos=dict(zip(ch_names, np.array(pos))),
-            coord_frame='unknown', lpa=lpa, rpa=rpa, nasion=nasion)
+            coord_frame='head', lpa=lpa, rpa=rpa, nasion=nasion)
+        _ensure_fiducials_head(montage.dig)
     else:
         montage = None
 
@@ -213,9 +215,9 @@ def _set_dig_montage_in_init(self, montage):
             list(missing_channels),
             np.full((len(missing_channels), 3), np.nan)
         ))
-        second_montage = make_dig_montage(
-            ch_pos=ch_pos, coord_frame='unknown')
-        self.set_montage(montage + second_montage)
+        self.set_montage(
+            montage + make_dig_montage(ch_pos=ch_pos, coord_frame='head')
+        )
 
 
 @fill_doc

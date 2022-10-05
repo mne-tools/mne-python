@@ -26,7 +26,7 @@ from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, Transform,
                           _verbose_frames, _fit_matched_points,
                           _quat_to_affine, _ensure_trans)
-from ..io._digitization import (_count_points_by_type,
+from ..io._digitization import (_count_points_by_type, _ensure_fiducials_head,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
                                 _get_fid_coords, _coord_frame_const,
@@ -270,7 +270,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
         ch_names = list(ch_pos)
     dig = _make_dig_points(
         nasion=nasion, lpa=lpa, rpa=rpa, hpi=hpi, extra_points=hsp,
-        dig_ch_pos=ch_pos, coord_frame=coord_frame
+        dig_ch_pos=ch_pos, coord_frame=coord_frame,
     )
 
     return DigMontage(dig=dig, ch_names=ch_names)
@@ -648,12 +648,6 @@ def _check_unit_and_get_scaling(unit):
 def transform_to_head(montage):
     """Transform a DigMontage object into head coordinate.
 
-    It requires that the LPA, RPA and Nasion fiducial
-    point are available. It requires that all fiducial
-    points are in the same coordinate e.g. 'unknown'
-    and it will convert all the point in this coordinate
-    system to Neuromag head coordinate system.
-
     Parameters
     ----------
     montage : instance of DigMontage
@@ -664,6 +658,21 @@ def transform_to_head(montage):
     montage : instance of DigMontage
         The montage after transforming the points to head
         coordinate system.
+
+    Notes
+    -----
+    This function requires that the LPA, RPA and Nasion fiducial
+    point are available. If they are not, they will be added based by
+    projecting the fiducials onto a sphere with radius equal to the average
+    distance of each point to the origin (in the given coordinate frame).
+
+    This function assumes that all fiducial points are in the same coordinate
+    frame (e.g. 'unknown') and it will convert all the point in this coordinate
+    system to Neuromag head coordinate system.
+
+    .. versionchanged:: 1.2
+       Fiducial points will be added automatically if the montage does not
+       have them.
     """
     # Get fiducial points and their coord_frame
     native_head_t = compute_native_head_t(montage)
@@ -673,6 +682,7 @@ def transform_to_head(montage):
             if d['coord_frame'] == native_head_t['from']:
                 d['r'] = apply_trans(native_head_t, d['r'])
                 d['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+    _ensure_fiducials_head(montage.dig)
     return montage
 
 
@@ -995,10 +1005,12 @@ def read_dig_localite(fname, nasion=None, lpa=None, rpa=None):
 
 def _get_montage_in_head(montage):
     coords = set([d['coord_frame'] for d in montage.dig])
+    montage = montage.copy()
     if len(coords) == 1 and coords.pop() == FIFF.FIFFV_COORD_HEAD:
+        _ensure_fiducials_head(montage.dig)
         return montage
     else:
-        return transform_to_head(montage.copy())
+        return transform_to_head(montage)
 
 
 def _set_montage_fnirs(info, montage):
@@ -1240,19 +1252,12 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
         info['dig'] = _format_dig_points(digpoints, enforce_order=True)
     del digpoints
 
-    # _get_montage_in_head will warn if going from unknown to head without
-    # fids but proceed anyway. MNE-BIDS has problems if info['dig'] is in head
-    # but no fids are present. So let's comply with what they want (the
-    # enforce_order should ensure that our first three are fids if present,
-    # so this check is probably good enough):
     missing_fids = sum(
         d['kind'] == _dig_kind_dict['cardinal'] for d in info['dig'][:3]) != 3
-    # TODO: this is not great because it creates an inconsistency between
-    # info['chs'][ii]['coord_frame'] and info['dig'][jj]['coord_frame']
     if missing_fids:
-        for d in info['dig']:
-            if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
-                d['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
+        raise RuntimeError(
+            'Could not find all three fiducials in the montage, this should '
+            'not happen. Please contact MNE-Python developers.')
 
     # Handle fNIRS with source, detector and channel
     fnirs_picks = _picks_to_idx(info, 'fnirs', allow_empty=True)
