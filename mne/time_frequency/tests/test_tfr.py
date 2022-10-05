@@ -571,9 +571,10 @@ def test_dB_computation():
     fig1 = tfr.plot(**plot_kwargs)[0]
     fig2 = complex_tfr.plot(**plot_kwargs)[0]
     # since we're fixing vmin/vmax, equal colors should mean ~equal input data
-    quadmesh1 = fig1.axes[0].collections[0]._mapped_colors
-    quadmesh2 = fig2.axes[0].collections[0]._mapped_colors
-    assert_array_equal(quadmesh1, quadmesh2)
+    quadmesh1 = fig1.axes[0].collections[0]
+    quadmesh2 = fig2.axes[0].collections[0]
+    if hasattr(quadmesh1, '_mapped_colors'):  # fails on compat/old
+        assert_array_equal(quadmesh1._mapped_colors, quadmesh2._mapped_colors)
 
 
 def test_plot():
