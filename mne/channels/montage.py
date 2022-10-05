@@ -1254,7 +1254,7 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
     # TODO: Ideally we would have a check like this, but read_raw_bids for ECoG
     # allows for a montage to be set without any fiducials, then silently the
     # info['dig'] can end up in the MNI_TAL frame... only because in our
-    # coversion code, UNKNOWN is treated differently from any other frame
+    # conversion code, UNKNOWN is treated differently from any other frame
     # (e.g., MNI_TAL). We should clean this up at some point...
     # missing_fids = sum(
     #     d['kind'] == FIFF.FIFFV_POINT_CARDINAL for d in info['dig'][:3]) != 3
