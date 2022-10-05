@@ -2409,11 +2409,11 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     if copy is None:
         copy = baseline is not None
     data = rescale(data, times, baseline, mode, copy=copy)
-    coef = 10
 
     if np.iscomplexobj(data):
-        data = np.sqrt((data * data.conj()).real)
-        coef = 20  # because of sqrt, data is amplitude(-like) not power
+        # complex amplitude → real power (for plotting); if data are
+        # real-valued they should already be power
+        data = (data * data.conj()).real
 
     # crop time
     itmin, itmax = None, None
@@ -2439,7 +2439,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     data = data[:, ifmin:ifmax, itmin:itmax]
 
     if dB:
-        data = coef * np.log10(data)
+        data = 10 * np.log10(data)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
     return data, times, freqs, vmin, vmax
