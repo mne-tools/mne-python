@@ -1055,20 +1055,23 @@ def get_fitting_dig(info, dig_kinds='auto', exclude_frontal=True,
                              % (di, d, sorted(list(_dig_kind_dict.keys()))))
 
     # get head digization points of the specified kind(s)
-    hsp = [p for p in info['dig'] if p['kind'] in dig_kinds]
-    if len(hsp) == 0:
+    dig = [p for p in info['dig'] if p['kind'] in dig_kinds]
+    if len(dig) == 0:
         raise ValueError(
             f'No digitization points found for dig_kinds={dig_kinds}')
-    if any(p['coord_frame'] != FIFF.FIFFV_COORD_HEAD for p in hsp):
+    if any(p['coord_frame'] != FIFF.FIFFV_COORD_HEAD for p in dig):
         # TODO: We need to add a special case here -- we permit EEG data dig
         # to be in "unknown" coords actually (e.g., when reading from a format
         # where we don't know if it's actually head coords). So if these dig
         # points are all EEG... we tolerate it :(
-        if not all(p['kind'] == FIFF.FIFFV_POINT_EEG for p in hsp):
+        if not all(p['kind'] == FIFF.FIFFV_POINT_EEG and
+                   p['coord_frame'] == FIFF.FIFFV_COORD_UNKNOWN
+                   for p in dig):
             raise RuntimeError(
                 f'Digitization points dig_kinds={dig_kinds} not in head '
                 'coordinates, contact mne-python developers')
-    hsp = [p['r'] for p in hsp]
+    hsp = [p['r'] for p in dig]
+    del dig
 
     # exclude some frontal points (nose etc.)
     if exclude_frontal:

@@ -338,9 +338,12 @@ def test_fit_sphere_to_headshape():
                   dig_kinds=(FIFF.FIFFV_POINT_HPI,))
     pytest.raises(ValueError, fit_sphere_to_headshape, info,
                   dig_kinds='foo', units='m')
-    info['dig'][0]['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-    pytest.raises(RuntimeError, fit_sphere_to_headshape, info, units='m')
-    info['dig'][0]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+    for d in info['dig']:
+        d['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+    with pytest.raises(RuntimeError, match='not in head coordinates'):
+        fit_sphere_to_headshape(info)
+    for d in info['dig']:
+        d['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
     #  # Test with 4 points that match a perfect sphere
     dig_kinds = (FIFF.FIFFV_POINT_CARDINAL, FIFF.FIFFV_POINT_EXTRA)
