@@ -112,17 +112,19 @@ def test_time_frequency():
     # the other is average of the squared magnitudes (epochs PSD)
     # so values shouldn't match, but shapes should
     assert_array_equal(power.data.shape, power_evoked.data.shape)
-    pytest.raises(AssertionError, assert_allclose,
-                  power.data, power_evoked.data)
+    with pytest.raises(AssertionError, match='Not equal to tolerance'):
+        assert_allclose(power.data, power_evoked.data)
 
     # complex output
-    pytest.raises(ValueError, tfr_morlet, epochs, freqs, n_cycles,
-                  return_itc=False, average=True, output="complex")
-    pytest.raises(ValueError, tfr_morlet, epochs, freqs, n_cycles,
-                  output="complex", average=False, return_itc=True)
-    epochs_power_complex = tfr_morlet(epochs, freqs, n_cycles,
-                                      output="complex", average=False,
-                                      return_itc=False)
+    with pytest.raises(ValueError, match='must be "power" if average=True'):
+        tfr_morlet(epochs, freqs, n_cycles, return_itc=False, average=True,
+                   output='complex')
+    with pytest.raises(ValueError, match='Inter-trial coher.*average=False'):
+        tfr_morlet(epochs, freqs, n_cycles, return_itc=True, average=False,
+                   output='complex')
+    epochs_power_complex = tfr_morlet(
+        epochs, freqs, n_cycles, return_itc=False, average=False,
+        output='complex')
     epochs_amplitude_2 = abs(epochs_power_complex)
     epochs_amplitude_3 = epochs_amplitude_2.copy()
     epochs_amplitude_3.data[:] = np.inf  # test that it's actually copied
@@ -550,6 +552,29 @@ def test_init_EpochsTFR():
     with pytest.raises(ValueError, match="frequencies and data size don't"):
         tfr = EpochsTFR(info, data=data, times=times_x, freqs=freqs_x)
         del tfr
+
+
+def test_dB_computation():
+    """Test dB computation in plot methods (gh 11091)."""
+    ampl = 2.
+    data = np.full((3, 2, 3), ampl ** 2)  # already power
+    complex_data = np.full((3, 2, 3), ampl + 0j)  # ampl → power when plotting
+    times = np.array([.1, .2, .3])
+    freqs = np.array([.10, .20])
+    info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
+                           ['mag', 'mag', 'mag'])
+    kwargs = dict(times=times, freqs=freqs, nave=20, comment='test',
+                  method='crazy-tfr')
+    tfr = AverageTFR(info, data=data, **kwargs)
+    complex_tfr = AverageTFR(info, data=complex_data, **kwargs)
+    plot_kwargs = dict(dB=True, combine='mean', vmin=0, vmax=7)
+    fig1 = tfr.plot(**plot_kwargs)[0]
+    fig2 = complex_tfr.plot(**plot_kwargs)[0]
+    # since we're fixing vmin/vmax, equal colors should mean ~equal input data
+    quadmesh1 = fig1.axes[0].collections[0]
+    quadmesh2 = fig2.axes[0].collections[0]
+    if hasattr(quadmesh1, '_mapped_colors'):  # fails on compat/old
+        assert_array_equal(quadmesh1._mapped_colors, quadmesh2._mapped_colors)
 
 
 def test_plot():
