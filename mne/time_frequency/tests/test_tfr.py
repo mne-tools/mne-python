@@ -556,8 +556,9 @@ def test_init_EpochsTFR():
 
 def test_dB_computation():
     """Test dB computation in plot methods (gh 11091)."""
-    data = np.full((3, 2, 3), 4.)              # dB will be 10 log10(4)
-    complex_data = np.full((3, 2, 3), 2 + 0j)  # dB will be 20 log10(2)
+    ampl = 2.
+    data = np.full((3, 2, 3), ampl ** 2)  # already power
+    complex_data = np.full((3, 2, 3), ampl + 0j)  # ampl → power when plotting
     times = np.array([.1, .2, .3])
     freqs = np.array([.10, .20])
     info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
