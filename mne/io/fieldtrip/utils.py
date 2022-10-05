@@ -103,7 +103,7 @@ def _remove_missing_channels_from_trial(trial, missing_chan_idx):
 def _create_info_chs_dig(ft_struct):
     """Create the chs info field from the FieldTrip structure."""
     all_channels = ft_struct['label']
-    ch_defaults = dict(coord_frame=FIFF.FIFFV_COORD_HEAD,
+    ch_defaults = dict(coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                        cal=1.0,
                        range=1.0,
                        unit_mul=FIFF.FIFF_UNITM_NONE,
@@ -140,6 +140,7 @@ def _create_info_chs_dig(ft_struct):
         cur_ch['scanno'] = idx_chan + 1
         if elec and cur_channel_label in elec['label']:
             cur_ch = _process_channel_eeg(cur_ch, elec)
+            assert cur_ch['coord_frame'] == FIFF.FIFFV_COORD_HEAD
             # Ref gets ident=0 and we don't have it, so start at 1
             counter += 1
             d = DigPoint(

@@ -30,7 +30,7 @@ from ..io._digitization import (_count_points_by_type, _ensure_fiducials_head,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
                                 _get_fid_coords, _coord_frame_const,
-                                _get_data_as_dict_from_dig, _dig_kind_dict)
+                                _get_data_as_dict_from_dig)
 from ..io.meas_info import create_info
 from ..io.open import fiff_open
 from ..io.pick import pick_types, _picks_to_idx, channel_type
@@ -270,7 +270,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
         ch_names = list(ch_pos)
     dig = _make_dig_points(
         nasion=nasion, lpa=lpa, rpa=rpa, hpi=hpi, extra_points=hsp,
-        dig_ch_pos=ch_pos, coord_frame=coord_frame,
+        dig_ch_pos=ch_pos, coord_frame=coord_frame
     )
 
     return DigMontage(dig=dig, ch_names=ch_names)
@@ -1246,14 +1246,13 @@ def _set_montage(info, montage, match_case=True, match_alias=False,
         # in the old dig
         if ref_dig_point in old_dig:
             digpoints.append(ref_dig_point)
-
     # Next line modifies info['dig'] in place
     with info._unlock():
         info['dig'] = _format_dig_points(digpoints, enforce_order=True)
     del digpoints
 
     missing_fids = sum(
-        d['kind'] == _dig_kind_dict['cardinal'] for d in info['dig'][:3]) != 3
+        d['kind'] == FIFF.FIFFV_POINT_CARDINAL for d in info['dig'][:3]) != 3
     if missing_fids:
         raise RuntimeError(
             'Could not find all three fiducials in the montage, this should '

@@ -258,7 +258,7 @@ def _ensure_fiducials_head(dig):
                     if d['coord_frame'] == FIFF.FIFFV_COORD_HEAD])
             dig.append(DigPoint(
                 kind=FIFF.FIFFV_POINT_CARDINAL, ident=ident,
-                r=np.array(mults[name]) * radius,
+                r=np.array(mults[name], float) * radius,
                 coord_frame=FIFF.FIFFV_COORD_HEAD,
             ))
 
