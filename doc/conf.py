@@ -626,7 +626,9 @@ html_theme_options = {
     'switcher': {
         'json_url': 'https://mne.tools/dev/_static/versions.json',
         'version_match': switcher_version_match,
-    }
+    },
+    'pygment_light_style': 'default',
+    'pygment_dark_style': 'github-dark',
 }
 
 # The name of an image file (relative to this directory) to place at the top
