@@ -15,6 +15,7 @@ Got any questions? Let us know on the `MNE Forum`_!
 
     .. tab-item:: Linux
         :class-content: text-center
+        :name: linux
 
         .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.1/MNE-Python-1.1.1_0-Linux.sh
             :ref-type: ref
@@ -35,6 +36,7 @@ Got any questions? Let us know on the `MNE Forum`_!
 
     .. tab-item:: macOS (Intel)
         :class-content: text-center
+        :name: macos-intel
 
         .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.1/MNE-Python-1.1.1_0-macOS_Intel.pkg
             :ref-type: ref
@@ -50,6 +52,7 @@ Got any questions? Let us know on the `MNE Forum`_!
 
     .. tab-item:: macOS (Apple Silicon)
         :class-content: text-center
+        :name: macos-apple
 
         .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.1/MNE-Python-1.1.1_0-macOS_M1.pkg
             :ref-type: ref
@@ -65,6 +68,7 @@ Got any questions? Let us know on the `MNE Forum`_!
 
     .. tab-item:: Windows
         :class-content: text-center
+        :name: windows
 
         .. button-link:: https://github.com/mne-tools/mne-installers/releases/download/v1.1.1/MNE-Python-1.1.1_0-Windows.exe
             :ref-type: ref

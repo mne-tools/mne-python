@@ -24,6 +24,7 @@ conda to ``/home/user/anaconda3``):
     :class: platform-selector-tabset
 
     .. tab-item:: Linux
+        :name: linux
 
         .. code-block:: console
 
@@ -37,6 +38,7 @@ conda to ``/home/user/anaconda3``):
 
 
     .. tab-item:: macOS
+        :name: macos
 
         .. code-block:: console
 
@@ -50,6 +52,7 @@ conda to ``/home/user/anaconda3``):
 
 
     .. tab-item:: Windows
+        :name: windows
 
         Most of our instructions start with ``$``, which indicates
         that the commands are designed to be run from a ``bash`` command shell.
