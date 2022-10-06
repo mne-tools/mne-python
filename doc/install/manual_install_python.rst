@@ -24,7 +24,7 @@ conda to ``/home/user/anaconda3``):
     :class: platform-selector-tabset
 
     .. tab-item:: Linux
-        :name: linux
+        :name: linux-manual-install
 
         .. code-block:: console
 
@@ -38,7 +38,7 @@ conda to ``/home/user/anaconda3``):
 
 
     .. tab-item:: macOS
-        :name: macos
+        :name: macos-manual-install
 
         .. code-block:: console
 
@@ -52,7 +52,7 @@ conda to ``/home/user/anaconda3``):
 
 
     .. tab-item:: Windows
-        :name: windows
+        :name: windows-manual-install
 
         Most of our instructions start with ``$``, which indicates
         that the commands are designed to be run from a ``bash`` command shell.
@@ -145,8 +145,9 @@ conda to ``/home/user/anaconda3``):
              child => child.nodeName === "INPUT");
          let tab_label_nodes = [...document.querySelectorAll('.sd-tab-label')];
          let correct_label = tab_label_nodes.filter(
-             // label.id is drawn from :name: property in the rST
-             label => label.id === platform)[0];
+             // label.id is drawn from :name: property in the rST, which must
+             // be unique across the whole site (*sigh*)
+             label => label.id.startsWith(platform))[0];
          let input_id = correct_label.getAttribute('for');
          let correct_input = input_nodes.filter(node => node.id === input_id)[0];
          correct_input.checked = true;
