@@ -615,7 +615,7 @@ html_theme_options = {
              url='https://discord.gg/rKfvxTuATa',
              icon='fab fa-discord')
     ],
-    'icon_links_label': 'Quick Links',  # for screen reader
+    'icon_links_label': 'External Links',  # for screen reader
     'use_edit_page_button': False,
     'navigation_with_keys': False,
     'show_toc_level': 1,
