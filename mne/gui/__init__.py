@@ -247,6 +247,48 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     return gui
 
 
+@verbose
+def view_stc(array, subject=None, subjects_dir=None, src=None,
+             inst=None, show=True, block=False, verbose=None):
+    """View a source time course estimate.
+
+    Parameters
+    ----------
+    array : ndarray of shape (n_epochs, n_vertices, n_orient, n_freqs, n_times)
+        The source estimate data.
+    %(subject)s
+    %(subjects_dir)s
+    src : instance of SourceSpaces
+        The volume source space for the ``stc``.
+    inst : EpochsTFR | AverageTFR | None
+        The time-frequency or data object to use to plot topography.
+    show : bool
+        Show the GUI if True.
+    block : bool
+        Whether to halt program execution until the figure is closed.
+    %(verbose)s
+
+    Returns
+    -------
+    gui : instance of SourceEstimateViewer
+        The graphical user interface (GUI) window.
+    """
+    from ..viz.backends._utils import _qt_app_exec
+    from ._stc import SourceEstimateViewer
+    from qtpy.QtWidgets import QApplication
+    # get application
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(['Source Estimate Viewer'])
+    gui = SourceEstimateViewer(
+        array, subject=subject, subjects_dir=subjects_dir,
+        src=src, inst=inst, show=show,
+        verbose=verbose)
+    if block:
+        _qt_app_exec(app)
+    return gui
+
+
 class _GUIScraper(object):
     """Scrape GUI outputs."""
 
@@ -256,11 +298,13 @@ class _GUIScraper(object):
     def __call__(self, block, block_vars, gallery_conf):
         from ._ieeg_locate import IntracranialElectrodeLocator
         from ._coreg import CoregistrationUI
+        from ._stc import SourceEstimateViewer
         from sphinx_gallery.scrapers import figure_rst
         from qtpy import QtGui
         for gui in block_vars['example_globals'].values():
             if (isinstance(gui, (IntracranialElectrodeLocator,
-                                 CoregistrationUI)) and
+                                 CoregistrationUI,
+                                 SourceEstimateViewer)) and
                     not getattr(gui, '_scraped', False) and
                     gallery_conf['builder_name'] == 'html'):
                 gui._scraped = True  # monkey-patch but it's easy enough
