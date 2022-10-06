@@ -51,19 +51,23 @@ def _load_image(img, verbose=None):
     orig_mgh = nib.MGHImage(orig_data, img.affine)
     aff_trans = nib.orientations.inv_ornt_aff(ornt_trans, img.shape)
     vox_ras_t = np.dot(orig_mgh.header.get_vox2ras_tkr(), aff_trans)
-    return img_data, vox_ras_t
+    vox_scan_ras_t = np.dot(orig_mgh.header.get_vox2ras(), aff_trans)
+    return img_data, vox_ras_t, vox_scan_ras_t
 
 
-def _make_slice_plot(width=4, height=4, dpi=300):
+def _make_mpl_plot(width=4, height=4, dpi=300, tight=True, hide_axes=True):
     fig = Figure(figsize=(width, height), dpi=dpi)
     canvas = FigureCanvas(fig)
     ax = fig.subplots()
-    fig.subplots_adjust(bottom=0, left=0, right=1, top=1, wspace=0, hspace=0)
+    if tight:
+        fig.subplots_adjust(bottom=0, left=0, right=1, top=1,
+                            wspace=0, hspace=0)
     ax.set_facecolor('k')
     # clean up excess plot text, invert
     ax.invert_yaxis()
-    ax.set_xticks([])
-    ax.set_yticks([])
+    if hide_axes:
+        ax.set_xticks([])
+        ax.set_yticks([])
     return canvas, fig
 
 
@@ -95,7 +99,7 @@ class SliceBrowser(QMainWindow):
         self._plt_grid = QGridLayout()
         self._figs = list()
         for i in range(3):
-            canvas, fig = _make_slice_plot()
+            canvas, fig = _make_mpl_plot()
             self._plt_grid.addWidget(canvas, i // 2, i % 2)
             self._figs.append(fig)
         self._renderer = _get_renderer(
@@ -128,9 +132,10 @@ class SliceBrowser(QMainWindow):
         # allows recon-all not to be finished (T1 made in a few minutes)
         mri_img = 'brain' if op.isfile(op.join(
             self._subject_dir, 'mri', 'brain.mgz')) else 'T1'
-        self._mri_data, self._vox_ras_t = _load_image(
+        self._mri_data, self._vox_ras_t, self._vox_scan_ras_t = _load_image(
             op.join(self._subject_dir, 'mri', f'{mri_img}.mgz'))
-        self._ras_vox_t = np.linalg.inv(self._vox_ras_t)
+        self._ras_vox_t = np.linalg.inv(self._vox_ras_t)  # surface RAS
+        self._scan_ras_vox_t = np.linalg.inv(self._vox_scan_ras_t)
 
         self._voxel_sizes = np.array(self._mri_data.shape)
 
@@ -146,7 +151,7 @@ class SliceBrowser(QMainWindow):
         if base_image is None:
             self._base_data = self._mri_data
         else:
-            self._base_data, vox_ras_t = _load_image(base_image)
+            self._base_data, vox_ras_t, _ = _load_image(base_image)
             if self._mri_data.shape != self._base_data.shape or \
                     not np.allclose(self._vox_ras_t, vox_ras_t, rtol=1e-6):
                 raise ValueError('Base image is not aligned to MRI, got '
