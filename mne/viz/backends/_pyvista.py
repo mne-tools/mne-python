@@ -70,8 +70,13 @@ _FIGURES = dict()
 class PyVistaFigure(Figure3D):
     """PyVista-based 3D Figure.
 
-    This class is not meant to be instantiated directly, use
-    :func:`mne.viz.create_3d_figure` instead.
+    .. note:: This class should not be instantiated directly via
+              ``mne.viz.PyVistaFigure(...)``. Instead, use
+              :func:`mne.viz.create_3d_figure`.
+
+    See Also
+    --------
+    mne.viz.create_3d_figure
     """
 
     def __init__(self):

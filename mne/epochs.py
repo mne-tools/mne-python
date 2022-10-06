@@ -345,8 +345,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  SpectrumMixin):
     """Abstract base class for `~mne.Epochs`-type classes.
 
-    .. warning:: This class provides basic functionality and should never be
-                 instantiated directly.
+    .. note::
+        This class should not be instantiated directly via
+        ``mne.BaseEpochs(...)``. Instead, use one of the functions listed in
+        the See Also section below.
 
     Parameters
     ----------
@@ -387,6 +389,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         ``info['sfreq']``.
     annotations : instance of mne.Annotations | None
         Annotations to set.
+
+    See Also
+    --------
+    Epochs
+    EpochsArray
+    make_fixed_length_epochs
 
     Notes
     -----
