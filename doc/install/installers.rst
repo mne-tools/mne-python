@@ -135,7 +135,9 @@ interpreter.
         platform = "windows";
       }
       if (navigator.userAgent.indexOf("Mac") !== -1) {
-        platform = "macos";
+        // there's no good way to distinguish intel vs M1 in javascript so we
+        // just default to showing the first of the 2 macOS tabs
+        platform = "macos-intel";
       }
      $(document).ready(function(){
          let all_tab_nodes = document.querySelectorAll(
@@ -144,9 +146,10 @@ interpreter.
              child => child.nodeName === "INPUT");
          let tab_label_nodes = [...document.querySelectorAll('.sd-tab-label')];
          let correct_label = tab_label_nodes.filter(
-             label => label.textContent.trim().toLowerCase() === platform)[0];
-         let hash = correct_label.getAttribute('for');
-         let correct_input = input_nodes.filter(node => node.id === hash)[0];
+             // label.id is drawn from :name: property in the rST
+             label => label.id === platform)[0];
+         let input_id = correct_label.getAttribute('for');
+         let correct_input = input_nodes.filter(node => node.id === input_id)[0];
          correct_input.checked = true;
      });
      </script>

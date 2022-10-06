@@ -145,9 +145,10 @@ conda to ``/home/user/anaconda3``):
              child => child.nodeName === "INPUT");
          let tab_label_nodes = [...document.querySelectorAll('.sd-tab-label')];
          let correct_label = tab_label_nodes.filter(
-             label => label.textContent.trim().toLowerCase() === platform)[0];
-         let hash = correct_label.getAttribute('for');
-         let correct_input = input_nodes.filter(node => node.id === hash)[0];
+             // label.id is drawn from :name: property in the rST
+             label => label.id === platform)[0];
+         let input_id = correct_label.getAttribute('for');
+         let correct_input = input_nodes.filter(node => node.id === input_id)[0];
          correct_input.checked = true;
      });
      </script>
