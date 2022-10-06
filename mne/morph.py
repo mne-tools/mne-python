@@ -300,8 +300,10 @@ _SOURCE_MORPH_ATTRIBUTES = [  # used in writing
 class SourceMorph:
     """Morph source space data from one subject to another.
 
-    .. note:: This class should not be instantiated directly.
-              Use :func:`mne.compute_source_morph` instead.
+    .. note::
+        This class should not be instantiated directly via
+        ``mne.SourceMorph(...)``. Instead, use one of the functions
+        listed in the See Also section below.
 
     Parameters
     ----------
@@ -351,6 +353,11 @@ class SourceMorph:
         The volumetric morph matrix, if :meth:`compute_vol_morph_mat`
         was used.
     %(verbose)s
+
+    See Also
+    --------
+    compute_source_morph
+    read_source_morph
 
     Notes
     -----
