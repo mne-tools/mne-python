@@ -147,12 +147,13 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     # out = out.decode('utf-8').removesuffix('\n')
                     out = out.decode('utf-8')
                     if sys.version_info[:2] >= (3, 9):
-                        out = out.removesuffix('\n')
+                        log_out = out.removesuffix('\n')
+                    elif out.endswith('\n'):
+                        log_out = out[:-1]
                     else:
-                        if out.endswith('\n'):
-                            out = out[:-1]
+                        log_out = out
 
-                    logger.info(out)
+                    logger.info(log_out)
                     all_out += out
 
             while True:  # process stderr
@@ -170,10 +171,11 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     # err = err.decode('utf-8').removesuffix('\n')
                     err = err.decode('utf-8')
                     if sys.version_info[:2] >= (3, 9):
-                        err = err.removesuffix('\n')
+                        err_out = err.removesuffix('\n')
+                    elif err.endswith('\n'):
+                        err_out = err[:-1]
                     else:
-                        if err.endswith('\n'):
-                            err = err[:-1]
+                        err_out = err
 
                     # Leave this as logger.warning rather than warn(...) to
                     # mirror the logger.info above for stdout. This function
@@ -181,7 +183,7 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                     # shouldn't emit Python warnings due to stderr outputs
                     # (the calling function can check for stderr output and
                     # emit a warning if it wants).
-                    logger.warning(err)
+                    logger.warning(err_out)
                     all_err += err
 
             if do_break:
