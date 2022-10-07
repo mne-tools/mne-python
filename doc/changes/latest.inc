@@ -24,6 +24,7 @@ Current (1.3.dev0)
 Enhancements
 ~~~~~~~~~~~~
 - Mixed, cortical + discrete source spaces with fixed orientations are now allowed. (:gh:`11241` by `Jevri Hanna`_)
+- Add :func:`mne.beamformer.apply_dics_tfr_epochs` to apply a DICS beamformer to time-frequency resolved epochs (:gh:`11096` by `Alex Rockhill`_)
 
 Bugs
 ~~~~

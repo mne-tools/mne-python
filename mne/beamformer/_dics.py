@@ -17,6 +17,8 @@ from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
 from ..rank import compute_rank
 from ..source_estimate import _make_stc, _get_src_type
+from ..time_frequency import EpochsTFR
+from ..time_frequency.tfr import _check_tfr_complex
 from ._compute_beamformer import (_prepare_beamformer_input,
                                   _compute_beamformer, _check_src_type,
                                   Beamformer, _compute_power,
@@ -265,9 +267,9 @@ def _prepare_noise_csd(csd, noise_csd, real_filter):
     return csd, noise_csd
 
 
-def _apply_dics(data, filters, info, tmin):
+def _apply_dics(data, filters, info, tmin, tfr=False):
     """Apply DICS spatial filter to data for source reconstruction."""
-    if isinstance(data, np.ndarray) and data.ndim == 2:
+    if isinstance(data, np.ndarray) and data.ndim == (2 + tfr):
         data = [data]
         one_epoch = True
     else:
@@ -285,12 +287,17 @@ def _apply_dics(data, filters, info, tmin):
             logger.info("Processing epoch : %d" % (i + 1))
 
         # Apply SSPs
-        M = _proj_whiten_data(M, info['projs'], filters)
+        if not tfr:  # save computation, only compute once
+            M_w = _proj_whiten_data(M, info['projs'], filters)
 
         stcs = []
-        for W in Ws:
+        for j, W in enumerate(Ws):
+
+            if tfr:  # must compute for each frequency
+                M_w = _proj_whiten_data(M[:, j], info['projs'], filters)
+
             # project to source space using beamformer weights
-            sol = np.dot(W, M)
+            sol = np.dot(W, M_w)
 
             if filters['is_free_ori'] and filters['pick_ori'] != 'vector':
                 logger.info('combining the current components...')
@@ -347,6 +354,7 @@ def apply_dics(evoked, filters, verbose=None):
     See Also
     --------
     apply_dics_epochs
+    apply_dics_tfr_epochs
     apply_dics_csd
     """  # noqa: E501
     _check_reference(evoked)
@@ -400,6 +408,7 @@ def apply_dics_epochs(epochs, filters, return_generator=False, verbose=None):
     See Also
     --------
     apply_dics
+    apply_dics_tfr_epochs
     apply_dics_csd
     """
     _check_reference(epochs)
@@ -423,6 +432,51 @@ def apply_dics_epochs(epochs, filters, return_generator=False, verbose=None):
     if not return_generator:
         stcs = list(stcs)
 
+    return stcs
+
+
+@verbose
+def apply_dics_tfr_epochs(epochs_tfr, filters, return_generator=False,
+                          verbose=None):
+    """Apply Dynamic Imaging of Coherent Sources (DICS) beamformer weights.
+
+    Apply Dynamic Imaging of Coherent Sources (DICS) beamformer weights
+    on single trial time-frequency data.
+
+    Parameters
+    ----------
+    epochs_tfr : EpochsTFR
+        Single trial time-frequency epochs.
+    filters : instance of Beamformer
+        DICS spatial filter (beamformer weights)
+        Filter weights returned from :func:`make_dics`.
+    return_generator : bool
+        Return a generator object instead of a list. This allows iterating
+        over the stcs without having to keep them all in memory.
+    %(verbose)s
+
+    Returns
+    -------
+    stcs : list of list of (SourceEstimate | VectorSourceEstimate | VolSourceEstimate)
+        The source estimates for all epochs (outside list) and for
+        all frequencies (inside list).
+
+    See Also
+    --------
+    apply_dics
+    apply_dics_epochs
+    apply_dics_csd
+    """ # noqa E501
+    _validate_type(epochs_tfr, EpochsTFR)
+    _check_tfr_complex(epochs_tfr)
+
+    sel = _check_channels_spatial_filter(epochs_tfr.ch_names, filters)
+    data = epochs_tfr.data[:, sel, :, :]
+
+    stcs = _apply_dics(data, filters, epochs_tfr.info,
+                       epochs_tfr.tmin, tfr=True)
+    if not return_generator:
+        stcs = [[stc for stc in tfr_stcs] for tfr_stcs in stcs]
     return stcs
 
 
@@ -459,6 +513,12 @@ def apply_dics_csd(csd, filters, verbose=None):
         The frequencies for which the source power has been computed. If the
         data CSD object defines frequency-bins instead of exact frequencies,
         the mean of each bin is returned.
+
+    See Also
+    --------
+    apply_dics
+    apply_dics_epochs
+    apply_dics_tfr_epochs
 
     References
     ----------
