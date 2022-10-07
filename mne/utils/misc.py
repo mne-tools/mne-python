@@ -138,14 +138,14 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                 except Empty:
                     break
                 else:
+                    out = out.decode('utf-8')
                     # Strip newline at end of the string, otherwise we'll end
                     # up with two subsequent newlines (as the logger adds one)
                     #
                     # XXX Once we drop support for Python <3.9, uncomment the
                     # following line and remove the if/else block below.
                     #
-                    # out = out.decode('utf-8').removesuffix('\n')
-                    out = out.decode('utf-8')
+                    # log_out = out.removesuffix('\n')
                     if sys.version_info[:2] >= (3, 9):
                         log_out = out.removesuffix('\n')
                     elif out.endswith('\n'):
@@ -162,14 +162,14 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
                 except Empty:
                     break
                 else:
+                    err = err.decode('utf-8')
                     # Strip newline at end of the string, otherwise we'll end
                     # up with two subsequent newlines (as the logger adds one)
                     #
                     # XXX Once we drop support for Python <3.9, uncomment the
                     # following line and remove the if/else block below.
                     #
-                    # err = err.decode('utf-8').removesuffix('\n')
-                    err = err.decode('utf-8')
+                    # err_out = err.removesuffix('\n')
                     if sys.version_info[:2] >= (3, 9):
                         err_out = err.removesuffix('\n')
                     elif err.endswith('\n'):
