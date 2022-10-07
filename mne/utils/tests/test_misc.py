@@ -49,6 +49,9 @@ print('bar', file=sys.{kind})
             [sys.executable, str(fname)], verbose=True)
     log = log.getvalue()
     log = '\n'.join(log.split('\n')[1:])  # get rid of header
+    log = log.replace('\r\n', '\n')  # Windows
+    stdout = stdout.replace('\r\n', '\n')
+    stderr = stderr.replace('\r\n', '\n')
     want = 'foo\nbar\n'
     assert log == want
     if kind == 'stdout':
