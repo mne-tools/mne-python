@@ -977,9 +977,9 @@ def _suggest(val, options, cutoff=0.66):
         return ' Did you mean one of %r?' % (options,)
 
 
-def _check_on_missing(on_missing, name='on_missing'):
+def _check_on_missing(on_missing, name='on_missing', *, extras=()):
     _validate_type(on_missing, str, name)
-    _check_option(name, on_missing, ['raise', 'warn', 'ignore'])
+    _check_option(name, on_missing, ['raise', 'warn', 'ignore'] + list(extras))
 
 
 def _on_missing(on_missing, msg, name='on_missing', error_klass=None):

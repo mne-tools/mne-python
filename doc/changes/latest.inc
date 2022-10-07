@@ -49,6 +49,7 @@ Enhancements
 - Add ``unscale`` option to :func:`mne.head_to_mri` to facilitate working with surrogate MRI data (:gh:`11185` by `Eric Larson`_)
 - Add ``encoding`` parameter to :func:`mne.io.read_raw_edf` and :func:`mne.io.read_raw_bdf` to support custom (non-UTF8) annotation channel encodings (:gh:`11154` by `Clemens Brunner`_)
 - :class:`mne.preprocessing.ICA` gained a new method, :meth:`~mne.preprocessing.ICA.get_explained_variance_ratio`, that allows the retrieval of the proportion of variance explained by ICA components (:gh:`11141` by `Richard Höchenberger`_)
+- Add ``on_baseline`` to :meth:`mne.preprocessing.ICA.apply`, :meth:`mne.preprocessing.ICA.plot_overlay`, and :func:`mne.viz.plot_ica_overlay` to allow reapplying baseline correction after applying ICA (:gh:`11232` by `Eric Larson`_)
 - Add config option ``MNE_REPR_HTML`` to disable HTML repr in notebook environments (:gh:`11159` by `Clemens Brunner`_)
 
 Bugs
@@ -76,6 +77,7 @@ Bugs
 - Fix bug in :meth:`mne.preprocessing.ICA.find_bads_muscle` where epochs caused an error when passed as the ``inst`` (:gh:`11197` by `Alex Rockhill`_)
 - Fix bug in readers where EEG coordinates were assumed to be in head coordinates but no fiducial points were present. Estimated fiducial locations will now be added automatically to reflect the assumption of locations being in the head coordinate frame (:gh:`11212` by `Stefan Appelhoff`_ and `Eric Larson`_)
 - The duration of raw data sometimes wasn't displayed correctly in Jupyter notebooks by omitting fractions of a second. We now always round up to the next full second so a duration of less than 1 second will not be displayed as a duration of zero anymore (:gh:`11203` by `Richard Höchenberger`_)
+- Fix bug in :meth:`mne.report.Report.add_ica` and where baselines were not reapplied to the data when ``inst`` is Epochs or Evoked (:gh:`11232` by `Eric Larson`_)
 
 API changes
 ~~~~~~~~~~~

@@ -59,7 +59,8 @@ from ..utils import (logger, check_fname, _check_fname, verbose,
                      copy_function_doc_to_method_doc, _pl, warn, Bunch,
                      _check_preload, _check_compensation_grade, fill_doc,
                      _check_option, _PCA, int_like, _require_version,
-                     _check_all_same_channel_names)
+                     _check_all_same_channel_names, _check_on_missing,
+                     _on_missing)
 
 from ..fixes import _safe_svd
 from ..filter import filter_data
@@ -1896,7 +1897,7 @@ class ICA(ContainsMixin):
 
     @verbose
     def apply(self, inst, include=None, exclude=None, n_pca_components=None,
-              start=None, stop=None, verbose=None):
+              start=None, stop=None, *, on_baseline='warn', verbose=None):
         """Remove selected components from the signal.
 
         Given the unmixing matrix, transform the data,
@@ -1927,6 +1928,7 @@ class ICA(ContainsMixin):
         stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
+        %(on_baseline_ica)s
         %(verbose)s
 
         Returns
@@ -1963,15 +1965,26 @@ class ICA(ContainsMixin):
         _check_compensation_grade(self.info, inst.info, 'ICA', kind,
                                   ch_names=self.ch_names)
 
+        _check_on_missing(on_baseline, 'on_baseline', extras=('reapply',))
+        reapply_baseline = False
         if isinstance(inst, (BaseEpochs, Evoked)):
             if getattr(inst, 'baseline', None) is not None:
-                warn('The data you passed to ICA.apply() was '
-                     'baseline-corrected. Please note that ICA can introduce '
-                     'DC shifts, therefore you may wish to consider '
-                     'baseline-correcting the cleaned data again.')
+                if on_baseline == 'reapply':
+                    reapply_baseline = True
+                else:
+                    msg = (
+                        'The data you passed to ICA.apply() was '
+                        'baseline-corrected. Please note that ICA can '
+                        'introduce DC shifts, therefore you may wish to '
+                        'consider baseline-correcting the cleaned data again.'
+                    )
+                    _on_missing(on_baseline, msg, 'on_baseline')
 
         logger.info(f'Applying ICA to {kind} instance')
-        return meth(**kwargs)
+        out = meth(**kwargs)
+        if reapply_baseline:
+            out.apply_baseline(inst.baseline)
+        return out
 
     def _check_exclude(self, exclude):
         if exclude is None:
@@ -2220,10 +2233,12 @@ class ICA(ContainsMixin):
 
     @copy_function_doc_to_method_doc(plot_ica_overlay)
     def plot_overlay(self, inst, exclude=None, picks=None, start=None,
-                     stop=None, title=None, show=True, n_pca_components=None):
+                     stop=None, title=None, show=True, n_pca_components=None,
+                     *, on_baseline='warn', verbose=None):
         return plot_ica_overlay(self, inst=inst, exclude=exclude, picks=picks,
                                 start=start, stop=stop, title=title, show=show,
-                                n_pca_components=n_pca_components)
+                                n_pca_components=n_pca_components,
+                                on_baseline=on_baseline, verbose=verbose)
 
     @verbose
     def _check_n_pca_components(self, _n_pca_comp, verbose=None):
