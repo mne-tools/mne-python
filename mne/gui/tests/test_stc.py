@@ -12,6 +12,7 @@ import pytest
 import mne
 from mne.datasets import testing
 from mne.io.constants import FIFF
+from mne.utils import requires_dipy, requires_nibabel
 
 data_path = testing.data_path(download=False)
 subject = 'sample'
@@ -60,6 +61,8 @@ def _fake_stc(src_type='vol'):
 
 
 @pytest.fixture
+@requires_nibabel()
+@requires_dipy()
 def _stc_viewer(renderer_interactive_pyvistaqt):
     from qtpy.QtWidgets import QApplication
     from mne.gui._stc import SourceEstimateViewer
