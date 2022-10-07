@@ -61,8 +61,6 @@ def _fake_stc(src_type='vol'):
 
 
 @pytest.fixture
-@requires_nibabel()
-@requires_dipy()
 def _stc_viewer(renderer_interactive_pyvistaqt):
     from qtpy.QtWidgets import QApplication
     from mne.gui._stc import SourceEstimateViewer
@@ -87,6 +85,8 @@ def _stc_viewer(renderer_interactive_pyvistaqt):
             pass
 
 
+@requires_nibabel()
+@requires_dipy()
 def test_stc_viewer_io(_stc_viewer):
     """Test the input/output of the stc viewer GUI."""
     stc_data, src, epochs_tfr = _fake_stc()
@@ -126,6 +126,8 @@ def test_stc_viewer_io(_stc_viewer):
         _stc_viewer(stc_data[:, :, :, :, 1:], src=src, inst=epochs_tfr)
 
 
+@requires_nibabel()
+@requires_dipy()
 @testing.requires_testing_data
 def test_stc_viewer_display(_stc_viewer):
     """Test that the stc viewer GUI displays properly."""
@@ -178,6 +180,8 @@ def test_stc_viewer_display(_stc_viewer):
                     viewer._stc_plot.get_data()[1])
 
 
+@requires_nibabel()
+@requires_dipy()
 @testing.requires_testing_data
 def test_stc_viewer_surface(_stc_viewer):
     """Test the stc viewer with a surface source space."""
