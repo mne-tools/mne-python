@@ -1,7 +1,10 @@
 import os
+import sys
+
+import pytest
 
 import mne
-from mne.utils import sizeof_fmt
+from mne.utils import sizeof_fmt, run_subprocess, catch_logging
 
 
 def test_sizeof_fmt():
@@ -29,3 +32,30 @@ def test_html_repr():
     del os.environ[key]
     if existing_value is not None:
         os.environ[key, existing_value]
+
+
+@pytest.mark.parametrize('kind', ('stdout', 'stderr'))
+def test_run_subprocess(tmp_path, kind):
+    """Test run_subprocess."""
+    fname = tmp_path / 'subp.py'
+    with open(fname, 'w') as fid:
+        fid.write(f"""\
+import sys
+print('foo', file=sys.{kind})
+print('bar', file=sys.{kind})
+""")
+    with catch_logging() as log:
+        stdout, stderr = run_subprocess(
+            [sys.executable, str(fname)], verbose=True)
+    log = log.getvalue()
+    log = '\n'.join(log.split('\n')[1:])  # get rid of header
+    want = 'foo\nbar\n'
+    assert log == want
+    if kind == 'stdout':
+        std = stdout
+        other = stderr
+    else:
+        std = stderr
+        other = stdout
+    assert std == want
+    assert other == ''
