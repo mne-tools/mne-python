@@ -27,6 +27,7 @@ def make_data():
 
 @requires_sklearn
 def test_search_light_params():
+    """Test SlidingEstimator class parameters and attributes."""
     try:
         from mne.utils import _check_sklearn_estimator
         from sklearn.linear_model import LogisticRegression
@@ -188,6 +189,7 @@ def test_search_light():
 
 @requires_sklearn
 def test_generalization_params():
+    """Test GeneralizingEstimator class paramteters and attributes."""
     try:
         from mne.utils import _check_sklearn_estimator
         from sklearn.linear_model import LogisticRegression

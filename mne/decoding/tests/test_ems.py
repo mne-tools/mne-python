@@ -23,6 +23,7 @@ event_id = dict(aud_l=1, vis_l=3)
 
 @requires_sklearn
 def test_ems_params():
+    """Test EMS class parameters and attributes."""
     try:
         from mne.utils import _check_sklearn_estimator
         _check_sklearn_estimator(EMS())

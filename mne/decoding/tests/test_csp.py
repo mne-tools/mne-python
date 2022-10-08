@@ -87,6 +87,7 @@ def deterministic_toy_data(classes=('class_a', 'class_b')):
 
 @requires_sklearn
 def test_csp_params():
+    """Test CSP class parameters and attributes."""
     try:
         from mne.utils import _check_sklearn_estimator
         _check_sklearn_estimator(CSP())
@@ -298,6 +299,7 @@ def test_ajd():
 
 @requires_sklearn
 def test_spoc_params():
+    """Test SPoC class parameters and attributes."""
     try:
         from mne.utils import _check_sklearn_estimator
         _check_sklearn_estimator(SPoC())

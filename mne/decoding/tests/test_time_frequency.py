@@ -13,6 +13,7 @@ from mne.decoding.time_frequency import TimeFrequency
 
 @requires_sklearn
 def test_timefrequency_params():
+    """Test TimeFrequency class parameters and attributes."""
     freqs = [20, 21, 22]
     try:
         from mne.utils import _check_sklearn_estimator

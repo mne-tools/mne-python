@@ -7,6 +7,7 @@ import pytest
 
 @requires_sklearn
 def test_time_delaying_ridge_params():
+    """Test TimeDelayingRidge class parameters and attributes."""
     rng = np.random.RandomState(3)
     x = rng.randn(1000, 3)
     y = np.zeros((1000, 2))

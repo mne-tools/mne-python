@@ -748,11 +748,6 @@ class SPoC(CSP):
                                    cov_est="epoch", norm_trace=False,
                                    transform_into=transform_into, rank=rank,
                                    cov_method_params=cov_method_params)
-        # Covariance estimation have to be done on the single epoch level,
-        # unlike CSP where covariance estimation can also be achieved through
-        # concatenation of all epochs from the same class.
-        # delattr(self, 'cov_est')
-        # delattr(self, 'norm_trace')
 
     def fit(self, X, y):
         """Estimate the SPoC decomposition on epochs.

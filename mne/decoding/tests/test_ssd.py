@@ -53,6 +53,7 @@ def simulate_data(freqs_sig=[9, 12], n_trials=100, n_channels=20,
 
 @requires_sklearn
 def test_ssd_params():
+    """Test SSD class parameters and attributes."""
     try:
         from mne.utils import _check_sklearn_estimator
         X, A, S = simulate_data()

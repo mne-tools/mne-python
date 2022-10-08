@@ -33,6 +33,7 @@ event_name = op.join(data_dir, 'test-eve.fif')
 ])
 @requires_sklearn
 def test_scaler_params(info, method):
+    """Test Scaler class parameters and attributes."""
     raw = io.read_raw_fif(raw_fname)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
@@ -208,6 +209,7 @@ def test_vectorizer():
 
 @requires_sklearn
 def test_unsupervised_spatial_filter_params():
+    """Test UnsupervisedSpatialFilter class parameters and attributes."""
     try:
         from mne.utils import _check_sklearn_estimator
         from sklearn.decomposition import PCA

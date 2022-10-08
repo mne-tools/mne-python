@@ -313,7 +313,8 @@ def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
 
 
 @requires_sklearn
-def test_linerarmodel_params():
+def test_linearmodel_params():
+    """Test LinearModel class parameters and attributes."""
     try:
         from mne.utils import _check_sklearn_estimator
         _check_sklearn_estimator(LinearModel())

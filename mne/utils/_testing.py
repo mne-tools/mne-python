@@ -471,7 +471,8 @@ def _check_dont_overwrite_parameters(name, estimator_orig, x_shape=(20, 3),
     ]
 
     attrs_added_by_fit = [
-        key for key in public_keys_after_fit if key not in dict_before_fit.keys()  # noqa: E501
+        key for key in public_keys_after_fit 
+        if key not in dict_before_fit.keys()
     ]
 
     # check that fit doesn't add any public attribute
@@ -503,10 +504,12 @@ def _check_dont_overwrite_parameters(name, estimator_orig, x_shape=(20, 3),
 
 def _check_sklearn_estimator(estimator, x_shape=None, y_shape=None):
     """Check if estimator meets sklearn requirements."""
-    from sklearn.utils.estimator_checks import (check_no_attributes_set_in_init,  # noqa: E501
-                                                check_parameters_default_constructible,  # noqa: E501
-                                                check_get_params_invariance,  # noqa: E501
-                                                check_set_params, _maybe_skip)  # noqa: E501
+    from sklearn.utils.estimator_checks import (
+        check_no_attributes_set_in_init,
+        check_parameters_default_constructible,
+        check_get_params_invariance,
+        check_set_params, _maybe_skip
+    )
     import pytest
 
     name = type(estimator).__name__

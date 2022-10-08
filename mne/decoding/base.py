@@ -56,7 +56,11 @@ class LinearModel(BaseEstimator):
         self._estimator_type = getattr(self.model, "_estimator_type", None)
 
     def _more_tags(self):
-        return {'_xfail_checks': {'check_no_attributes_set_in_init': 'Estimator sets _estimator_type in init.'}}  # noqa: E501
+        return {
+            '_xfail_checks':
+            {'check_no_attributes_set_in_init':
+             'Estimator sets _estimator_type in init.'}
+        }
 
     def _check_params(self):
         if self.model is None:

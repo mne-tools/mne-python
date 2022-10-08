@@ -50,7 +50,12 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
 
     def _more_tags(self):
         """Add estimator tags."""
-        return {'X_types': ['3darray'], '_xfail_checks': {'check_no_attributes_set_in_init': '_estimator_type is set in init'}}  # noqa: E501
+        return {
+            'X_types': ['3darray'],
+            '_xfail_checks':
+                {'check_no_attributes_set_in_init':
+                 '_estimator_type is set in init'}
+        }
 
     def _check_X_y(self, X, y=None):
         """Aux. function to check input data."""

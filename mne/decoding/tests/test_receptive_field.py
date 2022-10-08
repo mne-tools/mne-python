@@ -145,6 +145,7 @@ def test_time_delay():
 
 @requires_sklearn
 def test_receptive_field_params():
+    """Test ReceptiveField class parameters and attributes."""
     try:
         from mne.utils import _check_sklearn_estimator
         from sklearn.linear_model import Ridge
