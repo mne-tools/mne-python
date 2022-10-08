@@ -71,7 +71,9 @@ class EMS(TransformerMixin, BaseEstimator):
         """
         classes = np.unique(y)
         if len(classes) != 2:
-            raise ValueError('EMS only works for binary classification. %s' % y)  # noqa: E501
+            raise ValueError(
+                'EMS only works for binary classification. %s' % y
+            )
         self.classes_ = classes
         filters = X[y == classes[0]].mean(0) - X[y == classes[1]].mean(0)
         filters /= np.linalg.norm(filters, axis=0)[None, :]
