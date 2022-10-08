@@ -219,7 +219,7 @@ def test_hitachi_basic(preload, version, n_ch, n_times, lowpass, sex, date,
     assert raw.info['meas_date'] == dt.datetime(*date, tzinfo=dt.timezone.utc)
     # bad distances (zero)
     distances = source_detector_distances(raw.info)
-    want = [0.] * (n_ch - 4)
+    want = [np.nan] * (n_ch - 4)
     assert_allclose(distances, want, atol=0.)
     raw_od_bad = optical_density(raw)
     with pytest.warns(RuntimeWarning, match='will be zero'):

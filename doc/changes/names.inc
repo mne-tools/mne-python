@@ -38,7 +38,7 @@
 
 .. _Anna Padee: https://github.com/apadee/
 
-.. _Annalisa Pascarella: http://www.iac.rm.cnr.it/~pasca/
+.. _Annalisa Pascarella: https://www.dima.unige.it/~pascarel/html/cv.html
 
 .. _Anne-Sophie Dubarry: https://github.com/annesodub
 
@@ -494,7 +494,7 @@
 
 .. _Xiaokai Xia: https://github.com/dddd1007
 
-.. _Yaroslav Halchenko: http://www.onerussian.com/
+.. _Yaroslav Halchenko: http://haxbylab.dartmouth.edu/ppl/yarik.html
 
 .. _Yousra Bekhti: https://www.linkedin.com/pub/yousra-bekhti/56/886/421
 

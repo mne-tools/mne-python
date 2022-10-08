@@ -191,6 +191,7 @@ brain = stc.plot(surface='pial', hemi='rh', colormap='inferno', colorbar=False,
                  size=(250, 250), smoothing_steps='nearest',
                  time_viewer=False)
 brain.add_sensors(raw.info, trans='fsaverage')
+del brain
 
 # You can save a movie like the one on our documentation website with:
 # brain.save_movie(time_dilation=1, interpolation='linear', framerate=3,

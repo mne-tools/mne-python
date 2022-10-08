@@ -486,11 +486,12 @@ def test_fidsposition_information(monkeypatch, has_type):
     pos = montage.get_positions()
     n_eeg = 129
     if not has_type:
-        assert pos['nasion'] is None
-        assert pos['lpa'] is None
-        assert pos['rpa'] is None
-        assert len(raw.info['dig']) == n_eeg
-        return
+        # These should now be estimated from the data
+        # TODO: This is in meters... so clearly wrong. (The estimation is
+        # not the problem, the dig are all off like this.)
+        assert_allclose(pos['nasion'], [0, 9.97, 0], atol=1e-4)
+        assert_allclose(pos['lpa'], -pos['nasion'][[1, 0, 0]])
+        assert_allclose(pos['rpa'], pos['nasion'][[1, 0, 0]])
     assert pos['nasion'] is not None
     assert pos['lpa'] is not None
     assert pos['rpa'] is not None

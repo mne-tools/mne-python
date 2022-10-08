@@ -615,17 +615,20 @@ html_theme_options = {
              url='https://discord.gg/rKfvxTuATa',
              icon='fab fa-discord')
     ],
-    'icon_links_label': 'Quick Links',  # for screen reader
+    'icon_links_label': 'External Links',  # for screen reader
     'use_edit_page_button': False,
     'navigation_with_keys': False,
     'show_toc_level': 1,
     'navbar_end': ['theme-switcher', 'version-switcher', 'navbar-icon-links'],
     'footer_items': ['copyright'],
+    'secondary_sidebar_items': ['page-toc', 'searchbox'],
     'analytics': dict(google_analytics_id='UA-37225609-1'),
     'switcher': {
         'json_url': 'https://mne.tools/dev/_static/versions.json',
         'version_match': switcher_version_match,
-    }
+    },
+    'pygment_light_style': 'default',
+    'pygment_dark_style': 'github-dark',
 }
 
 # The name of an image file (relative to this directory) to place at the top
@@ -980,6 +983,10 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(
         'ignore', message=r'invalid value encountered in cast',
         category=RuntimeWarning)
+    # xarray _SixMetaPathImporter (?)
+    warnings.filterwarnings(
+        'ignore', message=r'falling back to find_module',
+        category=ImportWarning)
 
     # In case we use np.set_printoptions in any tutorials, we only
     # want it to affect those:

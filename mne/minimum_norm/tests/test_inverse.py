@@ -227,11 +227,14 @@ def test_warn_inverse_operator(evoked, noise_cov):
     epochs = make_fixed_length_epochs(raw, duration=tmax).load_data()
     assert len(epochs) == 1
     evoked = epochs.average()
+    evoked_cust = epochs.average().set_eeg_reference()
+    assert evoked_cust.info['custom_ref_applied']
     assert 'eeg' in raw
     assert 'meg' in raw
     for (func, inst) in ((apply_inverse_raw, raw),
                          (apply_inverse_epochs, epochs),
-                         (apply_inverse, evoked)):
+                         (apply_inverse, evoked),
+                         (apply_inverse, evoked_cust)):
         with pytest.raises(ValueError, match='reference'):
             func(inst, inv, 1. / 9.)
         func(inst, inv_meg, 1. / 9.)  # no warning

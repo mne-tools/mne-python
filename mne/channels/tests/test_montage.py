@@ -824,7 +824,7 @@ def test_set_dig_montage():
     )
     info = create_info(ch_names, sfreq=1, ch_types='eeg')
     info.set_montage(montage_ch_only)
-    assert len(info['dig']) == len(montage_ch_only.dig)
+    assert len(info['dig']) == len(montage_ch_only.dig) + 3  # added fiducials
 
     assert_allclose(actual=np.array([ch['loc'][:6] for ch in info['chs']]),
                     desired=[[0., 1., 2., 0., 0., 0.],
@@ -1263,7 +1263,7 @@ def test_set_montage_with_sub_super_set_of_ch_names():
     # montage is a SUPERset of info
     info = create_info(list('abc'), sfreq=1, ch_types='eeg')
     info.set_montage(montage)
-    assert len(info['dig']) == len(list('abc'))
+    assert len(info['dig']) == len(list('abc')) + 3  # 3 fiducials
 
     # montage is a SUBset of info
     _MSG = 'subset of info. There are 2 .* not present in the DigMontage'

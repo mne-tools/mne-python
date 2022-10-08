@@ -151,7 +151,7 @@ jobs:
         - run:
             name: Check Qt
             command: |
-              ./tools/check_qt_import.sh PySide6
+              ./tools/check_qt_import.sh PyQt6
         # Load tiny cache so that ~/.mne does not need to be created below
         - restore_cache:
             keys:

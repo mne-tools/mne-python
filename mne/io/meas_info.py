@@ -377,19 +377,21 @@ class Info(dict, MontageMixin, ContainsMixin):
     `FIF format specification <https://github.com/mne-tools/fiff-constants>`__,
     so new entries should not be manually added.
 
-    .. warning:: The only entries that should be manually changed by the user
-                 are ``info['bads']``, ``info['description']``,
-                 ``info['device_info']``, ``info['dev_head_t']``,
-                 ``info['experimenter']``, info['helium_info'],
-                 ``info['line_freq']``, ``info['temp']`` and
-                 ``info['subject_info']``. All other entries should be
-                 considered read-only, though they can be modified by various
-                 MNE-Python functions or methods (which have safeguards to
-                 ensure all fields remain in sync).
+    .. note::
+        This class should not be instantiated directly via
+        ``mne.Info(...)``. Instead, use :func:`mne.create_info` to create
+        measurement information from scratch.
 
-    .. warning:: This class should not be instantiated directly. To create a
-                 measurement information structure, use
-                 :func:`mne.create_info`.
+    .. warning::
+        The only entries that should be manually changed by the user are:
+        ``info['bads']``, ``info['description']``, ``info['device_info']``
+        ``info['dev_head_t']``, ``info['experimenter']``,
+        ``info['helium_info']``, ``info['line_freq']``, ``info['temp']``,
+        and ``info['subject_info']``.
+
+        All other entries should be considered read-only, though they can be
+        modified by various MNE-Python functions or methods (which have
+        safeguards to ensure all fields remain in sync).
 
     Parameters
     ----------

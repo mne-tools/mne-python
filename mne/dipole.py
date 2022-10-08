@@ -46,8 +46,10 @@ from .viz import plot_dipole_locations
 class Dipole(TimeMixin):
     u"""Dipole class for sequential dipole fits.
 
-    .. note:: This class should usually not be instantiated directly,
-              instead :func:`mne.read_dipole` should be used.
+    .. note::
+        This class should usually not be instantiated directly via
+        ``mne.Dipole(...)``. Instead, use one of the functions
+        listed in the See Also section below.
 
     Used to store positions, orientations, amplitudes, times, goodness of fit
     of dipoles, typically obtained with Neuromag/xfit, mne_dipole_fit
@@ -366,8 +368,10 @@ def _read_dipole_fixed(fname):
 class DipoleFixed(TimeMixin):
     """Dipole class for fixed-position dipole fits.
 
-    .. note:: This class should usually not be instantiated directly,
-              instead :func:`mne.read_dipole` should be used.
+    .. note::
+        This class should usually not be instantiated directly
+        via ``mne.DipoleFixed(...)``. Instead, use one of the functions
+        listed in the See Also section below.
 
     Parameters
     ----------

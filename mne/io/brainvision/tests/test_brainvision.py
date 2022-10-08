@@ -614,7 +614,9 @@ def test_coodinates_extraction():
     diglist = raw.info['dig']
     coords = np.array([dig['r'] for dig in diglist])
     EXPECTED_SHAPE = (
-        len(raw.ch_names) - 4,  # HL, HR, Vb, ReRef are not set in dig
+        # HL, HR, Vb, ReRef are not set in dig
+        # but LPA, Nasion, RPA are estimated
+        len(raw.ch_names) - 4 + 3,
         3,
     )
     assert coords.shape == EXPECTED_SHAPE

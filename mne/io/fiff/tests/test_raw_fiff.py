@@ -1624,13 +1624,20 @@ def test_drop_channels_mixin():
 
     # Test that dropping all channels a projector applies to will lead to the
     # removal of said projector.
-    raw = read_raw_fif(fif_fname)
+    raw = read_raw_fif(fif_fname).crop(0, 1)
     n_projs = len(raw.info['projs'])
     eeg_names = raw.info['projs'][-1]['data']['col_names']
     with pytest.raises(RuntimeError, match='loaded'):
         raw.copy().apply_proj().drop_channels(eeg_names)
     raw.load_data().drop_channels(eeg_names)  # EEG proj
     assert len(raw.info['projs']) == n_projs - 1
+
+    # Dropping EEG channels with custom ref removes info['custom_ref_applied']
+    raw = read_raw_fif(fif_fname).crop(0, 1).load_data()
+    raw.set_eeg_reference()
+    assert raw.info['custom_ref_applied']
+    raw.drop_channels(eeg_names)
+    assert not raw.info['custom_ref_applied']
 
 
 @testing.requires_testing_data

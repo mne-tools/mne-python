@@ -277,7 +277,8 @@ def _read_curry_info(curry_paths):
                 ch['loc'] = _coil_trans_to_loc(trans)
                 ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
             all_chans.append(ch)
-    dig = _make_dig_points(dig_ch_pos=dig_ch_pos)
+    dig = _make_dig_points(
+        dig_ch_pos=dig_ch_pos, coord_frame='head', add_missing_fiducials=True)
     del dig_ch_pos
 
     ch_count = len(all_chans)

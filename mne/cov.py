@@ -69,9 +69,10 @@ def _get_tslice(epochs, tmin, tmax):
 class Covariance(dict):
     """Noise covariance matrix.
 
-    .. warning:: This class should not be instantiated directly, but
-                 instead should be created using a covariance reading or
-                 computation function.
+    .. note::
+        This class should not be instantiated directly via
+        ``mne.Covariance(...)``. Instead, use one of the functions
+        listed in the See Also section below.
 
     Parameters
     ----------
