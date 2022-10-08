@@ -471,7 +471,7 @@ def _check_dont_overwrite_parameters(name, estimator_orig, x_shape=(20, 3),
     ]
 
     attrs_added_by_fit = [
-        key for key in public_keys_after_fit 
+        key for key in public_keys_after_fit
         if key not in dict_before_fit.keys()
     ]
 
