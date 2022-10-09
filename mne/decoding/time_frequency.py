@@ -60,14 +60,11 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
     """
 
     @verbose
-    def __init__(self, freqs, sfreq=1.0, method='morlet', n_cycles=7.0,
+    def __init__(self, freqs=None, sfreq=1.0, method='morlet', n_cycles=7.0,
                  time_bandwidth=None, use_fft=True, decim=1, output='complex',
                  n_jobs=1, verbose=None):  # noqa: D102
         """Init TimeFrequency transformer."""
         # Check non-average output
-        output = _check_option('output', output,
-                               ['complex', 'power', 'phase'])
-
         self.freqs = freqs
         self.sfreq = sfreq
         self.method = method
@@ -79,6 +76,13 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         self.output = output
         self.n_jobs = n_jobs
         self.verbose = verbose
+
+    def _check_params(self):
+        """Check parameters."""
+        if self.freqs is None:
+            raise ValueError('freqs must be provided')
+        _check_option('method', self.method, ['multitaper', 'morlet'])
+        _check_option('output', self.output, ['complex', 'power', 'phase'])
 
     def fit_transform(self, X, y=None):
         """Time-frequency transform of times series along the last axis.
@@ -114,6 +118,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
         self : object
             Return self.
         """
+        self._check_params()
         return self
 
     def transform(self, X):
@@ -131,6 +136,7 @@ class TimeFrequency(TransformerMixin, BaseEstimator):
             The time-frequency transform of the data, where n_channels can be
             zero- or 1-dimensional.
         """
+        self._check_params()
         # Ensure 3-dimensional X
         shape = X.shape[1:-1]
         if not shape:

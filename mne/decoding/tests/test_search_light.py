@@ -26,6 +26,25 @@ def make_data():
 
 
 @requires_sklearn
+def test_search_light_params():
+    """Test SlidingEstimator class parameters and attributes."""
+    try:
+        from mne.utils import _check_sklearn_estimator
+        from sklearn.linear_model import LogisticRegression
+        _check_sklearn_estimator(
+            SlidingEstimator(
+                LogisticRegression(
+                    solver="liblinear",
+                    multi_class="ovr",
+                    random_state=0
+                )
+            )
+        )
+    except ImportError:
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
+
+
+@requires_sklearn
 def test_search_light():
     """Test SlidingEstimator."""
     from sklearn.linear_model import Ridge, LogisticRegression
@@ -41,7 +60,8 @@ def test_search_light():
     X, y = make_data()
     n_epochs, _, n_time = X.shape
     # init
-    pytest.raises(ValueError, SlidingEstimator, 'foo')
+    sl = SlidingEstimator("foo")
+    pytest.raises(ValueError, sl.fit, X, y)
     sl = SlidingEstimator(Ridge())
     assert (not is_classifier(sl))
     sl = SlidingEstimator(LogisticRegression(solver='liblinear'))
@@ -165,6 +185,25 @@ def test_search_light():
         pipe.fit(X, y)
         pipe.score(X, y)
         assert (isinstance(pipe.estimators_[0], BaggingClassifier))
+
+
+@requires_sklearn
+def test_generalization_params():
+    """Test GeneralizingEstimator class paramteters and attributes."""
+    try:
+        from mne.utils import _check_sklearn_estimator
+        from sklearn.linear_model import LogisticRegression
+        _check_sklearn_estimator(
+            GeneralizingEstimator(
+                LogisticRegression(
+                    solver="liblinear",
+                    multi_class="ovr",
+                    random_state=0
+                )
+            )
+        )
+    except ImportError:
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
 
 
 @requires_sklearn

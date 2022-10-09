@@ -8,7 +8,8 @@ from collections import Counter
 
 import numpy as np
 
-from .mixin import TransformerMixin, EstimatorMixin
+from .mixin import TransformerMixin
+from ..fixes import BaseEstimator
 from .base import _set_cv
 from ..io.pick import _picks_to_idx
 from ..parallel import parallel_func
@@ -16,7 +17,7 @@ from ..utils import logger, verbose
 from .. import pick_types, pick_info
 
 
-class EMS(TransformerMixin, EstimatorMixin):
+class EMS(TransformerMixin, BaseEstimator):
     """Transformer to compute event-matched spatial filters.
 
     This version of EMS :footcite:`SchurgerEtAl2013` operates on the entire
@@ -47,6 +48,9 @@ class EMS(TransformerMixin, EstimatorMixin):
         else:
             return '<EMS: not fitted.>'
 
+    def _more_tags(self):
+        return {"binary_only": True, "X_types": ["3darray"]}
+
     def fit(self, X, y):
         """Fit the spatial filters.
 
@@ -67,7 +71,9 @@ class EMS(TransformerMixin, EstimatorMixin):
         """
         classes = np.unique(y)
         if len(classes) != 2:
-            raise ValueError('EMS only works for binary classification.')
+            raise ValueError(
+                'EMS only works for binary classification. %s' % y
+            )
         self.classes_ = classes
         filters = X[y == classes[0]].mean(0) - X[y == classes[1]].mean(0)
         filters /= np.linalg.norm(filters, axis=0)[None, :]

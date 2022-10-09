@@ -104,14 +104,14 @@ class ReceptiveField(BaseEstimator):
     """  # noqa E501
 
     @verbose
-    def __init__(self, tmin, tmax, sfreq, feature_names=None, estimator=None,
-                 fit_intercept=None, scoring='r2', patterns=False,
+    def __init__(self, tmin=None, tmax=None, sfreq=None, feature_names=None,
+                 estimator=0, fit_intercept=None, scoring='r2', patterns=False,
                  n_jobs=None, edge_correction=True, verbose=None):
         self.feature_names = feature_names
-        self.sfreq = float(sfreq)
+        self.sfreq = sfreq
         self.tmin = tmin
         self.tmax = tmax
-        self.estimator = 0. if estimator is None else estimator
+        self.estimator = estimator
         self.fit_intercept = fit_intercept
         self.scoring = scoring
         self.patterns = patterns
@@ -119,7 +119,10 @@ class ReceptiveField(BaseEstimator):
         self.edge_correction = edge_correction
 
     def __repr__(self):  # noqa: D105
-        s = "tmin, tmax : (%.3f, %.3f), " % (self.tmin, self.tmax)
+        try:
+            s = "tmin, tmax : (%.3f, %.3f), " % (self.tmin, self.tmax)
+        except TypeError:
+            s = "tmin, tmax : (%s, %s), " % (self.tmin, self.tmax)
         estimator = self.estimator
         if not isinstance(estimator, str):
             estimator = type(self.estimator)
@@ -143,12 +146,61 @@ class ReceptiveField(BaseEstimator):
         if not isinstance(self.estimator_, TimeDelayingRidge):
             # X is now shape (n_times, n_epochs, n_feats, n_delays)
             X = _delay_time_series(X, self.tmin, self.tmax, self.sfreq,
-                                   fill_mean=self.fit_intercept)
+                                   fill_mean=self.fit_intercept_)
             X = _reshape_for_est(X)
             # Concat times + epochs
             if y is not None:
                 y = y.reshape(-1, y.shape[-1], order='F')
         return X, y
+
+    def _check_params(self):
+        if self.tmin is None:
+            raise ValueError('tmin must be defined')
+        if self.tmax is None:
+            raise ValueError('tmax must be defined')
+        if self.sfreq is None:
+            raise ValueError('sfreq must be defined')
+
+        if self.scoring not in _SCORERS.keys():
+            raise ValueError('scoring must be one of %s, got'
+                             '%s ' % (sorted(_SCORERS.keys()), self.scoring))
+        from sklearn.base import clone
+
+        if self.tmin > self.tmax:
+            raise ValueError('tmin (%s) must be at most tmax (%s)'
+                             % (self.tmin, self.tmax))
+        # Initialize delays
+        self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq)
+
+        # Define the slice that we should use in the middle
+        self.valid_samples_ = _delays_to_slice(self.delays_)
+
+        if isinstance(self.estimator, numbers.Real):
+            if self.fit_intercept is None:
+                self.fit_intercept_ = True
+            else:
+                self.fit_intercept_ = self.fit_intercept
+            estimator = TimeDelayingRidge(
+                self.tmin, self.tmax, self.sfreq, alpha=self.estimator,
+                fit_intercept=self.fit_intercept_, n_jobs=self.n_jobs,
+                edge_correction=self.edge_correction)
+        elif is_regressor(self.estimator):
+            estimator = clone(self.estimator)
+            if self.fit_intercept is not None and \
+                    estimator.fit_intercept != self.fit_intercept:
+                raise ValueError(
+                    'Estimator fit_intercept (%s) != initialization '
+                    'fit_intercept (%s), initialize ReceptiveField with the '
+                    'same fit_intercept value or use fit_intercept=None'
+                    % (estimator.fit_intercept, self.fit_intercept))
+            self.fit_intercept_ = estimator.fit_intercept
+        else:
+            raise ValueError('`estimator` must be a float or an instance'
+                             ' of `BaseEstimator`,'
+                             ' got type %s.' % type(self.estimator))
+        self.estimator_ = estimator
+        del estimator
+        _check_estimator(self.estimator_)
 
     def fit(self, X, y):
         """Fit a receptive field model.
@@ -166,45 +218,9 @@ class ReceptiveField(BaseEstimator):
             The instance so you can chain operations.
         """
         from scipy import linalg
-        if self.scoring not in _SCORERS.keys():
-            raise ValueError('scoring must be one of %s, got'
-                             '%s ' % (sorted(_SCORERS.keys()), self.scoring))
-        from sklearn.base import clone
+
         X, y, _, self._y_dim = self._check_dimensions(X, y)
-
-        if self.tmin > self.tmax:
-            raise ValueError('tmin (%s) must be at most tmax (%s)'
-                             % (self.tmin, self.tmax))
-        # Initialize delays
-        self.delays_ = _times_to_delays(self.tmin, self.tmax, self.sfreq)
-
-        # Define the slice that we should use in the middle
-        self.valid_samples_ = _delays_to_slice(self.delays_)
-
-        if isinstance(self.estimator, numbers.Real):
-            if self.fit_intercept is None:
-                self.fit_intercept = True
-            estimator = TimeDelayingRidge(
-                self.tmin, self.tmax, self.sfreq, alpha=self.estimator,
-                fit_intercept=self.fit_intercept, n_jobs=self.n_jobs,
-                edge_correction=self.edge_correction)
-        elif is_regressor(self.estimator):
-            estimator = clone(self.estimator)
-            if self.fit_intercept is not None and \
-                    estimator.fit_intercept != self.fit_intercept:
-                raise ValueError(
-                    'Estimator fit_intercept (%s) != initialization '
-                    'fit_intercept (%s), initialize ReceptiveField with the '
-                    'same fit_intercept value or use fit_intercept=None'
-                    % (estimator.fit_intercept, self.fit_intercept))
-            self.fit_intercept = estimator.fit_intercept
-        else:
-            raise ValueError('`estimator` must be a float or an instance'
-                             ' of `BaseEstimator`,'
-                             ' got type %s.' % type(self.estimator))
-        self.estimator_ = estimator
-        del estimator
-        _check_estimator(self.estimator_)
+        self._check_params()
 
         # Create input features
         n_times, n_epochs, n_feats = X.shape

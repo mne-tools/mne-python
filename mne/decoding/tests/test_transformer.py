@@ -31,6 +31,36 @@ event_name = op.join(data_dir, 'test-eve.fif')
     (False, 'mean'),
     (False, 'median'),
 ])
+@requires_sklearn
+def test_scaler_params(info, method):
+    """Test Scaler class parameters and attributes."""
+    raw = io.read_raw_fif(raw_fname)
+    events = read_events(event_name)
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')
+    picks = picks[1:13:3]
+
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
+    epochs_data = epochs.get_data()
+    y = epochs.events[:, -1]
+    if info:
+        info = epochs.info
+    try:
+        from mne.utils import _check_sklearn_estimator
+        _check_sklearn_estimator(Scaler(info, method),
+                                 epochs_data.shape, y.shape)
+    except ImportError:
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
+
+
+@requires_sklearn
+@pytest.mark.parametrize('info, method', [
+    (True, None),
+    (True, dict(mag=5, grad=10, eeg=20)),
+    (False, 'mean'),
+    (False, 'median'),
+])
 def test_scaler(info, method):
     """Test methods of Scaler."""
     raw = io.read_raw_fif(raw_fname)
@@ -48,7 +78,7 @@ def test_scaler(info, method):
     if method in ('mean', 'median'):
         if not check_version('sklearn'):
             with pytest.raises(ImportError, match='No module'):
-                Scaler(info, method)
+                Scaler(info, method).fit(epochs_data, y)
             return
 
     if info:
@@ -82,7 +112,7 @@ def test_scaler(info, method):
     assert_array_almost_equal(epochs_data, Xi)
 
     # Test init exception
-    pytest.raises(ValueError, Scaler, None, None)
+    pytest.raises(ValueError, Scaler(None, None).fit, epochs_data, y)
     pytest.raises(TypeError, scaler.fit, epochs, y)
     pytest.raises(TypeError, scaler.transform, epochs)
     epochs_bad = Epochs(raw, events, event_id, 0, 0.01, baseline=None,
@@ -178,6 +208,19 @@ def test_vectorizer():
 
 
 @requires_sklearn
+def test_unsupervised_spatial_filter_params():
+    """Test UnsupervisedSpatialFilter class parameters and attributes."""
+    try:
+        from mne.utils import _check_sklearn_estimator
+        from sklearn.decomposition import PCA
+        _check_sklearn_estimator(
+            UnsupervisedSpatialFilter(PCA(2))
+        )
+    except ImportError:
+        pytest.xfail('Cannot find sklearn utils for checking parameters')
+
+
+@requires_sklearn
 def test_unsupervised_spatial_filter():
     """Test unsupervised spatial filter."""
     from sklearn.decomposition import PCA
@@ -191,7 +234,8 @@ def test_unsupervised_spatial_filter():
                     preload=True, baseline=None, verbose=False)
 
     # Test estimator
-    pytest.raises(ValueError, UnsupervisedSpatialFilter, KernelRidge(2))
+    pytest.raises(ValueError, UnsupervisedSpatialFilter(KernelRidge(2)).fit,
+                  epochs.get_data())
 
     # Test fit
     X = epochs.get_data()
@@ -210,7 +254,7 @@ def test_unsupervised_spatial_filter():
     # Test with average param
     usf = UnsupervisedSpatialFilter(PCA(4), average=True)
     usf.fit_transform(X)
-    pytest.raises(ValueError, UnsupervisedSpatialFilter, PCA(4), 2)
+    pytest.raises(ValueError, UnsupervisedSpatialFilter(PCA(4), 2).fit, X)
 
 
 def test_temporal_filter():

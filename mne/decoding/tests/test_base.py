@@ -66,8 +66,9 @@ def test_get_coef():
     from sklearn import svm
     from sklearn.linear_model import Ridge
     from sklearn.model_selection import GridSearchCV
+    from sklearn.linear_model import LogisticRegression
 
-    lm_classification = LinearModel()
+    lm_classification = LinearModel(LogisticRegression())
     assert (is_classifier(lm_classification))
 
     lm_regression = LinearModel(Ridge())
@@ -149,19 +150,19 @@ def test_get_coef():
         # Retrieve final linear model
         filters = get_coef(clf, 'filters_', False)
         if hasattr(clf, 'steps'):
-            if hasattr(clf.steps[-1][-1].model, 'best_estimator_'):
+            if hasattr(clf.steps[-1][-1].model_, 'best_estimator_'):
                 # Linear Model with GridSearchCV
-                coefs = clf.steps[-1][-1].model.best_estimator_.coef_
+                coefs = clf.steps[-1][-1].model_.best_estimator_.coef_
             else:
                 # Standard Linear Model
-                coefs = clf.steps[-1][-1].model.coef_
+                coefs = clf.steps[-1][-1].model_.coef_
         else:
-            if hasattr(clf.model, 'best_estimator_'):
+            if hasattr(clf.model_, 'best_estimator_'):
                 # Linear Model with GridSearchCV
-                coefs = clf.model.best_estimator_.coef_
+                coefs = clf.model_.best_estimator_.coef_
             else:
                 # Standard Linear Model
-                coefs = clf.model.coef_
+                coefs = clf.model_.coef_
         if coefs.ndim == 2 and coefs.shape[0] == 1:
             coefs = coefs[0]
         assert_array_equal(filters, coefs)
@@ -312,10 +313,21 @@ def test_get_coef_multiclass_full(n_classes, n_channels, n_times):
 
 
 @requires_sklearn
+def test_linearmodel_params():
+    """Test LinearModel class parameters and attributes."""
+    try:
+        from mne.utils import _check_sklearn_estimator
+        _check_sklearn_estimator(LinearModel())
+    except ImportError:
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
+
+
+@requires_sklearn
 def test_linearmodel():
     """Test LinearModel class for computing filters and patterns."""
     # check categorical target fit in standard linear model
     from sklearn.linear_model import LinearRegression
+
     rng = np.random.RandomState(0)
     clf = LinearModel()
     n, n_features = 20, 3
@@ -327,6 +339,12 @@ def test_linearmodel():
     with pytest.raises(ValueError):
         wrong_X = rng.rand(n, n_features, 99)
         clf.fit(wrong_X, y)
+
+    with pytest.raises(ValueError):
+        lm = LinearModel("foo")
+        lm.fit(X, y)
+
+    LinearModel().fit(X, y)
 
     # check categorical target fit in standard linear model with GridSearchCV
     from sklearn import svm

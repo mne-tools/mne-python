@@ -434,3 +434,125 @@ def _click_ch_name(fig, ch_index=0, button=1):
     y = bbox.intervaly.mean()
     _fake_click(fig, fig.mne.ax_main, (x, y), xform='pix',
                 button=button)
+
+
+# copied from sklearn and adapted to arbitrary dimensionality of X
+def _check_dont_overwrite_parameters(name, estimator_orig, x_shape=(20, 3),
+                                     y_shape=(20,)):
+    from sklearn.base import clone
+    from sklearn.utils.estimator_checks import (_pairwise_estimator_convert_X,
+                                                _enforce_estimator_tags_y,
+                                                set_random_state,
+                                                _is_public_parameter)
+    # check that fit method only changes or sets private attributes
+    if hasattr(estimator_orig.__init__, "deprecated_original"):
+        # to not check deprecated classes
+        return
+    estimator = clone(estimator_orig)
+    rnd = np.random.RandomState(0)
+    X = 3 * rnd.uniform(size=x_shape)
+    X = _pairwise_estimator_convert_X(X, estimator_orig)
+    y = rnd.randint(0, 2, y_shape)
+    y = _enforce_estimator_tags_y(estimator, y)
+
+    if hasattr(estimator, "n_components"):
+        estimator.n_components = 1
+    if hasattr(estimator, "n_clusters"):
+        estimator.n_clusters = 1
+
+    set_random_state(estimator, 1)
+    dict_before_fit = estimator.__dict__.copy()
+    estimator.fit(X, y)
+
+    dict_after_fit = estimator.__dict__
+
+    public_keys_after_fit = [
+        key for key in dict_after_fit.keys() if _is_public_parameter(key)
+    ]
+
+    attrs_added_by_fit = [
+        key for key in public_keys_after_fit
+        if key not in dict_before_fit.keys()
+    ]
+
+    # check that fit doesn't add any public attribute
+    assert not attrs_added_by_fit, (
+        "Estimator adds public attribute(s) during"
+        " the fit method."
+        " Estimators are only allowed to add private attributes"
+        " either started with _ or ended"
+        " with _ but %s added"
+        % ", ".join(attrs_added_by_fit)
+    )
+
+    # check that fit doesn't change any public attribute
+    attrs_changed_by_fit = [
+        key
+        for key in public_keys_after_fit
+        if (dict_before_fit[key] is not dict_after_fit[key])
+    ]
+
+    assert not attrs_changed_by_fit, (
+        "Estimator changes public attribute(s) during"
+        " the fit method. Estimators are only allowed"
+        " to change attributes started"
+        " or ended with _, but"
+        " %s changed"
+        % ", ".join(attrs_changed_by_fit)
+    )
+
+
+def _check_sklearn_estimator(estimator, x_shape=None, y_shape=None):
+    """Check if estimator meets sklearn requirements."""
+    from sklearn.utils.estimator_checks import (
+        check_no_attributes_set_in_init,
+        check_parameters_default_constructible,
+        check_get_params_invariance,
+        check_set_params, _maybe_skip
+    )
+    import pytest
+
+    name = type(estimator).__name__
+
+    checks = [check_no_attributes_set_in_init,
+              check_parameters_default_constructible,
+              check_get_params_invariance,
+              check_set_params]
+
+    if x_shape is None or y_shape is None:
+        if "2darray" in estimator._get_tags()["X_types"]:
+            checks.append(
+                lambda name, estimator:
+                _check_dont_overwrite_parameters(
+                    name, estimator, (20, 3), (20,)
+                )
+            )
+            checks[-1].__name__ = "check_dont_overwrite_parameters"
+        if "3darray" in estimator._get_tags()["X_types"]:
+            checks.append(
+                lambda name, estimator:
+                _check_dont_overwrite_parameters(
+                    name, estimator, (20, 20, 3), (20,)
+                )
+            )
+            checks[-1].__name__ = "check_dont_overwrite_parameters"
+    elif x_shape is not None and y_shape is not None:
+        checks.append(
+            lambda name, estimator:
+            _check_dont_overwrite_parameters(
+                name, estimator, x_shape, y_shape
+            )
+        )
+        checks[-1].__name__ = "check_dont_overwrite_parameters"
+    else:
+        raise ValueError("x_shape and y_shape must either"
+                         " both be None or both not None")
+
+    for check in checks:
+        check = _maybe_skip(estimator, check)
+        try:
+            check(name, estimator)
+        except SkipTest:
+            pass
+        except Exception as err:
+            pytest.fail('%s failed check %s: %s' % (name, check.__name__, err))

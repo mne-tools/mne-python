@@ -85,6 +85,17 @@ def deterministic_toy_data(classes=('class_a', 'class_b')):
     return x, y
 
 
+@requires_sklearn
+def test_csp_params():
+    """Test CSP class parameters and attributes."""
+    try:
+        from mne.utils import _check_sklearn_estimator
+        _check_sklearn_estimator(CSP())
+    except ImportError:
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
+
+
+@requires_sklearn
 @pytest.mark.slowtest
 def test_csp():
     """Test Common Spatial Patterns algorithm on epochs."""
@@ -101,18 +112,23 @@ def test_csp():
     y = epochs.events[:, -1]
 
     # Init
-    pytest.raises(ValueError, CSP, n_components='foo', norm_trace=False)
+    csp = CSP(n_components='foo', norm_trace=False)
+    pytest.raises(ValueError, csp.fit, epochs_data, y)
     for reg in ['foo', -0.1, 1.1]:
         csp = CSP(reg=reg, norm_trace=False)
         pytest.raises(ValueError, csp.fit, epochs_data, epochs.events[:, -1])
     for reg in ['oas', 'ledoit_wolf', 0, 0.5, 1.]:
-        CSP(reg=reg, norm_trace=False)
+        csp = CSP(reg=reg, norm_trace=False)
+        csp.fit(epochs_data, epochs.events[:, -1])
     for cov_est in ['foo', None]:
-        pytest.raises(ValueError, CSP, cov_est=cov_est, norm_trace=False)
+        csp = CSP(cov_est=cov_est, norm_trace=False)
+        pytest.raises(ValueError, csp.fit, epochs_data, epochs.events[:, -1])
     with pytest.raises(TypeError, match='instance of bool'):
-        CSP(norm_trace='foo')
+        csp = CSP(norm_trace='foo')
+        csp.fit(epochs_data, epochs.events[:, -1])
     for cov_est in ['concat', 'epoch']:
-        CSP(cov_est=cov_est, norm_trace=False)
+        csp = CSP(cov_est=cov_est, norm_trace=False)
+        csp.fit(epochs_data, epochs.events[:, -1])
 
     n_components = 3
     # Fit
@@ -175,14 +191,15 @@ def test_csp():
     # Different normalization return different transform
     assert (np.sum((X_trans['True'] - X_trans['False']) ** 2) > 1.)
     # Check wrong inputs
-    pytest.raises(ValueError, CSP, transform_into='average_power', log='foo')
+    csp = CSP(transform_into="average_power", log="foo")
+    pytest.raises(ValueError, csp.fit, epochs_data, epochs.events[:, 1])
 
     # Test csp space transform
     csp = CSP(transform_into='csp_space', norm_trace=False)
     assert (csp.transform_into == 'csp_space')
     for log in ('foo', True, False):
-        pytest.raises(ValueError, CSP, transform_into='csp_space', log=log,
-                      norm_trace=False)
+        csp = CSP(transform_into='csp_space', log=log, norm_trace=False)
+        pytest.raises(ValueError, csp.fit, epochs_data, epochs.events[:, 2])
     n_components = 2
     csp = CSP(n_components=n_components, transform_into='csp_space',
               norm_trace=False)
@@ -280,6 +297,17 @@ def test_ajd():
     assert_array_almost_equal(V, V_matlab)
 
 
+@requires_sklearn
+def test_spoc_params():
+    """Test SPoC class parameters and attributes."""
+    try:
+        from mne.utils import _check_sklearn_estimator
+        _check_sklearn_estimator(SPoC())
+    except ImportError:
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
+
+
+@requires_sklearn
 def test_spoc():
     """Test SPoC."""
     X = np.random.randn(10, 10, 20)
@@ -299,7 +327,7 @@ def test_spoc():
     # check y
     pytest.raises(ValueError, spoc.fit, X, y * 0)
 
-    # Check that doesn't take CSP-spcific input
+    # Check that doesn't take CSP-specific input
     pytest.raises(TypeError, SPoC, cov_est='epoch')
 
     # Check mixing matrix on simulated data
@@ -321,6 +349,7 @@ def test_spoc():
     assert np.abs(corr) > 0.85
 
 
+@requires_sklearn
 def test_csp_twoclass_symmetry():
     """Test that CSP is symmetric when swapping classes."""
     x, y = deterministic_toy_data(['class_a', 'class_b'])
@@ -337,11 +366,13 @@ def test_csp_twoclass_symmetry():
                               log_power_ratio_ba)
 
 
+@requires_sklearn
 def test_csp_component_ordering():
     """Test that CSP component ordering works as expected."""
     x, y = deterministic_toy_data(['class_a', 'class_b'])
 
-    pytest.raises(ValueError, CSP, component_order='invalid')
+    csp = CSP(component_order="invalid")
+    pytest.raises(ValueError, csp.fit, x, y)
 
     # component_order='alternate' only works with two classes
     csp = CSP(component_order='alternate')

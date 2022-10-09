@@ -8,7 +8,7 @@
 import numpy as np
 
 from .mixin import TransformerMixin
-from .base import BaseEstimator
+from .base import BaseEstimator, _check_estimator
 
 from .. import pick_types
 from ..filter import filter_data
@@ -109,17 +109,20 @@ class Scaler(TransformerMixin, BaseEstimator):
         self.with_std = with_std
         self.scalings = scalings
 
-        if not (scalings is None or isinstance(scalings, (dict, str))):
+    def _check_params(self):
+        if not (self.scalings is None or
+                isinstance(self.scalings, (dict, str))):
             raise ValueError('scalings type should be dict, str, or None, '
-                             'got %s' % type(scalings))
-        if isinstance(scalings, str):
-            _check_option('scalings', scalings, ['mean', 'median'])
-        if scalings is None or isinstance(scalings, dict):
-            if info is None:
+                             'got %s' % type(self.scalings))
+        if isinstance(self.scalings, str):
+            _check_option('scalings', self.scalings, ['mean', 'median'])
+        if self.scalings is None or isinstance(self.scalings, dict):
+            if self.info is None:
                 raise ValueError('Need to specify "info" if scalings is'
-                                 '%s' % type(scalings))
-            self._scaler = _ConstantScaler(info, scalings, self.with_std)
-        elif scalings == 'mean':
+                                 '%s' % type(self.scalings))
+            self._scaler = _ConstantScaler(self.info, self.scalings,
+                                           self.with_std)
+        elif self.scalings == 'mean':
             from sklearn.preprocessing import StandardScaler
             self._scaler = StandardScaler(
                 with_mean=self.with_mean, with_std=self.with_std)
@@ -143,6 +146,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         self : instance of Scaler
             The modified instance.
         """
+        self._check_params()
         _validate_type(epochs_data, np.ndarray, 'epochs_data')
         if epochs_data.ndim == 2:
             epochs_data = epochs_data[..., np.newaxis]
@@ -571,19 +575,26 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         (e.g. epochs).
     """
 
-    def __init__(self, estimator, average=False):  # noqa: D102
-        # XXX: Use _check_estimator #3381
-        for attr in ('fit', 'transform', 'fit_transform'):
-            if not hasattr(estimator, attr):
-                raise ValueError('estimator must be a scikit-learn '
-                                 'transformer, missing %s method' % attr)
-
-        if not isinstance(average, bool):
-            raise ValueError("average parameter must be of bool type, got "
-                             "%s instead" % type(bool))
-
+    def __init__(self, estimator=None, average=False):  # noqa: D102
         self.estimator = estimator
         self.average = average
+
+    def _more_tags(self):
+        return {'X_types': ['3darray']}
+
+    def _check_params(self):
+        if self.estimator is None:
+            raise ValueError('Please provide an estimator.')
+        else:
+            _check_estimator(self.estimator)
+            for attr in ('fit', 'transform', 'fit_transform'):
+                if not hasattr(self.estimator, attr):
+                    raise ValueError('estimator must be a scikit-learn '
+                                     'transformer, missing %s method' % attr)
+
+        if not isinstance(self.average, bool):
+            raise ValueError("average parameter must be of bool type, got "
+                             "%s instead" % type(bool))
 
     def fit(self, X, y=None):
         """Fit the spatial filters.
@@ -600,6 +611,7 @@ class UnsupervisedSpatialFilter(TransformerMixin, BaseEstimator):
         self : instance of UnsupervisedSpatialFilter
             Return the modified instance.
         """
+        self._check_params()
         if self.average:
             X = np.mean(X, axis=0).T
         else:

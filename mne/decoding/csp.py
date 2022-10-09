@@ -102,49 +102,61 @@ class CSP(TransformerMixin, BaseEstimator):
                  cov_method_params=None, rank=None,
                  component_order='mutual_info'):
         # Init default CSP
-        if not isinstance(n_components, int):
-            raise ValueError('n_components must be an integer.')
         self.n_components = n_components
         self.rank = rank
         self.reg = reg
 
         # Init default cov_est
-        if not (cov_est == "concat" or cov_est == "epoch"):
-            raise ValueError("unknown covariance estimation method")
         self.cov_est = cov_est
 
         # Init default transform_into
-        self.transform_into = _check_option('transform_into', transform_into,
-                                            ['average_power', 'csp_space'])
+        self.transform_into = transform_into
 
         # Init default log
-        if transform_into == 'average_power':
-            if log is not None and not isinstance(log, bool):
+        self.log = log
+
+        self.norm_trace = norm_trace
+        self.cov_method_params = cov_method_params
+        self.component_order = component_order
+
+    def _more_tags(self):
+        return {"X_types": ['3darray'], "binary_only": True}  # Needed for cov
+
+    def _check_params(self):
+        if not isinstance(self.n_components, int):
+            raise ValueError('n_components must be an integer.')
+
+        if not (self.cov_est == "concat" or self.cov_est == "epoch"):
+            raise ValueError("unknown covariance estimation method")
+
+        if self.transform_into == 'average_power':
+            if self.log is not None and not isinstance(self.log, bool):
                 raise ValueError('log must be a boolean if transform_into == '
                                  '"average_power".')
         else:
-            if log is not None:
+            if self.log is not None:
                 raise ValueError('log must be a None if transform_into == '
                                  '"csp_space".')
-        self.log = log
 
-        _validate_type(norm_trace, bool, 'norm_trace')
-        self.norm_trace = norm_trace
-        self.cov_method_params = cov_method_params
-        self.component_order = _check_option('component_order',
-                                             component_order,
-                                             ('mutual_info', 'alternate'))
+        _ = _check_option('transform_into', self.transform_into,
+                          ('average_power', 'csp_space'))
+        _validate_type(self.norm_trace, bool, 'norm_trace')
+        _ = _check_option('component_order', self.component_order,
+                          ('mutual_info', 'alternate'))
 
-    def _check_Xy(self, X, y=None):
-        """Check input data."""
+    def _check_X_y(self, X, y):
+        """Validate input arrays. Will convert data as needed."""
+        from sklearn.utils import check_X_y
+
         if not isinstance(X, np.ndarray):
-            raise ValueError("X should be of type ndarray (got %s)."
-                             % type(X))
-        if y is not None:
-            if len(X) != len(y) or len(y) < 1:
-                raise ValueError('X and y must have the same length.')
+            raise ValueError('X must be an ndarray')
+        if not isinstance(y, np.ndarray):
+            raise ValueError('y must be an ndarray')
+        X, y = check_X_y(X, y, multi_output=True, ensure_2d=False,
+                         allow_nd=True, estimator=self)
         if X.ndim < 3:
             raise ValueError('X must have at least 3 dimensions.')
+        return np.asarray(X), np.asarray(y)
 
     def fit(self, X, y):
         """Estimate the CSP decomposition on epochs.
@@ -161,7 +173,8 @@ class CSP(TransformerMixin, BaseEstimator):
         self : instance of CSP
             Returns the modified instance.
         """
-        self._check_Xy(X, y)
+        X, y = self._check_X_y(X, y)
+        self._check_params()
 
         self._classes = np.unique(y)
         n_classes = len(self._classes)
@@ -735,11 +748,6 @@ class SPoC(CSP):
                                    cov_est="epoch", norm_trace=False,
                                    transform_into=transform_into, rank=rank,
                                    cov_method_params=cov_method_params)
-        # Covariance estimation have to be done on the single epoch level,
-        # unlike CSP where covariance estimation can also be achieved through
-        # concatenation of all epochs from the same class.
-        delattr(self, 'cov_est')
-        delattr(self, 'norm_trace')
 
     def fit(self, X, y):
         """Estimate the SPoC decomposition on epochs.
@@ -757,7 +765,8 @@ class SPoC(CSP):
             Returns the modified instance.
         """
         from scipy import linalg
-        self._check_Xy(X, y)
+        self._check_X_y(X, y)
+        self._check_params()
 
         if len(np.unique(y)) < 2:
             raise ValueError("y must have at least two distinct values.")

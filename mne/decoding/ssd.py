@@ -78,12 +78,36 @@ class SSD(BaseEstimator, TransformerMixin):
     .. footbibliography::
     """
 
-    def __init__(self, info, filt_params_signal, filt_params_noise,
-                 reg=None, n_components=None, picks=None,
-                 sort_by_spectral_ratio=True, return_filtered=False,
-                 n_fft=None, cov_method_params=None, rank=None):
+    def __init__(self, info=None, filt_params_signal=None,
+                 filt_params_noise=None, reg=None, n_components=None,
+                 picks=None, sort_by_spectral_ratio=True,
+                 return_filtered=False, n_fft=None, cov_method_params=None,
+                 rank=None):
         """Initialize instance."""
-        dicts = {"signal": filt_params_signal, "noise": filt_params_noise}
+        self.info = info
+        self.filt_params_signal = filt_params_signal
+        self.filt_params_noise = filt_params_noise
+        self.reg = reg
+        self.n_components = n_components
+        self.picks = picks
+        self.sort_by_spectral_ratio = sort_by_spectral_ratio
+        self.return_filtered = return_filtered
+        self.n_fft = n_fft
+        self.cov_method_params = cov_method_params
+        self.rank = rank
+
+    def _check_params(self):
+        """Check input parameters."""
+        if self.info is None:
+            raise TypeError("Info parameter must be an"
+                            " instance of type 'mne.Info'.")
+        if self.filt_params_signal is None:
+            raise ValueError('Filt_params_signal must be provided.')
+        if self.filt_params_noise is None:
+            raise ValueError('Filt_params_noise must be provided.')
+
+        dicts = {"signal": self.filt_params_signal,
+                 "noise": self.filt_params_noise}
         for param, dd in [('l', 0), ('h', 0), ('l', 1), ('h', 1)]:
             key = ('signal', 'noise')[dd]
             if param + '_freq' not in dicts[key]:
@@ -94,41 +118,36 @@ class SSD(BaseEstimator, TransformerMixin):
             if not isinstance(val, (int, float)):
                 _validate_type(val, ('numeric',), f'{key} {param}_freq')
         # check freq bands
-        if (filt_params_noise['l_freq'] > filt_params_signal['l_freq'] or
-                filt_params_signal['h_freq'] > filt_params_noise['h_freq']):
+        if (self.filt_params_noise['l_freq'] >
+            self.filt_params_signal['l_freq'] or
+            self.filt_params_signal['h_freq'] >
+                self.filt_params_noise['h_freq']):
             raise ValueError('Wrongly specified frequency bands!\n'
                              'The signal band-pass must be within the noise '
                              'band-pass!')
-        self.picks_ = _picks_to_idx(info, picks, none='data', exclude='bads')
-        del picks
-        ch_types = _get_channel_types(info, picks=self.picks_, unique=True)
+        self.picks_ = _picks_to_idx(self.info, self.picks, none='data',
+                                    exclude='bads')
+        ch_types = _get_channel_types(self.info, picks=self.picks_,
+                                      unique=True)
         if len(ch_types) > 1:
             raise ValueError('At this point SSD only supports fitting '
                              'single channel types. Your info has %i types' %
                              (len(ch_types)))
-        self.info = info
-        self.freqs_signal = (filt_params_signal['l_freq'],
-                             filt_params_signal['h_freq'])
-        self.freqs_noise = (filt_params_noise['l_freq'],
-                            filt_params_noise['h_freq'])
-        self.filt_params_signal = filt_params_signal
-        self.filt_params_noise = filt_params_noise
+        self.freqs_signal_ = (self.filt_params_signal['l_freq'],
+                              self.filt_params_signal['h_freq'])
+        self.freqs_noise_ = (self.filt_params_noise['l_freq'],
+                             self.filt_params_noise['h_freq'])
+
         # check if boolean
-        if not isinstance(sort_by_spectral_ratio, (bool)):
+        if not isinstance(self.sort_by_spectral_ratio, (bool)):
             raise ValueError('sort_by_spectral_ratio must be boolean')
-        self.sort_by_spectral_ratio = sort_by_spectral_ratio
-        if n_fft is None:
-            self.n_fft = int(self.info['sfreq'])
+        if self.n_fft is None:
+            self.n_fft_ = int(self.info['sfreq'])
         else:
-            self.n_fft = int(n_fft)
+            self.n_fft_ = int(self.n_fft)
         # check if boolean
-        if not isinstance(return_filtered, (bool)):
+        if not isinstance(self.return_filtered, (bool)):
             raise ValueError('return_filtered must be boolean')
-        self.return_filtered = return_filtered
-        self.reg = reg
-        self.n_components = n_components
-        self.rank = rank
-        self.cov_method_params = cov_method_params
 
     def _check_X(self, X):
         """Check input data."""
@@ -159,6 +178,7 @@ class SSD(BaseEstimator, TransformerMixin):
         """
         from scipy.linalg import eigh
         self._check_X(X)
+        self._check_params()
         X_aux = X[..., self.picks_, :]
 
         X_signal = filter_data(
@@ -190,7 +210,7 @@ class SSD(BaseEstimator, TransformerMixin):
         sorter_spec = Ellipsis
         if self.sort_by_spectral_ratio:
             _, sorter_spec = self.get_spectral_ratio(ssd_sources=X_ssd)
-        self.sorter_spec = sorter_spec
+        self.sorter_spec_ = sorter_spec
         return self
 
     def transform(self, X):
@@ -217,9 +237,9 @@ class SSD(BaseEstimator, TransformerMixin):
                             **self.filt_params_signal)
         X_ssd = self.filters_.T @ X[..., self.picks_, :]
         if X.ndim == 2:
-            X_ssd = X_ssd[self.sorter_spec][:self.n_components]
+            X_ssd = X_ssd[self.sorter_spec_][:self.n_components]
         else:
-            X_ssd = X_ssd[:, self.sorter_spec, :][:, :self.n_components, :]
+            X_ssd = X_ssd[:, self.sorter_spec_, :][:, :self.n_components, :]
         return X_ssd
 
     def get_spectral_ratio(self, ssd_sources):
@@ -245,9 +265,9 @@ class SSD(BaseEstimator, TransformerMixin):
         .. footbibliography::
         """
         psd, freqs = psd_array_welch(
-            ssd_sources, sfreq=self.info['sfreq'], n_fft=self.n_fft)
-        sig_idx = _time_mask(freqs, *self.freqs_signal)
-        noise_idx = _time_mask(freqs, *self.freqs_noise)
+            ssd_sources, sfreq=self.info['sfreq'], n_fft=self.n_fft_)
+        sig_idx = _time_mask(freqs, *self.freqs_signal_)
+        noise_idx = _time_mask(freqs, *self.freqs_noise_)
         if psd.ndim == 3:
             mean_sig = psd[:, :, sig_idx].mean(axis=2).mean(axis=0)
             mean_noise = psd[:, :, noise_idx].mean(axis=2).mean(axis=0)
@@ -287,6 +307,6 @@ class SSD(BaseEstimator, TransformerMixin):
             The processed data.
         """
         X_ssd = self.transform(X)
-        pick_patterns = self.patterns_[self.sorter_spec][:self.n_components].T
+        pick_patterns = self.patterns_[self.sorter_spec_][:self.n_components].T
         X = pick_patterns @ X_ssd
         return X

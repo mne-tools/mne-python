@@ -143,6 +143,21 @@ def test_time_delay():
                     assert_array_equal(X_delayed[:ii, :, idx], 0.)
 
 
+@requires_sklearn
+def test_receptive_field_params():
+    """Test ReceptiveField class parameters and attributes."""
+    try:
+        from mne.utils import _check_sklearn_estimator
+        from sklearn.linear_model import Ridge
+        _check_sklearn_estimator(
+            ReceptiveField(-10., 0, 1,
+                           ['feature_%i' % ii for ii in [0, 1, 2]],
+                           Ridge(), patterns=True)
+        )
+    except ImportError:
+        pytest.xfail('Cannot find sklearn utils for checking parameters')
+
+
 @pytest.mark.slowtest  # slow on Azure
 @pytest.mark.parametrize('n_jobs', n_jobs_test)
 @requires_sklearn

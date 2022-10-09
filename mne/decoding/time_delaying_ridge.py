@@ -271,19 +271,25 @@ class TimeDelayingRidge(BaseEstimator):
 
     _estimator_type = "regressor"
 
-    def __init__(self, tmin, tmax, sfreq, alpha=0., reg_type='ridge',
-                 fit_intercept=True, n_jobs=None, edge_correction=True):
-        if tmin > tmax:
-            raise ValueError('tmin must be <= tmax, got %s and %s'
-                             % (tmin, tmax))
-        self.tmin = float(tmin)
-        self.tmax = float(tmax)
-        self.sfreq = float(sfreq)
-        self.alpha = float(alpha)
+    def __init__(self, tmin=None, tmax=None, sfreq=None,
+                 alpha=0., reg_type='ridge', fit_intercept=True,
+                 n_jobs=None, edge_correction=True):
+        self.tmin = tmin
+        self.tmax = tmax
+        self.sfreq = sfreq
+        self.alpha = alpha
         self.reg_type = reg_type
         self.fit_intercept = fit_intercept
         self.edge_correction = edge_correction
         self.n_jobs = n_jobs
+
+    def _check_params(self):
+        if self.tmin is None or self.tmax is None or self.sfreq is None:
+            raise ValueError('tmin, tmax, and sfreq must all be specified, '
+                             'got %s' % (self.get_params(),))
+        if self.tmin > self.tmax:
+            raise ValueError('tmin must be <= tmax, got %s and %s'
+                             % (self.tmin, self.tmax))
 
     @property
     def _smin(self):
@@ -308,6 +314,7 @@ class TimeDelayingRidge(BaseEstimator):
         self : instance of TimeDelayingRidge
             Returns the modified instance.
         """
+        self._check_params()
         if X.ndim == 3:
             assert y.ndim == 3
             assert X.shape[:2] == y.shape[:2]

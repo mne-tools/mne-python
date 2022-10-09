@@ -12,21 +12,30 @@ from mne.decoding.time_frequency import TimeFrequency
 
 
 @requires_sklearn
+def test_timefrequency_params():
+    """Test TimeFrequency class parameters and attributes."""
+    freqs = [20, 21, 22]
+    try:
+        from mne.utils import _check_sklearn_estimator
+        _check_sklearn_estimator(TimeFrequency(freqs, sfreq=100))
+    except ImportError:
+        pytest.xfail('Cannot find sklearn needed for checking parameters')
+
+
+@requires_sklearn
 def test_timefrequency():
     """Test TimeFrequency."""
-    from sklearn.base import clone
     # Init
     n_freqs = 3
     freqs = [20, 21, 22]
     tf = TimeFrequency(freqs, sfreq=100)
     for output in ['avg_power', 'foo', None]:
-        pytest.raises(ValueError, TimeFrequency, freqs, output=output)
-    tf = clone(tf)
+        pytest.raises(ValueError, TimeFrequency(freqs, output=output).fit,
+                      np.random.rand(10, 2, 100))
 
     # Clone estimator
     freqs_array = np.array(np.asarray(freqs))
     tf = TimeFrequency(freqs_array, 100, "morlet", freqs_array / 5.)
-    clone(tf)
 
     # Fit
     n_epochs, n_chans, n_times = 10, 2, 100
