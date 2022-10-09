@@ -790,13 +790,20 @@ def test_manual_report_2d(tmp_path, invisible_fig):
     with pytest.raises(RuntimeError, match='not preloaded'):
         r.add_ica(ica=ica, title='ica', inst=raw)
     r.add_ica(
-        ica=ica, title='my ica with inst',
+        ica=ica, title='my ica with raw inst',
         inst=raw.copy().load_data(),
         picks=[0],
         ecg_evoked=ica_ecg_evoked,
         eog_evoked=ica_eog_evoked,
         ecg_scores=ica_ecg_scores,
         eog_scores=ica_eog_scores
+    )
+    epochs_baseline = epochs_without_metadata.copy().load_data()
+    epochs_baseline.apply_baseline((None, 0))
+    r.add_ica(
+        ica=ica, title='my ica with epochs inst',
+        inst=epochs_baseline,
+        picks=[0],
     )
     r.add_covariance(cov=cov, info=raw_fname, title='my cov')
     r.add_forward(forward=fwd_fname, title='my forward', subject='sample',

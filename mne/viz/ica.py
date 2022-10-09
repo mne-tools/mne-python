@@ -842,9 +842,10 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
     return fig
 
 
-@fill_doc
+@verbose
 def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
-                     stop=None, title=None, show=True, n_pca_components=None):
+                     stop=None, title=None, show=True, n_pca_components=None,
+                     *, on_baseline='warn', verbose=None):
     """Overlay of raw and cleaned signals given the unmixing matrix.
 
     This method helps visualizing signal quality and artifact rejection.
@@ -874,6 +875,8 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     %(n_pca_components_apply)s
 
         .. versionadded:: 0.22
+    %(on_baseline_ica)s
+    %(verbose)s
 
     Returns
     -------
@@ -922,7 +925,8 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
                 inst.info['comps'] = []  # can be safely disabled
             inst.pick_channels([inst.ch_names[p] for p in picks])
         evoked_cln = ica.apply(inst.copy(), exclude=exclude,
-                               n_pca_components=n_pca_components)
+                               n_pca_components=n_pca_components,
+                               on_baseline=on_baseline)
         fig = _plot_ica_overlay_evoked(evoked=inst, evoked_cln=evoked_cln,
                                        title=title, show=show)
 

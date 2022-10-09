@@ -2187,6 +2187,15 @@ offset : int
     .. versionadded:: 0.12
 """
 
+docdict['on_baseline_ica'] = """
+on_baseline : str
+    How to handle baseline-corrected epochs or evoked data.
+    Can be ``'raise'`` to raise an error, ``'warn'`` (default) to emit a
+    warning, ``'ignore'`` to ignore, or "reapply" to reapply the baseline
+    after applying ICA.
+
+    .. versionadded:: 1.2
+"""
 docdict['on_defects'] = """
 on_defects : 'raise' | 'warn' | 'ignore'
     What to do if the surface is found to have topological defects.

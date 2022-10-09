@@ -1407,7 +1407,7 @@ class Report:
         else:  # Epochs
             inst_ = inst.average()
 
-        fig = ica.plot_overlay(inst=inst_, show=False)
+        fig = ica.plot_overlay(inst=inst_, show=False, on_baseline='reapply')
         del inst_
         tight_layout(fig=fig)
         _constrain_fig_resolution(
