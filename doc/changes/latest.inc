@@ -23,7 +23,7 @@ Current (1.2.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- Decoding classes now conform to Scikit-learn best practices for estimators (:gh:`xxxx` by :newcontrib:`Daniel Carlström Schad`_)
+- Decoding classes now conform to Scikit-learn best practices for estimators (:gh:`11220` by :newcontrib:`Daniel Carlström Schad`)
 - Add ``vmin`` and ``vmax`` parameters to :meth:`mne.Evoked.animate_topomap` (:gh:`11073` by :newcontrib:`Mats van Es`)
 - Enable common average reference projection for ECoG, sEEG, and DBS data (optionally jointly with ``joint=True``) in :meth:`~mne.io.Raw.set_eeg_reference` and related functions/methods (:gh:`10656` by :newcontrib:`Moritz Gerster` and `Eric Larson`_)
 - The ``trans`` parameter in :func:`mne.make_field_map` now accepts a :class:`~pathlib.Path` object, and uses standardised loading logic (:gh:`10784` by :newcontrib:`Andrew Quinn`)
