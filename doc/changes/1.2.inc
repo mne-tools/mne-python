@@ -16,10 +16,10 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
-.. _current:
+.. _changes_1_2_0:
 
-Current (1.2.dev0)
-------------------
+Version 1.2.0 (2022-10-11)
+--------------------------
 
 Enhancements
 ~~~~~~~~~~~~
@@ -98,3 +98,37 @@ API changes
 - The PSD functions that operate on Raw/Epochs/Evoked instances (``mne.time_frequency.psd_welch`` and ``mne.time_frequency.psd_multitaper``) are deprecated; for equivalent functionality create :class:`~mne.time_frequency.Spectrum` or :class:`~mne.time_frequency.EpochsSpectrum` objects instead and then run ``spectrum.get_data(return_freqs=True)`` (:gh:`10184` by `Daniel McCloy`_)
 - Added new class  :class:`mne.preprocessing.EOGRegression` to allow more flexibility when using regression to reduce EOG artifacts (:gh:`11046` by `Marijn van Vliet`_)
 - New parameter ``exclude`` added to :func:`mne.preprocessing.regress_artifact` to prevent regression from being applied to certain channels (:gh:`11046` by `Marijn van Vliet`_)
+
+Authors
+~~~~~~~
+
+* Alex Rockhill
+* Alexandre Gramfort
+* Andrew Quinn+
+* Chetan Gohil+
+* Christian Brodbeck
+* Clemens Brunner
+* Daniel Carlström Schad+
+* Daniel McCloy
+* Dominik Wetzel+
+* Eduard Ort
+* Eric Larson
+* Hüseyin Orkun Elmas+
+* Jack Zhang
+* Joan Massich
+* Julius Welzel+
+* Kostiantyn Maksymenko
+* Lukas Gemein
+* Marian Dovgialo
+* Marijn van Vliet
+* Mathieu Scheltienne
+* Mats van Es+
+* Moritz Gerster+
+* Olaf Hauk
+* Richard Höchenberger
+* Sebastiaan Mathot+
+* Sena Er+
+* Simeon Wong
+* Stefan Appelhoff
+* Valerii Chirkov
+* luzpaz+

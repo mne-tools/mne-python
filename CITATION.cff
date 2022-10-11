@@ -1,9 +1,9 @@
 cff-version: 1.2.0
 title: "MNE-Python"
 message: "If you use this software, please cite both the software itself, and the paper listed in the preferred-citation field."
-version: 1.1.0
-date-released: "2022-08-03"
-commit: c210dfb4a1cab292c47c892fb2ee3c0b308ec90b
+version: 1.2.0
+date-released: "2022-10-11"
+commit: e985dd29308c57793c83d7120090256c24bc91e6
 doi: 10.5281/zenodo.592483
 keywords:
   - MEG
@@ -37,10 +37,10 @@ authors:
     given-names: Jona
   - family-names: Luessi
     given-names: Martin
-  - family-names: King
-    given-names: Jean-Remi
   - family-names: McCloy
     given-names: Daniel
+  - family-names: King
+    given-names: Jean-Remi
   - family-names: Goj
     given-names: Roman
   - family-names: Favelier
@@ -81,6 +81,8 @@ authors:
     given-names: Martin
   - family-names: Westner
     given-names: Britta
+  - family-names: Scheltienne
+    given-names: Mathieu
   - family-names: Wakeman
     given-names: Dan G
   - family-names: Strohmeier
@@ -91,8 +93,6 @@ authors:
     given-names: Tal
   - family-names: Barachant
     given-names: Alexandre
-  - family-names: Scheltienne
-    given-names: Mathieu
   - family-names: Ruzich
     given-names: Emily
   - family-names: Bailey
@@ -121,6 +121,8 @@ authors:
     given-names: Cathy
   - family-names: García Alanis
     given-names: José C
+  - family-names: Hauk
+    given-names: Olaf
   - family-names: Maddox
     given-names: Ross
   - family-names: LaPlante
@@ -129,12 +131,12 @@ authors:
     given-names: Ashley
   - family-names: Dinh
     given-names: Christoph
-  - family-names: Hauk
-    given-names: Olaf
   - family-names: Dumas
     given-names: Guillaume
   - family-names: Hartmann
     given-names: Thomas
+  - family-names: Ort
+    given-names: Eduard
   - family-names: Benerradi
     given-names: Johann
   - family-names: Pasler
@@ -169,8 +171,6 @@ authors:
     given-names: Yaroslav
   - family-names: Luo
     given-names: Yu-Han
-  - family-names: Ort
-    given-names: Eduard
   - family-names: Kasper
     given-names: Johannes
   - family-names: Doelling
@@ -212,6 +212,8 @@ authors:
     given-names: Hubert
   - family-names: Hanna
     given-names: Jeff
+  - family-names: Maksymenko
+    given-names: Kostiantyn
   - family-names: Clarke
     given-names: Maggie
   - family-names: Anelli
@@ -236,14 +238,14 @@ authors:
     given-names: Fu-Te
   - family-names: Kojcic
     given-names: Ivana
+  - family-names: Zhang
+    given-names: Jack
   - family-names: Nielsen
     given-names: Jesper Duemose
   - family-names: Lankinen
     given-names: Kaisu
   - family-names: Tabavi
     given-names: Kambiz
-  - family-names: Maksymenko
-    given-names: Kostiantyn
   - family-names: Thibault
     given-names: Louis
   - family-names: Gayraud
@@ -251,6 +253,8 @@ authors:
   - family-names: Ward
     given-names: Nick
   - name: dependabot[bot]
+  - family-names: Quinn
+    given-names: Andrew
   - family-names: Gauthier
     given-names: Antoine
   - family-names: Pinsard
@@ -271,8 +275,6 @@ authors:
     given-names: Giorgio
   - family-names: Anevar
     given-names: Hafeza
-  - family-names: Zhang
-    given-names: Jack
   - family-names: Sosulski
     given-names: Jan
   - family-names: Stout
@@ -281,6 +283,8 @@ authors:
     given-names: Larry
   - family-names: Esch
     given-names: Lorenz
+  - family-names: Dovgialo
+    given-names: Marian
   - family-names: Barascud
     given-names: Nicolas
   - family-names: Legrand
@@ -307,6 +311,8 @@ authors:
     given-names: Annalisa
   - family-names: Karekal
     given-names: Apoorva
+  - family-names: Gohil
+    given-names: Chetan
   - family-names: Zhao
     given-names: Christina
   - family-names: Krzemiński
@@ -331,9 +337,11 @@ authors:
     given-names: Laura
   - family-names: Varghese
     given-names: Lenny
+  - family-names: Gemein
+    given-names: Lukas
   - name: Lx37
-  - family-names: Dovgialo
-    given-names: Marian
+  - family-names: van Es
+    given-names: Mats
   - family-names: Boggess
     given-names: Matt
   - family-names: Eberlein
@@ -360,6 +368,8 @@ authors:
     given-names: Rodrigo
   - family-names: Sommariva
     given-names: Sara
+  - family-names: Er
+    given-names: Sena
   - family-names: Khan
     given-names: Sheraz
   - family-names: Herbst
@@ -416,6 +426,8 @@ authors:
     given-names: Chun-Hui
   - family-names: Braboszcz
     given-names: Claire
+  - family-names: Schad
+    given-names: Daniel Carlström
   - family-names: Sleiter
     given-names: Darin Erat
   - family-names: Haslacher
@@ -428,6 +440,8 @@ authors:
     given-names: Desislava
   - family-names: Altukhov
     given-names: Dmitrii
+  - family-names: Wetzel
+    given-names: Dominik
   - family-names: Eich
     given-names: Eberhard
   - family-names: DuPre
@@ -456,6 +470,8 @@ authors:
     given-names: Hermann
   - family-names: Ye
     given-names: Hongjiang
+  - family-names: Elmas
+    given-names: Hüseyin Orkun
   - family-names: Machairas
     given-names: Ilias
   - family-names: Kaczmarzyk
@@ -482,6 +498,8 @@ authors:
     given-names: Juergen
   - family-names: Galán
     given-names: Julia Guiomar Niso
+  - family-names: Welzel
+    given-names: Julius
   - family-names: Slama
     given-names: Katarina
   - family-names: Leinweber
@@ -496,8 +514,6 @@ authors:
     given-names: Liberty
   - family-names: Alfine
     given-names: Lorenzo
-  - family-names: Gemein
-    given-names: Lukas
   - family-names: Hecker
     given-names: Lukas
   - family-names: Hejtmánek
@@ -535,6 +551,8 @@ authors:
     given-names: Mingjian
   - family-names: Daneshzand
     given-names: Mohammad
+  - family-names: Gerster
+    given-names: Moritz
   - family-names: Gensollen
     given-names: Nicolas
   - family-names: Proulx
@@ -575,6 +593,8 @@ authors:
     given-names: Sagun
   - family-names: Perry
     given-names: Sam
+  - family-names: Mathot
+    given-names: Sebastiaan
   - family-names: Major
     given-names: Sebastian
   - family-names: Treguer
@@ -585,6 +605,8 @@ authors:
     given-names: Senwen
   - family-names: Antopolskiy
     given-names: Sergey
+  - family-names: Wong
+    given-names: Simeon
   - family-names: Wong
     given-names: Simeon
   - family-names: Poil
@@ -620,6 +642,7 @@ authors:
   - family-names: Zhang
     given-names: Zhi
   - name: buildqa
+  - name: luzpaz
 preferred-citation:
   title: "MEG and EEG Data Analysis with MNE-Python"
   journal: "Frontiers in Neuroscience"
