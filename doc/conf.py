@@ -604,16 +604,16 @@ html_theme_options = {
     'icon_links': [
         dict(name='GitHub',
              url='https://github.com/mne-tools/mne-python',
-             icon='fab fa-github-square'),
+             icon='fa-brands fa-square-github'),
         dict(name='Twitter',
              url='https://twitter.com/mne_python',
-             icon='fab fa-twitter-square'),
+             icon='fa-brands fa-square-twitter'),
         dict(name='Discourse',
              url='https://mne.discourse.group/',
-             icon='fab fa-discourse'),
+             icon='fa-brands fa-discourse'),
         dict(name='Discord',
              url='https://discord.gg/rKfvxTuATa',
-             icon='fab fa-discord')
+             icon='fa-brands fa-discord')
     ],
     'icon_links_label': 'External Links',  # for screen reader
     'use_edit_page_button': False,
@@ -621,7 +621,7 @@ html_theme_options = {
     'show_toc_level': 1,
     'navbar_end': ['theme-switcher', 'version-switcher', 'navbar-icon-links'],
     'footer_items': ['copyright'],
-    'secondary_sidebar_items': ['page-toc', 'searchbox'],
+    'secondary_sidebar_items': ['page-toc'],
     'analytics': dict(google_analytics_id='UA-37225609-1'),
     'switcher': {
         'json_url': 'https://mne.tools/dev/_static/versions.json',
@@ -1014,7 +1014,7 @@ other_icons = (
 )
 icons = dict()
 for icon in brand_icons + fixed_icons + other_icons:
-    font = ('fab' if icon in brand_icons else 'fas',)  # brand or solid font
+    font = ('fa-brands' if icon in brand_icons else 'fa-solid',)
     fw = ('fa-fw',) if icon in fixed_icons else ()     # fixed-width
     icons[icon] = font + fw
 
