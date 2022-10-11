@@ -998,10 +998,8 @@ reset_warnings(None, None)
 
 # -- Fontawesome support -----------------------------------------------------
 
-# here the "fab" and "fas" refer to "brand" and "solid" (determines which font
-# file to look in). "fw" indicates fixed width.
 brand_icons = ('apple', 'linux', 'windows', 'discourse', 'python')
-fixed_icons = (
+fixed_width_icons = (
     # homepage:
     'book', 'code-branch', 'newspaper', 'question-circle', 'quote-left',
     # contrib guide:
@@ -1013,10 +1011,9 @@ other_icons = (
     'terminal', 'cloud-download-alt', 'wrench', 'hourglass'
 )
 icons = dict()
-for icon in brand_icons + fixed_icons + other_icons:
-    font = ('fa-brands' if icon in brand_icons else 'fa-solid',)
-    fw = ('fa-fw',) if icon in fixed_icons else ()     # fixed-width
-    icons[icon] = font + fw
+for icon in brand_icons + fixed_width_icons + other_icons:
+    font_class = ('fa-brands' if icon in brand_icons else 'fa-solid',)
+    icons[icon] = font_class + ('fa-fw',) if icon in fixed_width_icons else ()
 
 prolog = ''
 for icon, classes in icons.items():
