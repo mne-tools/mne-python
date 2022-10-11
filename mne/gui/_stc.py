@@ -120,8 +120,10 @@ class SourceEstimateViewer(SliceBrowser):
             _get_src_lut(src)
         self._src_scan_ras_vox_t = np.linalg.inv(self._src_vox_scan_ras_t)
         self._is_complex = np.iscomplexobj(self._data)
-        self._cmap = _get_cmap('hot' if self._is_complex or
-                               (self._data >= 0).all() else 'mne')
+        # check if only positive values will be used
+        pos_support = self._is_complex or self._data.shape[2] > 1 or \
+            (self._data >= 0).all()
+        self._cmap = _get_cmap('hot' if pos_support else 'mne')
 
         # set default variables for plotting
         self._t_idx = self._inst.times.size // 2
@@ -160,7 +162,7 @@ class SourceEstimateViewer(SliceBrowser):
             extent = [corners[0][x_idx], corners[1][x_idx],
                       corners[1][y_idx], corners[0][y_idx]]
             self._images['stc'].append(self._figs[axis].axes[0].imshow(
-                stc_data, cmap='hot', aspect='auto', extent=extent,
+                stc_data, cmap=self._cmap, aspect='auto', extent=extent,
                 alpha=self._alpha, zorder=2))
 
         # initialize 3D volumetric rendering
@@ -410,7 +412,8 @@ class SourceEstimateViewer(SliceBrowser):
             self._cax = None
         else:
             self._stc_plot = self._fig.axes[0].imshow(
-                stc_data, aspect='auto', cmap='hot', interpolation='bicubic')
+                stc_data, aspect='auto', cmap=self._cmap,
+                interpolation='bicubic')
             self._cax = self._fig.colorbar(
                 self._stc_plot, ax=self._fig.axes[0])
             self._cax.ax.set_ylabel('Power')
