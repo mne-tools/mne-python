@@ -1234,34 +1234,7 @@ def _csd_fourier(X, sfreq, n_times, freq_mask, n_fft):
 
 def _csd_multitaper(X, sfreq, n_times, window_fun, eigvals, freq_mask, n_fft,
                     adaptive, max_iter=150):
-    """Compute cross spectral density (CSD) using multitaper module.
-
-    Computes the CSD for a single epoch of data.
-
-    Parameters
-    ----------
-    X : ndarray, shape (n_channels, n_times)
-        The time series data consisting of n_channels time-series of length
-        n_times.
-    sfreq : float
-        The sampling frequency of the data in Hertz.
-    n_times : int
-        Number of time samples
-    window_fun : ndarray
-        Window function(s) of length n_times. This corresponds to first output
-        of `dpss_windows`.
-    eigvals : ndarray | float
-        Eigenvalues associated with window functions.
-    freq_mask : ndarray
-        Which frequencies to use.
-    n_fft : int
-        Length of the FFT.
-    adaptive : bool
-        Use adaptive weights to combine the tapered spectra into PSD.
-    max_iter : int
-        Maximum number of iterations for weight computation (requires
-        adaptive=True).
-    """
+    """Compute cross spectral density (CSD) using multitaper module."""
     x_mt, _ = _mt_spectra(X, window_fun, sfreq, n_fft)
 
     if adaptive:
