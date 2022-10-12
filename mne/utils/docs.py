@@ -1972,6 +1972,12 @@ docdict['method_plot_psd_auto'] = _method_psd.format(
 docdict['method_psd'] = _method_psd.format('', '')
 docdict['method_psd_auto'] = _method_psd.format(" | ``'auto'``", '')
 
+docdict["max_iter_multitaper"] = """
+max_iter : int
+    Maximum number of iterations to reach convergence when combining the
+    tapered spectra with adaptive weights (see argument ``adaptive``). This
+    argument has not effect if ``adaptive`` is set to ``False``."""
+
 docdict['mode_eltc'] = """
 mode : str
     Extraction mode, see Notes.
