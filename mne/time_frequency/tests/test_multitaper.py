@@ -64,3 +64,15 @@ def test_multitaper_psd(n_times, adaptive, n_jobs):
     # test with bad bandwidth
     with pytest.raises(ValueError, match='use a value of at least'):
         psd_array_multitaper(data, sfreq, bandwidth=4.9)
+
+
+def test_adaptive_weights_convergence():
+    """Test convergence and lack of convergence when setting adaptive=True."""
+    data = np.random.default_rng(0).random((5, 100))
+    sfreq = 500
+    with pytest.warns(
+        RuntimeWarning,
+        match="Iterative multi-taper PSD computation did not converge."
+    ):
+        psd_array_multitaper(data, sfreq, adaptive=True, max_iter=2)
+    psd_array_multitaper(data, sfreq, adaptive=True, max_iter=200)
