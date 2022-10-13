@@ -724,5 +724,3 @@ def test_bipolar_combinations():
     raw_test = set_bipolar_reference(raw, ['CH1'], ['CH2'], on_bad="ignore",
                                      ch_name="bad_bipolar", copy=True)
     assert raw_test.info["bads"] == ["bad_bipolar"]
-
-
