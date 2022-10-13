@@ -23,7 +23,7 @@ Current (1.3.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- None yet
+- Add the argument ``max_iter`` to :func:`~mne.time_frequency.psd_array_multitaper` and to :func:`~mne.time_frequency.csd_array_multitaper` to increase the maximum number of iterations to reach convergence when using ``adaptive=True`` (:gh:`11237` by `Mathieu Scheltienne`_)
 
 Bugs
 ~~~~
@@ -31,4 +31,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- Add the argument ``max_iter`` to :func:`~mne.time_frequency.psd_array_multitaper` and to :func:`~mne.time_frequency.csd_array_multitaper` to increase the maximum number of iterations to reach convergence when using ``adaptive=True`` (:gh:`11237` by `Mathieu Scheltienne`_)
+- None yet
