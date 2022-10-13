@@ -503,3 +503,7 @@
 .. _Yu-Han Luo: https://github.com/yh-luo
 
 .. _Zhi Zhang: https://github.com/tczhangzhi/
+
+.. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
+
+.. _Jennifer Behnke: https://github.com/JKBehnke
