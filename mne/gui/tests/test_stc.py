@@ -136,7 +136,7 @@ def test_stc_viewer_display(_stc_viewer):
                          subjects_dir=subjects_dir, src=src, inst=epochs_tfr)
     # test go to max
     viewer._go_to_max_button.click()
-    assert_allclose(viewer._ras, [-40, -20, -20], atol=0.01)
+    assert_allclose(viewer._ras, [-40, -40, -20], atol=0.01)
 
     src_coord = viewer._get_src_coord()
     stc_idx = viewer._src_lut[src_coord]
