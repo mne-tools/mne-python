@@ -2508,7 +2508,8 @@ def _prepare_write_tfr(tfr, condition):
     return condition, attributes
 
 
-def read_tfrs(fname, condition=None):
+@verbose
+def read_tfrs(fname, condition=None, *, verbose=None):
     """Read TFR datasets from hdf5 file.
 
     Parameters
@@ -2518,6 +2519,7 @@ def read_tfrs(fname, condition=None):
     condition : int or str | list of int or str | None
         The condition to load. If None, all conditions will be returned.
         Defaults to None.
+    %(verbose)s
 
     Returns
     -------
