@@ -17,7 +17,7 @@ from ..evoked import Evoked
 from ..epochs import BaseEpochs
 from ..fixes import pinv
 from ..utils import (logger, warn, verbose, _validate_type, _check_preload,
-                     _check_option, fill_doc)
+                     _check_option, fill_doc, _on_missing)
 from ..defaults import DEFAULTS
 
 
@@ -418,7 +418,8 @@ def _get_ch_type(inst, ch_type):
 
 @verbose
 def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
-                          drop_refs=True, copy=True, verbose=None):
+                          drop_refs=True, copy=True, on_bad="warn",
+                          verbose=None):
     """Re-reference selected channels using a bipolar referencing scheme.
 
     A bipolar reference takes the difference between two channels (the anode
@@ -451,6 +452,11 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         overwriting the default values. Defaults to None.
     drop_refs : bool
         Whether to drop the anode/cathode channels from the instance.
+    on_bad : str
+        If a bipolar channel is created from a bad anode or a bad cathode, mne
+        warns if on_bad="warns", raises ValueError if on_bad="raise", and does
+        nothing if on_bad="ignore". However, the new bipolar channel will be
+        marked as bad in any case. Defaults to on_bad="warns".
     copy : bool
         Whether to operate on a copy of the data (True) or modify it in-place
         (False). Defaults to True.
@@ -550,6 +556,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     # Set other info-keys from original instance.
     pick_info = {k: v for k, v in inst.info.items() if k not in
                  ['chs', 'ch_names', 'bads', 'nchan', 'sfreq']}
+
     with ref_info._unlock():
         ref_info.update(pick_info)
 
@@ -570,6 +577,15 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     # Add referenced instance to original instance.
     inst.add_channels([ref_inst], force_update_info=True)
+
+    # Handle bad channels.
+    bad_bipolar_chs = []
+    for ch_idx, (a, c) in enumerate(zip(anode, cathode)):
+        if a in inst.info['bads'] or c in inst.info['bads']:
+            bad_bipolar_chs.append(ch_name[ch_idx])
+    msg = f'Bipolar channels are based on bad channels: {bad_bipolar_chs}.'
+    _on_missing(on_bad, msg, name='on_missing')
+    inst.info['bads'] += bad_bipolar_chs
 
     added_channels = ', '.join([name for name in ch_name])
     logger.info(f'Added the following bipolar channels:\n{added_channels}')
