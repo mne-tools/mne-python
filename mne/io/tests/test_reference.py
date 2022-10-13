@@ -442,6 +442,22 @@ def test_set_bipolar_reference(inst_type):
     pytest.raises(ValueError, set_bipolar_reference, inst,
                   'EEG 001', 'EEG 002', ch_name='EEG 003')
 
+    # Test if bad anode/cathode raises error if on_bad="raise"
+    inst.info["bads"] = ["EEG 001"]
+    pytest.raises(ValueError, set_bipolar_reference, inst,
+                  'EEG 001', 'EEG 002', ch_name='EEG 003', on_bad="raise")
+    inst.info["bads"] = ["EEG 002"]
+    pytest.raises(ValueError, set_bipolar_reference, inst,
+                  'EEG 001', 'EEG 002', ch_name='EEG 003', on_bad="raise")
+
+    # Test if bad anode/cathode raises warning if on_bad="warn"
+    inst.info["bads"] = ["EEG 001"]
+    pytest.warns(RuntimeWarning, set_bipolar_reference, inst,
+                 'EEG 001', 'EEG 002', ch_name='EEG 003', on_bad="warn")
+    inst.info["bads"] = ["EEG 002"]
+    pytest.warns(RuntimeWarning, set_bipolar_reference, inst,
+                 'EEG 001', 'EEG 002', ch_name='EEG 003', on_bad="warn")
+
 
 def _check_channel_names(inst, ref_names):
     """Check channel names."""
@@ -696,3 +712,17 @@ def test_bipolar_combinations():
         raw, ['CH2', 'CH1'], ['CH1', 'CH2'], copy=True)
     _check_bipolar(raw_test, 'CH2', 'CH1')
     _check_bipolar(raw_test, 'CH1', 'CH2')
+
+    # test if bipolar channel is bad if anode is a bad channel
+    raw.info["bads"] = ["CH1"]
+    raw_test = set_bipolar_reference(raw, ['CH1'], ['CH2'], on_bad="ignore",
+                                     ch_name="bad_bipolar", copy=True)
+    assert raw_test.info["bads"] == ["bad_bipolar"]
+
+    # test if bipolar channel is bad if cathode is a bad channel
+    raw.info["bads"] = ["CH2"]
+    raw_test = set_bipolar_reference(raw, ['CH1'], ['CH2'], on_bad="ignore",
+                                     ch_name="bad_bipolar", copy=True)
+    assert raw_test.info["bads"] == ["bad_bipolar"]
+
+
