@@ -1177,7 +1177,7 @@ def test_fit_methods(method, tmp_path):
         ('flat', dict(eeg=1e-6))
     )
 )
-def test_fit_params_epochs_vs_raw(param_name, param_val):
+def test_fit_params_epochs_vs_raw(param_name, param_val, tmp_path):
     """Check that we get a warning when passing parameters that get ignored."""
     method = 'infomax'
     n_components = 3
@@ -1185,12 +1185,20 @@ def test_fit_params_epochs_vs_raw(param_name, param_val):
 
     raw = read_raw_fif(raw_fname).pick_types(meg=False, eeg=True)
     events = read_events(event_name)
-    epochs = Epochs(raw, events=events)
+    reject = param_val if param_name == 'reject' else None
+    epochs = Epochs(raw, events=events, reject=reject)
     ica = ICA(n_components=n_components, max_iter=max_iter, method=method)
 
     fit_params = {param_name: param_val}
     with pytest.warns(RuntimeWarning, match='parameters.*will be ignored'):
         ica.fit(inst=epochs, **fit_params)
+    assert ica.reject_ == reject
+    _assert_ica_attributes(ica)
+    tmp_fname = tmp_path / 'test-ica.fif'
+    ica.save(tmp_fname)
+    ica = read_ica(tmp_fname)
+    assert ica.reject_ == reject
+    _assert_ica_attributes(ica)
 
 
 @requires_sklearn

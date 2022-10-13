@@ -28,7 +28,7 @@ Enhancements
 Bugs
 ~~~~
 - Fix bug in documentation of :func:`mne.channels.make_dig_montage` (:gh:`11235` by :newcontrib:`Daniel Hasegan`)
-- Fix bug where ``ica.reject_`` was not saved to disk (:gh:`11244` by `Eric Larson`_)
+- Fix bug where ``ica.reject_`` was not saved to disk, and the ``ica.reject_`` property was not inherited from ``Epochs`` when doing ``ICA.fit(epochs)`` (:gh:`11244` by `Eric Larson`_)
 
 API changes
 ~~~~~~~~~~~

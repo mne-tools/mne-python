@@ -655,7 +655,6 @@ class ICA(ContainsMixin):
                 self.info['comps'] = []
         self.ch_names = self.info['ch_names']
 
-        self.reject_ = None  # default
         if isinstance(inst, BaseRaw):
             self._fit_raw(inst, picks, start, stop, decim, reject, flat,
                           tstep, reject_by_annotation, verbose)
@@ -700,6 +699,8 @@ class ICA(ContainsMixin):
             data, self.drop_inds_ = _reject_data_segments(data, reject, flat,
                                                           decim, self.info,
                                                           tstep)
+        else:
+            self.reject_ = None
 
         self.n_samples_ = data.shape[1]
         self._fit(data, 'raw')
@@ -725,6 +726,7 @@ class ICA(ContainsMixin):
         # more from _pre_whiten)
         data = np.hstack(data)
         self._fit(data, 'epochs')
+        self.reject_ = deepcopy(epochs.reject)
 
         return self
 
