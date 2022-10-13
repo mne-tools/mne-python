@@ -1387,17 +1387,23 @@ def _assert_free_ori_match(ori, max_idx, lower_ori, upper_ori):
     mu = np.mean(dots)
     assert lower_ori <= mu <= upper_ori, mu
 
-def test_allow_mixed_source_spaces():
-    """Mixed source spaces should be allowed, as long as the non-cortical
-    space is discrete."""
-    raw = read_raw_fif(fname_raw, preload=True).crop(0, 2)
-    ctx_fwd = convert_forward_solution(read_forward_solution(fname_fwd),
-                                       force_fixed=True, copy=False)
-    sphere = make_sphere_model()
-    # make discrete space
-    disc_src = mne.setup_volume_source_space(
-        pos=dict(rr=[[0., 0., 0.01]], nn=[[0., 1., 0.]]))
-    mix_src = ctx_fwd["src"] + disc_src
-    fwd = make_forward_solution(raw.info, None, mix_src, sphere)
-    cov = make_ad_hoc_cov(raw.info)
-    inv_op = make_inverse_operator(raw.info, fwd, cov)
+
+@pytest.mark.filterwarnings('ignore:Projection vector.*has been reduced.*:')
+def test_allow_mixed_source_spaces(mixed_fwd_cov_evoked):
+    """Test mixed surf+discrete source spaces w/fixed ori."""
+    fwd, cov, evoked = mixed_fwd_cov_evoked
+    assert fwd['src'].kind == 'mixed'
+    assert len(fwd['src']) == 4  # 2 surf + 2 vol
+    with pytest.raises(ValueError, match='loose param'):  # no fixed with vol
+        inv_op = make_inverse_operator(evoked.info, fwd, cov, loose=0.)
+    for ii, type_ in enumerate(('surf', 'surf', 'vol', 'vol')):
+        assert fwd['src'][ii]['type'] == type_
+        if type_ == 'vol':
+            fwd['src'][ii]['type'] = 'discrete'
+    assert fwd['src'].kind == 'mixed'
+    inv_op = make_inverse_operator(evoked.info, fwd, cov)
+    stc = apply_inverse(evoked, inv_op, lambda2=1. / 9.)  # magnitude
+    assert (stc.data >= 0).all()
+    inv_op = make_inverse_operator(evoked.info, fwd, cov, loose=0.)
+    stc = apply_inverse(evoked, inv_op, lambda2=1. / 9.)  # normal
+    assert (stc.data < 0).any()
