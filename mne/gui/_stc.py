@@ -37,14 +37,15 @@ def _get_src_lut(src):
     shape = _check_consistent([this_src['shape'] for this_src in src],
                               "src['shape']")
     # order='F' so that F-order flattening is faster
-    lut = -1 * np.ones(shape, dtype=np.int64, order='F')
+    lut = -1 * np.ones(np.prod(shape), dtype=np.int64, order='F')
     n_vertices_seen = 0
     for this_inuse in inuse:
         this_inuse = this_inuse.astype(bool)
         n_vertices = np.sum(this_inuse)
-        lut[this_inuse.reshape(shape, order='F')] = np.arange(
+        lut[this_inuse] = np.arange(
             n_vertices_seen, n_vertices_seen + n_vertices)
         n_vertices_seen += n_vertices
+    lut = np.reshape(lut, shape, order='F')
     src_affine_ras = _check_consistent(
         [this_src['mri_ras_t']['trans'] for this_src in src],
         "src['mri_ras_t']")
