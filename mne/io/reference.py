@@ -584,7 +584,8 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         if a in inst.info['bads'] or c in inst.info['bads']:
             bad_bipolar_chs.append(ch_name[ch_idx])
     msg = f'Bipolar channels are based on bad channels: {bad_bipolar_chs}.'
-    _on_missing(on_bad, msg, name='on_missing')
+    if bad_bipolar_chs:
+        _on_missing(on_bad, msg)
     inst.info['bads'] += bad_bipolar_chs
 
     added_channels = ', '.join([name for name in ch_name])
