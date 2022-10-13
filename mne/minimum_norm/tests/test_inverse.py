@@ -1386,3 +1386,18 @@ def _assert_free_ori_match(ori, max_idx, lower_ori, upper_ori):
     dots = np.abs(np.diagonal(ori, axis1=1, axis2=2))
     mu = np.mean(dots)
     assert lower_ori <= mu <= upper_ori, mu
+
+def test_allow_mixed_source_spaces():
+    """Mixed source spaces should be allowed, as long as the non-cortical
+    space is discrete."""
+    raw = read_raw_fif(fname_raw, preload=True).crop(0, 2)
+    ctx_fwd = convert_forward_solution(read_forward_solution(fname_fwd),
+                                       force_fixed=True, copy=False)
+    sphere = make_sphere_model()
+    # make discrete space
+    disc_src = mne.setup_volume_source_space(
+        pos=dict(rr=[[0., 0., 0.01]], nn=[[0., 1., 0.]]))
+    mix_src = ctx_fwd["src"] + disc_src
+    fwd = make_forward_solution(raw.info, None, mix_src, sphere)
+    cov = make_ad_hoc_cov(raw.info)
+    inv_op = make_inverse_operator(raw.info, fwd, cov)
