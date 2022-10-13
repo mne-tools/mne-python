@@ -23,7 +23,7 @@ Current (1.3.dev0)
 
 Enhancements
 ~~~~~~~~~~~~
-- None yet
+- Mixed, cortical + discrete source spaces with fixed orientations are now allowed. (:gh:`11241` by `Jevri Hanna`_)
 
 Bugs
 ~~~~
