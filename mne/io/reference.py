@@ -452,14 +452,14 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
         overwriting the default values. Defaults to None.
     drop_refs : bool
         Whether to drop the anode/cathode channels from the instance.
+    copy : bool
+        Whether to operate on a copy of the data (True) or modify it in-place
+        (False). Defaults to True.
     on_bad : str
         If a bipolar channel is created from a bad anode or a bad cathode, mne
         warns if on_bad="warns", raises ValueError if on_bad="raise", and does
         nothing if on_bad="ignore". For "warn" and "ignore", the new bipolar
         channel will be marked as bad. Defaults to on_bad="warns".
-    copy : bool
-        Whether to operate on a copy of the data (True) or modify it in-place
-        (False). Defaults to True.
     %(verbose)s
 
     Returns
