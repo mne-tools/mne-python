@@ -445,18 +445,18 @@ def test_set_bipolar_reference(inst_type):
     # Test if bad anode/cathode raises error if on_bad="raise"
     inst.info["bads"] = ["EEG 001"]
     pytest.raises(ValueError, set_bipolar_reference, inst,
-                  'EEG 001', 'EEG 002', ch_name='EEG 003', on_bad="raise")
+                  'EEG 001', 'EEG 002', on_bad="raise")
     inst.info["bads"] = ["EEG 002"]
     pytest.raises(ValueError, set_bipolar_reference, inst,
-                  'EEG 001', 'EEG 002', ch_name='EEG 003', on_bad="raise")
+                  'EEG 001', 'EEG 002', on_bad="raise")
 
     # Test if bad anode/cathode raises warning if on_bad="warn"
     inst.info["bads"] = ["EEG 001"]
     pytest.warns(RuntimeWarning, set_bipolar_reference, inst,
-                 'EEG 001', 'EEG 002', ch_name='EEG 003', on_bad="warn")
+                 'EEG 001', 'EEG 002', on_bad="warn")
     inst.info["bads"] = ["EEG 002"]
     pytest.warns(RuntimeWarning, set_bipolar_reference, inst,
-                 'EEG 001', 'EEG 002', ch_name='EEG 003', on_bad="warn")
+                 'EEG 001', 'EEG 002', on_bad="warn")
 
 
 def _check_channel_names(inst, ref_names):
