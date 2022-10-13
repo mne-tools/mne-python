@@ -244,10 +244,11 @@ def test_ica_noop(n_components, n_pca_components, tmp_path):
     # and with I/O
     fname = tmp_path / 'temp-ica.fif'
     ica.save(fname)
-    ica = read_ica(fname)
-    raw_new = ica.apply(raw.copy())
+    ica_new = read_ica(fname)
+    raw_new = ica_new.apply(raw.copy())
     assert_allclose(raw.get_data(), raw_new.get_data(), err_msg='I/O failure')
-    _assert_ica_attributes(ica)
+    _assert_ica_attributes(ica_new)
+    assert ica.reject_ == ica_new.reject_
 
 
 @requires_sklearn
@@ -1535,6 +1536,7 @@ def test_read_ica_eeglab_mismatch(tmp_path):
     assert 'unmixing_matrix_' in attrs
     assert ica.labels_ == ica_correct.labels_ == {}
     attrs.pop(attrs.index('labels_'))
+    attrs.pop(attrs.index('reject_'))
     for attr in attrs:
         a, b = getattr(ica, attr), getattr(ica_correct, attr)
         assert_allclose(a, b, rtol=1e-12, atol=1e-12, err_msg=attr)
@@ -1584,6 +1586,7 @@ def _assert_ica_attributes(ica, data=None, limits=(1.0, 70)):
         # at least close to normal
         assert norms.min() > limits[0], 'Not roughly unity'
         assert norms.max() < limits[1], 'Not roughly unity'
+    assert hasattr(ica, 'reject_')
 
 
 @pytest.mark.parametrize("ch_type", ["dbs", "seeg"])

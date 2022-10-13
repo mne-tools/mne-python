@@ -655,6 +655,7 @@ class ICA(ContainsMixin):
                 self.info['comps'] = []
         self.ch_names = self.info['ch_names']
 
+        self.reject_ = None  # default
         if isinstance(inst, BaseRaw):
             self._fit_raw(inst, picks, start, stop, decim, reject, flat,
                           tstep, reject_by_annotation, verbose)
@@ -2558,6 +2559,11 @@ def _write_ica(fid, ica):
     #   Write bad components
     write_int(fid, FIFF.FIFF_MNE_ICA_BADS, list(ica.exclude))
 
+    #   Write reject_
+    if ica.reject_ is not None:
+        write_string(fid, FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT,
+                     json.dumps(dict(reject=ica.reject_)))
+
     # Done!
     end_block(fid, FIFF.FIFFB_MNE_ICA)
 
@@ -2601,6 +2607,7 @@ def read_ica(fname, verbose=None):
             raise ValueError('Could not find ICA data')
 
     my_ica_data = ica_data[0]
+    ica_reject = None
     for d in my_ica_data['directory']:
         kind = d.kind
         pos = d.pos
@@ -2631,6 +2638,9 @@ def read_ica(fname, verbose=None):
         elif kind == FIFF.FIFF_MNE_ICA_MISC_PARAMS:
             tag = read_tag(fid, pos)
             ica_misc = tag.data
+        elif kind == FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT:
+            tag = read_tag(fid, pos)
+            ica_reject = json.loads(tag.data)['reject']
 
     fid.close()
 
@@ -2682,6 +2692,7 @@ def read_ica(fname, verbose=None):
         ica.n_iter_ = ica_misc['n_iter_']
     if 'fit_params' in ica_misc:
         ica.fit_params = ica_misc['fit_params']
+    ica.reject_ = ica_reject
 
     logger.info('Ready.')
 
@@ -3006,4 +3017,5 @@ def read_ica_eeglab(fname, *, verbose=None):
     ica.info = info
     ica._update_mixing_matrix()
     ica._update_ica_names()
+    ica.reject_ = None
     return ica
