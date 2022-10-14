@@ -208,6 +208,8 @@
 
 .. _Jesper Duemose Nielsen: https://github.com/jdue
 
+.. _Jevri Hanna: https://github.com/jshanna100
+
 .. _jeythekey: https://github.com/jeythekey
 
 .. _Joan Massich: https://github.com/massich
