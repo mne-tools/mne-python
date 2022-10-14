@@ -44,6 +44,14 @@ def test_spectrum_params(method, fmin, fmax, tmin, tmax, picks, proj, n_fft,
     raw.compute_psd(**kwargs)
 
 
+def test_n_welch_windows(raw):
+    """Test computation of welch windows https://mne.discourse.group/t/5734."""
+    with raw.info._unlock():
+        raw.info['sfreq'] = 999.412109375
+    raw.compute_psd(
+        method='welch', n_fft=999, n_per_seg=999, n_overlap=250, average=None)
+
+
 def _get_inst(inst, request, evoked):
     # ↓ XXX workaround:
     # ↓ parametrized fixtures are not accessible via request.getfixturevalue
