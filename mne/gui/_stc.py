@@ -17,7 +17,7 @@ from ._core import SliceBrowser
 from ..fixes import _point_data, _cell_data
 from ..io.constants import FIFF
 from ..transforms import apply_trans
-from ..utils import _require_version
+from ..utils import _require_version, _validate_type, _check_range, fill_doc
 from ..viz.utils import _get_cmap
 
 
@@ -506,6 +506,26 @@ class SourceEstimateViewer(SliceBrowser):
             self._images['stc'][axis].set_alpha(self._alpha)
         self._update_cmap()
 
+    def update_cmap(self, vmin=None, vmid=None, vmax=None):
+        """Update the colormap.
+
+        Parameters
+        ----------
+        vmin : float
+            The minimum color value relative to the selected data in [0, 1].
+        vmin : float
+            The middle color value relative to the selected data in [0, 1].
+        vmin : float
+            The maximum color value relative to the selected data in [0, 1].
+        """
+        for val, name in zip((vmin, vmid, vmax), ('vmin', 'vmid', 'vmax')):
+            _validate_type(val, (int, float, None))
+
+        for i, val in enumerate((vmin, vmid, vmax)):
+            if val is not None:
+                _check_range(val, 0, 1, name)
+                self._cmap_sliders[i].setValue(int(round(val * 1000)))
+
     def _update_cmap(self):
         """Update colormap."""
         if self._cmap_sliders[0].value() > self._cmap_sliders[2].value():
@@ -570,6 +590,24 @@ class SourceEstimateViewer(SliceBrowser):
             self._stc_plot.set_data(stc_data)
         if draw:
             self._fig.canvas.draw()
+
+    @fill_doc
+    def set_3d_view(self, roll=None, distance=None, azimuth=None,
+                    elevation=None, focalpoint=None):
+        """Orient camera to display view.
+
+        Parameters
+        ----------
+        %(roll)s
+        %(distance)s
+        %(azimuth)s
+        %(elevation)s
+        %(focalpoint)s
+        """
+        self._renderer.set_camera(
+            roll=roll, distance=distance, azimuth=azimuth,
+            elevation=elevation, focalpoint=focalpoint, reset_camera=False)
+        self._renderer._update()
 
     def _update_stc_image(self):
         """Update the stc image based on the time and frequency range."""
