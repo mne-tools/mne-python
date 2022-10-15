@@ -169,5 +169,5 @@ brain.show_view(azimuth=-40, elevation=35, distance=300,
                 focalpoint=(0, 0, 0))
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=10, tmin=0.875, tmax=0.95,
+# brain.save_movie(time_dilation=30, tmin=0.875, tmax=0.95,
 #                  interpolation='linear', time_viewer=True)
