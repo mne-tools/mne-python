@@ -166,6 +166,8 @@
 
 .. _Guillaume Favelier: https://github.com/GuillaumeFavelier
 
+.. _Hakimeh Aslsardroud: https://www.researchgate.net/profile/Hakimeh-Pourakbari
+
 .. _Hamid Maymandi: https://github.com/HamidMandi
 
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
