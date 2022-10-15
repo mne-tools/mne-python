@@ -28,6 +28,7 @@ Enhancements
 - Add :func:`mne.beamformer.apply_dics_tfr_epochs` to apply a DICS beamformer to time-frequency resolved epochs (:gh:`11096` by `Alex Rockhill`_)
 - Check whether head radius (estimated from channel positions) is correct when reading EEGLAB data with :func:`~mne.io.read_raw_eeglab` and :func:`~mne.read_epochs_eeglab`. If head radius is not within likely values, warn informing about possible units mismatch and the new ``montage_units`` argument (:gh:`11283` by `Mikołaj Magnuski`_).
 - Add :ref:`tut-tfr_stc` to show how to apply inverse methods to time-frequency resolved epochs and use :func:`mne.gui.view_stc` to view the output (:gh:`10920` by `Alex Rockhill`_)
+- Add to :ref:`ex-source-loc-methods` how how to apply inverse methods to time-frequency resolved epochs and use :func:`mne.gui.view_stc` to view the output (:gh:`10920` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
