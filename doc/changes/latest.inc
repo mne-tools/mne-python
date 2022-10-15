@@ -29,6 +29,7 @@ Enhancements
 - Improved error message when downloads are corrupted for :func:`mne.datasets.sample.data_path` and related functions (:gh:`11407` by `Eric Larson`_)
 - Add support for ``skip_by_annotation`` in :func:`mne.io.Raw.notch_filter` (:gh:`11388` by `Mainak Jas`_)
 - Add :ref:`tut-tfr_stc` to show how to apply inverse methods to time-frequency resolved epochs and use :func:`mne.gui.view_stc` to view the output (:gh:`10920` by `Alex Rockhill`_)
+- Add to :ref:`ex-source-loc-methods` how how to apply inverse methods to time-frequency resolved epochs and use :func:`mne.gui.view_stc` to view the output (:gh:`10920` by `Alex Rockhill`_)
 
 Bugs
 ~~~~
