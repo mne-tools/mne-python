@@ -14,10 +14,10 @@ from qtpy.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel,
                             QComboBox)
 
 from ._core import SliceBrowser
-from ..fixes import _cell_data
+from ..fixes import _point_data, _cell_data
 from ..io.constants import FIFF
 from ..transforms import apply_trans
-from ..utils import _require_version, warn
+from ..utils import _require_version
 from ..viz.utils import _get_cmap
 
 
@@ -34,6 +34,8 @@ def _check_consistent(items, name):
 def _get_src_lut(src):
     offset = 2 if src.kind == 'mixed' else 0
     inuse = [s['inuse'] for s in src[offset:]]
+    rr = np.concatenate(
+        [s['rr'][this_inuse] for s, this_inuse in zip(src[offset:], inuse)])
     shape = _check_consistent([this_src['shape'] for this_src in src],
                               "src['shape']")
     # order='F' so that F-order flattening is faster
@@ -54,7 +56,7 @@ def _get_src_lut(src):
         "src['src_mri_t']")
     affine = np.dot(src_affine_ras, src_affine_src)
     affine[:3] *= 1e3
-    return lut, affine, src_affine_src * 1000
+    return lut, affine, src_affine_src * 1000, rr * 1000
 
 
 def _make_vol(lut, stc_data):
@@ -117,8 +119,8 @@ class SourceEstimateViewer(SliceBrowser):
         self._data = data
         self._src = src
         self._inst = inst
-        self._src_lut, self._src_vox_scan_ras_t, self._src_vox_ras_t = \
-            _get_src_lut(src)
+        (self._src_lut, self._src_vox_scan_ras_t, self._src_vox_ras_t,
+         self._src_rr) = _get_src_lut(src)
         self._src_scan_ras_vox_t = np.linalg.inv(self._src_vox_scan_ras_t)
         self._is_complex = np.iscomplexobj(self._data)
         # check if only positive values will be used
@@ -134,10 +136,15 @@ class SourceEstimateViewer(SliceBrowser):
         self._epoch_idx = 'Average' + ' Power' * self._is_complex
 
         # initialize current 3D image for chosen time and frequency
-        stc_data = self._pick_stc_data()
-        self._stc_img = self._make_stc_vol(stc_data)
-        self._stc_min = np.nanmin(stc_data)
-        self._stc_range = np.nanmax(stc_data) - self._stc_min
+        stc_data = self._pick_stc_epoch()
+        stc_data_vol = np.linalg.norm(stc_data, axis=1)
+
+        self._stc_min = np.nanmin(stc_data_vol)
+        self._stc_range = np.nanmax(stc_data_vol) - self._stc_min
+
+        # take the vector magnitude, if scalar, does nothing
+        stc_data_vol = self._pick_stc_tfr(stc_data_vol)
+        self._stc_img = _make_vol(self._src_lut, stc_data_vol)
 
         super(SourceEstimateViewer, self).__init__(
             subject=subject, subjects_dir=subjects_dir)
@@ -158,13 +165,26 @@ class SourceEstimateViewer(SliceBrowser):
         ]
         src_coord = self._get_src_coord()
         for axis in range(3):
-            stc_data = np.take(self._stc_img, src_coord[axis], axis=axis).T
+            stc_slice = np.take(self._stc_img, src_coord[axis], axis=axis).T
             x_idx, y_idx = self._xy_idx[axis]
             extent = [corners[0][x_idx], corners[1][x_idx],
                       corners[1][y_idx], corners[0][y_idx]]
             self._images['stc'].append(self._figs[axis].axes[0].imshow(
-                stc_data, cmap=self._cmap, aspect='auto', extent=extent,
+                stc_slice, cmap=self._cmap, aspect='auto', extent=extent,
                 alpha=self._alpha, zorder=2))
+
+        # plot vectors if vector stc
+        if self._data.shape[2] > 1:
+            assert self._data.shape[2] == 3
+            vectors = self._pick_stc_tfr(stc_data)
+            # rescale
+            vectors = 5 * vectors / (self._stc_min + self._stc_range)
+            self._vector_mapper, self._vector_data = self._renderer.quiver3d(
+                *self._src_rr.T, *vectors.T, color=None, mode='2darrow',
+                scale_mode='vector', scale=1, opacity=1)
+            self._vector_actor = self._renderer._actor(self._vector_mapper)
+            self._vector_actor.GetProperty().SetLineWidth(2.)
+            self._renderer.plotter.add_actor(self._vector_actor, render=False)
 
         # initialize 3D volumetric rendering
         # TO DO: add surface source space viewing as elif
@@ -179,7 +199,7 @@ class SourceEstimateViewer(SliceBrowser):
                     spacing=spacing,
                     scalars=scalars.flatten(order='F'),
                     surface_alpha=self._alpha,
-                    resolution=None, blending='mip', center=center)
+                    resolution=0.4, blending='mip', center=center)
             self._volume_pos_actor = self._renderer.plotter.add_actor(
                 self._volume_pos, render=False)[0]
             self._volume_neg_actor = None if self._volume_neg is not None \
@@ -207,8 +227,8 @@ class SourceEstimateViewer(SliceBrowser):
             self._current_slice, self._vox_scan_ras_t,
             self._src_scan_ras_vox_t)).astype(int))
 
-    def _pick_stc_data(self):
-        """Select the source time course data based on the parameters."""
+    def _pick_stc_epoch(self):
+        """Select the source time course epoch based on the parameters."""
         if self._epoch_idx == 'Average':
             stc_data = self._data.mean(axis=0)
         elif self._epoch_idx == 'Average Power':
@@ -218,36 +238,25 @@ class SourceEstimateViewer(SliceBrowser):
         else:
             stc_data = self._data[int(self._epoch_idx.replace('Epoch ', ''))]
             if self._is_complex:
-                stc_data = (stc_data * stc_data.conj()).real
-
-        # if vector, take amplitude
-        if self._epoch_idx == 'ITC':
-            if stc_data.shape[1] > 1:
-                warn('Using maximum ITC across x, y and z, a better approach '
-                     'would be to use a source estimate with a single, '
-                     'constrained orientation, such as maximum power')
-            stc_data = np.max(stc_data, axis=1)
-        else:
-            stc_data = np.linalg.norm(stc_data, axis=1)
+                stc_data = (stc_data * stc_data.conj())
         return stc_data
 
-    def _make_stc_vol(self, stc_data):
-        """Make a volume based on the parameters."""
-        # select the frequency and time based on GUI values
-        stc_data = stc_data[:, 0 if self._f_idx is None else self._f_idx]
-        stc_data = stc_data[:, self._t_idx]
-
-        return _make_vol(self._src_lut, stc_data)
-
     def _pick_stc_vertex(self, stc_data):
-        """Pick data from the current vertex."""
+        """Select the vertex based on the cursor position."""
         src_coord = self._get_src_coord()
         if all([coord >= 0 and coord < dim for coord, dim in zip(
                 src_coord, self._src_lut.shape)]) and \
                 self._src_lut[src_coord] >= 0:
             stc_data = stc_data[self._src_lut[src_coord]]
-        else:  # out-of-bounds or unused vertex, pick the first one, make nan
-            stc_data = stc_data[0] * np.nan
+        else:  # out-of-bounds or unused vertex
+            stc_data = stc_data[0] * np.nan  # pick the first one, make nan
+        return stc_data
+
+    def _pick_stc_tfr(self, stc_data):
+        """Select the frequency and time based on GUI values."""
+        stc_data = np.take(stc_data, self._t_idx, axis=-1)
+        f_idx = 0 if self._f_idx is None else self._f_idx
+        stc_data = np.take(stc_data, f_idx, axis=-1)
         return stc_data
 
     def _configure_ui(self):
@@ -290,7 +299,8 @@ class SourceEstimateViewer(SliceBrowser):
                 [f'Epoch {i}' for i in range(self._data.shape[0])])
             if np.iscomplexobj(self._data):
                 self._epoch_selector.addItems(['Average Power'])
-                self._epoch_selector.addItems(['ITC'])
+                if self._data.shape[2] == 1:  # only allow ITC for scalar
+                    self._epoch_selector.addItems(['ITC'])
             else:
                 self._epoch_selector.addItems(['Average'])
             self._epoch_selector.setCurrentText(self._epoch_idx)
@@ -398,7 +408,8 @@ class SourceEstimateViewer(SliceBrowser):
         from ._core import _make_mpl_plot
         canvas, self._fig = _make_mpl_plot(
             dpi=96, tight=False, hide_axes=False)
-        stc_data = self._pick_stc_data()
+        stc_data = self._pick_stc_epoch()
+        stc_data = np.linalg.norm(stc_data, axis=1)  # take magnitude
         stc_data = self._pick_stc_vertex(stc_data)
 
         self._fig.axes[0].set_position([0.1, 0.25, 0.75, 0.6])
@@ -493,11 +504,7 @@ class SourceEstimateViewer(SliceBrowser):
         self._alpha = self._alpha_slider.value() / 100
         for axis in range(3):
             self._images['stc'][axis].set_alpha(self._alpha)
-        self._draw()
-        self._volume_pos_actor.GetProperty().SetScalarOpacity(self._alpha)
-        if self._volume_neg_actor is not None:
-            self._volume_neg_actor.GetProperty().SetScalarOpacity(self._alpha)
-        self._renderer._update()
+        self._update_cmap()
 
     def _update_cmap(self):
         """Update colormap."""
@@ -520,19 +527,28 @@ class SourceEstimateViewer(SliceBrowser):
         else:
             self._stc_plot.set_clim(vmin, vmax)
         self._fig.canvas.draw()
+
         ctable = np.round(self._cmap(
             np.linspace(0, 1, 256)) * 255.0).astype(np.uint8)
         if self._stc_min < 0:  # make center values transparent
             ctable[97:159, 3] = 0  # 31 on either side of center (128)
         else:  # make low values transparent
             ctable[:25, 3] = np.linspace(0, 255, 25)
+
+        self._renderer._set_colormap_range(
+            actor=self._vector_actor, ctable=ctable, scalar_bar=None,
+            rng=[vmin, vmax])
+
+        # set alpha
+        ctable[ctable[:, 3] > self._alpha * 255, 3] = self._alpha * 255
         self._renderer._set_volume_range(self._volume_pos, ctable, self._alpha,
                                          self._scalar_bar, [vmin, vmax])
         self._renderer._update()
 
     def go_to_max(self):
         """Go to the maximum intensity source vertex."""
-        stc_data = self._pick_stc_data()
+        stc_data = self._pick_stc_epoch()
+        stc_data = np.linalg.norm(stc_data, axis=1)  # vector magnitude
         stc_idx, f_idx, t_idx = \
             np.unravel_index(np.nanargmax(stc_data), stc_data.shape)
         if self._f_idx is not None:
@@ -545,7 +561,8 @@ class SourceEstimateViewer(SliceBrowser):
 
     def _update_data_plot(self, draw=False):
         """Update which coordinate's data is being shown."""
-        stc_data = self._pick_stc_data()
+        stc_data = self._pick_stc_epoch()
+        stc_data = np.linalg.norm(stc_data, axis=1)  # vector magnitude
         stc_data = self._pick_stc_vertex(stc_data)
         if self._f_idx is None:  # no freq data
             self._stc_plot.set_ydata(stc_data[0])
@@ -556,10 +573,21 @@ class SourceEstimateViewer(SliceBrowser):
 
     def _update_stc_image(self):
         """Update the stc image based on the time and frequency range."""
-        stc_data = self._pick_stc_data()
-        self._stc_img = self._make_stc_vol(stc_data)
-        self._stc_min = np.nanmin(stc_data)
-        self._stc_range = np.nanmax(stc_data) - self._stc_min
+        stc_data = self._pick_stc_epoch()
+        stc_data_vol = np.linalg.norm(stc_data, axis=1)
+
+        self._stc_min = np.nanmin(stc_data_vol)
+        self._stc_range = np.nanmax(stc_data_vol) - self._stc_min
+
+        stc_data_vol = self._pick_stc_tfr(stc_data_vol)
+        self._stc_img = _make_vol(self._src_lut, stc_data_vol)
+
+        if self._data.shape[2] > 1:
+            vectors = self._pick_stc_tfr(stc_data)
+            # rescale
+            vectors = 5 * vectors / (self._stc_min + self._stc_range)
+            _point_data(self._vector_data)['vec'] = vectors
+
         _cell_data(self._grid)['values'] = np.where(
             np.isnan(self._stc_img), 0., self._stc_img).flatten(order='F')
         self._update_images()
