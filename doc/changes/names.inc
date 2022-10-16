@@ -166,6 +166,8 @@
 
 .. _Guillaume Favelier: https://github.com/GuillaumeFavelier
 
+.. _Hakimeh Aslsardroud: https://www.researchgate.net/profile/Hakimeh-Pourakbari
+
 .. _Hamid Maymandi: https://github.com/HamidMandi
 
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
@@ -505,3 +507,11 @@
 .. _Yu-Han Luo: https://github.com/yh-luo
 
 .. _Zhi Zhang: https://github.com/tczhangzhi/
+
+.. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
+
+.. _Jennifer Behnke: https://github.com/JKBehnke
+
+.. _Hakimeh Pourakbari: https://github.com/Hpakbari
+
+.. _Pavel Navratil: https://github.com/navrpa13
