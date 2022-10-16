@@ -1876,8 +1876,9 @@ def make_1020_channel_selections(info, midline="z"):
     return selections
 
 
+@verbose
 def combine_channels(inst, groups, method='mean', keep_stim=False,
-                     drop_bad=False):
+                     drop_bad=False, verbose=None):
     """Combine channels based on specified channel grouping.
 
     Parameters
@@ -1915,6 +1916,7 @@ def combine_channels(inst, groups, method='mean', keep_stim=False,
     drop_bad : bool
         If ``True``, drop channels marked as bad before combining. Defaults to
         ``False``.
+    %(verbose)s
 
     Returns
     -------
