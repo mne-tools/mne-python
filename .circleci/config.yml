@@ -89,7 +89,7 @@ jobs:
         - run:
             name: Set BASH_ENV
             command: |
-              set -eo pipefail
+              set -e -o pipefail
               ./tools/setup_xvfb.sh
               sudo apt install -qq graphviz optipng python3.10-venv python3-venv libxft2 ffmpeg
               python3.10 -m venv ~/python_env
