@@ -210,7 +210,7 @@ class SourceEstimateViewer(SliceBrowser):
             grid_prop.SetOpacity(0.1)
             self._scalar_bar = self._renderer.scalarbar(
                 source=self._volume_pos_actor, n_labels=8, color='black',
-                bgcolor='white')
+                bgcolor='white', label_font_size=10)
             self._scalar_bar.SetOrientationToVertical()
             self._scalar_bar.SetHeight(0.6)
             self._scalar_bar.SetWidth(0.05)
@@ -342,6 +342,7 @@ class SourceEstimateViewer(SliceBrowser):
         slider_layout = QVBoxLayout()
 
         if hasattr(self._inst, 'freqs'):
+            slider_layout.addWidget(make_label('Frequency (Hz)'))
             self._freq_slider = make_slider(
                 0, self._inst.freqs.size - 1, self._f_idx, self._update_freq)
             slider_layout.addWidget(self._freq_slider)
@@ -369,10 +370,12 @@ class SourceEstimateViewer(SliceBrowser):
         slider_layout.addWidget(self._time_label)
         slider_layout.addStretch(1)
 
-        slider_layout.addWidget(make_label('alpha'))
+        slider_layout.addWidget(make_label('Alpha'))
         self._alpha_slider = make_slider(0, 100, int(self._alpha * 100),
                                          self._update_alpha)
         slider_layout.addWidget(self._alpha_slider)
+        self._alpha_label = make_label(f'Alpha = {self._alpha}')
+        slider_layout.addWidget(self._alpha_label)
         slider_layout.addStretch(1)
 
         slider_layout.addWidget(make_label('min / mid / max'))
@@ -502,6 +505,7 @@ class SourceEstimateViewer(SliceBrowser):
     def _update_alpha(self):
         """Update stc plot alpha."""
         self._alpha = self._alpha_slider.value() / 100
+        self._alpha_label.setText(f'Alpha = {self._alpha}')
         for axis in range(3):
             self._images['stc'][axis].set_alpha(self._alpha)
         self._update_cmap()
@@ -590,6 +594,14 @@ class SourceEstimateViewer(SliceBrowser):
             self._stc_plot.set_data(stc_data)
         if draw:
             self._fig.canvas.draw()
+
+    def _update_moved(self):
+        """Update when cursor position changes."""
+        super()._update_moved()
+        self._intensity_label.setText(
+            'intensity = ' +
+            ('{:.3e}' if self._stc_range > 1e5 else '{:.3f}').format(
+                self._stc_img[tuple(self._get_src_coord())]))
 
     @fill_doc
     def set_3d_view(self, roll=None, distance=None, azimuth=None,
