@@ -1,4 +1,6 @@
-#!/bin/bash -eo pipefail
+#!/bin/bash -e
+
+set -o pipefail
 
 TESTING_VERSION=`grep -o "testing='[0-9.]\+'" mne/datasets/config.py | cut -d \' -f 2 | sed "s/\./-/g"`
 # This can be incremented to start fresh when the cache misbehaves, e.g.:
