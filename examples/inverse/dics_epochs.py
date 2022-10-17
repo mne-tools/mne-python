@@ -77,10 +77,11 @@ fwd = mne.read_forward_solution(fname_fwd)
 
 # compute vector solution
 filters = make_dics(epochs.info, fwd, csd, noise_csd=baseline_csd,
-                    pick_ori='vector', reduce_rank=True, real_filter=True)
+                    pick_ori='max-power', reduce_rank=True, real_filter=True)
 
 # project the TFR for each epoch to source space
-epochs_stcs = apply_dics_tfr_epochs(epochs_tfr, filters)
+epochs_stcs = apply_dics_tfr_epochs(
+    epochs_tfr, filters, return_generator=True)
 
 # %%
 # Let's visualize the source time course estimates. We can see the
@@ -99,24 +100,17 @@ for i, stcs in enumerate(epochs_stcs):
     # iterate over frequencies (inner list)
     for j, stc in enumerate(stcs):
 
-        # compute phase
-        phase = np.angle(stc.data)
-
         # convert from complex time-frequency to power
         stc.data = (stc.data * np.conj(stc.data)).real
 
         # apply a baseline correction
         stc.apply_baseline((-0.5, -0.1))
 
-        # define power directionally by assigning [0, pi] to positive
-        # and [-pi, 0] to negative
-        stc.data[phase < 0] *= -1
-
         # crop to the time of interest
         stc.crop(tmin=0.6, tmax=0.8)
 
         # find peak time
-        _, peak_time = stc.magnitude().get_peak(hemi='lh')
+        _, peak_time = stc.get_peak()
 
         # plot the timecourse direction
         fmax = 15000
@@ -141,52 +135,8 @@ for i, stcs in enumerate(epochs_stcs):
 fig.tight_layout()
 
 # %%
-# Let's view the full time course for one stc.
-
-# sphinx_gallery_thumbnail_number = 4
-
-stc = epochs_stcs[0][0]
-
-# compute phase
-phase = np.angle(stc.data)
-
-# convert from complex time-frequency to power
-stc.data = (stc.data * np.conj(stc.data)).real
-
-# apply a baseline correction
-stc.apply_baseline((-0.5, -0.1))
-
-# define power directionally by assigning [0, pi] to positive
-# and [-pi, 0] to negative
-stc.data[phase < 0] *= -1
-
-# plot the timecourse direction
-fmax = 15000
-brain = stc.plot(
-    subjects_dir=subjects_dir,
-    hemi='both',
-    views='dorsal',
-    brain_kwargs=dict(show=False),
-    add_data_kwargs=dict(fmin=fmax / 10, fmid=fmax / 2, fmax=fmax,
-                         scale_factor=0.0001,
-                         colorbar_kwargs=dict(label_font_size=10))
-)
-
-# You can save a movie like the one on our documentation website with:
-# brain.save_movie(framerate=12, time_dilation=10,
-#                  interpolation='linear', time_viewer=True)
-
-# %%
 # We can also view the phase for each time-frequency source time course.
-# Before, we computed the the direction of the activity but this would
-# give us three independent phase estimates for the
-# ``x``, ``y`` and ``z`` directions, which we don't want. Instead, we'll
-# use the phase from the maximum power orientation which is a more
-# sensible way to determine a single phase at each frequency over time.
-
-# use the maximum power orientation for phase
-filters = make_dics(epochs.info, fwd, csd, noise_csd=baseline_csd,
-                    pick_ori='max-power', reduce_rank=True, real_filter=True)
+# single phase at each frequency over time.
 
 # project the TFR for each epoch to source space
 epochs_stcs = apply_dics_tfr_epochs(
