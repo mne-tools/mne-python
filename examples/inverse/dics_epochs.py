@@ -44,8 +44,8 @@ subjects_dir = data_path / 'derivatives' / 'freesurfer' / 'subjects'
 
 # Load raw data and make epochs. For speed, we only use the first 5 events.
 raw = mne.io.read_raw_fif(raw_fname)
-events = mne.find_events(raw)[:3]
-epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2,
+events = mne.find_events(raw)[:5]
+epochs = mne.Epochs(raw, events, event_id=1, tmin=-1, tmax=1.5,
                     preload=True)
 
 # We are mostly interested in the beta band since it has been shown to be
@@ -59,6 +59,9 @@ freqs = np.array([15, 21])
 epochs_tfr = tfr_morlet(epochs, freqs, n_cycles=5, return_itc=False,
                         output='complex', average=False)
 
+# crop either side to use a buffer to remove edge artifact
+epochs_tfr.crop(tmin=-0.5, tmax=1)
+
 # %%
 # Now, we build a DICS beamformer and project the sensor-level TFR to the
 # source level.
@@ -66,8 +69,8 @@ epochs_tfr = tfr_morlet(epochs, freqs, n_cycles=5, return_itc=False,
 # Compute the Cross-Spectral Density (CSD) matrix for the sensor-level TFRs.
 # We are interested in increases in power relative to the baseline period, so
 # we will make a separate CSD for just that period as well.
-csd = csd_tfr(epochs_tfr, tmin=-1, tmax=1.5)
-baseline_csd = csd_tfr(epochs_tfr, tmin=-1, tmax=0)
+csd = csd_tfr(epochs_tfr, tmin=-0.5, tmax=1)
+baseline_csd = csd_tfr(epochs_tfr, tmin=-0.5, tmax=-0.1)
 
 # use the CSDs and the forward model to build the DICS beamformer
 fwd = mne.read_forward_solution(fname_fwd)
@@ -77,8 +80,7 @@ filters = make_dics(epochs.info, fwd, csd, noise_csd=baseline_csd,
                     pick_ori='vector', reduce_rank=True, real_filter=True)
 
 # project the TFR for each epoch to source space
-epochs_stcs = apply_dics_tfr_epochs(
-    epochs_tfr, filters, return_generator=True)
+epochs_stcs = apply_dics_tfr_epochs(epochs_tfr, filters)
 
 # %%
 # Let's visualize the source time course estimates. We can see the
@@ -104,25 +106,30 @@ for i, stcs in enumerate(epochs_stcs):
         stc.data = (stc.data * np.conj(stc.data)).real
 
         # apply a baseline correction
-        stc.apply_baseline((-1.5, 0))
+        stc.apply_baseline((-0.5, -0.1))
 
-        # definte power directionally by assigning [0, pi] to positive
+        # define power directionally by assigning [0, pi] to positive
         # and [-pi, 0] to negative
         stc.data[phase < 0] *= -1
 
+        # crop to the time of interest
+        stc.crop(tmin=0.6, tmax=0.8)
+
+        # find peak time
+        _, peak_time = stc.magnitude().get_peak(hemi='lh')
+
         # plot the timecourse direction
-        fmax = 10000
+        fmax = 15000
         brain = stc.plot(
             subjects_dir=subjects_dir,
             hemi='both',
-            initial_time=0.7,
+            views='dorsal',
+            initial_time=peak_time,
             brain_kwargs=dict(show=False),
             add_data_kwargs=dict(fmin=fmax / 10, fmid=fmax / 2, fmax=fmax,
-                                 scale_factor=0.001,
+                                 scale_factor=0.0001,
                                  colorbar_kwargs=dict(label_font_size=10))
         )
-        brain.show_view(azimuth=-40, elevation=35, distance=300,
-                        focalpoint=(0, 0, 0))
         axes[j, i].imshow(brain.screenshot())
         brain.close()
 
@@ -134,14 +141,48 @@ for i, stcs in enumerate(epochs_stcs):
 fig.tight_layout()
 
 # %%
+# Let's view the full time course for one stc.
+
+# sphinx_gallery_thumbnail_number = 4
+
+stc = epochs_stcs[0][0]
+
+# compute phase
+phase = np.angle(stc.data)
+
+# convert from complex time-frequency to power
+stc.data = (stc.data * np.conj(stc.data)).real
+
+# apply a baseline correction
+stc.apply_baseline((-0.5, -0.1))
+
+# define power directionally by assigning [0, pi] to positive
+# and [-pi, 0] to negative
+stc.data[phase < 0] *= -1
+
+# plot the timecourse direction
+fmax = 15000
+brain = stc.plot(
+    subjects_dir=subjects_dir,
+    hemi='both',
+    views='dorsal',
+    brain_kwargs=dict(show=False),
+    add_data_kwargs=dict(fmin=fmax / 10, fmid=fmax / 2, fmax=fmax,
+                         scale_factor=0.0001,
+                         colorbar_kwargs=dict(label_font_size=10))
+)
+
+# You can save a movie like the one on our documentation website with:
+# brain.save_movie(framerate=12, time_dilation=10,
+#                  interpolation='linear', time_viewer=True)
+
+# %%
 # We can also view the phase for each time-frequency source time course.
 # Before, we computed the the direction of the activity but this would
 # give us three independent phase estimates for the
 # ``x``, ``y`` and ``z`` directions, which we don't want. Instead, we'll
 # use the phase from the maximum power orientation which is a more
 # sensible way to determine a single phase at each frequency over time.
-
-# sphinx_gallery_thumbnail_number = 4
 
 # use the maximum power orientation for phase
 filters = make_dics(epochs.info, fwd, csd, noise_csd=baseline_csd,
