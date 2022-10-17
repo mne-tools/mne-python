@@ -1,4 +1,4 @@
-#!/bin/bash -e -o pipefail
+#!/bin/bash -eo pipefail
 
 if [ "$CIRCLE_BRANCH" == "main" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
     echo "Doing a full dev build";
