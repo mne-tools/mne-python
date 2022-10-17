@@ -634,6 +634,11 @@ def test_apply_dics_tfr(return_generator):
         epochs_tfr_real.data = epochs_tfr_real.data.real
         stcs = apply_dics_tfr_epochs(epochs_tfr_real, filters)
 
+    filters_vector = filters.copy()
+    filters_vector['pick_ori'] = 'vector'
+    with pytest.warns(match='vector solution'):
+        apply_dics_tfr_epochs(epochs_tfr, filters_vector)
+
 
 def _cov_as_csd(cov, info):
     rng = np.random.RandomState(0)

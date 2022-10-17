@@ -12,7 +12,7 @@ from ..channels import equalize_channels
 from ..io.pick import pick_info, pick_channels
 from ..utils import (logger, verbose, _check_one_ch_type,
                      _check_channels_spatial_filter, _check_rank,
-                     _check_option, _validate_type)
+                     _check_option, _validate_type, warn)
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
 from ..rank import compute_rank
@@ -469,6 +469,13 @@ def apply_dics_tfr_epochs(epochs_tfr, filters, return_generator=False,
     """ # noqa E501
     _validate_type(epochs_tfr, EpochsTFR)
     _check_tfr_complex(epochs_tfr)
+
+    if filters['pick_ori'] == 'vector':
+        warn('Using a vector solution to compute power will lead to '
+             'inaccurate directions (only in the first quadrent) '
+             'because power is a strictly positive (squared) metric. '
+             'Using singular value decomposition (SVD) to determine '
+             'the direction is not yet supported in MNE.')
 
     sel = _check_channels_spatial_filter(epochs_tfr.ch_names, filters)
     data = epochs_tfr.data[:, sel, :, :]
