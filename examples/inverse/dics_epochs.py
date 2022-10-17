@@ -48,11 +48,9 @@ events = mne.find_events(raw)[:3]
 epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2,
                     preload=True)
 
-# We are mostly interested in the beta band since beta desynchronization
-# (decrease in power) and a subsequent rebound has been strongly and repeatedly
-# linked to movement onset. Let's look at three frequencies in the beta band
-# for this example.
-freqs = np.array([15, 30])
+# We are mostly interested in the beta band since it has been shown to be
+# active for somatosensory stimulation
+freqs = np.array([15, 21])
 
 # Use Morlet wavelets to compute sensor-level time-frequency (TFR)
 # decomposition for each epoch. We must pass ``output='complex'`` if we wish to
@@ -88,7 +86,7 @@ epochs_stcs = apply_dics_tfr_epochs(
 # primary somatosensory and motor cortices (S1 and M1), this activation
 # varies quite a bit trial-to-trial.
 
-fig, axes = plt.subplots(len(freqs), len(events), figsize=(12, 8))
+fig, axes = plt.subplots(len(freqs), len(epochs), figsize=(12, 8))
 fig.suptitle('Somato dataset beta activation')
 
 # iterate over the list of lists (epochs outer list)
@@ -99,19 +97,27 @@ for i, stcs in enumerate(epochs_stcs):
     # iterate over frequencies (inner list)
     for j, stc in enumerate(stcs):
 
+        # compute phase
+        phase = np.angle(stc.data)
+
         # convert from complex time-frequency to power
         stc.data = (stc.data * np.conj(stc.data)).real
 
         # apply a baseline correction
-        stc.apply_baseline((-1, 0))
+        stc.apply_baseline((-1.5, 0))
+
+        # definte power directionally by assigning [0, pi] to positive
+        # and [-pi, 0] to negative
+        stc.data[phase < 0] *= -1
 
         # plot the timecourse direction
+        fmax = 10000
         brain = stc.plot(
             subjects_dir=subjects_dir,
             hemi='both',
             initial_time=0.7,
             brain_kwargs=dict(show=False),
-            add_data_kwargs=dict(fmin=2000, fmid=5000, fmax=10000,
+            add_data_kwargs=dict(fmin=fmax / 10, fmid=fmax / 2, fmax=fmax,
                                  scale_factor=0.001,
                                  colorbar_kwargs=dict(label_font_size=10))
         )
@@ -134,6 +140,8 @@ fig.tight_layout()
 # ``x``, ``y`` and ``z`` directions, which we don't want. Instead, we'll
 # use the phase from the maximum power orientation which is a more
 # sensible way to determine a single phase at each frequency over time.
+
+# sphinx_gallery_thumbnail_number = 4
 
 # use the maximum power orientation for phase
 filters = make_dics(epochs.info, fwd, csd, noise_csd=baseline_csd,
