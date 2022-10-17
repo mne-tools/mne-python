@@ -1,4 +1,4 @@
-#!/bin/bash -ef
+#!/bin/bash -eo pipefail
 
 if [ "${DEPS}" == "minimal" ]; then
 	return 0 2>/dev/null || exit "0"
