@@ -754,6 +754,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         spectrum : instance of Spectrum
             The spectral representation of the data.
 
+        Notes
+        -----
+        .. versionadded:: 1.2
+
         References
         ----------
         .. footbibliography::
