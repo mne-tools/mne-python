@@ -135,6 +135,46 @@ for i, stcs in enumerate(epochs_stcs):
 fig.tight_layout()
 
 # %%
+# Let's view the full time course for one stc.
+
+# sphinx_gallery_thumbnail_number = 4
+
+# project the TFR for each epoch to source space
+epochs_stcs = apply_dics_tfr_epochs(
+    epochs_tfr, filters, return_generator=True)
+
+stc = epochs_stcs[0][0]
+
+# compute phase
+phase = np.angle(stc.data)
+
+# convert from complex time-frequency to power
+stc.data = (stc.data * np.conj(stc.data)).real
+
+# apply a baseline correction
+stc.apply_baseline((-0.5, -0.1))
+
+# define power directionally by assigning [0, pi] to positive
+# and [-pi, 0] to negative
+stc.data[phase < 0] *= -1
+
+# plot the timecourse direction
+fmax = 15000
+brain = stc.plot(
+    subjects_dir=subjects_dir,
+    hemi='both',
+    views='dorsal',
+    brain_kwargs=dict(show=False),
+    add_data_kwargs=dict(fmin=fmax / 10, fmid=fmax / 2, fmax=fmax,
+                         scale_factor=0.0001,
+                         colorbar_kwargs=dict(label_font_size=10))
+)
+
+# You can save a movie like the one on our documentation website with:
+# brain.save_movie(framerate=12, time_dilation=10,
+#                  interpolation='linear', time_viewer=True)
+
+# %%
 # We can also view the phase for each time-frequency source time course.
 # single phase at each frequency over time.
 
