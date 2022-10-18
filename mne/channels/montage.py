@@ -242,7 +242,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
         The coordinate frame of the points. Usually this is ``'unknown'``
         for native digitizer space.
         Other valid values are: ``'head'``, ``'meg'``, ``'mri'``,
-        ``'mri_voxel'``, ``'mri_tal'``, ``'ras'``, ``'fs_tal'``,
+        ``'mri_voxel'``, ``'mni_tal'``, ``'ras'``, ``'fs_tal'``,
         ``'ctf_head'``, and ``'ctf_meg'``.
 
         .. note::

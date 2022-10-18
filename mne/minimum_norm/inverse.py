@@ -1502,16 +1502,11 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     constrained_inverse = any(v < 1. for v in loose.values())
 
     # We only support fixed orientations for surface and discrete source
-    # spaces. Not volume or mixed.
-    if fixed_inverse:
-        if len(loose) > 1:  # Mixed source space
-            raise ValueError('Computing inverse solutions for mixed source '
-                             'spaces with fixed orientations is not '
-                             'supported.')
-        if 'volume' in loose:
-            raise ValueError('Computing inverse solutions for volume source '
-                             'spaces with fixed orientations is not '
-                             'supported.')
+    # spaces, not volume.
+    if fixed_inverse and 'volume' in loose:
+        raise ValueError('Computing inverse solutions for volume source '
+                         'spaces with fixed orientations is not '
+                         'supported.')
     if loose.get('volume', 1) < 1:
         raise ValueError('Computing inverse solutions with restricted '
                          'orientations (loose < 1) is not supported for '

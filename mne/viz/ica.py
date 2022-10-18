@@ -455,6 +455,7 @@ def _fast_plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     else:
         kind, dropped_indices, epochs_src, data = _prepare_data_ica_properties(
             inst, ica, reject_by_annotation, reject)
+    del reject
     ica_data = np.swapaxes(data[:, picks, :], 0, 1)
     dropped_src = ica_data
 
@@ -555,7 +556,7 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True,
         # when auto, delegate reject to the ica
         from ..epochs import make_fixed_length_epochs
         if reject == 'auto':
-            reject = getattr(ica, 'reject_', None)
+            reject = ica.reject_
         if reject is None:
             drop_inds = None
             dropped_indices = []
@@ -569,7 +570,7 @@ def _prepare_data_ica_properties(inst, ica, reject_by_annotation=True,
                 verbose=False)
         else:
             data = inst.get_data()
-            data, drop_inds = _reject_data_segments(data, ica.reject_,
+            data, drop_inds = _reject_data_segments(data, reject,
                                                     flat=None, decim=None,
                                                     info=inst.info,
                                                     tstep=2.0)

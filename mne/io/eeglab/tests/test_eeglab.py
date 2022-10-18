@@ -116,13 +116,13 @@ def test_io_set_raw_more(tmp_path):
 
     # test reading file with one event (read old version)
     negative_latency_fname = op.join(tmp_path, 'test_negative_latency.set')
-    evnts = deepcopy(eeg.event[0])
-    evnts.latency = 0
+    events = deepcopy(eeg.event[0])
+    events.latency = 0
     io.savemat(negative_latency_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
                         'nbchan': eeg.nbchan,
                         'data': 'test_negative_latency.fdt',
-                        'epoch': eeg.epoch, 'event': evnts,
+                        'epoch': eeg.epoch, 'event': events,
                         'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
                appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
@@ -131,12 +131,12 @@ def test_io_set_raw_more(tmp_path):
         read_raw_eeglab(input_fname=negative_latency_fname, preload=True)
 
     # test negative event latencies
-    evnts.latency = -1
+    events.latency = -1
     io.savemat(negative_latency_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
                         'nbchan': eeg.nbchan,
                         'data': 'test_negative_latency.fdt',
-                        'epoch': eeg.epoch, 'event': evnts,
+                        'epoch': eeg.epoch, 'event': events,
                         'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
                appendmat=False, oned_as='row')
     with pytest.raises(ValueError, match='event sample index is negative'):
@@ -158,15 +158,15 @@ def test_io_set_raw_more(tmp_path):
 
     # test reading file with empty event durations
     empty_dur_fname = op.join(tmp_path, 'test_empty_durations.set')
-    evnts = deepcopy(eeg.event)
-    for ev in evnts:
+    events = deepcopy(eeg.event)
+    for ev in events:
         ev.duration = np.array([], dtype='float')
 
     io.savemat(empty_dur_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
                         'nbchan': eeg.nbchan,
                         'data': 'test_negative_latency.fdt',
-                        'epoch': eeg.epoch, 'event': evnts,
+                        'epoch': eeg.epoch, 'event': events,
                         'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
                appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),

@@ -257,8 +257,8 @@ epochs = mne.Epochs(raw, events, tmin=-0.2, tmax=0.5, reject_tmax=0,
 epochs.plot_drop_log()
 
 # %%
-# More importantly, note that *many* more epochs are rejected (~20% instead of
-# ~2.5%) when rejecting based on the blink labels, underscoring why it is
+# More importantly, note that *many* more epochs are rejected (~12.2% instead
+# of ~2.5%) when rejecting based on the blink labels, underscoring why it is
 # usually desirable to repair artifacts rather than exclude them.
 #
 # The :meth:`~mne.Epochs.plot_drop_log` method is a visualization of an
