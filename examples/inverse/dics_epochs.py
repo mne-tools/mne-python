@@ -164,7 +164,7 @@ brain = stc.plot(
 )
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(framerate=12, time_dilation=10,
+# brain.save_movie(framerate=12, time_dilation=10, tmin=-0.5, tmax=1,
 #                  interpolation='linear', time_viewer=True)
 
 # %%
@@ -201,5 +201,5 @@ brain.show_view(azimuth=-40, elevation=35, distance=300,
                 focalpoint=(0, 0, 0))
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=30, tmin=0.875, tmax=0.95,
+# brain.save_movie(time_dilation=50, tmin=0.875, tmax=0.975,
 #                  interpolation='linear', time_viewer=True)
