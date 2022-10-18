@@ -2020,6 +2020,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         spectrum : instance of EpochsSpectrum
             The spectral representation of each epoch.
 
+        Notes
+        -----
+        .. versionadded:: 1.2
+
         References
         ----------
         .. footbibliography::
