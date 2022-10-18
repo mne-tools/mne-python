@@ -164,7 +164,7 @@ brain = stc.plot(
 )
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(framerate=12, time_dilation=10, tmin=-0.5, tmax=1,
+# brain.save_movie(framerate=12, time_dilation=10, tmin=-0.45, tmax=0.99,
 #                  interpolation='linear', time_viewer=True)
 
 # %%
