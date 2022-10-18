@@ -143,20 +143,13 @@ fig.tight_layout()
 epochs_stcs = apply_dics_tfr_epochs(
     epochs_tfr, filters, return_generator=True)
 
-stc = epochs_stcs[0][0]
-
-# compute phase
-phase = np.angle(stc.data)
+stc = next(epochs_stcs)[0]
 
 # convert from complex time-frequency to power
 stc.data = (stc.data * np.conj(stc.data)).real
 
 # apply a baseline correction
 stc.apply_baseline((-0.5, -0.1))
-
-# define power directionally by assigning [0, pi] to positive
-# and [-pi, 0] to negative
-stc.data[phase < 0] *= -1
 
 # plot the timecourse direction
 fmax = 15000
