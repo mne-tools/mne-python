@@ -10,9 +10,9 @@ from ..parallel import parallel_func
 from ..utils import logger, verbose, deprecated, _check_option
 
 _psd_deprecation_msg = (
-    'Function psd_{0}() is deprecated; for Raw/Epochs/Evoked instances use '
-    'spectrum = instance.compute_psd(method="{0}") instead, followed by '
-    'spectrum.get_data(return_freqs=True).')
+    'Function ``psd_{0}()`` is deprecated; for Raw/Epochs/Evoked instances '
+    'use ``spectrum = instance.compute_psd(method="{0}")`` instead, followed '
+    'by ``spectrum.get_data(return_freqs=True)``')
 
 
 # adapted from SciPy
