@@ -131,15 +131,15 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
     Parameters
     ----------
     x_mt : array, shape=(n_signals, n_tapers, n_freqs)
-       The DFTs of the tapered sequences (only positive frequencies)
+        The DFTs of the tapered sequences (only positive frequencies)
     eigvals : array, length n_tapers
-       The eigenvalues of the DPSS tapers
+        The eigenvalues of the DPSS tapers
     freq_mask : array
         Frequency indices to keep
     max_iter : int
-       Maximum number of iterations for weight computation
+        Maximum number of iterations for weight computation.
     return_weights : bool
-       Also return the weights
+        Also return the weights
 
     Returns
     -------
@@ -366,7 +366,8 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
 @verbose
 def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
                          adaptive=False, low_bias=True, normalization='length',
-                         output='power', n_jobs=None, verbose=None):
+                         output='power', n_jobs=None, *, max_iter=150,
+                         verbose=None):
     r"""Compute power spectral density (PSD) using a multi-taper method.
 
     The power spectral density is computed with DPSS
@@ -397,6 +398,7 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
         If ``output='complex'``, the complex fourier coefficients are returned
         per taper.
     %(n_jobs)s
+    %(max_iter_multitaper)s
     %(verbose)s
 
     Returns
@@ -463,8 +465,10 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
                 parallel, my_psd_from_mt_adaptive, n_jobs = \
                     parallel_func(_psd_from_mt_adaptive, n_jobs)
                 n_splits = min(stop - start, n_jobs)
-                out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
-                               for x in np.array_split(x_mt, n_splits))
+                out = parallel(
+                    my_psd_from_mt_adaptive(x, eigvals, freq_mask, max_iter)
+                    for x in np.array_split(x_mt, n_splits)
+                )
                 psd[start:stop] = np.concatenate(out)
         else:
             psd[start:stop] = x_mt[:, :, freq_mask]
