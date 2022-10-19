@@ -85,7 +85,7 @@ filters = make_dics(epochs.info, fwd, csd, noise_csd=baseline_csd,
 epochs_stcs = apply_dics_tfr_epochs(
     epochs_tfr, filters, return_generator=True)
 
-# average accross frequencies and epochs
+# average across frequencies and epochs
 data = None
 for epoch_stcs in epochs_stcs:
     for stc in epoch_stcs:
