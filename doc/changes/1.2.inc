@@ -16,6 +16,16 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
+.. _changes_1_2_1:
+
+Version 1.2.1 (2022-10-19)
+--------------------------
+
+Bugs
+----
+- Fix bug in the ``.compute_psd()`` methods where the number of unaggregated Welch segments was wrongly computed for some inputs, leading to an assertion error when computing the PSD (:gh:`11248` by `Daniel McCloy`_)
+
+
 .. _changes_1_2_0:
 
 Version 1.2.0 (2022-10-11)
