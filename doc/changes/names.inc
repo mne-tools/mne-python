@@ -202,8 +202,6 @@
 
 .. _Jean-Remi King: https://github.com/kingjr
 
-.. _Jeff Hanna: https://github.com/jshanna100
-
 .. _Jeff Stout: https://megcore.nih.gov/index.php/Staff
 
 .. _Jeroen Van Der Donckt: https://github.com/jvdd
