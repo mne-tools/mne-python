@@ -472,8 +472,8 @@ def _make_head_outlines(sphere, pos, outlines, clip_origin):
         if outlines is not None:
             # Define the outline of the head, ears and nose
             outlines_dict = dict(head=(head_x, head_y), nose=(nose_x, nose_y),
-                                 ear_left=(ear_x + x, ear_y),
-                                 ear_right=(-ear_x + x, ear_y))
+                                 ear_left=(-ear_x + x, ear_y),
+                                 ear_right=(ear_x + x, ear_y))
         else:
             outlines_dict = dict()
 
