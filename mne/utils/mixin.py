@@ -501,7 +501,6 @@ class TimeMixin(object):
                 t_var,
                 types=("numeric", None),
                 item_name=name,
-                type_name="int, float, None",
             )
 
         if tmin is None:
