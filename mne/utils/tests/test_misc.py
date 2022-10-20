@@ -54,8 +54,11 @@ raise RuntimeError('This is a test')
     with open(fname, 'w') as fid:
         fid.write(f"""\
 import sys
+import time
 print('foo', file=sys.{kind})
 print('bar', file=sys.{kind})
+sys.{kind}.flush()
+time.sleep(0.02)
 """ + extra)
     with catch_logging() as log, raise_context:
         stdout, stderr = run_subprocess(
