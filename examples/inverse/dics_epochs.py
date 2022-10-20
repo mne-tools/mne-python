@@ -104,8 +104,6 @@ stc.apply_baseline((-0.5, -0.1))
 # expected activation of the two gyri bordering the central sulcus, the
 # primary somatosensory and motor cortices (S1 and M1).
 
-# sphinx_gallery_thumbnail_number = 3
-
 fmax = 4500
 brain = stc.plot(
     subjects_dir=subjects_dir,
@@ -118,5 +116,5 @@ brain = stc.plot(
 )
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(time_dilation=10, tmin=-0.45, tmax=1.5,
-#                  interpolation='linear', time_viewer=True)
+# brain.save_movie(tmin=0.4, tmax=1.5, interpolation='linear',
+#                  time_viewer=True)
