@@ -545,8 +545,6 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         * ``'avg_power_itc'`` : average of single trial power and inter-trial
           coherence across trials.
     %(n_jobs)s
-        The number of epochs to process at the same time. The parallelization
-        is implemented across channels. Defaults to 1.
     %(verbose)s
 
     Returns
