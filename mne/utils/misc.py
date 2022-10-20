@@ -4,7 +4,7 @@
 #
 # License: BSD-3-Clause
 
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 import fnmatch
 import gc
 import inspect
@@ -122,13 +122,17 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
     # non-blocking adapted from https://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python#4896288  # noqa: E501
     out_q = Queue()
     err_q = Queue()
-    with running_subprocess(command, *args, **kwargs) as p, p.stdout, p.stderr:
-        out_t = Thread(target=_enqueue_output, args=(p.stdout, out_q))
-        err_t = Thread(target=_enqueue_output, args=(p.stderr, err_q))
-        out_t.daemon = True
-        err_t.daemon = True
-        out_t.start()
-        err_t.start()
+    control_stdout = 'stdout' not in kwargs
+    control_stderr = 'stderr' not in kwargs
+    with running_subprocess(command, *args, **kwargs) as p:
+        if control_stdout:
+            out_t = Thread(target=_enqueue_output, args=(p.stdout, out_q))
+            out_t.daemon = True
+            out_t.start()
+        if control_stderr:
+            err_t = Thread(target=_enqueue_output, args=(p.stderr, err_q))
+            err_t.daemon = True
+            err_t.start()
         while True:
             do_break = p.poll() is not None
             # read all current lines without blocking
@@ -193,12 +197,10 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
     if return_code:
         output = output + (p.returncode,)
     elif p.returncode:
-        print(output)
-        err_fun = subprocess.CalledProcessError.__init__
-        if 'output' in inspect.signature(err_fun).parameters:
-            raise subprocess.CalledProcessError(p.returncode, command, output)
-        else:
-            raise subprocess.CalledProcessError(p.returncode, command)
+        stdout = all_out if control_stdout else None
+        stderr = all_err if control_stderr else None
+        raise subprocess.CalledProcessError(
+            p.returncode, command, output=stdout, stderr=stderr)
 
     return output
 
@@ -230,9 +232,11 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     """
     _validate_type(after, str, 'after')
     _check_option('after', after, ['wait', 'terminate', 'kill', 'communicate'])
-    for stdxxx, sys_stdxxx in (['stderr', sys.stderr], ['stdout', sys.stdout]):
+    contexts = list()
+    for stdxxx in ('stderr', 'stdout'):
         if stdxxx not in kwargs:
             kwargs[stdxxx] = subprocess.PIPE
+            contexts.append(stdxxx)
 
     # Check the PATH environment variable. If run_subprocess() is to be called
     # frequently this should be refactored so as to only check the path once.
@@ -258,7 +262,10 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
         logger.error('Command not found: %s' % command_name)
         raise
     try:
-        yield p
+        with ExitStack() as stack:
+            for context in contexts:
+                stack.enter_context(getattr(p, context))
+            yield p
     finally:
         getattr(p, after)()
         p.wait()
