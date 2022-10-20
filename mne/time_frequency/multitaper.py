@@ -490,31 +490,40 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
 
 @verbose
 def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
-                         zero_mean=True, time_bandwidth=None, use_fft=True,
-                         decim=1, output='complex', n_jobs=None,
+                         zero_mean=True, time_bandwidth=4.0, use_fft=True,
+                         decim=1, output='complex', n_jobs=None, *,
                          verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
     Same computation as `~mne.time_frequency.tfr_multitaper`, but operates on
-    :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` objects.
+    :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` or
+    `~mne.Evoked` objects.
 
     Parameters
     ----------
     epoch_data : array of shape (n_epochs, n_channels, n_times)
         The epochs.
-    sfreq : float | int
-        Sampling frequency of the data.
+    sfreq : float
+        Sampling frequency of the data in Hz.
     freqs : array-like of float, shape (n_freqs,)
-        The frequencies.
-    n_cycles : float | array of float
-        Number of cycles in the wavelet. Fixed number or one per
-        frequency. Defaults to 7.0.
+        The frequencies of interest in Hz.
+    n_cycles : int | array of int
+        Number of cycles in the wavelet, either a fixed number or one per
+        frequency. The number of cycles ``n_cycles`` and the frequencies of
+        interest ``freqs`` define the time-window length. See notes for
+        additional information about the relationship between those arguments
+        and about time and frequency smoothing.
     zero_mean : bool
         If True, make sure the wavelets have a mean of zero. Defaults to True.
     time_bandwidth : float
-        If None, will be set to 4.0 (3 tapers). Time x (Full) Bandwidth
-        product. The number of good tapers (low-bias) is chosen automatically
-        based on this to equal floor(time_bandwidth - 1). Defaults to None.
+        Time x (Full) Bandwidth product. Should be ``≥ 2.0``.
+        Choose this along with ``n_cycles`` to set the desired frequency
+        resolution. The number of good tapers (least leakage from far away
+        frequencies) is chosen automatically based on this to
+        floor ``time_bandwidth - 1``.
+        For example, with ``freq = 20 Hz`` and ``n_cycles = 10``, we get
+        ``time = 0.5 s``. If ``time_bandwidth = 4.``, then frequency smoothing
+        is ``(4 / time) = 8 Hz``.
     use_fft : bool
         Use the FFT for convolutions or not. Defaults to True.
     decim : int | slice
@@ -528,12 +537,12 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
             is done after the convolutions.
     output : str, default 'complex'
 
-        * 'complex' : single trial per taper complex values.
-        * 'power' : single trial power.
-        * 'phase' : single trial per taper phase.
-        * 'avg_power' : average of single trial power.
-        * 'itc' : inter-trial coherence.
-        * 'avg_power_itc' : average of single trial power and inter-trial
+        * ``'complex'`` : single trial per taper complex values.
+        * ``'power'`` : single trial power.
+        * ``'phase'`` : single trial per taper phase.
+        * ``'avg_power'`` : average of single trial power.
+        * ``'itc'`` : inter-trial coherence.
+        * ``'avg_power_itc'`` : average of single trial power and inter-trial
           coherence across trials.
     %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
@@ -561,7 +570,34 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     Notes
     -----
+    Time-frequency representations are computed using a sliding time-window.
+    Either the time-window has a fixed length independent of frequency, or the
+    time-window decreases in length with increased frequency.
+
+    .. image:: _static/diagrams/tfr.png
+
+    *Figure: Time and frequency smoothing. (a) For a fixed length time window
+    the time and frequency smoothing remains fixed. (b) For time windows that
+    decrease with frequency, the temporal smoothing decreases and the frequency
+    smoothing increases. Source: `FieldTrip tutorial <FT_tut_>`_.*
+
+    In MNE, the time-window length is defined by the arguments ``freqs`` and
+    ``n_cycles`` respectively defining the frequencies of interest and the
+    number of cycles:
+
+    :math:`T = n_cycles / freqs`
+
+    A fixed number of cycles for all frequencies will yield a time-window which
+    decreases with frequency. For example, ``freqs=np.arange(1., 6., 2.)`` and
+    ``n_cycles=2`` yields ``T=array([2. , 0.7, 0.4])``.
+
+    To use a fixed length time-window, the number of cycles has to be defined
+    based on the frequency. For example, ``freqs=np.arange(1., 6., 2.)`` and
+    ``n_cycles=freqs/2`` yields ``T=array([0.5, 0.5, 0.5])``.
+
     .. versionadded:: 0.14.0
+
+    .. _FT_tut: https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis
     """
     from .tfr import _compute_tfr
     return _compute_tfr(epoch_data, freqs, sfreq=sfreq,

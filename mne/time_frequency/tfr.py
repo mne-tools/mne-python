@@ -836,11 +836,11 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
 @verbose
 def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                    use_fft=True, return_itc=True, decim=1,
-                   n_jobs=None, picks=None, average=True, verbose=None):
+                   n_jobs=None, picks=None, average=True, *, verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
     Same computation as `~mne.time_frequency.tfr_array_multitaper`, but
-    operates on `~mne.Epochs` objects instead of
+    operates on `~mne.Epochs` or `~mne.Evoked` objects instead of
     :class:`NumPy arrays <numpy.ndarray>`.
 
     Parameters
@@ -848,7 +848,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     inst : Epochs | Evoked
         The epochs or evoked object.
     freqs : ndarray, shape (n_freqs,)
-        The frequencies in Hz.
+        The frequencies of interest in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
         The time-window length is thus T = n_cycles / freq.
