@@ -495,6 +495,15 @@ class TimeMixin(object):
         -----
         %(notes_tmax_included_by_default)s
         """
+        t_vars = dict(tmin=tmin, tmax=tmax)
+        for name, t_var in t_vars.items():
+            _validate_type(
+                t_var,
+                types=("numeric", None),
+                item_name=name,
+                type_name="int, float, None",
+            )
+
         if tmin is None:
             tmin = self.tmin
         elif tmin < self.tmin:
