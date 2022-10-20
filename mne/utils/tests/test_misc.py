@@ -67,6 +67,7 @@ print('bar', file=sys.{kind})
     log = log.getvalue()
     log = '\n'.join(log.split('\n')[1:])  # get rid of header
     log = log.replace('\r\n', '\n')  # Windows
+    orig_log = log
     stdout = stdout.replace('\r\n', '\n')
     stderr = stderr.replace('\r\n', '\n')
     if do_raise:  # remove traceback
@@ -85,7 +86,7 @@ print('bar', file=sys.{kind})
         if stderr:
             stderr += '\n'
     want = 'foo\nbar\n'
-    assert log == want
+    assert log == want, orig_log
     if kind == 'stdout':
         std = stdout
         other = stderr
