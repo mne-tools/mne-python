@@ -75,12 +75,12 @@ def _min_range(data):
     return this_range, this_min
 
 
-class SourceEstimateViewer(SliceBrowser):
+class VolSourceEstimateViewer(SliceBrowser):
     """View a source estimate time-course time-frequency visualization."""
 
     def __init__(self, data, subject=None, subjects_dir=None, src=None,
                  inst=None, show=True, verbose=None):
-        _require_version('dipy', 'SourceEstimateViewer', '0.10.1')
+        _require_version('dipy', 'VolSourceEstimateViewer', '0.10.1')
         if src is None:
             raise NotImplementedError('`src` is required, surface source '
                                       'estimate viewing is not yet supported')
@@ -146,7 +146,7 @@ class SourceEstimateViewer(SliceBrowser):
         stc_data_vol = self._pick_stc_tfr(stc_data_vol)
         self._stc_img = _make_vol(self._src_lut, stc_data_vol)
 
-        super(SourceEstimateViewer, self).__init__(
+        super(VolSourceEstimateViewer, self).__init__(
             subject=subject, subjects_dir=subjects_dir)
 
         if src._subject != op.basename(self._subject_dir):
@@ -402,7 +402,7 @@ class SourceEstimateViewer(SliceBrowser):
         hbox.addWidget(self._intensity_label)
 
         # add SliceBrowser navigation items
-        hbox = super(SourceEstimateViewer, self)._configure_status_bar(
+        hbox = super(VolSourceEstimateViewer, self)._configure_status_bar(
             hbox=hbox)
         return hbox
 

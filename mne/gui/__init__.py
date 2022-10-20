@@ -270,17 +270,17 @@ def view_stc(array, subject=None, subjects_dir=None, src=None,
 
     Returns
     -------
-    gui : instance of SourceEstimateViewer
+    gui : instance of VolSourceEstimateViewer
         The graphical user interface (GUI) window.
     """
     from ..viz.backends._utils import _qt_app_exec
-    from ._stc import SourceEstimateViewer
+    from ._stc import VolSourceEstimateViewer
     from qtpy.QtWidgets import QApplication
     # get application
     app = QApplication.instance()
     if app is None:
         app = QApplication(['Source Estimate Viewer'])
-    gui = SourceEstimateViewer(
+    gui = VolSourceEstimateViewer(
         array, subject=subject, subjects_dir=subjects_dir,
         src=src, inst=inst, show=show,
         verbose=verbose)
@@ -298,13 +298,13 @@ class _GUIScraper(object):
     def __call__(self, block, block_vars, gallery_conf):
         from ._ieeg_locate import IntracranialElectrodeLocator
         from ._coreg import CoregistrationUI
-        from ._stc import SourceEstimateViewer
+        from ._stc import VolSourceEstimateViewer
         from sphinx_gallery.scrapers import figure_rst
         from qtpy import QtGui
         for gui in block_vars['example_globals'].values():
             if (isinstance(gui, (IntracranialElectrodeLocator,
                                  CoregistrationUI,
-                                 SourceEstimateViewer)) and
+                                 VolSourceEstimateViewer)) and
                     not getattr(gui, '_scraped', False) and
                     gallery_conf['builder_name'] == 'html'):
                 gui._scraped = True  # monkey-patch but it's easy enough
