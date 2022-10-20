@@ -63,7 +63,7 @@ def _fake_stc(src_type='vol'):
 @pytest.fixture
 def _stc_viewer(renderer_interactive_pyvistaqt):
     from qtpy.QtWidgets import QApplication
-    from mne.gui._stc import SourceEstimateViewer
+    from mne.gui._stc import VolSourceEstimateViewer
     app = QApplication.instance()
     if app is None:
         app = QApplication(["Source Estimate Viewer"])
@@ -73,7 +73,7 @@ def _stc_viewer(renderer_interactive_pyvistaqt):
 
     def fun(*args, **kwargs):
         with pytest.warns(RuntimeWarning, match='`pial` surface not found'):
-            guis.append(SourceEstimateViewer(*args, **kwargs))
+            guis.append(VolSourceEstimateViewer(*args, **kwargs))
         return guis[-1]
 
     yield fun
