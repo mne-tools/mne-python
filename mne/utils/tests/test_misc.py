@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 
+import numpy as np
 import pytest
 
 import mne
@@ -69,8 +70,18 @@ print('bar', file=sys.{kind})
     stdout = stdout.replace('\r\n', '\n')
     stderr = stderr.replace('\r\n', '\n')
     if do_raise:  # remove traceback
-        log = '\n'.join(log.split('\n')[:2]) + '\n'
-        stderr = '\n'.join(stderr.split('\n')[:-5])
+        tb_line = np.where(
+            [line.startswith('Traceback') for line in log.split('\n')])[0]
+        assert len(tb_line) == 1
+        tb_line = tb_line[0]
+        log = '\n'.join(log.split('\n')[:tb_line])
+        if log:
+            log += '\n'
+        tb_line = np.where(
+            [line.startswith('Traceback') for line in stderr.split('\n')])[0]
+        assert len(tb_line) == 1
+        tb_line = tb_line[0]
+        stderr = '\n'.join(stderr.split('\n')[:tb_line])
         if stderr:
             stderr += '\n'
     want = 'foo\nbar\n'
