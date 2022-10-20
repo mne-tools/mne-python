@@ -577,7 +577,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
     *Figure: Time and frequency smoothing. (a) For a fixed length time window
     the time and frequency smoothing remains fixed. (b) For time windows that
     decrease with frequency, the temporal smoothing decreases and the frequency
-    smoothing increases.
+    smoothing increases.*
     Source: `FieldTrip tutorial <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
 
     In MNE, the time-window length is defined by the arguments ``freqs`` and
