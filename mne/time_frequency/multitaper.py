@@ -505,7 +505,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         The epochs.
     sfreq : float
         Sampling frequency of the data in Hz.
-    freqs : array-like of float, shape (n_freqs,)
+    freqs : array of float, shape (n_freqs,)
         The frequencies of interest in Hz.
     n_cycles : int | array of int
         Number of cycles in the wavelet, either a fixed number or one per
