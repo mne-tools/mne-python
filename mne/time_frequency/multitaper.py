@@ -584,16 +584,14 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     In MNE, the time-window length is defined by the arguments ``freqs`` and
     ``n_cycles`` respectively defining the frequencies of interest and the
-    number of cycles:
-
-    :math:`T = n_cycles / freqs`
+    number of cycles: :math:`T = n_{cycles} / freqs`
 
     A fixed number of cycles for all frequencies will yield a time-window which
-    decreases with frequency. For example, ``freqs=np.arange(1., 6., 2.)`` and
+    decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
     ``n_cycles=2`` yields ``T=array([2. , 0.7, 0.4])``.
 
     To use a fixed length time-window, the number of cycles has to be defined
-    based on the frequency. For example, ``freqs=np.arange(1., 6., 2.)`` and
+    based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
     ``n_cycles=freqs/2`` yields ``T=array([0.5, 0.5, 0.5])``.
 
     .. versionadded:: 0.14.0
