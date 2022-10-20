@@ -597,7 +597,6 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
     ``n_cycles=freqs/2`` yields ``T=array([0.5, 0.5, 0.5])``.
 
     .. versionadded:: 0.14.0
-
     """
     from .tfr import _compute_tfr
     return _compute_tfr(epoch_data, freqs, sfreq=sfreq,
