@@ -64,6 +64,8 @@
 
 .. _buildqa: https://github.com/buildqa
 
+.. _Carlos de la Torre-Ortiz: http://ctorre.me
+
 .. _Carina Forster: https://github.com/carinafo
 
 .. _Cathy Nangini: https://github.com/KatiRG
