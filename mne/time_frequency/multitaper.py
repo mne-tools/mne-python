@@ -578,7 +578,8 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
     the time and frequency smoothing remains fixed. (b) For time windows that
     decrease with frequency, the temporal smoothing decreases and the frequency
     smoothing increases.*
-    Source: `FieldTrip tutorial <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
+    Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
+    multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
 
     In MNE, the time-window length is defined by the arguments ``freqs`` and
     ``n_cycles`` respectively defining the frequencies of interest and the
@@ -590,7 +591,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     To use a fixed length time-window, the number of cycles has to be defined
     based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
-    ``n_cycles=freqs/2`` yields ``T=array([0.5, 0.5, 0.5])``.
+    ``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``.
 
     .. versionadded:: 0.14.0
     """  # noqa: E501
