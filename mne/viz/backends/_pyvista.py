@@ -26,7 +26,7 @@ from ._utils import (_get_colormap_from_array, _alpha_blend_background,
 from ...fixes import _point_data, _cell_data, _compare_version
 from ...transforms import apply_trans
 from ...utils import (copy_base_doc_to_subclass_doc, _check_option,
-                      _require_version, _validate_type)
+                      _require_version, _validate_type, warn)
 
 
 with warnings.catch_warnings():
@@ -1206,4 +1206,16 @@ def _is_mesa(plotter):
     # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
     gpu_info = plotter.ren_win.ReportCapabilities()
     gpu_info = re.findall("OpenGL renderer string:(.+)\n", gpu_info)
-    return ' mesa ' in ' '.join(gpu_info).lower().split()
+    gpu_info = ' '.join(gpu_info).lower()
+    is_mesa = 'mesa' in gpu_info.split()
+    if is_mesa:
+        # Try to warn if it's ancient
+        version = re.findall("mesa ([0-9.]+) .*", gpu_info)
+        if version:
+            version = version[0]
+            if _compare_version(version, '<', '18.3.6'):
+                warn('Mesa version %s is too old for translucent 3D surface '
+                     'rendering, consider upgrading to 18.3.6 or later')
+        else:
+            raise RuntimeError
+    return is_mesa

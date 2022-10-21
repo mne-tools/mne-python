@@ -202,3 +202,20 @@ def test_set_3d_backend_bad(monkeypatch, tmp_path):
     assert get_3d_backend() is None
     with pytest.raises(RuntimeError, match=match):
         _get_renderer()
+
+
+def test_3d_warning(renderer_pyvistaqt, monkeypatch):
+    """Test that warnings are emitted for old Mesa."""
+    fig = renderer_pyvistaqt.create_3d_figure((800, 600))
+    _is_mesa = renderer_pyvistaqt.backend._is_mesa
+    plotter = fig.plotter
+    good = 'OpenGL renderer string: OpenGL 3.3 (Core Profile) Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)\n'  # noqa
+    bad = 'OpenGL renderer string: OpenGL 3.3 (Core Profile) Mesa 18.3.4 via llvmpipe (LLVM 7.0, 256 bits)\n'  # noqa
+    monkeypatch.setattr(plotter.ren_win, 'ReportCapabilities', lambda: good)
+    assert _is_mesa(plotter)
+    monkeypatch.setattr(plotter.ren_win, 'ReportCapabilities', lambda: bad)
+    with pytest.warns(RuntimeWarning, match='too old'):
+        assert _is_mesa(plotter)
+    non = 'OpenGL 4.1 Metal - 76.3 via Apple M1 Pro\n'
+    monkeypatch.setattr(plotter.ren_win, 'ReportCapabilities', lambda: non)
+    assert not _is_mesa(plotter)
