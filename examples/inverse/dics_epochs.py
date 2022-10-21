@@ -45,10 +45,11 @@ subjects_dir = data_path / 'derivatives' / 'freesurfer' / 'subjects'
 raw = mne.io.read_raw_fif(raw_fname)
 events = mne.find_events(raw)
 epochs = mne.Epochs(raw, events, event_id=1, tmin=-1, tmax=2.5,
-                    reject=dict(grad=4000e-13,  # unit: T / m (gradiometers)
-                                mag=4e-12,      # unit: T (magnetometers)
+                    reject=dict(grad=5000e-13,  # unit: T / m (gradiometers)
+                                mag=5e-12,      # unit: T (magnetometers)
                                 eog=250e-6,    # unit: V (EOG channels)
                                 ), preload=True)
+epochs = epochs[:10]  # just for speed of execution for the tutorial
 
 # We are mostly interested in the beta band since it has been shown to be
 # active for somatosensory stimulation
@@ -86,13 +87,10 @@ epochs_stcs = apply_dics_tfr_epochs(
     epochs_tfr, filters, return_generator=True)
 
 # average across frequencies and epochs
-data = None
+data = np.zeros((fwd['nsource'], epochs_tfr.times.size))
 for epoch_stcs in epochs_stcs:
     for stc in epoch_stcs:
-        if data is None:
-            data = (stc.data * np.conj(stc.data)).real
-        else:
-            data += (stc.data * np.conj(stc.data)).real
+        data += (stc.data * np.conj(stc.data)).real
 
 stc.data = data / len(epochs) / len(freqs)
 
@@ -109,6 +107,7 @@ brain = stc.plot(
     subjects_dir=subjects_dir,
     hemi='both',
     views='dorsal',
+    initial_time=0.55,
     brain_kwargs=dict(show=False),
     add_data_kwargs=dict(fmin=fmax / 10, fmid=fmax / 2, fmax=fmax,
                          scale_factor=0.0001,
@@ -116,5 +115,5 @@ brain = stc.plot(
 )
 
 # You can save a movie like the one on our documentation website with:
-# brain.save_movie(tmin=0.4, tmax=1.5, interpolation='linear',
+# brain.save_movie(tmin=0.55, tmax=1.5, interpolation='linear',
 #                  time_viewer=True)
