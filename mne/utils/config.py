@@ -130,17 +130,30 @@ known_config_types = {
     'MNE_KIT2FIFF_STIM_CHANNEL_CODING': '',
     'MNE_KIT2FIFF_STIM_CHANNEL_SLOPE': '',
     'MNE_KIT2FIFF_STIM_CHANNEL_THRESHOLD': '',
-    'MNE_LOGGING_LEVEL': '',
+    'MNE_LOGGING_LEVEL': (
+        'str or int, controls the level of verbosity of any function '
+        'decorated with @verbose. See '
+        'https://mne.tools/stable/auto_tutorials/intro/50_configure_mne.html#logging'  # noqa E501
+    ),
     'MNE_MEMMAP_MIN_SIZE': '',
     'MNE_REPR_HTML': (
         'bool, represent some of our objects with rich HTML in a notebook '
         'environment (default "true")'
     ),
     'MNE_SKIP_FTP_TESTS': '',
-    'MNE_SKIP_NETWORK_TESTS': '',
-    'MNE_SKIP_TESTING_DATASET_TESTS': '',
+    'MNE_SKIP_NETWORK_TESTS': (
+        'bool, used in a test decorator (@requires_good_network) to skip '
+        'tests that include large downloads'
+    ),
+    'MNE_SKIP_TESTING_DATASET_TESTS': (
+        'bool, used in test decorators (@requires_spm_data, '
+        '@requires_bstraw_data) to skip tests that require specific datasets'
+    ),
     'MNE_STIM_CHANNEL': '',
-    'MNE_TQDM': '',
+    'MNE_TQDM': (
+        'str, either "tqdm", "tqdm.auto", or "off". Controls presence/absence '
+        'of progress bars'
+    )
     'MNE_USE_CUDA': 'bool, use GPU for filtering/resampling',
     'MNE_USE_NUMBA': (
         'bool, use Numba just-in-time compiler for some of our intensive '
