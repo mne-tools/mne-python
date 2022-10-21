@@ -214,7 +214,7 @@ def test_3d_warning(renderer_pyvistaqt, monkeypatch):
     monkeypatch.setattr(plotter.ren_win, 'ReportCapabilities', lambda: good)
     assert _is_mesa(plotter)
     monkeypatch.setattr(plotter.ren_win, 'ReportCapabilities', lambda: bad)
-    with pytest.warns(RuntimeWarning, match='too old'):
+    with pytest.warns(RuntimeWarning, match=r'18\.3\.4 is too old'):
         assert _is_mesa(plotter)
     non = 'OpenGL 4.1 Metal - 76.3 via Apple M1 Pro\n'
     monkeypatch.setattr(plotter.ren_win, 'ReportCapabilities', lambda: non)

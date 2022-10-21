@@ -1214,8 +1214,9 @@ def _is_mesa(plotter):
         if version:
             version = version[0]
             if _compare_version(version, '<', '18.3.6'):
-                warn('Mesa version %s is too old for translucent 3D surface '
-                     'rendering, consider upgrading to 18.3.6 or later')
+                warn(f'Mesa version {version} is too old for translucent 3D '
+                     'surface rendering, consider upgrading to 18.3.6 or '
+                     'later.')
         else:
             raise RuntimeError
     return is_mesa
