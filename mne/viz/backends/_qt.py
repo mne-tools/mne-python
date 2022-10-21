@@ -33,7 +33,8 @@ from qtpy.QtWidgets import (QComboBox, QGroupBox, QHBoxLayout, QLabel,
 
 from ._pyvista import _PyVistaRenderer
 from ._pyvista import (_close_3d_figure, _check_3d_figure, _close_all,  # noqa: F401,E501 analysis:ignore
-                       _set_3d_view, _set_3d_title, _take_3d_screenshot)  # noqa: F401,E501 analysis:ignore
+                       _set_3d_view, _set_3d_title, _take_3d_screenshot,  # noqa: F401,E501 analysis:ignore
+                       _is_mesa)  # noqa: F401,E501 analysis:ignore
 from ._abstract import (_AbstractAppWindow, _AbstractHBoxLayout,
                         _AbstractVBoxLayout, _AbstractGridLayout,
                         _AbstractWidget, _AbstractCanvas,

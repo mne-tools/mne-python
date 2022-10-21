@@ -339,7 +339,9 @@ def test_plot_topomap_basic():
 
     p = plt_topomap(times, ch_type='grad', image_interp='cubic',
                     show_names=lambda x: x.replace('MEG', ''))
-    subplot = [x for x in p.get_children() if 'Subplot' in str(type(x))]
+    subplot = [
+        x for x in p.get_children()
+        if any(t in str(type(x)) for t in ('Axes', 'Subplot'))]
     assert len(subplot) >= 1, [type(x) for x in p.get_children()]
     subplot = subplot[0]
 
