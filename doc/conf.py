@@ -586,6 +586,11 @@ nitpick_ignore = [
     ("py:class", "_FuncT"),  # type hint used in @verbose decorator
     ("py:class", "mne.utils._logging._FuncT"),
 ]
+nitpick_ignore_regex = [
+    ('py:.*', r"mne\.io\.BaseRaw.*"),
+    ('py:.*', r"mne\.BaseEpochs.*"),
+    ('py:obj', "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)"),  # noqa: E501
+]
 suppress_warnings = ['image.nonlocal_uri']  # we intentionally link outside
 
 

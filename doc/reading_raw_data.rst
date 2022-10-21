@@ -42,6 +42,7 @@ Base class:
 
 .. autosummary::
    :toctree: generated
+   :template: autosummary/class_no_members.rst
 
    BaseRaw
 
