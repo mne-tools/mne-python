@@ -74,20 +74,19 @@ time.sleep(0.02)
     stdout = stdout.replace('\r\n', '\n')
     stderr = stderr.replace('\r\n', '\n')
     if do_raise:  # remove traceback
-        tb_line = np.where(
-            [line.startswith('Traceback') for line in log.split('\n')])[0]
-        assert len(tb_line) == 1
-        tb_line = tb_line[0]
-        log = '\n'.join(log.split('\n')[:tb_line])
-        if log:
-            log += '\n'
-        tb_line = np.where(
-            [line.startswith('Traceback') for line in stderr.split('\n')])[0]
-        assert len(tb_line) == 1
-        tb_line = tb_line[0]
-        stderr = '\n'.join(stderr.split('\n')[:tb_line])
-        if stderr:
-            stderr += '\n'
+
+        def truncate_before_traceback(log):
+            tb_line = np.where(
+                [line.startswith('Traceback') for line in log.split('\n')])[0]
+            assert len(tb_line) == 1
+            tb_line = tb_line[0]
+            log = '\n'.join(log.split('\n')[:tb_line])
+            if log:
+                log += '\n'
+            return log
+
+        log = truncate_before_traceback(log)
+        stderr = truncate_before_traceback(stderr)
     want = 'foo\nbar\n'
     assert log == want, orig_log
     if kind == 'stdout':
