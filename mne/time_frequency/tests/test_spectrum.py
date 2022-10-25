@@ -121,12 +121,13 @@ def _agg_helper(df, weights, group_cols):
 
 
 @requires_pandas
-@pytest.mark.xfail(reason='temporary pip-pre failure')
 @pytest.mark.parametrize('long_format', (False, True))
 @pytest.mark.parametrize('method', ('welch', 'multitaper'))
 def test_unaggregated_spectrum_to_data_frame(raw, long_format, method):
     """Test converting complex multitaper spectra to data frame."""
     from pandas.testing import assert_frame_equal
+
+    from mne.utils.dataframe import _inplace
 
     # aggregated spectrum → dataframe
     orig_df = (raw.compute_psd(method=method)
@@ -136,23 +137,25 @@ def test_unaggregated_spectrum_to_data_frame(raw, long_format, method):
     kwargs = {'average': False} if method == 'welch' else {'output': 'complex'}
     spectrum = raw.compute_psd(method=method, **kwargs)
     df = spectrum.to_data_frame(long_format=long_format)
-    group_by = ['freq']
+    grouping_cols = ['freq']
     drop_cols = ['segment'] if method == 'welch' else ['taper']
     if long_format:
-        group_by.append('channel')
+        grouping_cols.append('channel')
         drop_cols.append('ch_type')
         orig_df.drop(columns='ch_type', inplace=True)
     # only do a couple freq bins, otherwise test takes forever for multitaper
     subset = partial(np.isin, test_elements=spectrum.freqs[:2])
     df = df.loc[subset(df['freq'])]
     orig_df = orig_df.loc[subset(orig_df['freq'])]
+    # sort orig_df, because at present we can't actually prevent pandas from
+    # sorting at the agg step *sigh*
+    _inplace(orig_df, 'sort_values', by=grouping_cols, ignore_index=True)
     # aggregate
-    gb = (df.drop(columns=drop_cols)
-            .groupby(group_by, sort=False, as_index=False))
+    gb = df.drop(columns=drop_cols).groupby(grouping_cols, as_index=False)
     if method == 'welch':
         agg_df = gb.aggregate(np.nanmean)
     else:
-        agg_df = gb.apply(_agg_helper, spectrum._mt_weights, group_by)
+        agg_df = gb.apply(_agg_helper, spectrum._mt_weights, grouping_cols)
     # even with check_categorical=False, we know that the *data* matches;
     # what may differ is the order of the "levels" in the *metadata* for the
     # channel name column
