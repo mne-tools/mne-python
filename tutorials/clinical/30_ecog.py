@@ -115,9 +115,11 @@ del epochs
 # (along with xy positions of each electrode in the image), so that later
 # we can plot frequency band power on top of it.
 
+sensor_colors = np.random.random([len(raw.info["ch_names"]), 3])
+
 fig = plot_alignment(raw.info, trans='fsaverage',
                      subject='fsaverage', subjects_dir=subjects_dir,
-                     surfaces=['pial'], coord_frame='head')
+                     surfaces=['pial'], coord_frame='head', sensor_colors=sensor_colors)
 mne.viz.set_3d_view(fig, azimuth=0, elevation=70)
 
 xy, im = snapshot_brain_montage(fig, raw.info)
