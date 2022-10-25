@@ -28,7 +28,7 @@ from mne import Epochs, create_info
 from mne.baseline import rescale
 from mne.io import RawArray
 from mne.time_frequency import (
-    AverageTFR,
+    AverageTFRArray,
     tfr_array_morlet,
     tfr_morlet,
     tfr_multitaper,
@@ -125,8 +125,7 @@ for n_cycles, time_bandwidth, ax, title in zip(
         [0],
         baseline=(0.0, 0.1),
         mode="mean",
-        vmin=vmin,
-        vmax=vmax,
+        vlim=(vmin, vmax),
         axes=ax,
         show=False,
         colorbar=False,
@@ -169,8 +168,7 @@ for n_cycles, ax in zip(all_n_cycles, axs):
         [0],
         baseline=(0.0, 0.1),
         mode="mean",
-        vmin=vmin,
-        vmax=vmax,
+        vlim=(vmin, vmax),
         axes=ax,
         show=False,
         colorbar=False,
@@ -214,13 +212,12 @@ for bandwidth, ax in zip(bandwidths, axs):
         tfr_data = tfr_data * tfr_data.conj()  # compute power
         tfr_data = np.mean(tfr_data, axis=0)  # average over epochs
         data[:, idx] = tfr_data
-    power = AverageTFR(info, data, epochs.times, freqs, nave=n_epochs)
+    power = AverageTFRArray(info, data, epochs.times, freqs, nave=n_epochs)
     power.plot(
         [0],
         baseline=(0.0, 0.1),
         mode="mean",
-        vmin=-0.1,
-        vmax=0.1,
+        vlim=(-0.1, 0.1),
         axes=ax,
         show=False,
         colorbar=False,
@@ -250,8 +247,7 @@ avgpower.plot(
     [0],
     baseline=(0.0, 0.1),
     mode="mean",
-    vmin=vmin,
-    vmax=vmax,
+    vlim=(vmin, vmax),
     title="Using Morlet wavelets and EpochsTFR",
     show=False,
 )

@@ -55,7 +55,7 @@ from mne.minimum_norm import (
 from mne.source_estimate import VolSourceEstimate, read_source_estimate
 from mne.source_space._source_space import _get_src_nn
 from mne.surface import _normal_orth
-from mne.time_frequency import EpochsTFR
+from mne.time_frequency import EpochsTFRArray
 from mne.utils import _record_warnings, catch_logging
 
 test_path = testing.data_path(download=False)
@@ -1377,11 +1377,11 @@ def test_apply_inverse_tfr(return_generator):
     times = np.arange(sfreq) / sfreq  # make epochs 1s long
     data = rng.random((n_epochs, len(info.ch_names), freqs.size, times.size))
     data = data + 1j * data  # make complex to simulate amplitude + phase
-    epochs_tfr = EpochsTFR(info, data, times=times, freqs=freqs)
+    epochs_tfr = EpochsTFRArray(info=info, data=data, times=times, freqs=freqs)
     epochs_tfr.apply_baseline((0, 0.5))
     pick_ori = "vector"
 
-    with pytest.raises(ValueError, match="Expected 2 inverse operators, " "got 3"):
+    with pytest.raises(ValueError, match="Expected 2 inverse operators, got 3"):
         apply_inverse_tfr_epochs(epochs_tfr, [inverse_operator] * 3, lambda2)
 
     # test epochs

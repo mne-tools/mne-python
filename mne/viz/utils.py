@@ -2140,13 +2140,20 @@ def _set_title_multiple_electrodes(
         ch_type = _channel_type_prettyprint.get(ch_type, ch_type)
         if ch_type is None:
             ch_type = "sensor"
-        if len(ch_names) > 1:
-            ch_type += "s"
-        combine = combine.capitalize() if isinstance(combine, str) else "Combination"
+        ch_type = f"{ch_type}{_pl(ch_names)}"
+        if hasattr(combine, "func"):  # functools.partial
+            combine = combine.func
+        if callable(combine):
+            combine = getattr(combine, "__name__", str(combine))
+        if not isinstance(combine, str):
+            combine = "Combination"
+        # mean → Mean, but avoid RMS → Rms and GFP → Gfp
+        if combine[0].islower():
+            combine = combine.capitalize()
         if all_:
             title = f"{combine} of {len(ch_names)} {ch_type}"
         elif len(ch_names) > max_chans and combine != "gfp":
-            logger.info("More than %i channels, truncating title ...", max_chans)
+            logger.info(f"More than {max_chans} channels, truncating title ...")
             title += f", ...\n({combine} of {len(ch_names)} {ch_type})"
     return title
 
@@ -2375,10 +2382,16 @@ def _make_combine_callable(
         def _rms(data):
             return np.sqrt((data**2).mean(**kwargs))
 
+        def _gfp(data):
+            return data.std(axis=axis, ddof=0)
+
+        # make them play nice with _set_title_multiple_electrodes()
+        _rms.__name__ = "RMS"
+        _gfp.__name__ = "GFP"
         if "rms" in valid:
             combine_dict["rms"] = _rms
         if "gfp" in valid and ch_type == "eeg":
-            combine_dict["gfp"] = lambda data: data.std(axis=axis, ddof=0)
+            combine_dict["gfp"] = _gfp
         elif "gfp" in valid:
             combine_dict["gfp"] = _rms
         try:

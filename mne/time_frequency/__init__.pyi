@@ -1,9 +1,13 @@
 __all__ = [
     "AverageTFR",
+    "AverageTFRArray",
     "CrossSpectralDensity",
     "EpochsSpectrum",
     "EpochsSpectrumArray",
     "EpochsTFR",
+    "EpochsTFRArray",
+    "RawTFR",
+    "RawTFRArray",
     "Spectrum",
     "SpectrumArray",
     "_BaseTFR",
@@ -61,7 +65,11 @@ from .spectrum import (
 )
 from .tfr import (
     AverageTFR,
+    AverageTFRArray,
     EpochsTFR,
+    EpochsTFRArray,
+    RawTFR,
+    RawTFRArray,
     _BaseTFR,
     fwhm,
     morlet,

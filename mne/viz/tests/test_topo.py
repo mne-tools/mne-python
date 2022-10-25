@@ -18,7 +18,7 @@ import pytest
 from mne import Epochs, compute_proj_evoked, read_cov, read_events
 from mne.channels import read_layout
 from mne.io import read_raw_fif
-from mne.time_frequency.tfr import AverageTFR
+from mne.time_frequency.tfr import AverageTFRArray
 from mne.utils import _record_warnings
 from mne.viz import (
     _get_presser,
@@ -309,7 +309,13 @@ def test_plot_tfr_topo():
     data = np.random.RandomState(0).randn(
         len(epochs.ch_names), n_freqs, len(epochs.times)
     )
-    tfr = AverageTFR(epochs.info, data, epochs.times, np.arange(n_freqs), nave)
+    tfr = AverageTFRArray(
+        info=epochs.info,
+        data=data,
+        times=epochs.times,
+        freqs=np.arange(n_freqs),
+        nave=nave,
+    )
     plt.close("all")
     fig = tfr.plot_topo(
         baseline=(None, 0), mode="ratio", title="Average power", vmin=0.0, vmax=14.0
@@ -335,14 +341,23 @@ def test_plot_tfr_topo():
 
     # nonuniform freqs
     freqs = np.logspace(*np.log10([3, 10]), num=3)
-    tfr = AverageTFR(epochs.info, data, epochs.times, freqs, nave)
-    fig = tfr.plot([4], baseline=(None, 0), mode="mean", vmax=14.0, show=False)
+    tfr = AverageTFRArray(
+        info=epochs.info, data=data, times=epochs.times, freqs=freqs, nave=nave
+    )
+    fig = tfr.plot([4], baseline=(None, 0), mode="mean", vlim=(None, 14.0), show=False)
     assert fig[0].axes[0].get_yaxis().get_scale() == "log"
 
     # one timesample
-    tfr = AverageTFR(epochs.info, data[:, :, [0]], epochs.times[[1]], freqs, nave)
+    tfr = AverageTFRArray(
+        info=epochs.info,
+        data=data[:, :, [0]],
+        times=epochs.times[[1]],
+        freqs=freqs,
+        nave=nave,
+    )
+
     with _record_warnings():  # matplotlib equal left/right
-        tfr.plot([4], baseline=None, vmax=14.0, show=False, yscale="linear")
+        tfr.plot([4], baseline=None, vlim=(None, 14.0), show=False, yscale="linear")
 
     # one frequency bin, log scale required: as it doesn't make sense
     # to plot log scale for one value, we test whether yscale is set to linear

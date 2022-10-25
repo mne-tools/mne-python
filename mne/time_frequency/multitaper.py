@@ -476,6 +476,7 @@ def tfr_array_multitaper(
     output="complex",
     n_jobs=None,
     *,
+    return_mt_weights=False,
     verbose=None,
     epoch_data=None,
 ):
@@ -509,6 +510,11 @@ def tfr_array_multitaper(
         * ``'avg_power_itc'`` : average of single trial power and inter-trial
           coherence across trials.
     %(n_jobs)s
+        The number of epochs to process at the same time. The parallelization
+        is implemented across channels. Defaults to 1.
+    return_mt_weights : bool
+        Whether to return taper weights alongside the complex taper
+        coefficients. Ignored if output is not ``'complex'``.
     %(verbose)s
     epoch_data : None
         Deprecated parameter for providing epoched data as of 1.7, will be replaced with
@@ -567,5 +573,6 @@ def tfr_array_multitaper(
         decim=decim,
         output=output,
         n_jobs=n_jobs,
+        return_mt_weights=return_mt_weights,
         verbose=verbose,
     )

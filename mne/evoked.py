@@ -47,7 +47,9 @@ from .defaults import _BORDER_DEFAULT, _EXTRAPOLATE_DEFAULT, _INTERPOLATION_DEFA
 from .filter import FilterMixin, _check_fun, detrend
 from .html_templates import _get_html_template
 from .parallel import parallel_func
+from .time_frequency._utils import _ensure_output_not_in_method_kw
 from .time_frequency.spectrum import Spectrum, SpectrumMixin, _validate_method
+from .time_frequency.tfr import AverageTFR
 from .utils import (
     ExtendedTimeMixin,
     SizeMixin,
@@ -1163,6 +1165,63 @@ class Evoked(
             proj=proj,
             remove_dc=remove_dc,
             reject_by_annotation=False,
+            n_jobs=n_jobs,
+            verbose=verbose,
+            **method_kw,
+        )
+
+    @verbose
+    def compute_tfr(
+        self,
+        method,
+        freqs,
+        *,
+        tmin=None,
+        tmax=None,
+        picks=None,
+        proj=False,
+        decim=1,
+        n_jobs=None,
+        verbose=None,
+        **method_kw,
+    ):
+        """Compute a time-frequency representation of evoked data.
+
+        Parameters
+        ----------
+        %(method_tfr)s
+        %(freqs_tfr)s
+        %(tmin_tmax_psd)s
+        %(picks_good_data_noref)s
+        %(proj_psd)s
+        %(decim_tfr)s
+        %(n_jobs)s
+        %(verbose)s
+        %(method_kw_tfr)s
+
+        Returns
+        -------
+        tfr : instance of AverageTFR
+            The time-frequency-resolved power estimates of the data.
+
+        Notes
+        -----
+        .. versionadded:: 1.7
+
+        References
+        ----------
+        .. footbibliography::
+        """
+        _ensure_output_not_in_method_kw(self, method_kw)
+        return AverageTFR(
+            inst=self,
+            method=method,
+            freqs=freqs,
+            tmin=tmin,
+            tmax=tmax,
+            picks=picks,
+            proj=proj,
+            decim=decim,
             n_jobs=n_jobs,
             verbose=verbose,
             **method_kw,

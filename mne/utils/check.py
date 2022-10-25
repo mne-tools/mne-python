@@ -11,6 +11,7 @@ import re
 from builtins import input  # noqa: UP029
 from difflib import get_close_matches
 from importlib import import_module
+from inspect import signature
 from pathlib import Path
 
 import numpy as np
@@ -916,6 +917,7 @@ def _check_all_same_channel_names(instances):
 
 
 def _check_combine(mode, valid=("mean", "median", "std"), axis=0):
+    # XXX TODO Possibly de-duplicate with _make_combine_callable of mne/viz/utils.py
     if mode == "mean":
 
         def fun(data):
@@ -1248,3 +1250,19 @@ def _import_nibabel(why="use MRI files"):
             "nibabel is required to %s, got:\n%s" % (why, exp)
         ) from None
     return nib
+
+
+def _check_method_kwargs(func, kwargs, msg=None):
+    """Ensure **kwargs are compatible with the function they're passed to."""
+    from .misc import _pl
+
+    valid = list(signature(func).parameters)
+    is_invalid = np.isin(list(kwargs), valid, invert=True)
+    if is_invalid.any():
+        invalid_kw = np.array(list(kwargs))[is_invalid].tolist()
+        s = _pl(invalid_kw)
+        if msg is None:
+            msg = f'function "{func}"'
+        raise TypeError(
+            f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} ' f"for {msg}."
+        )

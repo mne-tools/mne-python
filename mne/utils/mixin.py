@@ -11,6 +11,7 @@ from copy import deepcopy
 
 import numpy as np
 
+from ..utils import fill_doc
 from ._logging import verbose, warn
 from .check import _check_pandas_installed, _check_preload, _validate_type
 from .numerics import _time_mask, object_hash, object_size
@@ -75,18 +76,19 @@ class SizeMixin:
 class GetEpochsMixin:
     """Class to add epoch selection and metadata to certain classes."""
 
+    @fill_doc
     def __getitem__(self, item):
         """Return an Epochs object with a copied subset of epochs.
 
         Parameters
         ----------
-        item : slice, array-like, str, or list
-            See below for use cases.
+        %(item)s
+            See Notes for use cases.
 
         Returns
         -------
         epochs : instance of Epochs
-            See below for use cases.
+            The subset of epochs.
 
         Notes
         -----
@@ -197,10 +199,9 @@ class GetEpochsMixin:
         `Epochs` or tuple(Epochs, np.ndarray) if `return_indices` is True
             subset of epochs (and optionally array with kept epoch indices)
         """
-        data = self._data
-        self._data = None
         inst = self.copy() if copy else self
-        self._data = inst._data = data
+        if self._data is not None:
+            np.copyto(inst._data, self._data, casting="no")
         del self
 
         select = inst._item_to_select(item)
@@ -755,7 +756,7 @@ def _prepare_write_metadata(metadata):
     """Convert metadata to JSON for saving."""
     if metadata is not None:
         if not isinstance(metadata, list):
-            metadata = metadata.to_json(orient="records")
+            metadata = metadata.reset_index().to_json(orient="records")
         else:  # Pandas DataFrame
             metadata = json.dumps(metadata)
         assert isinstance(metadata, str)
@@ -772,5 +773,7 @@ def _prepare_read_metadata(metadata):
         assert isinstance(metadata, list)
         if pd:
             metadata = pd.DataFrame.from_records(metadata)
+            if "index" in metadata.columns:
+                metadata.set_index("index", inplace=True)
             assert isinstance(metadata, pd.DataFrame)
     return metadata

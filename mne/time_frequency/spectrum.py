@@ -1,7 +1,4 @@
 """Container classes for spectral data."""
-
-# Authors: Dan McCloy <dan@mccloy.info>
-#
 # License: BSD-3-Clause
 # Copyright the MNE-Python contributors.
 
@@ -25,6 +22,7 @@ from ..html_templates import _get_html_template
 from ..utils import (
     GetEpochsMixin,
     _build_data_frame,
+    _check_method_kwargs,
     _check_pandas_index_arguments,
     _check_pandas_installed,
     _check_sphere,
@@ -52,10 +50,12 @@ from ..viz.topomap import _make_head_outlines, _prepare_topomap_plot, plot_psds_
 from ..viz.utils import (
     _format_units_psd,
     _get_plot_ch_type,
+    _make_combine_callable,
     _plot_psd,
     _prepare_sensor_names,
     plt_show,
 )
+from ._utils import _get_instance_type_string
 from .multitaper import psd_array_multitaper
 from .psd import _check_nfft, psd_array_welch
 
@@ -314,7 +314,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             )
         # method
         self._inst_type = type(inst)
-        method = _validate_method(method, self._get_instance_type_string())
+        method = _validate_method(method, _get_instance_type_string(self))
         # don't allow complex output
         psd_funcs = dict(welch=psd_array_welch, multitaper=psd_array_multitaper)
         if method_kw.get("output", "") == "complex":
@@ -324,16 +324,8 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
             )
         # triage method and kwargs. partial() doesn't check validity of kwargs,
         # so we do it manually to save compute time if any are invalid.
-        invalid_ix = np.isin(
-            list(method_kw), list(signature(psd_funcs[method]).parameters), invert=True
-        )
-        if invalid_ix.any():
-            invalid_kw = np.array(list(method_kw))[invalid_ix].tolist()
-            s = _pl(invalid_kw)
-            raise TypeError(
-                f'Got unexpected keyword argument{s} {", ".join(invalid_kw)} '
-                f'for PSD method "{method}".'
-            )
+        psd_funcs = dict(welch=psd_array_welch, multitaper=psd_array_multitaper)
+        _check_method_kwargs(psd_funcs[method], method_kw, msg=f'PSD method "{method}"')
         self._psd_func = partial(psd_funcs[method], remove_dc=remove_dc, **method_kw)
 
         # apply proj if desired
@@ -352,7 +344,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         self.info = pick_info(inst.info, sel=self._picks, copy=True)
 
         # assign some attributes
-        self.preload = True  # needed for __getitem__, doesn't mean anything
+        self.preload = True  # needed for __getitem__, never False
         self._method = method
         # self._dims may also get updated by child classes
         self._dims = (
@@ -372,7 +364,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     def __getstate__(self):
         """Prepare object for serialization."""
-        inst_type_str = self._get_instance_type_string()
+        inst_type_str = _get_instance_type_string(self)
         out = dict(
             method=self.method,
             data=self._data,
@@ -405,7 +397,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
 
     def __repr__(self):
         """Build string representation of the Spectrum object."""
-        inst_type_str = self._get_instance_type_string()
+        inst_type_str = _get_instance_type_string(self)
         # shape & dimension names
         dims = " × ".join(
             [f"{dim[0]} {dim[1]}s" for dim in zip(self.shape, self._dims)]
@@ -419,7 +411,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     @repr_html
     def _repr_html_(self, caption=None):
         """Build HTML representation of the Spectrum object."""
-        inst_type_str = self._get_instance_type_string()
+        inst_type_str = _get_instance_type_string(self)
         units = [f"{ch_type}: {unit}" for ch_type, unit in self.units().items()]
         t = _get_html_template("repr", "spectrum.html.jinja")
         t = t.render(spectrum=self, inst_type=inst_type_str, units=units)
@@ -466,25 +458,6 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         del self._psd_func
         del self._time_mask
 
-    def _get_instance_type_string(self):
-        """Get string representation of the originating instance type."""
-        from ..epochs import BaseEpochs
-        from ..evoked import Evoked, EvokedArray
-        from ..io import BaseRaw
-
-        parent_classes = self._inst_type.__bases__
-        if BaseRaw in parent_classes:
-            inst_type_str = "Raw"
-        elif BaseEpochs in parent_classes:
-            inst_type_str = "Epochs"
-        elif self._inst_type in (Evoked, EvokedArray):
-            inst_type_str = "Evoked"
-        elif self._inst_type is np.ndarray:
-            inst_type_str = "Array"
-        else:
-            raise RuntimeError(f"Unknown instance type {self._inst_type} in Spectrum")
-        return inst_type_str
-
     @property
     def _detrend_picks(self):
         """Provide compatibility with __iter__."""
@@ -493,6 +466,10 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
     @property
     def ch_names(self):
         return self.info["ch_names"]
+
+    @property
+    def data(self):
+        return self._data
 
     @property
     def freqs(self):
@@ -977,7 +954,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
         # triage for Epoch-derived or unaggregated spectra
-        from_epo = self._dims[0] == "epoch"
+        from_epo = _get_instance_type_string(self) == "Epochs"
         unagg_welch = "segment" in self._dims
         unagg_mt = "taper" in self._dims
         # arg checking
@@ -1152,7 +1129,7 @@ class Spectrum(BaseSpectrum):
         self._compute_spectra(data, fmin, fmax, n_jobs, method_kw, verbose)
         # check for correct shape and bad values
         self._check_values()
-        del self._shape
+        del self._shape  # calculated from self._data henceforth
         # save memory
         del self.inst
 
@@ -1185,7 +1162,8 @@ class Spectrum(BaseSpectrum):
            requested data values and the corresponding times), accessing
            :class:`~mne.time_frequency.Spectrum` values via subscript does
            **not** return the corresponding frequency bin values. If you need
-           them, use ``spectrum.freqs[freq_indices]``.
+           them, use ``spectrum.freqs[freq_indices]`` or
+           ``spectrum.get_data(..., return_freqs=True)``.
         """
         from ..io import BaseRaw
 
@@ -1418,9 +1396,11 @@ class EpochsSpectrum(BaseSpectrum, GetEpochsMixin):
         spectrum : instance of Spectrum
             The aggregated spectrum object.
         """
-        if isinstance(method, str):
-            method = getattr(np, method)  # mean, median, std, etc
-            method = partial(method, axis=0)
+        # TODO: probably should have a `.nave` attribute?
+        _validate_type(method, ("str", "callable"))
+        method = _make_combine_callable(
+            method, axis=0, valid=("mean", "median"), keepdims=False
+        )
         if not callable(method):
             raise ValueError(
                 '"method" must be a valid string or callable, '

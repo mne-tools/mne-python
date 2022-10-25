@@ -125,11 +125,15 @@ def test_n_welch_windows(raw):
     )
 
 
-def _get_inst(inst, request, evoked):
+def _get_inst(inst, request, evoked=None, average_tfr=None):
     # ↓ XXX workaround:
     # ↓ parametrized fixtures are not accessible via request.getfixturevalue
     # ↓ https://github.com/pytest-dev/pytest/issues/4666#issuecomment-456593913
-    return evoked if inst == "evoked" else request.getfixturevalue(inst)
+    if inst == "evoked":
+        return evoked
+    elif inst == "average_tfr":
+        return average_tfr
+    return request.getfixturevalue(inst)
 
 
 @pytest.mark.parametrize("inst", ("raw", "epochs", "evoked"))
