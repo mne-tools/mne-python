@@ -135,6 +135,13 @@ def test_plot_topo():
     plot_evoked_topo([evoked, evoked], merge_grads=True,
                      background_color='w', color='blue')
 
+    # test legend colors
+    colors = ['red', 'blue']
+    fig = plot_evoked_topo([evoked, evoked], merge_grads=True, color=colors)
+    legend = fig.axes[0].get_legend()
+    legend_colors = [line.properties()['markeredgecolor'] for line in legend.get_lines()]
+    assert legend_colors == colors
+
     with pytest.raises(ValueError, match='must be .*tuple, list, str,.*'):
         plot_evoked_topo([evoked, evoked], merge_grads=True,
                          color=np.array(["blue", "red"]))
