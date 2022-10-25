@@ -778,6 +778,9 @@ def brain_gc(request):
     assert len(bad) == 0, 'VTK objects linger:\n' + '\n'.join(bad)
 
 
+_files = list()
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Handle the end of the session."""
     n = session.config.option.durations
@@ -789,7 +792,6 @@ def pytest_sessionfinish(session, exitstatus):
     except ImportError:
         print('Module-level timings require pytest-harvest')
         return
-    from py.io import TerminalWriter
     # get the number to print
     res = pytest_harvest.get_session_synthesis_dct(session)
     files = dict()
@@ -806,12 +808,17 @@ def pytest_sessionfinish(session, exitstatus):
         files[file_key] = files.get(file_key, 0) + val['pytest_duration_s']
     files = sorted(list(files.items()), key=lambda x: x[1])[::-1]
     # print
-    files = files[:n]
-    if len(files):
-        writer = TerminalWriter()
-        writer.line()  # newline
-        writer.sep('=', f'slowest {n} test module{_pl(n)}')
-        names, timings = zip(*files)
+    _files[:] = files[:n]
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    """Print the module-level timings."""
+    writer = terminalreporter
+    n = len(_files)
+    if n:
+        writer.line('')  # newline
+        writer.write_sep('=', f'slowest {n} test module{_pl(n)}')
+        names, timings = zip(*_files)
         timings = [f'{timing:0.2f}s total' for timing in timings]
         rjust = max(len(timing) for timing in timings)
         timings = [timing.rjust(rjust) for timing in timings]
