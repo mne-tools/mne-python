@@ -121,6 +121,7 @@ def _agg_helper(df, weights, group_cols):
 
 
 @requires_pandas
+@pytest.mark.xfail(reason='temporary pip-pre failure')
 @pytest.mark.parametrize('long_format', (False, True))
 @pytest.mark.parametrize('method', ('welch', 'multitaper'))
 def test_unaggregated_spectrum_to_data_frame(raw, long_format, method):
