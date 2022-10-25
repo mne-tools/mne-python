@@ -36,6 +36,7 @@ Bugs
 - Fix bug where ``ica.reject_`` was not saved to disk, and the ``ica.reject_`` property was not inherited from ``Epochs`` when doing ``ICA.fit(epochs)`` (:gh:`11244` by `Eric Larson`_)
 - Fix bug in automatic MESA detection for disabling advanced 3D options (:gh:`11271` by `Eric Larson`_)
 - Fix bug in the ``.compute_psd()`` methods where the number of unaggregated Welch segments was wrongly computed for some inputs, leading to an assertion error when computing the PSD (:gh:`11248` by `Daniel McCloy`_)
+- Fix bug in the :func:`~mne.viz.plot_evoked_topo` and :meth:`~mne.Evoked.plot_topo`, where legend colors where shown incorrectly on newer matplotlib versions (:gh:`11258` by `Erkka Heinila`_)
 
 API changes
 ~~~~~~~~~~~
