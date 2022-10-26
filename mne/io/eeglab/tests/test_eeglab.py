@@ -207,7 +207,8 @@ def test_io_set_raw_more(tmp_path):
                                      'X': 6.3023, 'Z': -2.9423},
                         'times': eeg.times[:3], 'pnts': 3}},
                appendmat=False, oned_as='row')
-    read_raw_eeglab(input_fname=one_chan_fname, preload=True)
+    read_raw_eeglab(input_fname=one_chan_fname, preload=True,
+                    montage_units='cm')
 
     # test reading file with 3 channels - one without position information
     # first, create chanlocs structured array
@@ -236,7 +237,8 @@ def test_io_set_raw_more(tmp_path):
                         'times': eeg.times[:2], 'pnts': 2}},
                appendmat=False, oned_as='row')
     # load the file
-    raw = read_raw_eeglab(input_fname=nopos_fname, preload=True)
+    raw = read_raw_eeglab(input_fname=nopos_fname, preload=True,
+                          montage_units='cm')
 
     # test that channel names have been loaded but not channel positions
     for i in range(3):
@@ -342,7 +344,8 @@ def test_eeglab_read_annotations():
                               expected_onset, decimal=2)
 
     # test if event durations are imported correctly
-    raw = read_raw_eeglab(raw_fname_event_duration, preload=True)
+    raw = read_raw_eeglab(raw_fname_event_duration, preload=True,
+                          montage_units='dm')
     # file contains 3 annotations with 0.5 s (64 samples) duration each
     assert_allclose(raw.annotations.duration, np.ones(3) * 0.5)
 
@@ -368,7 +371,7 @@ def _assert_array_allclose_nan(left, right):
 
 
 @pytest.fixture(scope='session')
-def one_chanpos_fname(tmp_path_factory):
+def three_chanpos_fname(tmp_path_factory):
     """Test file with 3 channels to exercise EEGLAB reader.
 
     File characteristics
@@ -399,14 +402,14 @@ def one_chanpos_fname(tmp_path_factory):
 
 
 @testing.requires_testing_data
-def test_position_information(one_chanpos_fname):
+def test_position_information(three_chanpos_fname):
     """Test reading file with 3 channels - one without position information."""
     nan = np.nan
     EXPECTED_LOCATIONS_FROM_FILE = np.array([
         [-4.,  1.,  7.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
         [-5.,  2.,  8.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],
-    ])
+    ]) * 0.01  # 0.01 is to scale cm to meters
 
     EXPECTED_LOCATIONS_FROM_MONTAGE = np.array([
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
@@ -414,7 +417,8 @@ def test_position_information(one_chanpos_fname):
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
     ])
 
-    raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
+    raw = read_raw_eeglab(input_fname=three_chanpos_fname, preload=True,
+                          montage_units='cm')
     assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
                        EXPECTED_LOCATIONS_FROM_FILE)
 
@@ -423,7 +427,7 @@ def test_position_information(one_chanpos_fname):
     # behaves the same we need to flush the montage. otherwise we get
     # a mix of what is in montage and in the file
     raw = read_raw_eeglab(
-        input_fname=one_chanpos_fname,
+        input_fname=three_chanpos_fname,
         preload=True,
     ).set_montage(None)  # Flush the montage builtin within input_fname
 
@@ -475,9 +479,10 @@ def test_get_montage_info_with_ch_type():
 def test_fidsposition_information(monkeypatch, has_type):
     """Test reading file with 3 fiducial locations."""
     if not has_type:
-        def get_bad_information(eeg, get_pos):
+        def get_bad_information(eeg, get_pos, scale_units=1.):
             del eeg.chaninfo['nodatchans']['type']
-            return _get_montage_information(eeg, get_pos)
+            return _get_montage_information(eeg, get_pos,
+                                            scale_units=scale_units)
 
         monkeypatch.setattr(mne.io.eeglab.eeglab, '_get_montage_information',
                             get_bad_information)

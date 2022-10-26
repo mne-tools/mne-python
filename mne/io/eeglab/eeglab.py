@@ -160,7 +160,7 @@ def _get_montage_information(eeg, get_pos, scale_units=1.):
 
     if pos_ch_names:
         pos_array = np.array(pos)
-        max_radius = np.nanmax(np.linalg.norm(pos_array, axis=1))
+        max_radius = np.nanmean(np.linalg.norm(pos_array, axis=1))
         additional_info = (' Check if the montage_units argument is correct'
                            ' (the default is "mm", but your channel positions'
                            ' may be in different units).')
