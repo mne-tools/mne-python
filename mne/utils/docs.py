@@ -811,6 +811,7 @@ docdict['decim_tfr'] = """
 decim : int | slice, default 1
     To reduce memory usage, decimation factor after time-frequency
     decomposition.
+
     - if `int`, returns ``tfr[..., ::decim]``.
     - if `slice`, returns ``tfr[..., decim]``.
 

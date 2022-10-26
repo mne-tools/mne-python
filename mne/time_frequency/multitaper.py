@@ -528,9 +528,9 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
     Returns
     -------
     out : array
-        Time frequency transform of epoch_data.
+        Time frequency transform of ``epoch_data``.
 
-        - if ``output`` is ``'complex'`` or ``'phase'``, array of shape
+        - if ``output in ('complex',' 'phase')``, array of shape
           ``(n_epochs, n_chans, n_tapers, n_freqs, n_times)``
         - if ``output`` is ``'power'``, array of shape ``(n_epochs, n_chans,
           n_freqs, n_times)``

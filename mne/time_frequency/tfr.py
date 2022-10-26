@@ -786,11 +786,15 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
     Returns
     -------
     out : array
-        Time frequency transform of epoch_data. If output is in ['complex',
-        'phase', 'power'], then shape of out is (n_epochs, n_chans, n_freqs,
-        n_times), else it is (n_chans, n_freqs, n_times). If output is
-        'avg_power_itc', the real values code for 'avg_power' and the
-        imaginary values code for the 'itc': out = avg_power + i * itc.
+        Time frequency transform of epoch_data.
+
+        - if ``output in ('complex', 'phase', 'power')``, array of shape
+          ``(n_epochs, n_chans, n_freqs, n_times)``
+        - else, array of shape ``(n_chans, n_freqs, n_times)``
+
+        If ``output`` is ``'avg_power_itc'``, the real values in ``out``
+        contain the average power and the imaginary values contain the ITC:
+        :math:`out = power_{avg} + i * itc`.
 
     See Also
     --------
