@@ -451,7 +451,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, fnirs=True, show_axes=False, dbs=True,
-                   fig=None, interaction='terrain', sensor_colors=None, verbose=None):
+                   fig=None, interaction='terrain',
+                   sensor_colors=None, verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
     Parameters
@@ -538,7 +539,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         .. versionchanged:: 1.0
            Defaults to ``'terrain'``.
     sensor_colors: np.array
-        Array with shape (3, num_sensors), default None
+        Array with shape (num_sensors, 3), default None
     %(verbose)s
 
     Returns
@@ -1180,7 +1181,7 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                   warn_meg, head_surf, units, sensor_opacity=0.8,
                   orient_glyphs=False, scale_by_distance=False,
                   project_points=False, surf=None, check_inside=None,
-                  nearest=None, sensor_colors: np.array = None):
+                  nearest=None, sensor_colors=None):
     """Render sensors in a 3D scene."""
     defaults = DEFAULTS['coreg']
     ch_pos, sources, detectors = _ch_pos_in_coord_frame(
@@ -1235,8 +1236,12 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                 if sensor_colors is None:
                     color = defaults[sensor_type + '_color']
                 else:
-                    color = sensor_colors[idx_sen, :]
-                actor, _ = _plot_glyphs(renderer=renderer, loc=(sens_loc * scalar)[idx_sen, :],
+                    if type(sensor_colors) == list:
+                        color = sensor_colors[idx_sen]
+                    else:
+                        color = sensor_colors[idx_sen, :]
+                actor, _ = _plot_glyphs(renderer=renderer,
+                                        loc=(sens_loc * scalar)[idx_sen, :],
                                         color=color, scale=scale * scalar,
                                         opacity=sensor_opacity,
                                         orient_glyphs=orient_glyphs,
