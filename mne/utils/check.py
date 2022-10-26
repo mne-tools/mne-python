@@ -959,7 +959,7 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
 
 
 def _check_head_radius(radius, add_info=''):
-    '''Check that head radius is within a reasonable range (6.65 - 10.85 cm).
+    """Check that head radius is within a reasonable range (6.65 - 10.85 cm).
 
     Parameters
     ----------
@@ -980,7 +980,7 @@ def _check_head_radius(radius, add_info=''):
     to back of the head measurements:
 
         21.7cm / 2 = 10.85 cm = 0.1085 m
-    '''
+    """
     min_radius = 0.0625
     max_radius = 0.1085
     if radius > max_radius:
