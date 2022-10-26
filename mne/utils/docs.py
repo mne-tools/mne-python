@@ -807,6 +807,17 @@ Decimation can be done multiple times. For example,
 ``inst.decimate(4)``.
 """
 
+docdict['decim_tfr'] = """
+decim : int | slice, default 1
+    To reduce memory usage, decimation factor after time-frequency
+    decomposition.
+    - if `int`, returns ``tfr[..., ::decim]``.
+    - if `slice`, returns ``tfr[..., decim]``.
+
+    .. note::
+        Decimation is done after convolutions and may create aliasing
+        artifacts."""
+
 docdict['depth'] = """
 depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
@@ -1368,6 +1379,10 @@ forward : instance of Forward | None
 
     .. versionadded:: 0.21
 """
+
+docdict['freqs_tfr'] = """
+freqs : array of float, shape (n_freqs,)
+    The frequencies of interest in Hz."""
 
 docdict['fullscreen'] = """
 fullscreen : bool
@@ -2034,6 +2049,15 @@ docdict['n_comp_pctf_n'] = """
 n_comp : int
     Number of PSF/CTF components to return for mode='max' or mode='svd'.
     Default n_comp=1.
+"""
+
+docdict["n_cycles_tfr"] = """
+n_cycles : int | array of int (n_freqs,)
+    Number of cycles in the wavelet, either a fixed number or one per
+    frequency. The number of cycles ``n_cycles`` and the frequencies of
+    interest ``freqs`` define the time-window length. See notes for
+    additional information about the relationship between those arguments
+    and about time and frequency smoothing.
 """
 
 docdict['n_jobs'] = """\
@@ -3426,6 +3450,32 @@ tail : int
     the distribution.
 """
 
+docdict['tfr_time-window_notes'] = """
+Time-frequency representations are computed using a sliding time-window.
+Either the time-window has a fixed length independent of frequency, or the
+time-window decreases in length with increased frequency.
+
+.. image:: https://www.fieldtriptoolbox.org/assets/img/tutorial/timefrequencyanalysis/figure1.png
+
+*Figure: Time and frequency smoothing. (a) For a fixed length time window
+the time and frequency smoothing remains fixed. (b) For time windows that
+decrease with frequency, the temporal smoothing decreases and the frequency
+smoothing increases.*
+Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
+multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
+
+In MNE, the time-window length is defined by the arguments ``freqs`` and
+``n_cycles`` respectively defining the frequencies of interest and the
+number of cycles: :math:`T = n_{cycles} / freqs`
+
+A fixed number of cycles for all frequencies will yield a time-window which
+decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
+``n_cycles=2`` yields ``T=array([2. , 0.7, 0.4])``.
+
+To use a fixed length time-window, the number of cycles has to be defined
+based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
+``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``."""  # noqa: E501
+
 _theme = """\
 theme : str | path-like
     Can be "auto", "light", or "dark" or a path-like to a
@@ -3494,6 +3544,17 @@ from :meth:`scipy.stats.rv_continuous.ppf`::
 For a one-tailed test (``tail=1``), don't divide the p-value by 2.
 For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
 """
+
+docdict['time_bandwitdh_tfr'] = """
+time_bandwidth : float
+    Time x (Full) Bandwidth product. Should be ``≥ 2.0``.
+    Choose this along with ``n_cycles`` to set the desired frequency
+    resolution. The number of good tapers (least leakage from far away
+    frequencies) is chosen automatically based on this to
+    floor ``time_bandwidth - 1``.
+    For example, with ``freq = 20 Hz`` and ``n_cycles = 10``, we get
+    ``time = 0.5 s``. If ``time_bandwidth = 4.``, then frequency smoothing
+    is ``(4 / time) = 8 Hz``."""
 
 docdict['time_format'] = """
 time_format : 'float' | 'clock'

@@ -505,36 +505,14 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         The epochs.
     sfreq : float
         Sampling frequency of the data in Hz.
-    freqs : array of float, shape (n_freqs,)
-        The frequencies of interest in Hz.
-    n_cycles : int | array of int
-        Number of cycles in the wavelet, either a fixed number or one per
-        frequency. The number of cycles ``n_cycles`` and the frequencies of
-        interest ``freqs`` define the time-window length. See notes for
-        additional information about the relationship between those arguments
-        and about time and frequency smoothing.
+    %(freqs_tfr)s
+    %(n_cycles_tfr)s
     zero_mean : bool
         If True, make sure the wavelets have a mean of zero. Defaults to True.
-    time_bandwidth : float
-        Time x (Full) Bandwidth product. Should be ``≥ 2.0``.
-        Choose this along with ``n_cycles`` to set the desired frequency
-        resolution. The number of good tapers (least leakage from far away
-        frequencies) is chosen automatically based on this to
-        floor ``time_bandwidth - 1``.
-        For example, with ``freq = 20 Hz`` and ``n_cycles = 10``, we get
-        ``time = 0.5 s``. If ``time_bandwidth = 4.``, then frequency smoothing
-        is ``(4 / time) = 8 Hz``.
+    %(time_bandwitdh_tfr)s
     use_fft : bool
         Use the FFT for convolutions or not. Defaults to True.
-    decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition. Defaults to 1.
-        If `int`, returns ``tfr[..., ::decim]``.
-        If `slice`, returns ``tfr[..., decim]``.
-
-        .. note::
-            Decimation may create aliasing artifacts, yet decimation
-            is done after the convolutions.
+    %(decim_tfr)s
     output : str, default 'complex'
 
         * ``'complex'`` : single trial per taper complex values.
@@ -572,33 +550,10 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     Notes
     -----
-    Time-frequency representations are computed using a sliding time-window.
-    Either the time-window has a fixed length independent of frequency, or the
-    time-window decreases in length with increased frequency.
-
-    .. image:: https://www.fieldtriptoolbox.org/assets/img/tutorial/timefrequencyanalysis/figure1.png
-
-    *Figure: Time and frequency smoothing. (a) For a fixed length time window
-    the time and frequency smoothing remains fixed. (b) For time windows that
-    decrease with frequency, the temporal smoothing decreases and the frequency
-    smoothing increases.*
-    Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
-    multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
-
-    In MNE, the time-window length is defined by the arguments ``freqs`` and
-    ``n_cycles`` respectively defining the frequencies of interest and the
-    number of cycles: :math:`T = n_{cycles} / freqs`
-
-    A fixed number of cycles for all frequencies will yield a time-window which
-    decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
-    ``n_cycles=2`` yields ``T=array([2. , 0.7, 0.4])``.
-
-    To use a fixed length time-window, the number of cycles has to be defined
-    based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
-    ``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``.
+    %(tfr_time-window_notes)s
 
     .. versionadded:: 0.14.0
-    """  # noqa: E501
+    """
     from .tfr import _compute_tfr
     return _compute_tfr(epoch_data, freqs, sfreq=sfreq,
                         method='multitaper', n_cycles=n_cycles,

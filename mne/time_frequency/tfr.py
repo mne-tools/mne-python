@@ -579,8 +579,9 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim,
     return tfrs
 
 
+@fill_doc
 def cwt(X, Ws, use_fft=True, mode='same', decim=1):
-    """Compute time freq decomposition with continuous wavelet transform.
+    """Compute time-frequency decomposition with continuous wavelet transform.
 
     Parameters
     ----------
@@ -593,15 +594,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     mode : 'same' | 'valid' | 'full'
         Convention for convolution. 'full' is currently not implemented with
         ``use_fft=False``. Defaults to ``'same'``.
-    decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition.
-        If `int`, returns tfr[..., ::decim].
-        If `slice`, returns tfr[..., decim].
-
-        .. note:: Decimation may create aliasing artifacts.
-
-        Defaults to 1.
+    %(decim_tfr)s
 
     Returns
     -------
@@ -704,22 +697,14 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     ----------
     inst : Epochs | Evoked
         The epochs or evoked object.
-    freqs : ndarray, shape (n_freqs,)
-        The frequencies in Hz.
-    n_cycles : float | ndarray, shape (n_freqs,)
-        The number of cycles globally or for each frequency.
+    %(freqs_tfr)s
+    %(n_cycles_tfr)s
     use_fft : bool, default False
         The fft based convolution or not.
     return_itc : bool, default True
         Return inter-trial coherence (ITC) as well as averaged power.
         Must be ``False`` for evoked data.
-    decim : int | slice, default 1
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition.
-        If `int`, returns tfr[..., ::decim].
-        If `slice`, returns tfr[..., decim].
-
-        .. note:: Decimation may create aliasing artifacts.
+    %(decim_tfr)s
     %(n_jobs)s
     picks : array-like of int | None, default None
         The indices of the channels to decompose. If None, all available
@@ -730,8 +715,8 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         .. versionadded:: 0.13.0
     %(average_tfr)s
     output : str
-        Can be "power" (default) or "complex". If "complex", then
-        average must be False.
+        Can be ``"power"`` (default) or ``"complex"``. If ``"complex"``, then
+        ``average`` must be ``False``.
 
         .. versionadded:: 0.15.0
     %(verbose)s
@@ -751,6 +736,10 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     mne.time_frequency.tfr_array_multitaper
     mne.time_frequency.tfr_stockwell
     mne.time_frequency.tfr_array_stockwell
+
+    Notes
+    -----
+    %(tfr_time-window_notes)s
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
                       zero_mean=zero_mean, output=output)
@@ -773,24 +762,13 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
-    freqs : array-like of float, shape (n_freqs,)
-        The frequencies.
-    n_cycles : float | array of float, default 7.0
-        Number of cycles in the Morlet wavelet. Fixed number or one per
-        frequency.
+    %(freqs_tfr)s
+    %(n_cycles_tfr)s
     zero_mean : bool | False
         If True, make sure the wavelets have a mean of zero. default False.
     use_fft : bool
         Use the FFT for convolutions or not. default True.
-    decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition. default 1
-        If `int`, returns tfr[..., ::decim].
-        If `slice`, returns tfr[..., decim].
-
-        .. note::
-            Decimation may create aliasing artifacts, yet decimation
-            is done after the convolutions.
+    %(decim_tfr)s
     output : str, default 'complex'
 
         * 'complex' : single trial complex.
@@ -824,6 +802,8 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     Notes
     -----
+    %(tfr_time-window_notes)s
+
     .. versionadded:: 0.14.0
     """
     return _compute_tfr(epoch_data=epoch_data, freqs=freqs,
@@ -847,30 +827,15 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     ----------
     inst : Epochs | Evoked
         The epochs or evoked object.
-    freqs : ndarray, shape (n_freqs,)
-        The frequencies of interest in Hz.
-    n_cycles : float | ndarray, shape (n_freqs,)
-        The number of cycles globally or for each frequency.
-        The time-window length is thus T = n_cycles / freq.
-    time_bandwidth : float, (optional), default 4.0 (n_tapers=3)
-        Time x (Full) Bandwidth product. Should be >= 2.0.
-        Choose this along with n_cycles to get desired frequency resolution.
-        The number of good tapers (least leakage from far away frequencies)
-        is chosen automatically based on this to floor(time_bandwidth - 1).
-        E.g., With freq = 20 Hz and n_cycles = 10, we get time = 0.5 s.
-        If time_bandwidth = 4., then frequency smoothing is (4 / time) = 8 Hz.
+    %(freqs_tfr)s
+    %(n_cycles_tfr)s
+    %(time_bandwitdh_tfr)s
     use_fft : bool, default True
         The fft based convolution or not.
     return_itc : bool, default True
         Return inter-trial coherence (ITC) as well as averaged (or
         single-trial) power.
-    decim : int | slice, default 1
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition.
-        If `int`, returns tfr[..., ::decim].
-        If `slice`, returns tfr[..., decim].
-
-        .. note:: Decimation may create aliasing artifacts.
+    %(decim_tfr)s
     %(n_jobs)s
     %(picks_good_data)s
     %(average_tfr)s
@@ -894,6 +859,8 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
     Notes
     -----
+    %(tfr_time-window_notes)s
+
     .. versionadded:: 0.9.0
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
