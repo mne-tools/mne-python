@@ -15,7 +15,8 @@ from ..meas_info import create_info
 from ..pick import _PICK_TYPES_KEYS
 from ..utils import _read_segments_file, _find_channels
 from ..base import BaseRaw
-from ...utils import logger, verbose, warn, fill_doc, Bunch, _check_fname
+from ...utils import (logger, verbose, warn, fill_doc, Bunch, _check_fname,
+                      _check_head_radius)
 from ...channels import make_dig_montage
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -73,10 +74,10 @@ def _check_load_mat(fname, uint16_codec):
     return eeg
 
 
-def _to_loc(ll):
+def _to_loc(ll, scale_units=1.):
     """Check if location exists."""
     if isinstance(ll, (int, float)) or len(ll) > 0:
-        return ll
+        return ll * scale_units
     else:
         return np.nan
 
@@ -106,7 +107,7 @@ def _eeg_has_montage_information(eeg):
     return has_pos
 
 
-def _get_montage_information(eeg, get_pos):
+def _get_montage_information(eeg, get_pos, scale_units=1.):
     """Get channel name, type and montage information from ['chanlocs']."""
     ch_names, ch_types, pos_ch_names, pos = list(), list(), list(), list()
     unknown_types = dict()
@@ -130,9 +131,9 @@ def _get_montage_information(eeg, get_pos):
 
         # channel loc
         if get_pos:
-            loc_x = _to_loc(chanloc['X'])
-            loc_y = _to_loc(chanloc['Y'])
-            loc_z = _to_loc(chanloc['Z'])
+            loc_x = _to_loc(chanloc['X'], scale_units=scale_units)
+            loc_y = _to_loc(chanloc['Y'], scale_units=scale_units)
+            loc_z = _to_loc(chanloc['Z'], scale_units=scale_units)
             locs = np.r_[-loc_y, loc_x, loc_z]
             pos_ch_names.append(chanloc['labels'])
             pos.append(locs)
@@ -157,8 +158,12 @@ def _get_montage_information(eeg, get_pos):
                 lpa = np.array([d["X"], d["Y"], d["Z"]])
 
     if pos_ch_names:
+        pos_array = np.array(pos)
+        max_radius = np.nanmax(np.linalg.norm(pos_array, axis=1))
+        additional_info = ' Check if the montage_units you used are correct.'
+        _check_head_radius(max_radius, add_info=additional_info)
         montage = make_dig_montage(
-            ch_pos=dict(zip(ch_names, np.array(pos))),
+            ch_pos=dict(zip(ch_names, pos_array)),
             coord_frame='head', lpa=lpa, rpa=rpa, nasion=nasion)
         _ensure_fiducials_head(montage.dig)
     else:

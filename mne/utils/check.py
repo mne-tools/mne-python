@@ -958,7 +958,7 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
     return sphere
 
 
-def _check_head_radius(radius):
+def _check_head_radius(radius, add_info=''):
     '''Check that head radius is within a reasonable range (6.65 - 10.85 cm).
 
     Parameters
@@ -983,11 +983,13 @@ def _check_head_radius(radius):
     min_radius = 0.0665
     max_radius = 0.1085
     if radius > max_radius:
-        warn('Estimated head size (%0.1f mm) is above 99th '
-             'percentile for adult head size' % (1e3 * radius,))
+        msg = (f'Estimated head size ({1e3 * radius:0.1f} mm) is '
+               'above the 99th percentile for adult head size.')
+        warn(msg + add_info)
     elif radius < min_radius:
-        warn('Estimated head size (%0.1f mm) is below 1st '
-             'percentile for adult head size' % (1e3 * radius,))
+        msg = (f'Estimated head size ({1e3 * radius:0.1f} mm) is '
+               'below the 1st percentile for adult head size.')
+        warn(msg + add_info)
 
 
 def _check_freesurfer_home():
