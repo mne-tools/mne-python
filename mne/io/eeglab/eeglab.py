@@ -232,7 +232,7 @@ def _handle_montage_units(montage_units):
     n_char_unit = len(montage_units)
     if not (0 < n_char_unit < 3) or not montage_units[-1] == 'm':
         raise ValueError('``montage_units`` has to be in prefix + "m" format'
-                        f', got "{montage_units}"')
+                         f', got "{montage_units}"')
 
     prefix = '' if n_char_unit == 1 else montage_units[0]
     scale_units = 1 / DEFAULTS['prefixes'][prefix]
