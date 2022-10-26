@@ -971,7 +971,7 @@ def _check_head_radius(radius, add_info=''):
     The minimum and maximum values were taken from the head size percentiles
     given in the following Wikipedia infographic:
     https://upload.wikimedia.org/wikipedia/commons/0/06/AvgHeadSizes.png
-    the minium radius is taken from the 1st percentile for women bitragion
+    the minimum radius is taken from the 1st percentile for women bitragion
     breadth:
 
         12.5 cm / 2 = 6.25 cm = 0.0625 m
