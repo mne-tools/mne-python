@@ -1236,7 +1236,7 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                 if sensor_colors is None:
                     color = defaults[sensor_type + '_color']
                 else:
-                    if type(sensor_colors) == list:
+                    if isinstance(sensor_colors, list):
                         color = sensor_colors[idx_sen]
                     else:
                         color = sensor_colors[idx_sen, :]
