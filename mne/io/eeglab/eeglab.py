@@ -262,6 +262,10 @@ def read_raw_eeglab(input_fname, eog=(), preload=False,
         too small". ``uint16_codec`` allows to specify what codec (for example:
         'latin1' or 'utf-8') should be used when reading character arrays and
         can therefore help you solve this problem.
+    montage_units : str
+        Units that channel positions are represented in. Defaults to "mm"
+        (millimeters), but can be any prefix + "m" combination (including just
+        "m" for meters).
     %(verbose)s
 
     Returns
@@ -320,6 +324,10 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None,
         too small". ``uint16_codec`` allows to specify what codec (for example:
         'latin1' or 'utf-8') should be used when reading character arrays and
         can therefore help you solve this problem.
+    montage_units : str
+        Units that channel positions are represented in. Defaults to "mm"
+        (millimeters), but can be any prefix + "m" combination (including just
+        "m" for meters).
     %(verbose)s
 
     Returns
