@@ -972,23 +972,24 @@ def _check_head_radius(radius, add_info=''):
     given in the following Wikipedia infographic:
     https://upload.wikimedia.org/wikipedia/commons/0/06/AvgHeadSizes.png
     the minimum radius is taken from the 1st percentile for women bitragion
-    breadth:
+    breadth (head breadth not including the ears):
 
         12.5 cm / 2 = 6.25 cm = 0.0625 m
 
     while the maximum radius is taken from the 99th percentile for men Glabella
-    to back of the head measurements:
+    to back of the head measurements (Glabella is a point just above the
+    Nasion):
 
         21.7cm / 2 = 10.85 cm = 0.1085 m
     """
     min_radius = 0.0625
     max_radius = 0.1085
     if radius > max_radius:
-        msg = (f'Estimated head size ({1e3 * radius:0.1f} mm) is '
+        msg = (f'Estimated head radius ({1e2 * radius:0.1f} cm) is '
                'above the 99th percentile for adult head size.')
         warn(msg + add_info)
     elif radius < min_radius:
-        msg = (f'Estimated head size ({1e3 * radius:0.1f} mm) is '
+        msg = (f'Estimated head radius ({1e2 * radius:0.1f} cm) is '
                'below the 1st percentile for adult head size.')
         warn(msg + add_info)
 
