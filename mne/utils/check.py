@@ -958,6 +958,38 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
     return sphere
 
 
+def _check_head_radius(radius):
+    '''Check that head radius is within a reasonable range (6.65 - 10.85 cm).
+
+    Parameters
+    ----------
+    radius: float
+        Head radius in meters.
+
+    Notes
+    -----
+    The minimum and maximum values were taken from the head size percentiles
+    given in the following Wikipedia infographic:
+    https://upload.wikimedia.org/wikipedia/commons/0/06/AvgHeadSizes.png
+    the minium radius is taken from the 1st percentile for women head breadth:
+
+        13.3 cm / 2 = 6.65 cm = 0.0665 m
+
+    while the maximum radius is taken from the 99th percentile for men Glabella
+    to back of the head measurements:
+
+        21.7cm / 2 = 10.85 cm = 0.1085 m
+    '''
+    min_radius = 0.0665
+    max_radius = 0.1085
+    if radius > max_radius:
+        warn('Estimated head size (%0.1f mm) is above 99th '
+             'percentile for adult head size' % (1e3 * radius,))
+    elif radius < min_radius:
+        warn('Estimated head size (%0.1f mm) is below 1st '
+             'percentile for adult head size' % (1e3 * radius,))
+
+
 def _check_freesurfer_home():
     from .config import get_config
     fs_home = get_config('FREESURFER_HOME')
