@@ -1911,7 +1911,7 @@ match_case : bool
     .. versionadded:: 0.20
 """
 
-docdict["max_iter_multitaper"] = """
+docdict['max_iter_multitaper'] = """
 max_iter : int
     Maximum number of iterations to reach convergence when combining the
     tapered spectra with adaptive weights (see argument ``adaptive``). This
@@ -2051,7 +2051,7 @@ n_comp : int
     Default n_comp=1.
 """
 
-docdict["n_cycles_tfr"] = """
+docdict['n_cycles_tfr'] = """
 n_cycles : int | array of int (n_freqs,)
     Number of cycles in the wavelet, either a fixed number or one per
     frequency. The number of cycles ``n_cycles`` and the frequencies of
@@ -2632,7 +2632,7 @@ pipeline : str | tuple
         the SDR step.
 """
 
-docdict["plot_psd_doc"] = """\
+docdict['plot_psd_doc'] = """\
 Plot power or amplitude spectra.
 
 Separate plots are drawn for each channel type. When the data have been
