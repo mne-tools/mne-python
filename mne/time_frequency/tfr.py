@@ -248,7 +248,12 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
             if use_fft:
                 ret = ifft(fft_x * fft_Ws[ii])[:n_times + W.size - 1]
             else:
-                ret = np.convolve(x, W, mode=mode)
+                # Work around multarray.correlate->OpenBLAS bug on ppc64le
+                # ret = np.correlate(x, W, mode=mode)
+                ret = (
+                    np.convolve(x, W.real, mode=mode) +
+                    1j * np.convolve(x, W.imag, mode=mode)
+                )
 
             # Center and decimate decomposition
             if mode == 'valid':

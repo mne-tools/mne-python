@@ -99,6 +99,8 @@ def test_time_frequency():
         tfr_morlet(epochs_nopicks,
                    freqs=freqs, n_cycles=n_cycles, use_fft=True,
                    return_itc=False, picks=picks, average=False)
+    assert_allclose(
+        epochs_power_picks.data[0, 0, 0, 0], 9.130315e-23, rtol=1e-4)
     power_picks_avg = epochs_power_picks.average()
     # the actual data arrays here are equivalent, too...
     assert_allclose(power.data, power_picks.data)
