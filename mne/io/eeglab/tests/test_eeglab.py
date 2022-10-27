@@ -282,7 +282,6 @@ def test_io_set_epochs_events(tmp_path):
     events = np.array([[4, 0, 1], [12, 0, 2], [20, 0, 3], [26, 0, 3]])
     write_events(out_fname, events)
     event_id = {'S255/S8': 1, 'S8': 2, 'S255/S9': 3}
-    out_fname = op.join(tmp_path, 'test-eve.fif')
     epochs = read_epochs_eeglab(epochs_fname_mat, events, event_id)
     assert_equal(len(epochs.events), 4)
     assert epochs.preload
@@ -428,7 +427,7 @@ def test_position_information(three_chanpos_fname):
     # a mix of what is in montage and in the file
     raw = read_raw_eeglab(
         input_fname=three_chanpos_fname,
-        preload=True,
+        preload=True, montage_units='cm',
     ).set_montage(None)  # Flush the montage builtin within input_fname
 
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
@@ -486,7 +485,7 @@ def test_fidsposition_information(monkeypatch, has_type):
 
         monkeypatch.setattr(mne.io.eeglab.eeglab, '_get_montage_information',
                             get_bad_information)
-    raw = read_raw_eeglab(raw_fname_chanloc_fids)
+    raw = read_raw_eeglab(raw_fname_chanloc_fids, montage_units='cm')
     montage = raw.get_montage()
     pos = montage.get_positions()
     n_eeg = 129
