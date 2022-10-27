@@ -491,9 +491,7 @@ def test_fidsposition_information(monkeypatch, has_type):
     n_eeg = 129
     if not has_type:
         # These should now be estimated from the data
-        # TODO: This is in meters... so clearly wrong. (The estimation is
-        # not the problem, the dig are all off like this.)
-        assert_allclose(pos['nasion'], [0, 9.97, 0], atol=1e-4)
+        assert_allclose(pos['nasion'], [0, 0.0997, 0], atol=1e-4)
         assert_allclose(pos['lpa'], -pos['nasion'][[1, 0, 0]])
         assert_allclose(pos['rpa'], pos['nasion'][[1, 0, 0]])
     assert pos['nasion'] is not None
