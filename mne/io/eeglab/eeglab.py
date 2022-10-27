@@ -160,11 +160,18 @@ def _get_montage_information(eeg, get_pos, scale_units=1.):
 
     if pos_ch_names:
         pos_array = np.array(pos)
-        max_radius = np.nanmean(np.linalg.norm(pos_array, axis=1))
-        additional_info = (' Check if the montage_units argument is correct'
-                           ' (the default is "mm", but your channel positions'
-                           ' may be in different units).')
-        _check_head_radius(max_radius, add_info=additional_info)
+
+        # roughly estimate head radius and check if its reasonable
+        is_nan_pos = np.isnan(pos).all(axis=1)
+        if not is_nan_pos.all():
+            max_radius = np.mean(np.linalg.norm(
+                pos_array[~is_nan_pos], axis=1))
+            additional_info = (
+                ' Check if the montage_units argument is correct (the default '
+                'is "mm", but your channel positions may be in different units'
+                ').')
+            _check_head_radius(max_radius, add_info=additional_info)
+
         montage = make_dig_montage(
             ch_pos=dict(zip(ch_names, pos_array)),
             coord_frame='head', lpa=lpa, rpa=rpa, nasion=nasion)
