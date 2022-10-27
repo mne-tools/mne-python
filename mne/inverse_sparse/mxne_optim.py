@@ -225,14 +225,10 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                 # equivalent to:
                 # z = np.linalg.solve(C, np.ones(K))
                 u, s, _ = np.linalg.svd(C, hermitian=True)
-                if s[-1] <= 1e-6 * s[0]:
+                if s[-1] <= 1e-6 * s[0] or not np.isfinite(s).all():
                     logger.debug("Iteration %d: LinAlg Error" % (i + 1))
                     continue
                 z = ((u * 1 / s) @ u.T).sum(0)
-                if z.sum() == 0:
-                    # This can happen on aarch64
-                    logger.debug("Iteration %d: Z-sum Error" % (i + 1))
-                    continue
                 c = z / z.sum()
                 X_acc = np.sum(
                     last_K_X[:-1] * c[:, None, None], axis=0
