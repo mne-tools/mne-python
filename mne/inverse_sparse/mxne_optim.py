@@ -229,6 +229,10 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
                     logger.debug("Iteration %d: LinAlg Error" % (i + 1))
                     continue
                 z = ((u * 1 / s) @ u.T).sum(0)
+                if z.sum() == 0:
+                    # This can happen on aarch64
+                    logger.debug("Iteration %d: Z-sum Error" % (i + 1))
+                    continue
                 c = z / z.sum()
                 X_acc = np.sum(
                     last_K_X[:-1] * c[:, None, None], axis=0
