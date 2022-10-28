@@ -769,14 +769,14 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
     use_fft : bool
         Use the FFT for convolutions or not. default True.
     %(decim_tfr)s
-    output : str, default 'complex'
+    output : str, default ``'complex'``
 
-        * 'complex' : single trial complex.
-        * 'power' : single trial power.
-        * 'phase' : single trial phase.
-        * 'avg_power' : average of single trial power.
-        * 'itc' : inter-trial coherence.
-        * 'avg_power_itc' : average of single trial power and inter-trial
+        * ``'complex'`` : single trial complex.
+        * ``'power'`` : single trial power.
+        * ``'phase'`` : single trial phase.
+        * ``'avg_power'`` : average of single trial power.
+        * ``'itc'`` : inter-trial coherence.
+        * ``'avg_power_itc'`` : average of single trial power and inter-trial
           coherence across trials.
     %(n_jobs)s
         The number of epochs to process at the same time. The parallelization

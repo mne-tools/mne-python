@@ -379,12 +379,11 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
         The data to compute PSD from.
     sfreq : float
         The sampling frequency.
-    fmin : float
-        The lower frequency of interest.
-    fmax : float
-        The upper frequency of interest.
+    %(fmin_fmax_psd)s
     bandwidth : float
-        The bandwidth of the multi taper windowing function in Hz.
+        Half-bandwith of the multi-taper window function in Hz. For a given
+        frequency, frequencies at ``± half-bandwith`` are smoothed together.
+        The default value is a half-bandwidth of 4.
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
@@ -393,10 +392,12 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
         bandwidth.
     %(normalization)s
     output : str
-        The format of the returned ``psds`` array. Can be either ``'complex'``
-        or ``'power'``. If ``'power'``, the power spectral density is returned.
-        If ``output='complex'``, the complex fourier coefficients are returned
-        per taper.
+        The format of the returned ``psds`` array, ``'complex'`` or
+        ``'power'``:
+
+        * ``'power'`` : the power spectral density is returned.
+        * ``'complex'`` : the complex fourier coefficients are returned per
+          taper.
     %(n_jobs)s
     %(max_iter_multitaper)s
     %(verbose)s
