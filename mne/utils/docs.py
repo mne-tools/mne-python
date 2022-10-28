@@ -3451,32 +3451,6 @@ tail : int
     the distribution.
 """
 
-docdict['tfr_time-window_notes'] = """
-Time-frequency representations are computed using a sliding time-window.
-Either the time-window has a fixed length independent of frequency, or the
-time-window decreases in length with increased frequency.
-
-.. image:: https://www.fieldtriptoolbox.org/assets/img/tutorial/timefrequencyanalysis/figure1.png
-
-*Figure: Time and frequency smoothing. (a) For a fixed length time window
-the time and frequency smoothing remains fixed. (b) For time windows that
-decrease with frequency, the temporal smoothing decreases and the frequency
-smoothing increases.*
-Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
-multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
-
-In MNE, the time-window length is defined by the arguments ``freqs`` and
-``n_cycles`` respectively defining the frequencies of interest and the
-number of cycles: :math:`T = n_{cycles} / freqs`
-
-A fixed number of cycles for all frequencies will yield a time-window which
-decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
-``n_cycles=2`` yields ``T=array([2. , 0.7, 0.4])``.
-
-To use a fixed length time-window, the number of cycles has to be defined
-based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
-``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``."""  # noqa: E501
-
 _theme = """\
 theme : str | path-like
     Can be "auto", "light", or "dark" or a path-like to a
@@ -3548,14 +3522,45 @@ For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
 
 docdict['time_bandwitdh_tfr'] = """
 time_bandwidth : float
-    Time x (Full) Bandwidth product. Should be ``≥ 2.0``.
-    Choose this along with ``n_cycles`` to set the desired frequency
-    resolution. The number of good tapers (least leakage from far away
-    frequencies) is chosen automatically based on this to
-    floor ``time_bandwidth - 1``.
-    For example, with ``freq = 20 Hz`` and ``n_cycles = 10``, we get
-    ``time = 0.5 s``. If ``time_bandwidth = 4.``, then frequency smoothing
-    is ``(4 / time) = 8 Hz``."""
+    Time x (Full) Bandwidth product. Should be ``≥ 2.0``. The frequency
+    resolution achieved depends on ``n_cycles`` and ``time_bandwdith``. For a
+    given time-window length, a finer frequency resolution is achieved by
+    decreasing ``time_bandwidth`` at the cost of the number of good tapers. See
+    notes for additional information."""
+
+docdict['time_bandwitdh_tfr_note'] = """
+The frequency resolution achieved depends on 2 arguments:
+
+- ``n_cycles``, the number of cycles which defines the time-window length.
+- ``time_bandwitdh``, the product of the time-window length (in seconds) and of
+  the frequency resolution (in Hz), the bandwidth. This product can be seen as
+  the surface of the window on the time/frequency plane.
+
+The frequency resolution is
+:math:`fq_{resolution} = {time-bandwitdh} / {time-window}`. Once ``n_cycles``
+is set, the time-window length is fixed. Increasing ``time_bandwidth`` will
+increase the bandwidth, and vice-versa.
+
+For example, with a fixed length time-window of ``0.5`` seconds defined by
+``freqs=np.arange(1, 6, 2)`` and ``n_cycles=freqs / 2``:
+
+- if ``time_bandwith = 4``, the frequency resolution is :math:`4 / 0.5 = 8 Hz`
+- if ``time_bandwith = 2``, the frequency resolution is :math:`2 / 0.5 = 4 Hz`
+
+.. note::
+
+    Frequency resolution, or bandwitdh, is also refered to as frequency
+    smoothing. The bandwitdth is centered around the frequencies of interest
+    ``freqs`` and will smooth together the frequencies in its range.
+    For example, a bandwidth of 4 Hz at a frequency of interest of 10 Hz will
+    smooth together the frequencies ± 2 Hz around 10 Hz, i.e. between 8 Hz and
+    12 Hz.
+
+However, the gained frequency resolution reduces the number of good tapers,
+(least leakage from far away frequencies) chosen as
+:math:`floor(time_bandwith - 1)`. Thus, ``time_bandwith`` should be ``≥ 2.0``
+to yield at least one taper. Increasing the number of tapers will reduce the
+variance (noise) in the power spectral estimates."""
 
 docdict['time_format'] = """
 time_format : 'float' | 'clock'
@@ -3601,6 +3606,32 @@ time_viewer : bool
     If True, include time viewer traces. Only used if
     ``time_viewer=True`` and ``separate_canvas=False``.
 """
+
+docdict['time-window_tfr_notes'] = """
+Time-frequency representations are computed using a sliding time-window.
+Either the time-window has a fixed length independent of frequency, or the
+time-window decreases in length with increased frequency.
+
+.. image:: https://www.fieldtriptoolbox.org/assets/img/tutorial/timefrequencyanalysis/figure1.png
+
+*Figure: Time and frequency smoothing. (a) For a fixed length time window
+the time and frequency smoothing remains fixed. (b) For time windows that
+decrease with frequency, the temporal smoothing decreases and the frequency
+smoothing increases.*
+Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
+multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
+
+In MNE, the time-window length is defined by the arguments ``freqs`` and
+``n_cycles`` respectively defining the frequencies of interest and the
+number of cycles: :math:`T = n_{cycles} / freqs`
+
+A fixed number of cycles for all frequencies will yield a time-window which
+decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
+``n_cycles=2`` yields ``T=array([2. , 0.7, 0.4])``.
+
+To use a fixed length time-window, the number of cycles has to be defined
+based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
+``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``."""  # noqa: E501
 
 docdict['title_none'] = """
 title : str | None
