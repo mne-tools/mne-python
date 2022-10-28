@@ -3,7 +3,6 @@ import os
 import subprocess
 import sys
 
-import numpy as np
 import pytest
 
 import mne
@@ -57,8 +56,6 @@ import sys
 import time
 print('foo', file=sys.{kind})
 print('bar', file=sys.{kind})
-sys.{kind}.flush()
-time.sleep(0.02)
 """ + extra)
     with catch_logging() as log, raise_context:
         stdout, stderr = run_subprocess(
@@ -75,18 +72,14 @@ time.sleep(0.02)
     stderr = stderr.replace('\r\n', '\n')
     if do_raise:  # remove traceback
 
-        def truncate_before_traceback(log):
-            tb_line = np.where(
-                [line.startswith('Traceback') for line in log.split('\n')])[0]
-            assert len(tb_line) == 1
-            tb_line = tb_line[0]
-            log = '\n'.join(log.split('\n')[:tb_line])
-            if log:
-                log += '\n'
-            return log
+        def remove_traceback(log):
+            return '\n'.join(
+                line for line in log.split('\n')
+                if not line.strip().startswith(
+                    ('File ', 'raise ', 'RuntimeError: ', 'Traceback ')))
 
-        log = truncate_before_traceback(log)
-        stderr = truncate_before_traceback(stderr)
+        log = remove_traceback(log)
+        stderr = remove_traceback(stderr)
     want = 'foo\nbar\n'
     assert log == want, orig_log
     if kind == 'stdout':
