@@ -7,6 +7,7 @@ from numpy.testing import assert_array_equal
 from mne.time_frequency import read_spectrum
 from mne.time_frequency.multitaper import _psd_from_mt
 from mne.utils import requires_h5py, requires_pandas
+from mne.epochs import BaseEpochs
 
 
 def test_spectrum_errors(raw):
@@ -92,6 +93,17 @@ def test_spectrum_getitem_raw(raw):
 
 def test_spectrum_getitem_epochs(epochs):
     """Test Spectrum.__getitem__ for Epochs-derived spectra."""
+    spect = epochs.compute_psd()
+    # testing data has just one epoch, its event_id label is "1"
+    want = spect.get_data()
+    got = spect['1'].get_data()
+    assert_array_equal(want, got)
+
+
+def test_spectrum_base_epochs(epochs):
+    """Test Spectrum.__getitem__ for Epochs-derived spectra."""
+    epochs = BaseEpochs(epochs.info, epochs.get_data(), epochs.events,
+                        epochs.event_id, epochs.tmin, epochs.tmax)
     spect = epochs.compute_psd()
     # testing data has just one epoch, its event_id label is "1"
     want = spect.get_data()

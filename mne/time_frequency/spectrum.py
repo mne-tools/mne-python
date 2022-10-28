@@ -412,7 +412,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         from .. import BaseEpochs, Evoked, EvokedArray
         from ..io import BaseRaw
 
-        parent_classes = self._inst_type.__bases__
+        parent_classes = list(self._inst_type.__bases__) + [self._inst_type]
         if BaseRaw in parent_classes:
             inst_type_str = 'Raw'
         elif BaseEpochs in parent_classes:
