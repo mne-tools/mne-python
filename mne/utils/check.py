@@ -963,8 +963,10 @@ def _check_head_radius(radius, add_info=''):
 
     Parameters
     ----------
-    radius: float
+    radius : float
         Head radius in meters.
+    add_info : str
+        Additional info to add to the warning message.
 
     Notes
     -----
