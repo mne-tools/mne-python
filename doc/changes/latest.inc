@@ -26,6 +26,8 @@ Enhancements
 - Add the argument ``max_iter`` to :func:`~mne.time_frequency.psd_array_multitaper` and to :func:`~mne.time_frequency.csd_array_multitaper` to increase the maximum number of iterations to reach convergence when using ``adaptive=True`` (:gh:`11237` by `Mathieu Scheltienne`_)
 - Mixed, cortical + discrete source spaces with fixed orientations are now allowed. (:gh:`11241` by `Jevri Hanna`_)
 - Add :func:`mne.beamformer.apply_dics_tfr_epochs` to apply a DICS beamformer to time-frequency resolved epochs (:gh:`11096` by `Alex Rockhill`_)
+- Add ``montage_units`` argument to :func:`~mne.io.read_raw_eeglab` and :func:`~mne.io.read_epochs_eeglab` to control in what units EEGLAB channel positions are read. The default is millimiters, ``'mm'`` (:gh:`11283` by `Mikołaj Magnuski`_)
+- Check whether head radius (estimated from channel positions) is correct when reading EEGLAB data with :func:`~mne.io.read_raw_eeglab` and :func:`~mne.io.read_epochs_eeglab`. If head radius is not within likely values, warn informing about possible units mismatch and the new ``montage_units`` argument (:gh:`11283` by `Mikołaj Magnuski`_).
 
 Bugs
 ~~~~
