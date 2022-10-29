@@ -817,7 +817,8 @@ decim : int | slice, default 1
 
     .. note::
         Decimation is done after convolutions and may create aliasing
-        artifacts."""
+        artifacts.
+"""
 
 docdict['depth'] = """
 depth : None | float | dict
@@ -1383,7 +1384,8 @@ forward : instance of Forward | None
 
 docdict['freqs_tfr'] = """
 freqs : array of float, shape (n_freqs,)
-    The frequencies of interest in Hz."""
+    The frequencies of interest in Hz.
+"""
 
 docdict['fullscreen'] = """
 fullscreen : bool
@@ -3528,7 +3530,7 @@ time_bandwidth : float
     decreasing ``time_bandwidth`` at the cost of the number of good tapers. See
     notes for additional information."""
 
-docdict['time_bandwitdh_tfr_note'] = """
+docdict['time_bandwidth_tfr_note'] = """
 The frequency resolution achieved depends on 2 arguments:
 
 - ``n_cycles``, the number of cycles which defines the time-window length.
@@ -3549,8 +3551,8 @@ For example, with a fixed length time-window of ``0.5`` seconds defined by
 
 .. note::
 
-    Frequency resolution, or bandwitdh, is also refered to as frequency
-    smoothing. The bandwitdth is centered around the frequencies of interest
+    Frequency resolution, or bandwidth, is also refered to as frequency
+    smoothing. The bandwidth is centered around the frequencies of interest
     ``freqs`` and will smooth together the frequencies in its range.
     For example, a bandwidth of 4 Hz at a frequency of interest of 10 Hz will
     smooth together the frequencies ± 2 Hz around 10 Hz, i.e. between 8 Hz and
@@ -3627,7 +3629,7 @@ number of cycles: :math:`T = n_{cycles} / freqs`
 
 A fixed number of cycles for all frequencies will yield a time-window which
 decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
-``n_cycles=2`` yields ``T=array([2. , 0.7, 0.4])``.
+``n_cycles=2`` yields ``T=array([2., 0.7, 0.4])``.
 
 To use a fixed length time-window, the number of cycles has to be defined
 based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
