@@ -294,6 +294,8 @@ def test_io_set_epochs_events(tmp_path):
 
 
 @testing.requires_testing_data
+@pytest.mark.filterwarnings('ignore:At least one epoch has multiple events')
+@pytest.mark.filterwarnings("ignore:The data contains 'boundary' events")
 def test_degenerate(tmp_path):
     """Test some degenerate conditions."""
     # test if .dat file raises an error
@@ -310,21 +312,20 @@ def test_degenerate(tmp_path):
                appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_epochs.fdt'),
                     op.join(tmp_path, 'test_epochs.dat'))
-    with pytest.warns(RuntimeWarning, match='multiple events'):
-        pytest.raises(NotImplementedError, read_epochs_eeglab,
-                      bad_epochs_fname)
+    pytest.raises(NotImplementedError, read_epochs_eeglab,
+                    bad_epochs_fname)
 
     # error when montage units incorrect
-    with pytest.raises(ValueError, match='prefix + "m" format'):
+    with pytest.raises(ValueError, match=r'prefix \+ "m" format'):
         read_epochs_eeglab(epochs_fname_mat, montage_units='mV')
 
     # warning when head radius too small
-    with pytest.warns(RuntimeWarning, match='head radius below'):
-        read_epochs_eeglab(epochs_fname_mat, montage_units='m')
+    with pytest.warns(RuntimeWarning, match='is above'):
+        read_raw_eeglab(raw_fname_chanloc, montage_units='km')
 
     # warning when head radius too large
-    with pytest.warns(RuntimeWarning, match='head radius above'):
-        read_epochs_eeglab(epochs_fname_mat, montage_units='µm')
+    with pytest.warns(RuntimeWarning, match='is below'):
+        read_raw_eeglab(raw_fname_chanloc, montage_units='µm')
 
 
 @pytest.mark.parametrize("fname", [
