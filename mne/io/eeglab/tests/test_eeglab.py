@@ -313,7 +313,7 @@ def test_degenerate(tmp_path):
     shutil.copyfile(op.join(base_dir, 'test_epochs.fdt'),
                     op.join(tmp_path, 'test_epochs.dat'))
     pytest.raises(NotImplementedError, read_epochs_eeglab,
-                    bad_epochs_fname)
+                  bad_epochs_fname)
 
     # error when montage units incorrect
     with pytest.raises(ValueError, match=r'prefix \+ "m" format'):
