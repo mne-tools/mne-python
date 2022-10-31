@@ -332,10 +332,10 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
 
     # add volume labels
     plotargs = {
-        'bcolor':(0.5, 0.5, 0.5), 
-        'border':False,
-        'size':(0.2, 0.6),
-        'loc':'upper left'
+        'bcolor': (0.5, 0.5, 0.5),
+        'border': False,
+        'size': (0.2, 0.6),
+        'loc': 'upper left'
     }
     brain.add_volume_labels(
         aseg='aseg', labels=('Brain-Stem', 'Left-Hippocampus',
