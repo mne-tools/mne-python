@@ -2472,7 +2472,7 @@ class Brain(object):
             labels = [lut_r[idx] for idx in DEFAULTS['volume_label_indices']]
 
         _validate_type(fill_hole_size, (int, None), 'fill_hole_size')
-        _validate_type(legend, (bool, None), 'legend')
+        _validate_type(legend, (bool, None, dict), 'legend')
         if legend is None:
             legend = len(labels) < 11
 
