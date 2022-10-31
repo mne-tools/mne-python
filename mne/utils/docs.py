@@ -3549,12 +3549,12 @@ For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
 """
 
 docdict['time_bandwidth_tfr'] = """
-time_bandwidth : float
-    Time x (Full) Bandwidth product. Should be ``≥ 2.0``. The frequency
-    resolution achieved depends on ``n_cycles`` and ``time_bandwdith``. For a
-    given time-window length, a finer frequency resolution is achieved by
-    decreasing ``time_bandwidth`` at the cost of the number of good tapers. See
-    notes for additional information."""
+time_bandwidth : float ``≥ 2.0``
+    Product between the temporal window length (in seconds) and the *full*
+    frequency bandwidth (Hz). This product can be seen as the surface of the
+    window on the time/frequency plane and controls the frequency bandwidth
+    (thus the frequency resolution) and the number of good tapers. See notes
+    for additional information."""
 
 docdict['time_bandwidth_tfr_notes'] = r"""
 In multitaper spectrotemporal analysis (as with traditional fourier methods),
