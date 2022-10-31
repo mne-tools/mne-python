@@ -322,6 +322,8 @@
 
 .. _Matti Toivonen: https://github.com/mattitoi
 
+.. _Mauricio Cespedes Tenorio: https://github.com/mcespedes99
+
 .. _Michiru Kaneda: https://github.com/rcmdnk
 
 .. _Mikołaj Magnuski: https://github.com/mmagnuski
