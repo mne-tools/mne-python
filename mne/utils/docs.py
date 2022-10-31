@@ -3453,6 +3453,32 @@ tail : int
     the distribution.
 """
 
+docdict['temporal-window_tfr_notes'] = """
+Time-frequency representations are computed using a sliding temporal window.
+Either the temporal window has a fixed length independent of frequency, or the
+temporal window decreases in length with increased frequency.
+
+.. image:: https://www.fieldtriptoolbox.org/assets/img/tutorial/timefrequencyanalysis/figure1.png
+
+*Figure: Time and frequency smoothing. (a) For a fixed length temporal window
+the time and frequency smoothing remains fixed. (b) For temporal windows that
+decrease with frequency, the temporal smoothing decreases and the frequency
+smoothing increases.*
+Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
+multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
+
+In MNE-Python, the temporal window length is defined by the arguments ``freqs``
+and ``n_cycles``, respectively defining the frequencies of interest and the
+number of cycles: :math:`T = n_{cycles} / freqs`
+
+A fixed number of cycles for all frequencies will yield a temporal window which
+decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
+``n_cycles=2`` yields ``T=array([2., 0.7, 0.4])``.
+
+To use a temporal window with fixed length, the number of cycles has to be
+defined based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
+``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``."""  # noqa: E501
+
 _theme = """\
 theme : str | path-like
     Can be "auto", "light", or "dark" or a path-like to a
@@ -3614,32 +3640,6 @@ time_viewer : bool
     If True, include time viewer traces. Only used if
     ``time_viewer=True`` and ``separate_canvas=False``.
 """
-
-docdict['temporal-window_tfr_notes'] = """
-Time-frequency representations are computed using a sliding temporal window.
-Either the temporal window has a fixed length independent of frequency, or the
-temporal window decreases in length with increased frequency.
-
-.. image:: https://www.fieldtriptoolbox.org/assets/img/tutorial/timefrequencyanalysis/figure1.png
-
-*Figure: Time and frequency smoothing. (a) For a fixed length temporal window
-the time and frequency smoothing remains fixed. (b) For temporal windows that
-decrease with frequency, the temporal smoothing decreases and the frequency
-smoothing increases.*
-Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
-multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
-
-In MNE-Python, the temporal window length is defined by the arguments ``freqs``
-and ``n_cycles``, respectively defining the frequencies of interest and the
-number of cycles: :math:`T = n_{cycles} / freqs`
-
-A fixed number of cycles for all frequencies will yield a temporal window which
-decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
-``n_cycles=2`` yields ``T=array([2., 0.7, 0.4])``.
-
-To use a temporal window with fixed length, the number of cycles has to be
-defined based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
-``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``."""  # noqa: E501
 
 docdict['title_none'] = """
 title : str | None
