@@ -164,13 +164,13 @@ def _get_montage_information(eeg, get_pos, scale_units=1.):
         # roughly estimate head radius and check if its reasonable
         is_nan_pos = np.isnan(pos).all(axis=1)
         if not is_nan_pos.all():
-            max_radius = np.mean(np.linalg.norm(
+            mean_radius = np.mean(np.linalg.norm(
                 pos_array[~is_nan_pos], axis=1))
             additional_info = (
                 ' Check if the montage_units argument is correct (the default '
                 'is "mm", but your channel positions may be in different units'
                 ').')
-            _check_head_radius(max_radius, add_info=additional_info)
+            _check_head_radius(mean_radius, add_info=additional_info)
 
         montage = make_dig_montage(
             ch_pos=dict(zip(ch_names, pos_array)),
@@ -237,11 +237,11 @@ def _set_dig_montage_in_init(self, montage):
 
 def _handle_montage_units(montage_units):
     n_char_unit = len(montage_units)
-    if not (0 < n_char_unit < 3) or not montage_units[-1] == 'm':
+    if montage_units[-1:] != 'm' or n_char_unit > 2:
         raise ValueError('``montage_units`` has to be in prefix + "m" format'
                          f', got "{montage_units}"')
 
-    prefix = '' if n_char_unit == 1 else montage_units[0]
+    prefix = montage_units[:-1]
     scale_units = 1 / DEFAULTS['prefixes'][prefix]
     return scale_units
 
@@ -273,6 +273,8 @@ def read_raw_eeglab(input_fname, eog=(), preload=False,
         Units that channel positions are represented in. Defaults to "mm"
         (millimeters), but can be any prefix + "m" combination (including just
         "m" for meters).
+
+        .. versionadded:: 1.3
     %(verbose)s
 
     Returns
@@ -295,7 +297,7 @@ def read_raw_eeglab(input_fname, eog=(), preload=False,
 
 @fill_doc
 def read_epochs_eeglab(input_fname, events=None, event_id=None,
-                       eog=(), uint16_codec=None, montage_units='mm',
+                       eog=(), *, uint16_codec=None, montage_units='mm',
                        verbose=None):
     r"""Reader function for EEGLAB epochs files.
 
@@ -391,7 +393,7 @@ class RawEEGLAB(BaseRaw):
 
     @verbose
     def __init__(self, input_fname, eog=(),
-                 preload=False, uint16_codec=None, montage_units='mm',
+                 preload=False, *, uint16_codec=None, montage_units='mm',
                  verbose=None):  # noqa: D102
         input_fname = _check_fname(input_fname, 'read', True, 'input_fname')
         eeg = _check_load_mat(input_fname, uint16_codec)
