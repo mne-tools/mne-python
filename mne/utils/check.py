@@ -970,7 +970,7 @@ def _check_head_radius(radius, add_info=''):
 
     Notes
     -----
-    The maximum value were taken from the head size percentiles given in the
+    The maximum value was taken from the head size percentiles given in the
     following Wikipedia infographic:
     https://upload.wikimedia.org/wikipedia/commons/0/06/AvgHeadSizes.png
 
