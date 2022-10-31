@@ -864,7 +864,6 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     Notes
     -----
     %(temporal-window_tfr_notes)s
-
     %(time_bandwidth_tfr_notes)s
 
     .. versionadded:: 0.9.0

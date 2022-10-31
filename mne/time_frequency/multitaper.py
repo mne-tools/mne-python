@@ -552,7 +552,6 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
     Notes
     -----
     %(temporal-window_tfr_notes)s
-
     %(time_bandwidth_tfr_notes)s
 
     .. versionadded:: 0.14.0
