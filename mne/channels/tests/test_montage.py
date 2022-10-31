@@ -15,7 +15,7 @@ import numpy as np
 from functools import partial
 from string import ascii_lowercase
 
-from numpy.testing import (assert_array_equal,
+from numpy.testing import (assert_array_equal, assert_array_less,
                            assert_allclose, assert_equal)
 import matplotlib.pyplot as plt
 
@@ -32,6 +32,7 @@ from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
 from mne.channels.montage import (
     transform_to_head, _check_get_coord_frame, _BUILTIN_STANDARD_MONTAGES
 )
+from mne.preprocessing import compute_current_source_density
 from mne.utils import assert_dig_allclose, _record_warnings
 from mne.bem import _fit_sphere
 from mne.io.constants import FIFF
@@ -68,6 +69,7 @@ egi_fname1 = op.join(data_path, 'EGI', 'test_egi.mff')
 cnt_fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
 fnirs_dname = op.join(data_path, 'NIRx', 'nirscout',
                       'nirx_15_2_recording_w_short')
+mgh70_fname = data_path / 'SSS' / 'mgh70_raw.fif'
 subjects_dir = op.join(data_path, 'subjects')
 
 io_dir = op.dirname(_MNE_IO_FILE)
@@ -1029,13 +1031,18 @@ def test_read_dig_captrak(tmp_path):
 
 
 # https://gist.github.com/larsoner/2264fb5895070d29a8c9aa7c0dc0e8a6
-_MGH60 = [
-    'Fz', 'F2', 'AF4', 'Fpz', 'Fp1', 'AF8', 'FT9', 'F7', 'FC5', 'FC6', 'FT7',
-    'F1', 'AF7', 'FT8', 'F6', 'F5', 'FC1', 'FC2', 'FT10', 'T9', 'Cz', 'F4',
-    'T7', 'C2', 'C4', 'C1', 'C3', 'F8', 'F3', 'C5', 'Fp2', 'AF3',
-    'CP2', 'P2', 'O2', 'Iz', 'Oz', 'PO4', 'O1', 'P8', 'PO8', 'P6', 'PO7', 'PO3', 'C6', 'TP9', 'TP8', 'CP4', 'P4',  # noqa
-    'CP3', 'CP1', 'TP7', 'P3', 'Pz', 'P1', 'P7', 'P5', 'TP10', 'T8', 'T10',
-]
+_MGH60 = (
+    'Fp1 Fpz Fp2 '
+    'AF7 AF3 AF4 AF8 '
+    'F7 F5 F3 F1 Fz F2 F4 F6 F8 '
+    'FT9 FT7 FC5 FC1 FC2 FC6 FT8 FT10 '
+    'T9 T7 C5 C3 C1 Cz C2 C4 C6 T8 T10 '
+    'TP9 TP7 CP3 CP1 CP2 CP4 TP8 TP10 '
+    'P7 P5 P3 P1 Pz P2 P4 P6 P8 '
+    'PO7 PO3 PO4 PO8 '
+    'O1 Oz O2 '
+    'Iz'
+).split()
 
 
 @pytest.mark.parametrize('rename', ('raw', 'montage', 'custom'))
@@ -1074,9 +1081,9 @@ def test_set_montage_mgh(rename):
         raw.set_montage(mon)
 
     if mon is not None:
-        # first two are 'Fz' and 'F2', take them from standard_1020.elc --
+        # first two are 'Fp1' and 'Fz', take them from standard_1020.elc --
         # they should not be changed on load!
-        want_pos = [[0.3122, 58.5120, 66.4620], [29.5142, 57.6019, 59.5400]]
+        want_pos = [[-29.4367, 83.9171, -6.9900], [0.1123, 88.2470, -1.7130]]
         got_pos = [mon.get_positions()['ch_pos'][f'EEG {x:03d}'] * 1000
                    for x in range(1, 3)]
         assert_allclose(want_pos, got_pos)
@@ -1093,9 +1100,64 @@ def test_set_montage_mgh(rename):
 
     r0 = _fit_sphere(new_pos)[1]
     assert_allclose(r0, [-0.001021, 0.014554, 0.041404], atol=1e-4)
-    # spot check
-    assert_allclose(new_pos[:2], [[-0.001229, 0.093274, 0.102639],
-                                  [0.027968, 0.09187, 0.09578]], atol=atol)
+    # spot check: Fp1 and Fpz
+    assert_allclose(new_pos[:2], [[-0.030903, 0.114585, 0.027867],
+                                  [-0.001337, 0.119102, 0.03289]], atol=atol)
+
+
+@pytest.mark.parametrize('fname, montage, n_eeg, n_good, bads', [
+    (fif_fname, 'mgh60', 60, 59, ['EEG 053']),
+    pytest.param(mgh70_fname, 'mgh70', 70, 64, None,
+                 marks=[testing._pytest_mark()]),
+])
+def test_montage_positions_similar(fname, montage, n_eeg, n_good, bads):
+    """Test that montages give spatially similar positions."""
+    # 1. Prepare data: load, set bads (if missing), and filter
+    raw = read_raw_fif(fname).pick_types(eeg=True, exclude=())
+    if bads is not None:
+        assert raw.info['bads'] == []
+        raw.info['bads'] = bads
+    assert len(raw.ch_names) == n_eeg
+    raw.pick_types(eeg=True, exclude='bads').load_data()
+    raw.apply_function(lambda x: x - x.mean())  # remove DC
+    raw.filter(None, 40)  # remove line noise
+    assert len(raw.ch_names) == n_good
+    if montage == 'mgh60':
+        montage = make_standard_montage(montage)
+        montage.rename_channels(lambda n: f'EEG {n[-3:]}')
+    raw_mon = raw.copy().set_montage(montage)
+    # 2. First test: CSDs should be similar (CSD uses 3D positions)
+    csd = compute_current_source_density(raw).get_data()
+    csd_mon = compute_current_source_density(raw_mon).get_data()
+    corr = np.corrcoef(csd.ravel(), csd_mon.ravel())[0, 1]
+    assert 0.9 < corr < 0.99, corr
+    # 3. Second test: interpolation of some bads should be similar
+    bad_picks = np.linspace(0, n_good, 6, endpoint=False).round().astype(int)
+    bads = [raw.ch_names[idx] for idx in bad_picks]
+    orig_data = raw.get_data(bad_picks)
+    assert_allclose(orig_data, raw_mon.get_data(bad_picks))
+    raw.info['bads'] = bads
+    raw_mon.info['bads'] = bads
+    raw.interpolate_bads()
+    raw_mon.interpolate_bads()
+    orig_data = orig_data.ravel()
+    corr = np.corrcoef(orig_data, raw.get_data(bad_picks).ravel())[0, 1]
+    assert 0.95 < corr < 0.99, corr
+    corr = np.corrcoef(orig_data, raw_mon.get_data(bad_picks).ravel())[0, 1]
+    assert 0.95 < corr < 0.99, corr
+    # 4. Third test: project each to a sphere, check cosine angles are small
+    poss = dict()
+    for kind, this_raw in (('orig', raw), ('mon', raw_mon)):
+        pos = np.array(
+            list(this_raw.get_montage().get_positions()['ch_pos'].values()),
+            float)
+        pos -= np.mean(pos, axis=0)
+        pos /= np.linalg.norm(pos, axis=1, keepdims=True)
+        poss[kind] = pos
+    ang = np.rad2deg(  # arccos is in [0, pi]
+        np.arccos(np.minimum(np.sum(poss['orig'] * poss['mon'], axis=1), 1)))
+    assert_array_less(ang, 20)  # less than 20 deg
+    assert_array_less(0, ang)  # but not equal
 
 
 # XXX: this does not check ch_names + it cannot work because of write_dig
