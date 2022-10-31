@@ -833,7 +833,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         The epochs or evoked object.
     %(freqs_tfr)s
     %(n_cycles_tfr)s
-    %(time_bandwitdh_tfr)s
+    %(time_bandwidth_tfr)s
     use_fft : bool, default True
         The fft based convolution or not.
     return_itc : bool, default True
@@ -865,7 +865,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     -----
     %(time-window_tfr_notes)s
 
-    %(time_bandwitdh_tfr_note)s
+    %(time_bandwidth_tfr_note)s
 
     .. versionadded:: 0.9.0
     """

@@ -3522,7 +3522,7 @@ For a one-tailed test (``tail=1``), don't divide the p-value by 2.
 For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
 """
 
-docdict['time_bandwitdh_tfr'] = """
+docdict['time_bandwidth_tfr'] = """
 time_bandwidth : float
     Time x (Full) Bandwidth product. Should be ``≥ 2.0``. The frequency
     resolution achieved depends on ``n_cycles`` and ``time_bandwdith``. For a
@@ -3551,7 +3551,7 @@ For example, with a fixed length time-window of ``0.5`` seconds defined by
 
 .. note::
 
-    Frequency resolution, or bandwidth, is also refered to as frequency
+    Frequency resolution, or bandwidth, is also referred to as frequency
     smoothing. The bandwidth is centered around the frequencies of interest
     ``freqs`` and will smooth together the frequencies in its range.
     For example, a bandwidth of 4 Hz at a frequency of interest of 10 Hz will
