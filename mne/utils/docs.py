@@ -3650,7 +3650,7 @@ tstep : scalar
 
 docdict['uint16_codec'] = """
 uint16_codec : str | None
-    If your \*.set file contains non-ascii characters, sometimes reading
+    If your set file contains non-ascii characters, sometimes reading
     it may fail and give rise to error message stating that "buffer is
     too small". ``uint16_codec`` allows to specify what codec (for example:
     'latin1' or 'utf-8') should be used when reading character arrays and
