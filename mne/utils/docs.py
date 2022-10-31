@@ -3556,7 +3556,7 @@ time_bandwidth : float
     decreasing ``time_bandwidth`` at the cost of the number of good tapers. See
     notes for additional information."""
 
-docdict['time_bandwidth_tfr_notes'] = """
+docdict['time_bandwidth_tfr_notes'] = r"""
 In multitaper spectrotemporal analysis (as with traditional fourier methods),
 the temporal and spectral resolution are interrelated: longer temporal windows
 allow more precise frequency estimates; shorter temporal windows "smear"

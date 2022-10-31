@@ -381,8 +381,8 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
         The sampling frequency.
     %(fmin_fmax_psd)s
     bandwidth : float
-        Half-bandwith of the multi-taper window function in Hz. For a given
-        frequency, frequencies at ± half-bandwith are smoothed together.
+        Half-bandwidth of the multi-taper window function in Hz. For a given
+        frequency, frequencies at ± half-bandwidth are smoothed together.
         The default value is a half-bandwidth of 4.
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD
@@ -538,8 +538,8 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         - else, array of shape ``(n_chans, n_freqs, n_times)``
 
         If ``output`` is ``'avg_power_itc'``, the real values in ``out``
-        contain the average power and the imaginary values contain the ITC:
-        :math:`out = power_{avg} + i * itc`.
+        contain the average power and the imaginary values contain the
+        inter-trial coherence: :math:`out = power_{avg} + i * ITC`.
 
     See Also
     --------

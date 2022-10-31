@@ -340,7 +340,8 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
         ``'phase'`` results in shape of ``out`` being ``(n_epochs, n_chans,
         n_tapers, n_freqs, n_times)``. If output is ``'avg_power_itc'``, the
         real values in the ``output`` contain average power' and the imaginary
-        values contain the ITC: ``out = avg_power + i * itc``.
+        values contain the inter-trial coherence:
+        ``out = avg_power + i * ITC``.
     """
     # Check data
     epoch_data = np.asarray(epoch_data)

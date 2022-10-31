@@ -287,8 +287,8 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     %(fmin_fmax_psd)s
     %(tmin_tmax_psd)s
     bandwidth : float
-        Half-bandwith of the multi-taper window function in Hz. For a given
-        frequency, frequencies at ± half-bandwith are smoothed together.
+        Half-bandwidth of the multi-taper window function in Hz. For a given
+        frequency, frequencies at ± half-bandwidth are smoothed together.
         The default value is a half-bandwidth of 4.
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD
