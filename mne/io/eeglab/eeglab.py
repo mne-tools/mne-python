@@ -263,18 +263,8 @@ def read_raw_eeglab(input_fname, eog=(), preload=False,
     %(preload)s
         Note that preload=False will be effective only if the data is stored
         in a separate binary file.
-    uint16_codec : str | None
-        If your \*.set file contains non-ascii characters, sometimes reading
-        it may fail and give rise to error message stating that "buffer is
-        too small". ``uint16_codec`` allows to specify what codec (for example:
-        'latin1' or 'utf-8') should be used when reading character arrays and
-        can therefore help you solve this problem.
-    montage_units : str
-        Units that channel positions are represented in. Defaults to "mm"
-        (millimeters), but can be any prefix + "m" combination (including just
-        "m" for meters).
-
-        .. versionadded:: 1.3
+    %(uint16_codec)s
+    %(montage_units)s
     %(verbose)s
 
     Returns
@@ -327,16 +317,8 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None,
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    uint16_codec : str | None
-        If your \*.set file contains non-ascii characters, sometimes reading
-        it may fail and give rise to error message stating that "buffer is
-        too small". ``uint16_codec`` allows to specify what codec (for example:
-        'latin1' or 'utf-8') should be used when reading character arrays and
-        can therefore help you solve this problem.
-    montage_units : str
-        Units that channel positions are represented in. Defaults to "mm"
-        (millimeters), but can be any prefix + "m" combination (including just
-        "m" for meters).
+    %(uint16_codec)s
+    %(montage_units)s
     %(verbose)s
 
     Returns
@@ -374,12 +356,8 @@ class RawEEGLAB(BaseRaw):
     %(preload)s
         Note that preload=False will be effective only if the data is stored
         in a separate binary file.
-    uint16_codec : str | None
-        If your \*.set file contains non-ascii characters, sometimes reading
-        it may fail and give rise to error message stating that "buffer is
-        too small". ``uint16_codec`` allows to specify what codec (for example:
-        'latin1' or 'utf-8') should be used when reading character arrays and
-        can therefore help you solve this problem.
+    %(uint16_codec)s
+    %(montage_units)s
     %(verbose)s
 
     See Also
@@ -506,12 +484,8 @@ class EpochsEEGLAB(BaseEpochs):
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    uint16_codec : str | None
-        If your \*.set file contains non-ascii characters, sometimes reading
-        it may fail and give rise to error message stating that "buffer is
-        too small". ``uint16_codec`` allows to specify what codec (for example:
-        'latin1' or 'utf-8') should be used when reading character arrays and
-        can therefore help you solve this problem.
+    %(uint16_codec)s
+    %(montage_units)s
     %(verbose)s
 
     See Also

@@ -2011,6 +2011,15 @@ montage : None | str | DigMontage
 
 docdict['montage_types'] = """EEG/sEEG/ECoG/DBS/fNIRS"""
 
+docdict['montage_units'] = """
+montage_units : str
+    Units that channel positions are represented in. Defaults to "mm"
+    (millimeters), but can be any prefix + "m" combination (including just
+    "m" for meters).
+
+    .. versionadded:: 1.3
+"""
+
 docdict['moving'] = """
 moving : instance of SpatialImage
     The image to morph ("from" volume).
@@ -3638,6 +3647,15 @@ tstep : scalar
 
 # %%
 # U
+
+docdict['uint16_codec'] = """
+uint16_codec : str | None
+    If your \*.set file contains non-ascii characters, sometimes reading
+    it may fail and give rise to error message stating that "buffer is
+    too small". ``uint16_codec`` allows to specify what codec (for example:
+    'latin1' or 'utf-8') should be used when reading character arrays and
+    can therefore help you solve this problem.
+"""
 
 docdict['units'] = """
 units : str | dict | None
