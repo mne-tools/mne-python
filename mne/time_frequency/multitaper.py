@@ -382,7 +382,7 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
     %(fmin_fmax_psd)s
     bandwidth : float
         Half-bandwith of the multi-taper window function in Hz. For a given
-        frequency, frequencies at ``± half-bandwith`` are smoothed together.
+        frequency, frequencies at ± half-bandwith are smoothed together.
         The default value is a half-bandwidth of 4.
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD
@@ -510,7 +510,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
     %(n_cycles_tfr)s
     zero_mean : bool
         If True, make sure the wavelets have a mean of zero. Defaults to True.
-    %(time_bandwitdh_tfr)s
+    %(time_bandwidth_tfr)s
     use_fft : bool
         Use the FFT for convolutions or not. Defaults to True.
     %(decim_tfr)s
@@ -551,9 +551,9 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     Notes
     -----
-    %(time-window_tfr_notes)s
+    %(temporal-window_tfr_notes)s
 
-    %(time_bandwitdh_tfr_note)s
+    %(time_bandwidth_tfr_notes)s
 
     .. versionadded:: 0.14.0
     """

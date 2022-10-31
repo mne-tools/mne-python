@@ -3530,39 +3530,45 @@ time_bandwidth : float
     decreasing ``time_bandwidth`` at the cost of the number of good tapers. See
     notes for additional information."""
 
-docdict['time_bandwidth_tfr_note'] = """
-The frequency resolution achieved depends on 2 arguments:
+docdict['time_bandwidth_tfr_notes'] = """
+In multitaper spectrotemporal analysis (as with traditional fourier methods),
+the temporal and spectral resolution are interrelated: longer temporal windows
+allow more precise frequency estimates; shorter temporal windows "smear"
+frequency estimates while providing more precise timing information. In
+MNE-Python's multitaper functions, this time-frequency trade-off is controlled
+by two parameters: ``n_cycles`` and ``time_bandwidth``.
 
-- ``n_cycles``, the number of cycles which defines the time-window length.
-- ``time_bandwitdh``, the product of the time-window length (in seconds) and of
-  the frequency resolution (in Hz), the bandwidth. This product can be seen as
-  the surface of the window on the time/frequency plane.
+The ``n_cycles`` parameter determines the temporal window length based on the
+frequencies of interest: :math:`T = n_{cycles} / freqs`. The ``time_bandwidth``
+parameter provides the "time-bandwidth product", which is the product of the
+temporal window length (in seconds) and of the frequency bandwidth (in Hz).
+Thus once ``n_cycles`` has been set, frequency bandwidth is determined by
+:math:`\frac{time bandwidth}{time window}`, and thus passing a larger
+``time_bandwidth`` value will increase the frequency bandwidth (thereby
+decreasing the frequency *resolution*).
 
-The frequency resolution is
-:math:`fq_{resolution} = {time-bandwitdh} / {time-window}`. Once ``n_cycles``
-is set, the time-window length is fixed. Increasing ``time_bandwidth`` will
-increase the bandwidth, and vice-versa.
+*NB:* ``time_bandwidth`` also determines the number of "good" tapers (tapers
+with minimal leakage from far-away frequencies). In MNE-Python, this is chosen
+as ``floor(time_bandwidth - 1)``. This means there is another trade-off at
+play, between frequency resolution and variance reduction. Striving for finer
+frequency resolution (by setting ``time_bandwidth`` low) means fewer tapers
+will be used, which undermines what is unique about multitaper methods — namely
+their ability to improve accuracy / reduce noise in the power estimates by
+using several (orthogonal) tapers; this comes at the cost of having wider
+frequency bandwidths, AKA spectral smoothing.
 
-For example, with a fixed length time-window of ``0.5`` seconds defined by
-``freqs=np.arange(1, 6, 2)`` and ``n_cycles=freqs / 2``:
+.. warning::
 
-- if ``time_bandwith = 4``, the frequency resolution is :math:`4 / 0.5 = 8 Hz`
-- if ``time_bandwith = 2``, the frequency resolution is :math:`2 / 0.5 = 4 Hz`
+    In `~mne.time_frequency.tfr_array_multitaper` and
+    `~mne.time_frequency.tfr_multitaper`, ``time_bandwidth`` defines the
+    product of the temporal window length with the *full* frequency bandwidth
+    For example, a full bandwidth of 4 Hz at a frequency of interest of 10 Hz
+    will "smear" the frequency estimate between 8 Hz and 12 Hz.
 
-.. note::
-
-    Frequency resolution, or bandwidth, is also referred to as frequency
-    smoothing. The bandwidth is centered around the frequencies of interest
-    ``freqs`` and will smooth together the frequencies in its range.
-    For example, a bandwidth of 4 Hz at a frequency of interest of 10 Hz will
-    smooth together the frequencies ± 2 Hz around 10 Hz, i.e. between 8 Hz and
-    12 Hz.
-
-However, the gained frequency resolution reduces the number of good tapers,
-(least leakage from far away frequencies) chosen as
-:math:`floor(time_bandwith - 1)`. Thus, ``time_bandwith`` should be ``≥ 2.0``
-to yield at least one taper. Increasing the number of tapers will reduce the
-variance (noise) in the power spectral estimates."""
+    This is not the case for `~mne.time_frequency.psd_array_multitaper` and
+    `~mne.time_frequency.psd_multitaper` where the argument ``bandwidth``
+    defines the *half* frequency bandwidth. In the example above, the
+    half-frequency bandwidth is 2 Hz."""
 
 docdict['time_format'] = """
 time_format : 'float' | 'clock'
@@ -3609,30 +3615,30 @@ time_viewer : bool
     ``time_viewer=True`` and ``separate_canvas=False``.
 """
 
-docdict['time-window_tfr_notes'] = """
-Time-frequency representations are computed using a sliding time-window.
-Either the time-window has a fixed length independent of frequency, or the
-time-window decreases in length with increased frequency.
+docdict['temporal-window_tfr_notes'] = """
+Time-frequency representations are computed using a sliding temporal window.
+Either the temporal window has a fixed length independent of frequency, or the
+temporal window decreases in length with increased frequency.
 
 .. image:: https://www.fieldtriptoolbox.org/assets/img/tutorial/timefrequencyanalysis/figure1.png
 
-*Figure: Time and frequency smoothing. (a) For a fixed length time window
-the time and frequency smoothing remains fixed. (b) For time windows that
+*Figure: Time and frequency smoothing. (a) For a fixed length temporal window
+the time and frequency smoothing remains fixed. (b) For temporal windows that
 decrease with frequency, the temporal smoothing decreases and the frequency
 smoothing increases.*
 Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
 multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
 
-In MNE, the time-window length is defined by the arguments ``freqs`` and
-``n_cycles`` respectively defining the frequencies of interest and the
+In MNE-Python, the temporal window length is defined by the arguments ``freqs``
+and ``n_cycles``, respectively defining the frequencies of interest and the
 number of cycles: :math:`T = n_{cycles} / freqs`
 
-A fixed number of cycles for all frequencies will yield a time-window which
+A fixed number of cycles for all frequencies will yield a temporal window which
 decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
 ``n_cycles=2`` yields ``T=array([2., 0.7, 0.4])``.
 
-To use a fixed length time-window, the number of cycles has to be defined
-based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
+To use a temporal window with fixed length, the number of cycles has to be
+defined based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
 ``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``."""  # noqa: E501
 
 docdict['title_none'] = """

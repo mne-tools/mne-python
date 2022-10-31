@@ -739,7 +739,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
 
     Notes
     -----
-    %(time-window_tfr_notes)s
+    %(temporal-window_tfr_notes)s
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
                       zero_mean=zero_mean, output=output)
@@ -806,7 +806,7 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     Notes
     -----
-    %(time-window_tfr_notes)s
+    %(temporal-window_tfr_notes)s
 
     .. versionadded:: 0.14.0
     """
@@ -863,9 +863,9 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
     Notes
     -----
-    %(time-window_tfr_notes)s
+    %(temporal-window_tfr_notes)s
 
-    %(time_bandwidth_tfr_note)s
+    %(time_bandwidth_tfr_notes)s
 
     .. versionadded:: 0.9.0
     """
