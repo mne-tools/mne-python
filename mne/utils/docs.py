@@ -3551,7 +3551,7 @@ For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
 docdict['time_bandwidth_tfr'] = """
 time_bandwidth : float ``≥ 2.0``
     Product between the temporal window length (in seconds) and the *full*
-    frequency bandwidth (Hz). This product can be seen as the surface of the
+    frequency bandwidth (in Hz). This product can be seen as the surface of the
     window on the time/frequency plane and controls the frequency bandwidth
     (thus the frequency resolution) and the number of good tapers. See notes
     for additional information."""
