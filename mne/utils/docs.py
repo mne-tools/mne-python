@@ -2058,7 +2058,7 @@ docdict['n_cycles_tfr'] = """
 n_cycles : int | array of int (n_freqs,)
     Number of cycles in the wavelet, either a fixed number or one per
     frequency. The number of cycles ``n_cycles`` and the frequencies of
-    interest ``freqs`` define the time-window length. See notes for
+    interest ``freqs`` define the temporal window length. See notes for
     additional information about the relationship between those arguments
     and about time and frequency smoothing.
 """
