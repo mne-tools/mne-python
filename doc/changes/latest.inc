@@ -45,4 +45,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- None yet
+- In :func:`mne.time_frequency.dpss_windows`, interpolating is deprecated (nowadays SciPy's computations are fast enough for large ``N`` without interpolation). This affects parameters ``interp_from`` and ``interp_kind``. (:gh:`11293` by `Daniel McCloy`_)
