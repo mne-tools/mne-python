@@ -9,7 +9,7 @@ from ..parallel import parallel_func
 from ..utils import warn, verbose, logger, _check_option
 
 
-def dpss_windows(N, half_nbw, Kmax, *, low_bias=True,
+def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True,
                  interp_from=None, interp_kind=None):
     """Compute Discrete Prolate Spheroidal Sequences.
 
@@ -27,6 +27,17 @@ def dpss_windows(N, half_nbw, Kmax, *, low_bias=True,
         = BW*N/dt but with dt taken as 1.
     Kmax : int
         Number of DPSS windows to return is Kmax (orders 0 through Kmax-1).
+    sym : bool
+        Whether to generate a symmetric window (``True``, for filter design) or
+        a periodic window (``False``, for spectral analysis). Default is
+        ``True``.
+    norm : 2 | ``'approximate'`` | ``'subsample'`` | None
+        Window normalization method. If ``'approximate'`` or ``'subsample'``,
+        windows are normalized by the maximum, and a correction scale-factor
+        for even-length windows is applied either using
+        ``N**2/(N**2+half_nbw)`` ("approximate") or a FFT-based subsample shift
+        ("subsample"). ``2`` uses the L2 norm. ``None`` (the default) uses
+        ``"approximate"`` when ``Kmax=None`` and ``2`` otherwise.
     low_bias : bool
         Keep only tapers with eigenvalues > 0.9.
     interp_from : int | None
@@ -74,7 +85,8 @@ def dpss_windows(N, half_nbw, Kmax, *, low_bias=True,
         warn('The ``interp_kind`` option is deprecated and will be removed in '
              'version 1.4.', FutureWarning)
 
-    dpss, eigvals = sp_dpss(N, half_nbw, Kmax, return_ratios=True)
+    dpss, eigvals = sp_dpss(N, half_nbw, Kmax, sym=sym, norm=norm,
+                            return_ratios=True)
     if low_bias:
         idx = (eigvals > 0.9)
         if not idx.any():

@@ -45,4 +45,4 @@ Bugs
 
 API changes
 ~~~~~~~~~~~
-- In :func:`mne.time_frequency.dpss_windows`, interpolating is deprecated (nowadays SciPy's computations are fast enough for large ``N`` without interpolation). This affects parameters ``interp_from`` and ``interp_kind``. (:gh:`11293` by `Daniel McCloy`_)
+- In :func:`mne.time_frequency.dpss_windows`, interpolating is deprecated (nowadays SciPy's computations are fast enough for large ``N`` without interpolation). This affects parameters ``interp_from`` and ``interp_kind``. Two new parameters of the underlying SciPy :func:`~scipy.signal.windows.dpss` function are also exposed: ``sym`` (for choosing symmetric vs. periodic windows) and ``norm`` (window normalization method). (:gh:`11293` by `Daniel McCloy`_)
