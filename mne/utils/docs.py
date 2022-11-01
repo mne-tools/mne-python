@@ -3569,7 +3569,7 @@ frequencies of interest: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`.
 The ``time_bandwidth`` parameter defines the "time-bandwidth product", which is
 the product of the temporal window length (in seconds) and the frequency
 bandwidth (in Hz). Thus once ``n_cycles`` has been set, frequency bandwidth is
-determined by :math:`\frac{\mathrm{time bandwidth}}{\mathrm{time window}}`, and
+determined by :math:`\frac{\mathrm{time~bandwidth}}{\mathrm{time~window}}`, and
 thus passing a larger ``time_bandwidth`` value will increase the frequency
 bandwidth (thereby decreasing the frequency *resolution*).
 
