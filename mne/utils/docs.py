@@ -3474,7 +3474,7 @@ multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequenc
 
 In MNE-Python, the temporal window length is defined by the arguments ``freqs``
 and ``n_cycles``, respectively defining the frequencies of interest and the
-number of cycles: :math:`T = \frac{\mathtt{n\_cycles}}}{\mathtt{freqs}}`
+number of cycles: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`
 
 A fixed number of cycles for all frequencies will yield a temporal window which
 decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
