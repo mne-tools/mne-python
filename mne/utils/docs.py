@@ -2055,7 +2055,7 @@ n_comp : int
 """
 
 docdict['n_cycles_tfr'] = """
-n_cycles : int | array of int (n_freqs,)
+n_cycles : int | array of int, shape (n_freqs,)
     Number of cycles in the wavelet, either a fixed number or one per
     frequency. The number of cycles ``n_cycles`` and the frequencies of
     interest ``freqs`` define the temporal window length. See notes for
@@ -3474,7 +3474,7 @@ multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequenc
 
 In MNE-Python, the temporal window length is defined by the arguments ``freqs``
 and ``n_cycles``, respectively defining the frequencies of interest and the
-number of cycles: :math:`T = \frac{n_{cycles}}{freqs}`
+number of cycles: :math:`T = \frac{\mathtt{n\_cycles}}}{\mathtt{freqs}}`
 
 A fixed number of cycles for all frequencies will yield a temporal window which
 decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
@@ -3563,26 +3563,26 @@ time_bandwidth : float ``≥ 2.0``
 
 docdict['time_bandwidth_tfr_notes'] = r"""
 In MNE-Python's multitaper functions, the time-frequency trade-off is
-additionally controlled by the parameter ``time_bandwidth``.
-
+additionally affected by the parameter ``time_bandwidth``.
 The ``n_cycles`` parameter determines the temporal window length based on the
-frequencies of interest: :math:`T = \frac{n_{cycles}}{freqs}`. The
-``time_bandwidth`` parameter defines the "time-bandwidth product", which is the
-product of the temporal window length (in seconds) and of the frequency
+frequencies of interest: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`.
+The ``time_bandwidth`` parameter defines the "time-bandwidth product", which is
+the product of the temporal window length (in seconds) and the frequency
 bandwidth (in Hz). Thus once ``n_cycles`` has been set, frequency bandwidth is
-determined by :math:`\frac{time bandwidth}{time window}`, and thus passing a
-larger ``time_bandwidth`` value will increase the frequency bandwidth (thereby
-decreasing the frequency *resolution*).
+determined by :math:`\frac{\mathrm{time bandwidth}}{\mathrm{time window}}`, and
+thus passing a larger ``time_bandwidth`` value will increase the frequency
+bandwidth (thereby decreasing the frequency *resolution*).
 
-*NB:* ``time_bandwidth`` also determines the number of "good" tapers (tapers
-with minimal leakage from far-away frequencies). In MNE-Python, this is chosen
-as ``floor(time_bandwidth - 1)``. This means there is another trade-off at
-play, between frequency resolution and variance reduction. Striving for finer
+Note that ``time_bandwidth`` also determines the number of tapers used.
+MNE-Python uses only "good" tapers (tapers with minimal leakage from far-away
+frequencies); the number of good tapers is ``floor(time_bandwidth - 1)``. This
+means there is another trade-off at play, between frequency resolution and the
+variance reduction that multitaper analysis provides. Striving for finer
 frequency resolution (by setting ``time_bandwidth`` low) means fewer tapers
 will be used, which undermines what is unique about multitaper methods — namely
 their ability to improve accuracy / reduce noise in the power estimates by
-using several (orthogonal) tapers; this comes at the cost of having wider
-frequency bandwidths, AKA spectral smoothing.
+using several (orthogonal) tapers. This variance reduction comes at the cost of
+having wider frequency bandwidths.
 
 .. warning::
 
