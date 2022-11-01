@@ -3453,7 +3453,12 @@ tail : int
     the distribution.
 """
 
-docdict['temporal-window_tfr_notes'] = """
+docdict['temporal-window_tfr_notes'] = r"""
+In spectrotemporal analysis (as with traditional fourier methods),
+the temporal and spectral resolution are interrelated: longer temporal windows
+allow more precise frequency estimates; shorter temporal windows "smear"
+frequency estimates while providing more precise timing information.
+
 Time-frequency representations are computed using a sliding temporal window.
 Either the temporal window has a fixed length independent of frequency, or the
 temporal window decreases in length with increased frequency.
@@ -3463,13 +3468,13 @@ temporal window decreases in length with increased frequency.
 *Figure: Time and frequency smoothing. (a) For a fixed length temporal window
 the time and frequency smoothing remains fixed. (b) For temporal windows that
 decrease with frequency, the temporal smoothing decreases and the frequency
-smoothing increases.*
+smoothing increases with frequency.*
 Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
 multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
 
 In MNE-Python, the temporal window length is defined by the arguments ``freqs``
 and ``n_cycles``, respectively defining the frequencies of interest and the
-number of cycles: :math:`T = n_{cycles} / freqs`
+number of cycles: :math:`T = \frac{n_{cycles}}{freqs}`
 
 A fixed number of cycles for all frequencies will yield a temporal window which
 decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
@@ -3557,20 +3562,16 @@ time_bandwidth : float ``≥ 2.0``
     for additional information."""
 
 docdict['time_bandwidth_tfr_notes'] = r"""
-In multitaper spectrotemporal analysis (as with traditional fourier methods),
-the temporal and spectral resolution are interrelated: longer temporal windows
-allow more precise frequency estimates; shorter temporal windows "smear"
-frequency estimates while providing more precise timing information. In
-MNE-Python's multitaper functions, this time-frequency trade-off is controlled
-by two parameters: ``n_cycles`` and ``time_bandwidth``.
+In MNE-Python's multitaper functions, the time-frequency trade-off is
+additionally controlled by the parameter ``time_bandwidth``.
 
 The ``n_cycles`` parameter determines the temporal window length based on the
-frequencies of interest: :math:`T = n_{cycles} / freqs`. The ``time_bandwidth``
-parameter provides the "time-bandwidth product", which is the product of the
-temporal window length (in seconds) and of the frequency bandwidth (in Hz).
-Thus once ``n_cycles`` has been set, frequency bandwidth is determined by
-:math:`\frac{time bandwidth}{time window}`, and thus passing a larger
-``time_bandwidth`` value will increase the frequency bandwidth (thereby
+frequencies of interest: :math:`T = \frac{n_{cycles}}{freqs}`. The
+``time_bandwidth`` parameter defines the "time-bandwidth product", which is the
+product of the temporal window length (in seconds) and of the frequency
+bandwidth (in Hz). Thus once ``n_cycles`` has been set, frequency bandwidth is
+determined by :math:`\frac{time bandwidth}{time window}`, and thus passing a
+larger ``time_bandwidth`` value will increase the frequency bandwidth (thereby
 decreasing the frequency *resolution*).
 
 *NB:* ``time_bandwidth`` also determines the number of "good" tapers (tapers
