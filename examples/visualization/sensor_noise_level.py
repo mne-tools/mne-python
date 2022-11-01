@@ -15,13 +15,13 @@ of systems. See :footcite:`KhanCohen2013` for an example.
 
 # %%
 
-import os.path as op
 import mne
 
 data_path = mne.datasets.sample.data_path()
 
-raw_erm = mne.io.read_raw_fif(op.join(data_path, 'MEG', 'sample',
-                                      'ernoise_raw.fif'), preload=True)
+raw_erm = mne.io.read_raw_fif(
+    data_path / 'MEG' / 'sample' / 'ernoise_raw.fif', preload=True
+)
 
 # %%
 # We can plot the absolute noise levels:
