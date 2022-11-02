@@ -98,7 +98,7 @@ def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True,
     return dpss, eigvals
 
 
-def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
+def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=250,
                           return_weights=False):
     r"""Use iterative procedure to compute the PSD from tapered spectra.
 
