@@ -3562,7 +3562,7 @@ time_bandwidth : float ``≥ 2.0``
     for additional information."""
 
 docdict['time_bandwidth_tfr_notes'] = r"""
-In MNE-Python's multitaper functions, the time-frequency trade-off is
+In MNE-Python's multitaper functions, the frequency bandwidth is
 additionally affected by the parameter ``time_bandwidth``.
 The ``n_cycles`` parameter determines the temporal window length based on the
 frequencies of interest: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`.
@@ -3573,16 +3573,16 @@ determined by :math:`\frac{\mathrm{time~bandwidth}}{\mathrm{time~window}}`, and
 thus passing a larger ``time_bandwidth`` value will increase the frequency
 bandwidth (thereby decreasing the frequency *resolution*).
 
-Note that ``time_bandwidth`` also determines the number of tapers used.
-MNE-Python uses only "good" tapers (tapers with minimal leakage from far-away
-frequencies); the number of good tapers is ``floor(time_bandwidth - 1)``. This
-means there is another trade-off at play, between frequency resolution and the
-variance reduction that multitaper analysis provides. Striving for finer
-frequency resolution (by setting ``time_bandwidth`` low) means fewer tapers
-will be used, which undermines what is unique about multitaper methods — namely
-their ability to improve accuracy / reduce noise in the power estimates by
-using several (orthogonal) tapers. This variance reduction comes at the cost of
-having wider frequency bandwidths.
+The increased frequency bandwidth is reached by averaging spectral estimates
+obtained from multiple tapers. Thus, ``time_bandwidth`` also determines the
+number of tapers used. MNE-Python uses only "good" tapers (tapers with minimal
+leakage from far-away frequencies); the number of good tapers is
+``floor(time_bandwidth - 1)``. This means there is another trade-off at play,
+between frequency resolution and the variance reduction that multitaper
+analysis provides. Striving for finer frequency resolution (by setting
+``time_bandwidth`` low) means fewer tapers will be used, which undermines what
+is unique about multitaper methods — namely their ability to improve accuracy /
+reduce noise in the power estimates by using several (orthogonal) tapers.
 
 .. warning::
 
