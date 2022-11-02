@@ -379,12 +379,11 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
         The data to compute PSD from.
     sfreq : float
         The sampling frequency.
-    fmin : float
-        The lower frequency of interest.
-    fmax : float
-        The upper frequency of interest.
+    %(fmin_fmax_psd)s
     bandwidth : float
-        The bandwidth of the multi taper windowing function in Hz.
+        Half-bandwidth of the multi-taper window function in Hz. For a given
+        frequency, frequencies at ± half-bandwidth are smoothed together.
+        The default value is a half-bandwidth of 4.
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
@@ -393,10 +392,12 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
         bandwidth.
     %(normalization)s
     output : str
-        The format of the returned ``psds`` array. Can be either ``'complex'``
-        or ``'power'``. If ``'power'``, the power spectral density is returned.
-        If ``output='complex'``, the complex fourier coefficients are returned
-        per taper.
+        The format of the returned ``psds`` array, ``'complex'`` or
+        ``'power'``:
+
+        * ``'power'`` : the power spectral density is returned.
+        * ``'complex'`` : the complex fourier coefficients are returned per
+          taper.
     %(n_jobs)s
     %(max_iter_multitaper)s
     %(verbose)s
@@ -490,66 +491,55 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
 
 @verbose
 def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
-                         zero_mean=True, time_bandwidth=None, use_fft=True,
-                         decim=1, output='complex', n_jobs=None,
+                         zero_mean=True, time_bandwidth=4.0, use_fft=True,
+                         decim=1, output='complex', n_jobs=None, *,
                          verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
     Same computation as `~mne.time_frequency.tfr_multitaper`, but operates on
-    :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` objects.
+    :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` or
+    `~mne.Evoked` objects.
 
     Parameters
     ----------
     epoch_data : array of shape (n_epochs, n_channels, n_times)
         The epochs.
-    sfreq : float | int
-        Sampling frequency of the data.
-    freqs : array-like of float, shape (n_freqs,)
-        The frequencies.
-    n_cycles : float | array of float
-        Number of cycles in the wavelet. Fixed number or one per
-        frequency. Defaults to 7.0.
+    sfreq : float
+        Sampling frequency of the data in Hz.
+    %(freqs_tfr)s
+    %(n_cycles_tfr)s
     zero_mean : bool
         If True, make sure the wavelets have a mean of zero. Defaults to True.
-    time_bandwidth : float
-        If None, will be set to 4.0 (3 tapers). Time x (Full) Bandwidth
-        product. The number of good tapers (low-bias) is chosen automatically
-        based on this to equal floor(time_bandwidth - 1). Defaults to None.
+    %(time_bandwidth_tfr)s
     use_fft : bool
         Use the FFT for convolutions or not. Defaults to True.
-    decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition. Defaults to 1.
-        If `int`, returns tfr[..., ::decim].
-        If `slice`, returns tfr[..., decim].
-
-        .. note::
-            Decimation may create aliasing artifacts, yet decimation
-            is done after the convolutions.
+    %(decim_tfr)s
     output : str, default 'complex'
 
-        * 'complex' : single trial per taper complex values.
-        * 'power' : single trial power.
-        * 'phase' : single trial per taper phase.
-        * 'avg_power' : average of single trial power.
-        * 'itc' : inter-trial coherence.
-        * 'avg_power_itc' : average of single trial power and inter-trial
+        * ``'complex'`` : single trial per taper complex values.
+        * ``'power'`` : single trial power.
+        * ``'phase'`` : single trial per taper phase.
+        * ``'avg_power'`` : average of single trial power.
+        * ``'itc'`` : inter-trial coherence.
+        * ``'avg_power_itc'`` : average of single trial power and inter-trial
           coherence across trials.
     %(n_jobs)s
-        The number of epochs to process at the same time. The parallelization
-        is implemented across channels. Defaults to 1.
     %(verbose)s
 
     Returns
     -------
     out : array
-        Time frequency transform of epoch_data. If ``output in ['complex',
-        'phase']``, then the shape of ``out`` is ``(n_epochs, n_chans,
-        n_tapers, n_freqs, n_times)``; if output is 'power', the shape of
-        ``out`` is ``(n_epochs, n_chans, n_freqs, n_times)``, else it is
-        ``(n_chans, n_freqs, n_times)``. If output is 'avg_power_itc', the real
-        values in ``out`` contain the average power and the imaginary values
-        contain the ITC: ``out = avg_power + i * itc``.
+        Time frequency transform of ``epoch_data``.
+
+        - if ``output in ('complex',' 'phase')``, array of shape
+          ``(n_epochs, n_chans, n_tapers, n_freqs, n_times)``
+        - if ``output`` is ``'power'``, array of shape ``(n_epochs, n_chans,
+          n_freqs, n_times)``
+        - else, array of shape ``(n_chans, n_freqs, n_times)``
+
+        If ``output`` is ``'avg_power_itc'``, the real values in ``out``
+        contain the average power and the imaginary values contain the
+        inter-trial coherence: :math:`out = power_{avg} + i * ITC`.
 
     See Also
     --------
@@ -561,6 +551,9 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     Notes
     -----
+    %(temporal-window_tfr_notes)s
+    %(time_bandwidth_tfr_notes)s
+
     .. versionadded:: 0.14.0
     """
     from .tfr import _compute_tfr

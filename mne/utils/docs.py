@@ -807,6 +807,19 @@ Decimation can be done multiple times. For example,
 ``inst.decimate(4)``.
 """
 
+docdict['decim_tfr'] = """
+decim : int | slice, default 1
+    To reduce memory usage, decimation factor after time-frequency
+    decomposition.
+
+    - if `int`, returns ``tfr[..., ::decim]``.
+    - if `slice`, returns ``tfr[..., decim]``.
+
+    .. note::
+        Decimation is done after convolutions and may create aliasing
+        artifacts.
+"""
+
 docdict['depth'] = """
 depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
@@ -1369,6 +1382,11 @@ forward : instance of Forward | None
     .. versionadded:: 0.21
 """
 
+docdict['freqs_tfr'] = """
+freqs : array of float, shape (n_freqs,)
+    The frequencies of interest in Hz.
+"""
+
 docdict['fullscreen'] = """
 fullscreen : bool
     Whether to start in fullscreen (``True``) or windowed mode
@@ -1896,7 +1914,7 @@ match_case : bool
     .. versionadded:: 0.20
 """
 
-docdict["max_iter_multitaper"] = """
+docdict['max_iter_multitaper'] = """
 max_iter : int
     Maximum number of iterations to reach convergence when combining the
     tapered spectra with adaptive weights (see argument ``adaptive``). This
@@ -2043,6 +2061,15 @@ docdict['n_comp_pctf_n'] = """
 n_comp : int
     Number of PSF/CTF components to return for mode='max' or mode='svd'.
     Default n_comp=1.
+"""
+
+docdict['n_cycles_tfr'] = """
+n_cycles : int | array of int, shape (n_freqs,)
+    Number of cycles in the wavelet, either a fixed number or one per
+    frequency. The number of cycles ``n_cycles`` and the frequencies of
+    interest ``freqs`` define the temporal window length. See notes for
+    additional information about the relationship between those arguments
+    and about time and frequency smoothing.
 """
 
 docdict['n_jobs'] = """\
@@ -2617,7 +2644,7 @@ pipeline : str | tuple
         the SDR step.
 """
 
-docdict["plot_psd_doc"] = """\
+docdict['plot_psd_doc'] = """\
 Plot power or amplitude spectra.
 
 Separate plots are drawn for each channel type. When the data have been
@@ -3435,6 +3462,37 @@ tail : int
     the distribution.
 """
 
+docdict['temporal-window_tfr_notes'] = r"""
+In spectrotemporal analysis (as with traditional fourier methods),
+the temporal and spectral resolution are interrelated: longer temporal windows
+allow more precise frequency estimates; shorter temporal windows "smear"
+frequency estimates while providing more precise timing information.
+
+Time-frequency representations are computed using a sliding temporal window.
+Either the temporal window has a fixed length independent of frequency, or the
+temporal window decreases in length with increased frequency.
+
+.. image:: https://www.fieldtriptoolbox.org/assets/img/tutorial/timefrequencyanalysis/figure1.png
+
+*Figure: Time and frequency smoothing. (a) For a fixed length temporal window
+the time and frequency smoothing remains fixed. (b) For temporal windows that
+decrease with frequency, the temporal smoothing decreases and the frequency
+smoothing increases with frequency.*
+Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
+multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
+
+In MNE-Python, the temporal window length is defined by the arguments ``freqs``
+and ``n_cycles``, respectively defining the frequencies of interest and the
+number of cycles: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`
+
+A fixed number of cycles for all frequencies will yield a temporal window which
+decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
+``n_cycles=2`` yields ``T=array([2., 0.7, 0.4])``.
+
+To use a temporal window with fixed length, the number of cycles has to be
+defined based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
+``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``."""  # noqa: E501
+
 _theme = """\
 theme : str | path-like
     Can be "auto", "light", or "dark" or a path-like to a
@@ -3503,6 +3561,50 @@ from :meth:`scipy.stats.rv_continuous.ppf`::
 For a one-tailed test (``tail=1``), don't divide the p-value by 2.
 For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
 """
+
+docdict['time_bandwidth_tfr'] = """
+time_bandwidth : float ``≥ 2.0``
+    Product between the temporal window length (in seconds) and the *full*
+    frequency bandwidth (in Hz). This product can be seen as the surface of the
+    window on the time/frequency plane and controls the frequency bandwidth
+    (thus the frequency resolution) and the number of good tapers. See notes
+    for additional information."""
+
+docdict['time_bandwidth_tfr_notes'] = r"""
+In MNE-Python's multitaper functions, the frequency bandwidth is
+additionally affected by the parameter ``time_bandwidth``.
+The ``n_cycles`` parameter determines the temporal window length based on the
+frequencies of interest: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`.
+The ``time_bandwidth`` parameter defines the "time-bandwidth product", which is
+the product of the temporal window length (in seconds) and the frequency
+bandwidth (in Hz). Thus once ``n_cycles`` has been set, frequency bandwidth is
+determined by :math:`\frac{\mathrm{time~bandwidth}}{\mathrm{time~window}}`, and
+thus passing a larger ``time_bandwidth`` value will increase the frequency
+bandwidth (thereby decreasing the frequency *resolution*).
+
+The increased frequency bandwidth is reached by averaging spectral estimates
+obtained from multiple tapers. Thus, ``time_bandwidth`` also determines the
+number of tapers used. MNE-Python uses only "good" tapers (tapers with minimal
+leakage from far-away frequencies); the number of good tapers is
+``floor(time_bandwidth - 1)``. This means there is another trade-off at play,
+between frequency resolution and the variance reduction that multitaper
+analysis provides. Striving for finer frequency resolution (by setting
+``time_bandwidth`` low) means fewer tapers will be used, which undermines what
+is unique about multitaper methods — namely their ability to improve accuracy /
+reduce noise in the power estimates by using several (orthogonal) tapers.
+
+.. warning::
+
+    In `~mne.time_frequency.tfr_array_multitaper` and
+    `~mne.time_frequency.tfr_multitaper`, ``time_bandwidth`` defines the
+    product of the temporal window length with the *full* frequency bandwidth
+    For example, a full bandwidth of 4 Hz at a frequency of interest of 10 Hz
+    will "smear" the frequency estimate between 8 Hz and 12 Hz.
+
+    This is not the case for `~mne.time_frequency.psd_array_multitaper` and
+    `~mne.time_frequency.psd_multitaper` where the argument ``bandwidth``
+    defines the *half* frequency bandwidth. In the example above, the
+    half-frequency bandwidth is 2 Hz."""
 
 docdict['time_format'] = """
 time_format : 'float' | 'clock'
