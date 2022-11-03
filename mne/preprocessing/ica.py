@@ -1793,9 +1793,8 @@ class ICA(ContainsMixin):
         # we need to retrieve the position from the channels that were used to
         # fit the ICA. N.B: picks in _find_topomap_coords includes bad channels
         # even if they are not provided explicitly.
-        picks = _picks_to_idx(inst.info, picks=self.ch_names, exclude="bads")
         pos = _find_topomap_coords(
-            inst.info, picks=picks, sphere=sphere, ignore_overlap=True
+            inst.info, picks=self.ch_names, sphere=sphere, ignore_overlap=True
         )
         assert pos.shape[0] == components.shape[0]  # pos for each sensor
         pos -= pos.mean(axis=0)  # center
