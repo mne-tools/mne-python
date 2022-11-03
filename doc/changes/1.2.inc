@@ -16,6 +16,13 @@
 
    Also add a corresponding entry for yourself in doc/changes/names.inc
 
+Version 1.2.2 (unreleased)
+--------------------------
+
+Bugs
+----
+- Fix bug in :func:`mne.head_to_mri` when ``unscale=True`` (:gh:`11303` by `Eric Larson`_)
+
 .. _changes_1_2_1:
 
 Version 1.2.1 (2022-10-19)

@@ -253,6 +253,10 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
             mne.head_to_mri(
                 pos_head_from, subject_from, trans, tempdir, unscale=True,
                 kind='mri')
+        # yet another way
+        pos_mri_from_3 = mne.head_to_mri(
+            pos_head, subject_to, trans, tempdir, kind='mri', unscale=True)
+        assert_allclose(pos_mri_from_3, 1e3 * pos_mri_from, atol=1e-3)
 
 
 def test_fit_matched_points():
