@@ -3,17 +3,14 @@
 
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
 
-import operator
-
 import numpy as np
 
-from ..filter import next_fast_len
 from ..parallel import parallel_func
-from ..utils import sum_squared, warn, verbose, logger, _check_option
+from ..utils import warn, verbose, logger, _check_option
 
 
-def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
-                 interp_kind='linear'):
+def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True,
+                 interp_from=None, interp_kind=None):
     """Compute Discrete Prolate Spheroidal Sequences.
 
     Will give of orders [0,Kmax-1] for a given frequency-spacing multiple
@@ -30,21 +27,44 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         = BW*N/dt but with dt taken as 1.
     Kmax : int
         Number of DPSS windows to return is Kmax (orders 0 through Kmax-1).
+    sym : bool
+        Whether to generate a symmetric window (``True``, for filter design) or
+        a periodic window (``False``, for spectral analysis). Default is
+        ``True``.
+
+        .. versionadded:: 1.3
+    norm : 2 | ``'approximate'`` | ``'subsample'`` | None
+        Window normalization method. If ``'approximate'`` or ``'subsample'``,
+        windows are normalized by the maximum, and a correction scale-factor
+        for even-length windows is applied either using
+        ``N**2/(N**2+half_nbw)`` ("approximate") or a FFT-based subsample shift
+        ("subsample"). ``2`` uses the L2 norm. ``None`` (the default) uses
+        ``"approximate"`` when ``Kmax=None`` and ``2`` otherwise.
+
+        .. versionadded:: 1.3
     low_bias : bool
         Keep only tapers with eigenvalues > 0.9.
-    interp_from : int (optional)
+    interp_from : int | None
         The dpss can be calculated using interpolation from a set of dpss
         with the same NW and Kmax, but shorter N. This is the length of this
         shorter set of dpss windows.
 
-        .. note:: If SciPy 1.1 or greater is available, interpolating
-                  is likely not necessary as DPSS computations should be
-                  sufficiently fast.
-    interp_kind : str (optional)
+        .. deprecated:: 1.3
+           The ``interp_from`` option is deprecated and will be
+           removed in version 1.4. Modern implementations can handle large
+           values of ``N`` so interpolation is no longer necessary; any value
+           passed here will be ignored.
+    interp_kind : str | None
         This input variable is passed to scipy.interpolate.interp1d and
         specifies the kind of interpolation as a string ('linear', 'nearest',
         'zero', 'slinear', 'quadratic, 'cubic') or as an integer specifying the
         order of the spline interpolator to use.
+
+        .. deprecated:: 1.3
+           The ``interp_kind`` option is deprecated and will be
+           removed in version 1.4. Modern implementations can handle large
+           values of ``N`` so interpolation is no longer necessary; any value
+           passed here will be ignored.
 
     Returns
     -------
@@ -60,57 +80,17 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     ----------
     .. footbibliography::
     """
-    from scipy import interpolate
-    from scipy.fft import rfft, irfft
     from scipy.signal.windows import dpss as sp_dpss
 
-    # This np.int32 business works around a weird Windows bug, see
-    # gh-5039 and https://github.com/scipy/scipy/pull/8608
-    Kmax = np.int32(operator.index(Kmax))
-    N = np.int32(operator.index(N))
-    W = float(half_nbw) / N
-    nidx = np.arange(N, dtype='d')
-
-    # In this case, we create the dpss windows of the smaller size
-    # (interp_from) and then interpolate to the larger size (N)
     if interp_from is not None:
-        if interp_from > N:
-            e_s = 'In dpss_windows, interp_from is: %s ' % interp_from
-            e_s += 'and N is: %s. ' % N
-            e_s += 'Please enter interp_from smaller than N.'
-            raise ValueError(e_s)
-        dpss = []
-        d, e = dpss_windows(interp_from, half_nbw, Kmax, low_bias=False)
-        for this_d in d:
-            x = np.arange(this_d.shape[-1])
-            tmp = interpolate.interp1d(x, this_d, kind=interp_kind)
-            d_temp = tmp(np.linspace(0, this_d.shape[-1] - 1, N,
-                                     endpoint=False))
+        warn('The ``interp_from`` option is deprecated and will be removed in '
+             'version 1.4.', FutureWarning)
+    if interp_kind is not None:
+        warn('The ``interp_kind`` option is deprecated and will be removed in '
+             'version 1.4.', FutureWarning)
 
-            # Rescale:
-            d_temp = d_temp / np.sqrt(sum_squared(d_temp))
-
-            dpss.append(d_temp)
-
-        dpss = np.array(dpss)
-
-    else:
-        dpss = sp_dpss(N, half_nbw, Kmax)
-
-    # Now find the eigenvalues of the original spectral concentration problem
-    # Use the autocorr sequence technique from Percival and Walden, 1993 pg 390
-
-    # compute autocorr using FFT (same as nitime.utils.autocorr(dpss) * N)
-    rxx_size = 2 * N - 1
-    n_fft = next_fast_len(rxx_size)
-    dpss_fft = rfft(dpss, n_fft)
-    dpss_rxx = irfft(dpss_fft * dpss_fft.conj(), n_fft)
-    dpss_rxx = dpss_rxx[:, :N]
-
-    r = 4 * W * np.sinc(2 * W * nidx)
-    r[0] = 2 * W
-    eigvals = np.dot(dpss_rxx, r)
-
+    dpss, eigvals = sp_dpss(N, half_nbw, Kmax, sym=sym, norm=norm,
+                            return_ratios=True)
     if low_bias:
         idx = (eigvals > 0.9)
         if not idx.any():
@@ -122,7 +102,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     return dpss, eigvals
 
 
-def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
+def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=250,
                           return_weights=False):
     r"""Use iterative procedure to compute the PSD from tapered spectra.
 
@@ -327,7 +307,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
 @verbose
 def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
-                       interp_from=None, verbose=None):
+                       verbose=None):
     """Triage windowing and multitaper parameters."""
     # Compute standardized half-bandwidth
     from scipy.signal import get_window
@@ -350,8 +330,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
     # Compute DPSS windows
     n_tapers_max = int(2 * half_nbw)
     window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-                                       low_bias=low_bias,
-                                       interp_from=interp_from)
+                                       sym=False, low_bias=low_bias)
     logger.info('    Using multitaper spectrum estimation with %d DPSS '
                 'windows' % len(eigvals))
 

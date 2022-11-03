@@ -158,7 +158,7 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
 
             # Get dpss tapers
             tapers, conc = dpss_windows(t.shape[0], time_bandwidth / 2.,
-                                        n_taps)
+                                        n_taps, sym=False)
 
             Wk = oscillation * tapers[m]
             if zero_mean:  # to make it zero mean

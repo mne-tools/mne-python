@@ -44,7 +44,8 @@ Bugs
 - Fix bug where EEGLAB channel positions were read as meters, while they are commonly in millimeters, leading to head outlies of the size of one channel when plotting topomaps. Now ``montage_units`` argument has been added to :func:`~mne.io.read_raw_eeglab` and :func:`~mne.read_epochs_eeglab` to control in what units EEGLAB channel positions are read. The default is millimeters, ``'mm'`` (:gh:`11283` by `Mikołaj Magnuski`_)
 - Fix bug where computing PSD with welch's method with more jobs than channels would fail (:gh:`11298` by `Mathieu Scheltienne`_)
 - Fix channel selection edge-cases in `~mne.preprocessing.ICA.find_bads_muscle` (:gh:`11300` by `Mathieu Scheltienne`_)
+- Multitaper spectral estimation now uses periodic (rather than symmetric) taper windows. This also necessitated changing the default ``max_iter`` of our cross-spectral density functions from 150 to 250. (:gh:`11293` by `Daniel McCloy`_)
 
 API changes
 ~~~~~~~~~~~
-- None yet
+- In :func:`mne.time_frequency.dpss_windows`, interpolating is deprecated (nowadays SciPy's computations are fast enough for large ``N`` without interpolation). This affects parameters ``interp_from`` and ``interp_kind``. Two new parameters of the underlying SciPy :func:`~scipy.signal.windows.dpss` function are also exposed: ``sym`` (for choosing symmetric vs. periodic windows) and ``norm`` (window normalization method). (:gh:`11293` by `Daniel McCloy`_)
