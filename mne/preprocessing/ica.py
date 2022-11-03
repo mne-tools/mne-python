@@ -1790,7 +1790,13 @@ class ICA(ContainsMixin):
 
         # compute metric #2: distance from the vertex of focus
         components_norm = abs(components) / np.max(abs(components), axis=0)
-        pos = _find_topomap_coords(inst.info, picks='data', sphere=sphere)
+        # we need to retrieve the position from the channels that were used to
+        # fit the ICA. N.B: picks in _find_topomap_coords includes bad channels
+        # even if they are not provided explicitly.
+        picks = _picks_to_idx(inst.info, picks=self.ch_names, exclude="bads")
+        pos = _find_topomap_coords(
+            inst.info, picks=picks, sphere=sphere, ignore_overlap=True
+        )
         assert pos.shape[0] == components.shape[0]  # pos for each sensor
         pos -= pos.mean(axis=0)  # center
         dists = np.linalg.norm(pos, axis=1)
