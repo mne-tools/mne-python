@@ -58,7 +58,7 @@
 
 .. _Ben Beasley: https://github.com/musicinmybrain
 
-.. _Britta Westner: https://github.com/britta-wstnr
+.. _Britta Westner: https://britta-wstnr.github.io
 
 .. _Bruno Nicenboim: https://bnicenboim.github.io
 
