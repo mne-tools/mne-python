@@ -268,7 +268,7 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None, *,
     kind : str
         The  MRI coordinate frame kind, can be ``'mri'`` (default) for
         FreeSurfer surface RAS or ``'ras'`` (default in 1.2) to use MRI RAS
-        (scanner RAS)
+        (scanner RAS).
 
         .. versionadded:: 1.2
     unscale : bool

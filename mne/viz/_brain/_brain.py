@@ -120,8 +120,6 @@ class Brain(object):
 
         .. versionchanged:: 0.23
            Default changed to "auto".
-    show_toolbar : bool
-        If True, toolbars will be shown for each view.
     offscreen : bool
         If True, rendering will be done offscreen (not shown). Useful
         mostly for generating images or screenshots, but can be buggy.
@@ -142,8 +140,6 @@ class Brain(object):
         Display the window as soon as it is ready. Defaults to True.
     block : bool
         If True, start the Qt application event loop. Default to False.
-    subject_id : str | None
-        Deprecated, use ``subject`` instead.
 
     Attributes
     ----------

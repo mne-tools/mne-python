@@ -250,7 +250,7 @@ class EOGRegression():
         return inst
 
     @copy_function_doc_to_method_doc(plot_regression_weights)
-    def plot(self, ch_type=None, sensors=True, show_names=False, names=None,
+    def plot(self, ch_type=None, sensors=True, show_names=False,
              mask=None, mask_params=None, contours=6, outlines='head',
              sphere=None, image_interp=_INTERPOLATION_DEFAULT,
              extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
@@ -258,7 +258,7 @@ class EOGRegression():
              colorbar=True, cbar_fmt='%1.1e', title=None, show=True):
         return plot_regression_weights(
             self, ch_type=ch_type, sensors=sensors, show_names=show_names,
-            names=names, mask=mask, mask_params=mask_params, contours=contours,
+            mask=mask, mask_params=mask_params, contours=contours,
             outlines=outlines, sphere=sphere, image_interp=image_interp,
             extrapolate=extrapolate, border=border, res=res, size=size,
             cmap=cmap, vlim=vlim, cnorm=cnorm, axes=axes, colorbar=colorbar,
