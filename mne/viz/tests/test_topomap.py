@@ -361,9 +361,6 @@ def test_plot_topomap_basic():
 
     p = plt_topomap(times, ch_type='eeg', average=0.01)
     assert_equal(len(get_texts(p)), 0)
-    texts = get_texts(p)
-    assert_equal(len(texts), 1)
-    assert_equal(texts[0], 'Custom')
     plt.close('all')
 
     # Test averaging with a scalar input

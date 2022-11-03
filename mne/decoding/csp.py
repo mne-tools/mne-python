@@ -346,15 +346,18 @@ class CSP(TransformerMixin, BaseEstimator):
         # create an evoked
         patterns = EvokedArray(self.patterns_.T, info, tmin=0)
         # the call plot_topomap
-        return patterns.plot_topomap(
+        fig = patterns.plot_topomap(
             times=components, ch_type=ch_type,
-            vmin=vmin, vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
+            vlim=(vmin, vmax), cmap=cmap, colorbar=colorbar, res=res,
             cbar_fmt=cbar_fmt, sensors=sensors,
             scalings=scalings, units=units, time_unit='s',
             time_format=name_format, size=size, show_names=show_names,
-            title=title, mask_params=mask_params, mask=mask, outlines=outlines,
+            mask_params=mask_params, mask=mask, outlines=outlines,
             contours=contours, image_interp=image_interp, show=show,
             average=average, sphere=sphere)
+        if title is not None:
+            fig.suptitle(title)
+        return fig
 
     @fill_doc
     def plot_filters(self, info, components=None, ch_type=None,

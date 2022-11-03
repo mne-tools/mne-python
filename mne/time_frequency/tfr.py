@@ -1660,7 +1660,7 @@ class AverageTFR(_BaseTFR):
 
         # passing args to the topomap calls
         max_lim = max(vlims)
-        _vlim = topomap_args.get('vlim', (None, None))
+        _vlim = list(topomap_args.get('vlim', (None, None)))
         # fall back on ± max_lim
         for sign, index in zip((-1, 1), (0, 1)):
             if _vlim[index] is None:

@@ -326,7 +326,7 @@ class Covariance(dict):
         if scalings is None:
             scalings = {k: v * v for k, v in DEFAULTS['scalings'].items()}
         return evoked.plot_topomap(
-            times=[0], ch_type=ch_type, vmin=vlim[0], vmax=vlim[1], cmap=cmap,
+            times=[0], ch_type=ch_type, vlim=vlim, cmap=cmap,
             sensors=sensors, cnorm=cnorm, colorbar=colorbar, scalings=scalings,
             units=units, res=res, size=size, cbar_fmt=cbar_fmt,
             proj=proj, show=show, show_names=show_names,
