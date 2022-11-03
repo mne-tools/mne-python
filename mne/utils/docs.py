@@ -3540,10 +3540,10 @@ reduce noise in the power estimates by using several (orthogonal) tapers.
     For example, a full bandwidth of 4 Hz at a frequency of interest of 10 Hz
     will "smear" the frequency estimate between 8 Hz and 12 Hz.
 
-    This is not the case for `~mne.time_frequency.psd_array_multitaper` and
-    `~mne.time_frequency.psd_multitaper` where the argument ``bandwidth``
-    defines the *half* frequency bandwidth. In the example above, the
-    half-frequency bandwidth is 2 Hz."""
+    This is not the case for `~mne.time_frequency.psd_array_multitaper` where
+    the argument ``bandwidth`` defines the *half* frequency bandwidth. In the
+    example above, the half-frequency bandwidth is 2 Hz.
+"""
 
 docdict['time_format'] = """
 time_format : 'float' | 'clock'

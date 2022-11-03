@@ -1319,7 +1319,7 @@ class Brain(object):
             # useful for debugging the ray by mapping it into the volume:
             # dists = dists - dists.min()
             # dists = (1. - dists / dists.max()) * self._cmap_range[1]
-            # _cell_data(grid)['values'][vertices] = dists * mask
+            # grid.cell_arrays['values'][vertices] = dists * mask
             idx = idx[np.argmax(np.abs(scalars[idx]))]
             vertex_id = vertices[idx]
             # Naive way: convert pos directly to idx; i.e., apply mri_src_t

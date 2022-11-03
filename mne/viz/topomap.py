@@ -1156,8 +1156,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         Dictionary of arguments to ``plot_epochs_image``. If None, doesn't pass
         any additional arguments. Defaults to None.
     psd_args : dict | None
-        Dictionary of arguments to ``psd_multitaper``. If None, doesn't pass
-        any additional arguments. Defaults to None.
+        Dictionary of arguments to :meth:`~mne.Epochs.compute_psd`. If
+        ``None``, doesn't pass any additional arguments. Defaults to ``None``.
     reject : 'auto' | dict | None
         Allows to specify rejection parameters used to drop epochs
         (or segments if continuous signal is passed as inst).
