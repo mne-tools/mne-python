@@ -31,6 +31,8 @@ def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True,
         Whether to generate a symmetric window (``True``, for filter design) or
         a periodic window (``False``, for spectral analysis). Default is
         ``True``.
+
+        .. versionadded:: 1.3
     norm : 2 | ``'approximate'`` | ``'subsample'`` | None
         Window normalization method. If ``'approximate'`` or ``'subsample'``,
         windows are normalized by the maximum, and a correction scale-factor
@@ -38,6 +40,8 @@ def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True,
         ``N**2/(N**2+half_nbw)`` ("approximate") or a FFT-based subsample shift
         ("subsample"). ``2`` uses the L2 norm. ``None`` (the default) uses
         ``"approximate"`` when ``Kmax=None`` and ``2`` otherwise.
+
+        .. versionadded:: 1.3
     low_bias : bool
         Keep only tapers with eigenvalues > 0.9.
     interp_from : int | None
