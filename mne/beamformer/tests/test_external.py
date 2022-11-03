@@ -89,6 +89,13 @@ def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
     else:
         stc_mne = apply_lcmv(evoked, filters)
 
+    if weight_norm == 'unit-noise-gain':
+        scale = np.sqrt(mne.make_ad_hoc_cov(evoked.info)['data'][0])
+    else:
+        scale = 1.
+    if pwr:
+        scale *= scale
+
     # load the FieldTrip output
     ft_fname = op.join(ft_data_path, 'ft_source_' + bf_type + '-vol.mat')
     stc_ft_data = read_mat(ft_fname)['stc']
@@ -101,6 +108,7 @@ def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
             assert_array_equal(signs, 1.)
         stc_mne.data *= signs
     assert stc_ft_data.shape == stc_mne.data.shape
+    stc_ft_data /= scale
     if pick_ori == 'vector':
         # compare norms first
         assert_allclose(np.linalg.norm(stc_mne.data, axis=1),
