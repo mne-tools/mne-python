@@ -16,7 +16,7 @@ from .transforms import (apply_trans, invert_transform, combine_transforms,
                          _ensure_trans, read_ras_mni_t, Transform)
 from .surface import read_surface, _read_mri_surface
 from .utils import (verbose, _validate_type, _check_fname, _check_option,
-                    get_subjects_dir, _require_version, logger, warn)
+                    get_subjects_dir, _require_version, logger)
 
 
 def _check_subject_dir(subject, subjects_dir):
@@ -254,7 +254,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False,
 
 @verbose
 def head_to_mri(pos, subject, mri_head_t, subjects_dir=None, *,
-                kind=None, unscale=False, verbose=None):
+                kind='mri', unscale=False, verbose=None):
     """Convert pos from head coordinate system to MRI ones.
 
     Parameters
@@ -266,9 +266,9 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None, *,
         MRI<->Head coordinate transformation.
     %(subjects_dir)s
     kind : str
-        The  MRI coordinate frame kind, can be ``'ras'`` (default in 1.2) to
-        use MRI RAS (scanner RAS) or ``'mri'`` (default in 1.3) for
-        FreeSurfer surface RAS.
+        The  MRI coordinate frame kind, can be ``'mri'`` (default) for
+        FreeSurfer surface RAS or ``'ras'`` (default in 1.2) to use MRI RAS
+        (scanner RAS)
 
         .. versionadded:: 1.2
     unscale : bool
@@ -289,10 +289,6 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None, *,
     This function requires nibabel.
     """
     from .coreg import read_mri_cfg
-    if kind is None:
-        warn('kind defaults to "ras" in 1.2 and will change to "mri" in 1.3, '
-             'set it explicitly to avoid this warning', FutureWarning)
-        kind = 'ras'
     _validate_type(kind, str, 'kind')
     _check_option('kind', kind, ('ras', 'mri'))
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
