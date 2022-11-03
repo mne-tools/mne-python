@@ -2366,21 +2366,14 @@ out_type : 'mask' | 'indices'
 """
 
 docdict['outlines_topomap'] = """
-outlines : 'head' | 'skirt' | dict | None
+outlines : 'head' | dict | None
     The outlines to be drawn. If 'head', the default head scheme will be
-    drawn. If 'skirt' the head scheme will be drawn, but sensors are
-    allowed to be plotted outside of the head circle. If dict, each key
-    refers to a tuple of x and y positions, the values in 'mask_pos' will
-    serve as image mask.
+    drawn. If dict, each key refers to a tuple of x and y positions, the values
+    in 'mask_pos' will serve as image mask.
     Alternatively, a matplotlib patch object can be passed for advanced
     masking options, either directly or as a function that returns patches
     (required for multi-axis plots). If None, nothing will be drawn.
     Defaults to 'head'.
-
-    .. deprecated:: v1.2
-       The ``outlines='skirt'`` option is no longer supported and will raise an
-       error starting in version 1.3. Pass ``outlines='head', sphere='eeglab'``
-       for similar behavior.
 """
 
 docdict['overview_mode'] = """
@@ -2728,60 +2721,6 @@ docdict['proj_psd'] = """\
 proj : bool
     Whether to apply SSP projection vectors before spectral estimation.
     Default is ``False``.
-"""
-
-docdict['proj_topomap_kwargs'] = """
-cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-    Colormap to use. If tuple, the first value indicates the colormap to
-    use and the second value is a boolean defining interactivity. In
-    interactive mode (only works if ``colorbar=True``) the colors are
-    adjustable by clicking and dragging the colorbar with left and right
-    mouse button. Left mouse button moves the scale up and down and right
-    mouse button adjusts the range. Hitting space bar resets the range. Up
-    and down arrows can be used to change the colormap. If None (default),
-    'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
-    If 'interactive', translates to (None, True).
-sensors : bool | str
-    Add markers for sensor locations to the plot. Accepts matplotlib plot
-    format string (e.g., 'r+' for red plusses). If True, a circle will be
-    used (via .add_artist). Defaults to True.
-colorbar : bool
-    Plot a colorbar.
-res : int
-    The resolution of the topomap image (n pixels along each side).
-size : scalar
-    Side length of the topomaps in inches (only applies when plotting
-    multiple topomaps at a time).
-show : bool
-    Show figure if True.
-
-outlines : 'head' | 'skirt' | dict | None
-    The outlines to be drawn. If 'head', the default head scheme will be
-    drawn. If 'skirt' the head scheme will be drawn, but sensors are
-    allowed to be plotted outside of the head circle. If dict, each key
-    refers to a tuple of x and y positions, the values in 'mask_pos' will
-    serve as image mask.
-    Alternatively, a matplotlib patch object can be passed for advanced
-    masking options, either directly or as a function that returns patches
-    (required for multi-axis plots). If None, nothing will be drawn.
-    Defaults to 'head'.
-
-    .. deprecated:: v1.2
-       The ``outlines='skirt'`` option is no longer supported and will raise an
-       error starting in version 1.3. Pass ``outlines='head'`` for equivalent
-       behavior.
-
-contours : int | array of float
-    The number of contour lines to draw. If 0, no contours will be drawn.
-    When an integer, matplotlib ticker locator is used to find suitable
-    values for the contour thresholds (may sometimes be inaccurate, use
-    array for accuracy). If an array, the values represent the levels for
-    the contours. Defaults to 6.
-""" + docdict['image_interp_topomap'] + """
-axes : instance of Axes | list | None
-    The axes to plot to. If list, the list must be a list of Axes of
-    the same length as the number of projectors. If instance of Axes,
-    there must be only one projector. Defaults to None.
 """
 
 docdict['projection_set_eeg_reference'] = """

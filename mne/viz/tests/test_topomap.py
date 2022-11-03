@@ -217,9 +217,6 @@ def test_plot_evoked_topomap_errors(evoked, monkeypatch):
                   lambda *args, **kwargs: (None, None, None))
         with pytest.warns(RuntimeWarning, match='More than 25 topomaps plots'):
             fast_func([0.1] * 26, colorbar=False)
-    # deprecated parameter
-    with pytest.warns(FutureWarning, match="outlines='skirt'`` is deprecated"):
-        evoked.plot_topomap(outlines='skirt')
     # missing channel locations
     with evoked.info._unlock():
         for ch in evoked.info['chs']:
@@ -364,8 +361,6 @@ def test_plot_topomap_basic():
 
     p = plt_topomap(times, ch_type='eeg', average=0.01)
     assert_equal(len(get_texts(p)), 0)
-    with pytest.warns(FutureWarning, match='"title" parameter is deprecated'):
-        p = plt_topomap(times, ch_type='eeg', title='Custom')
     texts = get_texts(p)
     assert_equal(len(texts), 1)
     assert_equal(texts[0], 'Custom')
@@ -456,13 +451,9 @@ def test_plot_topomap_basic():
     plot_evoked_topomap(evoked, times, ch_type='eeg', outlines=outlines,
                         **fast_test)
 
-    # deprecated parameter
+    # Test error messages for invalid pos parameter
     n_channels = len(pos)
     data = np.ones(n_channels)
-    with pytest.warns(FutureWarning, match='The "show_names" parameter is'):
-        plot_topomap(data, pos, show_names=True)
-
-    # Test error messages for invalid pos parameter
     pos_1d = np.zeros(n_channels)
     pos_3d = np.zeros((n_channels, 2, 2))
     pytest.raises(ValueError, plot_topomap, data, pos_1d)

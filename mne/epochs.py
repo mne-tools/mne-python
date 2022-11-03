@@ -26,7 +26,7 @@ from .io.write import (start_and_end_file, start_block, end_block,
                        write_double_matrix, write_complex_float_matrix,
                        write_complex_double_matrix, write_id, write_string,
                        _get_split_size, _NEXT_FILE_BUFFER, INT32_MAX)
-from .io.meas_info import (read_meas_info, write_meas_info, _merge_info,
+from .io.meas_info import (read_meas_info, write_meas_info,
                            _ensure_infos_match, ContainsMixin)
 from .io.open import fiff_open, _get_next_fname
 from .io.tree import dir_tree_find
@@ -56,7 +56,7 @@ from .utils import (_check_fname, check_fname, logger, verbose, repr_html,
                     check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed,
-                    _check_preload, GetEpochsMixin, deprecated,
+                    _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
                     _check_combine, _build_data_frame,
@@ -3389,59 +3389,6 @@ def _check_merge_epochs(epochs_list):
         raise NotImplementedError("Epochs with unequal values for tmax")
     if len({epochs.baseline for epochs in epochs_list}) != 1:
         raise NotImplementedError("Epochs with unequal values for baseline")
-
-
-@deprecated('add_channels_epochs is deprecated and will be removed in 1.3, '
-            'use epochs.add_channels instead')
-@verbose
-def add_channels_epochs(epochs_list, verbose=None):
-    """Concatenate channels, info and data from two Epochs objects.
-
-    Parameters
-    ----------
-    epochs_list : list of Epochs
-        Epochs object to concatenate.
-    %(verbose)s Defaults to True if any of the input epochs have verbose=True.
-
-    Returns
-    -------
-    epochs : instance of Epochs
-        Concatenated epochs.
-    """
-    if not all(e.preload for e in epochs_list):
-        raise ValueError('All epochs must be preloaded.')
-
-    info = _merge_info([epochs.info for epochs in epochs_list])
-    data = [epochs._data for epochs in epochs_list]
-    _check_merge_epochs(epochs_list)
-    for d in data:
-        if len(d) != len(data[0]):
-            raise ValueError('all epochs must be of the same length')
-
-    data = np.concatenate(data, axis=1)
-
-    if len(info['chs']) != data.shape[1]:
-        err = "Data shape does not match channel number in measurement info"
-        raise RuntimeError(err)
-
-    events = epochs_list[0].events.copy()
-    all_same = all(np.array_equal(events, epochs.events)
-                   for epochs in epochs_list[1:])
-    if not all_same:
-        raise ValueError('Events must be the same.')
-
-    proj = any(e.proj for e in epochs_list)
-
-    epochs = epochs_list[0].copy()
-    epochs.info = info
-    epochs.picks = None
-    epochs.events = events
-    epochs.preload = True
-    epochs._bad_dropped = True
-    epochs._data = data
-    epochs._projector, epochs.info = setup_proj(epochs.info, False,
-                                                activate=proj)
-    return epochs
 
 
 def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,

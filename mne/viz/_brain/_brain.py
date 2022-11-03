@@ -32,7 +32,6 @@ from .._3d import (_process_clim, _handle_time, _check_views,
                    _handle_sensor_types, _plot_sensors, _plot_forward)
 from .._3d_overlay import _LayeredMesh
 from ...defaults import _handle_default, DEFAULTS
-from ...fixes import _point_data, _cell_data
 from ..._freesurfer import (vertex_to_mni, read_talxfm, read_freesurfer_lut,
                             _get_head_surface, _get_skull_surface,
                             _estimate_talxfm_rigid)
@@ -238,28 +237,15 @@ class Brain(object):
        +-------------------------------------+--------------+---------------+
     """
 
-    def __init__(self, subject=None, hemi='both', surf='pial', title=None,
+    def __init__(self, subject, hemi='both', surf='pial', title=None,
                  cortex="classic", alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
-                 views='auto', *, offset='auto', show_toolbar=None,
+                 views='auto', *, offset='auto',
                  offscreen=False, interaction='trackball', units='mm',
                  view_layout='vertical', silhouette=False, theme=None,
-                 show=True, block=False, subject_id=None):
+                 show=True, block=False):
         from ..backends.renderer import backend, _get_renderer
 
-        if show_toolbar is not None:
-            warn('show_toolbar is deprecated and will be removed in 1.3.',
-                 FutureWarning)
-        # This and the "if subject is None" conditional should be removed in
-        # 1.3, and the default subject=None switched to subject (no default)
-        if subject_id is not None:
-            warn('subject_id is deprecated and will be removed in 1.3, use '
-                 'subject instead.', FutureWarning)
-            subject = subject_id
-        if subject is None:
-            # raise the same error that we'd get if subject had no default
-            raise TypeError("Brain.__init__() missing 1 required positional "
-                            "argument: 'subject'")
         _validate_type(subject, str, 'subject')
         if hemi is None:
             hemi = 'vol'
@@ -1321,7 +1307,7 @@ class Brain(object):
             grid = mesh = self._data[hemi]['grid']
             vertices = self._data[hemi]['vertices']
             coords = self._data[hemi]['grid_coords'][vertices]
-            scalars = _cell_data(grid)['values'][vertices]
+            scalars = grid.cell_arrays['values'][vertices]
             spacing = np.array(grid.GetSpacing())
             max_dist = np.linalg.norm(spacing) / 2.
             origin = vtk_picker.GetRenderer().GetActiveCamera().GetPosition()
@@ -3245,12 +3231,12 @@ class Brain(object):
                     values = self._current_act_data['vol']
                     rng = self._cmap_range
                     fill = 0 if self._data['center'] is not None else rng[0]
-                    _cell_data(grid)['values'].fill(fill)
+                    grid.cell_arrays['values'].fill(fill)
                     # XXX for sided data, we probably actually need two
                     # volumes as composite/MIP needs to look at two
                     # extremes... for now just use abs. Eventually we can add
                     # two volumes if we want.
-                    _cell_data(grid)['values'][vertices] = values
+                    grid.cell_arrays['values'][vertices] = values
 
                 # interpolate in space
                 smooth_mat = hemi_data.get('smooth_mat')
@@ -3328,7 +3314,7 @@ class Brain(object):
                 hemi_data['glyph_mapper'] = glyph_mapper
             else:
                 glyph_dataset = hemi_data['glyph_dataset']
-                _point_data(glyph_dataset)['vec'] = vectors
+                glyph_dataset.point_arrays['vec'] = vectors
                 glyph_mapper = hemi_data['glyph_mapper']
             if add:
                 glyph_actor = self._renderer._actor(glyph_mapper)
