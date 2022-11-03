@@ -180,7 +180,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     parallel, my_spect_func, n_jobs = parallel_func(_spect_func, n_jobs=n_jobs)
     func = partial(spectrogram, noverlap=n_overlap, nperseg=n_per_seg,
                    nfft=n_fft, fs=sfreq, window=window)
-    x_splits = np.array_split(x, n_jobs)
+    x_splits =  [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
     f_spect = parallel(my_spect_func(d, func=func, freq_sl=freq_sl,
                                      average=average)
                        for d in x_splits)
