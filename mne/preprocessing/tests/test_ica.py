@@ -1436,6 +1436,12 @@ def test_ica_labels():
     assert ica.labels_['muscle'] == [0]
     assert_allclose(scores, [0.81, 0.14, 0.37, 0.05], atol=0.03)
 
+    ica = ICA(n_components=4, max_iter=2, method='fastica', allow_ref_meg=True)
+    with pytest.warns(UserWarning, match='did not converge'):
+        ica.fit(raw, picks="eeg")
+    ica.find_bads_muscle(raw)
+    assert 'muscle' in ica.labels_
+
 
 @requires_sklearn
 @testing.requires_testing_data
