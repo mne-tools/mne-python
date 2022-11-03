@@ -42,8 +42,7 @@ Bugs
 - Fix bug in the :func:`~mne.viz.plot_evoked_topo` and :meth:`~mne.Evoked.plot_topo`, where legend colors where shown incorrectly on newer matplotlib versions (:gh:`11258` by `Erkka Heinila`_)
 - Fix bug where EEGLAB channel positions were read as meters, while they are commonly in millimeters, leading to head outlies of the size of one channel when plotting topomaps. Now ``montage_units`` argument has been added to :func:`~mne.io.read_raw_eeglab` and :func:`~mne.read_epochs_eeglab` to control in what units EEGLAB channel positions are read. The default is millimeters, ``'mm'`` (:gh:`11283` by `Mikołaj Magnuski`_)
 - Fix channel selection edge-cases in `~mne.preprocessing.ICA.find_bads_muscle` (:gh:`11300` by `Mathieu Scheltienne`_)
-
-- Multitaper spectral estimation now uses periodic (rather than symmetric) taper windows (:gh:`11293` by `Daniel McCloy`_)
+- Multitaper spectral estimation now uses periodic (rather than symmetric) taper windows. This also necessitated changing the default ``max_iter`` of our cross-spectral density functions from 150 to 250. (:gh:`11293` by `Daniel McCloy`_)
 
 API changes
 ~~~~~~~~~~~
