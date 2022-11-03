@@ -309,7 +309,7 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None, *,
     # unscale if requested
     if unscale:
         params = read_mri_cfg(subject, subjects_dir)
-        pos_dest *= params['scale']
+        pos_dest /= params['scale']
     pos_dest *= 1e3  # mm
     return pos_dest
 
