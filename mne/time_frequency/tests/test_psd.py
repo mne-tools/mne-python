@@ -192,3 +192,10 @@ def test_compares_psd():
     assert (np.sum(freqs_scipy < 0) == 0)
     assert (np.sum(psds_mne < 0) == 0)
     assert (np.sum(psds_scipy < 0) == 0)
+
+
+def test_psd_array_welch_n_jobs():
+    """Test that n_jobs works even with more jobs than channels."""
+    data = np.empty((1, 2048))
+    psd_array_welch(data, 1024, n_jobs=1)
+    psd_array_welch(data, 1024, n_jobs=2)
