@@ -152,8 +152,8 @@ evk_spectrum.plot_topomap(ch_type='eeg', agg_fun=np.median)
 #
 # .. warning::
 #
-#    The functions :func:`mne.time_frequency.psd_welch` and
-#    :func:`mne.time_frequency.psd_multitaper` have been deprecated; new code
+#    The functions ``mne.time_frequency.psd_welch`` and
+#    ``mne.time_frequency.psd_multitaper`` have been removed; new code
 #    should use the :meth:`Raw.compute_psd()<mne.io.Raw.compute_psd>`,
 #    :meth:`Epochs.compute_psd()<mne.Epochs.compute_psd>`, and
 #    :meth:`Evoked.compute_psd()<mne.Evoked.compute_psd>` methods, and pass
