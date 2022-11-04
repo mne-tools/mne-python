@@ -113,4 +113,4 @@ def test_lcmv_fieldtrip(_get_bf_data, bf_type, weight_norm, pick_ori, pwr):
         # compare norms first
         assert_allclose(np.linalg.norm(stc_mne.data, axis=1),
                         np.linalg.norm(stc_ft_data, axis=1), rtol=1e-6)
-    assert_allclose(stc_mne.data, stc_ft_data, rtol=1e-6)
+    assert_allclose(stc_mne.data, stc_ft_data, rtol=2e-6)
