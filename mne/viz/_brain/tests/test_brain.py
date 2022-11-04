@@ -784,7 +784,7 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path,
         if current_hemi == 'vol':
             current_mesh = brain._data['vol']['grid']
             vertices = brain._data['vol']['vertices']
-            values = current_mesh.cell_arrays['values'][vertices]
+            values = current_mesh.cell_data['values'][vertices]
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
             current_mesh = brain._layered_meshes[current_hemi]._polydata

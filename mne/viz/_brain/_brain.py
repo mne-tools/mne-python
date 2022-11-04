@@ -1303,7 +1303,7 @@ class Brain(object):
             grid = mesh = self._data[hemi]['grid']
             vertices = self._data[hemi]['vertices']
             coords = self._data[hemi]['grid_coords'][vertices]
-            scalars = grid.cell_arrays['values'][vertices]
+            scalars = grid.cell_data['values'][vertices]
             spacing = np.array(grid.GetSpacing())
             max_dist = np.linalg.norm(spacing) / 2.
             origin = vtk_picker.GetRenderer().GetActiveCamera().GetPosition()
@@ -1319,7 +1319,7 @@ class Brain(object):
             # useful for debugging the ray by mapping it into the volume:
             # dists = dists - dists.min()
             # dists = (1. - dists / dists.max()) * self._cmap_range[1]
-            # grid.cell_arrays['values'][vertices] = dists * mask
+            # grid.cell_data['values'][vertices] = dists * mask
             idx = idx[np.argmax(np.abs(scalars[idx]))]
             vertex_id = vertices[idx]
             # Naive way: convert pos directly to idx; i.e., apply mri_src_t
@@ -3227,12 +3227,12 @@ class Brain(object):
                     values = self._current_act_data['vol']
                     rng = self._cmap_range
                     fill = 0 if self._data['center'] is not None else rng[0]
-                    grid.cell_arrays['values'].fill(fill)
+                    grid.cell_data['values'].fill(fill)
                     # XXX for sided data, we probably actually need two
                     # volumes as composite/MIP needs to look at two
                     # extremes... for now just use abs. Eventually we can add
                     # two volumes if we want.
-                    grid.cell_arrays['values'][vertices] = values
+                    grid.cell_data['values'][vertices] = values
 
                 # interpolate in space
                 smooth_mat = hemi_data.get('smooth_mat')
@@ -3310,7 +3310,7 @@ class Brain(object):
                 hemi_data['glyph_mapper'] = glyph_mapper
             else:
                 glyph_dataset = hemi_data['glyph_dataset']
-                glyph_dataset.point_arrays['vec'] = vectors
+                glyph_dataset.point_data['vec'] = vectors
                 glyph_mapper = hemi_data['glyph_mapper']
             if add:
                 glyph_actor = self._renderer._actor(glyph_mapper)
