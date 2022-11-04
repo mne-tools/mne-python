@@ -80,7 +80,7 @@ def test_psd_array_welch_nperseg_kwarg():
     data, sfreq, _ = _make_psd_data()
     # prepare kwargs
     kwargs = dict(fmin=2, fmax=70, n_per_seg=128)
-    # test n_per_seg in psd_welch (and padding)
+    # test n_per_seg in psd_array_welch (and padding)
     psds1, freqs1 = psd_array_welch(data, sfreq, n_fft=128, **kwargs)
     psds2, freqs2 = psd_array_welch(data, sfreq, n_fft=256, **kwargs)
     assert len(freqs1) == np.floor(len(freqs2) / 2.)
@@ -118,7 +118,7 @@ def _median_bias(n):
 
 
 @pytest.mark.parametrize('crop', (False, True))
-def test_psd_welch_average_kwarg(crop):
+def test_psd_array_welch_average_kwarg(crop):
     """Test `average` kwarg of psd_array_welch()."""
     data, sfreq, _ = _make_psd_data()
     # prepare kwargs
@@ -196,6 +196,6 @@ def test_compares_psd():
 
 def test_psd_array_welch_n_jobs():
     """Test that n_jobs works even with more jobs than channels."""
-    data = np.empty((1, 2048))
+    data = np.zeros((1, 2048))
     psd_array_welch(data, 1024, n_jobs=1)
     psd_array_welch(data, 1024, n_jobs=2)

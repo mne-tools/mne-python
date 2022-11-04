@@ -74,7 +74,7 @@ Changelog
 
 - Add support for reading in EGI MFF digitization coordinate files in ``mne.channels.read_dig_montage`` by `Matt Boggess`_
 
-- Add ``n_per_seg`` keyword argument to :func:`mne.time_frequency.psd_welch` and :func:`mne.time_frequency.psd_array_welch` that allows to control segment length independently of ``n_fft`` and use zero-padding when ``n_fft > n_per_seg`` by `Mikołaj Magnuski`_
+- Add ``n_per_seg`` keyword argument to ``mne.time_frequency.psd_welch`` and :func:`mne.time_frequency.psd_array_welch` that allows to control segment length independently of ``n_fft`` and use zero-padding when ``n_fft > n_per_seg`` by `Mikołaj Magnuski`_
 
 - Add annotation aware data getter :meth:`mne.io.Raw.get_data` by `Jaakko Leppakangas`_
 

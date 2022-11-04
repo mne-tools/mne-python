@@ -36,8 +36,7 @@ from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
 from ..io.meas_info import Info, ContainsMixin
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _connection_line, _prepare_joint_axes,
-                         _setup_vmin_vmax, _set_title_multiple_electrodes,
-                         _warn_deprecated_vmin_vmax)
+                         _setup_vmin_vmax, _set_title_multiple_electrodes)
 
 
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
@@ -1661,11 +1660,7 @@ class AverageTFR(_BaseTFR):
 
         # passing args to the topomap calls
         max_lim = max(vlims)
-        _vlim = topomap_args.get('vlim', (None, None))
-        # TODO v1.3: remove next 3 lines (vmin/vmax gone from plot_topomap)
-        _vmin = topomap_args.get('vmin', None)
-        _vmax = topomap_args.get('vmax', None)
-        _vlim = list(_warn_deprecated_vmin_vmax(_vlim, _vmin, _vmax))
+        _vlim = list(topomap_args.get('vlim', (None, None)))
         # fall back on ± max_lim
         for sign, index in zip((-1, 1), (0, 1)):
             if _vlim[index] is None:
@@ -1895,9 +1890,8 @@ class AverageTFR(_BaseTFR):
             mask=None, mask_params=None, contours=6, outlines='head',
             sphere=None, image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
-            size=2, cmap=None, vlim=(None, None), vmin=None, vmax=None,
-            cnorm=None, colorbar=True, cbar_fmt='%1.1e', unit=None, units=None,
-            axes=None, title=None, show=True):
+            size=2, cmap=None, vlim=(None, None), cnorm=None, colorbar=True,
+            cbar_fmt='%1.1e', units=None, axes=None, show=True):
         """Plot topographic maps of time-frequency intervals of TFR data.
 
         Parameters
@@ -1943,30 +1937,13 @@ class AverageTFR(_BaseTFR):
         %(vlim_plot_topomap)s
 
             .. versionadded:: 1.2
-        %(vmin_vmax_topomap)s
-
-            .. deprecated:: v1.2
-               The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
-               Please use the ``vlim`` parameter instead.
         %(cnorm)s
 
             .. versionadded:: 1.2
         %(colorbar_topomap)s
         %(cbar_fmt_topomap)s
-        unit : str | None
-            The unit of the channel type used for colorbar labels.
-
-            .. deprecated:: v1.2
-               The "unit" parameter is deprecated and will be removed in v1.3.
-               Use "units" instead.
         %(units_topomap)s
         %(axes_plot_topomap)s
-        %(title_none)s
-
-            .. deprecated:: v1.2
-               The ``title`` parameter will be removed in version 1.3. Please
-               use :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
-               instead.
         %(show)s
 
         Returns
@@ -1975,15 +1952,18 @@ class AverageTFR(_BaseTFR):
             The figure containing the topography.
         """  # noqa: E501
         from ..viz import plot_tfr_topomap
+
+        # TODO units => unit
+
         return plot_tfr_topomap(
             self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, ch_type=ch_type,
             baseline=baseline, mode=mode, sensors=sensors,
             show_names=show_names, mask=mask, mask_params=mask_params,
             contours=contours, outlines=outlines, sphere=sphere,
             image_interp=image_interp, extrapolate=extrapolate, border=border,
-            res=res, size=size, cmap=cmap, vlim=vlim, vmin=vmin, vmax=vmax,
-            cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt, unit=unit,
-            axes=axes, title=title, show=show)
+            res=res, size=size, cmap=cmap, vlim=vlim, cnorm=cnorm,
+            colorbar=colorbar, cbar_fmt=cbar_fmt, units=units,
+            axes=axes, show=show)
 
     def _check_compat(self, tfr):
         """Check that self and tfr have the same time-frequency ranges."""

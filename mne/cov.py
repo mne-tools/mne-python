@@ -39,7 +39,6 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     _check_option, eigh, fill_doc, _on_missing,
                     _check_on_missing, _check_fname, _verbose_safe_false)
 from . import viz
-from .viz.utils import _warn_deprecated_vmin_vmax
 
 from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
                     empirical_covariance, log_likelihood)
@@ -260,9 +259,8 @@ class Covariance(dict):
             mask_params=None, contours=6, outlines='head', sphere=None,
             image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
-            size=1, cmap=None, vlim=(None, None), vmin=None, vmax=None,
-            cnorm=None, colorbar=True, cbar_fmt='%3.1f', units=None,
-            axes=None, title=None, show=True, verbose=None):
+            size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=True,
+            cbar_fmt='%3.1f', units=None, axes=None, show=True, verbose=None):
         """Plot a topomap of the covariance diagonal.
 
         Parameters
@@ -292,11 +290,6 @@ class Covariance(dict):
         %(vlim_plot_topomap)s
 
             .. versionadded:: 1.2
-        %(vmin_vmax_topomap)s
-
-            .. deprecated:: v1.2
-               The ``vmin`` and ``vmax`` parameters will be removed in version
-               1.3. Please use the ``vlim`` parameter instead.
         %(cnorm)s
 
             .. versionadded:: 1.2
@@ -304,12 +297,6 @@ class Covariance(dict):
         %(cbar_fmt_topomap)s
         %(units_topomap_evoked)s
         %(axes_cov_plot_topomap)s
-        %(title_none)s
-
-            .. deprecated:: v1.2
-               The ``title`` parameter will be removed in version 1.3. Please
-               use :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
-               instead.
         %(show)s
         %(verbose)s
 
@@ -323,8 +310,6 @@ class Covariance(dict):
         .. versionadded:: 0.21
         """
         from .viz.misc import _index_info_cov
-
-        vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
 
         info, C, _, _ = _index_info_cov(info, self, exclude=())
         evoked = EvokedArray(np.diag(C)[:, np.newaxis], info)
@@ -341,10 +326,10 @@ class Covariance(dict):
         if scalings is None:
             scalings = {k: v * v for k, v in DEFAULTS['scalings'].items()}
         return evoked.plot_topomap(
-            times=[0], ch_type=ch_type, vmin=vlim[0], vmax=vlim[1], cmap=cmap,
+            times=[0], ch_type=ch_type, vlim=vlim, cmap=cmap,
             sensors=sensors, cnorm=cnorm, colorbar=colorbar, scalings=scalings,
             units=units, res=res, size=size, cbar_fmt=cbar_fmt,
-            proj=proj, show=show, show_names=show_names, title=title,
+            proj=proj, show=show, show_names=show_names,
             mask=mask, mask_params=mask_params, outlines=outlines,
             contours=contours, image_interp=image_interp, axes=axes,
             extrapolate=extrapolate, sphere=sphere, border=border,
