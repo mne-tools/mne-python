@@ -1475,7 +1475,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             del drop_log
 
             self._bad_dropped = True
-            logger.info("%d bad epochs dropped" % (n_events - len(good_idx)))
+            n_bads_dropped = n_events - len(good_idx)
+            logger.info(f"{n_bads_dropped} bad epochs dropped")
+
+            if n_bads_dropped == n_events:
+                warn('All epochs were dropped!\n'
+                     'You might need to alter reject/flat-criteria '
+                     'or drop bad channels to avoid this.\n'
+                     'Tip: With Epochs.plot_drop_log() you can see which '
+                     'channels are responsible for the dropping of epochs.')
 
             # adjust the data size if there is a reason to (output or update)
             if out or self.preload:
