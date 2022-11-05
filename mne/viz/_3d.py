@@ -1236,15 +1236,18 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
             scale = defaults[sensor_type + '_scale']
             if sensor_colors is None:
                 color = defaults[sensor_type + '_color']
-                actor, _ = _plot_glyphs(renderer=renderer,
-                        loc=sens_loc * scalar,
-                        color=color, scale=scale * scalar,
-                        opacity=sensor_opacity,
-                        orient_glyphs=orient_glyphs,
-                        scale_by_distance=scale_by_distance,
-                        project_points=project_points,
-                        surf=surf, check_inside=check_inside,
-                        nearest=nearest)
+                actor, _ = _plot_glyphs(
+                    renderer=renderer,
+                    loc=sens_loc * scalar,
+                    color=color,
+                    scale=scale * scalar,
+                    opacity=sensor_opacity,
+                    orient_glyphs=orient_glyphs,
+                    scale_by_distance=scale_by_distance,
+                    project_points=project_points,
+                    surf=surf, check_inside=check_inside,
+                    nearest=nearest
+                )
                 if sensor_type in ('source', 'detector'):
                     sensor_type = 'fnirs'
                 actors[sensor_type].append(actor)
@@ -1255,20 +1258,21 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                         color = sensor_colors[idx_sen]
                     else:
                         color = sensor_colors[idx_sen, :]
-                    actor, _ = _plot_glyphs(renderer=renderer,
-                                            loc=(sens_loc * scalar)[idx_sen, :],
-                                            color=color, scale=scale * scalar,
-                                            opacity=sensor_opacity,
-                                            orient_glyphs=orient_glyphs,
-                                            scale_by_distance=scale_by_distance,
-                                            project_points=project_points,
-                                            surf=surf, check_inside=check_inside,
-                                            nearest=nearest)
+                    actor, _ = _plot_glyphs(
+                        renderer=renderer,
+                        loc=(sens_loc * scalar)[idx_sen, :],
+                        color=color, scale=scale * scalar,
+                        opacity=sensor_opacity,
+                        orient_glyphs=orient_glyphs,
+                        scale_by_distance=scale_by_distance,
+                        project_points=project_points,
+                        surf=surf, check_inside=check_inside,
+                        nearest=nearest
+                    )
                     actor_list.append(actor)
                 if sensor_type in ('source', 'detector'):
                     sensor_type = 'fnirs'
                 actors[sensor_type].append(actor_list)
-
 
     # add projected eeg
     eeg_indices = pick_types(info, eeg=True)
