@@ -1235,7 +1235,7 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
             sens_loc = sens_loc[~np.isnan(sens_loc).any(axis=1)]
             scale = defaults[sensor_type + '_scale']
             actor_list = []
-            for idx_sen in range(len(info["ch_names"])):
+            for idx_sen in range(sens_loc.shape[0]):
                 if sensor_colors is None:
                     color = defaults[sensor_type + '_color']
                 else:
