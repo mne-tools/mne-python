@@ -11,9 +11,10 @@
 #
 # License: BSD-3-Clause
 
-from functools import partial
+from functools import partial, wraps
 from collections import Counter
 from copy import deepcopy
+import traceback
 import json
 import operator
 import os.path as op
@@ -337,6 +338,26 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
     event_id = {k: v for k, v in event_id.items() if v in keys}
 
     return new_events, event_id, selection, drop_log
+
+
+def _warn_empty(meth):
+    @wraps(meth)
+    def wrapper(*args, **kwargs):
+        # Prevent method from running if epochs are empty
+        if len(args[0]) == 0:
+            warn(f'{meth.__name__} can not run because Epochs are empty!')
+        else:
+            # Catch exceptions when epochs are dropped
+            # during execution of the method
+            try:
+                return meth(*args, **kwargs)
+            except (ZeroDivisionError, ValueError, IndexError):
+                if args[0].events.shape[0] == 0:
+                    warn(f'{meth.__name__} failed because Epochs are empty!')
+                else:
+                    traceback.print_exc()
+
+    return wrapper
 
 
 @fill_doc
@@ -863,6 +884,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
             yield EvokedArray(data, info, tmin, comment=str(event_id))
 
+    @_warn_empty
     def subtract_evoked(self, evoked=None):
         """Subtract an evoked response from each epoch.
 
@@ -935,6 +957,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         return self
 
+    @_warn_empty
     @fill_doc
     def average(self, picks=None, method="mean", by_event_type=False):
         """Compute an average over epochs.
@@ -987,6 +1010,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             evokeds = self._compute_aggregate(picks=picks, mode=method)
         return evokeds
 
+    @_warn_empty
     @fill_doc
     def standard_error(self, picks=None, by_event_type=False):
         """Compute standard error over epochs.
@@ -1141,6 +1165,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Channel names."""
         return self.info['ch_names']
 
+    @_warn_empty
     @copy_function_doc_to_method_doc(plot_epochs)
     def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
              title=None, events=None, event_color=None,
@@ -1161,6 +1186,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            use_opengl=use_opengl, theme=theme,
                            overview_mode=overview_mode)
 
+    @_warn_empty
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
     def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,
                         colorbar=None, order=None, cmap='RdBu_r',
@@ -1251,6 +1277,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                              color=color, width=width, ignore=ignore,
                              show=show)
 
+    @_warn_empty
     @copy_function_doc_to_method_doc(plot_epochs_image)
     def plot_image(self, picks=None, sigma=0., vmin=None, vmax=None,
                    colorbar=True, order=None, show=True, units=None,
@@ -1265,6 +1292,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  group_by=group_by, evoked=evoked,
                                  ts_args=ts_args, title=title, clear=clear)
 
+    @_warn_empty
     @verbose
     def drop(self, indices, reason='USER', verbose=None):
         """Drop epochs based on indices or boolean mask.
@@ -1869,6 +1897,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             _save_split(this_epochs, fname, part_idx, n_parts, fmt,
                         split_naming, overwrite)
 
+    @_warn_empty
     @verbose
     def export(self, fname, fmt='auto', *, overwrite=False, verbose=None):
         """Export Epochs to external formats.
@@ -2035,6 +2064,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # actually remove the indices
         return self, indices
 
+    @_warn_empty
     @verbose
     def compute_psd(self, method='multitaper', fmin=0, fmax=np.inf, tmin=None,
                     tmax=None, picks=None, proj=False, *, n_jobs=1,
@@ -2074,6 +2104,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             picks=picks, proj=proj, n_jobs=n_jobs, verbose=verbose,
             **method_kw)
 
+    @_warn_empty
     @verbose
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None, picks=None,
                  proj=False, *, method='auto', average=False, dB=True,
@@ -2131,6 +2162,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             spatial_colors=spatial_colors, sphere=sphere, exclude=exclude,
             ax=ax, show=show, n_jobs=n_jobs, verbose=verbose, **method_kw)
 
+    @_warn_empty
     @verbose
     def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, long_format=False,
@@ -2192,6 +2224,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                default_index=['condition', 'epoch', 'time'])
         return df
 
+    @_warn_empty
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual epochs using interpolated fields.
 
