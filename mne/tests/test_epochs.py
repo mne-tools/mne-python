@@ -2779,6 +2779,8 @@ def test_concatenate_epochs():
     epochs2 = epochs.copy()
     epochs_list = [epochs, epochs2]
     epochs_conc = concatenate_epochs(epochs_list)
+    assert epochs_conc.preload
+    assert isinstance(epochs_conc, EpochsArray)
     assert_array_equal(
         epochs_conc.events[:, 0], np.unique(epochs_conc.events[:, 0]))
 

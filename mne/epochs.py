@@ -373,22 +373,18 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     %(on_missing_epochs)s
     preload_at_end : bool
         %(epochs_preload)s
-    selection : iterable | None
-        Iterable of indices of selected epochs. If ``None``, will be
-        automatically generated, corresponding to all non-zero events.
-    drop_log : tuple | None
-        Tuple of tuple of strings indicating which epochs have been marked to
-        be ignored.
+    %(selection)s
+
+        .. versionadded:: 0.16
+    %(drop_log)s
     filename : str | None
         The filename (if the epochs are read from disk).
     %(metadata_epochs)s
     %(event_repeated_epochs)s
-    %(verbose)s
-    raw_sfreq : float
-        The original Raw object sampling rate. If None, then it is set to
-        ``info['sfreq']``.
+    %(raw_sfreq)s
     annotations : instance of mne.Annotations | None
         Annotations to set.
+    %(verbose)s
 
     See Also
     --------
@@ -411,8 +407,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  detrend=None, proj=True, on_missing='raise',
                  preload_at_end=False, selection=None, drop_log=None,
                  filename=None, metadata=None, event_repeated='error',
-                 *, verbose=None, raw_sfreq=None,
-                 annotations=None):  # noqa: D102
+                 *, raw_sfreq=None,
+                 annotations=None, verbose=None):  # noqa: D102
         if events is not None:  # RtEpochs can have events=None
             events = _ensure_events(events)
             events_max = events.max()
@@ -2735,11 +2731,13 @@ class EpochsArray(BaseEpochs):
         See :class:`mne.Epochs` docstring for details.
 
         .. versionadded:: 0.16
-    selection : ndarray | None
-        The selection compared to the original set of epochs.
-        Can be None to use ``np.arange(len(events))``.
+    %(selection)s
+    %(drop_log)s
 
-        .. versionadded:: 0.16
+        .. versionadded:: 1.3
+    %(raw_sfreq)s
+
+        .. versionadded:: 1.3
     %(verbose)s
 
     See Also
@@ -2770,7 +2768,7 @@ class EpochsArray(BaseEpochs):
                  reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, baseline=None, proj=True,
                  on_missing='raise', metadata=None, selection=None,
-                 verbose=None):  # noqa: D102
+                 *, drop_log=None, raw_sfreq=None, verbose=None):  # noqa: D102
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
         if data.ndim != 3:
@@ -2791,7 +2789,7 @@ class EpochsArray(BaseEpochs):
             reject=reject, flat=flat, reject_tmin=reject_tmin,
             reject_tmax=reject_tmax, decim=1, metadata=metadata,
             selection=selection, proj=proj, on_missing=on_missing,
-            verbose=verbose)
+            drop_log=drop_log, raw_sfreq=raw_sfreq, verbose=verbose)
         if self.baseline is not None:
             self._do_baseline = True
         if len(events) != np.in1d(self.events[:, 2],
@@ -3544,7 +3542,7 @@ def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
 
     Returns
     -------
-    epochs : instance of Epochs
+    epochs : instance of EpochsArray
         The result of the concatenation. All data will be loaded into memory.
 
     Notes
@@ -3559,10 +3557,11 @@ def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
         on_mismatch=on_mismatch,
     )
     selection = np.where([len(d) == 0 for d in drop_log])[0]
-    out = BaseEpochs(
-        info, data, events, event_id, tmin, tmax, baseline=baseline,
-        selection=selection, drop_log=drop_log, proj=False,
-        on_missing='ignore', metadata=metadata, raw_sfreq=raw_sfreq)
+    out = EpochsArray(
+        data=data, info=info, events=events, event_id=event_id,
+        tmin=tmin, baseline=baseline, selection=selection, drop_log=drop_log,
+        proj=False, on_missing='ignore', metadata=metadata,
+        raw_sfreq=raw_sfreq)
     out.drop_bad()
     return out
 
