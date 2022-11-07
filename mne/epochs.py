@@ -3270,8 +3270,12 @@ class EpochsFIF(BaseEpochs):
 
         unsafe_annot_add = raw_sfreq is None
         (info, data, raw_sfreq, events, event_id, tmin, tmax, metadata,
-         baseline, selection, drop_log) = \
-            _concatenate_epochs(ep_list, with_data=preload, add_offset=False)
+         baseline, selection, drop_log) = _concatenate_epochs(
+            ep_list,
+            with_data=preload,
+            add_offset=False,
+            on_mismatch='raise',
+        )
         # we need this uniqueness for non-preloaded data to work properly
         if len(np.unique(events[:, 0])) != len(events):
             raise RuntimeError('Event time samples were not unique')
@@ -3391,7 +3395,7 @@ def _check_merge_epochs(epochs_list):
         raise NotImplementedError("Epochs with unequal values for baseline")
 
 
-def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
+def _concatenate_epochs(epochs_list, *, with_data=True, add_offset=True,
                         on_mismatch='raise'):
     """Auxiliary function for concatenating epochs."""
     if not isinstance(epochs_list, (list, tuple)):
@@ -3516,18 +3520,6 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
             baseline, selection, drop_log)
 
 
-def _finish_concat(info, data, raw_sfreq, events, event_id, tmin, tmax,
-                   metadata, baseline, selection, drop_log):
-    """Finish concatenation for epochs not read from disk."""
-    selection = np.where([len(d) == 0 for d in drop_log])[0]
-    out = BaseEpochs(
-        info, data, events, event_id, tmin, tmax, baseline=baseline,
-        selection=selection, drop_log=drop_log, proj=False,
-        on_missing='ignore', metadata=metadata, raw_sfreq=raw_sfreq)
-    out.drop_bad()
-    return out
-
-
 @verbose
 def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
                        verbose=None):
@@ -3553,15 +3545,26 @@ def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
     Returns
     -------
     epochs : instance of Epochs
-        The result of the concatenation.
+        The result of the concatenation. All data will be loaded into memory.
 
     Notes
     -----
     .. versionadded:: 0.9.0
     """
-    return _finish_concat(*_concatenate_epochs(epochs_list,
-                                               add_offset=add_offset,
-                                               on_mismatch=on_mismatch))
+    (info, data, raw_sfreq, events, event_id, tmin, tmax, metadata,
+     baseline, selection, drop_log) = _concatenate_epochs(
+        epochs_list,
+        with_data=True,
+        add_offset=add_offset,
+        on_mismatch=on_mismatch,
+    )
+    selection = np.where([len(d) == 0 for d in drop_log])[0]
+    out = BaseEpochs(
+        info, data, events, event_id, tmin, tmax, baseline=baseline,
+        selection=selection, drop_log=drop_log, proj=False,
+        on_missing='ignore', metadata=metadata, raw_sfreq=raw_sfreq)
+    out.drop_bad()
+    return out
 
 
 @verbose
