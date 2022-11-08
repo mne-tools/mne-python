@@ -3055,18 +3055,18 @@ seeg : bool
     If True (default), show sEEG electrodes.
 """
 
+docdict['selection'] = """
+selection : iterable | None
+    Iterable of indices of selected epochs. If ``None``, will be
+    automatically generated, corresponding to all non-zero events.
+"""
+
 docdict['sensors_topomap'] = """
 sensors : bool | str
     Whether to add markers for sensor locations. If :class:`str`, should be a
     valid matplotlib format string (e.g., ``'r+'`` for red plusses, see the
     Notes section of :meth:`~matplotlib.axes.Axes.plot`). If ``True`` (the
     default), black circles will be used.
-"""
-
-docdict['selection'] = """
-selection : iterable | None
-    Iterable of indices of selected epochs. If ``None``, will be
-    automatically generated, corresponding to all non-zero events.
 """
 
 docdict['set_eeg_reference_see_also_notes'] = """
