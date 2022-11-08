@@ -887,6 +887,12 @@ distance : float | None
     in plot units (either m or mm).
 """
 
+docdict['drop_log'] = """
+drop_log : tuple | None
+    Tuple of tuple of strings indicating which epochs have been marked to
+    be ignored.
+"""
+
 docdict['dtype_applyfun'] = """
 dtype : numpy.dtype
     Data type to use after applying the function. If None
@@ -2808,6 +2814,12 @@ raw : Raw object
     An instance of `~mne.io.Raw`.
 """
 
+docdict['raw_sfreq'] = """
+raw_sfreq : float
+    The original Raw object sampling rate. If None, then it is set to
+    ``info['sfreq']``.
+"""
+
 docdict['reduce_rank'] = """
 reduce_rank : bool
     If True, the rank of the denominator of the beamformer formula (i.e.,
@@ -3041,6 +3053,12 @@ seed : None | int | instance of ~numpy.random.RandomState
 docdict['seeg'] = """
 seeg : bool
     If True (default), show sEEG electrodes.
+"""
+
+docdict['selection'] = """
+selection : iterable | None
+    Iterable of indices of selected epochs. If ``None``, will be
+    automatically generated, corresponding to all non-zero events.
 """
 
 docdict['sensors_topomap'] = """
