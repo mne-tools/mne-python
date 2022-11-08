@@ -538,7 +538,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         .. versionadded:: 0.16
         .. versionchanged:: 1.0
            Defaults to ``'terrain'``.
-    sensor_colors: array-like | None
+    sensor_colors : array-like | None
         Colors to use for the sensor glyphs. Can be list-like of color strings
         (length ``n_sensors``) or array-like of RGB(A) values (shape
         ``(n_sensors, 3)`` or ``(n_sensors, 4)``). ``None`` (the default) uses
