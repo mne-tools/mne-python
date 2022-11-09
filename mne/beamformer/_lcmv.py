@@ -49,7 +49,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
             magnetometers, 1 V for EEG, so resulting amplitudes will be tiny.
             Consider using :func:`mne.make_ad_hoc_cov` to provide a
             ``noise_cov`` to set noise values that are more reasonable for
-            neural data or using ``weight_norm='nai'`` for weight-normalized 
+            neural data or using ``weight_norm='nai'`` for weight-normalized
             beamformer output that is scaled by a noise estimate.
     label : instance of Label
         Restricts the LCMV solution to a given label.
