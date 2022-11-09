@@ -212,24 +212,7 @@ stcs = mne.minimum_norm.apply_inverse_tfr_epochs(
 # Plot volume source estimates
 # ----------------------------
 
-# compute power and take the average over epochs
-# also cast to integers to lower memory usage
-data = np.array([(np.mean(
-    [(stc.data * stc.data.conj()).real for stc in tfr_stcs],
-    axis=0, keepdims=True) * 1e32).astype(np.uint64) for tfr_stcs in stcs])
-
-# stcs is list of list of source estimates so, for data,
-# the outer and inner lists are the first two dimensions (n_freqs, n_epochs)
-# and the next dimensions are each source estimate (n_sources, n_ori, n_times)
-# we'll need to reorder to (n_epochs, n_sources, n_ori, n_freqs, n_times)
-data = data.transpose((1, 2, 3, 0, 4))  # move frequencies to penultimate
-
-# let's gain normalize the data so that it is easier to interpret across
-# frequencies; this accounts for the 1/f bias by normalizing relative
-# to power at that frequency
-data = data // data.mean(axis=-1, keepdims=True)
-
-viewer = mne.gui.view_vol_stc(data, subject=subject, subjects_dir=subjects_dir,
+viewer = mne.gui.view_vol_stc(stcs, subject=subject, subjects_dir=subjects_dir,
                               src=vol_src, inst=epochs_tfr)
 viewer.go_to_max()  # show the maximum intensity source vertex
 viewer.update_cmap(vmin=0.6, vmid=0.8)

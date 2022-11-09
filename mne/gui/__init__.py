@@ -248,14 +248,14 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
 
 
 @verbose
-def view_vol_stc(array, subject=None, subjects_dir=None, src=None,
+def view_vol_stc(stcs, subject=None, subjects_dir=None, src=None,
                  inst=None, show=True, block=False, verbose=None):
     """View a source time course estimate.
 
     Parameters
     ----------
-    array : ndarray of shape (n_epochs, n_vertices, n_orient, n_freqs, n_times)
-        The source estimate data.
+    stcs : list of list | generator
+        The source estimates
     %(subject)s
     %(subjects_dir)s
     src : instance of SourceSpaces
@@ -273,6 +273,7 @@ def view_vol_stc(array, subject=None, subjects_dir=None, src=None,
     gui : instance of VolSourceEstimateViewer
         The graphical user interface (GUI) window.
     """
+    import numpy as np
     from ..viz.backends._utils import _qt_app_exec
     from ._stc import VolSourceEstimateViewer
     from qtpy.QtWidgets import QApplication
@@ -280,8 +281,20 @@ def view_vol_stc(array, subject=None, subjects_dir=None, src=None,
     app = QApplication.instance()
     if app is None:
         app = QApplication(['Source Estimate Viewer'])
+
+    # compute power and take the average over epochs
+    # also cast to integers to lower memory usage
+    data = np.array([(np.array(
+        [(stc.data * stc.data.conj()).real
+         for stc in tfr_stcs]) * 1e32).astype(np.uint64)
+        for tfr_stcs in stcs])
+    data = data.transpose((1, 2, 3, 0, 4))  # move frequencies to penultimate
+
+    # subtraction normalize
+    data = data - data.mean(axis=-1, keepdims=True)
+
     gui = VolSourceEstimateViewer(
-        array, subject=subject, subjects_dir=subjects_dir,
+        data, subject=subject, subjects_dir=subjects_dir,
         src=src, inst=inst, show=show,
         verbose=verbose)
     if block:
