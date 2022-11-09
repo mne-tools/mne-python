@@ -255,7 +255,7 @@ def view_vol_stc(stcs, subject=None, subjects_dir=None, src=None,
     Parameters
     ----------
     stcs : list of list | generator
-        The source estimates
+        The source estimates.
     %(subject)s
     %(subjects_dir)s
     src : instance of SourceSpaces
