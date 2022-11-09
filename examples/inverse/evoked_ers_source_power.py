@@ -224,7 +224,7 @@ data = np.array([(np.mean(
 # we'll need to reorder to (n_epochs, n_sources, n_ori, n_freqs, n_times)
 data = data.transpose((1, 2, 3, 0, 4))  # move frequencies to penultimate
 
-# let's gain normalize the data so that it is easier to interpret accross
+# let's gain normalize the data so that it is easier to interpret across
 # frequencies; this accounts for the 1/f bias by normalizing relative
 # to power at that frequency
 data = data // data.mean(axis=-1, keepdims=True)

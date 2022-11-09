@@ -449,7 +449,6 @@ class VolSourceEstimateViewer(SliceBrowser):
     def _on_data_plot_click(self, event):
         """Update viewer when the data plot is clicked on."""
         if event.inaxes is self._fig.axes[0]:
-            print(event)
             self.set_time(self._inst.times[int(round(event.xdata))])
             if self._f_idx is not None:
                 self.set_freq(self._inst.freqs[int(round(event.ydata))])
