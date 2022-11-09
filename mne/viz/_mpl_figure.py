@@ -51,16 +51,13 @@ from matplotlib.figure import Figure
 from .. import channel_indices_by_type, pick_types
 from ..fixes import _close_event
 from ..annotations import _sync_onset
-from ..defaults import _handle_default
 from ..io.pick import (_DATA_CH_TYPES_ORDER_DEFAULT, _DATA_CH_TYPES_SPLIT,
-                       _FNIRS_CH_TYPES_SPLIT, _VALID_CHANNEL_TYPES,
-                       _picks_to_idx)
-from ..time_frequency import psd_multitaper, psd_welch
-from ..utils import Bunch, _check_option, _check_sphere, _click_ch_name, logger
+                       _FNIRS_CH_TYPES_SPLIT, _VALID_CHANNEL_TYPES)
+from ..utils import Bunch, _click_ch_name, logger
 from . import plot_sensors
 from ._figure import BrowserBase
 from .utils import (DraggableLine, _events_off, _fake_click, _fake_keypress,
-                    _merge_annotations, _plot_psd, _prop_kw, _set_window_title,
+                    _merge_annotations, _prop_kw, _set_window_title,
                     _validate_if_list_of_axes, plt_show, _fake_scroll)
 
 name = 'matplotlib'
@@ -2115,73 +2112,6 @@ def _line_figure(inst, axes=None, picks=None, **kwargs):
         fig.mne.fig_size_px = fig._get_size_px()  # can't do in __init__
         axes = fig.mne.ax_list
     return fig, axes
-
-
-def _psd_figure(inst, proj, picks, axes, area_mode, tmin, tmax, fmin, fmax,
-                n_jobs, color, area_alpha, dB, estimate, average,
-                spatial_colors, xscale, line_alpha, sphere, window, exclude,
-                **kwargs):
-    """Instantiate a new power spectral density figure."""
-    from .. import BaseEpochs
-    from ..io import BaseRaw
-
-    # triage kwargs for different PSD methods (raw→welch, epochs→multitaper)
-    welch_kwargs = ('n_fft', 'n_overlap', 'reject_by_annotation')
-    multitaper_kwargs = ('bandwidth', 'adaptive', 'low_bias', 'normalization')
-    psd_kwargs = dict()
-    for kw in welch_kwargs + multitaper_kwargs:
-        if kw in kwargs:
-            psd_kwargs[kw] = kwargs.pop(kw)
-    if isinstance(inst, BaseRaw):
-        psd_func = partial(psd_welch, window=window)
-    elif isinstance(inst, BaseEpochs):
-        psd_func = psd_multitaper
-    else:
-        raise TypeError('Expected an instance of Raw or Epochs, got '
-                        f'{type(inst)}.')
-    # arg checking
-    if np.isfinite(fmax) and (fmax > inst.info['sfreq'] / 2):
-        raise ValueError(
-            f'Requested fmax ({fmax} Hz) must not exceed ½ the sampling '
-            f'frequency of the data ({0.5 * inst.info["sfreq"]}).')
-    _check_option('area_mode', area_mode, [None, 'std', 'range'])
-    _check_option('xscale', xscale, ('log', 'linear'))
-    sphere = _check_sphere(sphere, inst.info)
-    picks = _picks_to_idx(inst.info, picks, exclude=exclude)
-    titles = _handle_default('titles', None)
-    units = _handle_default('units', None)
-    scalings = _handle_default('scalings', None)
-    # containers
-    picks_list = list()
-    units_list = list()
-    titles_list = list()
-    scalings_list = list()
-    psd_list = list()
-    # initialize figure
-    fig, axes = _line_figure(inst, axes, picks, **kwargs)
-    # split picks, units, etc, for each subplot
-    (picks_list, units_list, scalings_list, titles_list
-     ) = _split_picks_by_type(inst, picks, units, scalings, titles)
-    del picks
-    # don't add ylabels & titles if figure has unexpected number of axes
-    make_label = len(axes) == len(fig.axes)
-    # Plot Frequency [Hz] xlabel only on the last axis
-    xlabels_list = [False] * (len(axes) - 1) + [True]
-    # compute PSDs
-    for picks in picks_list:
-        psd, freqs = psd_func(inst, tmin=tmin, tmax=tmax, picks=picks,
-                              fmin=fmin, fmax=fmax, proj=proj, n_jobs=n_jobs,
-                              **psd_kwargs)
-        if isinstance(inst, BaseEpochs):
-            psd = np.mean(psd, axis=0)
-        psd_list.append(psd)
-    # plot
-    _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list, units_list,
-              scalings_list, axes, make_label, color, area_mode, area_alpha,
-              dB, estimate, average, spatial_colors, xscale, line_alpha,
-              sphere, xlabels_list)
-    fig.subplots_adjust(hspace=0.3)
-    return fig
 
 
 def _split_picks_by_type(inst, picks, units, scalings, titles):

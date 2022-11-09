@@ -37,11 +37,15 @@ Bugs
 - Add type checking for ``tmin`` and ``tmax`` arguments for ``crop`` (:gh:`11263` by :newcontrib:`Carlos de la Torre-Ortiz`).
 - Fix bug where ``ica.reject_`` was not saved to disk, and the ``ica.reject_`` property was not inherited from ``Epochs`` when doing ``ICA.fit(epochs)`` (:gh:`11244` by `Eric Larson`_)
 - Fix bug in automatic MESA detection for disabling advanced 3D options (:gh:`11271` by `Eric Larson`_)
+- Fix bug in :func:`mne.head_to_mri` when ``unscale=True`` (:gh:`11303` by `Eric Larson`_)
 - Fix bug in :meth:`set_montage('mgh60') <mne.io.Raw.set_montage>` and related functions where the ``'mgh60'`` sensor positions were incorrectly ordered (:gh:`11290` by `Eric Larson`_)
 - Fix bug in the ``.compute_psd()`` methods where the number of unaggregated Welch segments was wrongly computed for some inputs, leading to an assertion error when computing the PSD (:gh:`11248` by `Daniel McCloy`_)
 - Fix bug in the :func:`~mne.viz.plot_evoked_topo` and :meth:`~mne.Evoked.plot_topo`, where legend colors where shown incorrectly on newer matplotlib versions (:gh:`11258` by `Erkka Heinila`_)
 - Fix bug where EEGLAB channel positions were read as meters, while they are commonly in millimeters, leading to head outlies of the size of one channel when plotting topomaps. Now ``montage_units`` argument has been added to :func:`~mne.io.read_raw_eeglab` and :func:`~mne.read_epochs_eeglab` to control in what units EEGLAB channel positions are read. The default is millimeters, ``'mm'`` (:gh:`11283` by `Mikołaj Magnuski`_)
+- Fix bug where computing PSD with welch's method with more jobs than channels would fail (:gh:`11298` by `Mathieu Scheltienne`_)
+- Fix channel selection edge-cases in `~mne.preprocessing.ICA.find_bads_muscle` (:gh:`11300` by `Mathieu Scheltienne`_)
+- Multitaper spectral estimation now uses periodic (rather than symmetric) taper windows. This also necessitated changing the default ``max_iter`` of our cross-spectral density functions from 150 to 250. (:gh:`11293` by `Daniel McCloy`_)
 
 API changes
 ~~~~~~~~~~~
-- None yet
+- In :func:`mne.time_frequency.dpss_windows`, interpolating is deprecated (nowadays SciPy's computations are fast enough for large ``N`` without interpolation). This affects parameters ``interp_from`` and ``interp_kind``. Two new parameters of the underlying SciPy :func:`~scipy.signal.windows.dpss` function are also exposed: ``sym`` (for choosing symmetric vs. periodic windows) and ``norm`` (window normalization method). (:gh:`11293` by `Daniel McCloy`_)
