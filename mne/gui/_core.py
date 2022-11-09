@@ -422,7 +422,6 @@ class SliceBrowser(QMainWindow):
             x, y = self._vox[list(self._xy_idx[axis])]
             self._images['cursor_v'][axis].set_xdata([x, x])
             self._images['cursor_h'][axis].set_ydata([y, y])
-        # self._zoom(0)  # doesn't actually zoom just resets view to center
         self._update_images(draw=True)
         self._update_moved()
 
