@@ -165,8 +165,8 @@ brain_dspm = stc_dspm.plot(
     time_label='dSPM source power in the 12-30 Hz frequency band')
 
 # %%
-# Use volume, time-frequency source estimates
-# -------------------------------------------
+# Use volume source estimate with time-frequency resolution
+# ---------------------------------------------------------
 
 # make a volume source space
 surface = subjects_dir / subject / 'bem' / 'inner_skull.surf'
@@ -185,10 +185,10 @@ vol_fwd = mne.make_forward_solution(
     raw.info, trans=trans, src=vol_src, bem=bem, meg=True, eeg=True,
     mindist=5.0, n_jobs=1, verbose=True)
 
-# Compute source estimate, just use MNE
+# Compute source estimate using MNE solver
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-method = 'MNE'  # use dSPM method (could also be dSPM or sLORETA)
+method = 'MNE'  # use MNE method (could also be dSPM or sLORETA)
 
 # make a different inverse operator for each frequency so as to properly
 # whiten
