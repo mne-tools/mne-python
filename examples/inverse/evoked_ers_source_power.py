@@ -13,6 +13,7 @@ baseline covariance matrices.
 """
 # Authors: Luke Bloy <luke.bloy@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
 
@@ -191,14 +192,18 @@ lambda2 = 1.0 / snr ** 2
 method = 'MNE'  # use MNE method (could also be dSPM or sLORETA)
 
 # make a different inverse operator for each frequency so as to properly
-# whiten
+# whiten the sensor data
 inverse_operator = list()
 for freq_idx in range(epochs_tfr.freqs.size):
+    # for each frequency, compute a separate covariance matrix
     baseline_cov = baseline_csd.get_data(index=freq_idx, as_cov=True)
     baseline_cov['data'] = baseline_cov['data'].real  # only normalize by real
+    # then use that covariance matrix as normalization for the inverse
+    # operator
     inverse_operator.append(mne.minimum_norm.make_inverse_operator(
         epochs.info, vol_fwd, baseline_cov))
 
+# finally, compute the stcs for each epoch and frequency
 stcs = mne.minimum_norm.apply_inverse_tfr_epochs(
     epochs_tfr, inverse_operator, lambda2, method=method,
     pick_ori='vector')
@@ -207,22 +212,25 @@ stcs = mne.minimum_norm.apply_inverse_tfr_epochs(
 # Plot volume source estimates
 # ----------------------------
 
-# note, here frequencies are the outer list, opposite of the beamformer
-# here, we used pick_ori='vector' so we have an orientation dimension
-
-# compute power, take the average over epochs and cast to integers to save
-# memory, the GUI can also handle complex data across epochs if your
-# computer has enough RAM but this really lowers the memory usage
+# compute power and take the average over epochs
+# also cast to integers to lower memory usage
 data = np.array([(np.mean(
     [(stc.data * stc.data.conj()).real for stc in tfr_stcs],
     axis=0, keepdims=True) * 1e32).astype(np.uint64) for tfr_stcs in stcs])
+
+# stcs is list of list of source estimates so, for data,
+# the outer and inner lists are the first two dimensions (n_freqs, n_epochs)
+# and the next dimensions are each source estimate (n_sources, n_ori, n_times)
+# we'll need to reorder to (n_epochs, n_sources, n_ori, n_freqs, n_times)
 data = data.transpose((1, 2, 3, 0, 4))  # move frequencies to penultimate
 
-# gain normalize
+# let's gain normalize the data so that it is easier to interpret accross
+# frequencies; this accounts for the 1/f bias by normalizing relative
+# to power at that frequency
 data = data // data.mean(axis=-1, keepdims=True)
 
-viewer = mne.gui.view_stc(data, subject=subject, subjects_dir=subjects_dir,
-                          src=vol_src, inst=epochs_tfr)
+viewer = mne.gui.view_vol_stc(data, subject=subject, subjects_dir=subjects_dir,
+                              src=vol_src, inst=epochs_tfr)
 viewer.go_to_max()  # show the maximum intensity source vertex
 viewer.update_cmap(vmin=0.6, vmid=0.8)
 viewer.set_3d_view(azimuth=250, elevation=70, distance=30)

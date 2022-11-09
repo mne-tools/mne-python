@@ -14,7 +14,6 @@ from qtpy.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel,
                             QComboBox)
 
 from ._core import SliceBrowser
-from ..fixes import _point_data, _cell_data
 from ..io.constants import FIFF
 from ..transforms import apply_trans
 from ..utils import _require_version, _validate_type, _check_range, fill_doc
@@ -559,9 +558,10 @@ class VolSourceEstimateViewer(SliceBrowser):
         else:  # make low values transparent
             ctable[:25, 3] = np.linspace(0, 255, 25)
 
-        self._renderer._set_colormap_range(
-            actor=self._vector_actor, ctable=ctable, scalar_bar=None,
-            rng=[vmin, vmax])
+        if self._data.shape[2] > 1:
+            self._renderer._set_colormap_range(
+                actor=self._vector_actor, ctable=ctable, scalar_bar=None,
+                rng=[vmin, vmax])
 
         # set alpha
         ctable[ctable[:, 3] > self._alpha * 255, 3] = self._alpha * 255
@@ -636,9 +636,9 @@ class VolSourceEstimateViewer(SliceBrowser):
             vectors = self._pick_stc_tfr(stc_data)
             # rescale
             vectors = 5 * vectors / (self._stc_min + self._stc_range)
-            _point_data(self._vector_data)['vec'] = vectors
+            self._vector_data.point_data['vec'] = vectors
 
-        _cell_data(self._grid)['values'] = np.where(
+        self._grid.cell_data['values'] = np.where(
             np.isnan(self._stc_img), 0., self._stc_img).flatten(order='F')
         self._update_images()
         self._update_cmap()

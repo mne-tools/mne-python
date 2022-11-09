@@ -1194,7 +1194,11 @@ def _is_mesa(plotter):
         # Try to warn if it's ancient
         version = re.findall("mesa ([0-9.]+) .*", gpu_info) or \
             re.findall("OpenGL version string: .* Mesa ([0-9.]+)\n",
+<<<<<<< HEAD
                        gpu_info_full)
+=======
+                       plotter.ren_win.ReportCapabilities())
+>>>>>>> a1377ef3f5 (wip)
         if version:
             version = version[0]
             if _compare_version(version, '<', '18.3.6'):
