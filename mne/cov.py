@@ -412,7 +412,7 @@ def read_cov(fname, verbose=None):
 # Estimate from data
 
 @verbose
-def make_ad_hoc_cov(info, std=None, verbose=None):
+def make_ad_hoc_cov(info, std=None, *, verbose=None):
     """Create an ad hoc noise covariance.
 
     Parameters

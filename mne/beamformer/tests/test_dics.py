@@ -398,8 +398,7 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx):
     # Test unit-noise-gain weighting
     csd_noise = csd.copy()
     inds = np.triu_indices(csd.n_channels)
-    val = mne.defaults.DEFAULTS['noise_std']['grad'] ** 2
-    csd_noise._data[...] = val * np.eye(csd.n_channels)[inds][:, np.newaxis]
+    csd_noise._data[...] = np.eye(csd.n_channels)[inds][:, np.newaxis]
     noise_power, f = apply_dics_csd(csd_noise, filters)
     want_norm = 3 if pick_ori in (None, 'vector') else 1
     assert_allclose(noise_power.data, want_norm, atol=1e-7)

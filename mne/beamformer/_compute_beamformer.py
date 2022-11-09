@@ -59,7 +59,7 @@ def _prepare_beamformer_input(info, forward, label=None, pick_ori=None,
     # TODO: Deduplicate with _check_one_ch_type, should not be necessary
     # (DICS hits this code path, LCMV does not)
     if noise_cov is None:
-        noise_cov = make_ad_hoc_cov(info, std=None)
+        noise_cov = make_ad_hoc_cov(info, std=1.)
     forward, info_picked, gain, _, orient_prior, _, trace_GRGT, noise_cov, \
         whitener = _prepare_forward(
             forward, info, noise_cov, 'auto', loose, rank=rank, pca=pca,

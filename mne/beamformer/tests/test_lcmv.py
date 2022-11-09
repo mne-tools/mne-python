@@ -586,9 +586,14 @@ def test_lcmv_reg_proj(proj, weight_norm):
     stc_nocov = apply_lcmv(evoked, filters_nocov)
     stc_adhoc = apply_lcmv(evoked, filters_adhoc)
 
-    assert_allclose(stc_nocov.data, stc_adhoc.data)
+    # Compare adhoc and nocov: scale difference is necessitated by using std=1.
+    if weight_norm == 'unit-noise-gain':
+        scale = np.sqrt(ad_hoc['data'][0])
+    else:
+        scale = 1.
+    assert_allclose(stc_nocov.data, stc_adhoc.data * scale)
     a = np.dot(filters_nocov['weights'], filters_nocov['whitener'])
-    b = np.dot(filters_adhoc['weights'], filters_adhoc['whitener'])
+    b = np.dot(filters_adhoc['weights'], filters_adhoc['whitener']) * scale
     atol = np.mean(np.sqrt(a * a)) * 1e-7
     assert_allclose(a, b, atol=atol, rtol=1e-7)
 
@@ -602,7 +607,7 @@ def test_lcmv_reg_proj(proj, weight_norm):
         np.linalg.norm(stc_adhoc.data, axis=0) * adhoc_scale,
         np.linalg.norm(stc_cov.data, axis=0), rtol=0.3)
     assert_allclose(
-        np.linalg.norm(stc_nocov.data, axis=0) * adhoc_scale,
+        np.linalg.norm(stc_nocov.data, axis=0) / scale * adhoc_scale,
         np.linalg.norm(stc_cov.data, axis=0), rtol=0.3)
 
     if weight_norm == 'nai':
@@ -616,8 +621,8 @@ def test_lcmv_reg_proj(proj, weight_norm):
             assert_allclose(stc.data.std(), 2.8e-8, rtol=0.1)
     else:
         assert weight_norm == 'unit-noise-gain'
-        # Channel scalings depend weakly on presence of noise_cov
-        assert_allclose(stc_nocov.data.std(), 1.7, rtol=0.1)
+        # Channel scalings depend on presence of noise_cov
+        assert_allclose(stc_nocov.data.std(), 7.8e-13, rtol=0.1)
         assert_allclose(stc_cov.data.std(), 0.187, rtol=0.2)
 
 

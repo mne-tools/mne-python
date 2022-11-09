@@ -671,7 +671,7 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
                              ' requires a noise covariance matrix to be '
                              'able to apply whitening.')
     if noise_cov is None:
-        noise_cov = make_ad_hoc_cov(info_pick, std=None)
+        noise_cov = make_ad_hoc_cov(info_pick, std=1.)
         allow_mismatch = True
     else:
         noise_cov = noise_cov.copy()
