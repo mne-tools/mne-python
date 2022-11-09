@@ -417,17 +417,23 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._fig.axes[0].set_position([0.1, 0.25, 0.75, 0.6])
         self._fig.axes[0].set_xlabel('Time (s)')
         self._fig.axes[0].set_xticks(
-            [0, self._inst.times.size // 2, self._inst.times.size])
+            [0, self._inst.times.size // 2, self._inst.times.size - 1])
         self._fig.axes[0].set_xticklabels(
             self._inst.times[[0, self._inst.times.size // 2, -1]].round(2))
         if self._f_idx is None:
             self._stc_plot = self._fig.axes[0].plot(stc_data[0])[0]
+            self._stc_vline = self._fig.axes[0].axvline(
+                x=self._t_idx, color='yellow')
             self._fig.axes[0].set_ylabel('Activation (AU)')
             self._cax = None
         else:
             self._stc_plot = self._fig.axes[0].imshow(
                 stc_data, aspect='auto', cmap=self._cmap,
                 interpolation='bicubic')
+            self._stc_vline = self._fig.axes[0].axvline(
+                x=self._t_idx, color='white', linewidth=0.5)
+            self._stc_hline = self._fig.axes[0].axhline(
+                y=self._f_idx, color='white', linewidth=0.5)
             self._cax = self._fig.colorbar(
                 self._stc_plot, ax=self._fig.axes[0])
             self._cax.ax.set_ylabel('Power')
@@ -435,8 +441,18 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._fig.axes[0].set_ylabel('Frequency (Hz)')
             self._fig.axes[0].set_yticks(range(self._inst.freqs.size))
             self._fig.axes[0].set_yticklabels(self._inst.freqs.round(2))
+        self._fig.canvas.mpl_connect(
+            'button_release_event', self._on_data_plot_click)
         canvas.setMinimumHeight(int(self.size().height() * 0.4))
         return canvas
+
+    def _on_data_plot_click(self, event):
+        """Update viewer when the data plot is clicked on."""
+        if event.inaxes is self._fig.axes[0]:
+            print(event)
+            self.set_time(self._inst.times[int(round(event.xdata))])
+            if self._f_idx is not None:
+                self.set_freq(self._inst.freqs[int(round(event.ydata))])
 
     def _update_epoch(self, name):
         """Change which epoch is viewed."""
@@ -473,6 +489,8 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._freq_label.setText(
             f'Freq = {self._inst.freqs[self._f_idx].round(2)} Hz')
         self._update_stc_image()
+        self._stc_hline.set_ydata(self._f_idx)
+        self._fig.canvas.draw()
 
     def set_time(self, time):
         """Set the time to display (in seconds).
@@ -490,6 +508,8 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._time_label.setText(
             f'Time = {self._inst.times[self._t_idx].round(2)} s')
         self._update_stc_image()
+        self._stc_vline.set_xdata(self._t_idx)
+        self._fig.canvas.draw()
 
     def set_alpha(self, alpha):
         """Set the opacity of the display.
