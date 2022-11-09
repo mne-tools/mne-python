@@ -236,14 +236,14 @@ def _psd_from_mt(x_mt, weights):
 
     Parameters
     ----------
-    x_mt : array
+    x_mt : array, shape=(..., n_tapers, n_freqs)
         Tapered spectra
-    weights : array
+    weights : array, shape=(n_tapers,)
         Weights used to combine the tapered spectra
 
     Returns
     -------
-    psd : array
+    psd : array, shape=(..., n_freqs)
         The computed PSD
     """
     psd = weights * x_mt
@@ -258,19 +258,19 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
 
     Parameters
     ----------
-    x_mt : array
+   x_mt : array, shape=(..., n_tapers, n_freqs)
         Tapered spectra for x
-    y_mt : array
+    y_mt : array, shape=(..., n_tapers, n_freqs)
         Tapered spectra for y
-    weights_x : array
+    weights_x : array, shape=(n_tapers,)
         Weights used to combine the tapered spectra of x_mt
-    weights_y : array
+    weights_y : array, shape=(n_tapers,)
         Weights used to combine the tapered spectra of y_mt
 
     Returns
     -------
-    psd: array
-        The computed PSD
+    csd: array
+        The computed CSD
     """
     csd = np.sum(weights_x * x_mt * (weights_y * y_mt).conj(), axis=-2)
     denom = (np.sqrt((weights_x * weights_x.conj()).real.sum(axis=-2)) *
@@ -296,9 +296,9 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
     Returns
     -------
-    x_mt : array, shape=(..., n_tapers, n_times)
+    x_mt : array, shape=(..., n_tapers, n_freqs)
         The tapered spectra
-    freqs : array
+    freqs : array, shape=(n_freqs,)
         The frequency points in Hz of the spectra
     """
     from scipy.fft import rfft, rfftfreq
