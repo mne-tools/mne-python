@@ -248,8 +248,8 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
 
 
 @verbose
-def view_stc(array, subject=None, subjects_dir=None, src=None,
-             inst=None, show=True, block=False, verbose=None):
+def view_vol_stc(array, subject=None, subjects_dir=None, src=None,
+                 inst=None, show=True, block=False, verbose=None):
     """View a source time course estimate.
 
     Parameters
