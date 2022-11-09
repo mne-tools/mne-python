@@ -1210,7 +1210,9 @@ def _is_mesa(plotter):
     is_mesa = 'mesa' in gpu_info.split()
     if is_mesa:
         # Try to warn if it's ancient
-        version = re.findall("mesa ([0-9.]+) .*", gpu_info)
+        version = re.findall("mesa ([0-9.]+) .*", gpu_info) or \
+            re.findall("OpenGL version string: .* Mesa ([0-9.]+)\n",
+                       plotter.ren_win.ReportCapabilities())
         if version:
             version = version[0]
             if _compare_version(version, '<', '18.3.6'):
