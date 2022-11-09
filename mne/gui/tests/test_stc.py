@@ -13,6 +13,7 @@ import mne
 from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.utils import requires_dipy, requires_nibabel
+from mne.viz.utils import _fake_click
 
 data_path = testing.data_path(download=False)
 subject = 'sample'
@@ -152,6 +153,12 @@ def test_stc_viewer_display(_stc_viewer):
 
     assert_allclose(np.linalg.norm(stc_data[0], axis=1)[stc_idx],
                     viewer._stc_plot.get_array())
+
+    # test clicking on stc plot
+    _fake_click(viewer._fig, viewer._fig.axes[0],
+                (0, 0), xform='data', kind='release')
+    assert viewer._t_idx == 0
+    assert viewer._f_idx == 0
 
     # test time only, not frequencies
     epochs = mne.EpochsArray(epochs_tfr.data[:, :, 0], epochs_tfr.info,
