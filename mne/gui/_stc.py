@@ -268,7 +268,7 @@ class VolSourceEstimateViewer(SliceBrowser):
                     stc_data = (stc_data / stc_data.mean(
                         axis=-1, keepdims=True)).round().astype(int)
                 else:
-                    stc_data /= stc_data.mean(axis=-1, keepdims=True)
+                    stc_data = stc_data / stc_data.mean(axis=-1, keepdims=True)
             else:
                 assert self._baseline == 'Subtraction'
                 stc_data -= stc_data.mean(axis=-1, keepdims=True)
