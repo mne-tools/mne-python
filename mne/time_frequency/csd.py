@@ -809,7 +809,7 @@ def csd_multitaper(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 def csd_array_multitaper(X, sfreq, t0=0, fmin=0, fmax=np.inf, tmin=None,
                          tmax=None, ch_names=None, n_fft=None, bandwidth=None,
                          adaptive=False, low_bias=True, projs=None,
-                         n_jobs=None, max_iter=150, *, verbose=None):
+                         n_jobs=None, max_iter=250, *, verbose=None):
     """Estimate cross-spectral density from an array using a multitaper method.
 
     Parameters
@@ -1233,7 +1233,7 @@ def _csd_fourier(X, sfreq, n_times, freq_mask, n_fft):
 
 
 def _csd_multitaper(X, sfreq, n_times, window_fun, eigvals, freq_mask, n_fft,
-                    adaptive, max_iter=150):
+                    adaptive, max_iter=250):
     """Compute cross spectral density (CSD) using multitaper module."""
     x_mt, _ = _mt_spectra(X, window_fun, sfreq, n_fft)
 

@@ -807,6 +807,19 @@ Decimation can be done multiple times. For example,
 ``inst.decimate(4)``.
 """
 
+docdict['decim_tfr'] = """
+decim : int | slice, default 1
+    To reduce memory usage, decimation factor after time-frequency
+    decomposition.
+
+    - if `int`, returns ``tfr[..., ::decim]``.
+    - if `slice`, returns ``tfr[..., decim]``.
+
+    .. note::
+        Decimation is done after convolutions and may create aliasing
+        artifacts.
+"""
+
 docdict['depth'] = """
 depth : None | float | dict
     How to weight (or normalize) the forward using a depth prior.
@@ -872,6 +885,12 @@ docdict['distance'] = """
 distance : float | None
     The distance from the camera rendering the view to the focalpoint
     in plot units (either m or mm).
+"""
+
+docdict['drop_log'] = """
+drop_log : tuple | None
+    Tuple of tuple of strings indicating which epochs have been marked to
+    be ignored.
 """
 
 docdict['dtype_applyfun'] = """
@@ -1367,6 +1386,11 @@ forward : instance of Forward | None
     Forward solution to use. Only used with ``ref_channels='REST'``.
 
     .. versionadded:: 0.21
+"""
+
+docdict['freqs_tfr'] = """
+freqs : array of float, shape (n_freqs,)
+    The frequencies of interest in Hz.
 """
 
 docdict['fullscreen'] = """
@@ -1896,7 +1920,7 @@ match_case : bool
     .. versionadded:: 0.20
 """
 
-docdict["max_iter_multitaper"] = """
+docdict['max_iter_multitaper'] = """
 max_iter : int
     Maximum number of iterations to reach convergence when combining the
     tapered spectra with adaptive weights (see argument ``adaptive``). This
@@ -2043,6 +2067,15 @@ docdict['n_comp_pctf_n'] = """
 n_comp : int
     Number of PSF/CTF components to return for mode='max' or mode='svd'.
     Default n_comp=1.
+"""
+
+docdict['n_cycles_tfr'] = """
+n_cycles : int | array of int, shape (n_freqs,)
+    Number of cycles in the wavelet, either a fixed number or one per
+    frequency. The number of cycles ``n_cycles`` and the frequencies of
+    interest ``freqs`` define the temporal window length. See notes for
+    additional information about the relationship between those arguments
+    and about time and frequency smoothing.
 """
 
 docdict['n_jobs'] = """\
@@ -2339,21 +2372,14 @@ out_type : 'mask' | 'indices'
 """
 
 docdict['outlines_topomap'] = """
-outlines : 'head' | 'skirt' | dict | None
+outlines : 'head' | dict | None
     The outlines to be drawn. If 'head', the default head scheme will be
-    drawn. If 'skirt' the head scheme will be drawn, but sensors are
-    allowed to be plotted outside of the head circle. If dict, each key
-    refers to a tuple of x and y positions, the values in 'mask_pos' will
-    serve as image mask.
+    drawn. If dict, each key refers to a tuple of x and y positions, the values
+    in 'mask_pos' will serve as image mask.
     Alternatively, a matplotlib patch object can be passed for advanced
     masking options, either directly or as a function that returns patches
     (required for multi-axis plots). If None, nothing will be drawn.
     Defaults to 'head'.
-
-    .. deprecated:: v1.2
-       The ``outlines='skirt'`` option is no longer supported and will raise an
-       error starting in version 1.3. Pass ``outlines='head', sphere='eeglab'``
-       for similar behavior.
 """
 
 docdict['overview_mode'] = """
@@ -2617,7 +2643,7 @@ pipeline : str | tuple
         the SDR step.
 """
 
-docdict["plot_psd_doc"] = """\
+docdict['plot_psd_doc'] = """\
 Plot power or amplitude spectra.
 
 Separate plots are drawn for each channel type. When the data have been
@@ -2703,60 +2729,6 @@ proj : bool
     Default is ``False``.
 """
 
-docdict['proj_topomap_kwargs'] = """
-cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-    Colormap to use. If tuple, the first value indicates the colormap to
-    use and the second value is a boolean defining interactivity. In
-    interactive mode (only works if ``colorbar=True``) the colors are
-    adjustable by clicking and dragging the colorbar with left and right
-    mouse button. Left mouse button moves the scale up and down and right
-    mouse button adjusts the range. Hitting space bar resets the range. Up
-    and down arrows can be used to change the colormap. If None (default),
-    'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
-    If 'interactive', translates to (None, True).
-sensors : bool | str
-    Add markers for sensor locations to the plot. Accepts matplotlib plot
-    format string (e.g., 'r+' for red plusses). If True, a circle will be
-    used (via .add_artist). Defaults to True.
-colorbar : bool
-    Plot a colorbar.
-res : int
-    The resolution of the topomap image (n pixels along each side).
-size : scalar
-    Side length of the topomaps in inches (only applies when plotting
-    multiple topomaps at a time).
-show : bool
-    Show figure if True.
-
-outlines : 'head' | 'skirt' | dict | None
-    The outlines to be drawn. If 'head', the default head scheme will be
-    drawn. If 'skirt' the head scheme will be drawn, but sensors are
-    allowed to be plotted outside of the head circle. If dict, each key
-    refers to a tuple of x and y positions, the values in 'mask_pos' will
-    serve as image mask.
-    Alternatively, a matplotlib patch object can be passed for advanced
-    masking options, either directly or as a function that returns patches
-    (required for multi-axis plots). If None, nothing will be drawn.
-    Defaults to 'head'.
-
-    .. deprecated:: v1.2
-       The ``outlines='skirt'`` option is no longer supported and will raise an
-       error starting in version 1.3. Pass ``outlines='head'`` for equivalent
-       behavior.
-
-contours : int | array of float
-    The number of contour lines to draw. If 0, no contours will be drawn.
-    When an integer, matplotlib ticker locator is used to find suitable
-    values for the contour thresholds (may sometimes be inaccurate, use
-    array for accuracy). If an array, the values represent the levels for
-    the contours. Defaults to 6.
-""" + docdict['image_interp_topomap'] + """
-axes : instance of Axes | list | None
-    The axes to plot to. If list, the list must be a list of Axes of
-    the same length as the number of projectors. If instance of Axes,
-    there must be only one projector. Defaults to None.
-"""
-
 docdict['projection_set_eeg_reference'] = """
 projection : bool
     If ``ref_channels='average'`` this argument specifies if the
@@ -2840,6 +2812,12 @@ docdict['rank_none'] = _rank_base + "\n    The default is ``None``."
 docdict['raw_epochs'] = """
 raw : Raw object
     An instance of `~mne.io.Raw`.
+"""
+
+docdict['raw_sfreq'] = """
+raw_sfreq : float
+    The original Raw object sampling rate. If None, then it is set to
+    ``info['sfreq']``.
 """
 
 docdict['reduce_rank'] = """
@@ -3075,6 +3053,12 @@ seed : None | int | instance of ~numpy.random.RandomState
 docdict['seeg'] = """
 seeg : bool
     If True (default), show sEEG electrodes.
+"""
+
+docdict['selection'] = """
+selection : iterable | None
+    Iterable of indices of selected epochs. If ``None``, will be
+    automatically generated, corresponding to all non-zero events.
 """
 
 docdict['sensors_topomap'] = """
@@ -3435,6 +3419,37 @@ tail : int
     the distribution.
 """
 
+docdict['temporal-window_tfr_notes'] = r"""
+In spectrotemporal analysis (as with traditional fourier methods),
+the temporal and spectral resolution are interrelated: longer temporal windows
+allow more precise frequency estimates; shorter temporal windows "smear"
+frequency estimates while providing more precise timing information.
+
+Time-frequency representations are computed using a sliding temporal window.
+Either the temporal window has a fixed length independent of frequency, or the
+temporal window decreases in length with increased frequency.
+
+.. image:: https://www.fieldtriptoolbox.org/assets/img/tutorial/timefrequencyanalysis/figure1.png
+
+*Figure: Time and frequency smoothing. (a) For a fixed length temporal window
+the time and frequency smoothing remains fixed. (b) For temporal windows that
+decrease with frequency, the temporal smoothing decreases and the frequency
+smoothing increases with frequency.*
+Source: `FieldTrip tutorial: Time-frequency analysis using Hanning window,
+multitapers and wavelets <https://www.fieldtriptoolbox.org/tutorial/timefrequencyanalysis>`_.
+
+In MNE-Python, the temporal window length is defined by the arguments ``freqs``
+and ``n_cycles``, respectively defining the frequencies of interest and the
+number of cycles: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`
+
+A fixed number of cycles for all frequencies will yield a temporal window which
+decreases with frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
+``n_cycles=2`` yields ``T=array([2., 0.7, 0.4])``.
+
+To use a temporal window with fixed length, the number of cycles has to be
+defined based on the frequency. For example, ``freqs=np.arange(1, 6, 2)`` and
+``n_cycles=freqs / 2`` yields ``T=array([0.5, 0.5, 0.5])``."""  # noqa: E501
+
 _theme = """\
 theme : str | path-like
     Can be "auto", "light", or "dark" or a path-like to a
@@ -3502,6 +3517,50 @@ from :meth:`scipy.stats.rv_continuous.ppf`::
 
 For a one-tailed test (``tail=1``), don't divide the p-value by 2.
 For testing the lower tail (``tail=-1``), don't subtract ``pval`` from 1.
+"""
+
+docdict['time_bandwidth_tfr'] = """
+time_bandwidth : float ``≥ 2.0``
+    Product between the temporal window length (in seconds) and the *full*
+    frequency bandwidth (in Hz). This product can be seen as the surface of the
+    window on the time/frequency plane and controls the frequency bandwidth
+    (thus the frequency resolution) and the number of good tapers. See notes
+    for additional information."""
+
+docdict['time_bandwidth_tfr_notes'] = r"""
+In MNE-Python's multitaper functions, the frequency bandwidth is
+additionally affected by the parameter ``time_bandwidth``.
+The ``n_cycles`` parameter determines the temporal window length based on the
+frequencies of interest: :math:`T = \frac{\mathtt{n\_cycles}}{\mathtt{freqs}}`.
+The ``time_bandwidth`` parameter defines the "time-bandwidth product", which is
+the product of the temporal window length (in seconds) and the frequency
+bandwidth (in Hz). Thus once ``n_cycles`` has been set, frequency bandwidth is
+determined by :math:`\frac{\mathrm{time~bandwidth}}{\mathrm{time~window}}`, and
+thus passing a larger ``time_bandwidth`` value will increase the frequency
+bandwidth (thereby decreasing the frequency *resolution*).
+
+The increased frequency bandwidth is reached by averaging spectral estimates
+obtained from multiple tapers. Thus, ``time_bandwidth`` also determines the
+number of tapers used. MNE-Python uses only "good" tapers (tapers with minimal
+leakage from far-away frequencies); the number of good tapers is
+``floor(time_bandwidth - 1)``. This means there is another trade-off at play,
+between frequency resolution and the variance reduction that multitaper
+analysis provides. Striving for finer frequency resolution (by setting
+``time_bandwidth`` low) means fewer tapers will be used, which undermines what
+is unique about multitaper methods — namely their ability to improve accuracy /
+reduce noise in the power estimates by using several (orthogonal) tapers.
+
+.. warning::
+
+    In `~mne.time_frequency.tfr_array_multitaper` and
+    `~mne.time_frequency.tfr_multitaper`, ``time_bandwidth`` defines the
+    product of the temporal window length with the *full* frequency bandwidth
+    For example, a full bandwidth of 4 Hz at a frequency of interest of 10 Hz
+    will "smear" the frequency estimate between 8 Hz and 12 Hz.
+
+    This is not the case for `~mne.time_frequency.psd_array_multitaper` where
+    the argument ``bandwidth`` defines the *half* frequency bandwidth. In the
+    example above, the half-frequency bandwidth is 2 Hz.
 """
 
 docdict['time_format'] = """

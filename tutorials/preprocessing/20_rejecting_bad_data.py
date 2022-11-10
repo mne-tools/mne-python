@@ -71,8 +71,7 @@ fig.fake_keypress('a')  # Simulates user pressing 'a' on the keyboard.
 #   (:func:`~mne.preprocessing.find_ecg_events`,
 #   :func:`~mne.preprocessing.find_eog_events`)
 # - covariance computations (:func:`mne.compute_raw_covariance`)
-# - power spectral density computation (:meth:`mne.io.Raw.plot_psd`,
-#   :func:`mne.time_frequency.psd_welch`)
+# - power spectral density computation (:meth:`mne.io.Raw.compute_psd`)
 #
 # For example, when creating epochs from continuous data, if
 # ``reject_by_annotation=True`` the :class:`~mne.Epochs` constructor will drop

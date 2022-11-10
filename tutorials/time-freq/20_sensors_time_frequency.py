@@ -70,10 +70,10 @@ epochs.plot_psd_topomap(ch_type='grad', normalize=False)
 # Alternatively, you can also create PSDs from `~mne.Epochs` methods directly.
 #
 # .. note::
-#    In contrast to the methods for visualization, those ``psd_*`` functions do
-#    **not** scale the data from SI units to more "convenient" values. So when
-#    e.g. calculating the PSD of gradiometers via
-#    :func:`~mne.time_frequency.psd_multitaper`, you will get the power as
+#    In contrast to the methods for visualization, the ``compute_psd`` methods
+#    do **not** scale the data from SI units to more "convenient" values. So
+#    when e.g. calculating the PSD of gradiometers via
+#    :meth:`~mne.Epochs.compute_psd`, you will get the power as
 #    ``(T/m)²/Hz`` (instead of ``(fT/cm)²/Hz`` via
 #    :meth:`~mne.Epochs.plot_psd`).
 

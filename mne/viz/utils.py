@@ -101,20 +101,6 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
     return vmin, vmax
 
 
-def _warn_deprecated_vmin_vmax(vlim, vmin, vmax):
-    if vmin is not None or vmax is not None:
-        warn('The "vmin" and "vmax" parameters are deprecated and will be '
-             'removed in version 1.3. Use the "vlim" parameter instead.',
-             FutureWarning)
-        if vlim[0] is None and vlim[1] is None:
-            vlim = (vmin, vmax)
-        else:
-            warn('You provided either "vmin" or "vmax" (which are '
-                 'deprecated) as well as "vlim". Using "vlim" and '
-                 'ignoring "vmin" and "vmax".')
-    return vlim
-
-
 def plt_show(show=True, fig=None, **kwargs):
     """Show a figure while suppressing warnings.
 

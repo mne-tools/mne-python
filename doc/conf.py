@@ -797,7 +797,7 @@ html_context = {
         dict(name='Technische Universität Ilmenau',
              img='Ilmenau-dark.svg',
              url='https://www.tu-ilmenau.de/',
-             size=xxl,\
+             size=xxl,
              klass='only-dark'),
         dict(name='Berkeley Institute for Data Science',
              img='BIDS.svg',
@@ -867,6 +867,10 @@ html_context = {
              url='https://www.research.chop.edu/imaging',
              size=xxl,
              klass='only-dark'),
+        dict(name='Donders Institute for Brain, Cognition and Behaviour at Radboud University',  # noqa E501
+             img='Donders.png',
+             url='https://www.ru.nl/donders/',
+             size=xl),
     ],
     # \u00AD is an optional hyphen (not rendered unless needed)
     # If these are changed, the Makefile should be updated, too

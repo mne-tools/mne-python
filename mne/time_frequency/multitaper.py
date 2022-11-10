@@ -3,17 +3,14 @@
 
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
 
-import operator
-
 import numpy as np
 
-from ..filter import next_fast_len
 from ..parallel import parallel_func
-from ..utils import sum_squared, warn, verbose, logger, _check_option
+from ..utils import warn, verbose, logger, _check_option
 
 
-def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
-                 interp_kind='linear'):
+def dpss_windows(N, half_nbw, Kmax, *, sym=True, norm=None, low_bias=True,
+                 interp_from=None, interp_kind=None):
     """Compute Discrete Prolate Spheroidal Sequences.
 
     Will give of orders [0,Kmax-1] for a given frequency-spacing multiple
@@ -30,21 +27,44 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         = BW*N/dt but with dt taken as 1.
     Kmax : int
         Number of DPSS windows to return is Kmax (orders 0 through Kmax-1).
+    sym : bool
+        Whether to generate a symmetric window (``True``, for filter design) or
+        a periodic window (``False``, for spectral analysis). Default is
+        ``True``.
+
+        .. versionadded:: 1.3
+    norm : 2 | ``'approximate'`` | ``'subsample'`` | None
+        Window normalization method. If ``'approximate'`` or ``'subsample'``,
+        windows are normalized by the maximum, and a correction scale-factor
+        for even-length windows is applied either using
+        ``N**2/(N**2+half_nbw)`` ("approximate") or a FFT-based subsample shift
+        ("subsample"). ``2`` uses the L2 norm. ``None`` (the default) uses
+        ``"approximate"`` when ``Kmax=None`` and ``2`` otherwise.
+
+        .. versionadded:: 1.3
     low_bias : bool
         Keep only tapers with eigenvalues > 0.9.
-    interp_from : int (optional)
+    interp_from : int | None
         The dpss can be calculated using interpolation from a set of dpss
         with the same NW and Kmax, but shorter N. This is the length of this
         shorter set of dpss windows.
 
-        .. note:: If SciPy 1.1 or greater is available, interpolating
-                  is likely not necessary as DPSS computations should be
-                  sufficiently fast.
-    interp_kind : str (optional)
+        .. deprecated:: 1.3
+           The ``interp_from`` option is deprecated and will be
+           removed in version 1.4. Modern implementations can handle large
+           values of ``N`` so interpolation is no longer necessary; any value
+           passed here will be ignored.
+    interp_kind : str | None
         This input variable is passed to scipy.interpolate.interp1d and
         specifies the kind of interpolation as a string ('linear', 'nearest',
         'zero', 'slinear', 'quadratic, 'cubic') or as an integer specifying the
         order of the spline interpolator to use.
+
+        .. deprecated:: 1.3
+           The ``interp_kind`` option is deprecated and will be
+           removed in version 1.4. Modern implementations can handle large
+           values of ``N`` so interpolation is no longer necessary; any value
+           passed here will be ignored.
 
     Returns
     -------
@@ -60,57 +80,17 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     ----------
     .. footbibliography::
     """
-    from scipy import interpolate
-    from scipy.fft import rfft, irfft
     from scipy.signal.windows import dpss as sp_dpss
 
-    # This np.int32 business works around a weird Windows bug, see
-    # gh-5039 and https://github.com/scipy/scipy/pull/8608
-    Kmax = np.int32(operator.index(Kmax))
-    N = np.int32(operator.index(N))
-    W = float(half_nbw) / N
-    nidx = np.arange(N, dtype='d')
-
-    # In this case, we create the dpss windows of the smaller size
-    # (interp_from) and then interpolate to the larger size (N)
     if interp_from is not None:
-        if interp_from > N:
-            e_s = 'In dpss_windows, interp_from is: %s ' % interp_from
-            e_s += 'and N is: %s. ' % N
-            e_s += 'Please enter interp_from smaller than N.'
-            raise ValueError(e_s)
-        dpss = []
-        d, e = dpss_windows(interp_from, half_nbw, Kmax, low_bias=False)
-        for this_d in d:
-            x = np.arange(this_d.shape[-1])
-            tmp = interpolate.interp1d(x, this_d, kind=interp_kind)
-            d_temp = tmp(np.linspace(0, this_d.shape[-1] - 1, N,
-                                     endpoint=False))
+        warn('The ``interp_from`` option is deprecated and will be removed in '
+             'version 1.4.', FutureWarning)
+    if interp_kind is not None:
+        warn('The ``interp_kind`` option is deprecated and will be removed in '
+             'version 1.4.', FutureWarning)
 
-            # Rescale:
-            d_temp = d_temp / np.sqrt(sum_squared(d_temp))
-
-            dpss.append(d_temp)
-
-        dpss = np.array(dpss)
-
-    else:
-        dpss = sp_dpss(N, half_nbw, Kmax)
-
-    # Now find the eigenvalues of the original spectral concentration problem
-    # Use the autocorr sequence technique from Percival and Walden, 1993 pg 390
-
-    # compute autocorr using FFT (same as nitime.utils.autocorr(dpss) * N)
-    rxx_size = 2 * N - 1
-    n_fft = next_fast_len(rxx_size)
-    dpss_fft = rfft(dpss, n_fft)
-    dpss_rxx = irfft(dpss_fft * dpss_fft.conj(), n_fft)
-    dpss_rxx = dpss_rxx[:, :N]
-
-    r = 4 * W * np.sinc(2 * W * nidx)
-    r[0] = 2 * W
-    eigvals = np.dot(dpss_rxx, r)
-
+    dpss, eigvals = sp_dpss(N, half_nbw, Kmax, sym=sym, norm=norm,
+                            return_ratios=True)
     if low_bias:
         idx = (eigvals > 0.9)
         if not idx.any():
@@ -122,7 +102,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     return dpss, eigvals
 
 
-def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
+def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=250,
                           return_weights=False):
     r"""Use iterative procedure to compute the PSD from tapered spectra.
 
@@ -130,11 +110,11 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
 
     Parameters
     ----------
-    x_mt : array-like, shape (n_signals, n_tapers, n_freqs)
+    x_mt : array, shape=(n_signals, n_tapers, n_freqs)
         The DFTs of the tapered sequences (only positive frequencies)
-    eigvals : array-like, shape (n_tapers,)
+    eigvals : array, length n_tapers
         The eigenvalues of the DPSS tapers
-    freq_mask : array-like, shape (n_freqs_keep,)
+    freq_mask : array
         Frequency indices to keep
     max_iter : int
         Maximum number of iterations for weight computation.
@@ -143,9 +123,9 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
 
     Returns
     -------
-    psd : array, shape (n_signals, np.sum(freq_mask))
+    psd : array, shape=(n_signals, np.sum(freq_mask))
         The computed PSDs
-    weights : array, shape (n_signals, n_tapers, np.sum(freq_mask))
+    weights : array shape=(n_signals, n_tapers, np.sum(freq_mask))
         The weights used to combine the tapered spectra
 
     Notes
@@ -236,14 +216,14 @@ def _psd_from_mt(x_mt, weights):
 
     Parameters
     ----------
-    x_mt : array-like, shape (..., n_tapers, n_freqs)
+    x_mt : array, shape=(..., n_tapers, n_freqs)
         Tapered spectra
-    weights : array-like, shape (n_tapers,)
+    weights : array, shape=(n_tapers,)
         Weights used to combine the tapered spectra
 
     Returns
     -------
-    psd : array, shape (..., n_freqs)
+    psd : array, shape=(..., n_freqs)
         The computed PSD
     """
     psd = weights * x_mt
@@ -258,13 +238,13 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
 
     Parameters
     ----------
-   x_mt : array-like, shape (..., n_tapers, n_freqs)
+    x_mt : array, shape=(..., n_tapers, n_freqs)
         Tapered spectra for x
-    y_mt : array-like, shape (..., n_tapers, n_freqs)
+    y_mt : array, shape=(..., n_tapers, n_freqs)
         Tapered spectra for y
-    weights_x : array-like, shape (n_tapers,)
+    weights_x : array, shape=(n_tapers,)
         Weights used to combine the tapered spectra of x_mt
-    weights_y : array-like, shape (n_tapers,)
+    weights_y : array, shape=(n_tapers,)
         Weights used to combine the tapered spectra of y_mt
 
     Returns
@@ -284,9 +264,9 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
     Parameters
     ----------
-    x : array-like, shape (..., n_times)
+    x : array, shape=(..., n_times)
         Input signal
-    dpss : array-like, shape (n_tapers, n_times)
+    dpss : array, shape=(n_tapers, n_times)
         The tapers
     sfreq : float
         The sampling frequency
@@ -296,9 +276,9 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
     Returns
     -------
-    x_mt : array, shape (..., n_tapers, n_freqs)
+    x_mt : array, shape=(..., n_tapers, n_freqs)
         The tapered spectra
-    freqs : array, shape (n_freqs,)
+    freqs : array, shape=(n_freqs,)
         The frequency points in Hz of the spectra
     """
     from scipy.fft import rfft, rfftfreq
@@ -327,7 +307,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
 @verbose
 def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
-                       interp_from=None, verbose=None):
+                       verbose=None):
     """Triage windowing and multitaper parameters."""
     # Compute standardized half-bandwidth
     from scipy.signal import get_window
@@ -350,8 +330,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
     # Compute DPSS windows
     n_tapers_max = int(2 * half_nbw)
     window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-                                       low_bias=low_bias,
-                                       interp_from=interp_from)
+                                       sym=False, low_bias=low_bias)
     logger.info('    Using multitaper spectrum estimation with %d DPSS '
                 'windows' % len(eigvals))
 
@@ -375,16 +354,15 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
 
     Parameters
     ----------
-    x : array-like, shape (..., n_times)
+    x : array, shape=(..., n_times)
         The data to compute PSD from.
     sfreq : float
         The sampling frequency.
-    fmin : float
-        The lower frequency of interest.
-    fmax : float
-        The upper frequency of interest.
+    %(fmin_fmax_psd)s
     bandwidth : float
-        The bandwidth of the multi taper windowing function in Hz.
+        Half-bandwidth of the multi-taper window function in Hz. For a given
+        frequency, frequencies at ± half-bandwidth are smoothed together.
+        The default value is a half-bandwidth of 4.
     adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
@@ -393,10 +371,12 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
         bandwidth.
     %(normalization)s
     output : str
-        The format of the returned ``psds`` array. Can be either ``'complex'``
-        or ``'power'``. If ``'power'``, the power spectral density is returned.
-        If ``output='complex'``, the complex fourier coefficients are returned
-        per taper.
+        The format of the returned ``psds`` array, ``'complex'`` or
+        ``'power'``:
+
+        * ``'power'`` : the power spectral density is returned.
+        * ``'complex'`` : the complex fourier coefficients are returned per
+          taper.
     %(n_jobs)s
     %(max_iter_multitaper)s
     %(verbose)s
@@ -414,10 +394,10 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
 
     See Also
     --------
-    mne.io.Raw.plot_psd
-    mne.Epochs.plot_psd
     csd_multitaper
-    psd_multitaper
+    mne.io.Raw.compute_psd
+    mne.Epochs.compute_psd
+    mne.Evoked.compute_psd
 
     Notes
     -----
@@ -490,66 +470,55 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
 
 @verbose
 def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
-                         zero_mean=True, time_bandwidth=None, use_fft=True,
-                         decim=1, output='complex', n_jobs=None,
+                         zero_mean=True, time_bandwidth=4.0, use_fft=True,
+                         decim=1, output='complex', n_jobs=None, *,
                          verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
     Same computation as `~mne.time_frequency.tfr_multitaper`, but operates on
-    :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` objects.
+    :class:`NumPy arrays <numpy.ndarray>` instead of `~mne.Epochs` or
+    `~mne.Evoked` objects.
 
     Parameters
     ----------
     epoch_data : array of shape (n_epochs, n_channels, n_times)
         The epochs.
-    sfreq : float | int
-        Sampling frequency of the data.
-    freqs : array-like, shape (n_freqs,)
-        The frequencies.
-    n_cycles : float | array of float
-        Number of cycles in the wavelet. Fixed number or one per
-        frequency. Defaults to 7.0.
+    sfreq : float
+        Sampling frequency of the data in Hz.
+    %(freqs_tfr)s
+    %(n_cycles_tfr)s
     zero_mean : bool
         If True, make sure the wavelets have a mean of zero. Defaults to True.
-    time_bandwidth : float
-        If None, will be set to 4.0 (3 tapers). Time x (Full) Bandwidth
-        product. The number of good tapers (low-bias) is chosen automatically
-        based on this to equal floor(time_bandwidth - 1). Defaults to None.
+    %(time_bandwidth_tfr)s
     use_fft : bool
         Use the FFT for convolutions or not. Defaults to True.
-    decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition. Defaults to 1.
-        If `int`, returns tfr[..., ::decim].
-        If `slice`, returns tfr[..., decim].
-
-        .. note::
-            Decimation may create aliasing artifacts, yet decimation
-            is done after the convolutions.
+    %(decim_tfr)s
     output : str, default 'complex'
 
-        * 'complex' : single trial per taper complex values.
-        * 'power' : single trial power.
-        * 'phase' : single trial per taper phase.
-        * 'avg_power' : average of single trial power.
-        * 'itc' : inter-trial coherence.
-        * 'avg_power_itc' : average of single trial power and inter-trial
+        * ``'complex'`` : single trial per taper complex values.
+        * ``'power'`` : single trial power.
+        * ``'phase'`` : single trial per taper phase.
+        * ``'avg_power'`` : average of single trial power.
+        * ``'itc'`` : inter-trial coherence.
+        * ``'avg_power_itc'`` : average of single trial power and inter-trial
           coherence across trials.
     %(n_jobs)s
-        The number of epochs to process at the same time. The parallelization
-        is implemented across channels. Defaults to 1.
     %(verbose)s
 
     Returns
     -------
     out : array
-        Time frequency transform of epoch_data. If ``output in ['complex',
-        'phase']``, then the shape of ``out`` is ``(n_epochs, n_chans,
-        n_tapers, n_freqs, n_times)``; if output is 'power', the shape of
-        ``out`` is ``(n_epochs, n_chans, n_freqs, n_times)``, else it is
-        ``(n_chans, n_freqs, n_times)``. If output is 'avg_power_itc', the real
-        values in ``out`` contain the average power and the imaginary values
-        contain the ITC: ``out = avg_power + i * itc``.
+        Time frequency transform of ``epoch_data``.
+
+        - if ``output in ('complex',' 'phase')``, array of shape
+          ``(n_epochs, n_chans, n_tapers, n_freqs, n_times)``
+        - if ``output`` is ``'power'``, array of shape ``(n_epochs, n_chans,
+          n_freqs, n_times)``
+        - else, array of shape ``(n_chans, n_freqs, n_times)``
+
+        If ``output`` is ``'avg_power_itc'``, the real values in ``out``
+        contain the average power and the imaginary values contain the
+        inter-trial coherence: :math:`out = power_{avg} + i * ITC`.
 
     See Also
     --------
@@ -561,6 +530,9 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     Notes
     -----
+    %(temporal-window_tfr_notes)s
+    %(time_bandwidth_tfr_notes)s
+
     .. versionadded:: 0.14.0
     """
     from .tfr import _compute_tfr

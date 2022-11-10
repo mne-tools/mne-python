@@ -95,7 +95,7 @@ Changelog
 
 - Add re-referencing functionality for ecog and seeg channel types in :func:`mne.set_eeg_reference` by `Keith Doelling`_
 
-- Add support for median averaging and for returning unaggregated segments in :func:`mne.time_frequency.psd_welch` by `Richard Höchenberger`_
+- Add support for median averaging and for returning unaggregated segments in ``mne.time_frequency.psd_welch`` by `Richard Höchenberger`_
 
 - :func:`io.read_raw_kit`: add support for NYU New York 2019 system update, by `Christian Brodbeck`_
 

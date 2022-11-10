@@ -238,10 +238,9 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
         assert_allclose(pos_mni, pos_mni_from, atol=1e-3)
         # another way
         pos_mri_from_2 = mne.head_to_mri(
-            pos_head_from, subject_from, trans, tempdir, kind='mri')
-        with pytest.warns(FutureWarning, match='kind defaults to'):
-            pos_mri_from_ras = mne.head_to_mri(
-                pos_head_from, subject_from, trans, tempdir)
+            pos_head_from, subject_from, trans, tempdir)
+        pos_mri_from_ras = mne.head_to_mri(
+            pos_head_from, subject_from, trans, tempdir, kind='ras')
         mri_eq_ras = np.allclose(pos_mri_from_2, pos_mri_from_ras, atol=1e-1)
         if subject_from == 'fsaverage':
             assert mri_eq_ras  # fsaverage is special this way
@@ -253,6 +252,10 @@ def test_scale_mri_xfm(tmp_path, few_surfaces, subjects_dir_tmp_few):
             mne.head_to_mri(
                 pos_head_from, subject_from, trans, tempdir, unscale=True,
                 kind='mri')
+        # yet another way
+        pos_mri_from_3 = mne.head_to_mri(
+            pos_head, subject_to, trans, tempdir, kind='mri', unscale=True)
+        assert_allclose(pos_mri_from_3, 1e3 * pos_mri_from, atol=1e-3)
 
 
 def test_fit_matched_points():
