@@ -19,6 +19,8 @@ from ..transforms import apply_trans
 from ..utils import _require_version, _validate_type, _check_range, fill_doc
 from ..viz.utils import _get_cmap
 
+COMPLEX_DTYPE = np.dtype([('re', np.int64), ('im', np.int64)])
+
 
 def _check_consistent(items, name):
     if not len(items):
@@ -121,7 +123,8 @@ class VolSourceEstimateViewer(SliceBrowser):
         (self._src_lut, self._src_vox_scan_ras_t, self._src_vox_ras_t,
          self._src_rr) = _get_src_lut(src)
         self._src_scan_ras_vox_t = np.linalg.inv(self._src_vox_scan_ras_t)
-        self._is_complex = np.iscomplexobj(self._data)
+        self._is_complex = np.iscomplexobj(self._data) or \
+            self._data.dtype == COMPLEX_DTYPE
         # check if only positive values will be used
         pos_support = self._is_complex or self._data.shape[2] > 1 or \
             (self._data >= 0).all()
@@ -231,13 +234,29 @@ class VolSourceEstimateViewer(SliceBrowser):
         if self._epoch_idx == 'Average':
             stc_data = self._data.mean(axis=0)
         elif self._epoch_idx == 'Average Power':
-            stc_data = (self._data * self._data.conj()).real.mean(axis=0)
+            if self._data.dtype == COMPLEX_DTYPE:
+                stc_data = (stc_data['re'] + 1j * stc_data['im']) * \
+                    (stc_data['re'] - 1j * stc_data['im']).astype(
+                        np.int64).mean(axis=0)
+            else:
+                stc_data = (self._data * self._data.conj()).real.mean(axis=0)
         elif self._epoch_idx == 'ITC':
-            stc_data = np.abs((self._data / np.abs(self._data)).mean(axis=0))
+            if self._data.dtype == COMPLEX_DTYPE:
+                stc_data = np.abs(
+                    (stc_data['re'] + 1j * stc_data['im']) /
+                    np.abs(stc_data['re'] - 1j * stc_data['im'])).astype(
+                        np.int64).mean(axis=0)
+            else:
+                stc_data = np.abs((self._data / np.abs(self._data)).mean(
+                    axis=0))
         else:
             stc_data = self._data[int(self._epoch_idx.replace('Epoch ', ''))]
             if self._is_complex:
-                stc_data = (stc_data * stc_data.conj())
+                if stc_data.dtype == COMPLEX_DTYPE:
+                    stc_data = (stc_data['re'] + 1j * stc_data['im']) * \
+                        (stc_data['re'] - 1j * stc_data['im']).astype(np.int64)
+                else:
+                    stc_data = (stc_data * stc_data.conj()).real
         return stc_data
 
     def _pick_stc_vertex(self, stc_data):
