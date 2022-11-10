@@ -16,7 +16,8 @@ from qtpy.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel,
 from ._core import SliceBrowser
 from ..io.constants import FIFF
 from ..transforms import apply_trans
-from ..utils import _require_version, _validate_type, _check_range, fill_doc
+from ..utils import (_require_version, _validate_type, _check_range, fill_doc,
+                     _check_option)
 from ..viz.utils import _get_cmap
 
 COMPLEX_DTYPE = np.dtype([('re', np.int64), ('im', np.int64)])
@@ -494,6 +495,16 @@ class VolSourceEstimateViewer(SliceBrowser):
             self.set_time(self._inst.times[int(round(event.xdata))])
             if self._f_idx is not None:
                 self.set_freq(self._inst.freqs[int(round(event.ydata))])
+
+    def set_baseline(self, mode):
+        """Set the baseline.
+
+        Parameters
+        ----------
+        mode : 'gain' | 'subtraction' | 'none' | None
+        """
+        _check_option('mode', mode, ('gain', 'subtraction', 'none', None))
+        self._update_baseline('None' if mode is None else mode.capitalize())
 
     def _update_baseline(self, name):
         """Update the chosen baseline normalization method."""
