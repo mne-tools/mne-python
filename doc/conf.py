@@ -970,6 +970,8 @@ def reset_warnings(gallery_conf, fname):
         '`np.MachAr` is deprecated',
         # joblib hasn't updated to avoid distutils
         'distutils package is deprecated',
+        # jupyter
+        'Jupyter is migrating its paths to use standard',
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
