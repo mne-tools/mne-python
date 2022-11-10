@@ -248,14 +248,27 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
 
 
 @verbose
-def view_vol_stc(stcs, subject=None, subjects_dir=None, src=None,
-                 inst=None, show=True, block=False, verbose=None):
+def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
+                 src=None, inst=None, show=True, block=False, verbose=None):
     """View a source time course estimate.
 
     Parameters
     ----------
     stcs : list of list | generator
-        The source estimates.
+        The source estimates. List of lists or generators for epochs
+        and frequencies (i.e. using
+        :func:`mne.minimum_norm.apply_inverse_tfr_epochs` or
+        :func:`mne.beamformer.apply_dics_tfr_epochs`-- in this case
+        use ``freq_first=False``). Lists of source estimates across
+        frequencies (e.g. :func::func:`mne.beamformer.apply_dics_csd`)
+        and lists of source estimates across epochs
+        (e.g. :func:`mne.minimum_norm.apply_inverse_epochs` and
+        :func:`mne.beamformer.apply_dics_epochs`--in these
+        case use ``freq_first=False``) are also allowed. Single
+        source estimates (e.g. :func:`mne.minimum_norm.apply_inverse`
+        and :func:`mne.beamformer.apply_dics`) are also allowed.
+    freq_first : bool
+        If frequencies are the outer list of ``stcs`` use ``True``.
     %(subject)s
     %(subjects_dir)s
     src : instance of SourceSpaces
@@ -282,16 +295,24 @@ def view_vol_stc(stcs, subject=None, subjects_dir=None, src=None,
     if app is None:
         app = QApplication(['Source Estimate Viewer'])
 
-    # compute power and take the average over epochs
-    # also cast to integers to lower memory usage
-    data = np.array([(np.array(
-        [(stc.data * stc.data.conj()).real
-         for stc in tfr_stcs]) * 1e32).astype(np.uint64)
-        for tfr_stcs in stcs])
-    data = data.transpose((1, 2, 3, 0, 4))  # move frequencies to penultimate
-
-    # subtraction normalize
-    data = data - data.mean(axis=-1, keepdims=True)
+    # cast to integers to lower memory usage, use custom complex data
+    # type if necessary
+    complex_dtype = np.dtype([('re', np.int64), ('im', np.int64)])
+    data = list()
+    for inner_stcs in (stcs if np.iterable(stcs) else [stcs]):
+        inner_data = list()
+        for stc in (inner_stcs if np.iterable(inner_stcs) else [inner_stcs]):
+            if np.iscomplexobj(stc.data):
+                stc_data = np.zeros(stc.data.shape, complex_dtype)
+                stc_data['re'] = stc.data.real * 1e16
+                stc_data['im'] = stc.data.imag * 1e16
+                inner_data.append(stc_data)
+            else:
+                inner_data.append((stc.data * 1e16).astype(np.int64))
+        data.append(inner_data)
+    data = np.array(data)
+    # move frequencies to penultimate
+    data = data.transpose((1, 2, 3, 0, 4) if freq_first else (0, 2, 3, 1, 4))
 
     gui = VolSourceEstimateViewer(
         data, subject=subject, subjects_dir=subjects_dir,
