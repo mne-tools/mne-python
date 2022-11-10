@@ -125,6 +125,7 @@ class VolSourceEstimateViewer(SliceBrowser):
         self._src_scan_ras_vox_t = np.linalg.inv(self._src_vox_scan_ras_t)
         self._is_complex = np.iscomplexobj(self._data) or \
             self._data.dtype == COMPLEX_DTYPE
+        self._baseline = 'None'
         # check if only positive values will be used
         pos_support = self._is_complex or self._data.shape[2] > 1 or \
             (self._data >= 0).all()
@@ -233,19 +234,22 @@ class VolSourceEstimateViewer(SliceBrowser):
         """Select the source time course epoch based on the parameters."""
         if self._epoch_idx == 'Average':
             stc_data = self._data.mean(axis=0)
+        # re**2 + im**2 is equivalent to complex congugate
         elif self._epoch_idx == 'Average Power':
             if self._data.dtype == COMPLEX_DTYPE:
-                stc_data = (stc_data['re'] + 1j * stc_data['im']) * \
-                    (stc_data['re'] - 1j * stc_data['im']).astype(
-                        np.int64).mean(axis=0)
+                stc_data = (self._data['re']**2 + self._data['im']**2).astype(
+                    np.int64).mean(axis=0)
             else:
                 stc_data = (self._data * self._data.conj()).real.mean(axis=0)
+        # sqrt(re**2 + im**2) is the same as abs
         elif self._epoch_idx == 'ITC':
             if self._data.dtype == COMPLEX_DTYPE:
-                stc_data = np.abs(
-                    (stc_data['re'] + 1j * stc_data['im']) /
-                    np.abs(stc_data['re'] - 1j * stc_data['im'])).astype(
-                        np.int64).mean(axis=0)
+                # use manhattan distance in the integer case (estimation)
+                # to keep as integers for memory conservation
+                abs_stc_data = abs(self._data['re']) + abs(self._data['im'])
+                stc_data = \
+                    abs((self._data['re'] / abs_stc_data).mean(axis=0)) + \
+                    abs((self._data['im'] / abs_stc_data).mean(axis=0))
             else:
                 stc_data = np.abs((self._data / np.abs(self._data)).mean(
                     axis=0))
@@ -253,10 +257,20 @@ class VolSourceEstimateViewer(SliceBrowser):
             stc_data = self._data[int(self._epoch_idx.replace('Epoch ', ''))]
             if self._is_complex:
                 if stc_data.dtype == COMPLEX_DTYPE:
-                    stc_data = (stc_data['re'] + 1j * stc_data['im']) * \
-                        (stc_data['re'] - 1j * stc_data['im']).astype(np.int64)
+                    stc_data = (stc_data['re']**2 +
+                                stc_data['im']**2).astype(np.int64)
                 else:
                     stc_data = (stc_data * stc_data.conj()).real
+        if self._baseline != 'None' and self._epoch_idx != 'ITC':
+            if self._baseline == 'Gain':
+                if self._data.dtype == COMPLEX_DTYPE:
+                    stc_data = (stc_data / stc_data.mean(
+                        axis=-1, keepdims=True)).round().astype(int)
+                else:
+                    stc_data /= stc_data.mean(axis=-1, keepdims=True)
+            else:
+                assert self._baseline == 'Subtraction'
+                stc_data -= stc_data.mean(axis=-1, keepdims=True)
         return stc_data
 
     def _pick_stc_vertex(self, stc_data):
@@ -315,7 +329,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._epoch_selector = QComboBox()
             self._epoch_selector.addItems(
                 [f'Epoch {i}' for i in range(self._data.shape[0])])
-            if np.iscomplexobj(self._data):
+            if self._is_complex:
                 self._epoch_selector.addItems(['Average Power'])
                 if self._data.shape[2] == 1:  # only allow ITC for scalar
                     self._epoch_selector.addItems(['ITC'])
@@ -410,6 +424,15 @@ class VolSourceEstimateViewer(SliceBrowser):
     def _configure_status_bar(self, hbox=None):
         hbox = QHBoxLayout() if hbox is None else hbox
 
+        hbox.addWidget(QLabel('Baseline'))
+        self._baseline_selector = QComboBox()
+        self._baseline_selector.addItems(['None', 'Gain', 'Subtraction'])
+        self._baseline_selector.setCurrentText('None')
+        self._baseline_selector.currentTextChanged.connect(
+            self._update_baseline)
+        self._baseline_selector.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        hbox.addWidget(self._baseline_selector)
+
         hbox.addStretch(3)
 
         self._go_to_max_button = QPushButton('Go to Maxima')
@@ -471,6 +494,11 @@ class VolSourceEstimateViewer(SliceBrowser):
             self.set_time(self._inst.times[int(round(event.xdata))])
             if self._f_idx is not None:
                 self.set_freq(self._inst.freqs[int(round(event.ydata))])
+
+    def _update_baseline(self, name):
+        """Update the chosen baseline normalization method."""
+        self._baseline = name
+        self._update_stc_image()
 
     def _update_epoch(self, name):
         """Change which epoch is viewed."""
