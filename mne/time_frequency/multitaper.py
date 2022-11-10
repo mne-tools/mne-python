@@ -238,7 +238,7 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
 
     Parameters
     ----------
-   x_mt : array, shape=(..., n_tapers, n_freqs)
+    x_mt : array, shape=(..., n_tapers, n_freqs)
         Tapered spectra for x
     y_mt : array, shape=(..., n_tapers, n_freqs)
         Tapered spectra for y
