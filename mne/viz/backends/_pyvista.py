@@ -1204,15 +1204,15 @@ def _is_mesa(plotter):
     # MESA (could use GPUInfo / _get_gpu_info here, but it takes
     # > 700 ms to make a new window + report capabilities!)
     # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
-    gpu_info = plotter.ren_win.ReportCapabilities()
-    gpu_info = re.findall("OpenGL renderer string:(.+)\n", gpu_info)
+    gpu_info_full = plotter.ren_win.ReportCapabilities()
+    gpu_info = re.findall("OpenGL renderer string:(.+)\n", gpu_info_full)
     gpu_info = ' '.join(gpu_info).lower()
     is_mesa = 'mesa' in gpu_info.split()
     if is_mesa:
         # Try to warn if it's ancient
         version = re.findall("mesa ([0-9.]+) .*", gpu_info) or \
             re.findall("OpenGL version string: .* Mesa ([0-9.]+)\n",
-                       plotter.ren_win.ReportCapabilities())
+                       gpu_info_full)
         if version:
             version = version[0]
             if _compare_version(version, '<', '18.3.6'):
