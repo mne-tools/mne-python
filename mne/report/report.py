@@ -1811,8 +1811,8 @@ class Report:
         existing_names = [element.name for element in self._content]
         if name in existing_names and replace:
             # Find and replace last existing element with the same name
-            idx = [ii for ii, element in enumerate(self._content)
-                   if element.name == name][-1]
+            idx = [ii for ii, element_name in enumerate(existing_names)
+                   if element_name == name][-1]
             self._content[idx] = new_content
         else:
             self._content.append(new_content)
