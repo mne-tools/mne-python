@@ -130,11 +130,11 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
 
     Parameters
     ----------
-    x_mt : array, shape=(n_signals, n_tapers, n_freqs)
+    x_mt : array-like, shape (n_signals, n_tapers, n_freqs)
         The DFTs of the tapered sequences (only positive frequencies)
-    eigvals : array, length n_tapers
+    eigvals : array-like, shape (n_tapers,)
         The eigenvalues of the DPSS tapers
-    freq_mask : array
+    freq_mask : array-like, shape (n_freqs_keep,)
         Frequency indices to keep
     max_iter : int
         Maximum number of iterations for weight computation.
@@ -143,9 +143,9 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
 
     Returns
     -------
-    psd : array, shape=(n_signals, np.sum(freq_mask))
+    psd : array, shape (n_signals, np.sum(freq_mask))
         The computed PSDs
-    weights : array shape=(n_signals, n_tapers, np.sum(freq_mask))
+    weights : array, shape (n_signals, n_tapers, np.sum(freq_mask))
         The weights used to combine the tapered spectra
 
     Notes
@@ -236,14 +236,14 @@ def _psd_from_mt(x_mt, weights):
 
     Parameters
     ----------
-    x_mt : array, shape=(..., n_tapers, n_freqs)
+    x_mt : array-like, shape (..., n_tapers, n_freqs)
         Tapered spectra
-    weights : array, shape=(n_tapers,)
+    weights : array-like, shape (n_tapers,)
         Weights used to combine the tapered spectra
 
     Returns
     -------
-    psd : array, shape=(..., n_freqs)
+    psd : array, shape (..., n_freqs)
         The computed PSD
     """
     psd = weights * x_mt
@@ -258,13 +258,13 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
 
     Parameters
     ----------
-   x_mt : array, shape=(..., n_tapers, n_freqs)
+   x_mt : array-like, shape (..., n_tapers, n_freqs)
         Tapered spectra for x
-    y_mt : array, shape=(..., n_tapers, n_freqs)
+    y_mt : array-like, shape (..., n_tapers, n_freqs)
         Tapered spectra for y
-    weights_x : array, shape=(n_tapers,)
+    weights_x : array-like, shape (n_tapers,)
         Weights used to combine the tapered spectra of x_mt
-    weights_y : array, shape=(n_tapers,)
+    weights_y : array-like, shape (n_tapers,)
         Weights used to combine the tapered spectra of y_mt
 
     Returns
@@ -284,9 +284,9 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
     Parameters
     ----------
-    x : array, shape=(..., n_times)
+    x : array-like, shape (..., n_times)
         Input signal
-    dpss : array, shape=(n_tapers, n_times)
+    dpss : array-like, shape (n_tapers, n_times)
         The tapers
     sfreq : float
         The sampling frequency
@@ -296,9 +296,9 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
     Returns
     -------
-    x_mt : array, shape=(..., n_tapers, n_freqs)
+    x_mt : array, shape (..., n_tapers, n_freqs)
         The tapered spectra
-    freqs : array, shape=(n_freqs,)
+    freqs : array, shape (n_freqs,)
         The frequency points in Hz of the spectra
     """
     from scipy.fft import rfft, rfftfreq
@@ -375,7 +375,7 @@ def psd_array_multitaper(x, sfreq, fmin=0.0, fmax=np.inf, bandwidth=None,
 
     Parameters
     ----------
-    x : array, shape=(..., n_times)
+    x : array-like, shape (..., n_times)
         The data to compute PSD from.
     sfreq : float
         The sampling frequency.
@@ -504,7 +504,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
-    freqs : array-like of float, shape (n_freqs,)
+    freqs : array-like, shape (n_freqs,)
         The frequencies.
     n_cycles : float | array of float
         Number of cycles in the wavelet. Fixed number or one per
