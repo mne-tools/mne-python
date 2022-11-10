@@ -35,6 +35,7 @@ print(__doc__)
 
 data_path = somato.data_path()
 subject = '01'
+subjects_dir = data_path / 'derivatives' / 'freesurfer' / 'subjects'
 task = 'somato'
 raw_fname = (data_path / 'sub-{}'.format(subject) / 'meg' /
              'sub-{}_task-{}_meg.fif'.format(subject, task))
@@ -57,8 +58,6 @@ epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, picks=picks,
 # read forward operator and point to freesurfer subject directory
 fname_fwd = (data_path / 'derivatives' / 'sub-{}'.format(subject) /
              'sub-{}_task-{}-fwd.fif'.format(subject, task))
-subjects_dir = data_path / 'derivatives' / 'freesurfer' / 'subjects'
-
 fwd = mne.read_forward_solution(fname_fwd)
 
 # %%

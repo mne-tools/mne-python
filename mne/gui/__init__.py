@@ -266,7 +266,8 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
         :func:`mne.beamformer.apply_dics_epochs`--in these
         case use ``freq_first=False``) are also allowed. Single
         source estimates (e.g. :func:`mne.minimum_norm.apply_inverse`
-        and :func:`mne.beamformer.apply_dics`) are also allowed.
+        and :func:`mne.beamformer.apply_dics`) are also allowed
+        (``freq_first`` will not be used in this case).
     freq_first : bool
         If frequencies are the outer list of ``stcs`` use ``True``.
     %(subject)s
@@ -311,6 +312,9 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
                 inner_data.append((stc.data * 1e16).astype(np.int64))
         data.append(inner_data)
     data = np.array(data)
+    if data.ndim == 4:  # scalar solution, add dimension at the end
+        data = data[:, :, :, None]
+
     # move frequencies to penultimate
     data = data.transpose((1, 2, 3, 0, 4) if freq_first else (0, 2, 3, 1, 4))
 
