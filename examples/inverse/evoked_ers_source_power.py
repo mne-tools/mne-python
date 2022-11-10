@@ -215,5 +215,5 @@ stcs = mne.minimum_norm.apply_inverse_tfr_epochs(
 viewer = mne.gui.view_vol_stc(stcs, subject=subject, subjects_dir=subjects_dir,
                               src=vol_src, inst=epochs_tfr)
 viewer.go_to_max()  # show the maximum intensity source vertex
-viewer.update_cmap(vmin=0.6, vmid=0.8)
+viewer.update_cmap(vmin=0.25, vmid=0.8)
 viewer.set_3d_view(azimuth=40, elevation=35, distance=300)
