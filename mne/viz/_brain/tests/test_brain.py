@@ -24,7 +24,6 @@ from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.source_space import (read_source_spaces,
                               setup_volume_source_space)
 from mne.datasets import testing
-from mne.fixes import _cell_data
 from mne.io import read_info
 from mne.utils import check_version
 from mne.label import read_label
@@ -199,8 +198,6 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     with pytest.raises(ValueError, match='RGB argument'):
         Brain('sample', cortex='badcolor')
     # test no surfaces
-    with pytest.warns(FutureWarning, match='show_toolbar'):  # and subject_id
-        Brain(subject_id=subject, hemi=None, surf=None, show_toolbar=True)
     with pytest.raises(TypeError, match='missing 1 required positional'):
         Brain()
     renderer_pyvistaqt.backend._close_all()
@@ -331,9 +328,15 @@ def test_brain_init(renderer_pyvistaqt, tmp_path, pixel_ratio, brain_gc):
     brain.remove_skull()
 
     # add volume labels
+    plotargs = {
+        'bcolor': (0.5, 0.5, 0.5),
+        'border': False,
+        'size': (0.2, 0.6),
+        'loc': 'upper left'
+    }
     brain.add_volume_labels(
         aseg='aseg', labels=('Brain-Stem', 'Left-Hippocampus',
-                             'Left-Amygdala'))
+                             'Left-Amygdala'), legend=plotargs)
     brain.remove_volume_labels()
 
     # add sensors
@@ -779,7 +782,7 @@ def test_brain_traces(renderer_interactive_pyvistaqt, hemi, src, tmp_path,
         if current_hemi == 'vol':
             current_mesh = brain._data['vol']['grid']
             vertices = brain._data['vol']['vertices']
-            values = _cell_data(current_mesh)['values'][vertices]
+            values = current_mesh.cell_data['values'][vertices]
             cell_id = vertices[np.argmax(np.abs(values))]
         else:
             current_mesh = brain._layered_meshes[current_hemi]._polydata

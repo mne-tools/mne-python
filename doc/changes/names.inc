@@ -58,11 +58,13 @@
 
 .. _Ben Beasley: https://github.com/musicinmybrain
 
-.. _Britta Westner: https://github.com/britta-wstnr
+.. _Britta Westner: https://britta-wstnr.github.io
 
 .. _Bruno Nicenboim: https://bnicenboim.github.io
 
 .. _buildqa: https://github.com/buildqa
+
+.. _Carlos de la Torre-Ortiz: https://ctorre.me
 
 .. _Carina Forster: https://github.com/carinafo
 
@@ -93,6 +95,8 @@
 .. _Dan Wakeman: https://github.com/dgwakeman
 
 .. _Daniel Carlström Schad: https://github.com/Dod12
+
+.. _Daniel Hasegan: https://daniel.hasegan.com
 
 .. _Daniel McCloy: http://dan.mccloy.info
 
@@ -164,6 +168,8 @@
 
 .. _Guillaume Favelier: https://github.com/GuillaumeFavelier
 
+.. _Hakimeh Aslsardroud: https://www.researchgate.net/profile/Hakimeh-Pourakbari
+
 .. _Hamid Maymandi: https://github.com/HamidMandi
 
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
@@ -198,13 +204,13 @@
 
 .. _Jean-Remi King: https://github.com/kingjr
 
-.. _Jeff Hanna: https://github.com/jshanna100
-
 .. _Jeff Stout: https://megcore.nih.gov/index.php/Staff
 
 .. _Jeroen Van Der Donckt: https://github.com/jvdd
 
 .. _Jesper Duemose Nielsen: https://github.com/jdue
+
+.. _Jevri Hanna: https://github.com/jshanna100
 
 .. _jeythekey: https://github.com/jeythekey
 
@@ -315,6 +321,8 @@
 .. _Matthias Eberlein: https://github.com/MatthiasEb
 
 .. _Matti Toivonen: https://github.com/mattitoi
+
+.. _Mauricio Cespedes Tenorio: https://github.com/mcespedes99
 
 .. _Michiru Kaneda: https://github.com/rcmdnk
 
@@ -501,3 +509,13 @@
 .. _Yu-Han Luo: https://github.com/yh-luo
 
 .. _Zhi Zhang: https://github.com/tczhangzhi/
+
+.. _Dinara Issagaliyeva: https://github.com/dissagaliyeva
+
+.. _Jennifer Behnke: https://github.com/JKBehnke
+
+.. _Hakimeh Pourakbari: https://github.com/Hpakbari
+
+.. _Pavel Navratil: https://github.com/navrpa13
+
+.. _Tom Ma: https://github.com/myd7349

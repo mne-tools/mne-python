@@ -116,13 +116,13 @@ def test_io_set_raw_more(tmp_path):
 
     # test reading file with one event (read old version)
     negative_latency_fname = op.join(tmp_path, 'test_negative_latency.set')
-    evnts = deepcopy(eeg.event[0])
-    evnts.latency = 0
+    events = deepcopy(eeg.event[0])
+    events.latency = 0
     io.savemat(negative_latency_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
                         'nbchan': eeg.nbchan,
                         'data': 'test_negative_latency.fdt',
-                        'epoch': eeg.epoch, 'event': evnts,
+                        'epoch': eeg.epoch, 'event': events,
                         'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
                appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
@@ -131,12 +131,12 @@ def test_io_set_raw_more(tmp_path):
         read_raw_eeglab(input_fname=negative_latency_fname, preload=True)
 
     # test negative event latencies
-    evnts.latency = -1
+    events.latency = -1
     io.savemat(negative_latency_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
                         'nbchan': eeg.nbchan,
                         'data': 'test_negative_latency.fdt',
-                        'epoch': eeg.epoch, 'event': evnts,
+                        'epoch': eeg.epoch, 'event': events,
                         'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
                appendmat=False, oned_as='row')
     with pytest.raises(ValueError, match='event sample index is negative'):
@@ -158,15 +158,15 @@ def test_io_set_raw_more(tmp_path):
 
     # test reading file with empty event durations
     empty_dur_fname = op.join(tmp_path, 'test_empty_durations.set')
-    evnts = deepcopy(eeg.event)
-    for ev in evnts:
+    events = deepcopy(eeg.event)
+    for ev in events:
         ev.duration = np.array([], dtype='float')
 
     io.savemat(empty_dur_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
                         'nbchan': eeg.nbchan,
                         'data': 'test_negative_latency.fdt',
-                        'epoch': eeg.epoch, 'event': evnts,
+                        'epoch': eeg.epoch, 'event': events,
                         'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
                appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
@@ -207,7 +207,8 @@ def test_io_set_raw_more(tmp_path):
                                      'X': 6.3023, 'Z': -2.9423},
                         'times': eeg.times[:3], 'pnts': 3}},
                appendmat=False, oned_as='row')
-    read_raw_eeglab(input_fname=one_chan_fname, preload=True)
+    read_raw_eeglab(input_fname=one_chan_fname, preload=True,
+                    montage_units='cm')
 
     # test reading file with 3 channels - one without position information
     # first, create chanlocs structured array
@@ -236,7 +237,8 @@ def test_io_set_raw_more(tmp_path):
                         'times': eeg.times[:2], 'pnts': 2}},
                appendmat=False, oned_as='row')
     # load the file
-    raw = read_raw_eeglab(input_fname=nopos_fname, preload=True)
+    raw = read_raw_eeglab(input_fname=nopos_fname, preload=True,
+                          montage_units='cm')
 
     # test that channel names have been loaded but not channel positions
     for i in range(3):
@@ -280,7 +282,6 @@ def test_io_set_epochs_events(tmp_path):
     events = np.array([[4, 0, 1], [12, 0, 2], [20, 0, 3], [26, 0, 3]])
     write_events(out_fname, events)
     event_id = {'S255/S8': 1, 'S8': 2, 'S255/S9': 3}
-    out_fname = op.join(tmp_path, 'test-eve.fif')
     epochs = read_epochs_eeglab(epochs_fname_mat, events, event_id)
     assert_equal(len(epochs.events), 4)
     assert epochs.preload
@@ -293,6 +294,8 @@ def test_io_set_epochs_events(tmp_path):
 
 
 @testing.requires_testing_data
+@pytest.mark.filterwarnings('ignore:At least one epoch has multiple events')
+@pytest.mark.filterwarnings("ignore:The data contains 'boundary' events")
 def test_degenerate(tmp_path):
     """Test some degenerate conditions."""
     # test if .dat file raises an error
@@ -309,9 +312,20 @@ def test_degenerate(tmp_path):
                appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_epochs.fdt'),
                     op.join(tmp_path, 'test_epochs.dat'))
-    with pytest.warns(RuntimeWarning, match='multiple events'):
-        pytest.raises(NotImplementedError, read_epochs_eeglab,
-                      bad_epochs_fname)
+    pytest.raises(NotImplementedError, read_epochs_eeglab,
+                  bad_epochs_fname)
+
+    # error when montage units incorrect
+    with pytest.raises(ValueError, match=r'prefix \+ "m" format'):
+        read_epochs_eeglab(epochs_fname_mat, montage_units='mV')
+
+    # warning when head radius too small
+    with pytest.warns(RuntimeWarning, match='is above'):
+        read_raw_eeglab(raw_fname_chanloc, montage_units='km')
+
+    # warning when head radius too large
+    with pytest.warns(RuntimeWarning, match='is below'):
+        read_raw_eeglab(raw_fname_chanloc, montage_units='µm')
 
 
 @pytest.mark.parametrize("fname", [
@@ -342,7 +356,8 @@ def test_eeglab_read_annotations():
                               expected_onset, decimal=2)
 
     # test if event durations are imported correctly
-    raw = read_raw_eeglab(raw_fname_event_duration, preload=True)
+    raw = read_raw_eeglab(raw_fname_event_duration, preload=True,
+                          montage_units='dm')
     # file contains 3 annotations with 0.5 s (64 samples) duration each
     assert_allclose(raw.annotations.duration, np.ones(3) * 0.5)
 
@@ -368,7 +383,7 @@ def _assert_array_allclose_nan(left, right):
 
 
 @pytest.fixture(scope='session')
-def one_chanpos_fname(tmp_path_factory):
+def three_chanpos_fname(tmp_path_factory):
     """Test file with 3 channels to exercise EEGLAB reader.
 
     File characteristics
@@ -399,14 +414,14 @@ def one_chanpos_fname(tmp_path_factory):
 
 
 @testing.requires_testing_data
-def test_position_information(one_chanpos_fname):
+def test_position_information(three_chanpos_fname):
     """Test reading file with 3 channels - one without position information."""
     nan = np.nan
     EXPECTED_LOCATIONS_FROM_FILE = np.array([
         [-4.,  1.,  7.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
         [-5.,  2.,  8.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],
-    ])
+    ]) * 0.01  # 0.01 is to scale cm to meters
 
     EXPECTED_LOCATIONS_FROM_MONTAGE = np.array([
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
@@ -414,7 +429,8 @@ def test_position_information(one_chanpos_fname):
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
     ])
 
-    raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
+    raw = read_raw_eeglab(input_fname=three_chanpos_fname, preload=True,
+                          montage_units='cm')
     assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
                        EXPECTED_LOCATIONS_FROM_FILE)
 
@@ -423,8 +439,8 @@ def test_position_information(one_chanpos_fname):
     # behaves the same we need to flush the montage. otherwise we get
     # a mix of what is in montage and in the file
     raw = read_raw_eeglab(
-        input_fname=one_chanpos_fname,
-        preload=True,
+        input_fname=three_chanpos_fname,
+        preload=True, montage_units='cm',
     ).set_montage(None)  # Flush the montage builtin within input_fname
 
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
@@ -475,21 +491,20 @@ def test_get_montage_info_with_ch_type():
 def test_fidsposition_information(monkeypatch, has_type):
     """Test reading file with 3 fiducial locations."""
     if not has_type:
-        def get_bad_information(eeg, get_pos):
+        def get_bad_information(eeg, get_pos, scale_units=1.):
             del eeg.chaninfo['nodatchans']['type']
-            return _get_montage_information(eeg, get_pos)
+            return _get_montage_information(eeg, get_pos,
+                                            scale_units=scale_units)
 
         monkeypatch.setattr(mne.io.eeglab.eeglab, '_get_montage_information',
                             get_bad_information)
-    raw = read_raw_eeglab(raw_fname_chanloc_fids)
+    raw = read_raw_eeglab(raw_fname_chanloc_fids, montage_units='cm')
     montage = raw.get_montage()
     pos = montage.get_positions()
     n_eeg = 129
     if not has_type:
         # These should now be estimated from the data
-        # TODO: This is in meters... so clearly wrong. (The estimation is
-        # not the problem, the dig are all off like this.)
-        assert_allclose(pos['nasion'], [0, 9.97, 0], atol=1e-4)
+        assert_allclose(pos['nasion'], [0, 0.0997, 0], atol=1e-4)
         assert_allclose(pos['lpa'], -pos['nasion'][[1, 0, 0]])
         assert_allclose(pos['rpa'], pos['nasion'][[1, 0, 0]])
     assert pos['nasion'] is not None

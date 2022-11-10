@@ -586,6 +586,11 @@ nitpick_ignore = [
     ("py:class", "_FuncT"),  # type hint used in @verbose decorator
     ("py:class", "mne.utils._logging._FuncT"),
 ]
+nitpick_ignore_regex = [
+    ('py:.*', r"mne\.io\.BaseRaw.*"),
+    ('py:.*', r"mne\.BaseEpochs.*"),
+    ('py:obj', "(filename|metadata|proj|times|tmax|tmin|annotations|ch_names|compensation_grade|filenames|first_samp|first_time|last_samp|n_times|proj|times|tmax|tmin)"),  # noqa: E501
+]
 suppress_warnings = ['image.nonlocal_uri']  # we intentionally link outside
 
 
@@ -792,7 +797,7 @@ html_context = {
         dict(name='Technische Universität Ilmenau',
              img='Ilmenau-dark.svg',
              url='https://www.tu-ilmenau.de/',
-             size=xxl,\
+             size=xxl,
              klass='only-dark'),
         dict(name='Berkeley Institute for Data Science',
              img='BIDS.svg',
@@ -862,6 +867,10 @@ html_context = {
              url='https://www.research.chop.edu/imaging',
              size=xxl,
              klass='only-dark'),
+        dict(name='Donders Institute for Brain, Cognition and Behaviour at Radboud University',  # noqa E501
+             img='Donders.png',
+             url='https://www.ru.nl/donders/',
+             size=xl),
     ],
     # \u00AD is an optional hyphen (not rendered unless needed)
     # If these are changed, the Makefile should be updated, too

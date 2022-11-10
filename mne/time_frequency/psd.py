@@ -7,12 +7,7 @@ from functools import partial
 import numpy as np
 
 from ..parallel import parallel_func
-from ..utils import logger, verbose, deprecated, _check_option
-
-_psd_deprecation_msg = (
-    'Function psd_{0}() is deprecated; for Raw/Epochs/Evoked instances use '
-    'spectrum = instance.compute_psd(method="{0}") instead, followed by '
-    'spectrum.get_data(return_freqs=True).')
+from ..utils import logger, verbose, _check_option
 
 
 # adapted from SciPy
@@ -180,7 +175,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     parallel, my_spect_func, n_jobs = parallel_func(_spect_func, n_jobs=n_jobs)
     func = partial(spectrogram, noverlap=n_overlap, nperseg=n_per_seg,
                    nfft=n_fft, fs=sfreq, window=window)
-    x_splits = np.array_split(x, n_jobs)
+    x_splits = [arr for arr in np.array_split(x, n_jobs) if arr.size != 0]
     f_spect = parallel(my_spect_func(d, func=func, freq_sl=freq_sl,
                                      average=average)
                        for d in x_splits)
@@ -190,148 +185,3 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         shape = shape + (-1,)
     psds.shape = shape
     return psds, freqs
-
-
-@deprecated(_psd_deprecation_msg.format('welch'))
-@verbose
-def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
-              n_overlap=0, n_per_seg=None, picks=None, proj=False, n_jobs=None,
-              reject_by_annotation=True, average='mean', window='hamming', *,
-              verbose=None):
-    """Compute the power spectral density (PSD) using Welch's method.
-
-    Calculates periodograms for a sliding window over the time dimension, then
-    optionally averages them together for each channel/epoch.
-
-    Parameters
-    ----------
-    inst : instance of Epochs or Raw or Evoked
-        The data for PSD calculation.
-    %(fmin_fmax_psd)s
-    %(tmin_tmax_psd)s
-    n_fft : int
-        The length of FFT used, must be ``>= n_per_seg`` (default: 256).
-        The segments will be zero-padded if ``n_fft > n_per_seg``.
-        If n_per_seg is None, n_fft must be <= number of time points
-        in the data.
-    n_overlap : int
-        The number of points of overlap between segments. Will be adjusted
-        to be <= n_per_seg. The default value is 0.
-    n_per_seg : int | None
-        Length of each Welch segment (windowed with a Hamming window). Defaults
-        to None, which sets n_per_seg equal to n_fft.
-    %(picks_good_data_noref)s
-    %(proj_psd)s
-    %(n_jobs)s
-    %(reject_by_annotation_raw)s
-
-        .. versionadded:: 0.15.0
-    %(average_psd)s
-
-        .. versionadded:: 0.19.0
-    %(window_psd)s
-
-        .. versionadded:: 0.22.0
-    %(verbose)s
-
-    Returns
-    -------
-    psds : ndarray, shape (..., n_freqs) or (..., n_freqs, n_segments)
-        The power spectral densities. If ``average='mean`` or
-        ``average='median'`` and input is of type Raw or Evoked, then psds will
-        be of shape (n_channels, n_freqs); if input is of type Epochs, then
-        psds will be of shape (n_epochs, n_channels, n_freqs).
-        If ``average=None``, the returned array will have an additional
-        dimension corresponding to the unaggregated segments.
-    freqs : ndarray, shape (n_freqs,)
-        The frequencies.
-
-    See Also
-    --------
-    Spectrum
-    EpochsSpectrum
-    mne.io.Raw.plot_psd
-    mne.Epochs.plot_psd
-    psd_multitaper
-    psd_array_welch
-
-    Notes
-    -----
-    .. versionadded:: 0.12.0
-    """
-    spectrum = inst.compute_psd(
-        'welch', fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
-        proj=proj, n_jobs=n_jobs, verbose=verbose, n_fft=n_fft,
-        n_overlap=n_overlap, n_per_seg=n_per_seg, average=average,
-        window=window)
-    return spectrum.get_data(return_freqs=True)
-
-
-@deprecated(_psd_deprecation_msg.format('multitaper'))
-@verbose
-def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
-                   bandwidth=None, adaptive=False, low_bias=True,
-                   normalization='length', picks=None, proj=False,
-                   n_jobs=None, reject_by_annotation=False, *, verbose=None):
-    """Compute the power spectral density (PSD) using multitapers.
-
-    Calculates spectral density for orthogonal tapers, then averages them
-    together for each channel/epoch. See :footcite:`Slepian1978` for a
-    description of the tapers and :footcite:`PercivalWalden1993` for the
-    general method.
-
-    Parameters
-    ----------
-    inst : instance of Epochs or Raw or Evoked
-        The data for PSD calculation.
-    %(fmin_fmax_psd)s
-    %(tmin_tmax_psd)s
-    bandwidth : float
-        The bandwidth of the multi taper windowing function in Hz. The default
-        value is a window half-bandwidth of 4.
-    adaptive : bool
-        Use adaptive weights to combine the tapered spectra into PSD
-        (slow, use n_jobs >> 1 to speed up computation).
-    low_bias : bool
-        Only use tapers with more than 90%% spectral concentration within
-        bandwidth.
-    %(normalization)s
-    %(picks_good_data_noref)s
-    %(proj_psd)s
-    %(n_jobs)s
-    %(reject_by_annotation_raw)s
-    %(verbose)s
-
-    Returns
-    -------
-    psds : ndarray, shape (..., n_freqs)
-        The power spectral densities. If input is of type Raw,
-        then psds will be shape (n_channels, n_freqs), if input is type Epochs
-        then psds will be shape (n_epochs, n_channels, n_freqs).
-    freqs : ndarray, shape (n_freqs,)
-        The frequencies.
-
-    See Also
-    --------
-    Spectrum
-    EpochsSpectrum
-    mne.io.Raw.plot_psd
-    mne.Epochs.plot_psd
-    psd_array_multitaper
-    psd_welch
-    csd_multitaper
-
-    Notes
-    -----
-    .. versionadded:: 0.12.0
-
-    References
-    ----------
-    .. footbibliography::
-    """
-    spectrum = inst.compute_psd(
-        'multitaper', fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, picks=picks,
-        proj=proj, reject_by_annotation=reject_by_annotation, n_jobs=n_jobs,
-        verbose=verbose, bandwidth=bandwidth, adaptive=adaptive,
-        low_bias=low_bias, normalization=normalization)
-    return spectrum.get_data(return_freqs=True)

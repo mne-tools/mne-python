@@ -23,7 +23,6 @@ simulated sources.
 # -----
 # We first import the required packages to run this tutorial and define a list
 # of filenames for various things we'll be using.
-import os.path as op
 import numpy as np
 from scipy.signal import welch, coherence, unit_impulse
 from matplotlib import pyplot as plt
@@ -37,13 +36,13 @@ from mne.beamformer import make_dics, apply_dics_csd
 
 # We use the MEG and MRI setup from the MNE-sample dataset
 data_path = sample.data_path(download=False)
-subjects_dir = op.join(data_path, 'subjects')
+subjects_dir = data_path / 'subjects'
 
 # Filenames for various files we'll be using
-meg_path = op.join(data_path, 'MEG', 'sample')
-raw_fname = op.join(meg_path, 'sample_audvis_raw.fif')
-fwd_fname = op.join(meg_path, 'sample_audvis-meg-eeg-oct-6-fwd.fif')
-cov_fname = op.join(meg_path, 'sample_audvis-cov.fif')
+meg_path = data_path / 'MEG' / 'sample'
+raw_fname = meg_path / 'sample_audvis_raw.fif'
+fwd_fname = meg_path / 'sample_audvis-meg-eeg-oct-6-fwd.fif'
+cov_fname = meg_path / 'sample_audvis-cov.fif'
 fwd = mne.read_forward_solution(fwd_fname)
 
 # Seed for the random number generator

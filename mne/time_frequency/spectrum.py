@@ -471,7 +471,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(fmin_fmax_psd)s
         return_freqs : bool
             Whether to return the frequency bin values for the requested
-            frequency range. Default is ``True``.
+            frequency range. Default is ``False``.
 
         Returns
         -------
@@ -1186,4 +1186,5 @@ def _compute_n_welch_segments(n_times, method_kw):
     # sanity check values / replace `None`s with real numbers
     n_fft, n_per_seg, n_overlap = _check_nfft(n_times, **_defaults)
     # compute expected number of segments
-    return n_times // (n_per_seg - n_overlap)
+    step = n_per_seg - n_overlap
+    return (n_times - n_overlap) // step

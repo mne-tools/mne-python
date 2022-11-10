@@ -18,7 +18,6 @@ import warnings
 
 import numpy as np
 
-from .utils import _warn_deprecated_vmin_vmax
 from ..baseline import rescale
 from ..channels.channels import _get_ch_type
 from ..channels.layout import (
@@ -43,13 +42,6 @@ from ..io.meas_info import Info, _simplify_info
 
 
 _fnirs_types = ('hbo', 'hbr', 'fnirs_cw_amplitude', 'fnirs_od')
-
-OUTLINES_WARNING_MSG = (
-    "Passing ``outlines='skirt'`` is deprecated; it no longer has any effect "
-    "different from 'head' and will raise an error starting in version 1.3.")
-TITLE_WARNING_MSG = (
-    'The "title" parameter is deprecated and will be removed in version 1.3. '
-    'Use "fig.suptitle()" instead.')
 
 
 def _adjust_meg_sphere(sphere, info, ch_type):
@@ -456,7 +448,7 @@ def _make_head_outlines(sphere, pos, outlines, clip_origin):
     x, y, _, radius = sphere
     del sphere
 
-    if outlines in ('head', 'skirt', None):
+    if outlines in ('head', None):
         ll = np.linspace(0, 2 * np.pi, 101)
         head_x = np.cos(ll) * radius + x
         head_y = np.sin(ll) * radius + y
@@ -472,17 +464,16 @@ def _make_head_outlines(sphere, pos, outlines, clip_origin):
         if outlines is not None:
             # Define the outline of the head, ears and nose
             outlines_dict = dict(head=(head_x, head_y), nose=(nose_x, nose_y),
-                                 ear_left=(ear_x + x, ear_y),
-                                 ear_right=(-ear_x + x, ear_y))
+                                 ear_left=(-ear_x + x, ear_y),
+                                 ear_right=(ear_x + x, ear_y))
         else:
             outlines_dict = dict()
 
         # Make the figure encompass slightly more than all points
-        mask_scale = 1.25 if outlines == 'skirt' else 1.
         # We probably want to ensure it always contains our most
         # extremely positioned channels, so we do:
         mask_scale = max(
-            mask_scale, np.linalg.norm(pos, axis=1).max() * 1.01 / radius)
+            1.0, np.linalg.norm(pos, axis=1).max() * 1.01 / radius)
         outlines_dict['mask_pos'] = (mask_scale * head_x, mask_scale * head_y)
         clip_radius = radius * mask_scale
         outlines_dict['clip_radius'] = (clip_radius,) * 2
@@ -737,11 +728,11 @@ def _get_pos_outlines(info, picks, sphere, to_sphere=True):
 
 @fill_doc
 def plot_topomap(
-        data, pos, *, ch_type='eeg', sensors=True, show_names=None, names=None,
+        data, pos, *, ch_type='eeg', sensors=True, names=None,
         mask=None, mask_params=None, contours=6, outlines='head', sphere=None,
         image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
         border=_BORDER_DEFAULT, res=64, size=1, cmap=None, vlim=(None, None),
-        vmin=None, vmax=None, cnorm=None, axes=None, show=True, onselect=None):
+        cnorm=None, axes=None, show=True, onselect=None):
     """Plot a topographic map as image.
 
     Parameters
@@ -756,11 +747,6 @@ def plot_topomap(
 
         .. versionadded:: 0.21
     %(sensors_topomap)s
-    %(show_names_topomap)s
-
-        .. deprecated:: v1.2
-           The ``show_names`` parameter will be removed in version 1.3. Please
-           use the ``names`` parameter instead.
     %(names_topomap)s
     %(mask_topomap)s
     %(mask_params_topomap)s
@@ -778,11 +764,6 @@ def plot_topomap(
     %(vlim_plot_topomap)s
 
         .. versionadded:: 1.2
-    %(vmin_vmax_topomap)s
-
-        .. deprecated:: v1.2
-           The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
-           Please use the ``vlim`` parameter instead.
     %(cnorm)s
 
         .. versionadded:: 0.24
@@ -810,14 +791,8 @@ def plot_topomap(
 
     if axes is None:
         _, axes = plt.subplots(figsize=(size, size))
-    if outlines in ('skirt',):
-        warn(OUTLINES_WARNING_MSG, FutureWarning)
-    if show_names is not None:
-        warn('The "show_names" parameter is deprecated and will be removed in '
-             'version 1.3. Use the "names" parameter instead.', FutureWarning)
     sphere = _check_sphere(sphere, pos if isinstance(pos, Info) else None)
     _validate_type(cnorm, (Normalize, None), 'cnorm')
-    vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
     if cnorm is not None and (vlim[0] is not None or vlim[1] is not None):
         warn(f'Provided cnorm implicitly defines vmin={cnorm.vmin} and '
              f'vmax={cnorm.vmax}; ignoring additional vlim/vmin/vmax params.')
@@ -1181,8 +1156,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         Dictionary of arguments to ``plot_epochs_image``. If None, doesn't pass
         any additional arguments. Defaults to None.
     psd_args : dict | None
-        Dictionary of arguments to ``psd_multitaper``. If None, doesn't pass
-        any additional arguments. Defaults to None.
+        Dictionary of arguments to :meth:`~mne.Epochs.compute_psd`. If
+        ``None``, doesn't pass any additional arguments. Defaults to ``None``.
     reject : 'auto' | dict | None
         Allows to specify rejection parameters used to drop epochs
         (or segments if continuous signal is passed as inst).
@@ -1332,9 +1307,8 @@ def plot_tfr_topomap(
         baseline=None, mode='mean', sensors=True, show_names=False, mask=None,
         mask_params=None, contours=6, outlines='head', sphere=None,
         image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
-        border=_BORDER_DEFAULT, res=64, size=2, cmap=None,
-        vlim=(None, None), vmin=None, vmax=None, cnorm=None, colorbar=True,
-        cbar_fmt='%1.1e', unit=None, units=None, axes=None, title=None,
+        border=_BORDER_DEFAULT, res=64, size=2, cmap=None, vlim=(None, None),
+        cnorm=None, colorbar=True, cbar_fmt='%1.1e', units=None, axes=None,
         show=True):
     """Plot topographic maps of specific time-frequency intervals of TFR data.
 
@@ -1381,30 +1355,13 @@ def plot_tfr_topomap(
     %(vlim_plot_topomap)s
 
         .. versionadded:: 1.2
-    %(vmin_vmax_topomap)s
-
-        .. deprecated:: v1.2
-           The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
-           Please use the ``vlim`` parameter instead.
     %(cnorm)s
 
         .. versionadded:: 1.2
     %(colorbar_topomap)s
     %(cbar_fmt_topomap)s
-    unit : str | None
-        The unit of the channel type used for colorbar labels.
-
-        .. deprecated:: v1.2
-           The "unit" parameter is deprecated and will be removed in v1.3.
-           Use "units" instead.
     %(units_topomap)s
     %(axes_plot_topomap)s
-    %(title_none)s
-
-        .. deprecated:: v1.2
-           The ``title`` parameter will be removed in version 1.3. Please
-           use :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
-           instead.
     %(show)s
 
     Returns
@@ -1414,19 +1371,6 @@ def plot_tfr_topomap(
     """  # noqa: E501
     import matplotlib.pyplot as plt
     ch_type = _get_ch_type(tfr, ch_type)
-
-    if unit is not None:
-        warn('The "unit" parameter is deprecated and will be removed in v1.3. '
-             'Use "units" instead.', FutureWarning)
-        if units is None:
-            units = unit
-        else:
-            warn('Both "unit" (deprecated) and "units" were provided. '
-                 'Ignoring "unit".')
-    if title is not None:
-        warn(TITLE_WARNING_MSG, FutureWarning)
-
-    vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
 
     picks, pos, merge_channels, names, _, sphere, clip_origin = \
         _prepare_topomap_plot(tfr, ch_type, sphere=sphere)
@@ -1461,7 +1405,7 @@ def plot_tfr_topomap(
     data = np.mean(np.mean(data, axis=2), axis=1)[:, np.newaxis]
 
     norm = False if np.min(data) < 0 else True
-    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax, norm)
+    vlim = _setup_vmin_vmax(data, *vlim, norm)
     cmap = _setup_cmap(cmap, norm=norm)
 
     axes = plt.subplots(figsize=(size, size))[1] if axes is None else axes
@@ -1471,17 +1415,15 @@ def plot_tfr_topomap(
 
     locator = None
     if not isinstance(contours, (list, np.ndarray)):
-        locator, contours = _set_contour_locator(vmin, vmax, contours)
+        locator, contours = _set_contour_locator(*vlim, contours)
 
-    if title is not None:
-        axes.set_title(title)
     fig_wrapper = list()
     selection_callback = partial(_onselect, tfr=tfr, pos=pos, ch_type=ch_type,
                                  itmin=itmin, itmax=itmax, ifmin=ifmin,
                                  ifmax=ifmax, cmap=cmap[0], fig=fig_wrapper)
 
     if not isinstance(contours, (list, np.ndarray)):
-        _, contours = _set_contour_locator(vmin, vmax, contours)
+        _, contours = _set_contour_locator(*vlim, contours)
 
     names = _prepare_sensor_names(names, show_names)
 
@@ -1514,9 +1456,8 @@ def plot_evoked_topomap(
         mask_params=None, contours=6, outlines='head', sphere=None,
         image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
         border=_BORDER_DEFAULT, res=64, size=1, cmap=None, vlim=(None, None),
-        vmin=None, vmax=None, cnorm=None, colorbar=True, cbar_fmt='%3.1f',
-        units=None, axes=None, time_unit='s', time_format=None, title=None,
-        nrows=1, ncols='auto', show=True):
+        cnorm=None, colorbar=True, cbar_fmt='%3.1f', units=None, axes=None,
+        time_unit='s', time_format=None, nrows=1, ncols='auto', show=True):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters
@@ -1563,11 +1504,6 @@ def plot_evoked_topomap(
     %(vlim_plot_topomap_psd)s
 
         .. versionadded:: 1.2
-    %(vmin_vmax_topomap)s
-
-        .. deprecated:: v1.2
-           The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
-           Please use the ``vlim`` parameter instead.
     %(cnorm)s
 
         .. versionadded:: 1.2
@@ -1583,12 +1519,6 @@ def plot_evoked_topomap(
         String format for topomap values. Defaults (None) to "%%01d ms" if
         ``time_unit='ms'``, "%%0.3f s" if ``time_unit='s'``, and
         "%%g" otherwise. Can be an empty string to omit the time label.
-    %(title_none)s
-
-        .. deprecated:: v1.2
-           The ``title`` parameter will be removed in version 1.3. Please
-           use :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
-           instead.
     nrows : int | 'auto'
         The number of rows of topographies to plot. Defaults to 1. If 'auto',
         obtains the number of rows depending on the amount of times to plot
@@ -1622,14 +1552,6 @@ def plot_evoked_topomap(
     from matplotlib.gridspec import GridSpec
     from matplotlib.widgets import Slider
     from ..evoked import Evoked
-
-    vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
-    # need to warn here too because this func wraps the private `_plot_topomap`
-    # (not the public `plot_topomap`)
-    if outlines in ('skirt',):
-        warn(OUTLINES_WARNING_MSG, FutureWarning)
-    if title is not None:
-        warn(TITLE_WARNING_MSG, FutureWarning)
 
     _validate_type(evoked, Evoked, 'evoked')
     _validate_type(colorbar, bool, 'colorbar')
@@ -1694,7 +1616,7 @@ def plot_evoked_topomap(
         nrows = 2
         ncols = want_axes
         width = size * ncols
-        height = size + max(0, 0.1 * (4 - size)) + bool(title) * 0.5
+        height = size + max(0, 0.1 * (4 - size))
         fig = figure_nobar(figsize=(width * 1.5, height * 1.5))
         g_kwargs = {'left': 0.2, 'right': 0.8, 'bottom': 0.05, 'top': 0.9}
         gs = GridSpec(nrows, ncols, height_ratios=height_ratios, **g_kwargs)
@@ -1703,8 +1625,7 @@ def plot_evoked_topomap(
             axes.append(plt.subplot(gs[0, ax_idx]))
     elif axes is None:
         fig, axes, ncols, nrows = _prepare_trellis(
-            n_times, ncols=ncols, nrows=nrows, title=title,
-            colorbar=colorbar, size=size)
+            n_times, ncols=ncols, nrows=nrows, colorbar=colorbar, size=size)
     else:
         nrows, ncols = None, None  # Deactivate ncols when axes were passed
         fig = axes[0].get_figure()
@@ -1716,7 +1637,7 @@ def plot_evoked_topomap(
     # figure margins
     if not fig.get_constrained_layout():
         side_margin = plt.rcParams['figure.subplot.wspace'] / (2 * want_axes)
-        top_margin = max((0.05 if title is None else 0.25), .2 / size)
+        top_margin = max(0.05, .2 / size)
         fig.subplots_adjust(left=side_margin, right=1 - side_margin, bottom=0,
                             top=1 - top_margin)
     # find first index that's >= (to rounding error) to each time point
@@ -1848,8 +1769,6 @@ def plot_evoked_topomap(
         ts = np.tile(evoked.times, len(evoked.data)).reshape(evoked.data.shape)
         axes[-1].plot(ts, evoked.data, color='k')
         axes[-1].slider = slider
-    if title is not None:
-        plt.suptitle(title, verticalalignment='top', size='x-large')
 
     if colorbar:
         if interactive:
@@ -2618,10 +2537,9 @@ def _trigradient(x, y, z):
 
 @fill_doc
 def plot_arrowmap(data, info_from, info_to=None, scale=3e-10,
-                  vlim=(None, None), vmin=None, vmax=None, cnorm=None,
-                  cmap=None, sensors=True, res=64, axes=None, names=None,
-                  show_names=False, mask=None, mask_params=None,
-                  outlines='head', contours=6,
+                  vlim=(None, None), cnorm=None, cmap=None, sensors=True,
+                  res=64, axes=None, show_names=False, mask=None,
+                  mask_params=None, outlines='head', contours=6,
                   image_interp=_INTERPOLATION_DEFAULT, show=True,
                   onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT,
                   sphere=None):
@@ -2652,11 +2570,6 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10,
     %(vlim_plot_topomap)s
 
         .. versionadded:: 1.2
-    %(vmin_vmax_topomap)s
-
-        .. deprecated:: v1.2
-           The ``vmin`` and ``vmax`` parameters will be removed in version
-           1.3. Please use the ``vlim`` parameter instead.
     %(cnorm)s
 
         .. versionadded:: 1.2
@@ -2664,12 +2577,6 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10,
     %(sensors_topomap)s
     %(res_topomap)s
     %(axes_plot_topomap)s
-    %(names_topomap)s
-
-        .. deprecated:: v1.2
-           The ``names`` parameter will be removed in version 1.3. Names will
-           be automatically selected from ``info_from``, and can be hidden,
-           shown, or altered via the ``show_names`` parameter.
     %(show_names_topomap)s
         If ``True``, a list of names must be provided (see ``names`` keyword).
     %(mask_topomap)s
@@ -2705,15 +2612,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10,
 
     sphere = _check_sphere(sphere, info_from)
     ch_type = _picks_by_type(info_from)
-    vlim = _warn_deprecated_vmin_vmax(vlim, vmin, vmax)
 
-    if names is None:
-        names = _prepare_sensor_names(info_from.ch_names, show_names)
-    else:
-        warn('The ``names`` parameter will be removed in version 1.3. Names '
-             'will be automatically selected from ``info_from``, and can be '
-             'hidden, shown, or altered via the ``show_names`` parameter.',
-             FutureWarning)
     if len(ch_type) > 1:
         raise ValueError('Multiple channel types are not supported.'
                          'All channels must either be of type \'grad\' '
@@ -2754,11 +2653,10 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10,
     else:
         fig = axes.figure
     plot_topomap(data, pos, axes=axes, vlim=vlim, cmap=cmap, cnorm=cnorm,
-                 sensors=sensors, res=res, names=names,
-                 mask=mask, mask_params=mask_params, outlines=outlines,
-                 contours=contours, image_interp=image_interp, show=False,
-                 onselect=onselect, extrapolate=extrapolate, sphere=sphere,
-                 ch_type=ch_type)
+                 sensors=sensors, res=res, mask=mask, mask_params=mask_params,
+                 outlines=outlines, contours=contours,
+                 image_interp=image_interp, show=False, onselect=onselect,
+                 extrapolate=extrapolate, sphere=sphere, ch_type=ch_type)
     x, y = tuple(pos.T)
     dx, dy = _trigradient(x, y, data)
     dxx = dy.data
@@ -2832,13 +2730,6 @@ def plot_bridged_electrodes(info, bridged_idx, ed_matrix, title=None,
     for epo_idx in range(ed_matrix.shape[0]):
         ed_matrix[epo_idx][tril_idx] = ed_matrix[epo_idx].T[tril_idx]
     elec_dists = np.median(np.nanmin(ed_matrix, axis=1), axis=0)
-
-    # TODO v1.3: remove next 5 lines (vmin/vmax gone from plot_topomap)
-    _vlim = topomap_args.get('vlim', (None, None))
-    _vmin = topomap_args.get('vmin', None)
-    _vmax = topomap_args.get('vmax', None)
-    _vlim = _warn_deprecated_vmin_vmax(_vlim, _vmin, _vmax)
-    topomap_args.setdefault('vlim', _vlim)
 
     im, cn = plot_topomap(elec_dists, pick_info(info, picks), **topomap_args)
     fig = im.figure if fig is None else fig
@@ -3066,7 +2957,7 @@ def _set_adjacency(adjacency, both_nodes, value):
 
 @fill_doc
 def plot_regression_weights(
-        model, *, ch_type=None, sensors=True, show_names=False, names=None,
+        model, *, ch_type=None, sensors=True, show_names=False,
         mask=None, mask_params=None, contours=6, outlines='head', sphere=None,
         image_interp=_INTERPOLATION_DEFAULT, extrapolate=_EXTRAPOLATE_DEFAULT,
         border=_BORDER_DEFAULT, res=64, size=1, cmap=None, vlim=(None, None),
@@ -3081,14 +2972,6 @@ def plot_regression_weights(
     %(ch_type_topomap)s
     %(sensors_topomap)s
     %(show_names_topomap)s
-
-        .. versionadded:: 1.2
-    %(names_topomap)s
-
-        .. deprecated:: v1.2
-           The ``names`` parameter will be removed in version 1.3. Names will
-           be automatically selected from ``model.info_``, and can be hidden,
-           shown, or altered via the ``show_names`` parameter.
     %(mask_topomap)s
     %(mask_params_topomap)s
     %(contours_topomap)s
@@ -3126,12 +3009,6 @@ def plot_regression_weights(
     else:
         ch_types = [ch_type]
     del ch_type
-
-    if names is not None:
-        warn('The ``names`` parameter will be removed in version 1.3. Names '
-             'will be automatically selected from ``model.info_``, and can be '
-             'hidden, shown, or altered via the ``show_names`` parameter.',
-             FutureWarning)
 
     nrows = model.coef_.shape[1]
     ncols = len(ch_types)

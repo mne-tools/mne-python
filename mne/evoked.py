@@ -428,21 +428,18 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             mask_params=None, contours=6, outlines='head', sphere=None,
             image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
-            size=1, cmap=None, vlim=(None, None), vmin=None, vmax=None,
-            cnorm=None, colorbar=True, cbar_fmt='%3.1f', units=None, axes=None,
-            time_unit='s', time_format=None, title=None, nrows=1, ncols='auto',
-            show=True):
+            size=1, cmap=None, vlim=(None, None), cnorm=None, colorbar=True,
+            cbar_fmt='%3.1f', units=None, axes=None, time_unit='s',
+            time_format=None, nrows=1, ncols='auto', show=True):
         return plot_evoked_topomap(
-            self, times=times, ch_type=ch_type, vlim=vlim, vmin=vmin,
-            vmax=vmax, cmap=cmap, cnorm=cnorm, sensors=sensors,
-            colorbar=colorbar, scalings=scalings, units=units, res=res,
-            size=size, cbar_fmt=cbar_fmt, time_unit=time_unit,
-            time_format=time_format, proj=proj, show=show,
-            show_names=show_names, title=title, mask=mask,
-            mask_params=mask_params, outlines=outlines, contours=contours,
-            image_interp=image_interp, average=average, axes=axes,
-            extrapolate=extrapolate, sphere=sphere, border=border,
-            nrows=nrows, ncols=ncols)
+            self, times=times, ch_type=ch_type, vlim=vlim, cmap=cmap,
+            cnorm=cnorm, sensors=sensors, colorbar=colorbar, scalings=scalings,
+            units=units, res=res, size=size, cbar_fmt=cbar_fmt,
+            time_unit=time_unit, time_format=time_format, proj=proj, show=show,
+            show_names=show_names, mask=mask, mask_params=mask_params,
+            outlines=outlines, contours=contours, image_interp=image_interp,
+            average=average, axes=axes, extrapolate=extrapolate, sphere=sphere,
+            border=border, nrows=nrows, ncols=ncols)
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
@@ -753,6 +750,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -------
         spectrum : instance of Spectrum
             The spectral representation of the data.
+
+        Notes
+        -----
+        .. versionadded:: 1.2
 
         References
         ----------

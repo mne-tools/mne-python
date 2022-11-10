@@ -1386,3 +1386,24 @@ def _assert_free_ori_match(ori, max_idx, lower_ori, upper_ori):
     dots = np.abs(np.diagonal(ori, axis1=1, axis2=2))
     mu = np.mean(dots)
     assert lower_ori <= mu <= upper_ori, mu
+
+
+@pytest.mark.filterwarnings('ignore:Projection vector.*has been reduced.*:')
+def test_allow_mixed_source_spaces(mixed_fwd_cov_evoked):
+    """Test mixed surf+discrete source spaces w/fixed ori."""
+    fwd, cov, evoked = mixed_fwd_cov_evoked
+    assert fwd['src'].kind == 'mixed'
+    assert len(fwd['src']) == 4  # 2 surf + 2 vol
+    with pytest.raises(ValueError, match='loose param'):  # no fixed with vol
+        inv_op = make_inverse_operator(evoked.info, fwd, cov, loose=0.)
+    for ii, type_ in enumerate(('surf', 'surf', 'vol', 'vol')):
+        assert fwd['src'][ii]['type'] == type_
+        if type_ == 'vol':
+            fwd['src'][ii]['type'] = 'discrete'
+    assert fwd['src'].kind == 'mixed'
+    inv_op = make_inverse_operator(evoked.info, fwd, cov)
+    stc = apply_inverse(evoked, inv_op, lambda2=1. / 9.)  # magnitude
+    assert (stc.data >= 0).all()
+    inv_op = make_inverse_operator(evoked.info, fwd, cov, loose=0.)
+    stc = apply_inverse(evoked, inv_op, lambda2=1. / 9.)  # normal
+    assert (stc.data < 0).any()

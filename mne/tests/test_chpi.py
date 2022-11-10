@@ -26,7 +26,7 @@ from mne.chpi import (compute_chpi_amplitudes, compute_chpi_locs,
 from mne.datasets import testing
 from mne.simulation import add_chpi
 from mne.transforms import rot_to_quat, _angle_between_quats
-from mne.utils import catch_logging, assert_meg_snr, verbose
+from mne.utils import catch_logging, assert_meg_snr, verbose, object_diff
 from mne.viz import plot_head_positions
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -248,6 +248,17 @@ def _calculate_chpi_positions(raw, t_step_min=0.01, t_step_max=1.,
         raw.info, chpi_locs, dist_limit=dist_limit, gof_limit=gof_limit,
         verbose=verbose)
     return head_pos
+
+
+@testing.requires_testing_data
+def test_calculate_chpi_positions_preload():
+    """Test calculation of cHPI positions with and without data loaded."""
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes').crop(0, 2)
+    kwargs = dict(t_step_min=0.1, t_window='auto', verbose=True)
+    pos = compute_chpi_amplitudes(raw, **kwargs)
+    raw.load_data()
+    pos_preload = compute_chpi_amplitudes(raw, **kwargs)
+    assert object_diff(pos, pos_preload) == ''
 
 
 @pytest.mark.slowtest

@@ -26,7 +26,7 @@ from .io.write import (start_and_end_file, start_block, end_block,
                        write_double_matrix, write_complex_float_matrix,
                        write_complex_double_matrix, write_id, write_string,
                        _get_split_size, _NEXT_FILE_BUFFER, INT32_MAX)
-from .io.meas_info import (read_meas_info, write_meas_info, _merge_info,
+from .io.meas_info import (read_meas_info, write_meas_info,
                            _ensure_infos_match, ContainsMixin)
 from .io.open import fiff_open, _get_next_fname
 from .io.tree import dir_tree_find
@@ -56,7 +56,7 @@ from .utils import (_check_fname, check_fname, logger, verbose, repr_html,
                     check_random_state, warn, _pl,
                     sizeof_fmt, SizeMixin, copy_function_doc_to_method_doc,
                     _check_pandas_installed,
-                    _check_preload, GetEpochsMixin, deprecated,
+                    _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
                     _check_combine, _build_data_frame,
@@ -373,22 +373,18 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     %(on_missing_epochs)s
     preload_at_end : bool
         %(epochs_preload)s
-    selection : iterable | None
-        Iterable of indices of selected epochs. If ``None``, will be
-        automatically generated, corresponding to all non-zero events.
-    drop_log : tuple | None
-        Tuple of tuple of strings indicating which epochs have been marked to
-        be ignored.
+    %(selection)s
+
+        .. versionadded:: 0.16
+    %(drop_log)s
     filename : str | None
         The filename (if the epochs are read from disk).
     %(metadata_epochs)s
     %(event_repeated_epochs)s
-    %(verbose)s
-    raw_sfreq : float
-        The original Raw object sampling rate. If None, then it is set to
-        ``info['sfreq']``.
+    %(raw_sfreq)s
     annotations : instance of mne.Annotations | None
         Annotations to set.
+    %(verbose)s
 
     See Also
     --------
@@ -411,8 +407,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  detrend=None, proj=True, on_missing='raise',
                  preload_at_end=False, selection=None, drop_log=None,
                  filename=None, metadata=None, event_repeated='error',
-                 *, verbose=None, raw_sfreq=None,
-                 annotations=None):  # noqa: D102
+                 *, raw_sfreq=None,
+                 annotations=None, verbose=None):  # noqa: D102
         if events is not None:  # RtEpochs can have events=None
             events = _ensure_events(events)
             events_max = events.max()
@@ -2020,6 +2016,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         spectrum : instance of EpochsSpectrum
             The spectral representation of each epoch.
 
+        Notes
+        -----
+        .. versionadded:: 1.2
+
         References
         ----------
         .. footbibliography::
@@ -2731,11 +2731,13 @@ class EpochsArray(BaseEpochs):
         See :class:`mne.Epochs` docstring for details.
 
         .. versionadded:: 0.16
-    selection : ndarray | None
-        The selection compared to the original set of epochs.
-        Can be None to use ``np.arange(len(events))``.
+    %(selection)s
+    %(drop_log)s
 
-        .. versionadded:: 0.16
+        .. versionadded:: 1.3
+    %(raw_sfreq)s
+
+        .. versionadded:: 1.3
     %(verbose)s
 
     See Also
@@ -2766,7 +2768,7 @@ class EpochsArray(BaseEpochs):
                  reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, baseline=None, proj=True,
                  on_missing='raise', metadata=None, selection=None,
-                 verbose=None):  # noqa: D102
+                 *, drop_log=None, raw_sfreq=None, verbose=None):  # noqa: D102
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
         if data.ndim != 3:
@@ -2787,7 +2789,7 @@ class EpochsArray(BaseEpochs):
             reject=reject, flat=flat, reject_tmin=reject_tmin,
             reject_tmax=reject_tmax, decim=1, metadata=metadata,
             selection=selection, proj=proj, on_missing=on_missing,
-            verbose=verbose)
+            drop_log=drop_log, raw_sfreq=raw_sfreq, verbose=verbose)
         if self.baseline is not None:
             self._do_baseline = True
         if len(events) != np.in1d(self.events[:, 2],
@@ -3266,8 +3268,12 @@ class EpochsFIF(BaseEpochs):
 
         unsafe_annot_add = raw_sfreq is None
         (info, data, raw_sfreq, events, event_id, tmin, tmax, metadata,
-         baseline, selection, drop_log) = \
-            _concatenate_epochs(ep_list, with_data=preload, add_offset=False)
+         baseline, selection, drop_log) = _concatenate_epochs(
+            ep_list,
+            with_data=preload,
+            add_offset=False,
+            on_mismatch='raise',
+        )
         # we need this uniqueness for non-preloaded data to work properly
         if len(np.unique(events[:, 0])) != len(events):
             raise RuntimeError('Event time samples were not unique')
@@ -3387,60 +3393,7 @@ def _check_merge_epochs(epochs_list):
         raise NotImplementedError("Epochs with unequal values for baseline")
 
 
-@deprecated('add_channels_epochs is deprecated and will be removed in 1.3, '
-            'use epochs.add_channels instead')
-@verbose
-def add_channels_epochs(epochs_list, verbose=None):
-    """Concatenate channels, info and data from two Epochs objects.
-
-    Parameters
-    ----------
-    epochs_list : list of Epochs
-        Epochs object to concatenate.
-    %(verbose)s Defaults to True if any of the input epochs have verbose=True.
-
-    Returns
-    -------
-    epochs : instance of Epochs
-        Concatenated epochs.
-    """
-    if not all(e.preload for e in epochs_list):
-        raise ValueError('All epochs must be preloaded.')
-
-    info = _merge_info([epochs.info for epochs in epochs_list])
-    data = [epochs._data for epochs in epochs_list]
-    _check_merge_epochs(epochs_list)
-    for d in data:
-        if len(d) != len(data[0]):
-            raise ValueError('all epochs must be of the same length')
-
-    data = np.concatenate(data, axis=1)
-
-    if len(info['chs']) != data.shape[1]:
-        err = "Data shape does not match channel number in measurement info"
-        raise RuntimeError(err)
-
-    events = epochs_list[0].events.copy()
-    all_same = all(np.array_equal(events, epochs.events)
-                   for epochs in epochs_list[1:])
-    if not all_same:
-        raise ValueError('Events must be the same.')
-
-    proj = any(e.proj for e in epochs_list)
-
-    epochs = epochs_list[0].copy()
-    epochs.info = info
-    epochs.picks = None
-    epochs.events = events
-    epochs.preload = True
-    epochs._bad_dropped = True
-    epochs._data = data
-    epochs._projector, epochs.info = setup_proj(epochs.info, False,
-                                                activate=proj)
-    return epochs
-
-
-def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
+def _concatenate_epochs(epochs_list, *, with_data=True, add_offset=True,
                         on_mismatch='raise'):
     """Auxiliary function for concatenating epochs."""
     if not isinstance(epochs_list, (list, tuple)):
@@ -3565,18 +3518,6 @@ def _concatenate_epochs(epochs_list, with_data=True, add_offset=True, *,
             baseline, selection, drop_log)
 
 
-def _finish_concat(info, data, raw_sfreq, events, event_id, tmin, tmax,
-                   metadata, baseline, selection, drop_log):
-    """Finish concatenation for epochs not read from disk."""
-    selection = np.where([len(d) == 0 for d in drop_log])[0]
-    out = BaseEpochs(
-        info, data, events, event_id, tmin, tmax, baseline=baseline,
-        selection=selection, drop_log=drop_log, proj=False,
-        on_missing='ignore', metadata=metadata, raw_sfreq=raw_sfreq)
-    out.drop_bad()
-    return out
-
-
 @verbose
 def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
                        verbose=None):
@@ -3601,16 +3542,28 @@ def concatenate_epochs(epochs_list, add_offset=True, *, on_mismatch='raise',
 
     Returns
     -------
-    epochs : instance of Epochs
-        The result of the concatenation.
+    epochs : instance of EpochsArray
+        The result of the concatenation. All data will be loaded into memory.
 
     Notes
     -----
     .. versionadded:: 0.9.0
     """
-    return _finish_concat(*_concatenate_epochs(epochs_list,
-                                               add_offset=add_offset,
-                                               on_mismatch=on_mismatch))
+    (info, data, raw_sfreq, events, event_id, tmin, tmax, metadata,
+     baseline, selection, drop_log) = _concatenate_epochs(
+        epochs_list,
+        with_data=True,
+        add_offset=add_offset,
+        on_mismatch=on_mismatch,
+    )
+    selection = np.where([len(d) == 0 for d in drop_log])[0]
+    out = EpochsArray(
+        data=data, info=info, events=events, event_id=event_id,
+        tmin=tmin, baseline=baseline, selection=selection, drop_log=drop_log,
+        proj=False, on_missing='ignore', metadata=metadata,
+        raw_sfreq=raw_sfreq)
+    out.drop_bad()
+    return out
 
 
 @verbose

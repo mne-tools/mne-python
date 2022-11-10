@@ -23,10 +23,10 @@ import numpy as np
 from ._abstract import _AbstractRenderer, Figure3D
 from ._utils import (_get_colormap_from_array, _alpha_blend_background,
                      ALLOWED_QUIVER_MODES, _init_mne_qtapp)
-from ...fixes import _point_data, _cell_data, _compare_version
+from ...fixes import _compare_version
 from ...transforms import apply_trans
 from ...utils import (copy_base_doc_to_subclass_doc, _check_option,
-                      _require_version, _validate_type)
+                      _require_version, _validate_type, warn)
 
 
 with warnings.catch_warnings():
@@ -344,7 +344,7 @@ class _PyVistaRenderer(_AbstractRenderer):
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
             if normals is not None:
-                _point_data(mesh)["Normals"] = normals
+                mesh.point_data["Normals"] = normals
                 mesh.GetPointData().SetActiveNormals("Normals")
             else:
                 _compute_normals(mesh)
@@ -413,7 +413,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             n_triangles = len(triangles)
             triangles = np.c_[np.full(n_triangles, 3), triangles]
             mesh = PolyData(vertices, triangles)
-            _point_data(mesh)['scalars'] = scalars
+            mesh.point_data['scalars'] = scalars
             contour = mesh.contour(isosurfaces=contours)
             line_width = width
             if kind == 'tube':
@@ -445,7 +445,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             mesh = PolyData(vertices, triangles)
         colormap = _get_colormap_from_array(colormap, normalized_colormap)
         if scalars is not None:
-            _point_data(mesh)['scalars'] = scalars
+            mesh.point_data['scalars'] = scalars
         return self.polydata(
             mesh=mesh,
             color=color,
@@ -498,7 +498,7 @@ class _PyVistaRenderer(_AbstractRenderer):
             for (pointa, pointb) in zip(origin, destination):
                 line = Line(pointa, pointb)
                 if scalars is not None:
-                    _point_data(line)['scalars'] = scalars[0, :]
+                    line.point_data['scalars'] = scalars[0, :]
                     scalars = 'scalars'
                     color = None
                 else:
@@ -538,8 +538,8 @@ class _PyVistaRenderer(_AbstractRenderer):
             grid = UnstructuredGrid(*args)
             if scalars is None:
                 scalars = np.ones((n_points,))
-            _point_data(grid)['scalars'] = np.array(scalars)
-            _point_data(grid)['vec'] = vectors
+            grid.point_data['scalars'] = np.array(scalars)
+            grid.point_data['vec'] = vectors
             if mode == '2darrow':
                 return _arrow_glyph(grid, factor), grid
             elif mode == 'arrow':
@@ -776,7 +776,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         # issubdtype from `complex` to `np.complexfloating` is deprecated.
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            _point_data(mesh)[name] = scalars
+            mesh.point_data[name] = scalars
 
     def _set_colormap_range(self, actor, ctable, scalar_bar, rng=None,
                             background_color=None):
@@ -835,7 +835,7 @@ class _PyVistaRenderer(_AbstractRenderer):
         grid.dimensions = dimensions + 1  # inject data on the cells
         grid.origin = origin
         grid.spacing = spacing
-        _cell_data(grid)['values'] = scalars
+        grid.cell_data['values'] = scalars
 
         # Add contour of enclosed volume (use GetOutput instead of
         # GetOutputPort below to avoid updating)
@@ -917,7 +917,7 @@ class _PyVistaRenderer(_AbstractRenderer):
 
 def _compute_normals(mesh):
     """Patch PyVista compute_normals."""
-    if 'Normals' not in _point_data(mesh):
+    if 'Normals' not in mesh.point_data:
         mesh.compute_normals(
             cell_normals=False,
             consistent_normals=False,
@@ -938,7 +938,7 @@ def _add_mesh(plotter, *args, **kwargs):
     if 'render' not in kwargs:
         kwargs['render'] = False
     actor = plotter.add_mesh(*args, **kwargs)
-    if smooth_shading and 'Normals' in _point_data(mesh):
+    if smooth_shading and 'Normals' in mesh.point_data:
         prop = actor.GetProperty()
         prop.SetInterpolationToPhong()
     _hide_testing_actor(actor)
@@ -1206,4 +1206,17 @@ def _is_mesa(plotter):
     # CircleCI's is: "Mesa 20.0.8 via llvmpipe (LLVM 10.0.0, 256 bits)"
     gpu_info = plotter.ren_win.ReportCapabilities()
     gpu_info = re.findall("OpenGL renderer string:(.+)\n", gpu_info)
-    return ' mesa ' in ' '.join(gpu_info).lower().split()
+    gpu_info = ' '.join(gpu_info).lower()
+    is_mesa = 'mesa' in gpu_info.split()
+    if is_mesa:
+        # Try to warn if it's ancient
+        version = re.findall("mesa ([0-9.]+) .*", gpu_info)
+        if version:
+            version = version[0]
+            if _compare_version(version, '<', '18.3.6'):
+                warn(f'Mesa version {version} is too old for translucent 3D '
+                     'surface rendering, consider upgrading to 18.3.6 or '
+                     'later.')
+        else:
+            raise RuntimeError
+    return is_mesa

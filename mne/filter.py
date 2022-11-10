@@ -1195,20 +1195,12 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
 
 
 def _get_window_thresh(n_times, sfreq, mt_bandwidth, p_value):
-    # max taper size chosen because it has an max error < 1e-3:
-    # >>> np.max(np.diff(dpss_windows(953, 4, 100)[0]))
-    # 0.00099972447657578449
-    # so we use 1000 because it's the first "nice" number bigger than 953.
-    # but if we have a new enough scipy,
-    # it's only ~0.175 sec for 8 tapers even with 100000 samples
     from scipy import stats
     from .time_frequency.multitaper import _compute_mt_params
-    dpss_n_times_max = 100000
 
     # figure out what tapers to use
     window_fun, _, _ = _compute_mt_params(
-        n_times, sfreq, mt_bandwidth, False, False,
-        interp_from=min(n_times, dpss_n_times_max), verbose=False)
+        n_times, sfreq, mt_bandwidth, False, False, verbose=False)
 
     # F-stat of 1-p point
     threshold = stats.f.ppf(1 - p_value / n_times, 2, 2 * len(window_fun) - 2)

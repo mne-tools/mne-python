@@ -124,7 +124,7 @@ Enhancements
 
 - Speed up and reduce memory usage of :meth:`mne.SourceEstimate.plot` and related functions/methods when ``show_traces=True`` by `Eric Larson`_
 
-- Reduce memory usage of `~mne.io.Raw.plot_psd`, `~mne.time_frequency.psd_welch`, and `~mne.time_frequency.psd_array_welch` for long segments of data by `Eric Larson`_
+- Reduce memory usage of `~mne.io.Raw.plot_psd`, ``mne.time_frequency.psd_welch``, and `~mne.time_frequency.psd_array_welch` for long segments of data by `Eric Larson`_
 
 - Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method and from graphical user interface by `Guillaume Favelier`_
 

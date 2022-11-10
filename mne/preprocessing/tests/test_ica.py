@@ -244,10 +244,11 @@ def test_ica_noop(n_components, n_pca_components, tmp_path):
     # and with I/O
     fname = tmp_path / 'temp-ica.fif'
     ica.save(fname)
-    ica = read_ica(fname)
-    raw_new = ica.apply(raw.copy())
+    ica_new = read_ica(fname)
+    raw_new = ica_new.apply(raw.copy())
     assert_allclose(raw.get_data(), raw_new.get_data(), err_msg='I/O failure')
-    _assert_ica_attributes(ica)
+    _assert_ica_attributes(ica_new)
+    assert ica.reject_ == ica_new.reject_
 
 
 @requires_sklearn
@@ -1176,7 +1177,7 @@ def test_fit_methods(method, tmp_path):
         ('flat', dict(eeg=1e-6))
     )
 )
-def test_fit_params_epochs_vs_raw(param_name, param_val):
+def test_fit_params_epochs_vs_raw(param_name, param_val, tmp_path):
     """Check that we get a warning when passing parameters that get ignored."""
     method = 'infomax'
     n_components = 3
@@ -1184,12 +1185,20 @@ def test_fit_params_epochs_vs_raw(param_name, param_val):
 
     raw = read_raw_fif(raw_fname).pick_types(meg=False, eeg=True)
     events = read_events(event_name)
-    epochs = Epochs(raw, events=events)
+    reject = param_val if param_name == 'reject' else None
+    epochs = Epochs(raw, events=events, reject=reject)
     ica = ICA(n_components=n_components, max_iter=max_iter, method=method)
 
     fit_params = {param_name: param_val}
     with pytest.warns(RuntimeWarning, match='parameters.*will be ignored'):
         ica.fit(inst=epochs, **fit_params)
+    assert ica.reject_ == reject
+    _assert_ica_attributes(ica)
+    tmp_fname = tmp_path / 'test-ica.fif'
+    ica.save(tmp_fname)
+    ica = read_ica(tmp_fname)
+    assert ica.reject_ == reject
+    _assert_ica_attributes(ica)
 
 
 @requires_sklearn
@@ -1427,6 +1436,12 @@ def test_ica_labels():
     assert ica.labels_['muscle'] == [0]
     assert_allclose(scores, [0.81, 0.14, 0.37, 0.05], atol=0.03)
 
+    ica = ICA(n_components=4, max_iter=2, method='fastica', allow_ref_meg=True)
+    with pytest.warns(UserWarning, match='did not converge'):
+        ica.fit(raw, picks="eeg")
+    ica.find_bads_muscle(raw)
+    assert 'muscle' in ica.labels_
+
 
 @requires_sklearn
 @testing.requires_testing_data
@@ -1535,6 +1550,7 @@ def test_read_ica_eeglab_mismatch(tmp_path):
     assert 'unmixing_matrix_' in attrs
     assert ica.labels_ == ica_correct.labels_ == {}
     attrs.pop(attrs.index('labels_'))
+    attrs.pop(attrs.index('reject_'))
     for attr in attrs:
         a, b = getattr(ica, attr), getattr(ica_correct, attr)
         assert_allclose(a, b, rtol=1e-12, atol=1e-12, err_msg=attr)
@@ -1584,6 +1600,7 @@ def _assert_ica_attributes(ica, data=None, limits=(1.0, 70)):
         # at least close to normal
         assert norms.min() > limits[0], 'Not roughly unity'
         assert norms.max() < limits[1], 'Not roughly unity'
+    assert hasattr(ica, 'reject_')
 
 
 @pytest.mark.parametrize("ch_type", ["dbs", "seeg"])

@@ -699,6 +699,8 @@ class ICA(ContainsMixin):
             data, self.drop_inds_ = _reject_data_segments(data, reject, flat,
                                                           decim, self.info,
                                                           tstep)
+        else:
+            self.reject_ = None
 
         self.n_samples_ = data.shape[1]
         self._fit(data, 'raw')
@@ -724,6 +726,7 @@ class ICA(ContainsMixin):
         # more from _pre_whiten)
         data = np.hstack(data)
         self._fit(data, 'epochs')
+        self.reject_ = deepcopy(epochs.reject)
 
         return self
 
@@ -1787,7 +1790,12 @@ class ICA(ContainsMixin):
 
         # compute metric #2: distance from the vertex of focus
         components_norm = abs(components) / np.max(abs(components), axis=0)
-        pos = _find_topomap_coords(inst.info, picks='data', sphere=sphere)
+        # we need to retrieve the position from the channels that were used to
+        # fit the ICA. N.B: picks in _find_topomap_coords includes bad channels
+        # even if they are not provided explicitly.
+        pos = _find_topomap_coords(
+            inst.info, picks=self.ch_names, sphere=sphere, ignore_overlap=True
+        )
         assert pos.shape[0] == components.shape[0]  # pos for each sensor
         pos -= pos.mean(axis=0)  # center
         dists = np.linalg.norm(pos, axis=1)
@@ -2558,6 +2566,11 @@ def _write_ica(fid, ica):
     #   Write bad components
     write_int(fid, FIFF.FIFF_MNE_ICA_BADS, list(ica.exclude))
 
+    #   Write reject_
+    if ica.reject_ is not None:
+        write_string(fid, FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT,
+                     json.dumps(dict(reject=ica.reject_)))
+
     # Done!
     end_block(fid, FIFF.FIFFB_MNE_ICA)
 
@@ -2601,6 +2614,7 @@ def read_ica(fname, verbose=None):
             raise ValueError('Could not find ICA data')
 
     my_ica_data = ica_data[0]
+    ica_reject = None
     for d in my_ica_data['directory']:
         kind = d.kind
         pos = d.pos
@@ -2631,6 +2645,9 @@ def read_ica(fname, verbose=None):
         elif kind == FIFF.FIFF_MNE_ICA_MISC_PARAMS:
             tag = read_tag(fid, pos)
             ica_misc = tag.data
+        elif kind == FIFF.FIFF_MNE_EPOCHS_REJECT_FLAT:
+            tag = read_tag(fid, pos)
+            ica_reject = json.loads(tag.data)['reject']
 
     fid.close()
 
@@ -2682,6 +2699,7 @@ def read_ica(fname, verbose=None):
         ica.n_iter_ = ica_misc['n_iter_']
     if 'fit_params' in ica_misc:
         ica.fit_params = ica_misc['fit_params']
+    ica.reject_ = ica_reject
 
     logger.info('Ready.')
 
@@ -3006,4 +3024,5 @@ def read_ica_eeglab(fname, *, verbose=None):
     ica.info = info
     ica._update_mixing_matrix()
     ica._update_ica_names()
+    ica.reject_ = None
     return ica
