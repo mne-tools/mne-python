@@ -144,11 +144,11 @@ gamma_info = gamma_power_t.info
 # it in a range of 0 to 1 in order to map it using a matplotlib colormap.
 
 gamma_power_vec = gamma_power_t.to_data_frame(index='time').loc[15]
+# scale values to be between 0 and 1, then map to colors
+gamma_power_vec -= gamma_power_vec.min()
+gamma_power_vec /= gamma_power_vec.max()
 rgba = cm.get_cmap("viridis")
-gamma_power_vec_norm = (gamma_power_vec - np.min(gamma_power_vec)) / \
-                       (np.max(gamma_power_vec) - np.min(gamma_power_vec))
-
-gamma_power_color_vec = [rgba(gp)[:3] for gp in gamma_power_vec_norm]
+sensor_colors = gamma_power_vec.map(rgba).tolist()
 
 fig = plot_alignment(raw.info, trans='fsaverage',
                      subject='fsaverage', subjects_dir=subjects_dir,
