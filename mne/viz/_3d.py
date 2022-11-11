@@ -1254,10 +1254,19 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
             else:
                 actor_list = []
                 for idx_sen in range(sens_loc.shape[0]):
-                    if isinstance(sensor_colors, list):
-                        color = sensor_colors[idx_sen]
-                    else:
-                        color = sensor_colors[idx_sen, :]
+                    sensor_colors = np.asarray(sensor_colors)
+                    if sensor_colors.ndim not in (1, 2) or \
+                            sensor_colors.shape[0] != sens_loc.shape[0]:
+                        raise ValueError(
+                            'The expected sensor_colors keyword is either'
+                            'expected to be a list of colors with'
+                            'length n_sensors), array-like of RGB(A)'
+                            'values (shape (n_sensors, 3) or (n_sensors, 4)) or'
+                            'None. The received sensor_colors parameter'
+                            f'is of shape {sensor_colors.shape}.'
+                        )
+                    color = sensor_colors[idx_sen]
+
                     actor, _ = _plot_glyphs(
                         renderer=renderer,
                         loc=(sens_loc * scalar)[idx_sen, :],

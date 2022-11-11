@@ -143,17 +143,17 @@ gamma_info = gamma_power_t.info
 # Therefore we extract the evoked time sample at 15s and normalize
 # it in a range of 0 to 1 in order to map it using a matplotlib colormap.
 
-gamma_power_vec = gamma_power_t.to_data_frame(index='time').loc[15]
+gamma_power_at_15s = gamma_power_t.to_data_frame(index='time').loc[15]
 # scale values to be between 0 and 1, then map to colors
-gamma_power_vec -= gamma_power_vec.min()
-gamma_power_vec /= gamma_power_vec.max()
+gamma_power_at_15s -= gamma_power_at_15s.min()
+gamma_power_at_15s /= gamma_power_at_15s.max()
 rgba = cm.get_cmap("viridis")
-sensor_colors = gamma_power_vec.map(rgba).tolist()
+sensor_colors = gamma_power_at_15s.map(rgba).tolist()
 
 fig = plot_alignment(raw.info, trans='fsaverage',
                      subject='fsaverage', subjects_dir=subjects_dir,
                      surfaces=['pial'], coord_frame='head',
-                     sensor_colors=gamma_power_color_vec)
+                     sensor_colors=sensor_colors)
 
 mne.viz.set_3d_view(fig, azimuth=0, elevation=70)
 
