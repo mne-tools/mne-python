@@ -71,8 +71,8 @@ topomap_kwargs = dict(res=8, contours=0, sensors=False)
 
 def _get_example_figures():
     """Create two example figures."""
-    fig1 = plt.plot([1, 2], [1, 2])[0].figure
-    fig2 = plt.plot([3, 4], [3, 4])[0].figure
+    fig1 = np.zeros((2, 2, 3))
+    fig2 = np.ones((2, 2, 3))
     return [fig1, fig2]
 
 
@@ -609,28 +609,33 @@ def test_remove():
     assert r2.html[2] == r.html[3]
 
 
-def test_add_or_replace():
+@pytest.mark.parametrize('tags', (True, False))  # shouldn't matter
+def test_add_or_replace(tags):
     """Test replacing existing figures in a report."""
+    # Note that tags don't matter, only titles do!
     r = Report()
     fig1, fig2 = _get_example_figures()
-    r.add_figure(fig=fig1, title='duplicate', tags=('foo',))
-    r.add_figure(fig=fig1, title='duplicate', tags=('foo',))
-    r.add_figure(fig=fig1, title='duplicate', tags=('bar',))
-    r.add_figure(fig=fig2, title='nonduplicate', tags=('foo',))
+    r.add_figure(fig=fig1, title='duplicate', tags=('foo',) if tags else ())
+    r.add_figure(fig=fig2, title='duplicate', tags=('foo',) if tags else ())
+    r.add_figure(fig=fig1, title='duplicate', tags=('bar',) if tags else ())
+    r.add_figure(fig=fig2, title='nonduplicate', tags=('foo',) if tags else ())
     # By default, replace=False, so all figures should be there
     assert len(r.html) == 4
+    assert len(r._content) == 4
 
     old_r = copy.deepcopy(r)
 
     # Replace last occurrence of `fig1` tagges as `foo`
     r.add_figure(
-        fig=fig2, title='duplicate', tags=('foo',), replace=True
+        fig=fig2, title='duplicate', tags=('bar',) if tags else (),
+        replace=True,
     )
     assert len(r._content) == len(r.html) == 4
-    assert r.html[1] != old_r.html[1]  # This figure should have changed
+    # This figure should have changed
+    assert r.html[2] != old_r.html[2]
     # All other figures should be the same
     assert r.html[0] == old_r.html[0]
-    assert r.html[2] == old_r.html[2]
+    assert r.html[1] == old_r.html[1]
     assert r.html[3] == old_r.html[3]
 
 
