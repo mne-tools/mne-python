@@ -143,7 +143,7 @@ gamma_info = gamma_power_t.info
 # Therefore we extract the evoked time sample at 15s and normalize
 # it in a range of 0 to 1 in order to map it using a matplotlib colormap.
 
-gamma_power_vec = np.array(gamma_power_t.to_data_frame().iloc[20, 1:])
+gamma_power_vec = gamma_power_t.to_data_frame(index='time').loc[15]
 rgba = cm.get_cmap("viridis")
 gamma_power_vec_norm = (gamma_power_vec - np.min(gamma_power_vec)) / \
                        (np.max(gamma_power_vec) - np.min(gamma_power_vec))
