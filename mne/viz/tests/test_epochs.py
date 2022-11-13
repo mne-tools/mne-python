@@ -310,7 +310,7 @@ def test_plot_epochs_image_emg():
     info = create_info(['EMG 001'], sfreq=100, ch_types='emg')
     data = np.ones((2, 1, 10))
     epochs = EpochsArray(data=data, info=info)
-    epochs.plot_image('EMG 001')
+    epochs.plot_image('EMG 001', ts_args={"show_sensors": False})
 
 
 def test_plot_drop_log(epochs_unloaded):
