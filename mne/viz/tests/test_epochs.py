@@ -305,6 +305,14 @@ def test_plot_epochs_image(epochs):
     plt.close('all')
 
 
+def test_plot_epochs_image_emg():
+    """Test plotting epochs image with EMG."""
+    info = create_info(['EMG 001'], sfreq=100, ch_types='emg')
+    data = np.ones((2, 1, 10))
+    epochs = EpochsArray(data=data, info=info)
+    epochs.plot_image('EMG 001')
+
+
 def test_plot_drop_log(epochs_unloaded):
     """Test plotting a drop log."""
     with pytest.raises(ValueError, match='bad epochs have not yet been'):
