@@ -43,22 +43,22 @@ raw_fname = (data_path / 'sub-{}'.format(subject) / 'meg' /
 # crop to 5 minutes to save memory
 raw = mne.io.read_raw_fif(raw_fname).crop(0, 300)
 
-# we are interested in the beta band (12-30 Hz)
+# We are interested in the beta band (12-30 Hz)
 raw.load_data().filter(12, 30)
 
-# the DICS beamformer currently only supports a single sensor type,
-# we'll use the gradiometers in this example
+# The DICS beamformer currently only supports a single sensor type.
+# We'll use the gradiometers in this example.
 picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
 
-# read epochs
+# Read epochs
 events = mne.find_events(raw)
 epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, picks=picks,
                     preload=True, decim=3)
 
-# read forward operator and point to freesurfer subject directory
-fname_fwd = (data_path / 'derivatives' / 'sub-{}'.format(subject) /
+# Read forward operator and point to freesurfer subject directory
+fwd_fname = (data_path / 'derivatives' / 'sub-{}'.format(subject) /
              'sub-{}_task-{}-fwd.fif'.format(subject, task))
-fwd = mne.read_forward_solution(fname_fwd)
+fwd = mne.read_forward_solution(fwd_fname)
 
 # %%
 # Compute covariances and cross-spectral density
@@ -71,17 +71,17 @@ fwd = mne.read_forward_solution(fname_fwd)
 # will be correctly preserved.
 
 rank = mne.compute_rank(epochs, tol=1e-6, tol_kind='relative')
-active_win = (0.5, 1.5)
-baseline_win = (-1, 0)
-baseline_cov = compute_covariance(epochs, tmin=baseline_win[0],
-                                  tmax=baseline_win[1], method='shrunk',
+win_active = (0.5, 1.5)
+win_baseline = (-1, 0)
+cov_baseline = compute_covariance(epochs, tmin=win_baseline[0],
+                                  tmax=win_baseline[1], method='shrunk',
                                   rank=rank, verbose=True)
-active_cov = compute_covariance(epochs, tmin=active_win[0], tmax=active_win[1],
+cov_active = compute_covariance(epochs, tmin=win_active[0], tmax=win_active[1],
                                 method='shrunk', rank=rank, verbose=True)
 
-# weighted averaging is already in the addition of covariance objects
-common_cov = baseline_cov + active_cov
-baseline_cov.plot(epochs.info)
+# Weighted averaging is already in the addition of covariance objects
+cov_common = cov_baseline + cov_active
+cov_baseline.plot(epochs.info)
 
 # compute cross-spectral density matrices
 freqs = np.logspace(np.log10(12), np.log10(30), 9)
@@ -93,10 +93,10 @@ epochs_tfr = mne.time_frequency.tfr_morlet(
 epochs_tfr.decimate(20)  # decimate for speed
 
 csd = csd_tfr(epochs_tfr, tmin=-1, tmax=1.5)
-baseline_csd = csd_tfr(epochs_tfr, tmin=baseline_win[0], tmax=baseline_win[1])
-ers_csd = csd_tfr(epochs_tfr, tmin=active_win[0], tmax=active_win[1])
+csd_baseline = csd_tfr(epochs_tfr, tmin=win_baseline[0], tmax=win_baseline[1])
+csd_ers = csd_tfr(epochs_tfr, tmin=win_active[0], tmax=win_active[1])
 
-baseline_csd.plot()
+csd_baseline.plot()
 
 # %%
 # Compute some source estimates
@@ -106,40 +106,40 @@ baseline_csd.plot()
 # See :ref:`ex-inverse-source-power` for more information about DICS.
 
 
-def _gen_dics(csd, ers_csd, baseline_csd, fwd):
+def _gen_dics(csd, ers_csd, csd_baseline, fwd):
     filters = make_dics(epochs.info, fwd, csd.mean(), pick_ori='max-power',
                         reduce_rank=True, real_filter=True, rank=rank)
-    stc_base, freqs = apply_dics_csd(baseline_csd.mean(), filters)
-    stc_act, freqs = apply_dics_csd(ers_csd.mean(), filters)
+    stc_base, freqs = apply_dics_csd(csd_baseline.mean(), filters)
+    stc_act, freqs = apply_dics_csd(csd_ers.mean(), filters)
     stc_act /= stc_base
     return stc_act
 
 
 # generate lcmv source estimate
-def _gen_lcmv(active_cov, baseline_cov, common_cov, fwd):
+def _gen_lcmv(active_cov, cov_baseline, common_cov, fwd):
     filters = make_lcmv(epochs.info, fwd, common_cov, reg=0.05,
                         noise_cov=None, pick_ori='max-power')
-    stc_base = apply_lcmv_cov(baseline_cov, filters)
-    stc_act = apply_lcmv_cov(active_cov, filters)
+    stc_base = apply_lcmv_cov(cov_baseline, filters)
+    stc_act = apply_lcmv_cov(cov_active, filters)
     stc_act /= stc_base
     return stc_act
 
 
 # generate mne/dSPM source estimate
-def _gen_mne(active_cov, baseline_cov, common_cov, fwd, info, method='dSPM'):
-    inverse_operator = make_inverse_operator(info, fwd, common_cov)
-    stc_act = apply_inverse_cov(active_cov, info, inverse_operator,
+def _gen_mne(cov_active, cov_baseline, cov_common, fwd, info, method='dSPM'):
+    inverse_operator = make_inverse_operator(info, fwd, cov_common)
+    stc_act = apply_inverse_cov(cov_active, info, inverse_operator,
                                 method=method, verbose=True)
-    stc_base = apply_inverse_cov(baseline_cov, info, inverse_operator,
+    stc_base = apply_inverse_cov(cov_baseline, info, inverse_operator,
                                  method=method, verbose=True)
     stc_act /= stc_base
     return stc_act
 
 
-# compute source estimates
-stc_dics = _gen_dics(csd, ers_csd, baseline_csd, fwd)
-stc_lcmv = _gen_lcmv(active_cov, baseline_cov, common_cov, fwd)
-stc_dspm = _gen_mne(active_cov, baseline_cov, common_cov, fwd, epochs.info)
+# Compute source estimates
+stc_dics = _gen_dics(csd, csd_ers, csd_baseline, fwd)
+stc_lcmv = _gen_lcmv(cov_active, cov_baseline, cov_common, fwd)
+stc_dspm = _gen_mne(cov_active, cov_baseline, cov_common, fwd, epochs.info)
 
 # %%
 # Plot source estimates
@@ -195,12 +195,12 @@ method = 'MNE'  # use MNE method (could also be dSPM or sLORETA)
 inverse_operator = list()
 for freq_idx in range(epochs_tfr.freqs.size):
     # for each frequency, compute a separate covariance matrix
-    baseline_cov = baseline_csd.get_data(index=freq_idx, as_cov=True)
-    baseline_cov['data'] = baseline_cov['data'].real  # only normalize by real
+    cov_baseline = csd_baseline.get_data(index=freq_idx, as_cov=True)
+    cov_baseline['data'] = cov_baseline['data'].real  # only normalize by real
     # then use that covariance matrix as normalization for the inverse
     # operator
     inverse_operator.append(mne.minimum_norm.make_inverse_operator(
-        epochs.info, vol_fwd, baseline_cov))
+        epochs.info, vol_fwd, cov_baseline))
 
 # finally, compute the stcs for each epoch and frequency
 stcs = mne.minimum_norm.apply_inverse_tfr_epochs(
@@ -215,4 +215,4 @@ viewer = mne.gui.view_vol_stc(stcs, subject=subject, subjects_dir=subjects_dir,
                               src=vol_src, inst=epochs_tfr)
 viewer.go_to_max()  # show the maximum intensity source vertex
 viewer.update_cmap(vmin=0.25, vmid=0.8)
-viewer.set_3d_view(azimuth=40, elevation=35, distance=300)
+viewer.set_3d_view(azimuth=40, elevation=35, distance=350)

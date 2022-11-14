@@ -1,9 +1,11 @@
 """Convenience functions for opening GUIs."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
+#          Alex Rockhill <aprockhill@mailbox.org>
 #
 # License: BSD-3-Clause
 
+import numpy as np
 from ..utils import verbose, get_config, warn
 
 
@@ -247,10 +249,16 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
     return gui
 
 
+# constants for casting to integers in view volume stc
+COMPLEX_DTYPE = np.dtype([('re', np.int64), ('im', np.int64)])
+RANGE_VALUE = 2**63
+INT_SCALAR = 1e16
+
+
 @verbose
 def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
                  src=None, inst=None, show=True, block=False, verbose=None):
-    """View a source time course estimate.
+    """View a volume time and/or frequency source time course estimate.
 
     Parameters
     ----------
@@ -287,9 +295,8 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
     gui : instance of VolSourceEstimateViewer
         The graphical user interface (GUI) window.
     """
-    import numpy as np
     from ..viz.backends._utils import _qt_app_exec
-    from ._stc import VolSourceEstimateViewer
+    from ._vol_stc import VolSourceEstimateViewer
     from qtpy.QtWidgets import QApplication
     # get application
     app = QApplication.instance()
@@ -298,18 +305,19 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
 
     # cast to integers to lower memory usage, use custom complex data
     # type if necessary
-    complex_dtype = np.dtype([('re', np.int64), ('im', np.int64)])
     data = list()
     for inner_stcs in (stcs if np.iterable(stcs) else [stcs]):
         inner_data = list()
         for stc in (inner_stcs if np.iterable(inner_stcs) else [inner_stcs]):
             if np.iscomplexobj(stc.data):
-                stc_data = np.zeros(stc.data.shape, complex_dtype)
-                stc_data['re'] = stc.data.real * 1e16
-                stc_data['im'] = stc.data.imag * 1e16
+                stc_data = np.zeros(stc.data.shape, COMPLEX_DTYPE)
+                stc_data['re'] = np.clip(stc.data.real * INT_SCALAR,
+                                         -RANGE_VALUE, RANGE_VALUE - 1)
+                stc_data['im'] = np.clip(stc.data.imag * INT_SCALAR,
+                                         -RANGE_VALUE, RANGE_VALUE - 1)
                 inner_data.append(stc_data)
             else:
-                inner_data.append((stc.data * 1e16).astype(np.int64))
+                inner_data.append((stc.data * INT_SCALAR).astype(np.int64))
         data.append(inner_data)
     data = np.array(data)
     if data.ndim == 4:  # scalar solution, add dimension at the end
