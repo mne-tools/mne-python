@@ -925,7 +925,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(fun_applyfun)s
         %(picks_all_data_noref)s
         %(dtype_applyfun)s
-        %(n_jobs)s Ignored if ``channel_wise=False`` as the workload is
+        %(n_jobs)s Ignored if ``channel_wise=False`` as the workload
             is splitted across channels.
         %(channel_wise_applyfun)s
 
