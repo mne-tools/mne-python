@@ -64,7 +64,7 @@ def _fake_stc(src_type='vol'):
 @pytest.fixture
 def _stc_viewer(renderer_interactive_pyvistaqt):
     from qtpy.QtWidgets import QApplication
-    from mne.gui._stc import VolSourceEstimateViewer
+    from mne.gui._vol_stc import VolSourceEstimateViewer
     app = QApplication.instance()
     if app is None:
         app = QApplication(["Source Estimate Viewer"])
