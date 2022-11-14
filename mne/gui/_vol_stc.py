@@ -20,8 +20,8 @@ from ..utils import (_require_version, _validate_type, _check_range, fill_doc,
                      _check_option)
 from ..viz.utils import _get_cmap
 
-COMPLEX_DTYPE = np.dtype([('re', np.int8), ('im', np.int8)])
-RANGE_VALUE = 2**8
+COMPLEX_DTYPE = np.dtype([('re', np.int64), ('im', np.int64)])
+RANGE_VALUE = 2**63
 
 
 def _check_consistent(items, name):
