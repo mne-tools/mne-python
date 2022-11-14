@@ -184,7 +184,7 @@ using the ``dtype`` parameter, which causes the data type of **all** the data
 to change (even if the function is only applied to channels in ``picks``).{}
 
 .. note:: If ``n_jobs`` > 1, more memory is required as
-          ``len(picks) * n_times`` additional time points need to
+          ``n_jobs * n_times`` additional time points need to
           be temporarily stored in memory.
 .. note:: If the data type changes (``dtype != None``), more memory is
           required since the original and the converted data needs
