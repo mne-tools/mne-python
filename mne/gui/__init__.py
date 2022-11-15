@@ -313,16 +313,18 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
         for stc in (inner_stcs if np.iterable(inner_stcs) else [inner_stcs]):
             if np.iscomplexobj(stc.data):
                 if scalar is None:
-                    scalar = (RANGE_VALUE - 1) / stc.data.real.max()
+                    # since this is an order of magnitude approximation,
+                    # divide by 10 to be overflow safe
+                    scalar = (RANGE_VALUE - 1) / stc.data.real.max() / 10
                 stc_data = np.zeros(stc.data.shape, COMPLEX_DTYPE)
                 stc_data['re'] = np.clip(stc.data.real * scalar,
                                          -RANGE_VALUE, RANGE_VALUE - 1)
                 stc_data['im'] = np.clip(stc.data.imag * scalar,
                                          -RANGE_VALUE, RANGE_VALUE - 1)
-                inner_data.append(stc_data)
+                inner_data.append(stc.data)
             else:
                 if scalar is None:
-                    scalar = (RANGE_VALUE - 1) / stc.data.max()
+                    scalar = (RANGE_VALUE - 1) / stc.data.max() / 10
                 inner_data.append(np.clip(stc.data * scalar,
                                           -RANGE_VALUE, RANGE_VALUE - 1
                                           ).astype(np.int16))

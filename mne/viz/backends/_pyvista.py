@@ -1195,10 +1195,14 @@ def _is_mesa(plotter):
         version = re.findall("mesa ([0-9.]+) .*", gpu_info) or \
             re.findall("OpenGL version string: .* Mesa ([0-9.]+)\n",
 <<<<<<< HEAD
+<<<<<<< HEAD
                        gpu_info_full)
 =======
                        plotter.ren_win.ReportCapabilities())
 >>>>>>> a1377ef3f5 (wip)
+=======
+                       gpu_info_full)
+>>>>>>> c50fbae810 (saved version)
         if version:
             version = version[0]
             if _compare_version(version, '<', '18.3.6'):
