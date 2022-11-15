@@ -250,9 +250,8 @@ def locate_ieeg(info, trans, aligned_ct, subject=None, subjects_dir=None,
 
 
 # constants for casting to integers in view volume stc
-COMPLEX_DTYPE = np.dtype([('re', np.int64), ('im', np.int64)])
-RANGE_VALUE = 2**63
-INT_SCALAR = 1e16
+COMPLEX_DTYPE = np.dtype([('re', np.int16), ('im', np.int16)])
+RANGE_VALUE = 2**15
 
 
 @verbose
@@ -306,18 +305,27 @@ def view_vol_stc(stcs, freq_first=True, subject=None, subjects_dir=None,
     # cast to integers to lower memory usage, use custom complex data
     # type if necessary
     data = list()
+    # can be generator, compute using first stc object, just a general
+    # rescaling of data, does not need to be precise
+    scalar = None
     for inner_stcs in (stcs if np.iterable(stcs) else [stcs]):
         inner_data = list()
         for stc in (inner_stcs if np.iterable(inner_stcs) else [inner_stcs]):
             if np.iscomplexobj(stc.data):
+                if scalar is None:
+                    scalar = (RANGE_VALUE - 1) / stc.data.real.max()
                 stc_data = np.zeros(stc.data.shape, COMPLEX_DTYPE)
-                stc_data['re'] = np.clip(stc.data.real * INT_SCALAR,
+                stc_data['re'] = np.clip(stc.data.real * scalar,
                                          -RANGE_VALUE, RANGE_VALUE - 1)
-                stc_data['im'] = np.clip(stc.data.imag * INT_SCALAR,
+                stc_data['im'] = np.clip(stc.data.imag * scalar,
                                          -RANGE_VALUE, RANGE_VALUE - 1)
                 inner_data.append(stc_data)
             else:
-                inner_data.append((stc.data * INT_SCALAR).astype(np.int64))
+                if scalar is None:
+                    scalar = (RANGE_VALUE - 1) / stc.data.max()
+                inner_data.append(np.clip(stc.data * scalar,
+                                          -RANGE_VALUE, RANGE_VALUE - 1
+                                          ).astype(np.int16))
         data.append(inner_data)
     data = np.array(data)
     if data.ndim == 4:  # scalar solution, add dimension at the end

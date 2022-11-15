@@ -20,8 +20,8 @@ from ..utils import (_require_version, _validate_type, _check_range, fill_doc,
                      _check_option)
 from ..viz.utils import _get_cmap
 
-COMPLEX_DTYPE = np.dtype([('re', np.int64), ('im', np.int64)])
-RANGE_VALUE = 2**63
+COMPLEX_DTYPE = np.dtype([('re', np.int16), ('im', np.int16)])
+RANGE_VALUE = 2**15
 
 
 def _check_consistent(items, name):
@@ -169,8 +169,11 @@ class VolSourceEstimateViewer(SliceBrowser):
                 src_shape - 1, self._src_vox_scan_ras_t, self._scan_ras_vox_t)
         ]
         src_coord = self._get_src_coord()
+        min_val = self._cmap_sliders[0].value() / \
+            1000 * self._stc_range + self._stc_min
         for axis in range(3):
             stc_slice = np.take(self._stc_img, src_coord[axis], axis=axis).T
+            stc_slice[stc_slice < min_val] = np.nan
             x_idx, y_idx = self._xy_idx[axis]
             extent = [corners[0][x_idx], corners[1][x_idx],
                       corners[1][y_idx], corners[0][y_idx]]
@@ -234,68 +237,37 @@ class VolSourceEstimateViewer(SliceBrowser):
 
     def _pick_stc_epoch(self):
         """Select the source time course epoch based on the parameters."""
+        if self._data.dtype == COMPLEX_DTYPE:
+            stc_data = (self._data['re'] + 1j * self._data['im']).astype(
+                np.complex64)
+        elif self._data.dtype == np.int16:
+            stc_data = self._data.astype(np.float16)
+        else:
+            stc_data = self._data
         if self._epoch_idx == 'Average':
-            if self._data.dtype.kind == 'i':
-                stc_data = self._data.mean(axis=0).round().astype(int)
-            else:
-                stc_data = self._data.mean(axis=0)
-        # re**2 + im**2 is equivalent to complex congugate
+            stc_data = stc_data.mean(axis=0)
         elif self._epoch_idx == 'Average Power':
-            if self._data.dtype == COMPLEX_DTYPE:
-                stc_data = (np.clip(self._data['re']**2,
-                                    -RANGE_VALUE, RANGE_VALUE / 2 - 1) +
-                            np.clip(self._data['im']**2,
-                                    -RANGE_VALUE, RANGE_VALUE / 2 - 1)
-                            ).mean(axis=0).round().astype(np.uint64)
-            else:
-                stc_data = (self._data * self._data.conj()).real.mean(axis=0)
+            stc_data = (stc_data * stc_data.conj()).real.mean(axis=0)
         elif self._epoch_idx == 'ITC':
-            if self._data.dtype == COMPLEX_DTYPE:
-                # use manhattan distance in the integer case (estimation)
-                # to keep as integers for memory conservation
-                abs_stc_data = np.clip(self._data['re']**2,
-                                       -RANGE_VALUE, RANGE_VALUE / 2 - 1) + \
-                    np.clip(self._data['im']**2,
-                            -RANGE_VALUE, RANGE_VALUE / 2 - 1)
-                stc_data = \
-                    np.abs((self._data['re'] / abs_stc_data).mean(axis=0)) + \
-                    np.abs((self._data['im'] / abs_stc_data).mean(axis=0))
-            else:
-                stc_data = np.abs((self._data / np.abs(self._data)).mean(
-                    axis=0))
+            stc_data = np.abs((stc_data / np.abs(stc_data)).mean(
+                axis=0))
         else:
             stc_data = self._data[int(self._epoch_idx.replace('Epoch ', ''))]
-            if self._is_complex:
-                if stc_data.dtype == COMPLEX_DTYPE:
-                    stc_data = (np.clip(stc_data['re']**2,
-                                        -RANGE_VALUE, RANGE_VALUE / 2 - 1) +
-                                np.clip(stc_data['im']**2,
-                                        -RANGE_VALUE, RANGE_VALUE / 2 - 1)
-                                ).astype(np.uint64)
-                else:
-                    stc_data = (stc_data * stc_data.conj()).real
+            if self._data.dtype == COMPLEX_DTYPE:
+                stc_data = (stc_data['re'] + 1j * stc_data['im']).astype(
+                    np.complex64)
+            stc_data = (stc_data * stc_data.conj()).real
         # do baseline correction
         if self._baseline != 'None' and self._epoch_idx != 'ITC':
             if self._baseline == 'Gain':
-                if self._data.dtype == COMPLEX_DTYPE:
-                    stc_data = (stc_data / stc_data.mean(
-                        axis=-1, keepdims=True)).round().astype(np.int64)
-                elif self._data.dtype.kind == 'i':
-                    stc_data = (stc_data / stc_data.mean(
-                        axis=-1, keepdims=True)).round().astype(int)
-                else:
-                    stc_data = stc_data / stc_data.mean(axis=-1, keepdims=True)
+                stc_data = stc_data / stc_data.mean(axis=-1, keepdims=True)
             else:
                 assert self._baseline == 'Subtraction'
-                if self._data.dtype == COMPLEX_DTYPE:
-                    stc_data = np.clip(stc_data - stc_data.mean(
-                        axis=-1, keepdims=True).round().astype(np.int8),
-                        -RANGE_VALUE, RANGE_VALUE - 1).astype(np.int8)
-                elif self._data.dtype.kind == 'i':
-                    stc_data = (stc_data - stc_data.mean(
-                        axis=-1, keepdims=True)).round().astype(int)
-                else:
-                    stc_data = stc_data - stc_data.mean(axis=-1, keepdims=True)
+                stc_data = stc_data - stc_data.mean(axis=-1, keepdims=True)
+        # put back in integers for integer inputs
+        if self._data.dtype in (COMPLEX_DTYPE, np.int16):
+            stc_data = (stc_data / abs(stc_data).max() * (RANGE_VALUE - 1)
+                        ).astype(np.int16)
         return stc_data
 
     def _pick_stc_vertex(self, stc_data):
@@ -532,6 +504,9 @@ class VolSourceEstimateViewer(SliceBrowser):
 
     def _update_baseline(self, name):
         """Update the chosen baseline normalization method."""
+        if (name is not None or name != 'None') and self._epoch_idx == 'ITC':
+            self._baseline_selector.setCurrentText('None')
+            return
         self._baseline = name
         self._update_stc_image()
 
@@ -610,7 +585,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._images['stc'][axis].set_alpha(self._alpha)
         self._update_cmap()
 
-    def update_cmap(self, vmin=None, vmid=None, vmax=None):
+    def set_cmap(self, vmin=None, vmid=None, vmax=None):
         """Update the colormap.
 
         Parameters
@@ -645,6 +620,9 @@ class VolSourceEstimateViewer(SliceBrowser):
                                   self._cmap_sliders[2].value())]
         for axis in range(3):
             self._images['stc'][axis].set_clim(vmin, vmax)
+            stc_slice = self._images['stc'][axis].get_array()
+            stc_slice[stc_slice < vmin] = np.nan
+            self._images['stc'].set_data(stc_slice)
             self._figs[axis].canvas.draw()
         if self._f_idx is None:
             self._fig.axes[0].set_ylim([vmin, vmax])
@@ -747,14 +725,18 @@ class VolSourceEstimateViewer(SliceBrowser):
     def _update_stc_images(self, axis=None, draw=False):
         """Update the stc image(s)."""
         src_coord = self._get_src_coord()
+        min_val = self._cmap_sliders[0].value() / \
+            1000 * self._stc_range + self._stc_min
         for axis in range(3):
             # ensure in bounds
             if src_coord[axis] >= 0 and \
                     src_coord[axis] < self._stc_img.shape[axis]:
-                stc_data = np.take(self._stc_img, src_coord[axis], axis=axis).T
+                stc_slice = np.take(
+                    self._stc_img, src_coord[axis], axis=axis).T
+                stc_slice[stc_slice < min_val] = np.nan
             else:
-                stc_data = np.take(self._stc_img, 0, axis=axis).T * np.nan
-            self._images['stc'][axis].set_data(stc_data)
+                stc_slice = np.take(self._stc_img, 0, axis=axis).T * np.nan
+            self._images['stc'][axis].set_data(stc_slice)
             if draw:
                 self._draw(axis)
 
