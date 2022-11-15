@@ -622,7 +622,7 @@ class VolSourceEstimateViewer(SliceBrowser):
             self._images['stc'][axis].set_clim(vmin, vmax)
             stc_slice = self._images['stc'][axis].get_array()
             stc_slice[stc_slice < vmin] = np.nan
-            self._images['stc'].set_data(stc_slice)
+            self._images['stc'][axis].set_data(stc_slice)
             self._figs[axis].canvas.draw()
         if self._f_idx is None:
             self._fig.axes[0].set_ylim([vmin, vmax])
