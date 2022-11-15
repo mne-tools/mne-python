@@ -1261,8 +1261,9 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                             'The expected sensor_colors keyword is either'
                             'expected to be a list of colors with'
                             'length n_sensors), array-like of RGB(A)'
-                            'values (shape (n_sensors, 3) or (n_sensors, 4)) or'
-                            'None. The received sensor_colors parameter'
+                            'values (shape (n_sensors, 3) or'
+                            '(n_sensors, 4)) or None. The received'
+                            'sensor_colors parameter'
                             f'is of shape {sensor_colors.shape}.'
                         )
                     color = sensor_colors[idx_sen]
