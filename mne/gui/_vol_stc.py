@@ -7,7 +7,6 @@
 
 import os.path as op
 import numpy as np
-from math import isqrt
 
 from qtpy import QtCore
 from qtpy.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel,
