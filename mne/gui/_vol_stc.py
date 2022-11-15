@@ -7,6 +7,7 @@
 
 import os.path as op
 import numpy as np
+from math import isqrt
 
 from qtpy import QtCore
 from qtpy.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel,
@@ -88,16 +89,6 @@ def _int_complex_conj(data):
     # both real and imaginary to be added
     return ((data['re'] // RANGE_SQRT // 2)**2 +
             (data['im'] // RANGE_SQRT // 2)**2)
-
-
-def _int_itc(data):
-    # use manhattan distance for estimate
-    # factor of 1 / 2 to prevent overflow
-    data_abs = np.sqrt(_int_complex_conj(data))
-    data_abs[data_abs == 0] = 1  # no divide by zero
-    data = np.sqrt((data['re'] / data_abs).mean(axis=0)**2 +
-                   (data['im'] / data_abs).mean(axis=0)**2)
-    return data
 
 
 class VolSourceEstimateViewer(SliceBrowser):
@@ -191,11 +182,13 @@ class VolSourceEstimateViewer(SliceBrowser):
                 src_shape - 1, self._src_vox_scan_ras_t, self._scan_ras_vox_t)
         ]
         src_coord = self._get_src_coord()
-        min_val = self._cmap_sliders[0].value() / \
-            1000 * self._stc_range + self._stc_min
+        min_val, max_val = [self._cmap_sliders[i].value() /
+                            1000 * self._stc_range + self._stc_min
+                            for i in (0, 2)]
         for axis in range(3):
             stc_slice = np.take(self._stc_img, src_coord[axis], axis=axis).T
             stc_slice[stc_slice < min_val] = np.nan
+            stc_slice[stc_slice > max_val] = np.nan
             x_idx, y_idx = self._xy_idx[axis]
             extent = [corners[0][x_idx], corners[1][x_idx],
                       corners[1][y_idx], corners[0][y_idx]]
@@ -272,7 +265,10 @@ class VolSourceEstimateViewer(SliceBrowser):
                 stc_data = (self._data * self._data.conj()).real.mean(axis=0)
         elif self._epoch_idx == 'ITC':
             if self._data.dtype == COMPLEX_DTYPE:
-                stc_data = _int_itc(self._data)
+                stc_data = self._data['re'].astype(np.complex64) + \
+                    1j * self._data['im']
+                stc_data = np.abs((stc_data / np.abs(stc_data)).mean(
+                    axis=0))
             else:
                 stc_data = np.abs((self._data / np.abs(self._data)).mean(
                     axis=0))
@@ -771,8 +767,9 @@ class VolSourceEstimateViewer(SliceBrowser):
     def _update_stc_images(self, axis=None, draw=False):
         """Update the stc image(s)."""
         src_coord = self._get_src_coord()
-        min_val = self._cmap_sliders[0].value() / \
-            1000 * self._stc_range + self._stc_min
+        min_val, max_val = [self._cmap_sliders[i].value() /
+                            1000 * self._stc_range + self._stc_min
+                            for i in (0, 2)]
         for axis in range(3):
             # ensure in bounds
             if src_coord[axis] >= 0 and \
@@ -780,6 +777,7 @@ class VolSourceEstimateViewer(SliceBrowser):
                 stc_slice = np.take(
                     self._stc_img, src_coord[axis], axis=axis).T
                 stc_slice[stc_slice < min_val] = np.nan
+                stc_slice[stc_slice > max_val] = np.nan
             else:
                 stc_slice = np.take(self._stc_img, 0, axis=axis).T * np.nan
             self._images['stc'][axis].set_data(stc_slice)
