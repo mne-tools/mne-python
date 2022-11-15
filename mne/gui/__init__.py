@@ -352,7 +352,7 @@ class _GUIScraper(object):
     def __call__(self, block, block_vars, gallery_conf):
         from ._ieeg_locate import IntracranialElectrodeLocator
         from ._coreg import CoregistrationUI
-        from ._stc import VolSourceEstimateViewer
+        from ._vol_stc import VolSourceEstimateViewer
         from sphinx_gallery.scrapers import figure_rst
         from qtpy import QtGui
         for gui in block_vars['example_globals'].values():
