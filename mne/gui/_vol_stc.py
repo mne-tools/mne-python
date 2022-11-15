@@ -22,6 +22,7 @@ from ..viz.utils import _get_cmap
 
 COMPLEX_DTYPE = np.dtype([('re', np.int16), ('im', np.int16)])
 RANGE_VALUE = 2**15
+RANGE_SQRT = 2**8  # round up so no overflow
 
 
 def _check_consistent(items, name):
@@ -76,6 +77,27 @@ def _min_range(data):
     this_min = np.nanmin(data)
     this_range = np.nanmax(data) - this_min
     return this_range, this_min
+
+
+def _int_complex_conj(data):
+    # Since the mixed real * imaginary terms cancel out, the complex
+    # conjugate is the same as squaring and adding the real and imaginary.
+    # Pre-scale by the square root of the range so that the greatest
+    # allowable value, when squared does not overflow.
+    # Similarly, the divide by 2 allows for the greatest value in
+    # both real and imaginary to be added
+    return ((data['re'] // RANGE_SQRT // 2)**2 +
+            (data['im'] // RANGE_SQRT // 2)**2)
+
+
+def _int_itc(data):
+    # use manhattan distance for estimate
+    # factor of 1 / 2 to prevent overflow
+    data_abs = np.sqrt(_int_complex_conj(data))
+    data_abs[data_abs == 0] = 1  # no divide by zero
+    data = np.sqrt((data['re'] / data_abs).mean(axis=0)**2 +
+                   (data['im'] / data_abs).mean(axis=0)**2)
+    return data
 
 
 class VolSourceEstimateViewer(SliceBrowser):
@@ -237,37 +259,50 @@ class VolSourceEstimateViewer(SliceBrowser):
 
     def _pick_stc_epoch(self):
         """Select the source time course epoch based on the parameters."""
-        if self._data.dtype == COMPLEX_DTYPE:
-            stc_data = (self._data['re'] + 1j * self._data['im']).astype(
-                np.complex64)
-        elif self._data.dtype == np.int16:
-            stc_data = self._data.astype(np.float16)
-        else:
-            stc_data = self._data
         if self._epoch_idx == 'Average':
-            stc_data = stc_data.mean(axis=0)
+            if self._data.dtype == np.int16:
+                stc_data = self._data.mean(axis=0).astype(np.int16)
+            else:
+                stc_data = self._data.mean(axis=0)
         elif self._epoch_idx == 'Average Power':
-            stc_data = (stc_data * stc_data.conj()).real.mean(axis=0)
+            if self._data.dtype == COMPLEX_DTYPE:
+                stc_data = np.sum(_int_complex_conj(
+                    self._data) // self._data.shape[0], axis=0)
+            else:
+                stc_data = (self._data * self._data.conj()).real.mean(axis=0)
         elif self._epoch_idx == 'ITC':
-            stc_data = np.abs((stc_data / np.abs(stc_data)).mean(
-                axis=0))
+            if self._data.dtype == COMPLEX_DTYPE:
+                stc_data = _int_itc(self._data)
+            else:
+                stc_data = np.abs((self._data / np.abs(self._data)).mean(
+                    axis=0))
         else:
             stc_data = self._data[int(self._epoch_idx.replace('Epoch ', ''))]
             if self._data.dtype == COMPLEX_DTYPE:
-                stc_data = (stc_data['re'] + 1j * stc_data['im']).astype(
-                    np.complex64)
-            stc_data = (stc_data * stc_data.conj()).real
+                stc_data = _int_complex_conj(stc_data)
+            elif self._is_complex:
+                stc_data = (stc_data * stc_data.conj()).real
         # do baseline correction
         if self._baseline != 'None' and self._epoch_idx != 'ITC':
+            if self._data.dtype in (COMPLEX_DTYPE, np.int16):
+                stc_mean = np.sum(stc_data // stc_data.shape[0], axis=0)
+            else:
+                stc_mean = stc_data.mean(axis=-1, keepdims=True)
             if self._baseline == 'Gain':
-                stc_data = stc_data / stc_data.mean(axis=-1, keepdims=True)
+                if self._data.dtype in (COMPLEX_DTYPE, np.int16):
+                    stc_data = stc_data // stc_mean
+                else:
+                    stc_data = stc_data / stc_mean
             else:
                 assert self._baseline == 'Subtraction'
-                stc_data = stc_data - stc_data.mean(axis=-1, keepdims=True)
-        # put back in integers for integer inputs
-        if self._data.dtype in (COMPLEX_DTYPE, np.int16):
-            stc_data = (stc_data / abs(stc_data).max() * (RANGE_VALUE - 1)
-                        ).astype(np.int16)
+                if self._data.dtype in (COMPLEX_DTYPE, np.int16):
+                    neg_mask = stc_data < (-RANGE_VALUE + stc_mean)
+                    pos_mask = stc_data > (RANGE_VALUE + 1 + stc_mean)
+                    stc_data -= stc_mean
+                    stc_data[neg_mask] = -RANGE_VALUE
+                    stc_data[pos_mask] = RANGE_VALUE - 1
+                else:
+                    stc_data -= stc_mean
         return stc_data
 
     def _pick_stc_vertex(self, stc_data):
@@ -328,8 +363,7 @@ class VolSourceEstimateViewer(SliceBrowser):
                 [f'Epoch {i}' for i in range(self._data.shape[0])])
             if self._is_complex:
                 self._epoch_selector.addItems(['Average Power'])
-                if self._data.shape[2] == 1:  # only allow ITC for scalar
-                    self._epoch_selector.addItems(['ITC'])
+                self._epoch_selector.addItems(['ITC'])
             else:
                 self._epoch_selector.addItems(['Average'])
             self._epoch_selector.setCurrentText(self._epoch_idx)
@@ -450,7 +484,10 @@ class VolSourceEstimateViewer(SliceBrowser):
         canvas, self._fig = _make_mpl_plot(
             dpi=96, tight=False, hide_axes=False)
         stc_data = self._pick_stc_epoch()
-        stc_data = np.linalg.norm(stc_data, axis=1)  # take magnitude
+        if self._epoch_idx == 'ITC':
+            stc_data = np.max(stc_data, axis=1)  # take maximum ITC
+        else:
+            stc_data = np.linalg.norm(stc_data, axis=1)  # take magnitude
         stc_data = self._pick_stc_vertex(stc_data)
 
         self._fig.axes[0].set_position([0.1, 0.25, 0.75, 0.6])
@@ -651,7 +688,10 @@ class VolSourceEstimateViewer(SliceBrowser):
     def go_to_max(self):
         """Go to the maximum intensity source vertex."""
         stc_data = self._pick_stc_epoch()
-        stc_data = np.linalg.norm(stc_data, axis=1)  # vector magnitude
+        if self._epoch_idx == 'ITC':
+            stc_data = np.max(stc_data, axis=1)  # take maximum ITC
+        else:
+            stc_data = np.linalg.norm(stc_data, axis=1)  # take magnitude
         stc_idx, f_idx, t_idx = \
             np.unravel_index(np.nanargmax(stc_data), stc_data.shape)
         if self._f_idx is not None:
@@ -665,7 +705,10 @@ class VolSourceEstimateViewer(SliceBrowser):
     def _update_data_plot(self, draw=False):
         """Update which coordinate's data is being shown."""
         stc_data = self._pick_stc_epoch()
-        stc_data = np.linalg.norm(stc_data, axis=1)  # vector magnitude
+        if self._epoch_idx == 'ITC':
+            stc_data = np.max(stc_data, axis=1)  # take maximum ITC
+        else:
+            stc_data = np.linalg.norm(stc_data, axis=1)  # take magnitude
         stc_data = self._pick_stc_vertex(stc_data)
         if self._f_idx is None:  # no freq data
             self._stc_plot.set_ydata(stc_data[0])
@@ -703,7 +746,10 @@ class VolSourceEstimateViewer(SliceBrowser):
     def _update_stc_image(self):
         """Update the stc image based on the time and frequency range."""
         stc_data = self._pick_stc_epoch()
-        stc_data_vol = np.linalg.norm(stc_data, axis=1)
+        if self._epoch_idx == 'ITC':
+            stc_data_vol = np.max(stc_data, axis=1)  # take maximum ITC
+        else:
+            stc_data_vol = np.linalg.norm(stc_data, axis=1)  # take magnitude
 
         self._stc_min = np.nanmin(stc_data_vol)
         self._stc_range = np.nanmax(stc_data_vol) - self._stc_min
