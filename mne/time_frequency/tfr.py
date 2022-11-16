@@ -1279,9 +1279,11 @@ class AverageTFR(_BaseTFR):
             Defaults to 0.1.
 
             .. versionadded:: 0.16.0
-        combine : 'mean' | 'rms' | None
+        combine : 'mean' | 'rms' | callable | None
             Type of aggregation to perform across selected channels. If
-            None, plot one figure per selected channel.
+            None, plot one figure per selected channel. If a function, it must
+            operate on an array of shape ``(n_channels, n_freqs, n_times)`` and
+            return an array of shape ``(n_freqs, n_times)``.
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list.
@@ -1469,8 +1471,11 @@ class AverageTFR(_BaseTFR):
             The scale of y (frequency) axis. 'linear' gives linear y axis,
             'log' leads to log-spaced y axis and 'auto' detects if frequencies
             are log-spaced and only then sets the y axis to 'log'.
-        combine : 'mean' | 'rms'
-            Type of aggregation to perform across selected channels.
+        combine : 'mean' | 'rms' | callable
+            Type of aggregation to perform across selected channels. If a
+            function, it must operate on an array of shape
+            ``(n_channels, n_freqs, n_times)`` and return an array of shape
+            ``(n_freqs, n_times)``.
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list, i.e., ``[]``.
