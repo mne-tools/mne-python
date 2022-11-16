@@ -1331,12 +1331,28 @@ class AverageTFR(_BaseTFR):
         n_picks = len(tfr.ch_names) if combine is None else 1
 
         # combine picks
-        if combine == 'mean':
-            data = data.mean(axis=0, keepdims=True)
-        elif combine == 'rms':
-            data = np.sqrt((data ** 2).mean(axis=0, keepdims=True))
-        elif combine is not None:
-            raise ValueError('combine must be None, mean or rms.')
+        _validate_type(combine, (None, str, "callable"))
+        if isinstance(combine, str):
+            _check_option("combine", combine, ("mean", "rms"))
+            if combine == 'mean':
+                data = data.mean(axis=0, keepdims=True)
+            elif combine == 'rms':
+                data = np.sqrt((data ** 2).mean(axis=0, keepdims=True))
+        elif combine is not None:  # callable
+            # It must operate on (n_channels, n_freqs, n_times) and return
+            # (n_freqs, n_times). Operates on a copy in-case 'combine' does
+            # some in-place operations.
+            data = combine(data.copy())
+            if (
+                not isinstance(data, np.ndarray)
+                or data.shape != tfr.data.shape[1:]
+            ):
+                raise RuntimeError(
+                    "A callable 'combine' must return a numpy array of shape "
+                    "(n_freqs, n_times)."
+                )
+            # keep initial dimensions
+            data = data.reshape(1, *data.shape)
 
         # figure overhead
         # set plot dimension
