@@ -1344,7 +1344,13 @@ class AverageTFR(_BaseTFR):
             # It must operate on (n_channels, n_freqs, n_times) and return
             # (n_freqs, n_times). Operates on a copy in-case 'combine' does
             # some in-place operations.
-            data = combine(data.copy())
+            try:
+                data = combine(data.copy())
+            except TypeError:
+                raise RuntimeError(
+                    "A callable 'combine' must operate on a single argument, "
+                    "a numpy array of shape (n_channels, n_freqs, n_times)."
+                )
             if (
                 not isinstance(data, np.ndarray)
                 or data.shape != tfr.data.shape[1:]
