@@ -85,9 +85,9 @@ def _int_complex_conj(data):
     # Pre-scale by the square root of the range so that the greatest
     # allowable value, when squared does not overflow.
     # Similarly, the divide by 2 allows for the greatest value in
-    # both real and imaginary to be added
-    return ((data['re'] // RANGE_SQRT // 2)**2 +
-            (data['im'] // RANGE_SQRT // 2)**2)
+    # both real and imaginary to be added without overflow
+    return (data['re'] // RANGE_SQRT)**2 // 2 + \
+           (data['im'] // RANGE_SQRT)**2 // 2
 
 
 class VolSourceEstimateViewer(SliceBrowser):
