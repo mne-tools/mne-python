@@ -23,7 +23,7 @@ Got any questions? Let us know on the `MNE Forum`_!
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Download for Linux
+            |cloud-arrow-down| |ensp| Download for Linux
 
         **Supported platforms:** Ubuntu 18.04 (Bionic Beaver) and newer
 
@@ -44,7 +44,7 @@ Got any questions? Let us know on the `MNE Forum`_!
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Download for macOS (Intel)
+            |cloud-arrow-down| |ensp| Download for macOS (Intel)
 
         **Supported platforms:**
         macOS 10.15 (Catalina) and newer
@@ -60,7 +60,7 @@ Got any questions? Let us know on the `MNE Forum`_!
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Download for macOS (Apple Silicon)
+            |cloud-arrow-down| |ensp| Download for macOS (Apple Silicon)
 
 
         **Supported platforms:**
@@ -76,7 +76,7 @@ Got any questions? Let us know on the `MNE Forum`_!
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Download for Windows
+            |cloud-arrow-down| |ensp| Download for Windows
 
         **Supported platforms:** Windows 10 and newer
 
@@ -102,7 +102,7 @@ bundles to the ``Applications`` folder on macOS.
 
 
 .. note::
-   |hourglass| |ensp| Depending on your system, it may take a little while for these
+   |hourglass-half| |ensp| Depending on your system, it may take a little while for these
    applications to start, especially on the very first run – which may take
    particularly long on Apple Silicon-based computers. Subsequent runs should
    usually be much faster.

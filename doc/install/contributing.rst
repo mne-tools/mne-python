@@ -14,7 +14,7 @@ There are lots of ways to contribute, such as:
 
 .. rst-class:: icon-bullets
 
-- |bug| Use the software, and when you find bugs, tell us about them! We can
+- |computer-mouse| Use the software, and when you find bugs, tell us about them! We can
   only fix the bugs we know about.
 - |discourse| Answer questions on `our user forum`_.
 - |comment| Tell us about parts of the documentation that you find confusing or
@@ -22,10 +22,10 @@ There are lots of ways to contribute, such as:
 - |hand-sparkles| Tell us about things you wish MNE-Python could do, or things
   it can do but you wish they were easier.
 - |universal-access| Improve the accessibility of our website.
-- |fix-bug| Fix bugs.
-- |remove-format| Fix mistakes in our function documentation strings.
-- |magic| Implement new features.
-- |pencil-alt| Improve existing tutorials or write new ones.
+- |bug-slash| Fix bugs.
+- |text-slash| Fix mistakes in our function documentation strings.
+- |wand-magic-sparkles| Implement new features.
+- |pencil| Improve existing tutorials or write new ones.
 - |python| Contribute to one of the many Python packages that MNE-Python
   depends on.
 
@@ -167,7 +167,7 @@ If you don't see this or something similar, you may not have ``make`` installed.
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Get make for Linux
+            |cloud-arrow-down| |ensp| Get make for Linux
 
     .. tab-item:: macOS
         :class-content: text-center
@@ -178,7 +178,7 @@ If you don't see this or something similar, you may not have ``make`` installed.
             :shadow:
             :class: font-weight-bold mt-3
 
-            |cloud-download-alt| |ensp| Get make for macOS
+            |cloud-arrow-down| |ensp| Get make for macOS
 
     .. tab-item:: Windows
 
