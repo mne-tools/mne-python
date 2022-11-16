@@ -1664,7 +1664,7 @@ class AverageTFR(_BaseTFR):
                 picks = _pair_grad_sensors(tfr.info, topomap_coords=False)
                 pos = _find_topomap_coords(
                     tfr.info, picks=picks[::2], sphere=sphere)
-                method = combine or 'rms'
+                method = combine if isinstance(combine, str) else "rms"
                 data, _ = _merge_ch_data(data[picks], ch_type, [],
                                          method=method)
                 del picks, method
