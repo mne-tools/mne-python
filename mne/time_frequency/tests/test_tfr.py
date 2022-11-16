@@ -606,10 +606,25 @@ def test_plot():
                     mask=np.ones(tfr.data.shape[1:], bool))
     assert len(figs) == 1
     assert figs[0].texts[0].get_text() == 'Mean of 2 sensors'
+    figs = tfr.plot(
+        picks,
+        title='auto',
+        colorbar=False,
+        combine=lambda x: x.median(axis=0),
+        mask=np.ones(tfr.data.shape[1:], bool),
+    )
+    assert len(figs) == 1
 
-    with pytest.raises(ValueError, match='combine must be None'):
+    with pytest.raises(ValueError, match="Invalid value for the 'combine'"):
         tfr.plot(picks, colorbar=False, combine='something',
                  mask=np.ones(tfr.data.shape[1:], bool))
+    with pytest.raises(RuntimeError, match="must operate on a single"):
+        tfr.plot(picks, combine=lambda x, y: x.mean(axis=0))
+    with pytest.raises(RuntimeError, match="of shape (n_freqs, n_times)."):
+        tfr.plot(picks, combine=lambda x: x.mean(axis=0, keepdims=True))
+    with pytest.raises(RuntimeError, match="of shape (n_freqs, n_times)."):
+        tfr.plot(picks, combine=lambda x: 101)
+
     plt.close('all')
 
     # test axes argument - first with list of axes
@@ -677,7 +692,7 @@ def test_plot_joint():
 
     topomap_args = {'res': 8, 'contours': 0, 'sensors': False}
 
-    for combine in ('mean', 'rms'):
+    for combine in ('mean', 'rms', lambda x: x.median(axis=0)):
         with catch_logging() as log:
             tfr.plot_joint(title='auto', colorbar=True,
                            combine=combine, topomap_args=topomap_args,
