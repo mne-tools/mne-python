@@ -1360,7 +1360,7 @@ class AverageTFR(_BaseTFR):
                     "(n_freqs, n_times)."
                 )
             # keep initial dimensions
-            data = data.reshape(1, *data.shape)
+            data = data[np.newaxis]
 
         # figure overhead
         # set plot dimension
@@ -1482,6 +1482,9 @@ class AverageTFR(_BaseTFR):
             function, it must operate on an array of shape
             ``(n_channels, n_freqs, n_times)`` and return an array of shape
             ``(n_freqs, n_times)``.
+
+            .. versionchanged:: 1.3
+               Added support for ``callable``.
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list, i.e., ``[]``.
