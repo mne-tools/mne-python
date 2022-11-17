@@ -362,8 +362,8 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         Dictionary of arguments to ``plot_epochs_image``. If None, doesn't pass
         any additional arguments. Defaults to None.
     psd_args : dict | None
-        Dictionary of arguments to ``psd_multitaper``. If None, doesn't pass
-        any additional arguments. Defaults to None.
+        Dictionary of arguments to :meth:`~mne.Epochs.compute_psd`. If
+        ``None``, doesn't pass any additional arguments. Defaults to ``None``.
     figsize : array-like, shape (2,) | None
         Allows to control size of the figure. If None, the figure size
         defaults to [7., 6.].

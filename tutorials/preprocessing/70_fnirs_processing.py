@@ -16,7 +16,6 @@ Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 
 # %%
 
-import os.path as op
 import numpy as np
 import matplotlib.pyplot as plt
 from itertools import compress
@@ -25,7 +24,7 @@ import mne
 
 
 fnirs_data_folder = mne.datasets.fnirs_motor.data_path()
-fnirs_cw_amplitude_dir = op.join(fnirs_data_folder, 'Participant-1')
+fnirs_cw_amplitude_dir = fnirs_data_folder / 'Participant-1'
 raw_intensity = mne.io.read_raw_nirx(fnirs_cw_amplitude_dir, verbose=True)
 raw_intensity.load_data()
 
@@ -58,7 +57,7 @@ raw_intensity.annotations.delete(unwanted)
 # optionally shown as orange dots. Source are optionally shown as red dots and
 # detectors as black.
 
-subjects_dir = op.join(mne.datasets.sample.data_path(), 'subjects')
+subjects_dir = mne.datasets.sample.data_path() / 'subjects'
 
 brain = mne.viz.Brain(
     'fsaverage', subjects_dir=subjects_dir, background='w', cortex='0.5')

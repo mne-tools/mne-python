@@ -15,8 +15,6 @@ First, we get the paths for the evoked data and the source time courses (stcs).
 
 # %%
 
-import os.path as op
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -140,7 +138,7 @@ stc.plot(src, subject='sample', subjects_dir=subjects_dir, mode='glass_brain')
 # You can also extract label time courses using volumetric atlases. Here we'll
 # use the built-in ``aparc+aseg.mgz``:
 
-fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aparc+aseg.mgz')
+fname_aseg = subjects_dir / 'sample' / 'mri' / 'aparc+aseg.mgz'
 label_names = mne.get_volume_labels_from_aseg(fname_aseg)
 label_tc = stc.extract_label_time_course(fname_aseg, src=src)
 
@@ -178,8 +176,9 @@ stc_back.plot(src, subjects_dir=subjects_dir, mode='glass_brain')
 # -----------------------
 # If we choose to use ``pick_ori='vector'`` in
 # :func:`apply_inverse <mne.minimum_norm.apply_inverse>`
-fname_inv = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-meg-inv.fif')
+fname_inv = (
+    data_path / 'MEG' / 'sample' / 'sample_audvis-meg-oct-6-meg-inv.fif'
+)
 inv = read_inverse_operator(fname_inv)
 stc = apply_inverse(evoked, inv, lambda2, 'dSPM', pick_ori='vector')
 brain = stc.plot(subject='sample', subjects_dir=subjects_dir,

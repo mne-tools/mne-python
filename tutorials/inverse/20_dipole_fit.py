@@ -14,7 +14,6 @@ For a comparison of fits between MNE-C and MNE-Python, see
 
 # %%
 
-import os.path as op
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -76,7 +75,7 @@ label = dip.to_volume_labels(fname_trans, subject=subject,
                              aseg='aparc.a2009s+aseg')[best_dip_idx]
 
 # Draw dipole position on MRI scan and add anatomical label from parcellation
-t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+t1_fname = subjects_dir / subject / 'mri' / 'T1.mgz'
 fig_T1 = plot_anat(t1_fname, cut_coords=mri_pos[0],
                    title=f'Dipole location: {label}')
 

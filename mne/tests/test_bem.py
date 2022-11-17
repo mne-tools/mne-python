@@ -382,7 +382,7 @@ def test_fit_sphere_to_headshape():
         d['r'] -= center
         d['r'] *= big_rad / rad
         d['r'] += center
-    with pytest.warns(RuntimeWarning, match='Estimated head size'):
+    with pytest.warns(RuntimeWarning, match='Estimated head radius'):
         r, oh, od = fit_sphere_to_headshape(info_big, dig_kinds=dig_kinds,
                                             units='mm')
     assert_allclose(oh, center * 1000, atol=1e-3)

@@ -24,7 +24,6 @@ across space and time.
 
 # %%
 
-import os.path as op
 import numpy as np
 from numpy.random import randn
 import matplotlib.pyplot as plt
@@ -243,7 +242,7 @@ stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
 #    Let's actually plot the first "time point" in the SourceEstimate, which
 #    shows all the clusters, weighted by duration
 
-subjects_dir = op.join(data_path, 'subjects')
+subjects_dir = data_path / 'subjects'
 # The brighter the color, the stronger the interaction between
 # stimulus modality and stimulus location
 

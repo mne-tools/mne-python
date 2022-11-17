@@ -36,8 +36,7 @@ from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
 from ..io.meas_info import Info, ContainsMixin
 from ..viz.utils import (figure_nobar, plt_show, _setup_cmap,
                          _connection_line, _prepare_joint_axes,
-                         _setup_vmin_vmax, _set_title_multiple_electrodes,
-                         _warn_deprecated_vmin_vmax)
+                         _setup_vmin_vmax, _set_title_multiple_electrodes)
 
 
 def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
@@ -158,7 +157,7 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
 
             # Get dpss tapers
             tapers, conc = dpss_windows(t.shape[0], time_bandwidth / 2.,
-                                        n_taps)
+                                        n_taps, sym=False)
 
             Wk = oscillation * tapers[m]
             if zero_mean:  # to make it zero mean
@@ -248,7 +247,12 @@ def _cwt_gen(X, Ws, *, fsize=0, mode="same", decim=1, use_fft=True):
             if use_fft:
                 ret = ifft(fft_x * fft_Ws[ii])[:n_times + W.size - 1]
             else:
-                ret = np.convolve(x, W, mode=mode)
+                # Work around multarray.correlate->OpenBLAS bug on ppc64le
+                # ret = np.correlate(x, W, mode=mode)
+                ret = (
+                    np.convolve(x, W.real, mode=mode) +
+                    1j * np.convolve(x, W.imag, mode=mode)
+                )
 
             # Center and decimate decomposition
             if mode == 'valid':
@@ -340,7 +344,8 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
         ``'phase'`` results in shape of ``out`` being ``(n_epochs, n_chans,
         n_tapers, n_freqs, n_times)``. If output is ``'avg_power_itc'``, the
         real values in the ``output`` contain average power' and the imaginary
-        values contain the ITC: ``out = avg_power + i * itc``.
+        values contain the inter-trial coherence:
+        ``out = avg_power + i * ITC``.
     """
     # Check data
     epoch_data = np.asarray(epoch_data)
@@ -579,8 +584,9 @@ def _time_frequency_loop(X, Ws, output, use_fft, mode, decim,
     return tfrs
 
 
+@fill_doc
 def cwt(X, Ws, use_fft=True, mode='same', decim=1):
-    """Compute time freq decomposition with continuous wavelet transform.
+    """Compute time-frequency decomposition with continuous wavelet transform.
 
     Parameters
     ----------
@@ -593,15 +599,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     mode : 'same' | 'valid' | 'full'
         Convention for convolution. 'full' is currently not implemented with
         ``use_fft=False``. Defaults to ``'same'``.
-    decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition.
-        If `int`, returns tfr[..., ::decim].
-        If `slice`, returns tfr[..., decim].
-
-        .. note:: Decimation may create aliasing artifacts.
-
-        Defaults to 1.
+    %(decim_tfr)s
 
     Returns
     -------
@@ -697,29 +695,21 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets.
 
     Same computation as `~mne.time_frequency.tfr_array_morlet`, but
-    operates on `~mne.Epochs` objects instead of
+    operates on `~mne.Epochs` or `~mne.Evoked` objects instead of
     :class:`NumPy arrays <numpy.ndarray>`.
 
     Parameters
     ----------
     inst : Epochs | Evoked
         The epochs or evoked object.
-    freqs : ndarray, shape (n_freqs,)
-        The frequencies in Hz.
-    n_cycles : float | ndarray, shape (n_freqs,)
-        The number of cycles globally or for each frequency.
+    %(freqs_tfr)s
+    %(n_cycles_tfr)s
     use_fft : bool, default False
         The fft based convolution or not.
     return_itc : bool, default True
         Return inter-trial coherence (ITC) as well as averaged power.
         Must be ``False`` for evoked data.
-    decim : int | slice, default 1
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition.
-        If `int`, returns tfr[..., ::decim].
-        If `slice`, returns tfr[..., decim].
-
-        .. note:: Decimation may create aliasing artifacts.
+    %(decim_tfr)s
     %(n_jobs)s
     picks : array-like of int | None, default None
         The indices of the channels to decompose. If None, all available
@@ -730,8 +720,8 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         .. versionadded:: 0.13.0
     %(average_tfr)s
     output : str
-        Can be "power" (default) or "complex". If "complex", then
-        average must be False.
+        Can be ``"power"`` (default) or ``"complex"``. If ``"complex"``, then
+        ``average`` must be ``False``.
 
         .. versionadded:: 0.15.0
     %(verbose)s
@@ -751,6 +741,10 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
     mne.time_frequency.tfr_array_multitaper
     mne.time_frequency.tfr_stockwell
     mne.time_frequency.tfr_array_stockwell
+
+    Notes
+    -----
+    %(temporal-window_tfr_notes)s
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
                       zero_mean=zero_mean, output=output)
@@ -773,32 +767,21 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
-    freqs : array-like of float, shape (n_freqs,)
-        The frequencies.
-    n_cycles : float | array of float, default 7.0
-        Number of cycles in the Morlet wavelet. Fixed number or one per
-        frequency.
+    %(freqs_tfr)s
+    %(n_cycles_tfr)s
     zero_mean : bool | False
         If True, make sure the wavelets have a mean of zero. default False.
     use_fft : bool
         Use the FFT for convolutions or not. default True.
-    decim : int | slice
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition. default 1
-        If `int`, returns tfr[..., ::decim].
-        If `slice`, returns tfr[..., decim].
+    %(decim_tfr)s
+    output : str, default ``'complex'``
 
-        .. note::
-            Decimation may create aliasing artifacts, yet decimation
-            is done after the convolutions.
-    output : str, default 'complex'
-
-        * 'complex' : single trial complex.
-        * 'power' : single trial power.
-        * 'phase' : single trial phase.
-        * 'avg_power' : average of single trial power.
-        * 'itc' : inter-trial coherence.
-        * 'avg_power_itc' : average of single trial power and inter-trial
+        * ``'complex'`` : single trial complex.
+        * ``'power'`` : single trial power.
+        * ``'phase'`` : single trial phase.
+        * ``'avg_power'`` : average of single trial power.
+        * ``'itc'`` : inter-trial coherence.
+        * ``'avg_power_itc'`` : average of single trial power and inter-trial
           coherence across trials.
     %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
@@ -808,11 +791,15 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
     Returns
     -------
     out : array
-        Time frequency transform of epoch_data. If output is in ['complex',
-        'phase', 'power'], then shape of out is (n_epochs, n_chans, n_freqs,
-        n_times), else it is (n_chans, n_freqs, n_times). If output is
-        'avg_power_itc', the real values code for 'avg_power' and the
-        imaginary values code for the 'itc': out = avg_power + i * itc.
+        Time frequency transform of epoch_data.
+
+        - if ``output in ('complex', 'phase', 'power')``, array of shape
+          ``(n_epochs, n_chans, n_freqs, n_times)``
+        - else, array of shape ``(n_chans, n_freqs, n_times)``
+
+        If ``output`` is ``'avg_power_itc'``, the real values in ``out``
+        contain the average power and the imaginary values contain the ITC:
+        :math:`out = power_{avg} + i * itc`.
 
     See Also
     --------
@@ -824,6 +811,8 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
 
     Notes
     -----
+    %(temporal-window_tfr_notes)s
+
     .. versionadded:: 0.14.0
     """
     return _compute_tfr(epoch_data=epoch_data, freqs=freqs,
@@ -836,41 +825,26 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
 @verbose
 def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
                    use_fft=True, return_itc=True, decim=1,
-                   n_jobs=None, picks=None, average=True, verbose=None):
+                   n_jobs=None, picks=None, average=True, *, verbose=None):
     """Compute Time-Frequency Representation (TFR) using DPSS tapers.
 
     Same computation as `~mne.time_frequency.tfr_array_multitaper`, but
-    operates on `~mne.Epochs` objects instead of
+    operates on `~mne.Epochs` or `~mne.Evoked` objects instead of
     :class:`NumPy arrays <numpy.ndarray>`.
 
     Parameters
     ----------
     inst : Epochs | Evoked
         The epochs or evoked object.
-    freqs : ndarray, shape (n_freqs,)
-        The frequencies in Hz.
-    n_cycles : float | ndarray, shape (n_freqs,)
-        The number of cycles globally or for each frequency.
-        The time-window length is thus T = n_cycles / freq.
-    time_bandwidth : float, (optional), default 4.0 (n_tapers=3)
-        Time x (Full) Bandwidth product. Should be >= 2.0.
-        Choose this along with n_cycles to get desired frequency resolution.
-        The number of good tapers (least leakage from far away frequencies)
-        is chosen automatically based on this to floor(time_bandwidth - 1).
-        E.g., With freq = 20 Hz and n_cycles = 10, we get time = 0.5 s.
-        If time_bandwidth = 4., then frequency smoothing is (4 / time) = 8 Hz.
+    %(freqs_tfr)s
+    %(n_cycles_tfr)s
+    %(time_bandwidth_tfr)s
     use_fft : bool, default True
         The fft based convolution or not.
     return_itc : bool, default True
         Return inter-trial coherence (ITC) as well as averaged (or
         single-trial) power.
-    decim : int | slice, default 1
-        To reduce memory usage, decimation factor after time-frequency
-        decomposition.
-        If `int`, returns tfr[..., ::decim].
-        If `slice`, returns tfr[..., decim].
-
-        .. note:: Decimation may create aliasing artifacts.
+    %(decim_tfr)s
     %(n_jobs)s
     %(picks_good_data)s
     %(average_tfr)s
@@ -894,6 +868,9 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
 
     Notes
     -----
+    %(temporal-window_tfr_notes)s
+    %(time_bandwidth_tfr_notes)s
+
     .. versionadded:: 0.9.0
     """
     tfr_params = dict(n_cycles=n_cycles, n_jobs=n_jobs, use_fft=use_fft,
@@ -1683,11 +1660,7 @@ class AverageTFR(_BaseTFR):
 
         # passing args to the topomap calls
         max_lim = max(vlims)
-        _vlim = topomap_args.get('vlim', (None, None))
-        # TODO v1.3: remove next 3 lines (vmin/vmax gone from plot_topomap)
-        _vmin = topomap_args.get('vmin', None)
-        _vmax = topomap_args.get('vmax', None)
-        _vlim = list(_warn_deprecated_vmin_vmax(_vlim, _vmin, _vmax))
+        _vlim = list(topomap_args.get('vlim', (None, None)))
         # fall back on ± max_lim
         for sign, index in zip((-1, 1), (0, 1)):
             if _vlim[index] is None:
@@ -1917,9 +1890,8 @@ class AverageTFR(_BaseTFR):
             mask=None, mask_params=None, contours=6, outlines='head',
             sphere=None, image_interp=_INTERPOLATION_DEFAULT,
             extrapolate=_EXTRAPOLATE_DEFAULT, border=_BORDER_DEFAULT, res=64,
-            size=2, cmap=None, vlim=(None, None), vmin=None, vmax=None,
-            cnorm=None, colorbar=True, cbar_fmt='%1.1e', unit=None, units=None,
-            axes=None, title=None, show=True):
+            size=2, cmap=None, vlim=(None, None), cnorm=None, colorbar=True,
+            cbar_fmt='%1.1e', units=None, axes=None, show=True):
         """Plot topographic maps of time-frequency intervals of TFR data.
 
         Parameters
@@ -1965,30 +1937,13 @@ class AverageTFR(_BaseTFR):
         %(vlim_plot_topomap)s
 
             .. versionadded:: 1.2
-        %(vmin_vmax_topomap)s
-
-            .. deprecated:: v1.2
-               The ``vmin`` and ``vmax`` parameters will be removed in version 1.3.
-               Please use the ``vlim`` parameter instead.
         %(cnorm)s
 
             .. versionadded:: 1.2
         %(colorbar_topomap)s
         %(cbar_fmt_topomap)s
-        unit : str | None
-            The unit of the channel type used for colorbar labels.
-
-            .. deprecated:: v1.2
-               The "unit" parameter is deprecated and will be removed in v1.3.
-               Use "units" instead.
         %(units_topomap)s
         %(axes_plot_topomap)s
-        %(title_none)s
-
-            .. deprecated:: v1.2
-               The ``title`` parameter will be removed in version 1.3. Please
-               use :meth:`fig.suptitle()<matplotlib.figure.Figure.suptitle>`
-               instead.
         %(show)s
 
         Returns
@@ -1997,15 +1952,18 @@ class AverageTFR(_BaseTFR):
             The figure containing the topography.
         """  # noqa: E501
         from ..viz import plot_tfr_topomap
+
+        # TODO units => unit
+
         return plot_tfr_topomap(
             self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, ch_type=ch_type,
             baseline=baseline, mode=mode, sensors=sensors,
             show_names=show_names, mask=mask, mask_params=mask_params,
             contours=contours, outlines=outlines, sphere=sphere,
             image_interp=image_interp, extrapolate=extrapolate, border=border,
-            res=res, size=size, cmap=cmap, vlim=vlim, vmin=vmin, vmax=vmax,
-            cnorm=cnorm, colorbar=colorbar, cbar_fmt=cbar_fmt, unit=unit,
-            axes=axes, title=title, show=show)
+            res=res, size=size, cmap=cmap, vlim=vlim, cnorm=cnorm,
+            colorbar=colorbar, cbar_fmt=cbar_fmt, units=units,
+            axes=axes, show=show)
 
     def _check_compat(self, tfr):
         """Check that self and tfr have the same time-frequency ranges."""

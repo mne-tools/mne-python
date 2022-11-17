@@ -471,7 +471,7 @@ class BaseSpectrum(ContainsMixin, UpdateChannelsMixin):
         %(fmin_fmax_psd)s
         return_freqs : bool
             Whether to return the frequency bin values for the requested
-            frequency range. Default is ``True``.
+            frequency range. Default is ``False``.
 
         Returns
         -------

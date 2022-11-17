@@ -36,7 +36,7 @@ from mne.io.proj import _has_eeg_average_ref_proj
 from mne.io.write import write_int, INT32_MAX, _get_split_size, write_float
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
-    bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
+    bootstrap, equalize_epoch_counts, combine_event_ids,
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements,
     _handle_event_repeated, make_metadata)
 from mne.utils import (requires_pandas, object_diff, use_log_level,
@@ -2671,10 +2671,6 @@ def test_add_channels_epochs():
     with epochs_meg2.info._unlock():
         epochs_meg2.info['chs'][1]['ch_name'] = epochs_meg2.info['ch_names'][0]
     epochs_meg2.info._update_redundant()
-    # There are other error modes, but let the other add_channels test validate
-    # them.
-    with pytest.warns(FutureWarning, match=r'epochs\.add_channels'):
-        add_channels_epochs([epochs_meg, epochs_eeg])
 
     # use delayed projection, add channel, ensure projectors match
     epochs_meg2 = make_epochs(picks=picks_meg, proj='delayed')
@@ -2783,6 +2779,8 @@ def test_concatenate_epochs():
     epochs2 = epochs.copy()
     epochs_list = [epochs, epochs2]
     epochs_conc = concatenate_epochs(epochs_list)
+    assert epochs_conc.preload
+    assert isinstance(epochs_conc, EpochsArray)
     assert_array_equal(
         epochs_conc.events[:, 0], np.unique(epochs_conc.events[:, 0]))
 

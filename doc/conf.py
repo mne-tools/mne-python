@@ -797,7 +797,7 @@ html_context = {
         dict(name='Technische Universität Ilmenau',
              img='Ilmenau-dark.svg',
              url='https://www.tu-ilmenau.de/',
-             size=xxl,\
+             size=xxl,
              klass='only-dark'),
         dict(name='Berkeley Institute for Data Science',
              img='BIDS.svg',
@@ -867,6 +867,10 @@ html_context = {
              url='https://www.research.chop.edu/imaging',
              size=xxl,
              klass='only-dark'),
+        dict(name='Donders Institute for Brain, Cognition and Behaviour at Radboud University',  # noqa E501
+             img='Donders.png',
+             url='https://www.ru.nl/donders/',
+             size=xl),
     ],
     # \u00AD is an optional hyphen (not rendered unless needed)
     # If these are changed, the Makefile should be updated, too
@@ -966,6 +970,8 @@ def reset_warnings(gallery_conf, fname):
         '`np.MachAr` is deprecated',
         # joblib hasn't updated to avoid distutils
         'distutils package is deprecated',
+        # jupyter
+        'Jupyter is migrating its paths to use standard',
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
@@ -1006,35 +1012,27 @@ reset_warnings(None, None)
 brand_icons = ('apple', 'linux', 'windows', 'discourse', 'python')
 fixed_width_icons = (
     # homepage:
-    'book', 'code-branch', 'newspaper', 'question-circle', 'quote-left',
+    'book', 'code-branch', 'newspaper', 'circle-question', 'quote-left',
     # contrib guide:
-    'bug', 'comment', 'hand-sparkles', 'magic', 'pencil-alt', 'remove-format',
-    'universal-access', 'discourse', 'python',
+    'bug-slash', 'comment', 'computer-mouse', 'hand-sparkles', 'pencil',
+    'text-slash', 'universal-access', 'wand-magic-sparkles',
+    'discourse', 'python',
 )
 other_icons = (
     'hand-paper', 'question', 'rocket', 'server', 'code', 'desktop',
-    'terminal', 'cloud-download-alt', 'wrench', 'hourglass'
+    'terminal', 'cloud-arrow-down', 'wrench', 'hourglass-half'
 )
-icons = dict()
+icon_class = dict()
 for icon in brand_icons + fixed_width_icons + other_icons:
-    font_class = ('fa-brands' if icon in brand_icons else 'fa-solid',)
-    icons[icon] = font_class + ('fa-fw',) if icon in fixed_width_icons else ()
+    icon_class[icon] = ('fa-brands',) if icon in brand_icons else ('fa-solid',)
+    icon_class[icon] += ('fa-fw',) if icon in fixed_width_icons else ()
 
 prolog = ''
-for icon, classes in icons.items():
+for icon, classes in icon_class.items():
     prolog += f'''
 .. |{icon}| raw:: html
 
-    <i class="{' '.join(classes)} fa-{icon}"></i>
-'''
-
-prolog += '''
-.. |fix-bug| raw:: html
-
-    <span class="fa-stack small-stack">
-        <i class="fas fa-bug fa-stack-1x"></i>
-        <i class="fas fa-ban fa-stack-2x"></i>
-    </span>
+    <i class="{' '.join(classes + (f'fa-{icon}',))}"></i>
 '''
 
 prolog += '''

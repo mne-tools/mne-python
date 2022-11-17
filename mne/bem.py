@@ -38,7 +38,7 @@ from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
                     _check_fname, has_nibabel, _check_option, path_like,
                     _on_missing, _import_h5io_funcs, _ensure_int,
-                    _path_like, _verbose_safe_false)
+                    _path_like, _verbose_safe_false, _check_head_radius)
 
 
 # ############################################################################
@@ -1096,12 +1096,8 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
     origin_device = apply_trans(head_to_dev, origin_head)
     logger.info('Fitted sphere radius:'.ljust(30) + '%0.1f mm'
                 % (radius * 1e3,))
-    # 99th percentile on Wikipedia for Giabella to back of head is 21.7cm,
-    # i.e. 108mm "radius", so let's go with 110mm
-    # en.wikipedia.org/wiki/Human_head#/media/File:HeadAnthropometry.JPG
-    if radius > 0.110:
-        warn('Estimated head size (%0.1f mm) exceeded 99th '
-             'percentile for adult head size' % (1e3 * radius,))
+    _check_head_radius(radius)
+
     # > 2 cm away from head center in X or Y is strange
     if np.linalg.norm(origin_head[:2]) > 0.02:
         warn('(X, Y) fit (%0.1f, %0.1f) more than 20 mm from '

@@ -58,7 +58,7 @@
 
 .. _Ben Beasley: https://github.com/musicinmybrain
 
-.. _Britta Westner: https://github.com/britta-wstnr
+.. _Britta Westner: https://britta-wstnr.github.io
 
 .. _Bruno Nicenboim: https://bnicenboim.github.io
 
@@ -321,6 +321,8 @@
 .. _Matthias Eberlein: https://github.com/MatthiasEb
 
 .. _Matti Toivonen: https://github.com/mattitoi
+
+.. _Mauricio Cespedes Tenorio: https://github.com/mcespedes99
 
 .. _Michiru Kaneda: https://github.com/rcmdnk
 
