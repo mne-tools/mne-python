@@ -1258,13 +1258,10 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                     if (sensor_colors.ndim not in (1, 2) or
                             sensor_colors.shape[0] != sens_loc.shape[0]):
                         raise ValueError(
-                            'The expected sensor_colors keyword is either'
-                            'expected to be a list of colors with'
-                            'length n_sensors), array-like of RGB(A)'
-                            'values (shape (n_sensors, 3) or'
-                            '(n_sensors, 4)) or None. The received'
-                            'sensor_colors parameter'
-                            f'is of shape {sensor_colors.shape}.'
+                            'sensor_colors should either be None or be '
+                            'array-like with shape (n_sensors,) or '
+                            '(n_sensors, 3) or (n_sensors, 4). Got shape '
+                            f'{sensor_colors.shape}.'
                         )
                     color = sensor_colors[idx_sen]
 
