@@ -1255,8 +1255,8 @@ def _plot_sensors(renderer, info, to_cf_t, picks, meg, eeg, fnirs,
                 actor_list = []
                 for idx_sen in range(sens_loc.shape[0]):
                     sensor_colors = np.asarray(sensor_colors)
-                    if sensor_colors.ndim not in (1, 2) or \
-                            sensor_colors.shape[0] != sens_loc.shape[0]:
+                    if (sensor_colors.ndim not in (1, 2) or
+                            sensor_colors.shape[0] != sens_loc.shape[0]):
                         raise ValueError(
                             'The expected sensor_colors keyword is either'
                             'expected to be a list of colors with'
