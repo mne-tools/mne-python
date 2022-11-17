@@ -2663,6 +2663,11 @@ pos : array, shape (n_channels, 2){}
 docdict['pos_topomap'] = _pos_topomap.format(' | instance of Info')
 docdict['pos_topomap_psd'] = _pos_topomap.format('')
 
+docdict['position'] = """
+position : int
+    The position for the progress bar.
+"""
+
 docdict['precompute'] = """
 precompute : bool | str
     Whether to load all data (not just the visible portion) into RAM and
