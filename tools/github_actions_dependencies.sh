@@ -19,7 +19,7 @@ else
 	# pip install $STD_ARGS --pre --only-binary ":all:" --no-deps --extra-index-url https://www.riverbankcomputing.com/pypi/simple PyQt6 PyQt6-sip PyQt6-Qt6
 	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps PyQt6 PyQt6-sip PyQt6-Qt6
 	echo "NumPy/SciPy/pandas etc."
-	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps  --default-timeout=60 -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy scipy scikit-learn dipy matplotlib pandas statsmodels
+	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps  --default-timeout=60 -i "https://pypi.anaconda.org/scipy-wheels-nightly/simple" numpy scipy scikit-learn dipy "matplotlib<3.7" pandas statsmodels
 	pip install $STD_ARGS --pre --only-binary ":all:" --no-deps -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" h5py
 	pip install $STD_ARGS --pre --only-binary ":all:" pillow
 	# We don't install Numba here because it forces an old NumPy version
