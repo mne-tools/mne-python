@@ -36,6 +36,7 @@ Please note that this tutorial requires 3D plotting dependencies (see
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import cm
 from mne_bids import BIDSPath, read_raw_bids
 
 import mne
@@ -117,7 +118,7 @@ del epochs
 
 fig = plot_alignment(raw.info, trans='fsaverage',
                      subject='fsaverage', subjects_dir=subjects_dir,
-                     surfaces=['pial'], coord_frame='head')
+                     surfaces=['pial'], coord_frame='head', sensor_colors=None)
 mne.viz.set_3d_view(fig, azimuth=0, elevation=70)
 
 xy, im = snapshot_brain_montage(fig, raw.info)
@@ -133,6 +134,31 @@ sfreq = 10
 gamma_power_t = evoked.copy().filter(30, 90).apply_hilbert(
     envelope=True).resample(sfreq)
 gamma_info = gamma_power_t.info
+
+# %%
+# Plot Gamma Power on cortical sensors
+# --------------------------------------
+#
+# We will now use evoked gamma power to plot on the cortical surface.
+# Therefore we extract the evoked time sample at 15s and normalize
+# it in a range of 0 to 1 in order to map it using a matplotlib colormap.
+
+gamma_power_at_15s = gamma_power_t.to_data_frame(index='time').loc[15]
+# scale values to be between 0 and 1, then map to colors
+gamma_power_at_15s -= gamma_power_at_15s.min()
+gamma_power_at_15s /= gamma_power_at_15s.max()
+rgba = cm.get_cmap("viridis")
+sensor_colors = gamma_power_at_15s.map(rgba).tolist()
+
+fig = plot_alignment(raw.info, trans='fsaverage',
+                     subject='fsaverage', subjects_dir=subjects_dir,
+                     surfaces=['pial'], coord_frame='head',
+                     sensor_colors=sensor_colors)
+
+mne.viz.set_3d_view(fig, azimuth=0, elevation=70)
+
+xy, im = snapshot_brain_montage(fig, raw.info)
+
 
 # %%
 # Visualize the time-evolution of the gamma power on the brain
