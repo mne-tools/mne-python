@@ -30,6 +30,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bugs in documentation of :func:`mne.time_frequency.tfr_array_multitaper` and related functions/methods (:gh:`11310` by :newcontrib:`Santeri Ruuskanen`)
 - Fix bug to be able to customize legends when using :meth:`mne.viz.Brain.add_volume_labels` (:gh:`11289` by :newcontrib:`Mauricio Cespedes Tenorio`)
 - Fix bug in documentation of :func:`mne.channels.make_dig_montage` (:gh:`11235` by :newcontrib:`Daniel Hasegan`)
 - Add support for bad channel handling in :func:`mne.set_bipolar_reference` (:gh:`11245` by `Moritz Gerster`_, :newcontrib:`Dinara Issagaliyeva`, :newcontrib:`Jennifer Behnke`, :newcontrib:`Hakimeh Aslsardroud`, and :newcontrib:`Pavel Navratil`)
