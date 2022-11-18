@@ -1284,6 +1284,9 @@ class AverageTFR(_BaseTFR):
             None, plot one figure per selected channel. If a function, it must
             operate on an array of shape ``(n_channels, n_freqs, n_times)`` and
             return an array of shape ``(n_freqs, n_times)``.
+            
+            .. versionchanged:: 1.3
+               Added support for ``callable``.
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
             bad channels are excluded. Defaults to an empty list.
