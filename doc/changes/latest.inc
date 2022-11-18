@@ -30,6 +30,7 @@ Enhancements
 
 Bugs
 ~~~~
+- Fix bugs in documentation of :func:`mne.time_frequency.tfr_array_multitaper` and related functions/methods (:gh:`11310` by :newcontrib:`Santeri Ruuskanen`)
 - Fix bug to be able to customize legends when using :meth:`mne.viz.Brain.add_volume_labels` (:gh:`11289` by :newcontrib:`Mauricio Cespedes Tenorio`)
 - Fix bug in documentation of :func:`mne.channels.make_dig_montage` (:gh:`11235` by :newcontrib:`Daniel Hasegan`)
 - Add support for bad channel handling in :func:`mne.set_bipolar_reference` (:gh:`11245` by `Moritz Gerster`_, :newcontrib:`Dinara Issagaliyeva`, :newcontrib:`Jennifer Behnke`, :newcontrib:`Hakimeh Aslsardroud`, and :newcontrib:`Pavel Navratil`)
@@ -47,6 +48,7 @@ Bugs
 - Fix channel selection edge-cases in `~mne.preprocessing.ICA.find_bads_muscle` (:gh:`11300` by `Mathieu Scheltienne`_)
 - Fix bug with :class:`mne.Report` with ``replace=True`` where the wrong content was replaced (:gh:`11318` by `Eric Larson`_)
 - Multitaper spectral estimation now uses periodic (rather than symmetric) taper windows. This also necessitated changing the default ``max_iter`` of our cross-spectral density functions from 150 to 250. (:gh:`11293` by `Daniel McCloy`_)
+- Fix :meth:`mne.Epochs.plot_image` and :func:`mne.viz.plot_epochs_image` when using EMG signals (:gh:`11322` by `Alex Gramfort`_)
 
 API changes
 ~~~~~~~~~~~
