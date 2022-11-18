@@ -1950,7 +1950,7 @@ def _check_cov(noise_cov, info):
 
 
 def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
-                                   all=False, ch_type=None):
+                                   all_=False, ch_type=None):
     """Prepare a title string for multiple electrodes."""
     if title is None:
         title = ", ".join(ch_names[:max_chans])
@@ -1959,15 +1959,15 @@ def _set_title_multiple_electrodes(title, combine, ch_names, max_chans=6,
             ch_type = "sensor"
         if len(ch_names) > 1:
             ch_type += "s"
-        if all is True and isinstance(combine, str):
-            combine = combine.capitalize()
-            title = "{} of {} {}".format(
-                combine, len(ch_names), ch_type)
+        combine = combine.capitalize() \
+            if isinstance(combine, str) else "Combination"
+        if all_:
+            title = f"{combine} of {len(ch_names)} {ch_type}"
         elif len(ch_names) > max_chans and combine != "gfp":
-            logger.info("More than {} channels, truncating title ...".format(
-                max_chans))
-            title += ", ...\n({} of {} {})".format(
-                combine, len(ch_names), ch_type,)
+            logger.info(
+                "More than %i channels, truncating title ...", max_chans
+            )
+            title += f", ...\n({combine} of {len(ch_names)} {ch_type})"
     return title
 
 
