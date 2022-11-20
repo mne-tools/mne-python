@@ -1060,14 +1060,16 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
 
     if 'time' in plot:
         ax_time_idx = np.where([p == 'time' for p in plot])[0][0]
-        axes[ax_time_idx].plot(t, h, color=color)
+        axes[ax_time_idx].plot(t, h, color=color, linewidth=1.2)
+        axes[ax_time_idx].grid(visible=True,which='major',axis='both',linewidth = 0.15)
         axes[ax_time_idx].set(xlim=t[[0, -1]], xlabel='Time (s)',
                               ylabel='Amplitude', title=title)
     # Magnitude
     if 'magnitude' in plot:
         ax_mag_idx = np.where([p == 'magnitude' for p in plot])[0][0]
         axes[ax_mag_idx].plot(f[sl], mag[sl], color=color,
-                              linewidth=2, zorder=4)
+                              linewidth=1.2, zorder=4)
+        axes[ax_mag_idx].grid(visible=True,which='major',axis='both',linewidth = 0.15)
         if freq is not None and gain is not None:
             plot_ideal_filter(freq, gain, axes[ax_mag_idx],
                               fscale=fscale, show=False)
@@ -1081,7 +1083,8 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     if 'delay' in plot:
         ax_delay_idx = np.where([p == 'delay' for p in plot])[0][0]
         axes[ax_delay_idx].plot(f[sl], gd[sl], color=color,
-                                linewidth=2, zorder=4)
+                                linewidth=1.2, zorder=4)
+        axes[ax_delay_idx].grid(visible=True,which='major',axis='both',linewidth = 0.15)
         # shade nulled regions
         for start, stop in zip(*_mask_to_onsets_offsets(mag <= -39.9)):
             axes[ax_delay_idx].axvspan(f[start], f[stop - 1],
@@ -1183,8 +1186,8 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
         axes = plt.subplots(1)[1]
     for transition in transitions:
         axes.axvspan(*transition, color=color, alpha=0.1)
-    axes.plot(my_freq, my_gain, color=color, linestyle=linestyle, alpha=0.5,
-              linewidth=4, zorder=3)
+    axes.plot(my_freq, my_gain, color=color, linestyle=linestyle, alpha=alpha,
+              linewidth=2, zorder=3)
     xticks, xticklabels = _filter_ticks(flim, fscale)
     axes.set(ylim=alim, xlabel='Frequency (Hz)', ylabel='Amplitude (dB)',
              xscale=fscale)
