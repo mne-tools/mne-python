@@ -7,7 +7,7 @@ from functools import partial
 import numpy as np
 
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _check_option
+from ..utils import logger, verbose, _check_option, _validate_type
 
 
 # adapted from SciPy
@@ -145,6 +145,10 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     .. footbibliography::
     """
     _check_option('average', average, (None, False, 'mean', 'median'))
+    _validate_type(n_fft, "int", "n_fft")
+    _validate_type(n_overlap, "int", "n_overlap")
+    if n_per_seg is not None:
+        _validate_type(n_per_seg, "int", "n_per_seg")
     if average is False:
         average = None
 
