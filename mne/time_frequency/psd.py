@@ -147,7 +147,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     _check_option('average', average, (None, False, 'mean', 'median'))
     _validate_type(n_fft, "int", "n_fft")
     _validate_type(n_overlap, "int", "n_overlap")
-    _validate_type(n_per_seg, ("int", None), "n_per_seg")
+    if n_per_seg is not None:
+        _validate_type(n_per_seg, "int", "n_per_seg")
     if average is False:
         average = None
 
