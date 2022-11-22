@@ -2431,6 +2431,7 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
     be initialized to the identity transform.
 
     Proper units of measure:
+
     * V: eeg, eog, seeg, dbs, emg, ecg, bio, ecog
     * T: mag
     * T/m: grad
