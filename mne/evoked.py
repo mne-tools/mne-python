@@ -905,6 +905,7 @@ class EvokedArray(Evoked):
     Notes
     -----
     Proper units of measure:
+
     * V: eeg, eog, seeg, dbs, emg, ecg, bio, ecog
     * T: mag
     * T/m: grad
