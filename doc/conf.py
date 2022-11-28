@@ -972,6 +972,8 @@ def reset_warnings(gallery_conf, fname):
         'distutils package is deprecated',
         # jupyter
         'Jupyter is migrating its paths to use standard',
+        # PyQt6
+        'Enum value .* is marked as deprecated',
     ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)

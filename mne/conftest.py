@@ -129,6 +129,8 @@ def pytest_configure(config):
     ignore:Jupyter is migrating its paths.*:DeprecationWarning
     # hopefully temporary https://github.com/matplotlib/matplotlib/pull/24455#issuecomment-1319318629
     ignore:The circles attribute was deprecated in Matplotlib.*:
+    # PyQt
+    ignore:Enum value .* is marked as deprecated:DeprecationWarning
     """.format(first_kind)  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
