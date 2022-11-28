@@ -323,8 +323,9 @@ def _qt_is_dark(widget):
 
 
 def _pixmap_to_ndarray(pixmap):
+    from qtpy.QtGui import QImage
     img = pixmap.toImage()
-    img = img.convertToFormat(img.Format_RGBA8888)
+    img = img.convertToFormat(QImage.Format.Format_RGBA8888)
     ptr = img.bits()
     count = img.height() * img.width() * 4
     if hasattr(ptr, 'setsize'):  # PyQt

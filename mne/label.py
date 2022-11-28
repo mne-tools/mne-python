@@ -2179,7 +2179,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
 
     # sort the labels by label name
     if sort:
-        labels = sorted(labels, key=lambda l: l.name)
+        labels = sorted(labels, key=lambda label: label.name)
 
     if len(labels) == 0:
         msg = 'No labels found.'

@@ -23,17 +23,18 @@ def _get_markers(fname):
 
     markers = dict()
     with open(fname) as fid:
-        consume(fid, lambda l: not l.startswith('NUMBER OF MARKERS:'))
+        consume(fid, lambda line: not line.startswith('NUMBER OF MARKERS:'))
         num_of_markers = int(fid.readline())
 
         for _ in range(num_of_markers):
-            consume(fid, lambda l: not l.startswith('NAME:'))
+            consume(fid, lambda line: not line.startswith('NAME:'))
             label = fid.readline().strip('\n')
 
-            consume(fid, lambda l: not l.startswith('NUMBER OF SAMPLES:'))
+            consume(
+                fid, lambda line: not line.startswith('NUMBER OF SAMPLES:'))
             n_markers = int(fid.readline())
 
-            consume(fid, lambda l: not l.startswith('LIST OF SAMPLES:'))
+            consume(fid, lambda line: not line.startswith('LIST OF SAMPLES:'))
             next(fid)  # skip the samples header
             markers[label] = [
                 parse_marker(next(fid)) for _ in range(n_markers)
