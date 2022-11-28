@@ -6,10 +6,9 @@ r"""
 Background information on filtering
 ===================================
 
-Here we give some background information on filtering in general, and
-how it is done in MNE-Python in particular.
-Recommended reading for practical applications of digital
-filter design can be found in
+Here we give some background information on filtering in general, and how it is
+done in MNE-Python in particular. Recommended reading for practical
+applications of digital filter design can be found in
 Parks & Burrus (1987) :footcite:`ParksBurrus1987`
 and Ifeachor & Jervis (2002) :footcite:`IfeachorJervis2002`,
 and for filtering in an M/EEG context we recommend reading
