@@ -492,6 +492,8 @@
 
 .. _Tommy Clausner: https://github.com/TommyClausner
 
+.. _Toomas Erik Anijärv: http://www.toomaserikanijarv.com/
+
 .. _Tristan Stenner: https://github.com/tstenner/
 
 .. _Tziona NessAiver: https://github.com/TzionaN
